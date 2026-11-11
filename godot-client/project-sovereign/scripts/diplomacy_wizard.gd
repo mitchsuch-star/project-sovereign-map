@@ -1124,6 +1124,11 @@ func _add_formable_row(row: Dictionary):
 
 	var name_color = Utils.COLOR_GOLD if available else Utils.COLOR_HEADER
 	var kind = "client state at the settlement table" if cls == "C" else "forms by conquest"
+	# DY-6 (DYNAMISM_SPEC.md §6): a crown names its throne — a marshal with
+	# laurels or a prince of the Imperial house may be seated on it.
+	var crown = str(row.get("crown", ""))
+	if crown != "" and crown != "null":
+		kind = "a crown (" + crown + ") at the settlement table"
 	var bbcode = Utils.bb_flag(flag, 16)
 	bbcode += "[color=#" + name_color + "][b]" + display_name + "[/b][/color]"
 	bbcode += " [color=#" + Utils.COLOR_INFO + "]— " + kind + "[/color]"

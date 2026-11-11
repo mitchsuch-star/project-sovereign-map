@@ -192,6 +192,9 @@ _THREAT_SOURCE_LABELS = {
     # It never targets the player's house, so it never reaches France's
     # panel; the row keeps the census whole and any reader honest.
     "alarm": "A conquest Europe remarked",
+    # DY-6 (DYNAMISM_SPEC.md §6): the dynamic family `crown:<tag>` — a crown
+    # erected at a table, a client of the carver's making.
+    "crown": "A crown erected at the table",
 }
 
 
@@ -217,6 +220,9 @@ def _threat_source_label(world, source_key: str) -> str:
     # DY-1: `alarm:<region>` reads as its family (§3c G1).
     if source_key.startswith("alarm:"):
         return _THREAT_SOURCE_LABELS["alarm"]
+    # DY-6: `crown:<tag>` — a crown erected alarms Europe like a capital taken.
+    if source_key.startswith("crown:"):
+        return _THREAT_SOURCE_LABELS["crown"]
     return _THREAT_SOURCE_LABELS.get(
         source_key, source_key.replace("_", " ").title())
 

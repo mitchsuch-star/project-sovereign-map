@@ -15431,3 +15431,99 @@ Guard and France's infantry regen reads 3,750 → 5,000 (×1.5 → ×2.0 on the 
 **The session landed (November 10, 2026; the pins `tests/test_dy5_the_tiger_ridden.py` `TestTheSessionDMeasure`).** ONE sweep, six arms (0 / LEVEE / DIAL / REVANCHE / LIBERATORS / ALL) on three surfaces (`tools/_t6b_measure.py`), run ALONE — the sweep, the pacing chain and the series in 22 minutes. **Arm 0 reproduces session C's records byte for byte on both surfaces** (the ten ambient signatures and the census totals; chain D's arm ALL on its keys); the France band holds at 28 / 27 / 26 on every arm; story classes **10 of 10 on every arm**; **the standing series does not move** (`tools/_t6b_series_arms_final.json`: every arm reproduces HEAD's `BASELINE_SERIES`; on that loop the levée's read bites 15 times with one beat, the dial, the revanche and the liberators' ease never bite, the letter's predicate holds 9 mornings on the shipped arm). **Said plainly: every DY-5 seam bites where its condition holds, and NOT ONE measured world-line moves on any surface in forty turns.** The ambient signature is byte-identical on every arm (no mover on any seed; the supply bill 1,196,439 on all six arms, the captures 251, the annexations 0, the beats 25): **the levée rises on every ambient seed** — the French people stir under the coalition's garrisons and the levée rises with them (historical, lodi and wagram at 25, ulm 26, eylau, friedland and rivoli 30, austerlitz 31, marengo 32, jena 33 — 6 to 18 home provinces under foreign arms) and Bavaria's on five seeds (marengo and rivoli 36, friedland and jena 39, ulm 41), standing down on marengo at 41 when Austria's peace hands Munich back; fifteen beats — but the idle France recruits nothing in forty turns (its pool fills at ×1.5 and nobody draws it) and Bavaria's levée comes with one to five turns left; the dial never bites (no client's people are awakened on any seed — a boot client's soil under its lord is home, and no court is vassalized later on the ambient board: the dial's road is the player's, Spain under Joseph, and the road arms' Pressburg by subjugation); the revanche never fires (no AI court reaches `risen`; the French people do, and the player is outside the poll); the liberators' cause never holds (the idle France holds no awakened people's soil); the letter never arrives (below). **The AI-France harness** (`tools/_t6b_chain_d_2026_11_10.json`): arm 0 reproduces session C's arm ALL on its keys; **Russia's levée rises on eight seeds** (wagram and historical at 26, rivoli 27, jena 28, austerlitz 29, ulm 30, marengo 38, lodi 39 — Estonia held, Russia at war, its people at `stirring`; never on eylau and friedland, where the march never reaches Estonia), **Austria's never** — the march takes every Austrian province by turn 10–11 and the court is erased: a people outlives its court (C3), a levée does not (`levee_holds` reads the active roster — an erased court has no depots; the explicit clause was added at the record and changes no record); and no world-line moves on any arm: Russia's last recruit falls between turns 9 and 17 on every seed, BEFORE its levée rises, so the cheaper draft prices nothing and the fuller pool is never drawn; France's bill 488,612, the ambient courts' captures 117, annexations 0 and `rank_promotions` 0 on every arm; the Estonia turns unchanged. **The pacing chain re-recorded** (the deck changed: `tools/_s14c_sweep_final.json`, `tools/_affairs_first_arrival.json`): **no arm's letter timings moved** — the world-lines did not — and the road record did not move (session C's `tools/_vp1_road_arms_final.json` stands; the reach record's `road_control` is re-read from the same rows); *The Nation in Arms* on the 53 measured arms: the premise never held on 32; held one to ten mornings on 17 and was NEVER due — the floor: the idle France's grip falls 95 → 67 → 22 across turns 25–32 as the coalition takes its home provinces, under the 74 the Decline's −3 needs; due on three (pending on `armb_scripted_ulm_soil` and `armC_09_rivoli`, released on `armB_ulm`); and **ARRIVED on the scripted France alone** (`armb_scripted_historical`: due 36, arrived T38 at grip 100 — "The line will hold: Authority 100 → 97" — lapsed on its decline at 39). **The raised gate's three clauses against the record:** story classes 10 of 10 (MET); `rank_promotions` 0 on every seed (UNMET); the roster the Kingdom of Italy alone on all ten seeds, no formation (UNMET) — Tier 8's to earn, the reading at session F as §7 rules.
 
 **The levers for the user, reported and none pre-recommended (§0):** (a) **the letter's floor** — an authority-alone Decline keeps `"floor"` by the validator's own rule, and an invaded France is a bled France: a second price on the Decline (the one honest road to `"clamp"` — the people's temper RAISED by the refusal, which would re-open DY-4's Accept-only rule for the `awakening` op) would bring the letter to the bled board; (b) **the levée's reach** — the AI courts recruit by their rungs' own gates (the treasury, the force limit, the reserve), which a cheaper draft never changed in the window: a rung that READS the levée (recruit more while it holds — the 1813 surge as behaviour, not a price) is content's to earn; (c) **the dial's ambient road** — no AI court vassalizes another on the ambient board, so the dial bites on the player's road and the AI's subjugation terms alone; (d) the bands' pace, the ulcer's teeth and the letters' seat at the desk stand from session C.
+
+## §205 Tier 8, session E — Crowns & Recognition, first half: the gate (§6a) and DY-6 the crown erected and the marshal king (November 10, 2026)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session E; §6's DY-6 built whole; the Tier-8 gate record §6a ruled under the
+user's delegation — "code commit and push what it tells you is next"; the landing record §6b). Three rules behind
+their own zero-arg seams (`tests/_t3_seams.py` rows T8-CROWN, T8-KING, T8-AI — the recorded boards' hold-list folds
+them), ONE sweep with four arms on three surfaces (`tools/_t8_measure.py`: 0 / CROWN / AI / ALL), the standing
+series re-read (`tools/_t8_series_arms.py`), ONE commit. Tests: `tests/test_dy6_the_crown_erected.py`.
+
+**The crown** (seam `crowns.a_crown_is_erected`; `backend/game_logic/crowns.py`). A crown is a `formable_nations`
+template that carries a `crown` sub-block — ONE catalogue (Q1): `title` the royal style, `ai_carvers` the houses
+whose AI may erect it, `since` the authoring slice; the first province is the seat. Six authored for 1805
+(`KingdomOfNaples`, `Westphalia`, `Hungary`, `Illyria`, `Finland`, `DuchyOfMilan`; the four plain carves stay plain —
+Warsaw's duke was the King of Saxony), validator-clamped (`_validate_crown_block`); the shipped file validates at its eleven warnings. The crown rides the
+existing `create_client` term end to end — the guided row, the add verb, `evaluate_create_client_eligibility`, the
+settlement applier, IGR-D's bilateral carry (the treaty's extras allowlist gained `crown` / `king` / `king_kind` /
+`king_display`; `CANONICAL_CLAUSE_TYPES` admits them) — and adds its teeth at the ONE apply site
+(`formations.apply_create_client_clause` → `create_client_nation(clause=…)` → `crowns.on_crown_erected`, after the
+soil moves and BEFORE the Proclamation so the beat speaks them): the title on the client's row (`vassals[tag]["crown"]`)
+and `recognized_by` (empty — DY-7's field); **the Alarm** — `ALARM_CAPITAL` 12 on the carver's house slot through
+`coalition.add_threat` (`crown:<tag>`), the player's included (the coalition's threat; the slot caps at 100); **the
+beat** — the `nation_formed` log row gains `crown`, `king`, `king_kind`, `reign` (no new log type), the dispatch line
+is `crown_erected` ("… {nation} is erected upon the map, a client of {sponsor}; Murat takes the crown as King of
+Naples." / "… a regency holds the crown (King of Naples)."), HIGH, a `courts_treaties` row of 95; the Proclamation
+card's `terms` carry the crown lines (`crowns.card_lines`); the one-liner "Kingdom of Naples is proclaimed — Murat
+takes the crown as King of Naples"; the notification's message. **The web (the C3 sibling fix, every carve):**
+`awakening.adopt_court` writes the new court's boot house as its carver once (`setdefault`) — its own soil under
+him is home; the carved PEOPLE keep their boot house and count the crown's soil foreign under the carver's house
+(the Neapolitans stir under Murat as under any garrison). **The Formables page** names the throne (`crown` on each
+row; the wizard: "— a crown (King of Naples) at the settlement table"). **Seam down:** the crown templates are
+STRUCK from the catalogue at load (`crowns.strike_crowns` in `from_dict`, `since: "DY-6"` the mark; an older
+template that later gained a block would stay, its block struck — none does today) and the `crowns` block is not installed — the catalogue session D left, byte for
+byte.
+
+**The marshal king** (seam `crowns.a_marshal_may_reign`; Q2 — both in the pool). `king_candidates(world, carver)`:
+the carver's marshals with laurels (`marshal_may_be_crowned` — glory ≥ `KING_MIN_GLORY` 3 in the window, or
+`glory_crowned`; never the sovereign, a prisoner or a client's general), the ladder's order, then the available
+princes (`crowns.princes` of the store — the Emperor's house alone; `reigning_prince_of` derives who reigns from the
+vassal rows, a prince reigns in one place at a time). **The table:** a crown's guided row carries `crown`,
+`king_options` (`""` first — the row's own click, a regency) and `king_labels` ("Murat — Marshal, glory 5; his corps
+(22,000) goes with him" / "Joseph Bonaparte — a prince of the Imperial house; no sword lost, loyalty 50") and
+`terms_display` "a crown: King of Naples — who shall reign? ▾" (`settlement_staging._crown_row_extras`); the confirm
+popup's picker (`proposal_confirm_popup.gd`, the `vassal_options` idiom — `king_options` / `king_labels`, the pick
+sends `king`); the add verb (`settlement_actions`, the `create_client` arm) stamps a lawful king through
+`crowns.stamp_king_on_clause` (`resolve_king`: "Soult has not the laurels for a crown, Sire — a throne wants a man the
+army celebrates." / "Joseph Bonaparte already reigns in Kingdom of Naples, Sire." / the sovereign refused), the
+clause gaining `crown`, `king`, `king_kind`, `king_display`; the table's words "the erection of Kingdom of Naples
+under Murat" (`_demand_clause_label`, `display_names`, `settlement_presentation`). **The enthronement**
+(`crowns.enthrone` inside `on_crown_erected`): a MARSHAL — the removal's hygiene (`dismiss_reward_notices`,
+`dismiss_marshal_ask`, the orders aimed at him cleared, his own order, `glory_crowned`, `jealous_of`,
+`original_nation`), THE nation setter (`doctrines.set_marshal_nation` → the client's colours, his corps with him),
+his location the crown's seat (`nation_capitals[tag]`); the row's `loyalty` = his trust clamped to
+`KING_LOYALTY_BOUNDS` (30, 95); the row's `king` / `king_kind: marshal` / `king_display` / `crowned_turn`; he is off
+the player's ladder (`get_nation_ladder` reads nation), the Management screen and the petitions, and lives on under
+the client's AI. A PRINCE — the row's `loyalty` `PRINCE_LOYALTY` 50, `king_kind: prince`, no roster change. **The
+passed-over** (`_aggrieve`): every OTHER marshal with laurels takes `modify_trust(KING_PASSED_OVER_TRUST)` −5 and,
+for a peer's crown, the ladder's own grievance toward the king (`jealousy.apply_jealousy` forced, delta 3 — "Berthier
+reports that Ney appears envious of Murat's laurels", the event stashed on `_pending_jealousy_turn_events` for the
+morning); for a prince's crown `PRINCE_PASSED_OVER_TRUST` −8 and no envy (a prince is no object of it). The card:
+"Murat takes the crown as King of Naples; his corps (22,000) goes with him and the army loses its man" / "its
+loyalty is his trust (75)" / "Ney hears of the crown with ill grace" / "Joseph Bonaparte reigns as King of Naples; no
+sword is lost (loyalty 50)" / "a regency holds the crown of Naples". **Seam down:** no king offered, a `king` on a
+clause ignored — a regency.
+
+**The AI's road** (seam `settlement_third_party.a_victor_erects_a_crown`; Q3). `erect_a_crown_in_the_terms(world,
+war, winner, loser, terms)`: the winner's cessions of the loser's soil re-cut around the first authored crown whose
+`ai_carvers` name the winner, every province the loser's and all among this treaty's cessions, eligible by THE
+predicate (`evaluate_create_client_eligibility` — the held-by-bloc, the starting controller, the sides, the
+total-annexation score); those cessions become ONE `create_client` clause (`from` the loser, `to` the winner, the
+`tag`, the `provinces`, the `client_display_name`, the `crown`; no king — a regency). Both aim roads:
+`attempt_aim_held_settlement` (after `held_aim_terms`, before the allies' gift) and the pair exits' lock through
+`_cede_the_held_aim` (which now returns the applied `create_client` too; `_ceded_regions` reads
+`cession_shaped_regions`, so the crown's soil is never handed back by T3-6's evacuation). The validator and the
+scorer run as T3-4 wrote them (a crown prices 0.15 harsher than its cessions); `_consequence_line` speaks it
+("Russia erects Grand Duchy of Finland out of Finland. Russia is now free to look elsewhere."); the Alarm writes at
+the erection as for the player. **Seam down:** the cessions as T3-4 wrote them.
+
+**Recognition** (Q4 — the shape; DY-7 the teeth). The scenario's `crowns` block
+(`{"princes": [...], "recognition": {"legitimists": ["Austria", "Russia", "Britain"], "until": "beaten"}}`) arms
+`world.moments["crowns"]` (`crowns.install` beside the moments line on `from_dict`; `save_manager._backfill_crowns`
+for a pre-Tier-8 save, carried across `_backfill_moments`' rebuild with its siblings; nothing on the bare flag world,
+the tutorials, the legacy rollback; `WorldState.to_dict` gains no line — 497 of 500 stands). `withholding_courts`
+reads the legitimists active, not the carver's house, not yet in `recognized_by`; the card says "Austria, Russia and
+Britain withhold recognition of the crown" (Russia's Finland: "Austria and Britain withhold …"). The teeth are row
+DY-7's (session F): the table's malus, trade halved, the dial −3 on awakened soil, the Congress's grant, the beats.
+
+**The seams and the pins.** `_validate_crowns` (the block: `princes` ≤ 6 distinct names ≤ 40, `recognition.
+legitimists` known nations WARN, `until` ∈ {beaten}, unknown keys ERROR) and `_validate_crown_block`;
+`tests/_t3_seams.py` rows T8-CROWN / T8-KING / T8-AI; the measure's census gains `crowns` (turn, tag, title, carver,
+king) on both chains and `formations` on the harness; two pins re-seated with cause (`test_nation_agendas_formables`
+— the catalogue census, 4 → 10, the Formables page 6 → 12; `test_dy2_the_questions_of_europe` — the gift's two
+pins hold the crown's seam down: their crafted board IS the AI road's live case).
+
+**The session landed (the record `SYSTEMS_REFERENCE.md` §205; the pins `TestTheSessionEMeasure`).** ONE sweep, four arms (0 / CROWN / AI / ALL) on three surfaces (`tools/_t8_measure.py`), the standing series (`tools/_t8_series_arms.py`), run alone. **Arm 0 reproduces session D byte for byte on both surfaces** (the ten ambient signatures and the census's every total; the harness on session D's keys), the band 28 / 27 / 26 and story classes 10 of 10 on EVERY arm, the series unmoved on every arm with the crown's and the AI road's seams READ on the rig (2 and 1 a run) and no carve on it. **Said plainly: the seams are reached on every arm and NO crown is erected on any measured arm in forty turns** — the ambient board's AI peaces are Prussia's over Hanover (no crown authored for Prussia: 1806 annexed it) and the crowns the courts may erect (Russia's Finland, Austria's Milan) wait on wars the idle France never frees them to fight; the harness France's wars are the player's, which the AI–AI road never runs; the scripted France authors no carve. The harness record gains the `formations` column (the Class T dreams the march lets form — Holland's on four seeds, the Kingdom of Italy's on six — on every arm alike; none a crown). **The crown's proof is the test file's crafted boards:** Naples under Murat end to end through the guided terms (the row offers the throne, the verb stamps the king, the applier re-homes him with his 22,000, the loyalty his trust 75, Ney envious and −5, the Alarm +12, the Neapolitans counting the crown's soil foreign, the beat and the card), Joseph's Naples (loyalty 50, Murat −8), the regency, and Finland under Russia on both AI roads (the aim peace and the lock). **The raised gate:** clause 1 MET (10 of 10); clauses 2 and 3 UNMET (no crown taken; the Kingdom of Italy alone on all ten, no ambient formation) — session F's reading (DY-7, Tier 8's close, Tier 7 evaluated), then the user's with no default (§7).
+
+**Levers for the user, none pre-recommended (§0):** (a) **the AI road's ambient silence** — a crown for Prussia's Hanover peace (ahistorical; or a North German client) would put a formation on every seed and vary nothing; the honest road to clause 3 is a court whose war the idle France does not own — the content levers of §4a (a second great-power war) carry it; (b) **the marshal king's corps** — the whole corps goes with him (the Army of Naples); a royal guard of a fixed size with the rest returned to the depots is one line; (c) **the prince's loyalty** 50 against a king's trust — the brothers as a cheaper, shakier crown; (d) session D's three and session C's five stand.

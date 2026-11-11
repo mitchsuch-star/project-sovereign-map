@@ -107,6 +107,25 @@ prior tree's reading byte for byte.
           seat too, the Congress reading the historic capital; down:
           session A's boundary (2).
 
+    T8-CROWN `crowns.a_crown_is_erected` — DY-6 (DYNAMISM_SPEC.md §6): the
+          crown block's teeth — the crown templates in the catalogue, the
+          title and the recognition field on the client's row, the Alarm
+          (a capital's 12 on the carver's house), the beat's crown; down:
+          the crown templates are struck from the catalogue at load and
+          the `crowns` block is not installed (NA-6c's four plain carves).
+
+    T8-KING `crowns.a_marshal_may_reign` — DY-6: the marshal king and the
+          prince (the picker at the table, the king on the clause, the
+          marshal re-homed with his corps, the loyalty seed from his
+          trust, the passed-over marshals' grievance); down: no king is
+          offered and a `king` on a clause is ignored — a regency.
+
+    T8-AI `settlement_third_party.a_victor_erects_a_crown` — DY-6: the
+          victor's AI erects an authored crown out of the soil its aim
+          peace cedes (one `create_client` clause in place of those
+          cessions, a regency, the Alarm); down: the cessions as T3-4 wrote
+          them.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -186,6 +205,17 @@ T3_SEAMS_BY_ROW = {
     ],
     "T6-ARMS": [
         "backend.game_logic.awakening:the_nation_writes=False",
+    ],
+    # Tier 8, session E (DY-6, November 10, 2026): Crowns & Recognition's
+    # first half — the crown erected, the marshal king, the AI's road.
+    "T8-CROWN": [
+        "backend.game_logic.crowns:a_crown_is_erected=False",
+    ],
+    "T8-KING": [
+        "backend.game_logic.crowns:a_marshal_may_reign=False",
+    ],
+    "T8-AI": [
+        "backend.game_logic.settlement_third_party:a_victor_erects_a_crown=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

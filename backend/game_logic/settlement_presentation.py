@@ -549,9 +549,11 @@ def _term_display(term: Mapping[str, Any]) -> str:
     # carve would render "Client state erected: France to Britain" — the
     # client and its soil, the only things that matter, invisible.
     if ttype == "create_client":
+        from backend.game_logic.crowns import king_clause_words
         client = str(term.get("client_display_name") or term.get("tag") or "")
         provinces = [str(p) for p in (term.get("provinces") or []) if p]
         detail = f"{client} ({', '.join(provinces)})" if provinces else client
+        detail += king_clause_words(term)   # DY-6: " under Murat"
         if detail and t_from and t_to:
             return f"{base}: {t_to} erects {detail} out of {t_from}"
         if detail:

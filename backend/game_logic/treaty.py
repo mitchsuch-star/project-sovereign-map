@@ -321,6 +321,8 @@ def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> L
             # warning; `client_display_name` keeps the confirm popup
             # from printing the raw template id at the player.
             "tag", "provinces", "client_display_name",
+            # DY-6: a crown's throne rides the bilateral carry too.
+            "crown", "king", "king_kind", "king_display",
             # PC-R3: a dictated stream runs `turns` turns and holds its
             # `surety_regions` until the last payment lands.
             "turns", "surety_regions",

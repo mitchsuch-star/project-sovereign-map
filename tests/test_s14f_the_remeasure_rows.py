@@ -5343,6 +5343,14 @@ class TestS14EX55:
 _r15_scenario = (Path(__file__).resolve().parents[1] / "godot-client"
                  / "project-sovereign" / "assets" / "maps" / "europe_1805.json")
 
+# DY-6 (DYNAMISM_SPEC.md §6, November 10, 2026): two of the authored crowns are
+# Austria's — the Kingdom of Hungary (Hungary) and the Illyrian Provinces
+# (Carniola, Croatia) — and France is at war with Austria at the boot, so their
+# PROSPECTS (S14G-31: a first landing's pointer, the war running and nothing
+# held) stamp those three panels from the first morning beside Ireland's two
+# shores. The pins below enumerated the boot's prospects; re-seated with cause.
+_R15_CROWN_PROSPECTS = ["Hungary", "Illyria"]
+_R15_CROWN_SHORES = {"Hungary", "Carniola", "Croatia"}
 _r15_ireland = ("Ireland needs Ulster too — it lies a march from Munster; "
                 "carve at a table while the war with Britain runs")
 
@@ -5425,8 +5433,9 @@ class TestS14E15:
         assert road["held"] == ["Munster"] and road["missing"] == ["Ulster"]
         assert road["court"] == "Britain"
         assert road["text"] == _r15_ireland
-        assert notes["by_province"] == {"Munster": _r15_ireland,
-                                        "Ulster": _r15_ireland}
+        assert {p: t for p, t in notes["by_province"].items() if p not in _R15_CROWN_SHORES} == {
+            "Munster": _r15_ireland, "Ulster": _r15_ireland}
+        assert set(notes["by_province"]) == {"Munster", "Ulster"} | _R15_CROWN_SHORES   # DY-6
         assert notes["by_court"]["Britain"][0]["tag"] == "Ireland"
         assert notes["completing"] == ["Ulster"]
 
@@ -5477,15 +5486,15 @@ class TestS14E15:
         # BEGUN road: the begun-road sinks, the war card and the peace lines
         # add nothing.
         boot = road_notes(w)
-        assert [r["tag"] for r in boot["prospects"]] == ["Ireland"]
+        assert [r["tag"] for r in boot["prospects"]] == ["Ireland"] + _R15_CROWN_PROSPECTS   # DY-6
         assert {k: v for k, v in boot.items() if k not in ("prospects", "by_province")} == {
             k: v for k, v in empty.items() if k != "by_province"}
-        assert set(boot["by_province"]) == {"Munster", "Ulster"}
+        assert set(boot["by_province"]) == {"Munster", "Ulster"} | _R15_CROWN_SHORES
         assert road_note_for(w, "Munster").startswith("Munster is half of the Ireland carve")
         assert road_peace_lines(w, ["Britain"], [{"type": "peace"}]) == []
         assert _held_line(w, "France", ["Britain"]) == ""
         assert {n for n, row in _r15_summary(w)["map_data"].items()
-                if "road_note" in row} == {"Munster", "Ulster"}
+                if "road_note" in row} == {"Munster", "Ulster"} | _R15_CROWN_SHORES
         assert any("Ireland carve" in n for n in
                    naval.build_admiralty_report(w).get("expedition_notes", []))
         # both provinces held at war: the carve is AVAILABLE — the table's
@@ -5495,7 +5504,7 @@ class TestS14E15:
         # road (S14E-X, the sweep's whole-held sibling; `TestS14EX61`)
         _r15_hold(w, "Munster", "Ulster")
         ready = road_notes(w)
-        assert ready["by_province"] == {} and ready["completing"] == []
+        assert set(ready["by_province"]) == _R15_CROWN_SHORES and ready["completing"] == []
         assert [r["state"] for r in ready["roads"]] == ["ready"]
         assert road_note_for(w, "Munster") == ""
         # nothing held but the war running: not begun
@@ -5503,7 +5512,7 @@ class TestS14E15:
         again = road_notes(w)
         assert {k: v for k, v in again.items() if k not in ("prospects", "by_province")} == {
             k: v for k, v in empty.items() if k != "by_province"}
-        assert [r["tag"] for r in again["prospects"]] == ["Ireland"]   # S14G-31: a prospect, not a road
+        assert [r["tag"] for r in again["prospects"]] == ["Ireland"] + _R15_CROWN_PROSPECTS   # S14G-31: a prospect, not a road
 
     def test_the_notes_are_the_players_alone(self, _r15_world):
         """An AI court holding Munster at war with Britain begins no road of
@@ -5600,7 +5609,7 @@ class TestS14E15:
         assert data["Munster"]["road_note"] == _r15_ireland
         assert data["Ulster"]["road_note"] == _r15_ireland
         assert "road_note" not in data["Paris"]
-        assert sum(1 for row in data.values() if "road_note" in row) == 2
+        assert sum(1 for row in data.values() if "road_note" in row) == 2 + len(_R15_CROWN_SHORES)
 
     def test_the_response_the_client_reads_carries_the_note(self, _r15_world):
         """The wire: `/command` -> `game_state.map_data` (what the region
@@ -5773,8 +5782,11 @@ class TestS14E15:
         if start is None:
             from backend.models.region import get_starting_controllers
             start = get_starting_controllers()
+        # DY-6: not a province of an Austrian crown (Carniola was the second
+        # Austrian province by registry order, and its panel now carries the
+        # Illyrian Provinces' prospect — `by_province` keeps the first writer).
         austrian = [p for p, c in start.items()
-                    if c == "Austria" and p in w.regions][:2]
+                    if c == "Austria" and p in w.regions and p not in _R15_CROWN_SHORES][:2]
         assert len(austrian) == 2
         w.formable_nations["Confederation"] = {
             "display_name": "Confederation of the Rhine", "flag": "Confederation",
@@ -25058,8 +25070,10 @@ def _rd9_begun(notes: dict) -> dict:
 def _rd9_stamped(world) -> set:
     """The provinces whose panel payload carries a `road_note`, less the
     Ireland prospect's two shores (S14G-31)."""
+    # DY-6: less the two Austrian crowns' three shores (their prospects stamp
+    # the boot — France is at war with Austria), `_R15_CROWN_SHORES`.
     return {name for name, row in _rd9_summary(world)["map_data"].items()
-            if "road_note" in row} - {"Munster", "Ulster"}
+            if "road_note" in row} - {"Munster", "Ulster"} - _R15_CROWN_SHORES
 
 
 def _rd9_summary(world) -> dict:

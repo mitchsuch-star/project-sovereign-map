@@ -911,6 +911,30 @@ def _guided_suggestion(
     return suggestion
 
 
+def _crown_row_extras(world: Any, template: Any, carver: str,
+                      available: bool) -> Dict[str, Any]:
+    """DY-6 (DYNAMISM_SPEC.md §6): a CROWN's guided row names its throne and
+    offers the king picker — `king_options` / `king_labels`, the
+    `vassal_options` idiom (the row's own click is the first option, a
+    regency; the ▾ picks a marshal with laurels or a prince). {} for a plain
+    formable, so NA-6c's rows are byte-identical."""
+    from backend.game_logic.crowns import crown_title, king_candidates
+    title = crown_title(template)
+    if not title:
+        return {}
+    extras: Dict[str, Any] = {"crown": title}
+    if available:
+        candidates = king_candidates(world, carver)
+        if candidates:
+            extras["king_options"] = [""] + [c["name"] for c in candidates]
+            extras["king_labels"] = (["A regency — no king seated"]
+                                     + [c["label"] for c in candidates])
+            extras["terms_display"] = f"a crown: {title} — who shall reign? ▾"
+        else:
+            extras["terms_display"] = f"a crown: {title} — a regency"
+    return extras
+
+
 def _court_demand_suggestions(
     world: Any,
     *,
@@ -1268,6 +1292,7 @@ def _court_demand_suggestions(
                 ),
                 gate_terms=gate_terms,
                 provinces=list(provinces),
+                **_crown_row_extras(world, template, proposer_leader, available),
             ))
 
     # --- Offer group (France → court), the D4 sweetener lever ------------

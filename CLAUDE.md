@@ -32,7 +32,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R the review's tiers (0–6 ✅ Nov 10; next 8), then the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R the tiers (0–6 ✅ Nov 10; 8: E ✅, next F), then the deploy**.
 
 **▶ LIVE STATE (Nov 6, 2026).** The three most recent rows:
 - **S15's head (Nov 6) — RE3-9/6/7 FIXED: the sidecars, the Crown's vassal Francis, the roads re-recorded; 0 open rows** (§177).
@@ -97,7 +97,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/game_logic/recruitment.py` | Marshal Recruitment ("The Marshalate"): pool queries, commission gate/effects, AI commission rung, Generals-screen payload |
 | `backend/game_logic/moments.py` | S14c moments: the authored letters of the record — store, predicates, closed ops, `plan`, tick, the court-less letter (`docs/EVENTS_SPEC.md`) |
 | `backend/game_logic/first_open.py` | S14d first-open lines: the store, `line_for`, `with_line`, `mark_seen` (`docs/TABLE_LESSON_SPEC.md`) |
-| `backend/game_logic/standing.py` | AU-1 the books of authority: ONE writer `move` with a cause (`display_names.AUTHORITY_CAUSES`), the quote, the floors (`refusal` 60, `ai_refusal`), `spend`/`regrow`, `payload`, the dent, `courts_move` (`docs/AUTHORITY_CURRENCY_SPEC.md` §5) |
+| `backend/game_logic/standing.py` | AU-1 the books of authority: ONE writer `move` with a cause, the quote, the floors (`refusal` 60, `ai_refusal`), `spend`/`regrow`, `payload`, the dent, `courts_move` (`docs/AUTHORITY_CURRENCY_SPEC.md` §5) |
+| `backend/game_logic/crowns.py` | DY-6 the crowns: the `crown` block, the king, the Alarm, the store (`DYNAMISM_SPEC.md` §6) |
 | `backend/game_logic/naval.py` | DEF-5 "The Wooden Wall": the ONE naval domain module — fleets store/pooling/coverage, crossing gate, blockade + CS 2.0 closure, expedition odds/resolver, fleet action, Descent camp/diversion/window, per-turn tick, AI posture derivation + build rung |
 | `backend/commands/naval_executor.py` | Naval verbs: build_fleet, set_fleet_posture, naval_expedition (quote-then-confirm), naval_diversion (~380 lines) |
 | `backend/game_logic/turn_manager.py` | Turn flow, enemy phase |
@@ -368,7 +369,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 |------|------|
 | Session state / what's next | `docs/STATUS.md` |
 | **THE PRE-DEPLOY PLAN (routing authority from Oct 8, 2026)** — code health, the UX/UI review, the three deep dives, the order to the deploy | **`docs/PRE_DEPLOY_PLAN.md`** §2 the order · `docs/CODE_HEALTH_PLAN.md` · `docs/UX_UI_REVIEW_PLAN.md` · `tools/_code_health_census.py` |
-| **The Concert & the Awakening — the dynamism tiers (S15-R; the deploy follows Tier 8)** | **`docs/DYNAMISM_SPEC.md`** — §0 the gate record, §2 the tiers, §3c Tier 4's gate, §8 the slices (each row's owner, done-when, test) |
+| **The Concert & the Awakening — the dynamism tiers (S15-R; the deploy follows Tier 8)** | **`docs/DYNAMISM_SPEC.md`** — §0 the gate record, §2 the tiers, §6a Tier 8's gate, §8 the slices |
 | **THE PLAN TO THE FINISH (routing authority from Sept 28, 2026)** — every open defect, every pillar, and how a pillar is scored | **`docs/SCORE_FINISH_SPEC.md`**: §3 the build order, §4 the instrument, Appendix A the checklist. To count the ledgers: `.venv/Scripts/python.exe tools/defect_census.py --open` |
 | **The Improvement Queue (row IQ) — landing records, rulings, dissents** | **`docs/IMPROVEMENT_QUEUE_SPEC.md`** — row IQ's OWNING SPEC. STATUS stays the ROUTING authority (which row is next); this holds the per-slice landing records, the crux ruling, the filed dissent and re-open condition, and the re-stated completion items. Slice ids are `IQ1-n` (the first two shipped as `SW-0`/`SW-1`, which collides with `SEASONS_WEATHER_SPEC.md`; the alias is recorded). |
 | **PLAYTEST / live-verify / evaluate the game (START HERE for any of those)** | **`docs/PLAYTESTING.md`** — Mode A `tools/playtest_driver.py` (in-process, seeded, popup-answering, digest output) is the default; Mode B live-HTTP (`SOVEREIGN_PORT`), Mode C client visual pass; fixtures in `tests/fixtures/playtest_saves/` |

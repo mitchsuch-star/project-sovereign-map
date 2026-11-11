@@ -117,7 +117,7 @@ the commanded arms' France band 23–28 as the difficulty guard.
 | 5 | **The Questions of Europe** (§4, DY-2) — **✅ COMPLETE November 10, 2026, session B** (`SYSTEMS_REFERENCE.md` §202; the gate §4a): DY-2 the Questions, DY-3 the Congress rules a Question, and the three leftovers — DY-1e Bern's road home, DY-1f the Emperor's gift, DY-1g the Emperor's treaty moves a seat. ONE sweep, six arms: arm 0 reproduces session A on both surfaces; the Questions ALONE move all ten ambient seeds (story classes held 10 of 10); the tables turn 26 times — the German for Austria at turn 2 on every seed, the Italian on every seed, once for Prussia; **no second great-power war appears** (the war column unchanged on eight seeds; rivoli gains the Hanover war where the honour war stood; ulm calms) — the 1805 board's tables turn for Austria, who is at war already, and the only envious design with an army is Prussia's — put to the user at session C's head; Bern's road clears the annexation line (1 → 0, Switzerland lives on ulm); no crown taken; the band 28 / 27 / 26 on every arm; the standing series unmoved. | ≈2 (one session) | a second great-power war appears; the war column stops reading Prussia–Hanover alone — ❌ NOT MET ambiently on the 1805 board (reported; the reason and the levers in §4a) |
 | 6 | **The Awakening** (§5, DY-4/DY-5) — **session C ✅ LANDED November 10, 2026 (the gate §5a ruled under the user's delegation; THE DEPLOY GATE RAISED, §7; DY-4: the store, the derived count with the boot-web house read, the bands, the cools, the lumps, the dictated peace by rank, the sovereign taken, the client squeezed, the beats, the ulcer, the two letters and the `awakening` op — `SYSTEMS_REFERENCE.md` §203)**; **session D ✅ LANDED November 10, 2026 (DY-5: the liberation levée and the National Guard, the client dial — the tiger ridden —, a risen people's revanche, the liberators' friction, the third letter *The Nation in Arms* and the `national_guard` op — `SYSTEMS_REFERENCE.md` §204; the landing record §5b) — TIER 6 COMPLETE**. | ≈3–4 | occupiers bleed; a liberation war surges; a client rebellion names its cause — **measured at C: the peoples stir and rise on every surface (France's own ambiently, Austria's and Russia's under the AI-France march); the march does NOT visibly bleed (the ulcer taxes the cap, a corps under it pays nothing — reported, the lever to the user); the letters appear by their own conditions on the frozen board and on no measured arm; measured at D: every DY-5 seam bites where its condition holds — the levée rises on every ambient seed and on eight harness seeds, the letter arrives on the scripted France — and NOT ONE measured world-line moves in forty turns (reported; the levers to the user: the letter's floor, the AI rungs' reading of the levée, the dial's ambient road); the gate's clauses 2 and 3 still UNMET, Tier 8's** |
 | 7 | **Bounded timing dice** (the old Tier 4) — evaluated at the deploy gate on the story-class count; built only if the count falls short of 4. | gated | — |
-| 8 | **Crowns & Recognition** (§6, DY-6/DY-7) — the marquee. | ≈4 | `formations` stops reading "none"; the map gains states history gained |
+| 8 | **Crowns & Recognition** (§6, DY-6/DY-7) — the marquee. **Session E ✅ LANDED November 10, 2026** (the gate §6a ruled under the user's delegation; DY-6: the `crown` block on the ONE catalogue — six crowns authored —, the teeth at the one apply site, the marshal king and the prince, the AI's road, the `crowns` block — `SYSTEMS_REFERENCE.md` §205; the landing record §6b); **session F: DY-7 Recognition, the tier's close, Tier 7 evaluated.** | ≈4 | `formations` stops reading "none"; the map gains states history gained — **measured at E: arm 0 reproduces session D byte for byte, the band and the classes hold, the series unmoved; NO crown is erected on any measured arm (reported — the AI road's live case waits on wars the idle France never frees the courts to fight; the player's Naples under Murat and the AI's Finland under Russia proved on crafted boards); clauses 2 and 3 still UNMET, session F's reading** |
 | — | **S15 THE DEPLOY** (Q1 as REVERSED November 7, 2026 — after Tier 8; §0). Deploy gate — **RAISED November 10, 2026 at Tier 6's head (§7, ruled under the user's delegation):** 0 open GR rows; story classes **≥ 6 of 10**; **at least one ambient seed with a minor at secondary rank by promotion** (`rank_promotions`); **the map's roster varying** — at least two distinct (fallen courts, formed states) readings across the ten seeds (`eliminations` ∪ `formations`); `annexations_outside_aim` 0 (amended at T3-6 — annexation, not occupation; `captures_outside_aim` the war's footprint); France band 23–28; historian test green on every seed. The second and third clauses are UNMET today and are content's to earn (§7); a clause still unmet after session F goes to the user as an explicit question with no default — never a silent cut (§0). | — | — |
 
 ### §2b The session plan — the same content in fewer sessions (✅ RE-CUT November 9, 2026)
@@ -163,7 +163,7 @@ default (§7); the deploy gate; no cuts without consent.
 | **B** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §202; the gate record §4a) | **Tier 5 whole:** the gate + DY-2 the Questions (the `questions` block and its validator, the latch, the envy term, the beat, the Balance panel, the guarantee rung's Question arm) + DY-3 the Congress rules a Question — and the three leftovers session A put to the user: DY-1e Bern's road home, DY-1f the Emperor's gift (both roads), DY-1g the Emperor's treaty moves a seat. Arms: 0 / Q / QC / BERN / GIFT / ALL. | Q4 (the four Questions) and the latch's store, Bern, the crowns, the seat's boundaries — one batch | one |
 | **C** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §203; the gate record §5a; the gate raised §7) | **The Awakening, first half:** the gate + DY-4 (the store, the raises and cools, the ulcer, the letters — the three decks in lockstep, the pacing chain re-recorded). Arms: 0 / STIR / ULCER / ALL. | Q2, Q3 and **the raise-the-gate question (no default)**, one batch — the user's "rule yourself be rigioprous make it good" | one |
 | **D** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §204; the landing record §5b) | **The Awakening, second half:** DY-5 (the levée, the client dial, the interplays) + the third letter + the tier's measure chain and close. Arms: 0 / LEVEE / DIAL / REVANCHE / LIBERATORS / ALL. | nothing new — none was | one |
-| **E** | **Crowns:** Tier 8's gate + DY-6 (the crown erected as a guided settlement term, the marshal king — Naples under Murat end to end). | Tier 8's questions, one batch | one |
+| **E** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §205; the gate record §6a; the landing record §6b) | **Crowns:** Tier 8's gate + DY-6 (the crown erected as a guided settlement term, the marshal king — Naples under Murat end to end). Arms: 0 / CROWN / AI / ALL. | Tier 8's questions, one batch — the user's "code commit and push what it tells you is next" (delegated) | one |
 | **F** | **Recognition and the gate's reading:** DY-7 + Tier 8's close + **Tier 7 evaluated** (the story-class count against the gate; the bounded dice built only if it falls short). | nothing new, unless Tier 7 is needed | one |
 | **G** | **S15 the deploy:** the gate checks, the build, the clean-environment run, the release record. Signing waits on the user's certificate. | the user's own walk | — |
 
@@ -950,6 +950,8 @@ commit. The rules in full: `SYSTEMS_REFERENCE.md` §204; the pins `tests/test_dy
 
 ## §6 Crowns & Recognition (DY-6 and DY-7 — Tier 8, the pre-deploy marquee, after §5)
 
+> **The gate record §6a (✅ RULED November 10, 2026) and the session E landing record §6b (DY-6 ✅ LANDED) follow this section.**
+
 The era's cool maps were NEW states: the Confederation, Warsaw, Westphalia. The table
 machinery half-exists: `CANONICAL_CLAUSE_TYPES` (`settlement_scoring.py:100`) already
 registers `create_client`, `liberation` and `vassal_transfer`.
@@ -972,6 +974,136 @@ registers `create_client`, `liberation` and `vassal_transfer`.
 ladder reflects the crown; recognition moves acceptance and trade and the Congress can
 grant it; `formations` on the sweep stops reading "none" on seeds where a crown rises.
 **Tests:** `tests/test_dy6_the_crown_erected.py`, `tests/test_dy7_recognition.py`.
+
+### §6a The Tier-8 gate record (✅ RULED November 10, 2026, at session E's head)
+
+**The user's word at the head**, verbatim, on the prompt that listed the five questions in one
+batch (the §2b idiom): **"code commit and push what it tells you is next"** — a delegation, the
+session-C precedent ("rule yourself be rigioprous make it good"). The calls below are Claude's
+under it, each one line to reverse; the readings honest, nothing pre-recommended where the
+prompt said the taste was the user's.
+
+**Q1 — the crowns that may be erected: THE AUTHORED LIST, inside ONE catalogue.** A crown is a
+`formable_nations` template that carries a `crown` sub-block — never a second catalogue (the
+`create_client` term, its eligibility predicate, its ratify arm and its bilateral carry are ONE
+body already; a parallel `crowns` block would have re-earned every NA-6c review). The block
+authors the royal style (`title`) and the houses whose AI may erect it at its own peace
+(`ai_carvers`; the player's hand is free among the authored crowns — GR5); the first province
+listed is the seat (the catalogue's standing convention — no `seat` key). The authored list
+keeps the historian test (no state the era could not have made); D7's principle — content
+reviewable in the file, validator-clamped (`_validate_crown_block`: `title` ≤ 60, `ai_carvers`
+known nations WARN / repeats ERROR, `since` the authoring slice, an unknown key ERROR). **Six
+crowns authored for 1805, each ONE court's soil:** the Kingdom of Naples (Naples — a one-province
+court: "the dynasty has ceased to reign", the decisive-score road), the Kingdom of Westphalia
+(Hanover's Brunswick / Westphalia / Osnabruck / Hanover — the seat Brunswick), the Kingdom of
+Hungary (Austria's Hungary — the Schönbrunn proclamation of 1809, "elect a king of your own
+choosing"), the Illyrian Provinces (Austria's Carniola and Croatia — the seat Laibach; the style
+Marmont held, "Duke of Ragusa, Governor-General of Illyria"), the Grand Duchy of Finland
+(Sweden's Finland — the Diet of Porvoo, 1809; `ai_carvers` Russia), the Duchy of Milan (the
+Kingdom of Italy's Milan — the Habsburg duchy restored; `ai_carvers` Austria). Six original
+flags in the set's style. The four plain carves (the Duchy of Warsaw, Normandy, the Roman
+Republic, Ireland) stay crownless, byte-identical — Warsaw's duke was the King of Saxony, a crown
+given to a reigning king, neither a marshal's throne nor a prince's (a block was drafted and
+withdrawn the same session: it would have put the IGR-D fixture's Proclamation card one line
+over the fold at UI scale 2.0 for no history gained).
+
+**Q2 — the marshal king: BOTH IN THE POOL.** Who may reign: a marshal of the carver's roster with
+laurels — glory at or above `KING_MIN_GLORY` (3, jealousy's own laurels floor) in the window, or
+the crown of glory itself; never the sovereign, a prisoner or a client's general — or a prince
+of the Imperial house (the scenario's `crowns.princes`: Joseph, Louis, Jérôme; a prince reigns
+in one place at a time, derived from the vassal rows, and may reign again where his crown has
+fallen — Joseph went from Naples to Spain). **History with teeth — a crown costs you your best
+sword:** the marshal is re-homed to the client's colours WITH HIS CORPS (the Army of Naples:
+Murat took French divisions south; `doctrines.set_marshal_nation`, THE setter), seated at the
+crown's seat, off the roster, the glory ladder (his glory satisfied permanently — the release
+valve) and the petitions, the removal's hygiene paid (his reward rows, his standing question,
+the orders aimed at him); the client's loyalty seeds from HIS TRUST (clamped 30–95 — crown your
+trusted Davout for a loyal kingdom, your glorious Bernadotte for a shaky one); every marshal
+with laurels passed over takes the authored grievance — envy toward the king (the ladder's own
+grievance, `apply_jealousy` forced) and trust −5. **A prince costs no sword:** the client seeds
+at `PRINCE_LOYALTY` 50 (the brothers were their own men — Louis went Dutch), and the passed-over
+marshals' slight is the sharper, trust −8 (the blood over the sword — Murat's fury when Joseph
+took Naples first); a prince is no object of a marshal's envy. A regency where no king is
+named (loyalty 60, the carve default). The AI's crown seats nobody — a regency.
+
+**Q3 — the AI's road: YES.** The same guided term in the AI–AI peace writer: the victor's AI
+erects an authored crown out of the soil its aim's terms cede — the first crown of the
+catalogue whose `ai_carvers` name the winner, every province the loser's and all riding this
+treaty's cessions, eligible by THE predicate (`evaluate_create_client_eligibility` — never a
+second rule); those cessions become ONE `create_client` clause (the title; a regency) on both
+aim roads (`attempt_aim_held_settlement`; the pair exits' lock through `_cede_the_held_aim`).
+Bounded by the authored crowns and by the Alarm (a carve alarms Europe like a capital taken —
+`ALARM_CAPITAL` 12 on the carver's house slot, the player's included: the coalition's threat).
+**The honest reading before the sweep:** the 1805 board's ambient AI peaces are Prussia's over
+Hanover (annexed in 1806, no crown) and the courts' Russian and Austrian crowns (Finland, Milan)
+wait on wars the idle France never frees them to fight — the AI road's live case is the
+player's own road (a peace with Russia, then Finland), and clause 3 stays content's to earn
+unless the sweep says otherwise (§6b).
+
+**Q4 — recognition's price: THE SHAPE RULED, THE TEETH DY-7's (session F).** The scenario's
+`crowns.recognition` block names the legitimists (Austria, Russia, Britain) and the condition
+(`until: "beaten"` — the closed set DY-7 reads); the crown's row carries `recognized_by` (empty
+at erection); `crowns.withholding_courts` reads them; DY-6 SPEAKS the list on the Proclamation
+card ("Austria, Russia and Britain withhold recognition of the crown") and nothing bites yet —
+owner row DY-7, landing slice session F, done-when: the table's malus with a withholding court,
+the client's trade with it halved, the dial −3 on awakened soil (the §5 interplay), the
+Congress's grant, a grant or refusal a beat; test `tests/test_dy7_recognition.py`.
+
+**Q5 — recorded, not re-opened:** Tier 7's bounded dice are built at F ONLY if the story-class
+count falls short of 6 after DY-6 and DY-7; a clause still unmet after F goes to the user with
+NO default (§7).
+
+**Census corrections — what the survey found that §6 did not know:**
+- **C1.** The `create_client` term was already first-class and guided end to end (NA-6c/NA-6d,
+  July 2026: the row, the add verb, the eligibility predicate, the ratify arm, the Formables
+  page, IGR-D's bilateral carry). "Promoted to a guided term" meant the CROWN's teeth on it, not
+  the term.
+- **C2.** Naples is a ONE-province court on the drawn map (no Sicily), so the Kingdom of Naples
+  is a total-annexation carve: the Bourbon court is erased by the treaty — a crown falls by
+  treaty, never by the sword alone (T4-2's law kept) — and the Neapolitan PEOPLE live on in the
+  Awakening's store (an erased court's people keep their scalar; §5a) and count the new crown's
+  soil foreign under the French house (the Calabrian insurgency by machinery).
+- **C3.** A carved client's boot house was never written into the Awakening's web — its own
+  people would have counted their own soil occupied under the lord that made them. The sibling
+  fix lands with DY-6 for EVERY carve (`awakening.adopt_court`): the new court's house is its
+  carver; the carved people keep THEIR boot house. Unseamed — no measured arm carves — and
+  pinned.
+- **C4.** The Formables page keyed a flag per template; six new SVGs and their `.import`
+  sidecars ride `git add -f` (the ignored `assets/`), credited in `THIRD_PARTY_LICENSES.md`.
+- **C5.** The gift's own pin (DY-1f) crafted the AI road's live case — Russia's aim peace on
+  Sweden with Finland delivered; re-seated with the crown's seam held down, with cause; the
+  crown's reading of that board pinned in DY-6's file.
+
+### §6b The session E landing record — DY-6 the crown erected and the marshal king (✅ LANDED November 10, 2026)
+
+**The gate ruled at the head under the user's delegation (§6a).** Three rules behind their own zero-arg seams
+(`tests/_t3_seams.py` rows T8-CROWN, T8-KING, T8-AI), ONE sweep with four arms on three surfaces
+(`tools/_t8_measure.py`: 0 / CROWN / AI / ALL), the standing series (`tools/_t8_series_arms.py`), ONE commit. The
+rules in full: `SYSTEMS_REFERENCE.md` §205; the pins `tests/test_dy6_the_crown_erected.py`.
+
+**DY-6 as built** (`backend/game_logic/crowns.py`; the seams' sites in `formations`, `settlement_actions`,
+`settlement_staging`, `settlement_third_party`, `world_state.from_dict`, `save_manager`):
+- **The crown** (`a_crown_is_erected`): the `crown` sub-block on the ONE catalogue (six crowns; `_validate_crown_block`);
+  the teeth at the one apply site — the title and `recognized_by` on the row, the boot house written for EVERY carve
+  (`awakening.adopt_court`, the C3 sibling fix), the Alarm's 12 on the carver's house, the beat (`nation_formed` + `crown`
+  / `king` / `reign`; the dispatch `crown_erected`; the card's lines; the one-liner); the Formables page names the
+  throne; seam down the crown templates are struck at load (`strike_crowns`, `since: "DY-6"`) and no store is installed.
+- **The marshal king** (`a_marshal_may_reign`): `king_candidates` (laurels ≥ 3 or the crown of glory; the princes of
+  the store); the guided row's `king_options` / `king_labels` / `terms_display`, the confirm popup's picker, the add
+  verb's `king` through `stamp_king_on_clause` (the refusals in words); `enthrone` — the marshal re-homed with his
+  corps to the seat (THE nation setter), the removal's hygiene, loyalty = his trust (30–95), the passed-over's
+  grievance (envy toward the king + trust −5), a prince at loyalty 50 (trust −8, no envy); a regency otherwise.
+- **The AI's road** (`a_victor_erects_a_crown`): `erect_a_crown_in_the_terms` on both aim roads — the first authored
+  crown the winner's house may erect, its soil all among the treaty's cessions, eligible by THE predicate, becomes
+  one `create_client` clause (a regency); `_cede_the_held_aim` returns it, `_ceded_regions` keeps its soil from T3-6's
+  evacuation, `_consequence_line` speaks it.
+- **The `crowns` block** (the princes, the recognition rule) in `world.moments["crowns"]` — `install`, `backfill`,
+  the sibling carry; `withholding_courts` and the card's line are DY-6's words, the teeth DY-7's (session F).
+
+**The session landed (the record `SYSTEMS_REFERENCE.md` §205; the pins `TestTheSessionEMeasure`).** ONE sweep, four arms (0 / CROWN / AI / ALL) on three surfaces (`tools/_t8_measure.py`), the standing series (`tools/_t8_series_arms.py`), run alone. **Arm 0 reproduces session D byte for byte on both surfaces** (the ten ambient signatures and the census's every total; the harness on session D's keys), the band 28 / 27 / 26 and story classes 10 of 10 on EVERY arm, the series unmoved on every arm with the crown's and the AI road's seams READ on the rig (2 and 1 a run) and no carve on it. **Said plainly: the seams are reached on every arm and NO crown is erected on any measured arm in forty turns** — the ambient board's AI peaces are Prussia's over Hanover (no crown authored for Prussia: 1806 annexed it) and the crowns the courts may erect (Russia's Finland, Austria's Milan) wait on wars the idle France never frees them to fight; the harness France's wars are the player's, which the AI–AI road never runs; the scripted France authors no carve. The harness record gains the `formations` column (the Class T dreams the march lets form — Holland's on four seeds, the Kingdom of Italy's on six — on every arm alike; none a crown). **The crown's proof is the test file's crafted boards:** Naples under Murat end to end through the guided terms (the row offers the throne, the verb stamps the king, the applier re-homes him with his 22,000, the loyalty his trust 75, Ney envious and −5, the Alarm +12, the Neapolitans counting the crown's soil foreign, the beat and the card), Joseph's Naples (loyalty 50, Murat −8), the regency, and Finland under Russia on both AI roads (the aim peace and the lock). **The raised gate:** clause 1 MET (10 of 10); clauses 2 and 3 UNMET (no crown taken; the Kingdom of Italy alone on all ten, no ambient formation) — session F's reading (DY-7, Tier 8's close, Tier 7 evaluated), then the user's with no default (§7).
+
+**Levers for the user, none pre-recommended (§0):** (a) **the AI road's ambient silence** — a crown for Prussia's Hanover peace (ahistorical; or a North German client) would put a formation on every seed and vary nothing; the honest road to clause 3 is a court whose war the idle France does not own — the content levers of §4a (a second great-power war) carry it; (b) **the marshal king's corps** — the whole corps goes with him (the Army of Naples); a royal guard of a fixed size with the rest returned to the depots is one line; (c) **the prince's loyalty** 50 against a king's trust — the brothers as a cheaper, shakier crown; (d) session D's three and session C's five stand.
+
 
 ---
 
@@ -1060,7 +1192,7 @@ user as an explicit question with NO default — never a silent cut (§0's stand
 | DY-1g | 5 — ✅ LANDED November 10, 2026 (session B; the user's "reason best solution for gameplay") | the Emperor's treaty moves a seat (§4a): boundary (1) kept, boundary (2) reversed — a court whose capital the player's house takes by treaty removes like any other; the Congress's recognition-by-defeat reads the historic capital (`congress._historic`, `game_end`'s `capital_kept`); seam `game_end.the_emperors_treaty_moves_a_seat` | Vienna's cession removes Austria's court to Bohemia while the Congress reads Vienna in the Emperor's hands and the `capital` latch names it; the Emperor's client takes a seat too; the player's own court never removes; the seam down is session A's boundary; no `get_nation_capital(court)` read left in `congress.py` — **measured:** the France band on the commanded arms, see §4a's landing note | rides DY-2's file (`TestTheEmperorsTreatyMovesASeat`); `test_a_capital_in_the_emperors_hands_moves_the_seat_too` re-seated with cause in DY-1's file |
 | DY-4 | 6 — ✅ LANDED November 10, 2026 (session C) | the store, raises/cools, the ulcer, the letters (§5; the gate §5a): `awakening.py` — the store inside `world.moments` armed by the scenario's `awakening` block, the DERIVED occupied count with the boot-web house read (C1, C2), the bands and cools, the one writer `move` and the beats (`awakening`, 183 → 184), the dictated peace by rank, the sovereign taken, the client squeezed, the ulcer at `_supply_multiplier`, the two letters and the `awakening` op; three seams (T6-STIR / T6-ULCER / T6-LETTERS) | the AI-France march bleeds; the letters appear by condition — **measured:** arm 0 reproduces session B byte for byte on both surfaces; the scalar alone moves every ambient seed by the new column (the French people stir on every seed, the Bavarians on seven); the ulcer alone moves ulm and the harness's austerlitz and eylau; **the march does NOT visibly bleed** — the ulcer taxes the cap and a corps under it pays nothing (reported; the lever to the user); **the letters never arrive on a measured arm** (no measured France holds a people's soil fourteen turns; the desk seats a late premise behind the standing bills) and appear by their own conditions on the frozen board (stir 15, the letter 18, risen 25, The Ulcer 30 — the pin); the band holds; the series unmoved; the pacing record re-recorded and its drift attributed to Tiers 1–5, not the Awakening (§5a's landing note) | `tests/test_dy4_the_awakening.py` |
 | DY-5 | 6 — ✅ LANDED November 10, 2026 (session D) | the levée, the client dial, the measure chain (§5) — and, from session C's gate (§5a), the third letter *The Nation in Arms* and the boot-web boundary of C2: `awakening.py`'s DY-5 half — `levee_terms` (×1.5 regen / ×0.75 the draft; the National Guard ×2.0 / ×0.5 for a term; the `levee` beat, 184 → 185), `client_dial` (−2 at autonomy ≤ 1, +1 at ≥ 2; the rebellion's cause), `risen_grievance` (the partition bar waived at `risen`), `coalition_friction_step` (1 a turn, not 2, while the league frees an awakened people), `nation_in_arms` + the `national_guard` op (12 → 13); five seams (T6-LEVEE / T6-DIAL / T6-REVANCHE / T6-LIBERATORS / T6-ARMS); the boundary needed no new rule (pinned) | 1813 surges; the tiger ridden at autonomy ≥ 2 — **measured:** arm 0 reproduces session C byte for byte; classes 10 of 10 and the band 28 / 27 / 26 on every arm; the series unmoved; the levée rises on every ambient seed (France 25–33, Bavaria on five) and on eight harness seeds (Russia 26–39), the letter arrives on the scripted France (T38) and is never due on seventeen arms whose premise held (the floor); not one world-line moves — the idle France recruits nothing, Russia's last recruit falls before its levée, no client is awakened, no AI court reaches `risen` (§5b's levers) | `tests/test_dy5_the_tiger_ridden.py` |
-| DY-6 | 8 | the crown erected + the marshal king (§6) | Naples under Murat, end to end, guided UI | `tests/test_dy6_the_crown_erected.py` |
+| DY-6 | 8 — ✅ LANDED November 10, 2026 (session E) | the crown erected + the marshal king (§6; the gate §6a): `crowns.py` — the `crown` sub-block on the ONE catalogue (six crowns authored, the validator), the teeth at the one apply site (the title and `recognized_by` on the row, the boot house written for every carve — the C3 sibling fix —, the Alarm's 12, the beat `nation_formed` + `crown` / the dispatch `crown_erected`), the marshal king and the prince (the picker on the guided row — `king_options` / `king_labels` —, the add verb's `king`, the marshal re-homed with his corps, the loyalty seed from his trust, the passed-over grievance), the AI's road (`settlement_third_party.erect_a_crown_in_the_terms` on both aim roads), the `crowns` block (the princes, the recognition rule) in `world.moments`; three seams (T8-CROWN / T8-KING / T8-AI) | Naples under Murat end to end through the guided terms (the row offers the throne, the verb stamps the king, the applier seats him — pinned); the ladder reflects the crown (Murat off it, Ney envious); the AI erects Finland under Russia on the crafted board — **measured:** see §6b | `tests/test_dy6_the_crown_erected.py` |
 | DY-7 | 8 | Recognition (§6) | recognition moves acceptance/trade; the Congress grants | `tests/test_dy7_recognition.py` |
 
 *(Amended November 9, 2026 by §2b: one commit and one review a SESSION; each rule keeps its own seam and its own arm of the session's one measure.)* Each slice: its own commit through the hook, the user's review after, Plan Mode at each

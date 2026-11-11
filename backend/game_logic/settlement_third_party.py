@@ -96,6 +96,60 @@ def a_held_aim_sues() -> bool:
     return True
 
 
+def a_victor_erects_a_crown() -> bool:
+    """T8-AI (DY-6, DYNAMISM_SPEC.md §6 — the Tier-8 gate's Q3, ruled
+    November 10, 2026): the victor's AI erects an authored crown out of the
+    soil its aim's terms cede — the first crown of the catalogue whose
+    `ai_carvers` name the winner, every province the loser's and all riding
+    this treaty's cessions, eligible by THE predicate
+    (`evaluate_create_client_eligibility`); those cessions become ONE
+    `create_client` clause (the title; a regency — the AI seats nobody) and
+    the Alarm writes at the erection (`crowns.on_crown_erected`). Both aim
+    roads (`attempt_aim_held_settlement`, the pair exits' lock through
+    `_cede_the_held_aim`). Down: the cessions as T3-4 wrote them."""
+    return True
+
+
+def erect_a_crown_in_the_terms(world, war: Dict, winner: str, loser: str,
+                               terms: List[Dict]) -> List[Dict]:
+    """The AI's road (seam `a_victor_erects_a_crown`): the winner's
+    cessions of the loser's soil re-cut around the first authored crown the
+    winner may erect — see the seam's docstring. Returns the terms as they
+    stand where no crown fits."""
+    if not a_victor_erects_a_crown() or not war:
+        return terms
+    from backend.game_logic.crowns import ai_carvers, crown_title, is_crown
+    from backend.game_logic.formations import get_template_identity, template_provinces
+    from backend.game_logic.settlement_validation import evaluate_create_client_eligibility
+
+    def _mine(t: Dict) -> bool:
+        return (t.get("type") == "territory_cede"
+                and str(t.get("from") or "") == loser and str(t.get("to") or "") == winner)
+
+    ceded = {str(t.get("region") or "") for t in terms if _mine(t)}
+    if not ceded:
+        return terms
+    for tag, template in (getattr(world, "formable_nations", None) or {}).items():
+        if not is_crown(template) or winner not in ai_carvers(template):
+            continue
+        provinces = template_provinces(template)
+        if not provinces or not set(provinces) <= ceded:
+            continue
+        if not evaluate_create_client_eligibility(
+                world, war_instance=war, template_id=str(tag),
+                from_court=loser, carver=winner).get("eligible"):
+            continue
+        identity = get_template_identity(template) or {}
+        kept = [t for t in terms
+                if not (_mine(t) and str(t.get("region") or "") in set(provinces))]
+        kept.append({"type": "create_client", "from": loser, "to": winner,
+                     "tag": str(tag), "provinces": list(provinces),
+                     "client_display_name": str(identity.get("display_name") or tag),
+                     "crown": crown_title(template)})
+        return kept
+    return terms
+
+
 def aim_terms_signable(world, loser: str, winner: str) -> bool:
     """T3-4 — the loser's consent to the aim's LENIENT terms (the aim's
     provinces, no gold): its pair score inside the band ABOVE its own
@@ -289,6 +343,14 @@ def _consequence_line(world, winner: str, loser: str,
         if by_receiver.get(receiver):
             parts.append(f"{humanize_entity_name(receiver)} takes "
                          f"{', '.join(by_receiver[receiver])}.")
+    # T8-AI (DY-6): a crown erected by the peace, named with its soil.
+    for t in terms:
+        if t.get("type") == "create_client":
+            soil = [str(p) for p in (t.get("provinces") or []) if p]
+            parts.append(f"{humanize_entity_name(str(t.get('to') or winner))} erects "
+                         f"{t.get('client_display_name') or t.get('tag')}"
+                         + (f" out of {', '.join(soil)}." if soil else "."))
+            ceded.extend(soil)
     gold = next((t for t in terms if t.get("type") == "gold_indemnity"), None)
     if gold and int(gold.get("amount", 0)) > 0:
         parts.append(f"{humanize_entity_name(str(gold.get('from')))} pays "
@@ -664,6 +726,8 @@ def attempt_aim_held_settlement(world, war_id: str, war: Dict) -> Optional[Dict]
         if not cessions or not aim_terms_signable(world, loser, winner):
             continue
         terms = held_aim_terms(winner, loser, cessions)
+        # T8-AI (DY-6): the victor's crown out of the soil it takes.
+        terms = erect_a_crown_in_the_terms(world, war, winner, loser, terms)
         if a_leader_signs_for_its_allies():
             # T5-GIFT (DY-1f): the leader signs for its allies — their
             # delivered aims in the loser's homeland that the SIDE holds,
@@ -928,15 +992,22 @@ def _cede_the_held_aim(world, war_id: str, aim) -> List[Dict]:
     winner, loser, cessions = aim
     clauses = [t for t in held_aim_terms(winner, loser, cessions)
                if t.get("type") == "territory_cede"]
+    # T8-AI (DY-6): the lock's road erects the victor's crown too.
+    war = (getattr(world, "war_instances", {}) or {}).get(str(war_id)) or {}
+    clauses = erect_a_crown_in_the_terms(world, war, winner, loser, clauses)
     applied = settlement_ratify._apply_settlement_terms(
         world, settlement_terms=clauses, war_id=str(war_id),
         settlement_route_id=f"aim_exit:{war_id}:{int(world.current_turn)}")
-    return [dict(c) for c in applied or [] if c.get("type") == "territory_cede"]
+    return [dict(c) for c in applied or []
+            if c.get("type") in ("territory_cede", "create_client")]
 
 
 def _ceded_regions(clauses: List[Dict]) -> List[str]:
-    from backend.game_logic.settlement_validation import _territory_term_regions
-    return [str(r) for c in clauses or [] for r in _territory_term_regions(c)]
+    # DY-6: a crown's provinces are ceded too (`cession_shaped_regions` —
+    # the one extractor over every cession dialect; byte-identical for a
+    # `territory_cede`).
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
+    return [str(r) for c in clauses or [] for r in cession_shaped_regions(c)]
 
 
 def _close_the_pair(world, war_id: str, pair_key: str, a: str, b: str,

@@ -728,10 +728,16 @@ class TestTheEmperorsGift:
         world.invalidate_active_nations_cache()
         return war
 
-    def test_the_leader_signs_for_its_allies(self, world):
+    def test_the_leader_signs_for_its_allies(self, world, monkeypatch):
         war = self._russia_and_denmark_on_sweden(world)
         assert WC.side_aim_cessions(world, war, "attackers", "Sweden", "Russia", taken=["Finland"]) == [
             {"type": "territory_cede", "from": "Sweden", "to": "Denmark", "region": "Scania"}]
+        # DY-6 (November 10, 2026): this board is the AI road's live case —
+        # Russia now ERECTS the Grand Duchy of Finland out of the Finland it
+        # takes (`settlement_third_party.a_victor_erects_a_crown`, pinned in
+        # `tests/test_dy6_the_crown_erected.py`). The gift's pin reads T3-4's
+        # cession road, so the crown's seam is held down here, with cause.
+        monkeypatch.setattr(TP, "a_victor_erects_a_crown", lambda: False)
         with patch(SCORER_SEAM, side_effect=_accepts), _quiet():
             event = TP.attempt_aim_held_settlement(world, "war_1", war)
         assert event["exit"] == TP.AIM_HELD_EXIT
@@ -747,6 +753,9 @@ class TestTheEmperorsGift:
     def test_the_seam_down_is_the_leaders_aim_alone(self, world, monkeypatch):
         war = self._russia_and_denmark_on_sweden(world)
         hold_down(monkeypatch, T3_SEAMS_BY_ROW["T5-GIFT"])
+        # DY-6: the crown's seam held down too (the gift's own reading —
+        # see `test_the_leader_signs_for_its_allies`).
+        monkeypatch.setattr(TP, "a_victor_erects_a_crown", lambda: False)
         with patch(SCORER_SEAM, side_effect=_accepts), _quiet():
             event = TP.attempt_aim_held_settlement(world, "war_1", war)
         assert event["consequence"].count(" takes ") == 1

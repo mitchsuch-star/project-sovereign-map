@@ -243,6 +243,20 @@ const NATION_COLORS = {
 	"DuchyOfWarsaw": Color(0.8, 0.275, 0.35),
 	"Normandy": Color(0.725, 0.425, 0.175),
 	"RomanRepublic": Color(0.4, 0.425, 0.475),
+	# DY-6 (DYNAMISM_SPEC.md §6): the six crowns — Murat's violet, Westphalian
+	# cornflower, the Hungarian tricolour's green, Illyrian lilac, a Finnish
+	# rose, Milanese olive. Searched on a 0.05 grid against the whole set with
+	# the Slice 7.5 measurement (the palette pins' own blend and fog): worst
+	# blended pair 12.68 (Finland / Naples, floor 12.0), worst fogged 7.54
+	# (Illyria / Hesse, floor 7.0); the set's own minimums (13.2 / 7.66) stand.
+	# A plum for Naples sat on the Bourbon Naples at 6.7 / 3.7 and a rose for
+	# Milan on Switzerland at 3.2 under fog — both re-authored here.
+	"KingdomOfNaples": Color(0.5, 0.2, 0.7),
+	"Westphalia": Color(0.3, 0.5, 0.8),
+	"Hungary": Color(0.25, 0.6, 0.25),
+	"Illyria": Color(0.85, 0.5, 0.85),
+	"Finland": Color(0.85, 0.2, 0.55),
+	"DuchyOfMilan": Color(0.55, 0.55, 0.2),
 	# DEF-5 naval NV-2 (Free Ireland): emerald-teal — measured with the set
 	# present: blended worst pair 13.2 vs Ottoman (floor 12.0), fogged 7.88
 	# (floor 7.0); the set minimums stay 13.2 / 7.66.
@@ -265,6 +279,10 @@ const NATION_DISPLAY_NAMES = {
 	# and prose substitution must keep skipping it.
 	"DuchyOfWarsaw": "Duchy of Warsaw",
 	"RomanRepublic": "Roman Republic",
+	# DY-6: the crowns' compound tags ("Hungary" and "Finland" are province
+	# names too — absent for Normandy's reason; the override renders them).
+	"KingdomOfNaples": "Kingdom of Naples",
+	"DuchyOfMilan": "Duchy of Milan",
 }
 
 static func contrast_text_color(background: Color) -> Color:

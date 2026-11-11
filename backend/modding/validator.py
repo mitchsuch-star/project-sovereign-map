@@ -1093,6 +1093,109 @@ def _validate_awakening(result, data: dict) -> None:
         result.add_error("awakening.stirring", "Must be below `risen`")
 
 
+def _validate_crowns(result, data: dict) -> None:
+    """DY-6 (DYNAMISM_SPEC.md §6, Tier 8): the top-level `crowns` block —
+    an object; `princes` a list of at most six distinct non-empty names
+    (≤ 40 chars) the Emperor may seat on a crown; `recognition` an object
+    whose `legitimists` are nations (an unknown one WARNS — the `aggrieved`
+    stance; it will never withhold) and whose `until` is one of the
+    conditions DY-7 reads; an unknown key at either level is an ERROR (the
+    `awakening` idiom — D7's principle). Absent = no princes, no
+    legitimists."""
+    if "crowns" not in data:
+        return
+    block = data.get("crowns")
+    if not isinstance(block, dict):
+        result.add_error("crowns", f"Must be an object, got {type(block).__name__}")
+        return
+    from backend.game_logic.crowns import PRINCES_MAX, RECOGNITION_CONDITIONS
+    for key in sorted(set(block) - {"princes", "recognition"}):
+        result.add_error(f"crowns.{key}", "Unknown key (allowed: princes, recognition)")
+    princes = block.get("princes")
+    if "princes" in block:
+        if not isinstance(princes, list):
+            result.add_error("crowns.princes", f"Must be a list, got {type(princes).__name__}")
+        else:
+            seen = set()
+            if len(princes) > PRINCES_MAX:
+                result.add_error("crowns.princes", f"At most {PRINCES_MAX} princes")
+            for name in princes:
+                if not isinstance(name, str) or not name.strip() or len(name) > 40:
+                    result.add_error("crowns.princes",
+                                     f"Entries must be non-empty names of at most 40 characters, got {name!r}")
+                elif name in seen:
+                    result.add_error("crowns.princes", f"'{name}' is listed twice")
+                else:
+                    seen.add(name)
+    recognition = block.get("recognition")
+    if "recognition" in block:
+        if not isinstance(recognition, dict):
+            result.add_error("crowns.recognition",
+                             f"Must be an object, got {type(recognition).__name__}")
+            return
+        for key in sorted(set(recognition) - {"legitimists", "until"}):
+            result.add_error(f"crowns.recognition.{key}",
+                             "Unknown key (allowed: legitimists, until)")
+        legitimists = recognition.get("legitimists")
+        if "legitimists" in recognition:
+            if not isinstance(legitimists, list):
+                result.add_error("crowns.recognition.legitimists",
+                                 f"Must be a list, got {type(legitimists).__name__}")
+            else:
+                for court in legitimists:
+                    if not isinstance(court, str) or not court:
+                        result.add_error("crowns.recognition.legitimists",
+                                         f"Entries must be non-empty nation names, got {court!r}")
+                    elif court not in VALID_NATIONS:
+                        result.add_warning("crowns.recognition.legitimists",
+                                           f"References unknown nation '{court}' - it will never withhold recognition")
+        until = recognition.get("until")
+        if "until" in recognition and until not in RECOGNITION_CONDITIONS:
+            result.add_error("crowns.recognition.until",
+                             f"Must be one of {sorted(RECOGNITION_CONDITIONS)}")
+
+
+def _validate_crown_block(result, path: str, block: Any) -> None:
+    """DY-6: a formable template's optional `crown` block — `title` the royal
+    style (a non-empty string of at most 60 characters); `ai_carvers` the
+    houses whose AI may erect it at its own peace (an unknown nation WARNS,
+    a repeat is an ERROR); `since` the slice that authored the template
+    (a string — the seam reads it to strike the template at load); an
+    unknown key is an ERROR."""
+    crown_path = f"{path}.crown"
+    if not isinstance(block, dict):
+        result.add_error(crown_path, f"Must be an object, got {type(block).__name__}")
+        return
+    from backend.game_logic.crowns import TITLE_MAX
+    for key in sorted(set(block) - {"title", "ai_carvers", "since"}):
+        result.add_error(f"{crown_path}.{key}", "Unknown key (allowed: title, ai_carvers, since)")
+    title = block.get("title")
+    if not isinstance(title, str) or not title.strip() or len(title) > TITLE_MAX:
+        result.add_error(f"{crown_path}.title",
+                         f"Requires a non-empty royal style of at most {TITLE_MAX} characters")
+    carvers = block.get("ai_carvers")
+    if "ai_carvers" in block:
+        if not isinstance(carvers, list):
+            result.add_error(f"{crown_path}.ai_carvers",
+                             f"Must be a list, got {type(carvers).__name__}")
+        else:
+            seen = set()
+            for court in carvers:
+                if not isinstance(court, str) or not court:
+                    result.add_error(f"{crown_path}.ai_carvers",
+                                     f"Entries must be non-empty nation names, got {court!r}")
+                elif court in seen:
+                    result.add_error(f"{crown_path}.ai_carvers", f"'{court}' is listed twice")
+                else:
+                    seen.add(court)
+                    if court not in VALID_NATIONS:
+                        result.add_warning(f"{crown_path}.ai_carvers",
+                                           f"References unknown nation '{court}' - its AI will never erect this crown")
+    since = block.get("since")
+    if "since" in block and (not isinstance(since, str) or not since):
+        result.add_error(f"{crown_path}.since", "Must be a non-empty string (the authoring slice)")
+
+
 def _validate_statecraft(result, data: dict, known_nations: set) -> None:
     """AI-3r §2.6 (gate ruling R1): the scenario `statecraft` block —
     per-nation; `wary_of`, and since T2-B (§3.8.2) `weight_mod` (a bare
@@ -3628,6 +3731,11 @@ def validate_scenario(
                                 f"References non-existent region "
                                 f"'{province}'")
 
+                # DY-6 (DYNAMISM_SPEC.md §6): the optional `crown` block —
+                # the royal style and the houses whose AI may erect it.
+                if "crown" in template:
+                    _validate_crown_block(result, path, template.get("crown"))
+
                 # The WHOLE `seeds` block is schemed, not just `gold`. Every
                 # key here is consumed unguarded by the birth mutation
                 # (`formations._seed_client_roster`), and that mutation runs
@@ -3756,6 +3864,10 @@ def validate_scenario(
 
     # DY-4 (DYNAMISM_SPEC §5): the authored `awakening` block.
     _validate_awakening(result, data)
+
+    # DY-6 (DYNAMISM_SPEC §6): the authored `crowns` block (the princes, the
+    # recognition rule); each template's `crown` block is checked beside it.
+    _validate_crowns(result, data)
 
     # DEF-5 naval (NAVAL_SPEC §8): the authored `navies` block.
     _validate_navies(result, data, statecraft_known)

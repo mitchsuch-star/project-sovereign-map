@@ -455,6 +455,9 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # DY-4 (docs/DYNAMISM_SPEC.md §5): a pre-Tier-6 save whose scenario NOW
     # authors the Awakening gains the store, every people at 0.
     _backfill_awakening(world)
+    # DY-6 (docs/DYNAMISM_SPEC.md §6): a pre-Tier-8 save whose scenario NOW
+    # authors the crowns gains the store (the princes, the legitimists).
+    _backfill_crowns(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -797,6 +800,7 @@ def _backfill_moments(world: WorldState) -> None:
     from backend.game_logic.moments import backfill_store
     from backend.game_logic.questions import STORE_KEY as _QUESTIONS
     from backend.game_logic.awakening import STORE_KEY as _AWAKENING
+    from backend.game_logic.crowns import STORE_KEY as _CROWNS
     for path in candidates:
         try:
             with open(path, encoding="utf-8") as fh:
@@ -805,9 +809,9 @@ def _backfill_moments(world: WorldState) -> None:
             continue
         store = backfill_store(world, data, str(getattr(world, "campaign_seed", "") or "historical"))
         if store:
-            # DY-2 / DY-4: the sibling stores ride the same key — carried
-            # across the rebuild, never rebuilt.
-            for sibling in (_QUESTIONS, _AWAKENING):
+            # DY-2 / DY-4 / DY-6: the sibling stores ride the same key —
+            # carried across the rebuild, never rebuilt.
+            for sibling in (_QUESTIONS, _AWAKENING, _CROWNS):
                 carried = (existing or {}).get(sibling) if isinstance(existing, dict) else None
                 if isinstance(carried, dict) and carried:
                     store[sibling] = carried
@@ -863,6 +867,31 @@ def _backfill_awakening(world: WorldState) -> None:
         except (OSError, ValueError):
             continue
         _awakening.backfill(world, data)
+        return
+
+
+def _backfill_crowns(world: WorldState) -> None:
+    """DY-6 (DYNAMISM_SPEC.md §6, Tier 8): a pre-Tier-8 save of a scenario
+    that NOW authors the crowns gains the store on load (the
+    `_backfill_awakening` idiom) — the princes and the legitimists, nothing
+    retroactive; a save carrying the store is never overwritten."""
+    from backend.game_logic import crowns as _crowns
+    if _crowns.armed(world):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        _crowns.backfill(world, data)
         return
 
 

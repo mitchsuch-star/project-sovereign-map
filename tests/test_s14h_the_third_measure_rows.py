@@ -16079,6 +16079,12 @@ _R31_SCENARIO = (_R31_ROOT / "godot-client" / "project-sovereign" / "assets"
 _R31_PANEL = (_R31_ROOT / "godot-client" / "project-sovereign" / "scripts"
               / "region_panel.gd")
 
+# DY-6 (DYNAMISM_SPEC.md §6, November 10, 2026): the two Austrian crowns'
+# prospects (Hungary; the Illyrian Provinces — Carniola, Croatia) stand beside
+# Ireland's at the boot, France being at war with Austria; the pins that read
+# Ireland's prospect ALONE are re-seated with cause.
+_R31_CROWN_PROSPECTS = ["Hungary", "Illyria"]
+_R31_CROWN_SHORES = {"Hungary", "Carniola", "Croatia"}
 _R31_ULSTER = ("Ulster is half of the Ireland carve (with Munster) — hold both "
                "while the war with Britain runs and Britain can be made to "
                "erect it at a table")
@@ -16285,10 +16291,12 @@ class TestS14G31:
         w = _r31_w
         notes = road_notes(w)
         assert notes["roads"] == [] and notes["by_court"] == {} and notes["completing"] == []
-        [row] = notes["prospects"]
+        assert [r["tag"] for r in notes["prospects"]] == ["Ireland"] + _R31_CROWN_PROSPECTS   # DY-6
+        row = notes["prospects"][0]
         assert row["tag"] == "Ireland" and row["state"] == "prospect"
         assert row["provinces"] == ["Ulster", "Munster"] and row["court"] == "Britain"
-        assert notes["by_province"] == {"Ulster": _R31_ULSTER, "Munster": _R31_MUNSTER}
+        assert {p: t for p, t in notes["by_province"].items() if p not in _R31_CROWN_SHORES} == {
+            "Ulster": _R31_ULSTER, "Munster": _R31_MUNSTER}
         assert road_peace_lines(w, ["Britain"], [{"type": "peace"}]) == []
 
     def test_no_war_no_prospect(self, _r31_w):
@@ -16298,7 +16306,9 @@ class TestS14G31:
         w = _r31_w
         w.diplomatic_states[w._make_diplo_key("France", "Britain")] = "PEACE"
         notes = road_notes(w)
-        assert "prospects" not in notes and notes["by_province"] == {}
+        # DY-6: the Austrian crowns' prospects stand (that war runs); Ireland's is gone
+        assert [r["tag"] for r in notes.get("prospects", [])] == _R31_CROWN_PROSPECTS
+        assert set(notes["by_province"]) == _R31_CROWN_SHORES
         assert road_note_for(w, "Ulster") == ""
 
     def test_a_held_province_is_no_prospect(self, _r31_w):
@@ -16310,7 +16320,9 @@ class TestS14G31:
         w.regions["Munster"].controller = "France"
         w.invalidate_active_nations_cache()
         notes = road_notes(w)
-        assert "prospects" not in notes and notes["by_province"] == {}
+        # DY-6: the Austrian crowns' prospects stand; Ireland's is gone
+        assert [r["tag"] for r in notes.get("prospects", [])] == _R31_CROWN_PROSPECTS
+        assert set(notes["by_province"]) == _R31_CROWN_SHORES
 
 
 # ══════════════════════════════════════════════════════════════════════════

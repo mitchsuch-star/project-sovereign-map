@@ -2444,9 +2444,13 @@ def _oneliner_purse_and_court(ctx: OnelinerContext):
         formed = ctx.event.get("display_name") or display_nation(
             ctx.event.get("nation", "Unknown"))
         old = ctx.event.get("old_display_name") or ""
+        # DY-6: a crown's row says who reigns ("— Murat takes the crown as
+        # King of Naples"); a plain formation reads as before.
+        reign = str(ctx.event.get("reign") or "")
+        tail = f" — {reign}" if reign else ""
         if old and old != formed:
-            return f"{old} is no more — {formed} is proclaimed"
-        return f"{formed} is proclaimed"
+            return f"{old} is no more — {formed} is proclaimed{tail}"
+        return f"{formed} is proclaimed{tail}"
 
     if ctx.event_type == "dotation_granted":
         marshal = ctx.event.get("marshal", "Unknown")

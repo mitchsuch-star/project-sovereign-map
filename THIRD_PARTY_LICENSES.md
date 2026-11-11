@@ -137,9 +137,16 @@ by `tools/gen_battle_audio.py`.
 
 ## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 
-26 period national flags, named `<Nation>.svg` — the 20 for the 1805 boot roster, plus 6
+33 period national flags, named `<Nation>.svg` — the 20 for the 1805 boot roster, plus 7
 for nations that can only come into existence during a campaign (NA-6a/6b's Italy and United
-Netherlands; NA-6c's Duchy of Warsaw, Poland, Duchy of Normandy and Roman Republic).
+Netherlands; NA-6c's Duchy of Warsaw, Poland, Duchy of Normandy and Roman Republic; DEF-5's
+Ireland), plus the 6 crowns of DY-6 (`DYNAMISM_SPEC.md` §6, November 10, 2026) — `KingdomOfNaples.svg`,
+`Westphalia.svg`, `Hungary.svg`, `Illyria.svg`, `Finland.svg`, `DuchyOfMilan.svg` — all
+original simplified geometric renderings authored in-repo in the set's flat 500×300 style
+(Murat's white-within-blue, Westphalia's blue over white, the red-white-green of Saint
+Stephen's crown, Carniola's white-blue-red barry for the Illyrian Provinces, the Finnish
+lion's gold fess on red, the red cross of Saint Ambrose for Milan); simple heraldic geometry
+carries no copyright.
 
 Of the NA-6c four, three are original simplified geometric renderings authored in-repo
 July 19, 2026 — Polish white-over-red, the same bicolour under a gold crown for Poland, and

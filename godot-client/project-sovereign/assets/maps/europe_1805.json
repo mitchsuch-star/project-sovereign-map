@@ -1117,6 +1117,11 @@
     ],
     "_awakening_comment": "DY-4 (DYNAMISM_SPEC.md section 5, Tier 6 - the Awakening; the gate ruled at session C's head, November 10, 2026, under the user's delegation): the era's own force and the game's answer to rising nationalism - a PER-COURT scalar 0-100, regional expression derived, no per-region store. This block ARMS it and authors the two thresholds the letters and the teeth read (validator-clamped to [1, 99], stirring below risen; a hotter or colder era is a mod's dial). Every court of the boot roster carries the scalar, eliminated ones and France included: it rises while the court's boot homeland is foreign-held (+1 a turn at 1-2 provinces, +2 at 3-5, +3 at 6 or more), by a dictated peace (+15 for a major, +10 a secondary, +5 a minor), the sovereign captured (+10), a client squeezed (+5); it cools -1 a turn with none held and -10 when home rule returns. At risen an occupier's supply cap bleeds (x0.75) on that soil - France's too (the Spanish ulcer); the letters The People Stir and The Ulcer ride the affairs deck below. Absent = unarmed (the bare flag world, the tutorials).",
     "awakening": { "stirring": 40, "risen": 70 },
+    "_crowns_comment": "DY-6 (DYNAMISM_SPEC.md section 6, Tier 8 - Crowns & Recognition; the gate ruled at session E's head, November 10, 2026, under the user's delegation): the era's cool maps were NEW states. A crown is a formable_nations template that carries a crown block (title, ai_carvers) - ONE catalogue; the first province listed is the seat. This block authors the Imperial house's princes (a prince may be seated on a crown the Emperor erects at no cost to the roster; he reigns in one place at a time; the brothers were their own men - the client seeds loyalty 50) and the recognition rule DY-7 reads (the legitimist courts withhold recognition of a new crown until beaten; the price lands with DY-7, session F). Absent = no princes, no legitimists (the bare flag world, the tutorials).",
+    "crowns": {
+        "princes": ["Joseph Bonaparte", "Louis Bonaparte", "Jerome Bonaparte"],
+        "recognition": { "legitimists": ["Austria", "Russia", "Britain"], "until": "beaten" }
+    },
     "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war. T2-5 (November 8, 2026): Prussia's second territorial want, swedish_pomerania (Stralsund), is seated BEHIND armed_neutrality - the guard's seat is load-bearing (a latent guard prices nothing: the Ansbach trap reads ACTIVE guards only), so the claim speaks only when Prussia is already at war with the Hanover question settled; no order band for Prussia (the AI_INTENT_SPEC.md section 3.8.2 gate ruled none - Hanover-first is the plain history, and the guard's seat outranks a hypothetical band over now-non-contiguous acquires) and no readiness on a second design (the gulf_and_straits precedent). T2-6 (November 8, 2026): Bavaria's the_tyrol is deliberately boot-LIVE (Bavaria boots at war with Austria, and Tyrol is the actual Pressburg war aim - a live want for a boot-belligerent is 1805, not drift); Naples' deck is guard-then-claim in Denmark's shape (the September Treaty of 1805, signed and broken; the Roman Expedition of '98 behind it, speaking only at war). The casting band (the top-level `casting` key) may boot ONE shortlist court's first ACQUIRE at its deck's head with a bold weight_mod - the cast court has set its posture aside, satisfaction restores it, and historical casts nobody.",
     "agendas": {
         "Austria": [
@@ -1474,6 +1479,114 @@
             ],
             "aggrieved": ["Britain"],
             "grudge_label": "The Irish Question"
+        },
+        "KingdomOfNaples": {
+            "display_name": "Kingdom of Naples",
+            "flag": "KingdomOfNaples",
+            "provinces": ["Naples"],
+            "blurb": "The dynasty of Naples has ceased to reign - the KINGDOM OF NAPLES is erected under a crown of the Emperor's giving.",
+            "crown": { "title": "King of Naples", "ai_carvers": ["France"], "since": "DY-6" },
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Chancery of Naples",
+                    "personality": "loyalist",
+                    "skill": 3,
+                    "biography": "Speaks for a throne raised by French bayonets over a people that remembers its own king across the strait."
+                }
+            },
+            "aggrieved": ["Britain"],
+            "grudge_label": "The Neapolitan Question"
+        },
+        "Westphalia": {
+            "display_name": "Kingdom of Westphalia",
+            "flag": "Westphalia",
+            "provinces": ["Brunswick", "Westphalia", "Osnabruck", "Hanover"],
+            "blurb": "Out of the Electorate's lands a model kingdom is drawn - the KINGDOM OF WESTPHALIA is erected, with a constitution and a code.",
+            "crown": { "title": "King of Westphalia", "ai_carvers": ["France"], "since": "DY-6" },
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Chancery of Cassel",
+                    "personality": "loyalist",
+                    "skill": 3,
+                    "biography": "A chancery that administers a kingdom drawn with a ruler, and knows which capital drew it."
+                }
+            },
+            "aggrieved": ["Britain", "Prussia"],
+            "grudge_label": "The Hanoverian Question"
+        },
+        "Hungary": {
+            "display_name": "Kingdom of Hungary",
+            "flag": "Hungary",
+            "provinces": ["Hungary"],
+            "blurb": "'Hungarians! Elect a king of your own choosing' - the crown of Saint Stephen is parted from the Habsburg: the KINGDOM OF HUNGARY is erected.",
+            "crown": { "title": "King of Hungary", "ai_carvers": ["France"], "since": "DY-6" },
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Palatine's Chancery at Buda",
+                    "personality": "loyalist",
+                    "skill": 4,
+                    "biography": "The Diet's men, who heard the proclamation of 1809 and answer now to the power that wrote it."
+                }
+            },
+            "aggrieved": ["Austria", "Russia"],
+            "grudge_label": "The Hungarian Question"
+        },
+        "Illyria": {
+            "display_name": "Illyrian Provinces",
+            "flag": "Illyria",
+            "provinces": ["Carniola", "Croatia"],
+            "blurb": "From Laibach to the Adriatic the Habsburg coast is governed from Paris - the ILLYRIAN PROVINCES are erected.",
+            "crown": { "title": "Duke of Ragusa, Governor-General of Illyria", "ai_carvers": ["France"], "since": "DY-6" },
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Intendancy of Laibach",
+                    "personality": "loyalist",
+                    "skill": 3,
+                    "biography": "An intendancy that keeps the coast road to the Porte open and the Austrian customs houses shut."
+                }
+            },
+            "aggrieved": ["Austria"],
+            "grudge_label": "The Illyrian Question"
+        },
+        "Finland": {
+            "display_name": "Grand Duchy of Finland",
+            "flag": "Finland",
+            "provinces": ["Finland"],
+            "blurb": "At the Diet of Porvoo the estates swear to a new sovereign - the GRAND DUCHY OF FINLAND is erected under the Tsar's crown.",
+            "crown": { "title": "Grand Duke of Finland", "ai_carvers": ["Russia"], "since": "DY-6" },
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Senate of Abo",
+                    "personality": "dove",
+                    "skill": 3,
+                    "biography": "A senate that keeps Swedish law under a Russian crown, and means to keep both."
+                }
+            },
+            "aggrieved": ["Sweden"],
+            "grudge_label": "The Finnish Question"
+        },
+        "DuchyOfMilan": {
+            "display_name": "Duchy of Milan",
+            "flag": "DuchyOfMilan",
+            "provinces": ["Milan"],
+            "blurb": "The Habsburg duchy of Lombardy is raised again from the Kingdom of Italy's soil - the DUCHY OF MILAN is erected.",
+            "crown": { "title": "Duke of Milan", "ai_carvers": ["Austria"], "since": "DY-6" },
+            "seeds": {
+                "gold": 500,
+                "diplomat": {
+                    "name": "Governo of Milan",
+                    "personality": "loyalist",
+                    "skill": 3,
+                    "biography": "The old Austrian governo restored, counting the French years as an interruption."
+                }
+            },
+            "aggrieved": ["France"],
+            "grudge_label": "The Lombard Question"
         }
     },
     "_reforms_comment": "SR-5r RF-0 (docs/REFORMS_SPEC.md, gate record section 0 RULED September 27, 2026; readings section 0.1 CONFIRMED). One deck per great power (R6), in the order the AI court enacts (section 7). A row is bought once (currency gold or authority, plus one admin action) and pays upkeep gold every turn as the signed Net component 'Laws'; it lapses, largest upkeep first, when the treasury cannot pay (R5), and a lapsed law may be restored within ten turns for half its price plus its arrears (R8 'The Arrears'). Nothing is in force at boot: the validator refuses enacted_turn / lapsed_turn here. effects draw from the closed set of section 4 (at most two clauses); a type not yet wired to its seam is refused ('strike, never invent'). RF-0 authors each court's Staff - the ONE actions law, the only road to a fifth action, one price for every court (section 5, Q3); the rest of the section 6 catalogue arrives with RF-2, when its effect types are wired. R6 AMENDED by S14k (October 28, 2026 - the user: 'what if ottomans reformed'): the Porte's one-row deck, the New Order (Nizam-i Cedid) - no Staff (the one-Staff rule binds the five great powers); its force_limit clause raises the Porte's force-limit floor to a great power's, and under_threat lets the AI proclaim it only at war or when a design is priced against the Porte. R6 AMENDED again by T4-3 (November 10, 2026 - docs/DYNAMISM_SPEC.md section 3c G6, promotion): five minor courts carry a one-row PROMOTION deck, the crowns of 1806 - Bavaria's Royal Crown, Saxony's Royal Dignity, Hesse's Grand Ducal Title, Denmark's Both Shores of the Sound, Sardinia's Mainland Restored. A promotion law's one clause is rank (tier secondary - no court rises to major by law): while it is in force the court's rank is DERIVED as secondary everywhere rank is read (force limit, the capital's guard, the table's standing, the bloc's weight, the call to arms against it, vassal eligibility). requires_design names the acquire design of the court's own agenda deck whose provinces are the law's grounds: it may be enacted only while every one of them is in the court's hands with a title record at least six turns old, and it lapses (reason grounds_lost - the demotion) the turn any of them is lost. A deck of promotion laws alone carries no Staff and draws no R6 warning.",

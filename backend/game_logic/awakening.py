@@ -321,6 +321,18 @@ def ensure_houses(world) -> Dict[str, str]:
     return st["houses"]
 
 
+def adopt_court(world, court: str, lord: str) -> None:
+    """DY-6 (§5a C2's corollary): a court ERECTED later — a carve, a crown —
+    is born into the web under the lord that made it: its own soil under
+    him is home, and the carved people keep THEIR boot house (the Neapolitans
+    under the Kingdom of Naples count the French house foreign). Written
+    once; a tag re-carved after an erasure keeps its first house (a people
+    remembers). Unarmed: nothing."""
+    if not armed(world) or not court or not lord or str(court) == str(lord):
+        return
+    ensure_houses(world).setdefault(str(court), str(lord))
+
+
 def backfill(world, scenario_data: Dict[str, Any]) -> bool:
     """A pre-Tier-6 save of a scenario that NOW authors the Awakening gains
     the store on load (the `_backfill_moments` idiom): every people at 0,

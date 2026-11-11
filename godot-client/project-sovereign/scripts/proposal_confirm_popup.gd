@@ -1567,10 +1567,17 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	if terms_display != "" and terms_display != "null":
 		bbcode += " [color=#%s](%s)[/color]" % [Utils.COLOR_INFO, terms_display]
 	var options: Array = []
+	var option_labels: Array = []
 	if sugg.get("region_options") is Array:
 		options = sugg.get("region_options")
 	elif sugg.get("vassal_options") is Array:
 		options = sugg.get("vassal_options")
+	elif sugg.get("king_options") is Array:
+		# DY-6 (DYNAMISM_SPEC.md §6): a crown's throne — the picker's labels
+		# ride beside the names (a marshal's glory and corps, a prince).
+		options = sugg.get("king_options")
+		if sugg.get("king_labels") is Array:
+			option_labels = sugg.get("king_labels")
 	if options.size() > 1:
 		bbcode += " [url=suggopts:%d:%d]▾[/url]" % [court_index, sugg_index]
 	if bool(sugg.get("supports_continental_system", false)):
@@ -1586,8 +1593,11 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 		var opt_index = -1
 		for opt in options:
 			opt_index += 1
+			var opt_text = Utils.display_nation_name(str(opt))
+			if opt_index < option_labels.size():
+				opt_text = str(option_labels[opt_index])
 			bbcode += "            [url=suggpick:%d:%d:%d][color=#9ec0e0]%s[/color][/url]\n" % [
-				court_index, sugg_index, opt_index, Utils.display_nation_name(str(opt)),
+				court_index, sugg_index, opt_index, opt_text,
 			]
 	return bbcode
 
@@ -1708,6 +1718,10 @@ func _fire_suggestion(row: Dictionary, sugg_index: int, op: String, parts: Packe
 		elif sugg.get("vassal_options") is Array:
 			options = sugg.get("vassal_options")
 			option_field = "vassal_nation"
+		elif sugg.get("king_options") is Array:
+			# DY-6: the king picked for a crown ('' = a regency).
+			options = sugg.get("king_options")
+			option_field = "king"
 		var opt_index = int(parts[3])
 		if option_field == "" or opt_index < 0 or opt_index >= options.size():
 			return

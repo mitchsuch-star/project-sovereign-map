@@ -1565,6 +1565,11 @@ from backend.nation_config import NATION_POWER_TIERS   # noqa: E402
 # DEF-5 naval NV-2: Ireland joins the catalogue (the Free Ireland carve,
 # NAVAL_SPEC section 5.2 — the DEF-5 rider's contract).
 CARVE_TAGS = ("DuchyOfWarsaw", "Normandy", "RomanRepublic", "Ireland")
+# DY-6 (DYNAMISM_SPEC.md §6, November 10, 2026): the crowns ride the same
+# catalogue — six templates carrying a `crown` block (`crowns.is_crown`);
+# the four plain carves stay plain (Warsaw's duke was the King of Saxony).
+# Re-seated with cause: the catalogue census was the four plain carves.
+CROWN_TAGS = ("KingdomOfNaples", "Westphalia", "Hungary", "Illyria", "Finland", "DuchyOfMilan")
 
 
 def _war(world, a, b):
@@ -1602,18 +1607,18 @@ class TestCarveBootZero:
     def test_no_template_tag_exists_at_boot(self, world):
         """§11.4: 'no template tag exists at boot — pinned.'"""
         active = set(world.get_active_nations())
-        for tag in CARVE_TAGS:
+        for tag in CARVE_TAGS + CROWN_TAGS:
             assert tag not in active
             assert tag not in world.vassals
             assert tag not in world.nation_capitals
 
     def test_the_catalogue_is_authored_but_inert(self, world):
-        assert set(world.formable_nations) == set(CARVE_TAGS)
+        assert set(world.formable_nations) == set(CARVE_TAGS) | set(CROWN_TAGS)
         assert world.nation_formations == {}
 
     def test_catalogue_survives_save_load(self, world):
         reloaded = WorldState.from_dict(world.to_dict())
-        assert set(reloaded.formable_nations) == set(CARVE_TAGS)
+        assert set(reloaded.formable_nations) == set(CARVE_TAGS) | set(CROWN_TAGS)
         assert (template_provinces(get_template(reloaded, "DuchyOfWarsaw"))
                 == ["Posen"])
 
@@ -2913,7 +2918,9 @@ class TestFormablesPayload:
         assert ("C", "Ireland") in rows
         assert ("T", "KingdomOfItaly") in rows
         assert ("T", "Holland") in rows
-        assert payload["count"] == len(payload["formables"]) == 6
+        # DY-6 (November 10, 2026): + the six crowns (`CROWN_TAGS`), each a
+        # Class C row naming its throne — re-seated with cause from 6.
+        assert payload["count"] == len(payload["formables"]) == 6 + len(CROWN_TAGS)
 
     def test_rows_are_never_hidden_and_never_dead(self, world):
         """§11.6-8: an unavailable row states exactly what is missing."""

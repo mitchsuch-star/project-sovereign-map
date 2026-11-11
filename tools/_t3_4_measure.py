@@ -106,8 +106,17 @@ def census_of(digest: dict) -> dict:
     levee_beats: list = []
     awakened_rebellions: list = []
     risen_revanche: list = []
+    # Tier 8 (session E, DY-6): the crowns erected — a `nation_formed` row
+    # that carries a `crown` (the title), the carver and who reigns.
+    crowns: list = []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
+            if event.get("type") == "nation_formed" and event.get("crown"):
+                crowns.append({"turn": int(row.get("turn", 0)),
+                               "nation": str(event.get("nation") or ""),
+                               "crown": str(event.get("crown") or ""),
+                               "sponsor": str(event.get("sponsor") or ""),
+                               "king": str(event.get("king") or "")})
             if event.get("type") == "awakening":
                 awakening_beats.append({"turn": int(row.get("turn", 0)),
                                         "court": str(event.get("nation") or ""),
@@ -245,6 +254,7 @@ def census_of(digest: dict) -> dict:
             "levee_beats": levee_beats,
             "awakened_rebellions": awakened_rebellions,
             "risen_revanche": risen_revanche,
+            "crowns": crowns,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
             "annexations_outside_aim": int(metrics.get("annexations_outside_aim", 0) or 0),
             "annexations_outside_aim_by_court": dict(
@@ -334,6 +344,8 @@ def main() -> None:
                                 if b["direction"] == "guard"),
             "awakened_rebellions": sum(len(c["awakened_rebellions"]) for c in census.values()),
             "risen_revanche": sum(len(c["risen_revanche"]) for c in census.values()),
+            # Tier 8 (session E): the crowns erected
+            "crowns_erected": sum(len(c["crowns"]) for c in census.values()),
         },
     }
     pathlib.Path(args.census).write_text(

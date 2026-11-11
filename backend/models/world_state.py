@@ -10381,6 +10381,11 @@ class WorldState:
         # is carried whole; nothing is written where none is authored.
         from backend.game_logic import awakening as _awakening
         _awakening.install(world, data)
+        # DY-6 (DYNAMISM_SPEC.md §6, Tier 8): the crowns' store — the
+        # scenario's top-level `crowns` block (the princes, the legitimists)
+        # or a save's `moments.crowns`; nothing where none is authored.
+        from backend.game_logic import crowns as _crowns
+        _crowns.install(world, data)
         # S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open store — ids are
         # validated by the reader; values coerced to int; a bad value dropped.
         _first_opens: Dict[str, int] = {}
@@ -10439,10 +10444,13 @@ class WorldState:
         # NA-6c: the carve catalogue (scenario data, same shape either way —
         # `from_scenario` funnels through here, so the scenario key and the
         # save key are one).
-        world.formable_nations = {
+        # DY-6 (DYNAMISM_SPEC.md §6): the crowns ride the same catalogue;
+        # with the seam down they are struck at load (T4-3's idiom).
+        from backend.game_logic.crowns import strike_crowns as _strike_crowns
+        world.formable_nations = _strike_crowns({
             str(k): copy.deepcopy(dict(v or {}))
             for k, v in (data.get("formable_nations") or {}).items()
-        }
+        })
         # DEF-5 naval: the ONE store round-trips as saved (absent → {} —
         # every pre-naval save loads with the layer dormant). The scenario
         # path does NOT ride this key: from_scenario transforms the authored

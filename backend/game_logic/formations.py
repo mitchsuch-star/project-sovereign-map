@@ -622,7 +622,9 @@ def build_proclamation_card(world, payload: dict) -> dict:
         sponsor_display = payload.get("sponsor_display") or ""
         if sponsor_display:
             lines.append(f"it answers to {sponsor_display} as a satellite "
-                         f"(loyalty {int(CARVE_LOYALTY)})")
+                         f"(loyalty {int(payload.get('loyalty', CARVE_LOYALTY))})")
+            # DY-6: a crown's lines — who reigns, what it cost, who withholds.
+            lines.extend(str(line) for line in (payload.get("crown_lines") or []))
             # IGR-D: state the BARGAIN, not only the dependence. What a
             # carve buys — a frontier that garrisons and fights for itself,
             # and a tributary — was true of nothing on master (the client
@@ -671,7 +673,15 @@ def _announce(world, payload: dict) -> None:
     new_display = payload["display_name"]
     old_display = payload["old_display_name"]
 
-    if payload.get("created"):
+    if payload.get("created") and payload.get("crown"):
+        # DY-6: a CROWN's beat names the throne and who takes it.
+        queue_dispatch_event(world, "crown_erected", {
+            "nation": new_display,
+            "sponsor": payload.get("sponsor_display") or "a foreign power",
+            "reign": (payload.get("reign")
+                      or f"a regency holds the crown ({payload['crown']})"),
+        }, fog_rule="always")
+    elif payload.get("created"):
         queue_dispatch_event(world, "nation_created", {
             "nation": new_display,
             "sponsor": payload.get("sponsor_display") or "a foreign power",
@@ -687,6 +697,8 @@ def _announce(world, payload: dict) -> None:
     # campaign-log one-liner already branches the same way on the same key.
     message = (f"{old_display} is no more. {new_display} stands."
                if old_display else f"{new_display} stands.")
+    if payload.get("reign"):
+        message += f" {payload['reign']}."
     if payload["aggrieved_display"]:
         courts = " and ".join(payload["aggrieved_display"])
         message += f" {courts} receive the news as a declaration."
@@ -698,14 +710,22 @@ def _announce(world, payload: dict) -> None:
         details={"nation": payload["nation"]},
     ))
 
-    world.log_event({
+    row = {
         "type": "nation_formed",
         "nation": payload["nation"],
         "display_name": new_display,
         "old_display_name": old_display,
         "aggrieved": list(payload["aggrieved"]),
         "sponsor": payload["sponsor"],
-    })
+    }
+    if payload.get("crown"):
+        # DY-6: new keys on the existing log type (no CAMPAIGN_LOG_TYPES
+        # change) — the log composes the reign from them.
+        row["crown"] = payload["crown"]
+        row["king"] = payload.get("king") or ""
+        row["king_kind"] = payload.get("king_kind") or ""
+        row["reign"] = payload.get("reign") or ""
+    world.log_event(row)
 
     # §11.8 stage 2 — the one ceremonial card. Transport-independent: the
     # queue survives the tick AND the ratify path, where a dispatch line
@@ -972,13 +992,19 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
 
 
 def create_client_nation(world, template_id: str, carver: str,
-                         ceded_from: str = "") -> Optional[dict]:
+                         ceded_from: str = "", clause: Optional[Mapping[str, Any]] = None
+                         ) -> Optional[dict]:
     """Erect a Class C client state out of a defeated party's soil (§11.4).
 
     Returns the Proclamation payload, or None when the template is
     unknown. GR5 throughout: `carver` is a parameter, so a coalition
     victor erects the Duchy of Normandy against France by the identical
     path the player uses to erect the Duchy of Warsaw against Prussia.
+
+    DY-6 (DYNAMISM_SPEC.md §6): `clause` is the ratified `create_client`
+    clause — a CROWN's teeth (`crowns.on_crown_erected`: the title, the
+    Alarm, the king it names) land after the soil moves and before the
+    Proclamation, so the beat speaks them; a plain carve passes none.
 
     Raises ValueError when a template province is absent from the world —
     an unauthored or misspelled province is a template that can never be
@@ -1014,6 +1040,12 @@ def create_client_nation(world, template_id: str, carver: str,
     _seed_client_roster(world, tag, template, carver)
     if ceded_from:
         world.vassals[tag]["carved_from"] = ceded_from
+    # DY-6 (the Awakening's §5a C2, the sibling fix for every carve): the
+    # new court is born into the web under the lord that made it — its own
+    # soil under him is home; the carved PEOPLE keep their boot house and
+    # stir under the new crown as under any foreign garrison.
+    from backend.game_logic.awakening import adopt_court
+    adopt_court(world, tag, carver)
 
     # The soil changes hands LAST of the mutations, so the tag already
     # exists when `get_nation_regions` is next derived.
@@ -1024,11 +1056,16 @@ def create_client_nation(world, template_id: str, carver: str,
     if hasattr(world, "invalidate_active_nations_cache"):
         world.invalidate_active_nations_cache()
 
-    return _proclaim_creation(world, tag, template_id, identity, carver)
+    crown_record: dict = {}
+    if clause is not None:
+        from backend.game_logic.crowns import on_crown_erected
+        crown_record = on_crown_erected(world, tag, template, carver, dict(clause))
+    return _proclaim_creation(world, tag, template_id, identity, carver,
+                              crown=crown_record or None)
 
 
 def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
-                       carver: str) -> dict:
+                       carver: str, crown: Optional[dict] = None) -> dict:
     """The Proclamation for a CREATION (§11.8 stages 1-3, shared with the
     Class T formation beat).
 
@@ -1102,6 +1139,18 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
         "regions_lifted": 0,
         "turn": turn,
     }
+    if crown:
+        # DY-6: the crown on the beat — the title, who reigns, the card's
+        # lines, the loyalty the row carries (a king's trust, a prince's
+        # 50, a regency's 60).
+        from backend.game_logic.crowns import card_lines, reign_words
+        payload["crown"] = str(crown.get("crown") or "")
+        payload["king"] = str(crown.get("king") or "")
+        payload["king_kind"] = str(crown.get("king_kind") or "")
+        payload["king_display"] = str(crown.get("king_display") or "")
+        payload["reign"] = reign_words(crown)
+        payload["crown_lines"] = card_lines(crown, payload["sponsor_display"])
+        payload["loyalty"] = int(crown.get("loyalty", CARVE_LOYALTY))
     _announce(world, payload)
     return payload
 
@@ -1157,8 +1206,10 @@ def apply_create_client_clause(world, term: Mapping[str, Any]) -> Optional[Dict]
     # The court being carved may be left with nothing — that is the Papal
     # case and it is intended (validation already required a decisive war
     # score for it). Snapshot BEFORE the carve so the elimination check
-    # reads the real result.
-    cc_payload = create_client_nation(world, cc_tag, cc_to, ceded_from=cc_from)
+    # reads the real result. DY-6: the clause rides in — a crown's teeth
+    # (the title, the Alarm, the king) land inside, before the beat.
+    cc_payload = create_client_nation(world, cc_tag, cc_to, ceded_from=cc_from,
+                                      clause=term)
     if cc_payload is None:
         return None
     # GE-1 verification round: a carve is a cession — each carved province
@@ -1172,11 +1223,17 @@ def apply_create_client_clause(world, term: Mapping[str, Any]) -> Optional[Dict]
     clause["provinces"] = list(cc_provinces)
     clause["client_display_name"] = str(
         cc_payload.get("display_name") or cc_tag)
-    clause["loyalty_after"] = int(CARVE_LOYALTY)
+    clause["loyalty_after"] = int(
+        (world.vassals.get(cc_tag) or {}).get("loyalty", CARVE_LOYALTY))
     clause["pair_state_transition"] = (
         f"{cc_payload.get('display_name') or cc_tag} erected "
         f"as a client of {cc_to}"
     )
+    if cc_payload.get("crown"):
+        # DY-6: the applied clause names the throne and the reign.
+        clause["crown"] = str(cc_payload["crown"])
+        if cc_payload.get("reign"):
+            clause["pair_state_transition"] += f"; {cc_payload['reign']}"
     # Elimination LAST, and only once the client tag owns the soil —
     # carving a one-province polity erases it, and `_eliminate_nation`
     # frees a lord's vassals with a bare `del`, so the row written above
@@ -1619,6 +1676,10 @@ def build_formables_payload(world) -> dict:
             "deep_link": None,
         })
 
+    # DY-6: a crown's row names its throne ('' for a plain formable).
+    from backend.game_logic.crowns import crown_title
+    for row in rows:
+        row["crown"] = crown_title(catalogue.get(str(row.get("tag") or "")))
     return {"formables": rows, "count": int(len(rows))}
 
 
@@ -1698,9 +1759,13 @@ def prospect_sentence(row: Mapping[str, Any], province: str) -> str:
     `by_province` or `road_note_for`; none composes its own."""
     provinces = [str(p) for p in row["provinces"]]
     others = [p for p in provinces if p != province]
-    share = "half of" if len(provinces) == 2 else "part of"
+    # DY-6: a ONE-province carve (the Kingdom of Hungary) is "the whole of"
+    # — "part of … hold all" read wrong for it (never exercised before: no
+    # one-province carve had its war running at the boot).
+    share = ("half of" if len(provinces) == 2
+             else "the whole of" if len(provinces) == 1 else "part of")
     with_ = f" (with {_and_list(others)})" if others else ""
-    every = "both" if len(provinces) == 2 else "all"
+    every = "both" if len(provinces) == 2 else "it" if len(provinces) == 1 else "all"
     court = row["court_display"]
     return (f"{province} is {share} the {row['display_name']} carve{with_} "
             f"— hold {every} while the war with {court} runs and {court} "
@@ -1721,8 +1786,9 @@ def _add_prospect(out: Dict[str, Any], template_id: str, display: str,
         "war": True,
         "state": "prospect",
     }
+    every = "both" if len(provinces) == 2 else "it" if len(provinces) == 1 else "all"
     row["text"] = (f"The {display} carve needs {_and_list(provinces)} — hold "
-                   f"{'both' if len(provinces) == 2 else 'all'} while the war "
+                   f"{every} while the war "
                    f"with {court_display} runs and {court_display} can be made "
                    f"to erect it at a table")
     out.setdefault("prospects", []).append(row)

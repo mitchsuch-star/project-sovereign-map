@@ -129,9 +129,14 @@ CANONICAL_CLAUSE_TYPES = {
     # double-promise check, and display. It is never the authority —
     # ratification re-resolves the live template and re-verifies control
     # (the VS-5 "re-check inside the apply arm" pattern).
+    # DY-6 (DYNAMISM_SPEC.md §6): a CROWN rides the same clause — `crown`
+    # the royal style (denormalised, the template is the authority), `king`
+    # / `king_kind` / `king_display` who reigns (a marshal of the carver's
+    # roster or a prince of the Imperial house; absent = a regency).
     "create_client": {
         "required": {"type", "from", "to", "tag"},
-        "optional": {"provinces", "client_display_name", "authored_by"},
+        "optional": {"provinces", "client_display_name", "authored_by",
+                     "crown", "king", "king_kind", "king_display"},
     },
     # The Tilsit clause (Score Finish Step 7 slice 4; SCORE_FINISH_SPEC §6.6):
     # "joins the Continental System" — no alliance (Prussia and Russia at

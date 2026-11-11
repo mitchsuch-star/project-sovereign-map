@@ -88,6 +88,11 @@ NATION_DISPLAY = {
     # "Normandy" is deliberately ABSENT, mirroring Godot: it is also a
     # PROVINCE name on this map, and a carved Normandy always resolves its
     # player-facing name through the formation identity override anyway.
+    # DY-6 (DYNAMISM_SPEC.md §6): the crowns' compound tags. "Hungary" and
+    # "Finland" are ABSENT for Normandy's reason (both are province names);
+    # "Westphalia" and "Illyria" are single tokens the override renders.
+    "KingdomOfNaples": "Kingdom of Naples",
+    "DuchyOfMilan": "Duchy of Milan",
 }
 
 
@@ -141,6 +146,14 @@ NATION_DEMONYMS = {
     # `_tag_shape_defeats_derivation` CANNOT catch, so it coined
     # "Irelandian" and reached the Trafalgar line and the naval diorama.
     "ireland": "irish",
+    # DY-6 (DYNAMISM_SPEC.md §6): the crowns' tags — real runtime nations
+    # once erected, so they reach every consumer of this table.
+    "kingdomofnaples": "neapolitan",
+    "westphalia": "westphalian",
+    "hungary": "hungarian",
+    "illyria": "illyrian",
+    "finland": "finnish",
+    "duchyofmilan": "milanese",
     "freeireland": "irish",
 }
 
@@ -2722,8 +2735,11 @@ def claim_clause_noun(term, court: str = "", *, name_of=None) -> str:
         moved = str(term.get("vassal") or "")
         return f"the transfer of {show(moved)}{suffix}" if moved else f"the transfer of a vassal{suffix}"
     if ttype == "create_client":
+        # DY-6: and who reigns (" under Murat").
+        from backend.game_logic.crowns import king_clause_words
         client = str(term.get("client_display_name") or term.get("tag") or "")
-        return f"the erection of {client}{suffix}" if client else f"the new client state{suffix}"
+        king = king_clause_words(term)
+        return f"the erection of {client}{king}{suffix}" if client else f"the new client state{suffix}"
     if ttype == "continental_system_join":
         return f"{show(frm or court)}'s entry into the Continental System"
     if ttype == "territory_compensate":

@@ -1089,9 +1089,11 @@ def _demand_clause_label(clause: Mapping[str, Any]) -> str:
         # VS-5
         return f"the transfer of {clause.get('vassal')} to {clause.get('to')}"
     if ttype == "create_client":
-        # NA-6c — name the client, not the template id.
+        # NA-6c — name the client, not the template id. DY-6: and who reigns.
+        from backend.game_logic.crowns import king_clause_words
         client = str(clause.get("client_display_name") or clause.get("tag") or "")
-        return f"the erection of {client}" if client else "the new client state"
+        king = king_clause_words(clause)
+        return f"the erection of {client}{king}" if client else "the new client state"
     if ttype == "continental_system_join":
         # The Tilsit clause.
         return f"{clause.get('from')}'s entry into the Continental System"
@@ -1674,6 +1676,17 @@ def _handle_settlement_demand_action(
             "provinces": list(template_provinces(get_template(world, template_id))),
             "client_display_name": str(identity.get("display_name") or template_id),
         }
+        # DY-6 (DYNAMISM_SPEC.md §6): a crown's throne — the picker's `king`
+        # (a marshal with laurels or a prince; '' a regency), lawful by
+        # `crowns.resolve_king`, stamped with the title.
+        from backend.game_logic.crowns import crown_title, stamp_king_on_clause
+        title = crown_title(get_template(world, template_id))
+        if title:
+            clause["crown"] = title
+        clause, king_refusal = stamp_king_on_clause(
+            world, clause, proposer_leader, str(action_params.get("king") or ""))
+        if king_refusal:
+            return _fail("crown_king_refused", king_refusal)
     elif clause_type == "territory_compensate":
         # PC-R7 (ii): MUST sit above the trailing `else` (liberation). The
         # payer is the province's holder (paid) or our leader (pointed) —

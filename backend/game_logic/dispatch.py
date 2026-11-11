@@ -1925,6 +1925,7 @@ A_QUIET_MORNING_CLOSES_ON_THE_LADDER = True
 _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "nation_formed": ("courts_treaties", 95),
     "nation_created": ("courts_treaties", 95),
+    "crown_erected": ("courts_treaties", 95),   # DY-6
     "allegiance_in_play": ("courts_treaties", 90),
     "allegiance_settled": ("courts_treaties", 89),   # SFR-B4: the close
     "diplomatic_ai_ai_treaty": ("courts_treaties", 85),
@@ -8612,6 +8613,13 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "By the fortune of arms and the pen at the table — "
         "{nation} is erected upon the map, a client of {sponsor}."
     ),
+    # DY-6 (DYNAMISM_SPEC.md §6): a CROWN erected — the beat names who takes
+    # it (`{reign}`: "Murat takes the crown as King of Naples" / "a regency
+    # holds the crown (King of Naples)").
+    "crown_erected": (
+        "By the fortune of arms and the pen at the table — "
+        "{nation} is erected upon the map, a client of {sponsor}; {reign}."
+    ),
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     # NP-5 §8: once per war, the first dispatch after the Emperor rides out.
     "sovereign_takes_field": "The Emperor has taken the field — Talleyrand holds the portfolio at the capital.",
@@ -8698,6 +8706,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "agenda_violation": "HIGH",
     "nation_formed": "HIGH",
     "nation_created": "HIGH",
+    "crown_erected": "HIGH",   # DY-6
     # AI-2b/2d/2e (Stage C): the broken bargain is the phase's marquee
     # grievance beat and the flip announcement is the auction's Courier
     # moment — both HIGH like their treaty-broken siblings; the routine

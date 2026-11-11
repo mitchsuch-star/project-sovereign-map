@@ -124,6 +124,14 @@ def summarize(digest: dict) -> dict:
             [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("author") or "")]
             for row in digest.get("turns") or [] for e in row.get("events") or []
             if e.get("type") == "design_promoted" and e.get("cause") == "awakening"],
+        # Tier 8 (session E, DY-6): the crowns erected (turn, tag, title,
+        # carver, king) — the AI road's footprint beside `france_captures`.
+        "crowns": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("crown") or ""),
+             str(e.get("sponsor") or ""), str(e.get("king") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "nation_formed" and e.get("crown")],
+        "formations": list((digest.get("derived") or {}).get("formations") or []),
     }
 
 
@@ -206,7 +214,8 @@ def main() -> None:
                          "alarm_guarantees": sum(len(s["alarm_guarantees"])
                                                  for s in seeds.values()),
                          "last_refuges": sum(len(s["last_refuges"])
-                                             for s in seeds.values())}
+                                             for s in seeds.values()),
+                         "crowns_erected": sum(len(s["crowns"]) for s in seeds.values())}
                    for arm, seeds in arms.items()},
         "nov6_france_captures": nov6(),
     }
