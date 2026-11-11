@@ -759,6 +759,11 @@ func _render_economy():
 		if blockade_note == "":
 			blockade_note = "trade halved under enemy sail"
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Blockade: -" + str(blockade) + "g  (" + blockade_note + ")[/color]\n"
+	# DY-7 (DYNAMISM_SPEC.md §6): a crown unrecognized — our trade with the
+	# withholding courts halved; its own signed Net component (SC-33).
+	var recognition = int(econ.get("recognition", 0))
+	if recognition > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Recognition: -" + str(recognition) + "g  (the courts that withhold our crown trade at half)[/color]\n"
 	var admiralty = int(econ.get("admiralty", 0))
 	if admiralty > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Admiralty: -" + str(admiralty) + "g[/color]\n"

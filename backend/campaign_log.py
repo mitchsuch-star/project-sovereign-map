@@ -516,6 +516,10 @@ CAMPAIGN_LOG_TYPES = {
     # liberation levée rises, stands down, or the National Guard is armed
     # (`awakening._the_levee_beats`) — a nation at war on its own soil.
     "levee",
+    # DY-7 (DYNAMISM_SPEC.md §6 — 185→186 flipped consciously): a crown
+    # recognized or refused by a legitimist court — by the peace that beat
+    # it, or at the Congress (`crowns._beat`).
+    "recognition",
 }
 
 # ============================================================================
@@ -640,6 +644,8 @@ CATEGORY_MAP = {
     # DY-5: a nation's levée rises or stands down; its National Guard armed —
     # the depots and the levy's price, the economy's column.
     "levee": "economy",
+    # DY-7: a crown recognized or refused — the courts' column.
+    "recognition": "diplomacy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
     "fleet_posture": "command",
@@ -777,7 +783,7 @@ LOG_TIER_LEAD = frozenset({
     "diplomatic_war_declared", "expedition_landed", "last_stand",
     "marshal_captured", "marshal_destroyed", "nation_eliminated",
     "nation_formed", "peace_ratified", "question_turns", "rank_promotion", "awakening",
-    "levee",
+    "levee", "recognition",
     "trafalgar", "ultimatum_issued",
     "vassal_broke_free", "vassal_defected", "vassal_liberated",
     "volte_face", "war_declaration",
@@ -1229,7 +1235,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
                           "third_party_peace", "rank_promotion", "question_turns", "awakening",   # T4-3: a crown; DY-2: a Question turns; DY-4: a people stirs
-                          "levee",   # DY-5: a nation in arms is court knowledge
+                          "levee", "recognition",   # DY-5: a nation in arms is court knowledge; DY-7: a crown recognized or refused is too
                           "coalition_dissolved_for_france",
                           "design_promoted", "volte_face",
                           # SR-5r RF-1: a court's laws are court knowledge
@@ -3201,6 +3207,11 @@ def _oneliner_laws(ctx: OnelinerContext):
         if direction == "raised":
             return f"THE NATION IN ARMS — the people of {nation} fill the depots"
         return f"The levée of {nation} stands down"
+    if ctx.event_type == "recognition":
+        # DY-7 (DYNAMISM_SPEC.md §6): a crown recognized or refused — the
+        # courts by their seats, never a figure (`crowns.oneliner`).
+        from backend.game_logic.crowns import oneliner as _recognition_oneliner
+        return _recognition_oneliner(ctx.event)
     return _NEXT_STAGE
 
 

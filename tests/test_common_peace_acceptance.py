@@ -1170,6 +1170,10 @@ def test_one_covered_enemy_common_peace_uses_full_formula():
         # PC-R7 (ii) part 3 (October 20, 2026): the league's bond on a
         # separate peace (0 with no bond — every pin above untouched).
         "coalition_bond",
+        # DY-7 (November 10, 2026, DYNAMISM_SPEC.md §6): a crown of the
+        # proposing side's house the court withholds (0 with no crown —
+        # every pin above untouched).
+        "crown_recognition",
     }
     assert set(result["components"].keys()) == expected
 

@@ -1938,6 +1938,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "question_ruled": ("courts_treaties", 86),       # DY-3: the Congress rules it
     "awakening": ("courts_treaties", 90),            # DY-4: a people stirs, rises, quietens
     "levee": ("courts_treaties", 90),                # DY-5: a nation in arms, its Guard armed
+    "recognition": ("courts_treaties", 88),          # DY-7: a crown recognized or refused
     "court_removes": ("courts_treaties", 79),        # T4-2b
     "court_returns": ("courts_treaties", 79),        # T4-2b
     "diplomatic_relation_shift": ("courts_treaties", 76),
@@ -8457,6 +8458,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "awakening": "{line}",
     # DY-5: the levée's beat — composed by `awakening.levee_line`.
     "levee": "{line}",
+    # DY-7: recognition's beat — composed by `crowns.recognition_words`.
+    "recognition": "{line}",
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
         "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
@@ -8723,6 +8726,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "question_ruled": "HIGH",            # DY-3
     "awakening": "HIGH",                 # DY-4 — a beat, never a routine line
     "levee": "HIGH",                     # DY-5 — a beat, never a routine line
+    "recognition": "HIGH",               # DY-7 — a beat, never a routine line
     "province_changed_hands": "MEDIUM",  # DDB-43
     "corps_on_closed_soil": "HIGH",      # DDB-43
     "paymaster_subsidy": "MEDIUM",

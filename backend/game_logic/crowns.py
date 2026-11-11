@@ -574,3 +574,408 @@ def _and_list(items: List[str]) -> str:
     if len(items) <= 1:
         return items[0] if items else ""
     return ", ".join(items[:-1]) + " and " + items[-1]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DY-7 RECOGNITION (DYNAMISM_SPEC.md §6; the gate's Q4 as ruled at §6a —
+# the shape session E's, the teeth session F's, November 10, 2026).
+#
+# THE LEGITIMISTS WITHHOLD (seam `the_legitimists_withhold`, row T8-RECOG):
+# the scenario's `crowns.recognition` block names the legitimist courts
+# (Austria, Russia, Britain) and the condition `until: "beaten"` — a
+# legitimist withholds recognition of a new crown until it has signed a
+# peace as the LOSER with the crown's lord's house (the Tilsit reading:
+# Russia recognized Warsaw by the treaty that beat her; Pressburg
+# recognized the Kingdom of Italy). The record is the row's `recognized_by`,
+# written at the peace chokepoints (`settlement_ratify._record_common_peace_
+# treaties`, the bilateral `_ratify_treaty`, the dictated truce exit), never
+# a scan: the loser of a signed peace is the court whose burden under its
+# clauses is the greater (`peace_loser` — a white peace beats nobody). A
+# sitting Congress may GRANT it (the same instrument that rules a Question,
+# `congress_grants` beside `questions.congress_rules`): every withholding
+# legitimist among the great powers that answers the Congress RECOGNIZES
+# (its treaty latch, or gone into the Emperor's house) grants the crowns of
+# the Emperor's house; one that REFUSES the Congress on its last day refuses
+# the crown too (once a sitting, `recognition_refused` on the row). A grant
+# or a refusal is a beat — ONE log row (`recognition`, the census 185 → 186)
+# and a HIGH dispatch line in words, never a figure.
+#
+# AN UNRECOGNIZED CROWN PAYS (seam `an_unrecognized_crown_pays`, row
+# T8-PRICE) — three prices, the AI's crowns paying the same (GR5):
+#   * at the table — a court that withholds recognition of a crown of the
+#     proposing side's house prices it on her row: N-DY7 −5 a crown, capped
+#     at −15 (`table_component` on the settlement scorer, `bilateral_
+#     component` on the bilateral formula — the bond's two seats);
+#   * in trade — the LORD's trade with each withholding court halved
+#     (`trade_loss`, applied at `diplomacy.process_trade_income` beside the
+#     blockade's arm — one factor, one site; the Strategic Ledger's signed
+#     "Recognition" Net component). The spec's letter said the client's
+#     income; a vassal pair trades nothing in this engine (tribute replaces
+#     trade — `calculate_trade_breakdown` skips every vassal pair), so the
+#     client's rows are an empty set and the price would have been a promise
+#     with no teeth. It falls where a crown's trade price can be felt: on the
+#     house that raised it. Recorded at §6c.
+#   * on awakened soil — the client dial's −2 becomes −3 while the crown is
+#     unrecognized (`dial_extra`, read by `awakening.client_dial`; the §5
+#     interplay DY-7 owns).
+#
+# THE WORDS: the Diplomatic Ledger's nations tab (a crown's row names who
+# withholds; a legitimist's row names the crowns of ours it withholds), the
+# Vassals tab's card, the Proclamation card (DY-6), Talleyrand's counsel — a
+# reading, never a lookup (`counsel_line`).
+# ═══════════════════════════════════════════════════════════════════════
+
+RECOGNITION_LOG_TYPE = "recognition"
+RECOG_TABLE_MALUS = 5                # N-DY7: a crown unrecognized, per crown, on the withholding court's row
+RECOG_TABLE_CAP = 15                 # N-DY7: the malus capped (three crowns' worth)
+RECOG_TRADE_FACTOR = 0.5             # N-DY7: the lord's trade with a withholding court halved
+RECOG_DIAL_EXTRA = -1                # N-DY7: the dial's −2 becomes −3 while unrecognized
+DIAL_LABEL_UNRECOGNIZED = "the people's awakening — the crown unrecognized"
+BY_PEACE = "peace"
+BY_CONGRESS = "congress"
+
+
+def the_legitimists_withhold() -> bool:
+    """T8-RECOG: the condition's read at the peace chokepoints (`until:
+    beaten` — a legitimist that signs a peace as the loser with the crown's
+    house recognizes it), the Congress's grant and refusal, the beats. Down:
+    `recognized_by` is never written — the legitimists withhold for ever and
+    nothing is said of it (session E's words stand)."""
+    return True
+
+
+def an_unrecognized_crown_pays() -> bool:
+    """T8-PRICE: the three prices of a crown unrecognized — the table's
+    malus, the lord's trade halved, the dial −3 on awakened soil. Down: a
+    withheld crown costs nothing (session E's tree)."""
+    return True
+
+
+# ── the rows and the houses ────────────────────────────────────────────
+
+def crown_rows(world) -> List[Tuple[str, Dict[str, Any]]]:
+    """Every crown's (tag, row), sorted — the vassal rows, never the map."""
+    out: List[Tuple[str, Dict[str, Any]]] = []
+    for tag, row in sorted((getattr(world, "vassals", {}) or {}).items()):
+        if isinstance(row, dict) and row.get("crown"):
+            out.append((str(tag), row))
+    return out
+
+
+def any_crown(world) -> bool:
+    """The cheap guard every price reads first: a world with no crown pays
+    nothing and scans nothing."""
+    return any(isinstance(row, dict) and row.get("crown")
+               for row in (getattr(world, "vassals", {}) or {}).values())
+
+
+def house_of(world, nation: str) -> str:
+    """The house a court belongs to — its top overlord, or itself."""
+    if not nation:
+        return ""
+    try:
+        return str(world._top_overlord(nation) or nation)
+    except Exception as exc:  # a bare fixture without the overlord read
+        from backend.errors import report
+        report(exc, "crowns.house_of: world._top_overlord")
+        return str(nation)
+
+
+def crown_lord(row: Dict[str, Any]) -> str:
+    return str(row.get("lord") or "")
+
+
+def withheld_crowns(world, court: str, proposer_side_participants) -> List[str]:
+    """The crowns of the proposing side's houses that `court` withholds
+    recognition of today (the table's and the formula's one read)."""
+    houses = {house_of(world, str(p)) for p in (proposer_side_participants or ()) if p}
+    houses.discard("")
+    if not houses:
+        return []
+    return [tag for tag, row in crown_rows(world)
+            if house_of(world, crown_lord(row)) in houses
+            and court in withholding_courts(world, tag)]
+
+
+def unrecognized(world, client: str) -> bool:
+    """A crown client at least one legitimist still withholds."""
+    row = (getattr(world, "vassals", {}) or {}).get(client)
+    if not isinstance(row, dict) or not row.get("crown"):
+        return False
+    return bool(withholding_courts(world, client))
+
+
+# ── the condition's read: beaten ──────────────────────────────────────
+
+def peace_loser(a: str, b: str, clauses) -> str:
+    """The court beaten by a signed peace — the one whose burden under its
+    clauses is the greater (`burden_on_nation`, the DEMANDS dialect that
+    knows every type); '' for a white peace (nobody beaten) or equal
+    burdens."""
+    from backend.game_logic.diplomatic_templates import burden_on_nation
+    rows = [dict(c) for c in (clauses or []) if isinstance(c, dict)]
+    if not rows:
+        return ""
+    burden_a, burden_b = burden_on_nation(rows, str(a)), burden_on_nation(rows, str(b))
+    if burden_a > burden_b:
+        return str(a)
+    if burden_b > burden_a:
+        return str(b)
+    return ""
+
+
+def note_peace_signed(world, a: str, b: str, clauses) -> List[Dict[str, Any]]:
+    """The peace chokepoints' ONE call: a legitimist that signs this peace
+    as the LOSER with the house of a crown's lord recognizes that crown —
+    written into the row's `recognized_by`, one beat a crown. Returns the
+    rows written ([] where nothing changes: no crown, a white peace, the
+    loser no legitimist, the winner's house no lord, the seam down)."""
+    if not the_legitimists_withhold() or not any_crown(world):
+        return []
+    loser = peace_loser(a, b, clauses)
+    if not loser or loser not in legitimists(world):
+        return []
+    winner = str(b) if loser == str(a) else str(a)
+    winners_house = house_of(world, winner)
+    out: List[Dict[str, Any]] = []
+    for tag, row in crown_rows(world):
+        if house_of(world, crown_lord(row)) != winners_house:
+            continue
+        if loser not in withholding_courts(world, tag):
+            continue
+        out.append(_grant(world, tag, row, [loser], BY_PEACE))
+    return out
+
+
+# ── the Congress's grant ──────────────────────────────────────────────
+
+def congress_grants(world, final: bool = False) -> List[Dict[str, Any]]:
+    """`congress.process_end_of_turn`, beside `questions.congress_rules`: a
+    sitting Congress grants the Emperor's crowns the recognition of every
+    withholding legitimist among the great powers that answers it
+    RECOGNIZES (its treaty latch) or is GONE into his house; on the
+    sitting's last tick (`final`) a court that REFUSES the Congress refuses
+    the crown — once a sitting (`recognition_refused[court]` = the summons
+    turn). A shut-out or suing court has not answered and keeps
+    withholding. The Congress is the Emperor's instrument: an AI house's
+    crown is recognized by the peace that beats a legitimist, never here."""
+    if not the_legitimists_withhold() or not any_crown(world):
+        return []
+    from backend.game_logic import congress as _congress
+    if not _congress.sitting(world):
+        return []
+    player = str(getattr(world, "player_nation", "") or "")
+    powers = set(_congress.great_powers(world))
+    summoned = int((_congress.record(world) or {}).get("summoned_turn", _turn(world)) or 0)
+    out: List[Dict[str, Any]] = []
+    for tag, row in crown_rows(world):
+        if house_of(world, crown_lord(row)) != player:
+            continue
+        withheld = [c for c in withholding_courts(world, tag) if c in powers]
+        if not withheld:
+            continue
+        granting: List[str] = []
+        refusing: List[str] = []
+        for court in withheld:
+            stance = str(_congress.answer(world, court).get("stance") or "")
+            if stance in (_congress.RECOGNIZES, _congress.GONE):
+                granting.append(court)
+            elif final and stance == _congress.REFUSES:
+                refusing.append(court)
+        if granting:
+            out.append(_grant(world, tag, row, granting, BY_CONGRESS))
+        if refusing:
+            refused = row.setdefault("recognition_refused", {})
+            fresh = [c for c in refusing if int(refused.get(c, -1) or -1) != summoned]
+            if fresh:
+                for court in fresh:
+                    refused[court] = summoned
+                out.append(_beat(world, tag, row, fresh, BY_CONGRESS, granted=False))
+    return out
+
+
+def _turn(world) -> int:
+    return int(getattr(world, "current_turn", 0) or 0)
+
+
+def _grant(world, tag: str, row: Dict[str, Any], courts: List[str], by: str) -> Dict[str, Any]:
+    granted = row.setdefault("recognized_by", [])
+    for court in courts:
+        if court not in granted:
+            granted.append(str(court))
+    return _beat(world, tag, row, courts, by, granted=True)
+
+
+def _beat(world, tag: str, row: Dict[str, Any], courts: List[str], by: str,
+          granted: bool) -> Dict[str, Any]:
+    """ONE log row (`recognition`) and the HIGH dispatch line, in words."""
+    from backend.game_logic.formations import formed_display_name
+    seats = [_seat(world, c) for c in courts]
+    display = formed_display_name(world, tag)
+    message = recognition_words({"display_name": display, "nation": str(tag), "seats": seats,
+                                 "granted": bool(granted), "by": str(by)})
+    # A dict LITERAL with the literal type, logged by name — the Gazette's
+    # producer census (`_log_event_types_written`) follows exactly that.
+    event = {
+        "type": "recognition",             # == RECOGNITION_LOG_TYPE
+        "nation": str(tag),
+        "display_name": display,
+        "crown": str(row.get("crown") or ""),
+        "lord": crown_lord(row),
+        "courts": [str(c) for c in courts],
+        "seats": seats,
+        "granted": bool(granted),
+        "by": str(by),
+        "message": message,
+    }
+    world.log_event(event)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, RECOGNITION_LOG_TYPE,
+                         {"line": event["message"], "nation": str(tag)}, "always")
+    return event
+
+
+# ── the prices ────────────────────────────────────────────────────────
+
+def table_component(world, *, court: str, proposer_side_participants) -> Dict[str, Any]:
+    """The settlement scorer's `crown_recognition` row (the bond's seat):
+    −`RECOG_TABLE_MALUS` for each crown of the proposing side's houses that
+    `court` withholds, capped at −`RECOG_TABLE_CAP`; 0 with no crown, no
+    withholding or the seam down."""
+    out: Dict[str, Any] = {"score": 0, "court": str(court), "crowns": [],
+                           "malus": int(RECOG_TABLE_MALUS), "cap": int(RECOG_TABLE_CAP)}
+    if not an_unrecognized_crown_pays() or not any_crown(world):
+        return out
+    crowns = withheld_crowns(world, str(court), proposer_side_participants)
+    out["crowns"] = list(crowns)
+    out["score"] = -min(int(RECOG_TABLE_CAP), int(RECOG_TABLE_MALUS) * len(crowns))
+    return out
+
+
+def bilateral_component(world, *, court: str, proposer: str) -> int:
+    """The bilateral formula's seat: the same read, the proposer alone."""
+    return int(table_component(world, court=court,
+                               proposer_side_participants=[proposer])["score"])
+
+
+def trade_loss(world, breakdown: Dict[str, List[Tuple[str, int, str]]]) -> Dict[str, int]:
+    """{lord: gold lost this turn} — a crown's lord trades at half with each
+    court that withholds recognition of one of its crowns (one halving a
+    court, however many crowns); the signed "Recognition" Net component.
+    {} with no crown or the seam down. Reads the one per-partner source
+    (`calculate_trade_breakdown`), never the map."""
+    if not an_unrecognized_crown_pays() or not any_crown(world):
+        return {}
+    withheld_by_lord: Dict[str, set] = {}
+    for tag, row in crown_rows(world):
+        courts = withholding_courts(world, tag)
+        if courts:
+            withheld_by_lord.setdefault(crown_lord(row), set()).update(courts)
+    out: Dict[str, int] = {}
+    for lord, courts in sorted(withheld_by_lord.items()):
+        loss = 0
+        for partner, amount, _state in (breakdown or {}).get(lord) or []:
+            if partner in courts and int(amount) > 0:
+                loss += int(amount) - int(int(amount) * RECOG_TRADE_FACTOR)
+        if loss > 0:
+            out[lord] = int(loss)
+    return out
+
+
+def dial_extra(world, client: str) -> int:
+    """`awakening.client_dial`: −1 more a turn (−2 → −3) on a crown client's
+    awakened people while a legitimist withholds; 0 otherwise."""
+    if not an_unrecognized_crown_pays() or not client:
+        return 0
+    return int(RECOG_DIAL_EXTRA) if unrecognized(world, client) else 0
+
+
+# ── the words ─────────────────────────────────────────────────────────
+
+def _seat(world, court: str) -> str:
+    """A great court by its seat ("Vienna"), as the Alarm names them."""
+    from backend.game_logic.alarm import _seat as alarm_seat
+    return alarm_seat(world, court)
+
+
+def _named(world, tag: str) -> str:
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    return with_definite_article(formed_display_name(world, tag))
+
+
+def recognition_words(event: Dict[str, Any]) -> str:
+    """The beat's sentence — R7 names, never a figure."""
+    from backend.display_names import with_definite_article
+    seats = [str(s) for s in (event.get("seats") or []) if s]
+    name = with_definite_article(str(event.get("display_name") or event.get("nation") or ""))
+    who = _and_list(seats) or "the court"
+    one = len(seats) == 1
+    if event.get("granted") and event.get("by") == BY_PEACE:
+        return (f"{who} recognizes {name} and its crown, by the peace that beat her."
+                if one else f"{who} recognize {name} and its crown, by the peace that beat them.")
+    if event.get("granted"):
+        verb = "acknowledges" if one else "acknowledge"
+        return f"The Congress recognizes {name}: {who} {verb} its crown."
+    return (f"{who} refuses {name} its crown — the Congress rises without her word."
+            if one else f"{who} refuse {name} its crown — the Congress rises without their word.")
+
+
+def oneliner(event: Dict[str, Any]) -> str:
+    """The campaign log's row: the courts' news with the beat's lead."""
+    lead = "RECOGNITION" if event.get("granted") else "RECOGNITION REFUSED"
+    return f"{lead} — {recognition_words(event)}"
+
+
+def ledger_crown_line(world, tag: str) -> str:
+    """The nations tab and the Vassals card, a crown client's row: the
+    title, and who withholds ('' for a plain court)."""
+    row = (getattr(world, "vassals", {}) or {}).get(tag)
+    if not isinstance(row, dict) or not row.get("crown"):
+        return ""
+    title = str(row.get("crown") or "")
+    courts = withholding_courts(world, tag)
+    king = str(row.get("king_display") or row.get("king") or "")
+    reign = f" — {king} reigns" if king else " — a regency"
+    if not courts:
+        return f"{title}{reign}; recognized by every court"
+    seats = [_seat(world, c) for c in courts]
+    verb = "withholds" if len(seats) == 1 else "withhold"
+    return f"{title}{reign}; {_and_list(seats)} {verb} recognition"
+
+
+def ledger_recognition_line(world, court: str) -> str:
+    """The nations tab, a legitimist's row: the crowns of the Emperor's
+    house it withholds, and what that costs ('' where it withholds none)."""
+    player = str(getattr(world, "player_nation", "") or "")
+    if not player or not any_crown(world):
+        return ""
+    crowns = withheld_crowns(world, str(court), [player])
+    if not crowns:
+        return ""
+    names = _and_list([_named(world, t) for t in crowns])
+    price = ""
+    if an_unrecognized_crown_pays():
+        malus = min(int(RECOG_TABLE_CAP), int(RECOG_TABLE_MALUS) * len(crowns))
+        price = f" — every peace we put to her is priced for it (−{malus}), our trade with her halved"
+    return f"withholds recognition of {names}{price}"
+
+
+def counsel_line(world, court: str) -> str:
+    """Talleyrand's reading of a court that withholds a crown of ours — a
+    sentence on the advisory, never a lookup ('' where there is nothing to
+    read)."""
+    player = str(getattr(world, "player_nation", "") or "")
+    if not player or not any_crown(world):
+        return ""
+    crowns = withheld_crowns(world, str(court), [player])
+    if not crowns:
+        return ""
+    seat = _seat(world, str(court))
+    names = _and_list([_named(world, t) for t in crowns])
+    if not an_unrecognized_crown_pays():
+        return f"{seat} does not acknowledge {names}, Sire."
+    malus = min(int(RECOG_TABLE_CAP), int(RECOG_TABLE_MALUS) * len(crowns))
+    return (f"{seat} does not acknowledge {names}, Sire — she prices every peace we put "
+            f"to her for it (−{malus}) and trades with us at half, until she is beaten "
+            f"or signs at a Congress.")

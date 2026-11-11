@@ -2737,6 +2737,17 @@ def calculate_common_peace_acceptance(
         world, court=str(accepting_leader),
         proposer_side_participants=proposer_participants, covered=covered)
 
+    # Step 12d (DY-7, DYNAMISM_SPEC.md §6 — Crowns & Recognition): a court
+    # that withholds recognition of a crown of the proposing side's house
+    # prices it on her row — N-DY7 −5 a crown, capped at −15
+    # (`crowns.table_component`, the bond's seat); 0 where no crown stands,
+    # so every legacy fixture pin is byte-stable. GR5: Russia's Finland
+    # pays at Vienna as Naples pays at London.
+    from backend.game_logic.crowns import table_component as _crown_component
+    crown_debug = _crown_component(
+        world, court=str(accepting_leader),
+        proposer_side_participants=proposer_participants)
+
     # ── CA9 row 1: why the war-age penalty is NOT a component here ──
     # It was built here first and then deliberately removed. Recorded so it
     # is not re-added by someone reading only the gate memo.
@@ -2779,6 +2790,7 @@ def calculate_common_peace_acceptance(
         "abandoned_by_ally_acceptance_mod": int(abandoned_debug["score"]),
         "agenda_settlement_mod": agenda_mod_value,
         "coalition_bond": int(bond_debug["score"]),
+        "crown_recognition": int(crown_debug["score"]),
     }
     raw_total = sum(components.values())
     score = _clamp(int(raw_total), ACCEPTANCE_FINAL_CLAMP)
@@ -2826,6 +2838,7 @@ def calculate_common_peace_acceptance(
         "abandoned_by_ally": dict(abandoned_debug),
         "agenda_settlement_mod": dict(agenda_debug),
         "coalition_bond": dict(bond_debug),
+        "crown_recognition": dict(crown_debug),
     }
 
     return {

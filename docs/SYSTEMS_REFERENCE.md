@@ -15527,3 +15527,127 @@ pins hold the crown's seam down: their crafted board IS the AI road's live case)
 **The session landed (the record `SYSTEMS_REFERENCE.md` §205; the pins `TestTheSessionEMeasure`).** ONE sweep, four arms (0 / CROWN / AI / ALL) on three surfaces (`tools/_t8_measure.py`), the standing series (`tools/_t8_series_arms.py`), run alone. **Arm 0 reproduces session D byte for byte on both surfaces** (the ten ambient signatures and the census's every total; the harness on session D's keys), the band 28 / 27 / 26 and story classes 10 of 10 on EVERY arm, the series unmoved on every arm with the crown's and the AI road's seams READ on the rig (2 and 1 a run) and no carve on it. **Said plainly: the seams are reached on every arm and NO crown is erected on any measured arm in forty turns** — the ambient board's AI peaces are Prussia's over Hanover (no crown authored for Prussia: 1806 annexed it) and the crowns the courts may erect (Russia's Finland, Austria's Milan) wait on wars the idle France never frees them to fight; the harness France's wars are the player's, which the AI–AI road never runs; the scripted France authors no carve. The harness record gains the `formations` column (the Class T dreams the march lets form — Holland's on four seeds, the Kingdom of Italy's on six — on every arm alike; none a crown). **The crown's proof is the test file's crafted boards:** Naples under Murat end to end through the guided terms (the row offers the throne, the verb stamps the king, the applier re-homes him with his 22,000, the loyalty his trust 75, Ney envious and −5, the Alarm +12, the Neapolitans counting the crown's soil foreign, the beat and the card), Joseph's Naples (loyalty 50, Murat −8), the regency, and Finland under Russia on both AI roads (the aim peace and the lock). **The raised gate:** clause 1 MET (10 of 10); clauses 2 and 3 UNMET (no crown taken; the Kingdom of Italy alone on all ten, no ambient formation) — session F's reading (DY-7, Tier 8's close, Tier 7 evaluated), then the user's with no default (§7).
 
 **Levers for the user, none pre-recommended (§0):** (a) **the AI road's ambient silence** — a crown for Prussia's Hanover peace (ahistorical; or a North German client) would put a formation on every seed and vary nothing; the honest road to clause 3 is a court whose war the idle France does not own — the content levers of §4a (a second great-power war) carry it; (b) **the marshal king's corps** — the whole corps goes with him (the Army of Naples); a royal guard of a fixed size with the rest returned to the depots is one line; (c) **the prince's loyalty** 50 against a king's trust — the brothers as a cheaper, shakier crown; (d) session D's three and session C's five stand.
+
+## §206 Tier 8, session F — Crowns & Recognition, second half: DY-7 Recognition, the tier's close, Tier 7 evaluated (November 10, 2026 — TIER 8 COMPLETE)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session F; §6's DY-7 built whole on the shape the gate ruled at §6a Q4; the
+landing record §6c; the gate's reading §7). Nothing new ruled at the head. Two rules behind their own zero-arg seams
+(`tests/_t3_seams.py` rows T8-RECOG, T8-PRICE — the recorded boards' hold-list folds them), ONE sweep with three arms
+on three surfaces (`tools/_t8b_measure.py`: 0 / RECOG / ALL), the standing series re-read (`tools/_t8b_series_arms.py`),
+ONE commit. Tests: `tests/test_dy7_recognition.py` (43).
+
+**The legitimists withhold** (seam `crowns.the_legitimists_withhold`; `backend/game_logic/crowns.py`, the DY-7
+section). The scenario's `crowns.recognition` block names the legitimists (Austria, Russia, Britain) and the condition
+`until: "beaten"`. **The condition's read:** a legitimist that signs a peace as the LOSER with the HOUSE of a crown's
+lord (`house_of` — the top overlord; a peace signed with the lord's client counts) recognizes the crown —
+`note_peace_signed(world, a, b, clauses)`: the loser is the court whose burden under the clauses is the greater
+(`peace_loser` → `diplomatic_templates.burden_on_nation`, the DEMANDS dialect that knows every type — `gold_lump`,
+`gold_indemnity`, `territory_cede`, the carve …; a plain `gold` prices nothing); a white peace or equal burdens beat
+nobody; a loser that is no legitimist, or a winner whose house holds no crown, writes nothing. Called at the THREE
+signed roads: `settlement_ratify._record_common_peace_treaties` (per pair, after the record — the table's ratify and
+the AI's `_ratify_third_party` both pass through it; a truce excluded by `current_state` / `final_state`), the
+bilateral `WorldState._ratify_titles_and_elimination` (stage 6 — after stage 5's carve, so the crown this very
+treaty erects is recognized by it; `ctx.treaty_clauses`, from/to), and `diplomacy._process_armistice_expiration`'s
+dictated exit (the held line's cession names the loser; the plain expiry carries no clause). **The record** is the
+row's `recognized_by` (DY-6's field, filled); `withholding_courts` reads it; nothing is scanned.
+
+**The Congress grants** (`crowns.congress_grants(world, final)`, called in `congress.process_end_of_turn` right after
+`questions.congress_rules` and before `_take_answers`): while the Congress sits, for each crown of the PLAYER's house
+(the Congress is the Emperor's instrument — an AI house's crown is recognized by the peace that beats a legitimist,
+never here), every withholding legitimist among `congress.great_powers` whose `answer` is RECOGNIZES (the treaty
+latch — it signed the Emperor's peace) or GONE (into his house) is written into `recognized_by` — one beat per crown
+naming the courts; on the sitting's last tick (`final`: `turn_ended >= ends_turn`) a court whose answer is REFUSES
+refuses the crown — one beat, once a sitting (`row["recognition_refused"][court]` = the summons turn; a later Congress
+asks again); a SHUT OUT or SUING court has not answered and keeps withholding. Nothing without a sitting.
+
+**The beat:** ONE log row `recognition` — `{nation: the crown's tag, display_name, crown: the title, lord, courts,
+seats, granted: bool, by: "peace" | "congress", message}` — the census 185 → 186 (the seventeen `== N` pins and
+`test_iq7`'s rationale moved together; `CATEGORY_MAP` diplomacy, `LOG_TIER_LEAD`, the fog filter's court-knowledge
+list — on one line with `levee`, `filter_campaign_log` sitting at exactly 500 —, the Gazette's `_COURT_TYPES`); the
+one-liner `crowns.oneliner` ("RECOGNITION — …" / "RECOGNITION REFUSED — …"); the dispatch `recognition` (`{line}`,
+HIGH, a `courts_treaties` row of 88, fog `always`). The words (`recognition_words`), by the courts' seats as the Alarm
+names them (Vienna, Vilna, London) and never a figure: "Vienna recognizes the Kingdom of Naples and its crown, by the
+peace that beat her." / "The Congress recognizes the Kingdom of Naples: Vienna acknowledges its crown." / "Vilna and
+London refuse the Kingdom of Naples its crown — the Congress rises without their word."
+
+**An unrecognized crown pays** (seam `crowns.an_unrecognized_crown_pays`; the AI's crowns the same, GR5 — Russia's
+Finland pays at Vienna as Naples pays at London). **At the table:** `crown_recognition` — a twelfth-plus component on
+the settlement scorer (`settlement_scoring.calculate_common_peace_acceptance` step 12d, after the bond: `crowns.table_
+component(world, court=accepting_leader, proposer_side_participants)` → −`RECOG_TABLE_MALUS` 5 for each crown of the
+proposing side's HOUSES the court withholds (`withheld_crowns`), capped at −`RECOG_TABLE_CAP` 15; `components` and
+`component_debug` carry it; 0 with no crown so every legacy fixture pin is byte-stable) and on the bilateral formula
+(`diplomacy.calculate_acceptance`, after the bond, every proposal type: `crowns.bilateral_component(world, court=target,
+proposer)`; `components["crown_recognition"]`, `_COMPONENT_LABELS` "A crown unrecognized", `_FEEDBACK_TRACKABLE`);
+the words — `display_names.ACCEPTANCE_COMPONENT_DISPLAY` "A crown unrecognized", `FEEDBACK_STRINGS` (negative "the
+crown our house has raised, which this court does not acknowledge"), `SPOKEN_BLOCKER_PHRASES` "they do not acknowledge
+the crown our house has raised"; the three component-set pins (`test_ca8_gate_closeout`, `test_common_peace_
+acceptance`, `test_settlement_guided_terms_slice3`) re-seated with cause. **In trade:** the LORD's trade with each
+court that withholds recognition of one of its crowns, halved — `crowns.trade_loss(world, breakdown)` → {lord: loss}
+(one halving a court however many crowns; `RECOG_TRADE_FACTOR` 0.5), applied at `diplomacy.process_trade_income`
+beside the blockade's arm (gross − blockade − recognition; read only where `any_crown`, byte-identical otherwise) and
+SHOWN as its own signed "Recognition" Net component (`ledger.NET_GOLD_COMPONENTS["recognition"] = -1`, the economy
+dict's `recognition`, the words tuple "a crown unrecognized", `economy_executor`'s report line, `strategic_ledger.gd`
+beside the Blockade line; the cross-file tripwire `test_economy_ledger_reconciliation` re-pinned). **Why the lord and
+not the client, as the spec's letter said:** a vassal pair trades nothing in this engine — tribute replaces trade and
+`calculate_trade_breakdown` skips every vassal pair — so "the client's income with a withholding court" is an empty
+set and the price would have been a promise with no teeth; it falls where it can be felt, on the house that raised the
+crown (a lever for the user: move it back, or strike it). It bites only where the lord trades with a legitimist that
+still withholds — open borders or better, before she is beaten. **On awakened soil:** `awakening.client_dial` reads
+`crowns.dial_extra(world, client)` (−1 while `unrecognized` — a crown client with at least one withholding court):
+the −2 at autonomy ≤ 1 becomes −3, the label `DIAL_LABEL_UNRECOGNIZED` "the people's awakening — the crown
+unrecognized"; the tick, the forecast and the debug breakdown share the ONE read (DY-5's F7 lesson); autonomy ≥ 2's
++1 unchanged.
+
+**The words.** The Diplomatic Ledger's nations tab: a crown client's row `crown` — `crowns.ledger_crown_line` ("King of
+Naples — Murat reigns; Vienna, Vilna and London withhold recognition" / "… — a regency; recognized by every court"); a
+legitimist's row `recognition` — `ledger_recognition_line` ("withholds recognition of the Kingdom of Naples — every
+peace we put to her is priced for it (−5), our trade with her halved"); None omits; `diplomatic_ledger.gd` renders
+"Crown:" and "Recognition:" under the Laws and Doctrine lines. The Vassals card's `crown_line` (the same reader; the
+card renders "Crown:" under the header). Talleyrand's counsel (`diplomatic_advisory._assess_nation`, after the Alarm's
+line): `crowns.counsel_line` — "Vienna does not acknowledge the Kingdom of Naples, Sire — she prices every peace we put
+to her for it (−5) and trades with us at half, until she is beaten or signs at a Congress." (with the price's seam
+down, the first clause alone) — a reading, never a lookup.
+
+**Found on the way — the carved client's dial (a sibling of §5a C3, unseamed, pinned):** a carved client's dial read
+only its OWN Awakening row, which is empty — the carved people's scalar lives under the court they were carved from
+(§5a C2: the Neapolitans under "Naples" while the Kingdom of Naples reigns over them), so the people a crown sat on
+could rise without its dial ever moving. `awakening.client_people_level(world, client)` reads the higher of the
+client's own level and `carved_from`'s; `client_dial` and `rebellion_cause` read it. No measured arm carves; Holland
+reads its own row as before.
+
+**Seams and the hold-list:** `crowns.the_legitimists_withhold` down — `recognized_by` never written, the Congress grants
+nothing, no beat (session E's words stand: the card still says who withholds); `crowns.an_unrecognized_crown_pays`
+down — the table's component 0, no trade loss, the dial −2. Both zero-arg functions (the ratchet's levers 231 of 231
+untouched; functions over 500 lines 28 of 28 — `filter_campaign_log` held at exactly 500 by folding the court-knowledge
+type onto `levee`'s line). The vassal row's new optional key `recognition_refused` (dict court → summons turn) rides
+the wholesale row copy (`SAVE_FORMAT_REFERENCE.md`).
+
+**The session landed (the pins `TestTheSessionFMeasure`).** ONE sweep, three arms (0 / RECOG / ALL) on three surfaces
+(`tools/_t8b_measure.py`), the standing series (`tools/_t8b_series_arms.py`), run alone. **Arm 0 reproduces session E
+byte for byte on both surfaces** (the ten ambient signatures and the census's every total — `_dy_signature_t8b_control_
+2026_11_10.json` against `_dy_signature_t8_2026_11_10.json`; the harness `_t8b_chain_d_2026_11_10.json` arm 0 on
+session E's arm ALL's keys); the band 28 / 27 / 26 (`_t8b_band_2026_11_10.json`) and story classes 10 of 10 on EVERY
+arm; the series unmoved on every arm (`_t8b_series_arms_final.json`: `first_divergence_vs_prior` None) with the price's
+seam READ on the rig (8,256 table reads a run — the bilateral and settlement scorers — and the peace chokepoint once)
+and nothing to bite (0 grants, 0 table bites, 0 trade reads — the trade arm is guarded by `any_crown`). The census gains
+`recognitions` on both chains (turn, crown, courts, granted, by). **Said plainly: no measured arm erects a crown
+(session E's reading stands — the AI road's live case waits on wars the idle France never frees the courts to fight,
+the harness France's wars are the player's, the scripted France authors no carve), so nothing is recognized and no
+price bites on any arm — the recognitions column reads 0 everywhere and the three arms are byte-identical.** The
+teeth's proof is the crafted boards (the test file): Naples under Murat withheld by Vienna, Vilna and London — Austria
+beaten by a gold peace recognizes it (`note_peace_signed`, the common peace's record, the bilateral ratify after the
+carve), the Congress's grant on the first tick and the last tick's refusal once a sitting, the table −5 / −10 / −15
+capped on the scorer and the formula (the control with the seam down: +5 on the score), France's open-borders trade
+with Austria halved and shown in the ledger's `recognition`, the dial −3 and −2 again when all three recognize, the
+carved people's scalar read; Russia's Finland pays at Vienna and is recognized by the peace that beats Austria with
+Russia's house.
+
+**Tier 8 ✅ COMPLETE. Tier 7 evaluated (`DYNAMISM_SPEC.md` §7; §6a Q5):** the story-class count after DY-6 and DY-7
+reads 10 of 10 — clause 1 MET by margin, the bounded dice NOT built. **Clauses 2 and 3 UNMET on every record since
+Tier 4** (no `rank_promotion` on any seed; the Kingdom of Italy alone on all ten, no ambient formation) — to the user as
+an explicit question with NO default (§0's standing rule), beside session G the deploy; the content levers §4a's, §6b's
+(a), the promotion crowns' six-turn hold (§201), the levée's reach (§5b).
+
+**Levers for the user, none pre-recommended:** (a) the trade price's seat (the lord's rows, or struck); (b) N-DY7 (−5 a
+crown, the cap −15, the trade factor 0.5, the dial's −1); (c) the Congress's grant — the courts that answer RECOGNIZES
+(built) or every sitting great power whatever its answer; (d) session E's four, session D's three, session C's five.

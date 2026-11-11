@@ -97,6 +97,9 @@ _COURT_TYPES = {
     # its National Guard armed is the courts' news too
     # (`awakening._the_levee_beats`, a literal `log_event`).
     "levee",
+    # DY-7 (DYNAMISM_SPEC.md §6): a crown recognized or refused by a
+    # legitimist court is the courts' news (`crowns._beat`).
+    "recognition",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no

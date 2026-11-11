@@ -503,6 +503,15 @@ func _render_nations():
 		var doctrine_row = n.get("doctrine")
 		if doctrine_row != null and str(doctrine_row) != "":
 			bbcode += "  Doctrine: [color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]\n"
+		# DY-7 (DYNAMISM_SPEC.md §6): a crown's row names who withholds its
+		# recognition; a legitimist's row names the crowns of ours it withholds
+		# and the price. Backend-composed (R7); null omits the row.
+		var crown_row = n.get("crown")
+		if crown_row != null and str(crown_row) != "":
+			bbcode += "  Crown: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(crown_row)) + "[/color]\n"
+		var recognition_row = n.get("recognition")
+		if recognition_row != null and str(recognition_row) != "":
+			bbcode += "  Recognition: [color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(str(recognition_row)) + "[/color]\n"
 
 
 		# Diplomat info
@@ -1660,6 +1669,11 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	if created_turn > 0 and path != "scenario":
 		bbcode += ", Turn " + str(created_turn)
 	bbcode += ")[/color]\n"
+	# DY-7 (DYNAMISM_SPEC.md §6): a crown's card — the title, who reigns, who
+	# withholds recognition. Backend-composed (R7); an empty line is omitted.
+	var crown_line = str(v.get("crown_line", ""))
+	if crown_line != "":
+		bbcode += "  Crown: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(crown_line) + "[/color]\n"
 
 	# UXR3-81 (S15 head): a court with a granted petition leads with its BOND
 	# — the line the grant earned — straight under its header.

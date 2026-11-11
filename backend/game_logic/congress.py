@@ -2215,6 +2215,12 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
     # cleared, the unseated claimants aggrieved — before the answers.
     from backend.game_logic import questions as _questions
     _questions.congress_rules(world)
+    # DY-7 (DYNAMISM_SPEC.md §6, Tier 8): the Congress grants the Emperor's
+    # crowns the recognition of the courts that answer it, and on its last
+    # tick records the refusals — the same instrument that rules a Question.
+    from backend.game_logic import crowns as _crowns
+    _crowns.congress_grants(
+        world, final=int(turn_ended) >= int(c.get("ends_turn", turn_ended + 1)))
     table = _take_answers(world)
     _london_pays(world, table)
     _the_war_of_the_congress(world, table)

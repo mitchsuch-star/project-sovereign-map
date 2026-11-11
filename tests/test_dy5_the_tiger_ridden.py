@@ -208,7 +208,7 @@ class TestTheLevee:
         assert "stands down" in _events(world, "levee")[-1]["message"]
 
     def test_the_one_new_log_type_the_census_and_the_surfaces(self):
-        assert "levee" in CL.CAMPAIGN_LOG_TYPES and len(CL.CAMPAIGN_LOG_TYPES) == 185
+        assert "levee" in CL.CAMPAIGN_LOG_TYPES and len(CL.CAMPAIGN_LOG_TYPES) == 186  # DY-7 adds `recognition`
         assert "levee" in CL.LOG_TIER_LEAD and "levee" in GZ._COURT_TYPES
         from backend.game_logic.dispatch import (
             _DIPLOMATIC_EVENT_PRIORITY, _DIPLOMATIC_EVENT_TEMPLATES)

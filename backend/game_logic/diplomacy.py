@@ -10297,6 +10297,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         coalition_bond = int(bilateral_component(world, court=target, proposer=proposer))
         score += coalition_bond
 
+    # DY-7 (DYNAMISM_SPEC.md §6 — Crowns & Recognition): a court that
+    # withholds recognition of a crown of the proposer's house prices it on
+    # every proposal the house puts to her — N-DY7 −5 a crown, capped at −15
+    # (`crowns.bilateral_component`, the bond's seat); 0 where no crown
+    # stands. GR5: any proposer — Russia's Finland pays at Vienna too.
+    crown_recognition = 0
+    if target and proposer:
+        from backend.game_logic.crowns import bilateral_component as _crown_bilateral
+        crown_recognition = int(_crown_bilateral(world, court=target, proposer=proposer))
+        score += crown_recognition
+
     hard_reject_posture = 0
     if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
         if _shared_enemy_exists(world, proposer, target) and not world.is_at_war(proposer, target):
@@ -10396,6 +10407,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     components["court_favour_mod"] = int(court_favour_value)
     components["coalition_loyalty"] = int(coalition_loyalty)
     components["coalition_bond"] = int(coalition_bond)
+    components["crown_recognition"] = int(crown_recognition)
 
     # ── Feedback (§6f) ──
     # S14E-10: the grievance term is worded by the KIND of grievance held
@@ -10463,6 +10475,8 @@ _COMPONENT_LABELS = {
     "anti_renewal_block": "The anti-renewal cooldown",
     "coalition_loyalty": "Her loyalty to the league",
     "coalition_bond": "The league's bond",
+    # DY-7: a crown of the proposer's house this court does not acknowledge
+    "crown_recognition": "A crown unrecognized",
 }
 # `grievance_modifier` is named by the KIND of grievance held, `agenda_mod`
 # by its sign — see `acceptance_term_label`.
@@ -10497,7 +10511,7 @@ def acceptance_term_label(key: str, value=0, grievance_kind_value: str = "") -> 
 _FEEDBACK_TRACKABLE = frozenset({
     "base_disposition", "war_score_modifier", "relation_modifier",
     "war_weariness", "war_age_penalty", "stalemate_duration",
-    "coalition_loyalty", "coalition_bond",
+    "coalition_loyalty", "coalition_bond", "crown_recognition",
     "deal_balance", "diplomat_skill_bonus",
     "personality_modifier", "special_desire_bonus",
     "hegemony_target_mod", "bilateral_betrayal_mod",
@@ -13512,10 +13526,22 @@ def process_trade_income(world) -> Dict[str, int]:
         from backend.game_logic.naval import blockade_trade_loss
         blockade_losses = blockade_trade_loss(world)
 
-    # Apply to nation_gold (gross − blockade loss)
+    # DY-7 (DYNAMISM_SPEC.md §6 — Crowns & Recognition): a crown's lord
+    # trades at half with each court that withholds recognition of it —
+    # the blockade arm's idiom (one factor, one site; the Strategic
+    # Ledger's signed "Recognition" Net component). {} on a world with no
+    # crown: byte-identical.
+    recognition_losses: Dict[str, int] = {}
+    from backend.game_logic.crowns import any_crown as _any_crown
+    if _any_crown(world):
+        from backend.game_logic.crowns import trade_loss as _recognition_trade_loss
+        recognition_losses = _recognition_trade_loss(world, calculate_trade_breakdown(world))
+
+    # Apply to nation_gold (gross − blockade loss − recognition loss)
     applied: Dict[str, int] = {}
     for nation, income in trade_by_nation.items():
-        net_income = int(income) - int(blockade_losses.get(nation, 0))
+        net_income = (int(income) - int(blockade_losses.get(nation, 0))
+                      - int(recognition_losses.get(nation, 0)))
         applied[nation] = net_income
         if nation in world.nation_gold:
             world.nation_gold[nation] += int(net_income)
@@ -13614,6 +13640,11 @@ def _process_armistice_expiration(world) -> List[Dict]:
             note_armistice_exit(world, nation_a, nation_b, clauses=_exit_clauses,
                                 source="armistice_dictated" if dictated else "armistice_expired_peace",
                                 was_vassal=_was_vassal)
+            # DY-7 (DYNAMISM_SPEC.md §6): the dictated exit is a signed peace —
+            # its loser recognizes the crowns of the victor's house; the plain
+            # expiry carries no clause and beats nobody (`crowns.note_peace_signed`).
+            from backend.game_logic.crowns import note_peace_signed as _note_recognition
+            _note_recognition(world, nation_a, nation_b, _exit_clauses)
             # SR-1b: the clients' truces thaw with the lord's.
             for x, y in client_pairs_that_follow(world, nation_a, nation_b, "PEACE"):
                 client_key = world._make_diplo_key(x, y)

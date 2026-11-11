@@ -1449,6 +1449,12 @@ def _assess_nation(nation: str, world) -> Dict:
     _alarm_text = _alarm_line(world, nation)
     if _alarm_text:
         situation = f"{situation} {_alarm_text}"
+    # DY-7 (DYNAMISM_SPEC.md §6): a court that withholds recognition of a
+    # crown of ours is read with its price — a reading, in his register.
+    from backend.game_logic.crowns import counsel_line as _crown_counsel
+    _crown_text = _crown_counsel(world, nation)
+    if _crown_text:
+        situation = f"{situation} {_crown_text}"
 
     # Build options
     options = []

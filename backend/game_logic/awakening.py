@@ -884,11 +884,33 @@ def client_dial(world, client: str, autonomy: int) -> Tuple[str, int]:
     control."""
     if not the_tiger_is_ridden() or not armed(world) or not client:
         return "", 0
-    if level(world, client) < stirring(world):
+    if client_people_level(world, client) < stirring(world):
         return "", 0
     if int(autonomy) >= DIAL_AUTONOMY_SPLIT:
         return DIAL_LABEL_RIDDEN, int(DIAL_AUTONOMOUS_DRIFT)
+    # DY-7 (DYNAMISM_SPEC.md §6 — the §5 interplay it owns): a crown client
+    # whose crown a legitimist still withholds drifts one worse (−3); the
+    # label names the cause (`crowns.dial_extra` — 0 for a plain client).
+    from backend.game_logic.crowns import DIAL_LABEL_UNRECOGNIZED, dial_extra
+    extra = int(dial_extra(world, client))
+    if extra:
+        return DIAL_LABEL_UNRECOGNIZED, int(DIAL_PUPPET_DRIFT) + extra
     return DIAL_LABEL_RESENT, int(DIAL_PUPPET_DRIFT)
+
+
+def client_people_level(world, client: str) -> int:
+    """The scalar the dial and the rebellion's cause read: the client's own
+    people — or, for a court CARVED out of another's soil (DY-6's crowns and
+    NA-6c's carves; §5a C2: the carved people keep their scalar under the
+    court they were carved from, the Neapolitans under "Naples" while the
+    Kingdom of Naples reigns over them), the higher of the two. Before
+    DY-7 (session F) a carved client read only its own empty row, so the
+    people it sat on could rise without its dial ever moving — the sibling
+    of C3's house fix, unseamed (no measured arm carves) and pinned."""
+    own = level(world, client)
+    row = (getattr(world, "vassals", {}) or {}).get(client)
+    source = str(row.get("carved_from") or "") if isinstance(row, dict) else ""
+    return max(own, level(world, source)) if source and source != client else own
 
 
 def rebellion_cause(world, client: str) -> str:
@@ -898,7 +920,7 @@ def rebellion_cause(world, client: str) -> str:
     name it."""
     if not the_tiger_is_ridden() or not armed(world) or not client:
         return ""
-    return REBELLION_CAUSE if level(world, client) >= stirring(world) else ""
+    return REBELLION_CAUSE if client_people_level(world, client) >= stirring(world) else ""
 
 
 # ═══════════════════════════════════════════════════════════════════════

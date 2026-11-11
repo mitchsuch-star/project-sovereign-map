@@ -575,6 +575,7 @@ NET_GOLD_COMPONENTS = {
     "laws": -1,  # SR-5r RF-1: the upkeep of the laws in force
     "infrastructure": -1,
     "blockade": -1,
+    "recognition": -1,  # DY-7: a crown unrecognized — our trade with the withholding courts halved
     "admiralty": -1,
     "upkeep_base": -1,
     "upkeep_surcharge": -1,
@@ -737,6 +738,7 @@ NET_LINE_LABELS = (
     ("contributions", "contributions"),
     ("occupation", "occupation"),
     ("blockade", "the blockade"),
+    ("recognition", "a crown unrecognized"),
     ("admiralty", "the Admiralty"),
     ("infrastructure", "infrastructure"),
     ("dotation_skim", "dotations"),
@@ -1225,6 +1227,16 @@ def _build_economy(world, player: str, income_data: dict = None, *,
     if getattr(world, "fleets", None):
         from backend.game_logic.naval import blockade_trade_loss
         blockade = int(blockade_trade_loss(world).get(player, 0))
+    # DY-7 (DYNAMISM_SPEC.md §6): the crown's price in trade — our trade with
+    # each court that withholds recognition of a crown of ours, halved; its
+    # own signed "Recognition" Net component (shown = applied,
+    # process_trade_income's same read). 0 with no crown.
+    recognition = 0
+    from backend.game_logic.crowns import any_crown as _any_crown
+    if _any_crown(world):
+        from backend.game_logic.crowns import trade_loss as _recognition_trade_loss
+        from backend.game_logic.diplomacy import calculate_trade_breakdown
+        recognition = int(_recognition_trade_loss(world, calculate_trade_breakdown(world)).get(player, 0))
 
     # Admin bonus (unused AP → gold). Prefer the APPLIED figure when
     # describing a turn that already ran — _advance_turn_internal refills
@@ -1354,7 +1366,7 @@ def _build_economy(world, player: str, income_data: dict = None, *,
         - continental_system
         - occupation - contributions - state_charges
         - dotation_skim - rente_cost - laws
-        - infrastructure - blockade - admiralty - upkeep_base - upkeep_surcharge
+        - infrastructure - blockade - recognition - admiralty - upkeep_base - upkeep_surcharge
     )
 
     # Construction queue and income breakdown per province — ONE pass over
@@ -1425,6 +1437,8 @@ def _build_economy(world, player: str, income_data: dict = None, *,
         # EA-4: the System's closure on the trade we earn across the line.
         "continental_system": continental_system,
         "blockade": blockade,
+        # DY-7: a crown unrecognized — our trade with the withholding courts halved
+        "recognition": recognition,
         "admiralty": admiralty,
         "occupation": occupation,
         "contributions": contributions,

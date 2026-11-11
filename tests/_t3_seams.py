@@ -126,6 +126,20 @@ prior tree's reading byte for byte.
           cessions, a regency, the Alarm); down: the cessions as T3-4 wrote
           them.
 
+    T8-RECOG `crowns.the_legitimists_withhold` — DY-7 (DYNAMISM_SPEC.md §6,
+          session F): the condition's read — a legitimist that signs a
+          peace as the LOSER with the house of a crown's lord recognizes
+          it (`recognized_by` written at the peace chokepoints), the
+          Congress's grant and refusal, the `recognition` beat; down:
+          `recognized_by` is never written — the legitimists withhold for
+          ever and nothing is said of it (session E's words stand).
+
+    T8-PRICE `crowns.an_unrecognized_crown_pays` — DY-7: the three prices
+          of a crown unrecognized — the table's malus (−5 a crown, capped
+          −15, on the settlement scorer and the bilateral formula), the
+          lord's trade with a withholding court halved, the client dial −3
+          on awakened soil; down: a withheld crown costs nothing.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -216,6 +230,14 @@ T3_SEAMS_BY_ROW = {
     ],
     "T8-AI": [
         "backend.game_logic.settlement_third_party:a_victor_erects_a_crown=False",
+    ],
+    # Tier 8, session F (DY-7, November 10, 2026): Recognition — the
+    # legitimists' condition and the Congress's grant, the three prices.
+    "T8-RECOG": [
+        "backend.game_logic.crowns:the_legitimists_withhold=False",
+    ],
+    "T8-PRICE": [
+        "backend.game_logic.crowns:an_unrecognized_crown_pays=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

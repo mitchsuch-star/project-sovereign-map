@@ -1212,6 +1212,7 @@ class EconomyExecutor:
         net = int(econ["net"])
         trade_income = int(econ.get("trade_income", 0))
         blockade = int(econ.get("blockade", 0))
+        recognition = int(econ.get("recognition", 0))   # DY-7
         admiralty = int(econ.get("admiralty", 0))
         vassal_tribute = int(econ.get("vassal_tribute", 0))
         treaty_gold = int(econ.get("treaty_gold", 0))
@@ -1276,6 +1277,10 @@ class EconomyExecutor:
         if blockade:
             lines.append(f"  Blockade: -{blockade}g  "
                          f"(enemy fleets close our ports)")
+        if recognition:
+            # DY-7: the crown's price in trade, beside the blockade's.
+            lines.append(f"  Recognition: -{recognition}g  "
+                         f"(the courts that withhold our crown trade at half)")
         # EB-2: the overseas/colonial pool, sea-power-modulated
         if overseas > 0:
             lines.append(f"\n  Overseas trade: +{overseas}g  "

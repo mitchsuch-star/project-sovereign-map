@@ -741,6 +741,14 @@ FEEDBACK_STRINGS = {
                     "its subsidy and break her word",
         "positive": "no bond holds her to the league",
     },
+    # DY-7 (DYNAMISM_SPEC.md §6): a crown of the proposer's house this court
+    # does not acknowledge — only ever 0 or below; the positive key authored
+    # for the sign-flip rule.
+    "crown_recognition": {
+        "negative": "the crown our house has raised, which this court does "
+                    "not acknowledge",
+        "positive": "she acknowledges every crown of our house",
+    },
     "stalemate_duration": {
         "negative": "the deadlock shows no sign of breaking",
         "positive": "neither side can gain the upper hand",
@@ -1423,6 +1431,8 @@ ACCEPTANCE_COMPONENT_DISPLAY = {
     "agenda_settlement_mod": "National design",
     # PC-R7 (ii) part 3: the league's no-separate-peace bond (Chaumont)
     "coalition_bond": "The league's bond",
+    # DY-7 (DYNAMISM_SPEC.md §6): a crown of the proposer's house unrecognized
+    "crown_recognition": "A crown unrecognized",
 }
 
 

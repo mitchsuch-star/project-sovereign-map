@@ -14821,6 +14821,13 @@ class WorldState:
         """Stage 6 of `_ratify_treaty`: The punitive record (AI-5b(i)), the
         titles and the Humbled Peace (GE-1), a court eliminated by its cessions
         (R81)."""
+        # DY-7 (DYNAMISM_SPEC.md §6 — Crowns & Recognition): a legitimist
+        # that signs this peace as the LOSER recognizes the crowns of the
+        # winner's house — the crown this very treaty erected included
+        # (stage 5 ran); a truce is not a peace (`crowns.note_peace_signed`).
+        if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "ARMISTICE":
+            from backend.game_logic.crowns import note_peace_signed as _note_recognition
+            _note_recognition(self, ctx.proposer, ctx.target_nation, ctx.treaty_clauses)
         # AI-5b(i) (§3.6): a bilateral treaty that strips a court leaves
         # the durable punitive record too — the ultimatum-tribute path and
         # the harsh peace both run through here. APPLIED clauses only.

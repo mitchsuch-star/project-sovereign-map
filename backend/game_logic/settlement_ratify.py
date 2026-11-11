@@ -1158,6 +1158,14 @@ def _record_common_peace_treaties(
         }
         active_treaties[pair_key] = treaty
         previous_treaties.setdefault(pair_key, []).append(dict(treaty))
+        # DY-7 (DYNAMISM_SPEC.md §6 — Crowns & Recognition): a legitimist
+        # that signs this peace as the LOSER recognizes the crowns of the
+        # winner's house — read at the chokepoint, never a scan
+        # (`crowns.note_peace_signed`; a truce is not a peace).
+        if (str(entry.get("current_state") or "") in ("WAR", "ARMISTICE")
+                and final_state != "ARMISTICE"):
+            from backend.game_logic.crowns import note_peace_signed
+            note_peace_signed(world, proposer_member, covered_enemy, pair_terms)
     world.active_treaties = active_treaties
     world.previous_treaties = previous_treaties
 

@@ -655,9 +655,26 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # figure and its term in the diplomatic points a turn (the DP rule's
             # own bands). Diplomacy has no fog.
             "authority": _authority_row(nation, world),
+            # DY-7 (DYNAMISM_SPEC.md §6): a crown's row names who withholds
+            # its recognition; a legitimist's row names the crowns of ours it
+            # withholds and the price. Backend-composed; None omits.
+            "crown": _crown_line(nation, world),
+            "recognition": _recognition_line(nation, world),
         })
 
     return nations
+
+
+def _crown_line(nation: str, world):
+    """DY-7: a crown client's row — the title, who reigns, who withholds."""
+    from backend.game_logic.crowns import ledger_crown_line
+    return ledger_crown_line(world, nation) or None
+
+
+def _recognition_line(nation: str, world):
+    """DY-7: a legitimist's row — the crowns of ours it withholds, priced."""
+    from backend.game_logic.crowns import ledger_recognition_line
+    return ledger_recognition_line(world, nation) or None
 
 
 def _authority_row(nation: str, world) -> Dict[str, int]:
@@ -987,6 +1004,9 @@ def _build_vassals(world) -> Dict[str, Any]:
             ],
             "path": str(record.get("path", "treaty")),
             "created_turn": int(record.get("created_turn", 0) or 0),
+            # DY-7: a crown's card — the title, who reigns, who withholds
+            # recognition ('' for a plain client; the client omits the line).
+            "crown_line": _crown_line(name, world) or "",
             "actions": get_available_diplomatic_actions(world, name),
         }
         # IQ-7 "The Client's Petition" — display-only (GR6): the remission,

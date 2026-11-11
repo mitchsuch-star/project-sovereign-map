@@ -1015,6 +1015,7 @@ NET_COMPONENTS = (
     ("upkeep", "upkeep"), ("state_charges", "charges"),
     ("contributions", "contributions"), ("requisitions", "requisitions"),
     ("occupation", "occupation"), ("blockade", "blockade"),
+    ("recognition", "recognition"),  # DY-7: a crown unrecognized — our trade with the withholding courts halved
     ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
     ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
     ("laws", "laws"),  # SR-5r RF-1

@@ -86,6 +86,11 @@ EXPECTED_NET_SIGNS = {
     # across the line). Both render in strategic_ledger.gd.
     "subsidies": +1,
     "continental_system": -1,
+    # DY-7 (November 10, 2026, DYNAMISM_SPEC.md §6) — added consciously:
+    # "Recognition", a crown of ours unrecognized — our trade with each
+    # withholding court halved (`crowns.trade_loss`, the blockade arm's
+    # idiom). Renders in strategic_ledger.gd beside the Blockade line.
+    "recognition": -1,
 }
 
 

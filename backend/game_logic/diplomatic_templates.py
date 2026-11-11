@@ -2700,6 +2700,8 @@ SPOKEN_BLOCKER_PHRASES: Dict[str, str] = {
     # PC-R7 (ii) part 3: the paymaster's bond on a separate peace (Chaumont)
     "coalition_bond": (
         "their paymaster's bond weighs against a peace signed without the league"),
+    # DY-7 (DYNAMISM_SPEC.md §6): a crown of ours the court does not acknowledge
+    "crown_recognition": "they do not acknowledge the crown our house has raised",
     "war_objective_alignment": (
         "the terms would end the war without the object it was fought for"),
 }

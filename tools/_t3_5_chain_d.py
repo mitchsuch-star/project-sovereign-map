@@ -132,6 +132,13 @@ def summarize(digest: dict) -> dict:
             for row in digest.get("turns") or [] for e in row.get("events") or []
             if e.get("type") == "nation_formed" and e.get("crown")],
         "formations": list((digest.get("derived") or {}).get("formations") or []),
+        # Tier 8 (session F, DY-7): the recognitions (turn, crown, courts,
+        # granted, by) — the prices' footprint beside the crowns.
+        "recognitions": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""),
+             [str(c) for c in (e.get("courts") or [])], bool(e.get("granted")), str(e.get("by") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "recognition"],
     }
 
 
@@ -215,7 +222,8 @@ def main() -> None:
                                                  for s in seeds.values()),
                          "last_refuges": sum(len(s["last_refuges"])
                                              for s in seeds.values()),
-                         "crowns_erected": sum(len(s["crowns"]) for s in seeds.values())}
+                         "crowns_erected": sum(len(s["crowns"]) for s in seeds.values()),
+                         "recognitions": sum(len(s["recognitions"]) for s in seeds.values())}
                    for arm, seeds in arms.items()},
         "nov6_france_captures": nov6(),
     }

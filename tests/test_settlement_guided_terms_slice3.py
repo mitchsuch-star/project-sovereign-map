@@ -59,6 +59,8 @@ _TEN_COMPONENTS = {
     "agenda_settlement_mod",
     # PC-R7 (ii) part 3 (October 20, 2026): the league's bond (0 with no bond)
     "coalition_bond",
+    # DY-7 (November 10, 2026): a crown unrecognized (0 with no crown)
+    "crown_recognition",
 }
 
 

@@ -751,6 +751,10 @@ class TestSpokenBlockerVocabulary:
             # PC-R7 (ii) part 3 (October 20, 2026): the league's bond on a
             # separate peace — only ever 0 or below, so it speaks too.
             "coalition_bond",
+            # DY-7 (November 10, 2026, DYNAMISM_SPEC.md §6): a crown of ours
+            # the court does not acknowledge — only ever 0 or below, so it
+            # speaks too.
+            "crown_recognition",
         }
         assert set(SPOKEN_BLOCKER_PHRASES) == expected
         for phrase in SPOKEN_BLOCKER_PHRASES.values():
