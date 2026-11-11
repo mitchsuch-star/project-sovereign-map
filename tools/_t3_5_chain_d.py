@@ -107,6 +107,23 @@ def summarize(digest: dict) -> dict:
         # the AI-France march, read beside `france_captures`.
         "awakening_events": list(derived.get("awakening_events") or []),
         "supply_losses": _supply_losses(digest),
+        # Tier 6 (session D, DY-5): the levée's beats (turn, court, direction),
+        # the rebellions the Awakening caused and the risen revanches — read
+        # beside `france_captures` (an enemy whose levée rises recruits
+        # cheaper and faster against the march).
+        "levee_events": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("direction") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "levee"],
+        "awakened_rebellions": [
+            [int(row.get("turn", 0)), str(e.get("vassal") or ""), str(e.get("lord") or ""),
+             str(e.get("exit") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "vassal_broke_free" and e.get("cause") == "awakening"],
+        "risen_revanche": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("author") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "design_promoted" and e.get("cause") == "awakening"],
     }
 
 

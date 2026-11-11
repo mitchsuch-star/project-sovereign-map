@@ -2343,6 +2343,12 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         _int_in(f"{opath}.delta", op.get("delta"), *AF.AFFAIR_OP_BOUNDS[name])
                         if op.get("court") not in ("$host", "$lord"):
                             _court(f"{opath}.court", op.get("court"))
+                    if name == "national_guard":
+                        # DY-5: the Guard's term in mornings, in band; the
+                        # lord's own (no court) — an Accept's alone
+                        _int_in(f"{opath}.turns", op.get("turns"), *AF.AFFAIR_OP_BOUNDS[name])
+                        if "court" in op:
+                            result.add_error(f"{opath}.court", "The National Guard is the lord's own — no court")
                     if name == "enact_law" and op.get("law") not in owner_laws:
                         result.add_error(f"{opath}.law", f"'{op.get('law')}' is no law of the owner's")
                     tiers = op.get("tiers")

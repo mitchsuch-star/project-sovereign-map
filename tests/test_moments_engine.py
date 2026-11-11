@@ -925,7 +925,7 @@ class TestTheAlarmLabels:
         # and reaches no VP-1 verb.
         # DY-4 (November 10, 2026): the twelfth, `awakening` — flipped consciously
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin", "squadron", "edict", "awakening"}
+                               "authority", "admin", "squadron", "edict", "awakening", "national_guard"}
 
     def test_no_nation_literal_in_the_engine(self):
         """Q6: the deck is France's content, never the code's."""

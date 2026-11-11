@@ -1936,6 +1936,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "question_turns": ("courts_treaties", 89),       # DY-2: a Question of Europe turns
     "question_ruled": ("courts_treaties", 86),       # DY-3: the Congress rules it
     "awakening": ("courts_treaties", 90),            # DY-4: a people stirs, rises, quietens
+    "levee": ("courts_treaties", 90),                # DY-5: a nation in arms, its Guard armed
     "court_removes": ("courts_treaties", 79),        # T4-2b
     "court_returns": ("courts_treaties", 79),        # T4-2b
     "diplomatic_relation_shift": ("courts_treaties", 76),
@@ -8453,6 +8454,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's beat — composed by
     # `awakening.beat_line` (R7 names, never a figure).
     "awakening": "{line}",
+    # DY-5: the levée's beat — composed by `awakening.levee_line`.
+    "levee": "{line}",
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
         "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
@@ -8710,6 +8713,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "question_turns": "HIGH",            # DY-2 — a beat, never a routine line
     "question_ruled": "HIGH",            # DY-3
     "awakening": "HIGH",                 # DY-4 — a beat, never a routine line
+    "levee": "HIGH",                     # DY-5 — a beat, never a routine line
     "province_changed_hands": "MEDIUM",  # DDB-43
     "corps_on_closed_soil": "HIGH",      # DDB-43
     "paymaster_subsidy": "MEDIUM",
@@ -9004,6 +9008,22 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
                 f"{template_vars.get('author', 'its despoiler')} the loss of "
                 f"{template_vars.get('province_line', 'its provinces')}. The old design "
                 f"hardens again in their court.")
+    if event_type == "design_promoted" and template_vars.get("risen"):
+        # DY-5 (DYNAMISM_SPEC.md §5): the people's rising was the deciding
+        # clause — the court swears what they demand.
+        return (f"REVANCHE: {template_vars.get('nation', 'A court')} will not forgive "
+                f"{template_vars.get('author', 'its despoiler')} the loss of "
+                f"{template_vars.get('province_line', 'its provinces')}. The people have "
+                f"risen, and a new design hardens in their court behind them.")
+    if (event_type in ("diplomatic_vassal_rebellion", "diplomatic_vassal_broke_free_armistice",
+                       "diplomatic_vassal_broke_free_peace")
+            and str(template_vars.get("cause") or "") == "awakening"):
+        # DY-5: a rebellion whose cause is the Awakening names it — the
+        # template's own sentence (its R7 forms derived as below), then the
+        # people's.
+        base = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
+        return (base.format(**_with_nation_forms(base, template_vars))
+                + " Its people had risen against the yoke.")
 
     if event_type == "intent_movement_tail" and template_vars.get("courts"):
         # IQ6-D3 (SR-6a): the tail names its courts when the producer did.

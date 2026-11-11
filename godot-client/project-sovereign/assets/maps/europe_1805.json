@@ -3793,6 +3793,74 @@
                         "press": "{SEAT} — The Grande Armée holds {host} by the sword.",
                         "remember": "In {month} the sword answered in {host}; Berthier writes again."
                     }
+                },
+                {
+                    "id": "the_nation_in_arms",
+                    "kind": "affair",
+                    "shape": "bill",
+                    "title": "The Nation in Arms",
+                    "source": "research — the National Guard of Paris under Marshal Moncey (the decree of 8 January 1814; the barrière de Clichy, 30 March 1814) and the levée en masse of 23 August 1793: a people invaded arms itself faster and cheaper than any treasury can; DYNAMISM_SPEC.md §5 (DY-5, the Awakening — the levée's own letter)",
+                    "scope": "owner",
+                    "roads": [
+                        "any"
+                    ],
+                    "when": {
+                        "predicate": "nation_in_arms"
+                    },
+                    "streak": 2,
+                    "bites": "floor",
+                    "since": "DY-5",
+                    "cooldown": 12,
+                    "cap": 2,
+                    "grace": 4,
+                    "voice": {
+                        "speaker": "named",
+                        "name": "Moncey, Major-General of the National Guard"
+                    },
+                    "record": "Historically the National Guard of Paris was put under Marshal Moncey in January 1814 and held the barrière de Clichy in March; a nation invaded arms itself faster than any treasury can.",
+                    "line": "Sire, the people of {court} have risen against {host}'s garrisons — {n} home provinces under foreign arms — and the departments ask for muskets, not proclamations. Let the Guard take the field.",
+                    "watch": "Your own people have risen under {host}'s garrisons ({n} provinces): {m} of 2 mornings — Moncey may write.",
+                    "counsel": "Talleyrand — An armed nation is cheap today and dear tomorrow, Sire; a nation left unarmed under {host} is dearer still.",
+                    "accept": {
+                        "caption": "Arm the National Guard",
+                        "button_line": "−{gold} gold · 1 action · levée ×2",
+                        "ops": [
+                            {
+                                "op": "gold",
+                                "amount": 800
+                            },
+                            {
+                                "op": "admin",
+                                "amount": 1
+                            },
+                            {
+                                "op": "national_guard",
+                                "turns": 6
+                            }
+                        ],
+                        "echo": "Moncey: the Guard takes its muskets, Sire; the depots fill by the week and the levy comes at half its price.",
+                        "situation": "The National Guard of {court} is under arms; the levée is doubled while it stands.",
+                        "press": "THE NATION IN ARMS — The Emperor arms the National Guard; the departments send their battalions.",
+                        "remember": "In {month} you armed the National Guard; Moncey writes again."
+                    },
+                    "decline": {
+                        "caption": "The line will hold",
+                        "button_line": "authority {authority_before} → {authority_after}",
+                        "ops": [
+                            {
+                                "op": "authority",
+                                "amount": -3,
+                                "tiers": {
+                                    "2": -4,
+                                    "3": -5
+                                }
+                            }
+                        ],
+                        "echo": "Moncey: the line will hold, Sire — and the departments will remember who would not arm them.",
+                        "situation": "The Guard stays in its depots; the people of {court} wait under {host}'s garrisons.",
+                        "press": "THE NATION IN ARMS — The Emperor keeps the National Guard in its depots; the departments murmur.",
+                        "remember": "In {month} you kept the Guard in its depots; Moncey writes again."
+                    }
                 }
             ]
         }

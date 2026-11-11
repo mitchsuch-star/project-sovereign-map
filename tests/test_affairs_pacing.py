@@ -48,7 +48,7 @@ class TestTheRecordMeasuredTheStagedDeck:
         assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
                                      "the_magazines", "the_remounts", "camps_of_instruction",
                                      "the_proclamation", "the_bank", "the_popes_ports",
-                                     "the_people_stir", "the_ulcer"]
+                                     "the_people_stir", "the_ulcer", "the_nation_in_arms"]
 
     def test_every_seed_was_played_on_the_three_arms_to_turn_twenty(self, record):
         assert record["turns"] == 20

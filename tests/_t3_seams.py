@@ -171,6 +171,22 @@ T3_SEAMS_BY_ROW = {
     "T6-LETTERS": [
         "backend.game_logic.awakening:the_people_write=False",
     ],
+    # Tier 6, session D (DY-5, November 10, 2026): the Awakening's second half.
+    "T6-LEVEE": [
+        "backend.game_logic.awakening:the_levee_rises=False",
+    ],
+    "T6-DIAL": [
+        "backend.game_logic.awakening:the_tiger_is_ridden=False",
+    ],
+    "T6-REVANCHE": [
+        "backend.game_logic.awakening:a_risen_people_swears_revanche=False",
+    ],
+    "T6-LIBERATORS": [
+        "backend.game_logic.awakening:liberators_hold_together=False",
+    ],
+    "T6-ARMS": [
+        "backend.game_logic.awakening:the_nation_writes=False",
+    ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW
                  for spec in T3_SEAMS_BY_ROW[row]]

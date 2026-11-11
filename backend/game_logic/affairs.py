@@ -78,9 +78,13 @@ SET_ASIDE_EVERY = 6    # §7: the aggregated "set aside" line, at most once in s
 AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law", "squadron", "edict",
               # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's op — an Accept
               # cools a people (the amnesty, the charter); never a Decline's
-              "awakening")
+              "awakening",
+              # DY-5 (session D): the National Guard armed for a term — the
+              # levée's bonus doubled; an Accept's alone (The Nation in Arms)
+              "national_guard")
 AFFAIR_OP_BOUNDS = {"gold": (1, 2000), "authority": (-10, 0), "admin": (1, 1), "dp": (1, 2),
-                    "relation": (-20, 20), "loyalty": (-20, 20), "awakening": (-30, -1)}
+                    "relation": (-20, 20), "loyalty": (-20, 20), "awakening": (-30, -1),
+                    "national_guard": (3, 12)}      # the op's `turns`
 # RE-H (§6.5, P4): the squadron op — Accept-only, at most one per entry, an
 # entry carrying it authors a fallback form (the bill) and its owner a navy.
 SQUADRON_BOUNDS = {"ships": (1, 8), "away": (3, 6), "to": 32}
@@ -151,7 +155,10 @@ BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c", "AU-3a", "AU-3b",
               # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's two letters ride
               # `awakening.the_people_write` — the seam holds them out whole
-              "DY-4")
+              "DY-4",
+              # DY-5 (session D): the third letter, The Nation in Arms, rides
+              # `awakening.the_nation_writes`
+              "DY-5")
 
 
 def row_armed(row: str) -> bool:
@@ -165,6 +172,9 @@ def row_armed(row: str) -> bool:
     if row == "DY-4":
         from backend.game_logic import awakening
         return bool(awakening.the_people_write())
+    if row == "DY-5":
+        from backend.game_logic import awakening
+        return bool(awakening.the_nation_writes())
     if row == "AU-3b":
         from backend.game_logic import standing
         return bool(standing.proclamation_armed())
@@ -731,6 +741,15 @@ def _people_risen(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return awakening.people_risen(world, lord, params)
 
 
+def _nation_in_arms(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """DY-5: The Nation in Arms — the lord's OWN people at `risen` against
+    an invader, the lord at war on contested home soil, the Guard not yet
+    standing (`awakening.nation_in_arms`; the invading house bound as the
+    host, the measure the provinces it holds)."""
+    from backend.game_logic import awakening
+    return awakening.nation_in_arms(world, lord, params)
+
+
 PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "sovereign_afield": _sovereign_afield,
     "corps_on_host": _corps_on_host,
@@ -750,11 +769,15 @@ PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     # live with the store (`awakening.py`) and bind the host court.
     "people_stir": _people_stir,
     "people_risen": _people_risen,
+    # DY-5 (session D): the third letter — the lord's own people risen
+    # against an invader; the levée's own letter.
+    "nation_in_arms": _nation_in_arms,
 }
 # The parameters each predicate requires (the validator reads them).
 PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
     "people_stir": (),
     "people_risen": (),
+    "nation_in_arms": (),
     "sovereign_afield": (),
     "corps_on_host": (),
     "staff_offered": ("law",),

@@ -725,7 +725,7 @@ class TestTheOddsAndTheQuote:
         # RE-6 (November 2, 2026): the eleventh, `edict`; DY-4 (November 10, 2026): the
         # twelfth, `awakening` — each flipped consciously
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin", "squadron", "edict", "awakening"}
+                               "authority", "admin", "squadron", "edict", "awakening", "national_guard"}
         assert "squadron" in AF.AFFAIR_OPS and "squadron" in MO.DECLINE_FORBIDDEN_OPS
         assert "squadron" not in MO.OP_BOUNDS                     # the moments' own vocabulary is closed
 

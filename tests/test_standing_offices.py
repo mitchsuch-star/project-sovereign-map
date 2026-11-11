@@ -296,8 +296,8 @@ class TestTheProclamation:
         assert e["accept"]["ops"] == [{"op": "admin", "amount": 1}, {"op": "edict", "currency": "authority"}]
         assert AF.edict_currency(e) == "authority"
         # DY-4 (November 10, 2026): the Awakening's two letters follow the Pope's
-        assert [x["id"] for x in scenario["deck"]][-5:] == [P2, "the_bank", "the_popes_ports",
-                                                             "the_people_stir", "the_ulcer"]
+        assert [x["id"] for x in scenario["deck"]][-6:] == [P2, "the_bank", "the_popes_ports",
+                                                             "the_people_stir", "the_ulcer", "the_nation_in_arms"]
 
     def test_the_users_word_armed_it(self, board, monkeypatch):
         """Re-pinned consciously (it read `test_held_out_until_the_users_word`):

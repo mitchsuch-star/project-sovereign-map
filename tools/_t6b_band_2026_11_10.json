@@ -1,0 +1,137 @@
+{
+ "_note": "Session D (Tier 6, the Awakening's second half, DY-5) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row; written by tools/_t6b_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.awakening:the_levee_rises=False",
+    "backend.game_logic.awakening:the_tiger_is_ridden=False",
+    "backend.game_logic.awakening:a_risen_people_swears_revanche=False",
+    "backend.game_logic.awakening:liberators_hold_together=False",
+    "backend.game_logic.awakening:the_nation_writes=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": []
+  },
+  "DIAL": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.awakening:a_risen_people_swears_revanche=False",
+    "backend.game_logic.awakening:liberators_hold_together=False",
+    "backend.game_logic.awakening:the_nation_writes=False"
+   ]
+  },
+  "LEVEE": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.awakening:the_tiger_is_ridden=False",
+    "backend.game_logic.awakening:a_risen_people_swears_revanche=False",
+    "backend.game_logic.awakening:liberators_hold_together=False",
+    "backend.game_logic.awakening:the_nation_writes=False"
+   ]
+  },
+  "LIBERATORS": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.awakening:the_nation_writes=False"
+   ]
+  },
+  "REVANCHE": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.awakening:liberators_hold_together=False",
+    "backend.game_logic.awakening:the_nation_writes=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

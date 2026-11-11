@@ -213,7 +213,7 @@ class TestUnarmed:
         assert [e["id"] for e in block["affairs"]["deck"]] == [
             "chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
             "the_magazines", "the_remounts", "camps_of_instruction", "the_proclamation",
-            "the_bank", "the_popes_ports", "the_people_stir", "the_ulcer"]
+            "the_bank", "the_popes_ports", "the_people_stir", "the_ulcer", "the_nation_in_arms"]
         from tools._s14c_sweep_record import mechanical_block
         assert set(mechanical_block(block)) == {"owner", "pacing", "deck", "affairs"}
         for name in ("tutorial_1805.json", "tutorial_table_1805.json"):
@@ -246,7 +246,7 @@ class TestTheStoreAndTheIds:
         assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo",
                                                       "the_magazines", "the_remounts", "camps_of_instruction",
                                                       "the_proclamation", "the_bank", "the_popes_ports",
-                                                      "the_people_stir", "the_ulcer"]
+                                                      "the_people_stir", "the_ulcer", "the_nation_in_arms"]
 
     def test_an_occurrence_id_resolves_to_its_template(self, armed):
         assert MO.entry(armed, "the_host#2")["id"] == T2
@@ -545,7 +545,7 @@ OCC_T1 = {"id": "chancellors_letters#1", "lord": "France", "bind": {}, "tier": 1
 class TestTheTwoOps:
     def test_the_op_table_grew_by_two_and_no_affair_reaches_the_alarm(self):
         # RE-H: the squadron (10); RE-6: the edict (11); DY-4: the awakening (12), flipped consciously
-        assert set(MO.OPS) >= {"authority", "admin", "squadron", "edict", "awakening"} and len(MO.OPS) == 12
+        assert set(MO.OPS) >= {"authority", "admin", "squadron", "edict", "awakening", "national_guard"} and len(MO.OPS) == 13
         assert "alarm" in AF.BARRED_OPS and "alarm" not in AF.AFFAIR_OPS
 
     @pytest.mark.parametrize("authority, loss", [(80, 5), (73, 2), (70, 0)])

@@ -93,6 +93,10 @@ _COURT_TYPES = {
     # quiet again is the courts' news (`awakening._the_people_cross`, a
     # literal `log_event`) — the Gazette names the stirring.
     "awakening",
+    # DY-5 (DYNAMISM_SPEC.md §5): a nation's levée rising, standing down or
+    # its National Guard armed is the courts' news too
+    # (`awakening._the_levee_beats`, a literal `log_event`).
+    "levee",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no

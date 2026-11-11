@@ -3333,9 +3333,15 @@ def apply_coalition_friction(world) -> None:
         return
     members = world.active_coalition.get("members", [])
     from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    # DY-5 (DYNAMISM_SPEC.md §5, the interplay named at the gate): while the
+    # league's target holds an awakened people's soil, the liberators have a
+    # cause and fray 1 a turn, not 2 (`awakening.coalition_friction_step`;
+    # the seam down reads 2 — §3b's clockwork as authored).
+    from backend.game_logic.awakening import coalition_friction_step
+    step = int(coalition_friction_step(world, league_target(world)))
     for i, member_a in enumerate(members):
         for member_b in members[i + 1:]:
-            delta = -2
+            delta = -step
             floor = coalition_friction_floor(world, member_a, member_b)
             if floor is not None:
                 current = int(world.nation_relations.get(

@@ -54,6 +54,10 @@ LETTERS = ("the_bank", "the_popes_ports")
 # measures them on every run (their premise is a people at the threshold under
 # the Emperor's garrisons, so most arms read "premise never held")
 AWAKENING = ("the_people_stir", "the_ulcer")
+# DY-5 (November 10, 2026; session D): the third letter — The Nation in Arms, the
+# player's own people risen against an invader, armed through
+# `awakening.the_nation_writes` (row DY-5); most arms read "premise never held"
+ARMS = ("the_nation_in_arms",)
 # AU-3b (November 5, 2026; AUTHORITY_CURRENCY_SPEC.md §6.6): the Proclamation,
 # authored after the offers and held out until the user's word — re-premised on
 # the eve of battle by "Re-premise it first" and ARMED by the user's "Arm it" the
@@ -62,7 +66,7 @@ AWAKENING = ("the_people_stir", "the_ulcer")
 # on every run and template
 P2 = "the_proclamation"
 HELD = ()                     # a letter held out until the user's word — none today
-DECK = TEMPLATES + (P2,) + LETTERS + AWAKENING
+DECK = TEMPLATES + (P2,) + LETTERS + AWAKENING + ARMS
 E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
@@ -99,7 +103,7 @@ class TestTheRecordMeasuredTheArmedDeck:
         for family, name, row in _rows(record):
             assert row["measured"] and row["mornings"] > 0 and row["errors"] == [], (family, name)
             assert list(row["affairs_reach"]) == list(DECK), (family, name)
-            for template in LETTERS + (P2,) + AWAKENING:   # armed: read on every morning, never held out
+            for template in LETTERS + (P2,) + AWAKENING + ARMS:   # armed: read on every morning, never held out
                 assert not row["affairs_reach"][template]["verdict"].startswith("not in the deck"), (family, name)
             for template in HELD:                  # held out until the user's word (none today)
                 reach = row["affairs_reach"][template]
@@ -146,7 +150,7 @@ class TestEachTemplatesReach:
         arrived = [arm for arm, v in verdicts.items() if v == "arrived"]
         assert arrived, (template, verdicts)
 
-    @pytest.mark.parametrize("template", AWAKENING)
+    @pytest.mark.parametrize("template", AWAKENING + ARMS)
     def test_the_awakenings_letters_are_read_on_every_arm_and_the_record_says_why(self, record, template):
         """DY-4 (session C): the Awakening's letters' premise is a people at
         the threshold under the Emperor's garrisons — the thresholds are the

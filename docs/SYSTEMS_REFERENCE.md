@@ -15333,3 +15333,101 @@ soil ("every convoy needs a brigade") would bite a lone corps too — session D'
 crisis-class priority, or the letters recast as causal moments anchored on the beat, would bring it
 forward — RE's design, the user's call; (c) the bands' pace on the ambient board (two provinces at
 +1 a turn: Bavaria stirs at 36–41, the Kingdom of Italy never in forty) — N-DY4's numbers, tuneable.
+## §204 Tier 6, session D — the Awakening's second half: DY-5 the levée, the client dial, the interplays and The Nation in Arms (November 10, 2026 — TIER 6 COMPLETE)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session D; §5's three expressions completed, the two interplays named at the
+gate built, the third letter §5a named; the landing record §5b). Nothing new to rule at the head — the prompt
+pre-decided it and the user's word was "code commit push". Five rules behind their own zero-arg seams
+(`tests/_t3_seams.py` rows T6-LEVEE, T6-DIAL, T6-REVANCHE, T6-LIBERATORS, T6-ARMS — the recorded boards' hold-list
+folds them), ONE sweep with six arms on three surfaces (`tools/_t6b_measure.py`), the pacing chain re-recorded (the
+deck changed), the standing series re-read (`tools/_t6b_series_arms.py`), ONE commit. Tests:
+`tests/test_dy5_the_tiger_ridden.py`.
+
+**The liberation levée** (seam `the_levee_rises`; `awakening.levee_holds`, `levee_terms` — 1813). A court whose
+people stand at `stirring` or above, AT WAR (`get_nations_at_war_with`), with home soil contested — the LAST TICK's
+derived count (`awakening.occupied`, the store's figure, never a scan; the tick runs in `_advance_turn_internal`
+before the regen and before the morning's letters) — regenerates infantry ×1.5 and prices the DRAFT ×0.75. ONE read,
+two sites: `get_manpower_regen_rates` applies the regen factor after the war exhaustion's floor and before the laws
+(`reforms.apply_manpower_regen` stays LAST — the one rate the regen tick applies and every surface quotes, the
+ledger's manpower tab included); `economy_executor._recruit_cost_terms` applies the price factor as a named term
+("×0.75 the levée") after the doctrine's term and before the laws and the Intendance — the AI's P1 rung and the
+levy's market read this same pricer (GR5), the substitute market (`draft=False`) never does. The player's house
+reads it like every court (Q3's corollary — the French people risen under an invader raise France's own levée).
+**The National Guard** doubles it (×2.0 / ×0.5) for a term: the court row's `guard` (the morning the term ends,
+`arm_national_guard`, clamped to 3–12 mornings), armed only by the third letter's Accept, read only while the levée
+itself holds, a lapsed term leaving the row at the next tick. **The levée is a beat** — ONE literal `log_event`
+(`type: levee`, `direction` raised / stood_down / guard, `occupied`, `guard_until`; the log census 184 → 185, the
+sixteen pins and `test_iq7`'s rationale flipped; `LOG_TIER_LEAD`, the economy's column, the court-knowledge tuple,
+the Gazette's courts set) and a HIGH dispatch line in the courts' register, in WORDS: "THE NATION IN ARMS: the people
+of Austria, at war on their own soil — 3 home provinces under foreign arms; the depots fill and the levy comes cheap."
+/ "The levée of Austria stands down — the war is over, or the soil is free." / "THE NATIONAL GUARD OF FRANCE UNDER
+ARMS: the departments send their battalions — the levée is doubled while the Guard stands."; Le Moniteur's one-liner
+"THE NATION IN ARMS — the people of Prussia fill the depots". The tick settles the levée's bit AFTER the scalar's
+move, so a people that stirs this morning raises its levée this morning. The store's court row gains `levee` (0/1)
+and `guard`, carried by `_clean_courts`, kept by the one writer `move` (a row is dropped only when every figure is
+0); `WorldState.to_dict` gains no line.
+
+**The client dial — the tiger ridden** (seam `the_tiger_is_ridden`; `awakening.client_dial` — Westphalia against
+Spain). A client whose people are awakened (≥ `stirring`) bleeds loyalty −2 a turn at autonomy ≤ 1 ("the people's
+awakening") and GAINS +1 a turn at autonomy ≥ 2 ("the tiger ridden") — France can ride the force it exports, paying
+in control. ONE read for the three surfaces the F7 lesson binds: `process_vassal_loyalty` step 1b (the term named,
+so the event's reason says "the people's awakening"), `forecast_vassal_loyalty` (`awakening_label`,
+`awakening_drift`, in the forecast's sum — the ledger's Vassals tab and the wizard's trend) and
+`/debug/vassal_loyalty` (`modifiers.awakening_drift`). 0 for a quiet people, so a satellite whose people sleep
+ticks byte-identically. A boot client's soil under its lord is home (§5a C2), so Holland's people stir only by a
+squeeze, a dictated peace or a sovereign taken; **a court subjugated LATER keeps its boot house, so its new lord's
+garrisons are foreign — the count rises and the dial reads the same scalar (Spain under Joseph: the player's
+most-played road)**; a client re-vassalized by its boot lord reads home again (the boundary §5a C2 named — no new
+rule was needed, pinned). **A rebellion names its cause:** `check_vassal_rebellion` reads `rebellion_cause` BEFORE
+the row goes (Rule 4), and every exit's `record_vassal_break` carries it — the `vassal_broke_free` log row's
+`cause: awakening`, the dispatch line's second sentence ("… It is war. Its people had risen against the yoke."),
+the one-liner's ("Vassal rebellion: Holland breaks free of France and stands alone. Its people had risen."); a
+quiet people's break carries no `cause` key.
+
+**A risen people's revanche** (seam `a_risen_people_swears_revanche`; `awakening.risen_grievance`;
+`emergent_designs.process_emergent_designs` — Prussia after Jena). The intent spec's §3.6 contract had no concrete
+trigger variable; the Awakening gives it one: a court at `risen` promotes its grievance into a design with ANY lost
+homeland — the partition bar (the historic capital or two provinces, or a durable record) WAIVED; the people's
+rising is the backing. The author is the one AI-5b derives (the latest punitive memory's, a reneging holder, the
+capital's holder, the plurality holder — never the court itself); the design is the same `revanche_<court>`,
+front-inserted, refreshed by OCT27-D8(b)'s rule. The event and the dispatch line carry the cause only where the
+rising was the DECIDING clause (`cause: awakening`; "… the loss of Posen. The people have risen, and the court
+swears what they demand." / "REVANCHE: Prussia will not forgive France the loss of Posen. The people have risen, and
+a new design hardens in their court behind them."); a partition keeps its own words. The player and the clients
+stay outside the poll, as before.
+
+**The liberators hold together** (seam `liberators_hold_together`; `awakening.friction_eased`,
+`coalition_friction_step`; `coalition.apply_coalition_friction`). §3b's clockwork frays every member pair of the
+active league by 2 a turn (to OCT27-D1's floor); while the league's target (`league_target` — France with no
+eclipse league, the hegemon under one) holds at least one province of an AWAKENED people's homeland as a foreign
+holder, the pairs fray 1 a turn instead — the liberators have a cause. The read walks the store's awakened rows
+against the target's live house (`held_by_house`), O(awakened courts × homeland), never a scan; a quiet people under
+the garrisons eases nothing; a house holding no awakened soil (Prussia at the boot) reads 2.
+
+**The Nation in Arms** (seam `the_nation_writes`, row DY-5 of `affairs.SINCE_ROWS` — `row_armed` reads the seam, so
+arm 0 holds the template out of the deck whole). The third letter — the player's OWN people at `risen` against an
+invader, the levée's own letter: predicate `nation_in_arms` (the lord's level at `risen`, the lord at war, home soil
+contested by the last tick's count, the Guard not standing; the ENEMY HOUSE holding the most of the lord's boot
+homeland bound as `host` — the invader the letter names — the measure the provinces it holds; ties by the
+active-nation order); Moncey, Major-General of the National Guard, writes (the decree of 8 January 1814, the
+barrière de Clichy); Accept "Arm the National Guard" 800 gold, an action, the `national_guard` op (`turns` 6);
+Decline "The line will hold" authority −3 / −4 / −5 by tier — **an authority-alone Decline keeps `bites: "floor"`**
+(the validator's own rule since AU-2a: clamped, a refusal priced in authority alone would cost nothing), so the
+letter arrives where the Emperor's grip can pay it (the loss landing whole above the floor of 71) and is silent on a
+bled board — said plainly, the lever below. **The `national_guard` op — the thirteenth** (`moments.OPS` 12 → 13, the
+five pins flipped): Accept-only (`DECLINE_FORBIDDEN_OPS`, never a Decline's), `turns` in [3, 12], no `court` (the
+lord's own — the validator refuses one), refused while the Guard already stands ("The National Guard already stands
+under arms until …, Sire."), quoted in the edict's form ("the National Guard of France under arms until Early March
+1807, 6 turns — the levée doubled"), applied through `arm_national_guard` (the `guard` beat); the dated deck's
+vocabulary stays closed (not in `OP_BOUNDS`). The three decks in lockstep (the scenario and
+`tests/fixtures/affairs_block.json`; `moments_block.json` carries no affairs); the copy slots `{court}` the lord and
+`{host}` the invader (a host bound, `{seat}` is the invader's — the Moniteur's lines carry no dateline). **The
+letter's road, proved on a frozen board** (the pin): Austria holding six French provinces by treaty, the map held
+still, the Emperor's grip at full, the mornings advanced by hand and the post read — the French people stir at the
+15th morning and the levée rises with them (one beat each), the rising at the 25th, *The Nation in Arms* at the
+30th (the Proclamation took the 13th, the Bavarian match the 8th; the desk's own rules, RE §7); the Accept arms the
+Guard and France's infantry regen reads 3,750 → 5,000 (×1.5 → ×2.0 on the base), the draft ×0.5.
+
+**The session landed (November 10, 2026; the pins `tests/test_dy5_the_tiger_ridden.py` `TestTheSessionDMeasure`).** ONE sweep, six arms (0 / LEVEE / DIAL / REVANCHE / LIBERATORS / ALL) on three surfaces (`tools/_t6b_measure.py`), run ALONE — the sweep, the pacing chain and the series in 22 minutes. **Arm 0 reproduces session C's records byte for byte on both surfaces** (the ten ambient signatures and the census totals; chain D's arm ALL on its keys); the France band holds at 28 / 27 / 26 on every arm; story classes **10 of 10 on every arm**; **the standing series does not move** (`tools/_t6b_series_arms_final.json`: every arm reproduces HEAD's `BASELINE_SERIES`; on that loop the levée's read bites 15 times with one beat, the dial, the revanche and the liberators' ease never bite, the letter's predicate holds 9 mornings on the shipped arm). **Said plainly: every DY-5 seam bites where its condition holds, and NOT ONE measured world-line moves on any surface in forty turns.** The ambient signature is byte-identical on every arm (no mover on any seed; the supply bill 1,196,439 on all six arms, the captures 251, the annexations 0, the beats 25): **the levée rises on every ambient seed** — the French people stir under the coalition's garrisons and the levée rises with them (historical, lodi and wagram at 25, ulm 26, eylau, friedland and rivoli 30, austerlitz 31, marengo 32, jena 33 — 6 to 18 home provinces under foreign arms) and Bavaria's on five seeds (marengo and rivoli 36, friedland and jena 39, ulm 41), standing down on marengo at 41 when Austria's peace hands Munich back; fifteen beats — but the idle France recruits nothing in forty turns (its pool fills at ×1.5 and nobody draws it) and Bavaria's levée comes with one to five turns left; the dial never bites (no client's people are awakened on any seed — a boot client's soil under its lord is home, and no court is vassalized later on the ambient board: the dial's road is the player's, Spain under Joseph, and the road arms' Pressburg by subjugation); the revanche never fires (no AI court reaches `risen`; the French people do, and the player is outside the poll); the liberators' cause never holds (the idle France holds no awakened people's soil); the letter never arrives (below). **The AI-France harness** (`tools/_t6b_chain_d_2026_11_10.json`): arm 0 reproduces session C's arm ALL on its keys; **Russia's levée rises on eight seeds** (wagram and historical at 26, rivoli 27, jena 28, austerlitz 29, ulm 30, marengo 38, lodi 39 — Estonia held, Russia at war, its people at `stirring`; never on eylau and friedland, where the march never reaches Estonia), **Austria's never** — the march takes every Austrian province by turn 10–11 and the court is erased: a people outlives its court (C3), a levée does not (`levee_holds` reads the active roster — an erased court has no depots; the explicit clause was added at the record and changes no record); and no world-line moves on any arm: Russia's last recruit falls between turns 9 and 17 on every seed, BEFORE its levée rises, so the cheaper draft prices nothing and the fuller pool is never drawn; France's bill 488,612, the ambient courts' captures 117, annexations 0 and `rank_promotions` 0 on every arm; the Estonia turns unchanged. **The pacing chain re-recorded** (the deck changed: `tools/_s14c_sweep_final.json`, `tools/_affairs_first_arrival.json`): **no arm's letter timings moved** — the world-lines did not — and the road record did not move (session C's `tools/_vp1_road_arms_final.json` stands; the reach record's `road_control` is re-read from the same rows); *The Nation in Arms* on the 53 measured arms: the premise never held on 32; held one to ten mornings on 17 and was NEVER due — the floor: the idle France's grip falls 95 → 67 → 22 across turns 25–32 as the coalition takes its home provinces, under the 74 the Decline's −3 needs; due on three (pending on `armb_scripted_ulm_soil` and `armC_09_rivoli`, released on `armB_ulm`); and **ARRIVED on the scripted France alone** (`armb_scripted_historical`: due 36, arrived T38 at grip 100 — "The line will hold: Authority 100 → 97" — lapsed on its decline at 39). **The raised gate's three clauses against the record:** story classes 10 of 10 (MET); `rank_promotions` 0 on every seed (UNMET); the roster the Kingdom of Italy alone on all ten seeds, no formation (UNMET) — Tier 8's to earn, the reading at session F as §7 rules.
+
+**The levers for the user, reported and none pre-recommended (§0):** (a) **the letter's floor** — an authority-alone Decline keeps `"floor"` by the validator's own rule, and an invaded France is a bled France: a second price on the Decline (the one honest road to `"clamp"` — the people's temper RAISED by the refusal, which would re-open DY-4's Accept-only rule for the `awakening` op) would bring the letter to the bled board; (b) **the levée's reach** — the AI courts recruit by their rungs' own gates (the treasury, the force limit, the reserve), which a cheaper draft never changed in the window: a rung that READS the levée (recruit more while it holds — the 1813 surge as behaviour, not a price) is content's to earn; (c) **the dial's ambient road** — no AI court vassalizes another on the ambient board, so the dial bites on the player's road and the AI's subjugation terms alone; (d) the bands' pace, the ulcer's teeth and the letters' seat at the desk stand from session C.

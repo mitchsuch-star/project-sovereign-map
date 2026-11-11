@@ -1580,6 +1580,17 @@ class EconomyExecutor:
                 if _dterm:
                     cost = int(round(cost * _dterm[1]))
                     terms.append(f"×{_dterm[1]:g} {_dterm[0]}")
+                # DY-5 (DYNAMISM_SPEC.md §5, the liberation levée): a court
+                # at war on its contested home soil, its people awakened,
+                # prices the DRAFT ×0.75 (×0.5 with the National Guard) —
+                # ONE named term after the doctrine's, before the laws; the
+                # AI's P1 rung reads this same pricer (GR5), the substitute
+                # market never does.
+                from backend.game_logic.awakening import levee_terms as _levee_terms
+                _lterm = _levee_terms(world, nation)
+                if _lterm[1] != 1.0:
+                    cost = int(round(cost * _lterm[1]))
+                    terms.append(f"×{_lterm[1]:g} {_lterm[2]}")
                 from backend.game_logic.reforms import recruit_price_terms
                 for law_name, mult in recruit_price_terms(
                         world, nation, arm or _levy_arm_of(marshal, base_cost)):

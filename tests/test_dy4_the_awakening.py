@@ -377,7 +377,7 @@ class TestTheBeats:
 
     def test_the_one_new_log_type_and_the_census(self):
         assert "awakening" in CL.CAMPAIGN_LOG_TYPES
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 184  # 183->184 flipped consciously: DY-4 (Nov 10, 2026) adds `awakening` — a people of Europe crosses a phase of the Awakening (stirring, risen, quiet again; DYNAMISM_SPEC.md §5; DY-0's column reads the prefix); no inert type retired in exchange  # 182->183 flipped consciously: DY-2 adds `question_turns`  # 181->182 flipped consciously: T4-3 adds `rank_promotion`  # 180->181 flipped consciously: AU-2b adds `te_deum`  # 179->180 flipped consciously: S14c part 1 adds `moment`  # 178->179 flipped consciously: VP-1 adds `imperial_design`  # 176->178 flipped consciously: PC-R7 (ii) part 2 adds `war_articles_declared` and `war_articles_settled`  # 175->176 flipped consciously: PC-R2 adds `surety_returned`  # 173->175 flipped consciously: DD-1 S8 Step 3 adds `allegiance_bid` and `province_returned`  # 164->165 flipped consciously: IQ-7 adds `client_petition_answered`  # 165->166 flipped consciously: GE-1 adds `campaign_ending`  # 166->167 flipped consciously: GE-3 adds the congress chronicle type  # 167->168 flipped consciously: VP-M1 adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed`  # 171->172 flipped consciously: VD-C adds `vassal_contingent`  # 172->173 flipped consciously: TILSIT adds `continental_system_membership`
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 185  # 184->185 flipped consciously: DY-5 (Nov 10, 2026) adds `levee` — a nation's liberation levée rises or stands down, its National Guard armed (DYNAMISM_SPEC.md §5; `awakening._the_levee_beats`); no inert type retired in exchange  # 183->184 flipped consciously: DY-4 (Nov 10, 2026) adds `awakening` — a people of Europe crosses a phase of the Awakening (stirring, risen, quiet again; DYNAMISM_SPEC.md §5; DY-0's column reads the prefix); no inert type retired in exchange  # 182->183 flipped consciously: DY-2 adds `question_turns`  # 181->182 flipped consciously: T4-3 adds `rank_promotion`  # 180->181 flipped consciously: AU-2b adds `te_deum`  # 179->180 flipped consciously: S14c part 1 adds `moment`  # 178->179 flipped consciously: VP-1 adds `imperial_design`  # 176->178 flipped consciously: PC-R7 (ii) part 2 adds `war_articles_declared` and `war_articles_settled`  # 175->176 flipped consciously: PC-R2 adds `surety_returned`  # 173->175 flipped consciously: DD-1 S8 Step 3 adds `allegiance_bid` and `province_returned`  # 164->165 flipped consciously: IQ-7 adds `client_petition_answered`  # 165->166 flipped consciously: GE-1 adds `campaign_ending`  # 166->167 flipped consciously: GE-3 adds the congress chronicle type  # 167->168 flipped consciously: VP-M1 adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed`  # 171->172 flipped consciously: VD-C adds `vassal_contingent`  # 172->173 flipped consciously: TILSIT adds `continental_system_membership`
         assert CL.CATEGORY_MAP["awakening"] == "diplomacy"
         from backend.game_logic import gazette as GZ
         assert "awakening" in GZ._COURT_TYPES
@@ -494,8 +494,9 @@ class TestTheLetters:
         fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))["affairs"]
         assert scenario == fixture
         ids = [e["id"] for e in fixture["deck"]]
-        assert ids[-2:] == list(LETTERS) and len(ids) == 12
-        for e in fixture["deck"][-2:]:
+        # DY-5 (session D) appends The Nation in Arms after the two
+        assert ids[-3:-1] == list(LETTERS) and len(ids) == 13
+        for e in fixture["deck"][-3:-1]:
             # the Host's `clamp` shape (the user's "Clamp it first", AU-2a): a
             # people's rising arrives on a bled board too; the Decline is priced
             # in the host's goodwill and loyalty beside the clamped authority
@@ -505,8 +506,8 @@ class TestTheLetters:
             assert [op["op"] for op in e["decline"]["ops"]] == ["authority", "relation", "loyalty"]
             assert e["decline"]["ops"][1]["unless"] == "vassal"
             assert "may" in e["watch"] and "will" not in e["watch"]
-        assert fixture["deck"][-2]["when"] == {"predicate": "people_stir"}
-        assert fixture["deck"][-1]["when"] == {"predicate": "people_risen"}
+        assert fixture["deck"][-3]["when"] == {"predicate": "people_stir"}
+        assert fixture["deck"][-2]["when"] == {"predicate": "people_risen"}
 
     def test_the_predicates_and_the_row_are_registered(self):
         assert AF.PREDICATES["people_stir"] is AF._people_stir and AF.PREDICATE_PARAMS["people_stir"] == ()
@@ -514,7 +515,7 @@ class TestTheLetters:
         assert "DY-4" in AF.SINCE_ROWS and AF.row_armed("DY-4") is True
 
     def test_the_letters_sit_in_the_shipped_deck(self, world):
-        assert [e["id"] for e in MO.affairs_deck(world)][-2:] == list(LETTERS)
+        assert [e["id"] for e in MO.affairs_deck(world)][-3:-1] == list(LETTERS)
 
     def test_the_predicates_read_the_thresholds(self, world):
         no = {"holds": False, "bind": {}, "measure": None, "latch": False}
@@ -569,13 +570,13 @@ class TestTheLetters:
         assert "awakening" in AF.AFFAIR_OPS and AF.AFFAIR_OP_BOUNDS["awakening"] == (-30, -1)
         assert "awakening" in MO.DECLINE_FORBIDDEN_OPS and "awakening" not in AF.DECLINE_ALLOWED_OPS
         assert "awakening" not in MO.OP_BOUNDS and "awakening" not in AF.BARRED_OPS
-        assert len(MO.OPS) == 12
+        assert len(MO.OPS) == 13   # DY-5 (session D): + `national_guard`, flipped consciously
 
     def test_the_validator_refuses_a_decline_and_a_delta_out_of_band(self):
         data = _scenario()
-        deck = data["moments"]["affairs"]["deck"]
-        deck[-1]["decline"]["ops"].append({"op": "awakening", "court": "$host", "delta": -5})
-        deck[-2]["accept"]["ops"][2]["delta"] = -60
+        deck = {e["id"]: e for e in data["moments"]["affairs"]["deck"]}
+        deck["the_ulcer"]["decline"]["ops"].append({"op": "awakening", "court": "$host", "delta": -5})
+        deck["the_people_stir"]["accept"]["ops"][2]["delta"] = -60
         result = validate_scenario(data, check_adjacency=True)
         messages = " ".join(e.message for e in result.errors)
         assert "A Decline carries only" in messages

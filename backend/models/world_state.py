@@ -8397,6 +8397,16 @@ class WorldState:
             we_penalty = min(1.0, we / 200.0)  # 0.0 → 1.0
             inf_regen = max(1000, int(inf_regen * (1.0 - we_penalty)))
 
+        # DY-5 (DYNAMISM_SPEC.md §5, the liberation levée — 1813): a court
+        # whose people are awakened, at war on its contested home soil,
+        # regenerates infantry ×1.5 (×2.0 with the National Guard armed) —
+        # after the war exhaustion, before the laws; ONE read
+        # (`awakening.levee_terms`), the price's sibling in the pricer.
+        from backend.game_logic.awakening import levee_terms as _levee_terms
+        _levee_regen = _levee_terms(self, nation)[0]
+        if _levee_regen != 1.0:
+            inf_regen = int(inf_regen * _levee_regen)
+
         rates = {
             "infantry": int(inf_regen),
             "cavalry": int(cav_regen),

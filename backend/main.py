@@ -8652,6 +8652,10 @@ def debug_vassal_loyalty(nation: str):
     grip = get_imperial_grip(world, lord)
     grip_drift = authority_vassal_drift(grip)
 
+    # DY-5: the client dial — the SAME read the tick and the forecast share.
+    from backend.game_logic.awakening import client_dial as _client_dial
+    awakening_label, awakening_drift = _client_dial(world, nation, autonomy)
+
     return {
         "success": True,
         "nation": nation,
@@ -8662,6 +8666,8 @@ def debug_vassal_loyalty(nation: str):
         # an active treaty clause funds the vassal.
         "modifiers": {
             "autonomy_drift": drift,
+            "awakening_drift": int(awakening_drift),
+            "awakening_label": awakening_label,
             "garrison_bonus": garrison_bonus,
             "shared_enemy_bonus": shared_enemy_bonus,
             "lord_battle_modifier": lord_battle_modifier,

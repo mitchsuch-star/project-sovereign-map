@@ -54,6 +54,43 @@ T6-LETTERS): `the_people_stir` (the store's raises, cools and beats; down:
 the scalar never moves, no beat), `the_ulcer_bleeds` (down: 1.0),
 `the_people_write` (row DY-4's letters — `affairs.row_armed`; down: the
 templates held out of the deck whole).
+
+DY-5 — THE SECOND HALF (session D, November 10, 2026; §5's three
+expressions completed and the interplays named there), five more seams:
+
+* THE LIBERATION LEVÉE (`the_levee_rises`, row T6-LEVEE — 1813): a court
+  whose people stand at `stirring` or above, AT WAR, with home soil
+  contested (the last tick's derived count above 0) regenerates infantry
+  ×1.5 and prices the draft ×0.75 — `levee_terms`, read by
+  `get_manpower_regen_rates` (after the war exhaustion, before the laws)
+  and `_recruit_cost_terms` (after the doctrine's term, before the laws;
+  the AI's P1 rung reads the same pricer). THE NATIONAL GUARD — the third
+  letter's Accept — doubles the bonus for a term (×2.0 / ×0.5; the court
+  row's `guard`, the morning it ends). The levée is a beat: ONE `levee`
+  log row when it rises, when it stands down and when the Guard is armed
+  (the census 184 → 185), a HIGH dispatch line, the Gazette's column.
+* THE CLIENT DIAL — THE TIGER RIDDEN (`the_tiger_is_ridden`, row T6-DIAL —
+  Westphalia against Spain): a client whose people are awakened (≥
+  `stirring`) bleeds loyalty −2 a turn at autonomy ≤ 1 and GAINS +1 a turn
+  at autonomy ≥ 2 — France can ride the force it exports, paying in
+  control. ONE read, `client_dial`, for the loyalty tick, the forecast and
+  the debug breakdown (the F7 lesson); a rebellion of an awakened client
+  NAMES its cause (`rebellion_cause` → `vassal_broke_free.cause`).
+* THE REVANCHE OF A RISEN PEOPLE (`a_risen_people_swears_revanche`, row
+  T6-REVANCHE — Prussia after Jena): a court at `risen` with ANY lost
+  homeland promotes its grievance into a design — the partition bar
+  waived, the people's rising is the backing (`risen_grievance`, read by
+  `emergent_designs.process_emergent_designs`).
+* THE LIBERATORS HOLD TOGETHER (`liberators_hold_together`, row
+  T6-LIBERATORS): while the league's target holds an awakened people's
+  soil, the members' friction frays 1 a turn instead of 2
+  (`coalition_friction_step`, read by `coalition.apply_coalition_friction`).
+* THE NATION IN ARMS (`the_nation_writes`, row T6-ARMS — row DY-5 of
+  `affairs.SINCE_ROWS`): the third letter — the player's OWN people at
+  `risen` against an invader (`nation_in_arms`: the lord at war, home soil
+  contested, the Guard not standing; the enemy house holding the most of
+  the homeland bound as `host`); Accept arms the National Guard (the
+  `national_guard` op — the thirteenth), Decline authority on the floor.
 """
 from __future__ import annotations
 
@@ -75,6 +112,23 @@ HOME_RULE_LUMP = 10                  # home rule restored, every road
 ULCER_SUPPLY_FACTOR = 0.75
 PHASES = ("quiet", "stirring", "risen")
 _RANK_DEFAULT = "secondary"
+# DY-5 (N-DY5): the liberation levée and the National Guard's doubling
+LEVEE_REGEN_FACTOR = 1.5             # infantry regen, the court at war on contested home soil
+LEVEE_PRICE_FACTOR = 0.75            # the draft's price
+GUARD_REGEN_FACTOR = 2.0             # the National Guard armed: the bonus doubled
+GUARD_PRICE_FACTOR = 0.5
+GUARD_TURNS_BOUNDS = (3, 12)         # the `national_guard` op's `turns`
+LEVEE_LOG_TYPE = "levee"
+# the client dial — the tiger ridden
+DIAL_PUPPET_DRIFT = -2               # autonomy <= 1: the people's awakening
+DIAL_AUTONOMOUS_DRIFT = 1            # autonomy >= 2: the tiger ridden
+DIAL_AUTONOMY_SPLIT = 2
+DIAL_LABEL_RESENT = "the people's awakening"
+DIAL_LABEL_RIDDEN = "the tiger ridden"
+REBELLION_CAUSE = "awakening"
+# the liberators' friction: 1 a turn where the league frees a people, else 2
+FRICTION_STEP = 2
+FRICTION_STEP_EASED = 1
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -98,6 +152,42 @@ def the_people_write() -> bool:
     """T6-LETTERS seam (row DY-4 of `affairs.SINCE_ROWS`): the Awakening's
     letters sit in the deck and their predicates read. Down: the templates
     are held out whole and the predicates never hold."""
+    return True
+
+
+def the_levee_rises() -> bool:
+    """T6-LEVEE seam (DY-5): the liberation levée — a court at war on its
+    contested home soil, its people awakened, regenerates infantry ×1.5 and
+    prices the draft ×0.75 (the National Guard doubles it). Down: 1.0 and
+    1.0 everywhere, no levée beat, the Guard never armed."""
+    return True
+
+
+def the_tiger_is_ridden() -> bool:
+    """T6-DIAL seam (DY-5): the client dial — an awakened client's loyalty
+    −2 a turn at autonomy ≤ 1, +1 at autonomy ≥ 2; a rebellion names the
+    cause. Down: the dial reads 0 and no rebellion is the Awakening's."""
+    return True
+
+
+def a_risen_people_swears_revanche() -> bool:
+    """T6-REVANCHE seam (DY-5): a court at `risen` with any lost homeland
+    promotes its grievance into a design, the partition bar waived. Down:
+    the bar stands as AI-5b authored it."""
+    return True
+
+
+def liberators_hold_together() -> bool:
+    """T6-LIBERATORS seam (DY-5): while the league's target holds an
+    awakened people's soil, the members' friction frays 1 a turn, not 2.
+    Down: 2 a turn as §3b authored it."""
+    return True
+
+
+def the_nation_writes() -> bool:
+    """T6-ARMS seam (row DY-5 of `affairs.SINCE_ROWS`): The Nation in Arms
+    sits in the deck and its predicate reads. Down: the template held out
+    whole, the predicate never holds, the `national_guard` op skips."""
     return True
 
 
@@ -133,9 +223,20 @@ def _clean_courts(raw: Any) -> Dict[str, Dict[str, int]]:
             continue
         level = max(0, min(LEVEL_MAX, _int_or(row.get("level"), 0)))
         occupied = max(0, _int_or(row.get("occupied"), 0))
-        if level or occupied:
-            out[str(court)] = {"level": level, "occupied": occupied}
+        clean: Dict[str, int] = {"level": level, "occupied": occupied}
+        # DY-5: the levée's bit and the National Guard's term ride the row
+        if _int_or(row.get("levee"), 0) > 0:
+            clean["levee"] = 1
+        guard = max(0, _int_or(row.get("guard"), 0))
+        if guard:
+            clean["guard"] = guard
+        if level or occupied or len(clean) > 2:
+            out[str(court)] = clean
     return out
+
+
+def _row_is_empty(row: Dict[str, Any]) -> bool:
+    return not any(int(row.get(k, 0) or 0) for k in ("level", "occupied", "levee", "guard"))
 
 
 def _clean_houses(raw: Any) -> Dict[str, str]:
@@ -412,14 +513,16 @@ def move(world, court: str, delta: int, cause: str,
     st = store(world)
     courts = st.setdefault("courts", {})
     row = courts.get(str(court))
-    before = _int_or((row or {}).get("level"), 0) if isinstance(row, dict) else 0
-    occ = (_int_or((row or {}).get("occupied"), 0) if isinstance(row, dict) else 0) \
-        if occupied_now is None else int(occupied_now)
+    row = dict(row) if isinstance(row, dict) else {}
+    before = _int_or(row.get("level"), 0)
+    occ = _int_or(row.get("occupied"), 0) if occupied_now is None else int(occupied_now)
     after = max(0, min(LEVEL_MAX, before + int(delta)))
-    if after == 0 and occ == 0:
+    row["level"], row["occupied"] = int(after), int(occ)
+    # DY-5: the levée's bit and the Guard's term survive the write
+    if _row_is_empty(row):
         courts.pop(str(court), None)
     else:
-        courts[str(court)] = {"level": int(after), "occupied": int(occ)}
+        courts[str(court)] = row
     old, new = phase_of(world, before), phase_of(world, after)
     if old == new:
         return None
@@ -493,12 +596,17 @@ def tick(world) -> List[Dict[str, Any]]:
             if before_occ > 0:
                 delta -= HOME_RULE_LUMP
         if level(world, court) == 0 and delta <= 0 and now == 0 and before_occ == 0:
-            continue
+            if not _levee_bit(world, court) and not guard_until(world, court):
+                continue
         beat = move(world, court, delta,
                     "home_rule" if (now == 0 and before_occ > 0) else "occupation",
                     occupied_now=now)
         if beat:
             beats.append(beat)
+        # DY-5: the levée rises or stands down on the fresh level and count
+        levee_beat = _settle_levee(world, court)
+        if levee_beat:
+            beats.append(levee_beat)
     return beats
 
 
@@ -614,3 +722,239 @@ def phase_words(world, before: int, after: int) -> str:
         return f"are unchanged ({new})"
     verb = "quieten" if PHASES.index(new) < PHASES.index(old) else "stir"
     return f"{verb} ({old} → {new})"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DY-5 — the liberation levée and the National Guard
+# ═══════════════════════════════════════════════════════════════════════
+
+def _row(world, court: str) -> Dict[str, Any]:
+    row = (store(world).get("courts") or {}).get(str(court))
+    return row if isinstance(row, dict) else {}
+
+
+def _levee_bit(world, court: str) -> bool:
+    return _int_or(_row(world, court).get("levee"), 0) > 0
+
+
+def guard_until(world, court: str) -> int:
+    """The morning the National Guard's term ends (0: never armed)."""
+    return max(0, _int_or(_row(world, court).get("guard"), 0))
+
+
+def guard_stands(world, court: str) -> bool:
+    return guard_until(world, court) > _turn(world)
+
+
+def _at_war(world, court: str) -> bool:
+    return bool(world.get_nations_at_war_with(court))
+
+
+def levee_holds(world, court: str) -> bool:
+    """The levée's condition: the court's people at `stirring` or above,
+    the court AT WAR, its home soil contested — the LAST TICK's derived
+    count (the store's figure, never a scan; the tick runs before the
+    regen and before the morning's letters). Unarmed or seam down: False."""
+    if not the_levee_rises() or not armed(world) or not court:
+        return False
+    if level(world, court) < stirring(world):
+        return False
+    if occupied(world, court) <= 0:
+        return False
+    # a people outlives its court (C3); a levée does not — an erased court has
+    # no depots and no treasury to raise one (the harness's Austria, every
+    # province taken by turn 11: its people stir and rise, no levée)
+    if court not in set(world.get_active_nations()):
+        return False
+    return _at_war(world, court)
+
+
+def levee_terms(world, court: str) -> Tuple[float, float, str]:
+    """(regen factor, price factor, the term's name) — (1.0, 1.0, "") with
+    no levée; the National Guard armed doubles the bonus for its term."""
+    if not levee_holds(world, court):
+        return 1.0, 1.0, ""
+    if guard_stands(world, court):
+        return float(GUARD_REGEN_FACTOR), float(GUARD_PRICE_FACTOR), "the National Guard"
+    return float(LEVEE_REGEN_FACTOR), float(LEVEE_PRICE_FACTOR), "the levée"
+
+
+def _write_bit(world, court: str, key: str, value: int) -> None:
+    st = store(world)
+    courts = st.setdefault("courts", {})
+    row = dict(courts.get(str(court)) or {})
+    row.setdefault("level", 0)
+    row.setdefault("occupied", 0)
+    if value:
+        row[key] = int(value)
+    else:
+        row.pop(key, None)
+    if _row_is_empty(row):
+        courts.pop(str(court), None)
+    else:
+        courts[str(court)] = row
+
+
+def _settle_levee(world, court: str) -> Optional[Dict[str, Any]]:
+    """The tick's second write: the levée's bit against its condition —
+    a beat when it rises or stands down (the Guard's term lapses silently
+    with the levée, or outlives nothing: it is read only while the levée
+    holds)."""
+    if not the_levee_rises() or not armed(world):
+        return None
+    # the Guard's term, once past, leaves the row (a lapsed term is no bit)
+    until = guard_until(world, court)
+    if until and until <= _turn(world):
+        _write_bit(world, court, "guard", 0)
+    was, now = _levee_bit(world, court), levee_holds(world, court)
+    if was == now:
+        return None
+    _write_bit(world, court, "levee", 1 if now else 0)
+    return _the_levee_beats(world, court, "raised" if now else "stood_down")
+
+
+def arm_national_guard(world, court: str, turns: int) -> Optional[Dict[str, Any]]:
+    """The letter's Accept (the `national_guard` op): the Guard under arms
+    for `turns` mornings from today — the levée's bonus doubled while it
+    holds. Nothing with the seam down or no levée standing."""
+    if not the_levee_rises() or not armed(world) or not court:
+        return None
+    lo, hi = GUARD_TURNS_BOUNDS
+    turns = max(lo, min(hi, int(turns)))
+    _write_bit(world, court, "guard", _turn(world) + turns)
+    return _the_levee_beats(world, court, "guard")
+
+
+def _the_levee_beats(world, court: str, direction: str) -> Dict[str, Any]:
+    """ONE literal `log_event` (the Gazette's collector census reads the
+    literal) and a HIGH dispatch line in the courts' register."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    occ = occupied(world, court)
+    line = levee_line(world, court, direction, occ)
+    world.log_event({
+        "type": "levee",
+        "nation": court,
+        "direction": direction,
+        "occupied": int(occ),
+        "guard_until": int(guard_until(world, court)),
+        "message": line,
+    })
+    queue_dispatch_event(world, "levee", {"nation": court, "direction": direction, "line": line},
+                         "always")
+    return {"type": "levee", "nation": court, "direction": direction, "occupied": int(occ),
+            "message": line}
+
+
+def levee_line(world, court: str, direction: str, occ: int) -> str:
+    """The beat in words — R7 names, never a figure of the scalar."""
+    people = _people_of(court)
+    if direction == "guard":
+        return (f"THE NATIONAL GUARD OF {people.upper()} UNDER ARMS: the departments send their "
+                f"battalions — the levée is doubled while the Guard stands.")
+    if direction == "raised":
+        under = (f"{occ} home province{'s' if occ != 1 else ''} under foreign arms; "
+                 if occ > 0 else "")
+        return (f"THE NATION IN ARMS: the people of {people}, at war on their own soil — {under}"
+                f"the depots fill and the levy comes cheap.")
+    return f"The levée of {people} stands down — the war is over, or the soil is free."
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DY-5 — the client dial: the tiger ridden
+# ═══════════════════════════════════════════════════════════════════════
+
+def client_dial(world, client: str, autonomy: int) -> Tuple[str, int]:
+    """ONE read for the loyalty tick, the forecast and the debug breakdown
+    (the F7 lesson: three copies of a term drift apart): ("", 0) for a quiet
+    people (below `stirring`), an unarmed world or the seam down; else
+    (`DIAL_LABEL_RESENT`, −2) at autonomy ≤ 1 and (`DIAL_LABEL_RIDDEN`, +1)
+    at autonomy ≥ 2 — France rides the force it exports by paying in
+    control."""
+    if not the_tiger_is_ridden() or not armed(world) or not client:
+        return "", 0
+    if level(world, client) < stirring(world):
+        return "", 0
+    if int(autonomy) >= DIAL_AUTONOMY_SPLIT:
+        return DIAL_LABEL_RIDDEN, int(DIAL_AUTONOMOUS_DRIFT)
+    return DIAL_LABEL_RESENT, int(DIAL_PUPPET_DRIFT)
+
+
+def rebellion_cause(world, client: str) -> str:
+    """`check_vassal_rebellion`, read BEFORE the row is deleted: "awakening"
+    when the breaking client's people are awakened (≥ `stirring`), else ""
+    — the `vassal_broke_free` row, the dispatch line and the one-liner
+    name it."""
+    if not the_tiger_is_ridden() or not armed(world) or not client:
+        return ""
+    return REBELLION_CAUSE if level(world, client) >= stirring(world) else ""
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DY-5 — the interplays: a risen people's revanche, the liberators' friction
+# ═══════════════════════════════════════════════════════════════════════
+
+def risen_grievance(world, court: str) -> bool:
+    """`emergent_designs.process_emergent_designs`: a court at `risen`
+    promotes its grievance with ANY lost homeland — the partition bar
+    waived; the people's rising is the backing (Prussia after Jena)."""
+    if not a_risen_people_swears_revanche() or not armed(world) or not court:
+        return False
+    return level(world, court) >= risen(world)
+
+
+def friction_eased(world, target: str) -> bool:
+    """True while the league's `target` (its live house) holds at least one
+    province of an awakened people's homeland as a FOREIGN holder — the
+    liberators have a cause. O(awakened courts × homeland), the store's
+    rows, never a scan."""
+    if not liberators_hold_together() or not armed(world) or not target:
+        return False
+    house = live_house(world, target)
+    threshold = stirring(world)
+    for court, row in sorted((store(world).get("courts") or {}).items()):
+        if not isinstance(row, dict) or _int_or(row.get("level"), 0) < threshold:
+            continue
+        if held_by_house(world, court, house) > 0:
+            return True
+    return False
+
+
+def coalition_friction_step(world, target: str) -> int:
+    """`coalition.apply_coalition_friction`: the members' fray a turn — 1
+    where the league frees an awakened people, else 2."""
+    return int(FRICTION_STEP_EASED if friction_eased(world, target) else FRICTION_STEP)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DY-5 — the third letter: The Nation in Arms
+# ═══════════════════════════════════════════════════════════════════════
+
+def nation_in_arms(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """The Nation in Arms — the lord's OWN people at `risen`, the lord at
+    war, home soil contested (the levée's own condition) and the Guard not
+    standing; the enemy house holding the most of the lord's homeland is
+    bound as `host` (the invader the letter names), the measure the
+    provinces it holds. Ties by the active-nation order."""
+    if not the_nation_writes() or not armed(world) or not lord:
+        return _no()
+    if level(world, lord) < risen(world) or occupied(world, lord) <= 0:
+        return _no()
+    if guard_stands(world, lord):
+        return _no()
+    enemies = [str(n) for n in (world.get_nations_at_war_with(lord) or [])]
+    if not enemies:
+        return _no()
+    active = list(world.get_active_nations())
+    order = {n: i for i, n in enumerate(active)}
+    counts: Dict[str, int] = {}
+    for enemy in enemies:
+        house = live_house(world, enemy)
+        if house in counts or house not in order:
+            continue
+        held = held_by_house(world, lord, house)
+        if held > 0:
+            counts[house] = held
+    if not counts:
+        return _no()
+    invader = min(counts, key=lambda h: (-counts[h], order.get(h, 10 ** 6), h))
+    return {"holds": True, "bind": {"host": invader}, "measure": int(counts[invader]), "latch": False}

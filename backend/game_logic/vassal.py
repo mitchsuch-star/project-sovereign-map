@@ -1074,6 +1074,10 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
     autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
     drift = autonomy_drift(world, vassal_name, autonomy)
 
+    # Step 1b (DY-5): the client dial — the SAME read the tick applies.
+    from backend.game_logic.awakening import client_dial as _client_dial
+    dial_label, dial_value = _client_dial(world, vassal_name, autonomy)
+
     # Step 2: the lord's garrison (VP-D1 single-source predicate).
     garrison_present = False
     garrison_bonus = 0
@@ -1114,7 +1118,7 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
     grip = get_imperial_grip(world, lord)
     grip_drift = authority_vassal_drift(grip)
 
-    forecast = (drift + garrison_bonus + law_bonus + subsidy_bonus
+    forecast = (drift + dial_value + garrison_bonus + law_bonus + subsidy_bonus
                 + shared_enemy_bonus + relation_modifier + grip_drift)
     if forecast > 0:
         trend = "rising"
@@ -1127,6 +1131,9 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
         "forecast": int(forecast),
         "trend": trend,
         "drift": int(drift),
+        # DY-5: the client dial, named — "" / 0 for a quiet people.
+        "awakening_label": dial_label,
+        "awakening_drift": int(dial_value),
         "garrison_present": garrison_present,
         "garrison_bonus": int(garrison_bonus),
         # SR-5r RF-2 (T8): the lord's laws, each named — [law, +loyalty].
@@ -1200,6 +1207,16 @@ def process_vassal_loyalty(world) -> List[dict]:
                        else "satellite drift" if autonomy == AUTONOMY_SATELLITE
                        else "autonomous confidence")
         _contribute(drift_label, drift)
+
+        # 1b. (DY-5, DYNAMISM_SPEC.md §5 — the client dial, the tiger ridden)
+        # A client whose people are awakened: −2 a turn at autonomy ≤ 1, +1
+        # at autonomy ≥ 2 — the ONE read the forecast and the debug
+        # breakdown share (`awakening.client_dial`); 0 for a quiet people,
+        # so a satellite whose people sleep ticks byte-identically.
+        from backend.game_logic.awakening import client_dial as _client_dial
+        _dial_label, _dial_value = _client_dial(world, vassal_name, autonomy)
+        if _dial_label:
+            _contribute(_dial_label, _dial_value)
 
         # 2. The lord's garrison in the vassal capital (VP-D1 — WIRED July 16,
         # 2026; replaces the dead `garrison_troops` formula that nothing in
@@ -1590,6 +1607,7 @@ def record_vassal_break(
     vassal: str,
     lord: str,
     exit_path: str,
+    cause: str = "",
 ) -> None:
     """Brief and LOG a satellite breaking free (FA-2 / FA-N74 / FA-38).
 
@@ -1630,16 +1648,21 @@ def record_vassal_break(
         queue_dispatch_event(
             world,
             template,
-            {"nation": vassal, "lord": lord},
+            # DY-5: the cause rides the line (the formatter appends the
+            # people's sentence when it is the Awakening's)
+            {"nation": vassal, "lord": lord, "cause": str(cause or "")},
             "always" if lord == player else "partial_on_nation",
         )
-    world.log_event({
+    row = {
         "type": "vassal_broke_free",
         "vassal": vassal,
         "lord": lord,
         "exit": exit_path,
         "turn": int(getattr(world, "current_turn", 0)),
-    })
+    }
+    if cause:
+        row["cause"] = str(cause)   # DY-5: an awakened client's break names it
+    world.log_event(row)
 
     # FA-N73 (slice 12): the last of the row's five.  The slice-11 review
     # round gave all three exits the mechanical tail and the dispatch rail
@@ -1802,6 +1825,11 @@ def check_vassal_rebellion(world) -> List[dict]:
         # during a respected armistice would itself be a treaty violation).
         granted_regions = list(
             world.vassals[vassal_name].get("granted_regions") or [])
+        # DY-5 (DYNAMISM_SPEC.md §5): the rebellion's cause, read before the
+        # row goes — an awakened client's break NAMES the Awakening on every
+        # exit (the log row, the dispatch line, the one-liner).
+        from backend.game_logic.awakening import rebellion_cause as _rebellion_cause
+        break_cause = _rebellion_cause(world, vassal_name)
 
         # FA-2 (slice 11): the "{carved_name} has ceased to exist." line that
         # stood here was FALSE on every exit — the satellite is breaking free,
@@ -1826,7 +1854,7 @@ def check_vassal_rebellion(world) -> List[dict]:
             })
             record_vassal_break(
                 world, vassal=vassal_name, lord=lord,
-                exit_path="vassal_rebellion_armistice")
+                exit_path="vassal_rebellion_armistice", cause=break_cause)
             # FA-2 rider (cross-row 2 of the reproduction): this exit used to
             # fall THROUGH to the shared tail, which appended the WAR copy
             # ("War declared.") and raised the CRITICAL "has rebelled against
@@ -1936,7 +1964,7 @@ def check_vassal_rebellion(world) -> List[dict]:
                 })
                 record_vassal_break(
                     world, vassal=vassal_name, lord=lord,
-                    exit_path="vassal_rebellion_independent")
+                    exit_path="vassal_rebellion_independent", cause=break_cause)
                 # PRE-EXISTING (this `continue` predates slice 11 and the
                 # lever does not reach it): this exit dropped the same four
                 # mechanical effects, and it is the exit BOTH big satellites
@@ -1985,7 +2013,7 @@ def check_vassal_rebellion(world) -> List[dict]:
         })
         record_vassal_break(
             world, vassal=vassal_name, lord=lord,
-            exit_path="vassal_rebellion")
+            exit_path="vassal_rebellion", cause=break_cause)
 
     return events
 

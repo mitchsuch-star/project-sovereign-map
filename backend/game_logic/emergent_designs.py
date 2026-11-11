@@ -524,8 +524,17 @@ def process_emergent_designs(world) -> List[Dict]:
         capital = _historic_capital(world, nation)  # T4-2b: the capital whose loss is the grievance
         partitioned = (capital in lost
                        or len(lost) >= EMERGENT_DESIGN_MIN_LOST)
-        if not partitioned and not record_backed:
+        # DY-5 (DYNAMISM_SPEC.md §5, the interplay named at the gate): a
+        # people RISEN is the trigger variable §3.6 of the intent spec was
+        # missing — a court at `risen` promotes its grievance with any lost
+        # homeland, the partition bar waived (Prussia after Jena: the people
+        # swore what the court then signed). The cause rides the event only
+        # where the rising was the deciding clause.
+        from backend.game_logic.awakening import risen_grievance as _risen_grievance
+        risen = bool(_risen_grievance(world, nation))
+        if not partitioned and not record_backed and not risen:
             continue
+        peoples_cause = risen and not partitioned and not record_backed
         if not author or author == nation:
             continue
 
@@ -587,10 +596,14 @@ def process_emergent_designs(world) -> List[Dict]:
             "regions": list(lost),
             "message": (f"{nation_display} {'swears revanche again' if renewed else 'swears revanche'}"
                         f" — the court will not forgive {author_display} the loss of "
-                        f"{province_line}."),
+                        f"{province_line}."
+                        + (" The people have risen, and the court swears what they demand."
+                           if peoples_cause else "")),
         }
         if renewed:
             event["renewed"] = True
+        if peoples_cause:
+            event["cause"] = "awakening"   # DY-5: the rising was the deciding clause
         world.log_event(dict(event))
         events.append(event)
         from backend.game_logic.dispatch import queue_dispatch_event
@@ -599,6 +612,7 @@ def process_emergent_designs(world) -> List[Dict]:
             "author": author_display,
             "province_line": province_line,
             "renewed": bool(renewed),   # OCT27-D8(b)
+            "risen": bool(peoples_cause),   # DY-5
         }, "always")   # a court's design is public — diplomacy has no fog
     return events
 

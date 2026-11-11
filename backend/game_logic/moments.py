@@ -125,7 +125,9 @@ CAPTION_MAX = 36
 ALARM_SOURCE_PREFIX = "moment_"
 DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law", "squadron", "edict",
                          # DY-4: a people is cooled by an act, never by a refusal
-                         "awakening")
+                         "awakening",
+                         # DY-5: the Guard is armed by an act, never by a refusal
+                         "national_guard")
 PACING_DEFAULTS = {"max_open": 1, "min_gap": 3}
 PACING_BOUNDS = {"max_open": (1, 1), "min_gap": (2, 5)}
 GRACE_BOUNDS = (1, 3)
@@ -735,6 +737,34 @@ def _apply_awakening(world, lord, row) -> None:
         AW.move(world, str(row["court"]), int(row["delta"]), "letter")
 
 
+def _plan_national_guard(world, lord, op) -> Dict[str, Any]:
+    """DY-5 (DYNAMISM_SPEC.md §5): The Nation in Arms' Accept — the lord's
+    National Guard under arms for `turns` mornings (the bounds the
+    validator's), the levée's bonus doubled while it stands. Refused while
+    the Guard already stands; skipped on an unarmed world or the seam down
+    (the levée's own — `awakening.the_levee_rises`)."""
+    from backend.game_logic import awakening as AW
+    lo, hi = AW.GUARD_TURNS_BOUNDS
+    turns = max(lo, min(hi, int(op.get("turns", lo) or lo)))
+    until = _turn(world) + turns
+    if not AW.armed(world) or not AW.the_levee_rises():
+        return {"op": "national_guard", "turns": turns, "until": until, "skip": True,
+                "refusal": "", "line": ""}
+    standing = int(AW.guard_until(world, lord))
+    refusal = (f"The National Guard already stands under arms until {_dateline(world, standing)}, Sire."
+               if standing > _turn(world) else "")
+    return {"op": "national_guard", "turns": turns, "until": until, "before": standing,
+            "refusal": refusal,
+            "line": (f"the National Guard of {_court(world, lord)} under arms until "
+                     f"{_dateline(world, until)}, {turns} turns — the levée doubled")}
+
+
+def _apply_national_guard(world, lord, row) -> None:
+    if not row.get("skip"):
+        from backend.game_logic import awakening as AW
+        AW.arm_national_guard(world, lord, int(row["turns"]))
+
+
 def _plan_autonomy(world, lord, op) -> Dict[str, Any]:
     from backend.game_logic.vassal import AUTONOMY_NAMES, autonomy_change_plan, _dp_available
     court = str(op.get("court") or "")
@@ -988,6 +1018,10 @@ OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     # the Awakening's letters' Accept cools a people (an affair's op alone;
     # the dated deck's vocabulary stays closed — not in OP_BOUNDS)
     "awakening": (_plan_awakening, _apply_awakening),
+    # DY-5 (DYNAMISM_SPEC.md §5, session D): the thirteenth — 12 → 13, flipped
+    # consciously: The Nation in Arms' Accept arms the National Guard for a
+    # term (an affair's op alone; not in OP_BOUNDS)
+    "national_guard": (_plan_national_guard, _apply_national_guard),
 }
 OP_TYPES = tuple(OPS)
 

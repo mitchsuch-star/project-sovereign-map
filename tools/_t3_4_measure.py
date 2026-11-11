@@ -100,6 +100,12 @@ def census_of(digest: dict) -> dict:
     # ulcer's own footprint, summed from the attrition rows).
     awakening_beats: list = []
     supply_losses: dict = {}
+    # Tier 6 (session D, DY-5): the levée's beats (raised / stood down / the
+    # Guard), the rebellions the Awakening caused, the revanches a risen
+    # people swore.
+    levee_beats: list = []
+    awakened_rebellions: list = []
+    risen_revanche: list = []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
             if event.get("type") == "awakening":
@@ -109,6 +115,21 @@ def census_of(digest: dict) -> dict:
                                         "direction": str(event.get("direction") or ""),
                                         "occupied": int(event.get("occupied", 0) or 0),
                                         "cause": str(event.get("cause") or "")})
+            if event.get("type") == "levee":
+                levee_beats.append({"turn": int(row.get("turn", 0)),
+                                    "court": str(event.get("nation") or ""),
+                                    "direction": str(event.get("direction") or ""),
+                                    "occupied": int(event.get("occupied", 0) or 0)})
+            if event.get("type") == "vassal_broke_free" and event.get("cause") == "awakening":
+                awakened_rebellions.append({"turn": int(row.get("turn", 0)),
+                                            "client": str(event.get("vassal") or ""),
+                                            "lord": str(event.get("lord") or ""),
+                                            "exit": str(event.get("exit") or "")})
+            if event.get("type") == "design_promoted" and event.get("cause") == "awakening":
+                risen_revanche.append({"turn": int(row.get("turn", 0)),
+                                       "court": str(event.get("nation") or ""),
+                                       "author": str(event.get("author") or ""),
+                                       "regions": list(event.get("regions") or [])})
             if event.get("type") == "supply_attrition":
                 nation = str(event.get("nation") or "")
                 supply_losses[nation] = int(supply_losses.get(nation, 0)) + int(event.get("losses", 0) or 0)
@@ -221,6 +242,9 @@ def census_of(digest: dict) -> dict:
             "ally_cessions": ally_cessions,
             "awakening_beats": awakening_beats,
             "supply_losses": dict(sorted(supply_losses.items())),
+            "levee_beats": levee_beats,
+            "awakened_rebellions": awakened_rebellions,
+            "risen_revanche": risen_revanche,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
             "annexations_outside_aim": int(metrics.get("annexations_outside_aim", 0) or 0),
             "annexations_outside_aim_by_court": dict(
@@ -302,6 +326,14 @@ def main() -> None:
             # Tier 6 (session C): the peoples' beats and the supply bill, summed
             "awakening_beats": sum(len(c["awakening_beats"]) for c in census.values()),
             "supply_losses": sum(sum(c["supply_losses"].values()) for c in census.values()),
+            # Tier 6 (session D): the levée raised (the Guard's arming apart),
+            # the rebellions the Awakening caused, the risen revanches
+            "levees_raised": sum(1 for c in census.values() for b in c["levee_beats"]
+                                 if b["direction"] == "raised"),
+            "guards_armed": sum(1 for c in census.values() for b in c["levee_beats"]
+                                if b["direction"] == "guard"),
+            "awakened_rebellions": sum(len(c["awakened_rebellions"]) for c in census.values()),
+            "risen_revanche": sum(len(c["risen_revanche"]) for c in census.values()),
         },
     }
     pathlib.Path(args.census).write_text(

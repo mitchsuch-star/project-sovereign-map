@@ -512,6 +512,10 @@ CAMPAIGN_LOG_TYPES = {
     # column reads the prefix): a people crosses a phase of the Awakening
     # — stirring, risen, quiet again (`awakening._the_people_cross`).
     "awakening",
+    # DY-5 (DYNAMISM_SPEC.md §5 — 184→185 flipped consciously): the
+    # liberation levée rises, stands down, or the National Guard is armed
+    # (`awakening._the_levee_beats`) — a nation at war on its own soil.
+    "levee",
 }
 
 # ============================================================================
@@ -633,6 +637,9 @@ CATEGORY_MAP = {
     "question_turns": "diplomacy",
     # DY-4: a people of Europe stirs, rises or quietens.
     "awakening": "diplomacy",
+    # DY-5: a nation's levée rises or stands down; its National Guard armed —
+    # the depots and the levy's price, the economy's column.
+    "levee": "economy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
     "fleet_posture": "command",
@@ -770,6 +777,7 @@ LOG_TIER_LEAD = frozenset({
     "diplomatic_war_declared", "expedition_landed", "last_stand",
     "marshal_captured", "marshal_destroyed", "nation_eliminated",
     "nation_formed", "peace_ratified", "question_turns", "rank_promotion", "awakening",
+    "levee",
     "trafalgar", "ultimatum_issued",
     "vassal_broke_free", "vassal_defected", "vassal_liberated",
     "volte_face", "war_declaration",
@@ -1221,6 +1229,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
                           "third_party_peace", "rank_promotion", "question_turns", "awakening",   # T4-3: a crown; DY-2: a Question turns; DY-4: a people stirs
+                          "levee",   # DY-5: a nation in arms is court knowledge
                           "coalition_dissolved_for_france",
                           "design_promoted", "volte_face",
                           # SR-5r RF-1: a court's laws are court knowledge
@@ -2908,12 +2917,16 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
         nation = ctx.event.get("vassal") or ctx.event.get("nation", "Unknown")
         lord = ctx.event.get("lord") or "its lord"
         exit_path = str(ctx.event.get("exit") or "")
+        # DY-5 (DYNAMISM_SPEC.md §5): a rebellion whose cause is the
+        # Awakening names it — the people, not the court, broke the yoke.
+        cause = (" Its people had risen."
+                 if str(ctx.event.get("cause") or "") == "awakening" else "")
         if exit_path == "vassal_rebellion_armistice":
             return (f"Vassal rebellion: {nation} breaks free of {lord} "
-                    f"— the armistice holds.")
+                    f"— the armistice holds.{cause}")
         if exit_path == "vassal_rebellion_independent":
             return (f"Vassal rebellion: {nation} breaks free of {lord} "
-                    f"and stands alone.")
+                    f"and stands alone.{cause}")
         # FA-S12-2: the FOURTH arm, and it is not a rebellion at all — the
         # lord is dead and the satellite is free by default. Without it the
         # `lord_eliminated` exit falls through to "…has broken free. War.",
@@ -2922,7 +2935,7 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
         if exit_path == "lord_eliminated":
             return (f"{lord} has fallen — {nation} is a satellite no longer, "
                     f"and its corps march under their own colours again.")
-        return f"Vassal rebellion: {nation} has broken free of {lord}. War."
+        return f"Vassal rebellion: {nation} has broken free of {lord}. War.{cause}"
 
 
     if ctx.event_type == "diplomatic_alliance_cascade":
@@ -3173,6 +3186,17 @@ def _oneliner_laws(ctx: OnelinerContext):
         if phase == "stirring":
             return f"The people of {nation} subside — the ulcer closes"
         return f"The people of {nation} are quiet again — home rule is theirs"
+    if ctx.event_type == "levee":
+        # DY-5 (DYNAMISM_SPEC.md §5): the liberation levée — a nation at war
+        # on its own soil fills its depots; the Guard armed doubles it.
+        nation = with_definite_article(
+            display_nation(ctx.event.get("nation", "Unknown")), capitalize=False)
+        direction = str(ctx.event.get("direction") or "raised")
+        if direction == "guard":
+            return f"THE NATIONAL GUARD OF {nation.upper()} UNDER ARMS — the levée doubled"
+        if direction == "raised":
+            return f"THE NATION IN ARMS — the people of {nation} fill the depots"
+        return f"The levée of {nation} stands down"
     return _NEXT_STAGE
 
 

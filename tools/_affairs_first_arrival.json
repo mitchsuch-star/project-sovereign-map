@@ -1,7 +1,7 @@
 {
  "_part": "RE-1 — the look-ahead and the first arrival on the ten SWEEP_SEEDS, the passive board to turn 20, the staged deck grafted on the shipped boot (docs/RECURRING_EVENTS_SPEC.md §0b P8, §17b)",
  "turns": 20,
- "fixture_sha": "372def12bd1f1215eb67e6f896a1f870459db29f871b0f915c77f40e135d0f3d",
+ "fixture_sha": "06cc5e1cbd6ea6ed6ad0cfef5e9f0dac56722246e3b0614a2a093375d1162495",
  "affairs": [
   "chancellors_letters",
   "the_host",
@@ -14,7 +14,8 @@
   "the_bank",
   "the_popes_ports",
   "the_people_stir",
-  "the_ulcer"
+  "the_ulcer",
+  "the_nation_in_arms"
  ],
  "seeds": {
   "historical": {
