@@ -971,6 +971,40 @@ class AttackContext:
 #    `tools/_ddb_s13b_series_arms.py`; the code-health ratchet forbids a
 #    module lever). ──
 
+def no_guns_from_a_sanctuary() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): no battery
+    bombards OUT of a province whose owner is a third court not at war with
+    the target's nation — for every court, the player's guns included (GR5).
+    The bombardment seam asked nothing of the ground it fired from: on the
+    played board a British gun park stood on Austrian soil after France's
+    peace with Austria and shelled seven French corps for twenty turns,
+    where `field_on_peace_soil` forbids those corps the field. A field
+    fought out of such ground stays lawful — the attacker risks his army;
+    a battery risked nothing. Down: session G3's tree."""
+    return True
+
+
+def fires_from_a_sanctuary(world, marshal, target_nation: str) -> str:
+    """The court whose soil `marshal`'s guns would fire from, where that
+    soil is a SANCTUARY against `target_nation`: owned by neither the
+    firer's house nor the target's, and not at war with the target. ''
+    otherwise, and with the seam down."""
+    if not no_guns_from_a_sanctuary() or not target_nation:
+        return ""
+    region = world.get_region(getattr(marshal, "location", "") or "")
+    owner = str(getattr(region, "controller", "") or "") if region is not None else ""
+    if not owner:
+        return ""
+    house = str(world._top_overlord(owner) or owner)
+    firer = str(getattr(marshal, "nation", "") or "")
+    if house in (str(world._top_overlord(firer) or firer),
+                 str(world._top_overlord(target_nation) or target_nation)):
+        return ""
+    if world.is_at_war(owner, target_nation):
+        return ""
+    return owner
+
+
 def field_on_peace_soil(executor, marshal, enemy_location, world, enemy_nation=None):
     """DDB-14: the frontier guard's NEUTRAL arm for the LEAD's field — the
     same predicate the muster (`neutral_soil`) and the reinforcement
@@ -7421,6 +7455,20 @@ class CombatExecutor:
                     f"{marshal.name}'s guns cannot reach {defender.location} — "
                     f"no battery carries across open water, Sire. The sea is "
                     f"the fleet's business."
+                ),
+            }
+
+        # Session G4: no guns from a sanctuary — the ground the battery
+        # stands on belongs to a court at peace with its target.
+        sanctuary = fires_from_a_sanctuary(world, marshal, getattr(defender, "nation", ""))
+        if sanctuary:
+            return {
+                "success": False,
+                "message": (
+                    f"{marshal.name}'s guns stand on the soil of "
+                    f"{formed_display_name(world, sanctuary)}, which is at peace with "
+                    f"{formed_display_name(world, defender.nation)} — no battery opens "
+                    f"fire from neutral ground."
                 ),
             }
 

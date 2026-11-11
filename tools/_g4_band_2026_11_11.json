@@ -1,0 +1,272 @@
+{
+ "_note": "Session G4 (the open readings, ruled and built) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row; written by tools/_g4_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.formations:a_nation_is_proclaimed_on_what_it_holds=False",
+    "backend.game_logic.agendas:an_allys_soil_is_not_won=False",
+    "backend.game_logic.vassal:a_pact_lapses_at_the_vassalage=False",
+    "backend.game_logic.war_council:a_backer_is_no_menace=False",
+    "backend.game_logic.recruitment:a_commission_reads_the_arming_ceiling=False",
+    "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": []
+  },
+  "ALLY": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "CEILING": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "FORM": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.agendas:an_allys_soil_is_not_won=False",
+    "backend.game_logic.vassal:a_pact_lapses_at_the_vassalage=False",
+    "backend.game_logic.war_council:a_backer_is_no_menace=False",
+    "backend.game_logic.recruitment:a_commission_reads_the_arming_ceiling=False",
+    "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "GUNS": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "HOUSE": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "LAPSE": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.war_council:a_backer_is_no_menace=False",
+    "backend.game_logic.recruitment:a_commission_reads_the_arming_ceiling=False",
+    "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "REAR": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.recruitment:a_commission_reads_the_arming_ceiling=False",
+    "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "WAGON": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  },
+  "WON": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.vassal:a_pact_lapses_at_the_vassalage=False",
+    "backend.game_logic.war_council:a_backer_is_no_menace=False",
+    "backend.game_logic.recruitment:a_commission_reads_the_arming_ceiling=False",
+    "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

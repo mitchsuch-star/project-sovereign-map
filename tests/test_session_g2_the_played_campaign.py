@@ -491,8 +491,11 @@ class TestTheMarshalsSide:
             "No marshal is lost; the kingdom's loyalty starts at 50. Davout and Soult will "
             "resent a prince set over them (trust -8).")
         foot = extras["king_footnote"]
-        assert foot.startswith("A marshal king is beyond recall; should his kingdom ever rise "
-                               "against you, he keeps his crown and fights for it.")
+        # session G4: the footnote says both roads (the cause decides his fate)
+        assert foot.startswith(
+            "A marshal king is beyond recall. If his court ever turns on you he keeps his crown "
+            "and fights for it; if his people rise and drive him out, he comes home with half "
+            "his corps.")
         assert "Not yet eligible — a throne wants glory 3:" in foot
         assert "Murat (0)" in foot and "Napoleon" not in foot and "Soult" not in foot
 

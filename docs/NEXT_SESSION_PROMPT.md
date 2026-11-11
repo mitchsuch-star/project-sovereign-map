@@ -1,6 +1,23 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G3 ✅ LANDED: A
+> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G4 ✅ LANDED: THE
+> OPEN READINGS, RULED AND BUILT** (`DYNAMISM_SPEC.md` §7d the landing record, §2b session G4, §8 rows G4-*;
+> `SYSTEMS_REFERENCE.md` §210; `tests/test_session_g4_the_open_readings.py`; ONE sweep with eleven arms 0 / FORM /
+> WON / LAPSE / REAR / CEILING / ALLY / GUNS / WAGON / HOUSE / ALL on three surfaces, the series re-read; drafted in
+> Plan Mode and approved). The user's "evaluate options choose the best", then "and decide and do these":
+> fourteen rulings — a nation proclaimed on what it HOLDS at its authored bar (`forms.at`, Italy 3 of 5;
+> `forms.first`, Rome then Naples; `formations.backfill_forms` at load); an ally's soil is not won; a pact lapses
+> at the vassalage; a backer is no menace; the people drive out a foreign king (and a king named in the treaty is
+> seated though his laurels fade); a commission reads the arming ceiling; the Emperor's ally takes no separate
+> peace while it wins; no guns from a sanctuary; a bandwagoner joins a neighbour's war; a client joins no war
+> against a client of a house it is at peace with (the DD-1 fuzzer's catch); the dispatch drops an overtaken
+> capture; the crown row leads the demands; no "§" in the chip. **Measured:** arm 0 == session G3 byte for byte
+> on both surfaces; six rules move no ambient seed; classes 10 of 10 on every arm; **the promotion clause MET on
+> ONE seed (lodi 33 — marengo's turn-40 crown falls out of the window on CEILING's arm)**; the roster in THREE
+> readings; annexations 0 on both surfaces; **the band 26 / 26 / 25** (28 / 27 / 25 before ALLY and GUNS); the
+> series unmoved.
+>
+> The session before it: **November 11, 2026 — SESSION G3 ✅ LANDED: A
 > CLIENT SWEARS NO PACT OF ITS OWN** (`DYNAMISM_SPEC.md` §7c the landing record, §2b session G3, §8 row G3-CLIENT;
 > `SYSTEMS_REFERENCE.md` §209; `tests/test_session_g3_a_client_swears_no_pact.py`; ONE sweep with two arms 0 /
 > CLIENT on three surfaces, the series re-read; drafted in Plan Mode and approved). The user's "Rule on clients
@@ -64,12 +81,12 @@
 **NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
-(`_dy_signature_g3_2026_11_11.json`, session G3's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
-lodi 33, marengo 40 (`_g3_census_2026_11_11.json` `rank_promotions`); the roster varying — jena's and wagram's
-{Kingdom of Italy, Papal States} against {Kingdom of Italy} (the signature's `eliminations`);
-`annexations_outside_aim` 0 on the AMBIENT record (`_g3_census_2026_11_11.json`) — and 0 on the AI-France harness
-too since session G3 (`_g3_chain_d_2026_11_11.json` arm CLIENT; it read 4 on session G2's tree), reported, never
-gated; the France band 23–28 — 28 / 27 / 25 (`_g3_band_2026_11_11.json`);
+(`_dy_signature_g4_2026_11_11.json`, session G4's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
+lodi 33, ONE seed (`_g4_census_2026_11_11.json` `rank_promotions`); the roster varying — three readings: jena's
+and wagram's {Kingdom of Italy, Papal States}, friedland's nobody, {Kingdom of Italy} on seven (the signature's
+`eliminations`); `annexations_outside_aim` 0 on the AMBIENT record (`_g4_census_2026_11_11.json`) and 0 on the
+AI-France harness (`_g4_chain_d_2026_11_11.json` arm ALL), reported, never gated; the France band 23–28 — 26 / 26
+/ 25 (`_g4_band_2026_11_11.json`);
 the historian test green on every seed (the suite's pins); the ratchet (`tests/test_code_health_ratchet.py`); the
 parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until the certificate arrives
 (`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing on this machine — no signtool, no
@@ -77,12 +94,24 @@ certificate in either store; the day it arrives, `INK_IRON_SIGNTOOL_ARGS` / `SIG
 **(3) the clean-environment run** (a fresh clone, the venv from `requirements`, the hook installed with `Copy-Item
 scripts/git-hooks/pre-commit .git/hooks/pre-commit`, the backend as `-m backend.main`, the client from the export, one
 forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`); **(4) the release record** (the commit SHA, the gate's
-readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §209,
+readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §210,
 `STATUS.md`). **After the deploy** (`PRE_DEPLOY_PLAN.md` §2; no cuts without consent, spec §0): S14k-3 (Spain alone),
 S16, S17c.
 
 **The commit:** session H's commits are the user's walk's — the release record and any gate fix each its own commit
 through the hook (about 10 minutes; never `--no-verify`); push only on the user's word.
+
+**Session G4's own traps (fresh):** PLAY THE RULES OUT BEFORE THE SWEEP — three restarts here, each for a
+fix the played checks found mid-measure (a freed Italy aimed at France, not Rome; a king's laurels fading before
+ratification; the fuzzer's latent I2); the deck rides the save — a new authored key on an existing deck entry
+needs `formations.backfill_forms` (entries are never added: the AI-0d precedent stands for goals), and only the
+client walk on an OLD save shows it; an acquire design's obstacle is the FIRST unmet target in its order
+(`forms.first` leads it for a forming design); `_court_demand_suggestions` sits at exactly 500 lines — wrap at
+its call; a rebelling client still carries its lord's row while the war cascade runs; the treaty fuzzer's ledger
+is a zero ratchet and a shifted world-line can reach a latent class — bisect by holding each seam down
+(`treaty_fuzzer.run_seed`); the glob `_dy_signature_g4_*_2026_11_11.json` does not match the shipped arm's
+record; T2-3's, T3-4's and T3-5's own stagings hold G4-WAGON / G4-ALLY down by autouse fixtures; CLAUDE.md is
+patched on bytes under its script's 62,000 assert; STATUS holds 7 "▶ ▶ ▶" entries (session C archived).
 
 **Session G3's own traps (fresh):** the AMBIENT surface cannot see a client rule — the idle France's kingdom is
 gone by turn 23 on every seed; the harness and a commanded France are its surfaces; the harness's France refuses
@@ -144,9 +173,10 @@ measure's four arms with ten harness seeds each ran 28 minutes alone, the series
 copies (`git show 90bada87:docs/NEXT_SESSION_PROMPT.md` for session D's, `git show 2589f3c1:docs/NEXT_SESSION_PROMPT.md`
 for session C's, `git show 93f82fb2:docs/NEXT_SESSION_PROMPT.md` for the earlier), every one still binding.
 
-**Open with the user beyond session H's head (none blocks the deploy):** session G3's three readings
-(`DYNAMISM_SPEC.md` §7c — Italy by pacts; a pact brought into a vassalage; a client's non-aggression pacts);
-session G2's list but for its first item (§7b); session G's four readings above; session F's three levers (`DYNAMISM_SPEC.md` §6c); session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
+**Open with the user beyond session H's head (none blocks the deploy):** session G4's readings
+(`DYNAMISM_SPEC.md` §7d — the commission ceiling against marengo's crown; the band at 26 / 26 / 25; Italy's
+numbers; the neutral client's reach); session G3's three and session G2's list are RULED (§7d); session G's four
+readings above; session F's three levers (`DYNAMISM_SPEC.md` §6c); session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
 (the letter's floor; the levée's reach; the dial's ambient road); session C's five (the march does not visibly bleed
 — the ulcer's teeth; the letters' seat at the desk; the bands' pace; the raised gate's clauses 2 and 3; the pacing
 record's drift); session B's three (the envy's cap at the coerce floor too; the crowns after the gift; no second

@@ -210,10 +210,22 @@ class TestItalyForms:
         assert build_nation_display_overrides(world) == {"KingdomOfItaly": "Italy"}
 
     def test_partial_peninsula_does_not_form(self, world):
+        """Session G4 (November 11, 2026) re-seats this pin: the law it held
+        — the WHOLE list — is the seam-down law now. Italy is proclaimed on
+        what she HOLDS at her authored bar, three of five (the 1861 shape:
+        proclaimed without Rome or Venice). Below the bar nothing forms."""
+        from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
         _free(world, "KingdomOfItaly")
-        _hand_over(world, "KingdomOfItaly", ["Milan", "Piedmont", "Savoy", "Naples"])
-        assert process_formations(world) == []
+        assert process_formations(world) == []          # Milan + Piedmont: two of five
         assert world.nation_formations == {}
+        _hand_over(world, "KingdomOfItaly", ["Milan", "Piedmont", "Savoy", "Naples"])
+        with pytest.MonkeyPatch.context() as m:
+            hold_down(m, T3_SEAMS_BY_ROW["G4-FORM"])
+            assert process_formations(world) == []      # the old law: four of five is not Italy
+            assert world.nation_formations == {}
+        formed = process_formations(world)
+        assert [p["display_name"] for p in formed] == ["Italy"]
+        assert formed[0]["unredeemed"] == ["Rome"]
 
     def test_no_formation_while_vassalized(self, world):
         """§3.2 dormancy: a client cannot proclaim, however much it holds."""
@@ -382,7 +394,9 @@ class TestFormationWatch:
         assert watch["forms"] == "Italy"
         assert watch["required"] == 5
         assert watch["held"] == 2          # Milan + Piedmont at boot
-        assert watch["progress"] == "2 of 5 provinces held"
+        # session G4: Italy is proclaimed at three of her five (`forms.at`)
+        assert watch["at"] == 3
+        assert watch["progress"] == "2 of 5 provinces held — 3 proclaim it"
         assert watch["blocked_by_vassalage"] is True
 
     def test_watch_states_vassalage_honestly(self, world):
@@ -2778,10 +2792,19 @@ class TestPolandChain:
         _hand_over(world, "KingdomOfItaly",
                    [p for p in ITALY_PROVINCES if p != "Rome"])
         assert world.regions["Rome"].controller == "RomanRepublic"
-        assert process_formations(world) == []
-        assert get_formation_record(world, "KingdomOfItaly") is None
+        # Session G4 (November 11, 2026): the pin's law is the seam-down law
+        # — the whole list. With the bar (three of five) the Republic no
+        # longer blocks the proclamation: Rome becomes Italy's standing claim.
+        from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
+        with pytest.MonkeyPatch.context() as m:
+            hold_down(m, T3_SEAMS_BY_ROW["G4-FORM"])
+            assert process_formations(world) == []
+            assert get_formation_record(world, "KingdomOfItaly") is None
         watch = get_formation_watch(world, "KingdomOfItaly")
-        assert watch["held"] == 4 and watch["required"] == 5
+        assert watch["held"] == 4 and watch["required"] == 5 and watch["at"] == 3
+        formed = process_formations(world)
+        assert [p["display_name"] for p in formed] == ["Italy"]
+        assert formed[0]["unredeemed"] == ["Rome"]
 
     def test_history_respects_the_duchy_era(self, world):
         """`apply_formation_names_to_history` renames only at/after the

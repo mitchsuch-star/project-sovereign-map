@@ -187,6 +187,43 @@ prior tree's reading byte for byte.
           down: a client signs what it likes — the Kingdom of Italy's pact
           with Rome pulled it into Naples' war and it was erased.
 
+    G4-FORM  `formations.a_nation_is_proclaimed_on_what_it_holds` — session
+          G4 (DYNAMISM_SPEC.md §7d, November 11, 2026 — the user's "evaluate
+          options choose the best … decide and do these"): the proclamation
+          reads the provinces HELD against the forms block's authored `at`
+          (Italy 3 of 5); down: `entry_satisfied` and the whole list — a
+          freed Kingdom of Italy proclaims ITALY on its allies' soil.
+    G4-WON   `agendas.an_allys_soil_is_not_won` — an acquire design is
+          satisfied only on land the court or its clients hold; down: a
+          target in an ally's bloc reads as won.
+    G4-LAPSE `vassal.a_pact_lapses_at_the_vassalage` — a defensive alliance
+          or alliance held outside the new lord's house lapses to a
+          non-aggression pact at the treaty, the conquest or the transfer;
+          down: only an alliance with the lord's enemy breaks.
+    G4-REAR  `war_council.a_backer_is_no_menace` — the house paying a live
+          compact on a court's design is struck from that court's rear
+          threats; down: the backer menaces like any neighbour.
+    G4-CEILING `recruitment.a_commission_reads_the_arming_ceiling` — the
+          AI's commission stops at the severe band of the force limit;
+          down: a commission asks nothing of the limit.
+    G4-ALLY  `settlement_third_party.the_emperors_ally_takes_no_separate_peace`
+          — a court allied to the player takes no separate peace, as its
+          pair's winner, from a court the player still fights; down: Bavaria
+          takes Austria's suit and hands Vienna back.
+    G4-GUNS  `combat_executor.no_guns_from_a_sanctuary` — no bombardment out
+          of a province whose owner is a third court not at war with the
+          target; down: a gun park shells from neutral ground.
+    G4-WAGON `war_council.a_bandwagoner_joins_a_neighbours_war` — the
+          bandwagon joins only against a neighbour of its house; down: any
+          war (Prussia against the Papal States).
+    G4-KING  `crowns.the_people_drive_out_a_foreign_king` — a marshal king
+          whose people rise comes home with half his corps; down: he always
+          keeps his crown and fights.
+    G4-HOUSE `diplomacy.a_client_joins_no_war_against_a_house_at_peace` —
+          the DD-1 fuzzer's catch: a client called to its lord's defence
+          joins no war against a client of a lord it is at peace with;
+          down: neutral Switzerland joins against Britain's client.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -312,6 +349,38 @@ T3_SEAMS_BY_ROW = {
     # DYNAMISM_SPEC.md §7c): the user's delegated ruling on his clients.
     "G3-CLIENT": [
         "backend.game_logic.ai_diplomacy:a_client_swears_no_pact_of_its_own=False",
+    ],
+    # Session G4 (the open readings, ruled and built, November 11, 2026 —
+    # DYNAMISM_SPEC.md §7d): nine rules, each its own seam and its own arm.
+    "G4-FORM": [
+        "backend.game_logic.formations:a_nation_is_proclaimed_on_what_it_holds=False",
+    ],
+    "G4-WON": [
+        "backend.game_logic.agendas:an_allys_soil_is_not_won=False",
+    ],
+    "G4-LAPSE": [
+        "backend.game_logic.vassal:a_pact_lapses_at_the_vassalage=False",
+    ],
+    "G4-REAR": [
+        "backend.game_logic.war_council:a_backer_is_no_menace=False",
+    ],
+    "G4-CEILING": [
+        "backend.game_logic.recruitment:a_commission_reads_the_arming_ceiling=False",
+    ],
+    "G4-ALLY": [
+        "backend.game_logic.settlement_third_party:the_emperors_ally_takes_no_separate_peace=False",
+    ],
+    "G4-GUNS": [
+        "backend.commands.combat_executor:no_guns_from_a_sanctuary=False",
+    ],
+    "G4-WAGON": [
+        "backend.game_logic.war_council:a_bandwagoner_joins_a_neighbours_war=False",
+    ],
+    "G4-KING": [
+        "backend.game_logic.crowns:the_people_drive_out_a_foreign_king=False",
+    ],
+    "G4-HOUSE": [
+        "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

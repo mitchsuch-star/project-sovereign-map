@@ -943,6 +943,24 @@ def _crown_row_extras(world: Any, template: Any, carver: str,
     return extras
 
 
+def _crowns_first(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Session G4 (the played campaign's table): an AVAILABLE crown row is
+    the table's weightiest demand and sat eighth in a short scrolling list,
+    under every cession. Within the demand group it now leads — after the
+    articles declared at the war, which keep the head — and nothing else
+    moves: the offer rows keep their places and every other demand its
+    order. The client indexes the list it is sent, so the order is free."""
+    demand = [r for r in rows if r.get("group") == "demand"]
+    crowned = [r for r in demand
+               if r.get("crown") and r.get("available") and not r.get("declared")]
+    if not crowned:
+        return rows
+    lead = [r for r in demand if r.get("declared")]
+    taken = {id(r) for r in lead} | {id(r) for r in crowned}
+    ordered = iter(lead + crowned + [r for r in demand if id(r) not in taken])
+    return [next(ordered) if r.get("group") == "demand" else r for r in rows]
+
+
 def _court_demand_suggestions(
     world: Any,
     *,
@@ -4420,7 +4438,7 @@ def build_settlement_confirm_dialogue(
             else:
                 row["can_author"] = True
                 row["authoring_disabled_reason_display"] = ""
-                row["demand_suggestions"] = _court_demand_suggestions(
+                row["demand_suggestions"] = _crowns_first(_court_demand_suggestions(
                     world,
                     court=court,
                     direction=row_direction,
@@ -4437,7 +4455,7 @@ def build_settlement_confirm_dialogue(
                     ),
                     income_cache=guided_income_cache,
                     covered_courts=covered,
-                )
+                ))
     if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
         # PROPOSE is the conversational front: an authoring rail, not a
         # staged-decision rail. Submit for Review (-> REVIEW), Back Out. No

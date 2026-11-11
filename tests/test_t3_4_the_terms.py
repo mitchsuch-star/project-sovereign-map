@@ -215,6 +215,20 @@ class TestThePredicate:
                 assert WC.war_aim_delivered(legacy, nation, enemy) == []
 
 
+@pytest.fixture(autouse=True)
+def _the_roads_on_their_own_board(monkeypatch):
+    """Session G4 (November 11, 2026): a court allied to the player takes no
+    separate peace, as its pair's winner, from a court the player still
+    fights (`settlement_third_party.the_emperors_ally_takes_no_separate_peace`)
+    — and this module stages its roads on Bavaria and Austria inside
+    France's war, where Bavaria IS the Emperor's ally. The pins below are
+    this tier's own mechanics (the aim's cession, the lock, the band); they
+    hold the ally's rule down. Its own pins:
+    `tests/test_session_g4_the_open_readings.py`."""
+    from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
+    hold_down(monkeypatch, T3_SEAMS_BY_ROW["G4-ALLY"])
+
+
 class TestTheAIRoads:
     def test_the_pair_exit_cedes_the_aim_by_treaty(self, world):
         _tyrol_to_bavaria(world)

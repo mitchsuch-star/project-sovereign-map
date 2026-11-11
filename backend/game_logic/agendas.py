@@ -406,7 +406,26 @@ def _entry_regions(world, nation: str, entry: dict) -> list:
         reconciled = reconciled_regions(world, nation)
         if reconciled:
             regions = [r for r in regions if r not in reconciled]
-    return regions
+    return _pursuit_order(entry, regions)
+
+
+def _pursuit_order(entry: dict, regions: list) -> list:
+    """Session G4: a FORMING design reaches first for the provinces its
+    forms block names (`forms.first`), then for the rest in authored order
+    — the order every reader takes the first unmet target from (the
+    obstacle, the ask, the crisis). Played out before it, a freed Kingdom
+    of Italy fixed on Savoy, third in her list and France's, and never
+    turned to the Rome that would have made her Italy. Behind the
+    proclamation's own seam; absent or down: the authored order."""
+    forms = entry.get("forms")
+    first = forms.get("first") if isinstance(forms, dict) else None
+    if not regions or not isinstance(first, list) or not first:
+        return regions
+    from backend.game_logic.formations import a_nation_is_proclaimed_on_what_it_holds
+    if not a_nation_is_proclaimed_on_what_it_holds():
+        return regions
+    lead = [r for r in first if r in regions]
+    return lead + [r for r in regions if r not in lead]
 
 
 def _entry_active(world, nation: str, entry: dict) -> bool:
@@ -512,6 +531,20 @@ def _design_bought_off(world, nation: str, design_id: str) -> bool:
 
 # ═══════════════════ SATISFACTION / RESOLVE (pure, NA-2/3 feeders) ════════
 
+def an_allys_soil_is_not_won() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): an ACQUIRE
+    design is satisfied only when the court (or its own clients) HOLDS every
+    target. The October 27 sweep taught the COVETING predicate that an
+    ally's soil is not coveted, and satisfaction — written as "all targets
+    self-or-vassal controlled" — read the same predicate: a court that
+    allied its way around its design read as having WON it, took the
+    winner's +10 resolve and the early peace, and its crisis "passed —
+    satisfied". T2-2 closed this door for a fresh peace; session G for a
+    pact with the coveted; this is the door itself. Down: the coveting
+    predicate's complement (an ally's soil reads as won)."""
+    return True
+
+
 def _entry_satisfied(world, nation: str, entry: dict) -> bool:
     """Satisfaction per the spec §3.1 table — computed per type, NOT as
     ¬active: deny/contain activation carries a self-in-hegemon-bloc gate
@@ -533,6 +566,13 @@ def _entry_satisfied(world, nation: str, entry: dict) -> bool:
         _regions = _entry_regions(world, nation, entry)
         if not _regions and entry.get("regions"):
             return False
+        if an_allys_soil_is_not_won():
+            # Session G4: the comment's own law, read at last — WON is
+            # HELD. A target in an ally's bloc is a dormancy condition
+            # (the design sleeps: activation still reads the ally clause),
+            # never satisfaction.
+            return all(_controlled_by_self_or_vassal(world, nation, r)
+                       for r in _regions)
         return not any(_region_coveted_theatre_open(world, nation, r)
                        for r in _regions)
     if agenda_type == "deny_regions":

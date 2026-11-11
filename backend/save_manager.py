@@ -458,6 +458,10 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # DY-6 (docs/DYNAMISM_SPEC.md §6): a pre-Tier-8 save whose scenario NOW
     # authors the crowns gains the store (the princes, the legitimists).
     _backfill_crowns(world)
+    # Session G4 (docs/DYNAMISM_SPEC.md §7d): the deck rides the save, so a
+    # campaign saved before the proclamation bar gains the scenario's
+    # `forms.at` / `forms.first` on its own deck entries.
+    _backfill_forms(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -867,6 +871,30 @@ def _backfill_awakening(world: WorldState) -> None:
         except (OSError, ValueError):
             continue
         _awakening.backfill(world, data)
+        return
+
+
+def _backfill_forms(world: WorldState) -> None:
+    """Session G4 (DYNAMISM_SPEC.md §7d): a save of a scenario that NOW
+    authors a proclamation bar (`forms.at`) or a pursuit order
+    (`forms.first`) gains them on the matching deck entries
+    (`formations.backfill_forms` — the `_backfill_crowns` idiom); a key the
+    save already holds is never overwritten."""
+    from backend.game_logic import formations as _formations
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        _formations.backfill_forms(world, data)
         return
 
 

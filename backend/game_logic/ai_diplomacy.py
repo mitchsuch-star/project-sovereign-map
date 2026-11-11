@@ -4493,7 +4493,11 @@ def _try_add_desired_clauses(
         elif dtype in ("open_borders", "protection"):
             clause_key = desire.get("clause", dtype)
             if clause_key not in test_terms.get("clauses", []):
-                test_terms["clauses"].append(clause_key)
+                # Session G4 (found in passing, November 11, 2026): a draft
+                # with no `clauses` list raised KeyError here — reported as
+                # "treaty.counter_verdict: the dry run" on the unattended
+                # board, the Counter button's verdict lost to it.
+                test_terms.setdefault("clauses", []).append(clause_key)
             else:
                 continue  # Already present, skip
 

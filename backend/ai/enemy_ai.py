@@ -64,6 +64,13 @@ from backend.game_logic import withdrawal
 # Debug flag - enable with AI_DEBUG=1 env var for detailed AI decision logging
 import os as _os  # noqa: E402
 from backend.errors import report
+
+
+def _fires_from_a_sanctuary(world, marshal, target_nation) -> str:
+    """Session G4: the executor's own predicate (lazy — the executor imports
+    this module's siblings)."""
+    from backend.commands.combat_executor import fires_from_a_sanctuary
+    return fires_from_a_sanctuary(world, marshal, target_nation)
 AI_DEBUG = _os.environ.get("AI_DEBUG", "").lower() in ("1", "true", "yes")
 
 # AI strategic scoring (Phase 5): every successful autonomous action is
@@ -3751,6 +3758,11 @@ class EnemyAI:
                         if is_sea_link(world, marshal.location, enemy.location):
                             ai_debug(f"    P4: {enemy.name} is across open water — no bombardment")
                             continue
+                    # Session G4: no guns from a sanctuary (the executor's
+                    # own refusal — never score an order it cannot give).
+                    if _fires_from_a_sanctuary(world, marshal, enemy.nation):
+                        ai_debug(f"    P4: {marshal.name} stands on neutral ground — no bombardment")
+                        continue
 
                 # ════════════════════════════════════════════════════════════
                 # BUG #3 FIX: Validate path for distance > 1 attacks
@@ -5618,6 +5630,10 @@ class EnemyAI:
             marshal_region = world.get_region(marshal.location)
             if marshal_region:
                 adj_enemies = self._get_hostile_marshals_in_adjacent_regions(marshal, world)
+                # Session G4: a battery on neutral ground has no target to
+                # stay for — it may not fire from there.
+                adj_enemies = [e for e in adj_enemies
+                               if not _fires_from_a_sanctuary(world, marshal, e.nation)]
                 if adj_enemies:
                     ai_debug(f"  P7: Artillery {marshal.name} has adjacent targets — staying to bombard")
                     return None  # Skip P7, let P4 handle attack

@@ -2431,6 +2431,46 @@ def _collapse_sieges(candidates: List[Dict[str, Any]]) -> None:
                      or str(c.get("identity", "")).split(":", 1)[-1] in lost))]
 
 
+_PLAYER_CAPTURE_CLASSES = ("capital_stormed", "region_taken", "region_liberated")
+
+
+def _drop_overtaken_captures(world, player_nation: str,
+                             candidates: List[Dict[str, Any]]) -> None:
+    """Session G4 (the played campaign's turn 12): a province's LATEST
+    change of hands is the morning's truth. Davout took Vienna on the
+    Emperor's turn, Archduke John retook it in the enemy phase, and the
+    dispatch said "Vienna is taken ... the tricolor flies over it this
+    morning" — the window holds both captures and each wrote its own line.
+    A line of ours-taken stands only where the last capture of that
+    province in the window went to our side (the player, his clients, his
+    allies); a line of ours-lost only where it did not. In place."""
+    vassals = {v for v, s in (getattr(world, "vassals", {}) or {}).items()
+               if isinstance(s, dict) and s.get("lord") == player_nation}
+
+    def _ours(nation: str) -> bool:
+        return bool(nation) and (nation == player_nation or nation in vassals
+                                 or world.are_allies(player_nation, nation))
+
+    last: Dict[str, str] = {}
+    floor = int(world.current_turn) - 1
+    for e in world.event_log:
+        if (e.get("type") == "region_captured" and e.get("region")
+                and int(e.get("turn", 0) or 0) >= floor):
+            last[str(e["region"])] = str(e.get("captured_by") or "")
+
+    def _overtaken(c: Dict[str, Any]) -> bool:
+        region = str(c.get("identity", "")).split(":", 1)[-1]
+        if region not in last:
+            return False
+        if c.get("class") in _PLAYER_CAPTURE_CLASSES:
+            return not _ours(last[region])
+        if c.get("class") in _PROVINCE_LOST_CLASSES:
+            return _ours(last[region])
+        return False
+
+    candidates[:] = [c for c in candidates if not _overtaken(c)]
+
+
 def _build_headline(world, player_nation: str,
                     record: bool = True,
                     diplomatic_rows: Optional[List[Dict[str, Any]]] = None,
@@ -3525,6 +3565,7 @@ def _build_headline(world, player_nation: str,
                          if not (c["class"] == "region_taken"
                                  and c["identity"].split(":", 1)[1] in _victory_locs)]
     _collapse_sieges(candidates)
+    _drop_overtaken_captures(world, player_nation, candidates)
 
     for _name, _arc in _build_marshal_arcs(world, player_nation,
                                            cap=None).items():

@@ -896,6 +896,36 @@ def pair_is_mutually_exhausted(world, a: str, b: str,
     return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE
 
 
+def the_emperors_ally_takes_no_separate_peace() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): a court ALLIED
+    to the player takes no separate peace from a court the player is still
+    at war with while that ally is the pair's WINNER — neither the beaten
+    court's suit (`sub_pair_loser_sues`) nor its own held aim
+    (`held_aim_suit`). The suit goes to the one table that can answer it,
+    the Emperor's (the beaten court's envoy already waits there). On the
+    played board Bavaria stormed the Vienna the Emperor was besieging, took
+    Austria's suit the same turn, gained nothing and handed the capital
+    back. A beaten ally may still be knocked out (it is the LOSER then), a
+    spent pair still exhausts, a court at its last province still signs;
+    once the Emperor's own peace is signed the pair is free again. The
+    client's road is `client_pair_is_the_lords_war`; this is the ally's.
+    Down: session G3's tree — an ally leaves a war it is winning."""
+    return True
+
+
+def ally_stands_by_the_emperor(world, winner: str, loser: str) -> bool:
+    """Is `winner` an ally of the player while the player is at war with
+    `loser`? The one read of both winner's exits. False with the seam down."""
+    if not the_emperors_ally_takes_no_separate_peace():
+        return False
+    player = getattr(world, "player_nation", None)
+    if not player or player in (winner, loser):
+        return False
+    if world.get_diplomatic_state(winner, player) not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+        return False
+    return world.get_diplomatic_state(player, loser) == "WAR"
+
+
 def sub_pair_loser_sues(world, a: str, b: str, joined_turn: int):
     """PC-F28 — the SEAM: inside a player-containing instance, a non-player,
     non-client sub-pair whose loser's stored pair score has fallen under its
@@ -918,6 +948,8 @@ def sub_pair_loser_sues(world, a: str, b: str, joined_turn: int):
         line = int(effective_peace_threshold(loser, winner, world)) - int(
             break_ranks_depth(world, loser, winner)["score"])
         if score < line:
+            if ally_stands_by_the_emperor(world, winner, loser):
+                continue    # session G4: the suit is the Emperor's to answer
             candidates.append((score, loser, winner))
     if not candidates:
         return None
@@ -959,6 +991,8 @@ def held_aim_suit(world, a: str, b: str, joined_turn: int):
     for winner, loser in ((a, b), (b, a)):
         if not aim_sue_due(world, winner, loser):
             continue
+        if ally_stands_by_the_emperor(world, winner, loser):
+            continue        # session G4: her gains come by his treaty
         cessions = aim_cessions(world, winner, loser, homeland_only=True)
         if cessions and aim_terms_signable(world, loser, winner):
             return winner, loser, list(cessions)

@@ -1296,6 +1296,8 @@
                 "blurb": "The dream the vassal wakes with - a free Italian crown gathering the peninsula. Dormant while Milan answers to Paris.",
                 "forms": {
                     "display_name": "Italy",
+                    "at": 3,
+                    "first": ["Rome", "Naples"],
                     "flag": "Italy",
                     "blurb": "By the will of the nation and the fortune of arms - the KINGDOM OF ITALY is no more. ITALY stands."
                 }

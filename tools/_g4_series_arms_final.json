@@ -1,0 +1,4182 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  44,
+  42,
+  39,
+  26,
+  28,
+  25,
+  22,
+  27,
+  24,
+  21,
+  18,
+  15,
+  12,
+  9,
+  6,
+  3,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seams_down": {
+  "0": [
+   "ALLY",
+   "CEILING",
+   "FORM",
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "LAPSE",
+   "REAR",
+   "WAGON",
+   "WON"
+  ],
+  "FORM": [
+   "ALLY",
+   "CEILING",
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "LAPSE",
+   "REAR",
+   "WAGON",
+   "WON"
+  ],
+  "WON": [
+   "ALLY",
+   "CEILING",
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "LAPSE",
+   "REAR",
+   "WAGON"
+  ],
+  "LAPSE": [
+   "ALLY",
+   "CEILING",
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "REAR",
+   "WAGON"
+  ],
+  "REAR": [
+   "ALLY",
+   "CEILING",
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "WAGON"
+  ],
+  "CEILING": [
+   "ALLY",
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "WAGON"
+  ],
+  "ALLY": [
+   "GUNS",
+   "HOUSE",
+   "KING",
+   "WAGON"
+  ],
+  "GUNS": [
+   "HOUSE",
+   "KING",
+   "WAGON"
+  ],
+  "WAGON": [
+   "HOUSE",
+   "KING"
+  ],
+  "HOUSE": [
+   "KING"
+  ],
+  "ALL": []
+ },
+ "arms": {
+  "0": {
+   "down": [
+    "ALLY",
+    "CEILING",
+    "FORM",
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "LAPSE",
+    "REAR",
+    "WAGON",
+    "WON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 0,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": []
+   }
+  },
+  "FORM": {
+   "down": [
+    "ALLY",
+    "CEILING",
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "LAPSE",
+    "REAR",
+    "WAGON",
+    "WON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 0,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": []
+   }
+  },
+  "WON": {
+   "down": [
+    "ALLY",
+    "CEILING",
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "LAPSE",
+    "REAR",
+    "WAGON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 0,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": []
+   }
+  },
+  "LAPSE": {
+   "down": [
+    "ALLY",
+    "CEILING",
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "REAR",
+    "WAGON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 0,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": []
+   }
+  },
+  "REAR": {
+   "down": [
+    "ALLY",
+    "CEILING",
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "WAGON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  },
+  "CEILING": {
+   "down": [
+    "ALLY",
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "WAGON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  },
+  "ALLY": {
+   "down": [
+    "GUNS",
+    "HOUSE",
+    "KING",
+    "WAGON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  },
+  "GUNS": {
+   "down": [
+    "HOUSE",
+    "KING",
+    "WAGON"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  },
+  "WAGON": {
+   "down": [
+    "HOUSE",
+    "KING"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 8,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 0,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3635
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  },
+  "HOUSE": {
+   "down": [
+    "KING"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 6,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 1,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3637
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "house_bites",
+      "Holland",
+      "Switzerland"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  },
+  "ALL": {
+   "down": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ally_bites": 0,
+     "ally_seam_reads": 0,
+     "ceiling_bites": 0,
+     "ceiling_seam_reads": 12,
+     "form_proclaims": 0,
+     "form_seam_reads": 6,
+     "guns_bites": 0,
+     "guns_seam_reads": 0,
+     "house_bites": 1,
+     "house_seam_reads": 1,
+     "king_bites": 0,
+     "king_seam_reads": 0,
+     "lapse_bites": 0,
+     "lapse_seam_reads": 0,
+     "rear_bites": 76,
+     "rear_seam_reads": 618,
+     "wagon_bites": 0,
+     "wagon_seam_reads": 14,
+     "won_seam_reads": 3637
+    },
+    "beats": [
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      2,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      3,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      4,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      5,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      6,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      7,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      8,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      9,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Sweden",
+      "['Britain', 'Russia']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      10,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Russia",
+      "['Britain']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      11,
+      "house_bites",
+      "Holland",
+      "Switzerland"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain', 'Russia']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      12,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      13,
+      "rear_bites",
+      "Austria",
+      "['Britain']"
+     ],
+     [
+      16,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      28,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      29,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ],
+     [
+      37,
+      "rear_bites",
+      "Prussia",
+      "['Russia']"
+     ]
+    ]
+   }
+  }
+ }
+}

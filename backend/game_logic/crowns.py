@@ -284,17 +284,23 @@ def marshal_has_laurels(world, marshal) -> bool:
     return int(get_glory_score(marshal, int(getattr(world, "current_turn", 0)))) >= KING_MIN_GLORY
 
 
-def marshal_may_be_crowned(world, marshal, carver: str) -> bool:
-    """A marshal of the carver's roster with laurels — never the sovereign,
-    a prisoner, a broken corps or a client's general."""
+def marshal_free_to_reign(world, marshal, carver: str) -> bool:
+    """A marshal of the carver's roster who can take a throne today — never
+    the sovereign, a prisoner or a client's general. The laurels are the
+    PICK's test (`marshal_may_be_crowned`), weighed when he is named."""
     from backend.game_logic.contingent import is_clients_general
     if marshal is None or str(getattr(marshal, "nation", "")) != str(carver):
         return False
     if getattr(marshal, "is_sovereign", False) or getattr(marshal, "captured_by", ""):
         return False
-    if is_clients_general(marshal):
-        return False
-    return marshal_has_laurels(world, marshal)
+    return not is_clients_general(marshal)
+
+
+def marshal_may_be_crowned(world, marshal, carver: str) -> bool:
+    """A marshal of the carver's roster with laurels — never the sovereign,
+    a prisoner, a broken corps or a client's general."""
+    return (marshal_free_to_reign(world, marshal, carver)
+            and marshal_has_laurels(world, marshal))
 
 
 def marshals_with_laurels(world, carver: str) -> List[Any]:
@@ -396,6 +402,9 @@ def laurels_footnote(world, carver: str) -> str:
         short.append(f"{humanize_entity_name(marshal.name)} ({int(get_glory_score(marshal, turn))})")
     risk = ("A marshal king is beyond recall; should his kingdom ever rise against you, "
             "he keeps his crown and fights for it.")
+    if the_people_drive_out_a_foreign_king():
+        risk = ("A marshal king is beyond recall. If his court ever turns on you he keeps his crown "
+                "and fights for it; if his people rise and drive him out, he comes home with half his corps.")
     if not short:
         return risk
     return (f"{risk} Not yet eligible — a throne wants glory {KING_MIN_GLORY}: "
@@ -435,6 +444,11 @@ def reigning_rows(world, lord: str) -> List[Dict[str, Any]]:
             men = f" with {strength:,} men" if strength else ""
             line = (f"{shown} — {title or kingdom} · reigns at {seat or kingdom}{men} · "
                     f"the kingdom's loyalty {loyalty} · {recog} · beyond your orders")
+        elif record.get("king_state") == KING_DRIVEN_OUT:
+            state, loyalty = "driven_out", 0
+            line = (f"{shown} — {title or kingdom} · driven out by his people; he came home to "
+                    f"{record.get('returned_to')} with {int(record.get('returned_with', 0) or 0):,} men "
+                    f"and serves you again")
         elif tag in active:
             state, loyalty = "in_arms", 0
             men = f" at the head of {strength:,} men" if strength else ""
@@ -450,9 +464,69 @@ def reigning_rows(world, lord: str) -> List[Dict[str, Any]]:
     return out
 
 
+KING_RETURN_SHARE = 2          # the corps that follows a driven-out king home: one man in two
+KING_DRIVEN_OUT = "driven_out"
+
+
+def the_people_drive_out_a_foreign_king() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026 — the user's
+    "decide and do these"): the CAUSE of a kingdom's break decides its
+    marshal king's fate. Where his PEOPLE have risen (the Awakening names
+    the break — `awakening.rebellion_cause`), the foreign king is driven
+    out: he comes home to his maker's capital with one man in two of his
+    corps and stands on the roster again (Joseph out of Madrid, 1813).
+    Where his COURT turns — any other break — he keeps his crown and turns
+    his corps on his maker, as session E built it (Murat, 1814). Either way
+    the kingdom is lost. Down: session G3's tree — he always keeps it."""
+    return True
+
+
+def king_at_the_rebellion(world, tag: str, lord: str, cause: str) -> Dict[str, Any]:
+    """Called once at a client's rebellion, the cause in hand (every exit).
+    {} unless a marshal king reigns there, the people's rising is the cause
+    and the seam is up; then he is re-homed to `lord` (THE setter) at the
+    lord's capital with one man in two, the rest left to the kingdom's own
+    levy, and the formation record keeps how he left. Returns the record's
+    new keys."""
+    from backend.game_logic.awakening import REBELLION_CAUSE
+    if not the_people_drive_out_a_foreign_king() or str(cause or "") != REBELLION_CAUSE:
+        return {}
+    record = (getattr(world, "nation_formations", None) or {}).get(tag)
+    if not isinstance(record, dict) or record.get("king_kind") != KIND_MARSHAL:
+        return {}
+    if record.get("king_state"):
+        return {}
+    marshal = (getattr(world, "marshals", {}) or {}).get(str(record.get("king") or ""))
+    if (marshal is None or str(getattr(marshal, "nation", "")) != str(tag)
+            or int(getattr(marshal, "strength", 0) or 0) <= 0
+            or getattr(marshal, "captured_by", "")):
+        return {}
+    home = world.get_nation_capital(lord)
+    if not home or world.get_region(home) is None:
+        return {}
+    from backend.game_logic.doctrines import set_marshal_nation
+    from backend.models.world_state import clear_order_bound_interrupt
+    before = int(marshal.strength)
+    kept = max(1, before // KING_RETURN_SHARE)
+    pools = getattr(world, "manpower_pools", None)
+    if isinstance(pools, dict) and isinstance(pools.get(tag), dict):
+        pools[tag]["infantry"] = int(pools[tag].get("infantry", 0) or 0) + int(before - kept)
+    marshal.strength = int(kept)
+    marshal.strategic_order = None
+    clear_order_bound_interrupt(marshal)
+    set_marshal_nation(world, marshal, lord)
+    marshal.location = str(home)
+    fate = {"king_state": KING_DRIVEN_OUT, "returned_turn": int(getattr(world, "current_turn", 0)),
+            "returned_with": int(kept), "returned_to": str(home)}
+    record.update(fate)
+    world.invalidate_active_nations_cache()
+    return fate
+
+
 def rebel_king_words(world, tag: str) -> str:
     """The rebellion notice's second sentence where the kingdom has a
-    marshal king: he keeps his crown and turns on his maker (Murat, 1814).
+    marshal king: driven out by his people he comes home (session G4);
+    else he keeps his crown and turns on his maker (Murat, 1814).
     '' for a prince, a regency, or no crown."""
     record = (getattr(world, "nation_formations", None) or {}).get(tag)
     if not isinstance(record, dict) or record.get("king_kind") != KIND_MARSHAL:
@@ -460,6 +534,9 @@ def rebel_king_words(world, tag: str) -> str:
     shown = str(record.get("king_display") or record.get("king") or "")
     title = str(record.get("crown") or "")
     crown = f" as {title}" if title else ""
+    if record.get("king_state") == KING_DRIVEN_OUT:
+        return (f" {shown}, whom you crowned{crown}, is driven out by his people and comes home to "
+                f"{record.get('returned_to')} with {int(record.get('returned_with', 0) or 0):,} men.")
     return f" {shown}, whom you crowned{crown}, keeps his throne and turns his corps against you."
 
 
@@ -538,7 +615,13 @@ def enthrone(world, tag: str, clause: Dict[str, Any], carver: str) -> Dict[str, 
                               "crowned_turn": int(getattr(world, "current_turn", 0))}
     if kind == KIND_MARSHAL:
         marshal = (getattr(world, "marshals", {}) or {}).get(king)
-        if marshal is None or not marshal_may_be_crowned(world, marshal, carver):
+        # Session G4 (the replayed campaign): the laurels were weighed when
+        # he was NAMED (`stamp_king_on_clause`). Soult, demanded as King of
+        # Hungary at turn 10 with glory 3, stood at 2 when the treaty was
+        # ratified at 12 — and the kingdom the treaty erected "under Soult"
+        # was seated as a regency without a word. A signed treaty seats the
+        # king it names while he is still the Emperor's to seat.
+        if marshal is None or not marshal_free_to_reign(world, marshal, carver):
             return {}
         record["corps"] = int(getattr(marshal, "strength", 0) or 0)
         record["trust_at_crowning"] = int(getattr(getattr(marshal, "trust", None), "value", 0) or 0)

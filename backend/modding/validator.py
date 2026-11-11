@@ -361,6 +361,48 @@ def validate_region(data: Dict[str, Any], path: str = "region") -> ValidationRes
 FORMABLE_AGENDA_TYPES = ("acquire_regions", "deny_regions", "contain_hegemon")
 
 
+def _validate_forms_bar(result, path: str, entry: Any) -> None:
+    """Session G4 — the optional `forms.at`: how many of the entry's listed
+    provinces a free court must HOLD to proclaim (absent = the whole list).
+    A wrong TYPE is an error (a bar that silently reads as "all" is a
+    formable authored to fire at three that never does); a bar past the
+    list, or on a formable type that proclaims on satisfaction, only WARNS
+    — the engine clamps it and the board the validator sees may be
+    seam-filtered (T2-6's lesson)."""
+    forms = entry.get("forms") if isinstance(entry, dict) else None
+    if isinstance(forms, dict) and "first" in forms:
+        # `forms.first`: the listed provinces the forming court reaches for
+        # first. A wrong type is an error; a name outside the entry's own
+        # list only warns (it is ignored).
+        first = forms.get("first")
+        if not isinstance(first, list) or not all(isinstance(r, str) and r for r in first):
+            result.add_error(f"{path}.forms.first",
+                             f"Must be a list of province names, got {first!r}")
+        else:
+            listed_names = [r for r in (entry.get("regions") or []) if r]
+            stray = [r for r in first if r not in listed_names]
+            if stray:
+                result.add_warning(
+                    f"{path}.forms.first",
+                    f"{stray} not among the entry's own regions; ignored")
+    if not isinstance(forms, dict) or "at" not in forms:
+        return
+    at = forms.get("at")
+    at_path = f"{path}.forms.at"
+    if isinstance(at, bool) or not isinstance(at, int) or at <= 0:
+        result.add_error(at_path, f"Must be a positive integer, got {at!r}")
+        return
+    listed = [r for r in (entry.get("regions") or []) if r]
+    if entry.get("type") != "acquire_regions":
+        result.add_warning(
+            at_path, "Only an 'acquire_regions' design proclaims on a count "
+                     "of held provinces; this bar is ignored")
+    elif at > len(listed):
+        result.add_warning(
+            at_path, f"{at} exceeds the {len(listed)} listed provinces; the "
+                     f"whole list is the bar")
+
+
 def _validate_forms_block(result, path: str, forms: Any,
                           agenda_type: str) -> None:
     """Validate an agenda entry's optional NA-6 `forms` block."""
@@ -514,6 +556,7 @@ def _validate_agenda_deck(result, key_path: str, deck: Any,
         if "forms" in entry:
             _validate_forms_block(
                 result, path, entry.get("forms"), agenda_type)
+            _validate_forms_bar(result, path, entry)
         # AI-0c (docs/AI_INTENT_SPEC.md §3.8.1) — the deck-order band.
         # Entries sharing an `order_group` value are equally-live designs
         # the campaign seed may reorder; malformed is an ERROR (a silent

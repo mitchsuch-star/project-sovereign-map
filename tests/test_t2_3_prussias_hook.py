@@ -75,6 +75,18 @@ def _set_relation(world, a: str, b: str, value: int) -> None:
     world.nation_relations[world._make_diplo_key(a, b)] = int(value)
 
 
+@pytest.fixture(autouse=True)
+def _the_join_on_its_own_staging(monkeypatch):
+    """Session G4 (November 11, 2026): a bandwagoner joins only against a
+    NEIGHBOUR of its house (`war_council.a_bandwagoner_joins_a_neighbours_war`),
+    and this module stages T2-3's join on Sweden against Denmark — no
+    neighbour of Prussia's on the drawn map. The pins below are T2-3's own
+    mechanics (the scales, the tempo, the renege); they hold the reach rule
+    down. Its own pins: `tests/test_session_g4_the_open_readings.py`."""
+    from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
+    hold_down(monkeypatch, T3_SEAMS_BY_ROW["G4-WAGON"])
+
+
 class TestTheJoin:
     def test_the_eligibility_is_derived_never_a_name(self, world):
         assert _bandwagon_courts(world) == ["Prussia"]

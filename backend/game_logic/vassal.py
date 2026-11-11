@@ -766,6 +766,12 @@ def subjugation_quote(world, lord: str, vassal: str, plan: Optional[dict] = None
             clauses.append(f"their war with {_named_list(world, peace)} ends in peace")
         parts.append(f"As {lord_name}'s client they fight only {lord_name}'s wars: "
                      + ", ".join(clauses) + ".")
+    lapsed = [r["court"] for r in plan["entry"] if r["kind"] == "pact"]
+    if lapsed:
+        one = len(lapsed) == 1
+        parts.append(f"Their {'alliance' if one else 'alliances'} with "
+                     f"{_named_list(world, lapsed)} {'lapses' if one else 'lapse'} to a "
+                     f"non-aggression pact — a client signs no alliance of its own.")
     broken = [r["court"] for r in plan["entry"] if r["kind"] == "alliance"]
     if broken:
         one = len(broken) == 1
@@ -931,6 +937,10 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str, *,
             if followed == "ARMISTICE":
                 world.armistice_cooldowns[key] = 5
             cleanup_war_end(world, key, conclude_objectives=(followed != "ARMISTICE"))
+        elif kind == "pact":
+            # Session G4: a pact brought into the vassalage lapses to the
+            # rung below it — no breach, the court had no choice in it.
+            set_diplomatic_state(world, vassal, other, followed, "vassalage_pact_lapse")
         else:
             # Vassal allied with lord's enemy → break to PEACE
             set_diplomatic_state(world, vassal, other, "PEACE", "vassal_reconcile")
@@ -959,7 +969,11 @@ def _vassalage_entry_decision(world, lord: str, vassal: str, other: str, *,
     `client_follows_lord_footing`), unless the client LEADS the instance (its
     own war);
     ("alliance", "PEACE") - the client's alliance with a court the lord is at
-    war with is broken; None - nothing moves."""
+    war with is broken;
+    ("pact", "NON_AGGRESSION") - session G4: any other defensive alliance or
+    alliance the court holds outside its new lord's house lapses to a
+    non-aggression pact (`a_pact_lapses_at_the_vassalage`);
+    None - nothing moves."""
     from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
     lord_state = world.get_diplomatic_state(lord, other)
     vassal_state = world.get_diplomatic_state(vassal, other)
@@ -974,7 +988,28 @@ def _vassalage_entry_decision(world, lord: str, vassal: str, other: str, *,
         return ("war", followed)
     if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
         return ("alliance", "PEACE")
+    if (vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
+            and a_pact_lapses_at_the_vassalage()
+            and world._top_overlord(other) != world._top_overlord(lord)):
+        return ("pact", PACT_LAPSES_TO)
     return None
+
+
+PACT_LAPSES_TO = "NON_AGGRESSION"
+
+
+def a_pact_lapses_at_the_vassalage() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026 — the user's
+    "decide and do these"): a defensive alliance or an alliance a court
+    holds outside its new lord's house LAPSES to a non-aggression pact the
+    day it becomes a client or changes lords (the three roads all pass
+    `_reconcile_vassal_diplomacy`: the treaty, the conquest, the transfer).
+    Session G3 forbade a client to SIGN a pact of its own and left one it
+    brought with it standing — the same drag into a war its lord is not in,
+    by the back door. No breach is recorded: the court had no choice in it.
+    A pact inside the lord's own house is the vassalage itself and stands.
+    Down: session G3's tree — only an alliance with the lord's ENEMY breaks."""
+    return True
 
 
 # ═══════════════════════════════════════════════════════
@@ -1830,6 +1865,10 @@ def check_vassal_rebellion(world) -> List[dict]:
         # exit (the log row, the dispatch line, the one-liner).
         from backend.game_logic.awakening import rebellion_cause as _rebellion_cause
         break_cause = _rebellion_cause(world, vassal_name)
+        # Session G4: the cause decides a marshal king's fate — driven out
+        # by his people he comes home; else he keeps his crown (every exit).
+        from backend.game_logic.crowns import king_at_the_rebellion as _king_at_the_rebellion
+        _king_at_the_rebellion(world, vassal_name, lord, break_cause)
 
         # FA-2 (slice 11): the "{carved_name} has ceased to exist." line that
         # stood here was FALSE on every exit — the satellite is breaking free,

@@ -168,6 +168,7 @@ default (§7); the deploy gate; no cuts without consent.
 | **G** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §207; the landing record §7a) | **The gate earned** (the user's "Earn them first" at session F's close — the content session the raised gate's clauses 2 and 3 asked for): the pact with the coveted (no defensive alliance or alliance between a coveter and the coveted — the defect that defused the cast Naples' Roman Expedition at turn 3 and Hesse's Westphalian Duchy at turn 16) + a crown bought with the whole chest (the promotion law's AI purse bar is its price). Arms: 0 / PACT / ALL. | nothing new to rule — the user's word at the fork | one |
 | **G2** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §208; the landing record §7b) | **The played campaign** (the user's "fix and playtest … play well see derivations see dynamism test like humna" — a session the plan did not hold, opened by the review of the arc): a France played by hand on a fresh seed, and what it found fixed at the cause — the king's carry on the separate peace, the war names the beaten, a court at `fight` still asks, the ladder outlasts the rest, a backed design dares; the marshals' side and the screens. Arms: 0 / ASK / LADDER / ALL. | nothing to rule — drafted in Plan Mode and approved | one |
 | **G3** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §209; the landing record §7c) | **A client swears no pact of its own** (the user's "Rule on clients first", then "make best cal for game" — session G2's open reading (a), ruled under the delegation): a client's foreign policy is its lord's — no defensive alliance or alliance is proposed to or from a court that answers to a lord, every court alike; the Vassals card says it. Arms: 0 / CLIENT. | the ruling itself — delegated, drafted in Plan Mode and approved | one |
+| **G4** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §210; the landing record §7d) | **The open readings, ruled and built** (the user's "evaluate options choose the best", then "and decide and do these" — session G3's three readings and the rest of session G2's list, fourteen rulings in one plan): a nation proclaimed on what it holds at its authored bar (Italy at three of five, Rome first), an ally's soil is not won, a pact lapses at the vassalage, a backer is no menace, the people drive out a foreign king, a commission reads the arming ceiling, the Emperor's ally takes no separate peace while it wins, no guns from a sanctuary, a bandwagoner joins a neighbour's war, a client joins no war against a house it is at peace with; the dispatch, the crown row and the chip. Arms: 0 / FORM / WON / LAPSE / REAR / CEILING / ALLY / GUNS / WAGON / HOUSE / ALL. | the rulings themselves — delegated, drafted in Plan Mode and approved | one |
 | **H** | **S15 the deploy:** the gate checks, the build, the clean-environment run, the release record. Signing waits on the user's certificate. | the user's own walk | — |
 
 **Seven sessions (A–G) where the count read twelve to thirteen.** Two named places it may
@@ -1381,6 +1382,10 @@ army for fifteen turns from soil at peace with France; Prussia's bandwagon chose
 eighth in a short scrolling list; "(§3.3)" stands in the sponsor chip's player-facing text;
 (f) session G's four, session F's three, session E's four, session D's three, session C's five stand.
 
+*(RULED November 11, 2026 — session G4, §7d: (b) the backer's house is struck from the rear, Prussia's hold stays; (c) the cause
+decides the king's fate; (d) 10 for every backer; (e) the commission ceiling, the ally's separate peace, the stale dispatch
+line, the sanctuary guns, the bandwagon's reach, the crown row and the chip — each ruled and built; (f) stands.)*
+
 ### §7c A client swears no pact of its own — session G3's landing record (✅ LANDED November 11, 2026)
 
 **The user's words, verbatim:** *"Rule on clients first"*; then, at the question, *"make best cal for game"*. Drafted
@@ -1471,6 +1476,106 @@ at the subjugation;
 (c) **a client's non-aggression pacts and open borders** stay its own (no war follows them) — or go to the lord too;
 (d) §7b's (b)–(f) stand; its (a) is ruled here.
 
+*(RULED November 11, 2026 — session G4, §7d: (a) Italy is proclaimed on what she HOLDS, at three of her five, Rome
+first; (b) the pact LAPSES to a non-aggression pact; (c) they stay its own — nothing built, pinned; §7b's (b)–(e)
+are ruled there too.)*
+
+
+### §7d The open readings, ruled and built — session G4's landing record (✅ LANDED November 11, 2026)
+
+**The user's words, verbatim:** at session G3's close, to the Italy question, *"Show me options"* — interrupted —
+*"evaluate options choose the best"* — interrupted — *"and decide and do these"*, over the list left with him: a
+pact a court brings into a vassalage, a client's non-aggression pacts, the rest of session G2's list. Each item was
+read to its cause first; fourteen rulings were drafted in Plan Mode and approved. The rules in full:
+`SYSTEMS_REFERENCE.md` §210; the pins `tests/test_session_g4_the_open_readings.py`; the seams `tests/_t3_seams.py`
+rows G4-*; ONE sweep with eleven arms on three surfaces (`tools/_g4_measure.py`), the standing series
+(`tools/_g4_series_arms.py`), ONE commit.
+
+**The rulings.**
+
+| # | The item | The ruling | Seam |
+|---|---|---|---|
+| 1 | Italy by pacts (§7c (a)) | a nation is proclaimed on what it HOLDS, at an authored bar: Italy at **three of her five** provinces (`forms.at`), reaching for Rome first (`forms.first`); the rest stay her claims | G4-FORM |
+| 2 | the same fault, wider | an acquire design is WON only on land the court or its clients hold; an ally's soil makes it sleep | G4-WON |
+| 3 | a pact brought into a vassalage (§7c (b)) | it lapses to a non-aggression pact at the treaty, the conquest or the transfer; no breach | G4-LAPSE |
+| 4 | a client's lesser pacts (§7c (c)) | they stay its own — the lord's war overrides them without a broken word; nothing built | — |
+| 5 | the licence and an exposed rear (§7b (b)) | a court holds no rear reserve against the house that backs it; a third court on the flank holds it as before | G4-REAR |
+| 6 | the marshal king's fate (§7b (c)) | the cause decides: his people rise and he comes home with half his corps; his court turns and he keeps the crown | G4-KING |
+| 7 | the push's number (§7b (d)) | 10, the same for every backer; nothing built | — |
+| 8 | armies past their limits (§7b (e)) | the AI's commission of a general reads the ceiling its arming reads | G4-CEILING |
+| 9 | the ally who handed Vienna back (§7b (e)) | the Emperor's ally takes no separate peace, as its pair's winner, from a court he still fights | G4-ALLY |
+| 10 | guns from soil at peace (§7b (e)) | no bombardment out of a province whose owner is a third court not at war with the target — every court | G4-GUNS |
+| 11 | Prussia's bandwagon on Rome (§7b (e)) | a bandwagoner joins only against a neighbour of its house | G4-WAGON |
+| 12 | the tricolor over a Vienna already lost (§7b (e)) | the dispatch drops a capture or loss line the province's latest change of hands has overtaken | — |
+| 13 | the crown row eighth (§7b (e)) | an available crown row leads the demands, under the war's declared articles | — |
+| 14 | "(§3.3)" in the chip (§7b (e)) | removed | — |
+
+**What the played checks added (each fixed at its cause, in the same commit).**
+- **Italy's pursuit.** Played out with the bar alone, a freed Kingdom of Italy fixed on Savoy — third in her list,
+  and France's — and never turned to Rome. `forms.first` leads the order the obstacle is read from.
+- **The king named in the treaty.** Replaying the hand-played campaign, Soult — demanded as King of Hungary at
+  glory 3 — stood at 2 when the treaty was ratified two turns on, and the kingdom erected "under Soult" was a
+  regency. `crowns.enthrone` seats the king a signed treaty names while he is still the Emperor's to seat; the
+  laurels are the pick's test.
+- **HOUSE — the DD-1 treaty fuzzer's catch** (its own seam and arm). On the fuzzed board a court France had
+  subjugated defected to Britain and marched on France; neutral Switzerland — at peace with Britain since the boot —
+  auto-joined against it, leaving a client at war with a court its own lord was at peace with (the fuzzer's I2, a
+  class held at zero since S7). A client called to its lord's defence joins no war against a client of a FOREIGN
+  lord it is at peace with.
+- **The counter's dry run** raised `KeyError: 'clauses'` on a draft with no clauses list (session G3's tree too).
+- **A save made before the bar** kept the old rule — the deck rides the save. `formations.backfill_forms` copies
+  the two authored keys onto the saved entry at load (keys on an existing entry; no entry is ever added — the
+  AI-0d precedent stands for goals).
+
+**The session landed (the pins `TestTheSessionG4Measure`).** ONE sweep, eleven arms, three surfaces, run alone; the
+series beside it; the shipped arm re-run on the final tree after the last edits, byte-identical.
+- **Arm 0 reproduces session G3 byte for byte on both surfaces.**
+- **Ambient (ten seeds), arm by arm:** FORM, WON, LAPSE, REAR, ALLY and KING move no seed. **CEILING moves five**
+  (friedland, lodi, marengo, rivoli, ulm); **GUNS moves rivoli; WAGON moves jena** (Prussia leaves Rome alone — the
+  Pope falls at 19, not 26, and the seed opens seven wars for five); **HOUSE moves friedland and historical** (on
+  friedland Britain buys Switzerland at 9 and she marches on France; the Kingdom of Italy, at peace with Britain, no
+  longer joins — and is not erased at 23). Story classes **10 of 10 on every arm**; `annexations_outside_aim` 0;
+  `captures_outside_aim` 266 on the shipped arm.
+- **The AI-France harness:** `annexations_outside_aim` 0 on every arm. FORM moves five seeds (a freed kingdom turns
+  on Rome and Naples answers for the Pope; on ulm she is beaten to her last province and signs at 40); CEILING two;
+  ALLY four; WAGON two; HOUSE lodi (Holland, no longer called against Britain's bought Swiss, drifts from the
+  harness's France and rises at 32 — France ends at 38, not 46, on that seed). No promotion, no crown.
+- **The band: 28 / 27 / 25 through CEILING; 26 / 27 / 25 with ALLY; 26 / 26 / 25 from GUNS on — the shipped arm,
+  inside 23–28.** On the commanded historical arm Bavaria took Austria's suit at turn 5 and handed Hungary back
+  (the played campaign's own fault); with the rule she stands, and France ends two provinces down at 31.
+- **The series does not move** on any arm; on the rig the backer's rear bites 76 times and the house rule once.
+
+**The gate's reading (§7) on the shipped arm:** clause 1 MET (10 of 10); **clause 2 MET on ONE seed — lodi, Hesse
+at 33** (marengo's crown at turn 40, the window's last, no longer falls inside it: CEILING's arm — the cast Saxony,
+at her band, commissions no second general and the seed's wars re-time); clause 3 MET in **three** readings now
+({Kingdom of Italy} on seven seeds, {Kingdom of Italy, Papal States} on jena and wagram, nobody on friedland); the
+annexation line 0 on both surfaces; the band inside 23–28. **No clause is lost; clause 2's margin is thinner and
+the band two provinces lower — both said to the user, each one switch to reverse.**
+
+**Played (reported, never gated).**
+- *A freed Kingdom of Italy, played out unattended on five seeds:* she asks the Pope for Rome, is refused twice,
+  opens her crisis and marches. **Italy is proclaimed on three** (marengo at 32 and eylau at 31, each the turn
+  after Rome falls; jena, where she then loses a great war with Austria and is erased at 40) and not on two
+  (historical and lodi — Naples answers for the Pope and beats her). On marengo and eylau the new Italy then asks
+  Naples for the south and is refused: the claims live on.
+- *The hand-played campaign, replayed:* the British guns fire twice (17 before) and fall silent at France's peace
+  with Austria; Bavaria takes no separate peace; Vienna, held by Bavaria, goes home by the Emperor's own treaty,
+  which did not demand it.
+- *In the running client, by clicking* (`tools/dd_b_play.py`, the turn-10 save; 24 actions, 0 script errors): the
+  crown row leads "Demands of Austria"; its name opens the king list, each pick's price beneath it, and the
+  footnote reads "If his court ever turns on you he keeps his crown and fights for it; if his people rise and drive
+  him out, he comes home with half his corps." The Formable Nations page, on a save made before the bar and loaded
+  by the real road, reads "2 of 5 provinces held — 3 proclaim it".
+
+**For the user, none pre-recommended (§0):**
+(a) **the commission ceiling** costs marengo's crown (clause 2 on one seed, not two) — one switch brings it back,
+and with it a cast minor that arms to twice its limit;
+(b) **the band** reads 26 / 26 / 25 (the ally's rule −2 on one commanded arm, the guns' −1 on another);
+(c) **Italy's bar and order** — three of five, Rome then Naples (the numbers are authored, `europe_1805.json`);
+(d) **a neutral client** (HOUSE) no longer marches against a foreign lord's client: the Kingdom of Italy survives
+on friedland; on the harness's lodi an uncalled Holland drifts and rises;
+(e) **the older sessions' readings** (C to G) were not in this session's list and stand.
+
 
 ---
 
@@ -1514,6 +1619,16 @@ at the subjugation;
 | G2-LADDER | the played campaign — ✅ LANDED November 11, 2026 (session G2) | the ladder outlasts the rest (§7b): `ai_diplomacy.the_ladder_outlasts_the_rest` — `war_council._ladder_climbed` counts `get_ladder_refusals` (24 turns) and the write keeps them; every other reader keeps 12 | refused at 7 and 13, the ladder stands climbed at 24 (unclimbed seam-down); the weight's hardening still reads 12 — **measured:** arm LADDER moves lodi; 14 bites on the rig, the series unmoved | `TestTheLadderOutlastsTheRest` |
 | G2-BACKED | the played campaign — ✅ LANDED November 11, 2026 (session G2) | a backed design dares (§7b): `intent.a_backed_design_dares` — `WEIGHT_BACKED_DESIGN` 10 on an acquire design a live sponsorship or licence aims at (`design_backing`, ONE record); never an aim in the player's house; `backing_forecast` at the choice, `backing_words` on the Intent row | France's gold and her licence each move Prussia's design 10; the paymaster's subsidies against France move nothing; the push ends with the compact; the words — **measured:** arm ALL moves lodi; 10 bites on the rig, the series unmoved; the band 28 / 27 / 25 | `TestABackedDesignDares` |
 | G3-CLIENT | a client swears no pact — ✅ LANDED November 11, 2026 (session G3) | a client's foreign policy is its lord's (§7c): `ai_diplomacy.a_client_swears_no_pact_of_its_own` — `client_in_the_pair` the one read, at the poll's gate (`_evaluate_ai_ai_proposal`) and the recipient-addressed road's guard (`_resolve_ai_ai_proposal`, `reason: client`); a defensive alliance and an alliance only; the Vassals card's line (`diplomatic_ledger.CLIENT_POLICY_LINE`) | the read (a client either way, two free courts, one house, every lord alike, a court set free); the poll stops both pact types and passes the rungs below; the road's refusal names the client; a standing pact stands; the player's road untouched; the card's line — **measured:** arm 0 == session G2; ambient no seed moves; the harness's annexation line 4 → 0, nineteen client pacts → none; the band 28 / 27 / 25; the series unmoved, 735 bites on the rig | `tests/test_session_g3_a_client_swears_no_pact.py` |
+| G4-FORM | the open readings — ✅ LANDED November 11, 2026 (session G4) | a nation is proclaimed on what it holds, at its bar (§7d): `formations.a_nation_is_proclaimed_on_what_it_holds` — `proclamation_due` reads `held_provinces` against `proclamation_bar` (`forms.at`; Italy 3 of 5); `forms.first` leads the pursuit order (`agendas._entry_regions`); `backfill_forms` at load; the validator's `_validate_forms_bar` | the marker names the bar; the hollow road closed; Rome makes Italy and the rest stay her claims; a client proclaims nothing; she reaches for Rome first; a save made before the bar gains it — **measured:** ambient no seed moves; the harness five seeds; played out, Italy on three of five | `TestANationIsProclaimedOnWhatItHolds` |
+| G4-WON | the open readings — ✅ LANDED (session G4) | an ally's soil is not won (§7d): `agendas.an_allys_soil_is_not_won` — `_entry_satisfied`'s acquire arm reads possession | the design sleeps and is not satisfied; held is won either way — **measured:** no seed moves on any surface | `TestAnAllysSoilIsNotWon` |
+| G4-LAPSE | the open readings — ✅ LANDED (session G4) | a pact lapses at the vassalage (§7d): `vassal.a_pact_lapses_at_the_vassalage` — `_vassalage_entry_decision`'s third answer, applied at `_reconcile_vassal_diplomacy` | the decision; no breach; the transfer; the conquest's quote — **measured:** no seed moves (no measured court carries a pact into a vassalage) | `TestAPactLapsesAtTheVassalage` |
+| G4-REAR | the open readings — ✅ LANDED (session G4) | a backer is no menace (§7d): `war_council.a_backer_is_no_menace` — `backers_of` struck from `get_exposure_view`'s threats | the licensor struck; his own house only; the compact ended; at war he menaces — **measured:** no seed moves; 76 bites on the rig | `TestABackerIsNoMenace` |
+| G4-CEILING | the open readings — ✅ LANDED (session G4) | a commission reads the arming ceiling (§7d): `recruitment.a_commission_reads_the_arming_ceiling` — `commission_over_the_ceiling` in `find_ai_commission` | the played board's leak; under the band she still commissions; the player's own commission ungated — **measured:** ambient five seeds, marengo's crown at 40 lost; the harness two | `TestACommissionReadsTheArmingCeiling` |
+| G4-ALLY | the open readings — ✅ LANDED (session G4) | the Emperor's ally takes no separate peace while it wins (§7d): `settlement_third_party.the_emperors_ally_takes_no_separate_peace` — `ally_stands_by_the_emperor` in `sub_pair_loser_sues` and `held_aim_suit` | Vienna sues Munich and is referred to the Emperor; a beaten ally may be knocked out; his own peace frees the pair — **measured:** ambient none; the harness four; the band's H arm 28 → 26 | `TestTheEmperorsAllyTakesNoSeparatePeace` |
+| G4-GUNS | the open readings — ✅ LANDED (session G4) | no guns from a sanctuary (§7d): `combat_executor.no_guns_from_a_sanctuary` — `fires_from_a_sanctuary` at `_execute_bombardment`, the AI's P4 and P7 | the read; the refusal's words; the Emperor's guns bound alike — **measured:** ambient rivoli; the band's A arm 27 → 26; the replay 17 bombardments → 2 | `TestNoGunsFromASanctuary` |
+| G4-WAGON | the open readings — ✅ LANDED (session G4) | a bandwagoner joins a neighbour's war (§7d): `war_council.a_bandwagoner_joins_a_neighbours_war` — `bandwagon_in_reach` in `_bandwagon_join` | reach is the house's frontier; the join itself — **measured:** ambient jena; the harness two | `TestABandwagonerJoinsANeighboursWar` |
+| G4-KING | the open readings — ✅ LANDED (session G4) | the people drive out a foreign king (§7d): `crowns.the_people_drive_out_a_foreign_king` — `king_at_the_rebellion` at `check_vassal_rebellion`; `enthrone` reads `marshal_free_to_reign` | his people rise and he comes home; his court turns and he keeps the crown; the words; a king named in the treaty is seated though his laurels fade — **measured:** no seed moves (no crown on a measured arm) | `TestThePeopleDriveOutAForeignKing` |
+| G4-HOUSE | the open readings — ✅ LANDED (session G4) | a client joins no war against a client of a house it is at peace with (§7d): `diplomacy.a_client_joins_no_war_against_a_house_at_peace` — `client_keeps_its_peace_with_the_house` at the cascade's defensive auto-join | the boot fact; the read (a rebel of her own house excluded); the neutral client stays out — **measured:** ambient friedland and historical; the harness lodi; the fuzzer's two seeds clean | `TestAClientKeepsItsPeaceWithAHouse` |
 
 
 *(Amended November 9, 2026 by §2b: one commit and one review a SESSION; each rule keeps its own seam and its own arm of the session's one measure.)* Each slice: its own commit through the hook, the user's review after, Plan Mode at each

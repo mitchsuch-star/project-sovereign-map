@@ -25109,7 +25109,8 @@ class TestS14ED9:
         w = _rd9_world
         # Italy stands at 2 of 5 and Holland at 0 of 1 in France's bloc — but
         # no court at war holds a province either dream still lacks
-        assert get_formation_watch(w, "KingdomOfItaly")["progress"] == "2 of 5 provinces held"
+        # (session G4: the marker names Italy's proclamation bar)
+        assert get_formation_watch(w, "KingdomOfItaly")["progress"] == "2 of 5 provinces held — 3 proclaim it"
         assert _rd9_begun(road_notes(w)) == _rd9_empty()
         assert road_note_for(w, "Rome") == "" and road_note_for(w, "Flanders") == ""
         for court in ("Austria", "Britain", "Russia"):
@@ -25248,7 +25249,8 @@ class TestS14EX62:
         w = _rd9_austria_holds_the_dream(_rd9_world)
         page = {r["tag"]: r for r in build_formables_payload(w)["formables"]}
         assert page["KingdomOfItaly"]["cls"] == "T"
-        assert page["KingdomOfItaly"]["progress"] == "2 of 5 provinces held"
+        # session G4: the page's progress names the bar the proclamation reads
+        assert page["KingdomOfItaly"]["progress"] == "2 of 5 provinces held — 3 proclaim it"
         [row] = road_notes(w)["by_court"]["Austria"]
         assert row["display_name"] == page["KingdomOfItaly"]["display_name"]
 

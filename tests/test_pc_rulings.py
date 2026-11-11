@@ -4377,6 +4377,12 @@ class TestPCF74:
         read the sleeping design as SATISFIED — so the Pressburg arm let a
         court whose first design was unmet break ranks at -30."""
         from backend.game_logic import agendas as AG
+        # Session G4 (November 11, 2026): satisfaction itself is possession
+        # now (`agendas.an_allys_soil_is_not_won`) — the door this pin found
+        # is closed for every reader. Held down here, the pin keeps PC-F74's
+        # own arm (`_entry_achieved`) proved against the old read.
+        from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
+        hold_down(monkeypatch, T3_SEAMS_BY_ROW["G4-WON"])
         w = turn6
         # a first design whose target an ally's bloc holds (Russia's Volhynia;
         # Austria is allied to Britain, whose bloc holds Russia)

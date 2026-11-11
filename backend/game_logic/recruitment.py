@@ -422,6 +422,32 @@ def satellite_serves_by_contingent(world, nation: str) -> bool:
     return enemies <= set(world.get_nations_at_war_with(lord))
 
 
+def a_commission_reads_the_arming_ceiling() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): the AI's
+    commission of a new general reads the ceiling its arming rung already
+    reads (`enemy_ai`'s EA-11: the severe band of the force limit, one and
+    a half times it, for a court at war or preparing one). The commission
+    raised a fresh corps on gold and the arm's pool alone: on the played
+    board Naples, limit 32,500, stood at her designed 48,000 and then
+    commissioned Philippsthal's 5,000 past the band. Down: session G3's
+    tree — a commission asks nothing of the limit."""
+    return True
+
+
+def commission_over_the_ceiling(world, nation: str, candidate: Dict) -> bool:
+    """Would `candidate`'s fresh corps carry `nation`'s field army past the
+    arming ceiling? False with the seam down and for a court with no force
+    limit (the legacy world)."""
+    if not a_commission_reads_the_arming_ceiling():
+        return False
+    force_limit = world.get_force_limit(nation)
+    if not force_limit:
+        return False
+    from backend.models.world_state import severe_band_threshold
+    standing = int(world.calculate_turn_upkeep(nation)["total_strength"])
+    return standing + int(corps_requirement(candidate)[1]) > int(severe_band_threshold(force_limit))
+
+
 def find_ai_commission(world, nation: str, treasury: int) -> Optional[Dict]:
     """The enemy AI's admin-phase rung: commission the FIRST authored
     candidate when at war — or preparing a design at `coerce`+ (AI-5:
@@ -447,6 +473,8 @@ def find_ai_commission(world, nation: str, treasury: int) -> Optional[Dict]:
         if treasury < cost + AI_RECRUIT_TREASURY_BUFFER:
             continue
         if check_commission(world, nation, candidate) is not None:
+            continue
+        if commission_over_the_ceiling(world, nation, candidate):
             continue
         return {
             "marshal": None,

@@ -244,6 +244,36 @@ def _wary_posture(world, nation: str, neighbour: str) -> float:
         return 1.0
 
 
+def a_backer_is_no_menace() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): a court holds
+    no rear reserve against the house that BACKS it — the payer of a live
+    compact on its design (`world.directed_sponsorships`, kind
+    `sponsorship`: the Cabinet's sponsorship, its free licence, the peace
+    table's "Point her elsewhere"). A licence is the licensor's word not to
+    interfere (AI_INTENT_SPEC §12 pin 23: "a licence is a bond"); the
+    exposure calculus still counted him among the armed neighbours the
+    licensee must garrison against. He speaks for his own house only: a
+    third court on the flank (Prussia, on the played board) holds her as
+    before. Down: session G3's tree — the backer menaces like any other."""
+    return True
+
+
+def backers_of(world, nation: str) -> set:
+    """The houses that back `nation` today: the top overlord of every payer
+    of a live `sponsorship` record it receives. Empty with the seam down."""
+    if not a_backer_is_no_menace():
+        return set()
+    houses = set()
+    for record in getattr(world, "directed_sponsorships", None) or []:
+        if (isinstance(record, dict) and record.get("kind") == "sponsorship"
+                and record.get("recipient") == nation
+                and record.get("payer") not in (None, "", nation)
+                and int(record.get("turns_remaining", 1) or 0) > 0):
+            payer = str(record.get("payer"))
+            houses.add(str(world._top_overlord(payer) or payer))
+    return houses
+
+
 def get_exposure_view(world, nation: str) -> Dict:
     """§2.1: {standing, reserve, free, worst_threat, worst_menace,
     threats:[{nation, menace}...]} — every term already in the world, no
@@ -263,12 +293,16 @@ def get_exposure_view(world, nation: str) -> Dict:
     own = _standing_strength(world, nation)
     active = set(world.get_active_nations())
     own_family = world._top_overlord(nation)
+    backers = backers_of(world, nation)     # session G4
     threats = []
     for neighbour in world.get_neighbouring_nations(nation):
         if neighbour == nation or neighbour not in active:
             continue
         if world._top_overlord(neighbour) == own_family:
             continue  # own vassals, the lord, sibling clients
+        if (backers and str(world._top_overlord(neighbour) or neighbour) in backers
+                and not world.is_at_war(nation, neighbour)):
+            continue  # the house that backs this court's design
         if world.get_diplomatic_state(nation, neighbour) in (
                 "ALLIANCE", "DEFENSIVE_ALLIANCE"):
             continue
@@ -1957,6 +1991,33 @@ def _bandwagon_renege_spent(world, nation: str) -> bool:
     return False
 
 
+def a_bandwagoner_joins_a_neighbours_war() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): a bandwagoner
+    joins the stronger side only against a NEIGHBOUR of its own house. The
+    join took the first live AI-AI war in id order with a stronger side and
+    a disliked enemy leader and asked nothing of reach or interest: on the
+    played board Prussia went to war with the Papal States. Prussia's own
+    hook was Hanover, at her door. Down: session G3's tree — any war."""
+    return True
+
+
+def bandwagon_in_reach(world, nation: str, enemy: str) -> bool:
+    """Is `enemy` a land neighbour of `nation`'s house (the court, its lord,
+    its clients — the houses compared by `_top_overlord`)? True with the
+    seam down."""
+    if not a_bandwagoner_joins_a_neighbours_war():
+        return True
+    house = str(world._top_overlord(nation) or nation)
+    target = str(world._top_overlord(enemy) or enemy)
+    for court in world.get_active_nations():
+        if str(world._top_overlord(court) or court) != house:
+            continue
+        for neighbour in world.get_neighbouring_nations(court):
+            if str(world._top_overlord(neighbour) or neighbour) == target:
+                return True
+    return False
+
+
 def process_bandwagon(world) -> List[Dict]:
     """The per-turn tick (world_state, after `process_war_council` so the
     council's fresh declarations are on the board, before the third-party
@@ -2009,6 +2070,8 @@ def _bandwagon_join(world, nation: str, events: List[Dict]) -> None:
         if not enemy or enemy == player or enemy not in active:
             continue
         if int(get_relation(world, nation, enemy)) >= 0:
+            continue
+        if not bandwagon_in_reach(world, nation, enemy):
             continue
         if not can_declare_war(world, nation, enemy).get("ok"):
             continue

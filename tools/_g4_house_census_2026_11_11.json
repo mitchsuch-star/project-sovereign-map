@@ -1,0 +1,1996 @@
+{
+ "_note": "T3-4 the terms \u2014 the census (aim peaces by both AI\u2013AI roads, P8-Aim letters France received, the debt) per seed, from the same digests as the signature record.",
+ "seeds": {
+  "austerlitz": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 7
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 9,
+     "phase": "stirring",
+     "turn": 31
+    },
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 16,
+     "phase": "risen",
+     "turn": 41
+    }
+   ],
+   "captures_outside_aim": 26,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 10
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 11
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Bavaria",
+     "consequence": "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 22
+    },
+    {
+     "accepter": "Spain",
+     "consequence": "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 23
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony signs at the last \u2014 Austria evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 27
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Saxony signs at the last \u2014 Russia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 28
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Bavaria, beaten (-30), sues for peace and Russia takes it on the held line; their side of the war ends while the greater war goes on. Russia evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 29
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-32), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia. Unheld homeland returns to its crown: Munich.",
+     "proposer": "Bavaria",
+     "turn": 30
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [
+    {
+     "aggressor": "Switzerland",
+     "guarantor": "Prussia",
+     "turn": 13,
+     "ward": "Bavaria"
+    }
+   ],
+   "last_refuges": [
+    {
+     "accepter": "Bavaria",
+     "consequence": "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 22
+    },
+    {
+     "accepter": "Spain",
+     "consequence": "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 23
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony signs at the last \u2014 Austria evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 27
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Saxony signs at the last \u2014 Russia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 28
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 9,
+     "turn": 31
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Munich"
+     ],
+     "question": "german_question",
+     "turn": 6
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 10
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Bavaria",
+     "holder": "",
+     "lost": "",
+     "outcome": "court_returned",
+     "seat": "Munich",
+     "turn": 30
+    }
+   ],
+   "signed_cessions": [],
+   "supply_losses": {
+    "Austria": 28399,
+    "Bavaria": 2423,
+    "Britain": 228,
+    "Denmark": 20087,
+    "France": 50093,
+    "Prussia": 31203,
+    "Russia": 9266,
+    "Sweden": 8677
+   }
+  },
+  "eylau": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 11,
+     "phase": "stirring",
+     "turn": 30
+    }
+   ],
+   "captures_outside_aim": 18,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 7
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 9
+    },
+    {
+     "by": "Spain",
+     "crown_of": "Sardinia",
+     "from": "Switzerland",
+     "region": "Savoy",
+     "turn": 22
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 866 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 11,
+     "turn": 30
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 7
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Hanover",
+     "holder": "Prussia",
+     "lost": "Hanover",
+     "outcome": "court_removed",
+     "seat": "Brunswick",
+     "turn": 22
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 866 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "supply_losses": {
+    "Austria": 28140,
+    "Bavaria": 678,
+    "Britain": 14815,
+    "France": 31976,
+    "Russia": 6079,
+    "Spain": 271,
+    "Sweden": 1691
+   }
+  },
+  "friedland": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 9,
+     "phase": "stirring",
+     "turn": 31
+    },
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 15,
+     "phase": "risen",
+     "turn": 38
+    }
+   ],
+   "captures_outside_aim": 33,
+   "crown_grounds": [
+    {
+     "by": "Spain",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 25
+    },
+    {
+     "by": "Saxony",
+     "crown_of": "Saxony",
+     "from": "Prussia",
+     "region": "Posen",
+     "turn": 32
+    },
+    {
+     "by": "Prussia",
+     "crown_of": "Saxony",
+     "from": "Saxony",
+     "region": "Posen",
+     "turn": 34
+    },
+    {
+     "by": "Russia",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 39
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia. Her other wars go on.",
+     "proposer": "Bavaria",
+     "turn": 12
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 390 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    },
+    {
+     "accepter": "Spain",
+     "consequence": "Kingdom Of Italy signs at the last \u2014 Spain evacuates Piedmont. Her other wars go on.",
+     "proposer": "KingdomOfItaly",
+     "turn": 25
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 34
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia. Her other wars go on.",
+     "proposer": "Bavaria",
+     "turn": 12
+    },
+    {
+     "accepter": "Spain",
+     "consequence": "Kingdom Of Italy signs at the last \u2014 Spain evacuates Piedmont. Her other wars go on.",
+     "proposer": "KingdomOfItaly",
+     "turn": 25
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 34
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 9,
+     "turn": 31
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 7
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 10
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 12
+    },
+    {
+     "court": "Hanover",
+     "holder": "Prussia",
+     "lost": "Hanover",
+     "outcome": "court_removed",
+     "seat": "Brunswick",
+     "turn": 17
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia. Her other wars go on.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 12
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 390 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ],
+   "supply_losses": {
+    "Austria": 23737,
+    "Bavaria": 1258,
+    "France": 48219,
+    "Russia": 8962,
+    "Sweden": 30718
+   }
+  },
+  "historical": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 6,
+     "phase": "stirring",
+     "turn": 25
+    },
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 6,
+     "phase": "risen",
+     "turn": 32
+    },
+    {
+     "cause": "occupation",
+     "court": "Bavaria",
+     "direction": "up",
+     "occupied": 2,
+     "phase": "stirring",
+     "turn": 36
+    }
+   ],
+   "captures_outside_aim": 26,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 9
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 16
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,640 gold. Prussia evacuates Brunswick, Oldenburg and Osnabruck. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 16
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 30
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony signs at the last \u2014 Austria evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 31
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 39
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 30
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony signs at the last \u2014 Austria evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 31
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 39
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 6,
+     "turn": 25
+    },
+    {
+     "court": "Bavaria",
+     "direction": "raised",
+     "occupied": 2,
+     "turn": 36
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 9
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Hanover",
+     "holder": "Prussia",
+     "lost": "Hanover",
+     "outcome": "court_removed",
+     "seat": "Brunswick",
+     "turn": 16
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,640 gold. Prussia evacuates Brunswick, Oldenburg and Osnabruck. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ],
+   "supply_losses": {
+    "Austria": 38295,
+    "Bavaria": 697,
+    "France": 31539,
+    "Prussia": 2396,
+    "Russia": 6218,
+    "Spain": 844,
+    "Sweden": 2002
+   }
+  },
+  "jena": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 5,
+     "phase": "stirring",
+     "turn": 33
+    },
+    {
+     "cause": "occupation",
+     "court": "Bavaria",
+     "direction": "up",
+     "occupied": 2,
+     "phase": "stirring",
+     "turn": 36
+    }
+   ],
+   "captures_outside_aim": 22,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 7
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 9
+    },
+    {
+     "by": "Spain",
+     "crown_of": "Sardinia",
+     "from": "Switzerland",
+     "region": "Savoy",
+     "turn": 21
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,013 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 14
+    },
+    {
+     "accepter": "Naples",
+     "consequence": "Sardinia signs at the last \u2014 Naples evacuates Cagliari.",
+     "proposer": "Sardinia",
+     "turn": 17
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Switzerland signs at the last \u2014 Russia evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 25
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Switzerland signs at the last \u2014 Austria evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 28
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony signs at the last \u2014 Austria evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 31
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 31
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [
+    {
+     "aggressor": "Switzerland",
+     "guarantor": "Prussia",
+     "turn": 15,
+     "ward": "Bavaria"
+    }
+   ],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Naples",
+     "consequence": "Sardinia signs at the last \u2014 Naples evacuates Cagliari.",
+     "proposer": "Sardinia",
+     "turn": 17
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Switzerland signs at the last \u2014 Russia evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 25
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Switzerland signs at the last \u2014 Austria evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 28
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony signs at the last \u2014 Austria evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 31
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Saxony signs at the last \u2014 Prussia evacuates Dresden. Her other wars go on.",
+     "proposer": "Saxony",
+     "turn": 31
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 5,
+     "turn": 33
+    },
+    {
+     "court": "Bavaria",
+     "direction": "raised",
+     "occupied": 2,
+     "turn": 39
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 7
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Hanover",
+     "holder": "Prussia",
+     "lost": "Hanover",
+     "outcome": "court_removed",
+     "seat": "Brunswick",
+     "turn": 14
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,013 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 14
+    }
+   ],
+   "supply_losses": {
+    "Austria": 31178,
+    "Bavaria": 676,
+    "Britain": 1254,
+    "France": 59224,
+    "Russia": 18200,
+    "Spain": 71,
+    "Sweden": 7506
+   }
+  },
+  "lodi": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 7
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 12,
+     "phase": "stirring",
+     "turn": 25
+    },
+    {
+     "cause": "sovereign_captured",
+     "court": "France",
+     "direction": "up",
+     "occupied": 12,
+     "phase": "risen",
+     "turn": 35
+    }
+   ],
+   "captures_outside_aim": 33,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 10
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 11
+    },
+    {
+     "by": "Saxony",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 24
+    },
+    {
+     "by": "Hesse",
+     "crown_of": "Hesse",
+     "from": "Hanover",
+     "region": "Westphalia",
+     "turn": 25
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Bavaria",
+     "from": "Saxony",
+     "region": "Tyrol",
+     "turn": 31
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Hesse",
+     "consequence": "Hesse takes Westphalia. Hanover pays 2,290 gold. Hesse evacuates Brunswick, Oldenburg and Osnabruck. Their new ground touches our frontier.",
+     "proposer": "Hanover",
+     "turn": 26
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony evacuates Lithuania and Ukraine. Austria is now free to look elsewhere.",
+     "proposer": "Saxony",
+     "turn": 35
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-44), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia. Unheld homeland returns to its crown: Munich.",
+     "proposer": "Bavaria",
+     "turn": 40
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [
+    {
+     "aggressor": "Switzerland",
+     "guarantor": "Prussia",
+     "turn": 12,
+     "ward": "Bavaria"
+    }
+   ],
+   "last_refuges": [],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 12,
+     "turn": 25
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Munich"
+     ],
+     "question": "german_question",
+     "turn": 6
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 10
+    }
+   ],
+   "rank_promotions": [
+    {
+     "court": "Hesse",
+     "grounds": [
+      "Westphalia"
+     ],
+     "law": "the_grand_ducal_title",
+     "turn": 33
+    }
+   ],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Bavaria",
+     "holder": "",
+     "lost": "",
+     "outcome": "court_returned",
+     "seat": "Munich",
+     "turn": 40
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Hesse",
+     "consequence": "Hesse takes Westphalia. Hanover pays 2,290 gold. Hesse evacuates Brunswick, Oldenburg and Osnabruck. Their new ground touches our frontier.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 26
+    }
+   ],
+   "supply_losses": {
+    "Austria": 30128,
+    "Bavaria": 9150,
+    "Denmark": 20087,
+    "France": 38489,
+    "Prussia": 32246,
+    "Russia": 12084,
+    "Spain": 17788,
+    "Sweden": 8302,
+    "Switzerland": 262
+   }
+  },
+  "marengo": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 12,
+     "phase": "stirring",
+     "turn": 32
+    },
+    {
+     "cause": "occupation",
+     "court": "Bavaria",
+     "direction": "up",
+     "occupied": 2,
+     "phase": "stirring",
+     "turn": 36
+    },
+    {
+     "cause": "occupation",
+     "court": "Hanover",
+     "direction": "up",
+     "occupied": 2,
+     "phase": "stirring",
+     "turn": 39
+    }
+   ],
+   "captures_outside_aim": 36,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 21
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 22
+    },
+    {
+     "by": "Prussia",
+     "crown_of": "Hesse",
+     "from": "Hanover",
+     "region": "Westphalia",
+     "turn": 23
+    },
+    {
+     "by": "Hesse",
+     "crown_of": "Hesse",
+     "from": "Hanover",
+     "region": "Westphalia",
+     "turn": 25
+    },
+    {
+     "by": "Saxony",
+     "crown_of": "Saxony",
+     "from": "Prussia",
+     "region": "Posen",
+     "turn": 30
+    },
+    {
+     "by": "Saxony",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 35
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 15
+    },
+    {
+     "accepter": "Spain",
+     "consequence": "Both courts are spent; their side of the war ends while the greater war goes on. Britain evacuates Andalusia.",
+     "proposer": "Britain",
+     "turn": 16
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Hanover signs at the last \u2014 Prussia keeps Hanover by treaty; Prussia evacuates Brunswick, East Frisia, Oldenburg, Osnabruck and Westphalia. Her other wars go on.",
+     "proposer": "Hanover",
+     "turn": 24
+    },
+    {
+     "accepter": "Hesse",
+     "consequence": "Hesse takes Westphalia. Hanover pays 243 gold. Hesse evacuates Oldenburg and Osnabruck. Their new ground touches our frontier.",
+     "proposer": "Hanover",
+     "turn": 25
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony evacuates Bohemia, Carniola and Tyrol. Austria is now free to look elsewhere.",
+     "proposer": "Saxony",
+     "turn": 39
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Hanover signs at the last \u2014 Prussia keeps Hanover by treaty; Prussia evacuates Brunswick, East Frisia, Oldenburg, Osnabruck and Westphalia. Her other wars go on.",
+     "proposer": "Hanover",
+     "turn": 24
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 12,
+     "turn": 32
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 21
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Hanover",
+     "holder": "Prussia",
+     "lost": "Hanover",
+     "outcome": "court_removed",
+     "seat": "Brunswick",
+     "turn": 15
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 15
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Hanover signs at the last \u2014 Prussia keeps Hanover by treaty; Prussia evacuates Brunswick, East Frisia, Oldenburg, Osnabruck and Westphalia. Her other wars go on.",
+     "exit": "last_refuge",
+     "proposer": "Hanover",
+     "turn": 24
+    },
+    {
+     "accepter": "Hesse",
+     "consequence": "Hesse takes Westphalia. Hanover pays 243 gold. Hesse evacuates Oldenburg and Osnabruck. Their new ground touches our frontier.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 25
+    }
+   ],
+   "supply_losses": {
+    "Austria": 44929,
+    "Britain": 21511,
+    "France": 24863,
+    "Hesse": 41,
+    "Prussia": 5545,
+    "Russia": 9148,
+    "Saxony": 621,
+    "Spain": 31,
+    "Sweden": 29869
+   }
+  },
+  "rivoli": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 5,
+     "phase": "stirring",
+     "turn": 31
+    },
+    {
+     "cause": "occupation",
+     "court": "Bavaria",
+     "direction": "up",
+     "occupied": 1,
+     "phase": "stirring",
+     "turn": 36
+    },
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 6,
+     "phase": "risen",
+     "turn": 41
+    }
+   ],
+   "captures_outside_aim": 23,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 7
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 9
+    },
+    {
+     "by": "Spain",
+     "crown_of": "Sardinia",
+     "from": "Switzerland",
+     "region": "Savoy",
+     "turn": 21
+    },
+    {
+     "by": "Russia",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 32
+    },
+    {
+     "by": "Saxony",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 34
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Bavaria",
+     "from": "Saxony",
+     "region": "Tyrol",
+     "turn": 35
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,515 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 22
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Bavaria, beaten (-38), sues for peace and Russia takes it on the held line; their side of the war ends while the greater war goes on. Russia evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 40
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 5,
+     "turn": 31
+    },
+    {
+     "court": "Bavaria",
+     "direction": "raised",
+     "occupied": 1,
+     "turn": 36
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 7
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Hanover",
+     "holder": "Prussia",
+     "lost": "Hanover",
+     "outcome": "court_removed",
+     "seat": "Brunswick",
+     "turn": 22
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,515 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "supply_losses": {
+    "Austria": 29653,
+    "Bavaria": 10574,
+    "Britain": 26757,
+    "France": 51818,
+    "Russia": 11192,
+    "Saxony": 311,
+    "Spain": 6290,
+    "Sweden": 2601
+   }
+  },
+  "ulm": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 7
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 8,
+     "phase": "stirring",
+     "turn": 26
+    },
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 12,
+     "phase": "risen",
+     "turn": 36
+    },
+    {
+     "cause": "occupation",
+     "court": "Bavaria",
+     "direction": "up",
+     "occupied": 1,
+     "phase": "stirring",
+     "turn": 41
+    }
+   ],
+   "captures_outside_aim": 19,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 10
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Bavaria",
+     "consequence": "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 14
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [
+    {
+     "aggressor": "Switzerland",
+     "guarantor": "Prussia",
+     "turn": 12,
+     "ward": "Bavaria"
+    }
+   ],
+   "last_refuges": [
+    {
+     "accepter": "Bavaria",
+     "consequence": "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 14
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 8,
+     "turn": 26
+    },
+    {
+     "court": "Bavaria",
+     "direction": "raised",
+     "occupied": 1,
+     "turn": 41
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Munich"
+     ],
+     "question": "german_question",
+     "turn": 6
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 10
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    }
+   ],
+   "signed_cessions": [],
+   "supply_losses": {
+    "Austria": 35121,
+    "Bavaria": 1184,
+    "Britain": 728,
+    "France": 41929,
+    "Prussia": 32246,
+    "Russia": 16404,
+    "Sweden": 3380
+   }
+  },
+  "wagram": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    },
+    {
+     "against": "Austria",
+     "guarantor": "Spain",
+     "protected": "Ottoman",
+     "turn": 41
+    }
+   ],
+   "ally_cessions": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "awakened_rebellions": [],
+   "awakening_beats": [
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 18,
+     "phase": "stirring",
+     "turn": 25
+    },
+    {
+     "cause": "occupation",
+     "court": "France",
+     "direction": "up",
+     "occupied": 20,
+     "phase": "risen",
+     "turn": 35
+    },
+    {
+     "cause": "occupation",
+     "court": "Bavaria",
+     "direction": "up",
+     "occupied": 2,
+     "phase": "stirring",
+     "turn": 36
+    },
+    {
+     "cause": "home_rule",
+     "court": "Bavaria",
+     "direction": "down",
+     "occupied": 0,
+     "phase": "quiet",
+     "turn": 38
+    }
+   ],
+   "captures_outside_aim": 30,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 9
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 14
+    },
+    {
+     "by": "Saxony",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 34
+    }
+   ],
+   "crowns": [],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Naples",
+     "consequence": "Sardinia signs at the last \u2014 Naples evacuates Cagliari.",
+     "proposer": "Sardinia",
+     "turn": 15
+    },
+    {
+     "accepter": "Saxony",
+     "consequence": "Austria, beaten (-26), sues for peace and Saxony takes it on the held line; their side of the war ends while the greater war goes on. Saxony evacuates Bohemia, Carniola, Hungary, Moravia and Tyrol.",
+     "proposer": "Austria",
+     "turn": 36
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria evacuates Franconia and Munich; Russia evacuates Swabia. Her other wars go on.",
+     "proposer": "Bavaria",
+     "turn": 38
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [
+    {
+     "aggressor": "Switzerland",
+     "guarantor": "Prussia",
+     "turn": 11,
+     "ward": "Bavaria"
+    }
+   ],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Naples",
+     "consequence": "Sardinia signs at the last \u2014 Naples evacuates Cagliari.",
+     "proposer": "Sardinia",
+     "turn": 15
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria evacuates Franconia and Munich; Russia evacuates Swabia. Her other wars go on.",
+     "proposer": "Bavaria",
+     "turn": 38
+    }
+   ],
+   "levee_beats": [
+    {
+     "court": "France",
+     "direction": "raised",
+     "occupied": 18,
+     "turn": 25
+    },
+    {
+     "court": "Bavaria",
+     "direction": "raised",
+     "occupied": 2,
+     "turn": 36
+    },
+    {
+     "court": "Bavaria",
+     "direction": "stood_down",
+     "occupied": 0,
+     "turn": 38
+    }
+   ],
+   "lord_refuges": [],
+   "question_rulings": [],
+   "questions_turned": [
+    {
+     "court": "Austria",
+     "holds": [
+      "Swabia"
+     ],
+     "question": "german_question",
+     "turn": 2
+    },
+    {
+     "court": "Austria",
+     "holds": [
+      "Milan",
+      "Piedmont"
+     ],
+     "question": "italian_question",
+     "turn": 9
+    }
+   ],
+   "rank_promotions": [],
+   "recognitions": [],
+   "risen_revanche": [],
+   "seats": [
+    {
+     "court": "Bavaria",
+     "holder": "Austria",
+     "lost": "Munich",
+     "outcome": "court_removed",
+     "seat": "Franconia",
+     "turn": 6
+    },
+    {
+     "court": "Bavaria",
+     "holder": "",
+     "lost": "",
+     "outcome": "court_returned",
+     "seat": "Munich",
+     "turn": 38
+    }
+   ],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "supply_losses": {
+    "Austria": 29552,
+    "Bavaria": 690,
+    "France": 50244,
+    "Prussia": 33573,
+    "Russia": 10596,
+    "Sweden": 2750
+   }
+  }
+ },
+ "totals": {
+  "aim_letters": 0,
+  "aim_peaces": 0,
+  "alarm_guarantees": 10,
+  "ally_cessions": 0,
+  "annexations_outside_aim": 0,
+  "awakened_rebellions": 0,
+  "awakening_beats": 25,
+  "captures_outside_aim": 266,
+  "crowns_erected": 0,
+  "evacuations": 44,
+  "grounds_lapses": 0,
+  "guarantees_honoured": 5,
+  "guards_armed": 0,
+  "last_refuges": 25,
+  "levees_raised": 15,
+  "lord_refuges": 0,
+  "question_rulings": 0,
+  "questions_turned": 24,
+  "rank_promotions": 1,
+  "recognitions": 0,
+  "risen_revanche": 0,
+  "seats_removed": 16,
+  "seats_returned": 3,
+  "signed_cessions": 16,
+  "supply_losses": 1249707
+ },
+ "turns": 40
+}

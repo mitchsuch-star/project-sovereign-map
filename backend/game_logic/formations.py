@@ -123,7 +123,95 @@ def get_forms_block(entry: dict) -> Optional[dict]:
         # wound ("The Polish Question"). Empty = the panel's generic
         # formation label; only meaningful beside a non-empty `aggrieved`.
         "grudge_label": str(forms.get("grudge_label") or "").strip(),
+        # Session G4: the authored proclamation bar — the count of listed
+        # provinces a free court must HOLD to proclaim (0 = the whole list).
+        "at": _clean_bar(forms.get("at")),
     }
+
+
+def _clean_bar(raw: Any) -> int:
+    """A `forms.at` as authored: a positive int, else 0 (the whole list).
+    A bool is no count."""
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return 0
+    return int(raw) if raw > 0 else 0
+
+
+FORMS_AUTHORED_KEYS = ("at", "first")
+
+
+def backfill_forms(world, scenario_data: Mapping[str, Any]) -> int:
+    """Session G4: a campaign saved before the proclamation bar carries its
+    decks as they were authored THEN (the deck rides the save). On load the
+    scenario's `forms.at` / `forms.first` are copied onto the matching deck
+    entry (nation + id) where the saved block lacks them — never over a
+    value the save holds. Returns the keys written (the
+    `_backfill_crowns` idiom's sibling for authored deck keys)."""
+    import copy
+    authored = (scenario_data or {}).get("agendas") or {}
+    written = 0
+    for nation, deck in (getattr(world, "agendas", {}) or {}).items():
+        source = {str(e.get("id")): e for e in (authored.get(nation) or []) if isinstance(e, dict)}
+        for entry in deck or []:
+            forms = entry.get("forms") if isinstance(entry, dict) else None
+            theirs = (source.get(str(entry.get("id"))) or {}).get("forms") if isinstance(forms, dict) else None
+            if not isinstance(theirs, dict):
+                continue
+            for key in FORMS_AUTHORED_KEYS:
+                if key in theirs and key not in forms:
+                    forms[key] = copy.deepcopy(theirs[key])
+                    written += 1
+    if written:
+        world._agenda_cache = None
+        world._intent_cache = None
+    return written
+
+
+def a_nation_is_proclaimed_on_what_it_holds() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026 — the user's
+    "evaluate options choose the best"): a nation is proclaimed on the
+    provinces it HOLDS (itself or its own clients — the watch marker's own
+    count), at the forms block's authored bar (`at`; absent = the whole
+    list). The poll read `agendas.entry_satisfied`, whose acquire arm calls
+    a target met when it sits in an ALLY's bloc: on session G2's tree a
+    freed Kingdom of Italy proclaimed ITALY with two of its five provinces
+    in hand — Rome, Naples and Savoy "gathered" by two pacts — while its own
+    marker read "2 of 5 provinces held". The bar is the 1861 shape: Italy
+    was proclaimed without Rome or Venice, and the unredeemed stayed its
+    claims (the forming design stays the court's live want until the whole
+    list is held). Down: `entry_satisfied` and the whole list."""
+    return True
+
+
+def proclamation_bar(entry: dict, forms: Optional[dict] = None) -> int:
+    """How many of `entry`'s listed provinces a free court must hold to
+    proclaim: the authored `at` (never more than the list), else the whole
+    list — and the whole list with the seam down."""
+    listed = len([r for r in ((entry or {}).get("regions") or []) if r])
+    block = forms if isinstance(forms, dict) else get_forms_block(entry)
+    at = int((block or {}).get("at", 0) or 0)
+    if not a_nation_is_proclaimed_on_what_it_holds() or at <= 0:
+        return int(listed)
+    return int(min(at, listed))
+
+
+def held_provinces(world, nation: str, entry: dict) -> List[str]:
+    """The listed provinces `nation` or a court in its vassal chain holds —
+    the ONE count of the watch marker and the proclamation."""
+    from backend.game_logic.agendas import _controlled_by_self_or_vassal
+    return [str(r) for r in ((entry or {}).get("regions") or [])
+            if r and _controlled_by_self_or_vassal(world, nation, str(r))]
+
+
+def proclamation_due(world, nation: str, entry: dict, forms: dict) -> bool:
+    """Does `entry` proclaim now? An acquire design on possession against
+    its bar; any other formable type (and the seam down) on
+    `entry_satisfied`, as before."""
+    if (a_nation_is_proclaimed_on_what_it_holds()
+            and str(entry.get("type") or "") == "acquire_regions"):
+        bar = proclamation_bar(entry, forms)
+        return bar > 0 and len(held_provinces(world, nation, entry)) >= bar
+    return bool(entry_satisfied(world, nation, entry))
 
 
 def _deck(world, nation: str) -> List[dict]:
@@ -421,22 +509,27 @@ def get_formation_watch(world, nation: str) -> Optional[dict]:
     record = get_formation_record(world, nation)
     if record is not None and not _is_creation_record(record):
         return None
-    from backend.game_logic.agendas import _controlled_by_self_or_vassal
     for entry in _deck(world, nation):
         forms = get_forms_block(entry)
         if forms is None:
             continue
         regions = [str(r) for r in (entry.get("regions") or [])]
-        held = [r for r in regions
-                if _controlled_by_self_or_vassal(world, nation, r)]
+        held = held_provinces(world, nation, entry)
+        # Session G4: the bar the proclamation reads (`at` == `required`
+        # where none is authored, and with the seam down).
+        bar = proclamation_bar(entry, forms)
+        progress = format_progress(len(held), len(regions))
+        if progress and 0 < bar < len(regions):
+            progress = f"{progress} — {bar} proclaim it"
         return {
             "forms": forms["display_name"],
             "flag": forms["flag"],
             "entry_id": str(entry.get("id") or ""),
             "held": int(len(held)),
             "required": int(len(regions)),
+            "at": int(bar),
             "blocked_by_vassalage": bool(_is_vassal(world, nation)),
-            "progress": format_progress(len(held), len(regions)),
+            "progress": progress,
         }
     return None
 
@@ -518,6 +611,17 @@ def _post_formation_agenda_title(world, nation: str) -> str:
     return view.title if view is not None else ""
 
 
+def _unredeemed(world, nation: str, entry: dict) -> List[str]:
+    """The listed provinces a freshly proclaimed nation does NOT hold —
+    its standing claims. [] with the seam down (the whole list was the bar)
+    and for any formable type but an acquire design."""
+    if (not a_nation_is_proclaimed_on_what_it_holds()
+            or str((entry or {}).get("type") or "") != "acquire_regions"):
+        return []
+    held = set(held_provinces(world, nation, entry))
+    return [str(r) for r in (entry.get("regions") or []) if r and str(r) not in held]
+
+
 def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
     """The moment (§11.8 stages 1-3). Idempotence is the caller's latch
     check plus the record write that happens FIRST here."""
@@ -588,6 +692,9 @@ def _proclaim(world, nation: str, entry: dict, forms: dict) -> dict:
         "aggrieved": struck,
         "aggrieved_display": [display_nation(p) for p in struck],
         "next_design": next_design,
+        # Session G4: a nation proclaimed at its bar still claims the rest
+        # of its list (the 1861 shape) — the card and the beat name them.
+        "unredeemed": _unredeemed(world, nation, entry),
         "gold": int(rewards["gold"]),
         "stability_bonus": int(FORMATION_STABILITY_BONUS),
         "regions_lifted": int(rewards["regions_lifted"]),
@@ -636,6 +743,9 @@ def build_proclamation_card(world, payload: dict) -> dict:
         lines.append(
             f"its provinces exult (+{int(payload['stability_bonus'])} "
             f"stability in {int(payload['regions_lifted'])} provinces)")
+    unredeemed = [str(r) for r in (payload.get("unredeemed") or []) if r]
+    if unredeemed:
+        lines.append(f"it still claims {_and_list(unredeemed)}")
     fury = ""
     if payload.get("aggrieved_display"):
         courts = " and ".join(payload["aggrieved_display"])
@@ -783,7 +893,7 @@ def process_formations(world) -> List[Dict]:
             forms = get_forms_block(entry)
             if forms is None:
                 continue
-            if not entry_satisfied(world, nation, entry):
+            if not proclamation_due(world, nation, entry, forms):
                 continue
             proclamations.append(_proclaim(world, nation, entry, forms))
             break               # one formation per nation per pass
@@ -1658,11 +1768,13 @@ def build_formables_payload(world) -> dict:
             continue
         holder_display = formed_display_name(world, nation)
         required = int(watch["required"])
+        bar = int(watch.get("at", required) or required)   # session G4
         claim = ("its claimed province" if required == 1
-                 else f"all {required} of its claimed provinces")
+                 else f"all {required} of its claimed provinces" if bar >= required
+                 else f"{bar} of its {required} claimed provinces")
         terms = [{
             "text": f"forms when a free {holder_display} holds {claim}",
-            "met": int(watch["held"]) >= required,
+            "met": int(watch["held"]) >= bar,
         }]
         if watch["blocked_by_vassalage"]:
             lord = str(((getattr(world, "vassals", {}) or {})

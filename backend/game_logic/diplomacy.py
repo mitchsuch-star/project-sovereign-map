@@ -12113,6 +12113,35 @@ def _enter_offensive_war(
     }
 
 
+def a_client_joins_no_war_against_a_house_at_peace() -> bool:
+    """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026 — the DD-1 treaty
+    fuzzer's catch): a client called to its lord's DEFENCE does not join
+    against an aggressor that answers to a lord the client itself stands at
+    peace with. Switzerland boots at peace with Britain while France fights
+    her (the Act of Mediation's neutrality); on the fuzzed board a court
+    France had subjugated defected to Britain, went to war with France as
+    Britain's client — and Switzerland auto-joined against it, leaving a
+    client at war with a court its own lord was at peace with (the fuzzer's
+    I2, a class the ledger has held at zero since S7). A client's wars are
+    its lord's, the aggressor's as much as the defender's. Down: session
+    G3's tree — every client of the attacked lord joins."""
+    return True
+
+
+def client_keeps_its_peace_with_the_house(world, joiner: str, aggressor: str) -> bool:
+    """Does `aggressor` answer to a FOREIGN lord `joiner` is not at war
+    with? False for a free aggressor, for a rebel of the joiner's own house
+    (a client rising against its lord still carries his row while the
+    cascade runs — the lord's other clients march against it as before),
+    and with the seam down."""
+    if not a_client_joins_no_war_against_a_house_at_peace():
+        return False
+    house = str(world._top_overlord(aggressor) or aggressor)
+    own = str(world._top_overlord(joiner) or joiner)
+    return bool(house and house != str(aggressor) and house != own
+                and not world.is_at_war(joiner, house))
+
+
 def _process_war_cascade(
     world,
     aggressor: str,
@@ -12569,6 +12598,8 @@ def _process_war_cascade(
                     continue
 
         if lord == target and not world.is_at_war(vassal_nation, aggressor):
+            if client_keeps_its_peace_with_the_house(world, vassal_nation, aggressor):
+                continue    # session G4: her peace with the aggressor's lord holds
             attach_result = _attach_cascade_pair(aggressor, vassal_nation, "vassal_defensive_auto_join")
             if not attach_result.get("ok"):
                 continue
@@ -16747,7 +16778,7 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
                               "us — a bribe, not a purchase.")
         else:
             sponsor_detail = (f"Aim their court at {aim_display} — gold "
-                              f"flows, the compact binds both ends (§3.3).")
+                              f"flows, the compact binds both ends.")
             # S14G-10: and the war it licenses has a price - the quote's own
             # sentence (`instruments.licensed_war_cost_clause`), on the chip too
             if aim:
