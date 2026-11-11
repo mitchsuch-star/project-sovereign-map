@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R the tiers 0–6 and 8 ✅ Nov 10 (§201–§206), next G the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G ✅ Nov 11 (§207); next H the deploy**.
 
-**▶ LIVE STATE (Nov 10, 2026).** The three most recent rows:
-- **Session F (Nov 10) — DY-7 Recognition; TIER 8 COMPLETE; Tier 7 not built (10/10)** (§206).
-- **Session E (Nov 10) — Tier 8's gate; DY-6 the crown erected, the marshal king** (§205).
-- **Session D (Nov 10) — DY-5 the levée, the dial; TIER 6 COMPLETE** (§204).
+**▶ LIVE STATE (Nov 11, 2026).** The three most recent rows:
+- **Session G (Nov 11) — the gate earned: no pact with the coveted; the chest** (§207).
+- **Session F (Nov 10) — DY-7 Recognition; TIER 8 COMPLETE; Tier 7 not built** (§206).
+- **Session E (Nov 10) — Tier 8's gate; DY-6 the crown, the marshal king** (§205).
 
-**Open with the user:** the deploy gate's clauses 2–3 (`DYNAMISM_SPEC.md` §7, no default), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** session G's four readings (`DYNAMISM_SPEC.md` §7a), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

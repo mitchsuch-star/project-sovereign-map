@@ -1431,6 +1431,18 @@ def _court_dp_after(world, nation: str, authority_after: int) -> int:
     return int(calculate_dp(diplomat, int(authority_after), holds))
 
 
+def a_crown_is_bought_with_the_whole_chest() -> bool:
+    """Session G — the gate earned (DYNAMISM_SPEC.md §7a, November 11, 2026):
+    the AI's purse bar for a PROMOTION law (`is_promotion` — the five crowns
+    of 1806) is the price and any arrears alone — no `AI_PURSE_RESERVE`, no
+    five turns' upkeep: Bavaria paid for its crown with everything it had. A
+    minor booting at 800 and netting ~150 a turn reached the 4,500 bar near
+    turn 36 and the price near turn 26 (measured, Hesse after Emil's 2,500).
+    Every other law keeps the reserve; the Net test stands; the player's and
+    the AI's shared gate `law_refusal` is untouched. Down: 4,500."""
+    return True
+
+
 def ai_reads_net_before_charges() -> bool:
     """S14j (the economy rebalance, October 27, 2026): the AI's purse reads the
     Net BEFORE the Charges of Empire, the player's counsel's rule (EA-18).
@@ -1453,6 +1465,8 @@ def _purse_bar(world, nation: str, row: Dict, quote: Optional[Dict] = None) -> i
     if quote is None:
         quote = restoration_price(world, nation, row)
     need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
+    if a_crown_is_bought_with_the_whole_chest() and is_promotion(row):
+        return need    # session G: a crown is bought with the whole chest
     upkeep = int(row.get("upkeep", 0) or 0)
     return need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (
         law_upkeep_bill(world, nation) + upkeep)

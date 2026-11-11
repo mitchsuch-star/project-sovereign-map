@@ -1184,4 +1184,7 @@ class TestThePatientAsk:
                     if (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name)
                             and sub.func.id == "design_ask_patience_holds"):
                         callers.add(node.name)
-        assert callers == {"_evaluate_ai_ai_proposal"}, callers
+        # Session G (November 11, 2026): the poll's body is `_evaluate_ai_ai_
+        # triggers`, wrapped by `_evaluate_ai_ai_proposal` (the pact gate) —
+        # the patience's one reader moved with the body, still off the player road.
+        assert callers == {"_evaluate_ai_ai_triggers"}, callers

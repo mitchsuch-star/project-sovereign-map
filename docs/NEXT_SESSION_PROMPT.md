@@ -1,62 +1,64 @@
-# NEXT SESSION PROMPT — Session G: S15 the deploy — the user's own walk, the gate's reading first (ONE session)
+# NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 10, 2026 — SESSION F ✅ LANDED:
-> DY-7 RECOGNITION BUILT, TIER 8 COMPLETE, TIER 7 EVALUATED AND NOT BUILT** (`DYNAMISM_SPEC.md` §6c the landing
-> record, §7 the gate's reading, §2 the tier rows, §2b session F, §8 row DY-7; `SYSTEMS_REFERENCE.md` §206;
-> `tests/test_dy7_recognition.py`, 43 pins; the seams T8-RECOG / T8-PRICE in `tests/_t3_seams.py`; ONE sweep with
-> three arms (0 / RECOG / ALL) on three surfaces, the series re-read, ONE commit). Nothing new was ruled at the head —
-> the shape §6a Q4's, the numbers N-DY7 tuneable.
-> **DY-7 as built** (`crowns.py`'s DY-7 section): **the legitimists withhold** — `until: "beaten"` read at the THREE
-> signed roads (`settlement_ratify._record_common_peace_treaties` per pair, the bilateral `_ratify_titles_and_
-> elimination` after the carve, the dictated truce exit): a legitimist that signs a peace as the LOSER with the HOUSE of
-> a crown's lord recognizes it (`note_peace_signed`; the loser by burden — `peace_loser` → `burden_on_nation`; a white
-> peace beats nobody); `recognized_by` the record. **The Congress grants** (`congress_grants` beside
-> `questions.congress_rules`): the Emperor's crowns gain every withholding great power answering RECOGNIZES / GONE; the
-> last tick records REFUSES once a sitting (`recognition_refused`). **The beat** `recognition` (185 → 186; HIGH; the
-> words by seats — Vienna, Vilna, London). **An unrecognized crown pays** (GR5): `crown_recognition` −5 a crown capped
-> −15 on the settlement scorer (step 12d) and the bilateral formula; the LORD's trade with a withholding court halved
-> (`trade_loss` at `process_trade_income`; the ledger's signed "Recognition" component, `NET_GOLD_COMPONENTS`, the
-> report, `strategic_ledger.gd`) — **the spec said the client's: a vassal pair trades nothing in this engine, so the
-> price sits on the house that raised the crown (a lever)**; the dial −2 → −3 (`dial_extra`, its own label). **The
-> words:** the nations tab's `crown` / `recognition` lines, the Vassals card's `crown_line`, Talleyrand's `counsel_line`
-> (`diplomatic_ledger.gd` renders "Crown:" / "Recognition:"). **Found on the way:** a carved client's dial read its own
-> empty Awakening row — `awakening.client_people_level` reads `carved_from`'s people (§5a C2's sibling, unseamed, pinned).
+> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G ✅ LANDED: THE GATE
+> EARNED** (`DYNAMISM_SPEC.md` §7a the landing record, §7 the gate's reading, §2b session G, §8 rows G-PACT / G-CHEST;
+> `SYSTEMS_REFERENCE.md` §207; `tests/test_session_g_the_gate_earned.py`, 19 pins; the seams G-PACT / G-CHEST in
+> `tests/_t3_seams.py`; ONE sweep with three arms (0 / PACT / ALL) on three surfaces, the series re-read, ONE commit;
+> drafted in Plan Mode and approved). The user's word at session F's close: **"Earn them first."**
+> **As built:** **no pact with the coveted** (`ai_diplomacy.no_pact_with_the_coveted`; `pact_with_the_coveted` the one
+> read; `_evaluate_ai_ai_proposal` wraps `_evaluate_ai_ai_triggers`, `_resolve_ai_ai_proposal` refuses with `reason:
+> covets`) — the defect that defused the cast Naples' Roman Expedition at turn 3 (jena, wagram) and Hesse's Westphalian
+> Duchy at turn 16 (marengo): an AI court allied the very court whose province it coveted and the ally clause read the
+> want as "won". **A crown is bought with the whole chest** (`reforms.a_crown_is_bought_with_the_whole_chest`;
+> `_purse_bar` returns the price for `is_promotion` rows; every other law keeps the reserve).
+> **The measure (`tools/_gate_measure.py`, `_gate_series_arms.py`; the pins `TestTheSessionGMeasure`):** arm 0
+> reproduces session F byte for byte on both surfaces; PACT alone moves jena / lodi / marengo / wagram and earns both
+> clauses — **lodi: Hesse's Grand Ducal Title at 33** (Westphalia 25, the aim peace 26); **wagram: the Papal States
+> erased at 31** by the cast Naples (the crisis 27, the declaration 29, Rome stormed 30–31), then her war runs on to
+> Sardinia and Austria; marengo: Hesse holds Westphalia from 25 under the old bar; jena: Austria's pact with the Pope at
+> 23 deters Naples. ALL adds **marengo's crown at 40**. Classes 10 of 10 on every arm; the band 28 / 27 / 26 → **28 /
+> 27 / 25**; the harness moves six seeds, promotes nobody; the series unmoved (the pact seam biting 105 times on the rig).
+> **THE DEPLOY GATE READS MET IN FULL (§7): classes 10 ≥ 6; a minor at secondary rank by promotion on two seeds; the
+> roster in two readings; `annexations_outside_aim` 0 on both surfaces; the band inside 23–28; 0 open GR rows.**
 >
-> > **The measure (`tools/_t8b_measure.py`, `_t8b_series_arms.py`; the pins `TestTheSessionFMeasure`):** arm 0
-> reproduces session E byte for byte on both surfaces; the band 28 / 27 / 26 and story classes 10 of 10 on every arm;
-> the series unmoved with the price's seam read on the rig (8,256 table reads a run). **No measured arm erects a crown
-> (session E's reading stands), so nothing is recognized and no price bites on any arm — the recognitions column 0
-> everywhere, the three arms byte-identical; the teeth proved on the crafted boards.** **Tier 7 evaluated: 10 of 10 →
-> NOT built. THE DEPLOY GATE'S CLAUSES 2 AND 3 ARE UNMET ON EVERY RECORD SINCE TIER 4 AND ARE THE USER'S QUESTION,
-> NO DEFAULT** (§7): no `rank_promotion` on any seed; the Kingdom of Italy alone on all ten, no formation.
->
-> **What session F leaves with the user (the first blocks the deploy's READING, nothing blocks its build):**
-> (a) **the gate's clauses 2 and 3** — deploy with the gate read as it stands, or earn them by content first (§4a's
-> second great-power war; §6b's (a) the AI road's ambient silence; the promotion crowns' six-turn hold,
-> `SYSTEMS_REFERENCE.md` §201; the levée's reach, §5b) — no default; (b) **the trade price's seat** — the lord's rows
-> (built, the only rows a crown's trade price can reach) or struck; (c) **N-DY7** — −5 a crown, the cap −15, the trade
-> factor 0.5, the dial's −1; (d) **the Congress's grant** — the courts that answer RECOGNIZES (built) or every sitting
-> great power whatever its answer; (e) session E's four, session D's three and session C's five stand.
+> **What session G leaves with the user (none blocks the deploy):** (a) **the understudy's reach** — a Naples at war
+> with Austria has no authored aim against her, so the conduct rule leaves her free to plunder Piedmont, Lyonnais and
+> Limousin from Austria's hands (`captures_outside_aim` 251 → 269): a reading on a court at war without an aim;
+> (b) **the chest's number** — the price alone (built), or a half-reserve; (c) **the commanded middle arm** 26 → 25;
+> (d) **jena's Pope under Vienna's wing** — the deterrence working, or an understudy's ask-ladder one refusal short
+> (`REFUSAL_MEMORY_TURNS`); (e) session F's three, session E's four, session D's three and session C's five stand.
 
-**NOW — SESSION G (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate's
-reading is the user's** — put clauses 2 and 3 to them in one line with the levers above and build nothing until they
-answer (deploy as read / earn the clauses first — a content slice would be its own session, measured once with arms,
-before G resumes); **(2) the gate checks** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
-0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`), story classes ≥ 6 (10 — `_dy_signature_t8b_
-2026_11_10.json`), `annexations_outside_aim` 0 on both surfaces (the t8b census and chain D), the France band 23–28
-(28 / 27 / 26 — `_t8b_band_2026_11_10.json`), the historian test green on every seed (the sweep's own pin), the
-ratchet (`tests/test_code_health_ratchet.py`), the parse harness green; **(3) the build** — `deploy\build.bat`,
-UNSIGNED until the certificate arrives (`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing
-on this machine — no signtool, no certificate in either store; the day it arrives, `INK_IRON_SIGNTOOL_ARGS` /
-`SIGNTOOL` and the same script); **(4) the clean-environment run** (a fresh clone, the venv from `requirements`, the
-hook installed with `Copy-Item scripts/git-hooks/pre-commit .git/hooks/pre-commit`, the backend as `-m backend.main`,
-the client from the export, one forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`); **(5) the release
-record** (the commit SHA, the gate's five readings with their record files, the certificate's state, the user's walk's
-notes — `SYSTEMS_REFERENCE.md` §207, `STATUS.md`). **After the deploy** (`PRE_DEPLOY_PLAN.md` §2; no cuts without
-consent, spec §0): S14k-3 (Spain alone), S16, S17c.
+**NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate
+checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
+0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
+(`_dy_signature_gate_2026_11_11.json`); a minor at secondary rank by promotion on ≥ 1 seed — lodi 33, marengo 40
+(`_gate_census_2026_11_11.json` `rank_promotions`); the roster varying — wagram's {Kingdom of Italy, Papal States}
+against {Kingdom of Italy} (the signature's `eliminations`); `annexations_outside_aim` 0 on both surfaces (the gate
+census and `_gate_chain_d_2026_11_11.json`); the France band 23–28 — 28 / 27 / 25 (`_gate_band_2026_11_11.json`);
+the historian test green on every seed (the suite's pins); the ratchet (`tests/test_code_health_ratchet.py`); the
+parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until the certificate arrives
+(`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing on this machine — no signtool, no
+certificate in either store; the day it arrives, `INK_IRON_SIGNTOOL_ARGS` / `SIGNTOOL` and the same script);
+**(3) the clean-environment run** (a fresh clone, the venv from `requirements`, the hook installed with `Copy-Item
+scripts/git-hooks/pre-commit .git/hooks/pre-commit`, the backend as `-m backend.main`, the client from the export, one
+forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`); **(4) the release record** (the commit SHA, the gate's
+readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §208,
+`STATUS.md`). **After the deploy** (`PRE_DEPLOY_PLAN.md` §2; no cuts without consent, spec §0): S14k-3 (Spain alone),
+S16, S17c.
 
-**The commit:** session G's commits are the user's walk's — the release record and any gate fix each its own commit
-through the hook (about 8.5 minutes; never `--no-verify`); push only on the user's word.
+**The commit:** session H's commits are the user's walk's — the release record and any gate fix each its own commit
+through the hook (about 10 minutes; never `--no-verify`); push only on the user's word.
+
+**Session G's own traps (fresh):** the AI–AI poll's body is `_evaluate_ai_ai_triggers` — a gate on its outcomes wraps
+it, never sits inside it (0a's alignment arm must still exclude the obstacle, the design ask must still pass);
+`get_agenda_covets` already excludes an ALLY's soil, so `pact_with_the_coveted` reads the live deck and never undoes a
+pact already standing; a `crisis_passed` with `cause: satisfied` after a treaty is the ally clause speaking — check
+the pair's state before believing the want was won; `spawn_run(seed, 10000, 40)` from `tools.ai_v_sweep` gives a
+seed's whole story in five seconds — the digest's `intents` (per court: design, against, weight, rung) and
+`wars_opened` rows are the diagnosis; the census's `signed_cessions` consequence lines carry the indemnity ("Hanover
+pays 243 gold"); `test_sf_lb2`'s caller census names the poll's body by function name; the Awakening's beats move
+when a people's court is erased (the Pope's gone with Rome); CLAUDE.md sat at 61,988 LF bytes after this session's
+trims (12 bytes of headroom — the next row trims first); STATUS holds 7 "▶ ▶ ▶" entries (session A archived).
 
 **Session F's own traps (fresh):** a `gold` clause prices ZERO burden — the dialect's names are `gold_lump` (bilateral)
 and `gold_indemnity` (settlement), `territory_cede` with `regions`; Russia's seat on the drawn map is **Vilna** (the
@@ -93,7 +95,7 @@ measure's four arms with ten harness seeds each ran 28 minutes alone, the series
 copies (`git show 90bada87:docs/NEXT_SESSION_PROMPT.md` for session D's, `git show 2589f3c1:docs/NEXT_SESSION_PROMPT.md`
 for session C's, `git show 93f82fb2:docs/NEXT_SESSION_PROMPT.md` for the earlier), every one still binding.
 
-**Open with the user beyond session G's head (the gate's clauses block the deploy's reading, nothing else):** session F's three levers above; session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
+**Open with the user beyond session H's head (none blocks the deploy):** session G's four readings above; session F's three levers (`DYNAMISM_SPEC.md` §6c); session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
 (the letter's floor; the levée's reach; the dial's ambient road); session C's five (the march does not visibly bleed
 — the ulcer's teeth; the letters' seat at the desk; the bands' pace; the raised gate's clauses 2 and 3; the pacing
 record's drift); session B's three (the envy's cap at the coerce floor too; the crowns after the gift; no second
@@ -103,7 +105,7 @@ the road record's readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three
 the crown term's level; SF-NAV-1-D1; Britain's letter without contact; the hook's remaining levers; `test_ep_f4`'s
 flake; the two hash-seed orderings with no reader yet checked.
 
-**After session G — the session plan (`docs/DYNAMISM_SPEC.md` §2b; no cuts without consent, spec §0):** the deploy
+**After session H — the session plan (`docs/DYNAMISM_SPEC.md` §2b; no cuts without consent, spec §0):** the deploy
 is the last session of the plan. **After the deploy:** S14k-3 (Spain alone), S16, S17c (`PRE_DEPLOY_PLAN.md` §2).
 
 **Traps the rows have paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231

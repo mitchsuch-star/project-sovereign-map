@@ -5514,6 +5514,26 @@ def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
             return event
         return None
 
+    # Session G: a court swears no alliance with the court it covets — the
+    # recipient-addressed road's guard (the poll is gated at the evaluation).
+    # The coveted court declines a coveter's hand; a covetous court will not
+    # swear to defend what it means to take. One refusal event, no cooldown.
+    if ptype in _PACT_TYPES:
+        covetous = pact_with_the_coveted(world, initiator, target)
+        if covetous:
+            event = {
+                "type": "ai_ai_proposal_refused",
+                "proposer": initiator,
+                "recipient": target,
+                "refused_by": target,
+                "proposal_type": ptype,
+                "reason": "covets",
+                "covetous": covetous,
+                "turn": int(world.current_turn),
+            }
+            world.log_event(event)
+            return event
+
     scored = {"type": ptype, "proposer": initiator, "target": target}
 
     acceptance_a = _ai_ai_acceptance(scored, initiator, target, world)
@@ -5605,7 +5625,56 @@ def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
     return None
 
 
+_PACT_TYPES = ("defensive_alliance", "alliance")
+
+
+def no_pact_with_the_coveted() -> bool:
+    """Session G — the gate earned (DYNAMISM_SPEC.md §7a, November 11, 2026):
+    a court swears no DEFENSIVE ALLIANCE or ALLIANCE with the court whose
+    province its live acquire design covets, in either direction. Measured
+    on the shipped tree before the rule: the cast Naples signed a defensive
+    alliance with the Pope at turn 3 on both of her seeds (jena, wagram) and
+    Hanover signed one with Hesse at turn 16 on marengo, one turn after
+    Hesse's final demand — the ally clause then read the coveted province
+    as not coveted, the design read SATISFIED and the crisis passed with the
+    words "the want is won" (false). A NAP is untouched (the breach machinery
+    prices it). Down: today's tree — the pact signs and the ambition sleeps."""
+    return True
+
+
+def pact_with_the_coveted(world, a: str, b: str) -> str:
+    """The court among `a` and `b` whose LIVE acquire design covets a
+    province of the other's house (`agendas.get_agenda_covets` — the active
+    design's unmet targets; the holder's top overlord), or '' — the one
+    read of the poll's gate and the road's guard. Two deck reads, a
+    handful of provinces; '' with the seam down."""
+    if not no_pact_with_the_coveted() or not a or not b or a == b:
+        return ""
+    from backend.game_logic.agendas import get_agenda_covets
+    regions = getattr(world, "regions", {}) or {}
+    for court, other in ((str(a), str(b)), (str(b), str(a))):
+        for region_name in get_agenda_covets(court, world):
+            region = regions.get(region_name)
+            holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+            if holder and other in (holder, str(world._top_overlord(holder) or holder)):
+                return court    # the holder itself, or the house it serves
+    return ""
+
+
 def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Dict]:
+    """The pair's proposal this turn, or None: the triggers below
+    (`_evaluate_ai_ai_triggers`), then session G's gate — a pact (a
+    defensive alliance or an alliance) is never proposed between a coveter
+    and the coveted (`pact_with_the_coveted`); every other outcome passes
+    through untouched."""
+    proposal = _evaluate_ai_ai_triggers(nation_a, nation_b, world)
+    if (proposal and str(proposal.get("type") or "") in _PACT_TYPES
+            and pact_with_the_coveted(world, nation_a, nation_b)):
+        return None
+    return proposal
+
+
+def _evaluate_ai_ai_triggers(nation_a: str, nation_b: str, world) -> Optional[Dict]:
     """Evaluate if two AI nations should propose to each other.
 
     Trigger conditions (per the spec):

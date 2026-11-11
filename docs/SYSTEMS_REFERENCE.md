@@ -15651,3 +15651,87 @@ an explicit question with NO default (§0's standing rule), beside session G the
 **Levers for the user, none pre-recommended:** (a) the trade price's seat (the lord's rows, or struck); (b) N-DY7 (−5 a
 crown, the cap −15, the trade factor 0.5, the dial's −1); (c) the Congress's grant — the courts that answer RECOGNIZES
 (built) or every sitting great power whatever its answer; (d) session E's four, session D's three, session C's five.
+
+## §207 Session G — the gate earned: no pact with the coveted, a crown bought with the whole chest (November 11, 2026)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session G, inserted by the user's word at session F's close — "Earn them
+first"; the landing record §7a; the gate's reading §7). Two rules behind their own zero-arg seams
+(`tests/_t3_seams.py` rows G-PACT, G-CHEST — the recorded boards' hold-list folds them), ONE sweep with three arms on
+three surfaces (`tools/_gate_measure.py`: 0 / PACT / ALL, stamped 2026_11_11), the standing series re-read
+(`tools/_gate_series_arms.py`), ONE commit. Tests: `tests/test_session_g_the_gate_earned.py` (19). Drafted in Plan
+Mode (two read-only explorations, four in-process probes) and approved before a line was written.
+
+**The diagnosis, so it is not re-derived.** On the unattended board France signs nothing, so the Third Coalition war
+never ends; `war_council._restraint_block_reason` returns `busy` for every belligerent court (a court at war opens no
+second design war), Austria holds her Italian aim and waits on an unanswered letter, and every built road to a
+formation or a promotion waits on that peace (T2-4's quiet window, T2-5's corridor, DY-1f's gift, Austria's Duchy of
+Milan — the Kingdom of Italy falls by capture, the player's client exempt from "sign at the last"). The understudies
+(T2-6: Saxony ×3, Bavaria ×2, Denmark ×2, Naples ×2 across the ten seeds) are the one road the idle France does not
+own; Denmark cannot beat a Sweden that recruits to 76,000, Saxony cannot beat Prussia, Sardinia has no army. Two
+things stood in the roads left: a coherence defect and a number.
+
+**G-PACT — a court swears no alliance with the court it covets** (seam `ai_diplomacy.no_pact_with_the_coveted`).
+`pact_with_the_coveted(world, a, b) -> str`: the court among `a` and `b` whose LIVE acquire design covets a province
+of the other — `agendas.get_agenda_covets(court, world)` (the active design's unmet targets; [] for a posture or a
+dormant deck) against each province's `controller` and that holder's `_top_overlord` (the holder itself, or the house
+it serves) — or '' (and '' with the seam down). **The poll's gate:** `_evaluate_ai_ai_proposal` is now a wrapper over
+`_evaluate_ai_ai_triggers` (the five triggers, 0a and the eclipse arm, byte-identical) that returns None when the
+proposal's type is `defensive_alliance` or `alliance` (`_PACT_TYPES`) and the pair is covetous; every other outcome
+(the design ask, a NAP, open borders, a gift) passes through. **The road's guard:** `_resolve_ai_ai_proposal` (the
+recipient-addressed `deliver_ai_proposal` reaches it) refuses a pact between a covetous pair with the existing
+`ai_ai_proposal_refused` event carrying `reason: "covets"` and `covetous: <court>` (`refused_by` the target — the
+coveted declines a coveter's hand, a covetous target will not swear to defend what it means to take); no cooldown,
+no design-refusal record (a refused pact is no refused ask). **Why it was wrong before:** `_held_by_an_allys_bloc`
+makes an ally's soil uncoveted (SF-LB-1, rightly — a two-holder design must not name an ally as the obstacle), so a
+pact with the coveted court silently satisfied the design: `crisis_passed cause: satisfied`, "the want is won". The
+cast Naples' Roman Expedition went to sleep at turn 3 on both her seeds; Hesse's Westphalian Duchy at turn 16 on
+marengo, the turn after her final demand. Seam down: the pact signs, the ambition sleeps.
+
+**G-CHEST — a crown is bought with the whole chest** (seam `reforms.a_crown_is_bought_with_the_whole_chest`).
+`_purse_bar` returns the price (and any arrears) alone for a promotion law (`is_promotion(row)` — the five crowns of
+1806: Bavaria's Royal Crown, Saxony's Royal Dignity, Hesse's Grand Ducal Title, Denmark's Both Shores of the Sound,
+Sardinia's Mainland Restored); every other law keeps `AI_PURSE_RESERVE` 1,000 + `AI_PURSE_UPKEEP_TURNS` 5 × the
+slate's upkeep. `ai_purse_refusal`'s Net test ("the forecast Net cannot carry 100 a turn") and the shared gate
+`law_refusal` (the grounds' six quiet turns, the price against the purse, the admin action) are untouched; the rung
+`find_ai_enactment` has no promotion arm (T4-3's "one rung, one predicate" stands). Seam down: 4,500.
+
+**The measure** (`tools/_gate_measure.py`; records `_dy_signature_gate_{control,pact,}_2026_11_11.json`, the three
+censuses, `_gate_chain_d_2026_11_11.json`, `_gate_band_2026_11_11.json`, `_gate_series_arms_final.json`; run alone).
+**Arm 0 reproduces session F byte for byte on both surfaces** (the ten signatures and the census's every total; the
+harness on F's keys). **Arm PACT moves four ambient seeds** — jena, lodi, marengo, wagram; six byte-identical —
+**and earns both clauses:** lodi — Hesse commissions her general, opens her crisis on Hanover, takes Westphalia (25),
+Hanover signs the aim peace (26: "Hesse takes Westphalia. Hanover pays 2,250 gold. Hesse evacuates Brunswick,
+Oldenburg and Osnabruck."), the treaty title's six quiet turns pass, **the Grand Ducal Title at 33** (`rank_promotion`,
+the first on any record); wagram — Naples asks the Pope at 4, 16 and 27, the crisis at 27 (coerce: the Pope is a
+defenceless prize), the demand at 28, the declaration at 29, Damas storms Rome at 30–31 (10,000 → 5,000 → 3,500),
+**the Papal States erased at 31** (Rome was his one province and Naples' aim — no off-aim homeland to live on), then
+the understudy's war runs on: Sardinia's Cagliari (32–33; Sardinia signs at the last), a war on Austria (33),
+Piedmont, Lyonnais and Limousin plundered from Austria and Provence from Britain (35–37), Lyonnais and Limousin
+retaken by Britain (39–40); marengo — Prussia takes Westphalia (23), Hanover signs at the last with Prussia (24;
+Prussia evacuates Westphalia with Brunswick, East Frisia, Oldenburg and Osnabruck), Hesse takes it (25) and signs
+the aim peace the same turn ("Hanover pays 243 gold"), her chest under the 4,500 bar at 40; jena — Naples at `fight`
+from turn 8 (89–100) with two refusals (6, 18), **Austria's defensive alliance with the Pope at 23** (Austria covets
+none of his soil) adds her 126,000 to the scale, no crisis opens — the D5 deterrence by machinery. **Arm ALL adds
+marengo's crown at turn 40** — the chest rule's own seed; jena, lodi and wagram identical to PACT. Story classes
+**10 of 10 on every arm**; `captures_outside_aim` 251 → 269, `annexations_outside_aim` 0, crowns 0, recognitions 0,
+the Awakening's beats 25 → 24. **The band:** 28 / 27 / 26 on arm 0; **28 / 27 / 25 on PACT and ALL** — the commanded
+middle arm one province down, inside 23–28 (reported). **The harness:** arm 0 reproduces F; PACT and ALL move six
+seeds (friedland, historical, jena, lodi, marengo, wagram; `captures_outside_aim` 117 → 130), no promotion, no
+crown. **The series:** unmoved on every arm; the pact's seam read 6,640 (arm 0) / 6,573 times, biting 105 times on
+PACT and ALL with the series unmoved; the chest's seam read 303 times, no promotion law at the bar on the rig.
+
+**The gate (`DYNAMISM_SPEC.md` §7), read off arm ALL:** clause 1 MET (10 of 10); clause 2 MET (Hesse at secondary
+rank by promotion on lodi and marengo); clause 3 MET (the roster {Kingdom of Italy} on nine seeds, {Kingdom of Italy,
+Papal States} on wagram); `annexations_outside_aim` 0 on both surfaces; the band inside 23–28; the historian test
+green on every seed (the suite's pins) — **EARNED, no clause lowered.** The deploy is session H.
+
+**Levers for the user, none pre-recommended:** (a) the understudy's reach — a Naples at war with Austria has no
+authored aim against her, so the conduct rule leaves her free to plunder; (b) the chest's number (the price alone,
+or a half-reserve); (c) the commanded middle arm 26 → 25; (d) jena's deterrence by Vienna's pact, or an ask-ladder
+one refusal short (`REFUSAL_MEMORY_TURNS`); (e) the earlier sessions' readings stand.
+
+**Traps the session paid for:** a pact-gate on the poll must wrap the triggers, not sit inside them (the 0a
+alignment arm already excludes the obstacle; the design ask must still pass); `get_agenda_covets` excludes an ally's
+soil, so the predicate reads the LIVE deck — a pact already standing is not undone by it; the digest's `intents`
+and `wars_opened` rows plus `spawn_run(seed, 10000, 40)` give a seed's whole story in five seconds; the Awakening's
+beats moved 25 → 24 on the moved seeds (the Pope's people are gone with their court).

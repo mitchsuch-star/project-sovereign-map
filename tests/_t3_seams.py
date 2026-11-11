@@ -140,6 +140,18 @@ prior tree's reading byte for byte.
           lord's trade with a withholding court halved, the client dial −3
           on awakened soil; down: a withheld crown costs nothing.
 
+    G-PACT `ai_diplomacy.no_pact_with_the_coveted` — session G, the gate
+          earned (DYNAMISM_SPEC.md §7a, November 11, 2026): no defensive
+          alliance or alliance between a coveter and the coveted — a court
+          whose live acquire design covets a province of the other's house
+          (the poll's gate and the recipient-addressed road's guard); down:
+          the pact signs and the ally clause reads the ambition as won.
+
+    G-CHEST `reforms.a_crown_is_bought_with_the_whole_chest` — session G:
+          the AI's purse bar for a promotion law is the price and arrears
+          alone (no reserve, no five turns' upkeep); down: 4,500 for a
+          3,000 crown.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -238,6 +250,14 @@ T3_SEAMS_BY_ROW = {
     ],
     "T8-PRICE": [
         "backend.game_logic.crowns:an_unrecognized_crown_pays=False",
+    ],
+    # Session G (the gate earned, November 11, 2026): the pact with the
+    # coveted and the crown bought with the whole chest.
+    "G-PACT": [
+        "backend.game_logic.ai_diplomacy:no_pact_with_the_coveted=False",
+    ],
+    "G-CHEST": [
+        "backend.game_logic.reforms:a_crown_is_bought_with_the_whole_chest=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

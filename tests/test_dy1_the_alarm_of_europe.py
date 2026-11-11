@@ -1443,8 +1443,13 @@ class TestPromotion:
         world.nation_gold["Bavaria"] = 6000
         assert RF.find_ai_enactment(world, "Bavaria", 6000, 1) == {
             "action": "enact_law", "target": "the_royal_crown"}
-        # the purse test is the rung's own: a chest under its bar waits
-        assert RF.find_ai_enactment(world, "Bavaria", 4000, 1) is None
+        # the purse test is the rung's own: a chest under its bar waits.
+        # Session G (November 11, 2026, DYNAMISM_SPEC.md §7a): a crown is
+        # bought with the whole chest — the promotion law's bar is its price
+        # (3,000), so 4,000 now buys it and 2,900 still waits.
+        assert RF.find_ai_enactment(world, "Bavaria", 4000, 1) == {
+            "action": "enact_law", "target": "the_royal_crown"}
+        assert RF.find_ai_enactment(world, "Bavaria", 2900, 1) is None
         rung = inspect.getsource(RF.find_ai_enactment)
         assert "rank" not in rung, "no promotion arm: the one rung, the one predicate"
 

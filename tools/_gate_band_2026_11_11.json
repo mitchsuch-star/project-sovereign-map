@@ -1,0 +1,68 @@
+{
+ "_note": "Session G (the gate earned \u2014 the pact with the coveted, the crown bought with the whole chest) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row; written by tools/_gate_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.ai_diplomacy:no_pact_with_the_coveted=False",
+    "backend.game_logic.reforms:a_crown_is_bought_with_the_whole_chest=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": []
+  },
+  "PACT": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.reforms:a_crown_is_bought_with_the_whole_chest=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}
