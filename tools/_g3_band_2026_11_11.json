@@ -1,0 +1,47 @@
+{
+ "_note": "Session G3 (a client swears no pact of its own) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row; written by tools/_g3_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.ai_diplomacy:a_client_swears_no_pact_of_its_own=False"
+   ]
+  },
+  "CLIENT": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": []
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

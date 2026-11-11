@@ -1,0 +1,602 @@
+{
+ "_note": "Session G3 (a client swears no pact of its own) \u2014 on the AI-France harness's kept runs, every defensive alliance or alliance a court-to-court treaty signed with a court that answered to a lord at that turn [turn, client, lord, other, treaty], the lords' changes [turn, court, from, to] and the exits [turn, court, how]; written by tools/_g3_client_pacts.py from tools/playtest_runs/g3_chain_d (gitignored).",
+ "arms": {
+  "0": {
+   "austerlitz": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      17,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      22,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      24,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      26,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "eylau": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      27,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      28,
+      "Holland",
+      "vassal_rebellion"
+     ],
+     [
+      31,
+      "KingdomOfItaly",
+      "vassal_rebellion"
+     ]
+    ],
+    "transfers": [
+     [
+      22,
+      "KingdomOfItaly",
+      "France",
+      "Russia"
+     ]
+    ]
+   },
+   "friedland": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      17,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      25,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      26,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      27,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "historical": {
+    "client_pacts": [
+     [
+      9,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      16,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      18,
+      "Switzerland",
+      "free_hostile"
+     ],
+     [
+      26,
+      "Holland",
+      "vassal_rebellion_independent"
+     ],
+     [
+      27,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ]
+    ],
+    "transfers": []
+   },
+   "jena": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      14,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      25,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      26,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "lodi": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      17,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      25,
+      "Switzerland",
+      "vassal_rebellion_independent"
+     ],
+     [
+      29,
+      "KingdomOfItaly",
+      "vassal_rebellion"
+     ]
+    ],
+    "transfers": [
+     [
+      19,
+      "KingdomOfItaly",
+      "France",
+      "Russia"
+     ],
+     [
+      21,
+      "Switzerland",
+      "France",
+      "Russia"
+     ]
+    ]
+   },
+   "marengo": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      15,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      24,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      24,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      25,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "rivoli": {
+    "client_pacts": [
+     [
+      8,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      19,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      22,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      23,
+      "Holland",
+      "free_hostile"
+     ],
+     [
+      25,
+      "KingdomOfItaly",
+      "free_peace_fallback"
+     ]
+    ],
+    "transfers": []
+   },
+   "ulm": {
+    "client_pacts": [
+     [
+      7,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      18,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      23,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      25,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      26,
+      "Holland",
+      "free_peace_fallback"
+     ]
+    ],
+    "transfers": []
+   },
+   "wagram": {
+    "client_pacts": [
+     [
+      8,
+      "KingdomOfItaly",
+      "France",
+      "PapalStates",
+      "Defensive Alliance"
+     ],
+     [
+      17,
+      "KingdomOfItaly",
+      "France",
+      "Bavaria",
+      "Defensive Alliance"
+     ]
+    ],
+    "exits": [
+     [
+      22,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      28,
+      "Holland",
+      "vassal_rebellion_independent"
+     ]
+    ],
+    "transfers": []
+   }
+  },
+  "CLIENT": {
+   "austerlitz": {
+    "client_pacts": [],
+    "exits": [
+     [
+      22,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      24,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      26,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "eylau": {
+    "client_pacts": [],
+    "exits": [
+     [
+      27,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      28,
+      "Holland",
+      "vassal_rebellion"
+     ],
+     [
+      31,
+      "KingdomOfItaly",
+      "vassal_rebellion"
+     ]
+    ],
+    "transfers": [
+     [
+      22,
+      "KingdomOfItaly",
+      "France",
+      "Russia"
+     ]
+    ]
+   },
+   "friedland": {
+    "client_pacts": [],
+    "exits": [
+     [
+      25,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      26,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      27,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "historical": {
+    "client_pacts": [],
+    "exits": [
+     [
+      18,
+      "Switzerland",
+      "free_hostile"
+     ],
+     [
+      26,
+      "Holland",
+      "vassal_rebellion_independent"
+     ],
+     [
+      27,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ]
+    ],
+    "transfers": []
+   },
+   "jena": {
+    "client_pacts": [],
+    "exits": [
+     [
+      22,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      24,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      25,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "lodi": {
+    "client_pacts": [],
+    "exits": [
+     [
+      25,
+      "Switzerland",
+      "vassal_rebellion_independent"
+     ],
+     [
+      29,
+      "KingdomOfItaly",
+      "vassal_rebellion"
+     ]
+    ],
+    "transfers": [
+     [
+      19,
+      "KingdomOfItaly",
+      "France",
+      "Russia"
+     ],
+     [
+      21,
+      "Switzerland",
+      "France",
+      "Russia"
+     ]
+    ]
+   },
+   "marengo": {
+    "client_pacts": [],
+    "exits": [
+     [
+      24,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      24,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      25,
+      "Holland",
+      "free_hostile"
+     ]
+    ],
+    "transfers": []
+   },
+   "rivoli": {
+    "client_pacts": [],
+    "exits": [
+     [
+      22,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      23,
+      "Holland",
+      "free_hostile"
+     ],
+     [
+      25,
+      "KingdomOfItaly",
+      "free_peace_fallback"
+     ]
+    ],
+    "transfers": []
+   },
+   "ulm": {
+    "client_pacts": [],
+    "exits": [
+     [
+      23,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ],
+     [
+      25,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      26,
+      "Holland",
+      "free_peace_fallback"
+     ]
+    ],
+    "transfers": []
+   },
+   "wagram": {
+    "client_pacts": [],
+    "exits": [
+     [
+      22,
+      "Switzerland",
+      "vassal_rebellion"
+     ],
+     [
+      28,
+      "Holland",
+      "free_hostile"
+     ],
+     [
+      28,
+      "KingdomOfItaly",
+      "vassal_rebellion_independent"
+     ]
+    ],
+    "transfers": []
+   }
+  }
+ },
+ "totals": {
+  "0": {
+   "client_pacts": 19,
+   "transfers": 3
+  },
+  "CLIENT": {
+   "client_pacts": 0,
+   "transfers": 3
+  }
+ }
+}

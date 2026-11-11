@@ -1674,6 +1674,11 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	var crown_line = str(v.get("crown_line", ""))
 	if crown_line != "":
 		bbcode += "  Crown: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(crown_line) + "[/color]\n"
+	# Session G3: the client's foreign policy is its lord's — one
+	# backend-composed line (R7); an empty line is omitted.
+	var policy_line = str(v.get("policy_line", ""))
+	if policy_line != "":
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + policy_line + "[/color]\n"
 
 	# UXR3-81 (S15 head): a court with a granted petition leads with its BOND
 	# — the line the grant earned — straight under its header.

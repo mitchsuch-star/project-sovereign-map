@@ -24,6 +24,7 @@ curve and its grant rung reads the same predicates.
 import contextlib
 import io
 import os
+import random
 
 import pytest
 
@@ -61,8 +62,20 @@ def _execute(world, command):
         return CommandExecutor().execute({"command": command}, {"world": world})
 
 
+DECISIVE_ROLL = 1805
+
+
 def _decisive_win(world, turn=6, attacker="Ney", defender="Mack"):
-    """Mack dies whatever the rolls — a decisive victory with Ney as LEAD."""
+    """Mack's corps is destroyed — a decisive victory with Ney as LEAD.
+
+    The battle is rolled on a FIXED seed (November 11, 2026, session G3's
+    commit hook). The helper said "Mack dies whatever the rolls" and rolled
+    unseeded; about one roll in 1,500 (seed 261) leaves 69 of the 900 men to
+    escape to Swabia — Ney wins, the exchange is not decisive, no claim
+    rises, and the pin failed a commit on a tree that never touched it. What
+    is pinned is what a decisive victory does, never that every roll is one.
+    """
+    random.seed(DECISIVE_ROLL)
     world.current_turn = turn
     ney = world.marshals[attacker]
     mack = world.marshals[defender]

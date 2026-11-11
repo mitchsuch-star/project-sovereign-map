@@ -178,6 +178,15 @@ prior tree's reading byte for byte.
           (never an aim in the player's house); down: a compact moves gold
           and binds its payer and nothing else.
 
+    G3-CLIENT `ai_diplomacy.a_client_swears_no_pact_of_its_own` — session
+          G3 (DYNAMISM_SPEC.md §7c, November 11, 2026 — the user's "make
+          best cal for game"): a client's foreign policy is its lord's — no
+          defensive alliance or alliance is proposed to or from a court
+          that answers to a lord (the poll's gate, the recipient-addressed
+          road's guard, `reason: client`); a NAP and open borders untouched;
+          down: a client signs what it likes — the Kingdom of Italy's pact
+          with Rome pulled it into Naples' war and it was erased.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -298,6 +307,11 @@ T3_SEAMS_BY_ROW = {
     ],
     "G2-BACKED": [
         "backend.game_logic.intent:a_backed_design_dares=False",
+    ],
+    # Session G3 (a client swears no pact of its own, November 11, 2026 —
+    # DYNAMISM_SPEC.md §7c): the user's delegated ruling on his clients.
+    "G3-CLIENT": [
+        "backend.game_logic.ai_diplomacy:a_client_swears_no_pact_of_its_own=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

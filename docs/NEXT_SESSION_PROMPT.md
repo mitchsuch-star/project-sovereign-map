@@ -1,6 +1,21 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G2 ✅ LANDED: THE
+> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G3 ✅ LANDED: A
+> CLIENT SWEARS NO PACT OF ITS OWN** (`DYNAMISM_SPEC.md` §7c the landing record, §2b session G3, §8 row G3-CLIENT;
+> `SYSTEMS_REFERENCE.md` §209; `tests/test_session_g3_a_client_swears_no_pact.py`; ONE sweep with two arms 0 /
+> CLIENT on three surfaces, the series re-read; drafted in Plan Mode and approved). The user's "Rule on clients
+> first", then "make best cal for game": **a client's foreign policy is its lord's** — no defensive alliance and no
+> alliance is proposed to or from a court that answers to a lord (`ai_diplomacy.a_client_swears_no_pact_of_its_own`;
+> `client_in_the_pair` the one read, at the poll's gate and the recipient-addressed road's guard, `reason: client`;
+> every lord's clients alike; a non-aggression pact, open borders, the player's own proposals and a standing pact
+> untouched); the Vassals card says it (`diplomatic_ledger.CLIENT_POLICY_LINE`). **Measured:** arm 0 == session G2
+> byte for byte on both surfaces; ambient no seed moves; **the AI-France harness's annexation line 4 → 0** (the
+> Kingdom of Italy is never called into Naples' Roman war; client pacts 19 → 0); the band 28 / 27 / 25; the series
+> unmoved (735 bites on the rig); every gate clause as session G2 left it. **Reported:** a freed Kingdom of Italy no
+> longer proclaims Italy on the pacts it signed as a client (four harness seeds → none) — put to the user, with
+> two smaller readings (a pact brought into a vassalage; a client's non-aggression pacts).
+>
+> The session before it: **November 11, 2026 — SESSION G2 ✅ LANDED: THE
 > PLAYED CAMPAIGN** (`DYNAMISM_SPEC.md` §7b the landing record, §2b session G2, §8 rows G2-*; `SYSTEMS_REFERENCE.md`
 > §208; `tests/test_session_g2_the_played_campaign.py`; ONE sweep with four arms 0 / ASK / LADDER / ALL on three
 > surfaces, the series re-read; drafted in Plan Mode and approved). A France was played by hand on a fresh seed and
@@ -49,13 +64,12 @@
 **NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
-(`_dy_signature_g2_2026_11_11.json`, session G2's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
-lodi 33, marengo 40 (`_g2_census_2026_11_11.json` `rank_promotions`); the roster varying — jena's and wagram's
+(`_dy_signature_g3_2026_11_11.json`, session G3's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
+lodi 33, marengo 40 (`_g3_census_2026_11_11.json` `rank_promotions`); the roster varying — jena's and wagram's
 {Kingdom of Italy, Papal States} against {Kingdom of Italy} (the signature's `eliminations`);
-`annexations_outside_aim` 0 on the AMBIENT record (`_g2_census_2026_11_11.json`) — the AI-France harness reads 4
-(`_g2_chain_d_2026_11_11.json`: Naples, Milan and Piedmont, jena and wagram), reported and awaiting the user's
-ruling on his own clients, never gated and never read as 0; the France band 23–28 — 28 / 27 / 25
-(`_g2_band_2026_11_11.json`);
+`annexations_outside_aim` 0 on the AMBIENT record (`_g3_census_2026_11_11.json`) — and 0 on the AI-France harness
+too since session G3 (`_g3_chain_d_2026_11_11.json` arm CLIENT; it read 4 on session G2's tree), reported, never
+gated; the France band 23–28 — 28 / 27 / 25 (`_g3_band_2026_11_11.json`);
 the historian test green on every seed (the suite's pins); the ratchet (`tests/test_code_health_ratchet.py`); the
 parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until the certificate arrives
 (`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing on this machine — no signtool, no
@@ -63,12 +77,26 @@ certificate in either store; the day it arrives, `INK_IRON_SIGNTOOL_ARGS` / `SIG
 **(3) the clean-environment run** (a fresh clone, the venv from `requirements`, the hook installed with `Copy-Item
 scripts/git-hooks/pre-commit .git/hooks/pre-commit`, the backend as `-m backend.main`, the client from the export, one
 forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`); **(4) the release record** (the commit SHA, the gate's
-readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §208,
+readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §209,
 `STATUS.md`). **After the deploy** (`PRE_DEPLOY_PLAN.md` §2; no cuts without consent, spec §0): S14k-3 (Spain alone),
 S16, S17c.
 
 **The commit:** session H's commits are the user's walk's — the release record and any gate fix each its own commit
 through the hook (about 10 minutes; never `--no-verify`); push only on the user's word.
+
+**Session G3's own traps (fresh):** the AMBIENT surface cannot see a client rule — the idle France's kingdom is
+gone by turn 23 on every seed; the harness and a commanded France are its surfaces; the harness's France refuses
+every petition and loses its clients (`final.vassals` is empty on most seeds) — read a client's story off the events
+(`vassal_broke_free`, `vassal_defected` with `outcome: free_*` or `transfer`, `vassal_transferred`); a harness
+`formations` entry is a proclamation a freed client can reach through the ally clause (`agendas.region_coveted`
+reads a target in an ally's bloc as met) — read the design's list before believing it gathered anything;
+`_UPGRADE_ORDER` starts at WAR and the first step above PEACE is OPEN_BORDERS; `tools/dd_b_play.py` loads a save
+copied into `<run>/saves/` before `start` ("Load a Campaign…" lists it); CLAUDE.md is patched on bytes and held
+under 62,000 LF bytes by its own script's assert; STATUS holds 7 "▶ ▶ ▶" entries (session B archived); **stopping a
+background commit orphans the hook** — git dies, `sh .git/hooks/pre-commit`, the pytest controller, its workers and
+any headless engine run on (27 processes): find them by `ParentProcessId` from the hook's `sh` and stop the tree
+before committing again, or let the commit finish; `test_ep_f4`'s `_decisive_win` rolls on `DECISIVE_ROLL` since
+this session (unseeded, seed 261 left 69 of Mack's 900 to escape and failed the hook's first run).
 
 **Session G's own traps (fresh):** the AI–AI poll's body is `_evaluate_ai_ai_triggers` — a gate on its outcomes wraps
 it, never sits inside it (0a's alignment arm must still exclude the obstacle, the design ask must still pass);
@@ -116,15 +144,18 @@ measure's four arms with ten harness seeds each ran 28 minutes alone, the series
 copies (`git show 90bada87:docs/NEXT_SESSION_PROMPT.md` for session D's, `git show 2589f3c1:docs/NEXT_SESSION_PROMPT.md`
 for session C's, `git show 93f82fb2:docs/NEXT_SESSION_PROMPT.md` for the earlier), every one still binding.
 
-**Open with the user beyond session H's head (none blocks the deploy):** session G's four readings above; session F's three levers (`DYNAMISM_SPEC.md` §6c); session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
+**Open with the user beyond session H's head (none blocks the deploy):** session G3's three readings
+(`DYNAMISM_SPEC.md` §7c — Italy by pacts; a pact brought into a vassalage; a client's non-aggression pacts);
+session G2's list but for its first item (§7b); session G's four readings above; session F's three levers (`DYNAMISM_SPEC.md` §6c); session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
 (the letter's floor; the levée's reach; the dial's ambient road); session C's five (the march does not visibly bleed
 — the ulcer's teeth; the letters' seat at the desk; the bands' pace; the raised gate's clauses 2 and 3; the pacing
 record's drift); session B's three (the envy's cap at the coerce floor too; the crowns after the gift; no second
 great-power war on the 1805 board — the content levers); GRD-38; GRD-37; the design rows of `DESIGN_REFINEMENT.md`
 §GRD; the flip's two readings (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18);
 the road record's readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a);
-the crown term's level; SF-NAV-1-D1; Britain's letter without contact; the hook's remaining levers; `test_ep_f4`'s
-flake; the two hash-seed orderings with no reader yet checked.
+the crown term's level; SF-NAV-1-D1; Britain's letter without contact; the hook's remaining levers; the two
+hash-seed orderings with no reader yet checked. (`test_ep_f4`'s flake is CLOSED — session G3's hook caught it and
+its helper now rolls on a fixed seed.)
 
 **After session H — the session plan (`docs/DYNAMISM_SPEC.md` §2b; no cuts without consent, spec §0):** the deploy
 is the last session of the plan. **After the deploy:** S14k-3 (Spain alone), S16, S17c (`PRE_DEPLOY_PLAN.md` §2).

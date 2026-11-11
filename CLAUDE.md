@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G, G2 ✅ Nov 11 (§207–§208); next H the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G3 ✅ Nov 11 (§207–§209); next H the deploy**.
 
 **▶ LIVE STATE (Nov 11, 2026).** The three most recent rows:
+- **Session G3 (Nov 11) — a client signs no alliance of its own** (§209).
 - **Session G2 (Nov 11) — the played campaign: king, recognition, asks, backing** (§208).
 - **Session G (Nov 11) — the gate earned: no pact with the coveted; the chest** (§207).
-- **Session F (Nov 10) — DY-7 Recognition; TIER 8 COMPLETE; Tier 7 not built** (§206).
 
-**Open with the user:** G2's and G's readings (`DYNAMISM_SPEC.md` §7a–b), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** G–G3's readings (`DYNAMISM_SPEC.md` §7a–c), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

@@ -671,6 +671,17 @@ def _crown_line(nation: str, world):
     return ledger_crown_line(world, nation) or None
 
 
+CLIENT_POLICY_LINE = "Its wars are yours: it signs no alliance of its own."
+
+
+def _client_policy_line() -> str:
+    """Session G3: the Vassals card says the rule — a client's foreign
+    policy is its lord's (`ai_diplomacy.a_client_swears_no_pact_of_its_own`);
+    '' with the seam down."""
+    from backend.game_logic.ai_diplomacy import a_client_swears_no_pact_of_its_own
+    return CLIENT_POLICY_LINE if a_client_swears_no_pact_of_its_own() else ""
+
+
 def _recognition_line(nation: str, world):
     """DY-7: a legitimist's row — the crowns of ours it withholds, priced."""
     from backend.game_logic.crowns import ledger_recognition_line
@@ -1007,6 +1018,9 @@ def _build_vassals(world) -> Dict[str, Any]:
             # DY-7: a crown's card — the title, who reigns, who withholds
             # recognition ('' for a plain client; the client omits the line).
             "crown_line": _crown_line(name, world) or "",
+            # Session G3: the client's foreign policy is its lord's — said
+            # on the card ('' with the seam down; the client omits the line).
+            "policy_line": _client_policy_line(),
             "actions": get_available_diplomatic_actions(world, name),
         }
         # IQ-7 "The Client's Petition" — display-only (GR6): the remission,

@@ -167,6 +167,7 @@ default (§7); the deploy gate; no cuts without consent.
 | **F** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §206; the landing record §6c) | **Recognition and the gate's reading:** DY-7 + Tier 8's close + **Tier 7 evaluated** (10 of 10 — the bounded dice NOT built). Arms: 0 / RECOG / ALL. | nothing new — Tier 7 was not needed; the gate's clauses 2 and 3 to the user, no default | one |
 | **G** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §207; the landing record §7a) | **The gate earned** (the user's "Earn them first" at session F's close — the content session the raised gate's clauses 2 and 3 asked for): the pact with the coveted (no defensive alliance or alliance between a coveter and the coveted — the defect that defused the cast Naples' Roman Expedition at turn 3 and Hesse's Westphalian Duchy at turn 16) + a crown bought with the whole chest (the promotion law's AI purse bar is its price). Arms: 0 / PACT / ALL. | nothing new to rule — the user's word at the fork | one |
 | **G2** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §208; the landing record §7b) | **The played campaign** (the user's "fix and playtest … play well see derivations see dynamism test like humna" — a session the plan did not hold, opened by the review of the arc): a France played by hand on a fresh seed, and what it found fixed at the cause — the king's carry on the separate peace, the war names the beaten, a court at `fight` still asks, the ladder outlasts the rest, a backed design dares; the marshals' side and the screens. Arms: 0 / ASK / LADDER / ALL. | nothing to rule — drafted in Plan Mode and approved | one |
+| **G3** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §209; the landing record §7c) | **A client swears no pact of its own** (the user's "Rule on clients first", then "make best cal for game" — session G2's open reading (a), ruled under the delegation): a client's foreign policy is its lord's — no defensive alliance or alliance is proposed to or from a court that answers to a lord, every court alike; the Vassals card says it. Arms: 0 / CLIENT. | the ruling itself — delegated, drafted in Plan Mode and approved | one |
 | **H** | **S15 the deploy:** the gate checks, the build, the clean-environment run, the release record. Signing waits on the user's certificate. | the user's own walk | — |
 
 **Seven sessions (A–G) where the count read twelve to thirteen.** Two named places it may
@@ -1365,7 +1366,9 @@ one.
 
 **For the user, none pre-recommended (§0):**
 (a) **your clients and "sign at the last"** — the harness's 4: let a client of the player's house sign at the last
-for itself (it lives on; the AI holder hands its off-aim homeland back), or keep the boundary you drew at T4-2;
+for itself (it lives on; the AI holder hands its off-aim homeland back), or keep the boundary you drew at T4-2
+*(RULED November 11, 2026 — session G3, §7c: neither; the cause is cured — a client signs no alliance of its own,
+T4-2's boundary stands, the harness reads 0)*;
 (b) **the licence and an exposed rear** — Russia, licensed for Finland and now at `fight`, is still held by her
 reserve against an unbeaten Prussia (era-true; a licence could also quiet the licensee's rear toward its licensor);
 (c) **the marshal king's fate** — he keeps his crown and fights when his kingdom rebels (built, told); or he comes
@@ -1377,6 +1380,96 @@ said the tricolor flew over Vienna on a morning Austria had retaken it; a 2,000-
 army for fifteen turns from soil at peace with France; Prussia's bandwagon chose the Papal States; the crown row sits
 eighth in a short scrolling list; "(§3.3)" stands in the sponsor chip's player-facing text;
 (f) session G's four, session F's three, session E's four, session D's three, session C's five stand.
+
+### §7c A client swears no pact of its own — session G3's landing record (✅ LANDED November 11, 2026)
+
+**The user's words, verbatim:** *"Rule on clients first"*; then, at the question, *"make best cal for game"*. Drafted
+in Plan Mode and approved. The rule in full: `SYSTEMS_REFERENCE.md` §209; the pins
+`tests/test_session_g3_a_client_swears_no_pact.py`; the seam `tests/_t3_seams.py` row G3-CLIENT; ONE sweep with two
+arms on three surfaces (`tools/_g3_measure.py`), the standing series (`tools/_g3_series_arms.py`), the pacts read off
+the kept runs (`tools/_g3_client_pacts.py`), ONE commit.
+
+**What was put to the user (§7b (a)) and how it was ruled.** The AI-France harness kept 4 provinces outside aim: the
+cast Naples holding Milan and Piedmont, the soil of the Kingdom of Italy. Read to its cause on the kept run (jena):
+the kingdom — the Emperor's client — signs a DEFENSIVE ALLIANCE with the Pope at turn 7 through the court-to-court
+poll; Naples declares the Roman Expedition at 14; the pact calls the kingdom into a war its lord is not in; Milan is
+stormed and the kingdom erased at 20. Two cures stood on the table: let a client of the player's house "sign at the
+last" for itself (the consequence softened), or stop the treaty that causes it. Ruled under the delegation: **a
+client's foreign policy is its lord's** — the cause and not the consequence; the Emperor's agency (a treaty that can
+destroy his kingdom is not signed behind his back); the era (Napoleon was King of Italy — a client's diplomacy was its
+patron's); every court alike (an AI lord's clients are bound the same way, nothing special-cased for the player).
+T4-2's boundary stands as drawn.
+
+**The rule as built (G3-CLIENT, `ai_diplomacy.a_client_swears_no_pact_of_its_own`).** `client_in_the_pair(world, a,
+b)` — the court of the two whose row in `world.vassals` names a lord, or none; none where the two are of one house (a
+lord and its client, two clients of one lord). Read at the two sites session G's pact rule stands at: the poll
+(`_evaluate_ai_ai_proposal`) proposes no defensive alliance and no alliance to or from a client; the
+recipient-addressed road (`_resolve_ai_ai_proposal`) refuses one with the existing `ai_ai_proposal_refused` event,
+`reason: client`. No new log type, no new field, no new store. **Untouched:** open borders and a non-aggression pact
+(no war follows them — the warm pair still climbs to the pact below the alliance); the player's own proposals to any
+court (the read has two callers, both court-to-court); a client following its lord into the lord's wars; a pact
+already standing when a court becomes a client (a gate on signing, never a dissolution). The Alarm had said it of
+guarantees already ("not a client — its lord answers for it", T4-1). **Said on screen:** each card of the Diplomatic
+Ledger's Vassals tab carries one backend-composed line under the name — "Its wars are yours: it signs no alliance of
+its own." (`diplomatic_ledger.CLIENT_POLICY_LINE`; empty with the seam down).
+
+**The session landed (the pins `TestTheSessionG3Measure`).** ONE sweep, two arms (0 / CLIENT) on three surfaces, run
+alone; the series beside it.
+- **Arm 0 reproduces session G2 byte for byte on both surfaces** (the ambient signature and census; arm ALL of the
+  harness record).
+- **Ambient — not one seed moves** (signature and census, ten seeds): the idle France's kingdom falls to Austria in
+  the Emperor's own war by turn 7–23 on every seed, before a client's pact matters. Story classes 10 of 10;
+  `annexations_outside_aim` 0; `captures_outside_aim` 266.
+- **The AI-France harness — `annexations_outside_aim` 4 → 0.** Seven seeds move (friedland, historical, jena, lodi,
+  marengo, rivoli, wagram). On jena and wagram the kingdom is never called into the Roman war (Sardinia alone answers
+  the Pope's call); Rome falls at 26 on jena (19 without the rule; the crisis opens twice, at 12 and 19) and at 17 on
+  wagram; the Kingdom of Italy is erased on neither. Read off the kept runs (`_g3_client_pacts_2026_11_11.json`):
+  **nineteen client pacts on session G2's tree — the kingdom with Rome on all ten seeds (turns 7–9), with Bavaria on
+  nine — and none with the rule.** Russia buys the kingdom on eylau and lodi and Switzerland on lodi, on both arms: an
+  AI lord's clients, bound alike. `captures_outside_aim` 133 → 135; France's own entry 189 → 187; France ends two
+  provinces up on jena (40 → 42) and one on marengo (45 → 46); no promotion and no crown on either arm.
+- **The band: 28 / 27 / 25 on both arms.** **The series does not move** on either arm; on the rig the poll answers a
+  pact for a client's pair 735 times (of 3,339 pacts polled — the courts' offers to Switzerland and Holland), every
+  one stopped at the gate on the shipped arm.
+
+**A consequence, reported (no gate clause reads it).** On session G2's tree a Kingdom of Italy that broke free of the
+harness's neglectful France **proclaimed ITALY the same turn on four seeds** (friedland, historical, marengo,
+rivoli): its Risorgimento (Milan, Piedmont, Savoy, Naples, Rome) read as gathered with two provinces in hand, because
+Rome, Naples and Savoy stood in the blocs of the pacts it had signed as a client — the ally clause reading the want
+as won, session G's defect through a door its read does not watch (a client's deck sleeps, so
+`pact_with_the_coveted` reads nothing on the day the pact is signed). With the rule the kingdom leaves its vassalage
+with no pact and the Risorgimento is a live want: **no measured seed proclaims Italy in forty turns.** The United
+Netherlands, whose Flanders is taken by arms, still forms (four seeds → five). Put to the user below.
+
+**The gate's reading (§7) on the shipped arm — every clause as session G2 left it:** clause 1 MET (10 of 10); clause
+2 MET (Hesse on lodi at 33 and marengo at 40); clause 3 MET (jena and wagram); the ambient annexation line 0; the
+band inside 23–28. **The harness's line reads 0 too now** — no court but the harness's own France keeps a province
+outside aim.
+
+**Played (reported, never gated).**
+- *The hand-played campaign* (`played_emperor.json`, replayed on this tree): identical to the archived run through
+  turn 17; from 18 the one difference in forty turns is that Bavaria and the Kingdom of Italy sign no defensive
+  alliance and Saxony's two offers to the kingdom are never made. Every beat and the last ledger row are the same.
+- *A commanded France on the two seeds that cast Naples* (`commanded_full40.json`, the rule up and down): on jena,
+  without the rule the kingdom is called into Naples' war through Rome ("Defensive cascade: KingdomOfItaly joins war
+  via PapalStates") and fights it to a white peace at 24; with the rule it never enters. On both arms it later joins
+  FRANCE's war when the league strikes at 30 and falls at 34 — the script's France is beaten there (20 provinces);
+  that war is its lord's. On wagram the two arms end alike.
+- *The same script on six fresh seeds*: France's provinces at 40 identical on all six; four digests differ — Rome's
+  pact with the kingdom unsigned (distant-hussar-64), the kingdom no longer dragged into a war through its Bavarian
+  pact at 31 (scarlet-salient-30).
+- *Six fresh seeds, France idle*: byte-identical to session G2's reading on all six.
+- *In the running client* (`tools/dd_b_play.py`, the turn-10 save): Diplomacy → VASSALS — each card reads "Its wars
+  are yours: it signs no alliance of its own." under the name; 8 actions, 0 script errors.
+
+**For the user, none pre-recommended (§0):**
+(a) **Italy by pacts** — whether a freed kingdom should be able to proclaim Italy without arms: the rule ends the
+hollow road (four harness seeds → none); if you want it reachable the levers are the design's own list (Milan and
+Piedmont alone, or with Rome) or a proclamation at a share of the list — never the client pact;
+(b) **a pact a court brings into a vassalage** stands (a gate on signing; no measured seed has one) — or it lapses
+at the subjugation;
+(c) **a client's non-aggression pacts and open borders** stay its own (no war follows them) — or go to the lord too;
+(d) §7b's (b)–(f) stand; its (a) is ruled here.
 
 
 ---
@@ -1420,6 +1513,7 @@ eighth in a short scrolling list; "(§3.3)" stands in the sponsor chip's player-
 | G2-ASK | the played campaign — ✅ LANDED November 11, 2026 (session G2) | a court at `fight` still asks (§7b): `ai_diplomacy.a_court_at_fight_still_asks` — trigger 0a's rungs include `fight` while the ladder is unclimbed | the cast Naples at `fight` asks the Pope; the seam down she never does; a climbed ladder stops the asking — **measured:** arm ASK moves jena and wagram, see §7b | `TestACourtAtFightStillAsks` |
 | G2-LADDER | the played campaign — ✅ LANDED November 11, 2026 (session G2) | the ladder outlasts the rest (§7b): `ai_diplomacy.the_ladder_outlasts_the_rest` — `war_council._ladder_climbed` counts `get_ladder_refusals` (24 turns) and the write keeps them; every other reader keeps 12 | refused at 7 and 13, the ladder stands climbed at 24 (unclimbed seam-down); the weight's hardening still reads 12 — **measured:** arm LADDER moves lodi; 14 bites on the rig, the series unmoved | `TestTheLadderOutlastsTheRest` |
 | G2-BACKED | the played campaign — ✅ LANDED November 11, 2026 (session G2) | a backed design dares (§7b): `intent.a_backed_design_dares` — `WEIGHT_BACKED_DESIGN` 10 on an acquire design a live sponsorship or licence aims at (`design_backing`, ONE record); never an aim in the player's house; `backing_forecast` at the choice, `backing_words` on the Intent row | France's gold and her licence each move Prussia's design 10; the paymaster's subsidies against France move nothing; the push ends with the compact; the words — **measured:** arm ALL moves lodi; 10 bites on the rig, the series unmoved; the band 28 / 27 / 25 | `TestABackedDesignDares` |
+| G3-CLIENT | a client swears no pact — ✅ LANDED November 11, 2026 (session G3) | a client's foreign policy is its lord's (§7c): `ai_diplomacy.a_client_swears_no_pact_of_its_own` — `client_in_the_pair` the one read, at the poll's gate (`_evaluate_ai_ai_proposal`) and the recipient-addressed road's guard (`_resolve_ai_ai_proposal`, `reason: client`); a defensive alliance and an alliance only; the Vassals card's line (`diplomatic_ledger.CLIENT_POLICY_LINE`) | the read (a client either way, two free courts, one house, every lord alike, a court set free); the poll stops both pact types and passes the rungs below; the road's refusal names the client; a standing pact stands; the player's road untouched; the card's line — **measured:** arm 0 == session G2; ambient no seed moves; the harness's annexation line 4 → 0, nineteen client pacts → none; the band 28 / 27 / 25; the series unmoved, 735 bites on the rig | `tests/test_session_g3_a_client_swears_no_pact.py` |
 
 
 *(Amended November 9, 2026 by §2b: one commit and one review a SESSION; each rule keeps its own seam and its own arm of the session's one measure.)* Each slice: its own commit through the hook, the user's review after, Plan Mode at each

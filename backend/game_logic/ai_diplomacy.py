@@ -5581,6 +5581,23 @@ def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
             }
             world.log_event(event)
             return event
+        # Session G3: a client swears no pact of its own — the same road's
+        # guard (the poll is gated at the evaluation). The refusal names
+        # the client; the court that refuses is the one asked.
+        client = client_in_the_pair(world, initiator, target)
+        if client:
+            event = {
+                "type": "ai_ai_proposal_refused",
+                "proposer": initiator,
+                "recipient": target,
+                "refused_by": target,
+                "proposal_type": ptype,
+                "reason": "client",
+                "client": client,
+                "turn": int(world.current_turn),
+            }
+            world.log_event(event)
+            return event
 
     scored = {"type": ptype, "proposer": initiator, "target": target}
 
@@ -5709,6 +5726,44 @@ def pact_with_the_coveted(world, a: str, b: str) -> str:
     return ""
 
 
+def a_client_swears_no_pact_of_its_own() -> bool:
+    """Session G3 (DYNAMISM_SPEC.md §7c, November 11, 2026 — the user's
+    "Rule on clients first", then "make best cal for game"): a client's
+    foreign policy is its lord's. A client state signs no DEFENSIVE ALLIANCE
+    and no ALLIANCE of its own — it goes to war when its lord does, and not
+    otherwise. Measured before the rule, with France AI-run and with France
+    played: the Kingdom of Italy signed a defensive alliance with the Pope
+    through the court-to-court poll, the cast Naples marched on Rome, the
+    pact pulled the Emperor's client into a war the Emperor was not in, and
+    Naples stormed Milan and erased the kingdom — a treaty its lord never
+    saw. Every court alike: an AI lord's clients are bound the same way. A
+    non-aggression pact and open borders are untouched (no war follows
+    them); the player's own proposals never pass here; a pact standing when
+    a court becomes a client stands. Down: session G2's tree — a client
+    signs what it likes and is dragged where its signature leads."""
+    return True
+
+
+def client_in_the_pair(world, a: str, b: str) -> str:
+    """The court among `a` and `b` that answers to a lord (its row in
+    `world.vassals` carries one), or '' — and '' where the two are of ONE
+    house (a lord and its client, two clients of one lord: their bond is
+    the vassalage itself, never a pact). The one read of the poll's gate
+    and the road's guard; '' with the seam down."""
+    if not a_client_swears_no_pact_of_its_own() or not a or not b or a == b:
+        return ""
+    vassals = getattr(world, "vassals", {}) or {}
+    house_a = str(world._top_overlord(a) or a)
+    house_b = str(world._top_overlord(b) or b)
+    if house_a == house_b:
+        return ""
+    for court in (str(a), str(b)):
+        row = vassals.get(court)
+        if isinstance(row, dict) and str(row.get("lord") or ""):
+            return court
+    return ""
+
+
 def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Dict]:
     """The pair's proposal this turn, or None: the triggers below
     (`_evaluate_ai_ai_triggers`), then session G's gate — a pact (a
@@ -5718,6 +5773,11 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
     proposal = _evaluate_ai_ai_triggers(nation_a, nation_b, world)
     if (proposal and str(proposal.get("type") or "") in _PACT_TYPES
             and pact_with_the_coveted(world, nation_a, nation_b)):
+        return None
+    # Session G3: and never to or from a client — its foreign policy is its
+    # lord's (`client_in_the_pair`).
+    if (proposal and str(proposal.get("type") or "") in _PACT_TYPES
+            and client_in_the_pair(world, nation_a, nation_b)):
         return None
     return proposal
 
