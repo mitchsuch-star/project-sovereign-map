@@ -71,6 +71,9 @@ var cached_recruitment: Dictionary = {}
 # SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE — `/marshal_overview`'s
 # `doctrine` payload (name, says, strength, flaw with the cure's status).
 var cached_doctrine: Dictionary = {}
+# G2 (the played campaign): the kings the Emperor has made. A marshal
+# crowned at the peace table left this screen without a word.
+var cached_reigning: Array = []
 # A11 (CA9 row 3): the glory window, served by the backend so the ladder
 # caption cannot drift from `jealousy.GLORY_WINDOW` again.
 var cached_glory_window: int = 8
@@ -250,6 +253,8 @@ func _on_data_received(response):
 	cached_recruitment = response.get("recruitment", {})
 	var _doctrine = response.get("doctrine")
 	cached_doctrine = _doctrine if _doctrine is Dictionary else {}
+	var _reigning = response.get("reigning")
+	cached_reigning = _reigning if _reigning is Array else []
 	# A wiped standing roster must STILL render the glory ladder + Commission
 	# link (the sole UI door to the Marshalate recovery feature) when a bench
 	# exists — otherwise losing every marshal strands the player with no path
@@ -326,6 +331,7 @@ func _render_all_cards():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]════════════════════════════════════════[/color]\n\n"
 
 	bbcode += _render_glory_ladder()
+	bbcode += _render_reigning()
 
 	for i in range(cached_data.size()):
 		if i == apex_index or i in urgent:
@@ -367,6 +373,34 @@ func _render_doctrine() -> String:
 			bbcode += "  [color=#" + flaw_color + "]Flaw — " + str(d_flaw.get("name", "")) + ":[/color] " + str(d_flaw.get("line", "")) \
 				+ "  [color=#" + Utils.COLOR_INFO + "](" + str(d_flaw.get("status_line", "")) + ")[/color]\n"
 		bbcode += "\n"
+	return bbcode
+
+
+func _render_reigning() -> String:
+	"""G2: REIGNING — the marshals and princes the Emperor has crowned, where
+	each reigns and with what, and how he stands (a client's king, or in arms
+	against France after his kingdom broke away). Backend-composed lines
+	(`crowns.reigning_rows`); nothing here is commandable."""
+	if cached_reigning.is_empty():
+		return ""
+	var bbcode = _icon(_ICON_PHOSPHOR + "crown.svg", 18, Utils.COLOR_GOLD)
+	bbcode += " [color=#" + Utils.COLOR_GOLD + "]REIGNING — the crowns you have given[/color]
+"
+	for row in cached_reigning:
+		if not (row is Dictionary):
+			continue
+		var line: String = Utils.humanize_nation_keys_in_text(str(row.get("line", "")))
+		if line == "":
+			continue
+		var color: String = Utils.COLOR_INFO
+		if str(row.get("state", "")) == "in_arms":
+			color = Utils.COLOR_ERROR
+		elif str(row.get("state", "")) == "fallen":
+			color = Utils.COLOR_WARNING
+		bbcode += "  [color=#" + color + "]" + line + "[/color]
+"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]──────────────────────────────────────────[/color]
+"
 	return bbcode
 
 

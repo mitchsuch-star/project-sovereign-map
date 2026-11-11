@@ -14826,8 +14826,13 @@ class WorldState:
         # winner's house — the crown this very treaty erected included
         # (stage 5 ran); a truce is not a peace (`crowns.note_peace_signed`).
         if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "ARMISTICE":
-            from backend.game_logic.crowns import note_peace_signed as _note_recognition
-            _note_recognition(self, ctx.proposer, ctx.target_nation, ctx.treaty_clauses)
+            # G2-RECOG: the war names the beaten — the pair's score is still
+            # live here (`cleanup_war_end` runs in stage 7).
+            from backend.game_logic.crowns import (
+                note_peace_signed as _note_recognition, war_loser as _war_loser,
+            )
+            _note_recognition(self, ctx.proposer, ctx.target_nation, ctx.treaty_clauses,
+                              _war_loser(self, ctx.proposer, ctx.target_nation))
         # AI-5b(i) (§3.6): a bilateral treaty that strips a court leaves
         # the durable punitive record too — the ultimatum-tribute path and
         # the harsh peace both run through here. APPLIED clauses only.

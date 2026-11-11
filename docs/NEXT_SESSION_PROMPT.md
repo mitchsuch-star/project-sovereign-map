@@ -1,6 +1,23 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G ✅ LANDED: THE GATE
+> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G2 ✅ LANDED: THE
+> PLAYED CAMPAIGN** (`DYNAMISM_SPEC.md` §7b the landing record, §2b session G2, §8 rows G2-*; `SYSTEMS_REFERENCE.md`
+> §208; `tests/test_session_g2_the_played_campaign.py`; ONE sweep with four arms 0 / ASK / LADDER / ALL on three
+> surfaces, the series re-read; drafted in Plan Mode and approved). A France was played by hand on a fresh seed and
+> five defects were fixed at the cause: the king survives the separate peace (`_pair_substitute_seed_terms` carries
+> `crowns.CROWN_CLAUSE_KEYS`); the war names the beaten (`crowns.the_war_names_the_beaten` — the pair's score, then
+> the burden; the ceding court recognizes the crown it signs); a court at `fight` still asks
+> (`ai_diplomacy.a_court_at_fight_still_asks`); the ladder outlasts the rest
+> (`ai_diplomacy.the_ladder_outlasts_the_rest`, 24 turns); a backed design dares (`intent.a_backed_design_dares`,
+> +10 — the one new mechanic). The marshals' side told (the pick's price, the Generals screen's REIGNING block, the
+> rebel king named); the crown row's name opens the king list. **The gate on the shipped tree:** classes 10 of 10;
+> Hesse promoted on lodi (33) and marengo (40); the roster {Kingdom of Italy, Papal States} on jena and wagram;
+> `annexations_outside_aim` 0 AMBIENT; the band 28 / 27 / 25; the series unmoved. **CORRECTED:** the AI-France
+> harness reads 4 provinces kept outside aim (jena and wagram — the cast Naples keeps Milan and Piedmont, the soil of
+> the player's own erased client; session G's tree read 2 and its record said 0) — pinned at what it reads, the
+> cure the user's ruling on his own clients and "sign at the last" (never a silent 0).
+>
+> The session before it: **November 11, 2026 — SESSION G ✅ LANDED: THE GATE
 > EARNED** (`DYNAMISM_SPEC.md` §7a the landing record, §7 the gate's reading, §2b session G, §8 rows G-PACT / G-CHEST;
 > `SYSTEMS_REFERENCE.md` §207; `tests/test_session_g_the_gate_earned.py`, 19 pins; the seams G-PACT / G-CHEST in
 > `tests/_t3_seams.py`; ONE sweep with three arms (0 / PACT / ALL) on three surfaces, the series re-read, ONE commit;
@@ -19,7 +36,8 @@
 > 23 deters Naples. ALL adds **marengo's crown at 40**. Classes 10 of 10 on every arm; the band 28 / 27 / 26 → **28 /
 > 27 / 25**; the harness moves six seeds, promotes nobody; the series unmoved (the pact seam biting 105 times on the rig).
 > **THE DEPLOY GATE READS MET IN FULL (§7): classes 10 ≥ 6; a minor at secondary rank by promotion on two seeds; the
-> roster in two readings; `annexations_outside_aim` 0 on both surfaces; the band inside 23–28; 0 open GR rows.**
+> roster in two readings; `annexations_outside_aim` 0 on the ambient record (the harness read 2 — corrected by
+> session G2, above); the band inside 23–28; 0 open GR rows.**
 >
 > **What session G leaves with the user (none blocks the deploy):** (a) **the understudy's reach** — a Naples at war
 > with Austria has no authored aim against her, so the conduct rule leaves her free to plunder Piedmont, Lyonnais and
@@ -31,10 +49,13 @@
 **NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
-(`_dy_signature_gate_2026_11_11.json`); a minor at secondary rank by promotion on ≥ 1 seed — lodi 33, marengo 40
-(`_gate_census_2026_11_11.json` `rank_promotions`); the roster varying — wagram's {Kingdom of Italy, Papal States}
-against {Kingdom of Italy} (the signature's `eliminations`); `annexations_outside_aim` 0 on both surfaces (the gate
-census and `_gate_chain_d_2026_11_11.json`); the France band 23–28 — 28 / 27 / 25 (`_gate_band_2026_11_11.json`);
+(`_dy_signature_g2_2026_11_11.json`, session G2's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
+lodi 33, marengo 40 (`_g2_census_2026_11_11.json` `rank_promotions`); the roster varying — jena's and wagram's
+{Kingdom of Italy, Papal States} against {Kingdom of Italy} (the signature's `eliminations`);
+`annexations_outside_aim` 0 on the AMBIENT record (`_g2_census_2026_11_11.json`) — the AI-France harness reads 4
+(`_g2_chain_d_2026_11_11.json`: Naples, Milan and Piedmont, jena and wagram), reported and awaiting the user's
+ruling on his own clients, never gated and never read as 0; the France band 23–28 — 28 / 27 / 25
+(`_g2_band_2026_11_11.json`);
 the historian test green on every seed (the suite's pins); the ratchet (`tests/test_code_health_ratchet.py`); the
 parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until the certificate arrives
 (`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing on this machine — no signtool, no

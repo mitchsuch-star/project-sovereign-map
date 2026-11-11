@@ -1092,6 +1092,13 @@ def _proclaim_creation(world, tag: str, template_id: str, identity: dict,
         "sponsor": carver,
         "turn": turn,
     }
+    # G2 (the played campaign): the crown and its king ride the formation
+    # record too — it outlives the vassal row, so the Marshals screen can
+    # say what became of a crowned marshal after his kingdom broke away
+    # (`crowns.reigning_rows`, `crowns.rebel_king_words`).
+    if crown:
+        records[tag].update({key: crown[key] for key in
+                             ("crown", "king", "king_kind", "king_display") if crown.get(key)})
     # A carved client can be conquered out of `get_active_nations()`, and
     # the settlement gate only refuses a tag that is currently ACTIVE — so
     # the same soil can be carved twice. Deliberately NOT latched shut:

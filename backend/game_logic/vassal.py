@@ -1993,6 +1993,7 @@ def check_vassal_rebellion(world) -> List[dict]:
                 create_notification as _cr_notif, NotificationPriority as _NP,
             )
             from backend.notifications import VASSAL_REBELLION as _VR_CONST
+            from backend.game_logic.crowns import rebel_king_words as _rebel_king_words
             # IQ-7 R7 fix in passing: "KingdomOfItaly REBELLED!" named the
             # raw tag while the dispatch line beside it said "Kingdom of
             # Italy". The R7 table, at the producer.
@@ -2001,7 +2002,8 @@ def check_vassal_rebellion(world) -> List[dict]:
                 _NP.HIGH,  # DDB-46: an event
                 f"{display_nation(vassal_name)} REBELLED!",
                 f"{display_nation(vassal_name)} has rebelled against "
-                f"{display_nation(lord)}! War declared.",
+                f"{display_nation(lord)}! War declared."
+                + _rebel_king_words(world, vassal_name),
                 int(world.current_turn),
             ))
 

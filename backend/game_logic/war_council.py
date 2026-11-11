@@ -1288,11 +1288,12 @@ def _ladder_climbed(world, coveter: str, target: str) -> bool:
     """§5 pin 8: prior refused asks/coercion on the serialized record — or
     a §3.3 renege grievance, the strongest casus belli, which may skip
     rungs entirely."""
-    from backend.game_logic.ai_diplomacy import get_refused_asks
+    from backend.game_logic.ai_diplomacy import get_ladder_refusals
     from backend.game_logic.instruments import has_renege_grievance
     if has_renege_grievance(world, coveter, target):
         return True
-    return len(get_refused_asks(world, coveter, target)) >= CRISIS_REFUSALS_REQUIRED
+    # G2-LADDER: the ladder's own memory (the 12-turn record seam-down).
+    return len(get_ladder_refusals(world, coveter, target)) >= CRISIS_REFUSALS_REQUIRED
 
 
 def _restraint_block_reason(world, coveter: str, target: str,

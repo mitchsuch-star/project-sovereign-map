@@ -88,6 +88,10 @@ RECOGNITION_CONDITIONS = ("beaten",)  # DY-7 reads it: a legitimist withholds un
 KIND_MARSHAL = "marshal"
 KIND_PRINCE = "prince"
 KINDS = (KIND_MARSHAL, KIND_PRINCE)
+# G2-KING: the keys the crown and its king ride on a `create_client` clause —
+# every carrier of the clause copies these (the separate peace's seed builder
+# copied four other keys and lost the king).
+CROWN_CLAUSE_KEYS = ("crown", "king", "king_kind", "king_display")
 DISPATCH_TYPE = "crown_erected"
 
 
@@ -334,6 +338,131 @@ def king_candidates(world, carver: str) -> List[Dict[str, str]]:
     return rows
 
 
+# ── G2 (the played campaign): what a crown costs, said at the pick ─────
+# The picker named the corps and nothing else. A marshal crowned leaves the
+# Emperor's command for good, his kingdom's loyalty is his own trust, and
+# the laurelled men passed over resent it — the choice's whole price, in
+# words, beside each name (`king_notes`, parallel to `king_labels`), with
+# one line for the men not yet eligible and the risk no screen stated: a
+# marshal king whose kingdom rises keeps his crown and fights for it.
+
+def _others_with_laurels(world, carver: str, king: str) -> str:
+    from backend.display_names import _join_named
+    names = [humanize_entity_name(m.name) for m in marshals_with_laurels(world, carver)
+             if str(m.name) != str(king)]
+    return _join_named(names) if names else ""
+
+
+def king_cost_note(world, carver: str, candidate: Dict[str, str]) -> str:
+    """One pick's price in words ('' with the king seam down)."""
+    if not a_marshal_may_reign():
+        return ""
+    name, kind = str(candidate.get("name") or ""), str(candidate.get("kind") or "")
+    slighted = _others_with_laurels(world, carver, name)
+    if kind == KIND_MARSHAL:
+        marshal = (getattr(world, "marshals", {}) or {}).get(name)
+        trust = int(getattr(getattr(marshal, "trust", None), "value", 0) or 0)
+        loyalty = _clamp(trust, *KING_LOYALTY_BOUNDS)
+        resent = (f" {slighted} will resent it (trust {KING_PASSED_OVER_TRUST}, and envy of the king)."
+                  if slighted else "")
+        return (f"He leaves your command for good and his corps with him; "
+                f"the kingdom's loyalty starts at his trust ({loyalty}).{resent}")
+    resent = (f" {slighted} will resent a prince set over them (trust {PRINCE_PASSED_OVER_TRUST})."
+              if slighted else "")
+    return f"No marshal is lost; the kingdom's loyalty starts at {PRINCE_LOYALTY}.{resent}"
+
+
+def regency_cost_note() -> str:
+    from backend.game_logic.formations import CARVE_LOYALTY
+    return (f"No king is seated: the kingdom's loyalty starts at {CARVE_LOYALTY} "
+            f"and no marshal is slighted.")
+
+
+def laurels_footnote(world, carver: str) -> str:
+    """The picker's footnote: the risk a marshal king carries, and who has
+    not the laurels yet (glory in the ladder's window, the bar named)."""
+    if not a_marshal_may_reign():
+        return ""
+    from backend.game_logic.contingent import is_clients_general
+    from backend.game_logic.jealousy import get_glory_score
+    turn = int(getattr(world, "current_turn", 0))
+    short: List[str] = []
+    for marshal in sorted((getattr(world, "marshals", {}) or {}).values(), key=lambda m: str(m.name)):
+        if str(getattr(marshal, "nation", "")) != str(carver):
+            continue
+        if (getattr(marshal, "is_sovereign", False) or getattr(marshal, "captured_by", "")
+                or is_clients_general(marshal) or marshal_has_laurels(world, marshal)):
+            continue
+        short.append(f"{humanize_entity_name(marshal.name)} ({int(get_glory_score(marshal, turn))})")
+    risk = ("A marshal king is beyond recall; should his kingdom ever rise against you, "
+            "he keeps his crown and fights for it.")
+    if not short:
+        return risk
+    return (f"{risk} Not yet eligible — a throne wants glory {KING_MIN_GLORY}: "
+            f"{', '.join(short)}.")
+
+
+def reigning_rows(world, lord: str) -> List[Dict[str, Any]]:
+    """The Marshals screen's REIGNING block: every king `lord`'s house has
+    seated — a marshal or a prince — with where he reigns, with what, and
+    how he stands: reigning as a client, in arms against his maker (the
+    kingdom rebelled and he kept his crown), or fallen with his kingdom.
+    Read off the formation record (it outlives the vassal row)."""
+    from backend.game_logic.formations import formed_display_name
+    out: List[Dict[str, Any]] = []
+    records = getattr(world, "nation_formations", None) or {}
+    vassals = getattr(world, "vassals", {}) or {}
+    active = set(world.get_active_nations())
+    for tag, record in sorted(records.items()):
+        if not isinstance(record, dict) or not record.get("king"):
+            continue
+        if str(record.get("sponsor") or "") != str(lord):
+            continue
+        king, kind = str(record.get("king")), str(record.get("king_kind") or "")
+        shown = str(record.get("king_display") or king)
+        title = str(record.get("crown") or "")
+        kingdom = formed_display_name(world, tag)
+        row = vassals.get(tag) if isinstance(vassals.get(tag), dict) else None
+        marshal = (getattr(world, "marshals", {}) or {}).get(king) if kind == KIND_MARSHAL else None
+        strength = int(getattr(marshal, "strength", 0) or 0) if marshal is not None else 0
+        seat = seat_of(world, tag)
+        if row is not None and str(row.get("lord") or "") == str(lord):
+            state = "reigns"
+            loyalty = int(row.get("loyalty", 0) or 0)
+            withheld = withholding_courts(world, tag)
+            recog = ("recognized by every court" if not withheld
+                     else f"{len(withheld)} court{'s' if len(withheld) != 1 else ''} withhold recognition")
+            men = f" with {strength:,} men" if strength else ""
+            line = (f"{shown} — {title or kingdom} · reigns at {seat or kingdom}{men} · "
+                    f"the kingdom's loyalty {loyalty} · {recog} · beyond your orders")
+        elif tag in active:
+            state, loyalty = "in_arms", 0
+            men = f" at the head of {strength:,} men" if strength else ""
+            line = (f"{shown} — {title or kingdom} · his kingdom has broken with France and he "
+                    f"keeps his crown{men}")
+        else:
+            state, loyalty = "fallen", 0
+            line = f"{shown} — {title or kingdom} · the kingdom is no more"
+        out.append({"king": king, "king_display": shown, "king_kind": kind, "crown": title,
+                    "kingdom": str(tag), "kingdom_display": kingdom, "seat": seat,
+                    "strength": int(strength), "loyalty": int(loyalty), "state": state,
+                    "line": line})
+    return out
+
+
+def rebel_king_words(world, tag: str) -> str:
+    """The rebellion notice's second sentence where the kingdom has a
+    marshal king: he keeps his crown and turns on his maker (Murat, 1814).
+    '' for a prince, a regency, or no crown."""
+    record = (getattr(world, "nation_formations", None) or {}).get(tag)
+    if not isinstance(record, dict) or record.get("king_kind") != KIND_MARSHAL:
+        return ""
+    shown = str(record.get("king_display") or record.get("king") or "")
+    title = str(record.get("crown") or "")
+    crown = f" as {title}" if title else ""
+    return f" {shown}, whom you crowned{crown}, keeps his throne and turns his corps against you."
+
+
 def resolve_king(world, carver: str, name: str) -> Tuple[str, str, str]:
     """(name, kind, '') for a lawful king, else ('', '', the refusal's words).
     An empty name is a regency — lawful."""
@@ -495,8 +624,17 @@ def on_crown_erected(world, tag: str, template: dict, carver: str,
     leader = house_leader(world, carver) or carver
     add_threat(world, int(ALARM_CAPITAL), f"crown:{tag}", target=leader)
     king = enthrone(world, tag, clause, carver)
-    record = {"crown": title, "alarm": int(ALARM_CAPITAL),
-              "withheld_by": withholding_courts(world, tag)}
+    withheld = withholding_courts(world, tag)
+    # G2-RECOG: the card speaks the reception AS THE TREATY LEAVES IT. The
+    # court out of whose lands the crown is carved recognizes it by this
+    # very instrument (`note_peace_signed`, one stage on — the one writer),
+    # so the Proclamation must not name her among the courts that withhold:
+    # the played campaign's card read "Austria, Russia and Britain withhold
+    # recognition" above a rail line saying Vienna had recognized it.
+    ceder = str((clause or {}).get("from") or "")
+    if the_war_names_the_beaten() and ceder:
+        withheld = [court for court in withheld if court != ceder]
+    record = {"crown": title, "alarm": int(ALARM_CAPITAL), "withheld_by": withheld}
     record.update(king)
     return record
 
@@ -644,6 +782,23 @@ def the_legitimists_withhold() -> bool:
     return True
 
 
+def the_war_names_the_beaten() -> bool:
+    """G2-RECOG (the played campaign, November 11, 2026): the court beaten
+    by a peace is the court the WAR went against (the pair's score past the
+    bar the ratification record itself calls a victory), the clause burden
+    deciding only a drawn war — and the court out of whose lands a crown is
+    carved recognizes that crown by the treaty that erects it. Down: the
+    loser is read off the clause burden alone (session F), so an indemnity
+    the victor pays for a carve names the victor beaten and the ceding court
+    withholds recognition of the kingdom it signed over."""
+    return True
+
+
+# The ratification record's own line (`world_state._ratify_player_events`:
+# a pair score of 30 or more is a victory) — one bar, read here by name.
+BEATEN_WAR_SCORE = 30
+
+
 def an_unrecognized_crown_pays() -> bool:
     """T8-PRICE: the three prices of a crown unrecognized — the table's
     malus, the lord's trade halved, the dial −3 on awakened soil. Down: a
@@ -707,11 +862,28 @@ def unrecognized(world, client: str) -> bool:
 
 # ── the condition's read: beaten ──────────────────────────────────────
 
-def peace_loser(a: str, b: str, clauses) -> str:
-    """The court beaten by a signed peace — the one whose burden under its
-    clauses is the greater (`burden_on_nation`, the DEMANDS dialect that
-    knows every type); '' for a white peace (nobody beaten) or equal
-    burdens."""
+def war_loser(world, a: str, b: str) -> str:
+    """G2-RECOG: the court the war between `a` and `b` has gone against —
+    the pair's score past `BEATEN_WAR_SCORE` (the ratification record's own
+    bar for a victory); '' for a drawn war. Read BEFORE the war's cleanup
+    pops the score."""
+    from backend.game_logic.diplomacy import get_war_score_for
+    score = int(get_war_score_for(world, str(a), str(b)) or 0)
+    if score >= BEATEN_WAR_SCORE:
+        return str(b)
+    if score <= -BEATEN_WAR_SCORE:
+        return str(a)
+    return ""
+
+
+def peace_loser(a: str, b: str, clauses, beaten: str = "") -> str:
+    """The court beaten by a signed peace. G2-RECOG: `beaten` — the court
+    the war itself went against (`war_loser`, the dictated exit's own loser)
+    — is the answer where the caller knows it; the clause burden
+    (`burden_on_nation`, the DEMANDS dialect that knows every type) decides
+    only a drawn war. '' for a white peace (nobody beaten) or equal burdens."""
+    if the_war_names_the_beaten() and beaten and str(beaten) in (str(a), str(b)):
+        return str(beaten)
     from backend.game_logic.diplomatic_templates import burden_on_nation
     rows = [dict(c) for c in (clauses or []) if isinstance(c, dict)]
     if not rows:
@@ -724,26 +896,48 @@ def peace_loser(a: str, b: str, clauses) -> str:
     return ""
 
 
-def note_peace_signed(world, a: str, b: str, clauses) -> List[Dict[str, Any]]:
+def _ceding_courts(clauses) -> Dict[str, str]:
+    """{crown tag: the court out of whose lands the treaty erects it} for
+    the `create_client` articles of a signed peace."""
+    out: Dict[str, str] = {}
+    for clause in clauses or []:
+        if isinstance(clause, dict) and clause.get("type") == "create_client":
+            tag, ceder = str(clause.get("tag") or ""), str(clause.get("from") or "")
+            if tag and ceder:
+                out[tag] = ceder
+    return out
+
+
+def note_peace_signed(world, a: str, b: str, clauses, beaten: str = "") -> List[Dict[str, Any]]:
     """The peace chokepoints' ONE call: a legitimist that signs this peace
     as the LOSER with the house of a crown's lord recognizes that crown —
-    written into the row's `recognized_by`, one beat a crown. Returns the
+    written into the row's `recognized_by`, one beat a crown. G2-RECOG: the
+    loser is the court the war went against (`beaten`), and a legitimist
+    that signs the article erecting a crown out of its OWN lands recognizes
+    that crown by the instrument, whoever is called the loser. Returns the
     rows written ([] where nothing changes: no crown, a white peace, the
     loser no legitimist, the winner's house no lord, the seam down)."""
     if not the_legitimists_withhold() or not any_crown(world):
         return []
-    loser = peace_loser(a, b, clauses)
-    if not loser or loser not in legitimists(world):
-        return []
-    winner = str(b) if loser == str(a) else str(a)
-    winners_house = house_of(world, winner)
+    loser = peace_loser(a, b, clauses, beaten)
+    seats = legitimists(world)
+    winners_house = ""
+    if loser and loser in seats:
+        winner = str(b) if loser == str(a) else str(a)
+        winners_house = house_of(world, winner)
+    ceded = _ceding_courts(clauses) if the_war_names_the_beaten() else {}
     out: List[Dict[str, Any]] = []
     for tag, row in crown_rows(world):
-        if house_of(world, crown_lord(row)) != winners_house:
-            continue
-        if loser not in withholding_courts(world, tag):
-            continue
-        out.append(_grant(world, tag, row, [loser], BY_PEACE))
+        granting: List[str] = []
+        if (winners_house and house_of(world, crown_lord(row)) == winners_house
+                and loser in withholding_courts(world, tag)):
+            granting.append(loser)
+        ceder = ceded.get(tag, "")
+        if (ceder and ceder in seats and ceder not in granting
+                and ceder in (str(a), str(b)) and ceder in withholding_courts(world, tag)):
+            granting.append(ceder)
+        if granting:
+            out.append(_grant(world, tag, row, granting, BY_PEACE))
     return out
 
 

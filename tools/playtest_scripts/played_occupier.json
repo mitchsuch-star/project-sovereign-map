@@ -1,0 +1,65 @@
+{
+ "name": "played-occupier",
+ "seed": "distant-hussar-64",
+ "llm": "mock",
+ "_note": "Session G2 'the played campaign', the SECOND hand-played opening (DYNAMISM_SPEC.md §7b; November 11, 2026): a different freshly rolled seed (distant-hussar-64 — Denmark the understudy). The SAME first three turns of orders as played_emperor.json meet a different war: Charles takes Munich on day three (the German Question turns, Prussia gives Bavaria her word at loop 4), Massena is broken at Milan and the client's general is taken; then France recovers by hand — Archduke John a prisoner at loop 5, Charles at loop 6, Liechtenstein to the Bavarians at loop 9 — takes Tyrol, Bohemia and Carniola, and finds 45,000 Russians entrenched before Vienna; Prussia's Hanover crisis opens at loop 8 with no French gold behind it. Played turn by turn from each morning's board through loop 10. Run: --turns 11 --settlement decline. (An unattended tail was run past loop 10 and is NOT recorded here as play: five careless assaults on the entrenched Russians with the Emperor in the column lost the army, Soult and Massena, and the Emperor — the Fall of the Empire at turn 38.)",
+ "turns": {
+  "1": [
+   "status",
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Lannes, attack Mack",
+   "Murat, attack Mack"
+  ],
+  "2": [
+   "Davout, attack Archduke Charles",
+   "Soult, move to Swabia",
+   "Massena, attack Archduke John"
+  ],
+  "3": [
+   "Soult, attack Archduke Charles",
+   "Massena, attack Archduke John"
+  ],
+  "4": [
+   "Ney, attack Archduke Charles",
+   "Massena, drill"
+  ],
+  "5": [
+   "Lannes, attack Archduke Charles",
+   "Soult, attack Archduke John"
+  ],
+  "6": [
+   "Soult, attack Archduke Charles",
+   "Ney, move to Bohemia",
+   "Davout, move to Bohemia"
+  ],
+  "7": [
+   "Ney, attack Kutuzov",
+   "Lannes, attack Bohemia",
+   "Murat, move to Tyrol"
+  ],
+  "8": [
+   "Davout, attack Kutuzov",
+   "Murat, attack Carniola"
+  ],
+  "9": [
+   "Soult, attack Vienna",
+   "Bernadotte, attack Hungary"
+  ],
+  "10": [
+   "Ney, attack Vienna",
+   "Lannes, attack Moravia"
+  ]
+ },
+ "policy_at": {
+  "2": {
+   "decline_from": "Austria,Britain,Russia"
+  }
+ },
+ "policy": {
+  "objection": "trust",
+  "diplomacy": "accept",
+  "settlement": "decline",
+  "client_petition": "refuse"
+ }
+}

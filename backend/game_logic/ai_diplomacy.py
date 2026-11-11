@@ -472,6 +472,17 @@ def rest_refused_pair(initiator: str, ptype: str, world, target: str) -> None:
     apply_rejection_cooldowns(initiator, ptype, world, recipient=target)
 
 
+def a_court_at_fight_still_asks() -> bool:
+    """G2-ASK (the played campaign, November 11, 2026; `DYNAMISM_SPEC.md`
+    §7b): a court whose intent stands at `fight` with its ladder unclimbed
+    still sends the design ask — SF-LB-2's "a court asks before it demands"
+    carried one rung up, so the boldest court is not the one court that can
+    never open its crisis. Down (False): the ask is sent at the asking rungs
+    and at `coerce` only (session G's tree) — a court that reaches `fight`
+    first never asks and never moves."""
+    return True
+
+
 def a_refused_ask_rests() -> bool:
     """T0-F (GR-41, the November 6, 2026 review — OCT27-13's missing reader
     on the AI-AI road): the `design_ask` refusal branch returns before the
@@ -662,6 +673,32 @@ DESIGN_ASK_PATIENCE_MAX = 4   # turns; the ruling's band [0, 4]
 # window; matching the agenda-grudge horizon keeps one memory scale.
 REFUSAL_MEMORY_TURNS = 12
 
+# G2-LADDER (the played campaign, November 11, 2026; `DYNAMISM_SPEC.md`
+# §7b): the LADDER'S own memory. T0-F made a refused ask rarer — the pair
+# rests 6, then 12, then 18 turns as refusals stand inside the 12-turn
+# memory — and the two windows fought: asks land at T, T+6, T+18, T+24 …,
+# so "two refusals on the record" held for six turns in every eighteen and
+# the ladder un-climbed itself in between. A court that reached its acting
+# rung in a gap (a design a backer's gold had just raised, turns 20–30 of
+# the played campaign) could not open its crisis however often it had been
+# refused. The gate reads this longer window — the longest rest and one
+# dedupe window, so a court that keeps asking stays climbed; the weight's
+# hardening and every other reader keep the 12.
+LADDER_MEMORY_TURNS = 24
+
+
+def the_ladder_outlasts_the_rest() -> bool:
+    """G2-LADDER seam: the war council's ladder gate counts the refusals of
+    the last `LADDER_MEMORY_TURNS` (and the write keeps them that long).
+    Down (False): the gate reads the 12-turn memory every other reader
+    does — climbed six turns in eighteen (session G's tree)."""
+    return True
+
+
+def _refusal_retention() -> int:
+    return (max(REFUSAL_MEMORY_TURNS, LADDER_MEMORY_TURNS)
+            if the_ladder_outlasts_the_rest() else REFUSAL_MEMORY_TURNS)
+
 
 def record_diplomatic_refusal(world, proposer: str, recipient: str,
                               proposal_type: str) -> bool:
@@ -684,7 +721,7 @@ def record_diplomatic_refusal(world, proposer: str, recipient: str,
     key = f"{proposer}>{recipient}"
     turn = int(getattr(world, 'current_turn', 0))
     entries = [e for e in (store.get(key) or [])
-               if turn - int(e.get("turn", 0)) < REFUSAL_MEMORY_TURNS]
+               if turn - int(e.get("turn", 0)) < _refusal_retention()]
     for entry in entries:
         if (entry.get("type") == proposal_type
                 and turn - int(entry.get("turn", 0)) < REFUSAL_DEDUPE_TURNS):
@@ -708,6 +745,17 @@ def get_refused_asks(world, proposer: str, recipient: str) -> List[Dict]:
     turn = int(getattr(world, 'current_turn', 0))
     return [e for e in (store.get(f"{proposer}>{recipient}") or [])
             if turn - int(e.get("turn", 0)) < REFUSAL_MEMORY_TURNS]
+
+
+def get_ladder_refusals(world, proposer: str, recipient: str) -> List[Dict]:
+    """G2-LADDER: the refusals the war council's ladder gate counts — the
+    ordered pair's record inside the ladder's own memory (the 12-turn
+    record with the seam down)."""
+    store = getattr(world, 'diplomatic_refusals', {}) or {}
+    turn = int(getattr(world, 'current_turn', 0))
+    window = _refusal_retention()
+    return [e for e in (store.get(f"{proposer}>{recipient}") or [])
+            if turn - int(e.get("turn", 0)) < window]
 
 
 def design_ask_patience(world, asker: str, holder: str) -> int:
@@ -5724,6 +5772,18 @@ def _evaluate_ai_ai_triggers(nation_a: str, nation_b: str, world) -> Optional[Di
             from backend.game_logic.war_council import _ladder_climbed
             if not _ladder_climbed(world, proposer, target):
                 _ask_rungs = tuple(_ask_rungs) + ("coerce",)
+        if (a_court_at_fight_still_asks() and view.price == "fight"
+                and view.against == target):
+            # G2-ASK: the same law one rung higher. A court whose weight
+            # carries it to `fight` before two refusals stand on the record
+            # never passed through an asking rung — it sent no ask, its
+            # ladder never climbed, and the council (which opens a crisis
+            # only on a climbed ladder) left it "prepared to go as far as
+            # war" for ever: the cast Naples before Rome, turn 2 to turn 37
+            # of the played campaign. Until the ladder is climbed it asks.
+            from backend.game_logic.war_council import _ladder_climbed
+            if not _ladder_climbed(world, proposer, target):
+                _ask_rungs = tuple(_ask_rungs) + ("fight",)
         if (view.against == target and view.price in _ask_rungs
                 and not world.is_at_war(proposer, target)):
             recent = [e for e in get_refused_asks(world, proposer, target)

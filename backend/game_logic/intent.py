@@ -200,6 +200,103 @@ def rung_index(price: str) -> int:
         return 0
 
 
+# ── G2-BACKED — a backed design dares (the played campaign, November 11,
+# 2026; `DYNAMISM_SPEC.md` §7b) ─────────────────────────────────────────
+# The D5 instruments that STOP a design (the buy-off, the guarantee) have
+# always moved its weight; the one that STARTS it never did — a sponsorship
+# or a licence was a transfer and a bond, read by nothing the court decides
+# with. The played campaign paid Prussia 4,000 gold to move on Hanover and
+# licensed Russia's Finnish design at the peace: neither court's intent
+# moved a point. A live compact aimed at the holder of a court's ACQUIRE
+# design now adds this for its term. AI-vs-AI designs only (the crisis
+# machinery's own v1 scope): an aim in the player's house is never pushed,
+# so the paymaster's subsidies against France read as they always did.
+WEIGHT_BACKED_DESIGN = 10
+
+
+def a_backed_design_dares() -> bool:
+    """G2-BACKED seam: a live directed sponsorship or licence (ONE record —
+    `world.directed_sponsorships`, kind `sponsorship`; the Cabinet's
+    "Sponsor Their Design" and its free licence, the peace table's "Point
+    her elsewhere") aimed at the holder of a court's live acquire design
+    adds `WEIGHT_BACKED_DESIGN` to that design's weight while it stands.
+    Down (False): a compact moves gold and binds its payer and nothing
+    else (session G's tree)."""
+    return True
+
+
+def design_backing(world, nation: str, agenda, against: Optional[str]) -> Optional[dict]:
+    """The live compact that backs `nation`'s design against `against`, or
+    None: the first `sponsorship` record paying or licensing `nation` with
+    that aim, from another court. Acquire designs only; never an aim in
+    the player's own house. Pure read of the serialized store."""
+    if not against or not a_backed_design_dares():
+        return None
+    if getattr(agenda, "type", None) != "acquire_regions":
+        return None
+    player = getattr(world, "player_nation", "France")
+    if (world._top_overlord(against) or against) == player:
+        return None
+    for record in getattr(world, "directed_sponsorships", None) or []:
+        if (isinstance(record, dict) and record.get("kind") == "sponsorship"
+                and record.get("recipient") == nation
+                and record.get("aim") == against
+                and record.get("payer") not in (None, "", nation)
+                and int(record.get("turns_remaining", 1) or 0) > 0):
+            return record
+    return None
+
+
+def backing_words(world, nation: str) -> str:
+    """The Intent row's clause for a backed design — who stands behind it
+    and on what terms; '' where nothing does. One composition (the ledger,
+    the Cabinet's quote)."""
+    from backend.game_logic.agendas import get_active_agenda
+    agenda = get_active_agenda(nation, world)
+    if agenda is None:
+        return ""
+    view = get_nation_intent(nation, world)
+    record = design_backing(world, nation, agenda, view.against)
+    if not record:
+        return ""
+    from backend.game_logic.formations import formed_display_name
+    payer = formed_display_name(world, str(record.get("payer")))
+    amount = int(record.get("amount_per_turn", 0) or 0)
+    terms = f"{amount:,} gold a turn" if amount > 0 else "a free hand"
+    left = int(record.get("turns_remaining", 0) or 0)
+    return (f"backed by {payer} ({terms}, {left} turn{'s' if left != 1 else ''} left) "
+            f"— she dares more for it")
+
+
+def backing_forecast(world, nation: str, aim: str) -> str:
+    """What a compact aimed at `aim` would do to `nation`'s design, said
+    BEFORE it is struck — the Cabinet's chip and the quote. '' where the
+    push does not apply (no acquire design against that court, the aim in
+    the player's house, the seam down, the design already backed)."""
+    if not a_backed_design_dares():
+        return ""
+    from backend.game_logic.agendas import get_active_agenda
+    agenda = get_active_agenda(nation, world)
+    if agenda is None or getattr(agenda, "type", None) != "acquire_regions":
+        return ""
+    view = get_nation_intent(nation, world)
+    if not aim or view.against != aim:
+        return ""
+    player = getattr(world, "player_nation", "France")
+    if (world._top_overlord(aim) or aim) == player:
+        return ""
+    if design_backing(world, nation, agenda, aim):
+        return ""
+    backed = max(0, min(100, int(view.weight) + WEIGHT_BACKED_DESIGN))
+    then = _derive_price(nation, agenda, aim, backed, world)
+    if then == view.price:
+        return (f"Backed, her design gains weight ({int(view.weight)} to {backed}) "
+                f"and she stays {price_reach_phrase(view.price)}.")
+    return (f"Backed, her design gains weight ({int(view.weight)} to {backed}): "
+            f"she becomes {price_reach_phrase(then)}, where today she is "
+            f"{price_reach_phrase(view.price)}.")
+
+
 def get_nation_intent(nation: str, world) -> IntentView:
     """The one derivation chokepoint. Per-turn cached; cleared through
     invalidate_bloc_members_cache (the _agenda_cache idiom).
@@ -492,6 +589,10 @@ def _derive_weight(nation: str, agenda: AgendaView,
             from backend.game_logic.war_council import holder_outmatched
             if holder_outmatched(world, nation, against):
                 weight += WEIGHT_HOLDER_OUTMATCHED
+        # G2-BACKED: a backed design dares — the backer's push, for the
+        # compact's term (a per-turn READING of the live record, §3.1a).
+        if design_backing(world, nation, agenda, against):
+            weight += WEIGHT_BACKED_DESIGN
     # §3.8 threshold jitter — 0 at boot on every seed, 0 forever on the
     # historical seed; the bars move, never the choices.
     weight += seeded_jitter(
@@ -573,6 +674,11 @@ def build_intent_payload(nation: str, world) -> Optional[dict]:
         aim_line = war_aim_line(world, nation, view.against)
         if aim_line:
             summary = f"{summary} — at war, {aim_line}"
+    # G2-BACKED: the row names the backer — the push is never a hidden
+    # number (D4: diplomacy has no fog; the ledger says why she dares).
+    backed_line = backing_words(world, nation)
+    if backed_line:
+        summary = f"{summary} — {backed_line}"
     return {
         "want_id": view.want_id,
         "want_title": view.want_title,

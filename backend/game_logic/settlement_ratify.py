@@ -1095,8 +1095,13 @@ def _record_common_peace_treaties(
     *,
     plan: List[Dict[str, Any]],
     settlement_terms: Iterable[Mapping[str, Any]],
+    pre_cleanup_snapshots: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> None:
-    """Write per-pair treaty records in the same shape bilateral ratification uses."""
+    """Write per-pair treaty records in the same shape bilateral ratification uses.
+
+    G2-RECOG: `pre_cleanup_snapshots` carries each pair's war score as it
+    stood BEFORE `cleanup_war_end` popped it — the recognition read below
+    names the beaten court by the war, not by the clause burden."""
     active_treaties = getattr(world, "active_treaties", {}) or {}
     previous_treaties = getattr(world, "previous_treaties", {}) or {}
     all_terms = [dict(t) for t in (settlement_terms or []) if isinstance(t, Mapping)]
@@ -1164,8 +1169,12 @@ def _record_common_peace_treaties(
         # (`crowns.note_peace_signed`; a truce is not a peace).
         if (str(entry.get("current_state") or "") in ("WAR", "ARMISTICE")
                 and final_state != "ARMISTICE"):
-            from backend.game_logic.crowns import note_peace_signed
-            note_peace_signed(world, proposer_member, covered_enemy, pair_terms)
+            from backend.game_logic.crowns import BEATEN_WAR_SCORE, note_peace_signed
+            _pair_score = int(((pre_cleanup_snapshots or {}).get(entry.get("pair")) or {})
+                              .get("proposer_war_score", 0) or 0)
+            _beaten = (covered_enemy if _pair_score >= BEATEN_WAR_SCORE
+                       else proposer_member if _pair_score <= -BEATEN_WAR_SCORE else "")
+            note_peace_signed(world, proposer_member, covered_enemy, pair_terms, _beaten)
     world.active_treaties = active_treaties
     world.previous_treaties = previous_treaties
 
@@ -1747,6 +1756,7 @@ def ratify_settlement_confirm(
         for rs in (e.get("titled") or {}).values() for r in rs)
     _record_common_peace_treaties(
         world, plan=plan, settlement_terms=settlement_terms,
+        pre_cleanup_snapshots=pre_cleanup_snapshots,
     )
 
     # AI-5b(i) (§3.6): a settlement that STRIPS a court — its capital, or

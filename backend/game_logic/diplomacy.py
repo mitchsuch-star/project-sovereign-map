@@ -13643,8 +13643,11 @@ def _process_armistice_expiration(world) -> List[Dict]:
             # DY-7 (DYNAMISM_SPEC.md §6): the dictated exit is a signed peace —
             # its loser recognizes the crowns of the victor's house; the plain
             # expiry carries no clause and beats nobody (`crowns.note_peace_signed`).
+            # G2-RECOG: the dictated exit names its own loser (the pair's
+            # score is already cleaned up here).
             from backend.game_logic.crowns import note_peace_signed as _note_recognition
-            _note_recognition(world, nation_a, nation_b, _exit_clauses)
+            _note_recognition(world, nation_a, nation_b, _exit_clauses,
+                              str(exit_.get("loser") or "") if dictated else "")
             # SR-1b: the clients' truces thaw with the lord's.
             for x, y in client_pairs_that_follow(world, nation_a, nation_b, "PEACE"):
                 client_key = world._make_diplo_key(x, y)
@@ -16752,6 +16755,11 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
                 _war_cost = licensed_war_cost_clause(world, player, target_nation, aim)
                 if _war_cost:
                     sponsor_detail += f" {_war_cost}"
+                # G2-BACKED: and what the backing does to her design
+                from backend.game_logic.intent import backing_forecast
+                _push = backing_forecast(world, target_nation, aim)
+                if _push:
+                    sponsor_detail += f" {_push}"
         if not (at_war and aim == player):
             actions.append(_chip(
                 "sponsor_design",

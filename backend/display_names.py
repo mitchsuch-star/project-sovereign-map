@@ -2055,6 +2055,23 @@ def _directed_term_line(kind: str, term, proposer: str, target: str,
     return f"{subject} {verb} {obj} {amount:,} gold a turn{stream_term_phrase(term)}"
 
 
+def _crown_term_line(prefix: str, term) -> str:
+    """G2 (the played campaign): a `create_client` term names the state it
+    erects, the soil it is carved from and who reigns — the counter-offer's
+    popup and the mailbox read "Demand: Client state erected - 1" for the
+    Kingdom of Hungary under Soult. One composition with the table's own
+    (`crowns.king_clause_words`); '' for every other term."""
+    if not isinstance(term, dict) or str(term.get("type") or "") != "create_client":
+        return ""
+    client = str(term.get("client_display_name") or term.get("tag") or "").strip()
+    if not client:
+        return ""
+    from backend.game_logic.crowns import king_clause_words
+    provinces = [str(p) for p in (term.get("provinces") or []) if p]
+    soil = f" out of {', '.join(provinces)}" if provinces else ""
+    return f"{prefix}: {client} erected{soil}{king_clause_words(term)}"
+
+
 def _proposal_term_lines(terms: dict, *, viewer: str = "", proposer: str = "",
                          target: str = "", name_of=None) -> list[str]:
     """The popup lines of a proposal's own terms - clauses, demands, offers -
@@ -2079,6 +2096,7 @@ def _proposal_term_lines(terms: dict, *, viewer: str = "", proposer: str = "",
 
     for demand in terms.get("demands", []):
         lines.append(_directed_term_line("demand", demand, proposer, target, viewer, name_of)
+                     or _crown_term_line("Demand", demand)
                      or _format_popup_clause_line("Demand", demand.get("type", "unknown"), demand))
 
     for sweetener in terms.get("sweeteners", []):

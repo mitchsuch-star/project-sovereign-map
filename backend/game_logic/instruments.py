@@ -347,6 +347,13 @@ def grant_directed_sponsorship(world, *, payer: str, recipient: str,
     }
     records.append(record)
     world.directed_sponsorships = records
+    # G2-BACKED: the Emperor's own compact is read at once (the ledger's
+    # Intent row, the next table) — the player's grant only, so no AI-phase
+    # read inside a turn changes its staleness (the intent-cache choice).
+    from backend.game_logic.intent import a_backed_design_dares
+    if (a_backed_design_dares() and kind == "sponsorship"
+            and payer == getattr(world, "player_nation", "France")):
+        world.invalidate_bloc_members_cache()
     from backend.game_logic.diplomatic_dialogue import modify_relation_booked
     modify_relation_booked(world, payer, recipient, SPONSORSHIP_RELATION_BONUS,
                            "sponsorship", payer, recipient)
@@ -1695,6 +1702,10 @@ def sponsorship_quote(world, payer: str, recipient: str, aim: str,
     # said at the choice, from the declaration's own figures
     war = licensed_war_cost_clause(world, payer, recipient, aim)
     war = f" {war}" if war else ""
+    # G2-BACKED: what the compact buys, said at the choice.
+    from backend.game_logic.intent import backing_forecast
+    push = backing_forecast(world, recipient, aim)
+    war = f"{war} {push}" if push else war
     if int(amount) <= 0:
         return (
             f"License {rname}'s design against {aname}: no gold, "

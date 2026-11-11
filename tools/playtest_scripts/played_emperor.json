@@ -1,0 +1,136 @@
+{
+ "name": "played-emperor",
+ "seed": "distant-bivouac-95",
+ "llm": "mock",
+ "_note": "Session G2 'the played campaign' (DYNAMISM_SPEC.md §7b; November 11, 2026). The campaign a France was PLAYED by hand on a freshly rolled seed, one turn at a time from the board each morning, set down as one script so it replays on any build: Ulm on day one (Mack a prisoner); Charles driven from Franconia and broken in Bohemia; Kutuzov met and beaten three times before Vienna; Bohemia, Tyrol, Carniola and Hungary taken; at loop 10 the peace table — the Kingdom of Hungary demanded UNDER SOULT, the joint table set aside for the separate peace with Austria (London unbeaten: the whole-war table cannot carry), Austria's counter (2,800 gold) accepted at loop 12; a peace with Russia at loop 16 that LICENSES her Finnish design (the Tilsit clause — 'Point Russia elsewhere'); at loop 20 a sponsorship of Prussia's Hanoverian Prize (400 gold a turn); then the Emperor watches Europe to loop 40. Every table act is the client's own click ('@…'); the typed openers are the lines the war panel and the Cabinet send. What it pins (tests/test_session_g2_the_played_campaign.py reads the archived digest): Soult takes the crown with his corps; Vienna recognizes the kingdom by the peace that beat her; Prussia, backed, opens her crisis on Hanover and takes it; Naples, at 'war' from loop 2, asks the Pope and marches on Rome. Run: --turns 40 --settlement decline (the league's turn-4 common peace is refused; every other dial is the script's own).",
+ "turns": {
+  "1": [
+   "status",
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Lannes, attack Mack",
+   "Murat, attack Mack"
+  ],
+  "2": [
+   "Davout, attack Archduke Charles",
+   "Soult, move to Swabia",
+   "Massena, attack Archduke John"
+  ],
+  "3": [
+   "Soult, attack Archduke Charles",
+   "Massena, attack Archduke John"
+  ],
+  "4": [
+   "Soult, attack Archduke Charles",
+   "Massena, move to Carniola",
+   "recruit 10000 infantry with Ney",
+   "Bernadotte, move to Rhineland"
+  ],
+  "5": [
+   "Massena, attack Vienna",
+   "Ney, attack Bohemia",
+   "Bernadotte, drill"
+  ],
+  "6": [
+   "Soult, attack Kutuzov",
+   "Davout, attack Vienna",
+   "recruit 10000 infantry with Ney"
+  ],
+  "7": [
+   "Massena, attack Kutuzov",
+   "Murat, attack Tyrol",
+   "Lannes, attack Carniola",
+   "Davout, attack Hungary"
+  ],
+  "8": [
+   "Soult, attack Vienna",
+   "Davout, move to Bohemia"
+  ],
+  "9": [
+   "Massena, attack Vienna",
+   "Lannes, attack Croatia",
+   "Murat, move to Bohemia"
+  ],
+  "10": [
+   "Soult, attack Vienna",
+   "grant Davout a rente",
+   "propose common peace with Austria",
+   "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"create_client\", \"tag\": \"Hungary\", \"king\": \"Soult\"}",
+   "@submit_settlement_for_review",
+   "@seek_bilateral_peace",
+   "@confirm_pair_substitute",
+   "@execute_proposal"
+  ],
+  "11": [
+   "Davout, attack Vienna",
+   "Massena, attack Archduke Charles",
+   "grant Massena a rente"
+  ],
+  "12": [
+   "status"
+  ],
+  "13": [
+   "Murat, move to Bohemia",
+   "Ney, move to Bohemia",
+   "recruit 10000 infantry with Bernadotte",
+   "build depot in Bohemia"
+  ],
+  "14": [
+   "Davout, move to Bohemia",
+   "Lannes, move to Bohemia",
+   "recruit 10000 infantry with Bernadotte"
+  ],
+  "15": [
+   "Napoleon, move to Bohemia",
+   "recruit 10000 infantry with Bernadotte"
+  ],
+  "16": [
+   "propose common peace with Russia",
+   "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"offer\", \"clause_type\": \"territory_compensate\", \"region\": \"Finland\"}",
+   "@submit_settlement_for_review",
+   "@seek_bilateral_peace",
+   "@confirm_pair_substitute",
+   "@execute_proposal",
+   "recruit 10000 infantry with Bernadotte"
+  ],
+  "17": [
+   "recruit 10000 infantry with Bernadotte"
+  ],
+  "18": [
+   "recruit 10000 infantry with Bernadotte"
+  ],
+  "20": [
+   "sponsor Prussia against Hanover, 400 gold",
+   "status"
+  ],
+  "25": [
+   "status"
+  ],
+  "30": [
+   "status"
+  ],
+  "35": [
+   "status"
+  ],
+  "40": [
+   "status"
+  ]
+ },
+ "policy_at": {
+  "2": {
+   "decline_from": "Austria,Britain,Russia"
+  },
+  "10": {
+   "decline_from": "Britain,Russia"
+  },
+  "16": {
+   "decline_from": "Britain"
+  }
+ },
+ "policy": {
+  "objection": "trust",
+  "diplomacy": "accept",
+  "settlement": "decline",
+  "client_petition": "grant"
+ }
+}

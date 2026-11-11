@@ -1,0 +1,553 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  44,
+  42,
+  39,
+  26,
+  28,
+  25,
+  22,
+  27,
+  24,
+  21,
+  18,
+  15,
+  12,
+  9,
+  6,
+  3,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seams_down": {
+  "0": [
+   "ASK",
+   "BACKED",
+   "LADDER",
+   "RECOG"
+  ],
+  "ASK": [
+   "BACKED",
+   "LADDER",
+   "RECOG"
+  ],
+  "LADDER": [
+   "BACKED",
+   "RECOG"
+  ],
+  "ALL": []
+ },
+ "arms": {
+  "0": {
+   "down": [
+    "ASK",
+    "BACKED",
+    "LADDER",
+    "RECOG"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ask_seam_reads": 7127,
+     "ladder_seam_reads": 232,
+     "backed_seam_reads": 811,
+     "recog_seam_reads": 0,
+     "backed_bites": 0,
+     "ladder_reads": 97,
+     "ladder_bites": 0
+    },
+    "beats": []
+   }
+  },
+  "ASK": {
+   "down": [
+    "BACKED",
+    "LADDER",
+    "RECOG"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ask_seam_reads": 7127,
+     "ladder_seam_reads": 247,
+     "backed_seam_reads": 811,
+     "recog_seam_reads": 0,
+     "backed_bites": 0,
+     "ladder_reads": 112,
+     "ladder_bites": 0
+    },
+    "beats": []
+   }
+  },
+  "LADDER": {
+   "down": [
+    "BACKED",
+    "RECOG"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ask_seam_reads": 7128,
+     "ladder_seam_reads": 298,
+     "backed_seam_reads": 809,
+     "recog_seam_reads": 0,
+     "backed_bites": 0,
+     "ladder_reads": 112,
+     "ladder_bites": 14
+    },
+    "beats": [
+     [
+      16,
+      "ladder",
+      "Hesse",
+      "Hanover"
+     ],
+     [
+      28,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      29,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      30,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      31,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      32,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      33,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      35,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      36,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      37,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      38,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      38,
+      "ladder",
+      "Saxony",
+      "Prussia"
+     ],
+     [
+      39,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      40,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ]
+    ]
+   }
+  },
+  "ALL": {
+   "down": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "ask_seam_reads": 7128,
+     "ladder_seam_reads": 299,
+     "backed_seam_reads": 809,
+     "recog_seam_reads": 0,
+     "backed_bites": 10,
+     "ladder_reads": 113,
+     "ladder_bites": 14
+    },
+    "beats": [
+     [
+      16,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      16,
+      "ladder",
+      "Hesse",
+      "Hanover"
+     ],
+     [
+      16,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      28,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      28,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      28,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      28,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      28,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      28,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      29,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      29,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      29,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      29,
+      "backed",
+      "Prussia",
+      "Sweden",
+      "Russia"
+     ],
+     [
+      30,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      31,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      32,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      33,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      35,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      36,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      37,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      38,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      38,
+      "ladder",
+      "Saxony",
+      "Prussia"
+     ],
+     [
+      39,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ],
+     [
+      40,
+      "ladder",
+      "Austria",
+      "Ottoman"
+     ]
+    ]
+   }
+  }
+ }
+}

@@ -7971,6 +7971,10 @@ def get_marshal_overview():
     # a world whose scenario authors none.
     from backend.game_logic.doctrines import doctrine_payload
     payload["doctrine"] = doctrine_payload(world, world.player_nation)
+    # G2 (the played campaign): the kings the Emperor has made — a crowned
+    # marshal left this screen without a word.
+    from backend.game_logic.crowns import reigning_rows
+    payload["reigning"] = reigning_rows(world, world.player_nation)
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
     return payload
 

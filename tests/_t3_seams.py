@@ -152,6 +152,32 @@ prior tree's reading byte for byte.
           alone (no reserve, no five turns' upkeep); down: 4,500 for a
           3,000 crown.
 
+    G2-RECOG `crowns.the_war_names_the_beaten` — session G2, the played
+          campaign (DYNAMISM_SPEC.md §7b, November 11, 2026): the court a
+          peace beats is the court the WAR went against (the pair's score
+          past the ratification record's own bar), the clause burden only
+          for a drawn war; and the court out of whose lands a crown is
+          carved recognizes it by the treaty that erects it; down: the
+          loser by burden alone — an indemnity the victor pays for a carve
+          names the victor beaten (session F).
+
+    G2-ASK `ai_diplomacy.a_court_at_fight_still_asks` — a court at `fight`
+          with its ladder unclimbed still sends the design ask; down: the
+          ask at the asking rungs and at `coerce` only, so a court that
+          reaches `fight` first never asks and never opens its crisis.
+
+    G2-LADDER `ai_diplomacy.the_ladder_outlasts_the_rest` — the war
+          council's ladder gate counts the refusals of the last 24 turns
+          (the longest rest and one dedupe window) and the write keeps them
+          that long; down: the 12-turn memory — climbed six turns in
+          eighteen once T0-F's escalating rest spaces the asks.
+
+    G2-BACKED `intent.a_backed_design_dares` — a live sponsorship or
+          licence aimed at the holder of a court's acquire design adds
+          `WEIGHT_BACKED_DESIGN` to its weight for the compact's term
+          (never an aim in the player's house); down: a compact moves gold
+          and binds its payer and nothing else.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -258,6 +284,20 @@ T3_SEAMS_BY_ROW = {
     ],
     "G-CHEST": [
         "backend.game_logic.reforms:a_crown_is_bought_with_the_whole_chest=False",
+    ],
+    # Session G2 (the played campaign, November 11, 2026 — DYNAMISM_SPEC.md
+    # §7b): the four rules a hand-played France found missing.
+    "G2-RECOG": [
+        "backend.game_logic.crowns:the_war_names_the_beaten=False",
+    ],
+    "G2-ASK": [
+        "backend.game_logic.ai_diplomacy:a_court_at_fight_still_asks=False",
+    ],
+    "G2-LADDER": [
+        "backend.game_logic.ai_diplomacy:the_ladder_outlasts_the_rest=False",
+    ],
+    "G2-BACKED": [
+        "backend.game_logic.intent:a_backed_design_dares=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

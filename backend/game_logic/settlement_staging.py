@@ -929,6 +929,14 @@ def _crown_row_extras(world: Any, template: Any, carver: str,
             extras["king_options"] = [""] + [c["name"] for c in candidates]
             extras["king_labels"] = (["A regency — no king seated"]
                                      + [c["label"] for c in candidates])
+            # G2: each pick's price in words, and the footnote (the risk,
+            # who has not the laurels yet).
+            from backend.game_logic.crowns import (
+                king_cost_note, laurels_footnote, regency_cost_note,
+            )
+            extras["king_notes"] = ([regency_cost_note()]
+                                    + [king_cost_note(world, carver, c) for c in candidates])
+            extras["king_footnote"] = laurels_footnote(world, carver)
             extras["terms_display"] = f"a crown: {title} — who shall reign? ▾"
         else:
             extras["terms_display"] = f"a crown: {title} — a regency"
@@ -3232,7 +3240,7 @@ def _pair_substitute_seed_terms(
                 cc_provinces = [
                     str(p) for p in (term.get("provinces") or []) if p
                 ]
-                demands.append({
+                carried = {
                     "type": "create_client",
                     # The bilateral acceptance walk multiplies by `value`,
                     # so it carries the province count — a two-province
@@ -3245,7 +3253,19 @@ def _pair_substitute_seed_terms(
                     # "France erects DuchyOfWarsaw" on the confirm popup.
                     "client_display_name": str(
                         term.get("client_display_name") or cc_tag),
-                })
+                }
+                # G2-KING (the played campaign, November 11, 2026): the
+                # crown and the king the Emperor chose at the table travel
+                # with the carve. This arm copied four keys, so "the Kingdom
+                # of Hungary under Soult" left the joint table as a bare
+                # carve and was erected as a regency — on the one road a
+                # player can take while London is unbeaten. Every later hop
+                # (`treaty.treaty_clauses_of`, the counter's deep copy,
+                # `crowns.enthrone`) already keeps these.
+                from backend.game_logic.crowns import CROWN_CLAUSE_KEYS
+                carried.update({key: term[key] for key in CROWN_CLAUSE_KEYS
+                                if term.get(key)})
+                demands.append(carried)
         elif (ttype == "continental_system_join" and frm == target
               and to == proposer_leader):
             # The Tilsit clause travels with the separate peace (§6.6 item
@@ -4834,8 +4854,18 @@ def settlement_status_quo_review(world: Any, war_instance: Mapping[str, Any],
     rest: List[str] = []
     seen: set = set()
     for a in sorted(ours):
+        lord = str(world._top_overlord(a) or a)
         for b in sorted(covered_set):
             if world.get_diplomatic_state(a, b) not in ("WAR", "ARMISTICE"):
+                continue
+            # G2 (the played campaign): a client's holding is named ONCE —
+            # the retention walks its lord's whole bloc, so the lord's pair
+            # has already said it ("Bohemia, Carniola and Tyrol stay ours"
+            # and then "Tyrol stays ours" again, for the Kingdom of Italy's
+            # own pair). The client's pair speaks only where its lord is
+            # not in this war with that court.
+            if (lord != a and lord in ours
+                    and world.get_diplomatic_state(lord, b) in ("WAR", "ARMISTICE")):
                 continue
             words = status_quo_forecast_lines(world, a, b, player, moved)
             for line in words.get("warnings") or []:

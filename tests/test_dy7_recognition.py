@@ -250,14 +250,19 @@ class TestTheConditionBeaten:
         assert [e["courts"] for e in _events(world, "recognition")] == [["Austria"]]
 
     def test_the_three_chokepoints_are_wired(self):
-        assert "note_peace_signed(world, proposer_member, covered_enemy, pair_terms)" in inspect.getsource(
+        # Re-seated by G2-RECOG (the played campaign, November 11, 2026): each
+        # chokepoint now also names the court the WAR beat — the pair's
+        # pre-cleanup score at the common peace, the live score at the
+        # bilateral ratify, the dictated exit's own loser.
+        assert "note_peace_signed(world, proposer_member, covered_enemy, pair_terms, _beaten)" in inspect.getsource(
             SR._record_common_peace_treaties)
         from backend.models.world_state import WorldState
         src = inspect.getsource(WorldState._ratify_titles_and_elimination)
-        assert "_note_recognition(self, ctx.proposer, ctx.target_nation, ctx.treaty_clauses)" in src
+        assert "_note_recognition(self, ctx.proposer, ctx.target_nation, ctx.treaty_clauses," in src
+        assert "_war_loser(self, ctx.proposer, ctx.target_nation))" in src
         src = inspect.getsource(DP._process_armistice_expiration)
         assert src.index("note_armistice_exit(world, nation_a, nation_b") < src.index(
-            "_note_recognition(world, nation_a, nation_b, _exit_clauses)")
+            "_note_recognition(world, nation_a, nation_b, _exit_clauses,")
 
     def test_the_ais_crown_is_recognized_the_same_way(self, world):
         """GR5: Russia's Finland — Austria and Britain withhold; a peace that

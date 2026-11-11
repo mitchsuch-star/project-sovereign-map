@@ -1558,9 +1558,18 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 		if why != "" and why != "null":
 			line += "            [i][color=#" + Utils.COLOR_INFO + "]— %s[/color][/i]\n" % why
 		return line
+	# G2 (the played campaign): a crown's row is never added by its NAME — that
+	# click seated a regency without a word, and the king list hid behind a
+	# small ▾. Where a king may be chosen the name opens the list, and "A
+	# regency" is one of its picks.
+	var king_pick: bool = _suggestion_asks_who_reigns(sugg)
 	var bbcode = "          [url=sugg:%d:%d][color=#80b0e0]%s[/color][/url]" % [
 		court_index, sugg_index, _safe_str(sugg.get("label")),
 	]
+	if king_pick:
+		bbcode = "          [url=suggopts:%d:%d][color=#80b0e0]%s[/color][/url]" % [
+			court_index, sugg_index, _safe_str(sugg.get("label")),
+		]
 	# The Tilsit clause (Score Finish Step 7 slice 4): a row that states its
 	# price where it can be clicked ("closes 10 → 11 of 26 ports · +10 alarm").
 	var terms_display = _safe_str(sugg.get("terms_display"))
@@ -1578,6 +1587,11 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 		options = sugg.get("king_options")
 		if sugg.get("king_labels") is Array:
 			option_labels = sugg.get("king_labels")
+	# G2: what each pick costs, in words, under its name; and the footnote
+	# (the risk a marshal king carries, who has not the laurels yet).
+	var option_notes: Array = []
+	if king_pick and sugg.get("king_notes") is Array:
+		option_notes = sugg.get("king_notes")
 	if options.size() > 1:
 		bbcode += " [url=suggopts:%d:%d]▾[/url]" % [court_index, sugg_index]
 	if bool(sugg.get("supports_continental_system", false)):
@@ -1599,7 +1613,21 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 			bbcode += "            [url=suggpick:%d:%d:%d][color=#9ec0e0]%s[/color][/url]\n" % [
 				court_index, sugg_index, opt_index, opt_text,
 			]
+			if opt_index < option_notes.size():
+				var note = _safe_str(option_notes[opt_index])
+				if note != "" and note != "null":
+					bbcode += "              [i][color=#" + Utils.COLOR_INFO + "]%s[/color][/i]\n" % note
+		if king_pick:
+			var footnote = _safe_str(sugg.get("king_footnote"))
+			if footnote != "" and footnote != "null":
+				bbcode += "            [i][color=#" + Utils.COLOR_INFO + "]%s[/color][/i]\n" % footnote
 	return bbcode
+
+
+func _suggestion_asks_who_reigns(sugg: Dictionary) -> bool:
+	# G2: a crown row with a king to choose (the first option is the regency).
+	var kings = sugg.get("king_options")
+	return kings is Array and (kings as Array).size() > 1
 
 
 func _on_per_court_meta_clicked(meta):
@@ -1702,6 +1730,13 @@ func _fire_suggestion(row: Dictionary, sugg_index: int, op: String, parts: Packe
 	# original `generic`-sentinel defect in this codebase was precisely one
 	# layer trusting that another had handled it.
 	if sugg.has("available") and not bool(sugg.get("available", true)):
+		return
+	# G2 defence-in-depth: a bare `sugg` on a crown row (a stale link) opens
+	# the king list rather than seating a regency nobody chose.
+	if op == "sugg" and _suggestion_asks_who_reigns(sugg) and parts.size() >= 3:
+		_suggestion_options_expanded["%s|%s" % [parts[1], parts[2]]] = true
+		_render_per_court_table()
+		_refit_settlement_document()
 		return
 	var params = sugg.get("action_params", {})
 	var payload = params.duplicate(true) if params is Dictionary else {}

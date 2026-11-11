@@ -15722,7 +15722,7 @@ PACT and ALL with the series unmoved; the chest's seam read 303 times, no promot
 
 **The gate (`DYNAMISM_SPEC.md` §7), read off arm ALL:** clause 1 MET (10 of 10); clause 2 MET (Hesse at secondary
 rank by promotion on lodi and marengo); clause 3 MET (the roster {Kingdom of Italy} on nine seeds, {Kingdom of Italy,
-Papal States} on wagram); `annexations_outside_aim` 0 on both surfaces; the band inside 23–28; the historian test
+Papal States} on wagram); `annexations_outside_aim` 0 on the ambient record (**corrected November 11, 2026 by session G2, §208: the harness's shipped arm read 2 — the cast Naples keeps Milan and Piedmont on wagram — and this line said "0 on both surfaces"**); the band inside 23–28; the historian test
 green on every seed (the suite's pins) — **EARNED, no clause lowered.** The deploy is session H.
 
 **Levers for the user, none pre-recommended:** (a) the understudy's reach — a Naples at war with Austria has no
@@ -15735,3 +15735,136 @@ alignment arm already excludes the obstacle; the design ask must still pass); `g
 soil, so the predicate reads the LIVE deck — a pact already standing is not undone by it; the digest's `intents`
 and `wars_opened` rows plus `spawn_run(seed, 10000, 40)` give a seed's whole story in five seconds; the Awakening's
 beats moved 25 → 24 on the moved seeds (the Pope's people are gone with their court).
+
+## §208 Session G2 — the played campaign: the king's carry, the war names the beaten, the ask ladder, a backed design dares (November 11, 2026)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session G2, §7b the landing record). The user's words: *"review to see if
+dyna mism worked and is fully done"*, then *"fix and playtest do full session of fixing and real life testing make it
+workm and make it work well and when i say playtest i mean play well see derivations see dynamism test like humna"*,
+and at the plan *"make sure ux and ui works for all of this too, things dont need to be typed … making someone kind for
+example should use ui! and how does it impact marshals"*. Drafted in Plan Mode and approved. **The method is the
+finding:** every measure before this one drove a France that does not play — the ambient arm is idle and the
+commanded script fights thirteen turns and then drills. A France was PLAYED by hand, one morning's board at a time, on
+a freshly rolled seed the tiers were never measured on (`distant-bivouac-95`): Ulm, Charles broken in Bohemia, Kutuzov
+beaten before Vienna, a separate peace erecting the Kingdom of Hungary, a peace with Russia, a licence, a sponsorship.
+Five defects fell out of that one campaign, each read to its cause; the fixes were then replayed on the same boards,
+walked in the running client by clicking, and measured.
+
+**G2-KING — the king survives the separate peace** (a carry bug; no seam, pinned).
+`settlement_staging._pair_substitute_seed_terms` — the builder `confirm_pair_substitute` hands the bilateral proposal
+— copied four keys of a `create_client` term. The crown and the king the Emperor had picked at the table
+(`crowns.CROWN_CLAUSE_KEYS`: `crown`, `king`, `king_kind`, `king_display`) fell off there, so "the Kingdom of Hungary
+under Soult" was erected as a regency on the ONE road open while London is unbeaten (the whole-war table cannot carry).
+Every later hop already kept them (`treaty.treaty_clauses_of`, the counter-offer's deep copy, `crowns.enthrone`). The
+old pin (`test_the_bilateral_carry_keeps_the_king`) hand-built the demand and never touched the builder.
+
+**G2-RECOG — the war names the beaten** (`crowns.the_war_names_the_beaten`).
+`crowns.peace_loser` read the loser off the clause burden alone (`burden_on_nation`). On the played treaty France's
+2,800 gold weighed 1.0 and Austria's kingdom 0.45, so the engine named France beaten in a peace it recorded
+`french_victory` at +45, and Vienna withheld recognition of the crown she had signed over. Now: `crowns.war_loser`
+— the pair's score past `BEATEN_WAR_SCORE` 30, the ratification record's own bar — is the answer where the caller
+knows it, the burden only for a drawn war; read at the three chokepoints (the bilateral ratify's live score at stage
+6; the common peace's pre-cleanup snapshot, threaded into `_record_common_peace_treaties`; the dictated exit's own
+`loser`). And the court out of whose lands a crown is carved recognizes that crown by the article that erects it
+(`_ceding_courts`), whoever is called the loser. The Proclamation card speaks the reception as the treaty leaves it
+(`on_crown_erected` drops the ceding court from `withheld_by`). A peace bought from an unbeaten court (Russia, a
+drawn war ended for gold) recognizes nothing.
+
+**G2-ASK — a court at `fight` still asks** (`ai_diplomacy.a_court_at_fight_still_asks`).
+Trigger 0a sent the design ask at the asking rungs (`DESIGN_ASK_RUNGS`) and, since SF-LB-2, at `coerce` while the
+ladder was unclimbed. A court whose weight reached `fight` first never asked, so it never held two refusals, so the
+council — which opens a crisis only on a climbed ladder — never opened one: the cast Naples stood "prepared to go as
+far as war" for Rome from turn 2 to turn 37. The same law one rung up: until the ladder is climbed, a court at
+`fight` asks.
+
+**G2-LADDER — the ladder outlasts the rest** (`ai_diplomacy.the_ladder_outlasts_the_rest`).
+T0-F made a refused ask rarer (the pair rests 6, 12, 18 turns as refusals stand inside the 12-turn memory). The two
+windows fought: asks land at T, T+6, T+18, T+24 …, so "two refusals on the record" held six turns in eighteen and the
+ladder un-climbed itself in between — a court that reached its acting rung in a gap could not open however often it
+had been refused. The gate (`war_council._ladder_climbed`) now counts `get_ladder_refusals`, the last
+`LADDER_MEMORY_TURNS` 24 (three rests and one dedupe window), and the write keeps them that long
+(`_refusal_retention`). The weight's hardening and every other reader keep `REFUSAL_MEMORY_TURNS` 12.
+
+**G2-BACKED — a backed design dares** (`intent.a_backed_design_dares`; the one rule here that ADDS a mechanic).
+The D5 instruments that stop a design (the buy-off, the guarantee) always moved its weight; the one that starts it
+never did. Nothing in `intent._derive_weight` or the war council read a sponsorship or a licence: 4,000 gold to
+Prussia and a Tilsit licence to Russia moved neither court a point. Now a live compact aimed at the holder of a court's
+ACQUIRE design adds `WEIGHT_BACKED_DESIGN` 10 for its term (`design_backing` — ONE record,
+`world.directed_sponsorships` kind `sponsorship`: the Cabinet's "Sponsor Their Design", its free "Licence", the peace
+table's "Point her elsewhere"; no new store or field). Never an aim in the player's house — the paymaster's subsidies
+against France read as they always did. Said in words at the choice (`backing_forecast` on the Cabinet's chip and in
+`sponsorship_quote`: "Backed, her design gains weight (66 to 76): she becomes prepared to go as far as an ultimatum …")
+and on the ledger's Intent row (`backing_words`: "backed by France (400 gold a turn, 10 turns left) — she dares more
+for it"). The Emperor's own grant flushes the read at once; an AI's waits its turn (the intent cache's staleness).
+
+**The marshals' side of a crown** (what the code does, now told and pinned). A marshal crowned leaves France for good:
+his nation becomes the kingdom, he stands at its seat with his WHOLE corps, he is off the roster and the glory
+ladder, his reward claims end, France stops paying his corps; there is no recall; the Emperor's actions a turn do
+not change. He must have the laurels (glory 3 in the window, or the crown of glory). The kingdom's loyalty starts at
+his trust (30–95); a prince 50; a regency 60. Every other laurelled marshal loses 5 trust and turns envious of the
+king (a prince: 8 trust, no envy). New in this session: each pick says its price (`king_notes`, parallel to
+`king_labels`: `king_cost_note`, `regency_cost_note`) with a footnote (`laurels_footnote`: the risk, and who has not
+the laurels yet); the formation record keeps the crown's keys (it outlives the vassal row); the Marshals screen
+carries a REIGNING block (`crowns.reigning_rows` on `/marshal_overview`: reigns / in arms against France / fallen);
+a kingdom that rebels names its marshal king in the notice (`rebel_king_words` — he keeps his crown and fights, the
+Murat-of-1814 outcome the generic rules already produced, untold).
+
+**The screens** (walked in the running client by clicking — `tools/dd_b_play.py`, a sandboxed backend on 8006; 38
+actions, 0 script errors). Nothing in the slice has to be typed: the war panel's "Negotiate with X" opens the Cabinet,
+"Open Settlement with Austria alone" the table, the crown row its list, the dial "More generous" the price, "Submit
+for Review" and "Ratify Settlement" the treaty; F1 → Prussia → "Sponsor Their Design" → "400g a turn" → "Sponsor it".
+Changed: on a crown row the NAME opens the king list (it used to add a regency without a word — `proposal_confirm_
+popup.gd` `_suggestion_asks_who_reigns`; a stale bare click opens the list too); the list prints each pick's note and
+the footnote; `marshal_management.gd` renders REIGNING under the laurels. Words: the counter-offer and the mailbox
+read "Demand: Kingdom of Hungary erected out of Hungary under Soult" (`display_names._crown_term_line`; it read
+"Client state erected - 1"); the table's status-quo review names a client's province once
+(`settlement_status_quo_review` walks a client's own pair only where its lord is not in that war).
+
+**The measure** (`tools/_g2_measure.py`, four arms 0 / ASK / LADDER / ALL on three surfaces, run alone;
+`tools/_g2_series_arms.py`; records `_dy_signature_g2_{control,ask,ladder,}_2026_11_11.json`, the four censuses,
+`_g2_chain_d_2026_11_11.json`, `_g2_band_2026_11_11.json`, `_g2_series_arms_final.json`; the shipped arm re-run on the
+final tree after the last crown-only edit, byte-identical). **Arm 0 reproduces session G byte for byte on both
+surfaces.** **ASK moves jena and wagram** — the two seeds that cast Naples: on jena she now asks, is refused twice
+and marches, and the Papal States fall at 26 (Vienna's pact with the Pope no longer comes first); on wagram the Pope
+falls at 17, fourteen turns sooner. **LADDER moves lodi** (Saxony no longer reaches `fight` there) and **ALL moves
+lodi again** (Denmark reaches `fight` at 13 — an AI backer's push); the recognition rule reads no crown on any arm.
+Story classes **10 of 10 on every arm**; `captures_outside_aim` 269 → 266; `annexations_outside_aim` 0 ambient.
+**The band does not move: 28 / 27 / 25 on every arm.** **The standing series does not move** on any arm; the ladder's
+longer memory bites 14 times on the rig (Hesse on Hanover, Austria on the Porte) and the backing 10 times (Russia
+behind Prussia against Sweden) with the series unmoved.
+
+**The gate (`DYNAMISM_SPEC.md` §7), read off arm ALL:** clause 1 MET (10 of 10); clause 2 MET (Hesse on lodi at 33
+and marengo at 40, as session G left them); clause 3 MET on TWO seeds now (the roster {Kingdom of Italy, Papal
+States} on jena and wagram, {Kingdom of Italy} on eight); `annexations_outside_aim` 0 on the ambient record; the band
+inside 23–28.
+
+**THE RECORD CORRECTED — the AI-France harness.** §207 said "`annexations_outside_aim` 0 on both surfaces". The
+committed harness record read **2** on session G's shipped arm (the cast Naples keeps Milan and Piedmont on wagram)
+and no pin held the figure. The cause, read off the kept run: Naples declares on the Pope; the Kingdom of Italy —
+FRANCE'S client — joins through its own defensive pact with Rome; Naples storms Milan (an enemy's seat, which the
+conduct rule permits) and takes Piedmont on the field; the kingdom falls, because T4-2 exempts the player's house's
+clients from "sign at the last"; the conquest then titles by its quiet clock. With G2-ASK the same thing happens on
+jena too: the figure reads **4** on this tree (jena and wagram, the same two provinces). It is pinned at what it
+reads on both records (`test_the_harness_annexation_line_is_pinned_at_what_it_reads`) and put to the user: the cure
+is a ruling on the Emperor's clients (let a client of the player sign at the last for itself), which reverses a
+boundary the user drew — not built here.
+
+**Out of sample** (reported, never gated): six fresh rolled seeds, idle France — six of six story classes before and
+after; and the commanded script on the same six. The per-seed tables are in `DYNAMISM_SPEC.md` §7b.
+
+**Pins:** `tests/test_session_g2_the_played_campaign.py` (the king end to end below the buttons; the two
+recognition readings and the card; the ask at `fight`; the two windows; the push — on, off, the player's house, the
+term's end, the words; the marshals' side; the screens' words; the seams; `TestTheSessionG2Measure`;
+`TestThePlayedCampaign` on the archived digest). Two pins re-seated with cause: `test_dy7_recognition.py`
+`test_the_three_chokepoints_are_wired` (each chokepoint now also names the court the war beat) and
+`test_sf_lb1_europes_own_quarrels.py` `test_a_court_at_coerce_does_not_ask` (a court past the asking rungs asks
+until its ladder is climbed — the board there reads `fight`, the only reason the pin outlived SF-LB-2). The played campaigns: `tools/playtest_scripts/played_emperor.json`,
+`played_occupier.json`; their digests `docs/audits/playtest_digests/played-emperor/`, `played-occupier/`.
+
+**Traps the session paid for:** a `status` / "Talleyrand, assess" line under `--diplomacy accept` lets the driver walk
+the advisory into a real proposal (3 DP to London) — keep it out of a played script; chunked play from autosaves and
+a continuous run agree only when the orders are the same to the line; a scripted assault with the Emperor in the
+column can end the campaign (the second seed's unattended tail: the Fall of the Empire at 38); `python` is not on
+the Bash tool's path and long heredocs with quotes fail — write patch scripts with the Write tool; the crown row sits
+eighth in a short scrolling list on the table (found by scrolling in the client, not by the instrument's meta click).
+

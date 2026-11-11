@@ -71,11 +71,29 @@ class TestTheAskAtEveryRungBelowCoerce:
         assert not proposal or proposal.get("type") != "design_ask"
 
     def test_a_court_at_coerce_does_not_ask(self, monkeypatch):
+        """Re-seated by G2-ASK (the played campaign, November 11, 2026). A
+        court past the asking rungs asks only UNTIL ITS LADDER IS CLIMBED —
+        SF-LB-2 at `coerce`, G2-ASK at `fight` (this board reads `fight`,
+        which is the only reason the pin survived SF-LB-2 unamended). Once
+        two refusals stand it demands and no longer asks; with the G2-ASK
+        seam down a court at `fight` never asked at all — the cast Naples
+        before Rome for thirty-five turns of the played campaign."""
+        from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
         world = _boot()
         monkeypatch.setattr(IN, "WEIGHT_BASE_BY_TYPE", dict(IN.WEIGHT_BASE_BY_TYPE, acquire_regions=75))
         _fresh(world)
         view = get_nation_intent("Prussia", world)
         assert view.price in ("coerce", "fight")
+        with pytest.MonkeyPatch.context() as m:
+            hold_down(m, T3_SEAMS_BY_ROW["G2-ASK"])
+            if view.price == "fight":
+                proposal = _quiet(AD._evaluate_ai_ai_proposal, "Prussia", "Hanover", world)
+                assert not proposal or proposal.get("type") != "design_ask"
+        world.current_turn = 13
+        world.diplomatic_refusals["Prussia>Hanover"] = [
+            {"type": "design_ask", "turn": 6}, {"type": "design_ask", "turn": 12}]
+        _fresh(world)
+        assert get_nation_intent("Prussia", world).price in ("coerce", "fight")
         proposal = _quiet(AD._evaluate_ai_ai_proposal, "Prussia", "Hanover", world)
         assert not proposal or proposal.get("type") != "design_ask"
 
