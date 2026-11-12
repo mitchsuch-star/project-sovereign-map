@@ -52,6 +52,10 @@ func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
 	hide()
+	# Session UI-3: a note's more/less link opens in place; the Settings switch
+	# re-renders an open letter from its cached data.
+	content_label.meta_clicked.connect(_on_body_meta)
+	Utils.on_explanations_changed(_on_explanations_switched)
 	accept_btn.pressed.connect(_on_accept)
 	counter_btn.pressed.connect(_on_counter)
 	reject_btn.pressed.connect(_on_reject)
@@ -68,9 +72,87 @@ func _ready():
 	# Cache default border color for normal proposals
 	_default_border_color = panel_style.border_color
 
+# Session UI-3 (November 12, 2026): the body's composed template (the grey
+# assessment's slot left open), so a note toggle re-sets ONLY the body text —
+# the dress (`_dress_letter`) appends to the buttons' words and must never run
+# twice on one letter.
+const ASSESS_SLOT := "\u0001ASSESS\u0001"
+const NOTE_PETITION := "petition.talleyrand"
+const NOTE_ASSESSMENT := "proposal.assessment"
+var _body_template: String = ""
+var _assessment_text: String = ""
+var _assessment_id: String = NOTE_ASSESSMENT
+var _silent_rebuild := false
+
+
+func _assessment_block() -> String:
+	"""The grey assessment line: whole On the page (byte for byte as before);
+	Folded, its first sentence and a more/less link (`Utils.bb_note`)."""
+	if _assessment_text == "":
+		return ""
+	var cut := _assessment_text.find(". ")
+	var summary := _assessment_text
+	var rest := ""
+	if cut > 0 and cut + 2 < _assessment_text.length():
+		summary = _assessment_text.substr(0, cut + 1)
+		rest = _assessment_text.substr(cut + 1)
+	return "\n[color=gray]" + Utils.bb_note(_assessment_id, summary, rest) + "[/color]\n"
+
+
+func _render_body() -> void:
+	"""Compose the body from the cached template and the note's state. S12:
+	through `text`, never append_text (the instrument reads the label's text)."""
+	content_label.text = Utils.humanize_nation_keys_in_text(
+		_body_template.replace(ASSESS_SLOT, _assessment_block()))
+
+
+func _on_body_meta(meta) -> void:
+	if not Utils.is_note_meta(meta):
+		return
+	Utils.toggle_note(meta)
+	var kept: float = content_label.get_v_scroll_bar().value
+	_render_body()
+	refit()
+	Utils.restore_label_scroll(content_label, kept)
+
+
+func _on_explanations_switched() -> void:
+	"""The Settings switch moved while a letter stands: the body is rebuilt from
+	the cached data (a letter of state carries no notes and is left alone)."""
+	if not visible or current_data.is_empty() or bool(current_data.get("is_moment", false)):
+		return
+	_silent_rebuild = true
+	show_proposal(current_data)
+	_silent_rebuild = false
+
+
+func _petition_figure_rows(clauses: Array, grant_figs: Array, refuse_figs: Array) -> String:
+	"""A client's petition as figures: the design note (when the petition carries
+	one — the clause list then runs four, not three) stays a line on the face;
+	GRANT and REFUSE each lead their figures as badges, and LAPSE is one short
+	badge. The sentences themselves are the buttons' hover."""
+	var out := ""
+	for i in range(maxi(clauses.size() - 3, 0)):
+		out += "  - %s\n" % str(clauses[i])
+	out += _figure_row("grant", grant_figs, Utils.COLOR_GOLD)
+	out += _figure_row("refuse", refuse_figs, Utils.COLOR_ERROR)
+	out += _figure_row("lapse", ["a lapse is a refusal"], Utils.COLOR_INFO)
+	return out
+
+
+func _figure_row(label: String, figures: Array, tone_hex: String) -> String:
+	var row := "[color=#" + tone_hex + "][b][opentype_features=smcp]" + label \
+		+ "[/opentype_features][/b][/color]  "
+	var badges: Array = []
+	for fig in figures:
+		badges.append(Utils.bb_badge(str(fig), tone_hex))
+	return row + " ".join(badges) + "\n"
+
+
 func show_proposal(data: Dictionary):
 	"""Display incoming proposal popup."""
-	AudioManager.play("letter_open")
+	if not _silent_rebuild:
+		AudioManager.play("letter_open")
 	current_data = data
 	var from_nation = data.get("from_nation", "Unknown")
 	var from_display = Utils.display_nation_name(str(from_nation))
@@ -92,6 +174,25 @@ func show_proposal(data: Dictionary):
 	# granted or refused, never bargained); the same shape `is_ultimatum`
 	# takes. The producer's own field (mailbox_payloads).
 	var is_petition = data.get("is_petition", false)
+	# Session UI-3 (November 12, 2026): the petition's three dense sentences fold
+	# to two rows of FIGURES (GRANT / REFUSE) and a lapse badge when the payload
+	# carries them (`grant_figures` / `refuse_figures`, from the one pricing
+	# function); the sentences ride the buttons' hover. A payload without the
+	# figures (an older save), or Explanations On the page, prints the clause
+	# lines as before — no word is lost.
+	var grant_figs: Array = []
+	var refuse_figs: Array = []
+	if data.get("grant_figures", []) is Array:
+		grant_figs = data.get("grant_figures", [])
+	if data.get("refuse_figures", []) is Array:
+		refuse_figs = data.get("refuse_figures", [])
+	var figure_mode: bool = bool(is_petition) and Utils.explanations_folded() \
+		and not grant_figs.is_empty() and not refuse_figs.is_empty() \
+		and clauses is Array and clauses.size() >= 3
+	# a note opened on the last letter must not stand open on the next
+	for _note_id in [NOTE_PETITION, NOTE_ASSESSMENT]:
+		if Utils.note_is_open(_note_id):
+			Utils.toggle_note(_note_id)
 	# DDB-2 (DDB-D8): an ally's call to arms — joined or refused, never
 	# bargained; its price and its two-turn deadline are on the letter.
 	var is_call_to_arms = data.get("is_call_to_arms", false)
@@ -174,6 +275,8 @@ func show_proposal(data: Dictionary):
 
 	if is_moment:
 		bbcode += _build_moment_body(data)
+	elif figure_mode:
+		bbcode += _petition_figure_rows(clauses, grant_figs, refuse_figs)
 	elif data.has("war_context_snapshot"):
 		bbcode += _build_peace_preview_section(data, clauses)
 	else:
@@ -188,8 +291,12 @@ func show_proposal(data: Dictionary):
 	elif decision_reason_display:
 		bbcode += "\n[color=#" + Utils.toned_hex("a0a0a8") + "]Court rationale: %s.[/color]\n" % decision_reason_display
 
-	if assessment:
-		bbcode += "\n[color=gray]%s[/color]\n" % assessment
+	# Session UI-3: Talleyrand's reading opens from its first sentence (a note;
+	# On the page it is the grey line it was). The slot is filled by
+	# `_render_body` — a note toggle re-sets ONLY the body, never the dress.
+	_assessment_text = str(assessment) if assessment else ""
+	_assessment_id = NOTE_PETITION if is_petition else NOTE_ASSESSMENT
+	bbcode += ASSESS_SLOT
 
 	if diplomat_line == "" and decision_reason != "" and decision_reason_display == "":
 		bbcode += "\n[color=#9cb2c5]Court motive: %s[/color]\n" % decision_reason
@@ -304,7 +411,8 @@ func show_proposal(data: Dictionary):
 	# Backend prose (clause strings, court rationale, hints) can embed raw
 	# multi-word nation keys — humanize once at the render chokepoint. S12:
 	# through `text`, never append_text (the instrument reads the label's text).
-	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+	_body_template = bbcode
+	_render_body()
 
 	# Enable buttons — hide Counter for counter-offers (no counter-counter),
 	# for ultimatums (an ultimatum is not a negotiation — NA-5 §8) and for a
@@ -406,6 +514,13 @@ func show_proposal(data: Dictionary):
 	else:
 		accept_btn.text = "Accept Terms" if is_counter else "Accept"
 		reject_btn.text = "Reject Terms" if is_counter else "Reject"
+	# Session UI-3: a folded petition's options say what they do on the
+	# buttons' hover (the sentences left the face for the figure rows).
+	if figure_mode:
+		var n_cl: int = clauses.size()
+		Utils.explain_tip(accept_btn, str(clauses[n_cl - 3]), accept_btn.tooltip_text)
+		Utils.explain_tip(reject_btn, str(clauses[n_cl - 2]), reject_btn.tooltip_text)
+		Utils.explain_tip(dismiss_btn, str(clauses[n_cl - 1]), dismiss_btn.tooltip_text)
 	# RE-2 (RECURRING_EVENTS_SPEC.md §12b.2): the letter's dress — the sheet,
 	# the ink, the letterhead, the two-line buttons, the counsel — over the
 	# composed letter; every override removed again for any other register.

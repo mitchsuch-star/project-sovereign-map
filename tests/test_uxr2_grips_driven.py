@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 
@@ -151,6 +152,16 @@ class TestTheRefitRoadAndTheReset:
         # band below the bar instead — 44 at the top, CLAMP_EDGE 12 at the foot
         # (`Utils.clamp_centered_panel`, SYSTEMS_REFERENCE §140.2). This
         # board's ledger is one: 554 → 586 in a 642-px window.
+        # Session UI-3 (November 12, 2026): the books open at a share of the
+        # view (`Utils.BOOK_SHARE` 0.62 x 0.85, capped `BOOK_MAX` 1100 x 1000) —
+        # the default a reset returns to, the SCENE's authored rect its floor.
+        # `ledger_authored` is now the size the ledger opened at (the share of
+        # the 1600x900 window), so the scene's own rect is read here.
+        scene = (_PROJECT / "scenes" / "strategic_ledger.tscn").read_text(encoding="utf-8")
+        block = scene.split('[node name="PanelContainer"', 1)[1].split("[node ", 1)[0]
+        off = {k: float(v) for k, v in re.findall(r"offset_(left|right|top|bottom) = (-?[0-9.]+)", block)}
+        sw, sh = off["right"] - off["left"], off["bottom"] - off["top"]
+        aw, ah = max(sw, min(0.62 * vw, 1100.0)), max(sh, min(0.85 * vh, 1000.0))
         h = min(ah, max(240.0, vh - 88.0))
         if ah > h and vh - 56.0 > h:
             h = min(ah, vh - 56.0)

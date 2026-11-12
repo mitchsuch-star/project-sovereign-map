@@ -350,6 +350,46 @@ static func set_hud_width(width: String) -> void:
 	_save()
 
 
+# --- Explanations (Session UI-3, November 12, 2026: Settings → INTERFACE) ---
+# The user's ruling at the session's head: "Fold, a switch restores." Folded,
+# a page's lead-in stands behind an ⓘ, what a control does is its tooltip and
+# long counsel opens from its first sentence (Utils.show_note); "page" prints
+# every word on the face exactly as before — byte for byte. A preference like
+# High contrast: Reset layout keeps it.
+const EXPLANATIONS := ["folded", "page"]
+const DEFAULT_EXPLANATIONS := "folded"
+
+
+static func get_explanations() -> String:
+	var mode := str(_config().get_value("display", "explanations", DEFAULT_EXPLANATIONS))
+	return mode if mode in EXPLANATIONS else DEFAULT_EXPLANATIONS
+
+
+static func set_explanations(mode: String) -> void:
+	_config().set_value("display", "explanations", mode if mode in EXPLANATIONS else DEFAULT_EXPLANATIONS)
+	_save()
+
+
+# --- The very wide screen (Session UI-3, November 12, 2026: Settings → DISPLAY) ---
+# On a view SAFE_ZONE_ASPECT or wider (32:9, 32:10) the map's 16:10 sheet
+# covered 45 % of the width and the desk the rest — the blind readers' wasted
+# width. "fill" (the default) opens the map filling the width, ⌂ toggling to
+# the whole sheet; "sheet" opens the whole sheet as before. Ordinary screens
+# never see the difference. A layout default: Reset layout restores it.
+const WIDE_MAPS := ["fill", "sheet"]
+const DEFAULT_WIDE_MAP := "fill"
+
+
+static func get_wide_map() -> String:
+	var mode := str(_config().get_value("display", "wide_map", DEFAULT_WIDE_MAP))
+	return mode if mode in WIDE_MAPS else DEFAULT_WIDE_MAP
+
+
+static func set_wide_map(mode: String) -> void:
+	_config().set_value("display", "wide_map", mode if mode in WIDE_MAPS else DEFAULT_WIDE_MAP)
+	_save()
+
+
 static func reset_layout() -> void:
 	"""Settings → Reset layout: the scale back to the derivation, the text
 	size to 100 %, the HUD to Full, the command window back to its viewport
@@ -358,6 +398,8 @@ static func reset_layout() -> void:
 	set_ui_scale_auto()
 	set_text_size(DEFAULT_TEXT_SIZE)
 	set_hud_width(DEFAULT_HUD_WIDTH)
+	# Session UI-3: the very wide screen's map view is a layout default.
+	set_wide_map(DEFAULT_WIDE_MAP)
 	clear_terminal_size()
 	# UXR-2: every gripped screen's remembered size too.
 	clear_all_panel_sizes()

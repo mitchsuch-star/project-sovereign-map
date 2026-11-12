@@ -75,10 +75,12 @@ var _likelihood_colors: Dictionary = {
 # S14G-22: the Cabinet's default height as a share of the viewport (x = 0: the
 # width keeps its authored 560) - about 60 % of a 5120x1440 screen's height,
 # where the authored 520 left five lines of the court list (864 px at 1440).
-# A viewport under ~743 px high (0.7 x 743 = 520) keeps the authored rect.
 # Session UI-2 (November 12, 2026): 0.6 -> 0.7 - the blind readers found the
 # court list "crammed in a small scroll while the window has empty space".
-const CABINET_CEILING_SHARE := Vector2(0.0, 0.7)
+# Session UI-3 (November 12, 2026): 0.7 -> 0.8 - the readers again saw the acts
+# scroll under a band of dark screen (a viewport under 650 px keeps the
+# authored rect: 0.8 x 650 = 520; the compact view's 450 is unchanged).
+const CABINET_CEILING_SHARE := Vector2(0.0, 0.8)
 
 
 func _ready():
@@ -126,11 +128,39 @@ func _ready():
 	list_bar.value_changed.connect(func(_v): _update_more_below())
 	list_bar.changed.connect(_update_more_below)
 
+	# Session UI-3: the act notes fold into hovers; the switch re-draws the
+	# current step from its cached payload (no re-fetch, scroll kept).
+	Utils.on_explanations_changed(_on_explanations_changed)
+	assessment_panel.meta_clicked.connect(_on_assessment_meta)
+
 	# Create dedicated HTTPRequest (§9b)
 	_http = HTTPRequest.new()
 	add_child(_http)
 	_http.request_completed.connect(_on_http_completed)
 	_http.timeout = 30.0
+
+
+var _last_preview_data: Dictionary = {}
+# Session UI-3: the assessment's counsel note (one id for every court — a
+# player who opens Talleyrand's counsel once reads it whole on every court).
+const COUNSEL_NOTE := "cabinet.counsel"
+
+
+func _on_assessment_meta(meta) -> void:
+	"""The assessment's links: its counsel note opens and closes in place."""
+	if not Utils.is_note_meta(meta):
+		return
+	Utils.toggle_note(meta)
+	_on_explanations_changed()
+
+
+func _on_explanations_changed() -> void:
+	if not visible or _request_in_flight:
+		return
+	if _current_step == 2 and not _last_preview_data.is_empty():
+		var keep: int = scroll_container.scroll_vertical
+		_render_preview(_last_preview_data)
+		Utils.restore_scroll(scroll_container, keep)
 
 
 func open():
@@ -229,19 +259,29 @@ func _lay_out_prompt(step: int) -> void:
 # the status, the space, the counsel's opening two), never more than the text
 # it holds; the chip list scrolls under its "more below".
 const ASSESSMENT_FLOOR_LINES := 5
+const ASSESSMENT_CAP_SHARE := 0.4   # Session UI-3: the whole counsel, at most 40 % of the panel
+# In the compact view (Interface Scale 2.0, a 360-px panel) 40 % left the acts
+# fewer than two whole rows (EA-E5's driven pin): the heading, the status and the
+# counsel's opening still stand in 30 %.
+const ASSESSMENT_CAP_SHARE_COMPACT := 0.3
 
 
 func _fit_assessment() -> void:
 	await get_tree().process_frame
 	if assessment_panel == null or not visible or _current_step != 2:
 		return
-	var lines: int = assessment_panel.get_line_count()
+	# Session UI-3 (November 12, 2026): the floor cut Talleyrand's quote to ONE
+	# line - on a 560-wide panel the status line wraps (its relation figure
+	# drops to a second line), so the first five lines ended inside the
+	# quote's first line. The counsel now stands WHOLE up to
+	# ASSESSMENT_CAP_SHARE of the panel's height; the acts take the rest.
 	var upto: float = float(assessment_panel.get_content_height())
-	if lines > ASSESSMENT_FLOOR_LINES:
-		upto = float(assessment_panel.get_line_offset(ASSESSMENT_FLOOR_LINES))
 	var box: StyleBox = assessment_panel.get_theme_stylebox("normal")
 	var top: float = box.get_margin(SIDE_TOP) if box else 0.0
-	assessment_panel.custom_minimum_size.y = maxf(56.0, ceilf(upto + top + 6.0))
+	var panel_h: float = $PanelContainer.offset_bottom - $PanelContainer.offset_top
+	var share: float = ASSESSMENT_CAP_SHARE_COMPACT if Utils.compact_view() else ASSESSMENT_CAP_SHARE
+	var cap: float = maxf(56.0, panel_h * share)
+	assessment_panel.custom_minimum_size.y = clampf(ceilf(upto + top + 6.0), 56.0, cap)
 	refit()
 
 
@@ -1351,21 +1391,39 @@ func _render_preview(data: Dictionary):
 
 	if assessment_text:
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
-	if recommendation:
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
 	# VP-1 (S14b part 2): Talleyrand's reading of this court on the Emperor's
 	# road — the road page (F1 → The Emperor's Designs) holds the rest.
+	var designs_part := ""
 	var designs_line = data.get("designs_line", "")
 	if designs_line is String and designs_line != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(designs_line.replace("[", "[lb]")) + "[/color]\n"
+		designs_part = "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(designs_line.replace("[", "[lb]")) + "[/color]\n"
 	# PC-R8 / PC-F12 (S13e part 1): the counsel's ranked roads — each with
 	# its dry-run number, whether it carries and its price — under the line.
+	var roads_part := ""
 	var roads = data.get("counsel_roads_display", [])
 	if roads is Array and roads.size() > 0:
-		bbcode += "[color=#" + Utils.toned_hex("a0a0a0") + "]"
+		roads_part = "[color=#" + Utils.toned_hex("a0a0a0") + "]"
 		for road in roads:
-			bbcode += "  " + Utils.humanize_nation_keys_in_text(str(road)) + "\n"
-		bbcode += "[/color]"
+			roads_part += "  " + Utils.humanize_nation_keys_in_text(str(road)) + "\n"
+		roads_part += "[/color]"
+	# Session UI-3 (the interim reading, F15): the counsel opens from the
+	# Recommendation's first sentence (`cabinet.counsel`, one note for every
+	# court) — the rest of it, the road reading and the ranked roads stand in
+	# place on "▸ more"; the acts beside each road keep their price badges.
+	# On the page (or opened) every line prints as it did, in the same order.
+	var rec_cut: int = Utils.first_sentence_end(str(recommendation)) if recommendation else -1
+	var counsel_held: bool = rec_cut >= 0 or designs_part != "" or roads_part != ""
+	if Utils.show_note(COUNSEL_NOTE) or not counsel_held:
+		if recommendation:
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+		bbcode += designs_part + roads_part
+		if Utils.explanations_folded() and counsel_held:
+			bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
+	elif recommendation:
+		var opening: String = str(recommendation).substr(0, rec_cut) if rec_cut >= 0 else str(recommendation)
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + opening + "[/color] " + Utils.note_link(COUNSEL_NOTE) + "\n"
+	else:
+		bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
 
 	# W3: Acceptance preview — key factors
 	var acceptance_preview = data.get("acceptance_preview")
@@ -1392,6 +1450,7 @@ func _render_preview(data: Dictionary):
 			break
 
 	assessment_panel.text = bbcode
+	_last_preview_data = data
 	call_deferred("_fit_assessment")
 
 	# Build action buttons
@@ -1548,7 +1607,12 @@ func _add_action_button(action: Dictionary):
 			cell.modulate = Color(1, 1, 1, 0.6)
 		row.add_child(cell)
 	content_list.add_child(row)
+	# Session UI-3 (November 12, 2026): "Fold, a switch restores" - the act's
+	# effect note is the act Button's hover (its DP / gold figures and the verdict
+	# badge stay on the face); On the page the line prints under it as before.
 	if note != "" and note != "null":
+		Utils.explain_tip(btn, note, btn.tooltip_text)
+	if note != "" and note != "null" and not Utils.explanations_folded():
 		var note_label = Label.new()
 		note_label.text = "    " + note
 		note_label.theme_type_variation = &"Caption"

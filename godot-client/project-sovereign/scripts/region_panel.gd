@@ -113,6 +113,7 @@ func _ready():
 	close_button.pressed.connect(close_panel)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	content_area.meta_clicked.connect(_on_meta_clicked)
+	Utils.on_explanations_changed(_on_explanations_switched)
 	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
 	# before its parent can scroll. PASS keeps the action chips working.
@@ -192,6 +193,10 @@ func set_march_quotes(region: String, payload) -> void:
 	_render()
 
 
+func _on_explanations_switched() -> void:
+	_render_keeping_scroll()
+
+
 func close_panel() -> void:
 	if visible:
 		AudioManager.play("back")
@@ -201,6 +206,11 @@ func close_panel() -> void:
 
 
 func _on_meta_clicked(meta):
+	# Session UI-3: a note (the lead-in's ⓘ) opens in place — a local re-render.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_render_keeping_scroll()
+		return
 	var meta_str = str(meta)
 	if meta_str.begins_with("order:"):
 		# "order:<verb>:<MarshalName>" → "<Name>, <verb>" (typed-command echo)
@@ -227,6 +237,23 @@ func _on_meta_clicked(meta):
 		_render()
 
 
+func _render_keeping_scroll() -> void:
+	"""Session UI-3: redraw from the map node's data, the reader's scroll kept."""
+	if not visible or _region == "" or _map_node == null:
+		return
+	var sv: int = int(scroll.scroll_vertical)
+	_render()
+	Utils.restore_scroll(scroll, sv)
+
+
+func _dim(label: String, why: String, sep: String = "  ") -> String:
+	"""Session UI-3: a dimmed chip and the reason it cannot act. On the page the
+	reason prints beside it, as it did; Folded it is the chip's hover."""
+	if Utils.explanations_folded():
+		return Utils.bb_chip_disabled(label, "", why)
+	return Utils.bb_chip_disabled(label) + sep + "[color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
+
+
 func _render() -> void:
 	var data: Dictionary = _map_node.region_full_data.get(_region, {})
 	var visibility = str(_map_node.region_visibility.get(_region, "unknown"))
@@ -246,6 +273,9 @@ func _render() -> void:
 		bbcode += "  " + Utils.bb_badge(region_type.replace("_", " ").capitalize(), Utils.COLOR_BADGE_QUIET)
 	if terrain != "":
 		bbcode += " " + Utils.bb_badge(terrain.replace("_", " ").capitalize(), "5b6b4a")
+	# Session UI-3 (November 12, 2026): where the folded lead-in's ⓘ goes — the
+	# end of this first line (set below, once the lead-in's literal is read).
+	var lead_at := bbcode.length()
 	bbcode += "\n"
 	# UXR3-79 (Pre-Deploy S15 head, October 25, 2026): the LAND'S NOTE — the
 	# poor-country / stripped-by-war mark the doctrines' boards exist to show
@@ -265,7 +295,14 @@ func _render() -> void:
 	# and its sea follow it.
 	var actions_at := bbcode.length()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
+	# Session UI-3: the line stands behind an ⓘ ("Fold, a switch restores"); On
+	# the page it prints exactly as it did.
+	var lead_line := "[color=#" + Utils.COLOR_INFO + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
+	bbcode += Utils.bb_lead(lead_line, "region.lead")
+	var lead_mark_text: String = Utils.lead_mark(lead_line, "region.lead")
+	if lead_mark_text != "":
+		bbcode = bbcode.substr(0, lead_at) + lead_mark_text + bbcode.substr(lead_at)
+		actions_at += lead_mark_text.length()
 	# S14E-15: a province on a formable's road the bloc has begun carries the
 	# Formable Nations page's pointer ("Ireland needs Ulster too — …"), the
 	# backend road builder's own sentence. Absent key = no road = no line.
@@ -519,8 +556,8 @@ func _render() -> void:
 					+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _terms + "[/color]")
 			else:
 				action_rows.append("  Substitutes: " \
-					+ Utils.bb_chip_disabled("Buy Substitutes") \
-					+ "  [color=#" + Utils.COLOR_INFO + "]" + str(sub_q.get("short", "")) + "[/color]")
+					+ Utils.bb_chip_disabled("Buy Substitutes", "", str(sub_q.get("short", "")) if Utils.explanations_folded() else "") \
+					+ ("" if Utils.explanations_folded() else "  [color=#" + Utils.COLOR_INFO + "]" + str(sub_q.get("short", "")) + "[/color]"))
 
 	# Everything below is OWN soil: a building, a repair and a garrison are
 	# the owner's to order, and the executors refuse them on a vassal's
@@ -560,12 +597,11 @@ func _render() -> void:
 							build_rows.append("    " + Utils.bb_button_chip("do:" + str(def[2]) % _region, b_label, Utils.COLOR_GOLD, _CHIP_BG)
 								+ " [color=#" + Utils.COLOR_INFO + "]" + _build_terms_text(b_key, t) + "[/color]")
 						else:
-							build_rows.append("    " + Utils.bb_chip_disabled(b_label)
-								+ " [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
+							build_rows.append("    " + _dim(b_label, admin_why, " "))
 					elif admin_why == "":
 						build_chips += Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]), Utils.COLOR_GOLD, _CHIP_BG) + " "
 					else:
-						build_chips += Utils.bb_chip_disabled(str(def[1])) + " "
+						build_chips += Utils.bb_chip_disabled(str(def[1]), "", admin_why if Utils.explanations_folded() else "") + " "
 		if str(data.get("watchtower", "none")) == "none":
 			var wt = terms.get("watchtower", {})
 			if wt is Dictionary and wt.has("cost"):
@@ -574,12 +610,11 @@ func _render() -> void:
 					build_rows.append("    " + Utils.bb_button_chip("do:build watchtower in " + _region, wt_label, Utils.COLOR_GOLD, _CHIP_BG)
 						+ " [color=#" + Utils.COLOR_INFO + "]eyes on every adjacent province[/color]")
 				else:
-					build_rows.append("    " + Utils.bb_chip_disabled(wt_label)
-						+ " [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
+					build_rows.append("    " + _dim(wt_label, admin_why, " "))
 			elif admin_why == "":
 				build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
 			else:
-				build_chips += Utils.bb_chip_disabled("Watchtower") + " "
+				build_chips += Utils.bb_chip_disabled("Watchtower", "", admin_why if Utils.explanations_folded() else "") + " "
 		# SR-5b / NV-D9: the naval yard. The backend sends `naval_yard` only
 		# where this province is a yard SITE (an anchorage, an admiralty,
 		# not a yard already) and states the executor's own verdict in
@@ -604,8 +639,7 @@ func _render() -> void:
 					+ str(int(yard.get("turns", 0))) + " turns · "
 					+ str(int(yard.get("raised", 0))) + " of " + str(int(yard.get("cap", 0))) + " yards raised[/color]")
 			else:
-				build_rows.append("    " + Utils.bb_chip_disabled(yard_label)
-					+ " [color=#" + Utils.COLOR_INFO + "]" + yard_why + "[/color]")
+				build_rows.append("    " + _dim(yard_label, yard_why, " "))
 		if build_rows.size() > 0:
 			# The tier upkeep is one figure for every work here — said
 			# once on the header, not repeated per row.
@@ -623,7 +657,7 @@ func _render() -> void:
 					action_rows.append(br)
 		if build_chips != "":
 			action_rows.append("  Build: " + build_chips
-				+ ("" if admin_why == "" else "[color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]"))
+				+ ("" if (admin_why == "" or Utils.explanations_folded()) else "[color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]"))
 
 		# Repair — one chip per KIND of ruin, because they are different
 		# orders with different effects and (before the in-game pass) war
@@ -643,8 +677,7 @@ func _render() -> void:
 			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair works" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
 				+ "  [color=#" + Utils.COLOR_INFO + "]restore damaged works — and their upkeep[/color]")
 		elif needs_repair:
-			action_rows.append("  " + Utils.bb_chip_disabled("Repair works" + rep_cost)
-				+ "  [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
+			action_rows.append("  " + _dim("Repair works" + rep_cost, admin_why))
 		# Re-read: the display block's `war_dmg` is scoped to the fog
 		# branch it was declared in (the same reason `buildings` is
 		# re-declared above). This arm is inside the own-soil gate, so the
@@ -659,8 +692,7 @@ func _render() -> void:
 				action_rows.append("  " + Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
 					+ "  [color=#" + Utils.COLOR_INFO + "]" + wd_terms + "[/color]")
 			else:
-				action_rows.append("  " + Utils.bb_chip_disabled("Repair war damage" + rep_cost)
-					+ "  [color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]")
+				action_rows.append("  " + _dim("Repair war damage" + rep_cost, admin_why))
 
 		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
 		# sites, price quoted from the backend's live constant (honest-chip
@@ -691,8 +723,7 @@ func _render() -> void:
 					action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
 						+ "  [color=#" + Utils.COLOR_INFO + "]" + (ship_ap + " " if ship_ap != "" else "") + yard_note + "[/color]")
 				else:
-					action_rows.append("  " + Utils.bb_chip_disabled("Lay down ships (" + str(ship_cost) + "g)")
-						+ "  [color=#" + Utils.COLOR_INFO + "]" + ship_why + "[/color]")
+					action_rows.append("  " + _dim("Lay down ships (" + str(ship_cost) + "g)", ship_why))
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
 		action_rows.append("  " + Utils.bb_button_chip("negotiate:" + controller, "Negotiate with " + Utils.display_nation_name(controller), Utils.COLOR_COMMAND, _CHIP_BG))
 
@@ -714,8 +745,7 @@ func _render() -> void:
 				# CRT-9: the state probe's verdict on this corps' landing.
 				var land_why := str(corps.get("refusal", ""))
 				if land_why != "":
-					action_rows.append("  " + Utils.bb_chip_disabled("Land " + who + " here")
-						+ "  [color=#" + Utils.COLOR_INFO + "]" + land_why + "[/color]")
+					action_rows.append("  " + _dim("Land " + who + " here", land_why))
 					continue
 				# S14G-X86 (Pre-Deploy S14h part 2, October 26, 2026): the note
 				# leads with the verb's price (`cost_note`, the action table's own
@@ -757,9 +787,7 @@ func _render() -> void:
 			# own reason (honest availability: never dark and silent).
 			var blocked = naval.get("expedition_blocked", {})
 			if blocked is Dictionary and blocked.has(_region):
-				action_rows.append("  " + Utils.bb_chip_disabled("No landing here")
-					+ "  [color=#" + Utils.COLOR_INFO + "]"
-					+ Utils.humanize_nation_keys_in_text(str(blocked[_region])) + "[/color]")
+				action_rows.append("  " + _dim("No landing here", Utils.humanize_nation_keys_in_text(str(blocked[_region]))))
 
 	if action_rows.size() > 0:
 		var actions := Utils.HEAD_OPEN + "ACTIONS" + Utils.HEAD_CLOSE + "\n"
@@ -879,11 +907,15 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 	if not any_ok and shorts.size() == 1:
 		var chips := ""
 		for arm in _RECRUIT_ARMS:
-			chips += Utils.bb_chip_disabled(str(arm).capitalize()) + " "
-		rows.append("  Recruit: " + chips + " [color=#" + Utils.COLOR_INFO + "]" \
-			+ str(shorts.keys()[0]) + "[/color]")
+			chips += Utils.bb_chip_disabled(str(arm).capitalize(), "", str(shorts.keys()[0]) if Utils.explanations_folded() else "") + " "
+		rows.append("  Recruit: " + chips + ("" if Utils.explanations_folded() else " [color=#" + Utils.COLOR_INFO + "]" \
+			+ str(shorts.keys()[0]) + "[/color]"))
 		return rows
 	rows.append("  Recruit:" + _ordinance_note(levy))
+	# Session UI-3 (the interim reading, F24): Folded, a refused arm's reason is
+	# its chip's hover, so the refused chips stand together on ONE row after the
+	# levies that can be made — one bare chip a line read as a ragged column.
+	var refused_row := ""
 	for arm in _RECRUIT_ARMS:
 		var q = recruit_here.get(arm, {})
 		if not (q is Dictionary):
@@ -891,9 +923,12 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 		if bool(q.get("ok", false)):
 			rows.append("    " + Utils.bb_button_chip("do:recruit " + str(arm) + " in " + _region, str(arm).capitalize(), Utils.COLOR_GOLD, _CHIP_BG) \
 				+ "  [color=#" + Utils.COLOR_INFO + "]" + str(q.get("terms", "")) + "[/color]")
+		elif Utils.explanations_folded():
+			refused_row += ("" if refused_row == "" else " ") + _dim(str(arm).capitalize(), str(q.get("short", "")))
 		else:
-			rows.append("    " + Utils.bb_chip_disabled(str(arm).capitalize()) \
-				+ "  [color=#" + Utils.COLOR_INFO + "]" + str(q.get("short", "")) + "[/color]")
+			rows.append("    " + _dim(str(arm).capitalize(), str(q.get("short", ""))))
+	if refused_row != "":
+		rows.append("    " + refused_row)
 	return rows
 
 
@@ -1332,8 +1367,9 @@ func _dimmed_chips(dimmed: Array) -> String:
 	for why in reasons:
 		for entry in dimmed:
 			if str(entry[1]) == why:
-				out += "  " + Utils.bb_chip_disabled(str(entry[0]))
-		out += " [color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
+				out += "  " + Utils.bb_chip_disabled(str(entry[0]), "", str(why) if Utils.explanations_folded() else "")
+		if not Utils.explanations_folded():
+			out += " [color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
 	return out
 
 

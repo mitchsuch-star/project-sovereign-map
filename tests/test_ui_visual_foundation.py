@@ -644,39 +644,47 @@ from tests._godot_scenes import panel_anchor as _panel_anchor  # noqa: E402
 def test_settlement_footer_is_bounded():
     """The reported window. FooterLabel was fit_content=true / scroll_active=
     false with no minimum, as a DIRECT VBox child outside any ScrollContainer —
-    the single unbounded contributor to the settlement popup's height."""
-    block = _node_block(_scene("proposal_confirm_popup"), "FooterLabel")
-    assert "fit_content = true" not in block, (
-        "FooterLabel must not size itself to its content — that is the "
-        "unbounded growth vector that pushed the buttons off-screen")
-    assert "scroll_active = true" in block, "it needs its own scrollbar instead"
-    assert "custom_minimum_size" in block, "it needs a real height budget"
+    the single unbounded contributor to the settlement popup's height.
+
+    Session UI-3 (November 12, 2026): the table is ONE scroll — the footer is
+    the body's tail, built inside PerCourtBody (in PerCourtScroll, in the
+    floored PerCourtFrame), so it is bounded by that scroll and never a direct
+    VBox child; the FooterLabel node is gone."""
+    scene = _scene("proposal_confirm_popup")
+    assert '[node name="FooterLabel"' not in scene
+    frame = _node_block(scene, "PerCourtFrame")
+    assert "custom_minimum_size" in frame, "the body needs a real height budget"
+    assert 'parent="PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll"' in scene
+    gd = _script("proposal_confirm_popup")
+    assert 'footer_label.name = "PerCourtFooter"' in gd
+    assert "per_court_body.add_child(footer_label)" in gd
 
 
 def test_settlement_tier2_buttons_have_their_own_bounded_rail():
     """Per-court affordances are uncapped (one button per court per action), so
     they must not share the primary rail — Submit / Back Out has to stay put."""
     src = _scene("proposal_confirm_popup")
-    tier2 = _node_block(src, "Tier2Scroll")
-    assert "custom_minimum_size" in tier2, "the tier-2 rail must be bounded"
-    assert 'name="Tier2ButtonContainer"' in src
     gd = _script("proposal_confirm_popup")
-    # LV-14(b) (row EP F3): the chips mount one ROW PER COURT inside the
-    # scrolled container (a name, then its Press/Ease/Drop) — never the
-    # primary rail. Pin flipped consciously from the three-column grid.
-    assert "tier2_button_container.add_child(line)" in gd, (
-        "tier-2 affordances must mount in the scrolled container, not the "
-        "primary rail")
+    # Session UI-3 (November 12, 2026): each court's Demand / Ease / Drop are
+    # real Buttons in an HFlow INSIDE that court's card, in the one bounded body
+    # scroll (PerCourtFrame's floor) — never the primary rail; the separate
+    # Tier2Scroll rail is gone. The cards are rebuilt whole (the old children
+    # leave the body first), so last turn's buttons cannot stack on this turn's.
+    assert '[node name="Tier2Scroll"' not in src
+    assert "custom_minimum_size" in _node_block(src, "PerCourtFrame"), "the body must be bounded"
+    assert "var line: HFlowContainer = _court_flows.get(at) if at >= 0 else _coverage_flow" in gd
     assert "line.add_child(btn)" in gd
+    render = gd[gd.index("func _render_per_court_table"):]
+    assert "per_court_body.remove_child(child)" in render[:1200] and "_court_flows = {}" in render[:1400]
     # The primary rail must stay OUTSIDE any scroll region.
     assert re.search(
         r'\[node name="ButtonContainer" type="GridContainer" '
         r'parent="PanelContainer/VBoxContainer"\]', src), (
         "the primary button rail must remain a direct VBox child so it is "
         "always visible")
-    # Both rails must be cleared, or last turn's buttons stack on this turn's.
+    # The primary rail is cleared here; the cards' buttons with their cards.
     clear = gd[gd.index("func _clear_buttons"):]
-    assert "tier2_button_container" in clear[:400]
+    assert "button_container.get_children()" in clear[:600]
 
 
 def test_settlement_popup_has_an_escape_hatch():
@@ -828,8 +836,9 @@ def test_relax_cache_follows_a_caller_that_re_derives_its_floor():
         "caller re-derived")
     relax = _utils_func_body("_relax_child_minimums")
     assert 'set_meta("relaxed_min_y"' in relax
-    # And the caller must actually still re-derive it.
-    assert "per_court_scroll.custom_minimum_size.y = minf(" in _script(
+    # And the caller must actually still re-derive it. Session UI-3: the floor
+    # lives on the body's frame (PerCourtFrame), which holds the one scroll.
+    assert "per_court_frame.custom_minimum_size.y = minf(" in _script(
         "proposal_confirm_popup")
 
 

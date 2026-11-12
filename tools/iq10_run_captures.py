@@ -1839,7 +1839,8 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
                spec_path: pathlib.Path, result_path: pathlib.Path,
                png_dir: pathlib.Path | None = None,
                text_size: float = 1.0, hud_width: str = "auto",
-               high_contrast: bool = False) -> tuple[dict, list[dict]]:
+               high_contrast: bool = False, explanations: str = "folded",
+               wide_map: str = "fill") -> tuple[dict, list[dict]]:
     # SF-R (Step 8): a scoring run keeps its frames in its own run directory
     # (`--png-dir`); every other caller writes them to docs/audits as before.
     png_dir = AUDITS if png_dir is None else pathlib.Path(png_dir)
@@ -1849,6 +1850,12 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         text_tag += "_HUD_" + hud_width.upper()
     if high_contrast:
         text_tag += "_HC"
+    # Session UI-3: the game's defaults (explanations folded, the very wide
+    # screen's map filling the width) are untagged; the old views tag the frame.
+    if explanations != "folded":
+        text_tag += "_" + explanations.upper()
+    if wide_map != "fill":
+        text_tag += "_" + wide_map.upper()
     out_shots, index = [], []
     for row in shots:
         cap = captures.get(row["payload"])
@@ -1881,7 +1888,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         # below is the ONLY road a row key takes into the spec, and `steps`
         # was not on it, so the chip shot rendered the bare bar in silence.
         for key in ("args", "api_method", "place", "settle", "settle_ms", "window", "window_by_scale",
-                    "formation_overrides", "downscale", "steps"):
+                    "formation_overrides", "downscale", "steps", "open_notes", "explanations", "wide_map"):
             if key in row:
                 shot[key] = row[key]
         if "tab" in row:
@@ -1915,6 +1922,8 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         "text_size": text_size,
         "hud_width": hud_width,
         "high_contrast": high_contrast,
+        "explanations": explanations,
+        "wide_map": wide_map,
     }
     spec_path.write_text(json.dumps(spec, indent=1), encoding="utf-8")
     return spec, index
@@ -1974,6 +1983,12 @@ def main() -> int:
                     help="UXR-D3: shoot every frame at this HUD width")
     ap.add_argument("--high-contrast", action="store_true",
                     help="UXR-D2: shoot every frame with High contrast on")
+    ap.add_argument("--explanations", default="folded", choices=["folded", "page"],
+                    help="Session UI-3: shoot every frame with Explanations folded (the default) "
+                         "or On the page (every word as before; tags the frame _PAGE)")
+    ap.add_argument("--wide-map", default="fill", choices=["fill", "sheet"],
+                    help="Session UI-3: the very wide screen's map — fill (the default) or the "
+                         "whole sheet (tags the frame _SHEET)")
     ap.add_argument("--project", default="",
                     help="another checkout's godot-client/project-sovereign to shoot (a "
                          "pristine worktree for a BEFORE record); the harness stays this repo's")
@@ -2010,7 +2025,8 @@ def main() -> int:
     spec_path, result_path = work / "spec.json", work / "result.json"
     log_path = work / "engine.log"
     spec, index = build_spec(shots, captures, scales, args.date, spec_path, result_path,
-                             png_dir, args.text_size, args.hud_width, args.high_contrast)
+                             png_dir, args.text_size, args.hud_width, args.high_contrast,
+                             args.explanations, args.wide_map)
     project = pathlib.Path(args.project) if args.project else None
     code = run_godot(args.godot, spec_path, log_path, project)
     errors = script_errors(log_path)
@@ -2044,6 +2060,8 @@ def main() -> int:
         "text_size": args.text_size,
         "hud_width": args.hud_width,
         "high_contrast": bool(args.high_contrast),
+        "explanations": args.explanations,
+        "wide_map": args.wide_map,
         "rows": index,
     }, indent=1), encoding="utf-8")
     print(f"godot exit {code}; SCRIPT ERROR lines: {len(errors)}")

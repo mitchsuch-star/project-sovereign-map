@@ -45,16 +45,89 @@ var _items: Array = []
 # behaviour it has always had, so great-power and settlement traffic is
 # untouched on this surface too.
 var _digest_rows: Dictionary = {}
+# Session UI-3 (November 12, 2026): the book's lead-ins stand behind an ⓘ
+# ("Fold, a switch restores"). The header's own ⓘ sits beside the title; the
+# last payload is kept so the Settings switch re-renders locally.
+const LEAD_ID := "mailbox.lead"
+const SMALL_LEAD_ID := "mailbox.small.lead"
+const INFO_PX := 18.0
+var _last_data: Dictionary = {}
+var _rerender := false
+var _lead_icon: TextureRect = null
 
 
 func _ready():
 	hide()
 	close_btn.pressed.connect(_on_close)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	_build_header_lead()
+	Utils.on_explanations_changed(_on_explanations_changed)
+
+
+func _build_header_lead() -> void:
+	"""Session UI-3: the title in a row with its ⓘ (folded: the header
+	paragraph's words are the icon's hover, a click opens them in place)."""
+	var vbox := title_label.get_parent() as VBoxContainer
+	var header := HBoxContainer.new()
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	header.add_theme_constant_override("separation", 8)
+	vbox.add_child(header)
+	vbox.move_child(header, title_label.get_index())
+	title_label.reparent(header, false)
+	_lead_icon = _info_icon(DEFAULT_SUBTITLE, LEAD_ID)
+	header.add_child(_lead_icon)
+	_apply_main_lead()
+
+
+func _info_icon(tip: String, id: String) -> TextureRect:
+	"""The ⓘ for a Label lead-in: a real TextureRect whose hover is the line;
+	a click toggles the note (`Utils.toggle_note`) and shows/hides its label."""
+	var icon := TextureRect.new()
+	icon.texture = load(Utils.INFO_GLYPH)
+	icon.modulate = Utils.UI_GOLD
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(INFO_PX, INFO_PX)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_STOP
+	icon.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	icon.tooltip_text = tip
+	icon.set_meta("note_id", id)
+	icon.gui_input.connect(_on_info_input.bind(icon))
+	return icon
+
+
+func _on_info_input(event: InputEvent, icon: TextureRect) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var id: String = str(icon.get_meta("note_id"))
+		Utils.toggle_note(id)
+		if id == LEAD_ID:
+			_apply_main_lead()
+		else:
+			var line = icon.get_meta("note_label", null)
+			if line != null and is_instance_valid(line):
+				(line as Control).visible = Utils.show_note(id)
+
+
+func _apply_main_lead() -> void:
+	"""The header paragraph: On the page as ever; Folded only once opened."""
+	subtitle_label.visible = Utils.show_note(LEAD_ID)
+	if _lead_icon != null:
+		_lead_icon.visible = Utils.explanations_folded()
+
+
+func _on_explanations_changed() -> void:
+	_apply_main_lead()
+	if visible and not _last_data.is_empty():
+		_rerender = true
+		show_mailbox(_last_data)
+		_rerender = false
 
 
 func show_mailbox(data: Dictionary):
-	AudioManager.play("letter_open")
+	if not _rerender:
+		AudioManager.play("letter_open")
+	_last_data = data
 	var items = data.get("items", [])
 	var count = int(data.get("count", 0))
 	_items = items.duplicate()
@@ -85,6 +158,7 @@ func show_mailbox(data: Dictionary):
 		# rect stood and carried the Close button to y=746 — off-screen, the
 		# modal undismissable by mouse, the visible area a flat colour. One
 		# row present and the clamp already fitted the same panel to 776x362.
+		Utils.set_reading_share($PanelContainer, Vector2(0.62, 0.85), Vector2(1100, 1000))
 		Utils.clamp_centered_panel($PanelContainer)
 		return
 
@@ -102,29 +176,43 @@ func show_mailbox(data: Dictionary):
 	# viewport, so a fixed authored rect can carry the action row off-screen
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
+	# Session UI-3: the book's reading ceiling (62 x 85 % of the view, capped
+	# 1100 x 1000) - the rows' buttons stand whole instead of at the scroll's foot.
+	Utils.set_reading_share($PanelContainer, Vector2(0.62, 0.85), Vector2(1100, 1000))
 	Utils.clamp_centered_panel($PanelContainer)
 	_fit_to_rows()
 
 
 func _fit_to_rows() -> void:
 	"""Session UI-2 (November 11, 2026): the book fits what it holds. The
-	authored 960 x 720 stood over two short rows and a band of nothing. Two
-	frames after the clamp (a wrapping label has no height before it has a
-	width) the list asks for its own height - never more than the room the
-	clamped box leaves it, so a long book still scrolls - and the panel
-	shrinks to its content."""
-	await get_tree().process_frame
-	await get_tree().process_frame
-	if not visible:
-		return
-	var panel := $PanelContainer as Control
-	var scroll := list_content.get_parent() as ScrollContainer
-	var have: float = panel.offset_bottom - panel.offset_top
-	scroll.custom_minimum_size.y = 0.0
-	var others: float = panel.get_combined_minimum_size().y
-	var list_h: float = list_content.get_combined_minimum_size().y + 4.0
-	scroll.custom_minimum_size.y = clampf(list_h, 80.0, maxf(have - others, 80.0))
-	Utils.shrink_centered_panel_to_content(panel)
+	authored 960 x 720 stood over two short rows and a band of nothing.
+	Session UI-3 (November 12, 2026): and the second envoy row's Accept /
+	Decline stood cut at the scroll's foot - the list was measured once, two
+	frames after the clamp, before its wrapping labels had settled to the
+	scroll's width, and given 4 px of slack. It is measured now at the list's
+	own settled height (the larger of its minimum and its last row's foot,
+	rows' margins and separation included), twice - the second pass after the
+	first has laid the labels out - +8 px, capped at the room the reading
+	ceiling leaves, so a long book still scrolls and a short one shrinks."""
+	for _pass in 2:
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not visible:
+			return
+		var panel := $PanelContainer as Control
+		if panel.has_meta("side_desk_docked") or panel.has_meta("clamp_user_size"):
+			return
+		var scroll := list_content.get_parent() as ScrollContainer
+		var have: float = panel.offset_bottom - panel.offset_top
+		scroll.custom_minimum_size.y = 0.0
+		var others: float = panel.get_combined_minimum_size().y
+		var foot: float = 0.0
+		for child in list_content.get_children():
+			if child is Control and (child as Control).visible:
+				foot = maxf(foot, (child as Control).position.y + (child as Control).size.y)
+		var list_h: float = maxf(list_content.get_combined_minimum_size().y, foot) + 8.0
+		scroll.custom_minimum_size.y = clampf(list_h, 80.0, maxf(have - others, 80.0))
+	Utils.shrink_centered_panel_to_content($PanelContainer)
 
 
 func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
@@ -143,7 +231,13 @@ func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	heading.theme_type_variation = &"HudTitle"
 	heading.add_theme_color_override("font_color", Utils.UI_GOLD)
-	box.add_child(heading)
+	# Session UI-3: the section's lead-in ("Hesse and Papal States write. Answer
+	# them here. ...") stands behind an ⓘ at this heading, folded.
+	var heading_row := HBoxContainer.new()
+	heading_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heading_row.add_theme_constant_override("separation", 8)
+	heading_row.add_child(heading)
+	box.add_child(heading_row)
 
 	var note = Label.new()
 	var headline = Utils.humanize_nation_keys_in_text(str(digest.get("headline", "")))
@@ -153,6 +247,12 @@ func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
 	note.theme_type_variation = &"Caption"
 	note.add_theme_color_override("font_color", Utils.UI_MAILBOX_NOTE)
 	box.add_child(note)
+	if note.text != "":
+		var lead_icon := _info_icon(note.text, SMALL_LEAD_ID)
+		lead_icon.set_meta("note_label", note)
+		lead_icon.visible = Utils.explanations_folded()
+		heading_row.add_child(lead_icon)
+		note.visible = Utils.show_note(SMALL_LEAD_ID)
 
 	return box
 

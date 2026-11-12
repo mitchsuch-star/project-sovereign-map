@@ -351,17 +351,21 @@ class TestTheSettlementRowsPerCourt:
 
     def test_the_scene_is_a_column_of_rows(self):
         scene = _read(SCENES / "proposal_confirm_popup.tscn")
-        assert '[node name="Tier2ButtonContainer" type="VBoxContainer"' in scene
-        assert "columns = 3" not in scene.split('[node name="Tier2ButtonContainer"')[1].split("[node")[0]
+        # Session UI-3: the rail (Tier2Scroll / Tier2ButtonContainer) is gone — each
+        # court's rows are an HFlowContainer INSIDE its card in the one body scroll.
+        assert 'name="Tier2ButtonContainer"' not in scene
+        assert '[node name="PerCourtBody" type="VBoxContainer"' in scene
+        gd = _read(SCRIPTS / "proposal_confirm_popup.gd")
+        assert "var buttons := HFlowContainer.new()" in _func_body(gd, "_court_card")
 
-    def test_the_builder_groups_by_court_and_derives_the_floor(self):
+    def test_the_builder_groups_by_court_and_fills_the_cards(self):
         body = _func_body(_read(SCRIPTS / "proposal_confirm_popup.gd"), "_add_settlement_tier2_buttons")
         assert "court_rows.append({" in body
         assert 'Utils.display_nation_name(str(row.get("nation", "?")))' in body
-        assert "tier2_button_container.add_child(line)" in body
+        # Session UI-3: a row's buttons mount in its court's card host, not a rail
+        assert "_court_flows.get(at)" in body
         assert "line.add_child(btn)" in body
-        assert "float(court_rows.size()) * 42.0 + 10.0" in body
-        assert "vp.get_visible_rect().size.y * 0.30" in body
+        assert "tier2_button_container" not in body
 
 
 # ═══════════════════════════════════════════════════════════════════════════

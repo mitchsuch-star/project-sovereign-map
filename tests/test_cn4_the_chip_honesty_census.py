@@ -263,6 +263,7 @@ def zero(tmp_path_factory):
         out = C.render(gs, sorted(gs["map_data"]), recruitment, work,
                        overview=overview)
     return {"gs": gs, "rendered": out["regions"], "cards": out["cards"],
+            "folded": out.get("regions_folded", {}),
             "overview": overview, "errors": out["errors"]}
 
 
@@ -289,6 +290,27 @@ class TestZeroActionsDimEveryChip:
     def test_the_render_is_clean(self, zero):
         assert zero["errors"] == 0
         assert zero["gs"].get("action_pools") == {"military": 0, "admin": 0}
+
+    def test_folded_every_dimmed_chip_carries_its_reason_as_its_hover(self, zero):
+        """Session UI-3 (November 12, 2026): the census reads the panel On the
+        page; with Explanations folded (the game's default) the reason beside
+        a dimmed chip moves into the chip's own hover — every dimmed chip in
+        the folded panel carries a hint, and every reason the page states
+        rides in one (cleaned for the tag: an apostrophe typographic)."""
+        dim_cell = re.compile(r"\[cell border=#4b505c bg=#20242c\](.*?)\[/cell\]")
+        bare, missing = [], []
+        assert zero["folded"], "the harness recorded no folded regions"
+        for region, folded in zero["folded"].items():
+            cells = dim_cell.findall(folded)
+            bare += [(region, c[:60]) for c in cells if "[hint=" not in c]
+            hints = set(re.findall(r"\[hint=([^\]]*)\]", folded))
+            for line in zero["rendered"][region].split("\n"):
+                for _label, why in dimmed_chips(line):
+                    tip = why.replace("[", "(").replace("]", ")").replace('"', "").replace("'", "’")
+                    if not any(tip.strip() in h for h in hints):
+                        missing.append((region, why))
+        assert bare == [], bare[:6]
+        assert missing == [], missing[:6]
 
     def test_no_order_chip_stays_lit_on_the_panel(self, zero):
         """CF-6 (Oct 17, 2026): the one exception is the free retreat —

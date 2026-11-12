@@ -688,6 +688,10 @@ func _band_zoomed():
 	# mid-ease (the zoom tween still running): ⌂ must still land on the fit
 	var map = _main.get("map_area")
 	_out["band"]["zoom_in"] = float(map.get("_zoom_level"))
+	# Session UI-3: the view ⌂ lands on — on a 32:9 room the filled view (the
+	# boot view), the whole sheet everywhere else — read at the press.
+	if map.has_method("home_zoom_target"):
+		_out["band"]["zoom_fit"] = float(map.call("home_zoom_target"))
 	var fit := (_main.get("map_controls") as Node).find_child("FitEuropeButton", true, false) as Button
 	_out["band"]["fit_button"] = fit != null and fit.focus_mode == Control.FOCUS_NONE
 	if fit != null:

@@ -90,6 +90,9 @@ func _ready():
 	# sixth screen: the user's ruling, October 12, 2026).
 	ResizeGrip.attach_centered($PanelContainer, "diplomatic_ledger")
 	content_area.meta_clicked.connect(_on_content_meta_clicked)
+	# Session UI-3 (November 12, 2026): the Explanations switch re-renders the
+	# open tab from the cached ledger, the scroll kept.
+	Utils.on_explanations_changed(_rerender_keeping_scroll)
 	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
 	# before its parent can scroll. PASS keeps meta_clicked chips working.
@@ -276,6 +279,8 @@ func _open_with_tab(api_client, tab_index: int, review_target: String, route_id:
 	_focus_settlement_war_id = war_id
 	AudioManager.play("panel_open")
 	show()
+	# Session UI-3 (November 12, 2026): the book takes the room.
+	Utils.set_reading_share($PanelContainer, Utils.BOOK_SHARE, Utils.BOOK_MAX)
 	Utils.clamp_centered_panel($PanelContainer)
 	_update_tab_highlights()
 	api_client.get_diplomatic_ledger(_on_ledger_received)
@@ -439,9 +444,13 @@ func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks:
 func _render_nations():
 	var nations = cached_data.get("nations", [])
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ NATION OVERVIEW ═══[/color]\n"
+	# Session UI-3 (November 12, 2026): the lead-in stands behind an ⓘ at the
+	# heading's line ("Fold, a switch restores"); On the page both lines print as
+	# they did.
+	var nations_lead := "Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger."
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ NATION OVERVIEW ═══[/color]" + Utils.lead_mark(nations_lead, "dl.nations.lead") + "\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.[/color]\n", "dl.nations.lead") + "\n"
 
 	# UXR3-29 (Pre-Deploy S15 head, October 25, 2026): the Nations book LEADS
 	# WITH THE COURTS' CARDS — each great power's Laws and Doctrine lines sit in
@@ -557,9 +566,18 @@ func _render_nations():
 		# SR-7d DC-3a (DOCTRINES_SPEC §4a): the court's doctrine — name,
 		# strength, flaw and the cure's status, ONE line (the two-line budget
 		# with the laws line). Backend-composed; null omits.
+		# Session UI-3 (November 12, 2026): a court's long rows (the doctrine's flaw
+		# clause, Design, Intent, the AI relations, the war score) stand behind ONE
+		# "▸ more" at the card's foot; On the page, or opened, every row prints as
+		# it did.
+		var court_note_id: String = "dl.nations.court." + name
+		var court_open: bool = Utils.show_note(court_note_id)
 		var doctrine_row = n.get("doctrine")
 		if doctrine_row != null and str(doctrine_row) != "":
-			facts.append([_fact_label("tactical", "Doctrine: "), "[color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]"])
+			var doctrine_text: String = str(doctrine_row)
+			if not court_open and doctrine_text.find("; flaw:") >= 0:
+				doctrine_text = doctrine_text.substr(0, doctrine_text.find("; flaw:"))
+			facts.append([_fact_label("tactical", "Doctrine: "), "[color=#" + Utils.COLOR_INFO + "]" + doctrine_text + "[/color]"])
 		# DY-7 (DYNAMISM_SPEC.md §6): a crown's row names who withholds its
 		# recognition; a legitimist's row names the crowns of ours it withholds
 		# and the price. Backend-composed (R7); null omits the row.
@@ -612,7 +630,7 @@ func _render_nations():
 
 		# NA-1: the nation's active design (omit when null — bloc_stamp contract)
 		var agenda = n.get("agenda")
-		if agenda != null and agenda is Dictionary:
+		if court_open and agenda != null and agenda is Dictionary:
 			var agenda_title = str(agenda.get("title", ""))
 			var agenda_stance = str(agenda.get("stance_line", ""))
 			if agenda_title != "":
@@ -636,7 +654,7 @@ func _render_nations():
 		# AI-1: the nation's intent — its price, fully open (D4: want,
 		# target and rung always shown; only timing is uncertain).
 		var intent = n.get("intent")
-		if intent != null and intent is Dictionary:
+		if court_open and intent != null and intent is Dictionary:
 			var intent_summary = str(intent.get("summary", ""))
 			if intent_summary != "":
 				facts.append([_fact_label("intel", "Intent: "), "[color=#" + Utils.COLOR_INFO + "]" + intent_summary + "[/color]"])
@@ -673,7 +691,7 @@ func _render_nations():
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor) — each tie
 		# a state badge, the temper in words after it.
 		var ai_relations = n.get("ai_relations", [])
-		if ai_relations.size() > 0:
+		if court_open and ai_relations.size() > 0:
 			var ai_parts = []
 			for ar in ai_relations:
 				var ar_nation = str(ar.get("nation", "?"))
@@ -698,7 +716,7 @@ func _render_nations():
 
 		# N2: War Score Breakdown (WAR only) — the total a badge, the parts after it
 		var war_score = n.get("war_score_breakdown")
-		if war_score != null and war_score is Dictionary:
+		if court_open and war_score != null and war_score is Dictionary:
 			var total = int(war_score.get("total", 0))
 			var ws_color = Utils.COLOR_SUCCESS if total > 0 else (COLOR_RED if total < 0 else Utils.COLOR_INFO)
 			var ws_tone = "2f6b3a" if total > 0 else ("8b2a2a" if total < 0 else Utils.COLOR_BADGE_QUIET)
@@ -725,6 +743,18 @@ func _render_nations():
 				var cd_val = int(cooldowns[cd_key])
 				cd_parts.append(cd_key.capitalize() + ": " + str(cd_val) + " turns")
 			bbcode += "  Cooldowns: [color=#" + COLOR_AMBER + "][" + ", ".join(PackedStringArray(cd_parts)) + "][/color]\n"
+
+		# Session UI-3: the one toggle at the card's foot (nothing On the page),
+		# only where the court has a long row to open.
+		var long_rows: bool = (agenda != null and agenda is Dictionary and str(agenda.get("title", "")) != "") \
+			or (intent != null and intent is Dictionary and str(intent.get("summary", "")) != "") \
+			or ai_relations.size() > 0 \
+			or (war_score != null and war_score is Dictionary) \
+			or (doctrine_row != null and str(doctrine_row).find("; flaw:") >= 0)
+		if long_rows:
+			var court_link: String = Utils.note_link(court_note_id)
+			if court_link != "":
+				bbcode += "  " + court_link + "\n"
 
 		bbcode += Utils.CARD_CLOSE
 		bbcode += "\n"
@@ -964,8 +994,15 @@ func _designs_block(designs) -> String:
 	live on the Cabinet's road page (F1)."""
 	if not (designs is Dictionary) or designs.is_empty():
 		return ""
-	var out := "[color=#" + Utils.COLOR_HEADER + "]THE EMPEROR'S DESIGNS[/color]\n"
-	out += "[color=#" + Utils.COLOR_INFO + "]" + str(designs.get("headline", "")).replace("[", "[lb]") + "[/color]\n"
+	# Session UI-3 (November 12, 2026): the headline and the road page's pointer
+	# stand behind an ⓘ at the heading (id dl.balance.designs); the roads' figure
+	# lines stay.
+	var designs_tip: String = str(designs.get("headline", ""))
+	var designs_control = designs.get("control")
+	if designs_control is String and designs_control != "":
+		designs_tip += " The road page: " + designs_control
+	var out := "[color=#" + Utils.COLOR_HEADER + "]THE EMPEROR'S DESIGNS[/color]" + Utils.lead_mark(designs_tip, "dl.balance.designs") + "\n"
+	out += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + str(designs.get("headline", "")).replace("[", "[lb]") + "[/color]\n", "dl.balance.designs")
 	var roads = designs.get("roads")
 	if not (roads is Array):
 		return out + "\n"
@@ -998,7 +1035,7 @@ func _designs_block(designs) -> String:
 		out += Utils.CARD_CLOSE
 	var control = designs.get("control")
 	if control is String and control != "":
-		out += "[color=#" + Utils.COLOR_INFO + "]  The road page: " + control.replace("[", "[lb]") + "[/color]\n"
+		out += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]  The road page: " + control.replace("[", "[lb]") + "[/color]\n", "dl.balance.designs")
 	return out + "\n"
 
 # =============================================================================
@@ -1774,7 +1811,14 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	bbcode += "  [color=#" + Utils.COLOR_INFO + "](" + path_label
 	if created_turn > 0 and path != "scenario":
 		bbcode += ", Turn " + str(created_turn)
-	bbcode += ")[/color]\n"
+	bbcode += ")[/color]"
+	# Session UI-3 (November 12, 2026): the client's foreign-policy sentence
+	# stands behind an ⓘ after its header line (On the page it prints below).
+	var policy_line = str(v.get("policy_line", ""))
+	var pact_id: String = "dl.vassals.pact." + name
+	if policy_line != "":
+		bbcode += Utils.lead_mark(policy_line, pact_id)
+	bbcode += "\n"
 	# DY-7 (DYNAMISM_SPEC.md §6): a crown's card — the title, who reigns, who
 	# withholds recognition. Backend-composed (R7); an empty line is omitted.
 	var crown_line = str(v.get("crown_line", ""))
@@ -1782,9 +1826,8 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		bbcode += "  Crown: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(crown_line) + "[/color]\n"
 	# Session G3: the client's foreign policy is its lord's — one
 	# backend-composed line (R7); an empty line is omitted.
-	var policy_line = str(v.get("policy_line", ""))
 	if policy_line != "":
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + policy_line + "[/color]\n"
+		bbcode += Utils.bb_lead("  [color=#" + Utils.COLOR_INFO + "]" + policy_line + "[/color]\n", pact_id)
 
 	# UXR3-81 (S15 head): a court with a granted petition leads with its BOND
 	# — the line the grant earned — straight under its header.
@@ -2040,12 +2083,22 @@ func _vassal_action_parts(a: Dictionary, v: Dictionary) -> Array:
 		var chip_text = Utils.COLOR_GOLD
 		if action_id == "release_vassal":
 			chip_text = Utils.COLOR_ERROR_CHIP
+		# Session UI-3 (November 12, 2026): Folded, the lever's line is the chip's
+		# hover and its cost rides the chip's face; On the page the chip and the
+		# line print as they did.
+		if Utils.explanations_folded():
+			var face: String = label
+			if action_id != "grant_region_to_vassal":
+				face += " · " + cost_text
+			return [Utils.bb_button_chip(meta, face, chip_text, chip_bg, "", label + " — " + terms), ""]
 		return [Utils.bb_button_chip(meta, label, chip_text, chip_bg),
 			"    [color=#" + Utils.COLOR_INFO + "]" + label + " — " + terms + "[/color]\n"]
 	var reason = str(a.get("disabled_reason", ""))
 	var gated: String = label + " — unavailable"
 	if reason != "":
 		gated += ": " + reason
+	if Utils.explanations_folded():
+		return [Utils.bb_chip_disabled(label, "", gated), ""]
 	return [Utils.bb_chip_disabled(label), "    [color=#" + Utils.COLOR_INFO + "]" + gated + "[/color]\n"]
 
 
@@ -2130,17 +2183,21 @@ func _bb_safe(text: String) -> String:
 func _render_congress():
 	var c = cached_data.get("congress", null)
 	var bbcode := ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CONGRESS OF PARIS ═══[/color]\n"
 	if not (c is Dictionary) or c.is_empty() or not _ctrue(c.get("armed", false)):
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CONGRESS OF PARIS ═══[/color]\n"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]There is no Congress of Paris in this campaign — the rules of the ending are not authored here.[/color]\n"
 		content_area.text = Utils.dress_heads(bbcode)
 		return
 	var needed := _cint(c, "titled_needed")
 	var turns := _cint(c, "turns")
 	# R159: the screen names the mechanic it shows — in the payload's numbers.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]Europe must RECOGNIZE the new order. With " + str(needed)
-	bbcode += " titled provinces the Emperor may summon the great powers to Paris; each answers at every end turn, with its reason and its price, and the Congress sits "
-	bbcode += Utils.plural(turns, "turn") + ". If on the last day every court recognizes, is shut out or is gone, and the hold never broke, the Imperial Peace is proclaimed.[/color]\n\n"
+	# Session UI-3 (November 12, 2026): that lead-in stands behind an ⓘ at the
+	# heading (id dl.congress.lead); On the page it prints as it did.
+	var congress_lead: String = "Europe must RECOGNIZE the new order. With " + str(needed)
+	congress_lead += " titled provinces the Emperor may summon the great powers to Paris; each answers at every end turn, with its reason and its price, and the Congress sits "
+	congress_lead += Utils.plural(turns, "turn") + ". If on the last day every court recognizes, is shut out or is gone, and the hold never broke, the Imperial Peace is proclaimed."
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CONGRESS OF PARIS ═══[/color]" + Utils.lead_mark(congress_lead, "dl.congress.lead") + "\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + congress_lead + "[/color]\n", "dl.congress.lead") + "\n"
 	var line := _cstr(c, "state_line")
 	if line != "":
 		bbcode += "[color=#" + congress_severity_tint(_cstr(c, "severity")) + "][b]" + _bb_safe(line) + "[/b][/color]\n\n"
@@ -2402,8 +2459,24 @@ func _on_overlay_input(event):
 		close_view()
 
 
+func _rerender_keeping_scroll() -> void:
+	"""Session UI-3: re-render the open tab from the cached ledger (never a
+	re-fetch) and put the reader's scroll back."""
+	if cached_data.is_empty():
+		return
+	var at: int = scroll_container.scroll_vertical
+	_render_current_tab()
+	Utils.restore_scroll(scroll_container, at)
+
+
 func _on_content_meta_clicked(meta):
 	var meta_key = str(meta)
+	# Session UI-3 (November 12, 2026): an ⓘ / "▸ more" opens its words in place,
+	# the reader's scroll kept.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_rerender_keeping_scroll()
+		return
 	if meta_key.begins_with("peace_ratification:"):
 		var expanded = bool(_expanded_peace_ratifications.get(meta_key, false))
 		_expanded_peace_ratifications[meta_key] = not expanded

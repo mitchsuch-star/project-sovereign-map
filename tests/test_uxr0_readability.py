@@ -25,6 +25,8 @@ BEFORE = RECORDS / "readability_before_named_2026_10_09.json"
 # Session UI-2 (November 12, 2026): re-shot on the imperial desk's tree — the
 # 32:9 term moved 0.25 -> 0.45 (5120x1440 derives 1.60), so the AFTER's
 # scales are the new derivation's (the 2026_10_12 records stay as history).
+# Session UI-3 (November 12, 2026): re-shot on UI-3's tree under the same names
+# (13,028 rows over 185 surfaces x five sizes, RED 0 / P1 0; the named set 1,580).
 AFTER = RECORDS / "readability_after_named_2026_11_12.json"
 # The whole client (every IQ-10 surface × the five resolutions): UXR-0's "exists
 # for all 127 surfaces" (137 at the time of shooting). Counts + the worst two
@@ -182,7 +184,9 @@ class TestTheWholeClient:
     def test_the_after_names_the_layout_laws_client(self, after_all):
         # Session UI-2: shot from the working tree committed as the UI-2 commit
         # (its parent 20ee32ff) — a record cannot name the commit it rides in.
-        assert after_all.get("client_commit") == "20ee32ff+UI-2"
+        # Session UI-3 (November 12, 2026): re-shot on its own tree (its parent
+        # 8db8d10c) — the folds, the filled 32:9 map and the reading windows.
+        assert after_all.get("client_commit") == "8db8d10c+UI-3"
         assert after_all.get("physical_scale") == "auto"
 
 

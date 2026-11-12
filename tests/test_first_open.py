@@ -371,8 +371,15 @@ class TestTheClient:
         # line is seen at both scales (the frames pin it).
         table = _func(src, "_build_settlement_content")
         assert '_first_open_bbcode(data, "settlement")' not in table
+        # Session UI-3: the head never scrolls and the footer is the body's tail, so the
+        # line is the BODY's first line — read once in show_dialogue, drawn by the renderer
         footer = _func(src, "_build_settlement_footer")
-        assert footer.index('_first_open_bbcode(data, "settlement")') < footer.index('data.get("talleyrand_text", "")')
+        assert '_first_open_bbcode(data, "settlement")' not in footer
+        shown = _func(src, "show_dialogue")
+        assert '_settlement_first_open = _first_open_bbcode(data, "settlement")' in shown
+        render = _func(src, "_render_per_court_table")
+        # (the accordion passes `compact or not whole`: the call is read by its head)
+        assert render.index("var lead: String = _settlement_first_open") < render.index("_court_card(row, court_index, ")
         chooser = _func(src, "_build_pair_substitute_confirm_content")
         assert chooser.index('_first_open_bbcode(data, "separate_peace")') < chooser.index("Leave the joint settlement?")
 

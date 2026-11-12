@@ -112,6 +112,7 @@ func _ready():
 	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 	# §0.6.8: bbcode [url=reward:N] affordances (strategic_ledger pattern)
 	content_area.meta_clicked.connect(_on_meta_clicked)
+	Utils.on_explanations_changed(_rerender_in_place)
 	hide()
 
 
@@ -168,6 +169,8 @@ func open(api_client):
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading marshal data...[/color]"
 	AudioManager.play("panel_open")
 	show()
+	# Session UI-3 (November 12, 2026): the books take the room (0.62 x 0.85).
+	Utils.set_reading_share($PanelContainer, Utils.BOOK_SHARE, Utils.BOOK_MAX)
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_marshal_overview(_on_data_received)
 
@@ -177,6 +180,15 @@ func refresh_if_open():
 	the new estate/rente state (§0.6.8 item 6)."""
 	if visible and _api_client_ref:
 		_api_client_ref.get_marshal_overview(_on_data_received)
+
+
+func _rerender_in_place() -> void:
+	"""Session UI-3: re-draw the current view from the cache, scroll kept."""
+	if not visible or (cached_data.size() == 0 and not _commission_view):
+		return
+	var held: int = scroll_container.scroll_vertical
+	_render_current_view()
+	Utils.restore_scroll(scroll_container, held)
 
 
 func refresh_pinned() -> void:
@@ -194,6 +206,12 @@ func _on_pinned_overview(response, held_scroll: int) -> void:
 
 
 func _on_meta_clicked(meta):
+	# Session UI-3 (November 12, 2026): a lead-in's ⓘ opens in place, from the
+	# cached overview, the scroll kept.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_rerender_in_place()
+		return
 	var meta_str = str(meta)
 	if meta_str.begins_with("reward:"):
 		var index = int(meta_str.substr(7))
@@ -294,7 +312,14 @@ func _render_all_cards():
 	# touch. (The old wording is deliberately not repeated here: the R159
 	# pin is a source grep, and a comment quoting it would satisfy the
 	# assertion while the screen said something else.)
-	var bbcode = "[color=#" + Utils.COLOR_INFO + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Esc closes it (Alt+G while you type).[/color]\n\n"
+	# Session UI-3 (November 12, 2026): the lead-in stands behind an ⓘ. This page
+	# had no heading, so the folded page opens on one (THE GENERALS) to carry the
+	# mark; On the page it is not drawn and the old line leads as before. The
+	# per-card reward explainers below are exempt (the user's ruling).
+	var bbcode = ""
+	if Utils.explanations_folded():
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]THE GENERALS[/color]" + Utils.lead_mark("Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Esc closes it (Alt+G while you type).", "generals.lead") + "\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Esc closes it (Alt+G while you type).[/color]\n\n", "generals.lead")
 
 	# UXR3-24 (Pre-Deploy S12 part 2): what asks for the Emperor's attention
 	# leads the screen — a marshal captured or waiting on an audience is

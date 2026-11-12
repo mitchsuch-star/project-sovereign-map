@@ -127,17 +127,37 @@ func _draw() -> void:
 	var left: float = box.get_margin(SIDE_LEFT) if box != null else 0.0
 	var width := size.x
 	var foot := float(_label.get_content_height())
+	var paragraphs := text.split("\n")
 	for card in cards_in(text):
 		var first: int = card[0]
 		var last: int = card[1]
 		if first >= count:
 			continue
-		var y0 := top + _label.get_paragraph_offset(first) - PAD_TOP
-		var y1 := top + (_label.get_paragraph_offset(last + 1) if last + 1 < count else foot) + PAD_BOTTOM
+		# Session UI-3: a pad reaches into the neighbouring paragraph only
+		# when that paragraph is blank (or the label's edge).
+		var pad_top: float = PAD_TOP if blank_paragraph(paragraphs, first - 1) else 0.0
+		var pad_bottom: float = PAD_BOTTOM if blank_paragraph(paragraphs, last + 1) else 0.0
+		var y0 := top + _label.get_paragraph_offset(first) - pad_top
+		var y1 := top + (_label.get_paragraph_offset(last + 1) if last + 1 < count else foot) + pad_bottom
 		if y1 - y0 < 8.0:
 			continue
 		_draw_card(Rect2(2.0, y0, width - 4.0, y1 - y0), card[2])
 		_draw_locket(text, card, left, top)
+
+
+static func blank_paragraph(paragraphs: PackedStringArray, i: int) -> bool:
+	"""Session UI-3 (November 12, 2026): whether a card's pad may reach into
+	paragraph `i` — only a blank one (or past the label's edge). Two cards set
+	line on line, or a heading set straight on a card, had each card's rule
+	drawn through the other's words (the Balance's road cards, the blind
+	readers' F13): with no blank paragraph between, the card's edge is its own
+	paragraph's edge. Pure — the pins read it without an engine frame."""
+	if i < 0 or i >= paragraphs.size():
+		return true
+	var p: String = paragraphs[i]
+	if p.find("[img") >= 0 or p.find("[lb]") >= 0 or p.find("[rb]") >= 0:
+		return false
+	return Utils.bb_plain(p) == ""
 
 
 func _draw_card(rect: Rect2, tone: Color) -> void:

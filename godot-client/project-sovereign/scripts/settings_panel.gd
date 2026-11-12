@@ -41,6 +41,9 @@ signal text_size_changed(value: float, persist: bool)
 # UXR-D3 (Pre-Deploy S9b): HUD width changed; the campaign's host refits the
 # HUD to the band (the menu has no HUD).
 signal hud_width_changed(width: String)
+# Session UI-3 (November 12, 2026): the very wide screen's map view changed;
+# the campaign's host re-derives the map's boot view (the menu has no map).
+signal wide_map_changed(mode: String)
 
 # Golden Rule 7: same origin as api_client.gd — one source, env-overridable.
 var BACKEND_URL: String = Utils.backend_url()
@@ -61,6 +64,15 @@ const _BODY_FONT_LABELS := {
 	"garamond": "Garamond (the default)",
 	"plain": "Plain (Source Sans)",
 }
+# Session UI-3 (November 12, 2026): the two new choices, by UiSettings key.
+const _WIDE_MAP_LABELS := {
+	"fill": "The map fills the width (the default)",
+	"sheet": "The whole sheet on the desk",
+}
+const _EXPLANATION_LABELS := {
+	"folded": "Folded (the default)",
+	"page": "On the page",
+}
 
 var _scale_dragging := false
 var _scale_slider: HSlider
@@ -74,6 +86,13 @@ var _window_size: OptionButton
 var _window_size_row: HBoxContainer
 var _body_font: OptionButton
 var _hud_width: OptionButton
+var _wide_map: OptionButton = null
+var _explanations: OptionButton = null
+# Session UI-3: each explanation hint and the control it explains — folded, the
+# hint is that control's hover (and an ⓘ ends its row); On the page it prints.
+var _hints: Array = []
+# The CONTROLS section's key list is reference, not explanation: never folded.
+var _hints_fold := true
 var _motion_toggle: CheckButton = null
 var _contrast_toggle: CheckButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
@@ -183,6 +202,27 @@ func _build_display_section() -> void:
 		+ "chosen above, centred. On a very wide screen, HUD width: Centred gathers "
 		+ "the command window, the notices, the top bar and the war panel into the "
 		+ "middle 2560 px while the map stays full width.")
+	# Session UI-3 (November 12, 2026): the very wide screen's map — filling the
+	# width (the default) or the whole sheet on the desk, as before.
+	var wide_row := HBoxContainer.new()
+	wide_row.add_theme_constant_override("separation", 10)
+	var wide_lbl := Label.new()
+	wide_lbl.text = "Wide map"
+	wide_lbl.theme_type_variation = &"Caption"
+	wide_lbl.custom_minimum_size.x = 72
+	wide_row.add_child(wide_lbl)
+	_wide_map = OptionButton.new()
+	_wide_map.name = "WideMapOption"
+	for i in range(UiSettings.WIDE_MAPS.size()):
+		var wide_key: String = UiSettings.WIDE_MAPS[i]
+		_wide_map.add_item(str(_WIDE_MAP_LABELS.get(wide_key, wide_key)), i)
+	_wide_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_wide_map.item_selected.connect(_on_wide_map_selected)
+	wide_row.add_child(_wide_map)
+	add_child(wide_row)
+	_add_hint("On a very wide screen (32:9) the map opens filling the width — the "
+		+ "Home button shows the whole sheet and back. The whole sheet opens it on "
+		+ "its desk, as before. An ordinary screen always shows the whole sheet.")
 	_refresh_display_controls()
 
 
@@ -212,6 +252,10 @@ func _refresh_display_controls() -> void:
 		_body_font.select(maxi(UiSettings.BODY_FONTS.find(UiSettings.get_body_font()), 0))
 	if _hud_width != null:
 		_hud_width.select(maxi(UiSettings.HUD_WIDTHS.find(UiSettings.get_hud_width()), 0))
+	if _wide_map != null:
+		_wide_map.select(maxi(UiSettings.WIDE_MAPS.find(UiSettings.get_wide_map()), 0))
+	if _explanations != null:
+		_explanations.select(maxi(UiSettings.EXPLANATIONS.find(UiSettings.get_explanations()), 0))
 	if _contrast_toggle != null:
 		_contrast_toggle.set_pressed_no_signal(UiSettings.get_high_contrast())
 	if _motion_toggle != null:
@@ -231,6 +275,22 @@ func _on_hud_width_selected(index: int) -> void:
 	var width: String = UiSettings.HUD_WIDTHS[clampi(index, 0, UiSettings.HUD_WIDTHS.size() - 1)]
 	UiSettings.set_hud_width(width)
 	hud_width_changed.emit(width)
+
+
+func _on_wide_map_selected(index: int) -> void:
+	var mode: String = UiSettings.WIDE_MAPS[clampi(index, 0, UiSettings.WIDE_MAPS.size() - 1)]
+	UiSettings.set_wide_map(mode)
+	wide_map_changed.emit(mode)
+
+
+func _on_explanations_selected(index: int) -> void:
+	"""Session UI-3: the switch. Every page that carries a fold re-renders in
+	place (its registered re-render, cached data, scroll kept) and this
+	panel's own hints flip between the page and their controls' hovers."""
+	var mode: String = UiSettings.EXPLANATIONS[clampi(index, 0, UiSettings.EXPLANATIONS.size() - 1)]
+	UiSettings.set_explanations(mode)
+	_apply_hints()
+	Utils.notify_explanations_changed()
 
 
 func _on_window_size_selected(index: int) -> void:
@@ -366,6 +426,30 @@ func _build_interface_section() -> void:
 	add_child(_motion_toggle)
 	_add_hint("Reduce motion opens every screen and letter at once, without its fade.")
 
+	# Session UI-3 (November 12, 2026): Explanations — the user's ruling, "Fold,
+	# a switch restores": folded, the pages keep to their figures; On the page
+	# prints every explanation where it always stood.
+	var explain_row := HBoxContainer.new()
+	explain_row.add_theme_constant_override("separation", 10)
+	var explain_lbl := Label.new()
+	explain_lbl.text = "Explanations"
+	explain_lbl.theme_type_variation = &"Caption"
+	explain_lbl.custom_minimum_size.x = 72
+	explain_row.add_child(explain_lbl)
+	_explanations = OptionButton.new()
+	_explanations.name = "ExplanationsOption"
+	for i in range(UiSettings.EXPLANATIONS.size()):
+		var explain_key: String = UiSettings.EXPLANATIONS[i]
+		_explanations.add_item(str(_EXPLANATION_LABELS.get(explain_key, explain_key)), i)
+	_explanations.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_explanations.select(maxi(UiSettings.EXPLANATIONS.find(UiSettings.get_explanations()), 0))
+	_explanations.item_selected.connect(_on_explanations_selected)
+	explain_row.add_child(_explanations)
+	add_child(explain_row)
+	_add_hint("Folded keeps every page to its figures: what a page is for stands behind "
+		+ "its ⓘ, what a button does is its hover, and long counsel opens from ▸ more. "
+		+ "On the page prints every explanation in full, where it always stood.")
+
 	var reset_layout := Button.new()
 	reset_layout.name = "ResetLayoutButton"
 	reset_layout.text = "Reset layout"
@@ -444,6 +528,7 @@ func _on_reset_layout() -> void:
 	ui_scale_changed.emit(UiSettings.get_ui_scale(), false)
 	text_size_changed.emit(UiSettings.get_text_size(), false)
 	hud_width_changed.emit(UiSettings.get_hud_width())
+	wide_map_changed.emit(UiSettings.get_wide_map())
 	layout_reset.emit()
 
 
@@ -456,6 +541,8 @@ func _update_scale_value_label(value: float) -> void:
 
 func _build_controls_section() -> void:
 	_add_header("CONTROLS")
+	# Session UI-3: the key list is reference — it stays on the page folded too.
+	_hints_fold = false
 	_add_hint("Screens — L Event Log · T Ledger · G Generals · D Diplomacy · R Dispatch "
 		+ "· N Moniteur (Alt+key while typing; Alt+B for the Dispatch where a graphics "
 		+ "overlay keeps Alt+R) · F1 the Cabinet · Esc close / pause. "
@@ -467,6 +554,7 @@ func _build_controls_section() -> void:
 		+ "pan (Alt+key while typing).")
 	_add_hint("The interface — Ctrl+= / Ctrl+− Interface Scale · Ctrl+0 this screen's "
 		+ "size · the command window's corner grip resizes it (double-click resets).")
+	_hints_fold = true
 
 
 # ── SOUND ───────────────────────────────────────────────────────────────────
@@ -689,4 +777,66 @@ func _add_hint(text: String) -> void:
 	hint.add_theme_color_override("font_color", Color(Utils.COLOR_INFO))
 	hint.theme_type_variation = &"Caption"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Session UI-3 (November 12, 2026): an explanation hint belongs to the
+	# control added just before it — folded, it is that control's hover and an
+	# ⓘ ends the control's row; On the page it prints here, as it always did.
+	# The CONTROLS key list is reference, not explanation (`_hints_fold`), and
+	# a hint that follows a section's heading has no control: both stay.
+	var target: Control = null
+	if _hints_fold and get_child_count() > 0:
+		var prev := get_child(get_child_count() - 1)
+		if prev is BaseButton or prev is HBoxContainer:
+			target = prev as Control
 	add_child(hint)
+	if target == null:
+		return
+	var mark: TextureRect = null
+	if target is HBoxContainer:
+		mark = TextureRect.new()
+		mark.name = "HintMark"
+		mark.texture = load(Utils.INFO_GLYPH)
+		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mark.custom_minimum_size = Vector2(18, 18)
+		mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		mark.self_modulate = Color(Utils.COLOR_GOLD)
+		mark.mouse_filter = Control.MOUSE_FILTER_STOP
+		mark.tooltip_text = text
+		target.add_child(mark)
+	_hints.append({"label": hint, "target": target, "mark": mark, "text": text})
+	_apply_hint(_hints.back())
+
+
+func _apply_hints() -> void:
+	for entry in _hints:
+		_apply_hint(entry)
+
+
+func _apply_hint(entry: Dictionary) -> void:
+	"""One explanation hint, folded or on the page (Session UI-3)."""
+	var folded := Utils.explanations_folded()
+	var hint: Label = entry["label"]
+	var target: Control = entry["target"]
+	var text := str(entry["text"])
+	if not (is_instance_valid(hint) and is_instance_valid(target)):
+		return
+	hint.visible = not folded
+	if entry["mark"] != null and is_instance_valid(entry["mark"]):
+		(entry["mark"] as Control).visible = folded
+	var holders: Array = [target]
+	if target is HBoxContainer:
+		holders = []
+		for child in target.get_children():
+			if child is Control and child.name != "HintMark":
+				holders.append(child)
+	for holder in holders:
+		if not (holder is BaseButton or holder is Range):
+			continue
+		var ctl := holder as Control
+		if not ctl.has_meta("tip_before_hint"):
+			ctl.set_meta("tip_before_hint", ctl.tooltip_text)
+		var before := str(ctl.get_meta("tip_before_hint"))
+		if folded:
+			ctl.tooltip_text = (before + "\n" + text) if before != "" else text
+		else:
+			ctl.tooltip_text = before

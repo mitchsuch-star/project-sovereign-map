@@ -41,7 +41,26 @@ func _ready():
 	# before its parent can scroll. PASS still delivers _gui_input.
 	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	next_button.pressed.connect(_on_next)
+	# Session UI-3: a note toggle / the Settings switch re-renders in place.
+	content_label.meta_clicked.connect(_on_meta_clicked)
+	Utils.on_explanations_changed(_rerender_in_place)
 	hide()
+
+
+func _on_meta_clicked(meta) -> void:
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_rerender_in_place()
+
+
+func _rerender_in_place() -> void:
+	"""The same issue, redrawn from the cached archive with the scroll kept and
+	the window left where it is."""
+	if not visible or _index < 0 or _index >= _issues.size():
+		return
+	var held: int = scroll_container.scroll_vertical
+	_render_issue(true)
+	Utils.restore_scroll(scroll_container, held)
 
 
 var _api_client_ref = null
@@ -53,6 +72,9 @@ func open(api_client):
 	AudioManager.play("parchment_open")
 	content_label.text = "[color=#" + Utils.COLOR_INFO + "]The presses turn...[/color]"
 	show()
+	# Session UI-3 (November 12, 2026): a reading window's share of the view,
+	# then fitted to the issue it holds (`_render_issue`).
+	Utils.set_reading_share($PanelContainer)
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_gazette(_on_gazette_received)
 
@@ -123,7 +145,7 @@ func _update_page_row():
 		page_label.text = ""
 
 
-func _render_issue():
+func _render_issue(keep_scroll: bool = false):
 	if _index < 0 or _index >= _issues.size():
 		return
 	var issue: Dictionary = _issues[_index]
@@ -141,14 +163,18 @@ func _render_issue():
 		dateline = masthead.substr(cut + 3)
 	var rule := "[center][img width=420 height=1 color=#" + Utils.COLOR_GOLD + "99]" + Utils.SWATCH + "[/img][/center]\n"
 	bbcode += rule
-	bbcode += "[center][font=" + MASTHEAD_FONT + "][color=#ece0c4]" + head.capitalize() + "[/color][/font][/center]\n"
+	# Session UI-3 (November 12, 2026): the lead-in's ⓘ stands at the end of the
+	# dateline line (a paper with no dateline wears it after the name).
+	var lead_words := "The capital's press — the continent's story as printed, issue by issue. Page through the archive below."
+	var lead_mark: String = Utils.lead_mark(lead_words, "gazette.lead")
+	bbcode += "[center][font=" + MASTHEAD_FONT + "][color=#ece0c4]" + head.capitalize() + "[/color][/font]" + (lead_mark if dateline == "" else "") + "[/center]\n"
 	if dateline != "":
-		bbcode += "[center]" + Utils.HEAD_OPEN + dateline + Utils.HEAD_CLOSE + "[/center]\n"
+		bbcode += "[center]" + Utils.HEAD_OPEN + dateline + Utils.HEAD_CLOSE + lead_mark + "[/center]\n"
 	if bool(issue.get("special", false)):
 		bbcode += "[center][color=#" + Utils.COLOR_ERROR + "]SPECIAL EDITION — " + str(issue.get("special_reason", "")) + "[/color][/center]\n"
 	bbcode += rule
 	# R159: each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The capital's press — the continent's story as printed, issue by issue. Page through the archive below.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + lead_words + "[/color]\n\n", "gazette.lead")
 
 	# The lead — the press's voice.
 	var lead = str(issue.get("lead", ""))
@@ -169,8 +195,14 @@ func _render_issue():
 		bbcode += Utils.bb_glyph("gold", 16, Utils.COLOR_INFO) + " [color=#" + Utils.COLOR_INFO + "]" + bourse + "[/color]\n"
 
 	content_label.text = bbcode
-	scroll_container.scroll_vertical = 0
 	_update_page_row()
+	if keep_scroll:
+		# Session UI-3: a note toggle / the Settings switch — the scroll stays
+		# (the caller restores it) and the window is not refitted under the hand.
+		return
+	scroll_container.scroll_vertical = 0
+	# Session UI-3: the window fits the issue it holds (each issue differs).
+	Utils.fit_reading_window($PanelContainer, scroll_container, content_label)
 
 
 const MASTHEAD_FONT := "res://assets/fonts/UnifrakturMaguntia-Book.ttf"

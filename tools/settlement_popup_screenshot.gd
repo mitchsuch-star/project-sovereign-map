@@ -50,13 +50,16 @@ func _tick():
 		var img: Image = root.get_texture().get_image()
 		img.save_png("user://g1_settlement_shot.png")
 		var panel: Control = _popup.get_node("PanelContainer")
-		var scroll: Control = _popup.get_node("PanelContainer/VBoxContainer/PerCourtScroll")
+		# Session UI-3: the one body scroll stands in PerCourtFrame, which
+		# carries the table's floor.
+		var scroll: Control = _popup.get_node("PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll")
+		var frame: Control = _popup.get_node("PanelContainer/VBoxContainer/PerCourtFrame")
 		var geometry = {
 			"viewport": [root.size.x, root.size.y],
 			"panel_size": [panel.size.x, panel.size.y],
 			"panel_offsets": [panel.offset_left, panel.offset_top,
 					panel.offset_right, panel.offset_bottom],
-			"per_court_min_y": scroll.custom_minimum_size.y,
+			"per_court_min_y": frame.custom_minimum_size.y,
 			"per_court_actual_y": scroll.size.y,
 		}
 		var out = FileAccess.open("user://g1_geometry.json", FileAccess.WRITE)

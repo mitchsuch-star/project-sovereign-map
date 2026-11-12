@@ -16491,3 +16491,189 @@ with bound spaces; `[br]` is not BBCode in 4.4.1; a table's cell newlines are no
 `flatten_tables`); a popup panel's shadow grows its window; a new figure step moves a label from the caption floor
 (3.0) to the body floor (4.5) — re-read its colours; the capture runner had its own HUD-width default; a table nested in a table cell is squeezed to one letter a line (`bb_tag`); a cursor shape written in `_ready` re-picks the hover with every child at (0, 0) (`_arm_pointers`); two builders owning one file need a word between them (`dispatch_view.gd`: the Correspondence and the Dispatch); the suite at
 `-n 10` under memory pressure (0.8 GB free) runs ten times slower — the machine, not the tests.
+
+## §214 Session UI-3 — past 7: the folds, the filled ultrawide, the one-scroll table, the windows that fit (November 12, 2026)
+
+**The session** (`UI_VISUAL_FOUNDATION_SPEC.md` §11 the landing record). Session UI-2's three blind readers held the
+client at 7/7/7 and named what holds it there (§10 "What holds it at 7"). At this session's head (Plan Mode) the user
+ruled lever 1 — **"Fold, a switch restores"** — and delegated the other three ("DO BEST THING FOR GAME! IDC ABOUT
+TOKENS", "DO BEST", "DO BEST OPTION"), ruled here: the map fills a very wide screen's width; the settlement table is
+one scroll with each court's acts as real buttons in its card; reading windows fit their content, the books take the
+room, crowded name plates gather at the whole-sheet view. Display only, but for one backend display field (the
+petition's figures) — no game rule, no saved field.
+
+**The switch** — `UiSettings.get/set_explanations()`: `"folded"` (`DEFAULT_EXPLANATIONS`) | `"page"`. Settings →
+INTERFACE → **Explanations** (`ExplanationsOption`): `_on_explanations_selected` writes it, flips the panel's own hints
+(`_apply_hints`) and calls `Utils.notify_explanations_changed()` — every page registered with
+`Utils.on_explanations_changed(callable)` re-renders from its cached data with the scroll kept (never a network
+re-fetch). "On the page" prints every explanation exactly as before: each helper's page branch returns the caller's
+old string byte for byte.
+
+**The fold kit (`utils.gd`, "Session UI-3")** — three treatments, no word cut:
+- *A page's lead-in* → `lead_mark(line, id)` (folded: " " + the ⓘ — Phosphor's shipped `info.svg`, MIT, its import
+  given mipmaps — inside a `note:<id>` link whose hover is the line's words; set AFTER the heading's closing
+  `[/color]`, inside it would defeat `dress_heads`) and `bb_lead(line, id)` at the line's slot (the whole old string;
+  folded only once opened).
+- *What a control does / why it cannot* → its hover: `bb_hint(inner, tip)` — the ONLY writer of `[hint=`
+  (`test_a_hint_is_written_by_one_road`); `clean_tip` drops BBCode tags and images, turns any other bracket to a
+  parenthesis (the tag ends at the first `]`), drops double quotes, turns a STRAIGHT APOSTROPHE typographic (it opened
+  a quoted value and the whole tag printed raw — measured on "The lead-in's words."), and newlines to spaces (a stray
+  newline trips the card underlay's paragraph count). `bb_button_chip(…, tip)` / `bb_chip_disabled(…, tip)` carry the
+  hint INSIDE the link (`mark_chip_sent` needs `[/url]` against `CHIP_CLOSE`); `explain_tip(button, tip, keep)` for a
+  real Button. `bb_hints(text)` extracts the tips (the harness records them; `get_parsed_text()` never shows them).
+  `_unline_links` sets `hint_underlined = false` beside `meta_underlined` (the engine dash-underlines a hint; a chip
+  reads by its rim).
+- *Counsel and long prose* → `show_note(id)` (always true On the page) + `note_link(id)` ("▸ more" / "▾ less", the
+  arrow and its word bound by U+00A0), or `bb_note(id, summary, body, tail)` for a passage opened from its first
+  sentence. A session dict holds the opened notes (`toggle_note`, `note_is_open`, `reset_notes`, `is_note_meta`); ids
+  are page-scoped slugs of `[A-Za-z0-9._-]`; every page routes `note:` metas FIRST in its meta handler.
+- **Where:** the Diplomatic Ledger (Nations — a court's doctrine flaw, design, intent, AI relations and war-score
+  breakdown behind one "▸ more" per court; Vassals — the levers' lines on their chips' hovers, a lit chip showing its
+  cost, "Its wars are yours…" behind an ⓘ; Balance — the designs' preface and the road pointer behind an ⓘ; the
+  Congress's lead-in); the petition (GRANT / REFUSE / LAPSE rows of figure badges — `grant_figures` /
+  `refuse_figures`, built in `vassal.py::_price_petition` from the same figures as the lines and carried by
+  `mailbox_payloads.py`, re-quoted on every read — each sentence on its Button's hover; Talleyrand's line and every
+  non-letter's grey assessment notes; a note rebuilds only the body, never `_dress_letter`); the war detail (the tier
+  line keeps its place, the held line, the table's account, court by court and the war's object one note; the data
+  cached for a local re-render); the region panel (the lead-in ⓘ at the controller line; every dimmed chip's reason its
+  hover, `_dim`); Settings (`_add_hint` itself attaches an explanation to the control added before it — its hover, an ⓘ
+  ending a row; the CONTROLS key list `_hints_fold = false`; a hint after a section heading stays); the lead-ins of the
+  Dispatch, the Moniteur, the mailbox (Label lead-ins: an ⓘ TextureRect, the title reparented into a header row), the
+  Strategic Ledger's eight books and the Generals (a heading drawn for its ⓘ, folded only); the Cabinet's act notes on
+  the act Buttons' hovers; the settlement's narration, advisory and Talleyrand's reading.
+- **Exempt by ruling:** the Generals' reward explainer (the user's PS-3, "reactive but explicit"), S14d first-open lines,
+  the letters of state, the KEYS list, the Cabinet's step-1 quote (Talleyrand's voice; pinned on screen).
+
+**The very wide screen (`map_renderer_base.gd`)** — `fill_zoom_for(room, sheet)` (pure: the cover zoom) and
+`is_wide_room(room)` (pure: `SAFE_ZONE_ASPECT` 2.6 or wider); `_fills_width()` (`UiSettings.get_wide_map() == "fill"`,
+the default, and the ROOM after the dock's inset wide); `_finalize_view_setup` keeps its pinned contain lines and then
+`_apply_fill_view()` (the cover zoom, centred on the sheet — on 5120x1440 zoom 2.0, 45 % of the sheet's height,
+Britain to Rome, the province-label tier). `_get_initial_zoom_level`, `fit_europe` and `is_fit_view` keep their
+contain meaning (tools and the side desk call them). `home_view()` — the ⌂ chip's door (`main._on_fit_europe`) —
+toggles the filled view and the whole sheet on a wide room; `home_tip()` says which comes next and
+`main._refresh_map_controls` never disables ⌂ there (`home_toggles()`). `_update_zoom_floor` raises `max_zoom` to a
+quarter past the cover zoom on a wide room (a 7680x2160 room fills at 3.0). Until the player's first zoom or pan
+(`_player_moved_view`, from `_zoom_at_point`, the drag pan, the pan keys and `focus_on_map_point`) a resize or an
+Interface Scale change re-derives the boot view (`_rederive_boot_view`; the deferred boot can read a transient size).
+`set_right_inset` keeps a filled view filled. Settings → DISPLAY → **Wide map** (`WideMapOption`; the pause menu
+relays `wide_map_changed`; `main._on_wide_map_changed` → `apply_boot_view`); Reset layout restores `"fill"`. The
+province overlays stay NEAREST (they display the lookup and match keys exactly). Ordinary screens never take these
+roads.
+
+**The gathering (`map_label_layer.gd`)** — at the whole-sheet view (`renderer.gathers_names()`: `is_at_min_zoom()`),
+`_gather_names` reads each marshal plate's metas (`gather_nation`, `gather_rank` — the Emperor first, then strength —
+`gather_name`, `gather_count`; a co-located IGR-G2 stack gathers as its lead with its count) and `gather_groups`
+(pure) walks them from the highest rank down: a plate whose rect (grown by `GATHER_GAP_PX` 2) touches a plate already
+standing for ITS nation joins it, hidden; a lead that took others wears `GATHER_FORMAT` ("Napoleon · 2 more"), widened
+about its centre (`renderer.gather_label`, undone by `ungather_label` before every layout). The census gains
+`gathered` beside `moved` / `hidden` / `items`; IGR-G2's "Ney +4" is untouched. On the user's 5120 boot (the filled
+view) it is reached by ⌂ or the sheet setting.
+
+**The settlement table (`proposal_confirm_popup.gd/.tscn`, settlement_confirm only)** — the HEAD is `ContentLabel`,
+fitted and never scrolling: the verdict, the one-shot voice beats, the treasury, the narration and the advisory as
+notes (`settle.narration`, `settle.advisory`). The BODY is ONE scroll: `PerCourtFrame` (a VBox carrying the floor and
+`relax_last`) → `PerCourtScroll` → `PerCourtBody`: S14D's first-open line, one CARD per court built in code
+(`_court_card`: a well, a hairline and a 3-px spine in the standing's tone; the court's own RichTextLabel with its
+chunk exactly as `_build_settlement_per_court_block` writes it, metas by its ORIGINAL index; an HFlow of REAL Buttons
+— Demand more / Ease / Drop, `Utils.set_available`), the table's closing line, the coverage row, the footer
+(`PerCourtFooter`, still `_build_settlement_footer`; Talleyrand's reading `settle.talleyrand`). Under the scroll in
+the frame: the whole-line pad and the "▼ more below" strip (`BODY_CUE_STRIP` 20), shown only while lines remain below
+— it never lies over a line. **An accordion:** the court in focus (`focused_court`, REFRONT-9's round trip on its
+name), or with none the first, stands as its whole card; every other court is ONE line — flag, name (toggling its
+words under the line, `settle.court.<slug>`), score, its blocker (wide windows), its three buttons. Three whole cards
+could not stand under the head at 1.0 (Russia's buttons at y 921 against a window ending at 779: EA-E6's driven pin
+`TestEAE6EveryCourtKeepsItsRow`). In the compact view every court is a line and the head folds to its heading
+(`settle.head`). `FooterLabel`, `Tier2Scroll`, `PerCourtTable` are gone from the scene.
+
+**Windows that fit** — `clamp_centered_panel` reads `clamp_reading_share` ({share, max}: the default size as a share
+of the view, capped; the authored rect the floor; a grip's size never raised; the Cabinet's pinned
+`clamp_ceiling_fraction` untouched). `set_reading_share(panel, share, max)` with `READING_SHARE` 0.55 x 0.85 /
+`READING_MAX` 900 x 1000 (the Dispatch and the Moniteur, then `fit_reading_window`) and `BOOK_SHARE` 0.62 x 0.85 /
+`BOOK_MAX` 1100 x 1000 (the Strategic and Diplomatic Ledgers, the Generals, the campaign log, the mailbox).
+`fit_reading_window(panel, scroll, body)` sizes a scroll to a body that FITS and shrinks the panel; a longer page keeps
+the window's full height and a scroll with no minimum (the whole-line pad takes its share FROM the scroll — a minimum
+at the room cut the last line on six Dispatch frames; caught by the frame census). Skipped docked or gripped; on open
+and on new content, never on a note toggle. The mailbox fits its rows in two passes (`_fit_to_rows`); the Cabinet's
+step-2 quote shows whole up to `ASSESSMENT_CAP_SHARE` 0.4 of the panel, 0.3 in the compact view
+(`ASSESSMENT_CAP_SHARE_COMPACT` — at 0.4 the acts kept fewer than two rows at 2.0, EA-E5's driven pin; its cause: the
+wrapped status line ate the 5-line floor, `ASSESSMENT_FLOOR_LINES`). The Campaign Menu's Settings page scroll takes
+the panel's whole room (`pause_menu._show_settings_page`: it stood at 62 % of the view over a blank band).
+`renderer.home_zoom_target()` names the zoom ⌂ lands on (the grips harness reads it at the press).
+
+**Instruments moved** — `tools/iq10_surface_screenshot.gd` seeds `explanations` and `wide_map` (guarded by
+`get_script_constant_map()`, so an older copy ignores them), resets the notes per shot and opens a shot's
+`open_notes`, and records each RichTextLabel's `text_md5` and `hints`; `tools/iq10_run_captures.py` `--explanations
+folded|page` and `--wide-map fill|sheet` (the defaults untagged; `_PAGE` / `_SHEET` tag the frame);
+`tools/cn3_region_panel_harness.gd` renders the census's regions On the page and records `regions_folded`;
+`tools/settlement_popup_screenshot.gd` reads the new path. A one-off grey the consistency census had passed only
+because a mis-scanned span covered it (a quote character in a docstring moved the span) became `Utils.MAP_CIRCLE_RIM`.
+
+**The interim reading and its fixes** — the shoot was read once before the record by three fresh sonnet readers
+(the same 30 frames, the frozen rubric, the prompt verbatim). One reader's labels slipped a frame from F15 on (its F15
+describes the settlement, its F30 a frame that does not exist), so its marks were set aside; the other two read 6.5
+and 6.8 (overall 7, 7). What they named was fixed at its cause before the final reading:
+- *The Balance's road cards drew their rules through each other's words* (F13, both readers) — `card_underlay.gd`
+  reached each card 5 / 6 px into the neighbouring paragraph, so two cards set line on line, or a heading set straight
+  on a card, crossed. `blank_paragraph(paragraphs, i)`: a pad reaches only into a blank paragraph (or past the label's
+  edge); otherwise the card's edge is its paragraph's edge — every page's cards, no word moved.
+- *The Cabinet's counsel ran into a clipped scroll* (F15) — the counsel opens from the Recommendation's first sentence
+  (`cabinet.counsel`, one note for every court; `_on_assessment_meta`): the rest of it, the road reading and the
+  ranked roads stand in place on "▸ more", and the key factors come up into view. `CABINET_CEILING_SHARE` 0.7 → 0.8
+  (UI-2's step for the same complaint; a viewport under 650 px keeps the authored rect; the compact view's 450 is
+  unchanged).
+- *The settlement's tail was a paragraph of instructions* (F16) — the carry hint opens from its first sentence
+  (`settle.carry`); a blank line parts the first-open line from THE TABLE.
+- *The region panel's refused levies stood one bare chip a line* (F24) — folded, the refused arms stand on one row
+  after the levies that can be made, each reason its chip's hover.
+- One sentence finder serves the settlement and the Cabinet: `Utils.first_sentence_end` (the popup's
+  `_first_sentence_end` delegates).
+
+**The measure** — the final tree, measured as UI-2's was (`tools/iq10_run_captures.py` on port 8999, the windows
+parked at x 5200, no input sent; the baseline shot from a `git archive` of HEAD `8db8d10c`). Payloads 187 captured, 0
+failed. 185 surfaces at Interface Scale 1.0 and 2.0 (370 frames, the defaults — Folded, Fill): 0 `SCRIPT ERROR`;
+readability RED 0 / P1 0 over 5,181 rows; contrast 0 rows under 4.5 : 1 of 4,168 measured; the consistency census 0
+hits on 145 surfaces; the frame census cut lines 53 (HEAD's 63), grip and tick overlaps 0, map overlaps 0 over 370
+map frames, hidden map furniture 91 (HEAD's 107). **On the page** (185 at 1.0, `--explanations page`): 181 surfaces
+keep HEAD's raw BBCode byte for byte (each RichTextLabel's md5). The four that differ: three settlement frames (the
+old button rail's "Austria: / Britain: / Russia:" prefixes went with the rail; a "▼ more below" strip) and the enemy
+phase, whose words are identical and whose BBCode differs by two carriage returns — `enemy_phase_dialog.gd:821` (and
+its twin at :828) writes a string literal across a line break, so the text carries the checkout's line ending
+(`git archive` wrote HEAD's copy LF; the working copy is CRLF); the file is untouched. The words beyond those: the
+Settings page's two new rows and the name plates gathered on whole-sheet maps. **The five physical sizes** (925
+frames): 0 `SCRIPT ERROR`; readability RED 0 / P1 0 over 13,028 rows (UI-2's record 13,052); contrast 0 of 11,250
+under; fit 185 of 185 at 1920x1080, 3840x2160 and 5120x1440; map overlaps 0 over 925 map frames. The records
+`docs/audits/uxr0/readability_after_{all,named}_2026_11_12.json` re-shot (`client_commit` "8db8d10c+UI-3").
+
+**The score** (the frozen rubric, the prompt verbatim, the same 30 frames, three fresh sonnet readers; `tools/ui_rating/
+scores_ui3.py`): overall **7 / 7 / 7** — unmoved; the mean of 90 marks 6.93 → **7.00** (7.03 / 7.07 / 6.90); the
+median of frame medians 7 → 7; five frames up (the 32:9 war room 6 → 7, Nations 6 → 8, Vassals 6 → 7, the settlement
+table 5 → 6, the petition 6 → 7), three down (Forces 8 → 7, the main menu 8 → 7 — a surface this session did not
+touch —, the mailbox 8 → 7), 22 level; 19 frames unanimous, 11 one apart. The interim reading (two readers) was 6.65.
+
+**Pins:** `tests/test_ui_gilt3_folds_and_fill.py` (the switch, the kit, where the folds stand, the wide map, the
+gathering, the harness; `TestDriven` runs `tools/ui_gilt3_probe.gd` headless — the page branch = the old string, the
+folded words in the hint or the note, `get_tooltip` answering over plain words, the ⓘ link, a chip and a dimmed chip,
+the reading share at 1600x900 in a SubViewport, the cover zoom and the wide-room test, `gather_groups`);
+`tests/test_ui3_petition_figures.py`; `tests/test_cn4_the_chip_honesty_census.py::test_folded_every_dimmed_chip_carries_its_reason_as_its_hover`.
+Re-ruled with their reasons: `test_uxr3_s12_part2.py` (the table's scene order; its whole-line regions),
+`test_ui_visual_foundation.py` (footer bounded → in the one scroll; the tier-2 rail → the cards' rows; the relax
+cache on the frame), `test_settlement_guided_terms_slice3.py`, `test_igr_g_legibility.py`,
+`test_settlement_gate4_leg1_fixes.py`, `test_ep_f3_the_client_layout_pass.py`, `test_first_open.py`,
+`test_uxr2b_hud_band.py::TestFitEurope` (⌂ lands on `home_zoom_target` — the filled view on that 32:9 room),
+`test_uxr2_grips_driven.py` (a reset returns the ledger to the scene's rect raised by the reading share of the view
+the reset leaves), `test_uxr4_s15_pc_layout.py` (PC-F46's drive On the page — its rule is where the words stand when
+they stand there), `test_cn4_the_chip_honesty_census.py` (the census reads On the page; the folded hover its own pin),
+`test_uxr2_scroll_where_unbounded.py` (a scroll that fills a floored frame is floored — `_floored`, the settlement
+body's frame carries the floor its scroll used to; `_body_label`'s labels named in `ALLOW_SCRIPT` with their proof),
+`test_first_open.py` (the card call read by its head), `test_s14h_the_third_measure_rows.py::TestS14G22` (the
+Cabinet's share 0.8: 1,152 at 1440, 864 at 1080, 576 at 720, the authored floor read at 640),
+`test_dd_b_the_client_hands.py` (the driven walk to the gold line: Britain is a line on the accordion, so the road
+opens its words by its name — "click Britain ▸" — before its "+ Add demand"; the hook's full run caught it).
+
+**Traps the session paid for:** a straight apostrophe inside `[hint=…]` prints the whole tag raw (clean every tip);
+the engine dash-underlines a hint (`hint_underlined`); a headless root is 64 x 64 — measure a clamp inside a
+SubViewport; a scroll's minimum set at the room starves the whole-line pad (the last line cut); a plain Control round a
+ScrollContainer gives the whole-line pad nowhere to stand (it is added as the scroll's sibling — frame it in a VBox);
+the consistency census's span scanner reads quote characters, so a docstring can move what it treats as routed —
+name a one-off grey as a token; a `.gd` some test reads as cp1252 takes no character outside it (B2 used
+`char(8221)`); builders that share a project must not run Godot — the lead parse-checks and shoots serially.

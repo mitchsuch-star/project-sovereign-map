@@ -173,7 +173,11 @@ class TestFullIsWhatItWas:
 class TestFitEurope:
     def test_the_chip_fits_europe_even_mid_zoom(self, centred):
         """+ three times, then ⌂ while the zoom is still easing in: the fit
-        lands (a live zoom tween used to land after it and undo it)."""
+        lands (a live zoom tween used to land after it and undo it).
+
+        Session UI-3 (November 12, 2026): `zoom_fit` is the view ⌂ lands on,
+        read at the press (`home_zoom_target`) — on this 32:9 room the map
+        filling the width (the boot view), the whole sheet on an ordinary one."""
         assert centred["fit_button"] is True     # it never takes the command line's focus
         assert centred["zoom_in"] > centred["zoom_fit"] + 1e-3, centred
         assert centred["zoom_after_fit"] == pytest.approx(centred["zoom_fit"], abs=1e-4)

@@ -462,6 +462,9 @@ static func wrap_tooltips(tree: SceneTree) -> void:
 static func _unline_links(node: Node) -> void:
 	if node is RichTextLabel:
 		(node as RichTextLabel).meta_underlined = false
+		# Session UI-3: a hinted chip or ⓘ draws no dashed underline either (the
+		# engine's default for [hint]) — a chip reads by its rim, the ⓘ by itself.
+		(node as RichTextLabel).hint_underlined = false
 
 
 static func _wrap_tooltip_popup(node: Node) -> void:
@@ -754,6 +757,9 @@ const MAP_TEXT_GREY := Color(0.7, 0.7, 0.7)                 # secondary tooltip 
 const MAP_TOOLTIP_BORDER := Color(0.6, 0.6, 0.7)            # a force tooltip's border
 const MAP_TOOLTIP_FOG_BORDER := Color(0.4, 0.4, 0.5)        # an unknown province's tooltip border
 const MAP_UNKNOWN_TEXT := Color(0.55, 0.55, 0.6)            # "Income: Unknown", "Stability: Unknown"
+# Session UI-3: the circle-map fallback's province rim — a one-off grey the
+# census had passed only because a mis-scanned span covered it (value unchanged).
+const MAP_CIRCLE_RIM := Color(0.2, 0.18, 0.16, 0.9)
 # S14E-D10 (Pre-Deploy S14f part 2): the Descent camp's wash on its four provinces
 # while the camp counts, and its tooltip line (the Admiralty's count).
 const MAP_CAMP_WASH := Color(0.95, 0.66, 0.22, 0.30)         # the camp is counting its turns
@@ -1130,7 +1136,7 @@ static func bb_icon(path: String, size: int, color: String) -> String:
 	return "[img width=%d height=%d color=#%s]%s[/img]" % [size, size, color, path]
 
 
-static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg_hex: String, icon_path := "") -> String:
+static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg_hex: String, icon_path := "", tip := "") -> String:
 	"""A filled bbcode 'button' — a `bgcolor` pill with padding, an optional
 	leading icon, and a `url` covering the whole chip. Reads as a button
 	inside a RichTextLabel without a real Button node."""
@@ -1142,6 +1148,11 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 	# "back" read as two pills. The instruments read the bound space as a
 	# space (their get_parsed_text() readers normalise it).
 	inner += "[color=#" + text_hex + "]" + CHIP_PAD + label.replace(" ", "\u00A0") + CHIP_PAD + "[/color]"
+	# Session UI-3 (November 12, 2026): what the chip does may ride as its
+	# hover (`tip`) — the hint INSIDE the link, so `mark_chip_sent` still finds
+	# `[/url]` against the cell's close.
+	if tip != "":
+		inner = bb_hint(inner, tip)
 	# Session UI-2 (November 11, 2026): the chip is a one-cell table standing
 	# INLINE on its line (baseline-aligned), so it wears a real rim — the
 	# readers took the old flat pill, underlined, for a link. The padding is
@@ -1256,15 +1267,19 @@ static func bb_bar_img(filled: int, hex_color: String, width: int = 110, height:
 	return bb_meter(float(v), 10.0, width, mini(height, 10), hex_color)
 
 
-static func bb_chip_disabled(label: String, icon_path := "") -> String:
+static func bb_chip_disabled(label: String, icon_path := "", tip := "") -> String:
 	"""The honest-availability partner of bb_button_chip: the same pill shape
 	with NO url and dimmed ink, so a gated action reads as present-but-locked
-	instead of missing. Pair it with a short stated reason after the chip."""
+	instead of missing. Pair it with a short stated reason after the chip \u2014
+	or, Session UI-3, with explanations folded, carry the reason as the
+	chip's hover (`tip`)."""
 	var inner := ""
 	if icon_path != "":
 		inner += bb_icon(icon_path, 18, "6f7480") + " "
 	# UXR3-83: the dimmed pill holds together the same way as the lit one.
 	inner += "[color=#6f7480]" + CHIP_PAD + label.replace(" ", "\u00A0") + CHIP_PAD + "[/color]"
+	if tip != "":
+		inner = bb_hint(inner, tip)
 	# Session UI-2: the same rimmed cell as the lit chip, with a dim rim and
 	# ground and no link \u2014 present, plainly not pressable.
 	return CHIP_OPEN_HEAD + CHIP_DIM_RIM + " bg=#" + CHIP_DIM_BG + "]" + inner + CHIP_CLOSE
@@ -2104,6 +2119,18 @@ static func clamp_centered_panel(panel: Control) -> void:
 	if panel.has_meta("clamp_ceiling_fraction") and not panel.has_meta("clamp_user_size"):
 		var share: Vector2 = panel.get_meta("clamp_ceiling_fraction")
 		design = Vector2(maxf(design.x, share.x * view.x), maxf(design.y, share.y * view.y))
+	# Session UI-3 (November 12, 2026): a reading window's or a book's DEFAULT
+	# size as a share of the view, CAPPED — `clamp_reading_share` =
+	# {"share": Vector2, "max": Vector2}. The blind readers saw the books and
+	# the Dispatch as half-screen boxes in a void (700x500 on 1600x900). The
+	# authored rect stays the floor, the viewport caps below still apply, and a
+	# grip's size is never raised (as the Cabinet's fraction above).
+	if panel.has_meta("clamp_reading_share") and not panel.has_meta("clamp_user_size"):
+		var reading: Dictionary = panel.get_meta("clamp_reading_share")
+		var r_share: Vector2 = reading.get("share", Vector2.ZERO)
+		var r_max: Vector2 = reading.get("max", Vector2(100000.0, 100000.0))
+		design = Vector2(maxf(design.x, minf(r_share.x * view.x, r_max.x)),
+			maxf(design.y, minf(r_share.y * view.y, r_max.y)))
 	var w: float = minf(design.x, maxf(320.0, view.x - 24.0))
 	var h: float = minf(design.y, maxf(240.0, view.y - 88.0 - 2.0 * top_bar_growth()))
 	panel.offset_left = -w / 2.0
@@ -2601,3 +2628,261 @@ static func bb_portrait_row(portrait: String, sheet: String, frame_hex: String =
 	several lines — a cell's lines are its own; see flatten_tables)."""
 	return "[table=2][cell border=#" + frame_hex + " padding=2,2,2,2]" + portrait.strip_edges() \
 		+ "[/cell][cell expand=1 padding=12,0,0,0]" + sheet.strip_edges() + "[/cell][/table]"
+
+
+# ── Session UI-3 (November 12, 2026): explanations fold, a switch restores ───
+# The user's ruling at the session's head: "Fold, a switch restores." Three
+# treatments, no word cut: (1) a page's lead-in stands behind an ⓘ at its
+# heading (`lead_mark` + `bb_lead`); (2) what a control does or why it cannot
+# is its hover (`bb_hint`, a chip's `tip`, a Button's `tooltip_text`), its
+# figures kept on the face; (3) long counsel opens from its first sentence
+# (`show_note` + `note_link`, or `bb_note`). Settings → INTERFACE →
+# Explanations: "page" prints every word exactly as before — each helper's
+# page branch returns the caller's old string byte for byte. Rules in
+# docs/SYSTEMS_REFERENCE.md §214.
+const NOTE_META := "note:"
+const INFO_GLYPH := ICON_PHOSPHOR + "info.svg"
+# the arrow and its word bound (U+00A0): a wrapped line never parts them
+const NOTE_MORE := "▸ more"
+const NOTE_LESS := "▾ less"
+static var _open_notes := {}
+static var _explanation_listeners: Array = []
+static var _hint_tag_re: RegEx = null
+static var _bb_known_tag_re: RegEx = null
+
+
+static func explanations_folded() -> bool:
+	"""True unless the player chose Explanations: On the page."""
+	return UiSettings.get_explanations() != "page"
+
+
+static func clean_tip(tip: String) -> String:
+	"""A hover's words as `[hint=…]` can carry them: BBCode tags and images
+	dropped, any other bracket a parenthesis (the tag ends at the first `]`),
+	double quotes dropped (they would print), a straight apostrophe the
+	typographic one (it would open a quoted value), newlines a space (a stray
+	newline in a page's text trips the card underlay's paragraph count)."""
+	if _bb_known_tag_re == null:
+		_bb_known_tag_re = RegEx.create_from_string(
+			"\\[/?(?:b|i|u|s|color|font|font_size|url|hint|table|cell|center|right|left|fill|indent|"
+			+ "bgcolor|fgcolor|opentype_features|outline_size|outline_color|p|ul|ol|lb|rb|code)(?:[= ][^\\]]*)?\\]")
+	if _bb_img_re == null:
+		bb_plain("")
+	var t := _bb_img_re.sub(tip, "", true)
+	t = _bb_known_tag_re.sub(t, "", true)
+	# A straight apostrophe opens a quoted tag value and the whole tag then
+	# prints raw (measured: "The lead-in's words."); the typographic one keeps
+	# the word. A straight double quote would print as-is: dropped.
+	t = t.replace("[", "(").replace("]", ")").replace("\"", "").replace("'", "’")
+	t = t.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+	while t.find("  ") >= 0:
+		t = t.replace("  ", " ")
+	return t.strip_edges()
+
+
+static func bb_hint(inner: String, tip: String) -> String:
+	"""`inner` with `tip` as its hover — the ONLY road a hint is written by
+	(the tip is cleaned; an empty tip leaves `inner` as it was)."""
+	var t := clean_tip(tip)
+	if t == "":
+		return inner
+	return "[hint=" + t + "]" + inner + "[/hint]"
+
+
+static func bb_hints(text: String) -> Array:
+	"""Every hover's words in a page's BBCode, in order (the no-word-lost pin
+	and the harness's record read them: `get_parsed_text()` never does)."""
+	if _hint_tag_re == null:
+		_hint_tag_re = RegEx.create_from_string("\\[hint=([^\\]]*)\\]")
+	var out: Array = []
+	for m in _hint_tag_re.search_all(text):
+		out.append(m.get_string(1))
+	return out
+
+
+static func bb_info_glyph(size: int = 16, hex: String = "") -> String:
+	"""The ⓘ (Phosphor's info, shipped, MIT) — a page's lead-in stands behind it."""
+	return bb_icon(INFO_GLYPH, maxi(size, 16), hex if hex != "" else COLOR_GOLD)
+
+
+static func is_note_meta(meta) -> bool:
+	return str(meta).begins_with(NOTE_META)
+
+
+static func note_is_open(id: String) -> bool:
+	return bool(_open_notes.get(id.trim_prefix(NOTE_META), false))
+
+
+static func toggle_note(meta_or_id) -> bool:
+	"""Open or close a note (a `note:<id>` meta or the bare id); the new state."""
+	var id := str(meta_or_id).trim_prefix(NOTE_META)
+	var open := not bool(_open_notes.get(id, false))
+	_open_notes[id] = open
+	return open
+
+
+static func reset_notes() -> void:
+	"""Every note closed (the capture harness, between shots)."""
+	_open_notes.clear()
+
+
+static func show_note(id: String) -> bool:
+	"""Whether a note's body stands on the page: always On the page, and when
+	the player opened it Folded. A builder writes the body only when true."""
+	return not explanations_folded() or note_is_open(id)
+
+
+static func note_link(id: String, more: String = NOTE_MORE, less: String = NOTE_LESS) -> String:
+	"""The note's own toggle (`▸ more` / `▾ less`) — nothing On the page."""
+	if not explanations_folded():
+		return ""
+	var words := less if note_is_open(id) else more
+	return "[url=" + NOTE_META + id + "][color=#" + COLOR_GOLD + "]" + words + "[/color][/url]"
+
+
+static func bb_note(id: String, summary: String, body: String, tail: String = "") -> String:
+	"""A passage that opens from its first words: On the page `summary + body
+	+ tail` (the caller's old string, split); Folded `summary ▸ more` until
+	opened, then the whole passage and `▾ less`. `tail` is the old string's
+	trailing newline(s), kept after the link."""
+	if not explanations_folded():
+		return summary + body + tail
+	if note_is_open(id):
+		return summary + body + " " + note_link(id) + tail
+	return summary + " " + note_link(id) + tail
+
+
+static func first_sentence_end(text: String) -> int:
+	"""Where a passage's first sentence ends — the index just past its terminal
+	mark (and a closing quote or bracket), or -1 when the passage is one
+	sentence, or when cutting there would split a BBCode tag. A mark counts only
+	after a dozen characters (an abbreviation is not a sentence) and before
+	whitespace. The settlement table's counsel and the Cabinet's read it."""
+	var n: int = text.length()
+	var i: int = 12
+	while i < n - 1:
+		var ch: String = text[i]
+		if ch == "." or ch == "!" or ch == "?" or ch == "…":
+			var j: int = i + 1
+			if j < n and (text[j] == "\"" or text[j] == char(8221) or text[j] == "’" or text[j] == ")"):
+				j += 1
+			if j < n and text[j] in [" ", "\n", "\t"]:
+				var summary: String = text.substr(0, j)
+				if summary.count("[") != summary.count("]"):
+					return -1
+				return j
+		i += 1
+	return -1
+
+
+static func lead_mark(line: String, id: String) -> String:
+	"""The ⓘ a page's lead-in stands behind: set it after the heading's
+	closing tag (inside a `[color=#B8860B]` heading it would defeat
+	`dress_heads`). Its hover is the lead-in's words; a click opens it in
+	place. Nothing On the page (the line prints, `bb_lead`)."""
+	if not explanations_folded():
+		return ""
+	return " [url=" + NOTE_META + id + "]" + bb_hint(bb_info_glyph(18, COLOR_GOLD), line) + "[/url]"
+
+
+static func bb_lead(line: String, id: String) -> String:
+	"""A page's lead-in line: On the page as it was (the caller's whole old
+	string, newlines and all); Folded only once its ⓘ was clicked open."""
+	return line if show_note(id) else ""
+
+
+static func explain_tip(button: Control, tip: String, keep: String = "") -> void:
+	"""A Button whose consequence line folds: Folded, the line is its hover
+	(after any tooltip it already carries, `keep`); On the page the hover is
+	`keep` alone and the line prints where it did."""
+	if button == null:
+		return
+	var parts: Array = []
+	if keep != "":
+		parts.append(keep)
+	if explanations_folded() and clean_tip(tip) != "":
+		parts.append(clean_tip(tip))
+	button.tooltip_text = "\n".join(parts)
+
+
+static func on_explanations_changed(callback: Callable) -> void:
+	"""A page re-renders in place when the switch moves (cached data, the
+	scroll kept — never a network re-fetch). Freed owners drop out."""
+	if not _explanation_listeners.has(callback):
+		_explanation_listeners.append(callback)
+
+
+static func notify_explanations_changed() -> void:
+	var live: Array = []
+	for cb in _explanation_listeners:
+		if (cb as Callable).is_valid():
+			live.append(cb)
+	_explanation_listeners = live
+	for cb in live:
+		(cb as Callable).call()
+
+
+static func restore_label_scroll(label: RichTextLabel, value: float) -> void:
+	"""A self-scrolling label's bar put back where the reader left it once its
+	new text has laid out (a note toggled in place must not jump to the top)."""
+	if label == null or value <= 0.0 or not label.is_inside_tree():
+		return
+	var tree := label.get_tree()
+	await tree.process_frame
+	await tree.process_frame
+	if is_instance_valid(label) and label.is_inside_tree():
+		label.get_v_scroll_bar().value = value
+
+
+# ── Session UI-3: reading windows sized to what they hold ───────────────────
+# The Dispatch and the Moniteur were 700x500 boxes on a 1600x900 screen with
+# their text cut by a scroll — a still shows the cut and the readers marked
+# it. A window takes a share of the view as its ceiling (`clamp_reading_share`,
+# read by clamp_centered_panel), then its scroll asks for the body's height up
+# to the room and the panel shrinks to its content (the Correspondence page's
+# pattern, `_fit_correspondence`, made one road).
+const READING_SHARE := Vector2(0.55, 0.85)
+const READING_MAX := Vector2(900.0, 1000.0)
+const BOOK_SHARE := Vector2(0.62, 0.85)
+const BOOK_MAX := Vector2(1100.0, 1000.0)
+
+
+static func set_reading_share(panel: Control, share: Vector2 = READING_SHARE,
+		max_size: Vector2 = READING_MAX) -> void:
+	"""Give a centred window its reading ceiling (call before clamping)."""
+	if panel != null:
+		panel.set_meta("clamp_reading_share", {"share": share, "max": max_size})
+
+
+static func fit_reading_window(panel: Control, scroll: Control, body: Control, floor_h: float = 120.0) -> void:
+	"""Size `scroll` to `body`'s height, capped at the room the clamp left,
+	then shrink the panel to its content. Skipped when the panel is docked
+	(the side desk) or gripped (the player's size wins). Call on open and on
+	new content — never on a note toggle, or the window jumps under the
+	reader's hand."""
+	if panel == null or scroll == null or body == null or not panel.is_inside_tree():
+		return
+	if panel.has_meta("side_desk_docked") or panel.has_meta("clamp_user_size"):
+		return
+	var tree := panel.get_tree()
+	await tree.process_frame
+	await tree.process_frame
+	if not (is_instance_valid(panel) and is_instance_valid(scroll) and is_instance_valid(body)):
+		return
+	if not panel.is_inside_tree() or panel.has_meta("side_desk_docked"):
+		return
+	var have: float = panel.offset_bottom - panel.offset_top
+	scroll.custom_minimum_size.y = 0.0
+	var others: float = panel.get_combined_minimum_size().y
+	var room: float = maxf(have - others, floor_h)
+	var need: float = body.get_combined_minimum_size().y + 6.0
+	if need >= room:
+		# A page longer than its window keeps the window's full height and a
+		# scroll with no minimum of its own: the whole-line pad
+		# (`keep_whole_lines`) takes its share FROM the scroll, and a minimum
+		# set at the room left it nothing — the last line stood cut (the
+		# frame census caught it on six Dispatch frames).
+		scroll.custom_minimum_size.y = minf(floor_h, room)
+		return
+	scroll.custom_minimum_size.y = need
+	shrink_centered_panel_to_content(panel)

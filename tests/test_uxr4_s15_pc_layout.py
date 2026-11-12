@@ -124,6 +124,11 @@ def drive(tmp_path_factory):
     spec_path, result_path = work / "spec.json", work / "result.json"
     spec, _ = runner.build_spec(rows, manifest, [1.0], "s15", spec_path, result_path, work / "png")
     spec["record_only"] = True
+    # Session UI-3 (November 12, 2026): PC-F46's rule is where the words stand
+    # when they stand on the page (the peace table above the score breakdown,
+    # the letter's cost above its fold) — Explanations: On the page, the old
+    # text byte for byte; folded, the table's account opens from its tier line.
+    spec["explanations"] = "page"
     spec_path.write_text(json.dumps(spec, indent=1), encoding="utf-8")
     env.update({"IQ10_SPEC": str(spec_path), "SOVEREIGN_PORT": runner.HARNESS_PORT})
     # NEVER --log-file (it crashes this engine build): script errors are read

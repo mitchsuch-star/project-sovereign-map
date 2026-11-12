@@ -868,3 +868,93 @@ Summary, which PC-F46 put last, lies under the fold, as on any 900-px window. Ea
 (`ULTRA_WIDE_BONUS` in both twins; the plaques' margins in `map_plaque.gd`).
 
 **Open:** the user's own look — session H's walk reads the new desk on the frames in `docs/audits/ui_gilt2/`.
+
+## 11. Session UI-3 — Past 7 ✅ LANDED November 12, 2026
+
+> **The rulings** (asked in Plan Mode at the session's head, with frames and costs): lever 1, the prose on the face —
+> the user's **"Fold, a switch restores"**; levers 2–4 delegated — **"DO BEST THING FOR GAME! IDC ABOUT TOKENS"** (the
+> 32:9 screen), **"DO BEST"** (the settlement table), **"DO BEST OPTION"** (the windows and the map's crowding).
+> Rules `SYSTEMS_REFERENCE.md` §214; pins `tests/test_ui_gilt3_folds_and_fill.py` (a headless probe,
+> `tools/ui_gilt3_probe.gd`) and `tests/test_ui3_petition_figures.py`; before / after pairs `docs/audits/ui_gilt3/`.
+
+**The rulings made under the delegation, each with its reason.** *The very wide screen* — the map fills the width
+(⌂ toggles the whole sheet; Settings keeps the sheet as a choice): the readers' own lever; wider map art would need
+painted terrain east and west of a crop that ends mid-land with no source PSD (a generated extension would read worse
+than the desk); docking the HUD on the desk keeps the map at 45 % of the width, which is the complaint itself. *The
+settlement table* — one scroll, each court's Demand / Ease / Drop as real buttons inside its own card (chips would
+have lost keyboard focus, the disabled reasons and the driven probe). *The windows* — all three: reading windows fit
+their content, the books take the room, crowded name plates gather at the whole-sheet view.
+
+**As built** (one commit; seven sonnet builders on disjoint files after the lead landed the shared API, then the lead's
+pass on the frames):
+- **The folds** (§214): a page's lead-in behind an ⓘ at its heading; what a chip or button does as its hover, its
+  figures on the face (a Vassals chip's cost, the petition's GRANT / REFUSE / LAPSE badges from a new display-only
+  backend list); counsel and long prose from its first sentence, "▸ more" opened in place. Settings → INTERFACE →
+  Explanations: On the page prints every word as before, byte for byte. Exempt by ruling: the Generals' reward
+  explainer, first-open lines, the letters of state, the KEYS list.
+- **The very wide screen:** the boot view fills the room's width at 2.6:1 and wider (5120x1440: zoom 2.0, Britain to
+  Rome, the province names); ⌂ toggles the whole sheet; the boot view follows a resize until the player moves the map;
+  Settings → DISPLAY → Wide map.
+- **The settlement table:** a fitted head (the verdict, the beats, the treasury, the narration and advice as notes) and
+  ONE body scroll — the first-open line, the courts as an accordion (the court in focus, or the first, as its whole
+  card with its words and its three buttons; every other court one line with its score, its blocker and its three
+  buttons, its words under its name), the table's closing line, coverage, Talleyrand's footer — and a "more below"
+  strip under the scroll, never over a line; each court one line in the compact view.
+- **Windows:** the Dispatch and the Moniteur open at a reading share (0.55 x 0.85, capped 900 x 1000) and fit what
+  they hold; the books (both ledgers, the Generals, the log, the mailbox) at 0.62 x 0.85 (capped 1100 x 1000); the
+  Cabinet's quote whole up to 40 % of the panel and the Cabinet itself 80 % of the screen's height; the mailbox's rows
+  whole; Settings' scroll the page's whole room.
+- **The map at the whole-sheet zoom:** a nation's touching name plates gather under their lead ("Napoleon · 2 more").
+
+**What the frames and the instruments caught after the build**, each fixed at its cause: a straight apostrophe in a
+hint printed the tag raw; the engine dash-underlined every hint; the "▸ more" link broke between its arrow and its
+word; the body's "more below" tag lay over a line (it is a strip under the scroll now); a plain Control round the body
+scroll left the whole-line pad nowhere to stand; a reading window's scroll minimum at the full room starved the
+whole-line pad (six Dispatch frames cut their last line); the war detail's held line stood outside the tier's note;
+the Settings page's scroll stood over a blank band; three whole court cards could not stand under the head at 1.0
+(the accordion); the Cabinet's quote cap left the acts fewer than two rows at 2.0 (30 % there); a one-off grey the consistency census had passed by a mis-scanned
+span (`MAP_CIRCLE_RIM`).
+
+**The interim reading** (three fresh sonnet readers on the shoot, before the record; one reader's labels slipped a
+frame from F15 on and its marks were set aside; the other two read 6.5 and 6.8, overall 7 and 7). What they named was
+fixed at its cause before the final reading: the Balance's road cards drew their rules through each other's words
+(every page's cards now reach into a neighbouring paragraph only when it is blank); the Cabinet's counsel ran into a
+clipped scroll (it opens from the Recommendation's first sentence, and the Cabinet takes 80 % of the screen's height,
+up from 70 %); the settlement's tail was a paragraph of instructions (it opens from its first sentence; a blank line
+parts the first-open line from THE TABLE); the region panel's refused levies stood one bare chip a line (one row).
+
+**The measure** — all 185 surfaces at Interface Scale 1.0 and 2.0 and at the five physical sizes (1,295 frames, 0
+script errors): readability RED 0 / P1 0 (5,181 rows scaled, 13,028 physical); contrast 0 rows under 4.5 : 1 (4,168
+and 11,250 measured); consistency 0 hits on 145 surfaces; fit 185 / 185; map overlaps 0; cut lines 53 against HEAD's
+63, hidden map furniture 91 against 107. On the page, 181 of 185 surfaces keep HEAD's raw BBCode byte for byte — the
+settlement table's three frames by its new structure, and the enemy phase by a line ending (a string literal written
+across a line break; the file untouched, the words identical). Every changed surface read at 2.0. The figures and the
+method: `SYSTEMS_REFERENCE.md` §214.
+
+**The score** — three fresh sonnet readers, the frozen rubric, the prompt verbatim, the same 30 frames (pairs
+`docs/audits/ui_gilt3/`; `tools/ui_rating/scores_ui3.py`):
+
+| Reading | Overall | Mean of the marks | Median of frame medians |
+|---|---|---|---|
+| UI-2's after (the base, HEAD `8db8d10c`) | 7 / 7 / 7 | 6.93 | 7 |
+| UI-3 interim (two readers; a third set aside) | 7 / 7 | 6.65 | 7 |
+| **UI-3 final** | **7 / 7 / 7** | **7.00** | **7** |
+
+**The overall marks did not pass 7.** Five frames rose (the 32:9 war room 6 → 7, Nations 6 → 8, Vassals 6 → 7, the
+settlement table 5 → 6, the petition 6 → 7), three fell (Forces 8 → 7, the untouched main menu 8 → 7, the mailbox
+8 → 7), 22 held; the readers agreed closely (19 frames unanimous, 11 one apart). One frame of an unchanged surface
+moving a point is the instrument's own noise floor — a mean shift under a third of a point is within it.
+
+**What holds it at 7 now** (the final readers' own reasons, by theme, frame ids as in the pairs): small body type and
+text-heavy bodies across the ledgers and popups (all three OVERALL lines); the four frames all three marked 6 or
+less — the Balance of Europe (F13: "make the coalition threat a large gauge and the designs progress cards"), the
+region panel (F24: shot alone without the map, its chips small and ragged), the war detail (F25: "the score breakdown
+as bars"), the settlement table (F16, 7 / 6 / 6: "a compact table with one status line per court"); on 32:9 the HUD's
+panels cluster small in the middle of the filled map (F02: "anchor HUD elements to the screen edges"); at 2.0 the
+command panel's prose stands clipped mid-sentence (F03); disabled and live buttons read alike (F10, F12) and the main
+menu's buttons read as disabled (F27). These are the levers past 7 — the user's to rule (`docs/STATUS.md`, "Open with
+you").
+
+**Costs said once:** a first-time player meets explanations a hover or click away (On the page restores every word);
+on the user's 5120x1440 the map opens magnified 2x with 55 % of its height off screen — ⌂ or Settings for the whole
+sheet — its province edges as today's zoom-in draws them; at the whole-sheet zoom a crowded front shows one plate.

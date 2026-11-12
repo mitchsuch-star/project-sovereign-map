@@ -80,6 +80,11 @@ class MapStub extends Node:
 
 func _init():
 	UiSettings._cfg = ConfigFile.new()
+	# Session UI-3 (November 12, 2026): the census reads every chip's stated
+	# words — Explanations: On the page, the old text byte for byte; the same
+	# regions folded (the game's default, a dimmed chip's reason its hover)
+	# are recorded beside them (`regions_folded`) for the hover's own pin.
+	UiSettings._cfg.set_value("display", "explanations", "page")
 	process_frame.connect(_tick)
 
 
@@ -137,6 +142,14 @@ func _tick():
 			for region in _spec.get("regions", []):
 				_panel.show_region(str(region), _map)
 				_result["regions"][str(region)] = _panel.content_area.text
+			# Session UI-3: the same regions with Explanations folded.
+			UiSettings._cfg.set_value("display", "explanations", "folded")
+			var folded_regions := {}
+			for region in _spec.get("regions", []):
+				_panel.show_region(str(region), _map)
+				folded_regions[str(region)] = _panel.content_area.text
+			_result["regions_folded"] = folded_regions
+			UiSettings._cfg.set_value("display", "explanations", "page")
 			_bench.cached_recruitment = _spec.get("recruitment", {})
 			_bench._render_commission_view()
 			_result["bench"] = _bench.content_area.text

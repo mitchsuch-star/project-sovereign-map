@@ -46,6 +46,10 @@ ALLOW_SCRIPT = {
     # SF-RR5 (SFR-B11, October 21, 2026): the perspective line ("By your
     # hand.") — one fixed line under the body's scroll, above Acknowledge.
     ("proclamation_popup.gd", "subtitle_label"): "one fixed line",
+    # Session UI-3 (November 12, 2026): the settlement body's reading labels
+    # (`_body_label` builds and RETURNS them, so the census cannot follow the
+    # add_child) — every caller sets them under PerCourtScroll (proof below).
+    ("proposal_confirm_popup.gd", "label"): "added under the body scroll by every caller",
 }
 # ScrollContainers that declare no height floor: a floorless list is squeezed
 # to a strip by fixed chrome (the IGR-F letter-book shape). It may only fall.
@@ -143,6 +147,19 @@ def tree():
     return scenes, scripts
 
 
+def _floored(nodes, node) -> bool:
+    """A scroll declares its height floor itself, or FILLS a frame that declares
+    it (Session UI-3, November 12, 2026: the settlement body's frame carries the
+    floor its scroll used to — the scroll expands into it and cannot be squeezed
+    below it, which is what the ratchet guards)."""
+    if "custom_minimum_size" in node.props:
+        return True
+    if "/" not in node.path or node.props.get("size_flags_vertical") != "3":
+        return False
+    parent = G.by_path(nodes).get(node.path.rsplit("/", 1)[0])
+    return parent is not None and "custom_minimum_size" in parent.props
+
+
 def _scene_for(script_name: str, scenes: dict):
     return scenes.get(script_name.replace(".gd", ".tscn"))
 
@@ -235,6 +252,15 @@ class TestTheAllowListIsProven:
         assert "_verdict.fit_content = false" in verdict and "_verdict.scroll_active = true" in verdict
         assert "_verdict.size = Vector2(_verdict.size.x, maxf(room, VERDICT_ROOM_MIN))" in G.func_body(
             scripts["battle_diorama.gd"], "_fit_verdict_room")
+        # Session UI-3: `_body_label`'s labels — the lead, the tail and the footer go
+        # into PerCourtBody (under PerCourtScroll), a court's table into its card,
+        # which goes into PerCourtBody.
+        popup = scripts["proposal_confirm_popup.gd"]
+        assert "@onready var per_court_body: VBoxContainer = $PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll/PerCourtBody" in popup
+        render = G.func_body(popup, "_render_per_court_table")
+        for var in ("lead_label", "tail_label", "footer_label"):
+            assert f"per_court_body.add_child({var})" in render, var
+        assert "per_court_body.add_child(_court_card(" in render or "per_court_body.add_child(card)" in render
 
     def test_the_rail_body_scrolls_with_the_wheel(self, tree):
         """A bounded body that scrolls must take the wheel itself (a
@@ -247,10 +273,22 @@ class TestTheAllowListIsProven:
         scenes, _ = tree
         floorless = []
         for name, text in scenes.items():
-            for node in G.parse_tscn(text):
-                if node.type == "ScrollContainer" and "custom_minimum_size" not in node.props:
+            nodes = G.parse_tscn(text)
+            for node in nodes:
+                if node.type == "ScrollContainer" and not _floored(nodes, node):
                     floorless.append((name, node.path))
         assert len(floorless) <= FLOORLESS_SCROLL_RATCHET, floorless
+
+    def test_the_settlement_body_scroll_fills_its_floored_frame(self, tree):
+        """Session UI-3: the floor stands on PerCourtFrame (a VBox, so the
+        whole-line pad has a sibling slot), the scroll expanding into it."""
+        scenes, _ = tree
+        nodes = G.parse_tscn(scenes["proposal_confirm_popup.tscn"])
+        index = G.by_path(nodes)
+        frame = index["PanelContainer/VBoxContainer/PerCourtFrame"]
+        scroll = index["PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll"]
+        assert frame.type == "VBoxContainer" and "custom_minimum_size" in frame.props
+        assert scroll.props.get("size_flags_vertical") == "3" and _floored(nodes, scroll)
 
 
 class TestTheCensusCatchesTheClass:

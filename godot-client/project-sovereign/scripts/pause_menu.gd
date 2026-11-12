@@ -31,6 +31,8 @@ signal layout_reset
 signal text_size_changed(value, persist)
 # UXR-D3: HUD width changed; main.gd refits the HUD to the band.
 signal hud_width_changed(width)
+# Session UI-3: the very wide screen's map view changed; main.gd re-derives it.
+signal wide_map_changed(mode)
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -83,6 +85,7 @@ func _ready():
 	_settings_panel.layout_reset.connect(func(): layout_reset.emit())
 	_settings_panel.text_size_changed.connect(func(v, p): text_size_changed.emit(v, p))
 	_settings_panel.hud_width_changed.connect(func(w): hud_width_changed.emit(w))
+	_settings_panel.wide_map_changed.connect(func(m): wide_map_changed.emit(m))
 	# PB-4 (the release build): the build stamp on the pause menu too, so a
 	# player reporting from mid-game can quote it without leaving the campaign.
 	_version_line = Label.new()
@@ -206,12 +209,18 @@ func _show_settings_page(on: bool) -> void:
 		if scroll != null:
 			var view := get_viewport().get_visible_rect().size
 			scroll.custom_minimum_size.y = clampf(view.y * 0.62, 240.0, 640.0)
+			# Session UI-3 (November 12, 2026): the page's scroll takes the
+			# panel's whole room — at 62 % of the view it stood over a blank band
+			# the height of four settings (the frames, at 1.0 and at 2.0).
+			settings_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	else:
 		for child in _page_hidden:
 			if is_instance_valid(child):
 				(child as Control).visible = true
 		_page_hidden.clear()
 		settings_button.text = "Settings"
+		settings_box.size_flags_vertical = Control.SIZE_FILL
 
 
 func _on_main_menu():

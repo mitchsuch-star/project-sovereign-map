@@ -87,7 +87,8 @@ class TestG1SettlementViewport:
         src = _read(SCRIPTS / "proposal_confirm_popup.gd")
         ready = src[src.index("func _ready"):]
         ready = ready[:ready.find("\nfunc ", 1)]
-        assert 'per_court_scroll.set_meta("relax_last", true)' in ready
+        # Session UI-3: the frame around the one body scroll carries the floor and the tag
+        assert 'per_court_frame.set_meta("relax_last", true)' in ready
 
     def test_relax_pass_shrinks_tagged_controls_last(self):
         body = _utils_func_body("_relax_child_minimums")
@@ -106,7 +107,8 @@ class TestG1SettlementViewport:
         """tests/test_settlement_gate4_leg1_fixes.py pins the literal — this
         mirror keeps the constraint visible from the IGR-G side too."""
         scene = _read(SCENES / "proposal_confirm_popup.tscn")
-        chunk = scene.split('[node name="PerCourtScroll"', 1)[1]
+        # Session UI-3: the floor stands on PerCourtFrame (the plain Control round the one body scroll)
+        chunk = scene.split('[node name="PerCourtFrame"', 1)[1]
         chunk = chunk.split("[node", 1)[0]
         assert "custom_minimum_size = Vector2(0, 320)" in chunk
 

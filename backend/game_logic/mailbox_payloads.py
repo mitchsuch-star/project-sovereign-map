@@ -273,6 +273,13 @@ def refresh_client_petition_dialogue(world, dialogue: Dict) -> Optional[Dict]:
             decision_reason=str(context.get("decision_reason") or ""))
         dialogue["popup_payload"] = payload
     payload["clauses"] = list(lines)
+    # Session UI-3 (November 12, 2026): the re-quote's figures travel with
+    # its lines; a moot petition (its lines replaced by the verdict's) has
+    # none, so the popup prints the lines as before.
+    payload["grant_figures"] = ([] if moot_line else
+                                [str(f) for f in (petition.get("grant_figures") or [])])
+    payload["refuse_figures"] = ([] if moot_line else
+                                 [str(f) for f in (petition.get("refuse_figures") or [])])
     payload["talleyrand_assessment"] = assessment
     payload.update(availability)
     payload["is_petition"] = True
@@ -533,6 +540,10 @@ def build_pending_envoy_popup_from_terms(
     if terms_are_a_client_petition(terms):
         payload["is_petition"] = True
         payload["clauses"] = client_petition_clauses(terms)
+        # Session UI-3 (November 12, 2026): the lines' figures (display only).
+        _pet = terms.get("petition") if isinstance(terms.get("petition"), dict) else {}
+        payload["grant_figures"] = [str(f) for f in (_pet.get("grant_figures") or [])]
+        payload["refuse_figures"] = [str(f) for f in (_pet.get("refuse_figures") or [])]
         payload["talleyrand_assessment"] = (
             assessment or client_petition_assessment(terms))
         payload["acceptance_hint"] = ""

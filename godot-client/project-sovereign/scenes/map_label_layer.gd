@@ -334,11 +334,22 @@ func _lay_out_furniture(xform: Transform2D, obstacles: Array, pieces: Array) -> 
 	var hidden: Array = []
 	var count := 0
 	_furniture_world_rects = []
+	# Session UI-3 (November 12, 2026): at the whole-sheet view a nation's
+	# crowded name plates gather into their lead's plate (`_gather_names`);
+	# the rest stand hidden until the next zoom splits them.
+	var gathered := _gather_names(xform)
 	for item in _ordered_furniture():
 		var nodes: Array = item.get("nodes", [])
 		if not _item_alive(nodes):
 			continue
+		if bool(item.get("gathered_away", false)):
+			for n in nodes:
+				(n as CanvasItem).visible = false
+			continue
 		_reset_item(item)
+		if item.has("gather_shift"):
+			for n in nodes:
+				(n as Control).position += item["gather_shift"]
 		var world := _item_world_rect(nodes)
 		if world.size.x <= 0.0 or world.size.y <= 0.0:
 			continue
@@ -366,13 +377,103 @@ func _lay_out_furniture(xform: Transform2D, obstacles: Array, pieces: Array) -> 
 			moved += 1
 		obstacles.append(Rect2(r.position + d, r.size))
 		_furniture_world_rects.append(Rect2(world.position + dw, world.size))
-	_furniture_report = {"moved": moved, "hidden": hidden, "items": count}
+	_furniture_report = {"moved": moved, "hidden": hidden, "items": count, "gathered": gathered}
 	# S14G-19 (Pre-Deploy S14h part 2, October 26, 2026): the names and chips
 	# above were just moved, nudged or hidden - their click boxes follow them
 	# (a stack label's box stayed where the layout found it, so the visible
 	# "Ney +4" was not what a click on it reached).
 	if _renderer != null and _renderer.has_method("sync_label_hitboxes"):
 		_renderer.sync_label_hitboxes()
+
+
+# Session UI-3: a gathered plate's words — the lead's name and how many more
+# stand behind it ("Napoleon · 6 more"); IGR-G2's co-located "Ney +4" is its
+# own form and untouched. Two plates gather when their authored rects, grown
+# by GATHER_GAP_PX on the screen, touch — a plate with room stands alone.
+const GATHER_FORMAT := "%s · %d more"
+const GATHER_GAP_PX := 2.0
+
+
+func _gather_names(xform: Transform2D) -> Array:
+	"""At the whole-sheet view: walk a nation's name plates (`name` / `stack`)
+	from the highest rank down; a plate whose authored rect touches a plate
+	already standing for its nation joins it (hidden, its count added), and
+	each lead that took others wears GATHER_FORMAT. Every plate is first put
+	back as it was built, so any other zoom shows each name alone. Returns
+	what was gathered ("kind:Name>Lead") for the furniture census."""
+	var out: Array = []
+	var names: Array = []
+	for item in _furniture:
+		item.erase("gathered_away")
+		item.erase("gather_shift")
+		var kind := str(item.get("kind", ""))
+		if kind != "name" and kind != "stack":
+			continue
+		var nodes: Array = item.get("nodes", [])
+		if not _item_alive(nodes) or not (nodes[0] is Label):
+			continue
+		var plate: Label = nodes[0]
+		if _renderer != null and _renderer.has_method("ungather_label"):
+			_renderer.ungather_label(plate)
+		if plate.has_meta("gather_nation"):
+			names.append(item)
+	if names.size() < 2 or _renderer == null or not _renderer.has_method("gathers_names") \
+			or not _renderer.gathers_names():
+		return out
+	var entries: Array = []
+	for item in names:
+		_reset_item(item)
+		var plate: Label = item["nodes"][0]
+		entries.append({
+			"rect": _project_rect(xform, _item_world_rect(item["nodes"])),
+			"nation": str(plate.get_meta("gather_nation", "")),
+			"rank": int(plate.get_meta("gather_rank", 0)),
+			"count": int(plate.get_meta("gather_count", 1)),
+		})
+	for group in gather_groups(entries, GATHER_GAP_PX):
+		var lead_item: Dictionary = names[int(group["lead"])]
+		var lead_plate: Label = lead_item["nodes"][0]
+		var lead_name := str(lead_plate.get_meta("gather_name", lead_plate.text))
+		for m in group["members"]:
+			var member: Dictionary = names[int(m)]
+			member["gathered_away"] = true
+			out.append("%s:%s>%s" % [str(member.get("kind", "")),
+				str((member["nodes"][0] as Label).get_meta("gather_name", "")), lead_name])
+		var words := GATHER_FORMAT % [lead_name, int(group["count"]) - 1]
+		lead_item["gather_shift"] = _renderer.gather_label(lead_plate, words)
+	return out
+
+
+static func gather_groups(entries: Array, gap: float) -> Array:
+	"""Pure: which plates gather. `entries` = [{rect, nation, rank, count}]
+	(screen rects as built). Walked from the highest rank down, a plate whose
+	rect (grown by `gap`) touches a plate already standing for ITS nation
+	joins it. Returns the groups that took others: [{lead, members, count}]
+	(indices into `entries`; `count` every piece behind the plate)."""
+	var order: Array = range(entries.size())
+	order.sort_custom(func(a: int, b: int) -> bool:
+		var ra := int(entries[a]["rank"])
+		var rb := int(entries[b]["rank"])
+		return ra > rb if ra != rb else a < b)
+	var standing: Array = []   # [{lead, rect, nation, members, count}]
+	for i in order:
+		var e: Dictionary = entries[i]
+		var rect: Rect2 = (e["rect"] as Rect2).grow(gap)
+		var joined := false
+		for s in standing:
+			if str(s["nation"]) == str(e["nation"]) and (s["rect"] as Rect2).intersects(rect):
+				(s["members"] as Array).append(i)
+				s["count"] = int(s["count"]) + int(e["count"])
+				joined = true
+				break
+		if not joined:
+			standing.append({"lead": i, "rect": rect, "nation": str(e["nation"]),
+				"members": [], "count": int(e["count"])})
+	var out: Array = []
+	for s in standing:
+		if not (s["members"] as Array).is_empty():
+			out.append({"lead": s["lead"], "members": s["members"], "count": s["count"]})
+	return out
 
 
 func _item_alive(nodes: Array) -> bool:

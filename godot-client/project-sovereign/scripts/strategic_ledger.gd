@@ -67,6 +67,7 @@ func _ready():
 
 	# Wire meta_clicked for cancel buttons in Orders tab
 	content_area.meta_clicked.connect(_on_meta_clicked)
+	Utils.on_explanations_changed(_rerender_in_place)
 
 	# NV-P1 (routed at the NV-V visual pass, pre-existing): the ledger
 	# ignored the mouse wheel. The RichTextLabel defaults to
@@ -147,6 +148,8 @@ func open(api_client):
 	current_tab = 0
 	AudioManager.play("panel_open")
 	show()
+	# Session UI-3 (November 12, 2026): the books take the room (0.62 x 0.85).
+	Utils.set_reading_share($PanelContainer, Utils.BOOK_SHARE, Utils.BOOK_MAX)
 	Utils.clamp_centered_panel($PanelContainer)
 	_update_tab_highlights()
 	api_client.get_ledger(_on_ledger_received)
@@ -356,10 +359,13 @@ func _render_current_tab():
 func _render_forces():
 	var forces = cached_data.get("forces", [])
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]\n"
+	# Session UI-3 (November 12, 2026): each book's lead-in stands behind an ⓘ
+	# at its heading (Explanations: Folded); On the page = the old line.
+	var lead_line := "The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); Esc closes it (Alt+T while you type)."
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]" + Utils.lead_mark(lead_line, "sl.forces.lead") + "\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); Esc closes it (Alt+T while you type).[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); Esc closes it (Alt+T while you type).[/color]\n\n", "sl.forces.lead")
 	bbcode += _collapse_note_line()
 	# UXR3-41: Talleyrand's mission leads the muster when one runs (the
 	# Cabinet's full block); an idle Cabinet says so in one line.
@@ -568,9 +574,9 @@ func _ceiling_line(econ: Dictionary, treasury: int) -> String:
 func _render_territories():
 	var territories = cached_data.get("territories", [])
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ TERRITORIES ═══[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ TERRITORIES ═══[/color]" + Utils.lead_mark("The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.", "sl.territories.lead") + "\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n", "sl.territories.lead")
 	bbcode += _collapse_note_line()
 	bbcode += _fall_clock_lines()
 	bbcode += _congress_clock_line()
@@ -656,9 +662,9 @@ func _render_territories():
 func _render_economy():
 	var econ = cached_data.get("economy", {})
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ ECONOMY ═══[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ ECONOMY ═══[/color]" + Utils.lead_mark("The treasury's books — income against upkeep, and every charge with its name on it.", "sl.economy.lead") + "\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The treasury's books — income against upkeep, and every charge with its name on it.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The treasury's books — income against upkeep, and every charge with its name on it.[/color]\n\n", "sl.economy.lead")
 
 	var treasury = int(econ.get("treasury", 0))
 	var income = int(econ.get("income", 0))
@@ -986,10 +992,10 @@ func _render_economy():
 
 func _render_admiralty_tab():
 	# NV-12: the naval theatre's own book.
-	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
+	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]" + Utils.lead_mark("The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).", "sl.admiralty.lead") + "\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n", "sl.admiralty.lead")
 	var adm = cached_data.get("admiralty", {})
 	if not (adm is Dictionary) or not adm.get("active", false):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]This campaign has no naval theatre.[/color]\n"
@@ -1262,11 +1268,11 @@ func _render_laws_tab():
 	the ledger's one chip road; an enactment is quoted first on the
 	clarification channel (the Council of State's confirm) and enacted there."""
 	var laws = cached_data.get("laws", {})
-	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]\n"
+	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]" + Utils.lead_mark("The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).", "sl.laws.lead") + "\n"
 	bbcode += _dated_line()
 	# R159 (S14D-X2, October 23, 2026): the eighth book names the mechanic it
 	# displays, as every other book does.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n", "sl.laws.lead")
 	# S14d (docs/TABLE_LESSON_SPEC.md §2 line 5): the book's first-open line.
 	bbcode += _first_open_bbcode(laws, "laws")
 	if not (laws is Dictionary) or laws.is_empty():
@@ -1350,9 +1356,9 @@ func _render_laws_tab():
 func _render_intel():
 	var intel_data = cached_data.get("intel", {})
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ INTELLIGENCE ═══[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ INTELLIGENCE ═══[/color]" + Utils.lead_mark("What the fog concedes — enemy armies as your scouts and towers last saw them, aging as reports go stale.", "sl.intel.lead") + "\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]What the fog concedes — enemy armies as your scouts and towers last saw them, aging as reports go stale.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]What the fog concedes — enemy armies as your scouts and towers last saw them, aging as reports go stale.[/color]\n\n", "sl.intel.lead")
 
 	var enemies = intel_data.get("known_enemies", [])
 	var unknown_count = int(intel_data.get("unknown_region_count", 0))
@@ -1427,9 +1433,9 @@ func _render_intel():
 func _render_manpower():
 	var mp = cached_data.get("manpower", {})
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ MANPOWER ═══[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ MANPOWER ═══[/color]" + Utils.lead_mark("The levy pools your recruits draw on — spent men return with time, not gold.", "sl.manpower.lead") + "\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The levy pools your recruits draw on — spent men return with time, not gold.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The levy pools your recruits draw on — spent men return with time, not gold.[/color]\n\n", "sl.manpower.lead")
 
 	# Session UI-2: the cost note is the same sentence for every arm of a levy —
 	# it is said ONCE under the pools; a pool whose note differs keeps its own.
@@ -1517,9 +1523,9 @@ func _render_orders():
 	var ap_remaining = int(cached_data.get("actions_remaining", 1))
 	var can_cancel = ap_remaining > 0
 	var bbcode = ""
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]" + Utils.lead_mark("Orders that march without you — each executes itself at dawn until done, or cancelled here.", "sl.orders.lead") + "\n"
 	bbcode += _dated_line()
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]Orders that march without you — each executes itself at dawn until done, or cancelled here.[/color]\n\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]Orders that march without you — each executes itself at dawn until done, or cancelled here.[/color]\n\n", "sl.orders.lead")
 
 	# IQ-4 S3b — THE CABINET: Talleyrand's mission, read from the ledger's
 	# `cabinet` block (built from diplomatic_dialogue.mission_status — ONE
@@ -1718,6 +1724,13 @@ func _cabinet_signed(n: int) -> String:
 
 
 func _on_meta_clicked(meta):
+	# Session UI-3 (November 12, 2026): a lead-in's ⓘ opens in place — the
+	# note routes first, the current book re-renders from the cache, the scroll
+	# put back.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_rerender_in_place()
+		return
 	var meta_str = str(meta)
 	if meta_str.begins_with("cancel:"):
 		var marshal_name = meta_str.substr(7)
@@ -1743,6 +1756,17 @@ func _on_meta_clicked(meta):
 			naval_command.emit(command)
 			if Utils.order_taken:
 				Utils.mark_chip_sent(content_area, meta_str)
+
+
+func _rerender_in_place() -> void:
+	"""Session UI-3: re-draw the current book from the cached ledger, the
+	reader's scroll kept (the Explanations switch and an ⓘ toggle both come
+	here — never a network re-fetch)."""
+	if not visible or cached_data.is_empty():
+		return
+	var held: int = scroll_container.scroll_vertical
+	_render_current_tab()
+	Utils.restore_scroll(scroll_container, held)
 
 
 func refresh_if_open() -> void:

@@ -3515,6 +3515,33 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
             f"A lapse costs {vassal_the} {refusal_loyalty_applied} loyalty"
             f"{stakes_clause} and "
             f"{refusal_step_applied} bond — the same as a refusal.")
+    # Session UI-3 (November 12, 2026): the lines' FIGURES as short display
+    # strings, in each line's own order, from the very numbers the lines
+    # above state (one source) — the popup's face prints these as badges and
+    # keeps the sentences for the buttons' hover. Display only.
+    if step <= 0:
+        bond_fig = f"bond at the {PETITION_BOND_CAP} ceiling"
+    else:
+        bond_fig = f"bond {relation} → {relation_after_grant}"
+    loyalty_fig = f"loyalty +{gain}"
+    if fulfilled:
+        terms["grant_figures"] = [bond_fig, "no DP charged"]
+        terms["refuse_figures"] = ["already ceded", "nothing charged"]
+    else:
+        if kind == "province":
+            net = int(terms["price_parts"].get("net_delta", 0) or 0)
+            grant_fig = [f"{terms['region']} passes", loyalty_fig, bond_fig,
+                         f"{terms['dp_cost']} DP",
+                         f"net {net:+,}g a turn" if net else "net unchanged"]
+        else:
+            grant_fig = [f"−{terms['tribute_per_turn']:,}g × {terms['collections']} "
+                         f"({terms['price']:,}g)", loyalty_fig, bond_fig,
+                         f"{terms['dp_cost']} DP"]
+        terms["grant_figures"] = grant_fig
+        terms["refuse_figures"] = [
+            f"loyalty −{refusal_loyalty_applied}",
+            f"bond {relation} → {relation_after_refusal}",
+            "nothing charged"]
     terms["vassal_display_the_cap"] = vassal_the_cap
     return terms
 

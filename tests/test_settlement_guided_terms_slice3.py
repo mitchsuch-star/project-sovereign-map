@@ -298,14 +298,17 @@ def test_godot_scene_wraps_per_court_table_in_scroll_container():
     RichTextLabel inside a ScrollContainer, so the inline expansion scrolls
     instead of growing the popup unbounded (the full-1805 horizon)."""
     scene = (GODOT_SCENES / "proposal_confirm_popup.tscn").read_text(encoding="utf-8")
+    # Session UI-3: ONE body scroll (in a plain frame) holds a VBox the cards,
+    # the coverage row and the footer are built into — no PerCourtTable /
+    # FooterLabel / Tier2Scroll any more (four stacked scrolls read 5/10).
     assert '[node name="PerCourtScroll" type="ScrollContainer"' in scene
     assert (
-        '[node name="PerCourtTable" type="RichTextLabel" '
-        'parent="PanelContainer/VBoxContainer/PerCourtScroll"]'
+        '[node name="PerCourtBody" type="VBoxContainer" '
+        'parent="PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll"]'
     ) in scene
-    assert '[node name="FooterLabel" type="RichTextLabel"' in scene
+    assert 'name="FooterLabel"' not in scene and 'name="Tier2Scroll"' not in scene
     popup = (GODOT_SCRIPTS / "proposal_confirm_popup.gd").read_text(encoding="utf-8")
-    assert "PerCourtScroll/PerCourtTable" in popup
+    assert "PerCourtScroll/PerCourtBody" in popup
     assert "_render_per_court_table" in popup
     # The settlement layout splits header / scrollable table / footer.
     assert "_build_settlement_footer" in popup

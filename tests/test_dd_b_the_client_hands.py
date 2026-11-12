@@ -431,6 +431,18 @@ def table(tmp_path_factory) -> dict:
             if not [b for b in st["buttons"] if b.get("kind") == "link" and b["text"] == "+ Add demand"]:
                 break
             st = _act(run, "click#1 + Add demand")
+        # Session UI-3 (November 12, 2026), re-ruled consciously: the table is an
+        # accordion — the court in focus, or the first, stands as its whole card;
+        # every other court is one line with its buttons, its words (the demand
+        # lines) behind its name. Britain is a line here, so the player's road
+        # opens its words by its name, then its "+ Add demand".
+        if not [b for b in st["buttons"] if b.get("kind") == "link" and "Demands of Britain" in b["text"]]:
+            st = _act(run, "click Britain ▸")
+            states["britain_opened"] = st
+            for _ in range(3):
+                if not [b for b in st["buttons"] if b.get("kind") == "link" and b["text"] == "+ Add demand"]:
+                    break
+                st = _act(run, "click#1 + Add demand")
         states["expanded"] = st
         # the expansion folds each court's options under "▸ Demands of <court> (N)"
         st = _act(run, "click Demands of Britain")

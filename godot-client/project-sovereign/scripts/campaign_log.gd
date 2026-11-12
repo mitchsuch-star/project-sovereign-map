@@ -87,6 +87,8 @@ func open_log(api_client):
 	empty_label.visible = true
 	scroll_container.scroll_vertical = 0
 	show()
+	# Session UI-3 (November 12, 2026): the books take the room (0.62 x 0.85).
+	Utils.set_reading_share($PanelContainer, Utils.BOOK_SHARE, Utils.BOOK_MAX)
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_campaign_log(_on_campaign_log_received)
 

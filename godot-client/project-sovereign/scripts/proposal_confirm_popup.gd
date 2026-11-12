@@ -17,19 +17,32 @@ signal first_open_seen(screen: String)
 @onready var content_label = $PanelContainer/VBoxContainer/ContentLabel
 @onready var button_container = $PanelContainer/VBoxContainer/ButtonContainer
 # GT-Slice-3 (Guided Terms §9) + UX-5: the per-court settlement table lives in
-# its own RichTextLabel inside a ScrollContainer so the inline `Add demand`
-# expansion scrolls instead of growing the popup unbounded (the full-1805
-# court-count horizon). The footer label carries the post-table sections.
-@onready var per_court_scroll = $PanelContainer/VBoxContainer/PerCourtScroll
-@onready var per_court_table = $PanelContainer/VBoxContainer/PerCourtScroll/PerCourtTable
-@onready var footer_label = $PanelContainer/VBoxContainer/FooterLabel
-# July 18, 2026: the uncapped tier-2 affordance buttons moved out of the
-# primary rail into their own bounded scroll, so Submit/Back Out can never be
-# pushed off-screen by court count.
-@onready var tier2_scroll = $PanelContainer/VBoxContainer/Tier2Scroll
-@onready var tier2_button_container = $PanelContainer/VBoxContainer/Tier2Scroll/Tier2ButtonContainer
+# a ScrollContainer so the inline `Add demand` expansion scrolls instead of
+# growing the popup unbounded (the full-1805 court-count horizon).
+# Session UI-3 (November 12, 2026): the table is TWO regions — the head
+# (ContentLabel, never scrolling) and ONE body (PerCourtScroll > PerCourtBody)
+# holding the first-open line, one card per court with its real Demand / Ease /
+# Drop buttons, the coverage row and Talleyrand's footer. The old PerCourtTable
+# label, FooterLabel and the Tier2Scroll rail are gone (four stacked scroll
+# areas read 5/10); `PerCourtFrame` is the plain Control that carries the
+# body's height floor and lets the "more below" cue lie over its foot.
+@onready var per_court_frame: Control = $PanelContainer/VBoxContainer/PerCourtFrame
+@onready var per_court_scroll: ScrollContainer = $PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll
+@onready var per_court_body: VBoxContainer = $PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll/PerCourtBody
 
 var current_data: Dictionary = {}
+# Session UI-3: each court's host for its real buttons (a court's index in
+# `per_court_acceptance` -> the HFlowContainer `_add_settlement_tier2_buttons`
+# fills), the coverage row's host, and the body's "more below" cue.
+var _court_flows: Dictionary = {}
+var _coverage_flow: HFlowContainer = null
+var _body_more_below: Control = null
+# the table's S14d first-open line, read once per open (`show_dialogue`) so a
+# local re-render never emits `first_open_seen` twice
+var _settlement_first_open: String = ""
+# where the body's scroll stood when an action left for the backend: the
+# restage re-mounts the same draft, and the reader finds their place again
+var _scroll_resume: Dictionary = {"key": "", "value": 0}
 # GT-Slice-3 client-side expansion state for the guided per-court rows.
 # Reset on every show_dialogue (each backend restage re-mounts fresh data;
 # the §3.3 lead-group defaults re-apply).
@@ -68,6 +81,22 @@ const SETTLEMENT_CEILING := Vector2(1160, 980)
 # the footer may give up to one line each; the four actions stand in one row.
 const SETTLEMENT_LINE_FLOOR := 26.0
 const SETTLEMENT_ACTION_COLUMNS := 4
+# Session UI-3 (November 12, 2026): which part of the per-court block a caller
+# wants from `_build_settlement_per_court_block` — all of it (the old string),
+# the section heading alone, the closing summary + carry hint alone, or ONE
+# court's card (a court's index in `per_court_acceptance`, >= 0).
+const PART_ALL := -1
+const PART_LEAD := -2
+const PART_TAIL := -3
+# the head's floor on every other dtype (the scene's authored 72)
+const HEAD_FLOOR := 72.0
+# a court's line in the short window: its buttons stand at this height
+const COMPACT_ROW_HEIGHT := 30.0
+# Session UI-3: the body's "more below" strip — the scroll gives it up while
+# lines remain below, so the tag stands under the last line, never on it.
+const BODY_CUE_STRIP := 20.0
+const PARTS_NOTE_HEAD := "settle.head"
+const _PER_COURT_OPS := ["focus", "addmenu", "group", "suggopts", "sugg", "suggcs", "suggpick", "rm", "mag"]
 # GT-Slice-3: client-side magnitude step for the per-line gold controls
 # (mirrors the backend SETTLEMENT_DIAL_GOLD_STEP; the server clamps and
 # revalidates every value — this is presentation-side convenience only).
@@ -75,31 +104,27 @@ const DEMAND_GOLD_MAGNITUDE_STEP = 100
 
 func _ready():
 	hide()
-	if per_court_table:
-		per_court_table.meta_clicked.connect(_on_per_court_meta_clicked)
-		# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside
-		# a ScrollContainer defaults to MOUSE_FILTER_STOP and eats the
-		# wheel before its parent can scroll. PASS keeps the [url=…]
-		# expanders working.
-		per_court_table.mouse_filter = Control.MOUSE_FILTER_PASS
 	# IGR-G1: the per-court table is the PRIMARY settlement content — mark it
 	# so clamp_centered_panel's relax pass shrinks it LAST. The old
 	# headroom-proportional pass charged the largest floor the largest share,
-	# robbing exactly the region the player needs most.
-	if per_court_scroll:
-		per_court_scroll.set_meta("relax_last", true)
-	# DDB-28 (Pre-Deploy S13b part 2): the footer's petition lines carry
-	# Grant / Decline links acting on the staged draft.
-	if footer_label:
-		footer_label.meta_clicked.connect(_on_footer_meta_clicked)
-	# Session UI-2: each court is a card on the table — the marks are written
-	# by `_build_settlement_per_court_block`, the underlay paints them.
-	Utils.card_page(per_court_table)
-	# UXR3-F3: the document's three regions come to rest on whole lines.
-	for region in [content_label, per_court_table, footer_label]:
+	# robbing exactly the region the player needs most. Session UI-3: the
+	# frame carries the floor, so the frame carries the tag.
+	if per_court_frame:
+		per_court_frame.set_meta("relax_last", true)
+	# Session UI-3: the head's folded notes (the narration, the advisory, the
+	# compact view's "▸ more") are links in ContentLabel — they open in place.
+	content_label.meta_clicked.connect(_on_head_meta_clicked)
+	# UXR3-F3: the document's regions come to rest on whole lines — the head
+	# (where it scrolls, on every other dtype) and the one body.
+	for region in [content_label, per_court_scroll]:
 		Utils.keep_whole_lines(region)
 	# S14G-12: the header says when it holds more than its pane shows.
 	_install_header_cue()
+	# Session UI-3: and the body says so over its own foot.
+	_install_body_cue()
+	# Session UI-3: the Settings → Explanations switch re-renders the table in
+	# place (cached data, the scroll kept — never a network re-fetch).
+	Utils.on_explanations_changed(_on_explanations_changed)
 	# UXR3-F5 (Pre-Deploy S12 part 2): a drawn cross at the top right, like
 	# every screen's — it takes the dialogue's own safe exit (Esc's), and
 	# stands only where the dialogue has one.
@@ -252,21 +277,30 @@ func show_dialogue(data: Dictionary):
 	_add_demand_expanded = {}
 	_trailing_group_expanded = {}
 	_suggestion_options_expanded = {}
-	if per_court_scroll:
-		per_court_scroll.visible = is_settlement_table
+	if per_court_frame:
+		per_court_frame.visible = is_settlement_table
 		# The authored 320px floor is a CEILING, not a promise: on a small
 		# logical viewport (the Interface Scale slider divides it by up to 2.0)
-		# a fixed 320 floor plus the footer and button rows already exceeds the
+		# a fixed 320 floor plus the head and button rows already exceeds the
 		# screen. Derive it from the live viewport so the table keeps visual
 		# priority when there is room and yields when there is not.
 		# get_visible_rect() is already in LOGICAL units, so no scale math.
 		var _vp := get_viewport()
 		if _vp:
-			per_court_scroll.custom_minimum_size.y = minf(
+			per_court_frame.custom_minimum_size.y = minf(
 				320.0, maxf(120.0, _vp.get_visible_rect().size.y * 0.35))
-	if footer_label:
-		footer_label.visible = is_settlement_table
-	for region in [content_label, footer_label]:
+	# Session UI-3: the head of the settlement table never scrolls and asks for
+	# no floor of its own — it is as tall as the verdict, the one-shot beats and
+	# the treasury line; every other dtype keeps the scrolling, floored label.
+	content_label.fit_content = is_settlement_table
+	content_label.scroll_active = not is_settlement_table
+	content_label.size_flags_vertical = Control.SIZE_FILL if is_settlement_table else Control.SIZE_EXPAND_FILL
+	content_label.custom_minimum_size.y = 0.0 if is_settlement_table else HEAD_FLOOR
+	# the short window packs the table: tighter rows, no rule above the acts
+	var _packed: bool = is_settlement_table and Utils.compact_view()
+	$PanelContainer/VBoxContainer.add_theme_constant_override("separation", 4 if _packed else 8)
+	$PanelContainer/VBoxContainer/HSeparator.visible = not _packed
+	for region in [content_label]:
 		if region == null:
 			continue
 		if is_settlement_table:
@@ -274,28 +308,35 @@ func show_dialogue(data: Dictionary):
 		elif region.has_meta("relax_floor"):
 			region.remove_meta("relax_floor")
 	button_container.columns = 3
-	# Hidden by default; _add_settlement_tier2_buttons turns it on only when it
-	# actually mints affordances (it early-returns outside PROPOSE mode).
-	if tier2_scroll:
-		tier2_scroll.visible = false
 	_header_beat_paragraph = -1
+	_settlement_first_open = ""
 	if is_settlement_table:
 		# Gate-4 G4F-3: the treasury / narration / advisory / voice-beat
-		# preamble renders in the HEADER (above the scroll), so the scroll
-		# viewport holds only the court rows — at 2 courts the second
-		# court and the Add demand affordances were below the fold and the
-		# guided authoring surface read as missing.
+		# preamble renders in the HEAD (above the body), so the body holds only
+		# the court rows — at 2 courts the second court and the Add demand
+		# affordances were below the fold and the guided authoring surface read
+		# as missing. Session UI-3: the narration and the advisory fold to their
+		# first sentence, so the court rows stand above the fold.
 		var head_paragraphs: int = content_bbcode.count("\n")
 		content_bbcode += Utils.humanize_nation_keys_in_text(_build_settlement_table_preamble(data))
 		# S14G-12: where the one-shot beats stand in the header, so a header
 		# too short to show them is scrolled to them (`_reveal_header_beats`).
 		if _preamble_beat_paragraph >= 0:
 			_header_beat_paragraph = head_paragraphs + _preamble_beat_paragraph
+		content_bbcode = _fold_head_for_compact(content_bbcode, data)
+		# S14d: the table's first-open line is the body's FIRST line — read
+		# once here (it tells main.gd it was drawn), set by `_render_per_court_table`.
+		_settlement_first_open = _first_open_bbcode(data, "settlement")
 	content_label.text = content_bbcode
 	if is_settlement_table:
+		# a new table opens at its head; a restage of the draft the reader just
+		# acted on finds their place again
+		per_court_scroll.scroll_vertical = 0
 		_render_per_court_table()
-		if footer_label:
-			footer_label.text = Utils.humanize_nation_keys_in_text(_build_settlement_footer(data))
+		var _resume_key: String = _scroll_resume_key()
+		if str(_scroll_resume.get("key", "")) == _resume_key and int(_scroll_resume.get("value", 0)) > 0:
+			Utils.restore_scroll(per_court_scroll, int(_scroll_resume.get("value", 0)))
+	_scroll_resume = {"key": "", "value": 0}
 
 	# Create buttons dynamically from dialogue options
 	_clear_buttons()
@@ -368,10 +409,9 @@ func show_dialogue(data: Dictionary):
 
 	# Re-front Slice 2: per-court row affordances (holdout Ease/Drop, focused
 	# dials) and conversational coverage prompts are NOT in options[] — they ride
-	# on the per-court table and the coverage suggestion list. Render them as
-	# clickable buttons that carry their own structured params (scope / nation).
-	if dtype == "settlement_confirm":
-		_add_settlement_tier2_buttons(data)
+	# on the per-court table and the coverage suggestion list. Session UI-3: they
+	# are real Buttons inside their court's card (`_add_settlement_tier2_buttons`,
+	# run by `_render_per_court_table` every time the body is built).
 
 	show()
 	# Fit the panel to the CURRENT logical viewport. Must run AFTER show() so
@@ -425,18 +465,18 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 	# this client gate keeps the contract explicit at the render layer too.
 	if str(data.get("dialogue_mode", "REVIEW")) != "PROPOSE":
 		return
-	# LV-14(b) (row EP F3): ONE ROW PER COURT — the court's name, then its
-	# Press/Ease/Drop chips — and a last row for the coverage suggestions.
-	# The old three-column grid folded a third court's chips under the
-	# rail's fixed 96px floor (Russia's row clipped at 2560x1340, the live
-	# review's frame); a per-court row can never lose a court, and the
-	# rail's floor is derived below from the row count so every court is
-	# visible whenever the viewport has the room (the relax pass still
-	# shrinks it first on a small one — it scrolls).
-	var court_rows: Array = []   # [{label, affordances}]
+	# LV-14(b) (row EP F3): ONE ROW PER COURT, and a last row for the coverage
+	# suggestions — a per-court row can never lose a court. Session UI-3
+	# (November 12, 2026): the rows are REAL Buttons inside their court's card
+	# (the card's `_court_flows` host, made by `_render_per_court_table`), no
+	# longer a rail of their own under the table: "Demand more of Austria" stands
+	# under Austria's words. The Coverage row follows the last card.
+	var court_rows: Array = []   # [{index, label, affordances}]
 	var per_court = data.get("per_court_acceptance", [])
 	if per_court is Array:
+		var court_index := -1
 		for row in per_court:
+			court_index += 1
 			if not (row is Dictionary):
 				continue
 			var court_affordances: Array = []
@@ -454,8 +494,8 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 						court_affordances.append(ha)
 			if not court_affordances.is_empty():
 				court_rows.append({
+					"index": court_index,
 					"label": Utils.display_nation_name(str(row.get("nation", "?"))),
-					"nation": str(row.get("nation", "")),
 					"affordances": court_affordances,
 				})
 	var coverage: Array = []
@@ -465,37 +505,32 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			if cs is Dictionary and str(cs.get("action", "")) != "":
 				coverage.append(cs)
 	if not coverage.is_empty():
-		court_rows.append({"label": "Coverage", "affordances": coverage})
+		court_rows.append({"index": -1, "label": "Coverage", "affordances": coverage})
+	# the short window: a court's line holds its three buttons at one height
+	var compact: bool = Utils.compact_view()
 	for entry in court_rows:
-		var line = HFlowContainer.new()
-		line.add_theme_constant_override("h_separation", 8)
-		line.add_theme_constant_override("v_separation", 6)
-		# Session UI-2: the court's arms lead its row of acts.
-		var flag_nation: String = str(entry.get("nation", ""))
-		var flag_path: String = Utils.nation_flag_path(flag_nation) if flag_nation != "" else ""
-		if flag_path != "":
-			var flag_tex: Texture2D = load(flag_path)
-			if flag_tex != null:
-				var flag := TextureRect.new()
-				flag.texture = flag_tex
-				flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-				flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				flag.custom_minimum_size = Vector2(32, 36)
-				line.add_child(flag)
-		var name_label = Label.new()
-		name_label.text = str(entry.get("label", "")) + ":"
-		name_label.custom_minimum_size = Vector2(110, 36)
-		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_label.theme_type_variation = &"Caption"
-		name_label.add_theme_color_override("font_color", Color(COLOR_GOLD))
-		line.add_child(name_label)
+		var at: int = int(entry.get("index", -1))
+		var line: HFlowContainer = _court_flows.get(at) if at >= 0 else _coverage_flow
+		if line == null:
+			continue
+		if at < 0:
+			var caption := Label.new()
+			caption.text = str(entry.get("label", "")) + ":"
+			caption.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT if compact else 36)
+			caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			caption.theme_type_variation = &"Caption"
+			caption.add_theme_color_override("font_color", Color(COLOR_GOLD))
+			line.add_child(caption)
 		for aff in entry.get("affordances", []):
 			var btn = Button.new()
 			btn.text = str(aff.get("label", "???"))
 			btn.tooltip_text = str(aff.get("description", ""))
-			btn.custom_minimum_size = Vector2(150, 36)
+			btn.custom_minimum_size = Vector2(0.0 if compact else 150.0, COMPACT_ROW_HEIGHT if compact else 36.0)
 			# Session UI-2: one button language — the theme's gilt face.
 			btn.theme_type_variation = &"CaptionButton"
+			# Session UI-3: a Button's default STOP eats the wheel before the
+			# body can scroll (PC15-18's trap, on a button now).
+			btn.mouse_filter = Control.MOUSE_FILTER_PASS
 			# F5 (row EP, LV-14(a)): a row chip may be honestly unavailable —
 			# the "Separate peace with <court>" chip carries the same
 			# `available` / `disabled_reason_display` pair the rail's
@@ -508,19 +543,10 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 				aff_reason if aff_reason != "" else str(aff.get("description", "")))
 			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
 			line.add_child(btn)
-		tier2_button_container.add_child(line)
-	if tier2_scroll:
-		tier2_scroll.visible = not court_rows.is_empty()
-		# The floor follows the rows: 42px a row plus a little air, capped at
-		# 30% of the logical viewport so the table keeps its priority.
-		var cap: float = 240.0
-		var vp := get_viewport()
-		if vp:
-			cap = maxf(96.0, vp.get_visible_rect().size.y * 0.30)
-		tier2_scroll.custom_minimum_size.y = clampf(
-			float(court_rows.size()) * 42.0 + 10.0, 96.0, cap)
-		# EA-E6: the rows are answers — the relax pass keeps them whole.
-		tier2_scroll.set_meta("relax_floor", tier2_scroll.custom_minimum_size.y)
+		# the host (a court's wrapper beneath its words, the coverage row) stands
+		# only where it holds buttons
+		if line.has_meta("host"):
+			(line.get_meta("host") as Control).visible = true
 
 func _is_default_builder(dtype: String, data: Dictionary) -> bool:
 	"""PC-F34: true when `show_dialogue`'s match fell to `_build_content`
@@ -765,18 +791,19 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	var review = data.get("review_sections", {})
 	var sections = review.get("sections", {}) if review is Dictionary else {}
 	var bbcode = ""
-	# S14d (TABLE_LESSON_SPEC §2 line 3, as re-measured at the second landing):
-	# the table's first-open line opens the footer — the first line under the
-	# table and its rows, seen at both scales, where the head's one visible
-	# line at 2.0 must stay the verdict. The voice line it displaces at 2.0
-	# restates that verdict.
-	bbcode += _first_open_bbcode(data, "settlement")
+	# S14d (TABLE_LESSON_SPEC §2 line 3): the table's first-open line stood
+	# here, the footer's head, while the head region was a one-line scroll at
+	# Interface Scale 2.0. Session UI-3 (November 12, 2026): the head never
+	# scrolls and the footer is the body's tail, so the line now opens the BODY
+	# (`_render_per_court_table` — the first thing under the verdict, seen with
+	# the first court's "Demand more" at both scales).
 	# SC-19's settlement voice (the backend-resolved `talleyrand_text`): the
 	# live-review line or the blocked banner, under the table since UXR3-31.
 	var heading_voice = str(data.get("talleyrand_text", ""))
 	if heading_voice != "":
-		# Session UI-2: Talleyrand's reading is a quote block.
-		bbcode += _quote_block(heading_voice, "e0c070") + "\n"
+		# Session UI-2: Talleyrand's reading is a quote block. Session UI-3: it
+		# opens from its first sentence ("▸ more"), the whole reading in place.
+		bbcode += _quote_block(_fold_first_sentence("settle.talleyrand", heading_voice), "e0c070") + "\n"
 	# DDB-5 (S13b): every province whose title the treaty fixes — the
 	# ratifier's own status-quo rule, read before the signature, our own
 	# homeland first.
@@ -1082,8 +1109,35 @@ func _build_settlement_footer(data: Dictionary) -> String:
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
-		bbcode += _quote_block("\"%s\"" % ttext, "c0b080")
+		# the same reading, closing the footer: one note (`settle.talleyrand`)
+		# opens both
+		bbcode += _quote_block(_fold_first_sentence("settle.talleyrand", str(ttext), "\"", "\""), "c0b080")
 	return bbcode
+
+
+func _first_sentence_end(text: String) -> int:
+	"""Session UI-3: where a passage's first sentence ends (`Utils.first_sentence_end`,
+	the one rule the Cabinet's counsel reads too)."""
+	return Utils.first_sentence_end(text)
+
+
+func _fold_first_sentence(id: String, text: String, pre: String = "", post: String = "") -> String:
+	"""Session UI-3: counsel opens from its first sentence. On the page the
+	passage is `pre + text + post`, byte for byte; Folded, its first sentence
+	and "▸ more" until the player opens it in place ("▾ less"). `pre` / `post`
+	are what stands round it (a pair of quotation marks): with none the
+	passage goes through `Utils.bb_note`; with some the link follows the
+	closing mark, so a folded quotation is never left open."""
+	var at: int = _first_sentence_end(text)
+	if at < 0:
+		return pre + text + post
+	if pre == "" and post == "":
+		return Utils.bb_note(id, text.substr(0, at), text.substr(at))
+	if not Utils.explanations_folded():
+		return pre + text + post
+	if Utils.note_is_open(id):
+		return pre + text + post + " " + Utils.note_link(id)
+	return pre + text.substr(0, at) + post + " " + Utils.note_link(id)
 
 func _safe_str(v) -> String:
 	# Coalesce JSON null -> "" so a null field never renders as Godot's literal
@@ -1093,18 +1147,19 @@ func _safe_str(v) -> String:
 	return "" if v == null else str(v)
 
 # UXR3-F7 (Pre-Deploy S12 part 2): the settlement document stands on its
-# 1160 x 980 ceiling (IGR-G1) with three expanding regions — the header, the
-# per-court table, the footer — which shared the spare height equally. A
-# white peace's review holds a few lines in each, so two empty bands split it.
-# When the regions need less than the ceiling, the panel shrinks to them and
-# each region takes the height of what it holds (its stretch ratio is that
-# height; the table's floor drops to its rows). When they need more, nothing
-# changes: the equal shares and IGR-G1's relax order stand.
+# 1160 x 980 ceiling (IGR-G1) with expanding regions which shared the spare
+# height equally. A white peace's review holds a few lines in each, so empty
+# bands split it. When the regions need less than the ceiling, the panel
+# shrinks to them and each region takes the height of what it holds (its
+# stretch ratio is that height; the table's floor drops to its rows). When
+# they need more, nothing changes: IGR-G1's relax order stands.
+# Session UI-3 (November 12, 2026): TWO regions now — the head and the body
+# (the frame that holds the one scroll).
 const DOCUMENT_SLACK := 4.0
 
 
 func _document_regions() -> Array:
-	return [content_label, per_court_scroll, footer_label]
+	return [content_label, per_court_frame]
 
 
 func _reset_document_shares() -> void:
@@ -1123,9 +1178,9 @@ func _refit_settlement_document() -> void:
 
 func _region_need(region: Control) -> float:
 	# The height a region's content takes: a label's text plus its box's
-	# margins; the table's rows (a fit_content label inside the scroll).
-	if region == per_court_scroll:
-		return per_court_table.get_combined_minimum_size().y + DOCUMENT_SLACK
+	# margins; the body's cards (the VBox inside the scroll).
+	if region == per_court_frame:
+		return per_court_body.get_combined_minimum_size().y + DOCUMENT_SLACK
 	var label := region as RichTextLabel
 	var box: StyleBox = label.get_theme_stylebox("normal")
 	var margins: float = box.get_minimum_size().y if box else 0.0
@@ -1153,7 +1208,7 @@ func _fit_settlement_document() -> void:
 			continue
 		var need: float = _region_need(region)
 		var floor_y: float = region.get_combined_minimum_size().y
-		if region == per_court_scroll and need < floor_y:
+		if region == per_court_frame and need < floor_y:
 			# the table's floor is a priority for a long table, not a band
 			table_floor = need
 			need_panel -= floor_y - need
@@ -1164,7 +1219,7 @@ func _fit_settlement_document() -> void:
 	if need_panel >= have:
 		return
 	if table_floor >= 0.0:
-		per_court_scroll.custom_minimum_size.y = table_floor
+		per_court_frame.custom_minimum_size.y = table_floor
 	var regions := _document_regions()
 	for i in regions.size():
 		if regions[i] and regions[i].visible:
@@ -1174,13 +1229,403 @@ func _fit_settlement_document() -> void:
 
 
 func _render_per_court_table():
-	# GT-Slice-3 / UX-5: (re)paint the scrollable per-court table region from
-	# current_data. Client-side expansion toggles re-enter here without a
-	# round trip; backend mutations re-mount the whole popup instead. The
-	# preamble (G4F-3) lives in the header label, so toggles never repaint it.
-	if per_court_table == null:
+	# GT-Slice-3 / UX-5: (re)paint the scrollable table from current_data.
+	# Client-side expansion toggles re-enter here without a round trip; backend
+	# mutations re-mount the whole popup instead. The preamble (G4F-3) lives in
+	# the head label, so toggles never repaint it.
+	# Session UI-3 (November 12, 2026): the body is ONE scroll — the S14d
+	# first-open line, then one CARD PER COURT (its words, its real buttons),
+	# the table's closing line, the coverage row and Talleyrand's footer. Built
+	# in code, whole, each time; the reader's place in the scroll is kept.
+	if per_court_body == null:
 		return
-	per_court_table.text = Utils.humanize_nation_keys_in_text(_build_settlement_per_court_block(current_data))
+	var keep_scroll: int = per_court_scroll.scroll_vertical
+	for child in per_court_body.get_children():
+		# out of the layout NOW — a queue_free'd node still stands in it until
+		# the frame ends, and the fit measures this frame
+		per_court_body.remove_child(child)
+		child.queue_free()
+	_court_flows = {}
+	_coverage_flow = null
+	var data: Dictionary = current_data
+	var compact: bool = Utils.compact_view()
+	var per_court = data.get("per_court_acceptance", [])
+	var has_courts: bool = per_court is Array and (per_court as Array).size() > 0
+	# the head of the body: the first-open line (seen with the first court's
+	# "Demand more" at Interface Scale 2.0), then the section's own title —
+	# the short window keeps the line and spends the title's height on a court
+	var lead: String = _settlement_first_open
+	if has_courts and not compact:
+		var table_head: String = _build_settlement_per_court_block(data, PART_LEAD)
+		# Session UI-3 (the interim reading, F16): a breath between the
+		# first-open line and the section's title — the title read as the
+		# line's last words.
+		if lead != "" and table_head.strip_edges() != "":
+			lead += "\n"
+		lead += table_head
+	if lead.strip_edges() != "":
+		var lead_label := _body_label(0.0, 0.0)
+		lead_label.name = "PerCourtLead"
+		lead_label.text = Utils.humanize_nation_keys_in_text(lead.rstrip("\n"))
+		per_court_body.add_child(lead_label)
+	if has_courts:
+		# Session UI-3 (the lead's pass on the frames): an accordion — the court
+		# in focus (`focused_court`, REFRONT-9's), or with none the first, stands
+		# as its whole card; every other court is ONE line (flag, name, score,
+		# its blocker, its three buttons), its words under its name. Three whole
+		# cards could not stand under the head at 1.0 (Russia's buttons at 921
+		# against a window ending at 779 — EA-E6's driven pin); in the compact
+		# view every court is a line.
+		var focused: String = _safe_str(data.get("focused_court"))
+		var court_index := -1
+		for row in per_court:
+			court_index += 1
+			if not (row is Dictionary):
+				continue
+			var nation_key: String = str(row.get("nation", ""))
+			var whole: bool = (nation_key == focused) if focused != "" else (court_index == 0)
+			# Explanations: On the page — every court's words stand, as before:
+			# every court its whole card (the accordion is the folded view's).
+			if not Utils.explanations_folded():
+				whole = true
+			per_court_body.add_child(_court_card(row, court_index, compact or not whole))
+		# the table's closing line (carries / does not carry) and the next step
+		var tail: String = _build_settlement_per_court_block(data, PART_TAIL).rstrip("\n")
+		if tail.strip_edges() != "":
+			var tail_label := _body_label(0.0, 0.0)
+			tail_label.name = "PerCourtTail"
+			tail_label.text = Utils.humanize_nation_keys_in_text(tail)
+			per_court_body.add_child(tail_label)
+	# the coverage suggestions' row (filled by `_add_settlement_tier2_buttons`)
+	var coverage_host := MarginContainer.new()
+	coverage_host.name = "CoverageHost"
+	coverage_host.mouse_filter = Control.MOUSE_FILTER_PASS
+	coverage_host.add_theme_constant_override("margin_left", 12)
+	coverage_host.add_theme_constant_override("margin_right", 8)
+	coverage_host.visible = false
+	_coverage_flow = HFlowContainer.new()
+	_coverage_flow.name = "CoverageRow"
+	_coverage_flow.add_theme_constant_override("h_separation", 8)
+	_coverage_flow.add_theme_constant_override("v_separation", 6)
+	_coverage_flow.set_meta("host", coverage_host)
+	coverage_host.add_child(_coverage_flow)
+	per_court_body.add_child(coverage_host)
+	# Talleyrand's footer: his reading (a note, folded to its first sentence),
+	# what the treaty titles, the allies, the warnings
+	var footer_label := _body_label(12.0, 8.0, 0.0, 0.0, _on_footer_meta_clicked)
+	footer_label.name = "PerCourtFooter"
+	footer_label.text = Utils.humanize_nation_keys_in_text(_build_settlement_footer(data))
+	if footer_label.text.strip_edges() == "":
+		footer_label.queue_free()
+	else:
+		per_court_body.add_child(footer_label)
+	_add_settlement_tier2_buttons(data)
+	call_deferred("_update_body_cue")
+	Utils.restore_scroll(per_court_scroll, keep_scroll)
+
+
+func _body_label(left: float = 12.0, right: float = 8.0, top: float = 0.0, bottom: float = 0.0, handler: Callable = Callable()) -> RichTextLabel:
+	"""Session UI-3: one of the body's reading labels — fit to its words, never
+	scrolling on its own (the body scrolls), links routed to the table's handler.
+	A fit_content label's default STOP would eat the wheel (PC15-18), hence PASS."""
+	var label := RichTextLabel.new()
+	label.bbcode_enabled = true
+	label.fit_content = true
+	label.scroll_active = false
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.mouse_filter = Control.MOUSE_FILTER_PASS
+	var box := StyleBoxEmpty.new()
+	box.content_margin_left = left
+	box.content_margin_right = right
+	box.content_margin_top = top
+	box.content_margin_bottom = bottom
+	label.add_theme_stylebox_override("normal", box)
+	if handler.is_valid():
+		label.meta_clicked.connect(handler)
+	else:
+		label.meta_clicked.connect(_on_per_court_meta_clicked)
+	return label
+
+
+func _court_total(row: Dictionary):
+	"""A court's score as the table draws it: null where its own offer is on
+	the table (DDB-5 — 'Their own terms', no /50 beside 'This peace carries')."""
+	if _safe_str(row.get("band")) == "consented":
+		return null
+	return row.get("total", null)
+
+
+func _slug(key: String) -> String:
+	"""A note id's court part: the nation key in `[A-Za-z0-9._-]` only."""
+	var out := ""
+	for i in key.length():
+		var ch: String = key[i]
+		out += ch if (ch.unicode_at(0) < 128 and (ch.is_valid_identifier() or ch == "." or ch == "-" or ch.is_valid_int())) else "_"
+	return out
+
+
+func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
+	"""Session UI-3: ONE court as ONE card — a dark well a touch darker than the
+	panel, a hairline and a 3-px spine in the colour of where the court stands
+	(`card_underlay.gd`'s look, drawn by real nodes so its buttons can stand
+	inside it). Wide: the court's words (the chunk `_build_settlement_per_court_block`
+	writes for it) with its Demand / Ease / Drop buttons beneath. In the short
+	window (Interface Scale 2.0) the court is ONE line — flag, name, score and
+	its buttons — and its words stand behind its name (a click opens them,
+	`settle.court.<key>`)."""
+	var nation: String = str(row.get("nation", "?"))
+	var total = _court_total(row)
+	var tone: Color = Color.from_string(_court_tone_hex(total, row), Color(0.85, 0.75, 0.55))
+	var card := PanelContainer.new()
+	card.name = "CourtCard%d" % court_index
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	var well := StyleBoxFlat.new()
+	well.bg_color = Color(0, 0, 0, 0.22)
+	well.border_color = Color(tone.r, tone.g, tone.b, 0.32)
+	well.set_border_width_all(1)
+	well.content_margin_left = 1.0
+	well.content_margin_right = 1.0
+	well.content_margin_top = 1.0
+	well.content_margin_bottom = 1.0
+	card.add_theme_stylebox_override("panel", well)
+	var across := HBoxContainer.new()
+	across.add_theme_constant_override("separation", 0)
+	across.mouse_filter = Control.MOUSE_FILTER_PASS
+	card.add_child(across)
+	var spine := ColorRect.new()
+	spine.name = "Spine"
+	spine.color = Color(tone.r, tone.g, tone.b, 0.85)
+	spine.custom_minimum_size = Vector2(3, 0)
+	spine.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	across.add_child(spine)
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 2)
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.mouse_filter = Control.MOUSE_FILTER_PASS
+	across.add_child(inner)
+	# the court's own words — its BBCode chunk exactly as the block builds it
+	var per_court_table := _body_label(10.0, 8.0, 6.0, 4.0)
+	per_court_table.name = "CourtWords"
+	var chunk: String = _build_settlement_per_court_block(current_data, court_index)
+	chunk = chunk.replace(Utils.CARD_CLOSE, "").rstrip("\n")
+	per_court_table.text = Utils.humanize_nation_keys_in_text(chunk)
+	var buttons := HFlowContainer.new()
+	buttons.name = "CourtActs"
+	buttons.add_theme_constant_override("h_separation", 8)
+	buttons.add_theme_constant_override("v_separation", 4 if compact else 6)
+	buttons.mouse_filter = Control.MOUSE_FILTER_PASS
+	if not compact:
+		inner.add_child(per_court_table)
+		# the acts stand beneath her words; a court with none shows no strip
+		var host := MarginContainer.new()
+		host.name = "CourtActsHost"
+		host.mouse_filter = Control.MOUSE_FILTER_PASS
+		host.add_theme_constant_override("margin_left", 10)
+		host.add_theme_constant_override("margin_right", 8)
+		host.add_theme_constant_override("margin_bottom", 8)
+		host.visible = false
+		host.add_child(buttons)
+		buttons.set_meta("host", host)
+		inner.add_child(host)
+		_court_flows[court_index] = buttons
+		return card
+	# ── the short window: one line, the words behind the name ──
+	var note_id: String = "settle.court." + _slug(nation)
+	# On the page a court's words stand under its line (`show_note`).
+	var is_open: bool = Utils.show_note(note_id)
+	buttons.name = "CourtLine"
+	buttons.add_theme_constant_override("h_separation", 6)
+	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var flag_path: String = Utils.nation_flag_path(nation)
+	if flag_path != "":
+		var flag_tex: Texture2D = load(flag_path)
+		if flag_tex != null:
+			var flag := TextureRect.new()
+			flag.texture = flag_tex
+			flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			flag.custom_minimum_size = Vector2(26, COMPACT_ROW_HEIGHT)
+			flag.mouse_filter = Control.MOUSE_FILTER_PASS
+			buttons.add_child(flag)
+	var name_button := Button.new()
+	name_button.name = "CourtName"
+	name_button.flat = true
+	name_button.text = "%s %s" % [Utils.display_nation_name(nation), "▾" if is_open else "▸"]
+	name_button.theme_type_variation = &"CaptionButton"
+	name_button.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT)
+	name_button.mouse_filter = Control.MOUSE_FILTER_PASS
+	name_button.add_theme_color_override("font_color", Color(COLOR_GOLD))
+	name_button.tooltip_text = "Open or close %s's terms." % Utils.display_nation_name(nation)
+	name_button.pressed.connect(_on_court_line_toggled.bind(note_id))
+	buttons.add_child(name_button)
+	var score := Label.new()
+	score.name = "CourtScore"
+	score.text = _court_score_text(row, total)
+	score.theme_type_variation = &"Caption"
+	score.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT)
+	score.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	score.add_theme_color_override("font_color", Color.from_string(_court_text_hex(total, row), Color.WHITE))
+	buttons.add_child(score)
+	# Session UI-3: on a wide window a court's line carries its blocker too —
+	# why it holds out stands beside its score, its words under its name.
+	var blocker_words: String = _safe_str(row.get("top_blocker_display"))
+	if blocker_words != "" and not Utils.compact_view():
+		var blocker := Label.new()
+		blocker.name = "CourtBlocker"
+		blocker.text = "Blocker: " + blocker_words
+		blocker.theme_type_variation = &"Caption"
+		blocker.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT)
+		blocker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		blocker.add_theme_color_override("font_color", Color("#e0a040"))
+		buttons.add_child(blocker)
+	inner.add_child(buttons)
+	_court_flows[court_index] = buttons
+	if is_open:
+		inner.add_child(per_court_table)
+	else:
+		per_court_table.queue_free()
+	return card
+
+
+func _court_score_text(row: Dictionary, total) -> String:
+	"""The short window's score: '44/50', or the band where the court has none."""
+	if total != null:
+		return "%d/%d" % [int(total), int(row.get("threshold", 50))]
+	var band: String = _safe_str(row.get("band_display"))
+	return band if band != "" else _safe_str(row.get("band"))
+
+
+func _on_court_line_toggled(note_id: String) -> void:
+	# the line's click opens or shuts the court's words (a note, `settle.court.<key>`)
+	Utils.toggle_note(note_id)
+	_render_per_court_table()
+	_refit_settlement_document()
+
+
+# ── the head, in the short window ───────────────────────────────────────────
+# Session UI-3 (November 12, 2026): at Interface Scale 2.0 (logical height
+# under Utils.COMPACT_BELOW) the head can stand ONE heading tall — the table's
+# court lines need the room. The heading keeps its line and a "▸ more"; the
+# lines under it (the covered courts, the verdict, the treasury, the narration,
+# the advisory) open in place. The one-shot beats — the answer to the click
+# just made (S14G-12) — always stand. Not the Explanations switch: this is a
+# layout necessity of the short window, so it holds with the lead-ins on the
+# page too.
+
+func _fold_head_for_compact(full: String, data: Dictionary) -> String:
+	# Session UI-3 (the lead's pass): On the page every word stands, the short
+	# window too — the head scrolls with the panel rather than fold.
+	if not Utils.compact_view() or not Utils.explanations_folded():
+		return full
+	var lines: PackedStringArray = full.split("\n")
+	var heading_at: int = -1
+	for i in lines.size():
+		if lines[i].find(Utils.TITLE_FONT) >= 0:
+			heading_at = i
+			break
+	if heading_at < 0 or heading_at >= lines.size() - 1:
+		return full
+	var rest: String = "\n".join(lines.slice(heading_at + 1)).strip_edges(true, false)
+	if rest.strip_edges() == "":
+		return full
+	var before: String = "\n".join(lines.slice(0, heading_at))
+	if before != "":
+		before += "\n"
+	var link_words: String = Utils.NOTE_LESS if Utils.note_is_open(PARTS_NOTE_HEAD) else Utils.NOTE_MORE
+	var link: String = " [url=" + Utils.NOTE_META + PARTS_NOTE_HEAD + "][color=#" + Utils.COLOR_GOLD + "]" + link_words + "[/color][/url]"
+	if Utils.note_is_open(PARTS_NOTE_HEAD):
+		return before + lines[heading_at] + link + "\n" + rest
+	return before + lines[heading_at] + link + "\n" + Utils.humanize_nation_keys_in_text(_settlement_voice_beats_bbcode(data))
+
+
+func _rerender_settlement_head() -> void:
+	"""The head again from the cached data (a note opened or shut, the
+	Explanations switch moved) — never a network re-fetch."""
+	if str(current_data.get("type", "")) != "settlement_confirm":
+		return
+	var content: String = Utils.humanize_nation_keys_in_text(_build_settlement_content(current_data))
+	content += Utils.humanize_nation_keys_in_text(_build_settlement_table_preamble(current_data))
+	content_label.text = _fold_head_for_compact(content, current_data)
+
+
+func _on_head_meta_clicked(meta) -> void:
+	if not Utils.is_note_meta(meta):
+		return
+	Utils.toggle_note(meta)
+	_rerender_settlement_head()
+	_refit_settlement_document()
+
+
+func _on_explanations_changed() -> void:
+	if not visible or str(current_data.get("type", "")) != "settlement_confirm":
+		return
+	_rerender_settlement_head()
+	_render_per_court_table()
+	_refit_settlement_document()
+
+
+func _scroll_resume_key() -> String:
+	return "%s|%s" % [str(current_data.get("war_id", "")), str(current_data.get("draft_key", ""))]
+
+
+func _remember_scroll() -> void:
+	"""An action is leaving for the backend, which restages this same draft:
+	note where the body's scroll stood (read by `show_dialogue`, then cleared)."""
+	if per_court_scroll == null or str(current_data.get("type", "")) != "settlement_confirm":
+		return
+	_scroll_resume = {"key": _scroll_resume_key(), "value": per_court_scroll.scroll_vertical}
+
+
+# ── the body's "more below" cue ─────────────────────────────────────────────
+# Session UI-3: S14G-12's header cue stood over the LAST LINE of a scrolling
+# label. The body's lies over the frame's foot — a soft fade band and the tag —
+# as an overlay of the frame (a child of the ScrollContainer would be laid out
+# as content), shown while the body has more below, gone at its end.
+
+func _install_body_cue() -> void:
+	if per_court_frame == null or _body_more_below != null:
+		return
+	var cue := Control.new()
+	cue.name = "PerCourtMoreBelow"
+	cue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cue.visible = false
+	per_court_frame.add_child(cue)
+	# Session UI-3 (the lead's pass on the frames): the cue is a row of its
+	# own under the scroll in the frame (a VBox: the scroll, the whole-line
+	# pad, this strip), shown only while lines remain below
+	# (`_update_body_cue`) — so the tag never lies over a line (the old fade
+	# band and its dark chip did, at 1.0 and at 2.0).
+	cue.custom_minimum_size = Vector2(0, BODY_CUE_STRIP)
+	var tag := Label.new()
+	tag.name = "Tag"
+	tag.text = "▼ more below"
+	tag.theme_type_variation = &"Caption"
+	tag.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cue.add_child(tag)
+	tag.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tag.offset_right = -18.0
+	_body_more_below = cue
+	var bar: VScrollBar = per_court_scroll.get_v_scroll_bar()
+	bar.value_changed.connect(func(_v): _update_body_cue())
+	bar.changed.connect(_update_body_cue)
+	per_court_scroll.resized.connect(_update_body_cue)
+
+
+func _update_body_cue() -> void:
+	# lines remain below the fold of the body. Session UI-3 (the lead's pass on
+	# the frames): the cue never lies over a line — while there is more below,
+	# its strip stands under the scroll in the frame's VBox (stable: the strip
+	# taking its row keeps "more below" true, and at the very bottom it goes).
+	if _body_more_below == null or per_court_scroll == null:
+		return
+	var bar: VScrollBar = per_court_scroll.get_v_scroll_bar()
+	var more: bool = bar != null and per_court_frame.visible \
+		and (bar.max_value - bar.page) > bar.value + 1.0
+	if _body_more_below.visible != more:
+		_body_more_below.visible = more
 
 
 func _build_settlement_table_preamble(data: Dictionary) -> String:
@@ -1236,15 +1681,18 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 			Utils.format_number(int(treasury.get("reserve", 0))),
 			Utils.format_number(int(treasury.get("remaining", 0))),
 		]
+	# Session UI-3 (November 12, 2026): the narration and the advisory open from
+	# their first sentence (`settle.narration`, `settle.advisory`) — G4F-3's rule
+	# holds: the court rows stand above the fold. On the page, byte for byte.
 	var narration = _safe_str(data.get("multi_court_table_narration"))
 	if narration != "":
-		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
+		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % _fold_first_sentence("settle.narration", narration)
 	# Re-front Slice 2 / OQ#1: Talleyrand's voice-only targeted-posture advice
 	# (PF-1/DC-2 + OQ-6: carries the binding-constraint + budget-bound
 	# recommendation voice when the treasury binds).
 	var advisory = _safe_str(data.get("targeted_posture_advisory"))
 	if advisory != "":
-		bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
+		bbcode += "[i][color=#c0b080]%s[/color][/i]\n" % _fold_first_sentence("settle.advisory", advisory, "\"", "\"")
 	# The one-shot authoring voice beats (the DC-4 caution, the dial's notes,
 	# the named diplomat's reaction) stand ABOVE — see the verdict's lines.
 	return bbcode
@@ -1422,7 +1870,7 @@ func _quote_block(text: String, ink_hex: String) -> String:
 		+ "[i][color=#" + ink_hex + "]" + text + "[/color][/i][/cell][/table]\n"
 
 
-func _build_settlement_per_court_block(data: Dictionary) -> String:
+func _build_settlement_per_court_block(data: Dictionary, part: int = PART_ALL) -> String:
 	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
 	# GT-Slice-3 (Guided Terms §3.1-§3.3): on the PROPOSE authoring surface each
 	# row additionally renders its current demand lines (per-line Remove +
@@ -1430,17 +1878,28 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 	# `demand_suggestions[]`, the §3.4 treasury line, and the REFRONT-9 focused
 	# component breakdown. REVIEW renders the same table frozen (UX-2 — no
 	# links, no authoring affordances).
+	# Session UI-3 (November 12, 2026): `part` — PART_ALL is the whole string,
+	# as ever; the body builds its cards from the same text: PART_LEAD the
+	# section's title alone, a court's index THAT court's card alone, PART_TAIL
+	# the closing summary + carry hint alone.
 	var per_court = data.get("per_court_acceptance", [])
 	if not (per_court is Array) or per_court.size() == 0:
 		return ""
 	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
 	var authoring_surface = (dialogue_mode == "PROPOSE")
 	var bbcode = ""
-	bbcode += Utils.bb_section("The table")
+	if part == PART_ALL or part == PART_LEAD:
+		bbcode += Utils.bb_section("The table")
+	if part == PART_LEAD:
+		return bbcode
 	var focused_court = _safe_str(data.get("focused_court"))
 	var court_index = -1
 	for row in per_court:
+		if part == PART_TAIL:
+			break
 		court_index += 1
+		if part >= 0 and court_index != part:
+			continue
 		if not (row is Dictionary):
 			continue
 		var nation = str(row.get("nation", "?"))
@@ -1516,6 +1975,8 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			bbcode += _build_court_authoring_lines(row, court_index)
 		# the card ends on the line above; the blank paragraph is the gap
 		bbcode += Utils.CARD_CLOSE + "\n"
+	if part >= 0:
+		return bbcode
 	var overall = data.get("overall_acceptance", {})
 	if overall is Dictionary:
 		var summary = str(overall.get("summary_display", ""))
@@ -1529,7 +1990,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 	# Backend emits this ONLY on PROPOSE-while-not-carrying.
 	var carry_hint = _safe_str(data.get("propose_carry_hint"))
 	if carry_hint != "":
-		bbcode += "[color=#e0a040]▸ %s[/color]\n" % carry_hint
+		# Session UI-3 (the interim reading, F16): the how-to after the court
+		# count opens from its first sentence ("▸ more", `settle.carry`);
+		# On the page, the line as it was.
+		bbcode += "[color=#e0a040]▸ %s[/color]\n" % _fold_first_sentence("settle.carry", carry_hint)
 	bbcode += "\n"
 	return bbcode
 
@@ -1753,8 +2217,16 @@ func _on_per_court_meta_clicked(meta):
 	# click time (indices, never embedded identities). Client-only toggles
 	# repaint the table; everything else round-trips through main.gd's
 	# structured `action_params` path (send_dialogue_response_with_params).
+	# Session UI-3: a folded note opens in place FIRST (its id is not a court's
+	# index: `int("settle.talleyrand")` is 0 — it would read as court 0's), and
+	# only the table's own ops reach the court lookup.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_render_per_court_table()
+		_refit_settlement_document()
+		return
 	var parts = str(meta).split(":")
-	if parts.size() < 2:
+	if parts.size() < 2 or not (parts[0] in _PER_COURT_OPS):
 		return
 	var op = parts[0]
 	var row = _per_court_row(int(parts[1]))
@@ -1801,6 +2273,12 @@ func _on_per_court_meta_clicked(meta):
 func _on_footer_meta_clicked(meta):
 	# DDB-28: `petition:<index>:grant|decline` — the petition resolved from
 	# current_data at click time (an index, never an embedded identity).
+	# Session UI-3: Talleyrand's reading (a folded note) opens in place first.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_render_per_court_table()
+		_refit_settlement_document()
+		return
 	var parts = str(meta).split(":")
 	if parts.size() < 3 or parts[0] != "petition":
 		return
@@ -1950,6 +2428,7 @@ func _emit_settlement_action(action: String, payload: Dictionary):
 	# success AND on failure (the CH-5 re-attach + error_display invariant).
 	if action == "":
 		return
+	_remember_scroll()
 	_clear_buttons()
 	hide()
 	choice_made.emit(action, payload)
@@ -2568,6 +3047,7 @@ func _build_annotated_terms_section(annotated: Array) -> String:
 
 
 func _on_option_selected(action: String):
+	_remember_scroll()
 	_clear_buttons()
 	hide()
 	choice_made.emit(action, current_data)
@@ -2577,15 +3057,16 @@ func _on_settlement_tier2_affordance(affordance: Dictionary):
 	# structured params (scope / nation / war_id / draft_key). Emit the affordance
 	# dict as the choice data so main.gd routes it through the structured
 	# `action_params` dialogue path instead of options[] index matching.
+	# Session UI-3: the restage re-mounts this same draft — the reader keeps
+	# their place in the body.
+	_remember_scroll()
 	_clear_buttons()
 	hide()
 	choice_made.emit(str(affordance.get("action", "")), affordance)
 
 func _clear_buttons():
+	# The per-court Demand / Ease / Drop buttons live inside the body's cards
+	# now (rebuilt whole by `_render_per_court_table`, never stacked), so only
+	# the primary rail is cleared here.
 	for child in button_container.get_children():
 		child.queue_free()
-	# The tier-2 rail is a second container now — clearing only the primary one
-	# would stack last turn's Press/Ease buttons on top of this turn's.
-	if tier2_button_container:
-		for child in tier2_button_container.get_children():
-			child.queue_free()

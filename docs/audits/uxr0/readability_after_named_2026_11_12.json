@@ -1,6 +1,6 @@
 {
  "date": "2026_11_12",
- "source": "Session UI-2 final physical shoot (the working tree committed as the UI-2 commit; its parent 20ee32ff)",
+ "source": "Session UI-3 final physical shoot (the working tree committed as the UI-3 commit; its parent 8db8d10c)",
  "surfaces": {
   "ledger_boot_forces": {
    "surface": "Strategic Ledger — Forces tab",
@@ -493,7 +493,7 @@
       "red": 0,
       "p1": 0,
       "ok": 49,
-      "map": 35,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -511,7 +511,7 @@
       "red": 0,
       "p1": 0,
       "ok": 49,
-      "map": 35,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -529,7 +529,7 @@
       "red": 0,
       "p1": 0,
       "ok": 49,
-      "map": 35,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -547,7 +547,7 @@
       "red": 0,
       "p1": 0,
       "ok": 49,
-      "map": 32,
+      "map": 36,
       "map_small": 0
      },
      "flagged": []
@@ -565,7 +565,7 @@
       "red": 0,
       "p1": 0,
       "ok": 49,
-      "map": 36,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -642,7 +642,7 @@
       "red": 0,
       "p1": 0,
       "ok": 52,
-      "map": 10,
+      "map": 11,
       "map_small": 0
      },
      "flagged": []
@@ -679,11 +679,11 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 93,
+      "rows": 90,
       "red": 0,
       "p1": 0,
-      "ok": 93,
-      "map": 35,
+      "ok": 90,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -697,11 +697,11 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 93,
+      "rows": 90,
       "red": 0,
       "p1": 0,
-      "ok": 93,
-      "map": 35,
+      "ok": 90,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -715,11 +715,11 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 93,
+      "rows": 90,
       "red": 0,
       "p1": 0,
-      "ok": 93,
-      "map": 35,
+      "ok": 90,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -733,11 +733,11 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 93,
+      "rows": 90,
       "red": 0,
       "p1": 0,
-      "ok": 93,
-      "map": 32,
+      "ok": 90,
+      "map": 36,
       "map_small": 0
      },
      "flagged": []
@@ -751,11 +751,11 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 93,
+      "rows": 90,
       "red": 0,
       "p1": 0,
-      "ok": 93,
-      "map": 36,
+      "ok": 90,
+      "map": 32,
       "map_small": 0
      },
      "flagged": []
@@ -964,10 +964,10 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 59,
+      "rows": 56,
       "red": 0,
       "p1": 0,
-      "ok": 59,
+      "ok": 56,
       "map": 0,
       "map_small": 0
      },
@@ -982,10 +982,10 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 59,
+      "rows": 56,
       "red": 0,
       "p1": 0,
-      "ok": 59,
+      "ok": 56,
       "map": 0,
       "map_small": 0
      },
@@ -1000,10 +1000,10 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 59,
+      "rows": 56,
       "red": 0,
       "p1": 0,
-      "ok": 59,
+      "ok": 56,
       "map": 0,
       "map_small": 0
      },
@@ -1018,10 +1018,10 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 59,
+      "rows": 56,
       "red": 0,
       "p1": 0,
-      "ok": 59,
+      "ok": 56,
       "map": 0,
       "map_small": 0
      },
@@ -1036,10 +1036,10 @@
      "text_size": 1.0,
      "ok": true,
      "counts": {
-      "rows": 59,
+      "rows": 56,
       "red": 0,
       "p1": 0,
-      "ok": 59,
+      "ok": 56,
       "map": 0,
       "map_small": 0
      },
@@ -1048,7 +1048,7 @@
    }
   }
  },
- "client_commit": "20ee32ff+UI-2",
+ "client_commit": "8db8d10c+UI-3",
  "physical_scale": "auto",
  "text_size": 1.0
 }

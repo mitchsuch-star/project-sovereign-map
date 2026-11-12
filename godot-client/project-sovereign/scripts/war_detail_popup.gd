@@ -26,6 +26,12 @@ signal war_ended(message: String)
 var _current_nation: String = ""
 var _current_war_id: String = ""
 var _current_mode: String = ""  # "war", "coalition", "armistice"
+# Session UI-3 (November 12, 2026): the data each render drew from, so a note
+# toggled in place (or the Explanations switch) re-renders locally.
+var _war_cache: Dictionary = {}
+var _coalition_cache: Dictionary = {}
+var _coalition_wars_cache: Array = []
+var _armistice_cache: Dictionary = {}
 
 # Session UI-2: the shared score track is the war HUD's own build.
 const WarStatusPanel = preload("res://scripts/war_status_panel.gd")
@@ -127,6 +133,10 @@ func _ready():
 	header_label.theme_type_variation = &"ScreenTitle"
 	header_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	close_button.pressed.connect(_close_popup)
+	# Session UI-3: the lead-in's mark and the tier note open in place; the
+	# Explanations switch re-renders from the cached data.
+	content_label.meta_clicked.connect(_on_meta_clicked)
+	Utils.on_explanations_changed(_rerender_local)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 	# Session UI-2: the acts stand under the score, above the account (the
@@ -166,6 +176,42 @@ func _set_header_flag(nation: String) -> void:
 		return
 	_header_flag.texture = load(path)
 	_header_flag.visible = true
+
+
+func _slug(text: String) -> String:
+	"""A note id's safe form: [A-Za-z0-9._-] only."""
+	var out := ""
+	for i in text.length():
+		var ch := text.substr(i, 1)
+		var code := ch.unicode_at(0)
+		var ok := (code >= 48 and code <= 57) or (code >= 65 and code <= 90) or (code >= 97 and code <= 122) or ch == "." or ch == "_" or ch == "-"
+		out += ch if ok else "_"
+	return out
+
+
+func _rerender_local() -> void:
+	"""Redraw the open page from its cached data, the reader's scroll kept."""
+	if not visible:
+		return
+	var sv: float = content_label.get_v_scroll_bar().value
+	match _current_mode:
+		"war":
+			if not _war_cache.is_empty():
+				_render_war_detail(_war_cache)
+		"coalition":
+			if not _coalition_cache.is_empty():
+				_render_coalition_detail(_coalition_cache, _coalition_wars_cache)
+		"armistice":
+			if not _armistice_cache.is_empty():
+				_render_armistice_detail(_armistice_cache)
+	Utils.restore_label_scroll(content_label, sv)
+
+
+func _on_meta_clicked(meta) -> void:
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_rerender_local()
+		return
 
 
 func _on_overlay_input(event):
@@ -532,6 +578,7 @@ static func _anchor_bar_child(node: Control, a_left: float, a_right: float, o_le
 # ── RENDERING ──
 
 func _render_war_detail(w: Dictionary):
+	_war_cache = w
 	var trend = str(w.get("trend", "stable"))
 	var duration = int(float(w.get("duration", 0)))
 	var started = int(float(w.get("started_turn", 0)))
@@ -542,11 +589,17 @@ func _render_war_detail(w: Dictionary):
 
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	# S14D-X35 (October 23, 2026): the door line names the table it opens.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate opens the table, where every court signs for itself.[/color]\n\n"
+	# Session UI-3 (November 12, 2026): the door line stands behind an ⓘ
+	# ("Fold, a switch restores") — the mark ends the page's first line (the
+	# state summary below); On the page the line prints exactly as it did.
+	var lead_line = "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate opens the table, where every court signs for itself.[/color]\n\n"
+	bbcode += Utils.bb_lead(lead_line, "war.lead")
 	# PC-R7 (i): the stake named, then who (the header carries the title).
 	var title_line = str(w.get("war_title_line", ""))
+	if title_line == "" and Utils.explanations_folded():
+		bbcode += Utils.lead_mark(lead_line, "war.lead").strip_edges(true, false) + "\n\n"
 	if title_line != "":
-		bbcode += Utils.humanize_nation_keys_in_text(title_line) + "\n"
+		bbcode += Utils.humanize_nation_keys_in_text(title_line) + Utils.lead_mark(lead_line, "war.lead") + "\n"
 		var roster = str(w.get("war_roster_display", w.get("opponent_display", "")))
 		if roster != "":
 			bbcode += "With: " + Utils.humanize_nation_keys_in_text(roster) + "\n"
@@ -560,24 +613,33 @@ func _render_war_detail(w: Dictionary):
 	# under the scroll opened a table the player had not read. The breakdown
 	# (the arithmetic of the figure the header bar already shows) follows it.
 	var tier_display = str(w.get("settlement_tier_display", ""))
+	# Session UI-3: the tier line stays; the table's account of it (what the
+	# table reads, court by court, each court's own letter, each object) is ONE
+	# note opened from the tier line. No tier line, no fold: the lines stand.
+	var tier_note_id = "war.tier." + _slug(_current_war_id if _current_war_id != "" else _current_nation)
+	var tier_link = ""
+	if tier_display != "" and Utils.explanations_folded():
+		tier_link = " " + Utils.note_link(tier_note_id)
 	if tier_display:
 		# IQ-2 (Sept 14, 2026): the tier rendered in gold — a prize — on a war
 		# France was losing to one province. When the backend says the table
 		# is the enemy's, it says whose, in this popup's loss colour.
 		if str(w.get("settlement_tier_side", "")) == "theirs":
-			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]\n"
+			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]" + tier_link + "\n"
 		else:
-			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
+			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]" + tier_link + "\n"
 	# PC-F33 (S13e part 4): a white peace confirms every holding — say so
 	# beside the tier.
 	var held_line = str(w.get("held_line", ""))
-	if held_line != "":
+	# Session UI-3 (the lead's pass on the frames): what a peace signed now
+	# keeps is the tier's own account — it opens with the tier's note.
+	if held_line != "" and (tier_display == "" or Utils.show_note(tier_note_id)):
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(held_line) + "[/color]\n"
 	# PC-F3 (Oct 15, 2026): the tier above is the peace table's, not the
 	# score bar's — say the table's number, each court against 50, and
 	# (mid-turn) that this turn's fighting counts from next turn.
 	var peace_table = w.get("peace_table", null)
-	if peace_table is Dictionary:
+	if peace_table is Dictionary and (tier_display == "" or Utils.show_note(tier_note_id)):
 		for ln in peace_table.get("lines", []):
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(ln) + "[/color]\n"
 
@@ -593,7 +655,7 @@ func _render_war_detail(w: Dictionary):
 		if kept_line == "":
 			kept_line = "Draft kept until turn's end — Open Settlement resumes your terms."
 		bbcode += "[color=" + COLOR_GOLD + "]▸ " + kept_line + "[/color]\n"
-	if tier_display or peace_table is Dictionary or bool(w.get("settlement_draft_kept", false)):
+	if tier_display or (peace_table is Dictionary and (tier_display == "" or Utils.show_note(tier_note_id))) or bool(w.get("settlement_draft_kept", false)):
 		bbcode += "\n"
 
 	# Breakdown
@@ -746,6 +808,8 @@ func _render_war_detail(w: Dictionary):
 
 
 func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
+	_coalition_cache = coalition_data
+	_coalition_wars_cache = wars
 	var leader = str(coalition_data.get("leader", ""))
 	var posture = str(coalition_data.get("posture", "defensive")).capitalize()
 
@@ -787,6 +851,7 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 
 
 func _render_armistice_detail(w: Dictionary):
+	_armistice_cache = w
 	var remaining = int(float(w.get("armistice_remaining", 0)))
 	var relation = int(float(w.get("relation", 0)))
 	var rel_desc = str(w.get("relation_descriptor", "?"))

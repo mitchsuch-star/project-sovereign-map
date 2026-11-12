@@ -147,7 +147,10 @@ def render(game_state, regions, recruitment, work, overview=None, wizard_cases=N
     # the instruments do, so every pin keeps its plain-space words.
     result = _plain_spaces(result)
     log_text = log.read_text(encoding="utf-8", errors="replace") if log.is_file() else ""
-    return {"regions": result["regions"], "bench": result.get("bench", ""),
+    # Session UI-3: `regions` are rendered On the page (every stated word);
+    # `regions_folded` the game's default (a dimmed chip's reason its hover).
+    return {"regions": result["regions"], "regions_folded": result.get("regions_folded", {}),
+            "bench": result.get("bench", ""),
             "cards": result.get("cards", ""),
             "wizard": result.get("wizard", []),
             "errors": log_text.count("SCRIPT ERROR")}

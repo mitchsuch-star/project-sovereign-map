@@ -705,6 +705,10 @@ func _ready():
 			pause_menu.text_size_changed.connect(_on_text_size_changed)
 		if pause_menu.has_signal("hud_width_changed"):
 			pause_menu.hud_width_changed.connect(func(_w): _refit_hud_band())
+		# Session UI-3: the very wide screen's map view — re-derive the boot
+		# view (fill the width / the whole sheet) and the map chips' state.
+		if pause_menu.has_signal("wide_map_changed"):
+			pause_menu.wide_map_changed.connect(_on_wide_map_changed)
 	if pause_menu:
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
@@ -2301,8 +2305,13 @@ func _refresh_map_controls() -> void:
 		Utils.set_available(_map_zoom_out_btn, not map_area.is_at_min_zoom(),
 			str(_map_zoom_out_btn.get_meta("tip", "")), ZOOM_OUT_FLOOR_TIP)
 	if _map_fit_btn != null:
-		Utils.set_available(_map_fit_btn, not map_area.is_fit_view(),
-			str(_map_fit_btn.get_meta("tip", "")), FIT_EUROPE_DONE_TIP)
+		# Session UI-3: on a very wide screen ⌂ toggles the map filling the
+		# width and the whole sheet — it always acts, and says which comes next.
+		if map_area.has_method("home_toggles") and map_area.home_toggles():
+			Utils.set_available(_map_fit_btn, true, map_area.home_tip(), FIT_EUROPE_DONE_TIP)
+		else:
+			Utils.set_available(_map_fit_btn, not map_area.is_fit_view(),
+				str(_map_fit_btn.get_meta("tip", "")), FIT_EUROPE_DONE_TIP)
 
 
 func _on_map_zoom_out() -> void:
@@ -2316,8 +2325,20 @@ func _on_map_zoom_in() -> void:
 
 
 func _on_fit_europe() -> void:
-	if map_area != null and map_area.has_method("fit_europe"):
+	# Session UI-3: the chip's own door — the filled view and the whole sheet
+	# in turn on a very wide screen, the whole sheet everywhere else.
+	if map_area != null and map_area.has_method("home_view"):
+		map_area.home_view()
+	elif map_area != null and map_area.has_method("fit_europe"):
 		map_area.fit_europe()
+
+
+func _on_wide_map_changed(_mode: String) -> void:
+	"""Session UI-3: Settings → DISPLAY → Wide map — the map's boot view
+	re-derived (filled on a very wide screen, else the whole sheet)."""
+	if map_area != null and map_area.has_method("apply_boot_view"):
+		map_area.apply_boot_view()
+	_refresh_map_controls()
 
 
 var _map_controls_fit_queued := false

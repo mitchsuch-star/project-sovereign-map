@@ -424,6 +424,24 @@ func _prepare():
 	var hud_width := str(shot.get("hud_width", _spec.get("hud_width", "auto")))
 	UiSettings._cfg.set_value("display", "hud_width", hud_width)
 	_current["hud_width"] = hud_width
+	# Session UI-3: the Explanations switch ("folded", the game's default, when
+	# unsaid; "page" prints every word as before) and the very wide screen's
+	# map ("fill" when unsaid; "sheet" the whole sheet). An older checkout (a
+	# BEFORE copy) has neither setting and ignores both keys. Every note is
+	# closed between shots (the opened-notes store is static), then a shot's
+	# `open_notes` are opened — the folded page with its passages shown.
+	if settings_script.get_script_constant_map().has("EXPLANATIONS"):
+		var explanations := str(shot.get("explanations", _spec.get("explanations", "folded")))
+		UiSettings._cfg.set_value("display", "explanations", explanations)
+		_current["explanations"] = explanations
+		var utils_notes: Variant = Utils
+		utils_notes.call("reset_notes")
+		for note_id in shot.get("open_notes", []):
+			utils_notes.call("toggle_note", str(note_id))
+	if settings_script.get_script_constant_map().has("WIDE_MAPS"):
+		var wide_map := str(shot.get("wide_map", _spec.get("wide_map", "fill")))
+		UiSettings._cfg.set_value("display", "wide_map", wide_map)
+		_current["wide_map"] = wide_map
 	_phase = "instantiate"
 	_wait += 2
 
@@ -1000,6 +1018,18 @@ func _collect_texts() -> Array:
 			entry = {"class": "RichTextLabel", "text": n.get_parsed_text().replace("\u00A0", " ")}
 			font = n.get_theme_font("normal_font")
 			font_size = n.get_theme_font_size("normal_font_size")
+			# Session UI-3: the raw BBCode's hash (Explanations: On the page
+			# must reproduce the baseline byte for byte) and every hover's
+			# words (a folded word lives in a `[hint]`, which the parsed text
+			# never shows).
+			var raw: String = (n as RichTextLabel).text
+			entry["text_md5"] = raw.md5_text()
+			if raw.find("[hint=") >= 0:
+				var hints: Array = []
+				var hint_re := RegEx.create_from_string("\\[hint=([^\\]]*)\\]")
+				for m in hint_re.search_all(raw):
+					hints.append(m.get_string(1))
+				entry["hints"] = hints
 		elif n is Label:
 			entry = {"class": "Label", "text": n.text}
 			font = n.get_theme_font("font")

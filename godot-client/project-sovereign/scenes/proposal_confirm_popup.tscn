@@ -48,6 +48,9 @@ theme_override_constants/separation = 8
 ; height ZERO — the treasury / narration / advisory block rendering as an
 ; invisible strip with no scrollbar and no truncation hint. A floor puts it in
 ; the flexible set, where the pass's 48px floor protects it like every sibling.
+; Session UI-3 (November 12, 2026): on the settlement table (dtype
+; settlement_confirm) this label is the table's HEAD — fit_content, never
+; scrolling, no floor (`show_dialogue` sets it); every other dtype keeps this.
 [node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
@@ -57,63 +60,32 @@ text = ""
 scroll_active = true
 fit_content = false
 
-[node name="PerCourtScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+; Session UI-3 (November 12, 2026): the settlement table's BODY is ONE scroll,
+; not four stacked scroll areas (the blind readers' 5/10). A single
+; ScrollContainer holds a VBox of the first-open line, one card per court (its
+; words, then its Demand / Ease / Drop buttons), the coverage row and
+; Talleyrand's footer — all built in code (`_render_per_court_table`). A VBox
+; frames it: the scroll, then the whole-line pad `Utils.keep_whole_lines` adds
+; beside it, then the "more below" strip (shown only while lines remain below,
+; so it stands under the last line, never on it); the frame carries the table's
+; height floor (re-derived per open) and the `relax_last` tag.
+[node name="PerCourtFrame" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
 visible = false
 custom_minimum_size = Vector2(0, 320)
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 0
+theme_override_constants/separation = 0
 
-[node name="PerCourtTable" type="RichTextLabel" parent="PanelContainer/VBoxContainer/PerCourtScroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-bbcode_enabled = true
-text = ""
-scroll_active = false
-fit_content = true
-
-; July 18, 2026 playtest fix: FooterLabel was fit_content=true / scroll_active=false
-; with no custom_minimum_size, sitting as a DIRECT VBox child outside any
-; ScrollContainer — an unbounded contributor to the panel's combined minimum
-; height. A real multi-court settlement (ally petitions + warnings + ES-7
-; estate-cession notices) drove the panel far past the screen, and since the
-; panel is centre-anchored with grow_vertical=2 the overflow split across BOTH
-; edges and carried the action buttons off the bottom. Now bounded exactly like
-; ContentLabel above: a real height budget with its own internal scrollbar.
-[node name="Tier2Scroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
-visible = false
-custom_minimum_size = Vector2(0, 96)
-layout_mode = 2
-size_flags_vertical = 1
-horizontal_scroll_mode = 0
-
-; LV-14(b) (row EP F3): one ROW per court (a name, then its Press/Ease/Drop
-; chips), not a three-column grid that folded the third court's chips under
-; the rail's 96px floor — Russia's row was clipped at 2560x1340. The scroll's
-; floor is derived per open from the row count (see _add_settlement_tier2_buttons).
-[node name="Tier2ButtonContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Tier2Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="FooterLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
-visible = false
-custom_minimum_size = Vector2(0, 90)
+[node name="PerCourtScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer/PerCourtFrame"]
 layout_mode = 2
 size_flags_vertical = 3
-bbcode_enabled = true
-text = ""
-scroll_active = true
-fit_content = false
+horizontal_scroll_mode = 0
 
-; The per-court tier-2 affordances (Press/Ease dials, holdout Ease/Drop,
-; coverage suggestions) are UNCAPPED — one button per court per affordance —
-; and used to share the primary button grid, so a 4-court war grew the rail to
-; 7-8 rows and pushed Submit/Back Out off-screen. They now live in their own
-; bounded scroll; the primary rail below stays unscrolled and always visible.
-; SIZE_FILL (1) not EXPAND_FILL (3) deliberately: it must not compete with
-; PerCourtScroll for slack.
+[node name="PerCourtBody" type="VBoxContainer" parent="PanelContainer/VBoxContainer/PerCourtFrame/PerCourtScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 

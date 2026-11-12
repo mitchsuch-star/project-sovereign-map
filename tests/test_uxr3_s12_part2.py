@@ -396,8 +396,15 @@ class TestTheBoardsLeadWithTheirSubject:
         assert 'data.get("talleyrand_text"' not in _func(conf_src, "_build_settlement_content")
         assert 'data.get("talleyrand_text"' in _func(conf_src, "_build_settlement_footer")
         scene = (SCENES / "proposal_confirm_popup.tscn").read_text(encoding="utf-8")
-        assert _order(scene, '[node name="PerCourtScroll"', '[node name="Tier2Scroll"',
-                      '[node name="FooterLabel"')
+        # Session UI-3 (November 12, 2026): the table is ONE scroll — the
+        # blind readers scored its four stacked scroll areas 5/10. The court
+        # cards (each with its own Demand / Ease / Drop) lead the body and
+        # Talleyrand's footer is the body's tail, all under PerCourtFrame,
+        # above the separator and the four acts; Tier2Scroll and FooterLabel
+        # are gone from the scene.
+        assert _order(scene, '[node name="ContentLabel"', '[node name="PerCourtFrame"',
+                      '[node name="PerCourtScroll"', '[node name="PerCourtBody"', '[node name="HSeparator"')
+        assert '[node name="Tier2Scroll"' not in scene and '[node name="FooterLabel"' not in scene
 
     def test_the_wizard_folds_the_congress_and_leads_with_a_live_design(self):
         """UXR3-28 / 78: one line for the Congress (its terms behind a toggle,
@@ -668,7 +675,9 @@ class TestTheFoundRows:
                          ("scripts/enemy_phase_dialog.gd", "content_label"),
                          ("scripts/campaign_log.gd", "scroll_container")):
             assert f"Utils.keep_whole_lines({var})" in _func(_src(rel), "_ready"), (rel, var)
-        assert "for region in [content_label, per_court_table, footer_label]:\n\t\tUtils.keep_whole_lines(region)" in \
+        # Session UI-3: the settlement table's two regions — the head and the one
+        # body scroll (its cards, coverage and footer in a VBox) — rest on whole lines.
+        assert "for region in [content_label, per_court_scroll]:\n\t\tUtils.keep_whole_lines(region)" in \
             _func(_src("scripts/proposal_confirm_popup.gd"), "_ready")
         # the war-room log keeps its own snap: it follows the newest line
         assert "keep_whole_lines(output_display)" not in _src("scripts/main.gd")

@@ -607,7 +607,138 @@ func _finalize_view_setup():
 	_on_map_area_resized()
 	_set_camera_zoom_level(_get_initial_zoom_level())
 	_center_view_on_map()
+	# Session UI-3: a very wide room opens on the filled view instead.
+	_boot_view_pending = true
+	if _fills_width():
+		_apply_fill_view()
 	queue_redraw()
+
+
+# ── Session UI-3 (November 12, 2026): the very wide screen fills its width ──
+# The sheet is 16:10 (2560x1600). On a 32:9 room its contain-fit covered 45 %
+# of the width and the desk the rest — the blind readers' "wasted width". A
+# room SAFE_ZONE_ASPECT (2.6) or wider with `UiSettings.get_wide_map() ==
+# "fill"` (the default) opens on the FILLED view: the zoom that fills the
+# room's width (the cover zoom), centred on the sheet (on 5120x1440 about
+# 45 % of the sheet's height shows — Britain to Rome; drag or the keys pan).
+# `min_zoom` stays the contain fit, so the whole sheet is one ⌂ press (or the
+# wheel) away; ⌂ toggles the two (`home_view`). `fit_europe`, `is_fit_view`
+# and `_get_initial_zoom_level` keep their contain meaning (the tools and the
+# side desk call them so). Until the player first zooms or pans, a resize or
+# an Interface Scale change re-derives the boot view (the deferred boot can
+# read a transient size). Ordinary screens never take any of these roads.
+var _boot_view_pending := false
+var _boot_kind := "sheet"
+var _applying_boot := false
+
+
+func _fills_width() -> bool:
+	"""The room (the dock's strip taken out) is very wide and the player
+	keeps the filled view."""
+	if map_canvas_size == Vector2.ZERO or UiSettings.get_wide_map() != "fill":
+		return false
+	return is_wide_room(_get_camera_viewport_size())
+
+
+func _get_fill_zoom_level() -> float:
+	"""The cover zoom: the room's width (or height) filled by the sheet."""
+	return fill_zoom_for(_get_camera_viewport_size(), world_bounds.size)
+
+
+static func fill_zoom_for(room: Vector2, sheet: Vector2) -> float:
+	"""Pure: the zoom at which `sheet` covers `room` (its width on a room
+	wider than the sheet's aspect)."""
+	return maxf(room.x / maxf(sheet.x, 1.0), room.y / maxf(sheet.y, 1.0))
+
+
+static func is_wide_room(room: Vector2) -> bool:
+	"""Pure: a room SAFE_ZONE_ASPECT (2.6) or wider — 32:9, 32:10."""
+	return room.y > 0.0 and room.x / room.y >= UiSettings.SAFE_ZONE_ASPECT
+
+
+func _apply_fill_view() -> void:
+	_applying_boot = true
+	if zoom_tween:
+		zoom_tween.kill()
+	_update_zoom_floor()
+	_set_camera_zoom_level(_get_fill_zoom_level())
+	_center_view_on_map()
+	_boot_kind = "fill"
+	_applying_boot = false
+
+
+func _is_fill_view() -> bool:
+	"""The filled view is on screen (its zoom, centred on the sheet's middle
+	row — the clamp centres the width at the cover zoom)."""
+	if map_camera == null or not _fills_width():
+		return false
+	if absf(_zoom_level - clampf(_get_fill_zoom_level(), min_zoom, max_zoom)) > 0.0001:
+		return false
+	var centre: Vector2 = _clamp_camera_position(map_origin + map_canvas_size / 2.0)
+	return map_camera.position.distance_to(centre) < 1.0
+
+
+func apply_boot_view() -> void:
+	"""The view the map opens on: filled on a very wide room, else the whole
+	sheet. Called when the Wide map setting changes."""
+	if _fills_width():
+		_apply_fill_view()
+	else:
+		_applying_boot = true
+		fit_europe()
+		_boot_kind = "sheet"
+		_applying_boot = false
+	_boot_view_pending = true
+
+
+func home_toggles() -> bool:
+	"""⌂ toggles the filled view and the whole sheet (a very wide room)."""
+	return _fills_width()
+
+
+func home_view() -> void:
+	"""The ⌂ chip: on a very wide room the filled view and the whole sheet in
+	turn; everywhere else the whole sheet (`fit_europe`)."""
+	_boot_view_pending = false
+	if _fills_width() and not _is_fill_view():
+		_apply_fill_view()
+		return
+	fit_europe()
+
+
+func home_zoom_target() -> float:
+	"""The zoom ⌂ lands on next (the filled view on a wide room unless it is
+	already on screen, else the whole sheet's contain fit)."""
+	if _fills_width() and not _is_fill_view():
+		return clampf(_get_fill_zoom_level(), min_zoom, max_zoom)
+	return _get_initial_zoom_level()
+
+
+func home_tip() -> String:
+	"""What ⌂ shows next, said as its hover."""
+	if not _fills_width():
+		return ""
+	if _is_fill_view():
+		return "The whole sheet — all Europe on its desk  (⌂ again fills the screen)"
+	return "The map filling the screen — Britain to Rome  (⌂ again shows the whole sheet)"
+
+
+func _rederive_boot_view() -> void:
+	"""A resize or a scale change before the player's first zoom or pan."""
+	if not _boot_view_pending or map_camera == null:
+		return
+	if _fills_width():
+		_apply_fill_view()
+	elif _boot_kind == "fill":
+		_applying_boot = true
+		fit_europe()
+		_boot_kind = "sheet"
+		_applying_boot = false
+
+
+func _player_moved_view() -> void:
+	if not _applying_boot:
+		_boot_view_pending = false
 
 
 func _compute_world_bounds() -> Rect2:
@@ -752,7 +883,7 @@ func _build_map_textures():
 		var radius = float(shape["radius"])
 		_draw_circle_on_image(visual_image, center + Vector2(8.0, 10.0), radius + 2.0, Color(0.0, 0.0, 0.0, 0.18))
 		_draw_circle_on_image(visual_image, center, radius, shape["visual_tint"])
-		_draw_circle_outline_on_image(visual_image, center, radius, Color(0.2, 0.18, 0.16, 0.9), 3)
+		_draw_circle_outline_on_image(visual_image, center, radius, Utils.MAP_CIRCLE_RIM, 3)
 		_draw_circle_on_image(color_map, center, radius, shape["lookup_color"])
 
 	province_lookup_image = color_map
@@ -2096,6 +2227,46 @@ func _rebuild_dynamic_nodes():
 	_refresh_order_arrows() # CC-5: and the feet every arrow starts from
 
 
+# ── Session UI-3 (November 12, 2026): names gather at the whole-sheet view ──
+# The blind readers saw the plates crowd the centre at the whole-map zoom. At
+# the whole-sheet view (the contain fit, `is_at_min_zoom`) a nation's plates
+# that would touch gather into their lead's plate (map_label_layer.gd
+# `_gather_names`): the Emperor leads, then the strongest corps. Any zoom in
+# splits them; their click boxes follow (`sync_label_hitboxes`).
+func _gather_rank(marshal: Dictionary) -> int:
+	if str(marshal.get("name", "")) == "Napoleon":
+		return 1000000000
+	return int(marshal.get("strength", 0))
+
+
+func gathers_names() -> bool:
+	"""The layer gathers crowded name plates only at the whole-sheet view."""
+	return map_canvas_size != Vector2.ZERO and pieces_layer != null and is_at_min_zoom()
+
+
+func gather_label(label: Label, words: String) -> Vector2:
+	"""Give a lead's plate its gathered words, widened about its centre; the
+	shift the layer adds to its built place. `ungather_label` undoes it."""
+	if not label.has_meta("gather_text"):
+		label.set_meta("gather_text", label.text)
+		label.set_meta("gather_size", label.size)
+	var built: Vector2 = label.get_meta("gather_size")
+	var font = ThemeDB.fallback_font
+	var w: float = font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0 + _furn(8.0)
+	label.text = words
+	label.size = Vector2(maxf(w, built.x), built.y)
+	return Vector2(-(label.size.x - built.x) / 2.0, 0.0)
+
+
+func ungather_label(label: Label) -> void:
+	if label == null or not label.has_meta("gather_text"):
+		return
+	label.text = str(label.get_meta("gather_text"))
+	label.size = label.get_meta("gather_size")
+	label.remove_meta("gather_text")
+	label.remove_meta("gather_size")
+
+
 func _add_furniture(kind: String, nodes: Array) -> void:
 	var base: Array = []
 	for n in nodes:
@@ -2315,6 +2486,11 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			name_label.size = Vector2(name_width, name_h)
 			name_label.text = marshal_name
 			name_label.set_meta("furniture_kind", "name")
+			# Session UI-3: what the whole-sheet view's gathering reads.
+			name_label.set_meta("gather_nation", nation)
+			name_label.set_meta("gather_rank", _gather_rank(marshal))
+			name_label.set_meta("gather_name", marshal_name)
+			name_label.set_meta("gather_count", 1)
 			_style_furniture(name_label, "name")
 			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			if pieces_active:
@@ -2370,6 +2546,11 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			stack_label.size = Vector2(stack_width, stack_h)
 			stack_label.text = stack_text
 			stack_label.set_meta("furniture_kind", "stack")
+			# Session UI-3: a co-located stack gathers as its lead with its count.
+			stack_label.set_meta("gather_nation", group_nation)
+			stack_label.set_meta("gather_rank", _gather_rank(lead_marshal))
+			stack_label.set_meta("gather_name", lead_name)
+			stack_label.set_meta("gather_count", group_size)
 			_style_furniture(stack_label, "name")
 			stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			stack_label.add_theme_color_override("font_color", PLAQUE_IVORY)
@@ -2648,6 +2829,9 @@ func _on_map_area_resized():
 	_refresh_map_viewport_resolution()
 	_update_zoom_floor()
 	_update_camera_limits()
+	# Session UI-3: before the player's first zoom or pan, the boot view
+	# follows the room (filled on a very wide one).
+	_rederive_boot_view()
 	queue_redraw()
 
 
@@ -2697,6 +2881,8 @@ func refresh_viewport_scale() -> void:
 	_update_zoom_floor()
 	_update_camera_limits()
 	_check_furniture_scale()
+	# Session UI-3: an Interface Scale change before the first zoom or pan.
+	_rederive_boot_view()
 	queue_redraw()
 
 
@@ -2731,9 +2917,17 @@ func set_right_inset(px: float) -> void:
 	if is_equal_approx(inset, _right_inset):
 		return
 	var was_fit := is_fit_view()
+	# Session UI-3: the filled view stays the filled view (re-derived on the
+	# room left of the dock — a dock can drop a 32:9 room under 2.6).
+	var was_fill := _is_fill_view()
 	_right_inset = inset
 	_update_zoom_floor()
-	if was_fit:
+	if was_fill:
+		if _fills_width():
+			_apply_fill_view()
+		else:
+			fit_europe()
+	elif was_fit:
 		fit_europe()
 	else:
 		_sync_camera_zoom()
@@ -2756,9 +2950,18 @@ func _update_zoom_floor():
 	# viewport resize — the map can never be zoomed out past the whole-map
 	# view. The old hard 0.5 floor sat far below fit on any modern monitor and
 	# let the view sink into void.
+	# Session UI-3: the filled view must lie inside the zoom range — a 7680 x
+	# 2160 room fills its width at 3.0, past the 2.5 ceiling — so a very wide
+	# room raises the ceiling to a quarter past its cover zoom.
+	if _fills_width():
+		max_zoom = maxf(2.5, _get_fill_zoom_level() * 1.25)
+	else:
+		max_zoom = 2.5
 	min_zoom = clampf(_get_fit_zoom_level(), 0.05, max_zoom)
 	if _zoom_level < min_zoom:
 		_set_camera_zoom_level(min_zoom)
+	elif _zoom_level > max_zoom:
+		_set_camera_zoom_level(max_zoom)
 	view_changed.emit()
 
 
@@ -2865,6 +3068,7 @@ func _center_view_on_map():
 
 
 func focus_on_map_point(map_point: Vector2):
+	_player_moved_view()   # Session UI-3: a focus by the player's hand (not the boot's)
 	_set_camera_position(map_point)
 
 
@@ -2926,6 +3130,7 @@ func _input(event):
 		if is_panning:
 			var drag_delta = event.position - pan_start_pos
 			pan_start_pos = event.position
+			_player_moved_view()   # Session UI-3
 			_set_camera_position(map_camera.position - drag_delta * _viewport_pixel_scale() / _zoom_level)
 		else:
 			# CC-3: a press on a piece of ours becomes a drag past 8 px.
@@ -3030,6 +3235,8 @@ func _handle_pan_key_event(event: InputEventKey):
 			_clear_pan_key_state()
 		return
 
+	if event.pressed and event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]:
+		_player_moved_view()   # Session UI-3
 	match event.keycode:
 		KEY_LEFT:
 			pan_keys_pressed["left"] = event.pressed
@@ -3712,6 +3919,7 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 	var new_zoom = clamp(_zoom_level * zoom_factor, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom, _zoom_level):
 		return
+	_player_moved_view()   # Session UI-3: the boot view stops following the room
 
 	var map_point_before = _screen_to_map_position(point)
 	var local_point = point - global_position

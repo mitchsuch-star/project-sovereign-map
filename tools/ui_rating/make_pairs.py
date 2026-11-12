@@ -1,6 +1,7 @@
 """Before / after pairs for docs/audits/ui_gilt2/: each of the 30 rating frames side by side.
 
-usage: python -I make_pairs.py <before_mapping.json> <after_mapping.json> <out_dir>
+usage: python -I make_pairs.py <before_mapping.json> <after_mapping.json> <out_dir> [<prefix>]
+(<prefix> names the files, UIGILT2 by default — Session UI-3 passes UIGILT3.)
 Each mapping is {Fnn: {stem, src}} (make_rating_set.py writes them). JPEGs, 2412 px wide, captioned.
 """
 import json
@@ -36,6 +37,7 @@ def main() -> int:
     before = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     after = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
     out = Path(sys.argv[3])
+    prefix = sys.argv[4] if len(sys.argv) > 4 else "UIGILT2"
     out.mkdir(parents=True, exist_ok=True)
     f = font(26)
     made = 0
@@ -56,7 +58,7 @@ def main() -> int:
         d.text((10, 8), "BEFORE — " + name, fill=(200, 196, 186), font=f)
         d.text((w + 22, 8), "AFTER — " + name, fill=(225, 200, 140), font=f)
         stem = before[fid]["stem"].replace("IQ10_", "").replace("@", "_")
-        sheet.save(out / f"UIGILT2_{fid}_{stem}.jpg", quality=86)
+        sheet.save(out / f"{prefix}_{fid}_{stem}.jpg", quality=86)
         made += 1
     print("pairs", made)
     return 0

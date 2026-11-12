@@ -498,7 +498,8 @@ class TestPerCourtViewport:
         scene = (GODOT_SCENES / "proposal_confirm_popup.tscn").read_text(
             encoding="utf-8"
         )
-        scroll_chunk = scene.split('[node name="PerCourtScroll"', 1)[1]
+        # Session UI-3: the floor stands on PerCourtFrame (the plain Control round the one body scroll)
+        scroll_chunk = scene.split('[node name="PerCourtFrame"', 1)[1]
         scroll_chunk = scroll_chunk.split("[node", 1)[0]
         assert "custom_minimum_size = Vector2(0, 320)" in scroll_chunk
 

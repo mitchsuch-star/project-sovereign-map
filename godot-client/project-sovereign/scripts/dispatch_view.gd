@@ -39,6 +39,8 @@ signal open_diplomacy_for(nation: String)
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
+	# Session UI-3: the Settings switch re-renders the page from cached data.
+	Utils.on_explanations_changed(_rerender_in_place)
 	# Session UI-2: the morning's sections are cards (the marks are put in
 	# `_dress_sections`; `card_underlay.gd` paints them behind the words).
 	Utils.card_page(content_label)
@@ -60,6 +62,11 @@ func _ready():
 
 
 func _on_meta_clicked(meta) -> void:
+	# Session UI-3: a note's toggle re-renders in place, the scroll kept.
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_rerender_in_place()
+		return
 	var m := str(meta)
 	if m.begins_with("type:"):
 		order_typed.emit(m.substr(5))
@@ -71,6 +78,20 @@ func _on_meta_clicked(meta) -> void:
 		close_view()
 
 var _api_client_ref = null
+# Session UI-3: the last good response, kept so a note toggle or the Settings
+# switch re-renders the page locally (no fetch) without fitting the window.
+var _last_response = null
+var _in_place := false
+
+
+func _rerender_in_place() -> void:
+	if not visible or _corr_open or _last_response == null:
+		return
+	var held: int = scroll_container.scroll_vertical
+	_in_place = true
+	_on_dispatch_received(_last_response)
+	_in_place = false
+	Utils.restore_scroll(scroll_container, held)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # RE-C — THE CORRESPONDENCE (RECURRING_EVENTS_SPEC.md §12b.1): a page of this
@@ -116,6 +137,9 @@ func open(api_client):
 	AudioManager.play("parchment_open")  # the dispatch parchment, unrolled
 	content_label.text = "[color=#" + Utils.COLOR_INFO + "]Loading dispatch...[/color]"
 	show()
+	# Session UI-3 (November 12, 2026): the Dispatch's page takes a reading
+	# window's share of the view (the clamp reads it), then fits its text.
+	Utils.set_reading_share($PanelContainer)
 	Utils.clamp_centered_panel($PanelContainer)
 	api_client.get_dispatch(_on_dispatch_received)
 
@@ -169,6 +193,7 @@ func _on_dispatch_received(response):
 		# reached only with the backend's lever down; it claims nothing.
 		content_label.text = "[color=#" + Utils.COLOR_INFO + "]Berthier has no dispatch on the table.[/color]"
 		return
+	_last_response = response
 
 	# Build BBCode — same format as main.gd _display_morning_dispatch()
 	var bbcode = ""
@@ -187,11 +212,15 @@ func _on_dispatch_received(response):
 	if calendar_label != "":
 		turn_text += " — " + calendar_label
 	# Session UI-2: the letter's dateline, centred in the title face.
-	bbcode += "[center]" + Utils.HEAD_OPEN + "MORNING DISPATCH — " + turn_text + Utils.HEAD_CLOSE + "[/center]\n"
+	# Session UI-3 (November 12, 2026): the grey lead-in stands behind an ⓘ at
+	# the end of this line (On the page it prints where it did, below).
+	var lead_words := "What changed overnight, before you spend a single order. Esc closes it; Alt+R (or Alt+B) while you type reopens it."
+	var lead_line := "[color=#" + Utils.COLOR_INFO + "]" + lead_words + "[/color]\n"
+	bbcode += "[center]" + Utils.HEAD_OPEN + "MORNING DISPATCH — " + turn_text + Utils.HEAD_CLOSE + Utils.lead_mark(lead_words, "dispatch.lead") + "[/center]\n"
 	bbcode += "[center][color=#" + Utils.COLOR_INFO + "]Chief of Staff Berthier reporting[/color][/center]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]What changed overnight, before you spend a single order. Esc closes it; Alt+R (or Alt+B) while you type reopens it.[/color]\n"
+	bbcode += Utils.bb_lead(lead_line, "dispatch.lead")
 	bbcode += "\n"
 	var congress_at := bbcode.length()
 
@@ -760,6 +789,10 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 
 	content_label.text = Utils.dress_heads(_dress_sections(Utils.humanize_nation_keys_in_text(bbcode)))
+	# Session UI-3: the window fits what it holds, on open and on new content
+	# (never on a note toggle, which would move the window under the reader).
+	if not _in_place and not _corr_open:
+		Utils.fit_reading_window($PanelContainer, scroll_container, content_label)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Session UI-2 — the dressed page. The builder above keeps every word and every
@@ -933,10 +966,14 @@ func refit() -> void:
 	the plain clamp. A docked panel (the Side Desk) keeps its dock."""
 	if _corr_open:
 		_raise_page_ceiling()
+	else:
+		Utils.set_reading_share($PanelContainer)
 	if not $PanelContainer.has_meta("side_desk_docked"):
 		Utils.clamp_centered_panel($PanelContainer)
 	if _corr_open:
 		_fit_correspondence()
+	else:
+		Utils.fit_reading_window($PanelContainer, scroll_container, content_label)
 
 
 func _take_correspondence(response) -> void:
@@ -976,6 +1013,10 @@ func _show_correspondence_page() -> void:
 	title_label.text = CORR_TITLE
 	_render_correspondence(_corr)
 	_raise_page_ceiling()
+	# Session UI-3: the Correspondence keeps its own ceiling; the Dispatch's
+	# reading share is lifted while it stands (it returns on "◂ The Dispatch").
+	if $PanelContainer.has_meta("clamp_reading_share"):
+		$PanelContainer.remove_meta("clamp_reading_share")
 	if not $PanelContainer.has_meta("side_desk_docked"):
 		Utils.clamp_centered_panel($PanelContainer)
 	_fit_correspondence()
@@ -984,8 +1025,13 @@ func _show_correspondence_page() -> void:
 func _show_dispatch_page() -> void:
 	_reset_correspondence_page()
 	_refresh_correspondence_button()
+	# Session UI-3: back on the Dispatch page, its reading share returns (the
+	# Correspondence page kept its own ceiling) and the window refits.
+	Utils.set_reading_share($PanelContainer)
 	if visible and not $PanelContainer.has_meta("side_desk_docked"):
 		Utils.clamp_centered_panel($PanelContainer)
+	if visible:
+		Utils.fit_reading_window($PanelContainer, scroll_container, content_label)
 
 
 func _fit_correspondence() -> void:
