@@ -987,15 +987,36 @@ def held_aim_clause(regions) -> str:
 
 # ── Occupation is not annexation (T3-6 — the residual debt, ruled) ───────
 
-def _house_aims(world, nation: str) -> set:
+def the_gate_reads_the_authored_aims() -> bool:
+    """Session G5 (DYNAMISM_SPEC.md §7e, November 11, 2026): the gate's
+    annexation read (`annexations_outside_aim`) asks whether a province
+    lies outside its holder's AUTHORED aims — the deck as written. It read
+    the design VOICE instead (`agendas.acquire_design_regions`' gate), and
+    a court under the knife — its capital lost, or most of its homeland —
+    has none: on marengo with the clients rallying, Austria held Milan and
+    Piedmont, two provinces of her own Italian design taken in her war with
+    France twenty turns before, and the read called them "outside aim" for
+    no reason but that she held two of her seven homeland provinces on the
+    last turn. The same two provinces, the same holder and the same conquest
+    read on-aim on the arm where her homeland stood. An instrument's fault,
+    not sprawl. The TERMS' read
+    (`keepable_regions`) keeps the voice: a court fighting for its life
+    keeps at a peace only what it declared. Pure, end-of-run, read by no
+    rule of play. Down: the read before — the voice."""
+    return True
+
+
+def _house_aims(world, nation: str, *, authored: bool = False) -> set:
     """Every province of the authored acquire designs of `nation`'s HOUSE
     (its top overlord's deck — a client's own deck is dormant, it holds
     for its lord), reconciled provinces stripped (`agendas.acquire_design_
-    regions`). The authored aims, whatever design is active now."""
+    regions`). The authored aims, whatever design is active now.
+    `authored` reads the deck as written for a house under the survival
+    override (the gate's read; the terms keep the voice)."""
     from backend.game_logic.agendas import acquire_design_regions
     house = world._top_overlord(nation) or nation
     aims = set()
-    for regions in acquire_design_regions(world, house):
+    for regions in acquire_design_regions(world, house, authored=authored):
         aims.update(str(r) for r in regions)
     return aims
 
@@ -1042,7 +1063,8 @@ def annexations_outside_aim(world) -> Dict[str, List[str]]:
             if rec.get("kind") == TITLE_TREATY and not rec.get("retained"):
                 continue
             if aims is None:
-                aims = _house_aims(world, court)
+                aims = _house_aims(world, court,
+                                   authored=the_gate_reads_the_authored_aims())
             if region_name in aims:
                 continue
             out.setdefault(court, []).append(str(region_name))

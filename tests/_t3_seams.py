@@ -223,6 +223,14 @@ prior tree's reading byte for byte.
           the DD-1 fuzzer's catch: a client called to its lord's defence
           joins no war against a client of a lord it is at peace with;
           down: neutral Switzerland joins against Britain's client.
+    G5-RALLY `diplomacy.a_client_rallies_against_the_house` — session G5:
+          where her lord already fights that house the client takes up his
+          war with it and then marches on its client; down: session G4 —
+          she stays out of her lord's defence.
+    G5-AIMS  `war_council.the_gate_reads_the_authored_aims` — the gate's
+          annexation read counts a house's AUTHORED aims though it stands
+          under the survival override; an instrument's read, no rule of
+          play; down: the design voice (a court under the knife has none).
 
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
@@ -381,6 +389,12 @@ T3_SEAMS_BY_ROW = {
     ],
     "G4-HOUSE": [
         "backend.game_logic.diplomacy:a_client_joins_no_war_against_a_house_at_peace=False",
+    ],
+    "G5-RALLY": [
+        "backend.game_logic.diplomacy:a_client_rallies_against_the_house=False",
+    ],
+    "G5-AIMS": [
+        "backend.game_logic.war_council:the_gate_reads_the_authored_aims=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

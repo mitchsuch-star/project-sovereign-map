@@ -169,6 +169,7 @@ default (§7); the deploy gate; no cuts without consent.
 | **G2** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §208; the landing record §7b) | **The played campaign** (the user's "fix and playtest … play well see derivations see dynamism test like humna" — a session the plan did not hold, opened by the review of the arc): a France played by hand on a fresh seed, and what it found fixed at the cause — the king's carry on the separate peace, the war names the beaten, a court at `fight` still asks, the ladder outlasts the rest, a backed design dares; the marshals' side and the screens. Arms: 0 / ASK / LADDER / ALL. | nothing to rule — drafted in Plan Mode and approved | one |
 | **G3** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §209; the landing record §7c) | **A client swears no pact of its own** (the user's "Rule on clients first", then "make best cal for game" — session G2's open reading (a), ruled under the delegation): a client's foreign policy is its lord's — no defensive alliance or alliance is proposed to or from a court that answers to a lord, every court alike; the Vassals card says it. Arms: 0 / CLIENT. | the ruling itself — delegated, drafted in Plan Mode and approved | one |
 | **G4** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §210; the landing record §7d) | **The open readings, ruled and built** (the user's "evaluate options choose the best", then "and decide and do these" — session G3's three readings and the rest of session G2's list, fourteen rulings in one plan): a nation proclaimed on what it holds at its authored bar (Italy at three of five, Rome first), an ally's soil is not won, a pact lapses at the vassalage, a backer is no menace, the people drive out a foreign king, a commission reads the arming ceiling, the Emperor's ally takes no separate peace while it wins, no guns from a sanctuary, a bandwagoner joins a neighbour's war, a client joins no war against a house it is at peace with; the dispatch, the crown row and the chip. Arms: 0 / FORM / WON / LAPSE / REAR / CEILING / ALLY / GUNS / WAGON / HOUSE / ALL. | the rulings themselves — delegated, drafted in Plan Mode and approved | one |
+| **G5** ✅ LANDED November 11, 2026 (`SYSTEMS_REFERENCE.md` §211; the landing record §7e) | **A client rallies against the house** (the user's "do what you deem best then tell me what next" at session G4's close — its five readings ruled under the delegation): the commission ceiling, the band and Italy's numbers stand; the neutral client is re-cut — where her lord already fights the aggressor's house a client takes up his war with it and marches on its client, and stays out only where her lord is at peace with that house; the gate's annexation read counts a house's authored aims though it stands under the knife (the sweep's catch). Arms: 0 / RALLY / ALL. | nothing new to rule — the delegation | one |
 | **H** | **S15 the deploy:** the gate checks, the build, the clean-environment run, the release record. Signing waits on the user's certificate. | the user's own walk | — |
 
 **Seven sessions (A–G) where the count read twelve to thirteen.** Two named places it may
@@ -1576,6 +1577,99 @@ and with it a cast minor that arms to twice its limit;
 on friedland; on the harness's lodi an uncalled Holland drifts and rises;
 (e) **the older sessions' readings** (C to G) were not in this session's list and stand.
 
+*(RULED November 11, 2026 — session G5, §7e, under the user's "do what you deem best then tell me what next": (a), (b) and (c) stand as shipped; (d) is re-cut — a client takes up her lord's war with the house and rallies; (e) stands open, none built.)*
+
+
+### §7e A client rallies against the house — session G5's landing record (✅ LANDED November 11, 2026)
+
+**The user's word**, at session G4's close, to the five readings left with him: *"do what you deem best then tell me
+what next."* A delegation; the rulings are the author's under it. The rules in full: `SYSTEMS_REFERENCE.md` §211; the
+pins `tests/test_session_g5_a_client_rallies.py`; the seams `tests/_t3_seams.py` rows G5-RALLY and G5-AIMS.
+
+**Ruled, nothing built — four of session G4's five readings:**
+- **(a) the commission ceiling stands.** It bites where it was built to bite (a cast minor already at one and a half
+  times its force limit adding a general past it). Dropping it buys back a promotion and a minor armed to twice its
+  limit with it. (The rally's world-line brings marengo's promotion back by itself — below.)
+- **(b) the band stands at 26 / 26 / 25**, inside 23–28: the price of an ally who no longer hands back the capital
+  the Emperor is besieging, and of guns that no longer fire from neutral ground.
+- **(c) Italy's numbers stand** — three of five, Rome then Naples. Played on five seeds she proclaims on three and
+  loses the war for Rome on two: reachable, and not given.
+- **(e) the older sessions' readings (C to G) stand open.** Each is a content lever, not a defect; none blocks the
+  deploy; none is built or cut here (§0).
+
+**Ruled and built — reading (d), the neutral client.** Session G4 closed the treaty fuzzer's I2 (a client at war
+with a court its lord is at peace with) by keeping a client at peace with the aggressor's lord OUT of her own lord's
+defence. Played on the real road — the bribe's transfer, `vassal._client_takes_the_field` — that reads badly:
+Britain buys Holland, Holland marches on France, the Emperor's ALLIES (Spain, Bavaria) fight her, and his own two
+clients stand by because neither had fought Britain. A turncoat with a foreign patron was safer than a plain rebel,
+whom the loyal clients do march on. The fault was the HALF war, not the rally.
+
+**The rule (`diplomacy.a_client_rallies_against_the_house`, row G5-RALLY; the read `_rally_against_the_house`, at
+the cascade's defensive auto-join behind session G4's read):** a client called to its lord's defence against a
+client of a FOREIGN lord it stands at peace with takes up its lord's war with that lord — her pair with the house
+attached to the LORD's own war instance with it, on his side — and then marches on the house's client as before.
+Three boundaries: where her lord is himself at peace with that house she stays out (no half-war — session G4's
+answer, kept); where the war record refuses the pair she stays out; an ALLY's policy is its own and is untouched
+(Bavaria answers the alliance against the client and keeps her peace with its lord — the fuzzer reads that clean,
+the bought client leading its own war). The way out is her lord's peace: the pairs she took up are among the client
+pairs that follow him out (`client_pairs_that_follow`; the offer surface already says "Our clients follow us out of
+the war"). The two seams nest: session G4's down is session G3's tree whatever this one reads. No new saved field,
+no new screen: the declaration's story gains a second line ("Switzerland follows France into the war against
+Britain!") and the campaign log a second `vassal_auto_join_war` row.
+
+**The gate's read — the sweep's catch (`war_council.the_gate_reads_the_authored_aims`, row G5-AIMS).** The first
+sweep read `annexations_outside_aim` 2 on marengo with the rally up — a deploy-gate number. Read to its cause before
+it was believed (a replay of both arms, the read's inputs side by side): the SAME two provinces (Milan, Piedmont),
+the same holder (Austria), the same conquest at turn 20 in her war with France stand on both arms. What differs is
+Austria's last turn: with the rally she ends on two of her seven homeland provinces, and a court under the survival
+override has no design VOICE — `agendas.acquire_design_regions` returns nothing — so the read called two provinces
+of her own authored Italian design "outside aim". An instrument's fault, not sprawl. The read now asks the deck AS
+WRITTEN (`acquire_design_regions(authored=True)`); sprawl is still counted under the knife (Bern, in no Austrian
+design, is). The TERMS' read (`keepable_regions`) keeps the voice: a court fighting for its life keeps at a peace
+only what it declared. The read is called by the instrument alone (nothing under `backend/` calls it), so the seam
+moves no world. It is behind its own switch and its own arm so the record shows both readings.
+
+**The session landed (the pins `TestTheSessionG5Measure`).** ONE sweep, three arms (0 / RALLY / ALL), three
+surfaces, run alone on the final tree (`tools/_g5_measure.py`); the series beside it (`tools/_g5_series_arms.py`).
+- **Arm 0 reproduces session G4's shipped arm byte for byte on both surfaces.** Arm RALLY on the final tree is the
+  first sweep's arm RALLY byte for byte (the seam down IS the read before).
+- **Ambient, arm RALLY moves six seeds.** On each a coalition court buys Switzerland from the idle France and she
+  marches on him — Austria on eylau, jena and rivoli (turn 14), Russia on historical (11) and marengo (19), Britain
+  on friedland (9) — and the client that had kept its peace with the buyer now rallies (Holland on five; the Kingdom
+  of Italy on friedland and marengo). **friedland:** the Kingdom of Italy, which sat out on session G4's tree and
+  lived, is erased at 23 — the roster reads two ways again, not three. **marengo:** Hesse's Grand Ducal Title at 39
+  — the promotion clause on TWO seeds again (lodi 33, marengo 39); Switzerland signs at the last with Austria at 34
+  and ends the forty turns free. Story classes **10 of 10 on every arm**; `captures_outside_aim` 266 → 290.
+- **Arm ALL (the gate's read) moves one number and no world:** marengo's `annexations_outside_aim` 2 → 0; the
+  signature's every other key, the census and the story class are arm RALLY's; the harness arm is byte-identical.
+- **The AI-France harness:** lodi alone moves — Holland is called against the bought Swiss again, does not drift
+  and rise at 32 (no United Netherlands), and France ends at 46, not 38. `annexations_outside_aim` 0 on every arm;
+  no promotion, no crown.
+- **The band: 26 / 26 / 25 on every arm. The series does not move**; on the rig the rule's occasion arises once and
+  the rally bites once.
+
+**The gate (§7), read off arm ALL:** clause 1 MET (10 of 10); clause 2 MET on two seeds (Hesse on lodi at 33 and on
+marengo at 39); clause 3 MET in two readings ({Kingdom of Italy} on eight seeds, {Kingdom of Italy, Papal States} on
+jena and wagram); `annexations_outside_aim` 0 on both surfaces — on the ambient record by the corrected read (the
+voice's read counts 2 on marengo: arm RALLY, kept in the record); the band inside 23–28.
+
+**Played before the sweep** (session G4's lesson, kept): the bribe's own road on the booted board with Holland
+bought and with Switzerland bought — the fuzzer's invariants clean with the rally up, down, and with session G4's
+seam down; the declared-war road; the way out (France's peace with Britain carries the five pairs); the treaty
+fuzzer's two seeds; the full suite once (39,480 passed) before the first sweep.
+
+**For the user, none pre-recommended (§0):**
+(a) **Switzerland is bought on six of ten unattended seeds** (Austria, Russia or Britain, turns 9 to 19). The idle
+France answers no petition and pays no court; a commanded France keeps her on all three band arms. The rally makes
+each purchase a wider war — the rule working; whether the bribe's price or reach wants a second look is a content
+question;
+(b) **friedland's Kingdom of Italy falls again** — the roster two ways, not three; the clause reads MET either way;
+(c) **the gate's read was corrected in the session that tripped it** — the cause is above and the old read is one
+switch away (`G5-AIMS`); on it marengo counts 2 and the rally is the rule to weigh;
+(d) **an ally of the attacked lord** still answers against the bought client alone and keeps her peace with its
+lord — an ally's policy is its own;
+(e) **the older sessions' readings** (C to G) stand open.
+
 
 ---
 
@@ -1629,6 +1723,8 @@ on friedland; on the harness's lodi an uncalled Holland drifts and rises;
 | G4-WAGON | the open readings — ✅ LANDED (session G4) | a bandwagoner joins a neighbour's war (§7d): `war_council.a_bandwagoner_joins_a_neighbours_war` — `bandwagon_in_reach` in `_bandwagon_join` | reach is the house's frontier; the join itself — **measured:** ambient jena; the harness two | `TestABandwagonerJoinsANeighboursWar` |
 | G4-KING | the open readings — ✅ LANDED (session G4) | the people drive out a foreign king (§7d): `crowns.the_people_drive_out_a_foreign_king` — `king_at_the_rebellion` at `check_vassal_rebellion`; `enthrone` reads `marshal_free_to_reign` | his people rise and he comes home; his court turns and he keeps the crown; the words; a king named in the treaty is seated though his laurels fade — **measured:** no seed moves (no crown on a measured arm) | `TestThePeopleDriveOutAForeignKing` |
 | G4-HOUSE | the open readings — ✅ LANDED (session G4) | a client joins no war against a client of a house it is at peace with (§7d): `diplomacy.a_client_joins_no_war_against_a_house_at_peace` — `client_keeps_its_peace_with_the_house` at the cascade's defensive auto-join | the boot fact; the read (a rebel of her own house excluded); the neutral client stays out — **measured:** ambient friedland and historical; the harness lodi; the fuzzer's two seeds clean | `TestAClientKeepsItsPeaceWithAHouse` |
+| G5-RALLY | the readings' close — ✅ LANDED November 11, 2026 (session G5) | a client rallies against the house (§7e): `diplomacy.a_client_rallies_against_the_house` — `_rally_against_the_house` at the cascade's defensive auto-join, behind session G4's read | the bought client marched on by the clients it left (both roads); her pair on the lord's own war, beside him; the way out; the words; the seam down; her lord at peace with the house; the record refusing; an ally's policy its own — **measured:** six ambient seeds, the harness lodi; the fuzzer's two seeds clean | `TestAClientRalliesAgainstTheHouse`, `TestWhereSheStillStaysOut` |
+| G5-AIMS | the gate's read — ✅ LANDED (session G5) | the annexation read counts a house's authored aims under the survival override (§7e): `war_council.the_gate_reads_the_authored_aims` — `_house_aims(authored=True)` in `annexations_outside_aim`; the terms keep the voice | under the knife the authored aims stay in the count; sprawl is still counted; the terms' read unchanged; no rule of play calls it — **measured:** marengo's 2 → 0, no world moves | `TestTheGateReadsTheAuthoredAims` |
 
 
 *(Amended November 9, 2026 by §2b: one commit and one review a SESSION; each rule keeps its own seam and its own arm of the session's one measure.)* Each slice: its own commit through the hook, the user's review after, Plan Mode at each

@@ -12142,6 +12142,54 @@ def client_keeps_its_peace_with_the_house(world, joiner: str, aggressor: str) ->
                 and not world.is_at_war(joiner, house))
 
 
+def a_client_rallies_against_the_house() -> bool:
+    """Session G5 (DYNAMISM_SPEC.md §7e, November 11, 2026 — the user's "do
+    what you deem best", on session G4's open reading (d)): session G4 kept
+    a client at peace with the aggressor's lord OUT of her own lord's
+    defence. That closed the fuzzer's I2 and left a turncoat with a foreign
+    patron safer than a plain rebel: Britain buys Switzerland, she marches
+    on France, and the Kingdom of Italy next door stands by because it never
+    fought Britain. The fault was the HALF war, not the rally. Where her
+    lord already fights that house she takes up his war with it — her pair
+    with the house on HIS war instance, beside him — and then marches on its
+    client as before. Where her lord is at peace with the house she still
+    stays out (no half-war). Down: session G4's tree — she stays out."""
+    return True
+
+
+def _rally_against_the_house(world, joiner: str, lord: str, aggressor: str,
+                             attach, cascade: List[Dict]) -> bool:
+    """Put `joiner` at war with the aggressor's lord, beside her own. True
+    when she now fights the house (the cascade then writes her pair with its
+    client); False when she stays out — the seam down, her lord at peace
+    with the house, or the war instance refusing the pair. `attach` is the
+    cascade's own pair writer, the fallback where the lord's war with the
+    house carries no instance (a records-less board)."""
+    if not a_client_rallies_against_the_house():
+        return False
+    house = str(world._top_overlord(aggressor) or aggressor)
+    if not world.is_at_war(lord, house):
+        return False
+    from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
+    war_id = _find_active_war_instance_for_pair(world, world._make_diplo_key(lord, house))
+    if war_id:
+        sides = (world.war_instances.get(war_id) or {}).get("side_by_nation") or {}
+        first, second = ((joiner, house) if sides.get(lord) == "attackers"
+                         else (house, joiner))
+        result = attach_pair_to_war_instance(
+            world, war_id, first, second, entry_path="vassal_defensive_auto_join")
+    else:
+        result = attach(house, joiner, "vassal_defensive_auto_join")
+    if not result.get("ok"):
+        return False
+    set_diplomatic_state(world, joiner, house, "WAR", "vassal_auto_join")
+    cascade.append({"vassal": joiner, "lord": lord, "target": house,
+                    "cascade_type": "vassal_defensive_auto_join"})
+    world.log_event({"type": "vassal_auto_join_war", "vassal": joiner,
+                     "lord": lord, "against": house})
+    return True
+
+
 def _process_war_cascade(
     world,
     aggressor: str,
@@ -12598,7 +12646,9 @@ def _process_war_cascade(
                     continue
 
         if lord == target and not world.is_at_war(vassal_nation, aggressor):
-            if client_keeps_its_peace_with_the_house(world, vassal_nation, aggressor):
+            if (client_keeps_its_peace_with_the_house(world, vassal_nation, aggressor)
+                    and not _rally_against_the_house(world, vassal_nation, lord, aggressor,
+                                                     _attach_cascade_pair, cascade)):
                 continue    # session G4: her peace with the aggressor's lord holds
             attach_result = _attach_cascade_pair(aggressor, vassal_nation, "vassal_defensive_auto_join")
             if not attach_result.get("ok"):

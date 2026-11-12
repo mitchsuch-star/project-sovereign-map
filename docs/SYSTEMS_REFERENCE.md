@@ -16113,3 +16113,70 @@ the fuzzer) — so play the rules out BEFORE the sweep, not during it; the treat
 and a world-line shift can reach a latent class (bisect by holding each seam down); `TaskStop` on a sweep left no
 orphans this time, a stopped commit hook does; the glory window slides while a treaty is negotiated; the ambient
 `_dy_signature_g4_2026_11_11.json` is not matched by the glob `_dy_signature_g4_*_2026_11_11.json`.
+
+## §211 Session G5 — a client rallies against the house (November 11, 2026)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session G5, §7e the landing record). The user's word at session G4's close,
+to the five readings left with him: *"do what you deem best then tell me what next."* Four stand as shipped (the
+commission ceiling; the band at 26 / 26 / 25; Italy's three of five, Rome then Naples; the older sessions' readings,
+open). One is re-cut — the neutral client — and the sweep that measured it caught a fault in the gate's own read.
+Two seams (`tests/_t3_seams.py` rows G5-RALLY, G5-AIMS), no new saved field, no new screen.
+
+**G5-RALLY — a client rallies against the house (`diplomacy.a_client_rallies_against_the_house`).** Session G4's
+rule (`a_client_joins_no_war_against_a_house_at_peace`) kept a client at peace with the aggressor's lord out of her
+own lord's defence, to close the treaty fuzzer's I2. On the bribe's own road (`vassal._client_takes_the_field`) that
+left the Emperor's allies fighting a bought Holland while his two remaining clients stood by. Now
+`_rally_against_the_house(world, joiner, lord, aggressor, attach, cascade)` runs behind session G4's read
+(`client_keeps_its_peace_with_the_house`) at the cascade's defensive auto-join (`_process_war_cascade`):
+- where the lord is at war with the aggressor's house, the joiner's pair with the HOUSE is attached to the lord's own
+  war instance with it (`_find_active_war_instance_for_pair` on the lord–house pair; oriented by the lord's side;
+  `attach_pair_to_war_instance` seats her opposite the house), the state set through `set_diplomatic_state(…,
+  "vassal_auto_join")`, a cascade row and a `vassal_auto_join_war` event written with `against` the house — and the
+  cascade then writes her pair with the house's client exactly as before;
+- where the lord is at peace with that house, or the war record refuses the pair, she stays out (session G4's
+  answer); a board without war records falls back to the cascade's own pair writer;
+- an ally's branch is untouched (an ally's policy is its own; the fuzzer reads a bought client's pairs clean because
+  it leads its own war instance);
+- the way out is the lord's peace: the pairs are among `client_pairs_that_follow`.
+The seams nest — session G4's down is session G3's half war whatever this one reads.
+
+**G5-AIMS — the gate's read counts the authored aims (`war_council.the_gate_reads_the_authored_aims`).**
+`annexations_outside_aim` read a holder's aims through `_house_aims` → `agendas.acquire_design_regions`, which is
+gated on the design VOICE: a court under the survival override (capital lost, or most of its homeland) returns no
+designs. A province of the holder's own authored design, held by title, therefore counted as "outside aim" the turn
+the holder fell under the knife. `acquire_design_regions(world, nation, *, authored=False)` and
+`_house_aims(world, nation, *, authored=False)` now carry the deck-as-written read, and the count asks for it. The
+terms' read (`keepable_regions`) keeps the voice. Nothing under `backend/` calls `annexations_outside_aim` — it is
+the instrument's (`tools/ai_v_sweep.py`'s final capture) — so the seam moves no world.
+
+**The measure** (`tools/_g5_measure.py`, three arms 0 / RALLY / ALL on three surfaces, run alone on the final tree;
+`tools/_g5_series_arms.py`; records `_dy_signature_g5_{control,rally,}_2026_11_11.json`, the three censuses
+`_g5_{control_,rally_,}census_2026_11_11.json`, `_g5_chain_d_2026_11_11.json`, `_g5_band_2026_11_11.json`,
+`_g5_series_arms_final.json`). **Arm 0 reproduces session G4's shipped arm byte for byte on both surfaces.**
+**Ambient:** RALLY moves six seeds — a coalition court buys Switzerland from the idle France (Austria on eylau, jena
+and rivoli at 14; Russia on historical at 11 and marengo at 19; Britain on friedland at 9) and the client at peace
+with the buyer rallies (Holland on five, the Kingdom of Italy on friedland and marengo); friedland's Kingdom of Italy
+is erased at 23 (it lived on session G4's tree); marengo's Hesse takes the Grand Ducal Title at 39. Story classes 10
+of 10 on every arm; `captures_outside_aim` 266 → 290. **ALL moves one number and no world:** marengo's
+`annexations_outside_aim` 2 → 0. **The harness:** lodi alone moves (Holland stays loyal; France 38 → 46; no United
+Netherlands); `annexations_outside_aim` 0 on every arm; arm ALL is arm RALLY byte for byte. **The band:** 26 / 26 /
+25 on every arm (France holds all three clients at turn 40 on each). **The series does not move**; on the rig the
+rule's occasion arises once and the rally bites once.
+
+**The gate (`DYNAMISM_SPEC.md` §7), read off arm ALL:** clause 1 MET (10 of 10); clause 2 MET on two seeds (Hesse on
+lodi at 33, on marengo at 39); clause 3 MET in two readings ({Kingdom of Italy} on eight seeds, {Kingdom of Italy,
+Papal States} on jena and wagram); `annexations_outside_aim` 0 on both surfaces (the ambient by the corrected read —
+the voice's read counts 2 on marengo, arm RALLY); the band inside 23–28.
+
+**Pins:** `tests/test_session_g5_a_client_rallies.py` (`TestAClientRalliesAgainstTheHouse`,
+`TestWhereSheStillStaysOut`, `TestTheGateReadsTheAuthoredAims`, `TestTheSeam`, `TestTheSessionG5Measure`). Session
+G4's own pin for the neutral client (`test_the_neutral_client_stays_out_and_the_belligerent_one_marches`) reads its
+own tree with G5-RALLY held down.
+
+**Traps the session paid for:** a gate number that moves is read to its cause before it is believed — replay both
+arms and put the read's inputs side by side (here: the same provinces, holder and conquest turn on both arms; only
+the holder's survival state differed); a read "of the authored aims" that passes through a voice gate is not that;
+the three-arm sweep on three surfaces takes about seven minutes on this machine — re-run it whole on the final tree
+rather than reason about which arms an edit could move; a rule that removes a war pair to keep an invariant has a
+sibling that completes the war instead — play the real road (`_client_takes_the_field`), not only the declared-war
+board, before choosing; `( cmd & )` inside a shell loop is not waited on by `wait`.

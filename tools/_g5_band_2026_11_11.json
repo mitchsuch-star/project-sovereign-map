@@ -1,0 +1,68 @@
+{
+ "_note": "Session G5 (a client rallies against the house) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row; written by tools/_g5_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.diplomacy:a_client_rallies_against_the_house=False",
+    "backend.game_logic.war_council:the_gate_reads_the_authored_aims=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": []
+  },
+  "RALLY": {
+   "CMD-A": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.war_council:the_gate_reads_the_authored_aims=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

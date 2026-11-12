@@ -703,7 +703,8 @@ def _satisfied_views(world, nation: str) -> List[AgendaView]:
     ]
 
 
-def acquire_design_regions(world, nation: str) -> List[List[str]]:
+def acquire_design_regions(world, nation: str, *,
+                           authored: bool = False) -> List[List[str]]:
     """T3-4 (§13.2 R5, the terms): every ACQUIRE design in the court's
     deck as the provinces it pursues (`_entry_regions` — an emergent
     design's signed-away provinces stripped while the treaty holds), in
@@ -713,10 +714,13 @@ def acquire_design_regions(world, nation: str) -> List[List[str]]:
     winning it is exactly what the court sues to lock.
 
     Gated exactly like `_satisfied_views` — a vassalized, eliminated, or
-    survival-overridden court has no design voice. Pure."""
+    survival-overridden court has no design voice. `authored` (session G5)
+    reads the deck AS WRITTEN for a court under the knife: the gate's
+    annexation read asks what a house was authored to want, which does not
+    lapse the turn its capital falls. Pure."""
     if _is_vassal(world, nation) or nation not in world.get_active_nations():
         return []
-    if survival_override_active(world, nation):
+    if not authored and survival_override_active(world, nation):
         return []
     out: List[List[str]] = []
     for entry in ((getattr(world, "agendas", {}) or {}).get(nation) or []):

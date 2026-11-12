@@ -977,7 +977,11 @@ class TestAClientKeepsItsPeaceWithAHouse:
         assert DI.client_keeps_its_peace_with_the_house(world, "KingdomOfItaly", "Switzerland") is False
         assert DI.client_keeps_its_peace_with_the_house(world, "Holland", "Switzerland") is False
 
-    def test_the_neutral_client_stays_out_and_the_belligerent_one_marches(self, world):
+    def test_the_neutral_client_stays_out_and_the_belligerent_one_marches(self, world, monkeypatch):
+        # Session G5 re-cut this rule (a client now takes up her lord's war
+        # with the house and rallies — `tests/test_session_g5_a_client_rallies.py`);
+        # this pin reads session G4's own tree, the later seam held down.
+        hold_down(monkeypatch, T3_SEAMS_BY_ROW["G5-RALLY"])
         _saxony_under_britain(world)
         with _quiet():
             result = DI.declare_war(world, "Saxony", "France")

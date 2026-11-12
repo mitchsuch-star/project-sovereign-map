@@ -1,6 +1,20 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G4 ✅ LANDED: THE
+> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G5 ✅ LANDED: A
+> CLIENT RALLIES AGAINST THE HOUSE** (`DYNAMISM_SPEC.md` §7e the landing record, §2b session G5, §8 rows G5-*;
+> `SYSTEMS_REFERENCE.md` §211; `tests/test_session_g5_a_client_rallies.py`; ONE sweep with three arms 0 / RALLY /
+> ALL on three surfaces, the series re-read). The user's "do what you deem best then tell me what next", to
+> session G4's five readings: the commission ceiling, the band and Italy's numbers STAND; the neutral client is
+> re-cut — where her lord already fights the aggressor's house a client takes up his war with it and marches on
+> its client (`diplomacy.a_client_rallies_against_the_house`), staying out only where her lord is at peace with
+> that house; and the sweep's catch — the gate's annexation read counts a house's AUTHORED aims though it stands
+> under the survival override (`war_council.the_gate_reads_the_authored_aims`; marengo read 2 on the voice, 0 as
+> authored). **Measured:** arm 0 == session G4 byte for byte on both surfaces; the rally moves six ambient seeds
+> and the harness's lodi; classes 10 of 10; **the promotion clause MET on TWO seeds again (lodi 33, marengo
+> 39)**; the roster in TWO readings (friedland's kingdom falls again); annexations 0 on both surfaces; **the band
+> 26 / 26 / 25**; the series unmoved.
+>
+> The session before it: **November 11, 2026 — SESSION G4 ✅ LANDED: THE
 > OPEN READINGS, RULED AND BUILT** (`DYNAMISM_SPEC.md` §7d the landing record, §2b session G4, §8 rows G4-*;
 > `SYSTEMS_REFERENCE.md` §210; `tests/test_session_g4_the_open_readings.py`; ONE sweep with eleven arms 0 / FORM /
 > WON / LAPSE / REAR / CEILING / ALLY / GUNS / WAGON / HOUSE / ALL on three surfaces, the series re-read; drafted in
@@ -17,7 +31,7 @@
 > readings; annexations 0 on both surfaces; **the band 26 / 26 / 25** (28 / 27 / 25 before ALLY and GUNS); the
 > series unmoved.
 >
-> The session before it: **November 11, 2026 — SESSION G3 ✅ LANDED: A
+> Before that: **November 11, 2026 — SESSION G3 ✅ LANDED: A
 > CLIENT SWEARS NO PACT OF ITS OWN** (`DYNAMISM_SPEC.md` §7c the landing record, §2b session G3, §8 row G3-CLIENT;
 > `SYSTEMS_REFERENCE.md` §209; `tests/test_session_g3_a_client_swears_no_pact.py`; ONE sweep with two arms 0 /
 > CLIENT on three surfaces, the series re-read; drafted in Plan Mode and approved). The user's "Rule on clients
@@ -81,12 +95,13 @@
 **NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
-(`_dy_signature_g4_2026_11_11.json`, session G4's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
-lodi 33, ONE seed (`_g4_census_2026_11_11.json` `rank_promotions`); the roster varying — three readings: jena's
-and wagram's {Kingdom of Italy, Papal States}, friedland's nobody, {Kingdom of Italy} on seven (the signature's
-`eliminations`); `annexations_outside_aim` 0 on the AMBIENT record (`_g4_census_2026_11_11.json`) and 0 on the
-AI-France harness (`_g4_chain_d_2026_11_11.json` arm ALL), reported, never gated; the France band 23–28 — 26 / 26
-/ 25 (`_g4_band_2026_11_11.json`);
+(`_dy_signature_g5_2026_11_11.json`, session G5's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
+lodi 33 and marengo 39, TWO seeds (`_g5_census_2026_11_11.json` `rank_promotions`); the roster varying — two
+readings: jena's and wagram's {Kingdom of Italy, Papal States}, {Kingdom of Italy} on eight (the signature's
+`eliminations`); `annexations_outside_aim` 0 on the AMBIENT record (`_g5_census_2026_11_11.json` — by session G5's
+corrected read; the old read counts 2 on marengo, `_g5_rally_census_2026_11_11.json`) and 0 on the AI-France
+harness (`_g5_chain_d_2026_11_11.json` arm ALL), reported, never gated; the France band 23–28 — 26 / 26 / 25
+(`_g5_band_2026_11_11.json`);
 the historian test green on every seed (the suite's pins); the ratchet (`tests/test_code_health_ratchet.py`); the
 parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until the certificate arrives
 (`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing on this machine — no signtool, no
@@ -94,12 +109,21 @@ certificate in either store; the day it arrives, `INK_IRON_SIGNTOOL_ARGS` / `SIG
 **(3) the clean-environment run** (a fresh clone, the venv from `requirements`, the hook installed with `Copy-Item
 scripts/git-hooks/pre-commit .git/hooks/pre-commit`, the backend as `-m backend.main`, the client from the export, one
 forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`); **(4) the release record** (the commit SHA, the gate's
-readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §210,
+readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §211,
 `STATUS.md`). **After the deploy** (`PRE_DEPLOY_PLAN.md` §2; no cuts without consent, spec §0): S14k-3 (Spain alone),
 S16, S17c.
 
 **The commit:** session H's commits are the user's walk's — the release record and any gate fix each its own commit
 through the hook (about 10 minutes; never `--no-verify`); push only on the user's word.
+
+**Session G5's own traps (fresh):** a gate number that moves is READ TO ITS CAUSE before it is believed — replay
+both arms and put the read's inputs side by side (marengo's 2 was the instrument: a court under the survival
+override has no design voice, so `_house_aims` read empty; `authored=True` is the deck as written); the three-arm
+sweep on three surfaces takes about seven minutes — re-run it WHOLE on the final tree; a rule that removes a war
+pair to keep an invariant has a sibling that completes the war instead — play the real road
+(`vassal._client_takes_the_field`) before choosing; session G4's own neutral-client pin holds G5-RALLY down; an
+ally's branch of the cascade is untouched (the fuzzer exempts a bought client's pairs — it leads its own war);
+`( cmd & )` in a shell loop is not waited on by `wait`; STATUS holds 7 "▶ ▶ ▶" entries (session D archived).
 
 **Session G4's own traps (fresh):** PLAY THE RULES OUT BEFORE THE SWEEP — three restarts here, each for a
 fix the played checks found mid-measure (a freed Italy aimed at France, not Rome; a king's laurels fading before
@@ -173,9 +197,10 @@ measure's four arms with ten harness seeds each ran 28 minutes alone, the series
 copies (`git show 90bada87:docs/NEXT_SESSION_PROMPT.md` for session D's, `git show 2589f3c1:docs/NEXT_SESSION_PROMPT.md`
 for session C's, `git show 93f82fb2:docs/NEXT_SESSION_PROMPT.md` for the earlier), every one still binding.
 
-**Open with the user beyond session H's head (none blocks the deploy):** session G4's readings
-(`DYNAMISM_SPEC.md` §7d — the commission ceiling against marengo's crown; the band at 26 / 26 / 25; Italy's
-numbers; the neutral client's reach); session G3's three and session G2's list are RULED (§7d); session G's four
+**Open with the user beyond session H's head (none blocks the deploy):** session G5's readings
+(`DYNAMISM_SPEC.md` §7e — Switzerland bought on six unattended seeds; friedland's kingdom falls again; the gate's
+read corrected in the session that tripped it; the ally's branch); session G4's five are RULED (§7e), session
+G3's three and session G2's list are RULED (§7d); session G's four
 readings above; session F's three levers (`DYNAMISM_SPEC.md` §6c); session E's four readings (`DYNAMISM_SPEC.md` §6b); session D's three
 (the letter's floor; the levée's reach; the dial's ambient road); session C's five (the march does not visibly bleed
 — the ulcer's teeth; the letters' seat at the desk; the bands' pace; the raised gate's clauses 2 and 3; the pacing
