@@ -773,6 +773,10 @@ fix slice. **Nothing deploys over an open UXR-4 no.**
 
 - No visual redesign. The theme, the palette, the fonts and the war-table
   pieces stand (the July foundation sweep and its sign-offs).
+  **Superseded November 11, 2026 by the user's word** ("MAKE THE UI AND UX LOOK BETTER"): Session UI
+  re-skinned every window (one drawn gilt frame, the title face, the primary button), laid the map on a
+  leather desk and dressed the books as cards — same boxes, the same words; the record is
+  `UI_VISUAL_FOUNDATION_SPEC.md` §9, and the UXR-4 walk at the deploy is the user's first look at it.
 - No new screens beyond the first-run sizing card.
 - No change to what the backend says; a row about COPY goes to the narration
   or command pillar's owner, not here.

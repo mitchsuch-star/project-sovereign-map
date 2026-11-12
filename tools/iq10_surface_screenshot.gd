@@ -1023,7 +1023,9 @@ func _collect_texts() -> Array:
 
 # ── the readability census (UXR-0) ──────────────────────────────────────────
 
-const _CAPTION_VARIATIONS := ["Caption", "CaptionRich", "CaptionButton"]
+# Session UI (November 11, 2026): the war room's panel title (`HudTitle`) and
+# the primary button's caption step (`PrimaryCaptionButton`) are 14 px steps.
+const _CAPTION_VARIATIONS := ["Caption", "CaptionRich", "CaptionButton", "HudTitle", "PrimaryCaptionButton"]
 var _glyph_cache: Dictionary = {}
 
 
@@ -1589,6 +1591,11 @@ func _draws(c: Control) -> bool:
 			var f := sb as StyleBoxFlat
 			var border := f.border_width_left + f.border_width_right + f.border_width_top + f.border_width_bottom
 			return f.bg_color.a > 0.02 or (border > 0 and f.border_color.a > 0.02)
+		# Session UI (November 11, 2026): the gilt frame (`scripts/gilt_frame.gd`,
+		# a scripted StyleBox) keeps StyleBoxFlat's property names; it always
+		# draws its rule, so it paints wherever its fill or its tone shows.
+		if "bg_color" in sb and "border_color" in sb:
+			return (sb.get("bg_color") as Color).a > 0.02 or (sb.get("border_color") as Color).a > 0.02
 		return true
 	return false
 

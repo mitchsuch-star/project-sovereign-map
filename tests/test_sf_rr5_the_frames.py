@@ -628,15 +628,21 @@ class TestEAE3TheBlockadeBorderIsCrimson:
 
 class TestEAE7TheFiligreeStandsOffTheText:
     """CLOSED by its reproduction: UXR3-F4 (Pre-Deploy S12 part 2) set the
-    Generals' corners in the bottom padding band."""
+    Generals' corners in the bottom padding band. Session UI (November 11,
+    2026): the two filigree corners are retired — the gilt frame has its own —
+    so EA-E7's rule holds on the driven frame by there being no ornament to
+    touch the reading window; the grip, the one corner control left, still
+    stands off it."""
 
     @pytest.mark.parametrize("scale", SCALES)
     def test_no_corner_touches_the_reading_window(self, record, scale):
         frame = _frame(record, "generals_boot", scale)
         window = next(t for t in frame["texts"] if t["path"].endswith("ContentArea"))["scroll_rect"]
-        corners = [g["rect"] for g in frame.get("grips") or [] if g["kind"] == "ornament"]
-        assert len(corners) == 2
-        assert not any(_overlap(window, c) for c in corners)
+        marks = frame.get("grips") or []
+        assert [g for g in marks if g["kind"] == "ornament"] == []
+        grips = [g["rect"] for g in marks if g["kind"] == "grip"]
+        assert len(grips) == 1
+        assert not any(_overlap(window, g) for g in grips)
 
 
 class TestTheAgendasC6ReShoot:

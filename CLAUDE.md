@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5 ✅ Nov 11 (§207–§211); next H the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI ✅ Nov 11 (§207–§212); next H the deploy**.
 
 **▶ LIVE STATE (Nov 11, 2026).** The three most recent rows:
+- **Session UI (Nov 11) — the gilt frame, the desk, the books as cards** (§212).
 - **Session G5 (Nov 11) — a client rallies to its lord; the gate's read** (§211).
 - **Session G4 (Nov 11) — the open readings ruled: Italy's bar, ten rules** (§210).
-- **Session G3 (Nov 11) — a client signs no alliance of its own** (§209).
 
 **Open with the user:** G5's readings (`DYNAMISM_SPEC.md` §7e), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
@@ -126,6 +126,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 |------|---------|
 | `utils.gd` | Shared color palette (COLOR_ consts + map-layer colors), NATION_COLORS (20-nation Europe set, Slice 7.5 re-authored), `display_nation_name()`/`humanize_nation_keys_in_text()` render-time key translation (July 2 UI Cleanup — R7 chokepoints), bbcode_color/format_number helpers (R15) |
 | `popup_base.gd` | Base class for modal popups: close_popup, _disable_all_buttons, _apply_standard_theme (R15) |
+| `gilt_frame.gd`, `gilt_rule.gd`, `card_underlay.gd` | Chrome kit (§212): drawn frame (ask `"border_color" in box`), rule, book cards |
 | `dialog_manager.gd` | Centralized dialog registry: register, get_dialog, is_any_modal_open, hide_all (R16) |
 | `api_client.gd` | Backend communication |
 | `game_manager.gd` | Game state coordination |
@@ -373,7 +374,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | **THE PLAN TO THE FINISH (routing authority from Sept 28, 2026)** — every open defect, every pillar, and how a pillar is scored | **`docs/SCORE_FINISH_SPEC.md`**: §3 the build order, §4 the instrument, Appendix A the checklist. To count the ledgers: `.venv/Scripts/python.exe tools/defect_census.py --open` |
 | **The Improvement Queue (row IQ) — landing records, rulings, dissents** | **`docs/IMPROVEMENT_QUEUE_SPEC.md`** — row IQ's OWNING SPEC. STATUS stays the ROUTING authority (which row is next); this holds the per-slice landing records, the crux ruling, the filed dissent and re-open condition, and the re-stated completion items. Slice ids are `IQ1-n` (the first two shipped as `SW-0`/`SW-1`, which collides with `SEASONS_WEATHER_SPEC.md`; the alias is recorded). |
 | **PLAYTEST / live-verify / evaluate the game (START HERE for any of those)** | **`docs/PLAYTESTING.md`** — Mode A `tools/playtest_driver.py` (in-process, seeded, popup-answering, digest output) is the default; Mode B live-HTTP (`SOVEREIGN_PORT`), Mode C client visual pass; fixtures in `tests/fixtures/playtest_saves/` |
-| **UI Visual Foundation Sweep (▶ NEXT — take slices UI-0→UI-3 in order)** | **`docs/UI_VISUAL_FOUNDATION_SPEC.md`** (queued July 12, 2026; assets in `assets/` + credits at repo-root `THIRD_PARTY_LICENSES.md`) |
+| UI chrome (U1–U6, Session UI) | `docs/UI_VISUAL_FOUNDATION_SPEC.md` §9 |
 | Wave 6 fun-factor build (✅ COMPLETE July 10, 2026) | `docs/WAVE6_FUN_FACTOR_SPEC.md` (§15 DoD; audit evidence in `docs/audits/CREATIVE_AUDIT_2026_07_10.md`) |
 | **Open bugs (consolidated)** | **`docs/BUG_FIXES.md`** |
 | **Row REV follow-ups (the Aug 30, 2026 review's open items)** | **`docs/REV_FOLLOWUPS.md`** — **ALL FOUR CLOSED**: three on Aug 31, 2026 (REV-V3 the rail census, REV-F1 the `battles_this_turn` wipe, REV-V4 both flow fixes staged and shot), and **UX23-R9 on Sept 1, 2026** — the bugles' fade, not their cap, was the lever. Landing records = `BUG_FIXES.md` §THE FOLLOW-UPS and §UX23-B |

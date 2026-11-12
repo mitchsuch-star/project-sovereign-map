@@ -742,6 +742,225 @@ const MAP_CAMP_WASH := Color(0.95, 0.66, 0.22, 0.30)         # the camp is count
 const MAP_CAMP_WASH_STAGED := Color(0.96, 0.50, 0.18, 0.44)  # the descent is staged
 const MAP_CAMP_TEXT := Color(0.96, 0.74, 0.40)               # "Descent camp: 46,500 men, 2 turns"
 
+# === The chrome kit (Session UI, November 11, 2026) ===
+# ONE frame, ONE rule, ONE tab strip, ONE card. Every window used to carry its
+# own StyleBoxFlat (a navy fill in a thick tan rounded border — thirty-four
+# copies of it) and three scripts each built their own tab styles. The frame
+# is `scripts/gilt_frame.gd` (a scripted StyleBox: vector, crisp at every
+# Interface Scale); scenes name it as a sub_resource, code builds it through
+# `gilt_frame()` below. docs/UI_VISUAL_FOUNDATION_SPEC.md §9 is the record.
+const GILT_FRAME := preload("res://scripts/gilt_frame.gd")
+const CARD_UNDERLAY := preload("res://scripts/card_underlay.gd")
+# The frame's weights (gilt_frame.gd `Weight`): screens and popups; panels that
+# live over the map; the smallest chrome.
+const FRAME_WINDOW := 0
+const FRAME_HUD := 1
+const FRAME_HAIRLINE := 2
+const UI_LEATHER := "res://assets/textures/fabric_leather_01_diff_1k.jpg"
+# The command window's leather, as the theme's PanelContainer tints it.
+const UI_LEATHER_TINT := Color(0.24, 0.27, 0.46, 0.96)
+# The words on a gilt-filled (primary) button.
+const UI_INK_NAVY := Color(0.07, 0.085, 0.14, 1.0)
+# The war room's strip: deeper than a panel, so the map's colours read against it.
+const UI_STRIP_BG := Color(0.043, 0.055, 0.094, 0.97)
+# The desk the map lies on (the leather's own brown, darkened).
+const UI_DESK_TINT := Color(0.34, 0.235, 0.15, 1.0)
+
+
+static func gilt_frame(fill: Color = UI_POPUP_BG, tone: Color = UI_GOLD,
+		weight: int = FRAME_WINDOW, margin: float = 24.0) -> StyleBox:
+	"""The game's window chrome for a panel built in code: its fill, its tone
+	(the gilt, or a surface's own amber / crimson), its weight, and one content
+	margin on every side (set the four apart on the box when they differ)."""
+	var frame: StyleBox = GILT_FRAME.new()
+	frame.set("bg_color", fill)
+	frame.set("border_color", tone)
+	frame.set("weight", weight)
+	frame.set_content_margin_all(margin)
+	return frame
+
+
+static func leather_frame(weight: int = FRAME_HUD, margin: float = 12.0) -> StyleBox:
+	"""The HUD's panel: the theme's leather inside a gilt frame."""
+	var frame := gilt_frame(Color(0.07, 0.075, 0.12, 1.0), UI_GOLD, weight, margin)
+	frame.set("texture", load(UI_LEATHER))
+	frame.set("texture_modulate", UI_LEATHER_TINT)
+	frame.set("wash", 0.12)
+	return frame
+
+
+static func frame_thickness(box: StyleBox) -> float:
+	"""How far a gilt frame reaches in from its panel's edge (0 for any other
+	box) — what a corner control, the resize grip's hatch, must clear."""
+	if box != null and box.has_method("thickness"):
+		return float(box.call("thickness"))
+	return 0.0
+
+
+static func tab_styles(margin_h: float = 6.0, margin_v: float = 3.0) -> Dictionary:
+	"""ONE tab strip — {normal, hover, pressed, active}. A closed book is its
+	words alone; the pointer lifts a faint ground under it; the open book
+	stands on a gilt underline over the same ground. The margins are the
+	caller's own (a strip's buttons keep the size they had)."""
+	var normal := StyleBoxFlat.new()
+	normal.draw_center = false
+	var hover := StyleBoxFlat.new()
+	hover.bg_color = Color(UI_GOLD, 0.08)
+	var pressed := StyleBoxFlat.new()
+	pressed.bg_color = Color(UI_GOLD, 0.04)
+	var active := StyleBoxFlat.new()
+	active.bg_color = Color(UI_GOLD, 0.12)
+	active.border_width_bottom = 2
+	active.border_color = UI_GOLD_BRIGHT
+	for box in [normal, hover, pressed, active]:
+		box.content_margin_left = margin_h
+		box.content_margin_right = margin_h
+		box.content_margin_top = margin_v
+		box.content_margin_bottom = margin_v
+	return {"normal": normal, "hover": hover, "pressed": pressed, "active": active}
+
+
+static func dress_tab(tab: Button, styles: Dictionary) -> void:
+	"""A strip's button at rest: the closed book's three states and no focus
+	box (the strip's focus is the open book's underline)."""
+	if tab == null:
+		return
+	tab.add_theme_stylebox_override("normal", styles["normal"])
+	tab.add_theme_stylebox_override("hover", styles["hover"])
+	tab.add_theme_stylebox_override("pressed", styles["pressed"])
+	tab.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+
+static func tint_tab(tab: Button, active: bool) -> void:
+	"""A strip's words: the open book's bright, a closed book's dim — toned,
+	so a closed book keeps its raised step under High contrast (this is set
+	again at every switch, after `contrast_node` has had its one look)."""
+	if tab == null:
+		return
+	tab.add_theme_color_override("font_color", UI_GOLD_BRIGHT if active else toned(UI_TEXT_DIM))
+	tab.add_theme_color_override("font_hover_color", UI_GOLD_BRIGHT)
+
+
+# ── The dressed page: cards ────────────────────────────────────────────────
+# A text-heavy book is ONE RichTextLabel. A builder wraps an entry between
+# these two invisible marks and `scripts/card_underlay.gd` paints a card behind
+# the lines between them. The marks are empty no-op colour tags: nothing is
+# drawn for them and nothing is added to `get_parsed_text()`, so the words a
+# reader, an instrument or a driven test takes off the screen are unchanged.
+const CARD_CLOSE := "[bgcolor=#00000000][/bgcolor]"
+
+
+static func card_open(tone_hex: String = COLOR_GOLD) -> String:
+	"""Open a card whose hairline and spine take `tone_hex` (six digits, no
+	'#'): the gilt by default, a state's own colour where the entry has one."""
+	var tone := tone_hex if tone_hex.length() == 6 and tone_hex.is_valid_hex_number(false) else COLOR_GOLD
+	return "[fgcolor=#" + tone + "00][/fgcolor]"
+
+
+static func card_page(label: RichTextLabel) -> void:
+	"""Give a content label its card underlay (once): call it in a screen's
+	`_ready`. A page with no marks draws no cards."""
+	CARD_UNDERLAY.attach(label)
+
+
+# ── The dressed page: the figure column ────────────────────────────────────
+# A book's "label: 1,234g" lines were set with runs of spaces that no
+# proportional face lines up. On each run of such lines ONE of the spaces after
+# the colon becomes an invisible inline image of measured width, so the figures
+# stand right-aligned in one column, in lining tabular numerals. An image is a
+# single space to `get_parsed_text()`: the page's words are character-identical.
+const FIGURE_GAP := 18.0
+const _FIGURE_SPACER := "[img color=#00000000 width=%d height=1]res://assets/ui/bars/bar_0.png[/img]"
+const _FIGURE_OPEN := "[opentype_features=tnum,lnum]"
+const _FIGURE_CLOSE := "[/opentype_features]"
+static var _figure_re: RegEx = null
+
+
+static func figure_row(line: String) -> Dictionary:
+	"""One line read as 'label: figure' — {space_at, figure_from, figure_to,
+	label, spaces, figure} in the line's own indices — or {} when it is not one
+	(no gold figure after a colon, or a link / image / escape on the line)."""
+	if line.find("[url") >= 0 or line.find("[img") >= 0 or line.find("[lb]") >= 0 or line.find("[rb]") >= 0:
+		return {}
+	if _figure_re == null:
+		_figure_re = RegEx.create_from_string("^( *[^:]{1,60}:)( +)([+\\-−]?\\d[\\d,]*g)(?![\\w])")
+	# the words the line shows, and where each stands in the line
+	var shown := ""
+	var at: Array = []
+	var i := 0
+	while i < line.length():
+		if line[i] == "[":
+			var close := line.find("]", i)
+			if close < 0:
+				return {}
+			i = close + 1
+			continue
+		shown += line[i]
+		at.append(i)
+		i += 1
+	var m := _figure_re.search(shown)
+	if m == null:
+		return {}
+	var label := m.get_string(1)
+	var spaces := m.get_string(2)
+	var figure := m.get_string(3)
+	var first: int = m.get_start(3)
+	var last: int = m.get_end(3) - 1
+	# the figure must stand whole in the line (no tag inside it)
+	if int(at[last]) - int(at[first]) != figure.length() - 1:
+		return {}
+	return {"space_at": int(at[label.length()]), "figure_from": int(at[first]),
+			"figure_to": int(at[last]) + 1, "label": label, "spaces": spaces.length(), "figure": figure}
+
+
+static func bb_tabulate(bbcode: String, label: RichTextLabel) -> String:
+	"""Stand the gold figures of every run of 'label: figure' lines in one
+	right-aligned column (the header comment says how). A blank line ends a
+	run, so each block of the page keeps its own column."""
+	if label == null or bbcode == "":
+		return bbcode
+	var font: Font = label.get_theme_font("normal_font")
+	var size: int = label.get_theme_font_size("normal_font_size")
+	if font == null or size <= 0:
+		return bbcode
+	var figures := FontVariation.new()
+	figures.base_font = font
+	var server := TextServerManager.get_primary_interface()
+	figures.opentype_features = {server.name_to_tag("tnum"): 1, server.name_to_tag("lnum"): 1}
+	var space_w := font.get_string_size(" ", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var lines := bbcode.split("\n")
+	var run: Array = []
+	for n in range(lines.size() + 1):
+		var row := figure_row(lines[n]) if n < lines.size() else {}
+		if not row.is_empty():
+			row["line"] = n
+			row["label_w"] = font.get_string_size(row["label"], HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+			row["figure_w"] = figures.get_string_size(row["figure"], HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+			run.append(row)
+			continue
+		if n < lines.size() and bb_plain(lines[n]) != "":
+			continue    # a note between two figure lines: the run goes on
+		if run.size() >= 2:
+			var widest_label := 0.0
+			var widest_figure := 0.0
+			for r in run:
+				widest_label = maxf(widest_label, r["label_w"])
+				widest_figure = maxf(widest_figure, r["figure_w"])
+			var column := widest_label + FIGURE_GAP + widest_figure
+			for r in run:
+				var gap: float = column - float(r["label_w"]) - float(r["figure_w"]) \
+						- float(int(r["spaces"]) - 1) * space_w
+				var text: String = lines[int(r["line"])]
+				# the figure first (the later index), then the space before it
+				text = text.substr(0, r["figure_to"]) + _FIGURE_CLOSE + text.substr(r["figure_to"])
+				text = text.substr(0, r["figure_from"]) + _FIGURE_OPEN + text.substr(r["figure_from"])
+				text = text.substr(0, r["space_at"]) + (_FIGURE_SPACER % maxi(int(round(gap)), 1)) \
+						+ text.substr(int(r["space_at"]) + 1)
+				lines[int(r["line"])] = text
+		run.clear()
+	return "\n".join(lines)
+
+
 # === UI-3 Icon Wiring Helpers ===
 # The curated icon sets ship as WHITE silhouettes (game-icons: black bg stripped;
 # phosphor: currentColor→#ffffff), so a gold icon_*_color tint lands the intended
@@ -771,6 +990,26 @@ static func apply_icon_only_button(btn, icon_path: String) -> void:
 	btn.add_theme_color_override("icon_hover_color", UI_GOLD_BRIGHT)
 	btn.add_theme_color_override("icon_pressed_color", UI_GOLD_BRIGHT)
 	btn.add_theme_color_override("icon_focus_color", UI_GOLD_BRIGHT)
+
+
+static func apply_stepper_button(btn: Button) -> void:
+	"""A one-character stepper ("+", "−") at its words' own height (Session UI,
+	November 11, 2026 — the command window's scale controls): no box, no
+	vertical padding, gold that brightens under the pointer. The character
+	stays TEXT: a 256-px glyph drawn under ~16 px aliases away to nothing
+	(the texture has no mipmaps), which is EA-E1's finding met again."""
+	if btn == null:
+		return
+	var bare := StyleBoxEmpty.new()
+	bare.content_margin_left = 7.0
+	bare.content_margin_right = 7.0
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		btn.add_theme_stylebox_override(state, bare)
+	btn.add_theme_color_override("font_color", UI_GOLD)
+	btn.add_theme_color_override("font_hover_color", UI_GOLD_BRIGHT)
+	btn.add_theme_color_override("font_pressed_color", UI_GOLD_BRIGHT)
+	btn.add_theme_color_override("font_focus_color", UI_GOLD_BRIGHT)
+	btn.custom_minimum_size = Vector2.ZERO
 
 
 # EA-E1 (SF-RR5, October 21, 2026): a glyph's own drawn width. `expand_icon`

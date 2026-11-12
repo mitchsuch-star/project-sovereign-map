@@ -1,89 +1,99 @@
-[gd_resource type="Theme" load_steps=15 format=3 uid="uid://bspy1xuv7pgbh"]
+[gd_resource type="Theme" load_steps=31 format=3 uid="uid://bspy1xuv7pgbh"]
 
 [ext_resource type="FontFile" uid="uid://cxiqku0m3u7af" path="res://assets/fonts/Cinzel[wght].ttf" id="1_6tukj"]
 [ext_resource type="FontFile" uid="uid://dnyhh3gjkf5ox" path="res://assets/fonts/EBGaramond[wght].ttf" id="2_3xb56"]
 [ext_resource type="Texture2D" uid="uid://bi4gql7ex5xcv" path="res://assets/textures/fabric_leather_01_diff_1k.jpg" id="3_leather"]
 [ext_resource type="FontFile" uid="uid://fv3x3w2cugvl" path="res://assets/fonts/EBGaramond-Italic[wght].ttf" id="4_italic"]
+[ext_resource type="Script" path="res://scripts/gilt_rule.gd" id="5_rule"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_joxlk"]
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.1, 0.1, 0.14, 0.55)
+bg_color = Color(0.082, 0.094, 0.157, 0.5)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.851, 0.753, 0.549, 0.4)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 0.25)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lsmgg"]
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.16, 0.17, 0.27, 1)
+draw_center = false
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.85098, 0.752941, 0.54902, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+border_width_bottom = 1
+border_color = Color(0.941176, 0.878431, 0.690196, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_11ing"]
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.16, 0.17, 0.27, 1)
+bg_color = Color(0.149, 0.165, 0.259, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.85098, 0.752941, 0.54902, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+border_width_bottom = 1
+border_color = Color(0.941176, 0.878431, 0.690196, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.85, 0.75, 0.55, 0.2)
+shadow_size = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_47as2"]
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.1, 0.1, 0.18, 1)
+bg_color = Color(0.082, 0.094, 0.157, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.851, 0.753, 0.549, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 0.72)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 2
+shadow_offset = Vector2(0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5itkh"]
 content_margin_left = 12.0
-content_margin_top = 6.0
+content_margin_top = 7.0
 content_margin_right = 12.0
-content_margin_bottom = 6.0
-bg_color = Color(0.07, 0.08, 0.14, 1)
+content_margin_bottom = 5.0
+bg_color = Color(0.051, 0.059, 0.102, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_width_bottom = 2
-border_color = Color(0.851, 0.753, 0.549, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [sub_resource type="FontVariation" id="FontVariation_uww5w"]
 base_font = ExtResource("1_6tukj")
@@ -133,6 +143,196 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+; -- Session UI (November 11, 2026): the chrome kit ---------------------------
+; The title face: the heading's Cinzel, tracked. Every screen and dialog title.
+[sub_resource type="FontVariation" id="FontVariation_title"]
+base_font = ExtResource("1_6tukj")
+variation_opentype = {
+2003265652: 600
+}
+spacing_glyph = 2
+
+; The gilt rule (scripts/gilt_rule.gd): every HSeparator. Minimum size zero,
+; so a separator keeps the 4 px its `separation` constant gives it.
+[sub_resource type="StyleBox" id="StyleBox_rule"]
+script = ExtResource("5_rule")
+
+; The primary button: the ONE act a surface exists for (End Turn on a spent
+; day). Gilt fill, navy words; the same 12 / 6 margins as every button.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.8, 0.69, 0.47, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941176, 0.878431, 0.690196, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 3
+shadow_offset = Vector2(0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_hover"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.91, 0.82, 0.6, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.96, 0.82, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.85, 0.75, 0.55, 0.35)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_pressed"]
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.66, 0.56, 0.37, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+; The scrollbars: a faint track, a gilt grabber. The margins are the engine
+; default's (4 px a side), so a bar is the 8 px it always was.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vtrack"]
+content_margin_left = 4.0
+content_margin_right = 4.0
+bg_color = Color(0, 0, 0, 0.22)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_htrack"]
+content_margin_top = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0, 0, 0, 0.22)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grabber"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.85, 0.75, 0.55, 0.42)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grabber_lit"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.941176, 0.878431, 0.690196, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+; The text field: an inked well with a gilt hairline; the engine default's
+; 4 px margins, so the command line is the size it was.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_field"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.039, 0.047, 0.078, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 0.45)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_field_focus"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+draw_center = false
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.941176, 0.878431, 0.690196, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.85, 0.75, 0.55, 0.22)
+shadow_size = 4
+
+; A dropdown's menu: the popup's navy under a gilt hairline.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.102, 0.102, 0.18, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 0.72)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_hover"]
+bg_color = Color(0.85, 0.75, 0.55, 0.16)
+
+; A slider: an inked track, a gilt run to the grabber.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0, 0, 0, 0.35)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider_run"]
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+bg_color = Color(0.85, 0.75, 0.55, 0.7)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
 [resource]
 default_font = ExtResource("2_3xb56")
 default_font_size = 16
@@ -164,8 +364,10 @@ CaptionRich/font_sizes/italics_font_size = 14
 CaptionRich/font_sizes/normal_font_size = 14
 DialogTitle/base_type = &"Label"
 DialogTitle/font_sizes/font_size = 22
+DialogTitle/fonts/font = SubResource("FontVariation_title")
 DialogTitleLarge/base_type = &"Label"
 DialogTitleLarge/font_sizes/font_size = 24
+DialogTitleLarge/fonts/font = SubResource("FontVariation_title")
 DisplayTitle/base_type = &"Label"
 DisplayTitle/font_sizes/font_size = 28
 DisplayTitleLarge/base_type = &"Label"
@@ -176,6 +378,19 @@ HeadingLabel/colors/font_outline_color = Color(0.04, 0.05, 0.11, 1)
 HeadingLabel/constants/outline_size = 5
 HeadingLabel/font_sizes/font_size = 22
 HeadingLabel/fonts/font = SubResource("FontVariation_uww5w")
+HudTitle/base_type = &"Label"
+HudTitle/colors/font_color = Color(0.85098, 0.752941, 0.54902, 1)
+HudTitle/font_sizes/font_size = 14
+HudTitle/fonts/font = SubResource("FontVariation_title")
+HScrollBar/styles/grabber = SubResource("StyleBoxFlat_grabber")
+HScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_grabber_lit")
+HScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_grabber_lit")
+HScrollBar/styles/scroll = SubResource("StyleBoxFlat_htrack")
+HScrollBar/styles/scroll_focus = SubResource("StyleBoxFlat_htrack")
+HSeparator/styles/separator = SubResource("StyleBox_rule")
+HSlider/styles/grabber_area = SubResource("StyleBoxFlat_slider_run")
+HSlider/styles/grabber_area_highlight = SubResource("StyleBoxFlat_slider_run")
+HSlider/styles/slider = SubResource("StyleBoxFlat_slider")
 Label/font_sizes/font_size = 16
 Lead/base_type = &"Label"
 Lead/font_sizes/font_size = 18
@@ -183,7 +398,31 @@ LeadRich/base_type = &"RichTextLabel"
 LeadRich/font_sizes/bold_font_size = 18
 LeadRich/font_sizes/normal_font_size = 18
 LineEdit/font_sizes/font_size = 16
+LineEdit/styles/focus = SubResource("StyleBoxFlat_field_focus")
+LineEdit/styles/normal = SubResource("StyleBoxFlat_field")
 PanelContainer/styles/panel = SubResource("StyleBoxTexture_leather")
+PopupMenu/colors/font_color = Color(0.85098, 0.752941, 0.54902, 1)
+PopupMenu/colors/font_hover_color = Color(0.941176, 0.878431, 0.690196, 1)
+PopupMenu/styles/hover = SubResource("StyleBoxFlat_menu_hover")
+PopupMenu/styles/panel = SubResource("StyleBoxFlat_menu")
+PrimaryButton/base_type = &"Button"
+PrimaryButton/colors/font_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryButton/colors/font_focus_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryButton/colors/font_hover_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryButton/colors/font_pressed_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryButton/font_sizes/font_size = 16
+PrimaryButton/styles/hover = SubResource("StyleBoxFlat_primary_hover")
+PrimaryButton/styles/normal = SubResource("StyleBoxFlat_primary")
+PrimaryButton/styles/pressed = SubResource("StyleBoxFlat_primary_pressed")
+PrimaryCaptionButton/base_type = &"Button"
+PrimaryCaptionButton/colors/font_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryCaptionButton/colors/font_focus_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryCaptionButton/colors/font_hover_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryCaptionButton/colors/font_pressed_color = Color(0.07, 0.085, 0.14, 1)
+PrimaryCaptionButton/font_sizes/font_size = 14
+PrimaryCaptionButton/styles/hover = SubResource("StyleBoxFlat_primary_hover")
+PrimaryCaptionButton/styles/normal = SubResource("StyleBoxFlat_primary")
+PrimaryCaptionButton/styles/pressed = SubResource("StyleBoxFlat_primary_pressed")
 ProclamationName/base_type = &"Label"
 ProclamationName/font_sizes/font_size = 26
 RichTextLabel/font_sizes/normal_font_size = 16
@@ -192,6 +431,7 @@ RichTextLabel/fonts/bold_italics_font = SubResource("FontVariation_bold_italic")
 RichTextLabel/fonts/italics_font = ExtResource("4_italic")
 ScreenTitle/base_type = &"Label"
 ScreenTitle/font_sizes/font_size = 20
+ScreenTitle/fonts/font = SubResource("FontVariation_title")
 TableauBanner/base_type = &"Label"
 TableauBanner/font_sizes/font_size = 30
 TableauClash/base_type = &"Label"
@@ -215,3 +455,8 @@ TitleScreenOverline/font_sizes/font_size = 19
 TooltipLabel/colors/font_color = Color(0.94, 0.92, 0.85, 1)
 TooltipLabel/font_sizes/font_size = 16
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
+VScrollBar/styles/grabber = SubResource("StyleBoxFlat_grabber")
+VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_grabber_lit")
+VScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_grabber_lit")
+VScrollBar/styles/scroll = SubResource("StyleBoxFlat_vtrack")
+VScrollBar/styles/scroll_focus = SubResource("StyleBoxFlat_vtrack")

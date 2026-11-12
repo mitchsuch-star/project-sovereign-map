@@ -77,22 +77,18 @@ func _ready():
 	# this screen keep working) and then lets the parent scroll.
 	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 
-	# Build tab styles
-	_active_tab_style = StyleBoxFlat.new()
-	_active_tab_style.bg_color = Utils.UI_ACTIVE_TAB_BG
-	_active_tab_style.border_width_bottom = 2
-	_active_tab_style.border_color = Utils.UI_GOLD
-	_active_tab_style.content_margin_left = 6.0
-	_active_tab_style.content_margin_right = 6.0
-	_active_tab_style.content_margin_top = 3.0
-	_active_tab_style.content_margin_bottom = 3.0
+	# Session UI (November 11, 2026): the ONE tab strip (`Utils.tab_styles`) —
+	# a closed book is its words, the open book stands on a gilt underline.
+	# The margins are this strip's own (6 / 3), so no tab moves.
+	var strip := Utils.tab_styles(6.0, 3.0)
+	_active_tab_style = strip["active"]
+	_normal_tab_style = strip["normal"]
+	for tab in tab_buttons:
+		Utils.dress_tab(tab, strip)
 
-	_normal_tab_style = StyleBoxFlat.new()
-	_normal_tab_style.bg_color = Utils.UI_PANEL_BG
-	_normal_tab_style.content_margin_left = 6.0
-	_normal_tab_style.content_margin_right = 6.0
-	_normal_tab_style.content_margin_top = 3.0
-	_normal_tab_style.content_margin_bottom = 3.0
+	# Session UI: every corps, province, arm and court a card (the marks are
+	# in the builders; `scripts/card_underlay.gd` paints them).
+	Utils.card_page(content_area)
 
 	hide()
 
@@ -223,6 +219,8 @@ func _switch_tab(tab_index: int):
 
 func _update_tab_highlights():
 	for i in range(tab_buttons.size()):
+		# Session UI: the open book's words bright, a closed book's dim.
+		Utils.tint_tab(tab_buttons[i], i == current_tab)
 		if i == current_tab:
 			tab_buttons[i].add_theme_stylebox_override("normal", _active_tab_style)
 		else:
@@ -407,6 +405,8 @@ func _render_forces():
 		var lost = int(f.get("battles_lost", 0))
 		var flags = f.get("special_flags", {})
 
+		# Session UI: a corps a card (the marks; `card_underlay.gd` paints).
+		bbcode += Utils.card_open()
 		# Name + arm. UXR3-F6: the arm in words — a bracketed "[INF]" read
 		# as a raw tag.
 		if bool(f.get("sovereign", false)):
@@ -478,6 +478,7 @@ func _render_forces():
 		if flag_parts.size() > 0:
 			bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]" + " | ".join(flag_parts) + "[/color]\n"
 
+		bbcode += Utils.CARD_CLOSE
 		bbcode += "\n"
 
 	content_area.text = bbcode
@@ -560,6 +561,7 @@ func _render_territories():
 		var income = int(t.get("income", 0))
 		var buildings = t.get("buildings", [])
 
+		bbcode += Utils.card_open()    # Session UI: a province a card
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
 		bbcode += " [" + rtype.replace("_", " ") + ", " + terrain.replace("_", " ") + "]\n"
 
@@ -604,6 +606,7 @@ func _render_territories():
 					bld_parts.append("[color=#" + Utils.COLOR_BLUE + "]" + bname + " (" + bstatus + ")[/color]")
 			bbcode += "  Buildings: " + ", ".join(bld_parts) + "\n"
 
+		bbcode += Utils.CARD_CLOSE
 		bbcode += "\n"
 
 	content_area.text = bbcode
@@ -901,6 +904,10 @@ func _render_economy():
 	if adm_ptr is Dictionary and adm_ptr.get("active", false):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]→ THE ADMIRALTY has its own book — press 7 (Alt+7 while you type).[/color]\n"
 
+	# Session UI (November 11, 2026): the gold figures stand in one right-aligned
+	# column (`Utils.bb_tabulate` — an invisible spacer for ONE of the spaces after
+	# each colon; the page's parsed text is character-identical).
+	bbcode = Utils.bb_tabulate(bbcode, content_area)
 	content_area.text = bbcode
 
 
@@ -1266,6 +1273,7 @@ func _render_intel():
 	if enemies.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No enemy forces in observation range.[/color]\n"
 	else:
+		bbcode += Utils.card_open()    # Session UI: the sighted forces, one card
 		bbcode += "[color=#" + Utils.COLOR_HEADER + "]Known Enemy Forces[/color]\n"
 		for e in enemies:
 			var ename = str(e.get("name", "?"))
@@ -1292,11 +1300,12 @@ func _render_intel():
 
 			bbcode += "  " + ename + " (" + Utils.display_nation_name(enation) + ") at " + eloc + " — " + estr
 			bbcode += " [color=#" + vis_color + "]" + vis_label + "[/color]\n"
+		bbcode += Utils.CARD_CLOSE
 
 	# Nation summaries
 	var summaries = intel_data.get("nation_summaries", [])
 	if summaries.size() > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]Nation Summary[/color]\n"
+		bbcode += "\n" + Utils.card_open() + "[color=#" + Utils.COLOR_HEADER + "]Nation Summary[/color]\n"
 		for s in summaries:
 			var sname = str(s.get("nation", "?"))
 			var smarshals = int(s.get("known_marshals", 0))
@@ -1306,6 +1315,7 @@ func _render_intel():
 			bbcode += ", ~" + _format_number(sstrength) + " est. strength"
 			# S14E-5: the count agrees with its noun ("1 province", never "1 regions").
 			bbcode += ", " + Utils.plural(sregions, "province") + "\n"
+		bbcode += Utils.CARD_CLOSE
 
 	if unknown_count > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]" + Utils.plural(int(unknown_count), "region") + " with no intel.[/color]\n"
@@ -1340,6 +1350,7 @@ func _render_manpower():
 		var cost_note = str(pool.get("cost_note", ""))
 		var turns_full = int(pool.get("turns_until_full", 0))
 
+		bbcode += Utils.card_open()    # Session UI: an arm a card
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + pool_type.to_upper() + "[/color]\n"
 
 		# Pool bar with color coding
@@ -1379,7 +1390,7 @@ func _render_manpower():
 			bbcode += "  Recruit: " + _format_number(recruit_amt) + " troops for " + str(recruit_cost) + "g"
 			if cost_note != "":
 				bbcode += " — " + cost_note
-		bbcode += "\n\n"
+		bbcode += "\n" + Utils.CARD_CLOSE + "\n"
 
 	content_area.text = bbcode
 

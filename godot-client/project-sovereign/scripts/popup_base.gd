@@ -83,13 +83,6 @@ func _disable_buttons_recursive(node: Node):
 
 func _apply_standard_theme(panel: PanelContainer, border_color: Color = Color(Utils.UI_GOLD, 0.6)):
 	"""Apply consistent dark panel theme with optional border color."""
-	var style = StyleBoxFlat.new()
-	style.bg_color = Utils.UI_POPUP_BG
-	style.border_color = border_color
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 24.0
-	style.content_margin_top = 24.0
-	style.content_margin_right = 24.0
-	style.content_margin_bottom = 24.0
-	panel.add_theme_stylebox_override("panel", style)
+	# Session UI (November 11, 2026): the gilt frame, in the popup's tone.
+	panel.add_theme_stylebox_override("panel",
+			Utils.gilt_frame(Utils.UI_POPUP_BG, border_color, Utils.FRAME_WINDOW, 24.0))

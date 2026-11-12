@@ -1913,6 +1913,15 @@ func _setup_scalable_terminal() -> void:
 		scale_down_button.pressed.connect(_on_scale_down_pressed)
 	if scale_up_button and not scale_up_button.pressed.is_connected(_on_scale_up_pressed):
 		scale_up_button.pressed.connect(_on_scale_up_pressed)
+	# Session UI (November 11, 2026): the header's three controls are compact.
+	# The two stacked "+" / "−" buttons stood 58 px tall together in the
+	# theme's boxes and stretched the minimise button beside them into a slab;
+	# bare, at their words' own height, the stack is under 40 px and the log
+	# has the difference back. Their nodes, paths, words and tooltips are the
+	# scene's own.
+	Utils.apply_stepper_button(scale_up_button)
+	Utils.apply_stepper_button(scale_down_button)
+	Utils.apply_icon_only_button(minimize_button, Utils.ICON_PHOSPHOR + "caret-down.svg")
 
 	_create_resize_grip()
 	# DDB-57: a wheel notch over the command window moves three whole lines.
@@ -2150,6 +2159,9 @@ var map_controls: PanelContainer = null
 func _build_map_controls() -> void:
 	map_controls = PanelContainer.new()
 	map_controls.name = "MapControls"
+	# Session UI (November 11, 2026): the leather inside a gilt frame — the
+	# theme panel's own 12-px margins, so the chips stand where they stood.
+	map_controls.add_theme_stylebox_override("panel", Utils.leather_frame(Utils.FRAME_HUD, 12.0))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	map_controls.add_child(row)
@@ -6220,10 +6232,16 @@ func _note_the_end_of_the_day() -> void:
 		return
 	var spent := int(actions_remaining) <= 0 and int(admin_actions_remaining) <= 0
 	end_turn_button.text = DAY_SPENT_BUTTON_TEXT if spent else END_TURN_BUTTON_TEXT
-	if spent:
-		end_turn_button.add_theme_color_override("font_color", Color.html("#" + Utils.COLOR_GOLD))
-	else:
-		end_turn_button.remove_theme_color_override("font_color")
+	# Session UI (November 11, 2026): the cue is VISIBLE now. It used to add a
+	# gold font colour to a button whose words were already that gold, so a
+	# spent day changed nothing but the "▸". The button takes the theme's
+	# primary step instead — the gilt fill, navy words — and gives it back the
+	# moment an action returns. No font-colour override in either state: an
+	# override would beat the step's own words (gold on gilt).
+	end_turn_button.remove_theme_color_override("font_color")
+	var step: StringName = &"PrimaryCaptionButton" if spent else &"CaptionButton"
+	if end_turn_button.theme_type_variation != step:
+		end_turn_button.theme_type_variation = step
 
 
 func _update_diplomatic_top_bar(response: Dictionary):
@@ -10025,13 +10043,9 @@ func _build_order_strip() -> void:
 	_order_strip = PanelContainer.new()
 	_order_strip.name = "OrderStrip"
 	_order_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.07, 0.06, 0.9)
-	style.border_color = Color(Utils.UI_GOLD, 0.75)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 12.0
-	style.content_margin_right = 12.0
+	# Session UI (November 11, 2026): the gilt frame, the smallest weight.
+	var style := Utils.gilt_frame(Color(0.08, 0.07, 0.06, 0.9), Color(Utils.UI_GOLD, 0.75),
+			Utils.FRAME_HAIRLINE, 12.0)
 	style.content_margin_top = 6.0
 	style.content_margin_bottom = 6.0
 	_order_strip.add_theme_stylebox_override("panel", style)

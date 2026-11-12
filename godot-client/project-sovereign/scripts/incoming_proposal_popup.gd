@@ -42,7 +42,11 @@ var current_data: Dictionary = {}
 var _default_border_color: Color
 # S14G-6: the line under the buttons (built here, not in the .tscn).
 var _set_aside_line: Label = null
-@onready var panel_style: StyleBoxFlat = $PanelContainer.get_theme_stylebox("panel")
+# Session UI (November 11, 2026): the panel's box is the gilt frame now
+# (`scripts/gilt_frame.gd`, a scripted StyleBox — not a StyleBoxFlat). It keeps
+# StyleBoxFlat's `border_color` name, so every tint below writes as it did;
+# the variable is untyped because the property lives on the script.
+@onready var panel_style = $PanelContainer.get_theme_stylebox("panel")
 
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.

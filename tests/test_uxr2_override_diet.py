@@ -56,6 +56,11 @@ LADDER = {
     "ScreenTitle": {"font_size": 20},
     "DialogTitle": {"font_size": 22},
     "HeadingLabel": {"font_size": 22},
+    # Session UI (November 11, 2026): the war room's panel title (the title
+    # face at the caption size) and the primary button's two steps.
+    "HudTitle": {"font_size": 14},
+    "PrimaryButton": {"font_size": 16},
+    "PrimaryCaptionButton": {"font_size": 14},
     "DialogTitleLarge": {"font_size": 24},
     "DisplayTitle": {"font_size": 28},
     "DisplayTitleLarge": {"font_size": 30},
@@ -77,7 +82,15 @@ LADDER = {
 FIXED_STEPS = {"TitleScreen", "TitleScreenOverline", "TitleScreenLead", "TitleScreenHeader",
                "TitleScreenButton", "TitleScreenButtonProminent",
                "TableauClash", "TableauOdometer", "TableauBanner", "TableauPlate"}
-STYLED = {"HeadingLabel"}        # the one step that also sets a face, a colour, an outline
+# The steps that also set a face, a colour or a box. `HeadingLabel` was the
+# one (face, colour, outline). Session UI (November 11, 2026) adds, BY DESIGN:
+# the three title steps and `HudTitle` (they carry the title face — every
+# screen and dialog title was body type), and the primary button's two steps
+# (a gilt fill and navy words are what a primary button IS). Every other step
+# stays size-only: the rule this set guards — no ad-hoc styling smuggled into
+# a size step — is unchanged, the named exceptions are five more.
+STYLED = {"HeadingLabel", "ScreenTitle", "DialogTitle", "DialogTitleLarge", "HudTitle",
+          "PrimaryButton", "PrimaryCaptionButton"}
 # A variation's base type, and the node classes it may be set on.
 ACCEPTS = {
     "Label": {"Label"},

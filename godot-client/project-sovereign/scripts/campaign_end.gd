@@ -214,11 +214,8 @@ func current_register() -> String:
 # ── rendering ────────────────────────────────────────────────────────────────
 
 func _apply_style(style: Dictionary) -> void:
-	var box := StyleBoxFlat.new()
-	box.bg_color = style["bg"]
-	box.border_color = style["border"]
-	box.set_border_width_all(3)
-	box.set_corner_radius_all(8)
+	# Session UI (November 11, 2026): the gilt frame in the verdict's tone.
+	var box := Utils.gilt_frame(style["bg"], style["border"], Utils.FRAME_WINDOW, 24.0)
 	box.content_margin_left = 30.0
 	box.content_margin_right = 30.0
 	box.content_margin_top = 26.0

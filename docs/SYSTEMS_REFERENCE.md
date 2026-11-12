@@ -16180,3 +16180,113 @@ the three-arm sweep on three surfaces takes about seven minutes on this machine 
 rather than reason about which arms an edit could move; a rule that removes a war pair to keep an invariant has a
 sibling that completes the war instead — play the real road (`_client_takes_the_field`), not only the declared-war
 board, before choosing; `( cmd & )` inside a shell loop is not waited on by `wait`.
+
+## §212 Session UI — the gilt frame, the war table and the dressed page (November 11, 2026)
+
+**The session** (`UI_VISUAL_FOUNDATION_SPEC.md` §9 the landing record). The user's word: *"MAKE THE UI AND UX LOOK
+BETTER LOOK ONLINE IF NEEDED"*; at the plan's head (Plan Mode, approved) they ruled the content re-layout into the
+session and a dark leather desk around the map. Display only (Golden Rule 6): no backend file, no saved field, no
+word of any book changed.
+
+**The frame — `scripts/gilt_frame.gd`** (`@tool extends StyleBox`, no `class_name`; scenes name it by path). Draws,
+outside in: a soft shadow and a 1 px dark edge and the fill (one internal `StyleBoxFlat`), an optional texture (the
+HUD's leather, `texture` / `texture_region` / `texture_modulate`), a wash DARKER toward the foot (`wash`, never
+lighter — no text on it loses contrast), the gilt rule, and on the window weight an inner 1 px fillet with
+re-entrant corners and a stud in each. Geometry, so crisp at every Interface Scale.
+- **The contract:** its properties keep StyleBoxFlat's NAMES — `bg_color`, `border_color`, the inherited
+  `content_margin_*` — so a scene's sub_resource keeps its own lines and code that tints a panel at run time keeps
+  working; a consumer asks `"border_color" in style`, never `style is StyleBoxFlat`. Adapted with it:
+  `incoming_proposal_popup.gd` (`panel_style` untyped), `objection_dialog.gd::_apply_tone_styling` (the class test
+  would have silently stopped the tone tint), the capture harness's `_draws` (a framed panel reads opaque).
+- **Weights** (`weight`): WINDOW 0 (thickness 7 px), HUD 1 (5 px; war detail, tutorial card, command window, region
+  panel, the map's chips), HAIRLINE 2 (2 px; war status, notice rail, the order strip). `thickness()` gives a
+  corner control its clearance; every weight lies inside the tightest window margin (12).
+- **Where:** 35 scenes (`tests/test_ui_gilt_frame.py::FRAMED_SCENES`) — the 32 that carried their own panel
+  StyleBoxFlat (converted by a one-off transform: `type="StyleBox"`, `script =` first, the border-width and
+  corner-radius lines dropped, fill / tone / margins byte for byte), the notice rail, the command window, the
+  region panel; in code `Utils.gilt_frame(fill, tone, weight, margin)` (`popup_base._apply_standard_theme`, the
+  end card, the scale card, the notice rail's two expanded panels, the order strip) and `Utils.leather_frame()` (the
+  map's chips). Flat by design: the top bar's strip and the command window's header band.
+
+**The theme (`ui/main_theme.tres`).** Button `normal / hover / pressed / disabled / focus` re-drawn — a 1 px gilt
+hairline, a lift shadow, a gilt glow on hover, a sunk pressed state (top 7 / bottom 5, the same sum), a focus ring
+outside the box — at the SAME 12 / 6 margins. `PrimaryButton` (16) and `PrimaryCaptionButton` (14): the gilt fill,
+navy words — the one act a surface exists for. `FontVariation_title` (the heading's Cinzel 600, `spacing_glyph = 2`)
+on `ScreenTitle`, `DialogTitle`, `DialogTitleLarge` and the new `HudTitle` (14, the war room's panel title).
+`HSeparator/styles/separator` = `scripts/gilt_rule.gd` (a hairline fading at both ends, a lozenge at its centre;
+minimum size ZERO, so every separator keeps the 4 px of its `separation`). Gilt scrollbars (the default's 4 px
+margins), the text field (4 px — the command line keeps its size), the dropdown's menu, the slider. Untouched and
+pinned: the leather `PanelContainer/panel`, the opaque tooltip. The harness's `_CAPTION_VARIATIONS` lists the two
+new 14 px steps; `test_uxr2_override_diet.py`'s `LADDER` and `STYLED` name them (a step that sets a face or a box is
+named there by design).
+
+**The tab strip — `Utils.tab_styles(margin_h, margin_v)`** → {normal, hover, pressed, active}: a closed book is its
+words, the pointer lifts a faint ground, the open book stands on a gilt underline over it; `Utils.dress_tab` sets a
+button's three states and no focus box; `Utils.tint_tab` its words (bright open, dim closed — `toned`, so High
+contrast keeps its step). One strip for the top bar's nav (8 / 4) and the two ledgers (6 / 3), margins unchanged;
+`Utils.mark_active_tab` and `_active_tab_style` as they were. `UI_PANEL_BG` / `UI_ACTIVE_TAB_BG` have no consumer.
+
+**The war room.**
+- **The desk** (`map_renderer_base.gd`): `DESK_SURFACE := true` — a full-rect `ColorRect` (`DeskSurface`) over the
+  pinned parchment `viewport_background` (bitmap maps only, added AFTER its pinned assignment), drawn by
+  `DESK_SHADER`: the tracked leather sampled in window pixels from its seam-free region, mirrored per tile,
+  `Utils.UI_DESK_TINT`, a vignette. In the map world: `SheetShadow` (a centreless StyleBoxFlat's shadow, UNDER the
+  art) and `SheetNeatline` (a 4 px rule and a 2 px fillet 14 px in, over it). Every node mouse-ignored. False
+  restores July exactly; a leather that cannot load leaves the parchment.
+- **The top bar:** a deeper strip, a gilt hairline, a shadow onto the map; the nav on the one strip; the chips
+  (Admiralty, Cabinet, Envoys) gilt hairline pills. Height 36, the 8 px margin, node order, words and SF-RR5's rule
+  (words on the full bar, glyphs on the compact) unchanged.
+- **The command window** (`main.tscn`): `GiltFrame_command` (HUD weight over the leather, the theme panel's 12 px);
+  the header one band (`StyleBoxFlat_header`: a darker ground, a gilt hairline, 12 px sides — the status row wraps
+  as it did — 4 px top and bottom); the title `HudTitle` "IMPERIAL COMMAND" (its two emoji swords dropped); the
+  scale steppers bare text at their words' height (`Utils.apply_stepper_button`); the minimise control a
+  `caret-down` glyph. The header is 40 px shorter, so the window is: the log's floor stays 140 (at 800×450 logical a
+  180 floor lifted the status rows under the Table lesson's card). Every node name, type and path as it was.
+- **End Turn on a spent day** (`main.gd::_note_the_end_of_the_day`): the button takes `PrimaryCaptionButton` (the
+  gilt fill) when both pools are spent and `CaptionButton` the moment an action returns; no font-colour override in
+  either state (it would beat the step's words). DDB-R4's cue, invisible since it landed (it added gold to gold).
+
+**The dressed page.**
+- **Cards — `scripts/card_underlay.gd`** (`extends Control`; `CardUnderlay`, a child of the content label,
+  `show_behind_parent`, mouse-ignored, zero minimum). A builder wraps an entry in `Utils.card_open(tone_hex)` …
+  `Utils.CARD_CLOSE` — an empty `fgcolor` tag whose six digits are the tone (alpha zero) and an empty transparent
+  `bgcolor` tag: no-op tags that add nothing to `get_parsed_text()`. `cards_in(text)` reads them from the label's
+  CURRENT `text` at every draw (a tab switch, a refresh or `mark_chip_sent` leave nothing stale): a mark's paragraph
+  is the count of newlines before it; a close at a paragraph's head ends the card on the line above. **The
+  fail-safe:** when the label's paragraph count is not the text's newline count plus one, nothing is drawn. A card
+  is a dark well (never lighter than its panel), a hairline and a 3 px spine in its tone; the first portrait-size
+  image (≥ 32 px) heading a line in a card is ringed as a locket. `Utils.card_page(label)` attaches it and gives the
+  label 12 px side margins (no top or bottom margin — the whole-line rules read the top). Where: every marshal (the
+  Emperor's and an urgent marshal's card open at their heading — `_render_card(…, opened)`), every corps / province
+  / arm and the intelligence lists, every court (its tone the standing's colour), treaty and client.
+- **The figure column — `Utils.bb_tabulate(bbcode, label)`**: on each run of "label: 1,234g" lines (a blank line
+  ends a run; a note between continues it; a run of one is left alone; a line with a link, an image or an escape is
+  no row — `Utils.figure_row`) ONE of the spaces after the colon becomes an invisible image of measured width (a
+  single space to `get_parsed_text()`) and the figure is wrapped in `opentype_features=tnum,lnum`: the figures stand
+  right-aligned in lining tabular numerals. On the Economy book (`_render_economy`, before its assignment).
+
+**The measure** (all 185 IQ-10 surfaces, Interface Scale 1.0 and 2.0, against a baseline shot at HEAD `7c6edd74`;
+the per-frame records diffed with engine auto-names normalised). Words identical but the command window's title
+and minimise control; titles one pixel taller; the command window 40 px shorter; the Generals' two ornaments gone.
+Readability (`uxr0_readability_report.py`) RED 0 / P1 0 at both scales (2,205 / 2,197 rows) and at the five
+physical resolutions; contrast (`uxr2b_contrast_report.py`) the same 19 / 15 pre-existing rows as the baseline (the
+parchment letters' declared white over paper); fit (`uxr3_fit_report.py`) 7 of 7 at 1920 / 3840 / 5120;
+consistency (`uxr3_consistency_census.py`) 145 of 145 surfaces with 0 hits. One new cut line at 2.0: the docked
+Generals' Emperor portrait at the window's foot — a box RR5-X4 cuts rather than pads. Before / after pairs:
+`docs/audits/ui_gilt/`.
+
+**Pins:** `tests/test_ui_gilt_frame.py` (the frame, the theme, the tab strip, the desk, the command window, the
+dressed page; `TestDriven` runs `tools/ui_gilt_probe.gd` headless — the frame's names through a duplicate, its
+thickness, five framed scenes loading with their own values, the theme's kit, parsed text identical with and
+without the marks and through the column, `cards_in`, one paragraph per newline on a real page, the underlay's
+quiet child). Moved with their reasons: `test_uxr2_override_diet.py` (LADDER, STYLED),
+`test_ui2_part2_color_and_map.py` (`MIGRATION_CASES` reach `Utils.tab_styles(`), the Generals' filigree pins in
+`test_ui_visual_foundation.py`, `test_uxr3_s12_part2.py` and `test_sf_rr5_the_frames.py`.
+
+**Traps the session paid for:** a 256-px SVG drawn under ~16 px aliases to nothing (the import has no mipmaps) —
+keep a glyph at 18 px or use text; a page's words are what the instruments diff, so dress a page from behind (an
+underlay, invisible spacers) rather than rewrite its builder; the capture records name code-built nodes `@Label@N`
+and the numbers shift when any node is added — compare multisets per normalised path; a header that shrinks
+shrinks a window sitting at its content minimum, it does not grow the log; a layout change read at 1.0 is read
+again at 2.0 (800×450 logical), where the Table lesson's card covers the command window's top right; the Bash
+tool's heredocs fold doubled backslashes — patch scripts and long doc text go through the Write tool.

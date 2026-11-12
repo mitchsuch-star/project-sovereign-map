@@ -94,6 +94,9 @@ var _api_client_ref = null
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(scroll_container)
+	# Session UI (November 11, 2026): every marshal a card — `_render_card`
+	# wraps itself in the marks, `scripts/card_underlay.gd` paints them.
+	Utils.card_page(content_area)
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -314,8 +317,11 @@ func _render_all_cards():
 		var um_note = um.get("status_note", "")
 		if bool(um.get("captured", false)) and um_note is String and um_note != "":
 			state_words += ": " + Utils.humanize_nation_keys_in_text(um_note)
+		# Session UI: the state line is the card's own heading — the card
+		# opens above it (its hairline used to run through the words).
+		bbcode += Utils.card_open(state_color)
 		bbcode += "[color=#" + state_color + "]" + state_words + "[/color]\n"
-		bbcode += _render_card(um, i)
+		bbcode += _render_card(um, i, true)
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]────────────────────────────────────────[/color]\n\n"
 
 	bbcode += _render_doctrine()
@@ -325,9 +331,10 @@ func _render_all_cards():
 	# glory bar, no rank, no envy arrow. The ladder itself never contains
 	# him (the backend excludes him at get_nation_ladder).
 	if apex_index >= 0:
+		bbcode += Utils.card_open()    # Session UI: THE EMPEROR heads his card
 		bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE EMPEROR[/color]\n"
-		bbcode += _render_card(cached_data[apex_index], apex_index)
+		bbcode += _render_card(cached_data[apex_index], apex_index, true)
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]════════════════════════════════════════[/color]\n\n"
 
 	bbcode += _render_glory_ladder()
@@ -570,8 +577,9 @@ func _skills_block(m: Dictionary) -> String:
 	return bbcode
 
 
-func _render_card(m: Dictionary, index: int) -> String:
-	"""Render a single marshal card."""
+func _render_card(m: Dictionary, index: int, opened := false) -> String:
+	"""Render a single marshal card. `opened`: the caller opened the card
+	above a heading of its own (the Emperor's, a prisoner's, a petitioner's)."""
 	var bbcode = ""
 
 	# ═══════ HEADER ═══════
@@ -589,6 +597,16 @@ func _render_card(m: Dictionary, index: int) -> String:
 			type_color = Utils.COLOR_ERROR
 
 	var key_hint = "[" + str(index + 1) + "] "
+	# Session UI: the card opens here (its portrait is its first line — the
+	# underlay rings it) in the marshal's own tone: a prisoner's crimson, a
+	# petitioner's amber, the gilt for every other.
+	var card_tone: String = Utils.COLOR_GOLD
+	if bool(m.get("captured", false)):
+		card_tone = Utils.COLOR_ERROR
+	elif bool(m.get("seeks_audience", false)):
+		card_tone = Utils.COLOR_WARNING
+	if not opened:
+		bbcode += Utils.card_open(card_tone)
 	bbcode += _portrait_block(name)
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + key_hint + "[/color]"
 	bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
@@ -925,6 +943,9 @@ func _render_card(m: Dictionary, index: int) -> String:
 			rel_parts.append(rname + ": " + _relationship_colored(rval, rlabel))
 		bbcode += "  Relationships: " + ", ".join(rel_parts) + "\n"
 
+	# Session UI: the card closes on its last line (the mark heads the blank
+	# line under it).
+	bbcode += Utils.CARD_CLOSE
 	bbcode += "\n"
 	return bbcode
 

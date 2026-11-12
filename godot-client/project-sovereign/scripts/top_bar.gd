@@ -66,6 +66,7 @@ var button_map: Dictionary = {}
 # Active button style
 var _active_style: StyleBoxFlat = null
 var _normal_style: StyleBoxFlat = null
+var _nav_strip: Dictionary = {}
 var _mailbox_idle_style: StyleBoxFlat = null
 var _mailbox_idle_hover_style: StyleBoxFlat = null
 var _mailbox_alert_style: StyleBoxFlat = null
@@ -100,34 +101,26 @@ var _nav_icons := {}
 var _compact := false
 
 func _ready():
-	# Build button styles
-	_active_style = StyleBoxFlat.new()
-	_active_style.bg_color = Utils.UI_ACTIVE_TAB_BG
-	_active_style.border_width_bottom = 2
-	_active_style.border_color = Utils.UI_GOLD
-	_active_style.content_margin_left = 8.0
-	_active_style.content_margin_right = 8.0
-	_active_style.content_margin_top = 4.0
-	_active_style.content_margin_bottom = 4.0
-
-	_normal_style = StyleBoxFlat.new()
-	_normal_style.bg_color = Utils.UI_PANEL_BG
-	_normal_style.content_margin_left = 8.0
-	_normal_style.content_margin_right = 8.0
-	_normal_style.content_margin_top = 4.0
-	_normal_style.content_margin_bottom = 4.0
+	# Session UI (November 11, 2026): the nav is the ONE tab strip
+	# (`Utils.tab_styles`) at the bar's own 8 / 4 margins — a closed screen is
+	# its words on the strip (the grey boxes are gone), the open one stands on
+	# a gilt underline.
+	_nav_strip = Utils.tab_styles(8.0, 4.0)
+	_active_style = _nav_strip["active"]
+	_normal_style = _nav_strip["normal"]
 
 	_mailbox_idle_style = StyleBoxFlat.new()
-	_mailbox_idle_style.bg_color = Color(0.1, 0.12, 0.16, 0.9)
+	_mailbox_idle_style.bg_color = Color(0.075, 0.09, 0.14, 0.9)
 	_mailbox_idle_style.border_width_left = 1
 	_mailbox_idle_style.border_width_top = 1
 	_mailbox_idle_style.border_width_right = 1
 	_mailbox_idle_style.border_width_bottom = 1
-	_mailbox_idle_style.border_color = Utils.UI_ENVOY_IDLE_BORDER
-	_mailbox_idle_style.corner_radius_top_left = 4
-	_mailbox_idle_style.corner_radius_top_right = 4
-	_mailbox_idle_style.corner_radius_bottom_right = 4
-	_mailbox_idle_style.corner_radius_bottom_left = 4
+	# Session UI: a gilt hairline (it was UI_ENVOY_IDLE_BORDER, a grey-blue).
+	_mailbox_idle_style.border_color = Color(Utils.UI_GOLD, 0.42)
+	_mailbox_idle_style.corner_radius_top_left = 2
+	_mailbox_idle_style.corner_radius_top_right = 2
+	_mailbox_idle_style.corner_radius_bottom_right = 2
+	_mailbox_idle_style.corner_radius_bottom_left = 2
 	_mailbox_idle_style.content_margin_left = 10.0
 	_mailbox_idle_style.content_margin_right = 10.0
 	_mailbox_idle_style.content_margin_top = 4.0
@@ -135,6 +128,7 @@ func _ready():
 
 	_mailbox_idle_hover_style = _mailbox_idle_style.duplicate()
 	_mailbox_idle_hover_style.bg_color = Utils.UI_ENVOY_IDLE_HOVER
+	_mailbox_idle_hover_style.border_color = Utils.UI_GOLD_BRIGHT
 
 	_mailbox_alert_style = _mailbox_idle_style.duplicate()
 	_mailbox_alert_style.bg_color = Color(0.23, 0.18, 0.08, 0.95)
@@ -203,15 +197,13 @@ func _ready():
 
 	# UI-6: nav hover/pressed match the flat bar look — without these the
 	# theme's gold-bordered navy stylebox flashed in on hover (style-jump).
-	var nav_hover_style: StyleBoxFlat = _normal_style.duplicate()
-	nav_hover_style.bg_color = Utils.UI_ACTIVE_TAB_BG
-	var nav_pressed_style: StyleBoxFlat = _normal_style.duplicate()
-	nav_pressed_style.bg_color = Color(
-		Utils.UI_PANEL_BG.r * 0.8, Utils.UI_PANEL_BG.g * 0.8,
-		Utils.UI_PANEL_BG.b * 0.8, 1.0)
+	var nav_hover_style: StyleBoxFlat = _nav_strip["hover"]
+	var nav_pressed_style: StyleBoxFlat = _nav_strip["pressed"]
 	for nav_btn in button_map.values():
 		nav_btn.add_theme_stylebox_override("hover", nav_hover_style)
 		nav_btn.add_theme_stylebox_override("pressed", nav_pressed_style)
+		nav_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		nav_btn.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)
 
 	# UI-6: gear button → pause menu (Save/Load/Settings)
 	Utils.apply_icon_only_button(menu_btn, Utils.ICON_PHOSPHOR + "gear.svg")
@@ -628,7 +620,7 @@ func _update_button_highlights():
 		var btn = button_map[sname]
 		if sname == active_screen or sname == pinned_screen:
 			btn.add_theme_stylebox_override("normal", _active_style)
-			btn.add_theme_color_override("font_color", Utils.UI_GOLD)
+			btn.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
 		else:
 			btn.add_theme_stylebox_override("normal", _normal_style)
 			# PC15-10 B1: amber while a marshal waits in the antechamber.

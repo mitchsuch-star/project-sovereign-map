@@ -131,20 +131,17 @@ class TestTheGripSitsOffTheContent:
         assert "vbox.get_combined_minimum_size().y + 18.0" in ws
         assert 'ResizeGrip.attach_edge(panel_container, "war_status", ResizeGrip.Corner.TOP_LEFT)' in ws
 
-    def test_the_generals_filigree_sits_in_the_bottom_band(self):
-        """Each corner ornament lies below the content box (it covered the
-        last skill bar), and the right one clear of the grip's quadrant."""
+    def test_the_generals_carry_no_corner_ornament(self):
+        """UXR3-F4's rule for the Generals — no corner ornament on text or a
+        control — held by keeping its two filigree corners in the bottom
+        padding band. Session UI (November 11, 2026) retires the ornaments
+        (the gilt frame has its own corners; the smudges stood on them), so
+        the rule holds by there being none: nothing in the scene joins the
+        `corner_ornaments` group, and the grip's quadrant is still padded."""
         text = (SCENES / "marshal_management.tscn").read_text(encoding="utf-8")
+        assert "corner_ornaments" not in text and "Filigree" not in text
         m = _panel_margins("marshal_management")
-        for name in ("FiligreeBottomLeft", "FiligreeBottomRight"):
-            block = re.search(rf'(?ms)^\[node name="{name}".*?(?=^\[|\Z)', text).group(0)
-            assert 'groups=["corner_ornaments"]' in block, name
-            top = float(re.search(r"offset_top = (-?[0-9.]+)", block).group(1))
-            bottom = float(re.search(r"offset_bottom = (-?[0-9.]+)", block).group(1))
-            assert top >= 0.0 and bottom <= m["bottom"], (name, top, bottom)
-            if name.endswith("Right"):
-                right = float(re.search(r"offset_right = (-?[0-9.]+)", block).group(1))
-                assert right <= m["right"] - QUADRANT, (right, m)
+        assert m["right"] >= QUADRANT and m["bottom"] >= QUADRANT, m
 
     def test_the_capture_harness_records_the_grips_and_ornaments(self):
         gd = (TOOLS / "iq10_surface_screenshot.gd").read_text(encoding="utf-8")

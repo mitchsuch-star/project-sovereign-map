@@ -271,24 +271,32 @@ def test_theme_panel_uses_leather_texture():
     ), "PanelContainer/panel must be wired to the leather StyleBoxTexture (UI-3)"
 
 
-def test_generals_scene_has_filigree_corners():
+def test_generals_scene_wears_the_gilt_frame_not_the_filigree():
+    """Session UI (November 11, 2026). UI-3 gave the Generals two 14-px corner
+    ornaments (this test pinned them). The gilt frame (`scripts/gilt_frame.gd`)
+    has its own corners — the fillet's re-entrant cut and its stud — and the
+    two smudges stood ON them, so they are retired with the frame's arrival.
+    The ornament asset itself stays: the battle tableau still draws it."""
     text = _read(MARSHAL_MGMT_TSCN)
-    assert "corner_floral_01.svg" in text, (
-        "the Generals scene must reference the corner filigree ornament (UI-3)"
+    assert "corner_floral_01.svg" not in text and "Filigree" not in text
+    assert 'path="res://scripts/gilt_frame.gd"' in text, (
+        "the Generals panel must wear the gilt frame"
     )
-    assert text.count('type="TextureRect"') >= 2, (
-        "the Generals scene must carry the two filigree corner TextureRects (UI-3)"
-    )
+    assert "corner_floral_01.svg" in _read(GODOT_PROJ / "scripts" / "battle_diorama.gd")
 
 
-# UI-3 wires two assets BY UID in committed resources (leather in main_theme.tres,
-# corner_floral in the Generals scene). Their .import sidecars pin those UIDs and
-# are force-added (like the UI-1 font sidecars) so a clean clone resolves the UID
-# without an invalid-reference warning before the first --import (spec §8 UI-0/U3,
-# same precedent as test_ui1_font_import_sidecar_committed).
+# UI-3 wires assets BY UID in committed resources. Their .import sidecars pin
+# those UIDs and are force-added (like the UI-1 font sidecars) so a clean clone
+# resolves the UID without an invalid-reference warning before the first
+# --import (spec §8 UI-0/U3, same precedent as
+# test_ui1_font_import_sidecar_committed). Session UI (November 11, 2026): the
+# leather is named by UID in two more places — the command window's and the
+# region panel's gilt frames carry it; the corner filigree is no longer named
+# by UID anywhere (the Generals scene dropped it, the tableau loads it by path).
 UI3_UID_SIDECARS = [
     ("assets/textures/fabric_leather_01_diff_1k.jpg.import", THEME_PATH),
-    ("assets/ui/ornaments/corner_floral_01.svg.import", MARSHAL_MGMT_TSCN),
+    ("assets/textures/fabric_leather_01_diff_1k.jpg.import", GODOT_PROJ / "scenes" / "main.tscn"),
+    ("assets/textures/fabric_leather_01_diff_1k.jpg.import", GODOT_PROJ / "scenes" / "region_panel.tscn"),
 ]
 
 

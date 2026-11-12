@@ -91,8 +91,12 @@ func _apply_tone_styling(tone: String):
 
 	# Border color on panel StyleBox
 	var border_color = TONE_COLORS.get(tone, TONE_COLORS["firm"])
+	# Session UI (November 11, 2026): the panel is the gilt frame, a scripted
+	# StyleBox that keeps StyleBoxFlat's `border_color` name — asked by the
+	# property, never by the class (an `is StyleBoxFlat` here would silently
+	# stop tinting the border by the marshal's tone).
 	var style = panel_container.get_theme_stylebox("panel")
-	if style and style is StyleBoxFlat:
+	if style and "border_color" in style:
 		var new_style = style.duplicate()
 		new_style.border_color = border_color
 		panel_container.add_theme_stylebox_override("panel", new_style)

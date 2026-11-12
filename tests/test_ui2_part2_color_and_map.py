@@ -45,8 +45,6 @@ def _read(path: Path) -> str:
 UI_PALETTE_CONSTS = [
     "UI_GOLD",
     "UI_GOLD_BRIGHT",
-    "UI_PANEL_BG",
-    "UI_ACTIVE_TAB_BG",
     "UI_POPUP_BG",
     "UI_TEXT_DIM",
     "UI_ALERT",
@@ -77,19 +75,25 @@ def test_ui_gold_matches_theme_and_string_palette():
 
 
 # (file, must-reference, migrated-literal-that-must-be-gone)
+#
+# Session UI (November 11, 2026): the three tab strips (the top bar's nav and
+# the two ledgers' books) each built their own active / normal box from the
+# `UI_ACTIVE_TAB_BG` / `UI_PANEL_BG` tokens. They are ONE strip now —
+# `Utils.tab_styles()` — so the three files must reach it, and the two tokens,
+# with no consumer left, are retired from the palette. What this table guards
+# is unchanged: chrome reaches the shared palette, the old literals stay gone.
 MIGRATION_CASES = [
-    ("top_bar.gd", "Utils.UI_ACTIVE_TAB_BG", "Color(0.25, 0.22, 0.15, 1.0)"),
-    ("top_bar.gd", "Utils.UI_PANEL_BG", "Color(0.12, 0.14, 0.18, 1.0)"),
+    ("top_bar.gd", "Utils.tab_styles(", "Color(0.25, 0.22, 0.15, 1.0)"),
+    ("top_bar.gd", "Utils.tab_styles(", "Color(0.12, 0.14, 0.18, 1.0)"),
     ("top_bar.gd", "Utils.UI_GOLD", None),
     ("top_bar.gd", "Utils.UI_ALERT", None),
     ("top_bar.gd", "Utils.UI_WARNING", None),
     ("top_bar.gd", "Utils.UI_TEXT_DIM", None),
-    ("diplomatic_ledger.gd", "Utils.UI_ACTIVE_TAB_BG", "Color(0.25, 0.22, 0.15, 1.0)"),
-    ("diplomatic_ledger.gd", "Utils.UI_PANEL_BG", "Color(0.12, 0.14, 0.18, 1.0)"),
-    ("diplomatic_ledger.gd", "Utils.UI_GOLD", None),
-    ("strategic_ledger.gd", "Utils.UI_ACTIVE_TAB_BG", "Color(0.25, 0.22, 0.15, 1.0)"),
-    ("strategic_ledger.gd", "Utils.UI_PANEL_BG", "Color(0.12, 0.14, 0.18, 1.0)"),
-    ("strategic_ledger.gd", "Utils.UI_GOLD", None),
+    ("diplomatic_ledger.gd", "Utils.tab_styles(", "Color(0.25, 0.22, 0.15, 1.0)"),
+    ("diplomatic_ledger.gd", "Utils.tab_styles(", "Color(0.12, 0.14, 0.18, 1.0)"),
+    ("strategic_ledger.gd", "Utils.tab_styles(", "Color(0.25, 0.22, 0.15, 1.0)"),
+    ("strategic_ledger.gd", "Utils.tab_styles(", "Color(0.12, 0.14, 0.18, 1.0)"),
+    ("utils.gd", "static func tab_styles(", None),
     ("popup_base.gd", "Utils.UI_POPUP_BG", "Color(0.1, 0.1, 0.18, 0.95)"),
     ("war_status_panel.gd", "Utils.UI_SCORE_POSITIVE", None),
     ("war_status_panel.gd", "Utils.UI_BAR_BG", "Color(0.15, 0.15, 0.2, 0.8)"),

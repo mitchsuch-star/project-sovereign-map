@@ -100,6 +100,41 @@ const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
 # map sheet itself — parchment sampled from the art's edge (rgb 153,125,90) —
 # instead of a black void band. The legacy circle map keeps the dark canvas.
 const BITMAP_LETTERBOX_COLOR := Color(0.6, 0.49, 0.353, 1.0)
+# Session UI (November 11, 2026) — THE DESK. DEF-9's parchment margin made the
+# out-of-map band read as the sheet itself; on a 32:9 screen that left half the
+# window a flat tan void with a seam where the art ends. The map is a SHEET
+# now: it lies on a dark leather desk (a shader over the tracked leather
+# texture, vignetted), casts a soft shadow and carries a neatline. Bitmap maps
+# only. The tan ColorRect above stays underneath (and is what shows if the
+# leather cannot load); false here restores the July look exactly.
+const DESK_SURFACE := true
+# The sheet's shadow and its two rules, in the art's own px (they scale with
+# the camera like the sheet they belong to).
+const SHEET_SHADOW_PX := 46
+const SHEET_RULE_PX := 4
+const SHEET_FILLET_INSET_PX := 14.0
+const SHEET_INK := Color(0.2, 0.13, 0.075, 0.9)
+const DESK_SHADER := """
+shader_type canvas_item;
+// The leather, sampled in window pixels (so its grain keeps one size at every
+// Interface Scale) from the texture's seam-free region, mirrored at each tile
+// so no seam repeats; darkened toward the window's edges.
+uniform sampler2D leather : source_color, filter_linear, repeat_disable;
+uniform vec4 tint : source_color = vec4(0.34, 0.235, 0.15, 1.0);
+uniform vec4 region = vec4(0.30, 0.15, 0.66, 0.66);
+uniform float tile_px = 560.0;
+uniform float vignette = 0.62;
+void fragment() {
+	vec2 t = FRAGCOORD.xy / tile_px;
+	vec2 m = abs(fract(t * 0.5) * 2.0 - 1.0);
+	vec3 hide = texture(leather, region.xy + m * region.zw).rgb;
+	float lum = dot(hide, vec3(0.299, 0.587, 0.114));
+	vec3 col = tint.rgb * (0.5 + lum * 1.7);
+	vec2 c = (UV - vec2(0.5)) * vec2(1.0, 1.15);
+	col *= 1.0 - vignette * smoothstep(0.2, 0.8, length(c));
+	COLOR = vec4(col, 1.0);
+}
+"""
 # Slice 7.5 (DEF-9): Camera2D hardware limits are deliberately disabled (set
 # to the engine's wide-open defaults). When the visible extent exceeded the
 # map, Godot's limit clamps (left->right, bottom->top; last write wins)
@@ -383,6 +418,11 @@ const ZOOM_SPEED: float = 0.1
 const ZOOM_DURATION: float = 0.2
 
 var viewport_background: ColorRect
+# Session UI: the desk under the map sheet, its shadow and its neatline
+# (null on the legacy circle map, or with DESK_SURFACE off).
+var desk_surface: ColorRect
+var sheet_shadow: Panel
+var sheet_neatline: Control
 var map_viewport: SubViewport
 # UI-2 Part 2: the SubViewport is displayed through this TextureRect (not a
 # stretch-drawing SubViewportContainer) so it can render at PHYSICAL resolution
@@ -1003,6 +1043,76 @@ func _refresh_highlight_texture():
 	highlight_map_layer.texture = highlight_map_texture
 
 
+func _make_desk_surface() -> ColorRect:
+	"""The leather desk: a full-rect ColorRect under the map's display, drawn
+	by DESK_SHADER. Null when the leather cannot be loaded — the parchment
+	margin then shows as it always did."""
+	var hide: Texture2D = load(Utils.UI_LEATHER)
+	if hide == null:
+		return null
+	var shader := Shader.new()
+	shader.code = DESK_SHADER
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("leather", hide)
+	material.set_shader_parameter("tint", Utils.UI_DESK_TINT)
+	var desk := ColorRect.new()
+	desk.name = "DeskSurface"
+	desk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	desk.set_anchors_preset(Control.PRESET_FULL_RECT)
+	desk.color = Utils.UI_DESK_TINT
+	desk.material = material
+	return desk
+
+
+func _sheet_rect() -> Rect2:
+	return Rect2(map_origin - world_bounds.position, map_canvas_size)
+
+
+func _make_sheet_shadow() -> Panel:
+	"""The map sheet's shadow on the desk: a box with no centre, UNDER the art
+	(the art covers its inner half). Black, so the transparent map viewport's
+	premultiplied alpha composites it true."""
+	var box := StyleBoxFlat.new()
+	box.draw_center = false
+	box.shadow_size = SHEET_SHADOW_PX
+	box.shadow_color = Color(0, 0, 0, 0.6)
+	box.shadow_offset = Vector2(0, SHEET_SHADOW_PX * 0.3)
+	var shadow := Panel.new()
+	shadow.name = "SheetShadow"
+	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var rect := _sheet_rect()
+	shadow.position = rect.position
+	shadow.size = rect.size
+	shadow.z_index = -3
+	shadow.add_theme_stylebox_override("panel", box)
+	return shadow
+
+
+func _make_sheet_neatline() -> Control:
+	"""The sheet's neatline: a rule at its edge and a fillet inside it, drawn
+	over the art in its own ink."""
+	var rect := _sheet_rect()
+	var holder := Control.new()
+	holder.name = "SheetNeatline"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.position = rect.position
+	holder.size = rect.size
+	holder.z_index = -2
+	for spec in [[0.0, SHEET_RULE_PX, 1.0], [SHEET_FILLET_INSET_PX, 2, 0.7]]:
+		var box := StyleBoxFlat.new()
+		box.draw_center = false
+		box.set_border_width_all(int(spec[1]))
+		box.border_color = Color(SHEET_INK.r, SHEET_INK.g, SHEET_INK.b, SHEET_INK.a * float(spec[2]))
+		var rule := Panel.new()
+		rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rule.position = Vector2(float(spec[0]), float(spec[0]))
+		rule.size = rect.size - Vector2(float(spec[0]), float(spec[0])) * 2.0
+		rule.add_theme_stylebox_override("panel", box)
+		holder.add_child(rule)
+	return holder
+
+
 func _create_scene_layers():
 	viewport_background = ColorRect.new()
 	viewport_background.name = "ViewportBackground"
@@ -1012,6 +1122,10 @@ func _create_scene_layers():
 	if _bitmap_mode:
 		viewport_background.color = BITMAP_LETTERBOX_COLOR
 	add_child(viewport_background)
+	# Session UI: the desk lies over the parchment margin (bitmap art only).
+	desk_surface = _make_desk_surface() if (_bitmap_mode and DESK_SURFACE) else null
+	if desk_surface != null:
+		add_child(desk_surface)
 
 	# UI-2 Part 2 — native-resolution map under content_scale_factor.
 	# The SubViewport is hosted directly (no stretch-drawing SubViewportContainer)
@@ -1077,7 +1191,15 @@ func _create_scene_layers():
 	)
 	visual_map_layer.z_index = -2
 	visual_map_layer.texture = visual_map_texture
+	sheet_shadow = null
+	sheet_neatline = null
+	if desk_surface != null:
+		sheet_shadow = _make_sheet_shadow()
+		world_layer.add_child(sheet_shadow)
 	world_layer.add_child(visual_map_layer)
+	if desk_surface != null:
+		sheet_neatline = _make_sheet_neatline()
+		world_layer.add_child(sheet_neatline)
 
 	_create_owner_fill_layer()
 	_create_camp_fill_layer()

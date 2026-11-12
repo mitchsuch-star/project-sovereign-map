@@ -99,22 +99,18 @@ func _ready():
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
 
-	# Build tab styles
-	_active_tab_style = StyleBoxFlat.new()
-	_active_tab_style.bg_color = Utils.UI_ACTIVE_TAB_BG
-	_active_tab_style.border_width_bottom = 2
-	_active_tab_style.border_color = Utils.UI_GOLD
-	_active_tab_style.content_margin_left = 6.0
-	_active_tab_style.content_margin_right = 6.0
-	_active_tab_style.content_margin_top = 3.0
-	_active_tab_style.content_margin_bottom = 3.0
+	# Session UI (November 11, 2026): the ONE tab strip (`Utils.tab_styles`) —
+	# a closed book is its words, the open book stands on a gilt underline.
+	# The margins are this strip's own (6 / 3), so no tab moves.
+	var strip := Utils.tab_styles(6.0, 3.0)
+	_active_tab_style = strip["active"]
+	_normal_tab_style = strip["normal"]
+	for tab in tab_buttons:
+		Utils.dress_tab(tab, strip)
 
-	_normal_tab_style = StyleBoxFlat.new()
-	_normal_tab_style.bg_color = Utils.UI_PANEL_BG
-	_normal_tab_style.content_margin_left = 6.0
-	_normal_tab_style.content_margin_right = 6.0
-	_normal_tab_style.content_margin_top = 3.0
-	_normal_tab_style.content_margin_bottom = 3.0
+	# Session UI: every court, treaty and client a card (the marks are in the
+	# builders; `scripts/card_underlay.gd` paints them).
+	Utils.card_page(content_area)
 
 	# Critical threat pulse timer
 	_critical_pulse_timer = Timer.new()
@@ -336,6 +332,8 @@ func _switch_tab(tab_index: int):
 
 func _update_tab_highlights():
 	for i in range(tab_buttons.size()):
+		# Session UI: the open book's words bright, a closed book's dim.
+		Utils.tint_tab(tab_buttons[i], i == current_tab)
 		if i == current_tab:
 			tab_buttons[i].add_theme_stylebox_override("normal", _active_tab_style)
 		else:
@@ -476,6 +474,9 @@ func _render_nations():
 		elif trend == "falling":
 			rel_text += " ↓"
 
+		# Session UI (November 11, 2026): a court a card, its hairline and
+		# spine in its standing's colour (a court at peace takes the gilt).
+		bbcode += Utils.card_open(Utils.COLOR_GOLD if diplo_state == "PEACE" else state_color)
 		bbcode += Utils.bb_flag(name, 14)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
 		bbcode += _format_bloc_stamp(n.get("bloc_stamp"))
@@ -665,6 +666,7 @@ func _render_nations():
 				cd_parts.append(cd_key.capitalize() + ": " + str(cd_val) + " turns")
 			bbcode += "  Cooldowns: [color=#" + COLOR_AMBER + "][" + ", ".join(PackedStringArray(cd_parts)) + "][/color]\n"
 
+		bbcode += Utils.CARD_CLOSE
 		bbcode += "\n"
 
 	# UXR3-29 (S15 head): France's own two blocks close the book, under the
@@ -706,6 +708,7 @@ func _render_treaties():
 		var involves_player = t.get("involves_player", true)
 		var header_color = Utils.COLOR_GOLD if involves_player else Utils.COLOR_INFO
 
+		bbcode += Utils.card_open()    # Session UI: a treaty a card
 		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_a) + "[/color]"
 		bbcode += " [color=#" + Utils.COLOR_INFO + "]↔[/color] "
 		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_b) + "[/color]"
@@ -714,7 +717,7 @@ func _render_treaties():
 		# DDB-32: an alliance with no treaty record (the 1805 alliances) says
 		# what it is, and carries no clauses or term of ours.
 		if bool(t.get("inherited", false)):
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "][i]" + str(t.get("note", "")) + "[/i][/color]\n\n"
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "][i]" + str(t.get("note", "")) + "[/i][/color]\n" + Utils.CARD_CLOSE + "\n"
 			continue
 
 		# Clauses
@@ -754,6 +757,7 @@ func _render_treaties():
 				var gpt_amount = int(gpt.get("amount", 0))
 				bbcode += "  Gold Flow: [color=#" + Utils.COLOR_GOLD + "]" + Utils.display_nation_name(gpt_from) + " → " + Utils.display_nation_name(gpt_to) + ": " + str(gpt_amount) + "g/turn[/color]\n"
 
+		bbcode += Utils.CARD_CLOSE
 		bbcode += "\n"
 
 	# SC-23 (Settlement UI Cleanup G2-Slice-5): merged PEACE & SETTLEMENT
@@ -1651,6 +1655,7 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	var created_turn = int(v.get("created_turn", 0))
 
 	# ── Header: flag + name + autonomy + provenance ──
+	bbcode += Utils.card_open()    # Session UI: a client a card
 	bbcode += Utils.bb_flag(name, 18)
 	bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
 	bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + autonomy_name + "[/color]"
@@ -1821,6 +1826,7 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			bbcode += _format_vassal_action_row(a, v)
 	elif actions_blocked:
 		pass  # section-level notice already shown
+	bbcode += Utils.CARD_CLOSE
 	bbcode += "\n"
 	return bbcode
 

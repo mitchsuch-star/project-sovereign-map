@@ -597,15 +597,9 @@ func _on_overflow_pressed() -> void:
 	expanded_panel.set_meta("notification_id", "")
 	expanded_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	expanded_panel.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.06, 0.1, 0.98)
-	style.set_border_width_all(1)
-	style.border_color = Utils.UI_GOLD
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 10.0
+	# Session UI (November 11, 2026): the gilt frame, HUD weight.
+	var style := Utils.gilt_frame(Color(0.04, 0.06, 0.1, 0.98), Utils.UI_GOLD, Utils.FRAME_HUD, 10.0)
 	style.content_margin_top = 8.0
-	style.content_margin_right = 10.0
-	style.content_margin_bottom = 10.0
 	expanded_panel.add_theme_stylebox_override("panel", style)
 	var list := VBoxContainer.new()
 	list.add_theme_constant_override("separation", 4)
@@ -708,21 +702,9 @@ func _show_expanded_panel(notif: Dictionary):
 	expanded_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	expanded_panel.custom_minimum_size = Vector2(DETAIL_PANEL_MIN_WIDTH, 0)
 
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.04, 0.06, 0.1, 0.98)
-	panel_style.border_width_left = 1
-	panel_style.border_width_top = 1
-	panel_style.border_width_right = 1
-	panel_style.border_width_bottom = 1
-	panel_style.border_color = accent
-	panel_style.corner_radius_top_left = 6
-	panel_style.corner_radius_top_right = 6
-	panel_style.corner_radius_bottom_right = 6
-	panel_style.corner_radius_bottom_left = 6
-	panel_style.content_margin_left = 10.0
+	# Session UI (November 11, 2026): the gilt frame in the notice's accent.
+	var panel_style := Utils.gilt_frame(Color(0.04, 0.06, 0.1, 0.98), accent, Utils.FRAME_HUD, 10.0)
 	panel_style.content_margin_top = 8.0
-	panel_style.content_margin_right = 10.0
-	panel_style.content_margin_bottom = 10.0
 	expanded_panel.add_theme_stylebox_override("panel", panel_style)
 
 	var vbox = VBoxContainer.new()

@@ -49,13 +49,9 @@ func _build() -> void:
 	offset_right = 280
 	offset_top = -230
 	offset_bottom = 230
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.055, 0.07, 0.115, 0.97)
-	style.border_color = Utils.UI_GOLD
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(22)
-	add_theme_stylebox_override("panel", style)
+	# Session UI (November 11, 2026): the gilt frame.
+	add_theme_stylebox_override("panel",
+			Utils.gilt_frame(Color(0.055, 0.07, 0.115, 0.97), Utils.UI_GOLD, Utils.FRAME_WINDOW, 22.0))
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 12)

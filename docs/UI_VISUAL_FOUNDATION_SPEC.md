@@ -89,6 +89,9 @@
 > ⚔️ July-16 section: region panel + vassal cards w/ flags + nations-tab flags + Generals ladder/cards +
 > gear invariant + two-rank pieces + map crispness all PASS; same session redrew Hanover/Ottoman/Saxony
 > for 1805 date accuracy). The U2/U3/U5 sibling gates closed in the same pass.
+> **Session UI ("The Gilt Frame, the War Table and the Dressed Page") ✅ LANDED November 11, 2026**
+> — one drawn window frame for every screen, the title face, the primary button, the map a sheet on
+> a leather desk, the books as cards; the record is §9.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -688,3 +691,67 @@ systems, add clickable items when possible."
   this session (France/Austria/Prussia tints × all three arms): coherent tabletop-mini read, clear
   faction rings + flag/shabraque accents, dark-nation floor working. Verdict: keep; revisit only
   if/when Blender lands (owner stays the §8-U4 deviation record).
+
+---
+
+## 9. Session UI — The Gilt Frame, the War Table and the Dressed Page ✅ LANDED November 11, 2026
+
+> **The user's word:** "MAKE THE UI AND UX LOOK BETTER LOOK ONLINE IF NEEDED". Drafted in Plan Mode
+> and approved; at the plan's head the user ruled **the content re-layout into the same session** and
+> **a dark leather desk** around the map. Rules `SYSTEMS_REFERENCE.md` §212; pins
+> `tests/test_ui_gilt_frame.py` (37, a headless engine probe among them, `tools/ui_gilt_probe.gd`);
+> before / after pairs `docs/audits/ui_gilt/`. It supersedes `UX_UI_REVIEW_PLAN.md`'s "no visual
+> redesign" by the user's word, and U3's deviation (the crisp flat borders kept over textured
+> 9-slices): the frame is drawn, not textured, so it stays crisp.
+
+**Why.** All 185 client surfaces shot at HEAD (`7c6edd74`) showed one flat box everywhere — a navy
+fill inside a thick tan rounded border, thirty-four scene copies of it — titles in body type, every
+button of one weight, the stock scrollbar / field / dropdown, a war room whose map filled 45 % of a
+5120×1440 screen beside a flat tan void, and books that were walls of text. A found defect: DDB-R4's
+"a spent day turns End Turn gold" added gold to words already gold — invisible since it landed. Online
+research agreed with the frames (thin gilt double rules, tracked caps for titles, one filled primary
+button, a desk round a map that does not fill an ultrawide screen, right-aligned tabular figures);
+its yield was thin, so the direction rests on the frames.
+
+**Two rules.** (1) *Same boxes, better skin* — content margins, Button margins, the separator's height
+and the top bar's 36 px are what they were; only the command window's header is re-laid. (2) *The
+words are untouched* — cards are painted behind the books' text and the figure column is invisible
+spacers, so what a reader, an instrument or a driven test takes off a screen is character-identical.
+
+**As built.**
+- **The chrome kit:** `scripts/gilt_frame.gd` (a scripted StyleBox with StyleBoxFlat's property
+  names — one frame for 35 scenes and the panels built in code, each keeping its own fill, tone and
+  margins; three weights: window, HUD, hairline), `scripts/gilt_rule.gd` (every HSeparator), the
+  theme's Button states (same margins), `PrimaryButton` / `PrimaryCaptionButton`, the title face on
+  `ScreenTitle` / `DialogTitle` / `DialogTitleLarge` / `HudTitle`, slim gilt scrollbars, the text
+  field, the dropdown's menu, the slider; `Utils.tab_styles()` — one tab strip for the top bar and the
+  two ledgers. The Generals' two filigree corners are retired (the frame has its own corners).
+- **The war room:** the map a sheet on a dark leather desk (a shader over the tracked leather; the
+  sheet's shadow and neatline; `DESK_SURFACE` restores July); the top bar deeper, its nav one strip,
+  its chips gilt pills; the command window in the frame over its leather, its header one band (the
+  title face, compact scale steppers, the minimise glyph); **End Turn the gilt primary exactly when
+  the day is spent**; the map's chips, the war HUD, the region panel and the notice rail in the frame.
+- **The dressed page:** every marshal, corps, province, arm, court, treaty and client a card
+  (`scripts/card_underlay.gd`, read from invisible marks in the page; it draws nothing on a page whose
+  paragraphs disagree with its newlines); the portrait at a card's head ringed as a locket; the
+  Economy book's gold figures one right-aligned column in lining tabular numerals
+  (`Utils.bb_tabulate`).
+
+**The measure.** Every surface re-shot at Interface Scale 1.0 and 2.0 against the HEAD baseline and
+the harness's per-frame records diffed: words identical but the command window's title (its two emoji
+swords dropped) and the minimise control (a glyph); titles one pixel taller (the face's line height);
+readability RED 0 / P1 0 at both scales and at the five physical resolutions; contrast unchanged (the
+same 19 / 15 pre-existing parchment-letter rows); fit 7 of 7 at 1920 / 3840 / 5120; consistency 0
+hits on 145 surfaces; one new cut line at 2.0 — the docked Generals' Emperor portrait at the window's
+foot, a box RR5-X4 cuts by design.
+
+**From the plan, not built (each said with its reason):** the log did not take the 40 px the header
+saved — at 800×450 logical the Table lesson's card would have covered five more figures, so the
+window is 40 px shorter instead; the grip's hatch stays in the corner (inside the fillet it would sit
+on text, against UXR3-F4); the top bar's date keeps the body face (the title face widens the full bar
+near its compact threshold); a marshal's name stays under his portrait (one line break, kept so no
+reader of the page changes).
+
+**Open:** the user's own look — session H's walk (`UX_UI_REVIEW_PLAN.md` §UXR-4) reads the new skin
+on the frames in `docs/audits/ui_gilt/`; each reversal is one line (`DESK_SURFACE`, a frame's `weight`
+or `wash`, the rule's `lozenge`).
