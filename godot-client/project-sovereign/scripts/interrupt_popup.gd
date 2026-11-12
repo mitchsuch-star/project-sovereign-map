@@ -72,6 +72,8 @@ func show_interrupt(interrupt_data: Dictionary):
 
 	# Title
 	title_label.text = current_marshal.to_upper() + " REPORTS"
+	# Session UI-2: the drum above the report — the field speaks.
+	_arms_row([{"glyph": "drum"}])
 
 	# Message
 	var message = interrupt_data.get("message", "Awaiting your orders, Sire.")
@@ -106,10 +108,11 @@ func show_interrupt(interrupt_data: Dictionary):
 			if _cost != 0:
 				btn.text += "  (trust %d)" % _cost
 
-		# Style to match existing dialogs
-		btn.add_theme_color_override("font_color", Color(0.933, 0.933, 0.933, 1))
-		btn.add_theme_color_override("font_pressed_color", Color(1, 1, 1, 1))
-		btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 1))
+		# Session UI-2: the buttons wear the theme's gilt face (the colour
+		# overrides that stood here beat its words). A report that offers ONE
+		# answer has a clear default — it is the primary; a choice has none.
+		if options.size() == 1:
+			btn.theme_type_variation = &"PrimaryButton"
 
 		# Bind the option_id to the callback
 		btn.pressed.connect(_on_option_pressed.bind(option_id))
@@ -173,3 +176,51 @@ func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""
 	close_popup()
 	choice_made.emit(current_marshal, current_response_type, option_id)
+
+
+func _arms_row(parts: Array) -> void:
+	"""Session UI-2: the arms the voice speaks under (a court's flag, an
+	office's glyph, the Empire's eagle) in one centred row above the title;
+	an empty list hides the row. Built once, refilled on every show."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var row: HBoxContainer = vb.get_node_or_null("ArmsRow") as HBoxContainer
+	if row == null:
+		row = HBoxContainer.new()
+		row.name = "ArmsRow"
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(row)
+		vb.move_child(row, 0)
+	for c in row.get_children():
+		row.remove_child(c)
+		c.queue_free()
+	for part in parts:
+		var tex_path: String = ""
+		var tint: Color = Color.WHITE
+		var h: float = 26.0
+		if part.has("flag"):
+			tex_path = Utils.nation_flag_path(str(part["flag"]))
+		elif part.has("glyph"):
+			tex_path = Utils.glyph(str(part["glyph"]))
+			tint = Utils.UI_GOLD
+		elif part.has("eagle"):
+			tex_path = Utils.EAGLE
+			tint = Color(Utils.UI_GOLD, 0.92)
+			h = 44.0
+		if tex_path == "" or not ResourceLoader.exists(tex_path):
+			continue
+		var tex: Texture2D = load(tex_path)
+		if tex == null or tex.get_height() <= 0:
+			continue
+		var art := TextureRect.new()
+		art.texture = tex
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.custom_minimum_size = Vector2(h * float(tex.get_width()) / float(tex.get_height()), h)
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		art.modulate = tint
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(art)
+	# the compact view (Interface Scale 2.0) keeps its room for the answers
+	row.visible = row.get_child_count() > 0 and not Utils.compact_view()

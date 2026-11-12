@@ -8,7 +8,7 @@ exactly what a player sees and act only as a player can:
 * `tools/dd_b_client.gd` boots the game as it launches (the title screen,
   `main_menu.tscn`, whose real client talks to a sandboxed backend) in a
   5120x1440 window parked past the desktop, at the Interface Scale the menu
-  derives for that screen (1.4), from a FIRST launch (an empty in-memory
+  derives for that screen (1.6 since Session UI-2; 1.4 before), from a FIRST launch (an empty in-memory
   `UiSettings`, `_persist` false). It polls `<run>/inbox/NNNN.json` for one
   action at a time, acts through real input events, settles, and writes the
   full frame, a 2560-wide view JPEG and the state record;
@@ -458,8 +458,10 @@ class TestThePlayersHands:
         assert boot["ok"], boot["error"]
         assert boot["scene"] == "main_menu"
         assert boot["factor"]["physical_size"] == [5120, 1440]
-        assert boot["ui_scale"]["derived_for_5120x1440"] == 1.4
-        assert boot["ui_scale"]["window"] == 1.4
+        # Session UI-2 (November 12, 2026): the 32:9 term 0.25 -> 0.45 (the
+        # user's approved plan) — 5120x1440 derives 1.60 (logical 3200x900).
+        assert boot["ui_scale"]["derived_for_5120x1440"] == 1.6
+        assert boot["ui_scale"]["window"] == 1.6
         assert "scale_card" in boot["open"]["popups"], "a first launch shows the sizing card"
         assert any("Begin the 1805 Campaign" == b["text"] for b in boot["buttons"])
 

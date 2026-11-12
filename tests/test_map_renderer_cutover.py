@@ -167,8 +167,12 @@ def test_garrison_badge_sizes_to_text():
     assert "font.get_string_size(label_text" in source
     # UXR-X4 (Pre-Deploy S9b): the badge still sizes to its text — at the
     # map furniture's screen-space scale (the chip grows with its text).
-    assert "panel_width = max(_furn(GARRISON_SIZE.x)" in source
-    assert "label.position = Vector2.ZERO" in source
+    # Session UI-2 (November 12, 2026): the chip is a plaque — the holder's
+    # colour a band at its left, the figure beside it; it still grows with
+    # its text, at the furniture's screen-space scale.
+    assert "var panel_width = _furn(GARRISON_SIZE.x) + band_w" in source
+    assert "panel_width = max(panel_width, font.get_string_size(label_text" in source
+    assert "label.position = Vector2(band_w, 0.0)" in source
     assert "panel.add_child(label)" in source
 
 

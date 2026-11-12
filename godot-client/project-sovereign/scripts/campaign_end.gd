@@ -122,6 +122,9 @@ var _register: String = "verdict"
 var _font_engraved: Font = null
 var _font_voice: Font = null
 var _font_voice_italic: Font = null
+# Session UI-2: THE RECORD's figure strip, pinned between the cause and the
+# reading (the sentences stay in the reading, under it).
+var _strip: Control = null
 
 
 func _ready():
@@ -182,14 +185,101 @@ func show_ending(payload: Dictionary) -> void:
 	var style: Dictionary = REGISTER_STYLE[_register]
 	_apply_style(style)
 	claim_cue(AudioManager.play(str(style["cue"])))  # UX23-R1: leaves with the card
+	_ensure_crest()
+	_ensure_strip()
 	_render(style)
 	_arm_buttons(style)
 	show()
 	# Fit to the CURRENT logical viewport (Interface Scale can halve it).
 	# A card whose only buttons leave the screen is unrecoverable, so this
 	# runs after show(), once layout has settled.
+	# Session UI-2: the ceiling grows with the window (the crest takes 58 px
+	# of the authored 620), then the card shrinks to its record.
+	var view := get_viewport().get_visible_rect().size
+	$PanelContainer.set_meta("clamp_ceiling_override", Vector2(880, maxf(view.y * 0.86, 620.0)))
 	Utils.clamp_centered_panel($PanelContainer)
 	content_scroll.scroll_vertical = 0
+	_fit_card()
+
+
+func _ensure_crest() -> void:
+	"""Session UI-2: the Empire's eagle over the verdict (PD)."""
+	var vb := $PanelContainer/VBoxContainer
+	if vb.has_node("Crest"):
+		return
+	var crest := TextureRect.new()
+	crest.name = "Crest"
+	crest.texture = load(Utils.EAGLE)
+	crest.custom_minimum_size = Vector2(0, 58)
+	crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	crest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	crest.modulate = Color(Utils.UI_GOLD, 0.92)
+	crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(crest)
+	vb.move_child(crest, 0)
+
+
+func _ensure_strip() -> void:
+	"""Session UI-2: the record's figures stand above the reading - provinces
+	held, battles, provinces taken and lost, coalitions, peaces - as the
+	shared stat strip (big title-face figures; the sentences stay below)."""
+	if _strip != null and is_instance_valid(_strip):
+		return
+	var vb := $PanelContainer/VBoxContainer
+	_strip = preload("res://scripts/stat_strip.gd").new()
+	_strip.name = "RecordStrip"
+	vb.add_child(_strip)
+	vb.move_child(_strip, vb.get_node("HSeparator").get_index() + 1)
+
+
+func _record_tiles(summary: Dictionary) -> Array:
+	"""The strip's tiles - only the figures the payload carries (a register
+	with no record, or a staged preview, shows none)."""
+	var totals = summary.get("totals", {})
+	if not (totals is Dictionary):
+		totals = {}
+	var tiles: Array = []
+	var total := int(summary.get("total_regions", 0))
+	if total > 0:
+		tiles.append({"glyph": "europe",
+			"figure": str(int(summary.get("provinces_held", 0))) + " / " + str(total),
+			"caption": "Provinces held",
+			"tip": "The realm at the end of the campaign."})
+	if totals.is_empty():
+		return tiles
+	var fought := _n(totals, "battles_fought")
+	tiles.append({"glyph": "war",
+		"figure": str(fought) if fought == 0 else str(_n(totals, "battles_won")) + " / " + str(fought),
+		"caption": "Battles won" if fought > 0 else "Battles fought",
+		"tip": "Battles won, of those fought."})
+	tiles.append({"glyph": "march",
+		"figure": "+" + str(_n(totals, "provinces_taken")) + " / -" + str(_n(totals, "provinces_lost")),
+		"caption": "Provinces taken / lost",
+		"tip": "Provinces taken in the field, and provinces lost."})
+	tiles.append({"glyph": "threat",
+		"figure": str(_n(totals, "coalitions_faced")),
+		"caption": "Coalitions faced"})
+	tiles.append({"glyph": "letter",
+		"figure": str(_n(totals, "peaces_signed")),
+		"caption": "Peaces signed"})
+	return tiles
+
+
+func _fit_card() -> void:
+	"""Session UI-2: the card fits its record — the reading asks for its own
+	height (capped at the room the clamp leaves), then the panel shrinks to
+	its content (the authored 620 stood over a band of empty paper)."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var panel := $PanelContainer as Control
+	var have: float = panel.offset_bottom - panel.offset_top
+	content_scroll.custom_minimum_size.y = 0.0
+	var others: float = panel.get_combined_minimum_size().y
+	var body_h := float(content_label.get_content_height()) + 6.0
+	content_scroll.custom_minimum_size.y = clampf(body_h, 120.0, maxf(have - others, 120.0))
+	Utils.shrink_centered_panel_to_content(panel)
 
 
 func reraise() -> void:
@@ -233,6 +323,9 @@ func _render(style: Dictionary) -> void:
 	title_label.text = title
 	date_label.text = _date_line()
 	cause_label.text = Utils.humanize_nation_keys_in_text(str(_payload.get("cause_line", "")))
+
+	if _strip != null and is_instance_valid(_strip):
+		_strip.set_tiles(_record_tiles(summary))
 
 	var bbcode := ""
 	# 1. The epilogue — the exile / the funeral / the peace (the Fall and the

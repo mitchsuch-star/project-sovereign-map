@@ -39,8 +39,14 @@ theme_override_constants/separation = 6
 [node name="TitleLabel" type="Label" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.7, 0.3, 1)
-theme_type_variation = &"Caption"
+theme_type_variation = &"HudTitle"
 text = "THE SCHOOL OF WAR"
+
+[node name="SepLabel" type="Label" parent="Card/VBox/HeaderRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.7, 0.3, 1)
+theme_type_variation = &"HudTitle"
+text = "·"
 
 [node name="StepBadge" type="Label" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
@@ -52,12 +58,14 @@ text = ""
 [node name="MinimizeButton" type="Button" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(26, 22)
+theme_type_variation = &"CaptionButton"
 tooltip_text = "Minimize the lesson"
 text = "–"
 
 [node name="SkipButton" type="Button" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(44, 22)
+theme_type_variation = &"CaptionButton"
 text = "Skip"
 
 [node name="BodyText" type="RichTextLabel" parent="Card/VBox"]

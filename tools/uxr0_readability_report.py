@@ -52,7 +52,7 @@ SCALE_MIN = 1.0
 SCALE_MAX = 3.0
 SCALE_ROUND = 0.05
 ULTRA_WIDE_ASPECT = 3.0     # 32:9 (3.56) qualifies; 21:9 (2.39) does not
-ULTRA_WIDE_BONUS = 0.25
+ULTRA_WIDE_BONUS = 0.45   # Session UI-2: 0.25 -> 0.45 (the GDScript twin moved with it)
 
 
 def derive_ui_scale(width: int, height: int, dpi: float = 96.0) -> float:

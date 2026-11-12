@@ -39,7 +39,9 @@ UXR-D1 (Pre-Deploy S9b) — the Text size knob:
     --text-size <x>                every frame shot at Text size x (the theme's
                                    named sizes x; 1.0, the default, is the
                                    shipped theme and changes nothing)
-    --hud-width full|centred       UXR-D3: the HUD width every frame is shot at
+    --hud-width auto|full|centred  UXR-D3: the HUD width every frame is shot at
+                                   (Session UI-2: auto, the game's default, is
+                                   untagged; full and centred tag the frame)
     --high-contrast                UXR-D2: every frame shot with High contrast on
 Every frame's record carries the text census (em / cap / x in physical px per
 visible node); `tools/uxr0_readability_report.py <run>/index.json` applies the
@@ -1836,14 +1838,14 @@ def expand_physical(shots: list[dict], physical_scale: str) -> list[dict]:
 def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str,
                spec_path: pathlib.Path, result_path: pathlib.Path,
                png_dir: pathlib.Path | None = None,
-               text_size: float = 1.0, hud_width: str = "full",
+               text_size: float = 1.0, hud_width: str = "auto",
                high_contrast: bool = False) -> tuple[dict, list[dict]]:
     # SF-R (Step 8): a scoring run keeps its frames in its own run directory
     # (`--png-dir`); every other caller writes them to docs/audits as before.
     png_dir = AUDITS if png_dir is None else pathlib.Path(png_dir)
     # UXR-D1: a frame shot at another Text size says so in its name.
     text_tag = "" if abs(text_size - 1.0) < 1e-9 else "_T%.2f" % text_size
-    if hud_width != "full":
+    if hud_width != "auto":
         text_tag += "_HUD_" + hud_width.upper()
     if high_contrast:
         text_tag += "_HC"
@@ -1968,7 +1970,7 @@ def main() -> int:
                     help="auto (derive_ui_scale) or a number such as 1.0 (the BEFORE picture)")
     ap.add_argument("--text-size", type=float, default=1.0,
                     help="UXR-D1: shoot every frame at this Text size (1.0 = the shipped theme)")
-    ap.add_argument("--hud-width", default="full", choices=["full", "centred"],
+    ap.add_argument("--hud-width", default="auto", choices=["auto", "full", "centred"],
                     help="UXR-D3: shoot every frame at this HUD width")
     ap.add_argument("--high-contrast", action="store_true",
                     help="UXR-D2: shoot every frame with High contrast on")

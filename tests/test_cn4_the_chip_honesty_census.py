@@ -91,10 +91,12 @@ def fresh_staged():
 
 # CRT-9 (Oct 3, 2026): a refused chip is dimmed and its reason said ONCE
 # after every chip it stops (`region_panel._dimmed_chips`). One run = one or
-# more dimmed chips, then the reason.
+# more dimmed chips, then the reason. Session UI-2 (November 12, 2026): the
+# dimmed chip is a one-cell table (a dim rim on the old pill's ground) and
+# its bound spaces ride inside the span — the label is stripped.
 _DIMMED_RUN = re.compile(
-    r"((?:\s*\[bgcolor=#20242c\]  (?:\[img[^\]]*\][^\[]*\[/img\] )?"
-    r"\[color=#6f7480\][^\[]+\[/color\]  \[/bgcolor\])+) "
+    r"((?:\s*\[table=1,baseline\]\[cell border=#4b505c bg=#20242c\](?:\[img[^\]]*\][^\[]*\[/img\] )?"
+    r"\[color=#6f7480\][^\[]+\[/color\]\[/cell\]\[/table\])+) "
     r"\[color=#[0-9a-f]+\]([^\[]+)\[/color\]")
 
 
@@ -103,7 +105,7 @@ def dimmed_chips(line):
     out = []
     for run, reason in _DIMMED_RUN.findall(line):
         for label in re.findall(r"\[color=#6f7480\]([^\[]+)\[/color\]", run):
-            out.append((label, reason))
+            out.append((label.strip(), reason))
     return out
 
 
@@ -1208,6 +1210,10 @@ REVIEWED = {
     ("dispatch_view.gd", '"corr:read:" + str(mailbox_id)'): "the desk's Read the letter ▸ — closes the view and takes the rail card's road (POST /mailbox/activate through main.gd's _on_correspondence_read_letter); never sends",
     ("dispatch_view.gd", '"corr:court:" + nation'): "the court chip — closes the view and opens that court's Cabinet page through main.gd's guarded _on_ledger_open_diplomacy_for; never sends",
     ("dispatch_view.gd", '"ledger:6"'): "the Admiralty chip — the Strategic Ledger on THE ADMIRALTY through _on_tutorial_open_ledger (ledger_tab_requested); never sends",
+    # Session UI-2 (November 11, 2026): the Congress card's chip (it was a bare [url=]).
+    ("diplomatic_ledger.gd", '"congress_court:" + nation'): "opens that court's Cabinet page through open_diplomacy_for (the existing `open_diplomacy_for` road); never sends",
+    # Session UI-2 (November 12, 2026): the settlement table's "+ / − Add demand" became a chip (it was a bare [url=]).
+    ("proposal_confirm_popup.gd", '"addmenu:%d" % court_index'): "toggles that court's demand menu open or shut (_add_demand_expanded, then the table re-renders and re-fits); never sends",
     ("main.gd", '"ledger:7"'): "the terminal dispatch's twin of the LAWS door — _on_output_meta_clicked → _on_tutorial_open_ledger; never sends",
 }
 

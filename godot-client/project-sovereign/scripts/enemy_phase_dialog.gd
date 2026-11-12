@@ -55,6 +55,9 @@ var _diorama_payloads: Array = []
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
+	# Session UI-2: each court's move is a card (the marks are put in
+	# `_format_action`; `card_underlay.gd` paints them behind the lines).
+	Utils.card_page(content_label)
 	# Connect button signal
 	continue_button.pressed.connect(_on_continue_pressed)
 	# BD: battle lines carry [url=diorama:N] view-field links.
@@ -122,7 +125,8 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 			# Nation header with colored name
 			var nation_color = _get_nation_color(nation)
-			content += "[color=#" + nation_color + "][b]" + Utils.display_nation_name(nation).to_upper() + "[/b][/color]\n"
+			# Session UI-2: the court's flag leads its name.
+			content += Utils.bb_flag(str(nation), 16) + "[color=#" + nation_color + "][b]" + Utils.display_nation_name(nation).to_upper() + "[/b][/color]\n"
 			# UXR3-F6: a ruled line, not typed dashes.
 			content += "[color=#" + Utils.COLOR_INFO + "]" + "─".repeat(28) + "[/color]\n"
 
@@ -144,7 +148,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			content += "[color=#" + Utils.COLOR_INFO + "]" + str(line) + "[/color]\n"
 
 	# Set content
-	content_label.text = content
+	content_label.text = Utils.dress_heads(content)
 
 	# Show the dialog
 	show()
@@ -354,6 +358,10 @@ func _format_action(action: Dictionary) -> String:
 			if target:
 				action_str += " " + target
 
+	# Session UI-2: the move is a card, led by the glyph of its kind (a loss to
+	# us takes the red tone); the card closes at the end of this function.
+	var card_hex: String = COLOR_ERROR if line_color == COLOR_ERROR else Utils.COLOR_GOLD
+	result += Utils.card_open(card_hex) + Utils.bb_glyph(_action_glyph(action, str(action_type), is_bombardment), 18, card_hex) + " "
 	result += "[color=#" + line_color + "]- " + action_str + "[/color]\n"
 
 	# Check for battle events
@@ -481,7 +489,60 @@ func _format_action(action: Dictionary) -> String:
 						break
 			result += "[color=#" + reinf_color + "]    " + msg_text + "[/color]\n"
 
-	return result
+	# Session UI-2: the card closes on its last line (no new paragraph), a blank
+	# line parts it from the next, and the glyph stands where the list dash was.
+	var dash_at: int = result.find("]- ")
+	if dash_at >= 0:
+		result = result.substr(0, dash_at + 1) + " " + result.substr(dash_at + 3)
+	return result.trim_suffix("\n") + Utils.CARD_CLOSE + "\n\n"
+
+
+func _action_glyph(action: Dictionary, action_type: String, is_bombardment: bool) -> String:
+	"""The glyph of a move's kind: europe for a province changing hands, war for
+	a battle or an assault, guns for a bombardment, march for a move, and so on.
+	Read off the action and its events — nothing guessed from the prose."""
+	var evs = action.get("events", [])
+	if evs is Array:
+		for ev in evs:
+			if typeof(ev) != TYPE_DICTIONARY:
+				continue
+			var kind := str(ev.get("type", ""))
+			if kind == "conquest" or bool(ev.get("region_conquered", false)) \
+					or (kind == "move" and str(ev.get("captured_from", "")) != ""):
+				return "europe"
+			if kind == "garrison_destroyed":
+				return "garrison"
+	if is_bombardment:
+		return "guns"
+	if evs is Array:
+		for ev in evs:
+			if typeof(ev) == TYPE_DICTIONARY and str(ev.get("type", "")) in ["battle", "garrison_assault"]:
+				return "war"
+	match action_type:
+		"attack":
+			return "war"
+		"move", "forced_march", "retreat":
+			return "march"
+		"defend", "fortify", "unfortify", "form_square", "break_square":
+			return "defense"
+		"drill":
+			return "tactical"
+		"recruit":
+			return "foot"
+		"build", "repair":
+			return "build"
+		"scout":
+			return "intel"
+		"garrison":
+			return "garrison"
+		"naval_expedition":
+			return "fleet"
+		"grant_dotation", "grant_pension":
+			return "medal"
+		"error":
+			return "threat"
+	return "command"
+
 
 func _format_battle(event: Dictionary, action_marshal: String = "", action_target: String = "") -> String:
 	"""Format battle details.
@@ -511,7 +572,9 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 
 	# Battle header - use battle_name if available, fallback to attacker vs defender
 	var battle_title = event.get("battle_name", attacker_name + " vs " + defender_name)
-	result += "[color=#" + Utils.COLOR_BATTLE + "]    " + battle_title + "[/color]\n"
+	# Session UI-2: the battle's name is its heading — the title face, led by the
+	# crossed-swords glyph.
+	result += "    " + Utils.bb_glyph("war", 18, Utils.COLOR_BATTLE) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_BATTLE + "]" + battle_title + "[/color][/font]\n"
 	var already_stated = (
 		action_marshal != "" and attacker_name == action_marshal
 		and action_target != "" and defender_name == action_target
@@ -581,6 +644,20 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 		if victor_standing != "":
 			outcome_color = _standing_colour(victor_standing, true)
 
+	# Session UI-2: the result is a badge first — VICTORY / DEFEAT in the colour
+	# the line already carries (green good news, red bad), BATTLE where it is
+	# neither's, STALEMATE for a drawn field — then the words as they were.
+	var result_badge := "BATTLE"
+	var result_tone := Utils.COLOR_BADGE_QUIET
+	if outcome == "stalemate":
+		result_badge = "STALEMATE"
+	elif outcome_color == Utils.COLOR_SUCCESS:
+		result_badge = "VICTORY"
+		result_tone = "2f6b3a"
+	elif outcome_color == COLOR_ERROR:
+		result_badge = "DEFEAT"
+		result_tone = "8b2a2a"
+	result += "    " + Utils.bb_badge(result_badge, result_tone) + "\n"
 	result += "[color=#" + outcome_color + "]    Result: " + outcome_text
 	if victor:
 		result += " (" + victor + " victorious)"
@@ -852,7 +929,7 @@ func _format_bombardment(event: Dictionary) -> String:
 	var def_casualties = int(event.get("defender_casualties", 0))
 	var atk_casualties = int(event.get("attacker_casualties", 0))
 
-	result += "[color=#" + Utils.COLOR_BATTLE + "]    Bombardment of " + def_location + "[/color]\n"
+	result += "    " + Utils.bb_glyph("guns", 18, Utils.COLOR_BATTLE) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_BATTLE + "]Bombardment of " + def_location + "[/color][/font]\n"
 	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + " fires from " + atk_location + " on " + defender_name + "[/color]\n"
 	result += "[color=#" + COLOR_ERROR + "]    " + defender_name + ": " + _format_number(def_casualties) + " casualties[/color]\n"
 	result += "[color=#" + Utils.COLOR_INFO + "]    " + attacker_name + ": " + _format_number(atk_casualties) + " return fire[/color]\n"

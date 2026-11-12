@@ -295,7 +295,12 @@ def test_chip_text_contrast_over_light_palette_entries():
         # province the chip's click box is bound to; the body pinned is unchanged.
         "func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String, region_name: String = \"\"):",
     )
-    assert "Utils.contrast_text_color(nation_color)" in garrison_body
+    # Session UI-2 (November 12, 2026): the garrison's figure no longer sits
+    # on a raw NATION_COLORS fill — the chip is a dark plaque with the
+    # holder's colour as its band (scripts/map_plaque.gd), its figure in the
+    # plaque's ivory (a stale one dimmer), so the rule holds by construction.
+    assert "_plaque(MapPlaque.Kind.GARRISON" in garrison_body
+    assert "var text_color: Color = PLAQUE_IVORY" in garrison_body
     assert "var text_color = Color.WHITE" not in garrison_body
     # Python mirror of the luminance rule (Rec.709 coefficients, matching
     # Godot's Color.get_luminance) over the live palette: light entries take

@@ -453,6 +453,15 @@ static func wrap_tooltips(tree: SceneTree) -> void:
 		return
 	tree.root.set_meta("tooltip_wrap", true)
 	tree.node_added.connect(_wrap_tooltip_popup)
+	# Session UI-2: a page's chips are rimmed buttons now (bb_button_chip), so
+	# no link draws an underline — a link reads by its colour, its ▸ and the
+	# pointer, and a chip by its rim.
+	tree.node_added.connect(_unline_links)
+
+
+static func _unline_links(node: Node) -> void:
+	if node is RichTextLabel:
+		(node as RichTextLabel).meta_underlined = false
 
 
 static func _wrap_tooltip_popup(node: Node) -> void:
@@ -689,6 +698,15 @@ const UI_BAR_BG := Color(0.15, 0.15, 0.2, 0.8)              # score bar track
 # every grey a script drew as a literal is a named token here, its value
 # unchanged. Alpha is part of the token where the site drew one.
 const UI_REASON_GREY := Color(0.6, 0.6, 0.65, 1)            # a closed arm's reason line (wizard, petition card)
+# Session UI-2 (November 12, 2026): the alert red lifted for words and
+# figures on the dark ground — UI_ALERT (d94040) read 4.36 : 1 on the top
+# bar and 4.24 on a book's page as body type; this (de5757) reads 5.1 and 5.0.
+const UI_ALERT_TEXT := Color(0.871, 0.341, 0.341, 1.0)
+# The map plaques' greys and the region panel's quiet badge, named (R4).
+const UI_PLAQUE_DIM_INK := Color(0.72, 0.72, 0.74, 1.0)       # a stale plaque's figures
+const UI_PLAQUE_FADED_RIM := Color(0.62, 0.62, 0.64, 0.55)    # a stale plaque's rim
+const UI_PLAQUE_FADE_TO := Color(0.5, 0.5, 0.5)               # a stale plaque's band fades toward it
+const COLOR_BADGE_QUIET := "6b6f80"                            # the region panel's kind-of-province badge
 const UI_DISABLED_TEXT := Color(0.55, 0.55, 0.55, 0.8)      # the title screen's disabled button text
 const UI_FAINT_BORDER := Color(0.5, 0.48, 0.42, 0.2)        # the title screen's disabled button border
 const UI_VERSION_LINE := Color(0.65, 0.63, 0.58, 0.8)       # the build line (title screen, pause menu)
@@ -1123,8 +1141,13 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 	# so a wrapped row breaks BETWEEN chips, never through one — "Fall" /
 	# "back" read as two pills. The instruments read the bound space as a
 	# space (their get_parsed_text() readers normalise it).
-	inner += "[color=#" + text_hex + "]" + label.replace(" ", "\u00A0") + "[/color]"
-	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
+	inner += "[color=#" + text_hex + "]" + CHIP_PAD + label.replace(" ", "\u00A0") + CHIP_PAD + "[/color]"
+	# Session UI-2 (November 11, 2026): the chip is a one-cell table standing
+	# INLINE on its line (baseline-aligned), so it wears a real rim — the
+	# readers took the old flat pill, underlined, for a link. The padding is
+	# bound spaces INSIDE the link: the whole button is the target.
+	return CHIP_OPEN_HEAD + text_hex + CHIP_RIM_ALPHA + " bg=#" + bg_hex + "][url=" + url_meta + "]" \
+		+ inner + "[/url]" + CHIP_CLOSE
 
 
 # ── The in-surface echo (UXR-3 R6, Pre-Deploy S12 part 2) ──────────────────
@@ -1164,10 +1187,19 @@ static func mark_chip_sent(rtl: RichTextLabel, meta: String, words := "") -> boo
 	if close < 0:
 		return false
 	if words == "":
-		words = bb_plain(src.substr(at + open.length(), close - at - open.length()))
+		words = bb_plain(src.substr(at + open.length(), close - at - open.length())) \
+			.replace(" ", " ").strip_edges()
 	var start := at
 	var end := close + "[/url]".length()
 	var sent := "[color=#" + COLOR_INFO + "]Sent: " + words + "[/color]"
+	# Session UI-2: a chip is a rimmed one-cell table round its link
+	# (bb_button_chip) — the whole cell becomes the disabled chip.
+	var cell := src.rfind(CHIP_OPEN_HEAD, at)
+	if cell >= 0 and src.substr(cell, at - cell).count("[url=") == 0 \
+			and src.substr(end, CHIP_CLOSE.length()) == CHIP_CLOSE:
+		rtl.text = src.substr(0, cell) + bb_chip_disabled("Sent: " + words) \
+			+ src.substr(end + CHIP_CLOSE.length())
+		return true
 	# A chip is `[bgcolor=#…]  [url=…]…[/url]  [/bgcolor]` (bb_button_chip):
 	# the whole pill becomes the disabled pill.
 	var pill := src.rfind("[bgcolor=", at)
@@ -1219,8 +1251,9 @@ static func bb_bar_img(filled: int, hex_color: String, width: int = 110, height:
 	Generals' 0..10 bar image, tinted (no '#') — for every ledger bar that
 	was drawn with hatched glyphs."""
 	var v := clampi(filled, 0, 10)
-	return ("[img color=#" + hex_color + " width=" + str(width) + " height=" + str(height)
-		+ "]res://assets/ui/bars/bar_" + str(v) + ".png[/img]")
+	# Session UI-2: an exact meter with its track showing (bb_meter) — the
+	# stepped images drew no track, so a short bar read as a gap.
+	return bb_meter(float(v), 10.0, width, mini(height, 10), hex_color)
 
 
 static func bb_chip_disabled(label: String, icon_path := "") -> String:
@@ -1231,8 +1264,138 @@ static func bb_chip_disabled(label: String, icon_path := "") -> String:
 	if icon_path != "":
 		inner += bb_icon(icon_path, 18, "6f7480") + " "
 	# UXR3-83: the dimmed pill holds together the same way as the lit one.
-	inner += "[color=#6f7480]" + label.replace(" ", "\u00A0") + "[/color]"
-	return "[bgcolor=#20242c]  " + inner + "  [/bgcolor]"
+	inner += "[color=#6f7480]" + CHIP_PAD + label.replace(" ", "\u00A0") + CHIP_PAD + "[/color]"
+	# Session UI-2: the same rimmed cell as the lit chip, with a dim rim and
+	# ground and no link \u2014 present, plainly not pressable.
+	return CHIP_OPEN_HEAD + CHIP_DIM_RIM + " bg=#" + CHIP_DIM_BG + "]" + inner + CHIP_CLOSE
+
+
+# === The imperial desk (Session UI-2, November 11, 2026) ===================
+# The kit the books, the war room and the ceremonies share: the stat glyphs
+# (one per category, assets/ui/icons/glyphs/ \u2014 game-icons.net, CC BY 3.0,
+# imported with mipmaps so they render at 16\u201328 px), exact meters, state
+# badges, section headings, and the open motion. Rules in
+# docs/SYSTEMS_REFERENCE.md \u00A7213.
+const GLYPH_DIR := "res://assets/ui/icons/glyphs/"
+# A 4 x 4 white swatch: tinted by [img color=], it draws a meter's segments.
+const SWATCH := "res://assets/ui/bars/swatch.png"
+const CHIP_PAD := "\u00A0\u00A0"
+const CHIP_OPEN_HEAD := "[table=1,baseline][cell border=#"
+const CHIP_CLOSE := "[/cell][/table]"
+const CHIP_RIM_ALPHA := "b0"
+# the old pill's ground (20242c): the contrast census exempts that pair —
+# an inactive control (WCAG) — so the dimmed cell keeps it.
+const CHIP_DIM_BG := "20242c"
+const CHIP_DIM_RIM := "4b505c"
+const METER_TRACK := "232838"
+const EAGLE := "res://assets/ui/ornaments/eagle_empire.svg"
+# The title face as a resource whose path has no brackets (a BBCode
+# `[font=…]` ends at the first "]" — the Cinzel file's own name has two).
+const TITLE_FONT := "res://ui/title_face.tres"
+# A book's or a panel's section heading: the title face in gilt.
+const HEAD_OPEN := "[font=" + TITLE_FONT + "][color=#" + COLOR_GOLD + "]"
+const HEAD_CLOSE := "[/color][/font]"
+const MOTION_SECONDS := 0.16
+
+
+static func glyph(name: String) -> String:
+	"""The stat glyph's path (`gold`, `dp`, `authority`, `threat`, `foot` \u2026)."""
+	return GLYPH_DIR + name + ".svg"
+
+
+static func bb_glyph(name: String, size: int = 18, hex: String = COLOR_GOLD) -> String:
+	"""An inline stat glyph, tinted. 16 px is the floor that renders."""
+	return bb_icon(glyph(name), maxi(size, 16), hex)
+
+
+static func bb_meter(value: float, maximum: float, width: int = 110, height: int = 8,
+		fill_hex: String = COLOR_GOLD, track_hex: String = METER_TRACK) -> String:
+	"""An exact meter: the fill and the track as two tinted swatches (a full
+	or an empty meter is one). Two images read as two spaces in the parsed
+	text \u2014 the words around a meter never touch it."""
+	var f := clampf(value / maxf(maximum, 0.001), 0.0, 1.0)
+	var fw := int(round(float(width) * f))
+	var tw := width - fw
+	var out := ""
+	if fw > 0:
+		out += "[img width=%d height=%d color=#%s]%s[/img]" % [fw, height, fill_hex, SWATCH]
+	if tw > 0:
+		out += "[img width=%d height=%d color=#%s]%s[/img]" % [tw, height, track_hex, SWATCH]
+	return out
+
+
+static func bb_badge(text: String, tone_hex: String, ink_hex: String = "f4ead2") -> String:
+	"""A state badge \u2014 WAR, ALLIANCE, VASSAL \u2014 a small rimmed cell in its
+	tone, inline on the line (the chip's geometry without a link)."""
+	# no rim: a badge is a state, never a button
+	return "[table=1,baseline][cell bg=#" + tone_hex + "66][color=#" + ink_hex + "]\u00A0" \
+		+ text.replace(" ", "\u00A0") + "\u00A0[/color]" + CHIP_CLOSE
+
+
+# Session UI-2: under this logical height (Interface Scale 2.0 on a 900-px
+# screen: 800 x 450) the client folds — the command window's header to one
+# band (main.gd), the popups' arms rows and figure strips step aside, the
+# School of War card drops its spacing — so every answer, term and door
+# stays above the fold, as the frames' pins require.
+const COMPACT_BELOW := 600.0
+
+
+static func compact_view() -> bool:
+	"""True when the window's logical height is under COMPACT_BELOW."""
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return false
+	return tree.root.get_visible_rect().size.y < COMPACT_BELOW
+
+
+static func bb_tag(text: String, tone_hex: String, ink_hex: String = "f4ead2") -> String:
+	"""A badge for INSIDE a table cell: a nested one-cell table is squeezed
+	to its narrowest there (one letter a line — measured on the frames), so
+	a cell's state wears its tint as an inline run ([bgcolor], the old pill's
+	form, which the contrast census reads against its own ground)."""
+	return "[bgcolor=#" + tone_hex + "66][color=#" + ink_hex + "]\u00A0" \
+		+ text.replace(" ", "\u00A0") + "\u00A0[/color][/bgcolor]"
+
+
+static func bb_section(title: String, glyph_name: String = "") -> String:
+	"""A book's section heading in the title face (it replaces the old
+	`\u2550\u2550\u2550 X \u2550\u2550\u2550` rules); the title's words are unchanged."""
+	var lead := (bb_glyph(glyph_name, 18, COLOR_GOLD) + " ") if glyph_name != "" else ""
+	return lead + HEAD_OPEN + title + HEAD_CLOSE + "\n"
+
+
+static func motion_open(node: Node) -> void:
+	"""A surface opens with a 160 ms fade (the readers judge motion too).
+	Nothing waits on it \u2014 the node is visible at once, so no test, record or
+	instrument reads a different state; Settings \u2192 Reduce motion turns it off
+	(the capture harness shoots with it off)."""
+	if node == null or not is_instance_valid(node) or UiSettings.get_reduce_motion():
+		return
+	var targets: Array = []
+	if node is CanvasLayer:
+		for child in node.get_children():
+			if child is Control and (child as Control).visible:
+				targets.append(child)
+	elif node is CanvasItem:
+		targets.append(node)
+	for t in targets:
+		var item := t as CanvasItem
+		item.modulate.a = 0.0
+		var tw := item.create_tween()
+		tw.tween_property(item, "modulate:a", 1.0, MOTION_SECONDS) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+static func watch_motion(node: Node) -> void:
+	"""Fade a surface in every time it becomes visible (the dialog and screen
+	registries call this once per surface)."""
+	if node == null or node.has_meta("motion_watched"):
+		return
+	node.set_meta("motion_watched", true)
+	if node.has_signal("visibility_changed"):
+		node.visibility_changed.connect(func():
+			if is_instance_valid(node) and node.get("visible"):
+				motion_open(node))
 
 
 # === High contrast (UXR-D2, Pre-Deploy S9b) ===
@@ -2015,10 +2178,17 @@ static func hud_band(view: Vector2) -> Vector2:
 
 static func hud_band_full(view: Vector2) -> Vector2:
 	"""The HUD band with no dock taken out of it (see `hud_band`)."""
-	if UiSettings.get_hud_width() == "centred" \
+	var width := UiSettings.get_hud_width()
+	if width == "centred" \
 			and view.x > UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN:
 		var left := floorf((view.x - UiSettings.HUD_BAND_WIDTH) / 2.0)
 		return Vector2(left, left + UiSettings.HUD_BAND_WIDTH)
+	# Session UI-2: Auto — a 16:9 safe zone about the centre on a very wide
+	# screen (32:9, 32:10); Full everywhere else.
+	if width == "auto" and view.y > 0.0 and view.x / view.y >= UiSettings.SAFE_ZONE_ASPECT:
+		var zone := floorf(view.y * 16.0 / 9.0)
+		var at := floorf((view.x - zone) / 2.0)
+		return Vector2(at, at + zone)
 	return Vector2(0.0, view.x)
 
 
@@ -2333,3 +2503,101 @@ static func format_number(n: int) -> String:
 	if n < 0:
 		result = "-" + result
 	return result
+
+
+# ── The books' kit (Session UI-2, November 11, 2026) ─────────────────────────
+# Figures before prose: tables with header rows and striped cells, exact
+# meters, a relation meter centred on nought, headings in the title face. A
+# table is ONE paragraph of its page (the card underlay counts paragraphs by
+# the text's newlines OUTSIDE tables — `flatten_tables`).
+const ZEBRA_A := "141a2a"
+const ZEBRA_B := "10141f"
+const TABLE_HEAD_BG := "1c2236"
+const RELATION_NEG := "c0504a"
+const RELATION_POS := "6aa564"
+static var _head_re: RegEx = null
+static var _rule_head_re: RegEx = null
+static var _bar_re: RegEx = null
+
+
+static func flatten_tables(text: String) -> String:
+	"""`text` with every newline INSIDE a [table]…[/table] span turned into a
+	space: what the page's paragraphs count (a cell's lines are the cell's)."""
+	if text.find("[table") < 0:
+		return text
+	var out := ""
+	var depth := 0
+	var i := 0
+	while i < text.length():
+		if text.substr(i, 6) == "[table":
+			depth += 1
+		elif text.substr(i, 8) == "[/table]":
+			depth = maxi(depth - 1, 0)
+		var ch := text[i]
+		out += " " if (ch == "\n" and depth > 0) else ch
+		i += 1
+	return out
+
+
+static func dress_heads(bbcode: String) -> String:
+	"""A book's capital headings in the title face: `[color=#B8860B]═══ X ═══`
+	rules and `[color=#B8860B]CAPS[/color]` headings both become the gilt title
+	face (the words are the heading's own; the rules' bars go)."""
+	if _head_re == null:
+		_rule_head_re = RegEx.create_from_string("\\[color=#(?:B8860B|b8860b)\\]═+ ([^\\[═]+?) ═+\\[/color\\]")
+		_head_re = RegEx.create_from_string("\\[color=#(?:B8860B|b8860b)\\]([A-Z][A-Z0-9 ,'’·—\\-&]+[A-Z0-9])\\[/color\\]")
+	var out := _rule_head_re.sub(bbcode, HEAD_OPEN + "$1" + HEAD_CLOSE, true)
+	out = _head_re.sub(out, HEAD_OPEN + "$1" + HEAD_CLOSE, true)
+	# a line of bare ═ rules (the Dispatch's masthead) becomes a gilt hairline
+	if _bar_re == null:
+		_bar_re = RegEx.create_from_string("\\[color=#(?:B8860B|b8860b)\\]═{8,}\\[/color\\]")
+	return _bar_re.sub(out, "[img width=360 height=1 color=#" + COLOR_GOLD + "99]" + SWATCH + "[/img]", true)
+
+
+static func bb_relation_meter(value: int, width: int = 120, height: int = 7) -> String:
+	"""A relation from −100 to +100 as a meter centred on nought: the hostile
+	half fills leftward in crimson, the friendly half rightward in green."""
+	var half := int(width / 2.0)
+	var v := clampi(value, -100, 100)
+	var neg := int(round(float(half) * float(maxi(-v, 0)) / 100.0))
+	var pos := int(round(float(half) * float(maxi(v, 0)) / 100.0))
+	var out := ""
+	var seg := func(w: int, hex: String) -> String:
+		return "[img width=%d height=%d color=#%s]%s[/img]" % [w, height, hex, SWATCH] if w > 0 else ""
+	out += seg.call(half - neg, METER_TRACK)
+	out += seg.call(neg, RELATION_NEG)
+	out += seg.call(1, COLOR_GOLD)
+	out += seg.call(pos, RELATION_POS)
+	out += seg.call(half - pos, METER_TRACK)
+	return out
+
+
+static func bb_table(header: Array, rows: Array, right_cols: Array = [], expand: Array = []) -> String:
+	"""A striped table: a header row (each cell plain words, small caps) over
+	the rows; columns in `right_cols` right-aligned in lining tabular figures;
+	`expand` gives a column its share of the width. No cell holds a newline."""
+	var n := header.size()
+	if n == 0:
+		return ""
+	var out := "[table=%d]" % n
+	for c in range(n):
+		var ex := ("expand=%d " % int(expand[c])) if c < expand.size() and int(expand[c]) > 0 else ""
+		var head_txt := str(header[c])
+		if c in right_cols:
+			head_txt = "[right]" + head_txt + "[/right]"
+		out += "[cell %sbg=#%s padding=6,3,6,3][color=#%s][opentype_features=smcp]%s[/opentype_features][/color][/cell]" \
+			% [ex, TABLE_HEAD_BG, COLOR_GOLD, head_txt]
+	for r in rows:
+		for c in range(n):
+			var cell_txt := str(r[c]) if c < (r as Array).size() else ""
+			if c in right_cols:
+				cell_txt = "[right][opentype_features=tnum,lnum]" + cell_txt + "[/opentype_features][/right]"
+			out += "[cell bg=#%s,#%s padding=6,3,6,3]%s[/cell]" % [ZEBRA_A, ZEBRA_B, cell_txt]
+	return out + "[/table]"
+
+
+static func bb_portrait_row(portrait: String, sheet: String, frame_hex: String = COLOR_GOLD) -> String:
+	"""A portrait in a gilt-ruled cell beside its sheet (the sheet may hold
+	several lines — a cell's lines are its own; see flatten_tables)."""
+	return "[table=2][cell border=#" + frame_hex + " padding=2,2,2,2]" + portrait.strip_edges() \
+		+ "[/cell][cell expand=1 padding=12,0,0,0]" + sheet.strip_edges() + "[/cell][/table]"

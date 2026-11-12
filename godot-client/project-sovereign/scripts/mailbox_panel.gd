@@ -36,6 +36,9 @@ const ITEM_TYPE_DISPLAY = {
 # letter in full, and says why on its own line.
 const DEFAULT_SUBTITLE = "Every envoy still awaiting your answer — diplomacy waiting on your word; ignored, it lapses. Routine letters from the lesser courts answer in place; every other letter opens in full. Select a row, or press its Open, to reopen or activate it."
 
+const SEAL_PX := 22.0   # Session UI-2: the row's seal glyph
+const FLAG_PX := 18.0   # and the court's flag (height)
+
 var _items: Array = []
 # IGR-F: mailbox_id -> the letter-book row for that item. Only rows in this
 # map get inline Accept/Decline; everything else keeps the click-to-open
@@ -100,6 +103,28 @@ func show_mailbox(data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+	_fit_to_rows()
+
+
+func _fit_to_rows() -> void:
+	"""Session UI-2 (November 11, 2026): the book fits what it holds. The
+	authored 960 x 720 stood over two short rows and a band of nothing. Two
+	frames after the clamp (a wrapping label has no height before it has a
+	width) the list asks for its own height - never more than the room the
+	clamped box leaves it, so a long book still scrolls - and the panel
+	shrinks to its content."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var panel := $PanelContainer as Control
+	var scroll := list_content.get_parent() as ScrollContainer
+	var have: float = panel.offset_bottom - panel.offset_top
+	scroll.custom_minimum_size.y = 0.0
+	var others: float = panel.get_combined_minimum_size().y
+	var list_h: float = list_content.get_combined_minimum_size().y + 4.0
+	scroll.custom_minimum_size.y = clampf(list_h, 80.0, maxf(have - others, 80.0))
+	Utils.shrink_centered_panel_to_content(panel)
 
 
 func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
@@ -116,8 +141,8 @@ func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
 	var title = str(digest.get("title", "THE COURTS WRITE"))
 	heading.text = "%s (%d)" % [title, int(digest.get("count", _digest_rows.size()))]
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.theme_type_variation = &"Caption"
-	heading.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
+	heading.theme_type_variation = &"HudTitle"
+	heading.add_theme_color_override("font_color", Utils.UI_GOLD)
 	box.add_child(heading)
 
 	var note = Label.new()
@@ -180,21 +205,45 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	top_row.add_theme_constant_override("separation", 8)
 	vbox.add_child(top_row)
 
+	# Session UI-2 (November 11, 2026): the row leads with its seal (a letter
+	# for a letter of the record, an envoy for the courts' traffic) and the
+	# court's flag, then the state as a tinted badge and the sender in the
+	# title face - the sender and the subject in two weights.
+	var is_letter = str(item.get("proposal_type", "")) == "moment_letter" or str(item.get("register", "")) == "affair"
+	var seal = TextureRect.new()
+	seal.texture = load(Utils.glyph("letter" if is_letter else "envoy"))
+	seal.modulate = Utils.UI_GOLD
+	seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	seal.custom_minimum_size = Vector2(SEAL_PX, SEAL_PX)
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.add_child(seal)
+
+	var flag_path: String = Utils.nation_flag_path(source)
+	if flag_path != "" and ResourceLoader.exists(flag_path):
+		var flag = TextureRect.new()
+		flag.texture = load(flag_path)
+		flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		flag.custom_minimum_size = Vector2(FLAG_PX * 1.5, FLAG_PX)
+		flag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top_row.add_child(flag)
+
 	var state_badge = Label.new()
 	state_badge.text = "ACTIVE" if is_active else "WAITING"
 	state_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state_badge.theme_type_variation = &"Caption"
-	state_badge.add_theme_color_override(
-		"font_color",
-		Color(0.5, 0.72, 0.86, 1.0) if is_active else Utils.UI_MAILBOX_WAITING
-	)
+	state_badge.add_theme_color_override("font_color", Color.html("f4ead2"))
+	state_badge.add_theme_stylebox_override("normal", _badge_box(
+			Color.html("3a4a6b") if is_active else Color.html(Utils.COLOR_BADGE_QUIET)))
 	top_row.add_child(state_badge)
 
 	var source_label = Label.new()
 	source_label.text = Utils.display_nation_name(source)
 	source_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	source_label.theme_type_variation = &"Caption"
-	source_label.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
+	source_label.theme_type_variation = &"Lead"
+	source_label.add_theme_font_override("font", load(Utils.TITLE_FONT))
+	source_label.add_theme_color_override("font_color", Utils.UI_GOLD)
 	top_row.add_child(source_label)
 
 	var spacer = Control.new()
@@ -212,7 +261,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 		type_label.text = "Affair"
 	type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	type_label.theme_type_variation = &"Caption"
-	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))
+	type_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	top_row.add_child(type_label)
 
 	# S14G-X24 (Pre-Deploy S14h part 1, October 26, 2026): the lock on the row.
@@ -259,8 +308,8 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	summary_label.text = summary_display
 	summary_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	summary_label.theme_type_variation = &"Caption"
-	summary_label.add_theme_color_override("font_color", Color(0.82, 0.82, 0.86, 1.0))
+	summary_label.theme_type_variation = &"BodyLarge"
+	summary_label.add_theme_color_override("font_color", Color.html(Utils.COLOR_TEXT))
 	summary_label.tooltip_text = summary_display
 	vbox.add_child(summary_label)
 
@@ -276,8 +325,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 			voice_label.text = Utils.humanize_nation_keys_in_text(voice)
 			voice_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			voice_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			voice_label.theme_type_variation = &"Caption"
-			voice_label.add_theme_color_override("font_color", Color(0.86, 0.8, 0.6, 1.0))
+			voice_label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
 			vbox.add_child(voice_label)
 		var clauses = digest_row.get("clauses", [])
 		if clauses is Array and clauses.size() > 0:
@@ -303,9 +351,35 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	return panel
 
 
-func _terms_line_label(clauses: Array) -> Label:
+func _badge_box(tone: Color) -> StyleBoxFlat:
+	"""The state badge's tinted cell (Session UI-2)."""
+	var box = StyleBoxFlat.new()
+	box.bg_color = tone
+	box.set_corner_radius_all(3)
+	box.content_margin_left = 8.0
+	box.content_margin_right = 8.0
+	box.content_margin_top = 2.0
+	box.content_margin_bottom = 2.0
+	return box
+
+
+func _terms_line_label(clauses: Array) -> Control:
 	"""One "Terms: …" line from a letter's clause strings — the letter-book's
-	rows and (S14E-27) every other incoming-proposal row draw it the same way."""
+	rows and (S14E-27) every other incoming-proposal row draw it the same way.
+	Session UI-2: the line stands in a framed box (a hairline of gilt on a
+	darker field), so what the letter asks reads as its own block."""
+	var frame = PanelContainer.new()
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var frame_box = StyleBoxFlat.new()
+	frame_box.bg_color = Utils.UI_INK_NAVY
+	frame_box.border_color = Color(Utils.UI_GOLD.r, Utils.UI_GOLD.g, Utils.UI_GOLD.b, 0.45)
+	frame_box.set_border_width_all(1)
+	frame_box.set_corner_radius_all(3)
+	frame_box.content_margin_left = 10.0
+	frame_box.content_margin_right = 10.0
+	frame_box.content_margin_top = 6.0
+	frame_box.content_margin_bottom = 6.0
+	frame.add_theme_stylebox_override("panel", frame_box)
 	var terms_label = Label.new()
 	var clause_strings: Array[String] = []
 	for clause in clauses:
@@ -313,9 +387,9 @@ func _terms_line_label(clauses: Array) -> Label:
 	terms_label.text = "Terms: " + " · ".join(clause_strings)
 	terms_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	terms_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	terms_label.theme_type_variation = &"Caption"
-	terms_label.add_theme_color_override("font_color", Utils.UI_MAILBOX_TERMS)
-	return terms_label
+	terms_label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+	frame.add_child(terms_label)
+	return frame
 
 
 func _open_row(panel: PanelContainer):
@@ -342,13 +416,14 @@ func _build_action_row(mailbox_id: int) -> HBoxContainer:
 
 	var accept_btn = Button.new()
 	accept_btn.text = "Accept"
-	accept_btn.custom_minimum_size = Vector2(96, 28)
+	accept_btn.theme_type_variation = &"PrimaryButton"   # Session UI-2: the one gilt answer
+	accept_btn.custom_minimum_size = Vector2(112, 34)
 	accept_btn.pressed.connect(_on_row_action.bind(mailbox_id, "accept"))
 	row.add_child(accept_btn)
 
 	var decline_btn = Button.new()
 	decline_btn.text = "Decline"
-	decline_btn.custom_minimum_size = Vector2(96, 28)
+	decline_btn.custom_minimum_size = Vector2(112, 34)
 	decline_btn.pressed.connect(_on_row_action.bind(mailbox_id, "reject"))
 	row.add_child(decline_btn)
 

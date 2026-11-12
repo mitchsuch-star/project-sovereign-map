@@ -91,6 +91,13 @@ const HATCH_WIDTH := 1.0
 const HATCH_ALPHA := 0.7
 
 
+## Session UI-2 (November 11, 2026): the hatch stands INSIDE its panel's
+## frame — `frame_inset` is the frame's thickness and a pixel (the hosts set
+## it from the panel's StyleBox) — and its strokes scale into the room left in
+## the grip's inner quadrant, so they never cross the frame's corner.
+var frame_inset := 0.0
+
+
 func _draw() -> void:
 	# The panel's corner is the grip's centre; `inward` points into the panel.
 	var c := size * 0.5
@@ -98,9 +105,11 @@ func _draw() -> void:
 			1.0 if corner in [Corner.TOP_LEFT, Corner.BOTTOM_LEFT] else -1.0,
 			1.0 if corner in [Corner.TOP_LEFT, Corner.TOP_RIGHT] else -1.0)
 	var col := Color(Utils.UI_GOLD, HATCH_ALPHA)
+	var inset := maxf(HATCH_INSET, frame_inset)
+	var reach := maxf(GRIP_SIZE * 0.5 - inset, 3.0) / float(HATCH_STEPS[HATCH_STEPS.size() - 1])
 	for k in HATCH_STEPS:
-		var a := c + inward * Vector2(HATCH_INSET, HATCH_INSET + k)
-		var b := c + inward * Vector2(HATCH_INSET + k, HATCH_INSET)
+		var a := c + inward * Vector2(inset, inset + k * reach)
+		var b := c + inward * Vector2(inset + k * reach, inset)
 		draw_line(a, b, col, HATCH_WIDTH, true)
 
 
@@ -111,6 +120,7 @@ static func attach_centered(panel: Control, panel_name: String) -> Panel:
 	var grip: ResizeGrip = make(Corner.BOTTOM_RIGHT,
 			TOOLTIP)
 	grip._bind(panel, panel_name, Mode.CENTERED)
+	grip.frame_inset = Utils.frame_thickness(panel.get_theme_stylebox("panel")) + 1.0
 	grip.load_stored_size()
 	return grip
 
@@ -122,6 +132,7 @@ static func attach_edge(panel: Control, panel_name: String, grip_corner: int) ->
 	var grip: ResizeGrip = make(grip_corner,
 			TOOLTIP)
 	grip._bind(panel, panel_name, Mode.EDGE)
+	grip.frame_inset = Utils.frame_thickness(panel.get_theme_stylebox("panel")) + 1.0
 	return grip
 
 

@@ -69,6 +69,9 @@ func register(dialog_name: String, scene_path: String, modal: bool = true) -> No
 	get_parent().add_child(instance)
 	instance.hide()
 	_dialogs[dialog_name] = {"node": instance, "modal": modal}
+	# Session UI-2: every registered dialog fades in when it opens (Settings →
+	# Reduce motion turns it off; nothing waits on the fade).
+	Utils.watch_motion(instance)
 	if modal and instance.has_signal("visibility_changed"):
 		instance.visibility_changed.connect(func():
 			if is_instance_valid(instance) and instance.visible:

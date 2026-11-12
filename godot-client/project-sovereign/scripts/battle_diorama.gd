@@ -30,7 +30,14 @@ signal dismissed
 
 # ── Geometry (design px; Utils.clamp_centered_panel shrinks on small screens)
 const TRAY_W := 1000.0
-const TRAY_H := 660.0
+# Session UI-2: 684 (was 660) - the strength band takes a 42-px row under the
+# stage, the shelves move below it, and the verdict keeps its room.
+const TRAY_H := 684.0
+# Session UI-2: THE STRENGTH BAND - each side's strength before -> after as a
+# drawn bar with its figures, in the row under the stage (the band that stood
+# empty wood on a field without a shelf).
+const BAND_H := 36.0
+const BAND_GAP := 6.0
 const STAGE_MARGIN_X := 26.0
 const STAGE_TOP := 52.0
 const STAGE_H := 380.0
@@ -143,6 +150,12 @@ var _left_holder: Node2D = null
 var _right_holder: Node2D = null
 var _shelf_left: Control = null
 var _shelf_right: Control = null
+var _band: Control = null           # the strength band (Session UI-2)
+var _band_names: Array = []         # [left Label, right Label]
+var _band_figs: Array = []          # [left Label, right Label]
+var _band_bars: Array = []          # [left Control, right Control]
+var _band_rows: Array = []          # [{before, lost, tone}, ...] left, right
+var _band_progress := 1.0
 var _verdict: RichTextLabel = null
 var _nameplate: PanelContainer = null
 var _plate_name: Label = null
@@ -279,13 +292,11 @@ func _build_chrome() -> void:
 	_tray.offset_bottom = TRAY_H / 2.0
 	_tray.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_tray.grow_vertical = Control.GROW_DIRECTION_BOTH
-	var tray_style := StyleBoxFlat.new()
-	tray_style.bg_color = WOOD_BG
-	tray_style.border_color = Utils.UI_GOLD
-	tray_style.set_border_width_all(3)
-	tray_style.set_corner_radius_all(10)
-	tray_style.set_content_margin_all(0.0)
-	_tray.add_theme_stylebox_override("panel", tray_style)
+	# Session UI-2 (November 11, 2026): the one window frame over the wood —
+	# the last surface still in the thick tan rounded border; the frame's own
+	# re-entrant corners retire the four floral ones.
+	_tray.add_theme_stylebox_override("panel",
+		Utils.gilt_frame(WOOD_BG, Utils.UI_GOLD, Utils.FRAME_WINDOW, 0.0))
 	_root.add_child(_tray)
 
 	_tray_inner = Control.new()
@@ -295,10 +306,10 @@ func _build_chrome() -> void:
 	_tray.add_child(_tray_inner)
 
 	_build_stage()
+	_build_strength_band()
 	_build_shelves()
 	_build_verdict_and_plate()
 	_build_buttons()
-	_build_filigree()
 
 
 
@@ -375,6 +386,123 @@ func _build_stage() -> void:
 	_sub_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
+func _build_strength_band() -> void:
+	"""Session UI-2: the band under the stage - per side, the nation's name and
+	its strength before -> after (the figures in lining numerals), over a bar
+	drawn from the outer edge inward: what stands, then what was lost (the
+	table's one red), the track's full width the larger side's muster so the
+	two bars compare."""
+	_band = Control.new()
+	_band.name = "StrengthBand"
+	_band.position = Vector2(STAGE_MARGIN_X, STAGE_TOP + STAGE_H + 8.0)
+	_band.size = Vector2(TRAY_W - STAGE_MARGIN_X * 2.0, BAND_H)
+	_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_band.visible = false
+	_tray_inner.add_child(_band)
+	var half_w: float = _band.size.x / 2.0 - 14.0
+	for i in range(2):
+		var is_left := i == 0
+		var x: float = 0.0 if is_left else _band.size.x - half_w
+		var nm := Label.new()
+		nm.theme_type_variation = &"Caption"
+		nm.add_theme_color_override("font_color", BRASS)
+		nm.add_theme_font_override("font", _font_engraved)
+		nm.position = Vector2(x, 0.0)
+		nm.size = Vector2(half_w, 18.0)
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if is_left \
+			else HORIZONTAL_ALIGNMENT_RIGHT
+		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_band.add_child(nm)
+		var fg := Label.new()
+		fg.theme_type_variation = &"Figure"
+		fg.add_theme_color_override("font_color", Color(BONE_HEX))
+		fg.position = Vector2(x, -2.0)
+		fg.size = Vector2(half_w, 20.0)
+		fg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if is_left \
+			else HORIZONTAL_ALIGNMENT_LEFT
+		fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_band.add_child(fg)
+		var bar := Control.new()
+		bar.position = Vector2(x, 24.0)
+		bar.size = Vector2(half_w, 8.0)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.draw.connect(_draw_band_bar.bind(bar, i))
+		_band.add_child(bar)
+		_band_names.append(nm)
+		_band_figs.append(fg)
+		_band_bars.append(bar)
+
+
+func _draw_band_bar(bar: Control, i: int) -> void:
+	if i >= _band_rows.size():
+		return
+	var row: Dictionary = _band_rows[i]
+	var w: float = bar.size.x
+	var h: float = bar.size.y
+	var peak: float = maxf(float(row.get("peak", 1)), 1.0)
+	var before: float = float(row.get("before", 0))
+	var lost: float = float(row.get("lost", 0)) * _band_progress
+	var w_before: float = w * clampf(before / peak, 0.0, 1.0)
+	var w_after: float = w * clampf((before - lost) / peak, 0.0, 1.0)
+	bar.draw_rect(Rect2(0.0, 0.0, w, h), Color(0.0, 0.0, 0.0, 0.42))
+	var tone: Color = row.get("tone", Utils.UI_GOLD)
+	if i == 1:
+		bar.draw_rect(Rect2(w - w_after, 0.0, w_after, h), tone)
+		bar.draw_rect(Rect2(w - w_before, 0.0, w_before - w_after, h), Color(CRIMSON, 0.62))
+	else:
+		bar.draw_rect(Rect2(0.0, 0.0, w_after, h), tone)
+		bar.draw_rect(Rect2(w_after, 0.0, w_before - w_after, h), Color(CRIMSON, 0.62))
+	bar.draw_rect(Rect2(0.0, 0.0, w, h), Color(Utils.UI_GOLD, 0.35), false, 1.0)
+
+
+func _band_fig_text(i: int) -> String:
+	var row: Dictionary = _band_rows[i]
+	var before: int = int(row.get("before", 0))
+	var after: int = int(roundf(float(before) - float(row.get("lost", 0)) * _band_progress))
+	return "%s → %s%s" % [Utils.format_number(before), Utils.format_number(after),
+		str(row.get("unit", ""))]
+
+
+func _set_band_progress(p: float) -> void:
+	_band_progress = p
+	if _band == null or _band_rows.size() < 2:
+		return
+	for i in range(2):
+		_band_figs[i].text = _band_fig_text(i)
+		_band_bars[i].queue_redraw()
+
+
+func _populate_band(left: Dictionary, right: Dictionary, final_frame: bool) -> void:
+	"""The band's rows from the payload's own figures: `committed_total` (the
+	fought corps' muster) and `casualties_total`; no new maths - after is
+	before less the dead the odometer counts."""
+	_band_rows = []
+	var unit := " sail" if _is_naval() else ""
+	var peak := 1
+	for side in [left, right]:
+		var before := int(side.get("committed_total", 0))
+		if before <= 0:
+			for c in side.get("contingents", []):
+				if not (str(c.get("status", "")) in ABSENT_STATUSES):
+					before += int(c.get("committed", 0))
+		var lost := clampi(int(side.get("casualties_total", 0)), 0, maxi(before, 0))
+		var tone: Color = Utils.NATION_COLORS.get(str(side.get("nation", "")),
+				Utils.UI_NEUTRAL_FIGURE)
+		_band_rows.append({"before": before, "lost": lost, "tone": tone, "unit": unit})
+		peak = maxi(peak, before)
+	for row in _band_rows:
+		row["peak"] = peak
+	var has_band: bool = int(_band_rows[0]["before"]) > 0 or int(_band_rows[1]["before"]) > 0
+	_band.visible = has_band
+	if not has_band:
+		return
+	var sides := [left, right]
+	for i in range(2):
+		_band_names[i].text = Utils.display_nation_name(
+			str(sides[i].get("nation", ""))).to_upper()
+	_set_band_progress(1.0 if final_frame else 0.0)
+
+
 func _build_shelves() -> void:
 	# The reserve shelf: OFF the baize, sunk into the tray wood — the
 	# negative space where a corps should have stood (eval §8).
@@ -394,7 +522,7 @@ func _build_shelves() -> void:
 		shelf.position = Vector2(
 			STAGE_MARGIN_X if side == "left"
 			else TRAY_W / 2.0 + 14.0,
-			STAGE_TOP + STAGE_H + 8.0)
+			STAGE_TOP + STAGE_H + 8.0 + BAND_H + BAND_GAP)
 		shelf.size = Vector2(TRAY_W / 2.0 - STAGE_MARGIN_X - 14.0, SHELF_H)
 		shelf.visible = false
 		shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -498,8 +626,9 @@ func _build_buttons() -> void:
 	_btn_close.custom_minimum_size = Vector2(110, 34)
 	_btn_close.pressed.connect(_on_close_pressed)
 	_tray_inner.add_child(_btn_close)
-	# UXR3-F2 (S12 part 2): the buttons stand clear of the corner filigree
-	# (TRAY_W - 38 .. TRAY_W - 8); Close's right edge is TRAY_W - 44.
+	# UXR3-F2 (S12 part 2): the buttons stood clear of the corner filigree
+	# (TRAY_W - 38 .. TRAY_W - 8); Session UI-2 retired it for the gilt frame,
+	# whose cut corner lies inside its band. Close's right edge is TRAY_W - 44.
 	_btn_close.position = Vector2(TRAY_W - 154.0, TRAY_H - 46.0)
 
 	_btn_replay = Button.new()
@@ -512,29 +641,6 @@ func _build_buttons() -> void:
 	_skip_hint = _mk_label(_tray_inner, "click anywhere to skip ▸", &"Caption",
 			Color(Utils.COLOR_DIMMED))
 	_skip_hint.position = Vector2(22.0, TRAY_H - 40.0)
-
-
-func _build_filigree() -> void:
-	# Gold filigree corners — the U3 pattern (crisp StyleBoxFlat border +
-	# ornament, never a muddy full-texture frame).
-	if not ResourceLoader.exists(FILIGREE):
-		return
-	var tex: Texture2D = load(FILIGREE)
-	for corner in range(4):
-		var fil := TextureRect.new()
-		fil.texture = tex
-		fil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		fil.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		fil.size = Vector2(30, 30)
-		fil.modulate = Color(Utils.UI_GOLD, 0.4)
-		fil.flip_h = corner in [1, 3]
-		fil.flip_v = corner in [2, 3]
-		fil.position = Vector2(
-			8.0 if corner in [0, 2] else TRAY_W - 38.0,
-			8.0 if corner in [0, 1] else TRAY_H - 38.0)
-		fil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		fil.add_to_group("corner_ornaments")
-		_tray_inner.add_child(fil)
 
 
 func _mk_label(parent: Node, text: String, variation: StringName, color: Color,
@@ -680,6 +786,13 @@ func _populate(final_frame: bool) -> void:
 	# Reserve shelves.
 	_populate_shelf(_shelf_left, left, true)
 	_populate_shelf(_shelf_right, right, false)
+
+	# The strength band, and the verdict's top under whatever the shelves hold.
+	_populate_band(left, right, final_frame)
+	var shelf_up: bool = (_shelf_left != null and _shelf_left.visible) \
+		or (_shelf_right != null and _shelf_right.visible)
+	_verdict.position.y = STAGE_TOP + STAGE_H + 8.0 + BAND_H + BAND_GAP \
+		+ (SHELF_H + 8.0 if shelf_up else 0.0)
 
 	# Verdict + nameplate.
 	_verdict.text = ""
@@ -1126,8 +1239,9 @@ func _nameplate_layout() -> void:
 		(TRAY_W - plate_size.x) / 2.0, TRAY_H - plate_size.y - 12.0)
 	_fit_verdict_room()
 	if _seal != null:
-		_seal.position = _nameplate.position + Vector2(
-			plate_size.x - 12.0, plate_size.y - 30.0)
+		# Session UI-2: the seal stands LEFT of the plate, clear of Replay / Close
+		# (at the plate's right it met Replay whenever the plate ran wide).
+		_seal.position = _nameplate.position + Vector2(-56.0, plate_size.y / 2.0 - 22.0)
 
 
 func _fit_verdict_room() -> void:
@@ -1429,6 +1543,10 @@ func _animate_odometers(start: float, span: float) -> void:
 	var left_total := int(sides[0].get("casualties_total", 0))
 	var right_total := int(sides[1].get("casualties_total", 0))
 	_seq.parallel().tween_method(
+		func(v: float): _set_band_progress(v),
+		0.0, 1.0, span).set_delay(start) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_seq.parallel().tween_method(
 		func(v: float): _odo_left.text = Utils.format_number(int(v)),
 		0.0, float(left_total), span).set_delay(start) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -1523,6 +1641,7 @@ func _apply_final_frame_instant() -> void:
 						std.position.x += 300.0 if b["is_left"] else -300.0
 	_odo_left.text = Utils.format_number(int(sides[0].get("casualties_total", 0)))
 	_odo_right.text = Utils.format_number(int(sides[1].get("casualties_total", 0)))
+	_set_band_progress(1.0)
 	_banner.visible = true
 	_banner.modulate.a = 1.0
 	_banner.scale = Vector2.ONE

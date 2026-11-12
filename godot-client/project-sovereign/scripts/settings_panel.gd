@@ -53,7 +53,8 @@ const _WINDOW_MODE_LABELS := {
 	"windowed": "Windowed",
 }
 const _HUD_WIDTH_LABELS := {
-	"full": "Full (the default)",
+	"auto": "Auto (the default: a 16:9 band on a very wide screen)",
+	"full": "Full",
 	"centred": "Centred (a 2560-px band)",
 }
 const _BODY_FONT_LABELS := {
@@ -73,6 +74,7 @@ var _window_size: OptionButton
 var _window_size_row: HBoxContainer
 var _body_font: OptionButton
 var _hud_width: OptionButton
+var _motion_toggle: CheckButton = null
 var _contrast_toggle: CheckButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
 var _battle_toggle: CheckButton
@@ -212,6 +214,8 @@ func _refresh_display_controls() -> void:
 		_hud_width.select(maxi(UiSettings.HUD_WIDTHS.find(UiSettings.get_hud_width()), 0))
 	if _contrast_toggle != null:
 		_contrast_toggle.set_pressed_no_signal(UiSettings.get_high_contrast())
+	if _motion_toggle != null:
+		_motion_toggle.set_pressed_no_signal(UiSettings.get_reduce_motion())
 	if _fit_button != null:
 		_fit_button.text = "Size for this screen (%d%%)" % int(round(UiSettings.derive_default_ui_scale() * 100.0))
 
@@ -353,6 +357,15 @@ func _build_interface_section() -> void:
 		+ "caption stays under the step that reads clearly. Text already written in "
 		+ "the command window keeps its colour; everything drawn after takes the new one.")
 
+	# Session UI-2 (November 11, 2026): Reduce motion — the screens' fade off.
+	_motion_toggle = CheckButton.new()
+	_motion_toggle.name = "ReduceMotionToggle"
+	_motion_toggle.text = "Reduce motion"
+	_motion_toggle.button_pressed = UiSettings.get_reduce_motion()
+	_motion_toggle.toggled.connect(func(on: bool): UiSettings.set_reduce_motion(on))
+	add_child(_motion_toggle)
+	_add_hint("Reduce motion opens every screen and letter at once, without its fade.")
+
 	var reset_layout := Button.new()
 	reset_layout.name = "ResetLayoutButton"
 	reset_layout.text = "Reset layout"
@@ -360,7 +373,7 @@ func _build_interface_section() -> void:
 	reset_layout.pressed.connect(_on_reset_layout)
 	add_child(reset_layout)
 	_add_hint("Reset layout returns the scale to this screen's size, the text to "
-		+ "100%, the HUD to Full, the command window and the screens to their default "
+		+ "100%, the HUD to Auto, the command window and the screens to their default "
 		+ "sizes and the window to Maximized. Sound, the parser key and the School's "
 		+ "progress are kept.")
 
@@ -659,11 +672,15 @@ func _build_credits_section() -> void:
 # ── shared bits ─────────────────────────────────────────────────────────────
 
 func _add_header(text: String) -> void:
+	# Session UI-2 (L): a section's heading is in the title face (HudTitle)
+	# over a gilt hairline — the theme's HSeparator is the gilt rule. The
+	# words of the heading are unchanged.
 	var header := Label.new()
 	header.text = text
-	header.theme_type_variation = &"Caption"
+	header.theme_type_variation = &"HudTitle"
 	header.add_theme_color_override("font_color", Utils.UI_GOLD)
 	add_child(header)
+	add_child(HSeparator.new())
 
 
 func _add_hint(text: String) -> void:

@@ -218,7 +218,7 @@ class TestUXR3_29:
         body = _func(self.SRC, "_render_nations")
         assert _order(body, "var france_blocks := \"\"", "How Europe Reads France",
                       "The Emperor's Own Exposure", "for n in nations:", "bbcode += france_blocks",
-                      "content_area.text = bbcode")
+                      "content_area.text = Utils.dress_heads(bbcode)")   # Session UI-2: the page's one seam
         # neither block is written to the page head any more
         head = body[:body.index("for n in nations:")]
         assert "bbcode += \"[color=#\" + Utils.COLOR_GOLD + \"][b]How Europe Reads France" not in head

@@ -63,12 +63,14 @@ def _godot() -> str:
 
 # (width, height, dpi) → the scale a player at that screen gets. The table IS
 # the ruling (§5 of the review): the Windows scaling is the floor, the pixel
-# height lifts it, a 32:9 panel adds a quarter, 3.0 caps it.
+# height lifts it, a 32:9 panel adds a quarter, 3.0 caps it. Session UI-2
+# (November 12, 2026): the 32:9 term 0.25 -> 0.45 — at 1.40 the blind
+# readers found the 5120 war room's HUD tiny in its corners.
 DERIVATION_TABLE = [
     ((1920, 1080, 96), 1.00),    # a 24-inch 1080p: nothing to derive
     ((2560, 1440, 96), 1.15),    # a 27-inch 1440p
     ((3440, 1440, 96), 1.15),    # a 34-inch 21:9 (2.39 — under the 32:9 term)
-    ((5120, 1440, 96), 1.40),    # THE USER'S OWN PANEL — 32:9 at 100%
+    ((5120, 1440, 96), 1.60),    # THE USER'S OWN PANEL — 32:9 at 100% (logical 3200x900)
     ((3840, 2160, 144), 1.75),   # a 27-inch 4K at Windows 150%
     ((3840, 2160, 96), 1.50),    # a 43-inch 4K at 100%
     ((1920, 1080, 120), 1.25),   # a 15-inch laptop at 125%
@@ -91,7 +93,7 @@ class TestTheDerivation:
         text = _read(SCRIPTS / "ui_settings.gd")
         assert re.search(r"const MAX_UI_SCALE := 3\.0\b", text)
         assert re.search(r"const ULTRA_WIDE_ASPECT := 3\.0\b", text)
-        assert re.search(r"const ULTRA_WIDE_BONUS := 0\.25\b", text)
+        assert re.search(r"const ULTRA_WIDE_BONUS := 0\.45\b", text)   # Session UI-2
         assert re.search(r"const DERIVE_FLOOR := 1\.0\b", text)
         assert "static func derive_default_ui_scale() -> float" in text
         assert "static func derive_ui_scale_for(width: int, height: int, dpi: float) -> float" in text
@@ -297,7 +299,11 @@ class TestTheTutorCardIsSizedByTheScreen:
     def test_the_card_text_rides_the_theme(self):
         scene = _read(SCENES / "tutorial_overlay.tscn")
         assert "theme_override_font_sizes" not in scene.split('[node name="BodyText"', 1)[1].split("[node", 1)[0]
-        assert scene.count('theme_type_variation = &"Caption"') >= 3
+        # Session UI-2: the card's title moved to HudTitle (the title face at
+        # the caption size), so the Caption lines fall by that one.
+        assert scene.count('theme_type_variation = &"Caption"') >= 2
+        title = scene.split('[node name="TitleLabel"', 1)[1].split("[node", 1)[0]
+        assert 'theme_type_variation = &"HudTitle"' in title
 
 
 class TestThePauseMenuSettingsAreNotSqueezed:
@@ -306,7 +312,9 @@ class TestThePauseMenuSettingsAreNotSqueezed:
         440-px settings scroll, and cut the scroll to a sliver."""
         text = _read(SCRIPTS / "pause_menu.gd")
         body = text.split("func _on_settings():", 1)[1].split("\nfunc ", 1)[0]
-        assert 'set_meta("clamp_ceiling_override", Vector2(360, 900))' in body
+        # Session UI-2: Settings is a page of the menu, as wide as the page.
+        assert 'set_meta("clamp_ceiling_override", Vector2(SETTINGS_PAGE_WIDTH, 900))' in body
+        assert "const SETTINGS_PAGE_WIDTH := 600.0" in text
         assert 'remove_meta("clamp_ceiling_override")' in body
         reset = text.split("func _reset_menu_state():", 1)[1].split("\nfunc ", 1)[0]
         assert 'remove_meta("clamp_ceiling_override")' in reset

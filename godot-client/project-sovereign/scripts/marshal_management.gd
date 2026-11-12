@@ -33,6 +33,10 @@ signal audience_requested
 # UXR-D2: the faintest grey was Utils.COLOR_DIM; S12 (UXR3-25) set every body
 # line at the floor step, Utils.COLOR_INFO (High contrast raises it).
 const COLOR_DEVOTED = "ffd700"
+# Session UI-2 (K): the card's highlighted chips (Hear him, Reward, Commission)
+# wear the gilt: ivory ink on a deep gold, not the old muddy brown.
+const CHIP_GILT_INK := "fbf1d6"
+const CHIP_GILT_BG := "7a5c1c"
 # IQ-2 (Sept 14, 2026) flip lever — true: a captured marshal's card renders
 # the backend's `status_note` ("PRISONER of Austria since T37.") at the head
 # of its status block. false = the pre-IQ-2 card byte-for-byte.
@@ -348,7 +352,7 @@ func _render_all_cards():
 		if i < cached_data.size() - 1:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]────────────────────────────────────────[/color]\n\n"
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 func _render_doctrine() -> String:
@@ -361,7 +365,7 @@ func _render_doctrine() -> String:
 	if cached_doctrine is Dictionary and not cached_doctrine.is_empty():
 		var d_strength = cached_doctrine.get("strength", {})
 		var d_flaw = cached_doctrine.get("flaw", {})
-		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
+		bbcode += Utils.bb_glyph("medal", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]OUR DOCTRINE — " + str(cached_doctrine.get("name", "")) + "[/color]"
 		# UXR3-24 / UXR3-80 (S15 head, October 25, 2026): the title line is all
 		# the block is until the player opens it — the Emperor's card (or the
@@ -428,11 +432,11 @@ func _render_glory_ladder() -> String:
 	if cached_ladder is Array and cached_ladder.size() > 1 and not any_glory:
 		# UXR3-24: a ladder of zeros said nothing in seven rows and pushed the
 		# roster below the fold — one line says it.
-		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
+		bbcode += Utils.bb_glyph("medal", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]  [color=#" \
 			+ Utils.COLOR_INFO + "]no glory won in the last " + str(cached_glory_window) + " turns — no marshal envies another[/color]\n\n"
 	elif cached_ladder is Array and cached_ladder.size() > 1:
-		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
+		bbcode += Utils.bb_glyph("medal", 20, Utils.COLOR_GOLD)
 		bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE LAURELS OF THE ARMY[/color]"
 		# A11: the window is INTERPOLATED from the backend constant, and the
 		# rule is stated as the engine actually implements it — envy fixes
@@ -462,7 +466,7 @@ func _render_glory_ladder() -> String:
 		bbcode += "\n"
 
 	if has_bench:
-		bbcode += _button_chip("commission_open", "Commission a Marshal…", "f4e6bd", "3a2f18", _ICON_PHOSPHOR + "crown.svg")
+		bbcode += _button_chip("commission_open", "Commission a Marshal…", CHIP_GILT_INK, CHIP_GILT_BG, _ICON_PHOSPHOR + "crown.svg")
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
 
 	if bbcode != "":
@@ -485,13 +489,13 @@ func _render_commission_view():
 	if not (pools is Dictionary):
 		pools = {}
 	var inf_pool = int(pools.get("infantry", cached_recruitment.get("infantry_pool", 0)))
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]Treasury: " + _format_number(treasury) + "g | Pools: " + _format_number(inf_pool) + " foot · " + _format_number(int(pools.get("cavalry", 0))) + " horse · " + _format_number(int(pools.get("artillery", 0))) + " guns"
+	bbcode += Utils.bb_glyph("gold", 16, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_INFO + "]Treasury: " + _format_number(treasury) + "g | Pools: " + _format_number(inf_pool) + " foot · " + _format_number(int(pools.get("cavalry", 0))) + " horse · " + _format_number(int(pools.get("artillery", 0))) + " guns"
 	bbcode += " | A commission raises his corps at the capital from his own arm's pool (1 admin AP + the candidate's price).[/color]\n\n"
 
 	var candidates = cached_recruitment.get("candidates", [])
 	if not (candidates is Array) or candidates.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]The bench is empty — every marshal France could call already serves.[/color]"
-		content_area.text = bbcode
+		content_area.text = Utils.dress_heads(bbcode)
 		return
 
 	for c in candidates:
@@ -505,7 +509,7 @@ func _render_commission_view():
 
 		bbcode += _portrait_block(cname, 64, 80)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + cname + "[/color]"
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "][" + personality.capitalize() + "][/color]"
+		bbcode += "  " + Utils.bb_badge(personality.capitalize(), Utils.COLOR_BADGE_QUIET)
 		# CN-3 rider 2: every arm is tagged, the serving card's own idiom —
 		# the bench tagged only [Cavalry], so Marmont and Senarmont, the gun
 		# marshals, rendered untagged. The corps he raises rides beside it.
@@ -516,6 +520,7 @@ func _render_commission_view():
 			arm_color = Utils.COLOR_ORANGE
 		elif c_arm == "artillery":
 			arm_color = Utils.COLOR_ERROR
+		# (the bench keeps its bracketed arm tag: the CN-3 census counts them)
 		if c_arm != "infantry":
 			bbcode += "  " + _unit_icon(arm_label, arm_color) + " [color=#" + arm_color + "][" + arm_label + "][/color]"
 		else:
@@ -544,7 +549,7 @@ func _render_commission_view():
 			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]Unavailable: " + reason + "[/color]\n"
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]────────────────────────────────────────[/color]\n\n"
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 func _skills_block(m: Dictionary) -> String:
@@ -607,16 +612,30 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		card_tone = Utils.COLOR_WARNING
 	if not opened:
 		bbcode += Utils.card_open(card_tone)
-	bbcode += _portrait_block(name)
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + key_hint + "[/color]"
-	bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
+	# Session UI-2 (November 11, 2026): the portrait stands in a gilt-ruled
+	# cell BESIDE the sheet — the name in the title face, the arm and the
+	# nation, and (below) the prose — instead of alone on a line over an empty
+	# band (the readers' "portrait floats with a wasted gap").
+	var portrait := _portrait_block(name).strip_edges()
+	var sheet := ""
+	sheet += "[color=#" + Utils.COLOR_INFO + "]" + key_hint + "[/color]"
+	sheet += Utils.HEAD_OPEN + name + Utils.HEAD_CLOSE
 	# Cavalry/Artillery keep their (clear) icon; Infantry is label-only — the
 	# game-icons infantry glyph reads as an ambiguous caret at 18px (UI-3 tune).
+	# Session UI-2 (K): the arm and the nation are badges in the sheet's head —
+	# the arm in its tone, the nation under its flag.
+	var arm_tone := "3a4a6b"
+	match unit_type:
+		"Cavalry":
+			arm_tone = "8a5a1a"
+		"Artillery":
+			arm_tone = "8b2a2a"
+	sheet += "  "
 	if unit_type != "Infantry":
-		bbcode += "  " + _unit_icon(unit_type, type_color) + " [color=#" + type_color + "][" + unit_type + "][/color]"
-	else:
-		bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
-	bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + Utils.display_nation_name(nation) + "[/color]\n"
+		sheet += _unit_icon(unit_type, type_color) + " "
+	# the sheet is a table cell (bb_portrait_row): its tags are inline runs
+	sheet += Utils.bb_tag(unit_type, arm_tone)
+	sheet += "  " + Utils.bb_flag(nation) + " " + Utils.bb_tag(Utils.display_nation_name(nation), Utils.COLOR_BADGE_QUIET) + "\n"
 
 	# UXR3-24: the Emperor's card opens on his STATE (the backend's line: in
 	# the field, at the Seat, a captive), then The Presence as it applies and
@@ -626,26 +645,59 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		var state_line := str(m.get("sovereign_state_line", ""))
 		if state_line != "":
 			var state_color: String = Utils.COLOR_ERROR if bool(m.get("captured", false)) else Utils.COLOR_GOLD
-			bbcode += "[color=#" + state_color + "]" + Utils.humanize_nation_keys_in_text(state_line) + "[/color]\n"
-		bbcode += _ability_line(m)
-		bbcode += _strength_line(m)
+			sheet += "[color=#" + state_color + "]" + Utils.humanize_nation_keys_in_text(state_line) + "[/color]\n"
+		sheet += _ability_line(m).strip_edges() + "\n"
+		sheet += _strength_line(m)
 		# UXR3-82 (S15, October 26, 2026 — the walk's ✗ on the boot board): his
 		# skill bars ride under his strength, ABOVE his two prose paragraphs —
 		# the sheet before the biography, as on every marshal's card.
-		bbcode += _skills_block(m)
+		sheet += _skills_block(m)
+
+	# ═══════ TRUST, VINDICATION, RECORD, GLORY — the sheet's figures ═══════
+	# Session UI-2 (K): figures before prose — trust and glory are labelled
+	# meters with the figure beside, in the sheet's head.
+	var trust_val = int(m.get("trust_value", 70))
+	var trust_label = str(m.get("trust_label", "Neutral"))
+	var vindication = int(m.get("vindication_score", 0))
+	var won = int(m.get("battles_won", 0))
+	var lost = int(m.get("battles_lost", 0))
+	var overridden = int(m.get("orders_overridden", 0))
+	sheet += "Trust: " + Utils.bb_meter(trust_val, 100, 110, 8, _trust_hex(trust_val)) + " " + _trust_colored(trust_val, trust_label) + "\n"
+	sheet += "Vindication: " + _vindication_colored(vindication)
+	sheet += "  Record: " + str(won) + "W/" + str(lost) + "L"
+	if overridden > 0:
+		sheet += "  [color=#" + Utils.COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
+	sheet += "\n"
+
+	# ═══════ JEALOUSY v3.2: GLORY (shown = applied) ═══════
+	var glory = int(m.get("glory", 0))
+	var glory_rank = int(m.get("glory_rank", 0))
+	var glory_roster = int(m.get("glory_roster", 0))
+	if glory > 0 or glory_rank > 0:
+		var glory_hex: String = Utils.COLOR_GOLD if glory > 0 else Utils.COLOR_INFO
+		sheet += "Glory: " + Utils.bb_meter(glory, 10, 110, 8, glory_hex) + " [color=#" + glory_hex + "]" + str(glory) + "[/color]"
+		if glory_rank > 0 and glory_roster > 1:
+			sheet += "  [color=#" + Utils.COLOR_INFO + "](rank " + str(glory_rank) + " of " + str(glory_roster) + " on the ladder)[/color]"
+		if m.get("glory_crowned", false):
+			sheet += "  [color=#" + COLOR_DEVOTED + "]★ CROWNED WITH GLORY (+1 shock/defense/administration)[/color]"
+		sheet += "\n"
 
 	# ═══════ BIOGRAPHY ═══════
+	# The lore stands under the figures as notes, dimmer (the card's last
+	# block, `notes`), not beside the portrait.
+	var notes := ""
 	var bio = str(m.get("biography", ""))
 	if bio != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + bio + "[/color]\n"
+		notes += "[color=#" + Utils.COLOR_INFO + "]" + bio + "[/color]\n"
 
 	# ═══════ PERSONALITY & UNIT TYPE ═══════
 	var pers_desc = str(m.get("personality_description", ""))
 	if pers_desc != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + pers_desc + "[/color]\n"
+		notes += "[color=#" + Utils.COLOR_INFO + "]" + pers_desc + "[/color]\n"
 	var type_desc = str(m.get("unit_type_description", ""))
 	if type_desc != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + type_desc + "[/color]\n"
+		notes += "[color=#" + Utils.COLOR_INFO + "]" + type_desc + "[/color]\n"
+	bbcode += Utils.bb_portrait_row(portrait, sheet, card_tone) + "\n"
 
 	bbcode += "\n"
 
@@ -658,32 +710,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	if not is_sovereign:
 		bbcode += _ability_line(m)
 
-	# ═══════ TRUST & RECORD ═══════
-	var trust_val = int(m.get("trust_value", 70))
-	var trust_label = str(m.get("trust_label", "Neutral"))
-	var vindication = int(m.get("vindication_score", 0))
-	var won = int(m.get("battles_won", 0))
-	var lost = int(m.get("battles_lost", 0))
-	var overridden = int(m.get("orders_overridden", 0))
-
-	bbcode += "  Trust: " + _trust_colored(trust_val, trust_label)
-	bbcode += "  Vindication: " + _vindication_colored(vindication)
-	bbcode += "  Record: " + str(won) + "W/" + str(lost) + "L"
-	if overridden > 0:
-		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Overridden: " + str(overridden) + "x[/color]"
-	bbcode += "\n"
-
-	# ═══════ JEALOUSY v3.2: GLORY & GRIEVANCES (shown = applied) ═══════
-	var glory = int(m.get("glory", 0))
-	var glory_rank = int(m.get("glory_rank", 0))
-	var glory_roster = int(m.get("glory_roster", 0))
-	if glory > 0 or glory_rank > 0:
-		bbcode += "  Glory: [color=#" + (Utils.COLOR_GOLD if glory > 0 else Utils.COLOR_INFO) + "]" + str(glory) + "[/color]"
-		if glory_rank > 0 and glory_roster > 1:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "](rank " + str(glory_rank) + " of " + str(glory_roster) + " on the ladder)[/color]"
-		if m.get("glory_crowned", false):
-			bbcode += "  [color=#" + COLOR_DEVOTED + "]★ CROWNED WITH GLORY (+1 shock/defense/administration)[/color]"
-		bbcode += "\n"
+	# ═══════ GRIEVANCES (the trust and glory figures ride the sheet's head) ═══════
 	var jealous_of = str(m.get("jealous_of", "")) if m.get("jealous_of") != null else ""
 	if jealous_of != "":
 		var jl_turns = int(m.get("jealousy_turns_remaining", 0))
@@ -704,7 +731,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	# PC15-10 B1: he waits in the antechamber — his petition is no modal;
 	# the chip opens it (the same dialog, the same answer).
 	if m.get("seeks_audience", false):
-		bbcode += "  " + _button_chip("audience:open", "Hear him — he seeks an audience", "f4e6bd", "3a2f18", _ICON_PHOSPHOR + "scales.svg") + "\n"
+		bbcode += "  " + _button_chip("audience:open", "Hear him — he seeks an audience", CHIP_GILT_INK, CHIP_GILT_BG, _ICON_PHOSPHOR + "scales.svg") + "\n"
 
 	# ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7 + §0.6.8) ═══════
 	# Expectation vs estate income vs rente in the same g/turn units — the
@@ -756,7 +783,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
 				+ "  [color=#" + Utils.COLOR_INFO + "]held prisoner — his rewards await his release[/color]\n"
 		elif shortfall > 0 or pension > 0:
-			bbcode += "  " + _button_chip("reward:" + str(index), "Reward — estate or rente…", "f4e6bd", "3a2f18", _ICON_GAME + "estate-domaine.svg")
+			bbcode += "  " + _button_chip("reward:" + str(index), "Reward — estate or rente…", CHIP_GILT_INK, CHIP_GILT_BG, _ICON_GAME + "estate-domaine.svg")
 			var eligible = m.get("eligible_estates", [])
 			if shortfall > 0 and eligible is Array and eligible.size() > 0:
 				var m_name_hint = str(m.get("name", "?"))
@@ -943,6 +970,10 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 			rel_parts.append(rname + ": " + _relationship_colored(rval, rlabel))
 		bbcode += "  Relationships: " + ", ".join(rel_parts) + "\n"
 
+	# Session UI-2 (K): the lore, under the figures, as notes.
+	if notes != "":
+		bbcode += "\n" + notes
+
 	# Session UI: the card closes on its last line (the mark heads the blank
 	# line under it).
 	bbcode += Utils.CARD_CLOSE
@@ -1103,18 +1134,34 @@ func _skill_bar_row(label: String, val: int, note: String) -> String:
 	# text bars staircased under the proportional UI font once a label like
 	# "Administration" led the row).
 	var bar = _stat_bar_img(filled, color)
-	var row = bar + "  " + label + " [color=#" + color + "]" + str(val) + "[/color]"
+	# Session UI-2: the skill's glyph beside its name (the books' one set).
+	var skill_glyph := Utils.bb_glyph(label.to_lower(), 16, Utils.COLOR_GOLD) + " " if \
+		label.to_lower() in SKILL_GLYPHS else ""
+	var row = bar + "  " + skill_glyph + label + " [color=#" + color + "]" + str(val) + "[/color]"
 	if note != "":
 		row += "  [color=#" + Utils.COLOR_INFO + "]" + note + "[/color]"
 	return row + "\n"
 
 
+const SKILL_GLYPHS := ["tactical", "shock", "defense", "logistics", "administration", "command"]
+
+
 func _stat_bar_img(filled: int, hex_color: String) -> String:
-	"""One inline graphical stat bar, value 0..10, tinted to hex_color (no '#')."""
-	var v = clampi(filled, 0, 10)
-	return ("[img color=#" + hex_color + " width=" + str(STAT_BAR_W)
-		+ " height=" + str(STAT_BAR_H) + "]res://assets/ui/bars/bar_"
-		+ str(v) + ".png[/img]")
+	"""One inline stat bar, value 0..10, tinted to hex_color (no '#'). Session
+	UI-2: an exact meter with its track (Utils.bb_bar_img), so every bar is the
+	same visible length and the names after it stand in one column."""
+	return Utils.bb_bar_img(clampi(filled, 0, 10), hex_color, STAT_BAR_W, 8)
+
+
+func _trust_hex(val: int) -> String:
+	var color: String = Utils.COLOR_INFO
+	if val < 30:
+		color = Utils.COLOR_ERROR
+	elif val < 55:
+		color = Utils.COLOR_ORANGE
+	elif val >= 80:
+		color = Utils.COLOR_SUCCESS
+	return color
 
 
 func _trust_colored(val: int, label: String) -> String:

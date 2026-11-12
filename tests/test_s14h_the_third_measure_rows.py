@@ -12988,7 +12988,7 @@ def _r22_clamp(authored, view, *, user=None, share=None, override=None):
 
 
 _R22_CABINET = (560.0, 520.0)
-_R22_SHARE = (0.0, 0.6)
+_R22_SHARE = (0.0, 0.7)  # Session UI-2: the Cabinet default height 0.6 -> 0.7
 
 
 class TestS14G22:
@@ -13002,7 +13002,7 @@ class TestS14G22:
         # the default-height meta is set BEFORE the grip loads the stored size
         assert (ready.index('$PanelContainer.set_meta("clamp_ceiling_fraction", CABINET_CEILING_SHARE)')
                 < ready.index('ResizeGrip.attach_centered($PanelContainer, "cabinet")'))
-        assert "const CABINET_CEILING_SHARE := Vector2(0.0, 0.6)" in wiz
+        assert "const CABINET_CEILING_SHARE := Vector2(0.0, 0.7)" in wiz  # Session UI-2: 0.6 -> 0.7
         # the one road the open wizard fits by is untouched
         assert "Utils.clamp_centered_panel($PanelContainer)" in _r22_func(wiz, "refit")
         scene = (_R22_SCENES / "diplomacy_wizard.tscn").read_text(encoding="utf-8")
@@ -13031,7 +13031,7 @@ class TestS14G22:
 
     def test_a_5120x1440_screen_gets_a_taller_cabinet_by_default(self):
         w, h = _r22_clamp(_R22_CABINET, (5120.0, 1440.0), share=_R22_SHARE)
-        assert (w, h) == (560.0, 864.0)            # 60 % of the height, the width as authored
+        assert (w, round(h, 3)) == (560.0, 1008.0)           # 70 % of the height, the width as authored  # Session UI-2: 0.6 -> 0.7
         assert h > _R22_CABINET[1] and w == _R22_CABINET[0]
         # the old reading: the authored rect, never grown
         assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0)) == _R22_CABINET
@@ -13039,7 +13039,7 @@ class TestS14G22:
     def test_a_smaller_screen_keeps_the_authored_rect(self):
         """The authored rect is the floor: 0.6 x 720 = 432 < 520."""
         assert _r22_clamp(_R22_CABINET, (1280.0, 720.0), share=_R22_SHARE) == (560.0, 520.0)
-        assert _r22_clamp(_R22_CABINET, (1920.0, 1080.0), share=_R22_SHARE) == (560.0, 648.0)
+        assert _r22_clamp(_R22_CABINET, (1920.0, 1080.0), share=_R22_SHARE) == (560.0, 756.0)  # Session UI-2: 0.7 x 1080
         # and the viewport caps still apply after the raise
         _w, h = _r22_clamp(_R22_CABINET, (1280.0, 400.0), share=_R22_SHARE)
         assert h == 400.0 - 88.0
@@ -13050,7 +13050,7 @@ class TestS14G22:
         assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0), user=(500.0, 400.0),
                           share=_R22_SHARE) == (500.0, 400.0)
         # the double-click that forgets it returns to the share
-        assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0), share=_R22_SHARE)[1] == 864.0
+        assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0), share=_R22_SHARE)[1] == pytest.approx(1008.0)  # Session UI-2: 0.7 x 1440
 
     def test_only_the_cabinet_sets_the_share(self):
         """Every other centred modal keeps its authored rect on a wide screen:

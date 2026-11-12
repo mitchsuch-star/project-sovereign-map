@@ -27,6 +27,9 @@ var _current_nation: String = ""
 var _current_war_id: String = ""
 var _current_mode: String = ""  # "war", "coalition", "armistice"
 
+# Session UI-2: the shared score track is the war HUD's own build.
+const WarStatusPanel = preload("res://scripts/war_status_panel.gd")
+
 # Colors
 const COLOR_GREEN = "#4a4"
 # S12 (UXR3-6): aa4444 read 3.15 : 1 on the popup's panel; the same hue, lighter.
@@ -119,9 +122,20 @@ func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
 	hide()
+	# Session UI-2: the war's title in the title face, wrapping rather than
+	# clipping a long stake ("WAR FOR ...").
+	header_label.theme_type_variation = &"ScreenTitle"
+	header_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	close_button.pressed.connect(_close_popup)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# Session UI-2: the acts stand under the score, above the account (the
+	# readers: lead with the score; the Negotiate buttons sat under a wall).
+	var vb := $PanelContainer/VBoxContainer
+	var acts := vb.get_node_or_null("ButtonRow")
+	var bar := vb.get_node_or_null("ScoreBarContainer")
+	if acts != null and bar != null:
+		vb.move_child(acts, bar.get_index() + 1)
 
 
 func _input(event):
@@ -176,6 +190,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 		int(float(war_data.get("war_score", 0))),
 		_current_nation, 280, WAR_BAR_HEIGHT
 	)
+	_add_verdict(int(float(war_data.get("war_score", 0))), str(war_data.get("trend", "stable")))
 	_render_war_detail(war_data)
 	_clear_buttons()
 	# PC-F41 (S13e part 4): every peace button names the court it addresses
@@ -307,9 +322,71 @@ func _clear_score_bars():
 
 
 func _add_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int):
-	"""Add a large tug-of-war bar to the score bar container."""
-	var bar = _create_tug_of_war_bar(score, opponent, bar_width, bar_height)
-	score_bar_container.add_child(bar)
+	"""Session UI-2: the war's score at the popup's head — the shared gilt-rimmed
+	track filling from the centre notch, the figure in its medallion, the two
+	sides' arms at its ends (the enemy's at the left, France's at the right)."""
+	var row := HBoxContainer.new()
+	row.name = "ScoreHead"
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_end_flag(opponent))
+	var track = WarStatusPanel.build_score_track(score, opponent, float(bar_width), 16.0, 34.0, 2.0)
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(track)
+	row.add_child(_end_flag("France"))
+	score_bar_container.add_child(row)
+
+
+func _end_flag(nation: String) -> Control:
+	"""A side's arms at the track's end (an empty slot when it has none)."""
+	var slot := Control.new()
+	slot.custom_minimum_size = Vector2(24, 16)
+	slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var path := Utils.nation_flag_path(nation)
+	if path == "":
+		return slot
+	var flag := TextureRect.new()
+	flag.texture = load(path)
+	flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	flag.custom_minimum_size = Vector2(24, 16)
+	flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return flag
+
+
+func _add_verdict(score: int, trend: String) -> void:
+	"""One line under the track: who holds the upper hand, and which way the
+	balance is moving. Said from the figure and the backend's own trend."""
+	var line: String
+	if score >= 75:
+		line = "France is winning decisively"
+	elif score >= 25:
+		line = "France has the advantage"
+	elif score > -25:
+		line = "The war hangs in the balance"
+	elif score > -75:
+		line = "France is at a disadvantage"
+	else:
+		line = "France is losing badly"
+	match trend:
+		"rising":
+			line += ", and the balance is shifting France's way."
+		"falling":
+			line += ", and the balance is shifting against France."
+		_:
+			line += ", and the balance is holding."
+	var lbl := Label.new()
+	lbl.name = "Verdict"
+	lbl.text = line
+	lbl.theme_type_variation = &"BodyLarge"
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if score > 0:
+		lbl.add_theme_color_override("font_color", Utils.UI_SCORE_POSITIVE)
+	elif score < 0:
+		lbl.add_theme_color_override("font_color", Utils.UI_ALERT_TEXT)   # body type: the alert red
+	else:
+		lbl.add_theme_color_override("font_color", Utils.UI_SCORE_NEUTRAL)
+	score_bar_container.add_child(lbl)
 
 
 func _add_labeled_tug_of_war_bar(opponent: String, score: int, bar_width: int, bar_height: int):

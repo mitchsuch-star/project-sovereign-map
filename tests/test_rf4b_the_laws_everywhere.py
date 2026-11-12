@@ -475,5 +475,6 @@ class TestTheClient:
 
     def test_the_cards_name_the_laws(self):
         src = _gd("diplomatic_ledger.gd")
-        assert 'n.get("laws")' in src and '"  Laws: [color=#"' in src
+        # Session UI-2: the court's Laws line is a row of its facts table (the label's own string)
+        assert 'n.get("laws")' in src and '"Laws: "' in src
         assert 'v.get("law_terms", [])' in src and '" binds them (+"' in src

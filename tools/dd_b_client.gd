@@ -745,7 +745,12 @@ func _state() -> Dictionary:
 		out["window_has_focus"] = root.has_focus()
 		var top = main.get("top_bar")
 		if top != null and top.get("turn_label") != null:
-			out["turn"] = str(top.turn_label.text)
+			# Session UI-2: the date and the turn's figure are two labels (the
+			# turn by the hourglass); the record reads them as one line.
+			var fig = top.get("_turn_figure")
+			var fig_text: String = str(fig.text) if fig != null else ""
+			out["turn"] = ("Turn " + fig_text + " — " + str(top.turn_label.text)) \
+					if fig_text != "" else str(top.turn_label.text)
 		out["terminal_tail"] = _tail_lines(_terminal_text(), TERMINAL_TAIL)
 	return out
 

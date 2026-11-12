@@ -1,0 +1,1054 @@
+{
+ "date": "2026_11_12",
+ "source": "Session UI-2 final physical shoot (the working tree committed as the UI-2 commit; its parent 20ee32ff)",
+ "surfaces": {
+  "ledger_boot_forces": {
+   "surface": "Strategic Ledger — Forces tab",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 16,
+      "red": 0,
+      "p1": 0,
+      "ok": 16,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 16,
+      "red": 0,
+      "p1": 0,
+      "ok": 16,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 16,
+      "red": 0,
+      "p1": 0,
+      "ok": 16,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 16,
+      "red": 0,
+      "p1": 0,
+      "ok": 16,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 16,
+      "red": 0,
+      "p1": 0,
+      "ok": 16,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "generals_boot": {
+   "surface": "Generals (Marshal Management)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "top_bar_boot": {
+   "surface": "Top bar — diplomatic fields",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "dispatch_t20": {
+   "surface": "Dispatch re-read (t20 fixture)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 4,
+      "red": 0,
+      "p1": 0,
+      "ok": 4,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 4,
+      "red": 0,
+      "p1": 0,
+      "ok": 4,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 4,
+      "red": 0,
+      "p1": 0,
+      "ok": 4,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 4,
+      "red": 0,
+      "p1": 0,
+      "ok": 4,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 4,
+      "red": 0,
+      "p1": 0,
+      "ok": 4,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "dispatch_boot_today": {
+   "surface": "Dispatch re-read (the boot briefing's TODAY)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_room_boot": {
+   "surface": "The war room — map, command window, top bar (Begin the 1805 campaign)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 49,
+      "red": 0,
+      "p1": 0,
+      "ok": 49,
+      "map": 35,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 49,
+      "red": 0,
+      "p1": 0,
+      "ok": 49,
+      "map": 35,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 49,
+      "red": 0,
+      "p1": 0,
+      "ok": 49,
+      "map": 35,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 49,
+      "red": 0,
+      "p1": 0,
+      "ok": 49,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 49,
+      "red": 0,
+      "p1": 0,
+      "ok": 49,
+      "map": 36,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_room_tutorial": {
+   "surface": "The war room — the School of War's first morning, tutor card top-right",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 52,
+      "red": 0,
+      "p1": 0,
+      "ok": 52,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 52,
+      "red": 0,
+      "p1": 0,
+      "ok": 52,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 52,
+      "red": 0,
+      "p1": 0,
+      "ok": 52,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 52,
+      "red": 0,
+      "p1": 0,
+      "ok": 52,
+      "map": 10,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 52,
+      "red": 0,
+      "p1": 0,
+      "ok": 52,
+      "map": 11,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_room_pause_settings": {
+   "surface": "The war room — the pause menu open on Settings (UXR-X2)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 93,
+      "red": 0,
+      "p1": 0,
+      "ok": 93,
+      "map": 35,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 93,
+      "red": 0,
+      "p1": 0,
+      "ok": 93,
+      "map": 35,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 93,
+      "red": 0,
+      "p1": 0,
+      "ok": 93,
+      "map": 35,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 93,
+      "red": 0,
+      "p1": 0,
+      "ok": 93,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 93,
+      "red": 0,
+      "p1": 0,
+      "ok": 93,
+      "map": 36,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "tutorial_card": {
+   "surface": "The School of War card alone (tutorial_overlay.tscn)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "main_menu": {
+   "surface": "The main menu (first boot)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "main_menu_settings": {
+   "surface": "The main menu — Settings open",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 59,
+      "red": 0,
+      "p1": 0,
+      "ok": 59,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 59,
+      "red": 0,
+      "p1": 0,
+      "ok": 59,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 59,
+      "red": 0,
+      "p1": 0,
+      "ok": 59,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.60": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.6,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 59,
+      "red": 0,
+      "p1": 0,
+      "ok": 59,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 59,
+      "red": 0,
+      "p1": 0,
+      "ok": 59,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "20ee32ff+UI-2",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

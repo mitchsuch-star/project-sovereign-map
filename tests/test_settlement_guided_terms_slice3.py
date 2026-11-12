@@ -342,7 +342,8 @@ def test_godot_popup_renders_guided_authoring_controls():
         assert field in popup, field
     # The inline affordances are url metas dispatched by the meta handler.
     assert "meta_clicked.connect(_on_per_court_meta_clicked)" in popup
-    for op in ("[url=addmenu:", "[url=sugg:", "[url=rm:", "[url=mag:", "[url=focus:"):
+    # Session UI-2: the Add demand control is a chip (Utils.bb_button_chip("addmenu:%d" ...)), not a bare link
+    for op in ("\"addmenu:%d\"", "[url=sugg:", "[url=rm:", "[url=mag:", "[url=focus:"):
         assert op in popup, op
     # Suggestion clicks fire the GT-Slice-1 add verb with the suggestion's
     # exact action_params (valid-by-construction at the suggestion source).

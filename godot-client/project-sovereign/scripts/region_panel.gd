@@ -66,8 +66,8 @@ const _DOCK_BOTTOM_RESERVE := 56.0
 # UXR-2 (the layout law): the panel's WIDTH is a fraction of the logical
 # viewport between the authored 344 (Scroll 320 + the leather's 24) and a
 # ceiling — it was a bare fixed 344 at every size (9% of the user's panel).
-const _WIDTH_FRACTION := 0.15
-const _MIN_WIDTH := 344.0
+const _WIDTH_FRACTION := 0.2   # Session UI-2: 0.15 -> 0.2 (the readers: a narrow strip)
+const _MIN_WIDTH := 400.0     # Session UI-2: 344 -> 400
 const _MAX_WIDTH := 560.0
 
 # The Control whose top edge the panel must stay above (main.gd wires the
@@ -237,15 +237,15 @@ func _render() -> void:
 	var bbcode = ""
 
 	# ── Controller + terrain ──
-	bbcode += Utils.bb_flag(controller, 15)
-	bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(controller) + "[/b][/color]"
+	bbcode += Utils.bb_flag(controller, 18)
+	bbcode += " [color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(controller) + "[/b][/color]"
 	var region_type = str(data.get("region_type", ""))
 	var terrain = str(data.get("terrain", ""))
-	if region_type != "" or terrain != "":
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + region_type.replace("_", " ").capitalize()
-		if terrain != "":
-			bbcode += " · " + terrain.replace("_", " ").capitalize()
-		bbcode += "[/color]"
+	# Session UI-2: the province's kind and ground as two quiet badges.
+	if region_type != "":
+		bbcode += "  " + Utils.bb_badge(region_type.replace("_", " ").capitalize(), Utils.COLOR_BADGE_QUIET)
+	if terrain != "":
+		bbcode += " " + Utils.bb_badge(terrain.replace("_", " ").capitalize(), "5b6b4a")
 	bbcode += "\n"
 	# UXR3-79 (Pre-Deploy S15 head, October 25, 2026): the LAND'S NOTE — the
 	# poor-country / stripped-by-war mark the doctrines' boards exist to show
@@ -282,8 +282,10 @@ func _render() -> void:
 		# and shows on an unscouted province too; the stripped mark reads
 		# "Stripped? unknown — scout it" (the backend applied the fog). UXR3-79
 		# (S15 head): both read in the land's note under the controller line.
-		bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]   Stability: [color=#" \
-			+ Utils.COLOR_INFO + "]Unknown[/color]   Supply: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]\n"
+		bbcode += Utils.bb_glyph("income", 16) + " Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]   " \
+			+ Utils.bb_glyph("stability", 16) + " Stability: [color=#" \
+			+ Utils.COLOR_INFO + "]Unknown[/color]   " + Utils.bb_glyph("supply", 16) + " Supply: [color=#" \
+			+ Utils.COLOR_INFO + "]Unknown[/color]\n"
 	else:
 		# WO-V-D2 (Score Finish Step 7 slice 8): no hedge on our own soil — its
 		# figures are exact by ownership (`world.region_econ_visible`), and
@@ -297,27 +299,29 @@ func _render() -> void:
 		# PC15-16: -1 is the fog sentinel on income/stability too (same
 		# CA9-F5 idiom as Supply below) — PARTIAL provinces rendered a
 		# fabricated "Income: 0g / Stability: 0%" as fact.
+		bbcode += Utils.bb_glyph("income", 16) + " "
 		if effective_income < 0:
 			bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
 			bbcode += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
+		bbcode += "   " + Utils.bb_glyph("stability", 16)
 		if stability < 0:
-			bbcode += "   Stability: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
+			bbcode += " Stability: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
-			bbcode += "   Stability: " + str(stability) + "%"
+			bbcode += " Stability: " + str(stability) + "%"
 		# CA9-F5: -1 is the fog sentinel. `format_number(-1)` renders
 		# "-1", so both readers of this key must branch — the garrison
 		# sibling just below already does.
 		var supply_cap := int(data.get("supply_capacity", 0))
 		var supply_text := "Unknown" if supply_cap < 0 else Utils.format_number(supply_cap)
-		bbcode += "   Supply: " + supply_text + "\n"
+		bbcode += "   " + Utils.bb_glyph("supply", 16) + " Supply: " + supply_text + "\n"
 		# SR-7d DC-3a (RV-13): the poor / stripped mark moved UP to the land's
 		# note under the controller line (UXR3-79, S15 head).
 		var garrison_info = _map_node.region_garrisons.get(_region, null)
 		if garrison_info != null:
 			var g_strength = int(garrison_info.get("strength", 0))
 			var g_text = "Present (unknown strength)" if g_strength == -1 else Utils.format_number(g_strength)
-			bbcode += "Garrison: " + g_text + "\n"
+			bbcode += Utils.bb_glyph("garrison", 16) + " Garrison: " + g_text + "\n"
 		# S14E-D10 (the sweep): the Descent camp's count on the panel the marches
 		# are ordered from, the map tooltip's twin (the backend stamps `camp_note`
 		# only while the camp counts).
@@ -374,7 +378,7 @@ func _render() -> void:
 					and bool(em.get("at_war_with_player", false)):
 				enemy_names.append(str(em.get("name", "")))
 	if marshals is Array and marshals.size() > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]FORCES PRESENT[/color]\n"
+		bbcode += "\n" + Utils.HEAD_OPEN + "FORCES PRESENT" + Utils.HEAD_CLOSE + "\n"
 		for m in marshals:
 			bbcode += _format_marshal_row(m, enemy_names)
 
@@ -441,7 +445,7 @@ func _render() -> void:
 						+ Utils.display_nation_name(blockaded_by) + "[/color]"
 				sea_rows.append(row)
 		if sea_rows.size() > 0:
-			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]THE SEA[/color]  " \
+			bbcode += "\n" + Utils.HEAD_OPEN + "THE SEA" + Utils.HEAD_CLOSE + "  " \
 				+ Utils.bb_button_chip("admiralty", "THE ADMIRALTY", Utils.COLOR_GOLD, _CHIP_BG) + "\n"
 			for row in sea_rows:
 				bbcode += row + "\n"
@@ -758,7 +762,7 @@ func _render() -> void:
 					+ Utils.humanize_nation_keys_in_text(str(blocked[_region])) + "[/color]")
 
 	if action_rows.size() > 0:
-		var actions := "[color=#" + Utils.COLOR_HEADER + "]ACTIONS[/color]\n"
+		var actions := Utils.HEAD_OPEN + "ACTIONS" + Utils.HEAD_CLOSE + "\n"
 		for row in action_rows:
 			actions += row + "\n"
 		bbcode = bbcode.substr(0, actions_at) + actions + "\n" + bbcode.substr(actions_at)
@@ -1127,15 +1131,15 @@ func _march_here_section() -> String:
 	var out := ""
 	var march = _quotes.get("march", [])
 	if march is Array and not march.is_empty():
-		out += "\n[color=#" + Utils.COLOR_HEADER + "]MARCH HERE[/color]  [color=#" \
+		out += "\n" + Utils.HEAD_OPEN + "MARCH HERE" + Utils.HEAD_CLOSE + "  [color=#" \
 			+ Utils.COLOR_INFO + "]a standing order — he marches on each turn[/color]\n"
 		out += _quote_rows(march)
 	var support = _quotes.get("support", [])
 	if support is Array:
 		for row in support:
 			if row is Dictionary:
-				out += "\n[color=#" + Utils.COLOR_HEADER + "]SUPPORT " \
-					+ str(row.get("ally_shown", "")).to_upper() + "[/color]  [color=#" \
+				out += "\n" + Utils.HEAD_OPEN + "SUPPORT " \
+					+ str(row.get("ally_shown", "")).to_upper() + Utils.HEAD_CLOSE + "  [color=#" \
 					+ Utils.COLOR_INFO + "]he follows, and marches to the guns[/color]\n"
 				out += _quote_rows(row.get("quotes", []))
 	# AO (October 17, 2026): the SUPPORT that stands — one row per corps of
@@ -1144,8 +1148,8 @@ func _march_here_section() -> String:
 	if follow is Array:
 		for row in follow:
 			if row is Dictionary:
-				out += "\n[color=#" + Utils.COLOR_HEADER + "]FOLLOW " \
-					+ str(row.get("ally_shown", "")).to_upper() + "[/color]  [color=#" \
+				out += "\n" + Utils.HEAD_OPEN + "FOLLOW " \
+					+ str(row.get("ally_shown", "")).to_upper() + Utils.HEAD_CLOSE + "  [color=#" \
 					+ Utils.COLOR_INFO + "]he marches where " + str(row.get("ally_shown", "")) \
 					+ " marches, turn after turn, and to his guns[/color]\n"
 				out += _quote_rows(row.get("quotes", []))
@@ -1154,7 +1158,7 @@ func _march_here_section() -> String:
 	# in force, no Emperor in the field, authority below the gate, the pool).
 	var army = _quotes.get("army", null)
 	if army is Dictionary and not army.is_empty():
-		out += "\n[color=#" + Utils.COLOR_HEADER + "]THE ARMY[/color]  [color=#" \
+		out += "\n" + Utils.HEAD_OPEN + "THE ARMY" + Utils.HEAD_CLOSE + "  [color=#" \
 			+ Utils.COLOR_INFO + "]one order, the Staff's price, every corps within the Emperor's reach[/color]\n"
 		out += _quote_rows([army])
 		out += _army_detour_rows(army)   # S14E-X135: which corps take a long or foreign road
@@ -1163,8 +1167,8 @@ func _march_here_section() -> String:
 	if attack is Array:
 		for row in attack:
 			if row is Dictionary:
-				out += "\n[color=#" + Utils.COLOR_HEADER + "]ATTACK " \
-					+ str(row.get("enemy_shown", "")).to_upper() + "[/color]\n"
+				out += "\n" + Utils.HEAD_OPEN + "ATTACK " \
+					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
 				out += _quote_rows(row.get("quotes", []))
 	return out
 

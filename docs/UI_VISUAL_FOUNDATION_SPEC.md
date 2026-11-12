@@ -92,6 +92,9 @@
 > **Session UI ("The Gilt Frame, the War Table and the Dressed Page") ✅ LANDED November 11, 2026**
 > — one drawn window frame for every screen, the title face, the primary button, the map a sheet on
 > a leather desk, the books as cards; the record is §9.
+> **Session UI-2 ("The Imperial Desk") ✅ LANDED November 12, 2026** — figures before prose (strips,
+> tables, meters, badges), 36 stat glyphs, one button language, the 16:9 HUD on 32:9, popups that fit;
+> blind readers 7 / 7 / 7 before and after (mean 6.77 → 6.93) — the record and what holds it at 7 are §10.
 > **Owner row:** ROADMAP §Current Phase Queue row **UI** (this spec is authoritative).
 > **Supersedes/absorbs:** DEF-13 "UI-Scale Mini-Pass" (folds in as phase **UI-2**;
 > its baseline pin `test_map_slice8_balance.py::test_def13_fixed_hud_baseline_pins` is honored).
@@ -755,3 +758,113 @@ reader of the page changes).
 **Open:** the user's own look — session H's walk (`UX_UI_REVIEW_PLAN.md` §UXR-4) reads the new skin
 on the frames in `docs/audits/ui_gilt/`; each reversal is one line (`DESK_SURFACE`, a frame's `weight`
 or `wash`, the rule's `lozenge`).
+
+## 10. Session UI-2 — The Imperial Desk ✅ LANDED November 12, 2026
+
+> **The user's word** (relayed by the session that started this one): raise the client from Session UI's own 7/10
+> to 9/10 — a second visual pass over EVERY surface, nothing assumed; assets found online (licence-checked) or coded;
+> three blind readers before and after; nothing cut without the user's word. Drafted in Plan Mode and approved (five
+> rules, three slices, the measure). Rules `SYSTEMS_REFERENCE.md` §213; pins `tests/test_ui_gilt2_imperial_desk.py`
+> (a headless probe among them, `tools/ui_gilt2_probe.gd`) and the driven Auto band in `tests/test_uxr2b_hud_band.py`;
+> before / after pairs `docs/audits/ui_gilt2/`.
+
+**The baseline, measured before planning** (HEAD `20ee32ff`): all 185 surfaces shot at Interface Scale 1.0 and 2.0
+(0 `SCRIPT ERROR`) and at the five physical sizes; readability RED 0 / P1 0 (4,402 rows); consistency 0 hits on 145
+surfaces; contrast 34 rows under 4.5 : 1 (every one a parchment letter's label declaring white over the paper).
+**The blind reading:** three sonnet readers, a rubric frozen before the first reading (UXR-3's R1–R8 and visual
+craft with period feel, anchored 1–10 on shipped strategy games), 30 fixed frames under neutral names — **7 / 7 / 7,
+mean of the 90 marks 6.77**. Worst: the region panel (5); the 5120 war room, Economy, Territories, Manpower, the
+Generals at T20, Nations, Vassals, the Balance, the settlement table, the petition, the war detail (6). Best (8): the
+war room at 1.0, the diorama, the affair letter, the objection, the main menu. Their common verdicts: walls of small
+text with no icons or visualisation; chips that look like links; panels floating in wasted space or voids; the
+ultrawide HUD tiny in its corners; the command window eating the map at 2.0; names colliding on the map; dark slab
+buttons on parchment.
+
+**The research** (what was taken): Victoria 3's diaries #61 and #49 — figures before prose, icon + figure groups,
+colour only at thresholds, a figure that clicks to its ledger; Total War Saga: Troy's UX deep dive — tables with
+header rows and right-aligned numerals, one primary act per surface; Bycer's strategy-UI dos and don'ts — End Turn
+always distinct, a tooltip that names the figure, its parts and the click; an ultrawide-scaling write-up — a 16:9
+safe zone for the HUD on 32:9; Old World's notes and CK3's console diary — paper-native buttons on parchment, map
+plaques in a palette distinct from the paper. The Game UI Database and Interface In Game did not answer.
+
+**The assets** (licence-checked; `THIRD_PARTY_LICENSES.md`): the French First Empire eagle (Commons
+`Aigle_Empire.svg`, {{PD-self}} vectorisation by F. Michel of an 1804 {{PD-Art}} source, read through the Commons API
+before shipping); 36 stat glyphs from the shipped game-icons.net pool (CC BY 3.0, credited in Settings → CREDITS, each
+glyph's author in `GLYPHS.txt`); a 4×4 white swatch (made here). The Moniteur's blackletter is the shipped
+UnifrakturMaguntia (OFL). Nothing CC-BY-SA.
+
+**The five rules:** figures before prose; one icon per category, everywhere; one button language; fit the content;
+period craft at the ceremonies. Motion: a 160 ms fade as a surface opens (no close delay), Reduce motion in Settings.
+
+**As built** (one commit — the slices' files interleave, and the user's standing rule is one commit a session):
+- **The kit** (`SYSTEMS_REFERENCE.md` §213): the gilt button face (`scripts/gilt_button.gd`) with a dashed rim when it
+  cannot act; four new steps (`EndTurnButton`, `ParchmentButton`, `StatFigure`, `Figure`); 36 stat glyphs and the
+  eagle; every chip a rimmed one-cell table; exact meters, relation meters, striped tables, portrait rows, section
+  heads (`dress_heads`), in-cell tags (`bb_tag`); a figure strip (`scripts/stat_strip.gd`); a 160 ms opening fade with
+  **Reduce motion** in Settings.
+- **The war room:** the top bar in three groups (resources, court, date), each figure opening its book; map plaques
+  and nameplates (no overprint); the command window's status led by glyphs, End Turn on its own step, its header
+  folded into one band under 600 logical px; the war score a gilt track with its figure in a medallion; the rail's
+  roundels; the region panel in the kit; **Auto** HUD width (a 16:9 zone on 32:9) and the 32:9 derivation at 1.60.
+- **The books:** figure strips over the Strategic Ledger; corps, law and order cards; the Territories and Intel tables;
+  Economy's INCOME and CHARGES; the Generals' portrait rows with meters and tags; the Diplomatic Ledger's facts tables,
+  the threat gauge and the Vassals' one chip row; the Cabinet's court and act rows (70 % of the window); the
+  settlement table's per-court cards, meters and quote blocks; the Dispatch, the Moniteur and the enemy phase in cards
+  with glyphs.
+- **The letters, the popups, the ceremonies:** letters and popups fit their content (an arms row on nine popups; the
+  compact view under 600 logical px); parchment buttons on paper; the objection's even grid where it fits; Settings a
+  page; the main menu's shade and eagle; the diorama's frame and strength band; the end card's eagle and figure strip;
+  the School of War's header strip and short paragraphs.
+- **An audit before the record** found approved plan items unbuilt (the first "slices built" was wrong): ten builders
+  on sonnet, one owner per file, built the remainder the same session; each script diff-read, parse-checked, shot and
+  read by eye, and the defects the frames showed fixed (badges one letter a line inside table cells → `bb_tag`; the
+  Territories table's columns; four contrast rows; the war HUD's arms on the side its colour fills toward).
+
+**What the instruments caught after the build**, each fixed at its cause and pinned
+(`TestWhatTheInstrumentsCaught`): the objection's even grid pushed a long answer onto a row of its own and stood the
+dialog over the bar at 2.0 (now even only when every answer fits half a row); the alert red read 4.24–4.36 : 1 once
+the figures took the 16-px `Figure` step (body type: `UI_ALERT_TEXT`); the contrast census measured the new rimmed
+chips against the page (the harness now reads a one-cell table's own ground; the dimmed cell keeps the exempt pill's
+ground); four new greys were literals (named tokens); the tooltip's shadow grew its popup window past the screen's
+edge (PC-F47's driven pins — the shadow is dropped, the wider padding kept); the capture runner forced "full", so
+Auto's zone had never been on a frame (it shoots the game's default now).
+
+**The measure** (the final tree): every surface at Interface Scale 1.0 and 2.0 — 370 frames, 0 `SCRIPT ERROR`; readability RED 0 / P1 0 (5,196 rows); **contrast 0 rows under 4.5 : 1** (34 at the baseline); consistency 0 hits on 145 surfaces; the five physical sizes — 925 frames, 0 `SCRIPT ERROR`, readability RED 0 / P1 0 (13,052 rows); fit 185 of 185 surfaces at 1920×1080, 3840×2160 and 5120×1440. The per-frame word diff against the baseline: every changed word is in a class §213 names (the top bar's figures lost their words to their tooltips; the `═══` bars dressed away; new figure captions, badges and column heads; the Settings' Auto label). The full suite 39,574 passed at six workers, the readability record re-recorded (`docs/audits/uxr0/readability_after_{named,all}_2026_11_12.json`).
+
+**The score:** three fresh sonnet readers, the identical prompt and frozen rubric, the same 30 frame ids under
+neutral names, shot from the final tree: **7 / 7 / 7 — the median is 7, unmoved; the mean of the 90 marks 6.77 →
+6.93**. Eight frames rose (Forces 7 → 8, Economy 6 → 7, Territories 6 → 7, Manpower 6 → 8, the Generals at T20
+6 → 7, the region panel 5 → 6, the end card 7 → 8, the mailbox 7 → 8), nineteen held, three fell (the war room
+8 → 7, the settlement table 6 → 5, the objection 8 → 7); eighteen frames unanimous, twelve a spread of one, none
+wider. **The 9 was not reached.** What holds it at 7, with frames (the readers' consensus; the pairs in
+`docs/audits/ui_gilt2/`):
+
+1. **The prose on the face** — Nations, Vassals and the Balance (F11–F13, 6 each), the petition (F21, 6), the war
+   detail (F25, 6), the region panel (F24, 6), Settings (F28, 7): every reader asks for the explanations behind an
+   expander or a tooltip. This pass kept every word on the face by its own rule (the words are what the player learns
+   from, and what the tests and the instruments read). Moving the prose is the largest lever left, and it is the
+   user's to rule.
+2. **The ultrawide** (F02, 6, unanimous): the HUD now frames the map in a 16:9 zone, but the map is a fixed-aspect
+   sheet and the desk either side reads as wasted width. The lever: map art wider than the sheet, or a zoom-to-fill
+   map mode.
+3. **The settlement table** (F16, 5): one card per court and its meter did not lift it — four stacked scroll areas,
+   the "more below" tag over a line, nine like buttons. The lever: one scroll and per-court action rows (the
+   scene-order pins and the document fit hold the four areas today).
+4. **Small reading windows** (the Cabinet's quote F15, the Dispatch F17, the Moniteur F18, the mailbox's second row
+   F29): a still shows a window's first lines and its cut, and the readers mark it as clipping. The lever: reading
+   windows sized to their content.
+5. **The map at the whole-map zoom** (F01, 8 → 7): the names no longer overprint, but the plaques crowd the centre;
+   the label layer yields 4 of 36 items (2 before).
+
+**Built otherwise than the plan said, each with its reason:** the tooltip has no shadow (above); the objection's grid
+is even only where every answer fits half a row (above); one commit, not three (above). The settlement table's four scroll areas are kept (above); the treaty tab's settlement-history rows and
+the Talleyrand and Congress prose stay as lines (their url metas and pins); the Cabinet takes 70 % of the window, not
+60 % (its height pins re-read); the redemption popup's Dismiss lost its red (the gilt face; one line to restore).
+
+**Costs said once:** at the boot zoom the map's label layer yields 4 of 36 items to their neighbours (2 before) — the
+plates are larger; each returns on zoom. On the user's 5120×1440 panel the interface derives 1.60, not 1.40 (logical
+3200×900): the long armistice letter (PC-F46) still stands at 80 % with its whole cost above the fold, and its War
+Summary, which PC-F46 put last, lies under the fold, as on any 900-px window. Each is one line to reverse
+(`ULTRA_WIDE_BONUS` in both twins; the plaques' margins in `map_plaque.gd`).
+
+**Open:** the user's own look — session H's walk reads the new desk on the frames in `docs/audits/ui_gilt2/`.

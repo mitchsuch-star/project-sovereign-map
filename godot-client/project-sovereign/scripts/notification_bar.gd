@@ -459,20 +459,23 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 			btn.icon = icon_tex
 			btn.expand_icon = true
 			btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			# Session UI-2: the glyph in its urgency's colour on a dark roundel.
+			var ink: Color = (color as Color).lightened(0.35)
 			for icon_state in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
-				btn.add_theme_color_override(icon_state, Color(1, 1, 1, 1))
+				btn.add_theme_color_override(icon_state, ink if icon_state == "icon_normal_color" else ink.lightened(0.25))
 
+	# Session UI-2 (November 11, 2026): a dark roundel with a rim in the
+	# notice's urgency (crimson / amber / steel) — the readers saw the old
+	# saturated squares as crude. A light under the head, as on the buttons.
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(color.r, color.g, color.b, 0.88)
-	style.border_width_left = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.border_width_bottom = 1
-	style.border_color = border_color
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_right = 4
-	style.corner_radius_bottom_left = 4
+	style.bg_color = Color(0.075, 0.085, 0.135, 0.94)
+	style.set_border_width_all(1)
+	style.border_width_bottom = 2
+	style.border_color = Color(border_color.r, border_color.g, border_color.b, 0.95)
+	style.set_corner_radius_all(14)
+	style.shadow_color = Color(0, 0, 0, 0.45)
+	style.shadow_size = 3
+	style.shadow_offset = Vector2(0, 1)
 	style.content_margin_left = 4.0
 	style.content_margin_right = 4.0
 	style.content_margin_top = 2.0
@@ -480,20 +483,18 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	btn.add_theme_stylebox_override("normal", style)
 
 	var hover_style = style.duplicate()
-	hover_style.bg_color = Color(
-		min(color.r + 0.12, 1.0),
-		min(color.g + 0.12, 1.0),
-		min(color.b + 0.12, 1.0),
-		0.96
-	)
+	hover_style.bg_color = Color(0.13, 0.14, 0.21, 0.98)
+	hover_style.shadow_color = Color(color.r, color.g, color.b, 0.35)
+	hover_style.shadow_size = 5
+	hover_style.shadow_offset = Vector2.ZERO
 	btn.add_theme_stylebox_override("hover", hover_style)
 
 	var pressed_style = style.duplicate()
-	pressed_style.bg_color = Color(color.r * 0.8, color.g * 0.8, color.b * 0.8, 0.96)
+	pressed_style.bg_color = Color(0.04, 0.045, 0.08, 0.98)
 	btn.add_theme_stylebox_override("pressed", pressed_style)
 
 	btn.theme_type_variation = &"CaptionButton"
-	btn.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	btn.add_theme_color_override("font_color", color.lightened(0.4))
 	btn.set_meta("notification_data", notif)
 	btn.pressed.connect(_on_icon_pressed.bind(btn))
 	return btn

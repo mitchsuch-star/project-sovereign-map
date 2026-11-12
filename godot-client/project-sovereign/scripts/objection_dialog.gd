@@ -266,6 +266,7 @@ func show_objection(objection_data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+	_even_the_answers()
 	# UXR3-X2 (Pre-Deploy S12): then shrink to the content — the authored
 	# rect left a band of empty panel under the three answers.
 	Utils.shrink_centered_panel_to_content($PanelContainer)
@@ -274,7 +275,40 @@ func refit() -> void:
 	"""UXR-2's live-refit hook (`Utils.refit_surface`): the clamp, then the
 	shrink to content, exactly as on open."""
 	Utils.clamp_centered_panel($PanelContainer)
+	_even_the_answers()
 	Utils.shrink_centered_panel_to_content($PanelContainer)
+
+
+func _even_the_answers() -> void:
+	"""Session UI-2: the answers stand on an even two-column grid (the readers:
+	uneven widths) — every visible answer half the row's width, so the rows
+	align whatever each button says — but ONLY when every answer's words fit
+	in half a row. A grid that pushed a long answer onto a row of its own
+	added a row, and at Interface Scale 2.0 the dialog has none to spare: it
+	stood over the top bar's strip (the frames' clamp-band pin). Otherwise the
+	row keeps its natural widths, as before; the grid never adds a row."""
+	# one frame for the clamped panel to lay its row out (the shrink waits two)
+	await get_tree().process_frame
+	var row := insist_button.get_parent() as Control
+	if row == null or not is_instance_valid(row):
+		return
+	var answers: Array[Button] = []
+	for b in row.get_children():
+		if b is Button:
+			answers.append(b as Button)
+	# the words first, not the last grid (a refit measures afresh): the
+	# authored width is 0 (the scene's minimum is its 45-px height alone)
+	for b in answers:
+		b.custom_minimum_size.x = 0.0
+	var sep := float(row.get_theme_constant("h_separation"))
+	var half := floorf((row.size.x - sep) / 2.0) if row.size.x > 0.0 else 0.0
+	if half <= 0.0:
+		return
+	for b in answers:
+		if b.visible and b.get_combined_minimum_size().x > half:
+			return
+	for b in answers:
+		b.custom_minimum_size.x = half
 
 func _describe_order(order: Dictionary) -> String:
 	"""Create human-readable description of an order."""

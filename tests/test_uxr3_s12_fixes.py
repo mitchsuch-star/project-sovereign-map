@@ -460,7 +460,9 @@ class TestTheWholeClientCarriesNoOneOffGreyOrSize:
                      "const MAP_UNKNOWN_TEXT := Color(0.55, 0.55, 0.6)"):
             assert line in utils, line
         rend = GS.code_lines(GS.read(SCENES / "map_renderer_base.gd"))
-        assert "Color(Utils.MAP_FOG_TEXT, 0.5)" in rend and "Color(Utils.MAP_STALE_TEXT, 0.7)" in rend
+        # Session UI-2: the fogged force is a dark round token now; its "?"
+        # reads at 0.85 / 0.7 on the plate (0.7 / 0.5 was set against the paper)
+        assert "Color(Utils.MAP_FOG_TEXT, 0.7)" in rend and "Color(Utils.MAP_STALE_TEXT, 0.85)" in rend
 
     def test_the_scene_greys_sit_on_the_ladder(self):
         for name, node in (("main.tscn", None), ("top_bar.tscn", None), ("pause_menu.tscn", None),

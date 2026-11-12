@@ -113,7 +113,9 @@ static func cards_in(text: String) -> Array:
 func _draw() -> void:
 	if _label == null or not _label.is_visible_in_tree():
 		return
-	var text := _label.text
+	# Session UI-2: a table is one paragraph of its page, whatever its cells
+	# hold — the newlines INSIDE tables are the cells' own (Utils.flatten_tables).
+	var text := Utils.flatten_tables(_label.text)
 	if text.find(CLOSE_MARK) < 0:
 		return
 	var count := _label.get_paragraph_count()

@@ -61,6 +61,13 @@ signal open_settlement(war_id: String, nation: String)
 
 const CHIP_TEXT_HEX := "e8d4a8"
 const CHIP_BG_HEX := "233043"
+# Session UI-2 (H): the card's one primary act (the lesson's door / quill) is a
+# gilt chip — dark ink on gold; Skip is the quiet one (dim ink on the dim ground).
+const PRIMARY_CHIP_TEXT_HEX := "1b1409"
+const PROGRESS_METER_WIDTH := 180
+# a paragraph holds at most this many characters before the next sentence
+# starts a new one (the sentences are the card's own; only the breaks are new)
+const PARAGRAPH_SOFT_LIMIT := 150
 
 # UXR-1 (October 9, 2026): the card is sized to the SCREEN, not to a 24-inch
 # monitor. Its width is a fraction of the logical viewport between a floor
@@ -1000,8 +1007,16 @@ func _render() -> void:
 	_title_label.text = _lesson_title
 	_step_badge.text = "%d of %d" % [_step_index + 1, _steps.size()]
 	var lines := PackedStringArray()
-	lines.append("[b][color=#" + Utils.COLOR_GOLD + "]" + str(step["title"]) + "[/color][/b]")
-	lines.append("[color=#d8d4c8]" + str(step["body"]) + "[/color]")
+	# Session UI-2 (H): figures first — the lesson's progress as a gilt meter
+	# (the header strip above carries "n of total"), the page's title in the
+	# title face, then the lesson as short paragraphs, then the act.
+	# the compact view (Interface Scale 2.0) drops the meter and the spacing:
+	# the header's "n of N" carries the progress, and the door stays in view
+	var compact := Utils.compact_view()
+	if not compact:
+		lines.append(Utils.bb_meter(_step_index + 1, _steps.size(), PROGRESS_METER_WIDTH, 4))
+	lines.append(Utils.HEAD_OPEN + str(step["title"]) + Utils.HEAD_CLOSE)
+	lines.append(_paragraphs(str(step["body"]), "\n" if compact else "\n\n"))
 	var waiting := int(step["turn_gate"]) > _turn
 	# TUT-F4c: an event step the war refuses (the live case — Austria's
 	# reserve massed in Bohemia while the card demanded its capture) must
@@ -1015,27 +1030,78 @@ func _render() -> void:
 	if waiting:
 		lines.append("[color=#" + Utils.COLOR_INFO + "]Berthier resumes with the morning dispatch — end the turn when ready.[/color]")
 	elif str(step["suggest"]) != "":
-		lines.append(Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), CHIP_TEXT_HEX, CHIP_BG_HEX))
+		if not compact:
+			lines.append("")
+		lines.append(Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD))
 		lines.append("[color=#" + Utils.COLOR_INFO + "]Click the quill to place the order on your command line — you give the word.[/color]")
 	if not waiting and step.has("open"):
 		# Sept 23, 2026: a door, not an order — the chip opens the real
 		# screen (the Cabinet) on the court the card names.
-		lines.append(Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")), CHIP_TEXT_HEX, CHIP_BG_HEX))
+		# The door is the card's primary act unless a quill already is.
+		var door_primary := str(step["suggest"]) == ""
+		if door_primary and not compact:
+			lines.append("")
+		lines.append(Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")),
+			PRIMARY_CHIP_TEXT_HEX if door_primary else CHIP_TEXT_HEX,
+			Utils.COLOR_GOLD if door_primary else CHIP_BG_HEX))
 	if overdue:
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + str(_notes.get("overdue", "")) + "[/color]")
 	if _released_note != "":
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + _released_note + "[/color]")
 	if str(step["id"]) == "handoff":
-		lines.append(Utils.bb_button_chip("skipdone:", "Conclude the lesson", CHIP_TEXT_HEX, CHIP_BG_HEX))
+		lines.append("")
+		lines.append(Utils.bb_button_chip("skipdone:", "Conclude the lesson", PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD))
 	else:
 		# Sept 23, 2026: no step may hold the player hostage — every card
 		# but the last can be skipped on its own, at no cost.
-		lines.append(Utils.bb_button_chip("skipstep:", "Skip this lesson ▸", CHIP_TEXT_HEX, CHIP_BG_HEX))
+		# Session UI-2 (H): the quiet one — dim ink on the dim ground.
+		lines.append(Utils.bb_button_chip("skipstep:", "Skip this lesson ▸", Utils.COLOR_INFO, Utils.CHIP_DIM_BG))
 	_body.text = "\n".join(lines)
 	# UXR-1: a new body may be longer than the screen — re-bound it once the
 	# text has laid out at the card's width.
 	_fit_card_width()
 	_fit_card_height.call_deferred()
+
+
+# ── paragraphs (Session UI-2, H) ────────────────────────────────────────────
+
+static func _paragraphs(body: String, joiner: String = "\n\n") -> String:
+	"""The lesson's words as short paragraphs: the body is cut after a
+	sentence's end (". " "? " "! " before a capital or a tag) and the sentences
+	are gathered into paragraphs of about PARAGRAPH_SOFT_LIMIT characters. The
+	words and their order are the card's own; only the breaks between
+	sentences are new (a blank line stands where the space stood)."""
+	var sentences := PackedStringArray()
+	var start := 0
+	var n := body.length()
+	var i := 0
+	while i < n - 2:
+		var ch := body[i]
+		if (ch == "." or ch == "?" or ch == "!") and body[i + 1] == " ":
+			var nxt := body[i + 2]
+			if (nxt >= "A" and nxt <= "Z") or nxt == "[":
+				sentences.append(body.substr(start, i + 1 - start))
+				start = i + 2
+				i += 2
+				continue
+		i += 1
+	sentences.append(body.substr(start))
+	var paragraphs := PackedStringArray()
+	var current := ""
+	for sentence in sentences:
+		if current != "" and current.length() + sentence.length() > PARAGRAPH_SOFT_LIMIT:
+			paragraphs.append(current)
+			current = sentence
+		elif current == "":
+			current = sentence
+		else:
+			current += " " + sentence
+	if current != "":
+		paragraphs.append(current)
+	var out := PackedStringArray()
+	for paragraph in paragraphs:
+		out.append("[color=#d8d4c8]" + paragraph + "[/color]")
+	return joiner.join(out)
 
 
 # ── chip + button handlers ──────────────────────────────────────────────────

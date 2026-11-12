@@ -419,6 +419,29 @@ func show_proposal(data: Dictionary):
 	# PC-F46: the ceiling it fits UNDER grows with the window first.
 	_raise_letter_ceiling()
 	Utils.clamp_centered_panel($PanelContainer)
+	_fit_to_letter()
+
+
+func _fit_to_letter() -> void:
+	"""Session UI-2 (November 11, 2026): the box fits what it holds. The clamp
+	sets it to the whole PC-F46 ceiling (80 % of the window), and a short
+	letter or a client's petition stood over half a sheet of nothing above its
+	answers (the blind readers' "void"). Two frames after the clamp (a
+	wrapping label has no height before it has a width), the body asks for
+	its own height — capped at the room the clamped box leaves it, so a long
+	armistice letter still scrolls under its answers — and the panel shrinks
+	to its content (the objection and capture popups' helper)."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible or not is_instance_valid(content_label):
+		return
+	var panel := $PanelContainer as Control
+	var have: float = panel.offset_bottom - panel.offset_top
+	content_label.custom_minimum_size.y = 0.0
+	var others: float = panel.get_combined_minimum_size().y
+	var body_h := float(content_label.get_content_height()) + 6.0
+	content_label.custom_minimum_size.y = clampf(body_h, 72.0, maxf(have - others, 72.0))
+	Utils.shrink_centered_panel_to_content(panel)
 
 
 func _raise_letter_ceiling() -> void:
@@ -446,6 +469,7 @@ func refit() -> void:
 	an open letter follows the window, not only the window it opened in."""
 	_raise_letter_ceiling()
 	Utils.clamp_centered_panel($PanelContainer)
+	_fit_to_letter()
 
 
 func _moment_text(value) -> String:
@@ -843,6 +867,7 @@ var _dateline_label: Label = null
 var _seal_well: Panel = null
 var _pressed_rect := Rect2()
 var _dressed := false
+var _plain_variation := {}   # Session UI-2: each answer's own step off the sheet
 var _is_decree_letter := false   # AU-3a: the letter's third answer rides the Counter's slot
 
 
@@ -873,8 +898,10 @@ func _ensure_letter_dress() -> void:
 	# the opaque plaque under a closed Accept (the theme's translucent one
 	# reads 1.7 : 1 on paper)
 	_closed_plaque = StyleBoxFlat.new()
-	_closed_plaque.bg_color = Color(Utils.UI_POPUP_BG.r, Utils.UI_POPUP_BG.g, Utils.UI_POPUP_BG.b, 1.0)
-	_closed_plaque.border_color = Utils.UI_FAINT_BORDER
+	# Session UI-2: an opaque, darker vellum under a sepia rule — closed, and
+	# still of the paper (the navy plaque read as a slab on the sheet).
+	_closed_plaque.bg_color = Color.html(Utils.INK_SHEET_HC).darkened(0.14)
+	_closed_plaque.border_color = Color.html(Utils.INK_RULE)
 	_closed_plaque.set_border_width_all(1)
 	_closed_plaque.set_corner_radius_all(4)
 	_closed_plaque.set_content_margin_all(6.0)
@@ -989,8 +1016,10 @@ func _dress_letter(data: Dictionary, is_letter: bool, accept_open: bool, accept_
 		panel.add_theme_stylebox_override("panel", panel_style)
 		accept_btn.remove_theme_stylebox_override("disabled")
 		counter_btn.remove_theme_stylebox_override("disabled")
+		content_label.remove_theme_color_override("default_color")
 		for b in buttons:
 			b.custom_minimum_size = Vector2(140, 45)
+			b.theme_type_variation = _plain_variation.get(b.name, &"")
 		_set_aside_line.remove_theme_font_override("font")
 		return
 	_ensure_letter_dress()
@@ -1005,9 +1034,17 @@ func _dress_letter(data: Dictionary, is_letter: bool, accept_open: bool, accept_
 		var head_end := body.find("\n")
 		body = body.substr(head_end + 1) if head_end >= 0 else ""
 	content_label.text = "[color=#" + Utils.INK_BODY + "]" + _ink(body) + "[/color]"
+	# Session UI-2: the label's own colour is the ink too (a span without its
+	# colour tag would otherwise draw white on the paper — the contrast census
+	# read every letter's label so).
+	content_label.add_theme_color_override("default_color", Color.html(Utils.INK_BODY))
 	# the two-line buttons: the caption, then the price (the plan's receipt)
 	for b in buttons:
 		b.custom_minimum_size = Vector2(140, LETTER_BUTTON_MIN_HEIGHT)
+		# Session UI-2: ink on vellum — paper-native answers on the sheet
+		if not _plain_variation.has(b.name):
+			_plain_variation[b.name] = b.theme_type_variation
+		b.theme_type_variation = &"ParchmentButton"
 	var accept_line := _button_second_line(data, "button_accept", "no change")
 	if not accept_open:
 		# a closed Accept says why on an opaque plaque (the reason when it

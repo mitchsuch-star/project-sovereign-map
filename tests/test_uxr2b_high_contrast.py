@@ -161,8 +161,9 @@ class TestTheToggle:
         assert '_contrast_toggle.name = "HighContrastToggle"' in panel
         body = G.func_body(panel, "_on_high_contrast_toggled")
         assert "UiSettings.set_high_contrast(on)" in body and "Utils.apply_contrast(get_tree())" in body
-        # the top bar's run-time greys go through the same tone
-        assert G.read(SCRIPTS / "top_bar.gd").count("Utils.toned(Utils.UI_TEXT_DIM)") == 3
+        # the top bar's run-time greys go through the same tone — Session UI-2
+        # added the fourth (the turn's figure beside the date)
+        assert G.read(SCRIPTS / "top_bar.gd").count("Utils.toned(Utils.UI_TEXT_DIM)") == 4
 
     def test_the_capture_shoots_with_it(self):
         runner = G.read(REPO / "tools" / "iq10_run_captures.py")

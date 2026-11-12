@@ -28,6 +28,8 @@ var _index: int = -1  # index into _issues (newest = size-1)
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
+	# Session UI-2: each column of the paper is a card (the marks are in `_section`).
+	Utils.card_page(content_label)
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -127,43 +129,65 @@ func _render_issue():
 	var issue: Dictionary = _issues[_index]
 	var bbcode = ""
 
-	# Masthead — the paper's own dated identity (HC-0 dateline).
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]  " + str(issue.get("masthead", "LE MONITEUR")) + "[/color]\n"
+	# Masthead — the paper's own dated identity (HC-0 dateline). Session UI-2:
+	# the paper's name in blackletter (UnifrakturMaguntia, OFL), its dateline
+	# under it in the title face, between two gilt hairlines.
+	var masthead := str(issue.get("masthead", "LE MONITEUR"))
+	var head := masthead
+	var dateline := ""
+	var cut := masthead.find(" — ")
+	if cut > 0:
+		head = masthead.substr(0, cut)
+		dateline = masthead.substr(cut + 3)
+	var rule := "[center][img width=420 height=1 color=#" + Utils.COLOR_GOLD + "99]" + Utils.SWATCH + "[/img][/center]\n"
+	bbcode += rule
+	bbcode += "[center][font=" + MASTHEAD_FONT + "][color=#ece0c4]" + head.capitalize() + "[/color][/font][/center]\n"
+	if dateline != "":
+		bbcode += "[center]" + Utils.HEAD_OPEN + dateline + Utils.HEAD_CLOSE + "[/center]\n"
 	if bool(issue.get("special", false)):
-		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  SPECIAL EDITION — " + str(issue.get("special_reason", "")) + "[/color]\n"
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+		bbcode += "[center][color=#" + Utils.COLOR_ERROR + "]SPECIAL EDITION — " + str(issue.get("special_reason", "")) + "[/color][/center]\n"
+	bbcode += rule
 	# R159: each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]The capital's press — the continent's story as printed, issue by issue. Page through the archive below.[/color]\n\n"
 
 	# The lead — the press's voice.
 	var lead = str(issue.get("lead", ""))
 	if lead != "":
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + lead + "[/color]\n\n"
+		# Session UI-2: the issue's headline, in the title face.
+		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_GOLD + "]" + lead + "[/color][/font]\n\n"
 
-	bbcode += _section("THE WAR", issue.get("war", []))
-	bbcode += _section("THE COURTS", issue.get("courts", []))
+	bbcode += _section("THE WAR", issue.get("war", []), "war")
+	bbcode += _section("THE COURTS", issue.get("courts", []), "envoy")
 	# GE-3: the Congress column — the table in the paper's voice every issue
 	# of the sitting, the proclamation on the Imperial Peace's own edition
 	# (`gazette._congress_column`). Absent / empty → no section.
-	bbcode += _section("THE CONGRESS OF PARIS", issue.get("congress", []))
-	bbcode += _section("THE ARMY", issue.get("army", []))
+	bbcode += _section("THE CONGRESS OF PARIS", issue.get("congress", []), "europe")
+	bbcode += _section("THE ARMY", issue.get("army", []), "foot")
 
 	var bourse = str(issue.get("bourse", ""))
 	if bourse != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + bourse + "[/color]\n"
+		bbcode += Utils.bb_glyph("gold", 16, Utils.COLOR_INFO) + " [color=#" + Utils.COLOR_INFO + "]" + bourse + "[/color]\n"
 
 	content_label.text = bbcode
 	scroll_container.scroll_vertical = 0
 	_update_page_row()
 
 
-func _section(title: String, rows) -> String:
+const MASTHEAD_FONT := "res://assets/fonts/UnifrakturMaguntia-Book.ttf"
+
+
+func _section(title: String, rows, glyph_name: String = "") -> String:
+	"""One column of the paper: a card led by its glyph and its heading in the
+	title face, its rows under it (the card's marks add no line)."""
 	if not (rows is Array) or rows.is_empty():
 		return ""
-	var out = "[color=#" + Utils.COLOR_HEADER + "]— " + title + " —[/color]\n"
-	for row in rows:
-		out += "[color=#" + Utils.COLOR_TEXT + "]  " + str(row) + "[/color]\n"
+	var out: String = Utils.card_open()
+	if glyph_name != "":
+		out += Utils.bb_glyph(glyph_name, 18) + " "
+	out += Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE + "\n"
+	for i in range(rows.size()):
+		out += "[color=#" + Utils.COLOR_TEXT + "]  " + str(rows[i]) + "[/color]"
+		out += (Utils.CARD_CLOSE if i == rows.size() - 1 else "") + "\n"
 	return out + "\n"
 
 

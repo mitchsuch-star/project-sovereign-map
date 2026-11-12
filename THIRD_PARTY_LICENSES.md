@@ -80,6 +80,8 @@ The first-pass grab of six generic packs was pruned to a **thematic core + neutr
 | **Phosphor Icons** (Regular) | MIT | `assets/ui/icons/phosphor/` (51 SVG) | Neutral UI chrome — menus, carets, arrows, gear/search/info/warning, save/load, tabs | Retain `LICENSE`; no in-game credit |
 | **Game-icons.net** (curated) | CC-BY 3.0 | `assets/ui/icons/game-icons/` (24 SVG) + `_packs/game-icons-net.zip` (master pool) | Thematic core — units, combat actions, economy, diplomacy | **Visible credit required — see CC-BY** |
 
+| **The stat glyphs** (Session UI-2, November 11, 2026) | CC-BY 3.0 (Game-icons.net) | `assets/ui/icons/glyphs/` (36 SVG, extracted unmodified from `_packs/game-icons-net.zip`, the black fill turned white for `modulate`; each `.import` mipmapped so it renders at 16–28 px) | One glyph per category — gold, DP, authority, threat, foot / horse / guns, the six marshal skills, garrison, supply, stability … | **Visible credit required — see CC-BY.** Per-glyph source icon and author: `assets/ui/icons/glyphs/GLYPHS.txt` (Lorc, Delapouite, Skoll, Sbed, HeavenlyDog) |
+
 **Dropped in the curation pass (not shipped):** Lucide, Tabler, Iconoir, Feather (redundant
 generic line sets), Font Awesome Free (generic + attribution burden). Their zips were deleted.
 
@@ -188,6 +190,15 @@ Flourishes, laurel wreaths, corner filigree, fleurons, a wax-seal graphic; an an
 rose (1595), a Cassini cartouche (1744), an ornamental frame, antique parchment, and Kenney
 smoke/dust particle PNGs. All CC0 or public domain — no attribution required.
 
+**The French First Empire eagle** — `assets/ui/ornaments/eagle_empire.svg` (Session UI-2,
+November 11, 2026). Source: Wikimedia Commons, *File:Aigle Empire.svg* by Frédéric Michel
+(User:-Strogoff-), 2009, licence **{{PD-self}}** (released into the public domain by its author),
+a vectorisation of *File:Aigle Empire.png* — "Document datant de 1804", licence **{{PD-Art}}**.
+Both read through the Commons API (`LicenseShortName: Public domain`, `Copyrighted: False`,
+`AttributionRequired: false`) before shipping. Changes: the yellow detail set white (tinted gilt by
+`modulate`), the black silhouette kept at 55 % opacity as its engraving shadow, the Inkscape
+comment dropped. Used on the main menu, the campaign-end card.
+
 ---
 
 ## CC-BY — **visible attribution required if these ship**
@@ -198,6 +209,9 @@ icons/borders actually used in the shipped build.
 - **Game-icons.net** (thematic icons) — CC-BY 3.0. Per-icon authors differ.
   Required form: *"Game icons by Lorc, Delapouite & contributors (game-icons.net), CC BY 3.0"* —
   track which icons ship. https://game-icons.net
+  The stat glyphs that ship are listed one by one with their authors in
+  `assets/ui/icons/glyphs/GLYPHS.txt` (Session UI-2); the in-game line in Settings → CREDITS
+  ("Lorc, Delapouite & contributors") covers Skoll, Sbed and HeavenlyDog as contributors.
 - **RPG GUI Construction Kit** — CC-BY 3.0.
   Required form: *"RPG GUI by Matjaž Lamut (Lamoot), CC BY 3.0"*.
   https://opengameart.org/content/rpg-gui-construction-kit-v10

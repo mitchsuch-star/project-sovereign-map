@@ -265,6 +265,10 @@ func _init():
 	# against them (`Object.set` on a static the script lacks is a no-op).
 	var settings_class: Variant = UiSettings
 	settings_class.set("_persist", false)
+	# Session UI-2 (November 11, 2026): a still never catches a screen's
+	# fade — every frame is shot with Reduce motion on (an older checkout
+	# without the setting ignores the key).
+	UiSettings._cfg.set_value("display", "reduce_motion", true)
 	process_frame.connect(_tick)
 
 
@@ -415,8 +419,9 @@ func _prepare():
 			node_added.connect(_on_node_added_contrast)
 		elif not high_contrast and node_added.is_connected(_on_node_added_contrast):
 			node_added.disconnect(_on_node_added_contrast)
-	# UXR-D3: the HUD width the frame is shot at ("full" when unsaid).
-	var hud_width := str(shot.get("hud_width", _spec.get("hud_width", "full")))
+	# UXR-D3: the HUD width the frame is shot at (Session UI-2: "auto", the
+	# game's default, when unsaid — Full on 16:9, the safe zone on 32:9).
+	var hud_width := str(shot.get("hud_width", _spec.get("hud_width", "auto")))
 	UiSettings._cfg.set_value("display", "hud_width", hud_width)
 	_current["hud_width"] = hud_width
 	_phase = "instantiate"
@@ -1025,7 +1030,9 @@ func _collect_texts() -> Array:
 
 # Session UI (November 11, 2026): the war room's panel title (`HudTitle`) and
 # the primary button's caption step (`PrimaryCaptionButton`) are 14 px steps.
-const _CAPTION_VARIATIONS := ["Caption", "CaptionRich", "CaptionButton", "HudTitle", "PrimaryCaptionButton"]
+# Session UI-2: End Turn's own step (14 px) is a caption step too.
+const _CAPTION_VARIATIONS := ["Caption", "CaptionRich", "CaptionButton", "HudTitle", "PrimaryCaptionButton",
+	"EndTurnButton"]
 var _glyph_cache: Dictionary = {}
 
 
@@ -1077,6 +1084,10 @@ func _add_text_metrics(entry: Dictionary, n: Control, font: Font, font_size: int
 # `tools/uxr2b_contrast_report.py` reads the background off the frame.
 var _chip_re := RegEx.create_from_string("(?s)\\[bgcolor=([^\\]]+)\\](.*?)\\[/bgcolor\\]")
 var _span_re := RegEx.create_from_string("\\[color=([^\\]]+)\\]")
+# Session UI-2 (November 12, 2026): a chip or a badge is a one-cell table —
+# `[table=1,baseline][cell … bg=#…]…[/cell][/table]` — read, like the
+# [bgcolor] pill before it, as a pair against its own ground.
+var _cell_chip_re := RegEx.create_from_string("(?s)\\[table=1,baseline\\]\\[cell[^\\]]*?\\bbg=#?([0-9A-Fa-f]{6,8})[^\\]]*\\](.*?)\\[/cell\\]\\[/table\\]")
 
 
 func _modulate_chain(n: CanvasItem) -> Color:
@@ -1108,7 +1119,11 @@ func _add_text_colors(entry: Dictionary, n: Control) -> void:
 			var bg := Color.from_string(m.get_string(1), Color(0, 0, 0, 0))
 			for span in _span_re.search_all(m.get_string(2)):
 				chips.append([bg.to_html(true), (Color.from_string(span.get_string(1), Color.WHITE) * mod).to_html(true)])
-		var rest := _chip_re.sub(src, "", true)
+		for m in _cell_chip_re.search_all(src):
+			var cell_bg := Color.from_string("#" + m.get_string(1), Color(0, 0, 0, 0))
+			for span in _span_re.search_all(m.get_string(2)):
+				chips.append([cell_bg.to_html(true), (Color.from_string(span.get_string(1), Color.WHITE) * mod).to_html(true)])
+		var rest := _cell_chip_re.sub(_chip_re.sub(src, "", true), "", true)
 		for span in _span_re.search_all(rest):
 			colors.append((Color.from_string(span.get_string(1), Color.WHITE) * mod).to_html(true))
 	elif n is BaseButton:

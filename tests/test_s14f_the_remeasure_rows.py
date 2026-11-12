@@ -13691,7 +13691,8 @@ class TestS14EX85:
         src = (_RD10_SCRIPTS / "region_panel.gd").read_text(encoding="utf-8")
         assert 'str(data.get("camp_note", ""))' in src
         i = src.index('str(data.get("camp_note", ""))')
-        assert src.rindex('"Garrison: "', 0, i) > i - 700            # beside the garrison line
+        # Session UI-2: the garrison figure is led by its glyph (`Utils.bb_glyph("garrison", 16) + " Garrison: "`)
+        assert src.rindex('" Garrison: "', 0, i) > i - 700            # beside the garrison line
         assert "Utils.COLOR_WARNING" in src[i:i + 300]
 
 # ========== S14f part 2 - merged from test_s14f_p2_table.py ==========

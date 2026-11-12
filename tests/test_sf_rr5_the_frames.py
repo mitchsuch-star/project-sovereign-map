@@ -594,17 +594,22 @@ class TestSFRB10TheDioramaIsClean:
     """CLOSED by its reproduction: Pre-Deploy S12 part 2 (UXR3-F2, part 5d)
     cut a rear rank's pole at two ranks and moved Replay and Close 18 px
     clear of the corner filigree; the entry frames read clean at both
-    scales."""
+    scales. Session UI-2 (November 12, 2026): the four floral corners are
+    retired — the tray wears the one gilt window frame, whose cut corner
+    lies inside its band — so the rule holds on the driven frame by there
+    being no ornament to touch: Close and Replay stand apart, inside the
+    window (the source pin keeps Close 44 px short of the tray's edge)."""
 
     @pytest.mark.parametrize("shot", ["diorama_dadj", "diorama_aadj"])
     @pytest.mark.parametrize("scale", SCALES)
     def test_close_and_replay_clear_the_filigree(self, record, shot, scale):
         frame = _frame(record, shot, scale)
-        corners = [g["rect"] for g in frame.get("grips") or [] if g["kind"] == "ornament"]
-        assert len(corners) == 4
-        for label in ("Close", "Replay"):
-            b = _button(frame, label)
-            assert not any(_overlap(b["rect_raw"], c) for c in corners), (label, scale)
+        assert [g for g in frame.get("grips") or [] if g["kind"] == "ornament"] == []
+        vw, vh = frame["logical_viewport"]
+        close, replay = _button(frame, "Close"), _button(frame, "Replay")
+        assert not _overlap(close["rect_raw"], replay["rect_raw"]), scale
+        for b in (close, replay):
+            assert _inside(b["rect_raw"], [0.0, 0.0, vw, vh]), (b["text"], scale)
 
     def test_the_rear_standard_is_cut_below_the_forward_portrait(self):
         side = _func_body(_read(SCRIPTS / "battle_diorama.gd"), "_build_side")

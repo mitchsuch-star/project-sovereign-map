@@ -25,3 +25,7 @@ window/size/mode=2
 [gui]
 
 theme/custom="res://ui/main_theme.tres"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=2

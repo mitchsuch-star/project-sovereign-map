@@ -39,6 +39,9 @@ signal open_diplomacy_for(nation: String)
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
+	# Session UI-2: the morning's sections are cards (the marks are put in
+	# `_dress_sections`; `card_underlay.gd` paints them behind the words).
+	Utils.card_page(content_label)
 	close_button.pressed.connect(close_view)
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -86,8 +89,9 @@ const CORR_SEAL := "res://assets/ui/ornaments/wax_seal.png"
 const CORR_FELL_ITALIC := "res://assets/fonts/IMFeENit28P.ttf"
 const CORR_CINZEL := "res://assets/fonts/Cinzel[wght].ttf"
 const CORR_SHEET_FIELD := Rect2(72, 64, 496, 352)   # the sheet's un-torn inner field (640 × 480 art)
-const CORR_DEVICE_PX := 24.0
-const CORR_SEAL_PX := 18.0
+const CORR_DEVICE_PX := 30.0     # Session UI-2: the slip's device, larger (was 24)
+const CORR_SEAL_PX := 30.0       # Session UI-2: the wax seal, larger (was 18)
+const CORR_SCROLL_FLOOR := 160.0                     # the scene's authored scroll minimum (the page never fits smaller)
 const CORR_CHIP_BG := "1A1A2E"                       # the theme's navy plaque under a gold chip
 # the page's ceiling grows with the window as the letter's (`_raise_letter_ceiling`)
 const CORR_HEIGHT_FRACTION := 0.8
@@ -182,8 +186,9 @@ func _on_dispatch_received(response):
 	var turn_text = "Turn " + str(turn_num)
 	if calendar_label != "":
 		turn_text += " — " + calendar_label
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]  MORNING DISPATCH — " + turn_text + "[/color]\n"
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
+	# Session UI-2: the letter's dateline, centred in the title face.
+	bbcode += "[center]" + Utils.HEAD_OPEN + "MORNING DISPATCH — " + turn_text + Utils.HEAD_CLOSE + "[/center]\n"
+	bbcode += "[center][color=#" + Utils.COLOR_INFO + "]Chief of Staff Berthier reporting[/color][/center]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]What changed overnight, before you spend a single order. Esc closes it; Alt+R (or Alt+B) while you type reopens it.[/color]\n"
@@ -193,7 +198,8 @@ func _on_dispatch_received(response):
 	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══
 	var headline = data.get("headline", {})
 	if headline is Dictionary and headline.size() > 0:
-		bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(headline.get("text", "")) + "[/color]\n"
+		# Session UI-2: the top story is the page's headline, in the title face.
+		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_WARNING + "]" + str(headline.get("text", "")) + "[/color][/font]\n"
 		var sub_beats = headline.get("sub_beats", [])
 		if sub_beats is Array:
 			for beat in sub_beats:
@@ -208,6 +214,8 @@ func _on_dispatch_received(response):
 
 	# ═══ SITUATION ═══
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]\n"
+	# Session UI-2: the figures lead; the sentences below are their notes.
+	bbcode += _situation_figures(situation)
 	var player_regions = int(situation.get("player_regions", 0))
 	var treasury = int(situation.get("treasury", 0))
 	var treasury_delta = int(situation.get("treasury_delta", 0))
@@ -382,7 +390,32 @@ func _on_dispatch_received(response):
 			# font (EB Garamond) is proportional, so char-count padding rendered
 			# as ragged staircases — the same failure the marshal card's █░ bars
 			# hit — and an exactly-full field fused into the next with no gap.
-			var line = "  " + icon + " "
+			# Session UI-2: the row is led by its glyph by kind of status (the
+			# old one-character marks that mean something stay beside it).
+			var row_glyph := "command"
+			match m_status:
+				"drilling":
+					row_glyph = "tactical"
+				"fortified":
+					row_glyph = "defense"
+				"retreating", "en_route":
+					row_glyph = "march"
+				"broken":
+					row_glyph = "morale"
+				"artillery":
+					row_glyph = "guns"
+				"awaiting_decision":
+					row_glyph = "letter"
+				"counter_punch":
+					row_glyph = "shock"
+			var row_hex: String = Utils.COLOR_INFO
+			if m_status == "broken" or m_status == "retreating":
+				row_hex = Utils.COLOR_ERROR
+			elif m_status == "idle_restless":
+				row_hex = Utils.COLOR_BATTLE
+			var line = "  " + Utils.bb_glyph(row_glyph, 16, row_hex) + " "
+			if icon in ["!", "?", "»"]:
+				line += icon + " "
 			line += m_name + " — " + m_loc + " — " + _format_number(m_str)
 			if m_note != "":
 				line += " — " + m_note
@@ -726,7 +759,100 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 
-	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+	content_label.text = Utils.dress_heads(_dress_sections(Utils.humanize_nation_keys_in_text(bbcode)))
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Session UI-2 — the dressed page. The builder above keeps every word and every
+# line; these two helpers dress them: the figure line that leads SITUATION, and
+# the pass that makes each section a card led by its glyph, its item lines led
+# by the glyph of their kind.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# heading -> [glyph for the heading, glyph for its item lines ("" = none), card tone]
+const _SECTION_KINDS := {
+	"SITUATION": ["europe", "", ""],
+	"MARSHAL STATUS": ["command", "", ""],
+	"INTELLIGENCE": ["intel", "intel", ""],
+	"TURN EVENTS": ["drum", "drum", ""],
+	"LAPSED ENVOYS": ["envoy", "envoy", ""],
+	"ENVOYS AWAITING RESPONSE": ["envoy", "", ""],
+	"PEACE SETTLEMENTS": ["medal", "medal", ""],
+	"PRISONERS OF WAR": ["garrison", "garrison", "d06e6e"],
+	"DIPLOMATIC EVENTS": ["letter", "letter", ""],
+	"DIPLOMATIC STATUS": ["cabinet", "cabinet", ""],
+	"COALITION THREAT": ["threat", "threat", "d06e6e"],
+	"WAR PURPOSE": ["war", "war", ""],
+	"DEFEAT WARNING": ["threat", "", "d06e6e"],
+	"THE CONGRESS OF PARIS": ["europe", "", ""],
+	"THE EMPEROR'S DESIGNS": ["command", "", ""],
+	"TODAY": ["turn", "", ""],
+}
+
+
+func _situation_figures(situation: Dictionary) -> String:
+	"""The figure line that leads SITUATION: regions held, the treasury and its
+	turn, the authority, the enemy's estimated strength — each a glyph, a figure
+	in the title face and a caption. The same fields the sentences under it
+	read; nothing is derived."""
+	var gap := "  "
+	var out := ""
+	out += Utils.bb_glyph("europe", 18) + " " + Utils.HEAD_OPEN + str(int(situation.get("player_regions", 0))) + Utils.HEAD_CLOSE
+	out += " [color=#" + Utils.COLOR_INFO + "]regions[/color]" + gap
+	var delta := int(situation.get("treasury_delta", 0))
+	var delta_hex: String = Utils.COLOR_SUCCESS if delta >= 0 else Utils.COLOR_ERROR
+	out += Utils.bb_glyph("gold", 18) + " " + Utils.HEAD_OPEN + _format_number(int(situation.get("treasury", 0))) + "g" + Utils.HEAD_CLOSE
+	out += " [color=#" + delta_hex + "](" + ("+" if delta >= 0 else "") + _format_number(delta) + ")[/color]" + gap
+	out += Utils.bb_glyph("authority", 18) + " " + Utils.HEAD_OPEN + str(int(situation.get("authority", 100))) + Utils.HEAD_CLOSE
+	out += " [color=#" + Utils.COLOR_INFO + "]authority[/color]"
+	var no_army = situation.get("no_field_army", false)
+	var broke = situation.get("bankrupt", false)
+	if not (typeof(broke) == TYPE_BOOL and broke) and not (typeof(no_army) == TYPE_BOOL and no_army):
+		out += gap + Utils.bb_glyph("threat", 18) + " " + Utils.HEAD_OPEN + str(int(situation.get("strength_ratio_pct", 0))) + "%" + Utils.HEAD_CLOSE
+		out += " [color=#" + Utils.COLOR_INFO + "]enemy strength[/color]"
+	return out + "\n"
+
+
+func _dress_sections(bbcode: String) -> String:
+	"""Each section (a heading line and the lines under it, up to the blank
+	line) becomes a card: the heading led by its glyph, its two-space item lines
+	led by the glyph of their kind. Adds no newline, so a card stands on exactly
+	the paragraphs the builder wrote."""
+	var head_open := "[color=#" + Utils.COLOR_BERTHIER + "]"
+	var tail := "[/color]"
+	var out: Array = []
+	for block in bbcode.split("\n\n"):
+		var b: String = block
+		var nl := b.find("\n")
+		var first: String = b if nl < 0 else b.substr(0, nl)
+		if not (first.begins_with(head_open) and first.ends_with(tail)):
+			out.append(b)
+			continue
+		var head_name := first.substr(head_open.length(), first.length() - head_open.length() - tail.length())
+		if not _SECTION_KINDS.has(head_name):
+			out.append(b)
+			continue
+		var kinds: Array = _SECTION_KINDS[head_name]
+		var tone: String = str(kinds[2]) if str(kinds[2]) != "" else Utils.COLOR_GOLD
+		var item_glyph: String = str(kinds[1])
+		var dressed: Array = []
+		var lines := b.split("\n")
+		for i in range(lines.size()):
+			var ln: String = lines[i]
+			if i == 0:
+				ln = Utils.card_open(tone) + Utils.bb_glyph(str(kinds[0]), 18) + " " + ln
+			elif item_glyph != "" and _is_item_line(ln):
+				ln = ln.substr(0, 17) + Utils.bb_glyph(item_glyph, 16, ln.substr(8, 6)) + " " + ln.substr(17)
+			dressed.append(ln)
+		dressed[dressed.size() - 1] = str(dressed[dressed.size() - 1]) + Utils.CARD_CLOSE
+		out.append("\n".join(PackedStringArray(dressed)))
+	return "\n\n".join(PackedStringArray(out))
+
+
+func _is_item_line(ln: String) -> bool:
+	"""`[color=#rrggbb]  Text` — a two-space item line (a four-space detail line
+	under it is not one)."""
+	return ln.length() > 18 and ln.begins_with("[color=#") and ln.substr(14, 3) == "]  " and ln.substr(17, 1) != " "
+
 
 func _designs_block(data: Dictionary) -> String:
 	"""THE EMPEROR'S DESIGNS (VP-1) — the designs' clock, mirrored from
@@ -809,6 +935,8 @@ func refit() -> void:
 		_raise_page_ceiling()
 	if not $PanelContainer.has_meta("side_desk_docked"):
 		Utils.clamp_centered_panel($PanelContainer)
+	if _corr_open:
+		_fit_correspondence()
 
 
 func _take_correspondence(response) -> void:
@@ -850,6 +978,7 @@ func _show_correspondence_page() -> void:
 	_raise_page_ceiling()
 	if not $PanelContainer.has_meta("side_desk_docked"):
 		Utils.clamp_centered_panel($PanelContainer)
+	_fit_correspondence()
 
 
 func _show_dispatch_page() -> void:
@@ -857,6 +986,29 @@ func _show_dispatch_page() -> void:
 	_refresh_correspondence_button()
 	if visible and not $PanelContainer.has_meta("side_desk_docked"):
 		Utils.clamp_centered_panel($PanelContainer)
+
+
+func _fit_correspondence() -> void:
+	"""Session UI-2 (November 11, 2026): the page fits what it holds. The clamp
+	sets the whole raised ceiling, and a page of two slips stood over a big
+	empty lower half (the blind readers' "void"). Two frames after the clamp
+	(a wrapping label has no height before it has a width), the scroll asks for
+	its column's height - never more than the room the clamped box leaves it,
+	so a long page still scrolls - and the panel shrinks to its content (the
+	popups' helper). The scene's 160 stays the floor."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not _corr_open or not visible or not is_instance_valid(corr_scroll):
+		return
+	var panel := $PanelContainer as Control
+	if panel.has_meta("side_desk_docked"):
+		return
+	var have: float = panel.offset_bottom - panel.offset_top
+	corr_scroll.custom_minimum_size.y = CORR_SCROLL_FLOOR
+	var others: float = panel.get_combined_minimum_size().y - CORR_SCROLL_FLOOR
+	var column_h: float = corr_box.get_combined_minimum_size().y + 4.0
+	corr_scroll.custom_minimum_size.y = clampf(column_h, CORR_SCROLL_FLOOR, maxf(have - others, CORR_SCROLL_FLOOR))
+	Utils.shrink_centered_panel_to_content(panel)
 
 
 func _reset_correspondence_page() -> void:
@@ -1000,6 +1152,11 @@ func _add_slip(row: Dictionary, kind: String) -> void:
 	body.scroll_active = false
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.mouse_filter = Control.MOUSE_FILTER_PASS
+	# Session UI-2: the slip's body at the larger reading size (its chips grow
+	# with it), and its own colour the ink - the label's default is white,
+	# which drew any span without a colour tag at 1.65 : 1 on the paper.
+	body.theme_type_variation = &"BodyLargeRich"
+	body.add_theme_color_override("default_color", Color.html(Utils.INK_BODY))
 	body.text = _corr_body_bbcode(row, kind)
 	body.meta_clicked.connect(_on_corr_meta)
 	box.add_child(body)

@@ -61,6 +61,12 @@ LADDER = {
     "HudTitle": {"font_size": 14},
     "PrimaryButton": {"font_size": 16},
     "PrimaryCaptionButton": {"font_size": 14},
+    # Session UI-2 (November 12, 2026): End Turn's seal-rimmed face, the
+    # button on paper, the stat tile's figure and the lining-figure step.
+    "EndTurnButton": {"font_size": 14},
+    "ParchmentButton": {"font_size": 16},
+    "StatFigure": {"font_size": 24},
+    "Figure": {"font_size": 16},
     "DialogTitleLarge": {"font_size": 24},
     "DisplayTitle": {"font_size": 28},
     "DisplayTitleLarge": {"font_size": 30},
@@ -90,7 +96,11 @@ FIXED_STEPS = {"TitleScreen", "TitleScreenOverline", "TitleScreenLead", "TitleSc
 # stays size-only: the rule this set guards — no ad-hoc styling smuggled into
 # a size step — is unchanged, the named exceptions are five more.
 STYLED = {"HeadingLabel", "ScreenTitle", "DialogTitle", "DialogTitleLarge", "HudTitle",
-          "PrimaryButton", "PrimaryCaptionButton"}
+          "PrimaryButton", "PrimaryCaptionButton",
+          # Session UI-2: four more, each a face or a box that IS the step —
+          # End Turn's gilt rim, the parchment button's vellum and ink, the
+          # stat figure's title face, the figures' lnum + tnum features.
+          "EndTurnButton", "ParchmentButton", "StatFigure", "Figure"}
 # A variation's base type, and the node classes it may be set on.
 ACCEPTS = {
     "Label": {"Label"},

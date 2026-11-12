@@ -213,10 +213,13 @@ func _ready():
 	turn_label.text = "Turn 1"
 
 	# Initialize diplomatic fields (Session 8B)
-	dp_label.text = "DP: 0/3"
+	dp_label.text = "0/3"
 	# AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the Authority chip beside DP —
 	# code-built (the Pin chip's precedent, no .tscn edit).
 	_build_authority_chip()
+	# Session UI-2 (November 11, 2026): the resource groups, the court's
+	# chips and the date — glyph + figure, each figure opening its book.
+	_build_desk_groups()
 	threat_label.text = ""
 	threat_label.visible = false
 	_set_talleyrand_summary("Idle")
@@ -288,6 +291,8 @@ func set_api_client(client):
 func register_screen(screen_name: String, node: Node):
 	"""Register a screen node. Called during main.gd _ready() setup."""
 	screens[screen_name] = node
+	# Session UI-2: a screen fades in when it opens (Reduce motion: at once).
+	Utils.watch_motion(node)
 	# Listen for screen's own close signal (X button, overlay click)
 	if node.has_signal("closed"):
 		node.closed.connect(_on_screen_closed.bind(screen_name))
@@ -344,6 +349,8 @@ func open_diplomatic_ledger_review(review_target: String, route_id: String = "",
 		node.open_to_congress(api_client)
 	elif review_target == "ledger_talleyrand" and node.has_method("open_to_talleyrand"):
 		node.open_to_talleyrand(api_client)
+	elif review_target == "ledger_balance" and node.has_method("open_to_balance"):
+		node.open_to_balance(api_client)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:
@@ -530,10 +537,21 @@ func update_turn(turn_number: int, calendar_label: String = ""):
 	HC-0: an anchored campaign shows the dated turn beside the counter
 	("Turn 5 — Late November 1805"); worlds without an anchor pass ""
 	and keep the plain "Turn N" byte-identically."""
+	# Session UI-2: the date stands in the title face; the turn's number
+	# beside the hourglass (the tooltip names both). A world with no anchor
+	# keeps its plain "Turn N".
 	if calendar_label != "":
-		turn_label.text = "Turn " + str(int(turn_number)) + " — " + calendar_label
+		turn_label.text = calendar_label
 	else:
 		turn_label.text = "Turn " + str(int(turn_number))
+	if _turn_figure != null:
+		_turn_figure.text = str(int(turn_number)) if calendar_label != "" else ""
+		_turn_figure.get_parent().visible = calendar_label != ""
+	var turn_tip := "Turn " + str(int(turn_number)) + ((" — " + calendar_label) if calendar_label != "" else "")
+	turn_label.tooltip_text = turn_tip + "\nClick — the morning dispatch (press R, or Alt+R or Alt+B while you type)"
+	_queue_fit_right()
+	if _turn_figure != null:
+		_turn_figure.get_parent().tooltip_text = turn_label.tooltip_text
 
 
 func _open_screen(screen_name: String):
@@ -662,7 +680,9 @@ const THREAT_TOOLTIP := "Europe's alarm (the Threat) at France, out of 100 — a
 
 
 static func _threat_words(threat: int) -> String:
-	return "Threat %d / 100" % threat
+	# Session UI-2: the figure beside the eye glyph; "of 100" and the bands
+	# are the tooltip's (THREAT_TOOLTIP) and the gauge's.
+	return "%d" % threat
 
 
 func update_diplomatic_fields(data: Dictionary):
@@ -670,7 +690,8 @@ func update_diplomatic_fields(data: Dictionary):
 	# DP counter
 	var dp = int(data.get("diplomatic_points", 0))
 	var dp_max = int(data.get("max_diplomatic_points", 3))
-	dp_label.text = "DP: " + str(dp) + "/" + str(dp_max)
+	dp_label.text = str(dp) + "/" + str(dp_max)
+	dp_label.tooltip_text = DP_TOOLTIP % [dp, dp_max]
 
 	# AU-1: the Authority chip, from the one key every base response carries.
 	if data.has("authority"):
@@ -679,6 +700,7 @@ func update_diplomatic_fields(data: Dictionary):
 	# Threat indicator
 	var threat = int(data.get("threat_level", 0))
 	var brewing = data.get("coalition_brewing", false)
+	_set_threat_gauge(threat)
 	if threat < 30:
 		threat_label.visible = false
 		_stop_threat_pulse()
@@ -695,7 +717,7 @@ func update_diplomatic_fields(data: Dictionary):
 		threat_label.visible = true
 		threat_label.text = _threat_words(threat)
 		threat_label.tooltip_text = THREAT_TOOLTIP
-		threat_label.add_theme_color_override("font_color", Utils.UI_ALERT)
+		threat_label.add_theme_color_override("font_color", Utils.UI_ALERT_TEXT)
 		if brewing:
 			_start_threat_pulse()
 		else:
@@ -719,6 +741,262 @@ func update_diplomatic_fields(data: Dictionary):
 		_cabinet_locked_until = int(data.get("cabinet_locked_until", 0))
 
 	update_mailbox_count(int(data.get("pending_envoy_count", 0)))
+	_queue_fit_right()
+
+
+# ═══ Session UI-2 (November 11, 2026): the desk's groups ═══════════════════
+# The right side reads in three clusters split by gilt hairlines: the
+# RESOURCES (glyph + figure: the chest, DP, authority, the threat with its
+# gauge), the COURT (the Admiralty, the Cabinet, the Envoys — rimmed chips
+# with their glyphs) and the DATE (the title face; the turn beside its
+# hourglass). Every figure opens its book on a click (the research's "click a
+# figure → its ledger"). Node paths are kept: the glyphs and rules are code-built
+# siblings; the clusters are the existing nodes re-ordered in their row.
+const DP_TOOLTIP := "Diplomatic points: %d of %d — what an envoy, a treaty or a Congress spends; they refill each turn.\nClick — the Cabinet (Diplomacy · Talleyrand)"
+const TREASURY_TOOLTIP := "The treasury: %s gold, %s next turn by the accounts (income against upkeep and every charge).\nClick — the Economy book (Ledger)"
+const GLYPH_PX := 18
+var treasury_label: Label = null
+var _treasury_gold := 0
+var _treasury_net := 0
+var _has_treasury := false
+var _turn_figure: Label = null
+var _threat_gauge: Control = null
+var _threat_value := 0
+
+
+func _glyph(name: String, tint: Color = Utils.UI_GOLD) -> TextureRect:
+	var g := TextureRect.new()
+	g.name = "Glyph_" + name
+	g.texture = load(Utils.glyph(name))
+	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	g.custom_minimum_size = Vector2(GLYPH_PX, GLYPH_PX)
+	g.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	g.modulate = tint
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return g
+
+
+func _cluster_rule() -> Control:
+	"""A gilt hairline standing between two clusters."""
+	var r := ColorRect.new()
+	r.name = "ClusterRule"
+	r.color = Color(Utils.UI_GOLD, 0.35)
+	r.custom_minimum_size = Vector2(1, 20)
+	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+
+func _group(name: String, glyph_name: String, figure: Control, opens: Callable) -> HBoxContainer:
+	"""Glyph + figure as one hover target that opens its book."""
+	var box := HBoxContainer.new()
+	box.name = name
+	box.add_theme_constant_override("separation", 4)
+	box.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pointer_controls.append(box)   # the pointing hand once the bar is laid out
+	box.add_child(_glyph(glyph_name))
+	box.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			opens.call())
+	box.mouse_entered.connect(func(): box.modulate = Color(1.12, 1.08, 0.98))
+	box.mouse_exited.connect(func(): box.modulate = Color(1, 1, 1))
+	return box
+
+
+func _build_desk_groups() -> void:
+	var row := dp_label.get_parent() as HBoxContainer
+	if row == null or treasury_label != null:
+		return
+	row.add_theme_constant_override("separation", 8)
+	var open_economy := func(): open_ledger_to_tab(2)
+	var open_cabinet_book := func(): open_cabinet()
+	var open_forces := func(): open_ledger_to_tab(0)
+	var open_balance := func(): open_diplomatic_ledger_review("ledger_balance")
+	var open_dispatch := func(): _on_button_pressed("dispatch")
+	# the figures: the body face's lining figures (theme step `Figure`)
+	treasury_label = Label.new()
+	treasury_label.name = "TreasuryLabel"
+	treasury_label.theme_type_variation = &"Figure"
+	treasury_label.text = "—"
+	treasury_label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+	for fig in [dp_label, authority_chip, threat_label]:
+		if fig != null:
+			fig.theme_type_variation = &"Figure"
+	# RESOURCES: the chest, DP, authority, the threat
+	var g_gold := _group("TreasuryGroup", "gold", treasury_label, open_economy)
+	g_gold.add_child(treasury_label)
+	row.add_child(g_gold)
+	row.move_child(g_gold, dp_label.get_index())
+	var g_dp := _group("DPGroup", "dp", dp_label, open_cabinet_book)
+	row.add_child(g_dp)
+	row.move_child(g_dp, dp_label.get_index())
+	_wire_figure(dp_label, open_cabinet_book)
+	if authority_chip != null:
+		var g_auth := _group("AuthorityGroup", "authority", authority_chip, open_forces)
+		row.add_child(g_auth)
+		row.move_child(g_auth, authority_chip.get_index())
+		_wire_figure(authority_chip, open_forces)
+	var g_threat := _group("ThreatGroup", "threat", threat_label, open_balance)
+	row.add_child(g_threat)
+	row.move_child(g_threat, threat_label.get_index())
+	_wire_figure(threat_label, open_balance)
+	_threat_gauge = _make_threat_gauge()
+	row.add_child(_threat_gauge)
+	row.move_child(_threat_gauge, threat_label.get_index() + 1)
+	# the threat's glyph and gauge follow its visibility (shown from 30)
+	threat_label.visibility_changed.connect(func():
+		g_threat.visible = threat_label.visible
+		_threat_gauge.visible = threat_label.visible)
+	g_threat.visible = threat_label.visible
+	_threat_gauge.visible = threat_label.visible
+	# COURT: the Admiralty, the Cabinet, the Envoys — after a rule
+	var rule_a := _cluster_rule()
+	row.add_child(rule_a)
+	row.move_child(rule_a, _threat_gauge.get_index() + 1)
+	if admiralty_btn != null and talleyrand_label != null:
+		# the Admiralty leaves index 0, so the Cabinet's index drops by one
+		row.move_child(admiralty_btn, talleyrand_label.get_index() - 1)
+	if talleyrand_label != null:
+		Utils.apply_button_icon(talleyrand_label, Utils.glyph("cabinet"))
+	Utils.apply_button_icon(mailbox_btn, Utils.glyph("envoy"))
+	# DATE: a rule, the hourglass and the turn, the date in the title face
+	var rule_b := _cluster_rule()
+	row.add_child(rule_b)
+	row.move_child(rule_b, turn_label.get_index())
+	var g_turn := _group("TurnGroup", "turn", null, open_dispatch)
+	_turn_figure = Label.new()
+	_turn_figure.name = "TurnFigure"
+	_turn_figure.theme_type_variation = &"Figure"
+	_turn_figure.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
+	g_turn.add_child(_turn_figure)
+	row.add_child(g_turn)
+	row.move_child(g_turn, turn_label.get_index())
+	turn_label.theme_type_variation = &"HudTitle"
+	turn_label.remove_theme_color_override("font_color")
+	_wire_figure(turn_label, open_dispatch)
+	_refresh_treasury_text()
+	_arm_pointers.call_deferred()
+
+
+var _pointer_controls: Array = []
+
+
+func _arm_pointers() -> void:
+	"""Session UI-2: the figure groups take the pointing hand only once the
+	bar has laid out. A cursor shape written during `_ready` makes the engine
+	re-pick the control under the mouse while every child still stands at
+	(0, 0): the gear (the row's last child) took a stale hover, then its
+	tooltip, and that open tooltip ate the first Esc (DDB-54's driven pin)."""
+	await get_tree().process_frame
+	for c in _pointer_controls:
+		if is_instance_valid(c):
+			(c as Control).mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_pointer_controls.clear()
+
+
+func _wire_figure(figure: Control, opens: Callable) -> void:
+	figure.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pointer_controls.append(figure)   # the pointing hand once the bar is laid out
+	figure.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			opens.call())
+
+
+func update_treasury(gold: int, net: int, has_net: bool = true) -> void:
+	"""The chest's figure (main.gd::_update_gold_display — the status row's
+	own numbers): the gold, and the turn's net beside it when it is known."""
+	_treasury_gold = int(gold)
+	_treasury_net = int(net)
+	_has_treasury = bool(has_net)
+	_refresh_treasury_text()
+	_queue_fit_right()
+
+
+func _refresh_treasury_text() -> void:
+	if treasury_label == null:
+		return
+	var gold_words := Utils.format_number(_treasury_gold)
+	if not _has_treasury:
+		treasury_label.text = gold_words
+		treasury_label.tooltip_text = TREASURY_TOOLTIP % [gold_words, "nothing yet"]
+		return
+	var sign := "+" if _treasury_net >= 0 else "\u2212"
+	var net_words := sign + Utils.format_number(absi(_treasury_net))
+	treasury_label.text = gold_words if _fit_step >= 2 else gold_words + "  " + net_words
+	treasury_label.tooltip_text = TREASURY_TOOLTIP % [gold_words, net_words]
+	treasury_label.get_parent().tooltip_text = treasury_label.tooltip_text
+
+
+# The fit ladder: the right side sheds detail, one step at a time, until the
+# bar fits its band — the gauge, the chest's net, the Cabinet chip (its full
+# line is on the Ledger), the Admiralty's words, the Envoys' word, the title
+# face and the turn's hourglass. Each step returns when the bar widens. The
+# nav's words / glyphs (`_compact`) are decided first, by COMPACT_BELOW_PX.
+var _fit_step := 0
+var _fit_queued := false
+const _FIT_STEPS := 6
+
+
+func _queue_fit_right() -> void:
+	if _fit_queued:
+		return
+	_fit_queued = true
+	call_deferred("_fit_right_cluster")
+
+
+func _fit_right_cluster() -> void:
+	_fit_queued = false
+	var layout := get_node_or_null("BarContainer/BarBG/BarLayout") as Control
+	if layout == null or treasury_label == null:
+		return
+	var view_w := get_viewport().get_visible_rect().size.x
+	for step in range(0, _FIT_STEPS + 1):
+		_apply_fit_step(step)
+		if layout.get_combined_minimum_size().x + 16.0 <= view_w:
+			return
+
+
+func _apply_fit_step(step: int) -> void:
+	_fit_step = step
+	if _threat_gauge != null:
+		_threat_gauge.visible = threat_label.visible and step < 1
+	_refresh_treasury_text()
+	if talleyrand_label:
+		talleyrand_label.visible = not _compact and step < 3
+	_refresh_admiralty_text()
+	mailbox_btn.custom_minimum_size.x = 0.0 if step >= 5 else 110.0
+	update_mailbox_count(_current_envoy_count)
+	if _turn_figure != null:
+		_turn_figure.get_parent().visible = step < 6 and _turn_figure.text != ""
+	turn_label.theme_type_variation = &"Caption" if step >= 6 else &"HudTitle"
+
+
+func _make_threat_gauge() -> Control:
+	"""A slim 0–100 gauge under the threat's figure: the coalition's brew (60)
+	and its forming (80) marked."""
+	var gauge := Control.new()
+	gauge.name = "ThreatGauge"
+	gauge.custom_minimum_size = Vector2(38, 6)
+	gauge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gauge.draw.connect(func():
+		var w := gauge.size.x
+		var h := gauge.size.y
+		gauge.draw_rect(Rect2(0, 0, w, h), Color(0, 0, 0, 0.45))
+		var fill := clampf(float(_threat_value) / 100.0, 0.0, 1.0)
+		var tone: Color = Utils.UI_ALERT if _threat_value >= 60 else Utils.UI_WARNING
+		gauge.draw_rect(Rect2(0, 0, w * fill, h), tone)
+		for mark in [0.6, 0.8]:
+			gauge.draw_rect(Rect2(w * mark, -1, 1, h + 2), Color(Utils.UI_GOLD, 0.8))
+		gauge.draw_rect(Rect2(0, 0, w, h), Color(Utils.UI_GOLD, 0.45), false, 1.0))
+	return gauge
+
+
+func _set_threat_gauge(threat: int) -> void:
+	_threat_value = int(threat)
+	if _threat_gauge != null:
+		_threat_gauge.queue_redraw()
 
 
 # ═══ AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the Authority chip ═══
@@ -742,7 +1020,7 @@ func _build_authority_chip() -> void:
 	chip.theme_type_variation = &"Caption"
 	# a Label ignores the mouse by default — no tooltip without this
 	chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	chip.text = "Authority —"
+	chip.text = "—"
 	chip.tooltip_text = AUTHORITY_LINES_TOOLTIP
 	chip.add_theme_color_override("font_color", Utils.UI_GOLD)
 	var row := dp_label.get_parent()
@@ -762,7 +1040,7 @@ func update_authority_chip(payload) -> void:
 	var value := int(payload.get("value", 100))
 	var colour: Color = Utils.UI_GOLD_BRIGHT
 	if value < 50:
-		colour = Utils.UI_ALERT
+		colour = Utils.UI_ALERT_TEXT
 	elif value < 71:
 		colour = Utils.UI_WARNING
 	elif value < 85:
@@ -800,11 +1078,12 @@ func _authority_tooltip(payload: Dictionary) -> String:
 func _refresh_authority_text() -> void:
 	if authority_chip == null:
 		return
+	# Session UI-2: the figure beside the crown glyph, on both bars.
 	if _authority_payload.is_empty():
-		authority_chip.text = "Auth —" if _compact else "Authority —"
+		authority_chip.text = "—"
 		return
 	var value := int(_authority_payload.get("value", 0))
-	authority_chip.text = ("Auth %d" if _compact else "Authority %d") % value
+	authority_chip.text = "%d" % value
 
 
 var _current_envoy_count: int = 0
@@ -886,7 +1165,7 @@ func update_mailbox_count(envoy_count: int):
 	"""Refresh the envoys button copy and styling."""
 	_current_envoy_count = envoy_count
 	if envoy_count > 0:
-		mailbox_btn.text = "Envoys (" + str(envoy_count) + ")"
+		mailbox_btn.text = str(envoy_count) if _fit_step >= 5 else "Envoys (" + str(envoy_count) + ")"
 		mailbox_btn.tooltip_text = Utils.plural(envoy_count, "pending envoy") + (" awaits" if envoy_count == 1 else " await") + " your reply."
 		# S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the badge says
 		# the lock too - which court's letter shuts the Cabinet, in the one
@@ -899,7 +1178,7 @@ func update_mailbox_count(envoy_count: int):
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
 		mailbox_btn.add_theme_color_override("font_color", Utils.UI_WARNING)
 	else:
-		mailbox_btn.text = "Envoys"
+		mailbox_btn.text = "" if _fit_step >= 5 else "Envoys"
 		mailbox_btn.tooltip_text = "No pending envoys."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
@@ -972,6 +1251,7 @@ func update_admiralty(summary: Dictionary):
 		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
 		admiralty_btn.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
 	_refresh_admiralty_text()
+	_queue_fit_right()
 
 
 func _blockade_style(hover := false) -> StyleBoxFlat:
@@ -988,7 +1268,7 @@ func _refresh_admiralty_text():
 	var blockaded := str(_admiralty_summary.get("blockaded_by", "")) != ""
 	var window := int(_admiralty_summary.get("window_turns", 0)) > 0
 	var text := "\u2693 " + str(ships)
-	if not _compact:
+	if not (_compact or _fit_step >= 4):
 		text += " sail"
 		if blockaded:
 			text += " \u00b7 BLOCKADED"
@@ -1105,6 +1385,8 @@ func _fit_bar():
 		talleyrand_label.visible = not compact
 	_refresh_admiralty_text()
 	_refresh_authority_text()
+	_refresh_treasury_text()
+	_queue_fit_right()
 
 
 var _fit_applied := false

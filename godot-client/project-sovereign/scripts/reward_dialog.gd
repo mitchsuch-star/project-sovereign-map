@@ -45,6 +45,8 @@ func show_reward(card: Dictionary):
 	# own handle rather than calling claim_cue.
 	var m_name = str(card.get("name", "?"))
 	title_label.text = "REWARD MARSHAL " + m_name.to_upper()
+	# Session UI-2: the medal over the header (the Emperor's honours).
+	_arms_row([{"glyph": "medal"}])
 
 	for child in options_container.get_children():
 		child.queue_free()
@@ -87,6 +89,7 @@ func show_reward(card: Dictionary):
 			premium_note = str(int(round(float(pc - pf) / float(pf) * 100.0))) + "% above its face"
 	bbcode += "A [b]RENTE[/b] is treasury gold — instant, precise, and safe from any enemy, but it costs the crown " + premium_note + " each turn, never grows, and buys no title.[/color]"
 	info_label.text = bbcode
+	_set_strip(expectation, estate_income, pension, shortfall)
 
 	var option_count = 0
 
@@ -183,6 +186,54 @@ func show_reward(card: Dictionary):
 	# viewport, so a fixed authored rect can push the action row off-screen.
 	# Runs AFTER show() so layout has settled.
 	Utils.clamp_centered_panel($PanelContainer)
+	call_deferred("_fit_info")
+
+
+func _set_strip(expectation: int, estate_income: int, pension: int, shortfall: int) -> void:
+	"""Session UI-2 (figures before prose): his expectation, what his estates
+	pay, the rente and the shortfall stand as a figure strip above the
+	explainer — the prose below stays exactly as it was."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var strip: Control = vb.get_node_or_null("FigureStrip") as Control
+	if strip == null:
+		strip = preload("res://scripts/stat_strip.gd").new()
+		strip.name = "FigureStrip"
+		vb.add_child(strip)
+		vb.move_child(strip, info_label.get_index())
+	var tiles: Array = [
+		{"glyph": "gold", "figure": str(expectation) + "g", "caption": "Expects", "tip": "Gold per turn he expects"},
+		{"glyph": "build", "figure": str(estate_income) + "g", "caption": "In estates", "tip": "Gold per turn his estates pay"},
+	]
+	if pension > 0:
+		tiles.append({"glyph": "income", "figure": str(pension) + "g", "caption": "Rente", "tip": "Gold per turn of rente"})
+	var gap_tone: Color = Utils.UI_ALERT_TEXT if shortfall > 0 else Utils.UI_SCORE_POSITIVE   # a figure: the alert red
+	tiles.append({"glyph": "stability", "figure": str(shortfall) + "g", "caption": "Shortfall",
+		"tone": gap_tone, "tip": "Gold per turn short of his expectation"})
+	strip.call("set_tiles", tiles)
+	# the figures are the prose's own; the compact view keeps the room
+	if Utils.compact_view():
+		strip.visible = false
+
+
+func _fit_info() -> void:
+	"""Session UI-2: the explainer sizes to its own text (bounded) and the card
+	shrinks to what it holds — after the layout has given it its width."""
+	await get_tree().process_frame
+	if not visible:
+		return
+	if Utils.compact_view():
+		# the compact view: the clamp alone, as before (it relaxes the
+		# explainer to the room; every choice and Not now stay in view)
+		Utils.clamp_centered_panel($PanelContainer)
+		return
+	info_label.custom_minimum_size.y = clampf(info_label.get_content_height() + 12.0, 100.0, 260.0)
+	Utils.clamp_centered_panel($PanelContainer)
+	Utils.shrink_centered_panel_to_content($PanelContainer)
+
+
+func refit() -> void:
+	"""UXR-2's live-refit hook (`Utils.refit_surface`): the fit, as on open."""
+	call_deferred("_fit_info")
 
 
 func _add_option(label_text: String, command: String, font_color: Color):
@@ -208,3 +259,51 @@ func _on_cancel():
 	_own_cue = null
 	hide()
 	cancelled.emit()
+
+
+func _arms_row(parts: Array) -> void:
+	"""Session UI-2: the arms the voice speaks under (a court's flag, an
+	office's glyph, the Empire's eagle) in one centred row above the title;
+	an empty list hides the row. Built once, refilled on every show."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var row: HBoxContainer = vb.get_node_or_null("ArmsRow") as HBoxContainer
+	if row == null:
+		row = HBoxContainer.new()
+		row.name = "ArmsRow"
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(row)
+		vb.move_child(row, 0)
+	for c in row.get_children():
+		row.remove_child(c)
+		c.queue_free()
+	for part in parts:
+		var tex_path: String = ""
+		var tint: Color = Color.WHITE
+		var h: float = 26.0
+		if part.has("flag"):
+			tex_path = Utils.nation_flag_path(str(part["flag"]))
+		elif part.has("glyph"):
+			tex_path = Utils.glyph(str(part["glyph"]))
+			tint = Utils.UI_GOLD
+		elif part.has("eagle"):
+			tex_path = Utils.EAGLE
+			tint = Color(Utils.UI_GOLD, 0.92)
+			h = 44.0
+		if tex_path == "" or not ResourceLoader.exists(tex_path):
+			continue
+		var tex: Texture2D = load(tex_path)
+		if tex == null or tex.get_height() <= 0:
+			continue
+		var art := TextureRect.new()
+		art.texture = tex
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.custom_minimum_size = Vector2(h * float(tex.get_width()) / float(tex.get_height()), h)
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		art.modulate = tint
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(art)
+	# the compact view (Interface Scale 2.0) keeps its room for the answers
+	row.visible = row.get_child_count() > 0 and not Utils.compact_view()

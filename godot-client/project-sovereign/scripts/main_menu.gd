@@ -112,6 +112,9 @@ func _ready() -> void:
 	_apply_boot_scale()
 
 	_load_fonts()
+	# Session UI-2: a shade under the title and the column, so the menu reads
+	# over the painting (the readers: faint buttons over the canvas).
+	_build_column_shade()
 	_build_title_block()
 	_build_menu_column()
 	_build_footer()
@@ -234,6 +237,32 @@ func _load_fonts() -> void:
 
 # ── the title block ─────────────────────────────────────────────────────────
 
+func _build_column_shade() -> void:
+	"""Session UI-2: a dark wash from the left edge to the middle of the screen,
+	under the title and the campaign column, over the painting."""
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+	grad.colors = PackedColorArray([Color(0.02, 0.03, 0.06, 0.9), Color(0.02, 0.03, 0.06, 0.62),
+		Color(0.02, 0.03, 0.06, 0.0)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill_from = Vector2(0, 0)
+	tex.fill_to = Vector2(1, 0)
+	tex.width = 256
+	tex.height = 4
+	var shade := TextureRect.new()
+	shade.name = "ColumnShade"
+	shade.texture = tex
+	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.stretch_mode = TextureRect.STRETCH_SCALE
+	shade.anchor_left = 0.0
+	shade.anchor_right = 0.56
+	shade.anchor_top = 0.0
+	shade.anchor_bottom = 1.0
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(shade)
+
+
 func _build_title_block() -> void:
 	var block := VBoxContainer.new()
 	block.name = "TitleBlock"
@@ -248,6 +277,18 @@ func _build_title_block() -> void:
 	block.add_theme_constant_override("separation", 6)
 	block.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(block)
+
+	# Session UI-2: the Empire's eagle over the title (PD — THIRD_PARTY_LICENSES).
+	var eagle := TextureRect.new()
+	eagle.name = "Eagle"
+	eagle.texture = load(Utils.EAGLE)
+	eagle.custom_minimum_size = Vector2(72, 78)
+	eagle.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	eagle.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	eagle.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	eagle.modulate = Color(0.92, 0.83, 0.6, 0.95)
+	eagle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	block.add_child(eagle)
 
 	var over := Label.new()
 	over.name = "OverTitle"
@@ -408,7 +449,8 @@ func _add_menu_button(id: String, text: String, cb: Callable, prominent: bool) -
 func _make_button(text: String, prominent: bool) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(400, 56 if prominent else 50)
+	# Session UI-2: 520 wide — the second School of War row was cut at 400.
+	b.custom_minimum_size = Vector2(520, 56 if prominent else 50)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_override("font", _font_button)
 	b.theme_type_variation = &"TitleScreenButtonProminent" if prominent else &"TitleScreenButton"
@@ -418,7 +460,7 @@ func _make_button(text: String, prominent: bool) -> Button:
 	b.add_theme_color_override("font_disabled_color", Utils.UI_DISABLED_TEXT)
 
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.03, 0.045, 0.085, 0.62)
+	normal.bg_color = Color(0.03, 0.045, 0.085, 0.78)
 	normal.border_color = Color(0.85, 0.75, 0.55, 0.5 if prominent else 0.32)
 	normal.set_border_width_all(1)
 	if prominent:
@@ -433,7 +475,7 @@ func _make_button(text: String, prominent: bool) -> Button:
 	var pressed: StyleBoxFlat = hover.duplicate()
 	pressed.bg_color = Color(0.14, 0.13, 0.10, 0.9)
 	var disabled: StyleBoxFlat = normal.duplicate()
-	disabled.bg_color = Color(0.03, 0.04, 0.06, 0.4)
+	disabled.bg_color = Color(0.03, 0.04, 0.06, 0.62)
 	disabled.border_color = Utils.UI_FAINT_BORDER
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
@@ -498,13 +540,9 @@ func _build_settings_view() -> void:
 	_settings_view.visible = false
 	_settings_view.set_anchors_preset(Control.PRESET_CENTER)
 	_settings_view.custom_minimum_size = Vector2(520, 0)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.055, 0.07, 0.115, 0.97)
-	style.border_color = Utils.UI_GOLD
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(24)
-	_settings_view.add_theme_stylebox_override("panel", style)
+	# Session UI-2: the Settings page wears the one window frame.
+	_settings_view.add_theme_stylebox_override("panel",
+		Utils.gilt_frame(Color(0.055, 0.07, 0.115, 0.97), Utils.UI_GOLD, Utils.FRAME_WINDOW, 24.0))
 	add_child(_settings_view)
 
 	var vbox := VBoxContainer.new()
@@ -755,9 +793,10 @@ func _apply_backend_state() -> void:
 		# FA-29: the instruction depends on WHICH build is running. In a
 		# source checkout it is the backend command; in the zip a tester
 		# unpacks there is no Python, no venv and no `backend/` at all.
-		_status_label.text = ("The war office does not answer — "
+		# Session UI-2: an amber notice with its mark, not a raw red line.
+		_status_label.text = "\u26A0 " + ("The war office does not answer — "
 			+ Utils.launch_hint())
-		_status_label.add_theme_color_override("font_color", Color(0.85, 0.55, 0.45, 0.95))
+		_status_label.add_theme_color_override("font_color", Color(0.93, 0.74, 0.42, 0.95))
 	var has_saves := _saves.size() > 0
 	for id in _buttons:
 		var b: Button = _buttons[id]

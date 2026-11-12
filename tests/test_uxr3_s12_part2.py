@@ -193,13 +193,18 @@ class TestTheTableausButtonsClearItsFiligree:
     """UXR3-F2's third clause: Close sat on the bottom-right corner ornament."""
 
     def test_close_ends_left_of_the_corner_ornament(self):
+        """Session UI-2 (November 12, 2026): the four floral corners are
+        retired — the tray wears the one gilt window frame, whose cut corner
+        and stud lie inside its own band. Close still ends 44 px short of
+        the tray's edge: clear of the old ornament's 38-px reach, and so of
+        the frame's corner."""
         src = _src("scripts/battle_diorama.gd")
         tray_w = float(_const(src, "TRAY_W"))
         m = re.search(r"_btn_close\.position = Vector2\(TRAY_W - ([0-9.]+), ", src)
         close_left = tray_w - float(m.group(1))
         close_w = float(re.search(r"_btn_close\.custom_minimum_size = Vector2\(([0-9.]+),", src).group(1))
-        fil = _func(src, "_build_filigree")
-        assert "TRAY_W - 38.0" in fil and 'fil.add_to_group("corner_ornaments")' in fil
+        assert "func _build_filigree" not in src and "corner_ornaments" not in src
+        assert "Utils.gilt_frame(WOOD_BG, Utils.UI_GOLD, Utils.FRAME_WINDOW" in src
         assert close_left + close_w <= tray_w - 38.0, (close_left, close_w)
 
 
@@ -315,14 +320,16 @@ def _sovereign(w):
 
 class TestTheBoardsLeadWithTheirSubject:
     def test_the_region_panel_leads_with_its_actions(self):
-        """UXR3-76: ACTIONS spliced in under the title line; the name at Lead."""
+        """UXR3-76: ACTIONS spliced in under the title line; the name at Lead —
+        Session UI-2: at ScreenTitle, the title face (the name is the panel's
+        heading)."""
         body = _func(_src("scripts/region_panel.gd"), "_render")
         assert "var actions_at := bbcode.length()" in body
         assert "bbcode = bbcode.substr(0, actions_at) + actions" in body
         assert _order(body, "var actions_at := bbcode.length()", "FORCES PRESENT", "THE SEA")
         scene = (SCENES / "region_panel.tscn").read_text(encoding="utf-8")
         title = scene[scene.index('[node name="TitleLabel"'):].split("[node", 2)[1]
-        assert 'theme_type_variation = &"Lead"' in title
+        assert 'theme_type_variation = &"ScreenTitle"' in title
 
     def test_the_strategic_ledger_leads_with_the_cabinet_and_the_ceiling(self):
         """UXR3-41: a running mission's Cabinet leads Forces (an idle one says
@@ -413,7 +420,8 @@ class TestTheBoardsLeadWithTheirSubject:
         in the header of every book."""
         src = _src("scripts/diplomatic_ledger.gd")
         nations = _func(src, "_render_nations")
-        assert _order(nations, "Vassalizable", '"  Laws: [color=#"', '"  Doctrine: [color=#"', '"  Diplomat: "')
+        # Session UI-2: the court's lines are rows of its facts table (the labels, in the same order)
+        assert _order(nations, "Vassalizable", '"Laws: "', '"Doctrine: "', '"Diplomat: "')
         tal = _func(src, "_render_talleyrand")
         assert _order(tal, '"COOLDOWN"', "THE LEAGUE IS SPENT", "_cooldown_counsel(boe_t)", "TALLEYRAND[/color] — ")
         assert "_set_cabinet_line(talleyrand_data)" in _func(src, "_on_ledger_received")
@@ -556,7 +564,9 @@ class TestTheFoundRows:
         fields = _func(tb, "update_diplomatic_fields")
         assert fields.count("threat_label.text = _threat_words(threat)") == 2
         assert fields.count("threat_label.tooltip_text = THREAT_TOOLTIP") == 2
-        assert 'return "Threat %d / 100" % threat' in _func(tb, "_threat_words")
+        # Session UI-2: the figure stands beside its glyph and its gauge; the
+        # words ("Threat", "/ 100") are the tooltip's (THREAT_TOOLTIP).
+        assert 'return "%d" % threat' in _func(tb, "_threat_words")
 
     def test_f7_the_family_chrome_and_a_gear_that_reads(self):
         gear = (PROJECT / "assets" / "ui" / "icons" / "phosphor" / "gear.svg").read_text(encoding="utf-8")
@@ -602,7 +612,8 @@ class TestTheFoundRows:
         assert 'res["ai_action"] = {"marshal": "Moore", "action": "attack", "target": "Ney"}' in cap
         assert 'record("mailbox_boot", box,' in cap and '"mailbox_boot", get(c, "/mailbox")' not in cap
         region = _func(_src("scripts/region_panel.gd"), "_render")
-        assert _order(region, "No intelligence", '"Income: [color=#"', "Supply: [color=#")
+        # Session UI-2: each figure is led by its glyph (`Utils.bb_glyph("income", 16)`).
+        assert _order(region, "No intelligence", '" Income: [color=#"', "Supply: [color=#")
         tb = _src("scripts/top_bar.gd")
         assert '_blockade_style()' in _func(tb, "update_admiralty")
         assert "sb.border_color = Utils.UI_ALERT" in _func(tb, "_blockade_style")

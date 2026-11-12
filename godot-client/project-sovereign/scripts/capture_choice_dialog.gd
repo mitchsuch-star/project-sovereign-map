@@ -67,6 +67,7 @@ func show_capture_choice(data: Dictionary):
 				str(data.get("estate_holder_nation", "their nation")))
 		var windfall = int(data.get("windfall", 0))
 		title_label.text = "AN ESTATE IN YOUR HANDS"
+		_arms_row([{"glyph": "gold"}])
 		region_label.text = "%s sustains Marshal %s's household" % [current_region, holder]
 		description_label.text = "How shall the conqueror treat his title?"
 		plunder_button.text = "CONFISCATE (+%s gold, %s will not forgive it)" % [Utils.format_number(windfall), holder_nation]
@@ -74,6 +75,7 @@ func show_capture_choice(data: Dictionary):
 	else:
 		# Set title
 		title_label.text = "REGION CAPTURED!"
+		_arms_row([{"glyph": "march"}])
 
 		# Set region info
 		region_label.text = "%s has taken %s" % [current_capturer, current_region]
@@ -138,3 +140,51 @@ func _on_secure_pressed():
 	"""Player chooses the second option (secure / respect)."""
 	hide()
 	choice_made.emit("respect" if current_stage == "estate" else "secure")
+
+
+func _arms_row(parts: Array) -> void:
+	"""Session UI-2: the arms the voice speaks under (a court's flag, an
+	office's glyph, the Empire's eagle) in one centred row above the title;
+	an empty list hides the row. Built once, refilled on every show."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var row: HBoxContainer = vb.get_node_or_null("ArmsRow") as HBoxContainer
+	if row == null:
+		row = HBoxContainer.new()
+		row.name = "ArmsRow"
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(row)
+		vb.move_child(row, 0)
+	for c in row.get_children():
+		row.remove_child(c)
+		c.queue_free()
+	for part in parts:
+		var tex_path: String = ""
+		var tint: Color = Color.WHITE
+		var h: float = 26.0
+		if part.has("flag"):
+			tex_path = Utils.nation_flag_path(str(part["flag"]))
+		elif part.has("glyph"):
+			tex_path = Utils.glyph(str(part["glyph"]))
+			tint = Utils.UI_GOLD
+		elif part.has("eagle"):
+			tex_path = Utils.EAGLE
+			tint = Color(Utils.UI_GOLD, 0.92)
+			h = 44.0
+		if tex_path == "" or not ResourceLoader.exists(tex_path):
+			continue
+		var tex: Texture2D = load(tex_path)
+		if tex == null or tex.get_height() <= 0:
+			continue
+		var art := TextureRect.new()
+		art.texture = tex
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.custom_minimum_size = Vector2(h * float(tex.get_width()) / float(tex.get_height()), h)
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		art.modulate = tint
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(art)
+	# the compact view (Interface Scale 2.0) keeps its room for the answers
+	row.visible = row.get_child_count() > 0 and not Utils.compact_view()

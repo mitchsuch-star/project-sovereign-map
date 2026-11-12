@@ -220,6 +220,11 @@ func open_to_talleyrand(api_client):
 	_open_with_tab(api_client, 3, "")
 
 
+func open_to_balance(api_client):
+	"""Session UI-2: the top bar's threat figure — the BALANCE OF EUROPE book."""
+	_open_with_tab(api_client, 2, "")
+
+
 func open_to_congress(api_client):
 	"""Fetch diplomatic ledger and open the CONGRESS tab (GE-3 deep link —
 	the wizard's 'View the table' and a `ledger_congress` review target)."""
@@ -385,6 +390,47 @@ func _format_bloc_stamp(stamp) -> String:
 			stamp_color = Utils.COLOR_INFO
 	return " [color=#" + stamp_color + "][" + label + "][/color]"
 
+# Session UI-2 (November 11, 2026): the ledger's two small kit helpers — a
+# facts table (label / value, striped, the label a glyph and its words) and the
+# wide threat gauge. A cell never holds a newline; the label ends in a space so
+# `get_parsed_text()` reads "Diplomat: Talleyrand" across the two cells.
+func _fact_label(glyph_name: String, words: String) -> String:
+	return Utils.bb_glyph(glyph_name, 16, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_INFO + "]" + words + "[/color]"
+
+
+func _facts_table(rows: Array) -> String:
+	if rows.is_empty():
+		return ""
+	var out := "[table=2]"
+	for r in rows:
+		out += "[cell bg=#%s,#%s padding=6,2,10,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(r[0])]
+		out += "[cell expand=1 bg=#%s,#%s padding=6,2,6,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(r[1])]
+	return out + "[/table]\n"
+
+
+func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks: Array) -> String:
+	"""The wide threat gauge: 0-100 across `width` px, filled to `level` in
+	`fill_hex`, a 2-px gilt tick at each of `marks` (60 'brews', 80 'forms')."""
+	var out := ""
+	var lvl: int = clampi(level, 0, 100)
+	var edges: Array = [0]
+	for m in marks:
+		edges.append(int(m))
+	edges.append(100)
+	for i in range(edges.size() - 1):
+		var a: int = edges[i]
+		var b: int = edges[i + 1]
+		var span_w: int = int(round(float(width) * float(b - a) / 100.0))
+		var fill_w: int = int(round(float(span_w) * float(clampi(lvl - a, 0, b - a)) / float(maxi(b - a, 1))))
+		if fill_w > 0:
+			out += "[img width=%d height=%d color=#%s]%s[/img]" % [fill_w, height, fill_hex, Utils.SWATCH]
+		if span_w - fill_w > 0:
+			out += "[img width=%d height=%d color=#%s]%s[/img]" % [span_w - fill_w, height, Utils.METER_TRACK, Utils.SWATCH]
+		if i < edges.size() - 2:
+			out += "[img width=2 height=%d color=#%s]%s[/img]" % [height + 4, Utils.COLOR_GOLD, Utils.SWATCH]
+	return out
+
+
 
 # =============================================================================
 # TAB 1: NATION OVERVIEW
@@ -429,7 +475,7 @@ func _render_nations():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No nations in diplomatic contact.[/color]\n"
 		if france_blocks != "":
 			bbcode += "\n" + france_blocks
-		content_area.text = bbcode
+		content_area.text = Utils.dress_heads(bbcode)
 		return
 
 	for n in nations:
@@ -477,11 +523,15 @@ func _render_nations():
 		# Session UI (November 11, 2026): a court a card, its hairline and
 		# spine in its standing's colour (a court at peace takes the gilt).
 		bbcode += Utils.card_open(Utils.COLOR_GOLD if diplo_state == "PEACE" else state_color)
-		bbcode += Utils.bb_flag(name, 14)
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
+		# Session UI-2 (November 11, 2026): the court's header row — its arms,
+		# its name in the title face, its standing as a badge, its relation on
+		# a meter centred on nought (the readers: "a flag / relation header").
+		bbcode += Utils.bb_flag(name, 18) + " "
+		bbcode += Utils.HEAD_OPEN + Utils.display_nation_name(name) + Utils.HEAD_CLOSE
 		bbcode += _format_bloc_stamp(n.get("bloc_stamp"))
-		bbcode += " — [color=#" + state_color + "]" + Utils.display_diplo_state(diplo_state) + "[/color]"
-		bbcode += "  Relation: [color=#" + rel_color + "]" + rel_text + "[/color]"
+		bbcode += "  " + Utils.bb_badge(Utils.display_diplo_state(diplo_state), state_color)
+		bbcode += "  Relation: " + Utils.bb_relation_meter(relation, 100, 7) \
+			+ " [color=#" + rel_color + "]" + rel_text + "[/color]"
 
 		# N4: Vassal eligibility
 		var vassal_eligible = n.get("vassal_eligible", false)
@@ -489,6 +539,12 @@ func _render_nations():
 		if vassal_eligible and power_tier == "minor":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color]"
 		bbcode += "\n"
+		# Session UI-2 (November 11, 2026): the court's facts as a two-column
+		# label/value table under its header row (the readers: "dense lines per
+		# nation") — every line of the old card is a row here, in its order, its
+		# words unchanged; the AI relations, the war score and the cooldowns
+		# follow as badge / figure lines.
+		var facts: Array = []
 		# UXR3-29 (Pre-Deploy S12 part 2): the court's Laws and Doctrine lines
 		# LEAD its card, under its name — they were its eighth and ninth
 		# lines, under the diplomat, the treaties and the design.
@@ -497,23 +553,22 @@ func _render_nations():
 		# composed line (R7); null omits the row.
 		var laws_row = n.get("laws")
 		if laws_row != null and str(laws_row) != "":
-			bbcode += "  Laws: [color=#" + Utils.COLOR_GOLD + "]" + str(laws_row) + "[/color]\n"
+			facts.append([_fact_label("administration", "Laws: "), "[color=#" + Utils.COLOR_GOLD + "]" + str(laws_row) + "[/color]"])
 		# SR-7d DC-3a (DOCTRINES_SPEC §4a): the court's doctrine — name,
 		# strength, flaw and the cure's status, ONE line (the two-line budget
 		# with the laws line). Backend-composed; null omits.
 		var doctrine_row = n.get("doctrine")
 		if doctrine_row != null and str(doctrine_row) != "":
-			bbcode += "  Doctrine: [color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]\n"
+			facts.append([_fact_label("tactical", "Doctrine: "), "[color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]"])
 		# DY-7 (DYNAMISM_SPEC.md §6): a crown's row names who withholds its
 		# recognition; a legitimist's row names the crowns of ours it withholds
 		# and the price. Backend-composed (R7); null omits the row.
 		var crown_row = n.get("crown")
 		if crown_row != null and str(crown_row) != "":
-			bbcode += "  Crown: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(crown_row)) + "[/color]\n"
+			facts.append([_fact_label("glory", "Crown: "), "[color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(crown_row)) + "[/color]"])
 		var recognition_row = n.get("recognition")
 		if recognition_row != null and str(recognition_row) != "":
-			bbcode += "  Recognition: [color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(str(recognition_row)) + "[/color]\n"
-
+			facts.append([_fact_label("letter", "Recognition: "), "[color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(str(recognition_row)) + "[/color]"])
 
 		# Diplomat info
 		var diplomat = n.get("diplomat")
@@ -521,9 +576,9 @@ func _render_nations():
 			var d_name = str(diplomat.get("name", "?"))
 			var d_pers = str(diplomat.get("personality", "?")).capitalize()
 			var d_skill = int(diplomat.get("skill", 0))
-			bbcode += "  Diplomat: " + d_name + " (" + d_pers + ") — Skill " + str(d_skill) + "\n"
+			facts.append([_fact_label("envoy", "Diplomat: "), d_name + " (" + d_pers + ") — Skill " + str(d_skill)])
 		else:
-			bbcode += "  Diplomat: [color=#" + Utils.COLOR_INFO + "]None[/color]\n"
+			facts.append([_fact_label("envoy", "Diplomat: "), "[color=#" + Utils.COLOR_INFO + "]None[/color]"])
 		# AU-4 (AUTHORITY_CURRENCY_SPEC.md Q6): the court's standing beside its
 		# envoy — both feed its diplomatic points; the term said only when it
 		# is not zero (the DP rule's own bands, backend-composed). Absent omits.
@@ -535,24 +590,25 @@ func _render_nations():
 				auth_tail = " (+" + str(auth_dp) + " diplomatic point a turn)"
 			elif auth_dp < 0:
 				auth_tail = " (−" + str(-auth_dp) + " diplomatic point a turn)"
-			bbcode += "  Authority: " + str(int(auth_row.get("figure", 0))) + auth_tail + "\n"
+			facts.append([_fact_label("authority", "Authority: "), str(int(auth_row.get("figure", 0))) + auth_tail])
 
 		# Regions + Army
 		var regions = int(n.get("regions_controlled", 0))
 		var army = str(n.get("army_strength", "Unknown"))
-		bbcode += "  Regions: " + str(regions) + "   Army: " + army + "\n"
+		facts.append([_fact_label("europe", "Regions: "), str(regions)])
+		facts.append([_fact_label("strength", "Army: "), army])
 
 		# N5: Trade income
 		var trade_income = int(n.get("trade_income", 0))
 		if trade_income > 0:
-			bbcode += "  Trade: [color=#" + Utils.COLOR_GOLD + "]+" + str(trade_income) + "g/turn[/color]\n"
+			facts.append([_fact_label("gold", "Trade: "), "[color=#" + Utils.COLOR_GOLD + "]+" + str(trade_income) + "g/turn[/color]"])
 
 		# Treaties
 		var treaties = n.get("active_treaties", [])
 		if treaties.size() > 0:
-			bbcode += "  Treaties: " + ", ".join(PackedStringArray(treaties)) + "\n"
+			facts.append([_fact_label("letter", "Treaties: "), ", ".join(PackedStringArray(treaties))])
 		else:
-			bbcode += "  Treaties: [color=#" + Utils.COLOR_INFO + "]None[/color]\n"
+			facts.append([_fact_label("letter", "Treaties: "), "[color=#" + Utils.COLOR_INFO + "]None[/color]"])
 
 		# NA-1: the nation's active design (omit when null — bloc_stamp contract)
 		var agenda = n.get("agenda")
@@ -560,9 +616,9 @@ func _render_nations():
 			var agenda_title = str(agenda.get("title", ""))
 			var agenda_stance = str(agenda.get("stance_line", ""))
 			if agenda_title != "":
-				bbcode += "  Design: [color=#" + Utils.COLOR_GOLD + "]" + agenda_title + "[/color]"
+				var design_cell: String = "[color=#" + Utils.COLOR_GOLD + "]" + agenda_title + "[/color]"
 				if agenda_stance != "":
-					bbcode += " [color=#" + Utils.COLOR_INFO + "]— " + agenda_stance + "[/color]"
+					design_cell += " [color=#" + Utils.COLOR_INFO + "]— " + agenda_stance + "[/color]"
 				# NA-6d §11.6-5: the watcher marker — a design carrying a
 				# `forms` block advertises the nation it would become, with
 				# live progress, so no formation ever ambushes the player.
@@ -574,8 +630,8 @@ func _render_nations():
 						var forms_progress = str(agenda_forms.get("progress", ""))
 						if forms_progress != "":
 							forms_line += " (" + forms_progress + ")"
-						bbcode += " [color=#" + Utils.COLOR_GOLD + "]→ " + forms_line + "[/color]"
-				bbcode += "\n"
+						design_cell += " [color=#" + Utils.COLOR_GOLD + "]→ " + forms_line + "[/color]"
+				facts.append([_fact_label("cabinet", "Design: "), design_cell])
 
 		# AI-1: the nation's intent — its price, fully open (D4: want,
 		# target and rung always shown; only timing is uncertain).
@@ -583,7 +639,7 @@ func _render_nations():
 		if intent != null and intent is Dictionary:
 			var intent_summary = str(intent.get("summary", ""))
 			if intent_summary != "":
-				bbcode += "  Intent: [color=#" + Utils.COLOR_INFO + "]" + intent_summary + "[/color]\n"
+				facts.append([_fact_label("intel", "Intent: "), "[color=#" + Utils.COLOR_INFO + "]" + intent_summary + "[/color]"])
 
 		# AI-2b/2e (Stage C): every live D5 instrument this court is
 		# party to — sponsorships, licences, neutrality compacts,
@@ -591,7 +647,7 @@ func _render_nations():
 		# Backend-composed line (R7); null omits the row.
 		var compacts = n.get("compacts")
 		if compacts != null and str(compacts) != "":
-			bbcode += "  Compacts: [color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(compacts)) + "[/color]\n"
+			facts.append([_fact_label("cabinet", "Compacts: "), "[color=#" + Utils.COLOR_GOLD + "]" + Utils.humanize_nation_keys_in_text(str(compacts)) + "[/color]"])
 
 		# AI-4c (Stage D): war-weariness, explicitly labelled as national
 		# exhaustion across ALL the court's wars, belligerents named —
@@ -601,7 +657,7 @@ func _render_nations():
 		if weariness != null and weariness is Dictionary:
 			var weariness_line = str(weariness.get("line", ""))
 			if weariness_line != "":
-				bbcode += "  Weariness: [color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(weariness_line) + "[/color]\n"
+				facts.append([_fact_label("morale", "Weariness: "), "[color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(weariness_line) + "[/color]"])
 
 		# AI-3r (§2.5-2): the court's exposure — free field army vs the
 		# rear-security reserve, the war council's own arithmetic made
@@ -610,9 +666,12 @@ func _render_nations():
 		if exposure_row != null and exposure_row is Dictionary:
 			var exposure_row_line = str(exposure_row.get("line", ""))
 			if exposure_row_line != "":
-				bbcode += "  Exposure: [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]\n"
+				facts.append([_fact_label("defense", "Exposure: "), "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]"])
 
-		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
+		bbcode += _facts_table(facts)
+
+		# N1: AI-AI Relations (DPF-1: includes relation descriptor) — each tie
+		# a state badge, the temper in words after it.
 		var ai_relations = n.get("ai_relations", [])
 		if ai_relations.size() > 0:
 			var ai_parts = []
@@ -621,29 +680,30 @@ func _render_nations():
 				var ar_state = str(ar.get("state", "PEACE"))
 				var ar_relation = int(ar.get("relation", 0))
 				var ar_descriptor = str(ar.get("relation_descriptor", "Neutral"))
-				var ar_state_color = Utils.COLOR_INFO
+				var ar_tone = Utils.COLOR_BADGE_QUIET
 				match ar_state:
 					"WAR":
-						ar_state_color = COLOR_RED
+						ar_tone = "8b2a2a"
 					"ALLIANCE", "DEFENSIVE_ALLIANCE":
-						ar_state_color = Utils.COLOR_SUCCESS
+						ar_tone = "2f6b3a"
 					"NON_AGGRESSION", "OPEN_BORDERS":
-						ar_state_color = Utils.COLOR_BLUE
+						ar_tone = "3a4a6b"
 				var ar_desc_color = Utils.COLOR_INFO
 				if ar_relation > 0:
 					ar_desc_color = Utils.COLOR_SUCCESS
 				elif ar_relation < 0:
 					ar_desc_color = COLOR_RED
-				ai_parts.append(Utils.display_nation_name(ar_nation) + " [color=#" + ar_state_color + "][" + Utils.display_diplo_state(ar_state) + "][/color] — [color=#" + ar_desc_color + "]" + ar_descriptor + " (" + str(ar_relation) + ")[/color]")
-			bbcode += "  AI Relations: " + ", ".join(PackedStringArray(ai_parts)) + "\n"
+				ai_parts.append(Utils.display_nation_name(ar_nation) + " " + Utils.bb_badge(Utils.display_diplo_state(ar_state), ar_tone) + " — [color=#" + ar_desc_color + "]" + ar_descriptor + " (" + str(ar_relation) + ")[/color]")
+			bbcode += "  AI Relations: " + "   ".join(PackedStringArray(ai_parts)) + "\n"
 
-		# N2: War Score Breakdown (WAR only)
+		# N2: War Score Breakdown (WAR only) — the total a badge, the parts after it
 		var war_score = n.get("war_score_breakdown")
 		if war_score != null and war_score is Dictionary:
 			var total = int(war_score.get("total", 0))
 			var ws_color = Utils.COLOR_SUCCESS if total > 0 else (COLOR_RED if total < 0 else Utils.COLOR_INFO)
+			var ws_tone = "2f6b3a" if total > 0 else ("8b2a2a" if total < 0 else Utils.COLOR_BADGE_QUIET)
 			var ws_sign = "+" if total > 0 else ""
-			bbcode += "  War Score: [color=#" + ws_color + "][" + ws_sign + str(total) + "][/color]  ("
+			bbcode += "  War Score: " + Utils.bb_badge(ws_sign + str(total), ws_tone) + "  ("
 			var ws_parts = []
 			# PT-J2: campaign + blood are the war's memory components.
 			# HC-1: blockade joins them, rendered only when nonzero.
@@ -672,7 +732,7 @@ func _render_nations():
 	# UXR3-29 (S15 head): France's own two blocks close the book, under the
 	# courts' cards.
 	bbcode += france_blocks
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 # =============================================================================
@@ -691,7 +751,7 @@ func _render_treaties():
 
 	if treaties.size() == 0 and recent_peace.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No active treaties.[/color]\n"
-		content_area.text = bbcode
+		content_area.text = Utils.dress_heads(bbcode)
 		return
 	elif treaties.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No active treaties.[/color]\n\n"
@@ -709,10 +769,13 @@ func _render_treaties():
 		var header_color = Utils.COLOR_GOLD if involves_player else Utils.COLOR_INFO
 
 		bbcode += Utils.card_open()    # Session UI: a treaty a card
-		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_a) + "[/color]"
+		# Session UI-2 (November 11, 2026): the two courts' arms and names, the
+		# kind of treaty a badge (the player's own in the gilt, a pact of two
+		# other courts in the quiet tone).
+		bbcode += Utils.bb_flag(nation_a, 16) + " [color=#" + header_color + "]" + Utils.display_nation_name(nation_a) + "[/color]"
 		bbcode += " [color=#" + Utils.COLOR_INFO + "]↔[/color] "
-		bbcode += "[color=#" + header_color + "]" + Utils.display_nation_name(nation_b) + "[/color]"
-		bbcode += ": [b]" + treaty_type.replace("_", " ").capitalize() + "[/b]\n"
+		bbcode += Utils.bb_flag(nation_b, 16) + " [color=#" + header_color + "]" + Utils.display_nation_name(nation_b) + "[/color]"
+		bbcode += ": " + Utils.bb_badge(treaty_type.replace("_", " ").capitalize(), "8a6d2a" if involves_player else Utils.COLOR_BADGE_QUIET) + "\n"
 
 		# DDB-32: an alliance with no treaty record (the 1805 alliances) says
 		# what it is, and carries no clauses or term of ours.
@@ -720,19 +783,20 @@ func _render_treaties():
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "][i]" + str(t.get("note", "")) + "[/i][/color]\n" + Utils.CARD_CLOSE + "\n"
 			continue
 
+		var terms_facts: Array = []
 		# Clauses
 		if clauses.size() > 0:
 			var clause_strs = []
 			for c in clauses:
 				clause_strs.append(str(c))
-			bbcode += "  Clauses: " + ", ".join(PackedStringArray(clause_strs)) + "\n"
+			terms_facts.append([_fact_label("letter", "Clauses: "), ", ".join(PackedStringArray(clause_strs))])
 		else:
-			bbcode += "  Clauses: [color=#" + Utils.COLOR_INFO + "]None[/color]\n"
+			terms_facts.append([_fact_label("letter", "Clauses: "), "[color=#" + Utils.COLOR_INFO + "]None[/color]"])
 
 		# T4: Armistice countdown
 		var armistice_remaining = t.get("armistice_remaining")
 		if armistice_remaining != null:
-			bbcode += "  Duration: [color=#" + COLOR_AMBER + "]Armistice — expires in " + str(int(armistice_remaining)) + " turns[/color]\n"
+			terms_facts.append([_fact_label("turn", "Duration: "), "[color=#" + COLOR_AMBER + "]Armistice — expires in " + str(int(armistice_remaining)) + " turns[/color]"])
 		else:
 			# Duration
 			var dur_str = ""
@@ -740,13 +804,13 @@ func _render_treaties():
 				dur_str = str(int(duration)) + " turns"
 			else:
 				dur_str = str(duration)
-			bbcode += "  Duration: " + dur_str + "   Cancel cost: " + str(cancel_cost) + " DP\n"
+			terms_facts.append([_fact_label("turn", "Duration: "), dur_str + "   Cancel cost: " + str(cancel_cost) + " DP"])
 
 		# T2: Turn signed
 		var turn_signed = int(t.get("turn_signed", 0))
 		if turn_signed > 0 and current_turn > 0:
 			var turns_ago = current_turn - turn_signed
-			bbcode += "  Signed: Turn " + str(turn_signed) + " (" + str(turns_ago) + " turns ago)\n"
+			terms_facts.append([_fact_label("medal", "Signed: "), "Turn " + str(turn_signed) + " (" + str(turns_ago) + " turns ago)"])
 
 		# T1: Gold per turn
 		var gold_per_turn = t.get("gold_per_turn")
@@ -755,8 +819,9 @@ func _render_treaties():
 				var gpt_from = str(gpt.get("from", "?"))
 				var gpt_to = str(gpt.get("to", "?"))
 				var gpt_amount = int(gpt.get("amount", 0))
-				bbcode += "  Gold Flow: [color=#" + Utils.COLOR_GOLD + "]" + Utils.display_nation_name(gpt_from) + " → " + Utils.display_nation_name(gpt_to) + ": " + str(gpt_amount) + "g/turn[/color]\n"
+				terms_facts.append([_fact_label("gold", "Gold Flow: "), "[color=#" + Utils.COLOR_GOLD + "]" + Utils.display_nation_name(gpt_from) + " → " + Utils.display_nation_name(gpt_to) + ": " + str(gpt_amount) + "g/turn[/color]"])
 
+		bbcode += _facts_table(terms_facts)
 		bbcode += Utils.CARD_CLOSE
 		bbcode += "\n"
 
@@ -887,7 +952,7 @@ func _render_treaties():
 			peace_idx += 1
 		bbcode += "\n"
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 # =============================================================================
@@ -912,9 +977,13 @@ func _designs_block(designs) -> String:
 		if forsworn:
 			continue
 		var color: String = Utils.COLOR_GOLD if proclaimed else Utils.COLOR_INFO
-		out += "  [color=#" + color + "]Road " + str(road.get("numeral", "")) + " — " + str(road.get("title", "")).replace("[", "[lb]") + "[/color]\n"
+		# Session UI-2 (November 11, 2026): each road a card — the proclaimed
+		# road in the gilt, an open one in the quiet tone.
+		out += Utils.card_open(color if proclaimed else Utils.COLOR_BADGE_QUIET)
+		out += "  " + Utils.bb_glyph("march", 16, color) + " [color=#" + color + "]Road " + str(road.get("numeral", "")) + " — " + str(road.get("title", "")).replace("[", "[lb]") + "[/color]\n"
 		var ds = road.get("designs")
 		if not (ds is Array):
+			out += Utils.CARD_CLOSE
 			continue
 		for d in ds:
 			if not (d is Dictionary):
@@ -926,6 +995,7 @@ func _designs_block(designs) -> String:
 			if hold is String and hold != "":
 				line += " (" + hold + ")"
 			out += "[color=#" + Utils.COLOR_INFO + "]" + line.replace("[", "[lb]") + "[/color]\n"
+		out += Utils.CARD_CLOSE
 	var control = designs.get("control")
 	if control is String and control != "":
 		out += "[color=#" + Utils.COLOR_INFO + "]  The road page: " + control.replace("[", "[lb]") + "[/color]\n"
@@ -941,6 +1011,71 @@ func _render_balance_of_europe():
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]BALANCE OF EUROPE[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]────────────────[/color]\n"
+
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]COALITION THREAT[/color]\n"
+
+	var threat_level = int(boe.get("threat_level", 0))
+	var threat_tier = str(boe.get("threat_tier", "LOW"))
+
+	# Tier color
+	var tier_color = Utils.COLOR_SUCCESS
+	match threat_tier:
+		"LOW":
+			tier_color = Utils.COLOR_SUCCESS
+		"MODERATE":
+			tier_color = COLOR_AMBER
+		"HIGH":
+			tier_color = COLOR_RED
+		"CRITICAL":
+			tier_color = COLOR_RED
+			_start_critical_pulse()
+		_:
+			tier_color = Utils.COLOR_INFO
+
+	# SF7-X48: the bracket prints the alarm's one name (the dispatch's own);
+	# the band above still colours it.
+	var threat_name = str(boe.get("threat_name", ""))
+	var tier_shown = threat_name if threat_name != "" else threat_tier
+	# UXR3-F6 (Pre-Deploy S12 part 2): the tier is a word after a dash, not
+	# a bracketed tag.
+	# Session UI-2 (November 11, 2026): the threat as a LARGE gauge leading the
+	# page — the figure in the title face, 0-100 across a wide meter with a
+	# gilt tick at the brewing threshold and at the instant one.
+	var gauge_proj = boe.get("threat_projection", {})
+	var gauge_brews: int = 60
+	var gauge_forms: int = 80
+	if gauge_proj is Dictionary:
+		gauge_brews = int(gauge_proj.get("brewing_threshold", 60))
+		gauge_forms = int(gauge_proj.get("instant_threshold", 80))
+	var bar_color = Utils.COLOR_SUCCESS
+	if threat_level >= 60:
+		bar_color = COLOR_RED
+	elif threat_level >= 30:
+		bar_color = COLOR_AMBER
+	bbcode += Utils.bb_glyph("threat", 28, tier_color) + "  [font=" + Utils.TITLE_FONT + "][color=#" + tier_color + "]" + str(threat_level) + "[/color][/font]  "
+	bbcode += _threat_gauge(threat_level, 360, 16, bar_color, [gauge_brews, gauge_forms]) + "\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(gauge_brews) + " brews · " + str(gauge_forms) + " forms[/color]\n"
+	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100 — " + tier_shown + "[/color]\n"
+	# FA-D11 (slice 17, Phase 2): the one number a player plans around — the
+	# backend computed it all along and no renderer read it.
+	var projection = boe.get("threat_projection", {})
+	# IQ-2: a collapsed France is planning no war of conquest — the backend
+	# sends the true reading of the alarm instead of the projection.
+	var projection_collapse = projection.get("collapse_line", "") if projection is Dictionary else ""
+	if projection_collapse is String and projection_collapse != "":
+		bbcode += "[color=#" + Utils.COLOR_ERROR + "]" + projection_collapse + "[/color]\n"
+	elif projection is Dictionary and projection.size() > 0:
+		var nxt = int(projection.get("after_next_war", threat_level))
+		var brewing = int(projection.get("brewing_threshold", 60))
+		var instant = int(projection.get("instant_threshold", 80))
+		var to_brewing = int(projection.get("wars_until_brewing", 0))
+		var to_instant = int(projection.get("wars_until_instant", 0))
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]Next war of conquest: " + str(threat_level) + " → " + str(nxt)
+		bbcode += " · brews at " + str(brewing) + " (" + (str(to_brewing) + " war" + ("s" if to_brewing != 1 else "") + " away" if to_brewing > 0 else "now") + ")"
+		bbcode += " · forms at once at " + str(instant) + " (" + (str(to_instant) if to_instant > 0 else "now") + ")"
+		var dissolve = int(boe.get("dissolution_threat_threshold", 20))
+		bbcode += " · dissolves below " + str(dissolve) + "[/color]\n"
+	bbcode += "\n"
 
 	var headline_case = str(boe.get("headline_case", "NO_HEGEMON"))
 	var hegemon = Utils.display_nation_name(str(boe.get("hegemon", "")))
@@ -985,69 +1120,6 @@ func _render_balance_of_europe():
 	# VP-1 (S14b part 2, the record §6.2): THE EMPEROR'S DESIGNS — the road,
 	# each design's progress, off the one payload (null: no designs authored).
 	bbcode += _designs_block(boe.get("imperial_designs"))
-
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]COALITION THREAT[/color]\n"
-
-	var threat_level = int(boe.get("threat_level", 0))
-	var threat_tier = str(boe.get("threat_tier", "LOW"))
-
-	# Tier color
-	var tier_color = Utils.COLOR_SUCCESS
-	match threat_tier:
-		"LOW":
-			tier_color = Utils.COLOR_SUCCESS
-		"MODERATE":
-			tier_color = COLOR_AMBER
-		"HIGH":
-			tier_color = COLOR_RED
-		"CRITICAL":
-			tier_color = COLOR_RED
-			_start_critical_pulse()
-		_:
-			tier_color = Utils.COLOR_INFO
-
-	# SF7-X48: the bracket prints the alarm's one name (the dispatch's own);
-	# the band above still colours it.
-	var threat_name = str(boe.get("threat_name", ""))
-	var tier_shown = threat_name if threat_name != "" else threat_tier
-	# UXR3-F6 (Pre-Deploy S12 part 2): the tier is a word after a dash, not
-	# a bracketed tag.
-	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100 — " + tier_shown + "[/color]\n"
-
-	# Visual threat bar — 20 chars wide
-	var filled = int(threat_level / 5)  # 0-20
-	if filled > 20:
-		filled = 20
-	var empty = 20 - filled
-
-	var bar_color = Utils.COLOR_SUCCESS
-	if threat_level >= 60:
-		bar_color = COLOR_RED
-	elif threat_level >= 30:
-		bar_color = COLOR_AMBER
-
-	# UXR3-F6: the game's own bar (the Generals' image), not hatched glyphs.
-	bbcode += Utils.bb_bar_img(int(round(float(filled) / 2.0)), bar_color, 220, 14) + "\n"
-	# FA-D11 (slice 17, Phase 2): the one number a player plans around — the
-	# backend computed it all along and no renderer read it.
-	var projection = boe.get("threat_projection", {})
-	# IQ-2: a collapsed France is planning no war of conquest — the backend
-	# sends the true reading of the alarm instead of the projection.
-	var projection_collapse = projection.get("collapse_line", "") if projection is Dictionary else ""
-	if projection_collapse is String and projection_collapse != "":
-		bbcode += "[color=#" + Utils.COLOR_ERROR + "]" + projection_collapse + "[/color]\n"
-	elif projection is Dictionary and projection.size() > 0:
-		var nxt = int(projection.get("after_next_war", threat_level))
-		var brewing = int(projection.get("brewing_threshold", 60))
-		var instant = int(projection.get("instant_threshold", 80))
-		var to_brewing = int(projection.get("wars_until_brewing", 0))
-		var to_instant = int(projection.get("wars_until_instant", 0))
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]Next war of conquest: " + str(threat_level) + " → " + str(nxt)
-		bbcode += " · brews at " + str(brewing) + " (" + (str(to_brewing) + " war" + ("s" if to_brewing != 1 else "") + " away" if to_brewing > 0 else "now") + ")"
-		bbcode += " · forms at once at " + str(instant) + " (" + (str(to_instant) if to_instant > 0 else "now") + ")"
-		var dissolve = int(boe.get("dissolution_threat_threshold", 20))
-		bbcode += " · dissolves below " + str(dissolve) + "[/color]\n"
-	bbcode += "\n"
 
 	# Threat sources this turn (with human-readable labels)
 	var sources = boe.get("threat_sources_this_turn", [])
@@ -1134,8 +1206,9 @@ func _render_balance_of_europe():
 		bbcode += "  [color=#" + COLOR_RED + "]ACTIVE: " + c_name + " — Leader: " + c_leader + ", Posture: " + c_posture.capitalize() + "[/color]\n"
 		bbcode += "  Combined Strength: " + str(active_coalition.get("combined_strength_display", "Unknown")) + "\n\n"
 
-		# Per-member block
+		# Per-member block — Session UI-2: a table (court, strength, exhaustion)
 		var members = active_coalition.get("members", [])
+		var member_rows: Array = []
 		for mem in members:
 			var m_nation = Utils.display_nation_name(str(mem.get("nation", "?")))
 			var m_strength = str(mem.get("strength_display", "?"))
@@ -1163,8 +1236,10 @@ func _render_balance_of_europe():
 				we_filled = 0
 			var we_empty = 10 - we_filled
 			var we_color := Utils.COLOR_WARNING if we_filled >= 5 else Utils.COLOR_INFO
-			bbcode += "  • " + m_nation + ": " + m_strength + ", WE: " + str(m_we) + "/" + str(we_max) \
-				+ "  " + Utils.bb_bar_img(we_filled, we_color, 110, 12) + "\n"
+			member_rows.append([Utils.bb_flag(str(mem.get("nation", "?")), 16) + " " + m_nation + " ", m_strength + " ",
+				"WE: " + str(m_we) + "/" + str(we_max) + "  " + Utils.bb_bar_img(we_filled, we_color, 110, 12)])
+		if not member_rows.is_empty():
+			bbcode += Utils.bb_table(["Member", "Strength", "Exhaustion"], member_rows, [], [2, 2, 3]) + "\n"
 	elif coalition_state == "BREWING":
 		var turns_str = ""
 		if brewing_turns != null:
@@ -1208,7 +1283,7 @@ func _render_balance_of_europe():
 	bbcode += str(int(boe.get("dissolution_min_members", 2)))
 	bbcode += " members remain at war.[/color]\n"
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 # =============================================================================
@@ -1275,9 +1350,12 @@ func _render_talleyrand():
 				authority_color = Utils.COLOR_ERROR
 
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND[/color] — [color=#" + authority_color + "]" + authority_label + "[/color]\n"
-	bbcode += "Authority: [color=#" + authority_color + "]" + str(authority) + "[/color]/100"
-	bbcode += "   Skill: " + str(skill)
-	bbcode += "   DP: [color=#" + Utils.COLOR_GOLD + "]" + str(dp_remaining) + "/" + str(dp_max) + "[/color]\n"
+	# Session UI-2 (November 11, 2026): his figures lead as one line — a glyph
+	# for each, the authority on a meter.
+	bbcode += Utils.bb_glyph("authority", 18, authority_color) + " Authority: [color=#" + authority_color + "]" + str(authority) + "[/color]/100 "
+	bbcode += Utils.bb_meter(authority, 100, 110, 8, authority_color)
+	bbcode += "   " + Utils.bb_glyph("envoy", 18, Utils.COLOR_GOLD) + " Skill: " + str(skill)
+	bbcode += "   " + Utils.bb_glyph("dp", 18, Utils.COLOR_GOLD) + " DP: [color=#" + Utils.COLOR_GOLD + "]" + str(dp_remaining) + "/" + str(dp_max) + "[/color]\n"
 
 	# TA3: DP Breakdown
 	var dp_breakdown = t.get("dp_breakdown")
@@ -1332,7 +1410,10 @@ func _render_talleyrand():
 		var m_type_display = str(mission.get("type_display", ""))
 		if m_type_display == "":
 			m_type_display = m_type.replace("_", " ").capitalize()
-		bbcode += "  " + m_type_display + " → " + m_target + "\n"
+		bbcode += "  " + Utils.bb_glyph("envoy", 16, Utils.COLOR_GOLD) + " [b]" + m_type_display + " → " + m_target + "[/b]\n"
+		# Session UI-2: the rest of the mission a label / value table (a row a
+		# line of the old page, its words unchanged).
+		var mission_facts: Array = []
 
 		# DPF-2: Descriptor-based progress
 		var initial_desc = str(mission.get("initial_descriptor", ""))
@@ -1346,27 +1427,27 @@ func _render_talleyrand():
 			elif relation_delta < 0:
 				arrow_color = COLOR_RED
 			if initial_desc != current_desc:
-				bbcode += "  [color=#" + arrow_color + "]" + initial_desc + " → " + current_desc + " (" + delta_str + ", " + str(m_duration) + " turns)[/color]\n"
+				mission_facts.append([_fact_label("intel", ""), "[color=#" + arrow_color + "]" + initial_desc + " → " + current_desc + " (" + delta_str + ", " + str(m_duration) + " turns)[/color]"])
 			else:
-				bbcode += "  [color=#" + arrow_color + "]" + current_desc + " (" + delta_str + " over " + str(m_duration) + " turns)[/color]\n"
+				mission_facts.append([_fact_label("intel", ""), "[color=#" + arrow_color + "]" + current_desc + " (" + delta_str + " over " + str(m_duration) + " turns)[/color]"])
 		else:
-			bbcode += "  Progress: N/A (mission predates tracking)\n"
+			mission_facts.append([_fact_label("intel", ""), "Progress: N/A (mission predates tracking)"])
 
 		# S14E-9: the mission's books — earned, shocks with their cause, the
 		# turns paused (the backend's one line, as the Cabinet row prints it).
 		var ledger_line = str(mission.get("ledger_line", ""))
 		if ledger_line != "" and ledger_line != "<null>":
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]So far: " + ledger_line + "[/color]\n"
+			mission_facts.append([_fact_label("letter", ""), "[color=#" + Utils.COLOR_INFO + "]So far: " + ledger_line + "[/color]"])
 
-		bbcode += "  Status: " + status
+		var status_cell: String = "Status: " + status
 		# TA4: Mission effect text
 		var effect_text = str(mission.get("effect_text", ""))
 		var dp_cost = int(mission.get("dp_cost_per_turn", 0))
 		if dp_cost > 0:
-			bbcode += ", Cost: " + str(dp_cost) + " DP/turn"
-		bbcode += "\n"
+			status_cell += ", Cost: " + str(dp_cost) + " DP/turn"
+		mission_facts.append([_fact_label("turn", ""), status_cell])
 		if effect_text:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]Effect: " + effect_text + "[/color]\n"
+			mission_facts.append([_fact_label("cabinet", ""), "[color=#" + Utils.COLOR_INFO + "]Effect: " + effect_text + "[/color]"])
 
 		# IQ-4: the one-source forecast (mission_status.remaining_note, with its
 		# net per turn) replaces both the old count and "Ongoing" when present.
@@ -1378,14 +1459,15 @@ func _render_talleyrand():
 			if mission.has("net_per_turn") and m_type != "GATHER_INTEL" and m_type != "UNDERMINE_ALLIANCE":
 				var mission_net = int(mission.get("net_per_turn", 0))
 				net_clause = "Net " + ("+" if mission_net >= 0 else "") + str(mission_net) + " a turn · "
-			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + net_clause + remaining_note + "[/color]\n"
+			mission_facts.append([_fact_label("march", ""), "[color=#" + Utils.COLOR_GOLD + "]" + net_clause + remaining_note + "[/color]"])
 		else:
 			# TA5: Remaining turns (the pre-IQ-4 render, kept for an absent key)
 			var remaining = mission.get("remaining_turns")
 			if remaining != null:
-				bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Completes in " + Utils.plural(int(remaining), "turn") + "[/color]\n"
+				mission_facts.append([_fact_label("march", ""), "[color=#" + Utils.COLOR_GOLD + "]Completes in " + Utils.plural(int(remaining), "turn") + "[/color]"])
 			else:
-				bbcode += "  [color=#" + Utils.COLOR_INFO + "]Ongoing[/color]\n"
+				mission_facts.append([_fact_label("march", ""), "[color=#" + Utils.COLOR_INFO + "]Ongoing[/color]"])
+		bbcode += _facts_table(mission_facts)
 	bbcode += "\n"
 
 	# Proposal in transit
@@ -1439,7 +1521,7 @@ func _render_talleyrand():
 		rel_color = COLOR_RED
 	var rel_sign = "+" if reliability > 0 else ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]DIPLOMATIC RELIABILITY[/color]\n"
-	bbcode += "  Reliability: [color=#" + rel_color + "]" + rel_sign + str(reliability) + " (" + rel_desc + ")[/color]\n\n"
+	bbcode += "  Reliability: [color=#" + rel_color + "]" + rel_sign + str(reliability) + " (" + rel_desc + ")[/color]  " + Utils.bb_relation_meter(reliability, 110, 7) + "\n\n"
 
 	# TA1: Diplomatic history
 	var history = t.get("diplomatic_history", [])
@@ -1449,6 +1531,7 @@ func _render_talleyrand():
 	else:
 		# Show last 10 entries
 		var start_idx = max(0, history.size() - 10)
+		var history_rows: Array = []
 		for i in range(start_idx, history.size()):
 			var entry = history[i]
 			if entry is Dictionary:
@@ -1463,17 +1546,18 @@ func _render_talleyrand():
 					h_color = Utils.COLOR_SUCCESS
 				elif h_type != "?" and ("war" in h_type.to_lower() or "break" in h_type.to_lower()):
 					h_color = COLOR_RED
-				var h_text = "Turn " + str(h_turn) + ": "
-				h_text += h_type.replace("_", " ").capitalize()
+				var h_text = h_type.replace("_", " ").capitalize()
 				if h_target:
 					h_text += " — " + h_target
 				if h_detail:
 					h_text += " (" + h_detail + ")"
-				bbcode += "  [color=#" + h_color + "]" + h_text + "[/color]\n"
+				history_rows.append(["Turn " + str(h_turn) + ": ", "[color=#" + h_color + "]" + h_text + "[/color]"])
 			else:
-				bbcode += "  " + str(entry) + "\n"
+				history_rows.append(["", str(entry)])
+		if not history_rows.is_empty():
+			bbcode += Utils.bb_table(["Turn", "Event"], history_rows, [], [1, 5]) + "\n"
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 # =============================================================================
@@ -1487,7 +1571,7 @@ func _render_war_bargains():
 
 	if bargains.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No war bargains recorded.[/color]\n"
-		content_area.text = bbcode
+		content_area.text = Utils.dress_heads(bbcode)
 		return
 
 	var live = []
@@ -1510,7 +1594,7 @@ func _render_war_bargains():
 		for b in completed:
 			bbcode += _format_bargain_entry(b)
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 func _format_bargain_entry(b: Dictionary) -> String:
@@ -1535,10 +1619,23 @@ func _format_bargain_entry(b: Dictionary) -> String:
 			status_color = Utils.COLOR_INFO
 
 	var entry = ""
-	entry += "  [color=#" + Utils.COLOR_GOLD + "][b]" + promiser + " → " + beneficiary + "[/b][/color]"
-	entry += "  [color=#" + status_color + "][" + status.to_upper() + "][/color]\n"
-	entry += "    Enemy: " + named_enemy + "   Claim: " + claim_region + "\n"
-	entry += "    Sealed: Turn " + str(created_turn)
+	# Session UI-2 (November 11, 2026): the bargain's header row — the two
+	# courts' arms and names, its status a badge — over a facts table.
+	var status_tone = Utils.COLOR_BADGE_QUIET
+	match status:
+		"active":
+			status_tone = "3a4a6b"
+		"triggered":
+			status_tone = "8a6d2a"
+		"fulfilled":
+			status_tone = "2f6b3a"
+		"breached":
+			status_tone = "8b2a2a"
+	entry += "  " + Utils.bb_flag(str(b.get("promiser", "")), 16) + " [color=#" + Utils.COLOR_GOLD + "][b]" + promiser + " → " + beneficiary + "[/b][/color]"
+	entry += "  " + Utils.bb_badge(status.to_upper(), status_tone) + "\n"
+	var bargain_facts: Array = []
+	bargain_facts.append([_fact_label("war", "Enemy: "), named_enemy + "   Claim: " + claim_region])
+	var sealed_cell: String = "Turn " + str(created_turn)
 
 	var badge = str(b.get("badge", ""))
 	if badge != "":
@@ -1550,21 +1647,23 @@ func _format_bargain_entry(b: Dictionary) -> String:
 				badge_color = Utils.COLOR_ERROR
 			"lapsed":
 				badge_color = Utils.COLOR_INFO
-		entry += "   [color=#" + badge_color + "]" + badge.to_upper() + "[/color]"
+		sealed_cell += "   [color=#" + badge_color + "]" + badge.to_upper() + "[/color]"
 
 	var ended_turn = b.get("ended_turn")
 	if ended_turn != null:
-		entry += "   Ended: Turn " + str(int(ended_turn))
+		sealed_cell += "   Ended: Turn " + str(int(ended_turn))
 
 	var end_reason = str(b.get("end_reason", ""))
 	if end_reason != "":
-		entry += "   (" + end_reason.replace("_", " ") + ")"
+		sealed_cell += "   (" + end_reason.replace("_", " ") + ")"
+	bargain_facts.append([_fact_label("medal", "Sealed: "), sealed_cell])
 
 	var cooldown = int(b.get("cooldown_remaining", 0))
 	if cooldown > 0:
-		entry += "\n    [color=#" + COLOR_AMBER + "]Cooldown: " + str(cooldown) + " turns[/color]"
+		bargain_facts.append([_fact_label("turn", "Cooldown: "), "[color=#" + COLOR_AMBER + "]" + str(cooldown) + " turns[/color]"])
 
-	entry += "\n\n"
+	entry += _facts_table(bargain_facts)
+	entry += "\n"
 	return entry
 
 
@@ -1586,7 +1685,7 @@ func _render_vassals():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]Bind a minor power to the Empire: vassalize a court marked "
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color][color=#" + Utils.COLOR_INFO + "] on the Nations tab "
 		bbcode += "once she is beaten (F1 → the court → Subjugate), demand vassalage at the peace table, or propose it through the Cabinet (F1).[/color]\n"
-		content_area.text = bbcode
+		content_area.text = Utils.dress_heads(bbcode)
 		return
 
 	var total_tribute = int(vassal_data.get("total_tribute", 0))
@@ -1614,7 +1713,7 @@ func _render_vassals():
 	for v in granted_rows + other_rows:
 		bbcode += _format_vassal_card(v, bool(vassal_data.get("actions_blocked", false)))
 
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 func _vassal_block_notice(vassal_data: Dictionary) -> String:
@@ -1656,9 +1755,11 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 
 	# ── Header: flag + name + autonomy + provenance ──
 	bbcode += Utils.card_open()    # Session UI: a client a card
-	bbcode += Utils.bb_flag(name, 18)
-	bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]" + Utils.display_nation_name(name) + "[/b][/color]"
-	bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + autonomy_name + "[/color]"
+	# Session UI-2 (November 11, 2026): the client's name in the title face, its
+	# autonomy a badge, its provenance in words after it.
+	bbcode += Utils.bb_flag(name, 18) + " "
+	bbcode += Utils.HEAD_OPEN + Utils.display_nation_name(name) + Utils.HEAD_CLOSE
+	bbcode += "  " + Utils.bb_badge(autonomy_name, "8a6d2a")
 	# UI-6 review fix (UI6-R1): three-way path label — the 1805 boot vassals
 	# are seeded with path "scenario" (an authoring fact, not an in-game
 	# conquest), so the old two-way branch mislabeled all three as conquests.
@@ -1693,13 +1794,13 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		bbcode += "  Bond: [color=#" + bond_ink + "]" + _vassal_bond_text(v) + "[/color]\n"
 
 	# ── Loyalty bar + trend forecast ──
+	# Session UI-2: an exact meter (the figure and the forecast beside it).
 	var loyalty_color = Utils.COLOR_SUCCESS
 	if loyalty < 35:
 		loyalty_color = Utils.COLOR_ERROR
 	elif loyalty < 60:
 		loyalty_color = COLOR_AMBER
-	var filled = clampi(int(round(loyalty / 10.0)), 0, 10)
-	bbcode += "  [img color=#" + loyalty_color + " width=" + str(_LOYALTY_BAR_W) + " height=" + str(_LOYALTY_BAR_H) + "]res://assets/ui/bars/bar_" + str(filled) + ".png[/img]"
+	bbcode += "  " + Utils.bb_meter(loyalty, 100, _LOYALTY_BAR_W, _LOYALTY_BAR_H, loyalty_color)
 	bbcode += "  Loyalty [color=#" + loyalty_color + "]" + str(loyalty) + "/100[/color]"
 	var forecast = int(v.get("loyalty_forecast", 0))
 	var trend = str(v.get("loyalty_trend", "stable"))
@@ -1731,20 +1832,25 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + hint + "[/color]"
 		bbcode += "\n"
 
+	# Session UI-2: the levers' facts as a label / value table — every line of
+	# the old card a row, in its order, its words unchanged.
+	var facts: Array = []
+
 	# ── Tribute + contribution tier ──
 	var tribute = int(v.get("tribute", 0))
 	var tribute_pct = int(v.get("tribute_rate_pct", 75))
+	var tribute_cell := ""
 	if v.has("tribute_note"):
 		# SFR-B7: the backend's line names a zero's cause (a remission, an
 		# invaded client); an old payload keeps the old line.
-		bbcode += "  Tribute: [color=#" + Utils.COLOR_GOLD + "]" + str(v.get("tribute_note", "")) + "[/color]"
+		tribute_cell += "[color=#" + Utils.COLOR_GOLD + "]" + str(v.get("tribute_note", "")) + "[/color]"
 	else:
-		bbcode += "  Tribute: [color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(tribute) + "g/turn[/color]"
-		bbcode += " [color=#" + Utils.COLOR_INFO + "](" + str(tribute_pct) + "% of their income)[/color]"
+		tribute_cell += "[color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(tribute) + "g/turn[/color]"
+		tribute_cell += " [color=#" + Utils.COLOR_INFO + "](" + str(tribute_pct) + "% of their income)[/color]"
 	var contribution = str(v.get("contribution", "loyal"))
 	match contribution:
 		"loyal":
-			bbcode += "   [color=#" + Utils.COLOR_SUCCESS + "]Answers the call to arms[/color]"
+			tribute_cell += "   [color=#" + Utils.COLOR_SUCCESS + "]Answers the call to arms[/color]"
 		"wavering":
 			# IQ-7 review [22]: the regiments clause is a claim about VS-4
 			# Rule 1b, which only bites when the lord fields a corps of the
@@ -1753,12 +1859,12 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			# HONEST up); an old payload without the key keeps the old line.
 			var drag = bool(v.get("wavering_regiments", true))
 			if drag:
-				bbcode += "   [color=#" + COLOR_AMBER + "]Wavering — their marshals drag their feet[/color]"
+				tribute_cell += "   [color=#" + COLOR_AMBER + "]Wavering — their marshals drag their feet[/color]"
 			else:
-				bbcode += "   [color=#" + COLOR_AMBER + "]Wavering — no standing to petition[/color]"
+				tribute_cell += "   [color=#" + COLOR_AMBER + "]Wavering — no standing to petition[/color]"
 		"disaffected":
-			bbcode += "   [color=#" + Utils.COLOR_ERROR + "]Disaffected — refuses new calls to arms[/color]"
-	bbcode += "\n"
+			tribute_cell += "   [color=#" + Utils.COLOR_ERROR + "]Disaffected — refuses new calls to arms[/color]"
+	facts.append([_fact_label("gold", "Tribute: "), tribute_cell])
 
 	# ── IQ-7 The Client's Petition: standing, cadence, bond, remission ──
 	# Every key is display-only and present only when the backend's
@@ -1775,33 +1881,33 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		var standing = str(v.get("standing", ""))
 		var may_petition = standing == "may petition"
 		var standing_color = Utils.COLOR_SUCCESS if may_petition else COLOR_AMBER
-		bbcode += "  Standing: [color=#" + standing_color + "]" + standing + "[/color]"
+		var standing_cell: String = "[color=#" + standing_color + "]" + standing + "[/color]"
 		if may_petition and v.has("next_petition_in"):
 			var next_in = int(v.get("next_petition_in", 0))
 			if next_in <= 0:
-				bbcode += "  [color=#" + Utils.COLOR_INFO + "]· may petition at the turn's end[/color]"
+				standing_cell += "  [color=#" + Utils.COLOR_INFO + "]· may petition at the turn's end[/color]"
 			else:
-				bbcode += "  [color=#" + Utils.COLOR_INFO + "]· next petition in " + str(next_in) + " turn" + ("s" if next_in != 1 else "") + "[/color]"
-		bbcode += "\n"
+				standing_cell += "  [color=#" + Utils.COLOR_INFO + "]· next petition in " + str(next_in) + " turn" + ("s" if next_in != 1 else "") + "[/color]"
+		facts.append([_fact_label("authority", "Standing: "), standing_cell])
 	if v.has("bond") and not bond_led:
 		var bond_text = _vassal_bond_text(v)
 		if bond_text != "":
-			bbcode += "  Bond: [color=#" + Utils.COLOR_INFO + "]" + bond_text + "[/color]\n"
+			facts.append([_fact_label("trust", "Bond: "), "[color=#" + Utils.COLOR_INFO + "]" + bond_text + "[/color]"])
 	var remission_left = int(v.get("remission_left", 0))
 	if remission_left > 0:
-		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Tribute remitted: " + str(remission_left) + " collection" + ("s" if remission_left != 1 else "") + "[/color]\n"
+		facts.append([_fact_label("gold", "Tribute remitted: "), "[color=#" + Utils.COLOR_GOLD + "]" + str(remission_left) + " collection" + ("s" if remission_left != 1 else "") + "[/color]"])
 
 	# ── Garrison lever (VP-D1) ──
 	var capital = str(v.get("capital", ""))
 	if v.get("garrison_present", false):
-		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Garrisoned — our presence in " + capital + " steadies them (+" + str(int(v.get("garrison_bonus", 2))) + "/turn)[/color]\n"
+		facts.append([_fact_label("garrison", ""), "[color=#" + Utils.COLOR_SUCCESS + "]Garrisoned — our presence in " + capital + " steadies them (+" + str(int(v.get("garrison_bonus", 2))) + "/turn)[/color]"])
 	elif capital != "":
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]No garrison — a corps in " + capital + " would add a standing +2/turn[/color]\n"
+		facts.append([_fact_label("garrison", ""), "[color=#" + Utils.COLOR_INFO + "]No garrison — a corps in " + capital + " would add a standing +2/turn[/color]"])
 
 	# ── Standing subsidy (treaty gold_per_turn — a forecast term, so name it) ──
 	var subsidy = int(v.get("subsidy_bonus", 0))
 	if subsidy > 0:
-		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Subsidized — treaty gold steadies them (+" + str(subsidy) + "/turn)[/color]\n"
+		facts.append([_fact_label("income", ""), "[color=#" + Utils.COLOR_SUCCESS + "]Subsidized — treaty gold steadies them (+" + str(subsidy) + "/turn)[/color]"])
 
 	# ── The laws that bind them (SR-5r RF-4b, T8 — the forecast's own term) ──
 	for term in v.get("law_terms", []):
@@ -1809,7 +1915,7 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			var law_name = str(term[0])
 			if law_name != "":
 				law_name = law_name.substr(0, 1).to_upper() + law_name.substr(1)
-			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]" + law_name + " binds them (+" + str(int(term[1])) + "/turn)[/color]\n"
+			facts.append([_fact_label("administration", ""), "[color=#" + Utils.COLOR_SUCCESS + "]" + law_name + " binds them (+" + str(int(term[1])) + "/turn)[/color]"])
 
 	# ── Granted provinces (VS-3 provenance) ──
 	var granted = v.get("granted_regions", [])
@@ -1817,13 +1923,24 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		var granted_strs = []
 		for g in granted:
 			granted_strs.append(str(g))
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Ceded to them: " + ", ".join(PackedStringArray(granted_strs)) + "[/color]\n"
+		facts.append([_fact_label("europe", ""), "[color=#" + Utils.COLOR_INFO + "]Ceded to them: " + ", ".join(PackedStringArray(granted_strs)) + "[/color]"])
+	bbcode += _facts_table(facts)
 
 	# ── Action chips (honest availability — the wizard's own gate rows) ──
+	# Session UI-2: ONE row of chips on its own line, never inside a sentence;
+	# each chip's terms a note under the row.
 	var actions = v.get("actions", [])
 	if actions is Array and actions.size() > 0:
+		var chips: Array = []
+		var notes := ""
 		for a in actions:
-			bbcode += _format_vassal_action_row(a, v)
+			var parts: Array = _vassal_action_parts(a, v)
+			if parts.is_empty():
+				continue
+			chips.append(parts[0])
+			notes += parts[1]
+		if not chips.is_empty():
+			bbcode += "  " + "  ".join(PackedStringArray(chips)) + "\n" + notes
 	elif actions_blocked:
 		pass  # section-level notice already shown
 	bbcode += Utils.CARD_CLOSE
@@ -1870,10 +1987,13 @@ const _VASSAL_ACTION_LABELS = {
 	"grant_region_to_vassal": "Cede Province…",
 }
 
-func _format_vassal_action_row(a: Dictionary, v: Dictionary) -> String:
+func _vassal_action_parts(a: Dictionary, v: Dictionary) -> Array:
+	"""Session UI-2: one action as [the chip, its note line]. A live action is a
+	gilt chip with its terms noted under the row; a gated one is the dimmed chip
+	with its reason said in its note. [] for an action the card does not know."""
 	var action_id = str(a.get("action", ""))
 	if not _VASSAL_ACTION_LABELS.has(action_id):
-		return ""
+		return []
 	var label = str(_VASSAL_ACTION_LABELS[action_id])
 	var nation = str(v.get("name", ""))
 	var dp_cost = int(a.get("dp_cost", 1))
@@ -1910,7 +2030,6 @@ func _format_vassal_action_row(a: Dictionary, v: Dictionary) -> String:
 		# The executor's own disclosure phrasing — chip copy and result
 		# message can never disagree.
 		terms += " (the Emperor's faltering grip blunts the gesture)"
-	var row = "  "
 	if a.get("available", false):
 		var meta = ""
 		if action_id == "grant_region_to_vassal":
@@ -1921,15 +2040,13 @@ func _format_vassal_action_row(a: Dictionary, v: Dictionary) -> String:
 		var chip_text = Utils.COLOR_GOLD
 		if action_id == "release_vassal":
 			chip_text = Utils.COLOR_ERROR_CHIP
-		row += Utils.bb_button_chip(meta, label, chip_text, chip_bg)
-		row += "  [color=#" + Utils.COLOR_INFO + "]" + terms + "[/color]"
-	else:
-		var reason = str(a.get("disabled_reason", ""))
-		row += "[color=#" + Utils.COLOR_INFO + "]" + label + " — unavailable"
-		if reason != "":
-			row += ": " + reason
-		row += "[/color]"
-	return row + "\n"
+		return [Utils.bb_button_chip(meta, label, chip_text, chip_bg),
+			"    [color=#" + Utils.COLOR_INFO + "]" + label + " — " + terms + "[/color]\n"]
+	var reason = str(a.get("disabled_reason", ""))
+	var gated: String = label + " — unavailable"
+	if reason != "":
+		gated += ": " + reason
+	return [Utils.bb_chip_disabled(label), "    [color=#" + Utils.COLOR_INFO + "]" + gated + "[/color]\n"]
 
 
 # =============================================================================
@@ -1958,6 +2075,20 @@ static func congress_stance_color(stance: String) -> String:
 		"SHUT OUT":
 			return COLOR_SLATE
 	return Utils.COLOR_INFO
+
+
+static func congress_stance_tone(stance: String) -> String:
+	"""Session UI-2: the stance badge's ground (the same reading as the ink)."""
+	match stance:
+		"RECOGNIZES", "SIGNED":
+			return "2f6b3a"
+		"REFUSES":
+			return "8b2a2a"
+		"SUES":
+			return "8a6d2a"
+		"SHUT OUT":
+			return "3a4a6b"
+	return Utils.COLOR_BADGE_QUIET
 
 
 static func congress_severity_tint(severity: String) -> String:
@@ -2002,7 +2133,7 @@ func _render_congress():
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CONGRESS OF PARIS ═══[/color]\n"
 	if not (c is Dictionary) or c.is_empty() or not _ctrue(c.get("armed", false)):
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]There is no Congress of Paris in this campaign — the rules of the ending are not authored here.[/color]\n"
-		content_area.text = bbcode
+		content_area.text = Utils.dress_heads(bbcode)
 		return
 	var needed := _cint(c, "titled_needed")
 	var turns := _cint(c, "turns")
@@ -2021,7 +2152,7 @@ func _render_congress():
 	else:
 		bbcode += _congress_gate_block(c)
 	bbcode += _congress_table_block(c)
-	content_area.text = bbcode
+	content_area.text = Utils.dress_heads(bbcode)
 
 
 func _congress_gate_block(c: Dictionary) -> String:
@@ -2175,20 +2306,24 @@ func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
 		display = Utils.display_nation_name(nation)
 	var seat := _cstr(ct, "seat")
 	var stance := _cstr(ct, "stance")
-	var out := "  " + Utils.bb_flag(nation, 18)
-	out += "[color=#" + Utils.COLOR_GOLD + "][b]" + display + "[/b][/color]"
+	# Session UI-2 (November 11, 2026): a court a card — its arms, its name in
+	# the title face, its stance a badge; the reckoning and the price a table.
+	var out := Utils.card_open(congress_stance_color(stance)) + "  " + Utils.bb_flag(nation, 18) + " "
+	out += Utils.HEAD_OPEN + display + Utils.HEAD_CLOSE
 	if seat != "" and seat != display:
 		out += "  [color=#" + Utils.COLOR_INFO + "](" + seat + ")[/color]"
-	out += "   [color=#" + congress_stance_color(stance) + "][b]" + stance + "[/b][/color]\n"
+	out += "   " + Utils.bb_badge(stance, congress_stance_tone(stance)) + "\n"
 	var reason := _cstr(ct, "reason")
 	if reason != "":
 		out += "    [color=#" + Utils.COLOR_INFO + "]" + _bb_safe(reason) + "[/color]\n"
+	var court_facts: Array = []
 	var score = ct.get("score", null)
 	if (score is int or score is float) and _cstr(ct, "by") == "formula":
-		out += "    [color=#" + Utils.COLOR_INFO + "]Its reckoning: " + str(int(score)) + " — it signs at " + str(_cint(ct, "threshold")) + "[/color]\n"
+		court_facts.append([_fact_label("intel", "Its reckoning: "), "[color=#" + Utils.COLOR_INFO + "]" + str(int(score)) + " — it signs at " + str(_cint(ct, "threshold")) + "[/color]"])
 	var price := _cstr(ct, "price")
 	if price != "":
-		out += "    [color=#" + Utils.COLOR_INFO + "]Price: " + _bb_safe(price) + "[/color]\n"
+		court_facts.append([_fact_label("gold", "Price: "), "[color=#" + Utils.COLOR_INFO + "]" + _bb_safe(price) + "[/color]"])
+	out += _facts_table(court_facts)
 	# The War of the Congress: the backend sends `war_in` ONLY when the join
 	# would really fire (`congress.march_blocker` empty), else the blocker —
 	# a court in a truce, an ally, or no coalition to join is never promised
@@ -2225,8 +2360,8 @@ func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
 		out += "    [color=#" + Utils.COLOR_INFO + "]In the Cabinet: " + "; ".join(PackedStringArray(controls)) + ".[/color]\n"
 	if stance != "GONE" and nation != "":
 		var where: String = seat if seat != "" else display
-		out += "    [url=congress_court:" + nation + "][color=#" + Utils.COLOR_GOLD + "]Open the Cabinet at " + where + " →[/color][/url]\n"
-	return out + "\n"
+		out += "    " + Utils.bb_button_chip("congress_court:" + nation, "Open the Cabinet at " + where + " →", Utils.COLOR_GOLD, "233043") + "\n"
+	return out + Utils.CARD_CLOSE + "\n"
 
 
 # =============================================================================

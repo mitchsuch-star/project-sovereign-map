@@ -42,6 +42,14 @@ const KIND_TITLES = {
 	"war_weary": "A MARSHAL COUNSELS PEACE",
 	"shadow_command": "A MARSHAL ASKS FOR A COMMAND",  # NP-3 §6.3
 }
+# Session UI-2: the glyph each petition stands under (one icon per category).
+const KIND_GLYPHS = {
+	"jealousy_confrontation": "glory",
+	"rivalry_confrontation": "war",
+	"fontainebleau": "cabinet",
+	"war_weary": "drum",
+	"shadow_command": "command",
+}
 
 
 func _ready():
@@ -72,6 +80,8 @@ func show_petition(petition: Dictionary):
 	# is why `war_weary`, the one petition carrying a spoken clause, was
 	# the only one that read as drama. His own words go FIRST, in gold,
 	# above the staff's summary; the header names him.
+	# Session UI-2: the office the petition comes from, above the header.
+	_arms_row([{"glyph": str(KIND_GLYPHS.get(kind, "letter"))}])
 	var speaker = str(petition.get("speaker", ""))
 	if speaker != "" and speaker != "<null>":
 		title_label.text = Utils.humanize_nation_keys_in_text(speaker).to_upper() \
@@ -157,7 +167,20 @@ func _fit_body() -> void:
 		return
 	var wanted: float = body_label.get_content_height() + 12.0
 	body_label.custom_minimum_size.y = clampf(wanted, 120.0, 360.0)
+	# Session UI-2: the ceiling grows with the window — the arms row took the
+	# authored 540's last line of the letter, and every enabled answer's price
+	# must stay in view (SFR-B11); the band still bounds it.
+	var view := get_viewport().get_visible_rect().size
+	$PanelContainer.set_meta("clamp_ceiling_override", Vector2(680.0, maxf(view.y * 0.86, 540.0)))
 	Utils.clamp_centered_panel($PanelContainer)
+	# Session UI-2: and the card shrinks to what it holds (the authored 540
+	# stood over a band of empty panel under a short petition) — not in the
+	# compact view, where the clamp has already relaxed the letter to the
+	# room and a shrink would trim the answers' prices out of sight.
+	# A long petition keeps the authored room (its letter expands into it and
+	# every answer's price stays in view, SFR-B11); only a short one shrinks.
+	if wanted <= 360.0 and not Utils.compact_view():
+		Utils.shrink_centered_panel_to_content($PanelContainer)
 
 
 func refit() -> void:
@@ -176,7 +199,8 @@ func _add_option(option: Dictionary) -> String:
 		label += "   [" + cost_note + "]"
 	btn.text = label
 	btn.custom_minimum_size = Vector2(0, 40)
-	btn.add_theme_color_override("font_color", Utils.UI_GOLD)
+	# Session UI-2: an open arm wears the theme's gilt face (the gold override
+	# that stood here beat its words); a closed arm is dimmed below.
 	var is_enabled = bool(option.get("enabled", true))
 	btn.disabled = not is_enabled
 	btn.tooltip_text = str(option.get("detail", ""))
@@ -216,3 +240,51 @@ func _on_later():
 	# never popped it), so there is no answer to POST — but control MUST come
 	# back, or the deferral is indistinguishable from a crash.
 	petition_deferred.emit()
+
+
+func _arms_row(parts: Array) -> void:
+	"""Session UI-2: the arms the voice speaks under (a court's flag, an
+	office's glyph, the Empire's eagle) in one centred row above the title;
+	an empty list hides the row. Built once, refilled on every show."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var row: HBoxContainer = vb.get_node_or_null("ArmsRow") as HBoxContainer
+	if row == null:
+		row = HBoxContainer.new()
+		row.name = "ArmsRow"
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(row)
+		vb.move_child(row, 0)
+	for c in row.get_children():
+		row.remove_child(c)
+		c.queue_free()
+	for part in parts:
+		var tex_path: String = ""
+		var tint: Color = Color.WHITE
+		var h: float = 26.0
+		if part.has("flag"):
+			tex_path = Utils.nation_flag_path(str(part["flag"]))
+		elif part.has("glyph"):
+			tex_path = Utils.glyph(str(part["glyph"]))
+			tint = Utils.UI_GOLD
+		elif part.has("eagle"):
+			tex_path = Utils.EAGLE
+			tint = Color(Utils.UI_GOLD, 0.92)
+			h = 44.0
+		if tex_path == "" or not ResourceLoader.exists(tex_path):
+			continue
+		var tex: Texture2D = load(tex_path)
+		if tex == null or tex.get_height() <= 0:
+			continue
+		var art := TextureRect.new()
+		art.texture = tex
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.custom_minimum_size = Vector2(h * float(tex.get_width()) / float(tex.get_height()), h)
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		art.modulate = tint
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(art)
+	# the compact view (Interface Scale 2.0) keeps its room for the answers
+	row.visible = row.get_child_count() > 0 and not Utils.compact_view()

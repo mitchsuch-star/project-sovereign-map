@@ -16290,3 +16290,204 @@ and the numbers shift when any node is added — compare multisets per normalise
 shrinks a window sitting at its content minimum, it does not grow the log; a layout change read at 1.0 is read
 again at 2.0 (800×450 logical), where the Table lesson's card covers the command window's top right; the Bash
 tool's heredocs fold doubled backslashes — patch scripts and long doc text go through the Write tool.
+
+## §213 Session UI-2 — the imperial desk (November 11–12, 2026)
+
+**The session** (`UI_VISUAL_FOUNDATION_SPEC.md` §10 the landing record). The user's word: raise the client from the
+last pass's own 7/10 to 9/10 — every surface, nothing assumed, assets found online (licence-checked) or coded;
+three blind readers before and after. Drafted in Plan Mode and approved. Display only, but for one client-side route
+(the chest's figures to the top bar) and two defaults (below): no backend file, no saved field, no game rule.
+
+**The button face — `scripts/gilt_button.gd`** (`@tool extends StyleBox`, no `class_name`; the theme names it by
+path). Draws a soft lift shadow (or, on hover, a gilt glow), the foot's fill rounded, a head-to-foot gradient
+(`bg_color` → `bg_foot`), a 1 px light under the head (`highlight`), a sunk well on press (`inset`), and the rim —
+solid, or DASHED (`dashed`) for a button that cannot act. The contract is the frame's: StyleBoxFlat's names for the
+fill and the rim (`bg_color`, `border_color`) and the inherited `content_margin_*` (12 / 6; the pressed 7 / 5), so no
+button changes size and a run-time tint keeps working (`"border_color" in box`). High contrast drops the gradient and
+draws the rim at full alpha. The theme's Button `normal / hover / pressed / disabled` and the primary trio (their ids
+kept: the pins name `StyleBoxFlat_primary`) are its sub_resources; the focus ring stays a StyleBoxFlat (pinned).
+New steps: `ParchmentButton` (16; vellum, a sepia rim, ink words; hover a rubric rim; disabled dashed),
+`EndTurnButton` (14; a 2 px gilt rim — End Turn wears it every day, the gilt primary when the day is spent),
+`StatFigure` (24, the title face — a stat tile's figure) and `Figure` (16, lining tabular figures:
+`FontVariation_figures`, `lnum` + `tnum`). The tooltip panel keeps its opaque StyleBoxFlat (PC-F47's pin) with
+12 / 8 padding and NO shadow: Godot grows a popup's window to draw its panel's shadow, and a hover at the
+window's edge then stood 10 px outside it (PC-F47's driven pins caught it).
+
+**The stat glyphs** — `assets/ui/icons/glyphs/` (36 SVG from the shipped game-icons pool, CC BY 3.0, the black fill
+turned white; `GLYPHS.txt` names each source icon and author). Imported at `svg/scale=0.25` with
+`mipmaps/generate=true`, and the project's canvas filter is `textures/canvas_textures/default_texture_filter=2`
+(linear with mipmaps): a glyph renders at 16–28 px — the last pass's 16-px trap was a 512-px texture with no mipmaps.
+`Utils.glyph(name)` / `Utils.bb_glyph(name, size, hex)`. **The eagle** — `assets/ui/ornaments/eagle_empire.svg`
+(PD-self vectorisation of a PD-Art 1804 source; `Utils.EAGLE`), the detail white for `modulate`, imported at 2.0 with
+mipmaps.
+
+**The chips — `Utils.bb_button_chip` / `bb_chip_disabled`**: a ONE-CELL TABLE inline on its line
+(`[table=1,baseline][cell border=#<ink>b0 bg=#<bg>]…[/cell][/table]`), padded by bound spaces INSIDE the link (the
+whole cell is the target; `padding=` miscounts an inline cell's width — measured). Every chip in the game wears a rim
+with one change; the disabled one a dim rim (`CHIP_DIM_RIM` 4b505c) on the old pill's ground (`CHIP_DIM_BG` 20242c —
+the contrast census's exempt pair, an inactive control) and no link. `mark_chip_sent` greys the whole cell; a global
+`node_added` hook (`Utils._unline_links`, installed with the tooltip wrap) turns `meta_underlined` off — a link reads by
+its colour, its ▸ and the pointer, a chip by its rim. `Utils.bb_badge` is the chip's cell without a rim (a state, never
+a button). The capture harness reads a one-cell table's `[color]` against the cell's own `bg` (`_cell_chip_re` in
+`tools/iq10_surface_screenshot.gd`), as it read the `[bgcolor]` pill before.
+
+**The books' kit (`utils.gd`)**: `bb_meter` (fill + track as two tinted 4×4 swatches, `assets/ui/bars/swatch.png`) —
+`bb_bar_img` keeps its signature and draws it (the stepped Kenney images had no visible track, so a short bar read as a
+gap — the Generals' "staircase"); `bb_relation_meter` (−100…100 centred on nought); `bb_table` (header row in small
+caps, zebra cells, right-aligned lining figures); `bb_portrait_row` (a portrait in a gilt-ruled cell beside a sheet
+whose cell may hold lines); `dress_heads` (a book's `[color=#B8860B]` capital headings and `═══ X ═══` rules into the
+title face, a bare `═` rule into a gilt hairline — applied at each page's one `text =` seam); `HEAD_OPEN` /
+`HEAD_CLOSE`. **The title face's path**: `[font=…]` ends at the first `]`, and the Cinzel file is
+`Cinzel[wght].ttf` — `ui/title_face.tres` (a FontVariation of it) is the path BBCode uses. **The card underlay**
+counts a page's paragraphs on `Utils.flatten_tables(text)` — a table is ONE paragraph of its page whatever its cells
+hold (measured: a cell's newlines are the cell's own); without it a portrait row would trip the fail-safe and the
+page would lose its cards. `[br]` does not exist in 4.4.1 (it prints literally — measured).
+`scripts/stat_strip.gd` (an HBox of tiles: glyph, `StatFigure`, a caption, an optional meter with marks) stands
+above a book's page — the Strategic Ledger builds one (`_build_strip` / `_set_strip`, per book: Forces, Territories,
+Economy, Manpower).
+
+**The palette's new tokens** (`utils.gd`, each one line): `UI_ALERT_TEXT` (de5757 — the alert red for words and
+figures on the dark ground: `UI_ALERT` read 4.36 : 1 on the top bar and 4.24 on a page once the figures took the
+16-px `Figure` step, body type; it now colours the threat at 60+, authority under 50 and the Economy's negative
+net); `UI_PLAQUE_DIM_INK`, `UI_PLAQUE_FADED_RIM`, `UI_PLAQUE_FADE_TO` (a stale plaque's greys) and
+`COLOR_BADGE_QUIET` (the region panel's kind-of-province badge) — the consistency census's R4, no one-off grey in a
+surface's own files.
+
+**The war room.** The top bar (`top_bar.gd::_build_desk_groups`): three clusters split by gilt hairlines — the
+resources (gold `update_treasury`, DP, authority, threat with its 0–100 gauge marked at 60 / 80), the court (the
+Admiralty, the Cabinet, the Envoys with their glyphs), the date (the title face; the turn by the hourglass). The
+figures lose their words (the glyph and the tooltip carry them: `DP_TOOLTIP`, `TREASURY_TOOLTIP`, `THREAT_TOOLTIP`);
+each opens its book on a click (gold → Economy, DP → Talleyrand, authority → Forces, threat →
+`open_to_balance`, the date → the Dispatch). **The fit ladder** (`_fit_right_cluster`, queued after any figure's words
+change): the right side sheds, one step at a time, the gauge, the chest's net, the Cabinet chip, the Admiralty's
+words, the Envoys' word, the title face and the hourglass, until the bar's combined minimum fits — the nav's words /
+glyphs are still decided first by `COMPACT_BELOW_PX` (pinned). The map (`scripts/map_plaque.gd`, kinds GARRISON /
+FOG / SAIL / NAME; `_plaque`, `_nameplate`): a garrison a dark plate with its holder's band; a fog force a round token
+with a dashed rim, its "?" at 0.85 / 0.7 alpha (it was 0.7 / 0.5 against the paper); a sail count a navy roundel; a
+name a nameplate in the body face's small capitals; co-located names stand in rows from `name_rows` (pure: a zig-zag
+over their own pieces, one column when two on a row would touch). The command window: a glyph before each status key
+(`_dress_status_glyphs`), the log's floor 110 / 140 / 180 by the logical height (`_log_floor`), the grip's hatch
+inside the frame (`ResizeGrip.frame_inset`, the frame's `thickness()` + 1). The war HUD's rows flanked by both
+sides' flags; under 1,000 logical px it stands at the top right under the rail. The rail's notices are dark roundels
+with a rim and glyph in their urgency. The region panel: the title face, badges, glyph-led figures, rimmed chips,
+400 px wide.
+
+**Defaults moved (each one line):** HUD width `"auto"` (`UiSettings.DEFAULT_HUD_WIDTH`): Full on an ordinary
+screen, a 16:9 safe zone about the centre at `SAFE_ZONE_ASPECT` 2.6 and wider (`Utils.hud_band_full`); "full" and
+"centred" are as they were. The capture runner shoots the game's default (`--hud-width auto`, untagged; full and
+centred tag the frame) — it had forced "full", so Auto's zone was never on a frame. `ULTRA_WIDE_BONUS` 0.25 → 0.45 in
+both twins (`ui_settings.gd`, `tools/uxr0_readability_report.py`): 5120×1440 derives 1.60 (logical 3200×900). A
+player who chose a size keeps it. The cost, said once: the long armistice letter (PC-F46) still stands at 80 % and
+860 wide on that panel with its whole cost above the fold, and its War Summary — which PC-F46 put last — lies under
+the fold, as on any 900-px window.
+
+**Motion:** `Utils.watch_motion(node)` (the dialog registry and the top bar's screens) fades a surface in over
+`MOTION_SECONDS` 0.16 whenever it becomes visible; nothing waits on it (no close delay). Settings → INTERFACE →
+**Reduce motion** (`UiSettings.get/set_reduce_motion`); the capture harness sets it on.
+
+**The letters and the popups:** `incoming_proposal_popup.gd::_fit_to_letter` (after every clamp: the body asks for
+its height, capped at the room, then `shrink_centered_panel_to_content`) — the petition's and the short letters' voids;
+`ParchmentButton` on the letter's answers; `ContentLabel`'s `default_color` the ink while dressed (the contrast
+census's 34 rows); the closed plaque opaque vellum. The objection's answers on an even two-column grid
+(`_even_the_answers`) ONLY when every answer's words fit half a row — otherwise the natural widths, as before: the
+grid pushed a long answer onto a row of its own, and at Interface Scale 2.0 the dialog stood over the top bar's strip
+(the frames' clamp-band pin caught it). The Campaign Menu's Settings is a page (`_show_settings_page`;
+`SETTINGS_PAGE_WIDTH` 600). The main menu: a shade under the column (`_build_column_shade`), the eagle over the
+title, rows 520 wide, the backend notice amber; the scale card right of the column on a wide view. The diorama: the
+gilt frame over the wood (the floral corners retired), the seal left of the plate. The end card: the eagle, the
+ceiling grown with the window, the card fitted (`_fit_card`). The war detail: the acts above the account. The
+Moniteur: a blackletter masthead (UnifrakturMaguntia, OFL, shipped). The settlement's Submit for Review the primary.
+
+**The plan's remainder** (an audit of the approved plan against the tree found items unbuilt; built the same session
+by ten builders, one owner per file, each `.gd` diff read and parse-checked, then re-shot and read by eye):
+- *The Cabinet* (`diplomacy_wizard.gd`): step 1's courts as rows — the court's Button (flag, name) and a non-clickable
+  cell (a state badge, a MISSION badge where one runs, the relation meter with its figure and word); group headings in
+  the title face; a shut Summon dimmed on top of its dashed face, its reason kept. Step 2's acts as rows — the act's
+  name on the Button, its DP and gold (each with its glyph) and a verdict badge toned by the likelihood on the right,
+  the effect as a note line under it. `CABINET_CEILING_SHARE` 0.6 → 0.7 (756 px at 1080p): the list takes the height.
+- *The settlement table* (`proposal_confirm_popup.gd`): the verdict in the title face (gilt when it carries, the alert
+  red when not) with its glyph; one card per court — flag, name, band and score, an exact meter scaled to 1.2× the bar
+  with a 1-px gilt mark at 50 and the figure in lining numerals, the blocker a badge, the envoy's words a quote block
+  (`_quote_block`, a gilt-ruled one-cell table); "Add demand" a chip (`addmenu:%d`, reviewed in the chip census);
+  Talleyrand's reading a quote block; the Demand / Ease / Drop rows led by each court's flag, on the theme's face. The
+  four stacked scroll areas stay (the scene-order pins and the document fit hold them).
+- *The Strategic Ledger*: Forces' corps cards lead with a header line (arm glyph, gilt name, status badge, a strength
+  meter scaled to the largest corps) over a figure line (where, morale and trust meters, W/L); Territories is ONE
+  `bb_table` (province · kind and ground · income · stability meter · supply tag and its terms · garrison ·
+  buildings); Economy stands in INCOME and CHARGES groups (a signed line by its sign) over a gilt hairline and Net in
+  bold (`bb_tabulate` kept); Manpower's pools take meters and the shared levy note is said once; Intel's tables carry
+  flags and reading tags; Orders, Laws and the Admiralty are glyph-led cards with badges.
+- *The Diplomatic Ledger*: Nations' court facts as a glyph-labelled two-column table; the Balance of Europe leads with
+  the threat (its figure in the title face, a 360-px gauge ticked at the payload's thresholds, "60 brews · 80 forms");
+  the designs' roads as cards; Vassals' loyalty meter and forecast, the levers' facts table, the actions ONE chip row
+  on its own line; Treaties, Talleyrand, War Bargains and the Congress in header rows and facts tables.
+- *The mailbox and the Correspondence* (`mailbox_panel.gd`, `dispatch_view.gd`): each envoy row a seal glyph, the
+  court's flag, a state label, the sender in the title face over the subject; the terms framed; Accept the primary;
+  the book fits its rows (`_fit_to_rows`). The slips' ink is `INK_BODY` (the last six contrast rows), seal and device
+  30 px, the page fits its column (`_fit_correspondence`).
+- *The reading surfaces*: the enemy phase's moves as cards led by a glyph by kind (`_action_glyph`), a battle's name a
+  title-face heading, the result a badge above the unchanged "Result:" line; the Dispatch's centred title-face
+  dateline, its SITUATION figure line (`_situation_figures`) and glyph-led sections (`_dress_sections`); the
+  Moniteur's headline in the title face and its four sections as cards (no columns: a table would break sentences).
+- *The ceremonies*: the end card's RECORD as a figure strip (`RecordStrip`); the diorama's strength band — each side's
+  muster before → after in lining figures over a drawn bar, the dead in crimson, animated with the odometers
+  (`TRAY_H` 660 → 684). *The School of War*: "THE SCHOOL OF WAR · n of N", a progress meter, the lesson in short
+  paragraphs (`_paragraphs`, the same words), the quill or door chip gilt, Skip quiet.
+- *The war score* (`WarStatusPanel.build_score_track`, shared by the HUD rows and the war detail's head): a
+  gilt-rimmed pill track filling from a centre notch and the signed figure in a round medallion on a navy ground
+  (a losing figure in `UI_ALERT_TEXT`); the arms at both ends — the enemy's left, France's right, the side France's
+  colour fills toward; the war detail adds a one-line verdict (±25, ±75 and the backend's trend).
+- *The decision popups*: an `ArmsRow` header (a court's flag, the eagle, an office's glyph) on nine; each fits its
+  content (clamp, then `shrink_centered_panel_to_content`; a `refit()` on six); the reward's figure strip; one primary
+  act where a default exists. *The Generals*: arm and nation tags, trust and glory meters beside the portrait, the lore
+  as notes, the urgent chip legible (`CHIP_GILT_INK` on `CHIP_GILT_BG`). *Settings*: section heads in the title face
+  over a gilt rule. *The command window* folds its header into one band under 600 logical px (`_fold_header`:
+  the scale steppers and the minimise control ride at the end of the status figures; the scene's paths stay).
+
+**`Utils.bb_tag`** — a badge for INSIDE a table cell: a one-cell table (a badge, a chip) nested in another table's
+cell is squeezed to one letter a line (measured on the frames: the Generals' "I n f a n t r y", Territories' "O / K"),
+so a cell's state wears its tint as an inline `[bgcolor]` run, which the contrast census reads against its own ground.
+`bb_badge` stays the badge on a line.
+
+**The top bar's pointing hand** (`_arm_pointers`): the clickable figure groups take `CURSOR_POINTING_HAND` a frame
+after `_ready`. A cursor shape written while the bar is unlaid makes the engine re-pick the control under the mouse
+with every child at (0, 0); the gear (the row's last child) took a stale hover and its tooltip, and that open tooltip
+ate the first Esc — DDB-54's driven pin caught it; bisected against the last commit's copy of the client.
+
+**Pins:** `tests/test_ui_gilt2_imperial_desk.py` (the source half, and `tools/ui_gilt2_probe.gd` driven headless:
+the button's names through a duplicate, the theme's faces, the steps, `name_rows`, a table one paragraph of its
+page, the heads / meters / chips, the Auto band and the derivation; `TestWhatTheInstrumentsCaught` — the objection's
+grid, the alert red as a figure, a chip on its own ground, the named greys; `TestTheHeaderFolds`;
+`TestTheFiguresPointOnlyOnceLaidOut`; `TestTheCompactViewAndTheInCellTag`) and
+`tests/test_uxr2b_hud_band.py::TestAutoFramesTheMapOnTheUsersPanel` (driven at 5120×1440: the band a 16:9 zone about
+the centre, every HUD rect inside it, the strip full-bleed).
+
+**Moved with their reasons** (each carries a `Session UI-2` comment): `test_uxr2b_hud_band.py` (HUD_WIDTHS / DEFAULT;
+the band's rule reads the setting once); `test_uxr1_scale_fix.py` and `test_dd_b_the_client_hands.py` (the 5120 row
+1.40 → 1.60, the bonus; the tutorial card's title at `HudTitle`; the Settings page's width);
+`test_uxr3_s12_part2.py` (the diorama's corners → the frame; the region panel's name at `ScreenTitle`; the threat's
+words to its tooltip; the glyph-led Income; the courts' Laws / Doctrine / Diplomat as facts-table rows, with
+`test_rf4b_the_laws_everywhere.py`); `test_uxr4_s15_fixes.py` and `test_ui_gilt_frame.py` (`dress_heads` at a page's
+seam; End Turn's step); `test_uxr2_override_diet.py` (four styled steps); `test_uxr2b_high_contrast.py` (the fourth
+toned grey: the turn's figure); `test_uxr3_s12_fixes.py` (the fog token's alphas); `test_sf_rr5_the_frames.py` (the
+diorama's ornaments: none); `test_cn4_the_chip_honesty_census.py` (the dimmed chip's cell; the Congress court chip and
+the Add-demand chip reviewed); `test_uxr4_s15_pc_layout.py` (PC-F46 at 5120: the War Summary under the fold);
+`test_s14f_the_remeasure_rows.py` (the garrison line's glyph); `test_s14h_the_third_measure_rows.py` (the Cabinet's
+ceiling 0.6 → 0.7 and its heights); `test_uxr2_scroll_where_unbounded.py` (the Cabinet's fit-content labels 17 → 20);
+`test_settlement_guided_terms_slice3.py` (Add demand a chip); `test_map_renderer_cutover.py` and
+`test_map_slice75_presentation.py` (the garrison a plaque: the figure beside the holder's band, ivory on the dark plate
+— no text on a raw nation colour); `tools/_sweep_tutorial.json` (the quiet Skip chip's anchor); `test_uxr0_readability.py`
+(the AFTER records re-shot: `readability_after_{named,all}_2026_11_12.json`).
+
+**Instruments moved** (they must read what the screen draws): `tools/iq10_surface_screenshot.gd` (a one-cell-table chip
+against its own ground; Auto when the HUD width is unsaid), `tools/iq10_run_captures.py` (`--hud-width auto` the
+default, untagged), `tools/uxr0_readability_report.py` (the bonus 0.45), `tools/dd_b_client.gd` and
+`tools/uxr_d4_side_desk_harness.gd` (the turn read from its two labels; a corps card's head found past its glyph).
+
+**Traps the session paid for:** the Bash tool's heredocs fold doubled backslashes — every patch went through the Write
+tool (twice a heredoc broke a GDScript escape); `var x := <Variant>.method()` is a parse error (`reload_error_43`) —
+type it; a `[font=…]` path with brackets ends early; an inline table's `padding=` is not counted in its width — pad
+with bound spaces; `[br]` is not BBCode in 4.4.1; a table's cell newlines are not page paragraphs (the underlay's
+`flatten_tables`); a popup panel's shadow grows its window; a new figure step moves a label from the caption floor
+(3.0) to the body floor (4.5) — re-read its colours; the capture runner had its own HUD-width default; a table nested in a table cell is squeezed to one letter a line (`bb_tag`); a cursor shape written in `_ready` re-picks the hover with every child at (0, 0) (`_arm_pointers`); two builders owning one file need a word between them (`dispatch_view.gd`: the Correspondence and the Dispatch); the suite at
+`-n 10` under memory pressure (0.8 GB free) runs ten times slower — the machine, not the tests.

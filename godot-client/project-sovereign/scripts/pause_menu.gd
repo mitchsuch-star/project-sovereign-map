@@ -127,6 +127,8 @@ func close_menu():
 	closed.emit()
 
 func _reset_menu_state():
+	if settings_box.visible:
+		_show_settings_page(false)
 	settings_box.visible = false
 	if $PanelContainer.has_meta("clamp_ceiling_override"):
 		$PanelContainer.remove_meta("clamp_ceiling_override")
@@ -166,6 +168,7 @@ func _on_cancel_new_game():
 
 func _on_settings():
 	settings_box.visible = not settings_box.visible
+	_show_settings_page(settings_box.visible)
 	# UXR-X2 (October 9, 2026): the panel is authored 360x400 and the clamp
 	# keeps that authored rect as its CEILING, while the settings scroll
 	# inside it wants 440 — so the only shrinkable child, the scroll, was cut
@@ -173,11 +176,43 @@ func _on_settings():
 	# the settings open the ceiling is raised (the IGR-G1 meta, scoped to this
 	# state and removed with it); the viewport budget still bounds it.
 	if settings_box.visible:
-		$PanelContainer.set_meta("clamp_ceiling_override", Vector2(360, 900))
+		$PanelContainer.set_meta("clamp_ceiling_override", Vector2(SETTINGS_PAGE_WIDTH, 900))
 	elif $PanelContainer.has_meta("clamp_ceiling_override"):
 		$PanelContainer.remove_meta("clamp_ceiling_override")
 	# The settings content changes the panel's height class — re-fit.
 	Utils.clamp_centered_panel($PanelContainer)
+
+# Session UI-2 (November 11, 2026): Settings opens as its own page of the
+# Campaign Menu — the menu's roads step aside, the page takes the panel's room
+# (the readers: settings crammed into a small scroll between menu items) and
+# the Settings button reads "‹ Back to the menu".
+const SETTINGS_PAGE_WIDTH := 600.0
+var _page_hidden: Array = []
+
+
+func _show_settings_page(on: bool) -> void:
+	var vb := $PanelContainer/VBoxContainer
+	if on:
+		_page_hidden.clear()
+		for child in vb.get_children():
+			if child == settings_box or child == settings_button or child.name == "TitleLabel" \
+					or child.name == "HSeparator":
+				continue
+			if child is Control and (child as Control).visible:
+				_page_hidden.append(child)
+				(child as Control).visible = false
+		settings_button.text = "\u2039 Back to the menu"
+		var scroll := settings_box.get_child(0) as Control if settings_box.get_child_count() > 0 else null
+		if scroll != null:
+			var view := get_viewport().get_visible_rect().size
+			scroll.custom_minimum_size.y = clampf(view.y * 0.62, 240.0, 640.0)
+	else:
+		for child in _page_hidden:
+			if is_instance_valid(child):
+				(child as Control).visible = true
+		_page_hidden.clear()
+		settings_button.text = "Settings"
+
 
 func _on_main_menu():
 	close_menu()

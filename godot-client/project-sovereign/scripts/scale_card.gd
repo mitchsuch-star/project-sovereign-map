@@ -43,6 +43,11 @@ func _build() -> void:
 	_built = true
 	name = "ScaleCard"
 	set_anchors_preset(Control.PRESET_CENTER)
+	# Session UI-2: on a wide view the card stands right of the campaign
+	# column (the readers: it crowded the title); a narrow one centres it.
+	var wide := get_viewport() != null and get_viewport().get_visible_rect().size.x >= 1200.0
+	anchor_left = 0.64 if wide else 0.5
+	anchor_right = anchor_left
 	# UXR-2: the 560 is the authored offsets below — no width FLOOR, which
 	# had defeated the clamp under a 584-px logical width (1600 wide at 3.0).
 	offset_left = -280

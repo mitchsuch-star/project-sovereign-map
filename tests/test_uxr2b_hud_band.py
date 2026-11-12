@@ -21,6 +21,7 @@ once Full. SKIPS when the Godot engine is absent (a skip is not a pass).
 from __future__ import annotations
 
 import json
+import math
 import os
 import pathlib
 import shutil
@@ -95,6 +96,36 @@ def full(tmp_path_factory) -> dict:
     return _drive(tmp_path_factory, "full")
 
 
+@pytest.fixture(scope="module")
+def auto(tmp_path_factory) -> dict:
+    return _drive(tmp_path_factory, "auto")
+
+
+class TestAutoFramesTheMapOnTheUsersPanel:
+    """Session UI-2 (November 12, 2026): Auto, the new default — on a 32:9
+    panel the HUD stands in a 16:9 safe zone about the centre (the blind
+    readers' HUD lost in the corners of the 5120 frame); the strip stays
+    full-bleed. On 16:9 Auto is Full (the probe's numbers)."""
+
+    def test_the_band_is_a_16_9_zone_about_the_centre(self, auto):
+        vx, vy = auto["view"][0], auto["view"][1]
+        left, right = auto["band"]
+        assert auto["hud_width"] == "auto"
+        assert right - left == pytest.approx(math.floor(vy * 16.0 / 9.0), abs=1.0)
+        assert abs((left + right) / 2.0 - vx / 2.0) <= 1.0, (left, right, vx)
+
+    @pytest.mark.parametrize("surface", IN_BAND)
+    def test_every_hud_rect_is_inside_the_band(self, auto, surface):
+        left, right = auto["band"]
+        r = auto["rects"][surface]
+        assert r, f"{surface} was not on screen"
+        assert r[0] >= left - 0.5 and r[2] <= right + 0.5, (surface, r, (left, right))
+
+    def test_the_strip_stays_full_bleed(self, auto):
+        r = auto["rects"]["bar_strip"]
+        assert r[0] <= 0.5 and r[2] >= auto["view"][0] - 0.5, r
+
+
 class TestTheDoneWhen:
     def test_the_band_is_2560_about_the_centre_of_the_users_panel(self, centred):
         vx = centred["view"][0]
@@ -149,10 +180,15 @@ class TestFitEurope:
 
 
 class TestTheSources:
-    def test_the_setting_is_a_closed_list_with_full_as_default(self):
+    def test_the_setting_is_a_closed_list_with_auto_as_default(self):
+        """Session UI-2 (November 12, 2026): Auto joins the list and is the
+        default — Full on an ordinary screen, a 16:9 safe zone about the
+        centre at 2.6 : 1 and wider (the blind readers' HUD lost in the
+        corners of the 32:9 frame). Full and Centred are as they were."""
         src = G.read(_SCRIPTS / "ui_settings.gd")
-        assert 'const HUD_WIDTHS := ["full", "centred"]' in src
-        assert 'const DEFAULT_HUD_WIDTH := "full"' in src
+        assert 'const HUD_WIDTHS := ["auto", "full", "centred"]' in src
+        assert 'const DEFAULT_HUD_WIDTH := "auto"' in src
+        assert "const SAFE_ZONE_ASPECT := 2.6" in src
         assert "const HUD_BAND_WIDTH := 2560.0" in src
         assert "set_hud_width(DEFAULT_HUD_WIDTH)" in G.func_body(src, "reset_layout")
 
@@ -161,7 +197,11 @@ class TestTheSources:
         # UXR-D4 (Pre-Deploy S12b): the band's own rule is `hud_band_full`;
         # `hud_band` is it minus the Side Desk's dock (0 with none pinned).
         full = G.func_body(utils, "hud_band_full")
-        assert 'UiSettings.get_hud_width() == "centred"' in full
+        # Session UI-2: the setting is read once, then Centred's rule and
+        # Auto's (the 16:9 zone at SAFE_ZONE_ASPECT and wider).
+        assert "var width := UiSettings.get_hud_width()" in full
+        assert 'width == "centred"' in full and 'width == "auto"' in full
+        assert "view.x / view.y >= UiSettings.SAFE_ZONE_ASPECT" in full
         assert "UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN" in full
         band = G.func_body(utils, "hud_band")
         assert "var band := hud_band_full(view)" in band

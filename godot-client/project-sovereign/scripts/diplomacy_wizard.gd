@@ -54,6 +54,9 @@ var _dp_available: int = 0
 # True = step 3 hugs its quote; false = the expanding layout.
 const THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE := true
 
+# Session UI-2: red WORDS on the dark ground take the lifted alert red.
+var _alert_hex: String = Utils.UI_ALERT_TEXT.to_html(false)
+
 const COLOR_LIGHT_GREEN = "a0d0a0"
 const COLOR_LIGHT_RED = "d9a0a0"
 const COLOR_ORANGE = "d9a060"
@@ -72,8 +75,10 @@ var _likelihood_colors: Dictionary = {
 # S14G-22: the Cabinet's default height as a share of the viewport (x = 0: the
 # width keeps its authored 560) - about 60 % of a 5120x1440 screen's height,
 # where the authored 520 left five lines of the court list (864 px at 1440).
-# A viewport under ~867 px high (0.6 x 867 = 520) keeps the authored rect.
-const CABINET_CEILING_SHARE := Vector2(0.0, 0.6)
+# A viewport under ~743 px high (0.7 x 743 = 520) keeps the authored rect.
+# Session UI-2 (November 12, 2026): 0.6 -> 0.7 - the blind readers found the
+# court list "crammed in a small scroll while the window has empty space".
+const CABINET_CEILING_SHARE := Vector2(0.0, 0.7)
 
 
 func _ready():
@@ -211,6 +216,10 @@ func _lay_out_prompt(step: int) -> void:
 	else:
 		assessment_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		assessment_panel.custom_minimum_size.y = 56.0
+		# Session UI-2: the acts take the window's height - the assessment keeps
+		# its counsel in view (_fit_assessment) and a smaller share of the slack
+		# than the list ("use the full height": the blind reader of step 2).
+		assessment_panel.size_flags_stretch_ratio = 0.3
 
 
 # EA-E5 (SF-RR5, October 21, 2026): step 2's assessment keeps Talleyrand's
@@ -367,7 +376,7 @@ func _show_error(msg: String):
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = "[color=#" + Utils.COLOR_ERROR + "]" + msg + "[/color]"
+	lbl.text = "[color=#" + _alert_hex + "]" + msg + "[/color]"
 	content_list.add_child(lbl)
 
 
@@ -474,40 +483,98 @@ func _add_your_courts(rows) -> void:
 
 
 func _add_category_header(text: String, color: String):
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.add_theme_color_override("font_color", Color("#" + color))
-	lbl.theme_type_variation = &"Caption"
+	# Session UI-2: a group's heading is in the title face (its colour kept, the
+	# red lifted to the alert red that reads on the dark ground).
+	var hex: String = color
+	if hex == Utils.COLOR_ERROR:
+		hex = _alert_hex
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.text = "[font=" + Utils.TITLE_FONT + "][color=#" + hex + "]" + text + "[/color][/font]"
 	content_list.add_child(lbl)
 
 
+# Session UI-2: a court's state, as a badge tone (WAR red, ALLIANCE green, the
+# open treaties blue, a VASSAL gold, anything else quiet).
+func _state_tone(nation_data: Dictionary) -> String:
+	var state := str(nation_data.get("state", ""))
+	var shown := str(nation_data.get("state_display", "")).to_lower()
+	if state == "WAR" or shown.begins_with("at war"):
+		return "8b2a2a"
+	if state == "ALLIANCE" or state == "DEFENSIVE_ALLIANCE" or shown.find("alliance") >= 0:
+		return "2f6b3a"
+	if shown.begins_with("vassal") or state == "VASSAL":
+		return "8a6d2a"
+	if state == "OPEN_BORDERS" or state == "NON_AGGRESSION" or state == "PEACE" or shown.find("peace") >= 0 			or shown.find("non-aggression") >= 0 or shown.find("borders") >= 0 or shown.find("treaty") >= 0:
+		return "3a4a6b"
+	return Utils.COLOR_BADGE_QUIET
+
+
 func _add_nation_button(nation_data: Dictionary):
-	var btn = Button.new()
+	"""Session UI-2: a court is a ROW - the court's button (flag, name) on the
+	left, and on the right its state as a badge and its relation as a meter
+	with its figure. The row's words are the old button's: the name, the state
+	(and the business waiting that rides it, on a line of its own under the
+	row), the relation figure and its descriptor, [MISSION]."""
 	var nation_name = str(nation_data.get("name", "?"))
 	var state_display = str(nation_data.get("state_display", "?"))
-	var text = Utils.display_nation_name(nation_name) + "  —  " + state_display
+	# S14G-22: "Your courts" rides the business waiting on the state, after " · ".
+	var why := ""
+	var cut: int = state_display.find(" · ")
+	if cut >= 0:
+		why = state_display.substr(cut + 3)
+		state_display = state_display.substr(0, cut)
 
-	# W1: Relation score and descriptor
-	var relation = nation_data.get("relation")
-	if relation != null:
-		var rel_sign = "+" if int(relation) > 0 else ""
-		var rel_desc = str(nation_data.get("relation_descriptor", ""))
-		text += "  |  " + rel_sign + str(int(relation))
-		if rel_desc:
-			text += " (" + rel_desc + ")"
-
-	# W2: Active mission indicator
-	var has_mission = nation_data.get("has_active_mission", false)
-	if has_mission:
-		text += "  [MISSION]"
-
-	btn.text = text
-	btn.custom_minimum_size = Vector2(0, 36)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var btn = Button.new()
+	btn.text = Utils.display_nation_name(nation_name)
+	btn.custom_minimum_size = Vector2(0, 44)
 	btn.theme_type_variation = &"CaptionButton"
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.clip_text = true
 	# UI-6: period heraldry as the leading icon (untinted — colored art)
 	Utils.apply_flag_icon(btn, nation_name)
 	btn.pressed.connect(_on_nation_selected.bind(nation_name))
-	content_list.add_child(btn)
+	row.add_child(btn)
+
+	var figures := RichTextLabel.new()
+	figures.bbcode_enabled = true
+	figures.fit_content = true
+	figures.scroll_active = false
+	figures.autowrap_mode = TextServer.AUTOWRAP_OFF
+	figures.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	figures.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	figures.theme_type_variation = &"CaptionRich"
+	var bbcode := "[right]" + Utils.bb_badge(state_display, _state_tone(nation_data))
+	# W2: Active mission indicator
+	if nation_data.get("has_active_mission", false):
+		bbcode += " " + Utils.bb_badge("MISSION", "8a6d2a")
+	# W1: Relation score and descriptor
+	var relation = nation_data.get("relation")
+	if relation != null:
+		var rel: int = int(relation)
+		var rel_sign = "+" if rel > 0 else ""
+		var rel_desc = str(nation_data.get("relation_descriptor", ""))
+		bbcode += "
+" + Utils.bb_relation_meter(rel, 80, 7) + " " + rel_sign + str(rel)
+		if rel_desc:
+			bbcode += " (" + rel_desc + ")"
+	bbcode += "[/right]"
+	figures.text = bbcode
+	row.add_child(figures)
+	content_list.add_child(row)
+	if why != "":
+		var why_label := Label.new()
+		why_label.text = "    " + why
+		why_label.theme_type_variation = &"Caption"
+		why_label.add_theme_color_override("font_color", Utils.UI_GOLD)
+		why_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_list.add_child(why_label)
 
 
 func _on_nation_selected(nation: String):
@@ -644,6 +711,12 @@ func _add_congress_row(congress) -> void:
 		primary.content_margin_bottom = 4.0
 		btn.add_theme_stylebox_override("normal", primary)
 		btn.pressed.connect(_on_congress_summon_pressed)
+	else:
+		# Session UI-2: the blind readers took the shut Summon for a live
+		# button - it keeps the theme's dashed disabled face and is dimmed
+		# further, and says why under it (the reason line, below).
+		btn.modulate = Color(1, 1, 1, 0.6)
+		btn.focus_mode = Control.FOCUS_NONE
 	row.add_child(btn)
 	# The table — every great power's answer, reason and price, on the
 	# Diplomatic Ledger's CONGRESS tab.
@@ -1210,28 +1283,38 @@ func _render_preview(data: Dictionary):
 	var rel_sign = "+" if relation > 0 else ""
 	var rel_color = Utils.COLOR_INFO
 	if relation < -29:
-		rel_color = Utils.COLOR_ERROR
+		rel_color = _alert_hex
 	elif relation >= 30:
 		rel_color = Utils.COLOR_SUCCESS
 
 	var state_color = Utils.COLOR_INFO
 	match str(data.get("current_state", "")):
 		"WAR":
-			state_color = Utils.COLOR_ERROR
+			state_color = _alert_hex
 		"ALLIANCE", "DEFENSIVE_ALLIANCE":
 			state_color = Utils.COLOR_SUCCESS
 		"OPEN_BORDERS", "NON_AGGRESSION":
 			state_color = Utils.COLOR_BLUE
 
 	var bbcode = ""
-	bbcode += Utils.bb_flag(_selected_nation, 16)
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + "[/color]\n"
-	bbcode += "Status: [color=#" + state_color + "]" + state_display + "[/color]"
+	bbcode += Utils.bb_flag(_selected_nation, 20)
+	# Session UI-2: the heading in the title face; the court's STATE a badge and
+	# its RELATION a meter with its figure - the figures lead, the prose follows.
+	bbcode += Utils.HEAD_OPEN + "TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + Utils.HEAD_CLOSE + "\n"
+	var state_tone := "3a4a6b"
+	match str(data.get("current_state", "")):
+		"WAR":
+			state_tone = "8b2a2a"
+		"ALLIANCE", "DEFENSIVE_ALLIANCE":
+			state_tone = "2f6b3a"
+		"":
+			state_tone = Utils.COLOR_BADGE_QUIET
+	bbcode += "Status: " + Utils.bb_badge(state_display, state_tone)
 	# PC-R7 (i) — ruling J (S13e part 4): at war, the war is named by its stake.
 	var war_title = str(data.get("war_title", ""))
 	if war_title != "":
 		bbcode += " [color=#" + state_color + "]— the " + Utils.humanize_nation_keys_in_text(war_title) + "[/color]"
-	bbcode += "   Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
+	bbcode += "   Relation: " + Utils.bb_relation_meter(relation, 90, 7) + " [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
 	# S14E-10: why the court is cold - the grievance it holds, by its kind,
 	# with the price of Make Amends (the relation line gave the figure only).
 	var grievance_line = data.get("grievance_line", "")
@@ -1252,7 +1335,7 @@ func _render_preview(data: Dictionary):
 
 		var loyalty_color = Utils.COLOR_SUCCESS
 		if loyalty < 25:
-			loyalty_color = Utils.COLOR_ERROR
+			loyalty_color = _alert_hex
 		elif loyalty < 50:
 			loyalty_color = Utils.COLOR_ORANGE
 
@@ -1298,7 +1381,7 @@ func _render_preview(data: Dictionary):
 			for neg in negatives:
 				var neg_label = str(neg.get("label", "?"))
 				var neg_val = int(neg.get("value", 0))
-				bbcode += "  [color=#" + Utils.COLOR_ERROR + "]- " + neg_label + " (" + str(neg_val) + ")[/color]\n"
+				bbcode += "  [color=#" + _alert_hex + "]- " + neg_label + " (" + str(neg_val) + ")[/color]\n"
 
 	# W4: Cooldown pre-check warning
 	var actions_list = data.get("actions", [])
@@ -1360,7 +1443,26 @@ func _render_preview(data: Dictionary):
 const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]
 
 
+# Session UI-2: the verdict a likelihood word carries, as a badge tone - the
+# favourable words green, the middling gold, the doubtful rust, "Hopeless" red.
+func _verdict_tone(likelihood: String) -> String:
+	if likelihood.begins_with("Almost Certain") or likelihood.begins_with("Favorable"):
+		return "2f6b3a"
+	if likelihood.begins_with("Uncertain"):
+		return "8a6d2a"
+	if likelihood.begins_with("Doubtful") or likelihood.begins_with("Unlikely"):
+		return "8a4f2a"
+	if likelihood.begins_with("Hopeless"):
+		return "8b2a2a"
+	return Utils.COLOR_BADGE_QUIET
+
+
 func _add_action_button(action: Dictionary):
+	"""Session UI-2: an act is a ROW - the act's own words on the left (the
+	button), its price (DP, gold) and the likelihood's verdict as badges on the
+	right. The act's effect text is a note on a line of its own under the row
+	(it was the button's long tail); a likelihood's rider ("a counter is
+	likely") rides the same note."""
 	var display_name = str(action.get("display_name", "?"))
 	var dp_cost = int(action.get("dp_cost", 0))
 	var gold_cost = int(action.get("gold_cost", 0))
@@ -1369,26 +1471,32 @@ func _add_action_button(action: Dictionary):
 	var likelihood = str(action.get("likelihood", ""))
 	var action_id = str(action.get("action", ""))
 
-	# Build button text
+	# The button's text: the act, as named.
 	var text = display_name
-	var costs = []
-	if dp_cost > 0:
-		costs.append(str(dp_cost) + " DP")
-	if gold_cost > 0:
-		costs.append(str(gold_cost) + "g")
-	if costs.size() > 0:
-		text += " (" + " + ".join(PackedStringArray(costs)) + ")"
 
 	# W5: Mission effect text
+	var note := ""
+	var verdict := ""
 	var effect_text = str(action.get("effect_text", ""))
 	if effect_text and effect_text != "" and effect_text != "null":
-		text += "  —  " + effect_text
+		note = effect_text
 	elif likelihood and likelihood != "" and likelihood != "null":
-		text += "  —  " + likelihood
+		# the verdict is the likelihood's head; what follows it is the note
+		var cut_at: int = likelihood.find(" — ")
+		if cut_at >= 0:
+			verdict = likelihood.substr(0, cut_at)
+			note = likelihood.substr(cut_at + 3)
+		else:
+			verdict = likelihood
+	if verdict == "" and likelihood and likelihood != "" and likelihood != "null":
+		var head_at: int = likelihood.find(" — ")
+		verdict = likelihood.substr(0, head_at) if head_at >= 0 else likelihood
 
 	var has_reason = (not available and disabled_reason and disabled_reason != ""
 		and disabled_reason != "null")
 
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
 	var btn = Button.new()
 	btn.text = text
 	# PC-R2 / PC-F44 (S13e part 2): a truce's row carries the one wording
@@ -1401,6 +1509,7 @@ func _add_action_button(action: Dictionary):
 		btn.tooltip_text = truce_display
 	btn.custom_minimum_size = Vector2(0, 40)
 	btn.theme_type_variation = &"CaptionButton"
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.disabled = not available
 	# LV-15 (row EP F3): the chip WRAPS instead of running off the panel (the
 	# list's horizontal scroll is disabled in _ready), and a gate reason is
@@ -1412,15 +1521,40 @@ func _add_action_button(action: Dictionary):
 	if has_reason:
 		btn.tooltip_text = disabled_reason
 
-	# Color the button text based on likelihood
-	if likelihood in _likelihood_colors:
-		var color_hex = _likelihood_colors[likelihood]
-		btn.add_theme_color_override("font_color", Color("#" + color_hex))
-
 	if available:
 		btn.pressed.connect(_on_action_selected.bind(action_id, action))
+	row.add_child(btn)
 
-	content_list.add_child(btn)
+	# The right-hand cell: the price, then the verdict - badges, not prose.
+	var badges := ""
+	if dp_cost > 0:
+		badges += Utils.bb_glyph("dp", 16, Utils.COLOR_GOLD) + " " + str(dp_cost) + " DP  "
+	if gold_cost > 0:
+		badges += Utils.bb_glyph("gold", 16, Utils.COLOR_GOLD) + " " + str(gold_cost) + "g  "
+	if verdict != "":
+		badges += Utils.bb_badge(verdict, _verdict_tone(verdict))
+	if badges != "":
+		var cell := RichTextLabel.new()
+		cell.bbcode_enabled = true
+		cell.fit_content = true
+		cell.scroll_active = false
+		cell.autowrap_mode = TextServer.AUTOWRAP_OFF
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cell.theme_type_variation = &"CaptionRich"
+		cell.text = "[right]" + badges.strip_edges() + "[/right]"
+		if not available:
+			# a shut act's figures are dimmed with it - it never reads as live
+			cell.modulate = Color(1, 1, 1, 0.6)
+		row.add_child(cell)
+	content_list.add_child(row)
+	if note != "" and note != "null":
+		var note_label = Label.new()
+		note_label.text = "    " + note
+		note_label.theme_type_variation = &"Caption"
+		note_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+		note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_list.add_child(note_label)
 	if has_reason:
 		var reason_label = Label.new()
 		reason_label.text = "    " + disabled_reason

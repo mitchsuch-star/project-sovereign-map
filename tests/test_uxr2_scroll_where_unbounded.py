@@ -197,7 +197,11 @@ class TestTheScriptArm:
         # line's row (`_add_first_open_line`) — the same scrolled list. 16 -> 17
         # flipped consciously at AU-3b (November 5, 2026): the titles' refusal
         # reason under "Grant the titles" (`_add_titles_button`) — the same list.
-        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 17
+        # 17 -> 20 flipped consciously at Session UI-2 (November 12, 2026): the
+        # Cabinet's rows - a group's title-face heading, a court row's figures
+        # cell, an act row's price/verdict cell - three more code-built fit-content
+        # labels, every one in the wizard's scrolled list.
+        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 20
         assert any(n == "campaign_log.gd" for n, _v, _f in resolved), "the log's rows"
 
 

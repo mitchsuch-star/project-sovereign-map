@@ -1,26 +1,25 @@
-[gd_resource type="Theme" load_steps=31 format=3 uid="uid://bspy1xuv7pgbh"]
+[gd_resource type="Theme" load_steps=39 format=3 uid="uid://bspy1xuv7pgbh"]
 
 [ext_resource type="FontFile" uid="uid://cxiqku0m3u7af" path="res://assets/fonts/Cinzel[wght].ttf" id="1_6tukj"]
 [ext_resource type="FontFile" uid="uid://dnyhh3gjkf5ox" path="res://assets/fonts/EBGaramond[wght].ttf" id="2_3xb56"]
 [ext_resource type="Texture2D" uid="uid://bi4gql7ex5xcv" path="res://assets/textures/fabric_leather_01_diff_1k.jpg" id="3_leather"]
 [ext_resource type="FontFile" uid="uid://fv3x3w2cugvl" path="res://assets/fonts/EBGaramond-Italic[wght].ttf" id="4_italic"]
 [ext_resource type="Script" path="res://scripts/gilt_rule.gd" id="5_rule"]
+[ext_resource type="Script" path="res://scripts/gilt_button.gd" id="6_button"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_joxlk"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_joxlk"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.082, 0.094, 0.157, 0.5)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.85, 0.75, 0.55, 0.25)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+bg_color = Color(0.075, 0.08, 0.115, 0.85)
+bg_foot = Color(0.075, 0.08, 0.115, 0.85)
+border_color = Color(0.62, 0.62, 0.68, 0.42)
+highlight = 0.0
+shadow_alpha = 0.0
+shadow_size = 0
+dashed = true
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lsmgg"]
 content_margin_left = 12.0
@@ -42,58 +41,46 @@ expand_margin_top = 2.0
 expand_margin_right = 2.0
 expand_margin_bottom = 2.0
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_11ing"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_11ing"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.149, 0.165, 0.259, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
+bg_color = Color(0.2, 0.215, 0.32, 1)
+bg_foot = Color(0.115, 0.125, 0.2, 1)
 border_color = Color(0.941176, 0.878431, 0.690196, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0.85, 0.75, 0.55, 0.2)
-shadow_size = 4
+highlight = 0.1
+shadow_alpha = 0.45
+shadow_size = 3
+glow = 0.22
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_47as2"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_47as2"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.082, 0.094, 0.157, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.85, 0.75, 0.55, 0.72)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 2
-shadow_offset = Vector2(0, 1)
+bg_color = Color(0.135, 0.15, 0.235, 1)
+bg_foot = Color(0.07, 0.08, 0.135, 1)
+border_color = Color(0.85, 0.75, 0.55, 0.62)
+highlight = 0.07
+shadow_alpha = 0.45
+shadow_size = 3
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5itkh"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_5itkh"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 7.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
-bg_color = Color(0.051, 0.059, 0.102, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
+bg_color = Color(0.04, 0.045, 0.08, 1)
+bg_foot = Color(0.075, 0.085, 0.14, 1)
 border_color = Color(0.85, 0.75, 0.55, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+highlight = 0.0
+shadow_alpha = 0.0
+shadow_size = 0
+inset = 0.45
 
 [sub_resource type="FontVariation" id="FontVariation_uww5w"]
 base_font = ExtResource("1_6tukj")
@@ -128,10 +115,10 @@ modulate_color = Color(0.24, 0.27, 0.46, 0.96)
 ; OPAQUE — the popup panel's own fill (`incoming_proposal_popup.tscn`) under
 ; the house gold hairline. Its words wrap through `Utils.wrap_tooltips`.
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
-content_margin_left = 10.0
-content_margin_top = 6.0
-content_margin_right = 10.0
-content_margin_bottom = 6.0
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
 bg_color = Color(0.102, 0.102, 0.18, 1)
 border_width_left = 1
 border_width_top = 1
@@ -159,58 +146,46 @@ script = ExtResource("5_rule")
 
 ; The primary button: the ONE act a surface exists for (End Turn on a spent
 ; day). Gilt fill, navy words; the same 12 / 6 margins as every button.
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_primary"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.8, 0.69, 0.47, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.941176, 0.878431, 0.690196, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.5)
+bg_color = Color(0.94, 0.85, 0.63, 1)
+bg_foot = Color(0.74, 0.62, 0.4, 1)
+border_color = Color(1, 0.95, 0.8, 1)
+highlight = 0.4
+shadow_alpha = 0.5
 shadow_size = 3
-shadow_offset = Vector2(0, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_hover"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_primary_hover"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
 content_margin_bottom = 6.0
-bg_color = Color(0.91, 0.82, 0.6, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(1, 0.96, 0.82, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0.85, 0.75, 0.55, 0.35)
-shadow_size = 6
+bg_color = Color(1, 0.93, 0.73, 1)
+bg_foot = Color(0.82, 0.7, 0.47, 1)
+border_color = Color(1, 0.98, 0.88, 1)
+highlight = 0.45
+shadow_alpha = 0.45
+shadow_size = 3
+glow = 0.35
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_primary_pressed"]
+[sub_resource type="StyleBox" id="StyleBoxFlat_primary_pressed"]
+script = ExtResource("6_button")
 content_margin_left = 12.0
 content_margin_top = 7.0
 content_margin_right = 12.0
 content_margin_bottom = 5.0
-bg_color = Color(0.66, 0.56, 0.37, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
+bg_color = Color(0.6, 0.5, 0.32, 1)
+bg_foot = Color(0.74, 0.62, 0.41, 1)
 border_color = Color(0.85, 0.75, 0.55, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+highlight = 0.0
+shadow_alpha = 0.0
+shadow_size = 0
+inset = 0.3
 
 ; The scrollbars: a faint track, a gilt grabber. The margins are the engine
 ; default's (4 px a side), so a bar is the 8 px it always was.
@@ -333,6 +308,103 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
+; -- Session UI-2 (November 11, 2026): the imperial desk --------------------
+; The parchment button: vellum above the sheet's tone, a sepia hairline, ink
+; words — every answer on a letter of state (the readers: dark slabs on paper).
+[sub_resource type="StyleBox" id="StyleBox_parchment"]
+script = ExtResource("6_button")
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.95, 0.9, 0.77, 1)
+bg_foot = Color(0.84, 0.76, 0.58, 1)
+border_color = Color(0.42, 0.29, 0.15, 0.85)
+highlight = 0.55
+shadow_alpha = 0.35
+shadow_size = 2
+
+[sub_resource type="StyleBox" id="StyleBox_parchment_hover"]
+script = ExtResource("6_button")
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.99, 0.95, 0.84, 1)
+bg_foot = Color(0.89, 0.81, 0.62, 1)
+border_color = Color(0.42, 0.08, 0.06, 1)
+highlight = 0.6
+shadow_alpha = 0.4
+shadow_size = 3
+
+[sub_resource type="StyleBox" id="StyleBox_parchment_pressed"]
+script = ExtResource("6_button")
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.76, 0.68, 0.5, 1)
+bg_foot = Color(0.86, 0.78, 0.6, 1)
+border_color = Color(0.42, 0.29, 0.15, 1)
+highlight = 0.0
+shadow_alpha = 0.0
+shadow_size = 0
+inset = 0.25
+
+[sub_resource type="StyleBox" id="StyleBox_parchment_disabled"]
+script = ExtResource("6_button")
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.86, 0.8, 0.66, 0.9)
+bg_foot = Color(0.86, 0.8, 0.66, 0.9)
+border_color = Color(0.42, 0.29, 0.15, 0.55)
+highlight = 0.0
+shadow_alpha = 0.0
+shadow_size = 0
+dashed = true
+
+; End Turn: the act the day closes on — a double-weight gilt rim, always distinct
+; (the gilt primary takes over on a spent day, main.gd::_note_the_end_of_the_day).
+[sub_resource type="StyleBox" id="StyleBox_end_turn"]
+script = ExtResource("6_button")
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16, 0.15, 0.17, 1)
+bg_foot = Color(0.09, 0.085, 0.11, 1)
+border_color = Color(0.85, 0.75, 0.55, 1)
+rim_width = 2
+highlight = 0.08
+shadow_alpha = 0.45
+shadow_size = 3
+
+[sub_resource type="StyleBox" id="StyleBox_end_turn_hover"]
+script = ExtResource("6_button")
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.24, 0.21, 0.2, 1)
+bg_foot = Color(0.13, 0.12, 0.14, 1)
+border_color = Color(0.941176, 0.878431, 0.690196, 1)
+rim_width = 2
+highlight = 0.12
+shadow_alpha = 0.45
+shadow_size = 3
+glow = 0.3
+
+; Lining tabular figures in the body face: every figure that stands in a column
+; or a strip (the top bar, the stat tiles, the books' tables).
+[sub_resource type="FontVariation" id="FontVariation_figures"]
+base_font = ExtResource("2_3xb56")
+opentype_features = {
+1819178349: 1,
+1953396077: 1
+}
+
 [resource]
 default_font = ExtResource("2_3xb56")
 default_font_size = 16
@@ -372,16 +444,20 @@ DisplayTitle/base_type = &"Label"
 DisplayTitle/font_sizes/font_size = 28
 DisplayTitleLarge/base_type = &"Label"
 DisplayTitleLarge/font_sizes/font_size = 30
+EndTurnButton/base_type = &"Button"
+EndTurnButton/font_sizes/font_size = 14
+EndTurnButton/styles/hover = SubResource("StyleBox_end_turn_hover")
+EndTurnButton/styles/normal = SubResource("StyleBox_end_turn")
+EndTurnButton/styles/pressed = SubResource("StyleBoxFlat_5itkh")
+Figure/base_type = &"Label"
+Figure/font_sizes/font_size = 16
+Figure/fonts/font = SubResource("FontVariation_figures")
 HeadingLabel/base_type = &"Label"
 HeadingLabel/colors/font_color = Color(0.85098, 0.752941, 0.54902, 1)
 HeadingLabel/colors/font_outline_color = Color(0.04, 0.05, 0.11, 1)
 HeadingLabel/constants/outline_size = 5
 HeadingLabel/font_sizes/font_size = 22
 HeadingLabel/fonts/font = SubResource("FontVariation_uww5w")
-HudTitle/base_type = &"Label"
-HudTitle/colors/font_color = Color(0.85098, 0.752941, 0.54902, 1)
-HudTitle/font_sizes/font_size = 14
-HudTitle/fonts/font = SubResource("FontVariation_title")
 HScrollBar/styles/grabber = SubResource("StyleBoxFlat_grabber")
 HScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_grabber_lit")
 HScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_grabber_lit")
@@ -391,6 +467,10 @@ HSeparator/styles/separator = SubResource("StyleBox_rule")
 HSlider/styles/grabber_area = SubResource("StyleBoxFlat_slider_run")
 HSlider/styles/grabber_area_highlight = SubResource("StyleBoxFlat_slider_run")
 HSlider/styles/slider = SubResource("StyleBoxFlat_slider")
+HudTitle/base_type = &"Label"
+HudTitle/colors/font_color = Color(0.85098, 0.752941, 0.54902, 1)
+HudTitle/font_sizes/font_size = 14
+HudTitle/fonts/font = SubResource("FontVariation_title")
 Label/font_sizes/font_size = 16
 Lead/base_type = &"Label"
 Lead/font_sizes/font_size = 18
@@ -401,6 +481,17 @@ LineEdit/font_sizes/font_size = 16
 LineEdit/styles/focus = SubResource("StyleBoxFlat_field_focus")
 LineEdit/styles/normal = SubResource("StyleBoxFlat_field")
 PanelContainer/styles/panel = SubResource("StyleBoxTexture_leather")
+ParchmentButton/base_type = &"Button"
+ParchmentButton/colors/font_color = Color(0.169, 0.114, 0.071, 1)
+ParchmentButton/colors/font_disabled_color = Color(0.306, 0.22, 0.125, 1)
+ParchmentButton/colors/font_focus_color = Color(0.169, 0.114, 0.071, 1)
+ParchmentButton/colors/font_hover_color = Color(0.416, 0.078, 0.063, 1)
+ParchmentButton/colors/font_pressed_color = Color(0.169, 0.114, 0.071, 1)
+ParchmentButton/font_sizes/font_size = 16
+ParchmentButton/styles/disabled = SubResource("StyleBox_parchment_disabled")
+ParchmentButton/styles/hover = SubResource("StyleBox_parchment_hover")
+ParchmentButton/styles/normal = SubResource("StyleBox_parchment")
+ParchmentButton/styles/pressed = SubResource("StyleBox_parchment_pressed")
 PopupMenu/colors/font_color = Color(0.85098, 0.752941, 0.54902, 1)
 PopupMenu/colors/font_hover_color = Color(0.941176, 0.878431, 0.690196, 1)
 PopupMenu/styles/hover = SubResource("StyleBoxFlat_menu_hover")
@@ -432,6 +523,10 @@ RichTextLabel/fonts/italics_font = ExtResource("4_italic")
 ScreenTitle/base_type = &"Label"
 ScreenTitle/font_sizes/font_size = 20
 ScreenTitle/fonts/font = SubResource("FontVariation_title")
+StatFigure/base_type = &"Label"
+StatFigure/colors/font_color = Color(0.941176, 0.878431, 0.690196, 1)
+StatFigure/font_sizes/font_size = 24
+StatFigure/fonts/font = SubResource("FontVariation_title")
 TableauBanner/base_type = &"Label"
 TableauBanner/font_sizes/font_size = 30
 TableauClash/base_type = &"Label"

@@ -1924,6 +1924,7 @@ func _setup_scalable_terminal() -> void:
 	Utils.apply_icon_only_button(minimize_button, Utils.ICON_PHOSPHOR + "caret-down.svg")
 
 	_create_resize_grip()
+	_dress_status_glyphs()
 	# DDB-57: a wheel notch over the command window moves three whole lines.
 	if output_scroll and not output_scroll.gui_input.is_connected(_on_output_wheel):
 		output_scroll.gui_input.connect(_on_output_wheel)
@@ -2052,6 +2053,10 @@ func _create_resize_grip() -> void:
 	# displayed split and the viewport-fraction default stay below.
 	resize_grip = ResizeGrip.make(ResizeGrip.Corner.TOP_RIGHT, ResizeGrip.TOOLTIP)
 	resize_grip.name = "TerminalResizeGrip"
+	# Session UI-2: the hatch stands inside the HUD frame's fillet, never
+	# across its corner (the frame's thickness and a pixel).
+	resize_grip.frame_inset = Utils.frame_thickness(
+		bottom_left_ui.get_theme_stylebox("panel")) + 1.0
 	add_child(resize_grip)
 	resize_grip.gui_input.connect(_on_grip_gui_input)
 	_position_resize_grip()
@@ -2079,6 +2084,12 @@ func _relayout_terminal() -> void:
 	# unreachable and the terminal is wedged at full height.
 	var disp_h = clampf(_terminal_height, UiSettings.MIN_TERMINAL_HEIGHT,
 			maxf(UiSettings.MIN_TERMINAL_HEIGHT, size.y - 20.0 - TOP_BAR_RESERVED_PX - Utils.top_bar_growth()))
+	# Session UI-2: the log's floor follows the room — 110 on a short logical
+	# view (Interface Scale 2.0 on 900 px: the window yields the map more), the
+	# authored 140, and 180 on a tall one (the 40 px the header's band saved).
+	if output_scroll != null:
+		output_scroll.custom_minimum_size.y = _log_floor()
+	_fold_header()
 	var left := _terminal_left()
 	bottom_left_ui.offset_left = left
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
@@ -2089,6 +2100,86 @@ func _relayout_terminal() -> void:
 		restore_button.offset_left = left
 		restore_button.offset_right = left + RESTORE_BUTTON_WIDTH
 	_reposition_after_layout()
+
+
+const LOG_FLOOR_SHORT := 110.0
+const LOG_FLOOR := 140.0
+const LOG_FLOOR_TALL := 180.0
+# Session UI-2: under this logical height the header folds into one band.
+const HEADER_FOLD_BELOW := 600.0
+var _header_folded := false
+
+
+func _fold_header() -> void:
+	"""Session UI-2: under HEADER_FOLD_BELOW logical px of height (Interface
+	Scale 2.0 on a 1600 x 900 screen) the header folds into ONE band — the
+	window's name steps aside and the scale steppers and the minimise control
+	ride at the end of the status figures — so the command window yields the
+	map a row (the blind readers: at 2.0 it covered the map). At 600 and up
+	the header is as authored; the scene's node paths are the scene's (the
+	two controls move back on the unfold, in their order)."""
+	var fold := size.y < HEADER_FOLD_BELOW
+	if fold == _header_folded:
+		return
+	var content := get_node_or_null("BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent")
+	if content == null or text_size_label == null or minimize_button == null:
+		return
+	var title_row := content.get_node_or_null("TitleRow") as Control
+	var status := content.get_node_or_null("StatusSection") as Control
+	var size_box := text_size_label.get_parent() as Control
+	if title_row == null or status == null or size_box == null:
+		return
+	_header_folded = fold
+	if fold:
+		size_box.reparent(status, false)
+		minimize_button.reparent(status, false)
+	else:
+		size_box.reparent(title_row, false)
+		minimize_button.reparent(title_row, false)
+	text_size_label.visible = not fold
+	title_row.visible = not fold
+
+
+func _log_floor() -> float:
+	if size.y < 600.0:
+		return LOG_FLOOR_SHORT
+	if size.y >= 1000.0:
+		return LOG_FLOOR_TALL
+	return LOG_FLOOR
+
+
+func _dress_status_glyphs() -> void:
+	"""Session UI-2: a stat glyph before each status key — the turn, the day's
+	orders, the administration, the chest, and foot / horse / guns (the same
+	glyphs as the top bar and the books). The words stay; the glyphs lead."""
+	# the log's chips are rimmed buttons too (Utils._unline_links' rule; the
+	# log was added before the hook was installed)
+	if output_display != null:
+		output_display.meta_underlined = false
+	var status := get_node_or_null("BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection")
+	if status == null or status.has_meta("glyphs_dressed"):
+		return
+	status.set_meta("glyphs_dressed", true)
+	var pairs := [["TurnDisplay/TurnLabel", "turn"], ["ActionsDisplay/ActionsLabel", "actions"],
+		["AdminDisplay/AdminLabel", "admin"], ["GoldDisplay/GoldLabel", "gold"],
+		["ManpowerDisplay/InfLabel", "foot"], ["ManpowerDisplay/CavLabel", "horse"],
+		["ManpowerDisplay/ArtLabel", "guns"]]
+	for pair in pairs:
+		var key := status.get_node_or_null(pair[0]) as Control
+		if key == null:
+			continue
+		var glyph := TextureRect.new()
+		glyph.name = "Glyph_" + str(pair[1])
+		glyph.texture = load(Utils.glyph(pair[1]))
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.custom_minimum_size = Vector2(16, 16)
+		glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		glyph.modulate = Color(Utils.UI_GOLD, 0.9)
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var row := key.get_parent()
+		row.add_child(glyph)
+		row.move_child(glyph, key.get_index())
 
 
 func _terminal_left() -> float:
@@ -6239,7 +6330,9 @@ func _note_the_end_of_the_day() -> void:
 	# moment an action returns. No font-colour override in either state: an
 	# override would beat the step's own words (gold on gilt).
 	end_turn_button.remove_theme_color_override("font_color")
-	var step: StringName = &"PrimaryCaptionButton" if spent else &"CaptionButton"
+	# Session UI-2: End Turn wears its own step every day (a double gilt rim —
+	# the research's "End Turn always distinct"), the gilt primary when spent.
+	var step: StringName = &"PrimaryCaptionButton" if spent else &"EndTurnButton"
 	if end_turn_button.theme_type_variation != step:
 		end_turn_button.theme_type_variation = step
 
@@ -6422,6 +6515,9 @@ func _update_gold_display():
 		gold_value.text = "%s (%s next turn)" % [_format_number(gold), _signed_number(gold_projected_net)]
 	else:
 		gold_value.text = _format_number(gold)
+	# Session UI-2: the top bar carries the chest too (its resource group).
+	if top_bar != null and top_bar.has_method("update_treasury"):
+		top_bar.update_treasury(int(gold), int(gold_projected_net), _has_gold_projected_net)
 
 func _apply_manpower(pools: Dictionary):
 	"""Extract manpower values from a dict and update display."""

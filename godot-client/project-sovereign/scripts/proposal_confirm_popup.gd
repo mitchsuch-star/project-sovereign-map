@@ -42,6 +42,17 @@ const COLOR_GOLD = "#d9c08c"
 var COLOR_DIMMED: String:
 	get: return "#" + Utils.COLOR_INFO
 const COLOR_RED = "#e66262"
+# Session UI-2: the settlement table's own tones. Words in red take the alert
+# text token; the meters and cards (fills, not words) take the muted tones.
+const _ALERT_HEX := "de5757"   # == Utils.UI_ALERT_TEXT
+const _TONE_CARRIES := "4f8f58"
+const _TONE_NEAR := "c9a23c"
+const _TONE_SHORT := "a8453f"
+const _TEXT_CARRIES := "8fbc8f"
+const _TEXT_NEAR := "e0c070"
+# the score's meter: a row of exact segments with the 50 mark in gilt
+const SCORE_METER_WIDTH := 240
+const SCORE_METER_HEIGHT := 8
 # IGR-G1: the settlement authoring surface is a DOCUMENT (treasury preamble +
 # the per-court table + footer + tier-2 affordance rails), not a dialog — on a
 # 2560-wide monitor the shared 720x520 authored rect squeezed the per-court
@@ -81,6 +92,9 @@ func _ready():
 	# Grant / Decline links acting on the staged draft.
 	if footer_label:
 		footer_label.meta_clicked.connect(_on_footer_meta_clicked)
+	# Session UI-2: each court is a card on the table — the marks are written
+	# by `_build_settlement_per_court_block`, the underlay paints them.
+	Utils.card_page(per_court_table)
 	# UXR3-F3: the document's three regions come to rest on whole lines.
 	for region in [content_label, per_court_table, footer_label]:
 		Utils.keep_whole_lines(region)
@@ -300,11 +314,14 @@ func show_dialogue(data: Dictionary):
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
+		# Session UI-2: the act a table exists for is its primary button.
+		if original_label.begins_with("Submit for Review") or original_label.begins_with("Ratify"):
+			btn.theme_type_variation = &"PrimaryButton"
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.disabled = not available
 		if not available:
+			# Session UI-2: the theme's dashed disabled face, never re-coloured.
 			btn.tooltip_text = disabled_reason if disabled_reason != "" else "Unavailable"
-			btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 		var action_str = opt.get("action", "dismiss")
 		if _should_label_ask_later(dtype, action_str, original_label):
 			btn.text = "Not Now"
@@ -438,6 +455,7 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			if not court_affordances.is_empty():
 				court_rows.append({
 					"label": Utils.display_nation_name(str(row.get("nation", "?"))),
+					"nation": str(row.get("nation", "")),
 					"affordances": court_affordances,
 				})
 	var coverage: Array = []
@@ -452,6 +470,18 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 		var line = HFlowContainer.new()
 		line.add_theme_constant_override("h_separation", 8)
 		line.add_theme_constant_override("v_separation", 6)
+		# Session UI-2: the court's arms lead its row of acts.
+		var flag_nation: String = str(entry.get("nation", ""))
+		var flag_path: String = Utils.nation_flag_path(flag_nation) if flag_nation != "" else ""
+		if flag_path != "":
+			var flag_tex: Texture2D = load(flag_path)
+			if flag_tex != null:
+				var flag := TextureRect.new()
+				flag.texture = flag_tex
+				flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				flag.custom_minimum_size = Vector2(32, 36)
+				line.add_child(flag)
 		var name_label = Label.new()
 		name_label.text = str(entry.get("label", "")) + ":"
 		name_label.custom_minimum_size = Vector2(110, 36)
@@ -464,8 +494,8 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			btn.text = str(aff.get("label", "???"))
 			btn.tooltip_text = str(aff.get("description", ""))
 			btn.custom_minimum_size = Vector2(150, 36)
+			# Session UI-2: one button language — the theme's gilt face.
 			btn.theme_type_variation = &"CaptionButton"
-			btn.add_theme_color_override("font_color", Color("#80b0e0"))
 			# F5 (row EP, LV-14(a)): a row chip may be honestly unavailable —
 			# the "Separate peace with <court>" chip carries the same
 			# `available` / `disabled_reason_display` pair the rail's
@@ -476,8 +506,6 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			var aff_reason := str(aff.get("disabled_reason_display", ""))
 			Utils.set_available(btn, aff_available, str(aff.get("description", "")),
 				aff_reason if aff_reason != "" else str(aff.get("description", "")))
-			if not aff_available:
-				btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
 			line.add_child(btn)
 		tier2_button_container.add_child(line)
@@ -677,14 +705,16 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# review; REVIEW keeps ratification.
 	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
 	if dialogue_mode == "PROPOSE":
+		# Session UI-2: the verdict stands in the title face — gilt when the
+		# table carries, the alert red when it does not.
 		if can_ratify_now:
-			bbcode += "[b][color=#e0c070]Settlement of %s — every court consents; submit it for review[/color][/b]\n" % war_label
+			bbcode += Utils.HEAD_OPEN + "Settlement of %s — every court consents; submit it for review" % war_label + Utils.HEAD_CLOSE + "\n"
 		else:
-			bbcode += "[b][color=#e66262]This draft will not carry as it stands.[/color][/b]\n"
+			bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]This draft will not carry as it stands.[/color][/font]\n"
 	elif can_ratify_now:
-		bbcode += "[b][color=#e0c070]Settlement of %s — ready for ratification[/color][/b]\n" % war_label
+		bbcode += Utils.HEAD_OPEN + "Settlement of %s — ready for ratification" % war_label + Utils.HEAD_CLOSE + "\n"
 	else:
-		bbcode += "[b][color=#e66262]This settlement cannot be ratified now.[/color][/b]\n"
+		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]This settlement cannot be ratified now.[/color][/font]\n"
 	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
 	# S14d: the table's first-open line is NOT here. Measured on the re-shot
 	# frame (part 1's second landing): at Interface Scale 2.0 the EA-E6 fit
@@ -745,7 +775,8 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	# live-review line or the blocked banner, under the table since UXR3-31.
 	var heading_voice = str(data.get("talleyrand_text", ""))
 	if heading_voice != "":
-		bbcode += "[i][color=#e0c070]%s[/color][/i]\n\n" % heading_voice
+		# Session UI-2: Talleyrand's reading is a quote block.
+		bbcode += _quote_block(heading_voice, "e0c070") + "\n"
 	# DDB-5 (S13b): every province whose title the treaty fixes — the
 	# ratifier's own status-quo rule, read before the signature, our own
 	# homeland first.
@@ -1051,7 +1082,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
-		bbcode += "[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+		bbcode += _quote_block("\"%s\"" % ttext, "c0b080")
 	return bbcode
 
 func _safe_str(v) -> String:
@@ -1174,10 +1205,14 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	if overall_verdict is Dictionary:
 		var verdict_line = _safe_str(overall_verdict.get("carry_verdict_display"))
 		if verdict_line != "":
-			var verdict_color = "#e46565"
+			# Session UI-2: a medal for a table that carries, the threat glyph
+			# for one that does not — the verdict leads with its sign.
+			var verdict_color = "#" + _ALERT_HEX
+			var verdict_glyph = Utils.bb_glyph("threat", 18, _ALERT_HEX)
 			if bool(overall_verdict.get("carries", false)):
 				verdict_color = "#80c080"
-			bbcode += "[b][color=%s]%s[/color][/b]\n" % [verdict_color, verdict_line]
+				verdict_glyph = Utils.bb_glyph("medal", 18, "80c080")
+			bbcode += "%s [b][color=%s]%s[/color][/b]\n" % [verdict_glyph, verdict_color, verdict_line]
 	# S14G-12 (Pre-Deploy S14h part 1, October 26, 2026): THE BEATS STAND HERE,
 	# directly under the verdict and ABOVE the treasury / narration / advisory
 	# block. They were the LAST lines of this header — a scrolling label that
@@ -1324,6 +1359,69 @@ func _reveal_header_beats() -> void:
 		content_label.scroll_to_paragraph(paragraph)
 	_update_header_cue()
 
+func _court_standing(total, row: Dictionary) -> int:
+	"""Session UI-2: where a court stands on the table — 2 carries (its score
+	reaches the bar, or its own offer is on the table), 1 near (within ten),
+	0 short (or structurally blocked, no score)."""
+	if total == null:
+		if _safe_str(row.get("band")) == "consented":
+			return 2
+		return 0 if _safe_str(row.get("top_blocker_display")) != "" else 1
+	var threshold: int = int(row.get("threshold", 50))
+	if int(total) >= threshold:
+		return 2
+	return 1 if int(total) >= threshold - 10 else 0
+
+
+func _court_tone_hex(total, row: Dictionary) -> String:
+	match _court_standing(total, row):
+		2:
+			return _TONE_CARRIES
+		1:
+			return _TONE_NEAR
+	return _TONE_SHORT
+
+
+func _court_text_hex(total, row: Dictionary) -> String:
+	match _court_standing(total, row):
+		2:
+			return _TEXT_CARRIES
+		1:
+			return _TEXT_NEAR
+	return _ALERT_HEX
+
+
+func _score_meter(total: int, threshold: int, fill_hex: String) -> String:
+	"""Session UI-2: a court's score on an exact meter whose scale runs a fifth
+	past the bar, with the bar itself marked in gilt — a court at 44 of 50
+	stands just short of the mark, one at 56 stands past it."""
+	var scale: float = maxf(maxf(float(threshold) * 1.2, float(total)), 1.0)
+	var w: int = SCORE_METER_WIDTH
+	var h: int = SCORE_METER_HEIGHT
+	var mark_x: int = clampi(int(round(float(w) * float(threshold) / scale)), 1, w - 2)
+	var fill_w: int = int(round(float(w) * clampf(float(total), 0.0, scale) / scale))
+	var left_fill: int = mini(fill_w, mark_x)
+	var right_len: int = w - mark_x - 1
+	var right_fill: int = clampi(fill_w - mark_x - 1, 0, right_len)
+	var seg := func(width: int, hex: String) -> String:
+		return "[img width=%d height=%d color=#%s]%s[/img]" % [width, h, hex, Utils.SWATCH] if width > 0 else ""
+	var out := ""
+	out += seg.call(left_fill, fill_hex)
+	out += seg.call(mark_x - left_fill, Utils.METER_TRACK)
+	out += seg.call(1, Utils.COLOR_GOLD)
+	out += seg.call(right_fill, fill_hex)
+	out += seg.call(right_len - right_fill, Utils.METER_TRACK)
+	return out
+
+
+func _quote_block(text: String, ink_hex: String) -> String:
+	"""Session UI-2: a voice (the envoy's, Talleyrand's) as a quote block — a
+	one-cell table with a gilt rim over a darker ground, the words in italic.
+	A table is one paragraph of its page (`Utils.flatten_tables`)."""
+	return "[table=1][cell expand=1 border=#" + Utils.COLOR_GOLD + "55 bg=#00000047 padding=12,5,12,5]" \
+		+ "[i][color=#" + ink_hex + "]" + text + "[/color][/i][/cell][/table]\n"
+
+
 func _build_settlement_per_court_block(data: Dictionary) -> String:
 	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
 	# GT-Slice-3 (Guided Terms §3.1-§3.3): on the PROPOSE authoring surface each
@@ -1338,7 +1436,7 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
 	var authoring_surface = (dialogue_mode == "PROPOSE")
 	var bbcode = ""
-	bbcode += "[b]The table[/b]\n"
+	bbcode += Utils.bb_section("The table")
 	var focused_court = _safe_str(data.get("focused_court"))
 	var court_index = -1
 	for row in per_court:
@@ -1371,10 +1469,23 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			name_cell = "[url=focus:%d][b]%s[/b] %s[/url]" % [
 				court_index, nation_display, "▾" if is_focused else "▸",
 			]
-		bbcode += "  [color=#e0c070]*[/color] %s - %s%s" % [name_cell, band_display, total_text]
+		# Session UI-2: a court is a CARD — its flag and name, the band in the
+		# colour of where it stands, then the score on its meter with the
+		# threshold's mark, the blocker as a badge, the envoy's voice as a
+		# quote block. The marks paint the card (`card_underlay.gd`); a blank
+		# line between cards is the gap.
+		var tone_hex := _court_tone_hex(total, row)
+		var text_hex := _court_text_hex(total, row)
+		bbcode += Utils.card_open(tone_hex)
+		bbcode += Utils.bb_flag(nation, 16)
+		bbcode += "%s - [color=#%s]%s%s[/color]" % [name_cell, text_hex, band_display, total_text]
 		if direction != "":
 			bbcode += " [color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]" % direction
 		bbcode += "\n"
+		if total != null:
+			bbcode += "      " + _score_meter(int(total), int(row.get("threshold", 50)), tone_hex) \
+				+ "  [opentype_features=tnum,lnum][b]%d[/b] / %d[/opentype_features]\n" % [
+					int(total), int(row.get("threshold", 50))]
 		var blocker = _safe_str(row.get("top_blocker_display"))
 		if blocker != "":
 			# S14E-6: a legitimacy MISMATCH names the clause on this court
@@ -1382,7 +1493,7 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			var blocker_clause = _safe_str(row.get("top_blocker_clause"))
 			if blocker_clause != "":
 				blocker += " — " + blocker_clause
-			bbcode += "      [color=#e0a040]Blocker: %s[/color]\n" % blocker
+			bbcode += "      " + Utils.bb_badge("Blocker:", "8a6d2a") + " [color=#e0a040]%s[/color]\n" % blocker
 		# Re-front Slice 2 / §11.2: the live band delta after a dial (presentation
 		# only — it never feeds the scored result). Null on first paint (no
 		# previous band) — _safe_str coalesces so it never prints "<null>".
@@ -1391,7 +1502,10 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			bbcode += "      [color=#80b0e0]%s[/color]\n" % delta
 		var voice = _safe_str(row.get("voice_line"))
 		if voice != "":
-			bbcode += "      [i]%s[/i]\n" % voice
+			# indented with the court's own lines (six spaces, as the voice line was):
+			# the lines' reader names a line by the nearest LESS-indented paragraph
+			# above it — the court's, not its envoy's words
+			bbcode += "      " + _quote_block(voice, "d8cba8")
 			# Rendered as real clickable buttons by _add_settlement_tier2_buttons
 			# (self-labeled, e.g. "Ease Britain") -- intentionally NOT echoed inline.
 			# The old blue "Ease X | Drop X" body text was inert (looked clickable,
@@ -1400,6 +1514,8 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 			bbcode += _build_focused_component_breakdown(row)
 		if authoring_surface:
 			bbcode += _build_court_authoring_lines(row, court_index)
+		# the card ends on the line above; the blank paragraph is the gap
+		bbcode += Utils.CARD_CLOSE + "\n"
 	var overall = data.get("overall_acceptance", {})
 	if overall is Dictionary:
 		var summary = str(overall.get("summary_display", ""))
@@ -1492,15 +1608,16 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 	if not bool(row.get("can_author", false)):
 		var disabled_reason = _safe_str(row.get("authoring_disabled_reason_display"))
 		if disabled_reason != "":
-			bbcode += "      [color=#" + Utils.COLOR_INFO + "]+ Add demand — %s[/color]\n" % disabled_reason
+			# Session UI-2: the shut chip, its reason said after it.
+			bbcode += "      " + Utils.bb_chip_disabled("+ Add demand") + " [color=#" + Utils.COLOR_INFO + "]— %s[/color]\n" % disabled_reason
 		return bbcode
 	var suggestions = row.get("demand_suggestions", [])
 	if not (suggestions is Array) or suggestions.size() == 0:
 		return bbcode
 	if not bool(_add_demand_expanded.get(nation, false)):
-		bbcode += "      [url=addmenu:%d][color=#80b0e0]+ Add demand[/color][/url]\n" % court_index
+		bbcode += "      " + Utils.bb_button_chip("addmenu:%d" % court_index, "+ Add demand", Utils.COLOR_GOLD, "233043") + "\n"
 		return bbcode
-	bbcode += "      [url=addmenu:%d][color=#80b0e0]− Add demand[/color][/url]\n" % court_index
+	bbcode += "      " + Utils.bb_button_chip("addmenu:%d" % court_index, "− Add demand", Utils.COLOR_GOLD, "233043") + "\n"
 	# §3.3: the direction-led group leads and renders expanded; the trailing
 	# group renders collapsed behind a toggle. The dead-band (lead_group
 	# empty) keeps the §3.1 order with BOTH groups behind toggles.

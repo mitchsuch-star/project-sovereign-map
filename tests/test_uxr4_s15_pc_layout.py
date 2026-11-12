@@ -258,8 +258,17 @@ class TestPCF46:
         assert int(h) == int(vh * 0.8) and int(w) == 860, (size, [x, y, w, h])
         assert y >= 44 - 0.5 and y + h <= vh - 12 + 0.5
         seen = _seen(frame, "IncomingProposalPopup")
-        for needle in LETTER_NEEDLES:
+        # Session UI-2 (November 12, 2026): the 32:9 derivation 1.40 -> 1.60
+        # (the user's approved plan) makes 5120x1440 a 3200x900 logical window.
+        # The letter still stands at 80 % (720 px) and 860 wide with its whole
+        # cost above the fold; the War Summary, which PC-F46 put LAST, lies
+        # under it there, as on any 900-px window - in the letter, a scroll away.
+        needles = LETTER_NEEDLES if size != "5120x1440" else LETTER_NEEDLES[:-1]
+        for needle in needles:
             assert needle in seen, (size, needle)
+        whole = "\n".join(t.get("text", "") for t in frame.get("texts") or []
+                          if t["path"].startswith("IncomingProposalPopup") and t["path"].endswith("ContentLabel"))
+        assert "War Summary" in whole, size
         # the answers stand outside the scroll, inside the window
         view = [0.0, 0.0, vw, vh]
         names = {b["text"] for b in frame["buttons"] if b["text"]}

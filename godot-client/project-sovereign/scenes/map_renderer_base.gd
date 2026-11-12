@@ -65,6 +65,13 @@ const GARRISON_Y_OFFSET: float = 38.0
 # provinces and read as part of the colliding province labels.
 const FORCE_NAME_OUTLINE_COLOR := Color(0.09, 0.07, 0.05, 0.9)
 const FORCE_NAME_OUTLINE_SIZE: int = 4
+# Session UI-2 (November 11, 2026): the map's markers are plaques
+# (scripts/map_plaque.gd) — a palette that stands off the painted paper.
+const MapPlaque = preload("res://scripts/map_plaque.gd")
+const PLAQUE_IVORY := Color(0.96, 0.92, 0.83, 1.0)
+const PLAQUE_DIM_INK := Utils.UI_PLAQUE_DIM_INK
+const NAME_ROW_GAP: float = 2.0
+var _name_font: Font = null
 # UXR-X4 (Pre-Deploy S9b): the map's own furniture — the marshals' names and
 # stacks, the fogged chips, the garrison chips, the sail counts — follows the
 # screen. Its authored sizes (WORLD px at the authored zoom) are this named
@@ -1921,8 +1928,79 @@ func _furniture_theme(kind: String) -> Theme:
 	if theme == null:
 		theme = Theme.new()
 		theme.set_font_size("font_size", "Label", _furn_px(kind))
+		if kind == "name":
+			theme.set_font("font", "Label", _small_caps())
 		_furniture_themes[kind] = theme
 	return theme
+
+
+func _small_caps() -> Font:
+	"""Session UI-2: the nameplates' face — the body face's small capitals."""
+	if _name_font == null:
+		var base: Font = load("res://assets/fonts/EBGaramond[wght].ttf")
+		var fv := FontVariation.new()
+		fv.base_font = base
+		fv.opentype_features = {TextServerManager.get_primary_interface().name_to_tag("smcp"): 1,
+			TextServerManager.get_primary_interface().name_to_tag("lnum"): 1}
+		_name_font = fv
+	return _name_font
+
+
+func _plaque(kind: int, band: Color, faded: bool = false):
+	"""A map plaque of `kind` (MapPlaque.Kind) in `band` — the holder's colour."""
+	var p = MapPlaque.new()
+	p.kind = kind
+	p.band_color = band
+	if faded:
+		p.bg_color = Color(p.bg_color.r, p.bg_color.g, p.bg_color.b, p.bg_color.a * 0.72)
+		p.border_color = Utils.UI_PLAQUE_FADED_RIM
+		p.band_color = band.lerp(Utils.UI_PLAQUE_FADE_TO, 0.45)
+	return p
+
+
+func _nameplate(band: Color, faded: bool = false) -> StyleBox:
+	var plate = _plaque(MapPlaque.Kind.NAME, band, faded)
+	plate.content_margin_left = _furn(4.0)
+	plate.content_margin_right = _furn(4.0)
+	plate.content_margin_top = _furn(0.5)
+	plate.content_margin_bottom = _furn(2.5)
+	return plate
+
+
+static func name_rows(xs: Array, widths: Array, gap: float) -> Array:
+	"""Session UI-2: the rows a province's names stand in, above their own
+	pieces. Pure (pinned on numbers). `xs` are the pieces' centres, `widths`
+	the plates'. Zig-zag first — the k-th name from the left on row k % 2 at
+	its own piece; if two names on one row would touch, every name stands in
+	one column over the group's centre instead. Returns [[row, centre_x], …]
+	in the input's order."""
+	var n := xs.size()
+	var out: Array = []
+	if n == 0:
+		return out
+	var order := range(n)
+	order.sort_custom(func(a, b): return float(xs[a]) < float(xs[b]))
+	var rank := {}
+	for k in range(n):
+		rank[order[k]] = k
+	var clash := false
+	for k in range(n - 2):
+		var a: int = order[k]
+		var b: int = order[k + 2]
+		if float(xs[b]) - float(xs[a]) < (float(widths[a]) + float(widths[b])) * 0.5 + gap:
+			clash = true
+	if n == 2 or n == 1:
+		clash = false
+	var mean := 0.0
+	for x in xs:
+		mean += float(x)
+	mean /= float(n)
+	for i in range(n):
+		if clash:
+			out.append([int(rank[i]), mean])
+		else:
+			out.append([int(rank[i]) % 2, float(xs[i])])
+	return out
 
 
 func _style_furniture(label: Label, kind: String) -> void:
@@ -2164,6 +2242,25 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		for m in marshals:
 			var mn := str(m.get("nation", "Neutral"))
 			nation_counts[mn] = int(nation_counts.get(mn, 0)) + 1
+	# Session UI-2: the named pieces' rows — zig-zag over their own pieces, or
+	# one column when two would touch (`name_rows`, pure).
+	var plate_pad := _furn(8.0)
+	var name_rows_at := {}
+	if pieces_active:
+		var named_i: Array = []
+		var xs: Array = []
+		var ws: Array = []
+		for j in range(marshals.size()):
+			var mj: Dictionary = marshals[j]
+			if int(nation_counts.get(str(mj.get("nation", "Neutral")), 0)) > 3:
+				continue
+			named_i.append(j)
+			xs.append(_marshal_slot_offset_2d(j, marshals.size()).x)
+			var nm := Utils.display_marshal_name(str(mj.get("name", "?")))
+			ws.append(font.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0 + plate_pad)
+		var rows := name_rows(xs, ws, _furn(NAME_ROW_GAP))
+		for k in range(named_i.size()):
+			name_rows_at[named_i[k]] = rows[k]
 
 	for i in range(marshals.size()):
 		var marshal: Dictionary = marshals[i]
@@ -2173,9 +2270,10 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 		var nation = str(marshal.get("nation", "Neutral"))
 		var in_collapsed_group := (pieces_active
 				and int(nation_counts.get(nation, 0)) > 3)
-		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
+		var name_width = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0 \
+			+ (plate_pad if pieces_active else 0.0)
 		# UXR-X4: a label's BOTTOM keeps its authored place; it grows upward.
-		var name_h := _furn(14.0)
+		var name_h := _furn(14.0) + (_furn(3.0) if pieces_active else 0.0)
 
 		# label_anchor_world = top-left of the name label (WORLD coords);
 		# hitbox_rect = the hover target (WORLD coords).
@@ -2188,8 +2286,11 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			# colored square; float the name above the standee and size the hover
 			# box to its footprint.
 			var slot := _marshal_slot_offset_2d(i, marshals.size())
-			var name_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0 + _furn(i * 13.0)) + 14.0 - name_h
-			label_anchor_world = region_pos + Vector2(slot.x - name_width / 2.0, name_y)
+			var placed: Array = name_rows_at.get(i, [0, slot.x])
+			var row: int = int(placed[0])
+			var name_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0) + 14.0 - name_h \
+				- float(row) * (name_h + _furn(NAME_ROW_GAP))
+			label_anchor_world = region_pos + Vector2(float(placed[1]) - name_width / 2.0, name_y)
 			var box_w := maxf(WAR_PIECE_SLOT_SPACING, 34.0)
 			var box_h := WAR_PIECE_FRAME_PX * 0.62
 			hitbox_rect = Rect2(
@@ -2215,9 +2316,15 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			name_label.text = marshal_name
 			name_label.set_meta("furniture_kind", "name")
 			_style_furniture(name_label, "name")
-			name_label.add_theme_color_override("font_color", Color.WHITE)
-			name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
-			name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if pieces_active:
+				name_label.add_theme_color_override("font_color", PLAQUE_IVORY)
+				name_label.add_theme_stylebox_override("normal",
+					_nameplate(colors.get(nation, Utils.COLOR_ENEMY_DEFAULT)))
+			else:
+				name_label.add_theme_color_override("font_color", Color.WHITE)
+				name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
+				name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(name_label)
 			_add_furniture("name", [name_label])
 			# S14G-19: the visible name is a click target for its own man.
@@ -2250,8 +2357,8 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 					lead_marshal = m
 					break
 			var stack_text := "%s +%d" % [lead_name, group_size - 1]
-			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
-			var stack_h := _furn(14.0)
+			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0 + plate_pad
+			var stack_h := _furn(17.0)
 			var rear_ranks := 1 if marshals.size() <= 4 else 2
 			var stack_y := -(WAR_PIECE_FRAME_PX * 0.6 + 8.0
 					+ float(rear_ranks) * WAR_PIECE_RANK_DEPTH
@@ -2264,9 +2371,10 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			stack_label.text = stack_text
 			stack_label.set_meta("furniture_kind", "stack")
 			_style_furniture(stack_label, "name")
-			stack_label.add_theme_color_override("font_color", Color.WHITE)
-			stack_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
-			stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+			stack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			stack_label.add_theme_color_override("font_color", PLAQUE_IVORY)
+			stack_label.add_theme_stylebox_override("normal",
+				_nameplate(colors.get(group_nation, Utils.COLOR_ENEMY_DEFAULT)))
 			force_layer.add_child(stack_label)
 			_add_furniture("stack", [stack_label])
 			# S14G-19 (Pre-Deploy S14h part 2, October 26, 2026): "Ney +4" was
@@ -2404,7 +2512,10 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		icon_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon_panel.position = layer_icon_pos
 		icon_panel.size = chip_size
-		icon_panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, Color(Utils.MAP_CHIP_BORDER, 0.6), 1.5, 2))
+		# Session UI-2: a round token, its dashed rim in the holder's tint.
+		var token = _plaque(MapPlaque.Kind.FOG, nation_color.lightened(0.25))
+		token.bg_color = Color(0.06, 0.07, 0.1, 0.82 if fog_level == "partial" else 0.62)
+		icon_panel.add_theme_stylebox_override("panel", token)
 		force_layer.add_child(icon_panel)
 
 		var icon_label = Label.new()
@@ -2416,7 +2527,7 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		icon_label.text = "?"
 		icon_label.set_meta("furniture_kind", "fog_chip")
 		_style_furniture(icon_label, "fog_chip")
-		icon_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.8))
+		icon_label.add_theme_color_override("font_color", Color(PLAQUE_IVORY, 0.9))
 		force_layer.add_child(icon_label)
 
 		var name_width = font.get_string_size(force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
@@ -2431,10 +2542,9 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		_style_furniture(name_label, "name")
 		name_label.add_theme_color_override(
 			"font_color",
-			Color(Utils.MAP_STALE_TEXT, 0.7) if fog_level == "partial" else Color(Utils.MAP_FOG_TEXT, 0.5)
+			Color(Utils.MAP_STALE_TEXT, 0.85) if fog_level == "partial" else Color(Utils.MAP_FOG_TEXT, 0.7)
 		)
-		name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
-		name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+		name_label.add_theme_stylebox_override("normal", _nameplate(nation_color, true))
 		force_layer.add_child(name_label)
 		# S14G-19: the fogged force's visible name is a click target for it
 		# (as its "?" chip is), and the chip's own box follows the chip when
@@ -2457,8 +2567,10 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	var fill_color = nation_color
 	# Slice 7.5 review fold: light nation fills (PapalStates white, Bavaria
 	# pale blue) need dark text/border — white-on-near-white was illegible.
-	var text_color: Color = Utils.contrast_text_color(nation_color)
-	var border_color = Color(0.9, 0.9, 0.9) if text_color == Color.WHITE else Utils.MAP_CHIP_DARK_BORDER
+	# Session UI-2: a dark plate with the holder's colour as its band; the
+	# figure in ivory (grey when the report is old or half-seen).
+	var text_color: Color = PLAQUE_IVORY
+	var faded := false
 	var label_text = "?"
 	if strength >= 1000:
 		label_text = "%sk" % int(strength / 1000)
@@ -2467,19 +2579,20 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 
 	if visibility == "stale":
 		fill_color = Color(nation_color.r * 0.5, nation_color.g * 0.5, nation_color.b * 0.5, 0.6)
-		text_color = Utils.MAP_TEXT_GREY
-		border_color = Utils.MAP_NEUTRAL_NATION
+		text_color = PLAQUE_DIM_INK
+		faded = true
 	elif visibility == "partial":
 		fill_color = Color(nation_color.r * 0.7, nation_color.g * 0.7, nation_color.b * 0.7, 0.8)
 		text_color = Color(0.85, 0.85, 0.85)
-		border_color = Utils.MAP_TEXT_GREY
+		faded = true
 
 	# UXR-X4: the chip and its text grow together (the chip's centre keeps
 	# its authored place below the province's anchor).
 	var font = ThemeDB.fallback_font
-	var panel_width = _furn(GARRISON_SIZE.x)
+	var band_w := _furn(5.0)
+	var panel_width = _furn(GARRISON_SIZE.x) + band_w
 	if font != null:
-		panel_width = max(_furn(GARRISON_SIZE.x), font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, _furn_px("garrison")).x + _furn(10.0))
+		panel_width = max(panel_width, font.get_string_size(label_text, HORIZONTAL_ALIGNMENT_CENTER, -1, _furn_px("garrison")).x + _furn(10.0) + band_w)
 	var panel_size = Vector2(panel_width, _furn(GARRISON_SIZE.y))
 
 	var panel = Panel.new()
@@ -2487,7 +2600,9 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	var panel_world_pos := region_pos + Vector2(-panel_size.x / 2.0, GARRISON_Y_OFFSET - panel_size.y / 2.0)
 	panel.position = _world_to_layer_position(panel_world_pos)
 	panel.size = panel_size
-	panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, border_color, 1.5, 3))
+	var plate = _plaque(MapPlaque.Kind.GARRISON, fill_color if faded else nation_color, faded)
+	plate.band_width = band_w
+	panel.add_theme_stylebox_override("panel", plate)
 	garrison_layer.add_child(panel)
 	_add_furniture("garrison", [panel])
 	# S14G-19: the garrison chip is a click target for its own province (it
@@ -2498,8 +2613,8 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 
 	var label = Label.new()
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.position = Vector2.ZERO
-	label.size = panel.size
+	label.position = Vector2(band_w, 0.0)
+	label.size = Vector2(panel.size.x - band_w, panel.size.y)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.text = label_text
@@ -4328,8 +4443,13 @@ func _update_fleet_pieces() -> void:
 			if bool(entry.get("is_player", false)) and str(entry.get("blockaded_by", "")) != "":
 				tint = Color(0.9, 0.45, 0.4, 1.0)
 			sail_label.add_theme_color_override("font_color", tint)
-			sail_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
-			sail_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
+			# Session UI-2: the count on a navy roundel with a gilt rim.
+			var roundel = _plaque(MapPlaque.Kind.SAIL, tint)
+			roundel.bg_color = Color(0.06, 0.08, 0.15, 0.9)
+			roundel.border_color = Color(tint, 0.85)
+			roundel.content_margin_left = _furn(5.0)
+			roundel.content_margin_right = _furn(5.0)
+			sail_label.add_theme_stylebox_override("normal", roundel)
 			_layout_sail_label(sail_label, anchor)
 			# S14G-19: the sail count is a click target for its fleet (THE
 			# ADMIRALTY), moved with the count.

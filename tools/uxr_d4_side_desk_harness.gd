@@ -201,7 +201,7 @@ func _step_end_turn() -> bool:
 	var ledger: Node = top.screens["ledger"]
 	var reads := _reads()
 	var cal_before := _calendar(ledger)
-	var turn_before: String = top.turn_label.text
+	var turn_before: String = _turn_words(top)
 	_main.call("_execute_end_turn")
 	await _frames(5)
 	if bool(_main.get("_awaiting_end_turn_confirmation")):
@@ -226,7 +226,7 @@ func _step_end_turn() -> bool:
 	await _settle()
 	await _answer_modals()
 	await _settle()
-	rec["turn_after"] = top.turn_label.text
+	rec["turn_after"] = _turn_words(top)
 	rec["calendar_after"] = _calendar(ledger)
 	rec["ledger_reads"] = _reads() - reads
 	rec["pinned"] = top.get_pinned_screen()
@@ -376,6 +376,14 @@ func _calendar(ledger: Node) -> String:
 	return str(cd.get("calendar_label", "")) if cd is Dictionary else ""
 
 
+func _turn_words(top) -> String:
+	"""Session UI-2: the date and the turn's figure are two labels (the turn
+	by the hourglass); the record reads them as one line."""
+	var fig = top.get("_turn_figure")
+	var n: String = str(fig.text) if fig != null else ""
+	return ("Turn " + n + " — " + str(top.turn_label.text)) if n != "" else str(top.turn_label.text)
+
+
 func _ledger_line(ledger: Node, name: String) -> String:
 	var content: RichTextLabel = ledger.get("content_area")
 	if content == null:
@@ -383,6 +391,15 @@ func _ledger_line(ledger: Node, name: String) -> String:
 	var text := content.get_parsed_text()
 	var at := text.find("\n" + name + " ")
 	if at < 0:
+		# Session UI-2: a corps card's head leads with its arm glyph (an
+		# image), so the line opens with spaces and the image's place — the
+		# name is found at the head of a line past them.
+		var pos := 0
+		for line in text.split("\n"):
+			var head: String = line.lstrip(" \t\u00A0\uFFFC")
+			if head.begins_with(name + " "):
+				return text.substr(pos + line.length() - head.length(), 160).strip_edges()
+			pos += line.length() + 1
 		return ""
 	return text.substr(at + 1, 160).strip_edges()
 

@@ -55,12 +55,14 @@ const UI_SCALE_BUTTON_STEP := 0.1
 #   d = dpi / 96                 the Windows scaling the player chose
 #   h = height / 1080            1.0 at 1080p, 1.33 at 1440p, 2.0 at 2160p
 #   s = max(d, (d + h) / 2)      never below the player's own scaling
-#   +0.25 when width/height ≥ 3.0 (a 32:9 panel is sat further from; a 21:9
-#   at 2.39 is a 27-inch's distance and gets no bonus)
+#   +0.45 when width/height ≥ 3.0 (a 32:9 panel is sat further from; a 21:9
+#   at 2.39 is a 27-inch's distance and gets no bonus). Session UI-2 raised it
+#   from 0.25: at 5120x1440 the HUD read small against the screen (the user's
+#   word); 1.60 gives a 3200x900 logical view, the 1600x900 layout 14 % larger.
 #   clamp [1.0, 3.0], rounded to 0.05
 const DERIVE_FLOOR := 1.0
 const ULTRA_WIDE_ASPECT := 3.0
-const ULTRA_WIDE_BONUS := 0.25
+const ULTRA_WIDE_BONUS := 0.45
 
 static var _cfg: ConfigFile = null
 # UXR-0 (October 9, 2026): the capture harnesses shim `_cfg` onto an in-memory
@@ -308,6 +310,18 @@ static func set_high_contrast(on: bool) -> void:
 	_save()
 
 
+# --- Reduce motion (Session UI-2, November 11, 2026: Settings → INTERFACE) ---
+# Screens and popups open with a 160 ms fade (Utils.motion_open); this turns
+# it off. A preference like High contrast: Reset layout keeps it.
+static func get_reduce_motion() -> bool:
+	return bool(_config().get_value("display", "reduce_motion", false))
+
+
+static func set_reduce_motion(on: bool) -> void:
+	_config().set_value("display", "reduce_motion", on)
+	_save()
+
+
 # --- HUD width (UXR-D3, Pre-Deploy S9b: Settings → DISPLAY) ---
 # "full" spreads the HUD to the viewport's edges (the default, as ever);
 # "centred" confines the command window, the notice rail, the top bar's two
@@ -315,9 +329,15 @@ static func set_high_contrast(on: bool) -> void:
 # HUD_BAND_WIDTH logical px wide — on a 32:9 panel they sat 4,300–5,000 px
 # apart. The map stays full-bleed. A viewport no wider than the band reads
 # as Full (Utils.hud_band).
-const HUD_WIDTHS := ["full", "centred"]
-const DEFAULT_HUD_WIDTH := "full"
+# Session UI-2 (November 11, 2026): "auto", the new default, is Full on an
+# ordinary screen and a 16:9 SAFE ZONE about the centre on a very wide one
+# (SAFE_ZONE_ASPECT and wider: 32:9, 32:10) — the HUD frames the map as it
+# does on a 16:9 screen instead of standing in the far corners (the blind
+# readers' ultrawide frame). "centred" keeps its fixed band.
+const HUD_WIDTHS := ["auto", "full", "centred"]
+const DEFAULT_HUD_WIDTH := "auto"
 const HUD_BAND_WIDTH := 2560.0
+const SAFE_ZONE_ASPECT := 2.6
 
 
 static func get_hud_width() -> String:

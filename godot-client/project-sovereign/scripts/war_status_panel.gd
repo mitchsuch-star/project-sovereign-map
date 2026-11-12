@@ -112,6 +112,8 @@ func update_wars(data: Dictionary) -> void:
 		return
 
 	header_label.text = "ACTIVE WARS"
+	# Session UI-2: the war room's panel title takes the title face.
+	header_label.theme_type_variation = &"HudTitle"
 	# R159 (POSITION 7): the HUD names its mechanic on hover.
 	header_label.tooltip_text = "Your active wars and Europe's own — click a card for the full ledger of one war."
 
@@ -197,9 +199,27 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 		h = clampf(vbox.get_combined_minimum_size().y + 18.0, MIN_HEIGHT, maxf(cap, MIN_HEIGHT))
 	var right_inset := EDGE_MARGIN + (view.x - band.y)
 	panel_container.offset_right = -right_inset
-	panel_container.offset_bottom = -EDGE_MARGIN
 	panel_container.offset_left = -right_inset - w
-	panel_container.offset_top = -EDGE_MARGIN - h
+	# Session UI-2: on a narrow logical view (Interface Scale 2.0 on a 1600-px
+	# window: 800 wide) the war list stands at the top right under the notice
+	# rail, so it never meets the command window or the zoom chips.
+	if room < NARROW_BELOW_PX:
+		var top := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + NARROW_TOP_GAP
+		panel_container.anchor_top = 0.0
+		panel_container.anchor_bottom = 0.0
+		panel_container.offset_top = top
+		panel_container.offset_bottom = top + h
+	else:
+		panel_container.anchor_top = 1.0
+		panel_container.anchor_bottom = 1.0
+		panel_container.offset_bottom = -EDGE_MARGIN
+		panel_container.offset_top = -EDGE_MARGIN - h
+
+
+# Session UI-2: below this HUD-band width the panel sits at the top right,
+# under the notice rail's slot (36 bar + 6 gap + 76 slot + 6).
+const NARROW_BELOW_PX := 1000.0
+const NARROW_TOP_GAP := 88.0
 
 
 func _content_need_width() -> float:
@@ -272,7 +292,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 	# Whole card is a flat Button for full clickability
 	var row_btn = Button.new()
-	row_btn.custom_minimum_size = Vector2(0, 36)
+	row_btn.custom_minimum_size = Vector2(0, 50)
 	row_btn.pressed.connect(func(): card_clicked.emit(opponent, "war", str(war_data.get("war_instance_id", ""))))
 	_give_row_chrome(row_btn)
 	row_btn.tooltip_text = _build_war_tooltip(war_data)
@@ -313,15 +333,16 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(name_label)
 
-	# Score number lives here (not on the bar) so it never fights the centre gem.
-	var score_label = Label.new()
-	# PC-F84 (S13e part 3): the trend's glyph beside the score ("+77 ↑").
+	# Session UI-2: the figure stands in the bar's medallion below; the trend's
+	# glyph (PC-F84, S13e part 3: "+77 ↑") keeps its place beside the title.
 	var glyph = str(war_data.get("trend_glyph", ""))
-	score_label.text = ("+" if score > 0 else "") + str(score) + ("" if glyph == "" else " " + glyph)
-	score_label.theme_type_variation = &"Caption"
-	score_label.add_theme_color_override("font_color", _get_score_color(score))
-	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_row.add_child(score_label)
+	if glyph != "":
+		var glyph_label = Label.new()
+		glyph_label.text = glyph
+		glyph_label.theme_type_variation = &"Caption"
+		glyph_label.add_theme_color_override("font_color", _get_score_color(score))
+		glyph_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		name_row.add_child(glyph_label)
 
 	var turn_label = Label.new()
 	turn_label.text = "T:" + str(duration)
@@ -332,13 +353,40 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	col.add_child(name_row)
 
 	# ── Line 2: full-width tug-of-war bar ──
-	var bar = _create_tug_of_war_bar(score, opponent, 80, 16)
+	# Session UI-2: the two sides' arms stand at its ends — the enemy's at the
+	# left, France's at the right, the side France's colour fills toward (the
+	# war detail's head the same) — so the bar reads which way it leans.
+	var bar_row := HBoxContainer.new()
+	bar_row.add_theme_constant_override("separation", 4)
+	bar_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_row.add_child(_bar_flag(opponent))
+	var bar = _create_tug_of_war_bar(score, opponent, 80, 26)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(bar)
+	bar_row.add_child(bar)
+	bar_row.add_child(_bar_flag("France"))
+	col.add_child(bar_row)
 
 	row_btn.add_child(col)
 	vbox.add_child(row_btn)
+
+
+func _bar_flag(nation: String) -> Control:
+	"""A side's arms at a war bar's end (an empty 16 px slot when none)."""
+	var path := Utils.nation_flag_path(nation)
+	if path == "":
+		var gap := Control.new()
+		gap.custom_minimum_size = Vector2(16, 11)
+		gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return gap
+	var flag := TextureRect.new()
+	flag.texture = load(path)
+	flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	flag.custom_minimum_size = Vector2(16, 11)
+	flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	flag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return flag
 
 
 func _build_war_tooltip(war_data: Dictionary) -> String:
@@ -495,67 +543,120 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	return _build_tug_of_war_bar(score, opponent, bar_width, bar_height)
 
 
-# Shared premium tug-of-war builder (HUD + detail popup use the same textures,
-# assets/ui/bars/warbar_*.png — original gold-and-navy chrome). load() (not
-# preload) so a missing texture degrades gracefully instead of a parse failure.
+# Session UI-2: the war score as ONE shared build (the HUD rows and the war
+# detail's head draw it): a gilt-rimmed track that fills from a centre notch,
+# each side's colour from the middle out, and the figure in a small round
+# medallion that rides the leading edge of the fill (at the notch when the
+# war is level). Only Utils tokens: nothing here is a literal grey.
 static func _build_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_height: int) -> Control:
-	var container = Control.new()
-	container.custom_minimum_size = Vector2(bar_width, bar_height)
+	return build_score_track(score, opponent, bar_width, 12.0, float(bar_height), 1.0)
+
+
+static func build_score_track(score: int, opponent: String, width: float, track_h: float,
+		medal_h: float, rim_w: float) -> Control:
+	var container := Control.new()
+	container.name = "ScoreTrack"
+	container.custom_minimum_size = Vector2(width, medal_h)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	# Gold-rimmed recessed track (horizontal 3-slice: rounded L/R caps).
-	var track = NinePatchRect.new()
-	track.texture = load("res://assets/ui/bars/warbar_track.png")
-	track.patch_margin_left = 14
-	track.patch_margin_right = 14
+	# The gilt-rimmed recessed track (a rounded pill).
+	var track := Panel.new()
+	track.name = "Track"
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var rim := StyleBoxFlat.new()
+	rim.bg_color = Color(Utils.UI_BAR_BG, 1.0)
+	rim.border_color = Color(Utils.UI_GOLD, 0.85)
+	rim.set_border_width_all(int(rim_w))
+	rim.set_corner_radius_all(int(track_h / 2.0))
+	track.add_theme_stylebox_override("panel", rim)
+	track.anchor_left = 0.0
+	track.anchor_right = 1.0
+	track.anchor_top = 0.5
+	track.anchor_bottom = 0.5
+	track.offset_left = 0.0
+	track.offset_right = 0.0
+	track.offset_top = -track_h / 2.0
+	track.offset_bottom = track_h / 2.0
 	container.add_child(track)
 
-	# Glossy fill from centre, tinted to the leader's nation via modulate (the
-	# fill texture is grayscale, so modulate keeps the gloss).
-	var normalized = clamp(score, -100, 100)
+	# The fills live in a clip, so a full side stays inside the rounded rim.
+	var clip := Control.new()
+	clip.name = "FillClip"
+	clip.clip_contents = true
+	clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	clip.offset_left = rim_w + 1.0
+	clip.offset_right = -(rim_w + 1.0)
+	clip.offset_top = rim_w + 1.0
+	clip.offset_bottom = -(rim_w + 1.0)
+	track.add_child(clip)
+
+	var normalized: int = clampi(score, -100, 100)
 	if normalized != 0:
-		var fill = TextureRect.new()
-		fill.texture = load("res://assets/ui/bars/warbar_fill.png")
-		fill.stretch_mode = TextureRect.STRETCH_SCALE
-		# EXPAND_IGNORE_SIZE is load-bearing: without it the texture's natural
-		# 72x22 px becomes the control's MINIMUM size, so any anchored span
-		# smaller than that (short bars, high UI scale, low scores) overflows
-		# past the centre gem and bulges out of the track.
-		fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		var fill := ColorRect.new()
+		fill.name = "Fill"
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var fraction: float = abs(normalized) / 100.0
-		var rim_inset: float = BAR_RIM_INSET * fraction
+		var fraction: float = absf(float(normalized)) / 100.0
 		if normalized > 0:
-			fill.modulate = Utils.NATION_COLORS["France"]
-			_anchor_bar_child(fill, 0.5, 0.5 + fraction * 0.5, 0.0, -rim_inset)
+			fill.color = Utils.NATION_COLORS["France"]
+			_anchor_bar_child(fill, 0.5, 0.5 + fraction * 0.5, 0.0, 0.0)
 		else:
-			fill.modulate = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
-			_anchor_bar_child(fill, 0.5 - fraction * 0.5, 0.5, rim_inset, 0.0)
-		fill.offset_top = 3.0
-		fill.offset_bottom = -3.0
-		container.add_child(fill)
+			fill.color = Utils.NATION_COLORS.get(opponent, Utils.COLOR_ENEMY_DEFAULT)
+			_anchor_bar_child(fill, 0.5 - fraction * 0.5, 0.5, 0.0, 0.0)
+		clip.add_child(fill)
 
-	# Gold centre gem (the balanced-point marker; reads even at an even score).
-	var gem = TextureRect.new()
-	gem.texture = load("res://assets/ui/bars/warbar_gem.png")
-	gem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	# Same min-size trap as the fill: the 26x26 texture must not clamp the
-	# 20x20 anchored rect or the gem drifts right/down off the true centre.
-	gem.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var gem_size := float(bar_height) + 4.0
-	gem.anchor_left = 0.5
-	gem.anchor_right = 0.5
-	gem.anchor_top = 0.5
-	gem.anchor_bottom = 0.5
-	gem.offset_left = -gem_size / 2.0
-	gem.offset_right = gem_size / 2.0
-	gem.offset_top = -gem_size / 2.0
-	gem.offset_bottom = gem_size / 2.0
-	container.add_child(gem)
+	# The centre notch: a bright gilt stroke through the track, a little proud.
+	var notch := ColorRect.new()
+	notch.name = "CentreNotch"
+	notch.color = Utils.UI_GOLD_BRIGHT
+	notch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_anchor_bar_child(notch, 0.5, 0.5, -1.0, 1.0)
+	notch.offset_top = -track_h / 2.0 - 2.0
+	notch.offset_bottom = track_h / 2.0 + 2.0
+	notch.anchor_top = 0.5
+	notch.anchor_bottom = 0.5
+	container.add_child(notch)
 
+	# The figure's medallion: round, gilt-rimmed, riding the fill's leading edge.
+	var medal := PanelContainer.new()
+	medal.name = "ScoreMedallion"
+	medal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var disc := StyleBoxFlat.new()
+	# a navy ground: the figure is body type (16 px) and must read 4.5 : 1
+	disc.bg_color = Color(Utils.UI_POPUP_BG, 1.0)
+	disc.border_color = Utils.UI_GOLD_BRIGHT
+	disc.set_border_width_all(2)
+	disc.set_corner_radius_all(int(medal_h / 2.0))
+	disc.content_margin_left = 6.0
+	disc.content_margin_right = 6.0
+	disc.content_margin_top = 0.0
+	disc.content_margin_bottom = 0.0
+	medal.add_theme_stylebox_override("panel", disc)
+	medal.custom_minimum_size = Vector2(medal_h, medal_h)
+	var at: float = 0.5 + float(normalized) * 0.0042
+	medal.anchor_left = at
+	medal.anchor_right = at
+	medal.anchor_top = 0.5
+	medal.anchor_bottom = 0.5
+	medal.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	medal.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var figure := Label.new()
+	figure.name = "ScoreLabel"
+	figure.text = ("+" if score > 0 else ("−" if score < 0 else "")) + str(absi(score))
+	figure.theme_type_variation = &"Figure"
+	figure.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	figure.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	figure.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if score > 0:
+		figure.add_theme_color_override("font_color", Utils.UI_SCORE_POSITIVE)
+	elif score < 0:
+		# the alert red for words and figures (UI_SCORE_NEGATIVE_TEXT is the
+		# caption red: 3.0 : 1 here, under the body floor)
+		figure.add_theme_color_override("font_color", Utils.UI_ALERT_TEXT)
+	else:
+		figure.add_theme_color_override("font_color", Utils.UI_SCORE_NEUTRAL)
+	medal.add_child(figure)
+	container.add_child(medal)
 	return container
 
 

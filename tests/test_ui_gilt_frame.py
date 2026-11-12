@@ -300,12 +300,13 @@ class TestTheCommandWindow:
 
     def test_a_spent_day_makes_end_turn_the_primary(self):
         body = _func(_read(SCRIPTS / "main.gd"), "_note_the_end_of_the_day")
-        assert '&"PrimaryCaptionButton" if spent else &"CaptionButton"' in body
+        # Session UI-2: End Turn wears its own seal-rimmed step every day.
+        assert '&"PrimaryCaptionButton" if spent else &"EndTurnButton"' in body
         assert 'end_turn_button.remove_theme_color_override("font_color")' in body
         assert 'add_theme_color_override("font_color"' not in body, "an override would beat the step's words"
         text = _read(SCENES / "main.tscn")
         block = text[text.index('[node name="EndTurnButton"'):].split("[node", 2)[1]
-        assert 'theme_type_variation = &"CaptionButton"' in block
+        assert 'theme_type_variation = &"EndTurnButton"' in block
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -341,7 +342,9 @@ class TestTheDressedPage:
 
     def test_the_figure_column_rides_the_economy_book(self):
         body = _func(_read(SCRIPTS / "strategic_ledger.gd"), "_render_economy")
-        assert body.index("bbcode = Utils.bb_tabulate(bbcode, content_area)") < body.index("content_area.text = bbcode")
+        # Session UI-2: the page's one seam dresses its headings as it sets the text.
+        assert body.index("bbcode = Utils.bb_tabulate(bbcode, content_area)") < body.index(
+            "content_area.text = Utils.dress_heads(bbcode)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
