@@ -55,7 +55,9 @@ FITTERS = {
     ("top_bar", "BarContainer"): ("_fit_bar", "size_changed", "COMPACT_BELOW_PX"),
     ("top_bar", "NotificationArea"): ("_fit_rail", "size_changed", "Utils.fraction_px("),
     ("tutorial_overlay", "Card"): ("_fit_card_width", "size_changed", "CARD_WIDTH_FRACTION"),
-    ("war_detail_popup", "PanelContainer"): ("refit", "refit", "Utils.clamp_anchored_panel("),
+    # Session UI-5 (F25): the war detail is its own centred window — its fit is
+    # computed in `refit` (the band under the top bar, below the notice rail).
+    ("war_detail_popup", "PanelContainer"): ("refit", "refit", "panel.set_meta(\"clamp_band_top\", band_top)"),
 }
 # Fixed rects still owed a fit, each with the slice that removes it. RATCHET:
 # its length may only fall, and it is empty when UXR-2 lands.
@@ -67,6 +69,8 @@ CODE_BUILT = {
     ("scale_card.gd", "set_anchors_preset(Control.PRESET_CENTER)"): "Utils.clamp_centered_panel(self)",
     ("main_menu.gd", "set_anchors_preset(Control.PRESET_CENTER)"): "_refit_open_panels",
     ("battle_diorama.gd", "set_anchors_preset(Control.PRESET_CENTER)"): "func refit()",
+    # Session UI-5: the save dialog clamps its panel on open and on every list fill.
+    ("save_dialog.gd", "set_anchors_preset(Control.PRESET_CENTER)"): "Utils.clamp_centered_panel(_panel)",
 }
 
 
@@ -370,7 +374,11 @@ class TestTheAnchors:
         for show in ("show_war", "show_coalition", "show_armistice"):
             body = G.func_body(wd, show)
             assert body.index("\tshow()") < body.index("\trefit()"), show
-        assert "Utils.clamp_anchored_panel(panel)" in G.func_body(wd, "refit")
+        # Session UI-5 (F25): a centred window whose rect `refit` computes (the band
+        # under the top bar; below the notice rail where it stands over the columns).
+        refit = G.func_body(wd, "refit")
+        assert "panel.anchor_left = 0.5" in refit and "panel.anchor_top = 0.5" in refit
+        assert "band_top = maxf(band_top, rail.end.y + Utils.HUD_MARGIN)" in refit
 
     def test_the_hud_is_wired_to_what_it_avoids(self, tree):
         _s, scripts, _m, _k = tree

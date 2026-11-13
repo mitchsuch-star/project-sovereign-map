@@ -202,9 +202,11 @@ class TestPCF46:
 
     def test_the_war_popup_takes_more_room_and_leads_with_its_peace_table(self):
         src = _read(SCRIPTS / "war_detail_popup.gd")
-        # Session UI-4: 0.24 -> 0.28 so the breakdown table and its bars have room
-        assert _const(src, "WIDTH_FRACTION") == 0.28 and _const(src, "FIT_MAX_WIDTH") == 640.0
-        assert _const(src, "HEIGHT_FRACTION") == 0.72 and _const(src, "FIT_MAX_HEIGHT") == 880.0
+        # Session UI-4: 0.24 -> 0.28 so the breakdown table and its bars have room;
+        # Session UI-5 (F25, the readers' "give it its own full-height window"):
+        # a centred window, 46 % x 90 % (the whole view at the compact one).
+        assert _const(src, "WIDTH_FRACTION") == 0.46 and _const(src, "FIT_MAX_WIDTH") == 1100.0
+        assert _const(src, "HEIGHT_FRACTION") == 0.9 and _const(src, "FIT_MAX_HEIGHT") == 1300.0
         body = _func(src, "_render_war_detail")
         order = [body.index(x) for x in ('"Settlement Tier: [color="', 'peace_table.get("lines", [])',
                                           "# Breakdown", "]Score Breakdown[/color]")]

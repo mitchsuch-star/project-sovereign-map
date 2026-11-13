@@ -166,6 +166,8 @@ ENGINE_LANES = {
         "test_sf7_s8_the_screen_says",
         "test_uxr1_scale_fix",
         "test_uxr3_s12_fixes",
+        # Session UI-5: the full measure's headless probe (tools/ui5_probe.gd)
+        "test_ui5_full_measure",
         # four 40-turn driver children at once and no engine: it rode the one
         # lane, and it stays in one so its load never lands on all three
         "test_sf_page_the_front_page_of_the_peace",

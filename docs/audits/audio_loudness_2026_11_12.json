@@ -1,0 +1,1420 @@
+{
+ "tool": "tools/ui5_audio_prep.py --measure",
+ "standard": "ITU-R BS.1770-4 integrated loudness (pyloudnorm), sample peak",
+ "music_target_lufs": -23.0,
+ "music_spread_lu": 12.31,
+ "missing": [],
+ "files": {
+  "ambient/bell_toll_single.mp3": {
+   "seconds": 31.64,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -2.64,
+   "lufs": -16.41,
+   "roles": [
+    "cue:bell_toll"
+   ]
+  },
+  "ambient/birds_loop.ogg": {
+   "seconds": 21.158,
+   "rate": 96000,
+   "channels": 2,
+   "peak_dbfs": -6.36,
+   "lufs": -26.93,
+   "roles": [
+    "loop:birds"
+   ],
+   "seam": {
+    "level_step_db": 0.3,
+    "jump": 0.0002,
+    "ok": true
+   }
+  },
+  "ambient/campfire_loop.mp3": {
+   "seconds": 11.0,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -4.0,
+   "lufs": -29.16,
+   "roles": [
+    "loop:campfire"
+   ],
+   "seam": {
+    "level_step_db": 2.02,
+    "jump": 0.0026,
+    "ok": true
+   }
+  },
+  "ambient/church_bells_peal.mp3": {
+   "seconds": 77.18,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.25,
+   "lufs": -13.69,
+   "roles": [
+    "cue:bells_peal"
+   ]
+  },
+  "ambient/clock_loop.ogg": {
+   "seconds": 4.856,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -16.3,
+   "lufs": -38.46,
+   "roles": [
+    "loop:clock"
+   ],
+   "seam": {
+    "level_step_db": 23.63,
+    "jump": 0.0103,
+    "ok": true,
+    "rhythm": {
+     "onsets": 10,
+     "beat_s": 0.486,
+     "wrap_s": 0.488,
+     "wrap_matches": true
+    }
+   }
+  },
+  "ambient/crowd_cheer.ogg": {
+   "seconds": 5.664,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -11.06,
+   "lufs": -24.52,
+   "roles": [
+    "cue:crowd_cheer"
+   ]
+  },
+  "ambient/crowd_murmur_seamless.ogg": {
+   "seconds": 26.0,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -15.14,
+   "lufs": -32.66,
+   "roles": [
+    "loop:crowd"
+   ],
+   "seam": {
+    "level_step_db": 1.69,
+    "jump": 0.0001,
+    "ok": true
+   }
+  },
+  "ambient/distant_drums.ogg": {
+   "seconds": 10.42,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -2.93,
+   "lufs": -14.72,
+   "roles": [
+    "cue:distant_drums"
+   ]
+  },
+  "ambient/fire_loop_seamless.ogg": {
+   "seconds": 15.153,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -5.29,
+   "lufs": -36.02,
+   "roles": [
+    "loop:fire"
+   ],
+   "seam": {
+    "level_step_db": 10.83,
+    "jump": 0.0002,
+    "ok": true,
+    "texture_p95_db": 19.02
+   }
+  },
+  "ambient/rain_loop_seamless.ogg": {
+   "seconds": 28.5,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -0.13,
+   "lufs": -16.09,
+   "roles": [
+    "loop:rain"
+   ],
+   "seam": {
+    "level_step_db": 1.43,
+    "jump": 0.0042,
+    "ok": true
+   }
+  },
+  "ambient/sea_loop.mp3": {
+   "seconds": 34.993,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -24.86,
+   "lufs": -36.45,
+   "roles": [
+    "loop:sea"
+   ],
+   "seam": {
+    "level_step_db": 1.7,
+    "jump": 0.0166,
+    "ok": true
+   }
+  },
+  "ambient/ship_bell.mp3": {
+   "seconds": 2.912,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -8.64,
+   "lufs": -23.36,
+   "roles": [
+    "cue:notification_high",
+    "cue:ship_bell"
+   ]
+  },
+  "ambient/ship_creak_1_seamless.ogg": {
+   "seconds": 0.511,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -6.9,
+   "lufs": -20.25,
+   "roles": [
+    "loop:creak"
+   ],
+   "seam": {
+    "level_step_db": 18.08,
+    "jump": 0.0005,
+    "ok": true,
+    "texture_p95_db": 32.19
+   }
+  },
+  "ambient/wind_map_loop.mp3": {
+   "seconds": 41.143,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -19.58,
+   "lufs": -38.27,
+   "roles": [
+    "loop:wind"
+   ],
+   "seam": {
+    "level_step_db": 1.89,
+    "jump": 0.0019,
+    "ok": true
+   }
+  },
+  "ambient/winter_wind_loop_seamless.ogg": {
+   "seconds": 23.473,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": 0.71,
+   "lufs": -12.04,
+   "roles": [
+    "loop:winter_wind"
+   ],
+   "seam": {
+    "level_step_db": 1.78,
+    "jump": 0.0048,
+    "ok": true
+   }
+  },
+  "battle/army_march.mp3": {
+   "seconds": 36.73,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -9.77,
+   "lufs": -34.36,
+   "roles": [
+    "loop:march_long"
+   ],
+   "seam": {
+    "level_step_db": 0.0,
+    "jump": 0.0,
+    "ok": true
+   }
+  },
+  "battle/army_march_loop_short.mp3": {
+   "seconds": 7.5,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -14.98,
+   "lufs": -33.78,
+   "roles": [
+    "cue:march_step",
+    "cue:order_march"
+   ]
+  },
+  "battle/army_march_loop_short_seamless.ogg": {
+   "seconds": 6.75,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -15.63,
+   "lufs": -34.25,
+   "roles": [
+    "loop:march"
+   ],
+   "seam": {
+    "level_step_db": 11.04,
+    "jump": 0.0022,
+    "ok": true,
+    "texture_p95_db": 19.15
+   }
+  },
+  "battle/battlefield_ambience_seamless.ogg": {
+   "seconds": 342.933,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": 0.92,
+   "lufs": -27.51,
+   "roles": [
+    "loop:battle_bed"
+   ],
+   "seam": {
+    "level_step_db": 0.46,
+    "jump": 0.0001,
+    "ok": true
+   }
+  },
+  "battle/boots_halt.ogg": {
+   "seconds": 0.705,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -2.61,
+   "lufs": -30.73,
+   "roles": [
+    "cue:boots"
+   ]
+  },
+  "battle/cannon_distant.ogg": {
+   "seconds": 0.917,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.06,
+   "lufs": -24.12,
+   "roles": [
+    "cue:cannon_distant"
+   ]
+  },
+  "battle/cannon_thud.ogg": {
+   "seconds": 1.795,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.05,
+   "lufs": -19.58,
+   "roles": [
+    "cue:cannon"
+   ]
+  },
+  "battle/cavalry_gallop.mp3": {
+   "seconds": 25.103,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.48,
+   "lufs": -17.47,
+   "roles": [
+    "cue:cavalry"
+   ]
+  },
+  "battle/drum_cadence.ogg": {
+   "seconds": 6.182,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -4.5,
+   "lufs": -27.48,
+   "roles": [
+    "cue:drum_cadence"
+   ]
+  },
+  "battle/drum_sting.wav": {
+   "seconds": 1.55,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -1.72,
+   "lufs": -23.27,
+   "roles": [
+    "cue:drum_sting"
+   ]
+  },
+  "battle/hammer.ogg": {
+   "seconds": 2.0,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -5.48,
+   "lufs": -22.37,
+   "roles": [
+    "cue:hammer"
+   ]
+  },
+  "battle/horse_trot.ogg": {
+   "seconds": 3.063,
+   "rate": 48000,
+   "channels": 1,
+   "peak_dbfs": 0.06,
+   "lufs": -27.59,
+   "roles": [
+    "cue:horse_trot"
+   ]
+  },
+  "battle/horse_whinny.ogg": {
+   "seconds": 2.273,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -12.68,
+   "lufs": -26.02,
+   "roles": [
+    "cue:whinny"
+   ]
+  },
+  "battle/musket_battle_volley.mp3": {
+   "seconds": 22.751,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.8,
+   "lufs": -11.48,
+   "roles": [
+    "cue:musket_volley"
+   ]
+  },
+  "battle/musket_shot_1.ogg": {
+   "seconds": 0.459,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -2.01,
+   "lufs": -21.71,
+   "roles": [
+    "cue:musket_shot"
+   ]
+  },
+  "battle/musket_shot_2.ogg": {
+   "seconds": 0.374,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.03,
+   "lufs": -21.6,
+   "roles": [
+    "cue:musket_shot"
+   ]
+  },
+  "battle/musket_shot_3.ogg": {
+   "seconds": 0.264,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -4.96,
+   "lufs": -23.39,
+   "roles": [
+    "cue:musket_shot"
+   ]
+  },
+  "battle/saw.ogg": {
+   "seconds": 3.679,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -12.29,
+   "lufs": -26.47,
+   "roles": [
+    "cue:hammer"
+   ]
+  },
+  "battle/spade_dig.ogg": {
+   "seconds": 2.5,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -18.86,
+   "lufs": -41.5,
+   "roles": [
+    "cue:spade"
+   ]
+  },
+  "battle/sword_draw.mp3": {
+   "seconds": 0.705,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -4.27,
+   "lufs": -23.74,
+   "roles": [
+    "cue:sword_draw"
+   ]
+  },
+  "music/anthem_austria_kaiserhymne.ogg": {
+   "seconds": 74.057,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.39,
+   "lufs": -17.98,
+   "roles": [
+    "anthems:Austria"
+   ]
+  },
+  "music/anthem_britain_god_save.ogg": {
+   "seconds": 49.946,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": 0.04,
+   "lufs": -13.82,
+   "roles": [
+    "anthems:Britain",
+    "anthems:Prussia",
+    "anthems:Hanover",
+    "anthems:Sweden"
+   ]
+  },
+  "music/anthem_denmark_kong_christian.ogg": {
+   "seconds": 70.24,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.93,
+   "lufs": -15.49,
+   "roles": [
+    "anthems:Denmark"
+   ]
+  },
+  "music/anthem_holland_wilhelmus.ogg": {
+   "seconds": 48.64,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.2,
+   "lufs": -14.12,
+   "roles": [
+    "anthems:Holland"
+   ]
+  },
+  "music/anthem_spain_marcha_real.ogg": {
+   "seconds": 61.933,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": 0.09,
+   "lufs": -15.18,
+   "roles": [
+    "anthems:Spain"
+   ]
+  },
+  "music/anthem_warsaw_dabrowski.ogg": {
+   "seconds": 42.841,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.33,
+   "lufs": -14.43,
+   "roles": [
+    "anthems:DuchyOfWarsaw",
+    "anthems:Warsaw",
+    "anthems:Poland"
+   ]
+  },
+  "music/bugle_assembly.mp3": {
+   "seconds": 9.43,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -2.27,
+   "lufs": -15.91,
+   "roles": [
+    "cue:notification_critical"
+   ]
+  },
+  "music/bugle_first_call.mp3": {
+   "seconds": 9.221,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -5.45,
+   "lufs": -19.4,
+   "roles": [
+    "cue:first_call"
+   ]
+  },
+  "music/bugle_fix_bayonets.mp3": {
+   "seconds": 12.278,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.75,
+   "lufs": -12.65,
+   "roles": [
+    "cue:bugle_to_arms",
+    "cue:bugle_charge"
+   ]
+  },
+  "music/bugle_mail_call.ogg": {
+   "seconds": 5.221,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.77,
+   "lufs": -13.91,
+   "roles": [
+    "cue:mail_call"
+   ]
+  },
+  "music/bugle_reveille.ogg": {
+   "seconds": 21.246,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -4.86,
+   "lufs": -18.65,
+   "roles": [
+    "cue:reveille"
+   ]
+  },
+  "music/bugle_tattoo.mp3": {
+   "seconds": 68.389,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -4.14,
+   "lufs": -16.72,
+   "roles": [
+    "cue:bugle_retreat"
+   ]
+  },
+  "music/bugle_to_the_color.ogg": {
+   "seconds": 42.371,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -6.01,
+   "lufs": -17.31,
+   "roles": [
+    "cue:to_the_color"
+   ]
+  },
+  "music/calm_goldberg_aria.mp3": {
+   "seconds": 299.52,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -8.55,
+   "lufs": -26.59,
+   "roles": [
+    "music:peace"
+   ]
+  },
+  "music/calm_haydn_lark_adagio.ogg": {
+   "seconds": 291.759,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -7.36,
+   "lufs": -24.7,
+   "roles": [
+    "music:peace"
+   ]
+  },
+  "music/calm_mozart40_andante.ogg": {
+   "seconds": 456.161,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -1.0,
+   "lufs": -19.96,
+   "roles": [
+    "music:peace"
+   ]
+  },
+  "music/court_beethoven_op18_6_ii.ogg": {
+   "seconds": 421.814,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -4.4,
+   "lufs": -24.07,
+   "roles": [
+    "music:court"
+   ]
+  },
+  "music/court_figaro_overture.ogg": {
+   "seconds": 241.0,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.54,
+   "lufs": -16.13,
+   "roles": [
+    "music:court"
+   ]
+  },
+  "music/court_haydn_lark_i.ogg": {
+   "seconds": 371.675,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -3.09,
+   "lufs": -22.28,
+   "roles": [
+    "music:court"
+   ]
+  },
+  "music/court_mozart40_iii.ogg": {
+   "seconds": 272.781,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -3.52,
+   "lufs": -19.25,
+   "roles": [
+    "music:court"
+   ]
+  },
+  "music/court_mozart_quartet.ogg": {
+   "seconds": 252.94,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -6.87,
+   "lufs": -24.12,
+   "roles": [
+    "music:court"
+   ]
+  },
+  "music/crisis_mozart40_i.ogg": {
+   "seconds": 358.815,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.97,
+   "lufs": -16.96,
+   "roles": [
+    "music:crisis"
+   ]
+  },
+  "music/crisis_mozart40_iv.ogg": {
+   "seconds": 284.739,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -1.16,
+   "lufs": -17.19,
+   "roles": [
+    "music:crisis"
+   ]
+  },
+  "music/drums_rage_of_cornwallis.ogg": {
+   "seconds": 125.436,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.01,
+   "lufs": -20.54,
+   "roles": [
+    "music:war"
+   ]
+  },
+  "music/fanfare_erafnaf.ogg": {
+   "seconds": 36.492,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": 1.32,
+   "lufs": -14.55,
+   "roles": [
+    "cue:fanfare"
+   ]
+  },
+  "music/lament_eroica_ii_marcia_funebre.ogg": {
+   "seconds": 928.509,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -1.92,
+   "lufs": -20.97,
+   "roles": [
+    "music_oneshots:lament"
+   ]
+  },
+  "music/marche_militaire_francaise.mp3": {
+   "seconds": 254.173,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.49,
+   "lufs": -21.95,
+   "roles": [
+    "music:war"
+   ]
+  },
+  "music/marseillaise_navy_band.ogg": {
+   "seconds": 79.257,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.55,
+   "lufs": -16.45,
+   "roles": [
+    "music_oneshots:marseillaise"
+   ]
+  },
+  "music/peace_magic_flute_overture.ogg": {
+   "seconds": 400.773,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -0.12,
+   "lufs": -14.28,
+   "roles": [
+    "music:peace"
+   ]
+  },
+  "music/peace_mozart_k421_ii.ogg": {
+   "seconds": 315.212,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -4.26,
+   "lufs": -23.76,
+   "roles": [
+    "music:peace"
+   ]
+  },
+  "music/peace_mozart_k465_ii.ogg": {
+   "seconds": 461.292,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -1.9,
+   "lufs": -21.27,
+   "roles": [
+    "music:peace"
+   ]
+  },
+  "music/tension_coriolan.ogg": {
+   "seconds": 498.704,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.38,
+   "lufs": -15.15,
+   "roles": [
+    "music:war",
+    "music:crisis"
+   ]
+  },
+  "music/theme_eroica_i.ogg": {
+   "seconds": 911.553,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -0.33,
+   "lufs": -18.39,
+   "roles": [
+    "music:menu",
+    "music:peace"
+   ]
+  },
+  "music/triumph_eroica_iv_finale.ogg": {
+   "seconds": 704.639,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -1.06,
+   "lufs": -18.84,
+   "roles": [
+    "music_oneshots:triumph"
+   ]
+  },
+  "music/war_beethoven5_i.ogg": {
+   "seconds": 500.127,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -4.12,
+   "lufs": -22.36,
+   "roles": [
+    "music:war",
+    "music:crisis"
+   ]
+  },
+  "music/war_egmont.ogg": {
+   "seconds": 540.897,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.19,
+   "lufs": -15.1,
+   "roles": [
+    "music:war"
+   ]
+  },
+  "music/war_eroica_iii.ogg": {
+   "seconds": 349.34,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.67,
+   "lufs": -19.44,
+   "roles": [
+    "music:war"
+   ]
+  },
+  "ui/book_close.ogg": {
+   "seconds": 0.231,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.86,
+   "lufs": -16.15,
+   "roles": [
+    "cue:panel_close",
+    "cue:book_close"
+   ]
+  },
+  "ui/book_open.ogg": {
+   "seconds": 0.154,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -11.54,
+   "lufs": -30.87,
+   "roles": [
+    "cue:panel_open",
+    "cue:book_open"
+   ]
+  },
+  "ui/cloth_rustle.ogg": {
+   "seconds": 0.415,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -7.94,
+   "lufs": -26.66,
+   "roles": [
+    "cue:cloth"
+   ]
+  },
+  "ui/coin_pour.mp3": {
+   "seconds": 8.668,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.38,
+   "lufs": -13.74,
+   "roles": [
+    "cue:coin_pour"
+   ]
+  },
+  "ui/coins_small.ogg": {
+   "seconds": 0.846,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.19,
+   "lufs": -21.54,
+   "roles": [
+    "cue:coins_small"
+   ]
+  },
+  "ui/coins_small_2.ogg": {
+   "seconds": 0.338,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -10.7,
+   "lufs": -27.9,
+   "roles": [
+    "cue:coins_small"
+   ]
+  },
+  "ui/command_ack_click.ogg": {
+   "seconds": 0.446,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -6.93,
+   "lufs": -28.46,
+   "roles": [
+    "cue:command_ack"
+   ]
+  },
+  "ui/confirm_chime.ogg": {
+   "seconds": 0.539,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -0.96,
+   "lufs": -13.22,
+   "roles": [
+    "cue:confirm"
+   ]
+  },
+  "ui/door_close_heavy.ogg": {
+   "seconds": 0.603,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.35,
+   "lufs": -15.11,
+   "roles": [
+    "cue:door_close"
+   ]
+  },
+  "ui/door_knock.ogg": {
+   "seconds": 1.079,
+   "rate": 48000,
+   "channels": 1,
+   "peak_dbfs": -22.73,
+   "lufs": -44.41,
+   "roles": [
+    "cue:door_knock"
+   ]
+  },
+  "ui/door_open_heavy.ogg": {
+   "seconds": 1.413,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 1.0,
+   "lufs": -16.69,
+   "roles": [
+    "cue:door_open"
+   ]
+  },
+  "ui/end_turn_drum_roll.mp3": {
+   "seconds": 4.766,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.34,
+   "lufs": -22.39,
+   "roles": [
+    "cue:end_turn"
+   ]
+  },
+  "ui/error_soft.ogg": {
+   "seconds": 0.103,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -1.25,
+   "lufs": -13.06,
+   "roles": [
+    "cue:error"
+   ]
+  },
+  "ui/gavel.ogg": {
+   "seconds": 2.506,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.28,
+   "lufs": -18.3,
+   "roles": [
+    "cue:gavel"
+   ]
+  },
+  "ui/hover_tick.ogg": {
+   "seconds": 0.023,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -0.8,
+   "lufs": -15.55,
+   "roles": [
+    "cue:hover"
+   ]
+  },
+  "ui/hover_tick_2.ogg": {
+   "seconds": 0.023,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -1.21,
+   "lufs": -14.28,
+   "roles": [
+    "cue:hover"
+   ]
+  },
+  "ui/latch_close.ogg": {
+   "seconds": 0.261,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 1.62,
+   "lufs": -14.28,
+   "roles": [
+    "cue:latch"
+   ]
+  },
+  "ui/leather_tap_1.ogg": {
+   "seconds": 0.338,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -11.62,
+   "lufs": -33.36,
+   "roles": [
+    "cue:select"
+   ]
+  },
+  "ui/leather_tap_2.ogg": {
+   "seconds": 0.307,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -16.47,
+   "lufs": -35.44,
+   "roles": [
+    "cue:select",
+    "cue:back"
+   ]
+  },
+  "ui/letter_open.mp3": {
+   "seconds": 38.591,
+   "rate": 48000,
+   "channels": 1,
+   "peak_dbfs": -0.06,
+   "lufs": -21.95,
+   "roles": [
+    "cue:letter_open"
+   ]
+  },
+  "ui/notification_bell.mp3": {
+   "seconds": 2.685,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -3.92,
+   "lufs": -15.49,
+   "roles": [
+    "cue:notification"
+   ]
+  },
+  "ui/page_turn_1.ogg": {
+   "seconds": 0.769,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.47,
+   "lufs": -21.93,
+   "roles": [
+    "cue:page_turn"
+   ]
+  },
+  "ui/page_turn_2.ogg": {
+   "seconds": 0.43,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -8.27,
+   "lufs": -31.05,
+   "roles": [
+    "cue:page_turn"
+   ]
+  },
+  "ui/page_turn_3.ogg": {
+   "seconds": 0.231,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": -4.56,
+   "lufs": -26.06,
+   "roles": [
+    "cue:page_turn"
+   ]
+  },
+  "ui/paper_crumple.mp3": {
+   "seconds": 0.546,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.19,
+   "lufs": -18.23,
+   "roles": [
+    "cue:paper_crumple"
+   ]
+  },
+  "ui/paper_slide.ogg": {
+   "seconds": 1.389,
+   "rate": 48000,
+   "channels": 1,
+   "peak_dbfs": -34.83,
+   "lufs": -50.92,
+   "roles": [
+    "cue:paper_slide"
+   ]
+  },
+  "ui/parchment_close_snd_close_map.wav": {
+   "seconds": 1.625,
+   "rate": 96000,
+   "channels": 2,
+   "peak_dbfs": -0.0,
+   "lufs": -27.61,
+   "roles": [
+    "cue:parchment_close"
+   ]
+  },
+  "ui/parchment_open_snd_use_map.wav": {
+   "seconds": 1.521,
+   "rate": 96000,
+   "channels": 2,
+   "peak_dbfs": -0.0,
+   "lufs": -17.06,
+   "roles": [
+    "cue:parchment_open"
+   ]
+  },
+  "ui/question_open.ogg": {
+   "seconds": 0.333,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -0.91,
+   "lufs": -10.57,
+   "roles": [
+    "cue:question"
+   ]
+  },
+  "ui/quill_flick.mp3": {
+   "seconds": 0.833,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -27.41,
+   "lufs": -41.82,
+   "roles": [
+    "cue:quill_flick"
+   ]
+  },
+  "ui/quill_scribble_long_seamless.ogg": {
+   "seconds": 52.237,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.35,
+   "lufs": -21.24,
+   "roles": [
+    "loop:scribble_long"
+   ],
+   "seam": {
+    "level_step_db": 0.53,
+    "jump": 0.0,
+    "ok": true
+   }
+  },
+  "ui/quill_scribble_loop_seamless.ogg": {
+   "seconds": 5.2,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -18.95,
+   "lufs": -34.97,
+   "roles": [
+    "loop:scribble",
+    "loop:scribble_verdict"
+   ],
+   "seam": {
+    "level_step_db": 4.52,
+    "jump": 0.0056,
+    "ok": true
+   }
+  },
+  "ui/quill_sign.mp3": {
+   "seconds": 2.566,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -10.89,
+   "lufs": -33.08,
+   "roles": [
+    "cue:quill_sign"
+   ]
+  },
+  "ui/tick_subtle.ogg": {
+   "seconds": 0.023,
+   "rate": 44100,
+   "channels": 1,
+   "peak_dbfs": -0.8,
+   "lufs": -15.55,
+   "roles": [
+    "cue:tick"
+   ]
+  },
+  "ui/toggle_switch.ogg": {
+   "seconds": 0.611,
+   "rate": 44100,
+   "channels": 2,
+   "peak_dbfs": -0.95,
+   "lufs": -21.04,
+   "roles": [
+    "cue:toggle"
+   ]
+  },
+  "ui/wax_seal.mp3": {
+   "seconds": 1.312,
+   "rate": 48000,
+   "channels": 1,
+   "peak_dbfs": -10.02,
+   "lufs": -32.49,
+   "roles": [
+    "cue:wax_seal"
+   ]
+  },
+  "ui/wood_tap_1.ogg": {
+   "seconds": 0.277,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.76,
+   "lufs": -14.74,
+   "roles": [
+    "cue:click"
+   ]
+  },
+  "ui/wood_tap_2.ogg": {
+   "seconds": 0.354,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 0.66,
+   "lufs": -15.11,
+   "roles": [
+    "cue:click"
+   ]
+  },
+  "ui/wood_tap_3.ogg": {
+   "seconds": 0.261,
+   "rate": 48000,
+   "channels": 2,
+   "peak_dbfs": 1.01,
+   "lufs": -14.2,
+   "roles": [
+    "cue:click"
+   ]
+  }
+ },
+ "reference_lufs": -20.0,
+ "music_target": -19.0,
+ "file_trim_db": {
+  "ambient/bell_toll_single.mp3": -3.6,
+  "ambient/birds_loop.ogg": 5.4,
+  "ambient/campfire_loop.mp3": 3.0,
+  "ambient/church_bells_peal.mp3": -6.3,
+  "ambient/clock_loop.ogg": 15.3,
+  "ambient/crowd_cheer.ogg": 4.5,
+  "ambient/crowd_murmur_seamless.ogg": 12.7,
+  "ambient/distant_drums.ogg": -5.3,
+  "ambient/fire_loop_seamless.ogg": 4.3,
+  "ambient/rain_loop_seamless.ogg": -3.9,
+  "ambient/sea_loop.mp3": 16.5,
+  "ambient/ship_bell.mp3": 3.4,
+  "ambient/ship_creak_1_seamless.ogg": 0.2,
+  "ambient/wind_map_loop.mp3": 18.3,
+  "ambient/winter_wind_loop_seamless.ogg": -8.0,
+  "battle/army_march.mp3": 8.8,
+  "battle/army_march_loop_short.mp3": 13.8,
+  "battle/army_march_loop_short_seamless.ogg": 14.2,
+  "battle/battlefield_ambience_seamless.ogg": -1.9,
+  "battle/boots_halt.ogg": 1.6,
+  "battle/cannon_distant.ogg": -1.1,
+  "battle/cannon_thud.ogg": -1.1,
+  "battle/cavalry_gallop.mp3": -2.5,
+  "battle/drum_cadence.ogg": 3.5,
+  "battle/drum_sting.wav": 0.7,
+  "battle/hammer.ogg": 2.4,
+  "battle/horse_trot.ogg": -1.1,
+  "battle/horse_whinny.ogg": 6.0,
+  "battle/musket_battle_volley.mp3": -8.5,
+  "battle/musket_shot_1.ogg": 1.0,
+  "battle/musket_shot_2.ogg": -1.0,
+  "battle/musket_shot_3.ogg": 3.4,
+  "battle/saw.ogg": 6.5,
+  "battle/spade_dig.ogg": 17.9,
+  "battle/sword_draw.mp3": 3.3,
+  "music/bugle_assembly.mp3": -4.1,
+  "music/bugle_first_call.mp3": -0.6,
+  "music/bugle_fix_bayonets.mp3": -7.3,
+  "music/bugle_mail_call.ogg": -6.1,
+  "music/bugle_reveille.ogg": -1.4,
+  "music/bugle_tattoo.mp3": -3.3,
+  "music/bugle_to_the_color.ogg": -2.7,
+  "music/fanfare_erafnaf.ogg": -5.4,
+  "ui/book_close.ogg": -3.9,
+  "ui/book_open.ogg": 10.5,
+  "ui/cloth_rustle.ogg": 6.7,
+  "ui/coin_pour.mp3": -6.3,
+  "ui/coins_small.ogg": -1.2,
+  "ui/coins_small_2.ogg": 7.9,
+  "ui/command_ack_click.ogg": 5.9,
+  "ui/confirm_chime.ogg": -6.8,
+  "ui/door_close_heavy.ogg": -4.9,
+  "ui/door_knock.ogg": 21.7,
+  "ui/door_open_heavy.ogg": -3.3,
+  "ui/end_turn_drum_roll.mp3": -0.7,
+  "ui/error_soft.ogg": -6.9,
+  "ui/gavel.ogg": -1.7,
+  "ui/hover_tick.ogg": -4.4,
+  "ui/hover_tick_2.ogg": -5.7,
+  "ui/latch_close.ogg": -5.7,
+  "ui/leather_tap_1.ogg": 10.6,
+  "ui/leather_tap_2.ogg": 15.4,
+  "ui/letter_open.mp3": -0.9,
+  "ui/notification_bell.mp3": -4.5,
+  "ui/page_turn_1.ogg": -1.5,
+  "ui/page_turn_2.ogg": 7.3,
+  "ui/page_turn_3.ogg": 3.6,
+  "ui/paper_crumple.mp3": -1.8,
+  "ui/paper_slide.ogg": 30.9,
+  "ui/parchment_close_snd_close_map.wav": -1.0,
+  "ui/parchment_open_snd_use_map.wav": -2.9,
+  "ui/question_open.ogg": -9.4,
+  "ui/quill_flick.mp3": 21.8,
+  "ui/quill_scribble_long_seamless.ogg": -1.4,
+  "ui/quill_scribble_loop_seamless.ogg": 15.0,
+  "ui/quill_sign.mp3": 9.9,
+  "ui/tick_subtle.ogg": -4.4,
+  "ui/toggle_switch.ogg": -0.1,
+  "ui/wax_seal.mp3": 9.0,
+  "ui/wood_tap_1.ogg": -5.3,
+  "ui/wood_tap_2.ogg": -4.9,
+  "ui/wood_tap_3.ogg": -5.8,
+  "ui/quill_strokes.ogg": -0.5,
+  "ui/quill_scribble_loop.ogg": 15.2
+ },
+ "music_trim_db": {
+  "music/anthem_austria_kaiserhymne.ogg": -1.0,
+  "music/anthem_britain_god_save.ogg": -5.2,
+  "music/anthem_denmark_kong_christian.ogg": -3.5,
+  "music/anthem_holland_wilhelmus.ogg": -4.9,
+  "music/anthem_spain_marcha_real.ogg": -3.8,
+  "music/anthem_warsaw_dabrowski.ogg": -4.6,
+  "music/calm_goldberg_aria.mp3": 7.6,
+  "music/calm_haydn_lark_adagio.ogg": 5.7,
+  "music/calm_mozart40_andante.ogg": 1.0,
+  "music/court_beethoven_op18_6_ii.ogg": 5.1,
+  "music/court_figaro_overture.ogg": -2.9,
+  "music/court_haydn_lark_i.ogg": 3.3,
+  "music/court_mozart40_iii.ogg": 0.2,
+  "music/court_mozart_quartet.ogg": 5.1,
+  "music/crisis_mozart40_i.ogg": -2.0,
+  "music/crisis_mozart40_iv.ogg": -1.8,
+  "music/drums_rage_of_cornwallis.ogg": 1.5,
+  "music/lament_eroica_ii_marcia_funebre.ogg": 2.0,
+  "music/marche_militaire_francaise.mp3": 2.9,
+  "music/marseillaise_navy_band.ogg": -2.6,
+  "music/peace_magic_flute_overture.ogg": -4.7,
+  "music/peace_mozart_k421_ii.ogg": 4.8,
+  "music/peace_mozart_k465_ii.ogg": 2.3,
+  "music/tension_coriolan.ogg": -3.8,
+  "music/theme_eroica_i.ogg": -0.6,
+  "music/triumph_eroica_iv_finale.ogg": -0.2,
+  "music/war_beethoven5_i.ogg": 3.4,
+  "music/war_egmont.ogg": -3.9,
+  "music/war_eroica_iii.ogg": 0.4
+ },
+ "cue_ladder": {
+  "hover": -42,
+  "tick": -34,
+  "click": -27,
+  "toggle": -27,
+  "select": -27,
+  "back": -28,
+  "page_turn": -27,
+  "cloth": -29,
+  "latch": -27,
+  "paper_slide": -33,
+  "panel_open": -27,
+  "panel_close": -27,
+  "book_open": -27,
+  "book_close": -27,
+  "parchment_open": -27,
+  "parchment_close": -28,
+  "door_open": -27,
+  "door_close": -27,
+  "letter_open": -27,
+  "confirm": -25,
+  "error": -25,
+  "question": -25,
+  "notification": -25,
+  "quill_flick": -26,
+  "quill_sign": -25,
+  "wax_seal": -24,
+  "command_ack": -26,
+  "paper_crumple": -25,
+  "coins_small": -25,
+  "coin_pour": -25,
+  "door_knock": -24,
+  "gavel": -24,
+  "end_turn": -25,
+  "cannon": -20,
+  "cannon_distant": -27,
+  "musket_volley": -22,
+  "musket_shot": -25,
+  "cavalry": -22,
+  "whinny": -26,
+  "sword_draw": -23,
+  "march_step": -32,
+  "order_march": -27,
+  "spade": -25,
+  "drum_cadence": -25,
+  "hammer": -25,
+  "horse_trot": -25,
+  "boots": -26,
+  "drum_sting": -21,
+  "bells_peal": -21,
+  "bell_toll": -22,
+  "ship_bell": -24,
+  "notification_high": -25,
+  "notification_critical": -23,
+  "crowd_cheer": -23,
+  "distant_drums": -33,
+  "reveille": -24,
+  "mail_call": -24,
+  "first_call": -24,
+  "to_the_color": -23,
+  "fanfare": -21,
+  "bugle_to_arms": -23,
+  "bugle_charge": -22,
+  "bugle_retreat": -24
+ },
+ "loop_ladder": {
+  "scribble": -33,
+  "scribble_long": -35,
+  "scribble_verdict": -33,
+  "wind": -38,
+  "sea": -31,
+  "creak": -37,
+  "crowd": -35,
+  "march": -31,
+  "march_long": -31,
+  "battle_bed": -31,
+  "campfire": -39,
+  "fire": -40,
+  "clock": -46,
+  "birds": -40,
+  "rain": -38,
+  "winter_wind": -36
+ }
+}

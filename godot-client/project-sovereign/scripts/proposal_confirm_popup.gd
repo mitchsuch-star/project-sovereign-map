@@ -110,8 +110,29 @@ const _PER_COURT_OPS := ["focus", "addmenu", "group", "suggopts", "sugg", "suggc
 # revalidates every value — this is presentation-side convenience only).
 const DEMAND_GOLD_MAGNITUDE_STEP = 100
 
+# Session UI-5 (F16 + the treaty sounds). The settlement table leads with its
+# table: the narration and the advice stand BELOW it behind "▸ counsel" when
+# Explanations is Folded (On the page they stand in the head, where they were).
+const COUNSEL_NOTE_ID := "settle.counsel"
+# the dialogues that are a treaty or a settlement on the desk: parchment on open,
+# quill then seal on a signing, the soft "back" on a cancel
+const TREATY_DTYPES := ["settlement_confirm", "settlement_scope_replace_confirm",
+		"settlement_pair_substitute_confirm", "incoming_settlement_offer",
+		"ally_settlement_petition", "proposal_confirm", "proposal_execute"]
+const SIGNING_ACTIONS := ["confirm_settlement", "submit_settlement_for_review",
+		"execute_proposal", "confirm", "confirm_pair_substitute"]
+const SEAL_DELAY := 0.7   # the wax follows the quill
+const BANNER_MIN_VIEW_HEIGHT := 880.0   # Session UI-5: the header picture stands on a 900-px view, never on the 32:9 panel's 800 (the engine lane: the nation list and the table's courts below the fold)
+const BANNER_MAX_HEIGHT := 84.0
+var _banner: TextureRect = null
+# Untyped on purpose (AudioManager.stop_player's note): a one-shot frees
+# itself when its sound ends, and a typed handle throws at the call.
+var _open_cue = null
+var _court_music: bool = false
+
 func _ready():
 	hide()
+	visibility_changed.connect(_on_visibility_changed)
 	# IGR-G1: the per-court table is the PRIMARY settlement content — mark it
 	# so clamp_centered_panel's relax pass shrinks it LAST. The old
 	# headroom-proportional pass charged the largest floor the largest share,
@@ -216,6 +237,7 @@ var _close_x: Button = null
 func show_dialogue(data: Dictionary):
 	"""Display proposal confirmation popup with terms and options."""
 	current_data = data
+	var was_visible: bool = visible
 	if _close_x != null:
 		var exit_action := _find_safe_exit_action()
 		_close_x.visible = exit_action != ""
@@ -374,6 +396,10 @@ func show_dialogue(data: Dictionary):
 			# Session UI-2: the theme's dashed disabled face, never re-coloured.
 			btn.tooltip_text = disabled_reason if disabled_reason != "" else "Unavailable"
 		var action_str = opt.get("action", "dismiss")
+		# Session UI-5: a button whose press plays its own cue (the signing's quill
+		# and seal, the cancel's "back") does not also click under it.
+		if _decision_cue_kind(str(dtype), str(action_str)) != "":
+			btn.set_meta("no_click_sfx", true)
 		if _should_label_ask_later(dtype, action_str, original_label):
 			btn.text = "Not Now"
 			btn.tooltip_text = "Close this for now — offer lapses at end of turn."
@@ -435,7 +461,9 @@ func show_dialogue(data: Dictionary):
 	# are real Buttons inside their court's card (`_add_settlement_tier2_buttons`,
 	# run by `_render_per_court_table` every time the body is built).
 
+	_sync_head_banner(is_settlement_table)
 	show()
+	_after_shown(str(dtype), is_settlement_table, was_visible)
 	# Fit the panel to the CURRENT logical viewport. Must run AFTER show() so
 	# the container has been laid out; bounding the content above is what makes
 	# this bite, since Godot clamps a Control's size UP to its combined minimum
@@ -782,7 +810,10 @@ func _build_settlement_content(data: Dictionary) -> String:
 		bbcode += Utils.HEAD_OPEN + "Settlement of %s — ready for ratification" % war_label + Utils.HEAD_CLOSE + "\n"
 	else:
 		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]This settlement cannot be ratified now.[/color][/font]\n"
-	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
+	# Session UI-5 (F16): Folded, the war line repeats the title row and stands
+	# under "▸ counsel" (`_build_settlement_counsel_below`); On the page, as ever.
+	if not Utils.explanations_folded():
+		bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
 	# S14d: the table's first-open line is NOT here. Measured on the re-shot
 	# frame (part 1's second landing): at Interface Scale 2.0 the EA-E6 fit
 	# leaves this head region ONE line tall (SETTLEMENT_LINE_FLOOR), and that
@@ -809,15 +840,10 @@ func _build_settlement_content(data: Dictionary) -> String:
 						holdout_names.append(Utils.display_nation_name(str(holdout)))
 					bbcode += "[color=#e0a040]▸ Holding out: %s[/color]\n" % ", ".join(PackedStringArray(holdout_names))
 
-	var chips = data.get("covered_enemy_display_chips", null)
-	if chips == null:
-		var raw_chips = data.get("covered_enemy_participants", [])
-		chips = []
-		if raw_chips is Array:
-			for raw_chip in raw_chips:
-				chips.append(Utils.display_nation_name(str(raw_chip)))
-	if chips is Array and chips.size() > 0:
-		bbcode += "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(chips)) + "\n"
+	# Session UI-5 (F16): Folded, "Covered enemies" repeats the war line and
+	# stands under "▸ counsel" too.
+	if not Utils.explanations_folded():
+		bbcode += _covered_enemies_line(data)
 	var uncovered = data.get("uncovered_enemy_display_chips", review.get("uncovered_enemy_display_chips", [])) if review is Dictionary else []
 	if uncovered is Array and uncovered.size() > 0:
 		bbcode += "[color=#e0a040][b]Still at war:[/b] " + ", ".join(PackedStringArray(uncovered)) + "[/color]\n"
@@ -826,6 +852,19 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# region (GT-Slice-3 / UX-5 — see _render_per_court_table); the post-table
 	# sections render into the footer region (_build_settlement_footer).
 	return bbcode
+
+
+func _covered_enemies_line(data: Dictionary) -> String:
+	var chips = data.get("covered_enemy_display_chips", null)
+	if chips == null:
+		var raw_chips = data.get("covered_enemy_participants", [])
+		chips = []
+		if raw_chips is Array:
+			for raw_chip in raw_chips:
+				chips.append(Utils.display_nation_name(str(raw_chip)))
+	if chips is Array and chips.size() > 0:
+		return "[b]Covered enemies:[/b] " + ", ".join(PackedStringArray(chips)) + "\n"
+	return ""
 
 
 func _build_settlement_footer(data: Dictionary) -> String:
@@ -1330,6 +1369,13 @@ func _render_per_court_table():
 			tail_label.name = "PerCourtTail"
 			tail_label.text = Utils.humanize_nation_keys_in_text(tail)
 			per_court_body.add_child(tail_label)
+		# F16: the narration and the advice, under the table, folded
+		var counsel: String = _build_settlement_counsel_below(data).rstrip("\n")
+		if counsel.strip_edges() != "":
+			var counsel_label := _body_label(0.0, 0.0, 0.0, 0.0, _on_footer_meta_clicked)
+			counsel_label.name = "PerCourtCounsel"
+			counsel_label.text = Utils.humanize_nation_keys_in_text(counsel)
+			per_court_body.add_child(counsel_label)
 	# the coverage suggestions' row (filled by `_add_settlement_tier2_buttons`)
 	var coverage_host := MarginContainer.new()
 	coverage_host.name = "CoverageHost"
@@ -1757,7 +1803,8 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	var overall_verdict = data.get("overall_acceptance", {})
 	if overall_verdict is Dictionary:
 		var verdict_line = _safe_str(overall_verdict.get("carry_verdict_display"))
-		if verdict_line != "":
+		# Session UI-5 (F16): Folded, the heading IS the verdict; this repeat stands under "▸ counsel".
+		if verdict_line != "" and not Utils.explanations_folded():
 			# Session UI-2: a medal for a table that carries, the threat glyph
 			# for one that does not — the verdict leads with its sign.
 			var verdict_color = "#" + _ALERT_HEX
@@ -1792,14 +1839,17 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	# Session UI-3 (November 12, 2026): the narration and the advisory open from
 	# their first sentence (`settle.narration`, `settle.advisory`) — G4F-3's rule
 	# holds: the court rows stand above the fold. On the page, byte for byte.
+	# Session UI-5 (F16): Folded, both stand below the table behind "▸ counsel"
+	# (`_build_settlement_counsel_below`); On the page they stand here, as ever.
+	var counsel_below: bool = Utils.explanations_folded()
 	var narration = _safe_str(data.get("multi_court_table_narration"))
-	if narration != "":
+	if narration != "" and not counsel_below:
 		bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % _fold_first_sentence("settle.narration", narration)
 	# Re-front Slice 2 / OQ#1: Talleyrand's voice-only targeted-posture advice
 	# (PF-1/DC-2 + OQ-6: carries the binding-constraint + budget-bound
 	# recommendation voice when the treasury binds).
 	var advisory = _safe_str(data.get("targeted_posture_advisory"))
-	if advisory != "":
+	if advisory != "" and not counsel_below:
 		bbcode += "[i][color=#c0b080]%s[/color][/i]\n" % _fold_first_sentence("settle.advisory", advisory, "\"", "\"")
 	# The one-shot authoring voice beats (the DC-4 caution, the dial's notes,
 	# the named diplomat's reaction) stand ABOVE — see the verdict's lines.
@@ -3154,7 +3204,173 @@ func _build_annotated_terms_section(annotated: Array) -> String:
 	return bbcode
 
 
+# ── Session UI-5: the table's sounds, its banner and its court's music ───────
+
+func _decision_cue_kind(dtype: String, action: String) -> String:
+	""""sign" for a treaty's signing, "back" for its cancel, "" otherwise."""
+	if not (dtype in TREATY_DTYPES):
+		return ""
+	if action in SIGNING_ACTIONS:
+		return "sign"
+	if action in _SAFE_EXIT_ACTIONS:
+		return "back"
+	return ""
+
+
+func _play_decision_cue(dtype: String, action: String) -> void:
+	var kind: String = _decision_cue_kind(dtype, action)
+	if kind == "sign":
+		AudioManager.play("quill_sign")
+		get_tree().create_timer(SEAL_DELAY).timeout.connect(_play_wax_seal)
+	elif kind == "back":
+		AudioManager.play("back")
+
+
+func _play_wax_seal() -> void:
+	AudioManager.play("wax_seal")
+
+
+func _after_shown(dtype: String, is_settlement_table: bool, was_visible: bool) -> void:
+	"""The open cue (parchment, once per opening - a restage of a shown table
+	is not an opening) and the court's music (the table only)."""
+	if not was_visible and dtype in TREATY_DTYPES:
+		_open_cue = AudioManager.play("parchment_open")
+	if is_settlement_table and not _court_music:
+		_court_music = true
+		AudioManager.request_scene_music("court")
+	elif not is_settlement_table and _court_music:
+		_court_music = false
+		AudioManager.release_scene_music("court")
+
+
+func _on_visibility_changed() -> void:
+	"""Every road that hides the popup (a choice, Esc, main.gd) stops the arrival
+	cue and releases the court's music - once, the flag guarding it."""
+	if visible:
+		return
+	if _open_cue != null:
+		if is_instance_valid(_open_cue):
+			AudioManager.stop_player(_open_cue)
+		_open_cue = null
+	if _court_music:
+		_court_music = false
+		AudioManager.release_scene_music("court")
+	if _title_row != null:
+		_title_row.queue_free()
+		_title_row = null
+	if _banner != null:
+		_banner.queue_free()
+		_banner = null
+
+
+var _title_row: Label = null
+
+
+func _sync_title_row(is_settlement_table: bool) -> void:
+	"""Session UI-5 (F16): the table's window title row, as the Cabinet has one -
+	"THE TABLE - <the war's name>" in the title face."""
+	if _title_row != null:
+		_title_row.queue_free()
+		_title_row = null
+	# The compact view gives its height to the table's answers: the title row
+	# steps aside there, as the header picture does (the engine lane caught
+	# Back Out and Harsher terms below the fold at 2.0).
+	if not is_settlement_table or Utils.compact_view():
+		return
+	var war_label: String = str(current_data.get("war_label", current_data.get("war_id", "")))
+	# The war's name alone ("the War for Vienna"): the label's own "— the table
+	# with Austria + Britain + Russia" doubled the title's first words.
+	war_label = war_label.split(" — ")[0].strip_edges()
+	var text: String = "THE TABLE"
+	if war_label != "":
+		text += " — " + Utils.humanize_nation_keys_in_text(war_label).to_upper()
+	var row := Label.new()
+	row.name = "TableTitleRow"
+	row.text = text
+	# A long war's name trims with an ellipsis (its whole name rides the hover):
+	# it never sets the window's width.
+	row.clip_text = true
+	row.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.tooltip_text = text
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+	var face = load(Utils.TITLE_FONT)
+	if face is Font:
+		row.add_theme_font_override("font", face)
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	vb.add_child(row)
+	vb.move_child(row, 0)
+	_title_row = row
+
+
+func _sync_head_banner(is_settlement_table: bool) -> void:
+	"""The table's header picture ("settlement"): the full view only, at the head of
+	the panel, and the first thing to give its height up (relax_floor 0) - it never
+	pushes the table's first court row below the fold."""
+	_sync_title_row(is_settlement_table)
+	if _banner != null:
+		_banner.queue_free()
+		_banner = null
+	if not is_settlement_table or Utils.compact_view():
+		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var view: Vector2 = vp.get_visible_rect().size
+	if view.y < BANNER_MIN_VIEW_HEIGHT:
+		return
+	var w: float = minf(SETTLEMENT_CEILING.x, view.x - 24.0) - 48.0
+	var pic: TextureRect = Illustrations.make_banner("settlement", w)
+	if pic == null:
+		return
+	pic.custom_minimum_size.y = minf(pic.custom_minimum_size.y, BANNER_MAX_HEIGHT)
+	pic.set_meta("relax_floor", 0.0)
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	vb.add_child(pic)
+	vb.move_child(pic, content_label.get_index())
+	_banner = pic
+
+
+func _build_settlement_counsel_below(data: Dictionary) -> String:
+	"""F16: the table's narration and Talleyrand's advice, BELOW the table behind
+	"▸ counsel" (Folded). On the page they stand in the head
+	(`_build_settlement_table_preamble`), where they always stood."""
+	if not Utils.explanations_folded():
+		return ""
+	var per_court = data.get("per_court_acceptance", [])
+	if not (per_court is Array) or per_court.size() == 0:
+		return ""
+	var narration: String = _safe_str(data.get("multi_court_table_narration"))
+	var advisory: String = _safe_str(data.get("targeted_posture_advisory"))
+	# Session UI-5 (F16): the repeated head lines fold here too.
+	var war_label: String = str(data.get("war_label", data.get("war_id", "Settlement")))
+	var scope: String = str(data.get("coverage_scope_display", data.get("war_scope_display", "Settlement review")))
+	var verdict_bb: String = ""
+	var overall = data.get("overall_acceptance", {})
+	if overall is Dictionary:
+		var verdict_line: String = _safe_str(overall.get("carry_verdict_display"))
+		if verdict_line != "":
+			var carries: bool = bool(overall.get("carries", false))
+			var vcolor: String = "80c080" if carries else _ALERT_HEX
+			var vglyph: String = Utils.bb_glyph("medal", 18, "80c080") if carries else Utils.bb_glyph("threat", 18, _ALERT_HEX)
+			verdict_bb = "%s [b][color=#%s]%s[/color][/b]\n" % [vglyph, vcolor, verdict_line]
+	var covered_bb: String = _covered_enemies_line(data)
+	var war_bb: String = "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
+	var opened: bool = Utils.note_is_open(COUNSEL_NOTE_ID)
+	var words: String = "▾ counsel" if opened else "▸ counsel"
+	var bbcode: String = "[url=" + Utils.NOTE_META + COUNSEL_NOTE_ID + "][color=#" + Utils.COLOR_GOLD + "]" + words + "[/color][/url]\n"
+	if opened:
+		bbcode += war_bb + covered_bb + verdict_bb
+		if narration != "":
+			bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
+		if advisory != "":
+			bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
+	return bbcode
+
+
 func _on_option_selected(action: String):
+	_play_decision_cue(str(current_data.get("type", "proposal_confirm")), action)
 	_remember_scroll()
 	_clear_buttons()
 	hide()

@@ -146,7 +146,34 @@ func open(api_client):
 	# window's share of the view (the clamp reads it), then fits its text.
 	Utils.set_reading_share($PanelContainer)
 	Utils.clamp_centered_panel($PanelContainer)
+	_ensure_banner()
 	api_client.get_dispatch(_on_dispatch_received)
+
+
+# Session UI-5: the masthead picture at the head of the sheet. Full view only
+# (`make_banner` answers null on the compact view); capped at 22 % of the view
+# by `Illustrations.banner_height`, so the first lines are never pushed off.
+var _banner: TextureRect = null
+
+
+func _ensure_banner(key: String = "dispatch", cap_h: float = 0.0) -> void:
+	var box: Node = $PanelContainer/VBoxContainer
+	if _banner != null and is_instance_valid(_banner):
+		box.remove_child(_banner)
+		_banner.free()
+	_banner = null
+	var w: float = $PanelContainer.size.x
+	if w < 200.0:
+		w = get_viewport().get_visible_rect().size.x * 0.45
+	_banner = Illustrations.make_banner(key, w)
+	if _banner == null:
+		return
+	# Session UI-5 interim fix (Nov 13): the Correspondence page wears
+	# its own wide scene (the catalogue's "correspondence"), capped low so more of the desk shows.
+	if cap_h > 0.0:
+		_banner.custom_minimum_size.y = minf(_banner.custom_minimum_size.y, cap_h)
+	box.add_child(_banner)
+	box.move_child(_banner, 1)
 
 func refresh_pinned() -> void:
 	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
@@ -306,7 +333,7 @@ func _on_dispatch_received(response):
 	if affairs_watch is Array:
 		for watch_line in affairs_watch:
 			# Session UI-4: a tag-led row (the tag is the label, the sentence follows).
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + Utils.bb_tag("In the offing", Utils.COLOR_GOLD) + " " + str(watch_line) + "[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + "[color=#" + Utils.COLOR_GOLD + "][i]In the offing[/i] ·[/color] " + str(watch_line) + "[/color]\n"
 	# RE-R (docs/RECURRING_EVENTS_SPEC.md §12c, P10): the answers' receipts
 	# the morning after — plain, the same key the terminal's dispatch prints
 	# (`situation.affair_receipt`, absent on every other morning).
@@ -835,12 +862,12 @@ const _SECTION_KINDS := {
 	"LAPSED ENVOYS": ["envoy", "envoy", ""],
 	"ENVOYS AWAITING RESPONSE": ["envoy", "", ""],
 	"PEACE SETTLEMENTS": ["medal", "medal", ""],
-	"PRISONERS OF WAR": ["garrison", "garrison", "d06e6e"],
+	"PRISONERS OF WAR": ["garrison", "garrison", "error"],
 	"DIPLOMATIC EVENTS": ["letter", "letter", ""],
 	"DIPLOMATIC STATUS": ["cabinet", "cabinet", ""],
-	"COALITION THREAT": ["threat", "threat", "d06e6e"],
+	"COALITION THREAT": ["threat", "threat", "error"],
 	"WAR PURPOSE": ["war", "war", ""],
-	"DEFEAT WARNING": ["threat", "", "d06e6e"],
+	"DEFEAT WARNING": ["threat", "", "error"],
 	"THE CONGRESS OF PARIS": ["europe", "", ""],
 	"THE EMPEROR'S DESIGNS": ["command", "", ""],
 	"TODAY": ["turn", "", ""],
@@ -891,6 +918,8 @@ func _dress_sections(bbcode: String) -> String:
 			continue
 		var kinds: Array = _SECTION_KINDS[head_name]
 		var tone: String = str(kinds[2]) if str(kinds[2]) != "" else Utils.COLOR_GOLD
+		if tone == "error":
+			tone = Utils.cv_hex("d06e6e")   # the semantic red, re-toned by Colour vision
 		var item_glyph: String = str(kinds[1])
 		var dressed: Array = []
 		var lines := b.split("\n")
@@ -1036,6 +1065,7 @@ func _show_correspondence_page() -> void:
 	back_to_dispatch_button.visible = true
 	correspondence_button.visible = false
 	title_label.text = CORR_TITLE
+	_ensure_banner("correspondence", 120.0)
 	_render_correspondence(_corr)
 	_raise_page_ceiling()
 	# Session UI-3: the Correspondence keeps its own ceiling; the Dispatch's
@@ -1049,6 +1079,7 @@ func _show_correspondence_page() -> void:
 
 func _show_dispatch_page() -> void:
 	_reset_correspondence_page()
+	_ensure_banner()
 	_refresh_correspondence_button()
 	# Session UI-3: back on the Dispatch page, its reading share returns (the
 	# Correspondence page kept its own ceiling) and the window refits.

@@ -210,7 +210,9 @@ class TestAnswered:
             "lord": "France", "bind": {"law": "grand_quartier_general"}, "tier": 1, "receipt": "no change",
             "echo": ""}
         [slip] = _page(armed)["answered"]
-        assert slip["caption"] == "Not now" and slip["chips"] == [{"kind": "laws", "nation": ""}]
+        # Session UI-5: the memorial's refusal is "Let the tent serve" (its "Not now"
+        # doubled the letter's own Not Now button — tests/test_affairs_engine.py).
+        assert slip["caption"] == "Let the tent serve" and slip["chips"] == [{"kind": "laws", "nation": ""}]
         assert slip["device"] == {"kind": "monogram", "nation": "", "letter": "B"}
 
 

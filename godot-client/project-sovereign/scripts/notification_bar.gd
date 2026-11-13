@@ -18,6 +18,9 @@ signal notification_action_requested(command: String)
 # command line with the backend's own order and never sends it — the player
 # presses Enter (the tutor chip's idiom, main._on_tutorial_suggest_command).
 signal suggest_command(command: String)
+# Session UI-5 (D6): a notice that names a province can take the player there.
+# main.gd connects it to the map's focus_on_region.
+signal show_on_map_requested(region: String)
 
 const MAX_VISIBLE_ICONS := 6
 # S14G-25 (Pre-Deploy S14h part 2, October 26, 2026): the mission chip's suffix while
@@ -358,6 +361,9 @@ var current_notifications: Array = []
 var _audio_seen_ids: Dictionary = {}
 var api_client = null
 var _suspended: bool = false
+# Session UI-5 (F03): at the compact view the rail folds to one count chip.
+var _fold_chip: Button = null
+var _rail_open: bool = false
 
 
 func _ready():
@@ -376,6 +382,48 @@ func _ready():
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	# Session UI-4: the rail holds what its slot holds (_render_rail)
 	resized.connect(_on_rail_resized)
+	_build_fold_chip()
+
+
+func _build_fold_chip() -> void:
+	"""F03: the count chip that stands for the rail at the compact view."""
+	_fold_chip = Button.new()
+	_fold_chip.name = "FoldChip"
+	_fold_chip.theme_type_variation = &"CaptionButton"
+	# The glyph at the nav width (EA-E1): the bell's 256-px source drawn bare
+	# filled a third of the compact view (the interim shoot's catch).
+	Utils.apply_button_icon(_fold_chip, Utils.ICON_PHOSPHOR + "bell.svg")
+	_fold_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_fold_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	_fold_chip.visible = false
+	_fold_chip.pressed.connect(_on_fold_chip_pressed)
+	var layout: Node = icon_container.get_parent()
+	layout.add_child(_fold_chip)
+	layout.move_child(_fold_chip, 0)
+
+
+func _is_folded() -> bool:
+	return Utils.compact_view() and not _rail_open
+
+
+func _on_fold_chip_pressed() -> void:
+	_rail_open = not _rail_open
+	_close_expanded_panel()
+	_render_rail()
+
+
+func _sync_fold() -> void:
+	if _fold_chip == null:
+		return
+	var compact: bool = Utils.compact_view()
+	if not compact:
+		_rail_open = false
+	_fold_chip.visible = compact and not current_notifications.is_empty()
+	_fold_chip.text = "%d %s" % [current_notifications.size(), "▴" if _rail_open else "▾"]
+	_fold_chip.tooltip_text = "Notices — click to %s the rail." % ("fold" if _rail_open else "open")
+	icon_container.visible = not _is_folded()
+	if _is_folded():
+		overflow_label.visible = false
 
 
 func _on_viewport_size_changed() -> void:
@@ -407,9 +455,17 @@ func update_notifications(notifications: Array, silent: bool = false):
 	for notif in notifications:
 		var nid := str(notif.get("id", ""))
 		if nid != "" and not _audio_seen_ids.has(nid):
+			var priority: int = int(notif.get("priority", 0))
+			AudioManager.hint_notification_priority(int(priority))
 			_audio_seen_ids[nid] = true
 			if not silent:
 				AudioManager.play("notification")
+				if str(notif.get("type", "")) == "coalition_declared":
+					var ndet = notif.get("details", {})
+					if ndet is Dictionary:
+						var leader: String = str(ndet.get("leader") if ndet.get("leader") != null else "")
+						if leader != "":
+							AudioManager.play_anthem(leader)
 	current_notifications = notifications.duplicate()
 	_close_expanded_panel()
 	_render_rail()
@@ -427,6 +483,9 @@ func _render_rail() -> void:
 		icon_container.remove_child(child)
 		child.queue_free()
 	var rail_notifications = _visible_notifications_for_rail(current_notifications)
+	_sync_fold()
+	if _is_folded():
+		return
 	var visible_count: int = mini(rail_notifications.size(), MAX_VISIBLE_ICONS)
 	for i in range(visible_count):
 		var notif: Dictionary = rail_notifications[i]
@@ -818,6 +877,15 @@ func _show_expanded_panel(notif: Dictionary):
 	vbox.add_child(button_row)
 
 	if details is Dictionary:
+		var map_region: String = str(details.get("region") if details.get("region") != null else "")
+		if map_region != "":
+			var map_btn = Button.new()
+			map_btn.text = "Show on map"
+			map_btn.custom_minimum_size = Vector2(92, 28)
+			map_btn.pressed.connect(_on_show_on_map_pressed.bind(map_region))
+			button_row.add_child(map_btn)
+
+	if details is Dictionary:
 		var review_target = str(details.get("review_target", ""))
 		var review_label = str(details.get("review_label", "Open Ledger"))
 		if review_target != "":
@@ -840,6 +908,7 @@ func _show_expanded_panel(notif: Dictionary):
 	var dismiss_btn = Button.new()
 	dismiss_btn.text = "Acknowledge"
 	dismiss_btn.custom_minimum_size = Vector2(92, 28)
+	dismiss_btn.set_meta("no_click_sfx", true)
 	dismiss_btn.pressed.connect(_on_dismiss_pressed.bind(str(notif.get("id", ""))))
 	button_row.add_child(dismiss_btn)
 
@@ -935,7 +1004,13 @@ func _close_expanded_panel():
 		_expanded_body = null
 
 
+func _on_show_on_map_pressed(region: String) -> void:
+	_close_expanded_panel()
+	show_on_map_requested.emit(region)
+
+
 func _on_dismiss_pressed(notification_id: String):
+	AudioManager.play("page_turn")
 	_close_expanded_panel()
 	current_notifications = current_notifications.filter(
 		func(n): return str(n.get("id", "")) != notification_id

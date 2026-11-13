@@ -763,6 +763,15 @@ def build_active_wars(world) -> Dict[str, Any]:
         row["settlement_tier_display"] = table["tier_display"]
         row["settlement_tier_side"] = _tier_side(int(table["pressure"]))
 
+    # UI-5: which side of the war's instance the player's realm stands on
+    # ("attackers" | "defenders" | "" - a truce row or no instance), the
+    # pattern `_tier_side`'s callers read; the war card's side badge.
+    _instances = getattr(world, "war_instances", None) or {}
+    for row in wars:
+        _inst = _instances.get(str(row.get("war_instance_id", "") or ""))
+        _side = ((_inst or {}).get("side_by_nation") or {}).get(france)             if isinstance(_inst, dict) else ""
+        row["france_side"] = _side if _side in ("attackers", "defenders") else ""
+
     # Sort: coalition leader first, then coalition members, then bilateral
     wars.sort(key=lambda w: (
         not w.get("is_coalition_leader", False),

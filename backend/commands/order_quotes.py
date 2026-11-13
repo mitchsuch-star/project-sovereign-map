@@ -722,6 +722,58 @@ def _peace_soil_refusal_line(world, marshal, enemy) -> str:
     return str(peace_soil_refusal(marshal, enemy, {"owner": owner})["message"])
 
 
+def _band_range(label: str) -> Tuple[int, int]:
+    """The (low, high) men a strength-band label spans (`intel.STRENGTH_BANDS`).
+    The open-ended top band ("massive force") has no ceiling: its high is 0
+    (UI-5 review — it read as an exact figure), and the card shows its words."""
+    from backend.models.intel import STRENGTH_BANDS
+    low = 0
+    for threshold, band in STRENGTH_BANDS:
+        if band == label:
+            return int(low), int(threshold - 1) if threshold is not None else 0
+        if threshold is not None:
+            low = threshold
+    return 0, 0
+
+
+def _force_block(world, marshal, enemy) -> Optional[Dict[str, Any]]:
+    """UI-5: the attack card's force bar - ours (the lead plus the corps that
+    would answer the guns, `muster_odds`' committed term) against the foe
+    through the ONE fog-banded helper (`_fog_banded_strength`): exact at FULL
+    (low == high), the intel band's range otherwise, 0/0 "strength unknown"
+    with no intel. `odds` is the muster's band word, given only on an exact
+    sighting (a band word on a fogged foe would read his true strength back).
+    None (the quote carries no `force`) when the reading fails. PURE."""
+    try:
+        from backend.commands.combat_executor import answering_defender
+        from backend.commands.executor import CommandExecutor
+        reader = _MUSTER_READER.get("combat")
+        if reader is None:
+            reader = _MUSTER_READER["combat"] = CommandExecutor()._combat
+        if marshal.nation != getattr(world, "player_nation", None):
+            return None
+        label = str(reader._fog_banded_strength(answering_defender(world, enemy), world))
+        odds = reader.muster_odds(marshal, enemy, world)
+        ours = int(marshal.strength) + int(float(odds.get("committed_attacker", 0.0) or 0.0))
+        if label.endswith(" men"):
+            figure = int(label.replace(" men", "").replace(",", ""))
+            low = high = figure
+            word = str(odds.get("band") or "")
+        elif label == "strength unknown":
+            low = high = 0
+            word = ""
+        else:
+            low, high = _band_range(label)
+            word = ""
+            if high == 0 and low > 0:
+                label = f"{label} ({low:,}+)"
+        return {"ours": ours, "theirs_low": int(low), "theirs_high": int(high),
+                "theirs_label": label, "odds": word}
+    except Exception as exc:
+        report(exc, "order_quotes._force_block: muster_odds / _fog_banded_strength")
+        return None
+
+
 def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[str, Any]:
     """An attack on a sighted enemy: `attack <enemy>` when he stands within
     the marshal's reach (the attack's own range rule — distance against
@@ -750,6 +802,9 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
              objection=_tactical_objection(world, marshal, "attack", enemy.name),
              muster=_muster_line(world, marshal, enemy),
              alarm=_alarm_line(world, marshal, enemy))
+    force = _force_block(world, marshal, enemy)
+    if force is not None:
+        q["force"] = force
     return q
 
 

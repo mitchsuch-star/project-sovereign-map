@@ -266,6 +266,18 @@ func save_game(save_name: String, callback: Callable):
 func load_game(filename: String, callback: Callable):
 	_send_post("/load", {"filename": filename}, callback)
 
+
+func delete_save(filename: String, callback: Callable):
+	# Session UI-5: the save dialog's Delete (behind its confirm). The backend
+	# refuses the autosave and a name that leaves the saves folder.
+	_send_post("/delete_save", {"filename": filename}, callback)
+
+
+func first_open_reset(callback: Callable):
+	# Session UI-5: Settings → "Show first-open notes again" — the backend
+	# clears this world's seen set; each surface's first-open line returns.
+	_send_post("/first_open/reset", {}, callback)
+
 func new_game(callback: Callable, scenario: String = "", seed: String = ""):
 	# POSITION 7: `scenario` is an allowlist NAME ("tutorial"), never a path.
 	# Empty keeps the wire body {} byte-identical to the pre-tutorial client.

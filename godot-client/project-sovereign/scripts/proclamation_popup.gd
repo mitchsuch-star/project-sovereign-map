@@ -81,6 +81,10 @@ func show_proclamation(data: Dictionary):
 	var new_name := str(data.get("display_name", ""))
 	var old_name := str(data.get("old_display_name", ""))
 	var flag_tag := str(data.get("flag_tag", ""))
+	# Session UI-5: the Duchy of Warsaw has its own period anthem over the bells
+	var nation_key: String = str(data.get("nation") if data.get("nation") != null else "")
+	if nation_key.contains("Warsaw") or new_name.contains("Warsaw"):
+		AudioManager.play_anthem("DuchyOfWarsaw")
 
 	# The NEW flag, large. Resolved by the formation's own asset tag rather
 	# than the nation key — the tag never changes, the colours do.
@@ -147,6 +151,7 @@ func show_proclamation(data: Dictionary):
 	acknowledge_btn.disabled = false
 	# Session UI-2: a ceremony — the Empire's eagle over the new flag.
 	_arms_row([{"eagle": true}])
+	_set_banner()
 	show()
 	# Fit to the CURRENT logical viewport (Interface Scale can halve it).
 	# A blocking modal whose only dismiss button leaves the screen is
@@ -186,6 +191,14 @@ func _fit_card() -> void:
 	# first when the window is short (the clamp's `relax_last`)
 	scroll.set_meta("relax_last", true)
 	scroll.custom_minimum_size.y = clampf(content_label.get_combined_minimum_size().y + 4.0, 60.0, view.y)
+	# Session UI-5: the picture is the FIRST to step aside — on the compact
+	# view, and whenever the card (with it) would not fit the window — before
+	# the flag row and the reading give up any height.
+	var banner := get_node_or_null("PanelContainer/VBoxContainer/Illustration") as Control
+	if banner != null:
+		banner.visible = true
+		if Utils.compact_view() or panel.get_combined_minimum_size().y > view.y * 0.94:
+			banner.visible = false
 	Utils.clamp_centered_panel(panel)
 	Utils.shrink_centered_panel_to_content(panel)
 
@@ -204,6 +217,25 @@ func esc_control() -> Button:
 func _on_acknowledge_pressed():
 	close_popup()
 	dismissed.emit()
+
+
+func _set_banner() -> void:
+	"""Session UI-5: the proclamation's picture at the head of the card (hidden
+	by `_fit_card` before anything else gives up height)."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var w: float = maxf(($PanelContainer as Control).size.x, ($PanelContainer as Control).custom_minimum_size.x)
+	if w <= 0.0:
+		w = 520.0
+	var banner: TextureRect = Illustrations.make_banner("proclamation", w)
+	if banner == null:
+		return
+	banner.custom_minimum_size.y = minf(banner.custom_minimum_size.y, 120.0)
+	vb.add_child(banner)
+	vb.move_child(banner, 0)
 
 
 func _arms_row(parts: Array) -> void:

@@ -494,8 +494,8 @@ func _render_glory_ladder() -> String:
 		bbcode += _button_chip("commission_open", "Commission a Marshal…", CHIP_GILT_INK, CHIP_GILT_BG, _ICON_PHOSPHOR + "crown.svg")
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(candidates.size()) + " await the Emperor's call[/color]\n\n"
 
-	if bbcode != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]════════════════════════════════════════[/color]\n\n"
+	# Session UI-5 interim fix (Nov 13): no closing hairline here - the first card
+	# opens with its own rule; the short stray one stood alone under the Commission row.
 	return bbcode
 
 
@@ -664,7 +664,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		"Cavalry":
 			arm_tone = "8a5a1a"
 		"Artillery":
-			arm_tone = "8b2a2a"
+			arm_tone = Utils.cv_hex("8b2a2a")
 	sheet += "  "
 	if unit_type != "Infantry":
 		sheet += _unit_icon(unit_type, type_color) + " "
@@ -717,6 +717,11 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 			sheet += "  [color=#" + COLOR_DEVOTED + "]★ CROWNED WITH GLORY (+1 shock/defense/administration)[/color]"
 		sheet += "\n"
 
+	# Session UI-5 interim fix (Nov 13): a marshal's strength / morale / range line
+	# rides the sheet beside the portrait (the column is no longer shorter than it).
+	if not is_sovereign:
+		sheet += _strength_line(m).strip_edges(true, false)
+
 	# ═══════ BIOGRAPHY ═══════
 	# The lore stands under the figures as notes, dimmer (the card's last
 	# block, `notes`), not beside the portrait.
@@ -734,11 +739,9 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		notes += _prose("gen.type." + name, type_desc, Utils.COLOR_INFO)
 	bbcode += Utils.bb_portrait_row(portrait, sheet, card_tone) + "\n"
 
-	bbcode += "\n"
-
 	# ═══════ COMBAT STATS ═══════
+	# (UI-5 interim fix: no blank line under the sheet; strength rides the sheet)
 	if not is_sovereign:
-		bbcode += _strength_line(m)
 		bbcode += _skills_block(m)
 
 	# ═══════ ABILITY (only shown if active/wired) ═══════
@@ -787,8 +790,9 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	# promise the Emperor an expectation.
 	if bool(m.get("sovereign", false)):
 		if is_dotation:
-			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
-				+ "  [color=#" + Utils.COLOR_INFO + "]" + str(m.get("sovereign_note", "The Empire is his estate.")) + "[/color]\n"
+			var sov_why := str(m.get("sovereign_note", "The Empire is his estate."))
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg", sov_why) \
+				+ "  [color=#" + Utils.COLOR_INFO + "]" + sov_why + "[/color]\n"
 	elif expectation > 0 or estate_income > 0 or pension > 0:
 		if estate_title != "":
 			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
@@ -1234,22 +1238,22 @@ func _stat_bar_img(filled: int, hex_color: String) -> String:
 func _trust_hex(val: int) -> String:
 	var color: String = Utils.COLOR_INFO
 	if val < 30:
-		color = Utils.COLOR_ERROR
+		color = Utils.cv_hex(Utils.COLOR_ERROR)
 	elif val < 55:
 		color = Utils.COLOR_ORANGE
 	elif val >= 80:
-		color = Utils.COLOR_SUCCESS
+		color = Utils.cv_hex(Utils.COLOR_SUCCESS)
 	return color
 
 
 func _trust_colored(val: int, label: String) -> String:
 	var color = Utils.COLOR_INFO
 	if val < 30:
-		color = Utils.COLOR_ERROR
+		color = Utils.cv_hex(Utils.COLOR_ERROR)
 	elif val < 55:
 		color = Utils.COLOR_ORANGE
 	elif val >= 80:
-		color = Utils.COLOR_SUCCESS
+		color = Utils.cv_hex(Utils.COLOR_SUCCESS)
 	return "[color=#" + color + "]" + str(val) + " (" + label + ")[/color]"
 
 

@@ -1215,6 +1215,8 @@ REVIEWED = {
     # while the request is out. Gated on the turn's actions (dimmed with
     # bb_chip_disabled otherwise). Driven by the war-room road `ledger_cancel`.
     ("strategic_ledger.gd", '"cancel:" + mname'): "cancels the standing order via /cancel_order; gated on actions",
+    # Session UI-5: the Territories book's sort — a client-side re-order of the rows it shows (income / name), no command sent
+    ("strategic_ledger.gd", '"terr:sort:" + str(opt[0])'): "client-side: re-sorts the Territories table it is drawn on; sends nothing",
     # main.gd — SR-5r RF-4b: the lapse forecast's "repeal X instead" chip on
     # the end-turn banner and the terminal dispatch (backend-composed; the
     # typed `repeal <law>` down the ledger's chip road). Driven through

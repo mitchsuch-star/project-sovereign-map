@@ -49,6 +49,14 @@ var cancel_button: Button = null
 var word_button: Button = null
 var _cancel_caption: String = ""
 
+# UI-5: the arrival sound the card opens on stops when an answer is given
+var _open_cue = null  # untyped: a one-shot frees itself when it ends
+
+func _answer(cue: String) -> void:
+	AudioManager.stop_player(_open_cue)
+	_open_cue = null
+	AudioManager.play(cue)
+
 func _ready():
 	# Connect button signals
 	trust_button.pressed.connect(_on_trust_pressed)
@@ -74,6 +82,10 @@ func _ready():
 	insist_button.get_parent().add_child(cancel_button)
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	_cancel_caption = "[center][color=#" + Utils.COLOR_GOLD + "]no AP, no trust spent[/color][/center]"
+
+	# UI-5: each answer plays its own cue, so the global click stands aside
+	for b in [trust_button, insist_button, compromise_button, word_button, cancel_button]:
+		(b as Button).set_meta("no_click_sfx", true)
 
 	_dress_answers()
 
@@ -161,7 +173,8 @@ func show_from_response(response: Dictionary):
 
 func show_objection(objection_data: Dictionary):
 	"""Display objection dialog with data from backend."""
-	AudioManager.play("sword_draw")  # a marshal stands his ground
+	AudioManager.stop_player(_open_cue)
+	_open_cue = AudioManager.play("sword_draw")  # a marshal stands his ground
 	current_marshal = objection_data.get("marshal", "Marshal")
 
 	# V2a: Apply tone-based styling (border color + header text)
@@ -279,6 +292,7 @@ func show_objection(objection_data: Dictionary):
 	_set_caption(cancel_button, _cancel_caption)
 
 	# Show the dialog
+	_banner("objection")
 	show()
 	_fit_compact()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
@@ -332,7 +346,13 @@ func _dress_answers() -> void:
 		cell.name = "Cell" + btn.name
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cell.add_theme_constant_override("separation", 2)
-		grid.add_child(cell)
+		if btn == cancel_button:
+			# Session UI-5 interim fix (Nov 13): five answers on two columns left
+			# Cancel alone beside an empty cell; it stands as the last row, full width.
+			vb.add_child(cell)
+			vb.move_child(cell, grid.get_index() + 1)
+		else:
+			grid.add_child(cell)
 		btn.get_parent().remove_child(btn)
 		cell.add_child(btn)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -367,6 +387,19 @@ func _fit_compact() -> void:
 	var grid := get_node_or_null("PanelContainer/VBoxContainer/AnswerGrid") as GridContainer
 	if grid != null:
 		grid.columns = 3 if compact else 2
+	# Session UI-5: Cancel stands as its own full-width row on the full view (an
+	# even grid); on the compact view it joins the three-to-a-row grid — two rows,
+	# not three (the engine lane caught the card's top under the bar at 2.0).
+	var cancel_cell: Control = (cancel_button.get_parent() as Control) if cancel_button != null else null
+	if grid != null and cancel_cell != null and String(cancel_cell.name).begins_with("Cell"):
+		var column_vb: Node = grid.get_parent()
+		if compact and cancel_cell.get_parent() != grid:
+			cancel_cell.get_parent().remove_child(cancel_cell)
+			grid.add_child(cancel_cell)
+		elif not compact and cancel_cell.get_parent() == grid:
+			grid.remove_child(cancel_cell)
+			column_vb.add_child(cancel_cell)
+			column_vb.move_child(cancel_cell, grid.get_index() + 1)
 	if message_label != null:
 		if not message_label.has_meta("authored_floor"):
 			message_label.set_meta("authored_floor", message_label.custom_minimum_size.y)
@@ -387,6 +420,8 @@ func _fit_compact() -> void:
 			for b in cell.get_children():
 				if b is Button:
 					(b as Button).custom_minimum_size.y = 39.0 if compact else 45.0
+	if cancel_button != null:
+		cancel_button.custom_minimum_size.y = 39.0 if compact else 45.0
 
 
 func _sync_cell(btn: Button) -> void:
@@ -563,21 +598,25 @@ func _get_vindication_text(score: int) -> String:
 
 func _on_trust_pressed():
 	"""Player chooses to trust marshal's judgment."""
+	_answer("quill_sign")
 	hide()
 	choice_made.emit("trust")
 
 func _on_insist_pressed():
 	"""Player insists on original order."""
+	_answer("sword_draw")
 	hide()
 	choice_made.emit("insist")
 
 func _on_compromise_pressed():
 	"""Player seeks middle ground."""
+	_answer("quill_flick")
 	hide()
 	choice_made.emit("compromise")
 
 func _on_cancel_pressed():
 	"""DDB-41: the order withdrawn — no trust, no action spent."""
+	_answer("back")
 	hide()
 	choice_made.emit("cancel")
 
@@ -602,5 +641,50 @@ func _setup_word_button(word) -> void:
 
 func _on_word_pressed():
 	"""AU-3a: the order as given, on the Emperor's word."""
+	_answer("quill_flick")
 	hide()
 	choice_made.emit("word")
+
+
+func _banner(surface: String) -> void:
+	"""Session UI-5: the picture over the card (a 3:1 banner sized to the card's
+	width; its hover is the credit). It steps aside on the compact view and in a
+	short window, and `_banner_yield` takes it away again when the card's
+	answers would otherwise leave the view."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if Utils.compact_view() or view.y < 760.0:
+		return
+	var panel: Control = $PanelContainer
+	var w: float = panel.offset_right - panel.offset_left
+	if w <= 0.0:
+		w = 480.0
+	var pic: TextureRect = Illustrations.make_banner(surface, minf(w, view.x - 80.0) - 48.0, true)
+	if pic == null:
+		return
+	vb.add_child(pic)
+	vb.move_child(pic, 0)
+	call_deferred("_banner_yield")
+
+
+func _banner_yield() -> void:
+	"""The banner is the first thing to give way: if the card cannot fit the
+	view with it, it goes."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var pic: Control = $PanelContainer/VBoxContainer.get_node_or_null("Illustration") as Control
+	if pic == null:
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	# Session UI-5: the banner shrinks first (it steps aside under its floor),
+	# until the card stands centred below the top bar.
+	if $PanelContainer.get_combined_minimum_size().y > Illustrations.card_room(view.y):
+		Illustrations.fit_banner_to_card($PanelContainer, view.y)
+		Utils.clamp_centered_panel($PanelContainer)
+		Utils.shrink_centered_panel_to_content($PanelContainer)

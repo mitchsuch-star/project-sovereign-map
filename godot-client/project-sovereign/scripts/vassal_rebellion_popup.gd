@@ -24,10 +24,22 @@ func _ready():
 	invest_btn.pressed.connect(_on_invest)
 	garrison_btn.pressed.connect(_on_garrison)
 	accept_btn.pressed.connect(_on_accept)
+	# UI-5: each answer plays its own cue, so the global click stands aside
+	for b in [invest_btn, garrison_btn, accept_btn]:
+		(b as Button).set_meta("no_click_sfx", true)
+
+# the grave bell the card opens on — an arrival sound, it goes with the card
+var _open_cue = null  # untyped: a one-shot frees itself when it ends
+
+func _answer(cue: String) -> void:
+	AudioManager.stop_player(_open_cue)
+	_open_cue = null
+	AudioManager.play(cue)
 
 func show_rebellion(data: Dictionary):
 	"""Display vassal rebellion imminent popup."""
-	AudioManager.play("bell_toll")  # grave news
+	AudioManager.stop_player(_open_cue)
+	_open_cue = AudioManager.play("bell_toll")  # grave news
 	current_data = data
 	var nation = data.get("nation", "Unknown")
 	var loyalty = data.get("loyalty", 0)
@@ -57,6 +69,7 @@ func show_rebellion(data: Dictionary):
 	invest_btn.disabled = false
 	garrison_btn.disabled = false
 	accept_btn.disabled = false
+	_banner("rebellion")
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -67,16 +80,19 @@ func show_rebellion(data: Dictionary):
 	call_deferred("_fit_card")
 
 func _on_invest():
+	_answer("quill_sign")  # the grant
 	_disable_buttons()
 	hide()
 	choice_made.emit("invest", current_data)
 
 func _on_garrison():
+	_answer("drum_cadence")  # show the flag
 	_disable_buttons()
 	hide()
 	choice_made.emit("garrison", current_data)
 
 func _on_accept():
+	_answer("back")
 	_disable_buttons()
 	hide()
 	choice_made.emit("accept", current_data)
@@ -103,6 +119,49 @@ func _fit_card() -> void:
 func refit() -> void:
 	"""UXR-2's live-refit hook (`Utils.refit_surface`): the fit, as on open."""
 	call_deferred("_fit_card")
+
+
+func _banner(surface: String) -> void:
+	"""Session UI-5: the picture over the card (a 3:1 banner sized to the card's
+	width; its hover is the credit). It steps aside on the compact view and in a
+	short window, and `_banner_yield` takes it away again when the card's
+	answers would otherwise leave the view."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if Utils.compact_view() or view.y < 760.0:
+		return
+	var panel: Control = $PanelContainer
+	var w: float = panel.offset_right - panel.offset_left
+	if w <= 0.0:
+		w = 480.0
+	var pic: TextureRect = Illustrations.make_banner(surface, minf(w, view.x - 80.0) - 48.0, true)
+	if pic == null:
+		return
+	vb.add_child(pic)
+	vb.move_child(pic, 0)
+	call_deferred("_banner_yield")
+
+
+func _banner_yield() -> void:
+	"""The banner is the first thing to give way: if the card cannot fit the
+	view with it, it goes."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var pic: Control = $PanelContainer/VBoxContainer.get_node_or_null("Illustration") as Control
+	if pic == null:
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	# Session UI-5: the banner shrinks first (it steps aside under its floor),
+	# until the card stands centred below the top bar.
+	if $PanelContainer.get_combined_minimum_size().y > Illustrations.card_room(view.y):
+		Illustrations.fit_banner_to_card($PanelContainer, view.y)
+		Utils.clamp_centered_panel($PanelContainer)
 
 
 func _arms_row(parts: Array) -> void:

@@ -547,7 +547,161 @@ const AUDIO_VOLUME_DEFAULTS := {
 	"Music": 0.55,
 	"SFX": 0.9,
 	"UI": 0.65,
+	# Session UI-5 (November 12, 2026): the fifth bus — every bed (the study's
+	# fire and clock, the wind, the season, the battle and sea beds) rides it.
+	"Ambience": 0.7,
 }
+
+# --- Session UI-5 (November 12, 2026): the sound's behaviour ---
+# Each one switch in Settings → SOUND; each default is the plan's decision
+# (docs/MUSIC_SOUND_SPEC.md §6). "quiet" lowers the game 12 dB while its
+# window is in the background; "mute" silences it; "play" leaves it be.
+const BACKGROUND_AUDIO_MODES := ["play", "quiet", "mute"]
+const DEFAULT_BACKGROUND_AUDIO := "quiet"
+
+
+static func get_hover_sfx() -> bool:
+	return bool(_config().get_value("audio", "hover_sfx", true))
+
+
+static func set_hover_sfx(on: bool) -> void:
+	_config().set_value("audio", "hover_sfx", on)
+	_save()
+
+
+static func get_typing_sfx() -> bool:
+	return bool(_config().get_value("audio", "typing_sfx", true))
+
+
+static func set_typing_sfx(on: bool) -> void:
+	_config().set_value("audio", "typing_sfx", on)
+	_save()
+
+
+static func get_music_rests() -> bool:
+	return bool(_config().get_value("audio", "music_rests", true))
+
+
+static func set_music_rests(on: bool) -> void:
+	_config().set_value("audio", "music_rests", on)
+	_save()
+
+
+static func get_background_audio() -> String:
+	var mode := str(_config().get_value("audio", "background", DEFAULT_BACKGROUND_AUDIO))
+	return mode if mode in BACKGROUND_AUDIO_MODES else DEFAULT_BACKGROUND_AUDIO
+
+
+static func set_background_audio(mode: String) -> void:
+	if mode in BACKGROUND_AUDIO_MODES:
+		_config().set_value("audio", "background", mode)
+		_save()
+
+
+# --- Session UI-5: the End Turn gate names the corps without orders ---
+static func get_idle_warning() -> bool:
+	# A driven harness (its settings in memory: `harness_active`) plays the
+	# scripted day it was written for — one End Turn ends it — so the gate's
+	# idle-corps clause is off there unless the harness switches it on. A
+	# player's default is ON (the plan's decision 9).
+	return bool(_config().get_value("orders", "idle_warning", not harness_active()))
+
+
+static func set_idle_warning(on: bool) -> void:
+	_config().set_value("orders", "idle_warning", on)
+	_save()
+
+
+# --- Session UI-5: colour vision (Settings → DISPLAY, Accessibility) ---
+# "red_green" re-tones the semantic red/green (results, stability, trust,
+# battle lines, the war score, the top bar's deltas) to orange/blue at the
+# sinks (Utils.cv / cv_hex), the High-contrast precedent — no const moves.
+const COLOUR_VISIONS := ["standard", "red_green"]
+const DEFAULT_COLOUR_VISION := "standard"
+
+
+static func get_colour_vision() -> String:
+	var mode := str(_config().get_value("display", "colour_vision", DEFAULT_COLOUR_VISION))
+	return mode if mode in COLOUR_VISIONS else DEFAULT_COLOUR_VISION
+
+
+static func set_colour_vision(mode: String) -> void:
+	if mode in COLOUR_VISIONS:
+		_config().set_value("display", "colour_vision", mode)
+		_save()
+
+
+# --- Session UI-5: how long a hover waits before its tooltip ---
+const TOOLTIP_DELAYS := ["instant", "short", "normal", "long"]
+const TOOLTIP_DELAY_SECONDS := {"instant": 0.05, "short": 0.3, "normal": 0.5, "long": 0.9}
+const DEFAULT_TOOLTIP_DELAY := "short"
+
+
+static func get_tooltip_delay() -> String:
+	var mode := str(_config().get_value("display", "tooltip_delay", DEFAULT_TOOLTIP_DELAY))
+	return mode if mode in TOOLTIP_DELAYS else DEFAULT_TOOLTIP_DELAY
+
+
+static func get_tooltip_delay_seconds() -> float:
+	return float(TOOLTIP_DELAY_SECONDS.get(get_tooltip_delay(), 0.3))
+
+
+static func set_tooltip_delay(mode: String) -> void:
+	if mode in TOOLTIP_DELAYS:
+		_config().set_value("display", "tooltip_delay", mode)
+		_save()
+
+
+# --- Session UI-5: the map scrolls when the cursor rests on a screen edge ---
+static func get_edge_scroll() -> bool:
+	return bool(_config().get_value("display", "edge_scroll", false))
+
+
+static func set_edge_scroll(on: bool) -> void:
+	_config().set_value("display", "edge_scroll", on)
+	_save()
+
+
+# --- Session UI-5: key bindings (Keys) — action -> physical keycode ---
+# Only the actions the player rebound are stored; Keys.DEFAULTS holds the rest.
+static func get_key_binding(action: String, default_key: int) -> int:
+	return int(_config().get_value("keys", action, default_key))
+
+
+static func set_key_binding(action: String, keycode: int) -> void:
+	_config().set_value("keys", action, keycode)
+	_save()
+
+
+static func clear_key_bindings() -> void:
+	if _config().has_section("keys"):
+		_config().erase_section("keys")
+		_save()
+
+
+# --- Session UI-5: the command line's history survives a restart ---
+const MAX_STORED_HISTORY := 50
+
+
+static func get_command_history() -> Array:
+	var stored = _config().get_value("history", "commands", [])
+	var out: Array = []
+	if stored is Array:
+		for item in stored:
+			var text := str(item).strip_edges()
+			if text != "":
+				out.append(text)
+	return out.slice(maxi(0, out.size() - MAX_STORED_HISTORY))
+
+
+static func set_command_history(history: Array) -> void:
+	var keep: Array = []
+	for item in history:
+		var text := str(item).strip_edges()
+		if text != "" and not text.begins_with("debug"):
+			keep.append(text)
+	_config().set_value("history", "commands", keep.slice(maxi(0, keep.size() - MAX_STORED_HISTORY)))
+	_save()
 
 
 static func get_audio_volume(bus_name: String) -> float:

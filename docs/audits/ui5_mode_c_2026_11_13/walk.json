@@ -1,0 +1,110 @@
+{
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "letter_opened": false,
+  "ms": 18965,
+  "steps": [
+    {
+      "frame": "UI5_WALK_01_boot_2026_11_13.jpg",
+      "ms": 11990,
+      "note": "the war room at its first view (1920 x 1080, the shipped 115 % type)",
+      "saved": true,
+      "step": "boot",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_02_order_2026_11_13.jpg",
+      "log_tail": "════════════════════════════════════\n        IMPERIAL HEADQUARTERS\n═══════════════════════════════════════\n\nSeptember 1805 — The War of the Third Coalition\nYou are Napoleon Bonaparte.\n\nEstablishing connection to headquarters...\n✓ Communications established!\n\n─────────────────────────────────────\nYour marshals await your orders, Sire.\nType an order — “Ney, attack Mack” — or click one of your marshals on the map.  ▸ every command\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Soult, drill\nSoult cannot drill with enemy forces nearby! Mack is at Swabia, just one region away.\n\n",
+      "ms": 12814,
+      "note": "an order typed — 'Soult, drill' — and its reply in the log",
+      "saved": true,
+      "step": "order",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_03_hud_hidden_2026_11_13.jpg",
+      "hud_hidden": true,
+      "ms": 13131,
+      "note": "H — every HUD panel hidden but the top bar; the toast says how to bring them back",
+      "saved": true,
+      "step": "hud_hidden",
+      "toast": "HUD hidden — press H to bring it back",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_04_help_keys_2026_11_13.jpg",
+      "ms": 13677,
+      "note": "F10 — the Help & Keys book: the bindings, live",
+      "open": true,
+      "saved": true,
+      "step": "help_keys",
+      "text": "Rebind the listed keys in Settings, Controls. Esc, Enter and the number keys stay fixed.\nYour keys\nKey Does LEvent LogTStrategic LedgerGGeneralsDDiplomatic LedgerRDispatchNLe MoniteurEEnd TurnTabCommand window.Next idle corpsMMap viewF1The CabinetF10Help & KeysHHide the HUDF5QuicksaveF9QuickloadHomeRecentre the map\nFixed keys and the mouse\nKeys Does EscCloses the topmost screen or window; with nothing open it opens the menu, and closes it again. In the command line it first clears the suggestions, then a selected corps.EnterSends the order you typed, or confirms.Alt + keyThe screen and map keys work while you type if you hold Alt: Alt+L, T, G, D, R (or B), N, E, ` (the command window), M, Home, + and -, and the idle-corps key.Tab, Shift+Tab, DownIn the command line: Tab takes the highlighted suggestion (it never sends), Tab again walks the list, Shift+Tab walks back, and Down walks forwa …",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_05_quicksave_2026_11_13.jpg",
+      "ms": 14420,
+      "note": "F5 — the quicksave, and its toast",
+      "saved": true,
+      "step": "quicksave",
+      "toast": "Saved · Late September 1805\nHUD hidden — press H to bring it back",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_06_quickload_ask_2026_11_13.jpg",
+      "ms": 14893,
+      "note": "F9 — the quickload asks first (the confirm card)",
+      "pending": false,
+      "saved": true,
+      "step": "quickload_ask",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_07_save_dialog_2026_11_13.jpg",
+      "ms": 15686,
+      "note": "the save dialog — a named slot, the list with date, turn and nation",
+      "saved": true,
+      "step": "save_dialog",
+      "text": "[Cancel]\n[Save]\n[Delete]\ntoday 02:57\nLate September 1805 · France\nquicksave\nName\nSave the campaign",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_08_music_room_2026_11_13.jpg",
+      "ms": 16669,
+      "note": "Settings → Sound: the levels, the switches, Now playing and the Music Room",
+      "saved": true,
+      "step": "music_room",
+      "text": "[Back to the situation's music]\n[▶ Mazurek Dąbrowskiego — Traditional (1797)]\n[▶ Kong Christian stod ved højen mast — Traditional (1779)]\n[▶ Het Wilhelmus — Traditional (1572)]\n[▶ Marcha Real — Traditional (1770)]\n[▶ God Save the King — Traditional (1745)]\n[▶ Gott erhalte Franz den Kaiser — Haydn (1797)]\nThe courts' anthems\n[▶ Symphony No. 3 \"Eroica\" — II. Marcia funebre — Beethoven (1804)]\n[▶ Symphony No. 3 \"Eroica\" — IV. Finale — Beethoven (1804)]\n[▶ La Marseillaise — Rouget de Lisle (1792)]\nCeremonies\n[▶ String Quartet Op. 18 No. 6 — II. Adagio ma non troppo — Beethoven (1800)]\n[▶ String Quartet No. 15 in D minor, K421 — III. Menuetto — Mozart (1783)]\n[▶ String Quartet Op. 64 No. 5 \"The Lark\" — I. Allegro moderato — Haydn (1790)]\n[▶ Symphony No. 40 — III. Menuetto — Mozart (1788)]\n[▶ Le nozze di Figaro — Overture — Mozart (1786)]\nThe court\n[▶ Symphony No. 40 — IV. Allegro assai — Moza …",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_09_mailbox_2026_11_13.jpg",
+      "ms": 17594,
+      "note": "the Envoys road at the boot (no court has written on this seed's first morning: the log says so; the letters are read in the rated frames)",
+      "saved": true,
+      "step": "mailbox",
+      "text": "",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_10_war_detail_2026_11_13.jpg",
+      "ms": 18147,
+      "note": "the war detail: its picture, the peace table, the score, behind its backdrop",
+      "open": true,
+      "saved": true,
+      "step": "war_detail",
+      "text": "Settlement Tier: White Peace ▸ more\n\nScore Breakdown   trend = stable\nComponentScoreValue\n  At nought: Territory 0/40, Battles 0/15, Decisive 0/15, Capital 0/30, Campaign 0/10, Blood 0/15, Ticking 0/25\nThe War with the Third Coalition: nothing taken yet on either side.  \nWith: Britain + Austria + Russia\n\nObjective: Defense - the homeland — 28 of 28 provinces held   ▸ more\nA defensive purpose only (hold the homeland) — Set War Purpose (F1 → Britain) names a purpose of your own, and the war's articles.\nEnemy Objective: Defense\nStanding (top 5):\n    Austria [The Third Coalition] — Seat at settlement (0%)\n    Bavaria [France] — No settlement standing (0%)\n  * Britain [The Third Coalition] — Seat at settlement (0%)\n  * France [France] — Seat at settlement (0%)\n    Holland [France] — No settlement standing (0%)\n  +3 more participants\nDuration: 0 turns (since Turn 1)\nEnemy War Exhaustion: 0\nBri …",
+      "turn": 1
+    },
+    {
+      "frame": "UI5_WALK_11_settings_2026_11_13.jpg",
+      "ms": 18930,
+      "note": "Settings → Display: its titled cards (window, map & HUD, scale & type, accessibility)",
+      "saved": true,
+      "step": "settings",
+      "turn": 1
+    }
+  ]
+}

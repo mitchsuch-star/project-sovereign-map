@@ -318,8 +318,13 @@ class TestUXR3_82:
         sov = card[card.index("if is_sovereign:"):card.index("# ═══════ BIOGRAPHY ═══════")]
         assert _order(sov, "_ability_line(m)", "_strength_line(m)", "_skills_block(m)")
         # a marshal's sheet keeps its order: the prose, then the strength, then the bars
+        # Session UI-5 interim fix (Nov 13): a marshal's strength line now rides the
+        # sheet beside the portrait (closing the gap under it), so the order is the
+        # strength in the sheet, then (below the portrait row) the bars.
+        head = card[:card.index("# ═══════ BIOGRAPHY ═══════")]
+        assert "if not is_sovereign:\n\t\tsheet += _strength_line(m)" in head
         rest = card[card.index("# ═══════ BIOGRAPHY ═══════"):]
-        assert _order(rest, "if not is_sovereign:", "_strength_line(m)", "_skills_block(m)",
+        assert _order(rest, "if not is_sovereign:", "_skills_block(m)",
                       "# ═══════ ABILITY (only shown if active/wired) ═══════")
 
     @pytest.mark.parametrize("res", RESOLUTIONS)

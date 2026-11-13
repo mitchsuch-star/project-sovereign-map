@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=39 format=3 uid="uid://bspy1xuv7pgbh"]
+[gd_resource type="Theme" load_steps=40 format=3 uid="uid://bspy1xuv7pgbh"]
 
 [ext_resource type="FontFile" uid="uid://cxiqku0m3u7af" path="res://assets/fonts/Cinzel[wght].ttf" id="1_6tukj"]
 [ext_resource type="FontFile" uid="uid://dnyhh3gjkf5ox" path="res://assets/fonts/EBGaramond[wght].ttf" id="2_3xb56"]
@@ -6,6 +6,7 @@
 [ext_resource type="FontFile" uid="uid://fv3x3w2cugvl" path="res://assets/fonts/EBGaramond-Italic[wght].ttf" id="4_italic"]
 [ext_resource type="Script" path="res://scripts/gilt_rule.gd" id="5_rule"]
 [ext_resource type="Script" path="res://scripts/gilt_button.gd" id="6_button"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/ui5_caret_down.svg" id="7_caret"]
 
 [sub_resource type="StyleBox" id="StyleBoxFlat_joxlk"]
 script = ExtResource("6_button")
@@ -480,6 +481,8 @@ LeadRich/font_sizes/normal_font_size = 18
 LineEdit/font_sizes/font_size = 16
 LineEdit/styles/focus = SubResource("StyleBoxFlat_field_focus")
 LineEdit/styles/normal = SubResource("StyleBoxFlat_field")
+OptionButton/constants/arrow_margin = 10
+OptionButton/icons/arrow = ExtResource("7_caret")
 PanelContainer/styles/panel = SubResource("StyleBoxTexture_leather")
 ParchmentButton/base_type = &"Button"
 ParchmentButton/colors/font_color = Color(0.169, 0.114, 0.071, 1)

@@ -548,7 +548,9 @@ class TestTheReReadsOwnFindings:
         utils = GS.code_lines(GS.read(SCRIPTS / "utils.gd"))
         assert "const UI_SCORE_NEGATIVE_TEXT := Color(0.722, 0.306, 0.306)" in utils
         body = _func(_src("scripts/war_status_panel.gd"), "_get_score_color")
-        assert "return Utils.UI_SCORE_NEGATIVE_TEXT" in body
+        # Session UI-5: through the colour-vision sink (Utils.cv is the identity
+        # under Standard; under "Red-green safe" never darker, so the floor holds).
+        assert "return Utils.cv(Utils.UI_SCORE_NEGATIVE_TEXT)" in body
         for bg in ("242024", "252125", "252025", "242025"):
             assert CR.ratio((0.722, 0.306, 0.306), CR._hex(bg)) >= CR.CAPTION_FLOOR, bg
 

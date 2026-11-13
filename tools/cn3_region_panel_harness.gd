@@ -80,6 +80,7 @@ class MapStub extends Node:
 
 func _init():
 	UiSettings._cfg = ConfigFile.new()
+	UiSettings._persist = false   # Session UI-5: the harness flag — writes stay in memory, and the scripted day keeps its one End Turn
 	# Session UI-3 (November 12, 2026): the census reads every chip's stated
 	# words — Explanations: On the page, the old text byte for byte; the same
 	# regions folded (the game's default, a dimmed chip's reason its hover)

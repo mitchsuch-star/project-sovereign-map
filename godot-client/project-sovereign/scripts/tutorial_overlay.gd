@@ -67,7 +67,7 @@ const PRIMARY_CHIP_TEXT_HEX := "1b1409"
 const PROGRESS_METER_WIDTH := 180
 # a paragraph holds at most this many characters before the next sentence
 # starts a new one (the sentences are the card's own; only the breaks are new)
-const PARAGRAPH_SOFT_LIMIT := 150
+const PARAGRAPH_SOFT_LIMIT := 80
 
 # UXR-1 (October 9, 2026): the card is sized to the SCREEN, not to a 24-inch
 # monitor. Its width is a fraction of the logical viewport between a floor
@@ -459,6 +459,10 @@ var _released_note := ""
 @onready var _body: RichTextLabel = $Card/VBox/BodyText
 @onready var _confirm_row: HBoxContainer = $Card/VBox/ConfirmRow
 @onready var _restore_button: Button = $RestoreButton
+# Session UI-5 (F04): the primary action button, and the vignette above the body.
+var _act_button: Button = null
+var _suggest_cmd: String = ""
+var _banner: TextureRect = null
 
 
 func _ready() -> void:
@@ -469,6 +473,18 @@ func _ready() -> void:
 	$Card/VBox/ConfirmRow/ConfirmYes.pressed.connect(_on_skip_confirmed)
 	$Card/VBox/ConfirmRow/ConfirmNo.pressed.connect(func(): _confirm_row.visible = false)
 	_restore_button.pressed.connect(_on_restore)
+	# Session UI-5 (F04): both handlers play their own cue (back / select).
+	$Card/VBox/HeaderRow/MinimizeButton.set_meta("no_click_sfx", true)
+	_restore_button.set_meta("no_click_sfx", true)
+	# F04: the card's one action, a gilt primary button under the body.
+	_act_button = Button.new()
+	_act_button.name = "ActButton"
+	_act_button.theme_type_variation = &"PrimaryButton"
+	_act_button.visible = false
+	_act_button.clip_text = true
+	_act_button.pressed.connect(_on_act_pressed)
+	$Card/VBox.add_child(_act_button)
+	$Card/VBox.move_child(_act_button, _body.get_index() + 1)
 	# UXR-1: the card follows the viewport (a window resize, an Interface
 	# Scale change — both change the logical rect).
 	var vp := get_viewport()
@@ -606,14 +622,44 @@ func _terminal_limit(view: Vector2) -> float:
 	shrinks the logical view, engages it. A raised reply window's top edge
 	can sit above the card's own top; the body's `BODY_MIN_HEIGHT` is then
 	the floor, the last resort the region panel keeps too."""
+	var limit := _war_panel_limit(view, view.y)
 	var term := _terminal_control()
 	if term == null or not term.is_visible_in_tree():
-		return view.y
+		return limit
 	var rect := term.get_global_rect()
 	var card_left := view.x + _card.offset_left
 	if rect.end.x + Utils.HUD_MARGIN <= card_left:
-		return view.y
-	return minf(view.y, rect.position.y)
+		return limit
+	return minf(limit, rect.position.y)
+
+
+# Session UI-5 interim fix (Nov 13, F04): the card ends above the Active Wars
+# panel's top edge (its rows peeked out under the card's bottom). The panel is
+# the Main-child sibling whose script is war_status_panel.gd; found once.
+var _war_panel_ctl: Control = null
+
+
+func _war_panel_limit(view: Vector2, limit: float) -> float:
+	if _war_panel_ctl == null or not is_instance_valid(_war_panel_ctl):
+		_war_panel_ctl = null
+		var host := get_parent()
+		if host != null:
+			for child in host.get_children():
+				var scr = child.get_script()
+				if scr != null and str(scr.resource_path).ends_with("war_status_panel.gd"):
+					var pc = child.get("panel_container")
+					if pc is Control:
+						_war_panel_ctl = pc
+						if not _war_panel_ctl.item_rect_changed.is_connected(_on_terminal_changed):
+							_war_panel_ctl.item_rect_changed.connect(_on_terminal_changed)
+						break
+	if _war_panel_ctl == null or not _war_panel_ctl.is_visible_in_tree():
+		return limit
+	var rect := _war_panel_ctl.get_global_rect()
+	var card_left := view.x + _card.offset_left
+	if rect.end.x <= card_left or rect.position.y <= _card.offset_top + BODY_MIN_HEIGHT:
+		return limit
+	return minf(limit, rect.position.y - CARD_MARGIN)
 
 
 func _on_viewport_changed() -> void:
@@ -1013,6 +1059,7 @@ func _render() -> void:
 	_title_label.text = _lesson_title
 	_step_badge.text = "%d of %d" % [_step_index + 1, _steps.size()]
 	var lines := PackedStringArray()
+	_suggest_cmd = ""
 	# Session UI-2 (H): figures first — the lesson's progress as a gilt meter
 	# (the header strip above carries "n of total"), the page's title in the
 	# title face, then the lesson as short paragraphs, then the act.
@@ -1044,14 +1091,16 @@ func _render() -> void:
 	elif str(step["suggest"]) != "":
 		if not compact:
 			lines.append("")
-		var quill := Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD)
 		var quill_note := "[color=#" + Utils.COLOR_INFO + "]Click the quill to place the order on your command line — you give the word.[/color]"
 		if compact:
+			# the compact card keeps its acts as chips leading the body (UI-4)
+			var quill := Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD)
 			lines.insert(acts_at, quill)
 			lines.insert(acts_at + 1, quill_note)
 			acts_at += 2
 		else:
-			lines.append(quill)
+			# F04: the full card's act is a gilt primary Button under the body
+			_suggest_cmd = str(step["suggest"])
 			lines.append(quill_note)
 	if not waiting and step.has("open"):
 		# Sept 23, 2026: a door, not an order — the chip opens the real
@@ -1089,10 +1138,43 @@ func _render() -> void:
 		else:
 			lines.append(skip)
 	_body.text = "\n".join(lines)
+	_sync_act_button(compact)
+	_sync_banner(compact)
 	# UXR-1: a new body may be longer than the screen — re-bound it once the
 	# text has laid out at the card's width.
 	_fit_card_width()
 	_fit_card_height.call_deferred()
+
+
+func _sync_act_button(compact: bool) -> void:
+	"""F04: shown only when the full card has an order to place."""
+	if _act_button == null:
+		return
+	_act_button.visible = _suggest_cmd != "" and not compact
+	# Session UI-5 interim fix (Nov 13): the face says what it does.
+	_act_button.text = "✎ Write \"" + _suggest_cmd + "\" on the command line"
+	_act_button.tooltip_text = "Place this order on your command line — you press Enter."
+
+
+func _sync_banner(compact: bool) -> void:
+	"""F04: a small vignette above the body when there is room."""
+	if is_instance_valid(_banner):
+		_banner.get_parent().remove_child(_banner)
+		_banner.queue_free()
+	_banner = null
+	if compact:
+		return
+	var width: float = maxf(_card.offset_right - _card.offset_left - 20.0, 200.0)
+	_banner = Illustrations.make_banner("school", width)
+	if _banner == null:
+		return
+	$Card/VBox.add_child(_banner)
+	$Card/VBox.move_child(_banner, _body.get_index())
+
+
+func _on_act_pressed() -> void:
+	if _suggest_cmd != "":
+		suggest_command.emit(_suggest_cmd)
 
 
 # ── paragraphs (Session UI-2, H) ────────────────────────────────────────────

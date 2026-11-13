@@ -981,4 +981,12 @@ class TestUX23R9TheBugleEndsRatherThanStops:
         body = _live("audio_manager.gd")
         assert 'spec.get("fade_s", 0.8)' in body
         assert "fade_s: float = 0.8" in body
-        assert body.count('"fade_s"') == 3
+        # Session UI-5 (November 12, 2026) re-rules the count 3 -> 7: four new
+        # cues ask for their own fade — the three bugle calls a decrescendo
+        # (1.2 s, the UX23-R9 reasoning: a call has no trough to cut on), the
+        # gavel a quick one (0.25 s, its first strike alone). Every other cue
+        # keeps the 0.8 s default.
+        assert body.count('"fade_s"') == 7
+        for cue in ("bugle_to_arms", "bugle_charge", "bugle_retreat", "gavel", "reveille", "to_the_color"):
+            row = next(ln for ln in body.split("\n") if f'\t"{cue}": {{' in ln)
+            assert '"fade_s"' in row, cue

@@ -1045,7 +1045,11 @@ SHOTS += [
         "scene": "res://scenes/notification_bar.tscn",
         "mode": "call", "method": "update_notifications",
         "place": {"position": [0, 0], "height": 120},
+        # Session UI-5 (F03): at the compact view the rail starts folded to its
+        # count chip — the shot opens it (the chip's own handler; a no-op at the
+        # full view) before it presses the row.
         "steps": [
+            {"call": "_on_fold_chip_pressed", "then_wait": 4},
             {"press": {"meta_key": "notification_data", "meta_field": "type",
                        "equals": "counter_punch_earned"}},
             {"wait": 12},
@@ -1621,7 +1625,7 @@ SHOTS += [
              "the same dress under Berthier's monogram 'B'; line 2 'Berthier's Memorial — Berthier, "
              "Major-General of the Grande Armée'; the board line (at war, the chest against the "
              "Staff's price); the buttons 'Found the headquarters / −9,000 gold · 300 a turn · 1 "
-             "action' and 'Not now / no change'; Daru's counsel under the buttons; both answers "
+             "action' and 'Let the tent serve / no change'; Daru's counsel under the buttons; both answers "
              "above the fold at BOTH scales"),
             ("closed_accept", "The Arch-Chancellor's Letters with the Accept closed (no action left)",
              "Cambacérès's monogram 'C'; line 2 'The Arch-Chancellor's Letters — Cambacérès, "
@@ -1854,13 +1858,79 @@ SHOTS += [
         "must_show": "the 452-character refusal on an OPAQUE gold-hairlined panel, wrapped to about "
                      "40 % of the window, every word inside the window",
     },
+    # Session UI-5 (November 12, 2026): the full measure's new surfaces — Help &
+    # Keys (its keys and its terms), the save dialog, the load dialog's rows and
+    # the restyled pause menu. The payload is the boot board's (any capture
+    # serves: these surfaces read none of it).
+    {
+        "id": "ui5_codex_keys",
+        "surface": "Help & Keys — the KEYS tab (Session UI-5)",
+        "payload": "test_boot",
+        "scene": "res://scenes/codex_view.tscn",
+        "mode": "call", "method": "open", "args": ["keys"],
+        "settle_ms": 900,
+        "must_show": "the book in its gilt frame: KEYS · TERMS · ORDERS, the filter field, every "
+                     "remappable action with its key, then the fixed keys and the mouse",
+    },
+    {
+        "id": "ui5_codex_terms",
+        "surface": "Help & Keys — the TERMS tab (Session UI-5)",
+        "payload": "test_boot",
+        "scene": "res://scenes/codex_view.tscn",
+        "mode": "call", "method": "open", "args": ["terms"],
+        "settle_ms": 900,
+        "must_show": "the glossary A to Z as cards, each term in gold over its explanation",
+    },
+    {
+        "id": "ui5_save_dialog",
+        "surface": "The save dialog (Session UI-5)",
+        "payload": "test_boot",
+        "scene": "res://scenes/save_dialog.tscn",
+        "mode": "call", "method": "open", "args": ["October 1805 · France"],
+        "settle_ms": 900,
+        "must_show": "the name field pre-filled, the Save button, the list (empty: no server)",
+    },
+    {
+        "id": "ui5_load_dialog",
+        "surface": "The load dialog's rows (Session UI-5)",
+        "payload": "test_boot",
+        "scene": "res://scenes/load_dialog.tscn",
+        "mode": "call", "method": "show_saves",
+        "args": [[
+            {"filename": "quicksave.json", "metadata": {"save_name": "quicksave", "turn": 9,
+             "calendar_label": "November 1805", "player_nation": "France",
+             "saved_at": "2026-11-12T20:14:00+00:00", "campaign_seed": "historical"}},
+            {"filename": "Ulm.json", "metadata": {"save_name": "Ulm", "turn": 6,
+             "calendar_label": "October 1805", "player_nation": "France",
+             "saved_at": "2026-11-11T18:02:00+00:00", "campaign_seed": "historical"}},
+            {"filename": "autosave.json", "metadata": {"save_name": "Autosave", "turn": 9,
+             "calendar_label": "November 1805", "player_nation": "France",
+             "saved_at": "2026-11-12T20:10:00+00:00", "campaign_seed": "historical"}},
+        ], []],
+        "settle_ms": 900,
+        "must_show": "'Load a campaign' in the title face; each save a row: name, date, nation, "
+                     "the time saved; the seed only in a row's hover",
+    },
+    {
+        "id": "ui5_pause_menu",
+        "surface": "The pause menu, restyled (Session UI-5)",
+        "payload": "test_boot",
+        "scene": "res://scenes/pause_menu.tscn",
+        "mode": "call", "method": "open_menu", "args": [],
+        "settle_ms": 900,
+        "must_show": "Ink & Iron in the title face; Resume (Esc) the gilt primary; Save Game… · Load…; "
+                     "New Campaign; Help & Keys · The School of War…; Settings; Main Menu · Quit",
+    },
     {
         "id": "pc_war_card_tooltip",
         "surface": "The war card's hover text over the map (PC-F47, M1)",
         "payload": "active_wars_vienna",
         "scene": "res://scenes/war_status_panel.tscn",
         "mode": "call", "method": "update_wars",
-        "steps": [{"wait": 6}, {"hover": {"tooltip": "The peace table reads"}, "then_wait": 4}],
+        # Session UI-5 (F03): at the compact view the war list starts folded to its
+        # chip — the shot opens it (the chip's own handler) before the hover.
+        "steps": [{"wait": 6}, {"call": "_on_chip_pressed", "then_wait": 4},
+                  {"hover": {"tooltip": "The peace table reads"}, "then_wait": 4}],
         "settle_ms": 1800,
         "must_show": "the war card's tooltip — the peace table, court by court, the standing — on an "
                      "OPAQUE panel, wrapped, inside the window",

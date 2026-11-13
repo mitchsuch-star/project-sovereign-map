@@ -66,7 +66,8 @@ func _ready():
 
 func show_interrupt(interrupt_data: Dictionary):
 	"""Display interrupt popup with dynamic buttons."""
-	AudioManager.play("drum_sting")
+	# UI-5: an arrival sound — claimed, so it goes with the card
+	claim_cue(AudioManager.play("drum_sting"))
 	current_marshal = interrupt_data.get("marshal", "Marshal")
 	current_response_type = interrupt_data.get("interrupt_type", "unknown")
 
@@ -116,8 +117,11 @@ func show_interrupt(interrupt_data: Dictionary):
 
 		# Bind the option_id to the callback
 		btn.pressed.connect(_on_option_pressed.bind(option_id))
+		# UI-5: the answer plays its own cue (command_ack / latch)
+		btn.set_meta("no_click_sfx", true)
 		button_container.add_child(btn)
 
+	_banner("interrupt")
 	show()
 	# S14D-X47: a long message may raise the clamp's ceiling (IGR-G1's meta);
 	# the fit below still shrinks a short question to its box.
@@ -174,8 +178,54 @@ func refit() -> void:
 
 func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""
+	# UI-5: going on = the order acknowledged; halting / standing down = the latch
+	var halts: bool = option_id in ["hold_position", "cancel_order", "hold_current", "cancel_support"]
+	decided_with("latch" if halts else "command_ack")
 	close_popup()
 	choice_made.emit(current_marshal, current_response_type, option_id)
+
+
+func _banner(surface: String) -> void:
+	"""Session UI-5: the picture over the card (a 3:1 banner sized to the card's
+	width; its hover is the credit). It steps aside on the compact view and in a
+	short window, and `_banner_yield` takes it away again when the card's
+	answers would otherwise leave the view."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if Utils.compact_view() or view.y < 760.0:
+		return
+	var panel: Control = $PanelContainer
+	var w: float = panel.offset_right - panel.offset_left
+	if w <= 0.0:
+		w = 480.0
+	var pic: TextureRect = Illustrations.make_banner(surface, minf(w, view.x - 80.0) - 48.0, true)
+	if pic == null:
+		return
+	vb.add_child(pic)
+	vb.move_child(pic, 0)
+	call_deferred("_banner_yield")
+
+
+func _banner_yield() -> void:
+	"""The banner is the first thing to give way: if the card cannot fit the
+	view with it, it goes."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var pic: Control = $PanelContainer/VBoxContainer.get_node_or_null("Illustration") as Control
+	if pic == null:
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	# Session UI-5: the banner shrinks first (it steps aside under its floor),
+	# until the card stands centred below the top bar.
+	if $PanelContainer.get_combined_minimum_size().y > Illustrations.card_room(view.y):
+		Illustrations.fit_banner_to_card($PanelContainer, view.y)
+		Utils.clamp_centered_panel($PanelContainer)
 
 
 func _arms_row(parts: Array) -> void:

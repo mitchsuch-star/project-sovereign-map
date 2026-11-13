@@ -50,6 +50,9 @@ ALLOWED = {
     "godot-client/project-sovereign/scripts/strategic_ledger.gd": [r"^Overseas trade$"],  # Session UI-4: the ledger row is a table label now (its figure is a separate cell)
     # the affairs' authored copy — the letter's run-in default (RE-2's dress)
     "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd": [r"^FROM HAITI —$"],
+    # Session UI-5: the Santo Domingo affair's own picture — the painting's title is
+    # the banner's hover credit on that one authored letter (LETTER_BY_TEMPLATE)
+    "godot-client/project-sovereign/scripts/illustrations.gd": [r"^The Capture of Gros-Morne, Saint-Domingue, 1802$"],
 }
 # the scenario outside `moments.affairs`: a marshal's biography is history,
 # not a colonial surface (Yusuf Ziya Pasha retook Egypt in 1801)

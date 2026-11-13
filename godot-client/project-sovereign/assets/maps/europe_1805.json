@@ -3081,7 +3081,7 @@
                         "press": "HEADQUARTERS — Marshal Berthier's staff becomes the Imperial Headquarters of the Grand Army."
                     },
                     "decline": {
-                        "caption": "Not now",
+                        "caption": "Let the tent serve",
                         "button_line": "no change",
                         "ops": [],
                         "remember": "In {month} Berthier's memorial waited; he writes again."

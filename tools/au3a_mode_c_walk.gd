@@ -45,6 +45,7 @@ var _n := 0
 
 func _init():
 	UiSettings._cfg = ConfigFile.new()
+	UiSettings._persist = false   # Session UI-5: the harness flag — writes stay in memory, and the scripted day keeps its one End Turn
 	_t0 = Time.get_ticks_msec()
 	process_frame.connect(_watchdog)
 	_walk.call_deferred()

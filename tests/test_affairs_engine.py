@@ -669,7 +669,7 @@ class TestBites:
         assert _run(armed, [11]) == {11: ["berthiers_memorial#1"]}
         payload = _letter(armed, "berthiers_memorial#1")["popup_payload"]
         assert "9,000 gold now, then 300 gold a turn" in payload["answers"][0]["quote"]
-        assert payload["answers"][1]["quote"] == "Not now: no change."
+        assert payload["answers"][1]["quote"] == "Let the tent serve: no change."   # UI-5: was "Not now"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1245,7 +1245,12 @@ class TestTheCopyAuthored:
         assert "echo" not in t2["decline"]                 # the marshal's remark is RE-R's HOST_REMARKS
         assert t3["accept"]["echo"].startswith("Berthier: the Imperial Headquarters is founded")
         assert "situation" not in t3["accept"]             # the existing staff_arrived line, free
-        assert t3["decline"] == {"caption": "Not now", "button_line": "no change", "ops": [],
+        # Session UI-5 (November 13, 2026): the refusal speaks in the letter's own
+        # voice, as every other affair's does — its "Not now" stood beside the
+        # letter's own Not Now button, two "Not now" answers on one sheet (the
+        # interim blind reading's F22). Display copy only: `caption` is struck
+        # from the measured identity (ANSWER_DISPLAY_KEYS), so no re-measure.
+        assert t3["decline"] == {"caption": "Let the tent serve", "button_line": "no change", "ops": [],
                                  "remember": "In {month} Berthier's memorial waited; he writes again."}
         for e in (t1, t2, t3):
             for side in ("accept", "decline"):

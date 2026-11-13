@@ -400,6 +400,48 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/keys.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/toast_layer.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/busy_chip.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/illustrations.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/codex_view.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/codex_terms.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/save_dialog.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -589,5 +631,5 @@
       "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-11-13T02:01:59Z"
+  "timestamp": "2026-11-13T07:58:26Z"
 }

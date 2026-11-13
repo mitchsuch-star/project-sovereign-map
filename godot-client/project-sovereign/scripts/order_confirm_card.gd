@@ -64,6 +64,8 @@ func _ready():
 func _wear(mode: String) -> void:
 	"""Each face's buttons."""
 	_mode = mode
+	if _force_box != null and is_instance_valid(_force_box):
+		_force_box.visible = false
 	line_button.visible = mode != "group"
 	match mode:
 		"standing":
@@ -98,6 +100,116 @@ func open_card(quote: Dictionary, title: String, reading: String, avoid: Array =
 	_raise()
 
 
+# Session UI-5 (D8, November 12, 2026): the attack card's force bar — our
+# strength (a solid bar) against the enemy's fog band (low to high, or the
+# label alone when the band is unknown) and the odds word, drawn under the
+# muster line. The data is the quote's `force` block; absent, no bar.
+var _force_box: VBoxContainer = null
+const FORCE_BAR_H := 14.0
+const FORCE_LABEL_W := 56.0
+
+
+func _set_force(q: Dictionary) -> void:
+	if _force_box != null and is_instance_valid(_force_box):
+		_force_box.get_parent().remove_child(_force_box)
+		_force_box.queue_free()
+		_force_box = null
+	if _mode != "order" or not bool(q.get("ok", false)):
+		return
+	var f = q.get("force", null)
+	if not (f is Dictionary) or (f as Dictionary).is_empty():
+		return
+	var force: Dictionary = f
+	var ours: int = int(force.get("ours", 0))
+	var low: int = int(force.get("theirs_low", 0))
+	var high: int = maxi(int(force.get("theirs_high", 0)), low)
+	var label: String = str(force.get("theirs_label", "")) if force.get("theirs_label") != null else ""
+	var odds: String = str(force.get("odds", "")) if force.get("odds") != null else ""
+	var scale_max: int = maxi(maxi(ours, high), 1)
+	var box := VBoxContainer.new()
+	box.name = "ForceBars"
+	box.add_theme_constant_override("separation", 4)
+	box.add_child(_force_row("Ours", Utils.format_number(ours),
+			float(ours) / float(scale_max), -1.0, Utils.cv(Utils.UI_SCORE_POSITIVE), false))
+	var theirs_text: String = label
+	var has_band: bool = high > 0
+	if has_band:
+		var band_text: String = Utils.format_number(low) if low == high else Utils.format_number(low) + " – " + Utils.format_number(high)
+		theirs_text = band_text if label == "" else label + " · " + band_text
+	box.add_child(_force_row("Theirs", theirs_text,
+			float(low) / float(scale_max), float(high) / float(scale_max),
+			Utils.cv(Utils.UI_SCORE_NEGATIVE), not has_band))
+	if odds != "":
+		var odds_label := Label.new()
+		odds_label.name = "OddsLabel"
+		odds_label.text = "Odds: " + odds
+		odds_label.theme_type_variation = &"Caption"
+		odds_label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+		odds_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		box.add_child(odds_label)
+	var vb: Control = terms_label.get_parent()
+	vb.add_child(box)
+	vb.move_child(box, terms_label.get_index() + 1)
+	_force_box = box
+
+
+func _force_row(who: String, value_text: String, frac_a: float, frac_b: float,
+		colour: Color, label_only: bool) -> Control:
+	"""One labelled meter: the name, the track (a solid bar to frac_a, a band
+	to frac_b when given) and the figure; label_only draws the words alone."""
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var name_label := Label.new()
+	name_label.text = who
+	name_label.theme_type_variation = &"Caption"
+	name_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	name_label.custom_minimum_size = Vector2(FORCE_LABEL_W, 0.0)
+	row.add_child(name_label)
+	if label_only:
+		var words := Label.new()
+		words.text = value_text
+		words.theme_type_variation = &"Caption"
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		words.custom_minimum_size = Vector2(40.0, 0.0)
+		row.add_child(words)
+		return row
+	var bar := Control.new()
+	bar.custom_minimum_size = Vector2(40.0, FORCE_BAR_H)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.set_meta("frac_a", frac_a)
+	bar.set_meta("frac_b", frac_b)
+	bar.set_meta("colour", colour)
+	bar.draw.connect(_draw_force_bar.bind(bar.get_instance_id()))
+	row.add_child(bar)
+	var figure := Label.new()
+	figure.text = value_text
+	figure.theme_type_variation = &"Caption"
+	figure.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(figure)
+	return row
+
+
+func _draw_force_bar(bar_id: int) -> void:
+	var bar := instance_from_id(bar_id) as Control
+	if bar == null or not is_instance_valid(bar):
+		return
+	var size_v: Vector2 = bar.size
+	var colour: Color = bar.get_meta("colour")
+	var a: float = clampf(float(bar.get_meta("frac_a")), 0.0, 1.0)
+	var b: float = float(bar.get_meta("frac_b"))
+	bar.draw_rect(Rect2(Vector2.ZERO, size_v), Utils.UI_BAR_BG)
+	if b >= 0.0:
+		# the fog band: faint from the low to the high, a solid bar to the low
+		var x1: float = clampf(b, 0.0, 1.0) * size_v.x
+		bar.draw_rect(Rect2(0.0, 0.0, x1, size_v.y), Color(colour, 0.40))
+		bar.draw_line(Vector2(x1, 0.0), Vector2(x1, size_v.y), colour, 2.0)
+	bar.draw_rect(Rect2(0.0, 0.0, a * size_v.x, size_v.y), colour)
+	bar.draw_rect(Rect2(Vector2.ZERO, size_v), Color(Utils.UI_GOLD, 0.45), false, 1.0)
+
+
 func _raise() -> void:
 	if not visible:
 		AudioManager.play("select")
@@ -114,6 +226,7 @@ func show_quote(quote: Dictionary) -> void:
 	var command_text := str(_quote.get("command", ""))
 	command_label.text = command_text if command_text != "" else "—"
 	terms_label.text = _terms(_quote)
+	_set_force(_quote)
 	var ok := bool(_quote.get("ok", false)) and command_text != ""
 	_set_buttons(ok, command_text != "")
 	if visible:

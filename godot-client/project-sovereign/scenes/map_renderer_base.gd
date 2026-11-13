@@ -1851,7 +1851,7 @@ func _build_connection_nodes():
 			# "can this army cross?" where the move is being considered.
 			var verdict := _naval_verdict_for_link(region_name, adjacent)
 			if verdict == "shut":
-				segment["color"] = Color(0.85, 0.25, 0.25, 0.9)
+				segment["color"] = Utils.cv(Color(0.85, 0.25, 0.25, 0.9))
 				segment["width"] = 3.0
 			elif verdict == "landing":
 				# NV-4 the host rule: the water is ours, the far shore is
@@ -3078,7 +3078,74 @@ func focus_on_region(region_name: String):
 		focus_on_map_point(positions[region_name])
 
 
+const EDGE_SCROLL_BAND_PX: float = 10.0
+# hover intent (Session UI-5, D7/D10): the tooltip waits a still hover
+var _tip_key: String = ""
+var _tip_since_msec: int = 0
+var _tip_waiting: bool = false
+
+
+func _edge_scroll_direction() -> Vector2:
+	"""The pan direction (in the arrow keys' sense: +x = the left key) when the
+	cursor rests within EDGE_SCROLL_BAND_PX of the window's edge, the window
+	is focused and no GUI control other than the map is under the cursor."""
+	var window := get_window()
+	if window == null or not window.has_focus():
+		return Vector2.ZERO
+	var vp := get_viewport()
+	var view: Vector2 = vp.get_visible_rect().size
+	var mouse: Vector2 = vp.get_mouse_position()
+	if mouse.x < 0.0 or mouse.y < 0.0 or mouse.x > view.x or mouse.y > view.y:
+		return Vector2.ZERO
+	var over = vp.gui_get_hovered_control()
+	if over != null and over != self and not is_ancestor_of(over):
+		return Vector2.ZERO
+	var dir := Vector2.ZERO
+	if mouse.x <= EDGE_SCROLL_BAND_PX:
+		dir.x += 1.0
+	elif mouse.x >= view.x - EDGE_SCROLL_BAND_PX:
+		dir.x -= 1.0
+	if mouse.y <= EDGE_SCROLL_BAND_PX:
+		dir.y += 1.0
+	elif mouse.y >= view.y - EDGE_SCROLL_BAND_PX:
+		dir.y -= 1.0
+	return dir
+
+
+func _tooltip_hover_key() -> String:
+	if hovered_marshal.size() > 0:
+		return "m:" + str(hovered_marshal.get("name", ""))
+	if hovered_fogged_force.size() > 0:
+		return "f:" + str(hovered_fogged_force.get("name", ""))
+	if hovered_fleet.size() > 0:
+		return "s:" + str(hovered_fleet.get("nation", ""))
+	if hovered_sea_link.size() > 0:
+		return "l:" + str(hovered_sea_link.get("a", "")) + ">" + str(hovered_sea_link.get("b", ""))
+	if hovered_region != "":
+		return "r:" + hovered_region
+	return ""
+
+
+func _tooltip_waits() -> bool:
+	"""True while a new hover target has not yet been held for the Settings
+	delay. A new target restarts the wait; no target resets it."""
+	var key := _tooltip_hover_key()
+	if key != _tip_key:
+		_tip_key = key
+		_tip_since_msec = Time.get_ticks_msec()
+	if key == "":
+		_tip_waiting = false
+		return false
+	var wait_msec: int = int(UiSettings.get_tooltip_delay_seconds() * 1000.0)
+	_tip_waiting = Time.get_ticks_msec() - _tip_since_msec < wait_msec
+	return _tip_waiting
+
+
 func _process(delta: float):
+	if _tip_waiting:
+		var due_msec: int = int(UiSettings.get_tooltip_delay_seconds() * 1000.0)
+		if Time.get_ticks_msec() - _tip_since_msec >= due_msec:
+			queue_redraw()
 	_apply_pending_furniture_scale()
 	# SF7-X21: a hover set before a screen or modal opened is cleared at once
 	# — only a mouse motion used to clear it, so a still cursor kept its
@@ -3104,11 +3171,18 @@ func _process(delta: float):
 		if pan_input != Vector2.ZERO:
 			var world_delta = Vector2(-pan_input.x, -pan_input.y) * PAN_SPEED_KEYS * delta * _viewport_pixel_scale() / _zoom_level
 			_set_camera_position(map_camera.position + world_delta)
+		elif UiSettings.get_edge_scroll():
+			var edge_dir: Vector2 = _edge_scroll_direction()
+			if edge_dir != Vector2.ZERO:
+				_player_moved_view()
+				var edge_delta = Vector2(-edge_dir.x, -edge_dir.y) * PAN_SPEED_KEYS * delta * _viewport_pixel_scale() / _zoom_level
+				_set_camera_position(map_camera.position + edge_delta)
 	elif pan_keys_pressed["left"] or pan_keys_pressed["right"] or pan_keys_pressed["up"] or pan_keys_pressed["down"]:
 		_clear_pan_key_state()
 
 
 func _input(event):
+	event = Keys.canonical(event)   # Session UI-5 (D12): the player's own bindings
 	if event is InputEventKey:
 		# CC-3: Esc while a piece is dragged cancels the gesture — consumed
 		# here, before the owner's Esc ladder sees it.
@@ -3137,6 +3211,7 @@ func _input(event):
 			if not _drag_pending.is_empty() and not _dragging \
 					and event.position.distance_to(_drag_pending["at"]) >= PIECE_DRAG_THRESHOLD_PX:
 				_dragging = true
+				AudioManager.play("select")
 				piece_drag_started.emit(str(_drag_pending["marshal"]))
 			_refresh_hover_state()
 			_order_hover_tick()
@@ -3154,9 +3229,11 @@ func _input(event):
 		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
 			get_viewport().gui_release_focus()
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			AudioManager.play("paper_slide")   # the cue throttles itself
 			_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)
 			return
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			AudioManager.play("paper_slide")
 			_zoom_at_point(event.position, 1.0 - ZOOM_SPEED)
 			return
 		elif event.button_index == MOUSE_BUTTON_MIDDLE:
@@ -3208,6 +3285,10 @@ func _input(event):
 				# outlined for coverage preview but has no gameplay data.
 				if not _is_region_wired(clicked_region):
 					return
+				if event.double_click:
+					# Session UI-5 (D7): a double-click centres the province.
+					AudioManager.play("select")
+					focus_on_region(clicked_region)
 				region_clicked.emit(clicked_region)
 			else:
 				# UX pass July 16: clicking open water reads as "click away" —
@@ -3226,6 +3307,9 @@ func _input(event):
 
 
 func _handle_pan_key_event(event: InputEventKey):
+	var canon: InputEventKey = Keys.canonical(event) as InputEventKey   # Session UI-5 (D12)
+	if canon != null:
+		event = canon
 	if event.echo:
 		return
 	var focused = get_viewport().gui_get_focus_owner()
@@ -3354,6 +3438,7 @@ func _release_piece_drag(event: InputEventMouseButton) -> void:
 	if region == "" and last_click_marshal == "" and last_click_fogged == "":
 		piece_drag_cancelled.emit(piece)   # open water: no target
 		return
+	AudioManager.play("boots")
 	piece_dropped.emit(piece, region)
 
 
@@ -3716,6 +3801,10 @@ func screen_point_of_region(region_name: String) -> Vector2:
 
 
 func _draw():
+	if _tooltip_waits():
+		if tooltip_layer != null:
+			tooltip_layer.clear_tooltip()
+		return
 	if hovered_marshal.size() > 0:
 		_draw_marshal_tooltip()
 	elif hovered_fogged_force.size() > 0:
@@ -3888,6 +3977,7 @@ func _refresh_hover_state():
 
 
 func _unhandled_input(event):
+	event = Keys.canonical(event)   # Session UI-5 (D12): the player's own bindings
 	var focused = get_viewport().gui_get_focus_owner()
 	var text_focused = focused is LineEdit or focused is TextEdit
 	if text_focused or not panning_enabled:
@@ -3949,9 +4039,11 @@ func _draw_tooltip_lines(lines: Array, width: float, panel_color: Color, border_
 
 
 func _push_tooltip_line(lines: Array, text: String, color: Color, size: int = 11):
+	# Session UI-5: every tooltip line's colour through the colour-vision sink
+	# (a red or a green re-toned under "Red-green safe"; the identity otherwise).
 	lines.append({
 		"text": text,
-		"color": color,
+		"color": Utils.cv(color),
 		"size": size,
 	})
 
@@ -3999,6 +4091,7 @@ func _draw_marshal_tooltip():
 			trust_color = Color(0.85, 0.5, 0.5)
 		elif trust < 60:
 			trust_color = Color(0.85, 0.75, 0.5)
+		trust_color = Utils.cv(trust_color)
 		_push_tooltip_line(
 			lines,
 			"Trust: %s (%s)" % [trust, str(marshal.get("trust_label", ""))],
@@ -4270,6 +4363,7 @@ func _draw_region_tooltip():
 			stability_color = Color(0.85, 0.5, 0.3)
 		elif stability <= 75:
 			stability_color = Color(0.85, 0.75, 0.4)
+		stability_color = Utils.cv(stability_color)
 		_push_tooltip_line(lines, "Stability: %s%% (%s)" % [stability, stability_label], stability_color)
 
 	# CA9-F5: -1 is the fog sentinel (see region_panel.gd).

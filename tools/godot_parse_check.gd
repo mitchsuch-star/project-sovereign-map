@@ -104,6 +104,15 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# Row CC, CC-3 "Select, click, Enter": a map gesture's confirm card —
 	# runtime-registered by dialog_manager (the IGR-E gap class).
 	"res://scripts/order_confirm_card.gd",
+	# Session UI-5 (November 12, 2026): the shared kit — the key bindings, the
+	# toasts, the busy chip, the picture catalogue — and the two new books.
+	"res://scripts/keys.gd",
+	"res://scripts/toast_layer.gd",
+	"res://scripts/busy_chip.gd",
+	"res://scripts/illustrations.gd",
+	"res://scripts/codex_view.gd",
+	"res://scripts/codex_terms.gd",
+	"res://scripts/save_dialog.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not

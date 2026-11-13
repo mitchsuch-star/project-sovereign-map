@@ -52,9 +52,24 @@ const KIND_GLYPHS = {
 }
 
 
+# UI-5: the arrival sound the card opens on stops when an answer is given
+var _open_cue = null  # untyped: a one-shot frees itself when it ends
+
+# UI-5: answers that decline, rebuff or hold the line (the paper is crumpled);
+# every other arm grants something (the quill signs).
+const REFUSING_ARMS = ["rebuke", "reprimand", "refuse", "stays", "march_anyway",
+	"let_be", "accept_breach", "separate"]
+
+func _answer(cue: String) -> void:
+	AudioManager.stop_player(_open_cue)
+	_open_cue = null
+	AudioManager.play(cue)
+
+
 func _ready():
 	if later_button:
 		later_button.pressed.connect(_on_later)
+		later_button.set_meta("no_click_sfx", true)
 	# LV-5: the body is the petition — clamp_centered_panel's relax pass
 	# shrinks the man's words last (since SFR-B11 the answers are a row of
 	# buttons the pass never shrinks; the letter is the one region that yields).
@@ -68,7 +83,8 @@ func _ready():
 
 func show_petition(petition: Dictionary):
 	"""Render one backend petition: title, body, dynamic option buttons."""
-	AudioManager.play("sword_draw")
+	AudioManager.stop_player(_open_cue)
+	_open_cue = AudioManager.play("sword_draw")
 	var kind = str(petition.get("kind", ""))
 	title_label.text = str(petition.get("title", KIND_TITLES.get(kind, "A PETITION")))
 	if title_label.text == "":
@@ -137,6 +153,7 @@ func show_petition(petition: Dictionary):
 			+ "\n".join(PackedStringArray(prices))
 	body_label.text = body
 	options_container.move_child(later_button, -1)
+	_banner("petition")
 
 	# Fontainebleau and war-weary petitions demand an answer NOW — the
 	# moment does not keep. Grievance/rivalry petitions (and NP-3's
@@ -211,6 +228,7 @@ func _add_option(option: Dictionary) -> String:
 		btn.add_theme_color_override("font_color", Utils.UI_CLOSED_ARM)
 		btn.add_theme_color_override("font_disabled_color", Utils.UI_CLOSED_ARM)
 	btn.pressed.connect(_on_option_pressed.bind(str(option.get("id", ""))))
+	btn.set_meta("no_click_sfx", true)  # UI-5: the answer plays its own cue
 	options_container.add_child(btn)
 
 	var detail = str(option.get("detail", ""))
@@ -230,16 +248,61 @@ func _add_option(option: Dictionary) -> String:
 
 
 func _on_option_pressed(choice_id: String):
+	_answer("paper_crumple" if choice_id in REFUSING_ARMS else "quill_sign")
 	hide()
 	petition_choice.emit(choice_id)
 
 
 func _on_later():
+	_answer("back")
 	hide()
 	# The pending petition genuinely does re-surface next turn (the backend
 	# never popped it), so there is no answer to POST — but control MUST come
 	# back, or the deferral is indistinguishable from a crash.
 	petition_deferred.emit()
+
+
+func _banner(surface: String) -> void:
+	"""Session UI-5: the picture over the card (a 3:1 banner sized to the card's
+	width; its hover is the credit). It steps aside on the compact view and in a
+	short window, and `_banner_yield` takes it away again when the card's
+	answers would otherwise leave the view."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if Utils.compact_view() or view.y < 760.0:
+		return
+	var panel: Control = $PanelContainer
+	var w: float = panel.offset_right - panel.offset_left
+	if w <= 0.0:
+		w = 480.0
+	var pic: TextureRect = Illustrations.make_banner(surface, minf(w, view.x - 80.0) - 48.0, true)
+	if pic == null:
+		return
+	vb.add_child(pic)
+	vb.move_child(pic, 0)
+	call_deferred("_banner_yield")
+
+
+func _banner_yield() -> void:
+	"""The banner is the first thing to give way: if the card cannot fit the
+	view with it, it goes."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var pic: Control = $PanelContainer/VBoxContainer.get_node_or_null("Illustration") as Control
+	if pic == null:
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	# Session UI-5: the banner shrinks first (it steps aside under its floor),
+	# until the card stands centred below the top bar.
+	if $PanelContainer.get_combined_minimum_size().y > Illustrations.card_room(view.y):
+		Illustrations.fit_banner_to_card($PanelContainer, view.y)
+		Utils.clamp_centered_panel($PanelContainer)
 
 
 func _arms_row(parts: Array) -> void:

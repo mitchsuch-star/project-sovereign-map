@@ -47,6 +47,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 	control.pressed.emit()
 
+# UI-5: set by `decided_with` — the next close (close_popup) skips its "back" cue.
+var _decided: bool = false
+
+func decided_with(cue: String) -> void:
+	"""UI-5: a decision plays its own cue (the answer's sound), stops this
+	popup's arrival cues, and marks the close that follows as already voiced —
+	so "back" does not also play. Call it from the answer's handler, before
+	close_popup()."""
+	for p in _own_cues:
+		AudioManager.stop_player(p)
+	_own_cues.clear()
+	_decided = true
+	AudioManager.play(cue)
+
 func claim_cue(p) -> void:
 	"""Declare the player `AudioManager.play()` returned as this popup's own,
 	so `close_popup` silences exactly THAT sound.
@@ -66,7 +80,11 @@ func close_popup():
 	for p in _own_cues:
 		AudioManager.stop_player(p)
 	_own_cues.clear()
-	if visible:
+	# UI-5: a close that FOLLOWS a decision which already played its own cue
+	# (`decided_with`) does not add the "back" on top; a plain close/Esc keeps it.
+	var quiet: bool = _decided
+	_decided = false
+	if visible and not quiet:
 		AudioManager.play("back")
 	_disable_all_buttons()
 	hide()

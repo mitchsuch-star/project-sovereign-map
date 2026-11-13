@@ -316,6 +316,24 @@ licensed, credited and usable.
 > `scenes/`. Its 0.65 s cap is load-bearing on a 7.5 s loop file, and retiring
 > the row on that claim would have silenced every march on the map.
 
+### §1b Session UI-5 additions (November 12–13, 2026) — 50 files
+
+Every file's licence, author and page is in `THIRD_PARTY_LICENSES.md` (§ "Session
+UI-5"); every file's measured loudness, peak and length in
+`docs/audits/audio_loudness_2026_11_12.json`; the capped cues' onsets in
+`docs/audits/audio_envelope_ui5_2026_11_13.json`. `tests/test_ui5_full_measure.py`
+lists them (`UI5_AUDIO`) and checks each on disk, imported and on the ledger.
+
+| Folder | Files | Role |
+|---|---|---|
+| `music/` — rotations | `war_egmont`, `war_eroica_iii`, `war_beethoven5_i`, `crisis_mozart40_i`, `crisis_mozart40_iv`, `peace_mozart_k465_ii`, `peace_mozart_k421_ii`, `peace_magic_flute_overture`, `court_figaro_overture`, `court_mozart40_iii`, `court_haydn_lark_i`, `court_mozart_quartet`, `court_beethoven_op18_6_ii` (.ogg) | the war, crisis, peace and court moods (Musopen recordings, public domain) |
+| `music/` — anthems | `anthem_austria_kaiserhymne`, `anthem_britain_god_save`, `anthem_spain_marcha_real`, `anthem_holland_wilhelmus`, `anthem_warsaw_dabrowski`, `anthem_denmark_kong_christian` (.ogg) | `ANTHEMS` — a court at war with France, or a coalition's leader, for about 20 s (US Navy Band) |
+| `music/` — bugle calls | `bugle_assembly`, `bugle_fix_bayonets`, `bugle_tattoo` (.mp3) | `notification_critical`; `bugle_to_arms` + `bugle_charge`; `bugle_retreat` (the day's end) — US Navy Band Ceremonial Band |
+| `ambient/` | `fire_loop`, `clock_loop`, `birds_loop`, `rain_loop`, `winter_wind_loop`, `distant_drums`, `crowd_cheer` (.ogg) | the study's beds and the seasons (the Ambience bus); the crowd's cheer |
+| `battle/` | `horse_trot`, `hammer`, `saw`, `spade_dig`, `drum_cadence`, `boots_halt` (.ogg) | the orders' success cues (scout, build/repair, fortify, drill, recruit) |
+| `ui/` | `hover_tick`, `hover_tick_2`, `door_knock`, `gavel`, `paper_slide`, `quill_strokes`, `quill_scribble_loop_seamless`, `quill_scribble_long_seamless` (.ogg) | hover, the Congress's gavel, the knock, the zoom's slide, the typing nib, the seamless quill loops |
+| `ambient/`, `battle/` — re-made loops | `crowd_murmur_seamless`, `fire_loop_seamless`, `rain_loop_seamless`, `winter_wind_loop_seamless`, `ship_creak_1_seamless`, `army_march_loop_short_seamless`, `battlefield_ambience_seamless` (.ogg) | the seven loops whose wraps stepped 8–30 dB or clicked, the tail crossfaded into the head (`--make-loop`); every loop's seam is measured (`--measure`: a level step under 6 dB, a texture's own 95th-percentile step, or a rhythm whose wrap is one beat — the clock) |
+
 ---
 
 ## §2 The cue map — surface → sound
@@ -541,13 +559,20 @@ promise; if a row is cut, cut it here explicitly (Golden Rule 9).
 ## §4 Gaps & routed items
 
 - **`ink_dip`** — CUT (§0.4). No owner row needed; no promise exists.
-- **British period airs** (e.g. Marine Band "Roast Beef of Old England", PD,
-  verified reachable) — NOT taken; a future Britain-flavor pass may fetch it; noted
-  here so the URL trail (Aug 7 workflow record) isn't lost. No promise made.
-- **Gramophone register family** — rejected on register (§0.2); re-openable.
-- **Original-quality freesound WAVs** — owner: §3.5 audition gate.
-- **Music loop-points / trimming** (Eroica I is 15 min) — owner: §3.1 (Godot import
-  loop flags + fade logic in the manager; no destructive editing needed).
+- **British period airs** — ✅ CLOSED by Session UI-5 (§6): Britain's period music is
+  its anthem, *God Save the King*, the overlay lane's stinger when Britain goes to war
+  with France or leads a coalition (and, on the same tune, Prussia's *Heil dir im
+  Siegerkranz*, Hanover's and Sweden's royal anthem of 1805).
+- **Gramophone register family** — rejected on register (§0.2). Session UI-5 re-ran
+  the search for a clean *Chant du Départ* (the Empire's own anthem) and found none
+  outside that family, so La Marseillaise stays France's war cue with the anachronism
+  on the record (§6, decision 7). No promise made.
+- **Original-quality freesound WAVs** — ✅ CLOSED with the §3.5 gate (Aug 7) and by
+  Session UI-5's loudness pass (§6): the previews are measured and trimmed to one
+  ladder; no cue reads muddy on its measurement.
+- **Music loop-points / trimming** — ✅ CLOSED: the rotations crossfade and rest
+  between pieces (§6); no piece needs a loop point (the title theme's 15 minutes
+  refill with a crossfade, as §2 records).
 
 ## §5 Licenses
 
@@ -557,3 +582,109 @@ Wikimedia PD) **except ONE file**: `battle/musket_battle_volley.mp3` is **CC-BY 
 and requires visible credit — *"Musket battle sounds by aaronsiler & Benboncan
 (freesound.org), CC BY 4.0"* — alongside the existing Game-icons.net and RPG GUI
 credits. If that file is ever dropped, drop the credit line with it.
+
+## §6 Session UI-5 — the full measure's sound ✅ LANDED November 13, 2026 (landing record)
+
+The user's "do full upgrade of sounds, ux and ui leave nothing unturned look online
+if needed, be thorough and dont leave anything open", drafted in Plan Mode and
+approved with its eighteen decisions (`UI_VISUAL_FOUNDATION_SPEC.md` §13 carries the
+UI half; the rules and settings keys `SYSTEMS_REFERENCE.md` §216). Nobody listened in
+the session: the ear is replaced by measurement (loudness, seams, envelopes,
+coverage), and the Music Room is where the user hears it at session H's walk.
+
+**The engine (`scripts/audio_manager.gd`, the same static idiom; the UX23-B pin
+"no .gd outside the manager owns an audio player" stands).**
+- **Buses:** Master ← Music, SFX, UI, **Ambience** (every loop; its own slider) and
+  **Ceremony** (a sub-bus of SFX: bugles, bells, fanfares, stingers, letters'
+  arrival cues). A sidechain `AudioEffectCompressor` on Music keyed to Ceremony dips
+  the music under a ceremony; an `AudioEffectHardLimiter` on Master (ceiling −1 dB)
+  stops stacked cues clipping.
+- **Variation and voices:** per-cue `pitch` and `vary_db` on the repeated foley,
+  never on music-like cues; `max_voices` per cue (default 3, ceremonies 1).
+- **Focus:** the window in the background fades Master to the Background setting
+  (Play / Quieter −12 dB, the default / Mute) and back.
+- **The study's ambience:** a low fire and a mantel clock under the map wind; the
+  season from the calendar label (birdsong in spring and summer, rain in autumn, a
+  hard wind in winter); distant drums every 60–120 s at war. It restarts after
+  every world swap (the August bed died for the session after a Load) and stops on
+  the menu.
+- **The global hooks:** a hover tick on enabled buttons (opt-out meta
+  `no_hover_sfx`, throttled), a dropdown's selection tick, a soft tick on a
+  RichTextLabel link, a volume slider previews its own bus on release;
+  `no_click_sfx` is honoured and set on every button whose handler plays its own
+  cue.
+- **Defects fixed:** the diorama's verdict loop has its own tag
+  (`scribble_verdict`) and no longer cuts the command line's scribble; the scribble
+  stops before the Fall's coercion in `set_input_enabled`; triumph and lament are
+  played (the campaign end); the music fade's tween is held and killed before a new
+  crossfade; the duck offset rides `_set_bus_volume`.
+
+**The music program.** Moods `menu / peace / war / crisis` (crisis: France's worst
+war score at −30 or under) plus a **court scene** for the Cabinet, the settlement
+table and the Congress (pushed after 4 s open, popped on close with a 3 s
+crossfade). **Rests** of 25–70 s of ambience between pieces in peace and war, 10–30 s
+in crisis, none at the menu. **The overlay lane:** `play_anthem(nation)` (about 20 s,
+a 3 s fade) — France the attacker hears La Marseillaise, France attacked hears the
+opponent's period anthem where one exists (the drum sting otherwise; the 1805 boot
+wars keep the Marseillaise as the opener, `war_status.france_side`), a coalition's
+leader's anthem on `coalition_declared`, Dąbrowski's Mazurka on the Duchy of
+Warsaw's proclamation; a second announcement never restarts the first. **The
+rotations:** peace — Eroica I, the Lark adagio, Mozart 40 II, the Goldberg aria,
+Mozart K465 II, K421 II, the Magic Flute overture; war — Coriolan, the drums,
+Marche militaire, Egmont, Beethoven 5 I, Eroica III (Brandywine and the two fife
+medleys leave the rotation; the files stay); crisis — Mozart 40 I and IV,
+Beethoven 5 I, Coriolan; court — Figaro, Mozart 40 III, Lark I, K421 III, Op. 18/6 II;
+triumph Eroica IV, lament Eroica II. **Now playing** with ⏭ and **the Music Room**
+(every piece by situation, ▶ to hear one, "Back to the situation's music") stand in
+Settings → Sound, read from `MUSIC_META` (title, composer, year, performer).
+
+**The assets (§1b; `THIRD_PARTY_LICENSES.md` § Session UI-5):** 50 files — 22 music
+files (13 movements, six anthems, three bugle calls), 16 foley files and beds, 2
+hover ticks and the typing nib, and 9 re-made seamless loops. The licences: CC0, or
+public domain (US federal works; Musopen recordings released to the public domain),
+each checked on its own page; no CC-BY-SA, no NC, no *craigsmith*, no re-digitized
+tape; an AI-generated candidate refused on provenance; a CC-BY-SA painting removed
+from the picture set the same way. **Six movements found on Commons (Beethoven 6 I/V,
+8 II, 5 IV) and two Army calls were held behind Commons' rate limit (HTTP 429) for the
+whole session;** the Musopen archive.org collection's Mozart movements took the
+rotations' places and the Eroica finale stays the one triumph, so no promise rests on
+them.
+
+**Coverage (`tools/ui5_sound_census.py`, pinned):** 41 surfaces, 0 silent — every
+popup, dialog and screen opens, answers and closes with its own cue; decisions have
+distinct cues (accept = quill → seal, refuse = crumple, insist = sword, charge = the
+bugle, break the paradox = drum sting …); orders succeed audibly by verb (move =
+march steps, attack = to arms, fortify = spade, drill = drum cadence, recruit =
+coins + boots, build/repair = hammer, scout = trot, retreat = the retreat call);
+notices ring by priority (the desk bell / + the ship's bell / the Assembly bugle);
+the enemy phase ends on the day's-end call; a capture cheers, a loss tolls.
+
+**Loudness (`tools/ui5_audio_prep.py`, a scratch venv with `soundfile` + `pyloudnorm`;
+the record `docs/audits/audio_loudness_2026_11_12.json`, 111 files, 0 missing):**
+every music file within ±0.05 LU of −19 LUFS after its trim (the first `--apply`
+held four pieces 1.5–3.5 LU short: its peak ceiling ignored the 10 dB the music
+already plays under — fixed, the headroom read from `MUSIC_DB`); every cue and loop
+file normalised to one reference and then set to its class on one ladder
+(interface quiet < effects < ceremony; beds under everything); the trims are a
+generated block (`# <ui5-trims>`). **Seams:** every loop's wrap measured — the two
+quill takes and seven more (the creak, the crowd, the short march, the battle bed,
+the fire, the rain, the winter wind) stepped 8–30 dB or clicked and were re-made
+with their tails crossfaded into their heads; the measure now accepts a wrap that is
+one beat of a regular rhythm (the clock: a 0.488 s wrap on a 0.486 s tick) or no
+bigger than the file's own texture (its 95th-percentile step; the fire's crackle,
+the footsteps, the creak). **Envelopes** (`docs/audits/audio_envelope_ui5_2026_11_13.json`):
+29 capped files, sound inside every cap.
+
+**Settings → Sound:** five sliders (Master, Music, Effects, Interface, Ambience), each
+previewing its bus; Battle sounds, Hover sounds, Typing sounds, Pauses between
+pieces; Background (Play / Quieter / Mute); Now playing ⏭; the Music Room.
+
+**Pins:** `tests/test_ui5_full_measure.py` (the registry, the buses and effects, the
+loudness table and every trim, every seam, the coverage census, the ledger — every
+new file on disk, imported and named — and a headless probe, `tools/ui5_probe.gd`);
+`tests/test_ux23b_the_desk_is_quiet.py` and `tests/test_ux_fixes_2026_08_23.py`
+re-ruled where this plan changed what they encoded.
+
+**Costs, said once:** about 75 MB more audio (measured: 50 files, 74.8 MB); hover and typing ticks can tire some
+players (quiet by default, one switch each); La Marseillaise is an anachronism for
+the Empire (no clean public-domain *Chant du Départ* exists), on the record.

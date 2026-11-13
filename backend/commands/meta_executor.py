@@ -797,7 +797,14 @@ class MetaExecutor:
 
         # Autosave at start of new turn (non-blocking — don't fail if autosave fails)
         from backend.save_manager import autosave
-        autosave(world)
+        _saved = autosave(world)
+        # UI-5: the receipt rides the end-turn result (a lesson's skipped
+        # slot and a failed write both read False).
+        result["autosaved"] = bool(
+            isinstance(_saved, dict) and _saved.get("success")
+            and not _saved.get("skipped"))
+        result["autosave_label"] = (str(world.get_calendar_label() or "")
+                                    or f"Turn {int(world.current_turn)}")
         # ⚠ FA-S15-2: the `print("Autosave warning: ...")` that stood here
         # is DELETED, not moved beside a third copy. The failure is now
         # announced inside `save_manager.autosave` itself, so this call site

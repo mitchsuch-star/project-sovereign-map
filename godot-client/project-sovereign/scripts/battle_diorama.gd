@@ -1068,7 +1068,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	var faith := str(faith_v) if faith_v is String else ""
 	if faith != "":
 		var faith_l := _mk_label(block, faith, &"Caption",
-				Color(0.66, 0.42, 0.40, 1.0), _font_voice)
+				Color(0.90, 0.68, 0.64, 1.0), _font_voice)
 		faith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		faith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)
 		faith_l.size = Vector2(FAITH_CAPTION_W, 14.0)
@@ -1213,7 +1213,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 				g.add_theme_font_override("font", _font_voice)
 			g.theme_type_variation = &"Caption"
 			g.add_theme_color_override("font_color",
-					Color(0.66, 0.42, 0.40, 1.0))
+					Color(0.90, 0.68, 0.64, 1.0))
 			text_box.add_child(g)
 		# IQ-5 review (B): no `faith` caption here. The shelf holds only the
 		# ABSENT statuses, and the backend attaches `faith` only to a man
@@ -1587,7 +1587,7 @@ func _verdict_bbcode() -> String:
 		if text != "":
 			text += "\n"
 		text += "[center][i]%s[/i][/center]" % Utils.bbcode_color(
-			voice, Utils.COLOR_INFO)
+			voice, "e0d8c4")  # Session UI-5 interim fix (Nov 13): >= 4.5:1 on the tray, not the faint grey
 	return text
 
 
@@ -1599,7 +1599,7 @@ func _type_verdict() -> void:
 	_verdict.visible_characters = 0
 	var total := _verdict.get_total_character_count()
 	if UiSettings.get_battle_sfx():
-		AudioManager.start_loop("scribble")  # the verdict is written, not spoken
+		AudioManager.start_loop("scribble_verdict")  # the verdict is written, not spoken (UI-5: its own tag — the shared one let the close cut the command line's quill)
 		match str(_data.get("register", "")):
 			"triumph":
 				_cue("fanfare")
@@ -1609,7 +1609,7 @@ func _type_verdict() -> void:
 	tw.tween_method(
 		func(v: float): _verdict.visible_characters = int(v),
 		0.0, float(total), clampf(total / 34.0, 0.8, 2.6))
-	tw.finished.connect(func(): AudioManager.stop_loop("scribble"))
+	tw.finished.connect(func(): AudioManager.stop_loop("scribble_verdict"))
 
 
 func _enter_final(from_cinematic: bool) -> void:
@@ -1734,7 +1734,7 @@ func _on_close_pressed() -> void:
 	AudioManager.stop_loop("battle_bed")
 	AudioManager.stop_loop("sea")
 	AudioManager.stop_loop("creak")
-	AudioManager.stop_loop("scribble")
+	AudioManager.stop_loop("scribble_verdict")
 	# UX23-R1/R6: the one-shots too — they are children of the AudioManager
 	# singleton, so closing the tableau never used to silence its own guns.
 	for p in _own_cues_started:

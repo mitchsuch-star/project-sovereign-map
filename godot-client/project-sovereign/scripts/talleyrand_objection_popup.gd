@@ -29,9 +29,23 @@ func _ready():
 	proceed_btn.pressed.connect(_on_proceed)
 	modify_btn.pressed.connect(_on_modify)
 	cancel_btn.pressed.connect(_on_cancel)
+	# UI-5: each answer plays its own cue, so the global click stands aside
+	for b in [proceed_btn, modify_btn, cancel_btn]:
+		(b as Button).set_meta("no_click_sfx", true)
+
+# UI-5: the low "question" the card opens on — an arrival sound, it goes with the card
+var _open_cue = null  # untyped: a one-shot frees itself when it ends
+
+func _answer(cue: String) -> void:
+	"""UI-5: the arrival sound stops; the answer's own cue plays."""
+	AudioManager.stop_player(_open_cue)
+	_open_cue = null
+	AudioManager.play(cue)
 
 func show_objection(data: Dictionary):
 	"""Display Talleyrand objection popup."""
+	AudioManager.stop_player(_open_cue)
+	_open_cue = AudioManager.play("question")
 	current_data = data
 	var concern_level = data.get("concern_level", "MODERATE")
 	var objection_text = data.get("objection_text", "Sire, I have concerns.")
@@ -95,16 +109,19 @@ func show_objection(data: Dictionary):
 	Utils.clamp_centered_panel($PanelContainer)
 
 func _on_proceed():
+	_answer("quill_flick")
 	_disable_buttons()
 	hide()
 	choice_made.emit("proceed", current_data)
 
 func _on_modify():
+	_answer("quill_sign")
 	_disable_buttons()
 	hide()
 	choice_made.emit("modify", current_data)
 
 func _on_cancel():
+	_answer("back")
 	_disable_buttons()
 	hide()
 	choice_made.emit("cancel", current_data)

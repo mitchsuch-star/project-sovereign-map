@@ -272,6 +272,15 @@ def mark_seen(world, screen: str) -> bool:
     return True
 
 
+def reset(world) -> int:
+    """UI-5 (Settings' "show the first-open lines again"): clear the latch so
+    every screen's line shows once more. Returns how many latches fell."""
+    store = seen(world)
+    count = len(store)
+    store.clear()
+    return int(count)
+
+
 def _strip_stored(world) -> None:
     dm = getattr(world, "dialogue_manager", None)
     if dm is None:

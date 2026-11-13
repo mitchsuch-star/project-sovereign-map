@@ -1190,6 +1190,9 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "opening_attack_guidance",
     "mild_concerns",
     "morning_dispatch",
+    # UI-5: the end turn's autosave receipt (the HUD's "saved" flash).
+    "autosaved",
+    "autosave_label",
     # G4F-21: failed mounts (e.g. opening a settlement on an archived war)
     # name their refusal code and recovery surface; the /command response
     # dropped them while /respond_to_diplomatic_dialogue passed them through.
@@ -2450,6 +2453,8 @@ def _finalize_command_notifications(response: dict, world) -> None:
 def _apply_command_result_layers(response: dict, result: dict, world) -> None:
     """Keep /command post-processing centralized instead of hand-layered inline."""
     _copy_truthy_result_fields(response, result, _COMMAND_RESULT_SIMPLE_FIELDS)
+    if "autosaved" in result:       # UI-5: a False receipt is data, not absence
+        response["autosaved"] = bool(result["autosaved"])
     _include_command_bombardment_result(response, result)
     _include_command_redemption_event(response, result, world)
     _include_command_enemy_phase(response, result, world)
@@ -8246,6 +8251,20 @@ async def first_open_endpoint(request: FirstOpenRequest):
     ok = first_open.mark_seen(active_world, screen)
     return {"success": bool(ok), "screen": screen,
             "turn": int(getattr(active_world, "current_turn", 0) or 0)}
+
+
+@app.post("/first_open/reset")
+async def first_open_reset_endpoint():
+    """UI-5: Settings' "show the tips again" - clears the current world's
+    first-open latch (`first_open.reset`) so the lines draw again. Tiny
+    dict, like `/first_open` (no base envelope: it would drain popups)."""
+    active_world = game_state.get("world")
+    if active_world is None:
+        return {"success": False, "message": "No campaign is running."}
+    from backend.game_logic import first_open
+    cleared = first_open.reset(active_world)
+    return {"success": True, "cleared": int(cleared),
+            "message": "The first-open lines will show again."}
 
 
 @app.post("/notifications/dismiss")

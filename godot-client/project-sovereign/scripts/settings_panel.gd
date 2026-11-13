@@ -44,6 +44,11 @@ signal hud_width_changed(width: String)
 # Session UI-3 (November 12, 2026): the very wide screen's map view changed;
 # the campaign's host re-derives the map's boot view (the menu has no map).
 signal wide_map_changed(mode: String)
+# Session UI-5 (November 12, 2026): "Show first-open notes again" (the host asks
+# the backend to clear the seen set) and Controls' "Help & Keys" button (the host
+# opens the book). Both are the panel asking; the host acts.
+signal first_open_reset_requested
+signal help_requested
 
 # Golden Rule 7: same origin as api_client.gd — one source, env-overridable.
 var BACKEND_URL: String = Utils.backend_url()
@@ -101,6 +106,38 @@ var _motion_toggle: CheckButton = null
 var _contrast_toggle: CheckButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
 var _battle_toggle: CheckButton
+# Session UI-5: the rest of Sound, the new Display / Orders / Controls rows.
+const _BUS_LABELS := {
+	"Master": "Master", "Music": "Music", "SFX": "Effects", "UI": "Interface",
+	"Ambience": "Ambience",
+}
+const _BACKGROUND_LABELS := {"play": "Play", "quiet": "Quieter", "mute": "Mute"}
+const _COLOUR_VISION_LABELS := {"standard": "Standard", "red_green": "Red-green safe"}
+const _TOOLTIP_DELAY_LABELS := {
+	"instant": "Instant", "short": "Short", "normal": "Normal", "long": "Long",
+}
+var _hover_toggle: CheckButton = null
+var _typing_toggle: CheckButton = null
+var _rests_toggle: CheckButton = null
+var _background_option: OptionButton = null
+var _colour_vision: OptionButton = null
+var _tooltip_delay: OptionButton = null
+var _edge_toggle: CheckButton = null
+var _idle_toggle: CheckButton = null
+var _first_open_btn: Button = null
+var _now_label: Label = null
+var _room_fold_btn: Button = null
+var _room_box: VBoxContainer = null
+var _room_scroll: ScrollContainer = null
+var _room_list: VBoxContainer = null
+var _room_filled := false
+var _remap_buttons: Dictionary = {}   # action -> Button
+var _remap_notes: Dictionary = {}     # action -> Label
+var _capturing := ""
+# F28: each tab's options stand in titled cards. `_begin_card(title)` notes where
+# the next control lands; `_paginate` wraps the run in a card AFTER the build, so
+# `_add_hint` still sees the control it follows as `prev` (the fold pin).
+var _card_starts: Array = []
 var _key_edit: LineEdit
 # UXR3-68 / 69 (Pre-Deploy S12): honest availability — Connect needs a key on
 # the line, Disconnect a key connected.
@@ -124,6 +161,7 @@ func _ready() -> void:
 	_build_credits_section()
 	_dress_switches()
 	_paginate()
+	_refresh_new_controls()
 	_http = HTTPRequest.new()
 	_http.timeout = 6.0
 	add_child(_http)
@@ -179,18 +217,29 @@ func _paginate() -> void:
 	always did; now each header (and what follows it) moves into its own page
 	and a tab row above shows one page at a time."""
 	var kids: Array = get_children()
+	for start in _card_starts:
+		var at: int = int(start["index"])
+		if at >= 0 and at < kids.size():
+			(kids[at] as Node).set_meta("card_title", str(start["title"]))
 	var page: VBoxContainer = null
+	var card_box: VBoxContainer = null
 	for child in kids:
-		if child.has_meta("settings_header") \
-				and not (page != null and str((child as Label).text) in _JOIN_PREVIOUS):
-			page = VBoxContainer.new()
-			page.add_theme_constant_override("separation", 6)
-			page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_pages.append(page)
+		if child.has_meta("settings_header"):
+			card_box = null   # a heading stands on the page, never inside a card
+			if not (page != null and str((child as Label).text) in _JOIN_PREVIOUS):
+				page = VBoxContainer.new()
+				page.add_theme_constant_override("separation", 6)
+				page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_pages.append(page)
 		if page == null:
 			continue
 		remove_child(child)
-		page.add_child(child)
+		if child.has_meta("card_title"):
+			card_box = _make_card(page, str(child.get_meta("card_title")))
+		if card_box != null:
+			card_box.add_child(child)
+		else:
+			page.add_child(child)
 	var row := HFlowContainer.new()
 	row.name = "SettingsTabs"
 	_tab_row = row
@@ -211,8 +260,34 @@ func _paginate() -> void:
 	_show_tab(clampi(_remembered_tab, 0, maxi(_pages.size() - 1, 0)))
 
 
+func _begin_card(title: String) -> void:
+	"""F28: the next control added starts a titled card (see `_card_starts`)."""
+	_card_starts.append({"index": get_child_count(), "title": title})
+
+
+func _make_card(page: VBoxContainer, title: String) -> VBoxContainer:
+	var card := PanelContainer.new()
+	card.name = "Card" + title.replace(" ", "").replace("&", "And")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", Utils.gilt_frame(
+			Color(0.06, 0.07, 0.11, 0.55), Color(Utils.UI_GOLD, 0.5), Utils.FRAME_HAIRLINE, 10.0))
+	page.add_child(card)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	card.add_child(box)
+	var heading := Label.new()
+	heading.text = title
+	heading.theme_type_variation = &"HudTitle"
+	heading.add_theme_color_override("font_color", Utils.UI_GOLD)
+	box.add_child(heading)
+	return box
+
+
 func _show_tab(index: int) -> void:
 	_remembered_tab = index
+	if _capturing != "":
+		_capturing = ""   # UI-5 review: a tab change drops an armed key capture
+		_refresh_new_controls()
 	# Session UI-4: the tabs fold the panel the way an explanation folds — On the
 	# page every section stands, one under another, and the tab row steps aside
 	# (the switch restores every word: the page check found 500 words a tab away)
@@ -247,12 +322,15 @@ func refresh() -> void:
 		_key_edit.placeholder_text = _key_placeholder()
 	_show_stored_parser_state()
 	_fetch_parser_status()
+	_capturing = ""
+	_refresh_new_controls()
 
 
 # ── DISPLAY (UXR-1b) ────────────────────────────────────────────────────────
 
 func _build_display_section() -> void:
 	_add_header("DISPLAY")
+	_begin_card("Window")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	var lbl := Label.new()
@@ -283,6 +361,7 @@ func _build_display_section() -> void:
 	_window_size.item_selected.connect(_on_window_size_selected)
 	_window_size_row.add_child(_window_size)
 	add_child(_window_size_row)
+	_begin_card("Map & HUD")
 	# UXR-D3: HUD width — Full, or the HUD confined to a central band.
 	var hud_row := HBoxContainer.new()
 	hud_row.add_theme_constant_override("separation", 10)
@@ -328,6 +407,15 @@ func _build_display_section() -> void:
 	_add_hint("On a very wide screen (32:9) the map opens filling the width — the "
 		+ "Home button shows the whole sheet and back. The whole sheet opens it on "
 		+ "its desk, as before. An ordinary screen always shows the whole sheet.")
+	# Session UI-5: the map scrolls when the cursor rests on a screen edge (off by
+	# default - the HUD sits at the edges).
+	_edge_toggle = CheckButton.new()
+	_edge_toggle.name = "EdgeScrollToggle"
+	_edge_toggle.text = "Edge scrolling"
+	_edge_toggle.button_pressed = UiSettings.get_edge_scroll()
+	_edge_toggle.toggled.connect(func(on: bool): UiSettings.set_edge_scroll(on))
+	add_child(_edge_toggle)
+	_add_hint("Edge scrolling pans the map while the cursor rests on a screen edge.")
 	_refresh_display_controls()
 
 
@@ -409,6 +497,7 @@ func _on_window_size_selected(index: int) -> void:
 
 func _build_interface_section() -> void:
 	_add_header("INTERFACE")
+	_begin_card("Scale & type")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	_scale_slider = HSlider.new()
@@ -493,6 +582,17 @@ func _build_interface_section() -> void:
 	_add_hint("Text size enlarges the words alone — the panels keep their size, "
 		+ "so on a wide screen the type can grow without the chrome growing with it.")
 
+	var reset_layout := Button.new()
+	reset_layout.name = "ResetLayoutButton"
+	reset_layout.text = "Reset layout"
+	reset_layout.custom_minimum_size = Vector2(0, 32)
+	reset_layout.pressed.connect(_on_reset_layout)
+	add_child(reset_layout)
+	_add_hint("Reset layout returns the scale to this screen's size, the text to "
+		+ "100%, the HUD to Auto, the command window and the screens to their default "
+		+ "sizes and the window to Maximized. Sound, the parser key and the School's "
+		+ "progress are kept.")
+
 	# UXR-1b: the body face. Garamond is the design; Plain (Source Sans 3)
 	# gives a quarter more x-height at the same size.
 	var font_row := HBoxContainer.new()
@@ -512,6 +612,7 @@ func _build_interface_section() -> void:
 	font_row.add_child(_body_font)
 	add_child(font_row)
 
+	_begin_card("Accessibility")
 	# UXR-D2 (Pre-Deploy S9b): High contrast — every dim grey one step brighter.
 	_contrast_toggle = CheckButton.new()
 	_contrast_toggle.name = "HighContrastToggle"
@@ -556,16 +657,23 @@ func _build_interface_section() -> void:
 		+ "its ⓘ, what a button does is its hover, and long counsel opens from ▸ more. "
 		+ "On the page prints every explanation in full, where it always stood.")
 
-	var reset_layout := Button.new()
-	reset_layout.name = "ResetLayoutButton"
-	reset_layout.text = "Reset layout"
-	reset_layout.custom_minimum_size = Vector2(0, 32)
-	reset_layout.pressed.connect(_on_reset_layout)
-	add_child(reset_layout)
-	_add_hint("Reset layout returns the scale to this screen's size, the text to "
-		+ "100%, the HUD to Auto, the command window and the screens to their default "
-		+ "sizes and the window to Maximized. Sound, the parser key and the School's "
-		+ "progress are kept.")
+	# Session UI-5: colour vision, tooltip delay, and the first-open notes.
+	_colour_vision = _option_row("Colour vision", "ColourVisionOption", UiSettings.COLOUR_VISIONS,
+			_COLOUR_VISION_LABELS, _on_colour_vision_selected)
+	_add_hint("Red-green safe swaps the red and green of results, stability, trust, battle "
+		+ "lines and war scores for orange and blue.")
+	_tooltip_delay = _option_row("Tooltip delay", "TooltipDelayOption", UiSettings.TOOLTIP_DELAYS,
+			_TOOLTIP_DELAY_LABELS, _on_tooltip_delay_selected)
+	_add_hint("How long the cursor rests on a control or the map before its tooltip shows.")
+	_first_open_btn = Button.new()
+	_first_open_btn.name = "FirstOpenResetButton"
+	_first_open_btn.text = "Show first-open notes again"
+	_first_open_btn.custom_minimum_size = Vector2(0, 32)
+	_first_open_btn.pressed.connect(func(): first_open_reset_requested.emit())
+	add_child(_first_open_btn)
+	_add_hint("Brings back the one-line note each screen shows the first time it opens "
+		+ "in this campaign.")
+
 
 
 func _on_scale_changed(value: float) -> void:
@@ -647,6 +755,7 @@ func _update_scale_value_label(value: float) -> void:
 
 func _build_controls_section() -> void:
 	_add_header("CONTROLS")
+	_begin_card("Keys")
 	# Session UI-3: the key list is reference — it stays on the page folded too.
 	_hints_fold = false
 	_add_hint("Screens — L Event Log · T Ledger · G Generals · D Diplomacy · R Dispatch "
@@ -661,42 +770,410 @@ func _build_controls_section() -> void:
 	_add_hint("The interface — Ctrl+= / Ctrl+− Interface Scale · Ctrl+0 this screen's "
 		+ "size · the command window's corner grip resizes it (double-click resets).")
 	_hints_fold = true
+	_build_remap_rows()
+	_begin_card("Help")
+	var help_btn := Button.new()
+	help_btn.name = "HelpAndKeysButton"
+	help_btn.text = "Help & Keys"
+	help_btn.custom_minimum_size = Vector2(0, 32)
+	help_btn.pressed.connect(func(): help_requested.emit())
+	help_btn.tooltip_text = ("The Help & Keys book lists every key, the terms of the game and "
+		+ "the grammar of a typed order.")
+	add_child(help_btn)
 
 
 # ── SOUND ───────────────────────────────────────────────────────────────────
 
 func _build_sound_section() -> void:
 	_add_header("SOUND")
+	_begin_card("Levels")
+	for bus_name in ["Master", "Music", "SFX", "UI"]:
+		_add_bus_slider(bus_name)
+	# Session UI-5: the Ambience bus has its own slider (the second loop).
+	for bus_name in ["Ambience"]:
+		_add_bus_slider(bus_name)
+
+	_begin_card("Behaviour")
 	_battle_toggle = CheckButton.new()
 	_battle_toggle.text = "Battle sounds"
 	_battle_toggle.button_pressed = UiSettings.get_battle_sfx()
 	_battle_toggle.toggled.connect(func(on): UiSettings.set_battle_sfx(on))
 	add_child(_battle_toggle)
-	for bus_name in ["Master", "Music", "SFX", "UI"]:
-		var row := HBoxContainer.new()
-		var lbl := Label.new()
-		lbl.text = bus_name
-		lbl.custom_minimum_size.x = 64
-		lbl.theme_type_variation = &"Caption"
-		row.add_child(lbl)
-		var slider := HSlider.new()
-		slider.min_value = 0.0
-		slider.max_value = 1.0
-		slider.step = 0.05
-		slider.custom_minimum_size = Vector2(140, 0)
-		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		slider.set_value_no_signal(AudioManager.get_bus_volume(bus_name))
-		slider.value_changed.connect(func(v): AudioManager.set_bus_volume(bus_name, v))
-		row.add_child(slider)
-		_volume_sliders[bus_name] = slider
-		add_child(row)
+	_hover_toggle = _add_switch("Hover sounds", "HoverSoundsToggle", UiSettings.get_hover_sfx())
+	_hover_toggle.toggled.connect(func(on: bool): UiSettings.set_hover_sfx(on))
+	_typing_toggle = _add_switch("Typing sounds", "TypingSoundsToggle", UiSettings.get_typing_sfx())
+	_typing_toggle.toggled.connect(func(on: bool): UiSettings.set_typing_sfx(on))
+	_rests_toggle = _add_switch("Pauses between pieces", "MusicRestsToggle", UiSettings.get_music_rests())
+	_rests_toggle.toggled.connect(func(on: bool): UiSettings.set_music_rests(on))
+	_background_option = _option_row("Background", "BackgroundAudioOption", UiSettings.BACKGROUND_AUDIO_MODES,
+			_BACKGROUND_LABELS, _on_background_selected)
+
+	_begin_card("Music")
+	var now_row := HBoxContainer.new()
+	now_row.name = "NowPlayingRow"
+	now_row.add_theme_constant_override("separation", 8)
+	_now_label = Label.new()
+	_now_label.name = "NowPlayingLabel"
+	_now_label.theme_type_variation = &"Caption"
+	_now_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_now_label.custom_minimum_size.x = 120
+	_now_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_now_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	now_row.add_child(_now_label)
+	var skip := Button.new()
+	skip.name = "SkipTrackButton"
+	skip.text = "⏭ Skip"
+	skip.custom_minimum_size = Vector2(0, 32)
+	skip.pressed.connect(_on_skip_track)
+	now_row.add_child(skip)
+	var timer := Timer.new()
+	timer.name = "NowPlayingTimer"
+	timer.wait_time = 1.0
+	timer.autostart = true
+	timer.timeout.connect(_refresh_now_playing)
+	now_row.add_child(timer)
+	add_child(now_row)
+	_refresh_now_playing()
+
+	_room_fold_btn = Button.new()
+	_room_fold_btn.name = "MusicRoomButton"
+	_room_fold_btn.text = "▸ The Music Room"
+	_room_fold_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_room_fold_btn.custom_minimum_size = Vector2(0, 32)
+	_room_fold_btn.pressed.connect(_on_music_room_toggled)
+	add_child(_room_fold_btn)
+	_room_box = VBoxContainer.new()
+	_room_box.name = "MusicRoom"
+	_room_box.add_theme_constant_override("separation", 6)
+	_room_box.visible = false
+	add_child(_room_box)
+	_room_scroll = ScrollContainer.new()
+	_room_scroll.name = "MusicRoomScroll"
+	_room_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_room_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_room_box.add_child(_room_scroll)
+	_room_list = VBoxContainer.new()
+	_room_list.name = "MusicRoomList"
+	_room_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_room_list.add_theme_constant_override("separation", 3)
+	_room_scroll.add_child(_room_list)
+	var back := Button.new()
+	back.name = "BackToSituationButton"
+	back.text = "Back to the situation's music"
+	back.custom_minimum_size = Vector2(0, 32)
+	back.pressed.connect(_on_room_back)
+	_room_box.add_child(back)
+
+
+func _add_bus_slider(bus_name: String) -> void:
+	var row := HBoxContainer.new()
+	var lbl := Label.new()
+	lbl.text = str(_BUS_LABELS.get(bus_name, bus_name))
+	lbl.custom_minimum_size.x = 84
+	lbl.theme_type_variation = &"Caption"
+	row.add_child(lbl)
+	var slider := HSlider.new()
+	slider.name = bus_name + "Slider"
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.custom_minimum_size = Vector2(140, 0)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slider.set_value_no_signal(AudioManager.get_bus_volume(bus_name))
+	slider.value_changed.connect(func(v): AudioManager.set_bus_volume(bus_name, v))
+	# Session UI-5: letting go previews the bus the slider sets.
+	slider.drag_ended.connect(func(_changed: bool): AudioManager.preview_bus(bus_name))
+	row.add_child(slider)
+	_volume_sliders[bus_name] = slider
+	add_child(row)
+
+
+func _add_switch(text: String, node_name: String, on: bool) -> CheckButton:
+	var sw := CheckButton.new()
+	sw.name = node_name
+	sw.text = text
+	sw.button_pressed = on
+	add_child(sw)
+	return sw
+
+
+func _option_row(label_text: String, node_name: String, keys: Array, labels: Dictionary,
+		handler: Callable) -> OptionButton:
+	"""A labelled dropdown row: the choices are `keys`, shown by `labels`."""
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var lbl := Label.new()
+	lbl.text = label_text
+	lbl.theme_type_variation = &"Caption"
+	lbl.custom_minimum_size.x = 72
+	row.add_child(lbl)
+	var option := OptionButton.new()
+	option.name = node_name
+	for i in range(keys.size()):
+		var key: String = str(keys[i])
+		option.add_item(str(labels.get(key, key)), i)
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option.item_selected.connect(handler)
+	row.add_child(option)
+	add_child(row)
+	return option
+
+
+func _on_background_selected(index: int) -> void:
+	var modes: Array = UiSettings.BACKGROUND_AUDIO_MODES
+	UiSettings.set_background_audio(str(modes[clampi(index, 0, modes.size() - 1)]))
+
+
+func _on_colour_vision_selected(index: int) -> void:
+	var modes: Array = UiSettings.COLOUR_VISIONS
+	UiSettings.set_colour_vision(str(modes[clampi(index, 0, modes.size() - 1)]))
+	Utils.apply_contrast(get_tree())
+
+
+func _on_tooltip_delay_selected(index: int) -> void:
+	var modes: Array = UiSettings.TOOLTIP_DELAYS
+	UiSettings.set_tooltip_delay(str(modes[clampi(index, 0, modes.size() - 1)]))
+
+
+func _select_key(option: OptionButton, keys: Array, current: String) -> void:
+	if option != null:
+		option.select(maxi(keys.find(current), 0))
+
+
+func _refresh_new_controls() -> void:
+	"""Re-sync the Session UI-5 controls from the persisted settings."""
+	_select_key(_background_option, UiSettings.BACKGROUND_AUDIO_MODES, UiSettings.get_background_audio())
+	_select_key(_colour_vision, UiSettings.COLOUR_VISIONS, UiSettings.get_colour_vision())
+	_select_key(_tooltip_delay, UiSettings.TOOLTIP_DELAYS, UiSettings.get_tooltip_delay())
+	if _hover_toggle != null:
+		_hover_toggle.set_pressed_no_signal(UiSettings.get_hover_sfx())
+	if _typing_toggle != null:
+		_typing_toggle.set_pressed_no_signal(UiSettings.get_typing_sfx())
+	if _rests_toggle != null:
+		_rests_toggle.set_pressed_no_signal(UiSettings.get_music_rests())
+	if _edge_toggle != null:
+		_edge_toggle.set_pressed_no_signal(UiSettings.get_edge_scroll())
+	if _idle_toggle != null:
+		_idle_toggle.set_pressed_no_signal(UiSettings.get_idle_warning())
+	if _first_open_btn != null:
+		# Only a campaign has notes to bring back: the pause menu's panel shows it.
+		_first_open_btn.visible = _is_in_game()
+	_refresh_remap()
+	_refresh_now_playing()
+
+
+func _is_in_game() -> bool:
+	"""True when this panel is embedded in the pause menu (a campaign is running);
+	the main menu's Settings view is not."""
+	var node: Node = get_parent()
+	while node != null:
+		var script: Script = node.get_script()
+		if script != null and str(script.resource_path).ends_with("pause_menu.gd"):
+			return true
+		node = node.get_parent()
+	return false
+
+
+# ── Now playing and the Music Room ──────────────────────────────────────────
+
+func _field(d: Dictionary, key: String) -> String:
+	var v = d.get(key)
+	return "" if v == null else str(v)
+
+
+func _now_playing_text() -> String:
+	var d: Dictionary = AudioManager.now_playing()
+	var state: String = _field(d, "state")
+	if state == "resting":
+		return "Resting — the next piece soon"
+	if state != "playing":
+		return "Silence"
+	var line: String = _field(d, "title")
+	var composer: String = _field(d, "composer")
+	if composer != "":
+		line += " — " + composer
+	var year: String = _field(d, "year")
+	if year != "" and year != "0":
+		line += ", " + year
+	var performer: String = _field(d, "performer")
+	if performer != "":
+		line += " · " + performer
+	return line
+
+
+func _refresh_now_playing() -> void:
+	"""Once a second, while the panel can be seen (a Timer child ticks it)."""
+	if _now_label == null or not _now_label.is_visible_in_tree():
+		return
+	var text: String = _now_playing_text()
+	if _now_label.text != text:
+		_now_label.text = text
+
+
+func _on_skip_track() -> void:
+	AudioManager.skip_track()
+	_refresh_now_playing()
+
+
+func _on_music_room_toggled() -> void:
+	var opening: bool = not _room_box.visible
+	_room_box.visible = opening
+	_room_fold_btn.text = ("▾ " if opening else "▸ ") + "The Music Room"
+	if opening:
+		_fill_music_room()
+		# Scrolls inside the page; shorter where the view is short.
+		_room_scroll.custom_minimum_size.y = 150.0 if Utils.compact_view() else 240.0
+
+
+func _fill_music_room() -> void:
+	if _room_filled:
+		return
+	_room_filled = true
+	var current := ""
+	for entry in AudioManager.music_room_tracks():
+		var track: Dictionary = entry
+		var label: String = _field(track, "situation_label")
+		if label != current:
+			current = label
+			var head := Label.new()
+			head.text = label
+			head.theme_type_variation = &"HudTitle"
+			head.add_theme_color_override("font_color", Utils.UI_GOLD)
+			_room_list.add_child(head)
+		var text: String = "▶ " + _field(track, "title")
+		var composer: String = _field(track, "composer")
+		if composer != "":
+			text += " — " + composer
+		var year: String = _field(track, "year")
+		if year != "" and year != "0":
+			text += " (" + year + ")"
+		var play := Button.new()
+		play.text = text
+		play.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		play.clip_text = true
+		# A long title trims with an ellipsis, never mid-word ("Beethoven (180"
+		# in the live walk); the whole line is the row's hover.
+		play.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		play.tooltip_text = text
+		play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		play.custom_minimum_size = Vector2(0, 30)
+		play.pressed.connect(_on_room_play.bind(_field(track, "file")))
+		_room_list.add_child(play)
+
+
+func _on_room_play(file: String) -> void:
+	AudioManager.play_track(file)
+	_refresh_now_playing()
+
+
+func _on_room_back() -> void:
+	AudioManager.resume_situation_music()
+	_refresh_now_playing()
+
+
+# ── Key remapping (Settings → CONTROLS) ─────────────────────────────────────
+
+func _build_remap_rows() -> void:
+	for row in Keys.actions():
+		var action: String = str(row[0])
+		var line := HBoxContainer.new()
+		line.name = "Remap_" + action
+		line.add_theme_constant_override("separation", 8)
+		var label := Label.new()
+		label.text = Keys.label_of(action)
+		label.theme_type_variation = &"Caption"
+		label.custom_minimum_size.x = 120
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.add_child(label)
+		var note := Label.new()
+		note.name = "RemapNote"
+		note.theme_type_variation = &"Caption"
+		note.add_theme_color_override("font_color", Color(Utils.COLOR_ERROR))
+		_remap_notes[action] = note
+		line.add_child(note)
+		var key_btn := Button.new()
+		key_btn.name = "RemapKey"
+		key_btn.custom_minimum_size = Vector2(96, 28)
+		key_btn.focus_mode = Control.FOCUS_NONE
+		key_btn.pressed.connect(_on_remap_pressed.bind(action))
+		_remap_buttons[action] = key_btn
+		line.add_child(key_btn)
+		add_child(line)
+	var restore := Button.new()
+	restore.name = "RestoreKeysButton"
+	restore.text = "Restore defaults"
+	restore.custom_minimum_size = Vector2(0, 32)
+	restore.pressed.connect(_on_restore_keys)
+	add_child(restore)
+	_refresh_remap()
+
+
+func _refresh_remap() -> void:
+	for action in _remap_buttons:
+		var key_btn: Button = _remap_buttons[action]
+		key_btn.text = "Press a key…" if action == _capturing else Keys.key_name(str(action))
+
+
+func _clear_remap_notes() -> void:
+	for action in _remap_notes:
+		(_remap_notes[action] as Label).text = ""
+
+
+func _on_remap_pressed(action: String) -> void:
+	_clear_remap_notes()
+	_capturing = "" if _capturing == action else action
+	_refresh_remap()
+
+
+func _on_restore_keys() -> void:
+	Keys.reset_all()
+	_capturing = ""
+	_clear_remap_notes()
+	_refresh_remap()
+
+
+func _input(event: InputEvent) -> void:
+	"""The next key press after a click on a key button is the new binding
+	(Esc cancels); the press is consumed so nothing else reads it."""
+	if _capturing == "" or not (event is InputEventKey):
+		return
+	if not is_visible_in_tree():
+		# UI-5 review: a capture armed on a page since closed never eats the
+		# next game key — it is dropped.
+		_capturing = ""
+		return
+	var key := event as InputEventKey
+	if not key.pressed or key.echo:
+		return
+	var code: int = int(key.keycode) if key.keycode != KEY_NONE else int(key.physical_keycode)
+	if code in [KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META]:
+		return   # a modifier alone: keep listening
+	get_viewport().set_input_as_handled()
+	var action: String = _capturing
+	_capturing = ""
+	if code == KEY_ESCAPE:
+		_refresh_remap()
+		return
+	var old_name: String = Keys.key_name(action)
+	var result: String = Keys.rebind(action, code)
+	if result == "reserved":
+		(_remap_notes[action] as Label).text = "That key is reserved"
+	else:
+		var new_name: String = Keys.key_name(action)
+		if result != "":
+			ToastLayer.say("%s now on %s; %s moved to %s" % [
+				Keys.label_of(action), new_name, Keys.label_of(result), old_name])
+		else:
+			ToastLayer.say("%s now on %s" % [Keys.label_of(action), new_name])
+	_refresh_remap()
 
 
 # ── THE PARSER (BYOK) ───────────────────────────────────────────────────────
 
 func _build_parser_section() -> void:
 	_add_header("SMARTER PARSING (OPTIONAL)")
+	_begin_card("Parsing")
 	_parser_status = Label.new()
 	_parser_status.theme_type_variation = &"Caption"
 	_parser_status.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
@@ -735,6 +1212,12 @@ func _build_parser_section() -> void:
 		+ "order it reads. The key is stored on this PC (user://ui_settings.cfg) "
 		+ "and sent to Anthropic through the game's own local server — to no one else.")
 	_show_stored_parser_state()
+
+	# Session UI-5: the End Turn gate's idle-corps warning.
+	_begin_card("Orders")
+	_idle_toggle = _add_switch("Warn of idle corps at End Turn", "IdleWarningToggle",
+			UiSettings.get_idle_warning())
+	_idle_toggle.toggled.connect(func(on: bool): UiSettings.set_idle_warning(on))
 
 
 func _key_placeholder() -> String:
@@ -856,7 +1339,10 @@ func _build_credits_section() -> void:
 	credit.text = ("Unit icons by Lorc, Delapouite & contributors (game-icons.net, "
 		+ "CC BY 3.0) · Interface icons: Phosphor (MIT) · Musket volley: aaronsiler "
 		+ "& Benboncan (CC BY 4.0) · Menu paintings, marshal portraits & music: "
-		+ "public domain (Wikimedia Commons / IMSLP) · Full terms: " + terms_where + ".")
+		+ "public domain (Wikimedia Commons / IMSLP) · Period paintings in letters and "
+			+ "screens: public domain, Wikimedia Commons · Sound effects: CC0 (freesound.org "
+			+ "contributors, Kenney) · Music: public-domain recordings — Musopen, US Navy Band, "
+			+ "US Army Bands, US Marine Band, Kimiko Ishizaka · Full terms: " + terms_where + ".")
 	credit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	credit.theme_type_variation = &"Caption"
 	credit.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)

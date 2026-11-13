@@ -190,7 +190,9 @@ class TestTheWholeClient:
         # 8db8d10c) — the folds, the filled 32:9 map and the reading windows.
         # Session UI-4 (November 12, 2026): re-shot on its own tree (its parent
         # e835f889) — the 115 % type, the HUD at the 32:9 edges, the four 6s rebuilt.
-        assert after_all.get("client_commit") == "e835f889+UI-4"
+        # Session UI-5 (November 13, 2026): re-shot on its own tree (its parent
+        # 970a534c) — 193 surfaces x five sizes, 14,083 rows, RED 0 / P1 0.
+        assert after_all.get("client_commit") == "970a534c+UI-5"
         assert after_all.get("physical_scale") == "auto"
 
 

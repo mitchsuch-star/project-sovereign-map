@@ -1,6 +1,17 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 11, 2026 — SESSION G5 ✅ LANDED: A
+> Overwritten each time a session hands off. Current hand-over: **November 13, 2026 — SESSION UI-5 ✅ LANDED: THE
+> FULL MEASURE** (`UI_VISUAL_FOUNDATION_SPEC.md` §13; `MUSIC_SOUND_SPEC.md` §6; `SYSTEMS_REFERENCE.md` §216;
+> `tests/test_ui5_full_measure.py`). The user's "do full upgrade of sounds, ux and ui leave nothing unturned": the
+> sound engine rebuilt (five buses, the study's ambience, every surface cued, music by mood with the courts' 1805
+> anthems, every file measured), 50 new public-domain sounds, 36 period paintings, the Help & Keys book, named saves
+> and F5 / F9, toasts, key remapping, colour vision, and the readers' levers; blind readers 7 / 7 / 7, mean 7.11 →
+> 7.07. It follows Sessions UI, UI-2, UI-3 and UI-4 (November 11–12, the client's re-skin; their records §9–§12).
+> **Session H's walk now includes the user's own look and listen:** the Music Room (Settings → Sound), the frames in
+> `docs/audits/ui_gilt5/` and the live walk's in `docs/audits/ui5_mode_c_2026_11_13/`; the eighteen decisions each
+> one switch or one line; the levers the final readers name (§13 "What holds it at 7 now"), the user's to rule.
+>
+> The session before the UI sessions: **November 11, 2026 — SESSION G5 ✅ LANDED: A
 > CLIENT RALLIES AGAINST THE HOUSE** (`DYNAMISM_SPEC.md` §7e the landing record, §2b session G5, §8 rows G5-*;
 > `SYSTEMS_REFERENCE.md` §211; `tests/test_session_g5_a_client_rallies.py`; ONE sweep with three arms 0 / RALLY /
 > ALL on three surfaces, the series re-read). The user's "do what you deem best then tell me what next", to

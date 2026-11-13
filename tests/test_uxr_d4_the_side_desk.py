@@ -204,6 +204,10 @@ CLOSE_SITES = {
     "_on_ledger_assess_requested": ["close_all_screens"],     # a command
     "_on_tutorial_open_cabinet": ["close_all_screens"],       # a popup (the wizard)
     "_on_tutorial_open_settlement": ["close_all_screens"],    # a popup (the table — S14d part 2)
+    # Session UI-5: Help & Keys covers the books; "Show on map" pans the map a
+    # book would cover — each keeps the pin (the open screen only).
+    "_ui5_toggle_codex": ["close_all_screens"],               # a book of its own (Help & Keys)
+    "_on_show_on_map_requested": ["close_all_screens"],       # the camera to a notice's province
 }
 
 

@@ -569,8 +569,14 @@ class TestTheFoundRows:
         tb = _src("scripts/top_bar.gd")
         assert 'threat_label.text = "[THREAT' not in tb
         fields = _func(tb, "update_diplomatic_fields")
-        assert fields.count("threat_label.text = _threat_words(threat)") == 2
-        assert fields.count("threat_label.tooltip_text = THREAT_TOOLTIP") == 2
+        # Session UI-5 (D5) re-rules the road, not the words: the figure counts
+        # to its new value, every step written by `_threat_words` (the game's
+        # words, never a bracketed tag), and the tooltip is THREAT_TOOLTIP with
+        # the player's own bound key for the Diplomatic Ledger.
+        assert fields.count("_show_threat_figure(threat)") == 2
+        assert "threat_label.text = _threat_words(n)" in _func(tb, "_tick_figure")
+        assert fields.count("threat_label.tooltip_text = _threat_tooltip()") == 2
+        assert "THREAT_TOOLTIP.replace(" in _func(tb, "_threat_tooltip")
         # Session UI-2: the figure stands beside its glyph and its gauge; the
         # words ("Threat", "/ 100") are the tooltip's (THREAT_TOOLTIP).
         assert 'return "%d" % threat' in _func(tb, "_threat_words")

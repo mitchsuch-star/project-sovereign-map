@@ -33,3 +33,10 @@ score on all 30 frames and on the 27 whose staging never moved (`scores_ui4.py` 
 fit diff that compares counts misses a frame whose controls went further off-screen than HEAD's (the same count, a
 worse overflow: the end card's buttons wholly below a 450-px view where HEAD's were cut by 20 px) — read the frames as
 well as the counts.
+
+Session UI-5's readings (`scores_ui5.py`, its BASE UI-4's final reading): interim 7 / 7 / 7, mean 7.11 (one report swapped
+its F27 and F28 lines and is set aside: 7.03 on the two that read as labelled); final 7 / 7 / 7, mean 7.07 — the record is
+`docs/UI_VISUAL_FOUNDATION_SPEC.md` §13. Two traps it paid for: the reader workflow tabulates each report through a
+checker that flags a line describing another frame (a slip is set aside, never re-mapped); and a fix made after the final
+reading is recorded as such — the scored frames stay the frames the readers saw, the pairs show the shipped tree, and no
+fresh reading is taken to replace the first.

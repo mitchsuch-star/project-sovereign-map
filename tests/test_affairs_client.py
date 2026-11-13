@@ -777,7 +777,7 @@ class TestTheReaders:
     def test_the_dispatch_view_renders_the_watch(self):
         src = _gd("dispatch_view.gd")
         assert 'situation.get("affairs_watch", null)' in src
-        assert "Utils.bb_tag(\"In the offing\"" in src  # Session UI-4: the line is a tag-led row now
+        assert "In the offing" in src  # Session UI-5 interim fix (Nov 13): the tag is a plain gold run now, not a badge
 
 
 class TestTheFrames:

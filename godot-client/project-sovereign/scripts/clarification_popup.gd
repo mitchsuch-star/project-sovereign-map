@@ -23,12 +23,16 @@ signal cancelled
 var current_marshal: String = ""
 var current_strategic_type: String = ""
 
+# UI-5: the question the card opens on — an arrival sound, stopped on the answer
+var _open_cue = null  # untyped: a one-shot frees itself when it ends
+
 func _ready():
 	hide()
 
 func show_clarification(data: Dictionary):
 	"""Display clarification popup with target options."""
-	AudioManager.play("question")
+	AudioManager.stop_player(_open_cue)
+	_open_cue = AudioManager.play("question")
 	current_marshal = str(data.get("marshal", "Marshal"))
 	# CR-2: .get() defaults do NOT apply to present-but-null keys — a null
 	# strategic_type must not crash the typed String assignment
@@ -104,6 +108,7 @@ func _create_button(label: String, option: Dictionary) -> Button:
 	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 1))
 
 	btn.pressed.connect(_on_option_pressed.bind(option))
+	btn.set_meta("no_click_sfx", true)  # UI-5: the answer plays its own cue (select / back)
 	return btn
 
 func _on_option_pressed(option: Dictionary):
@@ -114,6 +119,11 @@ func _on_option_pressed(option: Dictionary):
 	var command = str(option.get("command", ""))
 	var target = str(option.get("target", ""))
 	var value = str(option.get("value", ""))
+	# UI-5: choosing an option = select; closing without choosing (a cancel) = back
+	var is_cancel: bool = command == "cancel" or value == "cancel" or (command == "" and target == "" and value == "")
+	AudioManager.stop_player(_open_cue)
+	_open_cue = null
+	AudioManager.play("back" if is_cancel else "select")
 	if command != "":
 		# CR-2: backend supplied the exact reissue command — send it verbatim
 		clarification_command.emit(command)

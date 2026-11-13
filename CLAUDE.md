@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI ✅ Nov 11, UI-2/3/4 ✅ Nov 12 (§207–§215); next H the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI ✅ Nov 11, UI-2/3/4 ✅ Nov 12, UI-5 ✅ Nov 13 (§207–§216); next H the deploy**.
 
-**▶ LIVE STATE (Nov 12, 2026).** The three most recent rows:
-- **Session UI-4 (Nov 12) — the levers past 7: 115 % type, the 32:9 HUD at the edges, the four 6s rebuilt** (§215).
-- **Session UI-3 (Nov 12) — folds behind ⓘ, the filled 32:9 map, one-scroll table** (§214).
-- **Session UI-2 (Nov 12) — the imperial desk: glyphs, tables, the 16:9 HUD** (§213).
+**▶ LIVE STATE (Nov 13, 2026).** The three most recent rows:
+- **Session UI-5 (Nov 13) — the full measure: sound, pictures, Help & Keys, saves** (§216).
+- **Session UI-4 (Nov 12) — 115 % type, the 32:9 HUD at the edges** (§215).
+- **Session UI-3 (Nov 12) — folds behind ⓘ, the filled 32:9 map** (§214).
 
-**Open with the user:** G5's readings (`DYNAMISM_SPEC.md` §7e), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** G5's readings (`DYNAMISM_SPEC.md` §7e), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a), UI-5's look and listen (UI spec §13).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 
@@ -148,6 +148,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `war_status_panel.gd` | War Status HUD (CanvasLayer 25) + `war_detail_popup.gd` (CanvasLayer 30) |
 | `region_panel.gd` | Region Action Panel (UI-6, CanvasLayer 26): map province click → fog-honest info + typed-command chips (recruit/build/repair/negotiate/marshal orders) |
 | `diplomacy_wizard.gd` | Diplomacy Button wizard (Session B): F1 hotkey, 2-step nation→action flow, own HTTPRequest, command handoff, `open_for_nation()` for war panel handoff |
+| UI-5 kit: `audio_manager` `keys` `toast_layer` `busy_chip` `illustrations` `codex_view` `save_dialog` | sound, keys (`Keys.canonical`), toasts, pictures, help, saves (`MUSIC_SOUND_SPEC.md` §6) |
 
 ---
 
@@ -375,7 +376,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | **The Improvement Queue (row IQ) — landing records, rulings, dissents** | **`docs/IMPROVEMENT_QUEUE_SPEC.md`** — row IQ's OWNING SPEC. STATUS stays the ROUTING authority (which row is next); this holds the per-slice landing records, the crux ruling, the filed dissent and re-open condition, and the re-stated completion items. Slice ids are `IQ1-n` (the first two shipped as `SW-0`/`SW-1`, which collides with `SEASONS_WEATHER_SPEC.md`; the alias is recorded). |
 | **PLAYTEST / live-verify / evaluate the game (START HERE for any of those)** | **`docs/PLAYTESTING.md`** — Mode A `tools/playtest_driver.py` (in-process, seeded, popup-answering, digest output) is the default; Mode B live-HTTP (`SOVEREIGN_PORT`), Mode C client visual pass; fixtures in `tests/fixtures/playtest_saves/` |
 | UI chrome (U1–U6, Session UI) | `docs/UI_VISUAL_FOUNDATION_SPEC.md` §9 |
-| Wave 6 fun-factor build (✅ COMPLETE July 10, 2026) | `docs/WAVE6_FUN_FACTOR_SPEC.md` (§15 DoD; audit evidence in `docs/audits/CREATIVE_AUDIT_2026_07_10.md`) |
+| Wave 6 fun-factor build (✅ COMPLETE July 10, 2026) | `docs/WAVE6_FUN_FACTOR_SPEC.md` (§15 DoD) |
 | **Open bugs (consolidated)** | **`docs/BUG_FIXES.md`** |
 | **Row REV follow-ups (the Aug 30, 2026 review)** | **`docs/REV_FOLLOWUPS.md`** — **ALL FOUR CLOSED** (Aug 31 – Sept 1, 2026); landing records `BUG_FIXES.md` §THE FOLLOW-UPS and §UX23-B |
 | **Design refinement items** | **`docs/DESIGN_REFINEMENT.md`** |
@@ -396,7 +397,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Jealousy + Marshal Recruitment (LANDED July 11, 2026) | `docs/JEALOUSY_SPEC.md` (§0 = gate+build record), `docs/MARSHAL_RECRUITMENT_SPEC.md`, SYSTEMS_REFERENCE §26–§27 |
 | Vassal Deepening (✅ **BUILT COMPLETE July 16, 2026** — VS-R + Slice 0 + VS-3..VS-6 + VP-D1/VP-D6) | `docs/VASSAL_DEEPENING_SPEC.md` (§8 build record + per-slice landing records) + memo `docs/audits/VASSAL_AUTHORITY_COUPLING_RESEARCH_2026_07_14.md` |
 | Memory and Pressure (substrate + presentation) | `docs/RELIABILITY_COMMITMENTS_SPEC.md` (v2.4.3), `RELIABILITY_IMPLEMENTATION_PLAN.md`, `COMMITMENTS_PRESENTATION_SPEC.md` (v0.5.2 C3-lite hegemony-aligned; §8.1a owns bloc-naming contract post-Block-3 fold), `COMMITMENTS_PRESENTATION_DESIGNER_AUDIT.md` (historical) |
-| Peace Deals (umbrella + sub-specs) | **COMPLETE July 2, 2026** — routing: `docs/ROADMAP.md` §Current Phase Queue + `docs/STATUS.md`. Live: Slice H draft spec (`SETTLEMENT_SLICE_H_ALLY_PETITIONS_SPEC.md`, user gate pending) + Gate 4 visual half. Normative: `SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` v0.6, `SETTLEMENT_GUIDED_TERMS_SPEC.md` v0.2, `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.32; `SETTLEMENT_GATE4_PREFLIGHT_AUDIT.md` owns the surviving ledger rows. Historical anchors: `PEACE_DEALS_UMBRELLA_SPEC.md`, `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md` (LANDED April 2026), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` + its implementation plan. |
+| Peace Deals (umbrella + sub-specs) | **COMPLETE July 2, 2026** — routing: `docs/ROADMAP.md` §Current Phase Queue + `docs/STATUS.md`. Normative: `SETTLEMENT_CONVERSATIONAL_REFRONT_SPEC.md` v0.6, `SETTLEMENT_GUIDED_TERMS_SPEC.md` v0.2, `SETTLEMENT_UI_CLEANUP_SPEC.md` v0.32; `SETTLEMENT_GATE4_PREFLIGHT_AUDIT.md` owns the surviving ledger rows. Historical anchors: `PEACE_DEALS_UMBRELLA_SPEC.md`, `BILATERAL_PEACE_HARDENING_SPEC.md`, `WAR_PURPOSE_SCORE_SEMANTICS_SPEC.md`, `WAR_BARGAIN_SPEC.md` (LANDED April 2026), `WAR_SETTLEMENT_ALLY_PARTICIPATION_SPEC.md` + its implementation plan. |
 | Diplomat voice bible / playtest | `docs/DIPLOMAT_VOICE_BIBLE.md`, `COMMITMENTS_PLAYTEST_SCRIPT.md` |
 | UI specs (top bar, fog) | `docs/TOP_BAR_SPEC.md`, `FOG_OF_WAR_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |

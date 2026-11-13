@@ -167,6 +167,7 @@ func _build() -> void:
 	ok.text = "Looks right"
 	ok.custom_minimum_size = Vector2(0, 40)
 	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ok.set_meta("no_click_sfx", true)   # its close plays "back" itself
 	ok.pressed.connect(_on_accept)
 	buttons.add_child(ok)
 	vbox.add_child(buttons)
@@ -234,6 +235,7 @@ func _on_accept() -> void:
 	UiSettings.set_ui_scale(value)
 	UiSettings.set_scale_acknowledged(true)
 	visible = false
+	AudioManager.play("back")
 	accepted.emit(value)
 	closed.emit()
 

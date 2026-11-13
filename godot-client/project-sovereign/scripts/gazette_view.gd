@@ -76,7 +76,30 @@ func open(api_client):
 	# then fitted to the issue it holds (`_render_issue`).
 	Utils.set_reading_share($PanelContainer)
 	Utils.clamp_centered_panel($PanelContainer)
+	_ensure_banner()
 	api_client.get_gazette(_on_gazette_received)
+
+
+# Session UI-5: the masthead picture at the head of the sheet. Full view only
+# (`make_banner` answers null on the compact view); capped at 22 % of the view
+# by `Illustrations.banner_height`, so the first lines are never pushed off.
+var _banner: TextureRect = null
+
+
+func _ensure_banner() -> void:
+	var box: Node = $PanelContainer/VBoxContainer
+	if _banner != null and is_instance_valid(_banner):
+		box.remove_child(_banner)
+		_banner.free()
+	_banner = null
+	var w: float = $PanelContainer.size.x
+	if w < 200.0:
+		w = get_viewport().get_visible_rect().size.x * 0.45
+	_banner = Illustrations.make_banner("gazette", w)
+	if _banner == null:
+		return
+	box.add_child(_banner)
+	box.move_child(_banner, 1)
 
 
 func refresh_pinned() -> void:

@@ -322,6 +322,7 @@ class TestF7DrainFamily:
         "/diplomatic_preview",
         "/debug/acceptance_preview",
         "/first_open",                 # S14d: a tiny {success, screen, turn} ack (TABLE_LESSON_SPEC §3)
+        "/first_open/reset",           # Session UI-5: a tiny {success, cleared} ack (Settings' "show the notes again")
     }
 
     def test_route_census_every_post_endpoint_is_declared(self):

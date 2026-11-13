@@ -1,0 +1,267 @@
+{
+ "tool": "tools/ui5_audio_prep.py --envelope",
+ "window_s": 0.05,
+ "rows": [
+  {
+   "cue": "door_knock",
+   "file": "ui/door_knock.ogg",
+   "max_s": 2.4,
+   "start_s": 0.0,
+   "onset_s": 0.25,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "gavel",
+   "file": "ui/gavel.ogg",
+   "max_s": 0.9,
+   "start_s": 0.0,
+   "onset_s": 0.0,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "letter_open",
+   "file": "ui/letter_open.mp3",
+   "max_s": 1.4,
+   "start_s": 1.9,
+   "onset_s": 0.95,
+   "peak_in_window_frac": 0.702,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "paper_crumple",
+   "file": "ui/paper_crumple.mp3",
+   "max_s": 2.4,
+   "start_s": 0.0,
+   "onset_s": 0.05,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "notification_high",
+   "file": "ambient/ship_bell.mp3",
+   "max_s": 2.6,
+   "start_s": 0.0,
+   "onset_s": 0.35,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "notification_critical",
+   "file": "music/bugle_assembly.mp3",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.4,
+   "peak_in_window_frac": 0.98,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "coin_pour",
+   "file": "ui/coin_pour.mp3",
+   "max_s": 3.0,
+   "start_s": 0.0,
+   "onset_s": 1.5,
+   "peak_in_window_frac": 0.731,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "musket_volley",
+   "file": "battle/musket_battle_volley.mp3",
+   "max_s": 4.2,
+   "start_s": 0.0,
+   "onset_s": 0.2,
+   "peak_in_window_frac": 0.644,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "cavalry",
+   "file": "battle/cavalry_gallop.mp3",
+   "max_s": 3.2,
+   "start_s": 4.6,
+   "onset_s": 3.9,
+   "peak_in_window_frac": 0.603,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "sword_draw",
+   "file": "battle/sword_draw.mp3",
+   "max_s": 2.4,
+   "start_s": 0.0,
+   "onset_s": 0.05,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "march_step",
+   "file": "battle/army_march_loop_short.mp3",
+   "max_s": 0.65,
+   "start_s": 0.0,
+   "onset_s": 0.3,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "order_march",
+   "file": "battle/army_march_loop_short.mp3",
+   "max_s": 1.4,
+   "start_s": 0.0,
+   "onset_s": 0.3,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "spade",
+   "file": "battle/spade_dig.ogg",
+   "max_s": 2.4,
+   "start_s": 0.0,
+   "onset_s": 0.75,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "drum_cadence",
+   "file": "battle/drum_cadence.ogg",
+   "max_s": 3.0,
+   "start_s": 0.0,
+   "onset_s": 0.0,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "hammer",
+   "file": "battle/hammer.ogg",
+   "max_s": 2.6,
+   "start_s": 0.0,
+   "onset_s": 0.25,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "hammer",
+   "file": "battle/saw.ogg",
+   "max_s": 2.6,
+   "start_s": 0.0,
+   "onset_s": 0.0,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "horse_trot",
+   "file": "battle/horse_trot.ogg",
+   "max_s": 2.6,
+   "start_s": 0.0,
+   "onset_s": 0.1,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "boots",
+   "file": "battle/boots_halt.ogg",
+   "max_s": 1.6,
+   "start_s": 0.0,
+   "onset_s": 0.0,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "bugle_to_arms",
+   "file": "music/bugle_fix_bayonets.mp3",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.4,
+   "peak_in_window_frac": 0.866,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "bugle_charge",
+   "file": "music/bugle_fix_bayonets.mp3",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.4,
+   "peak_in_window_frac": 0.866,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "bugle_retreat",
+   "file": "music/bugle_tattoo.mp3",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.45,
+   "peak_in_window_frac": 0.846,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "bells_peal",
+   "file": "ambient/church_bells_peal.mp3",
+   "max_s": 5.2,
+   "start_s": 0.0,
+   "onset_s": 0.3,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "bell_toll",
+   "file": "ambient/bell_toll_single.mp3",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.15,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "crowd_cheer",
+   "file": "ambient/crowd_cheer.ogg",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.0,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "distant_drums",
+   "file": "ambient/distant_drums.ogg",
+   "max_s": 3.2,
+   "start_s": 0.0,
+   "onset_s": 0.5,
+   "peak_in_window_frac": 0.913,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "reveille",
+   "file": "music/bugle_reveille.ogg",
+   "max_s": 4.2,
+   "start_s": 0.0,
+   "onset_s": 0.15,
+   "peak_in_window_frac": 0.651,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "first_call",
+   "file": "music/bugle_first_call.mp3",
+   "max_s": 4.2,
+   "start_s": 0.0,
+   "onset_s": 0.55,
+   "peak_in_window_frac": 1.0,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "to_the_color",
+   "file": "music/bugle_to_the_color.ogg",
+   "max_s": 5.2,
+   "start_s": 0.0,
+   "onset_s": 0.65,
+   "peak_in_window_frac": 0.855,
+   "verdict": "sound inside the window"
+  },
+  {
+   "cue": "fanfare",
+   "file": "music/fanfare_erafnaf.ogg",
+   "max_s": 5.2,
+   "start_s": 0.0,
+   "onset_s": 0.55,
+   "peak_in_window_frac": 0.889,
+   "verdict": "sound inside the window"
+  }
+ ]
+}

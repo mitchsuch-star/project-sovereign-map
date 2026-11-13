@@ -27,6 +27,14 @@ const COLOR_TEXT = "eee"
 const COLOR_DANGER = "ff4444"
 const COLOR_CAVALRY = "8b4513"  # Saddle brown for cavalry theme
 
+# UI-5: the hooves the card opens on — an arrival sound, stopped when an answer is given
+var _open_cue = null  # untyped: a one-shot frees itself when it ends
+
+func _answer(cue: String) -> void:
+	AudioManager.stop_player(_open_cue)
+	_open_cue = null
+	AudioManager.play(cue)
+
 func _ready():
 	print("GloriousChargeDialog: _ready() STARTING")
 	print("  panel_container: ", panel_container)
@@ -46,6 +54,12 @@ func _ready():
 	else:
 		push_error("GloriousChargeDialog: RestrainButton is NULL!")
 
+	# UI-5: each answer plays its own cue, so the global click stands aside
+	if charge_button:
+		charge_button.set_meta("no_click_sfx", true)
+	if restrain_button:
+		restrain_button.set_meta("no_click_sfx", true)
+
 	# Hide by default
 	hide()
 
@@ -53,7 +67,8 @@ func _ready():
 
 func show_glorious_charge(data: Dictionary):
 	"""Display Glorious Charge popup with data from backend."""
-	AudioManager.play("cavalry")
+	AudioManager.stop_player(_open_cue)
+	_open_cue = AudioManager.play("cavalry")
 	print("GloriousChargeDialog.show_glorious_charge() ENTERED")
 	print("  Received data: ", data)
 
@@ -105,6 +120,7 @@ func show_glorious_charge(data: Dictionary):
 		print("  Set BackgroundOverlay.visible = true")
 
 	# Now show the CanvasLayer itself
+	_banner("charge")
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -122,11 +138,56 @@ func show_glorious_charge(data: Dictionary):
 func _on_charge_pressed():
 	"""Player chooses to execute Glorious Charge."""
 	print("GloriousChargeDialog: CHARGE pressed")
+	_answer("bugle_charge")
 	hide()
 	choice_made.emit("charge")
 
 func _on_restrain_pressed():
 	"""Player restrains the marshal - normal attack."""
 	print("GloriousChargeDialog: RESTRAIN pressed")
+	_answer("back")
 	hide()
 	choice_made.emit("restrain")
+
+
+func _banner(surface: String) -> void:
+	"""Session UI-5: the picture over the card (a 3:1 banner sized to the card's
+	width; its hover is the credit). It steps aside on the compact view and in a
+	short window, and `_banner_yield` takes it away again when the card's
+	answers would otherwise leave the view."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	if Utils.compact_view() or view.y < 760.0:
+		return
+	var panel: Control = $PanelContainer
+	var w: float = panel.offset_right - panel.offset_left
+	if w <= 0.0:
+		w = 480.0
+	var pic: TextureRect = Illustrations.make_banner(surface, minf(w, view.x - 80.0) - 48.0, true)
+	if pic == null:
+		return
+	vb.add_child(pic)
+	vb.move_child(pic, 0)
+	call_deferred("_banner_yield")
+
+
+func _banner_yield() -> void:
+	"""The banner is the first thing to give way: if the card cannot fit the
+	view with it, it goes."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not visible:
+		return
+	var pic: Control = $PanelContainer/VBoxContainer.get_node_or_null("Illustration") as Control
+	if pic == null:
+		return
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	# Session UI-5: the banner shrinks first (it steps aside under its floor),
+	# until the card stands centred below the top bar.
+	if $PanelContainer.get_combined_minimum_size().y > Illustrations.card_room(view.y):
+		Illustrations.fit_banner_to_card($PanelContainer, view.y)
+		Utils.clamp_centered_panel($PanelContainer)

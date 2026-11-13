@@ -389,6 +389,12 @@ def _build_territories(world, player: str) -> list:
     territories = []
     # WO slice 8: one naval shore-verdict memo for the whole pass (GR8).
     _shore_cache: dict = {}
+    # Session UI-5: each province's 1805 owner, so the Territories tab can group
+    # the realm by how it came to be held (home soil / taken from a court).
+    _start_owner: dict = {}
+    for _nation, _regions in (getattr(world, "nation_starting_regions", {}) or {}).items():
+        for _name in (_regions or []):
+            _start_owner.setdefault(str(_name), str(_nation))
     for region in world.regions.values():
         if region.controller != player:
             continue
@@ -454,6 +460,10 @@ def _build_territories(world, player: str) -> list:
             "stability": int(region.stability),
             "war_damage": int(region.war_damage * 100),
             "income": int(region.get_effective_income()),
+            # "home" (the player's own 1805 soil), the court it was taken
+            # from, or "" (no 1805 owner recorded) — display only.
+            "origin": ("home" if _start_owner.get(region.name) == player
+                       else _start_owner.get(region.name, "")),
         })
     return territories
 

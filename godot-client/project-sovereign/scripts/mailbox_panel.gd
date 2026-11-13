@@ -59,6 +59,7 @@ var _lead_icon: TextureRect = null
 func _ready():
 	hide()
 	close_btn.pressed.connect(_on_close)
+	close_btn.set_meta("no_click_sfx", true)  # its own cue is the book closing
 	background_overlay.gui_input.connect(_on_overlay_input)
 	_build_header_lead()
 	Utils.on_explanations_changed(_on_explanations_changed)
@@ -525,10 +526,11 @@ func _terms_chip(text: String, wrap: bool) -> PanelContainer:
 	in the bright gilt ink."""
 	var chip = PanelContainer.new()
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Session UI-5 interim fix (Nov 13): a term pill is not clickable, so it is a
+	# flat tinted badge with no border (a border made it read as a button).
 	var box = StyleBoxFlat.new()
 	box.bg_color = Utils.UI_INK_NAVY
-	box.border_color = Color(Utils.UI_GOLD.r, Utils.UI_GOLD.g, Utils.UI_GOLD.b, 0.45)
-	box.set_border_width_all(1)
+	box.set_border_width_all(0)
 	box.set_corner_radius_all(10)
 	box.content_margin_left = 10.0
 	box.content_margin_right = 10.0
@@ -640,6 +642,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_close():
+	# Session UI-5: closing the letter-book is a book closing (the Close button,
+	# Esc and a click on the overlay all arrive here, once; a re-render never does)
+	if visible:
+		AudioManager.play("book_close")
 	hide()
 	panel_closed.emit()
 

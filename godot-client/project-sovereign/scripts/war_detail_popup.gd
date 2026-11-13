@@ -68,79 +68,116 @@ const WAR_BAR_TAG_W := 28.0
 # UXR-X8: the track is a 3-slice whose rounded gold cap is 14 px wide; a tag
 # 3 px in sat under the rim (invisible at 8 px, clipped at 14). Past the cap.
 const WAR_BAR_TAG_INSET := 14.0
-# UXR-2 (the layout law): ANCHORED beside the war-status panel — its width and
-# height fractions of the logical viewport between the authored 330 x 440 and
-# a ceiling, docked a gap left of the war HUD's LIVE left edge, centred in the
-# band under the top bar, then fitted by `Utils.clamp_anchored_panel` (the
-# centre clamp skips an edge-anchored panel, so this was a bare fixed rect
-# whose header went under the top bar on a short logical viewport).
-# PC-F46 (S15 head, October 25, 2026): 0.20 / 0.55 / 600 / 720 left the war's
-# ledger a 352-px text column in a 594-px box at 1920 x 1080, with the peace
-# table (its tier, the table's number, the court-by-court line, the lag note)
-# below the fold; the popup takes 0.24 of the width (to 640) and 0.72 of the
-# height (to 880), and `_render_war_detail` leads with the table.
-# Session UI-4 (November 12, 2026): 0.24 -> 0.28 so the breakdown table and its
-# bars have room (the readers: "narrow and crowded").
-const WIDTH_FRACTION := 0.28
-const HEIGHT_FRACTION := 0.72
+# Session UI-5 (F25, November 12, 2026): the war detail is its own framed
+# WINDOW, no longer a HUD panel docked beside the war list (the readers: "give
+# it its own full-height window"): centred, 46 % of the view's width by 90 % of
+# its height at the full view, the whole view at the compact one (800 x 450 at
+# Interface Scale 2.0). The gilt window frame, a banner at its head.
+const WIDTH_FRACTION := 0.46
+const HEIGHT_FRACTION := 0.90
 const FIT_MIN_WIDTH := 330.0
-const FIT_MAX_WIDTH := 640.0
+const FIT_MAX_WIDTH := 1100.0
 const FIT_MIN_HEIGHT := 440.0
-const FIT_MAX_HEIGHT := 880.0
-const DOCK_GAP := 40.0
-const AUTHORED_RIGHT := 240.0  # the .tscn's offset_right: beside the authored 192-px HUD
+const FIT_MAX_HEIGHT := 1300.0
+# main.gd still hands these two over; a centred window no longer docks or
+# dodges the rail, so they are kept for the call and unused.
 var dock_beside: Control = null
-# Session UI-4 (November 12, 2026): the notice rail (main.gd sets it to the
-# notification bar's rail panel). Shot over the t20 war room, the popup stood
-# under the rail's "Imperial Box" — its close button hidden; it now starts
-# below the rail whenever the rail stands over its columns.
 var avoid_rail: Control = null
+# F25: the banner at the window's head ("war:<Court>"), rebuilt on each fit.
+var _banner: TextureRect = null
+var _banner_surface: String = ""
 
 
 func refit() -> void:
-	"""UXR-2: the popup's rect from the viewport — on every show and on the
-	live-refit road (`DialogManager.refit_visible`)."""
+	"""F25: the window's rect from the viewport — on every show and on the
+	live-refit road (`DialogManager.refit_visible`). Centre-anchored."""
 	var panel: Control = $PanelContainer
 	var view := get_viewport().get_visible_rect().size
-	var right := AUTHORED_RIGHT
-	if dock_beside != null and is_instance_valid(dock_beside) and dock_beside.is_visible_in_tree():
-		right = view.x - dock_beside.get_global_rect().position.x + DOCK_GAP
-	var w := Utils.fraction_px(view.x, WIDTH_FRACTION, FIT_MIN_WIDTH, FIT_MAX_WIDTH,
-			right + Utils.HUD_MARGIN)
-	var band_top := Utils.TOP_BAR_HEIGHT + Utils.HUD_MARGIN
-	panel.remove_meta("clamp_band_top")
-	if avoid_rail != null and is_instance_valid(avoid_rail) and avoid_rail.is_visible_in_tree():
-		var rail := avoid_rail.get_global_rect()
-		if rail.size.x > 0.0 and rail.position.x < view.x - right and rail.end.x > view.x - right - w:
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var compact := Utils.compact_view()
+	var w: float = view.x
+	if not compact:
+		w = minf(clampf(view.x * WIDTH_FRACTION, FIT_MIN_WIDTH, FIT_MAX_WIDTH),
+				view.x - 2.0 * Utils.HUD_MARGIN)
+	var band_top: float = 0.0 if compact else Utils.TOP_BAR_HEIGHT + Utils.HUD_MARGIN
+	# UI-4's rule, kept for the window (the t20 shot: the popup stood under the
+	# rail's Imperial Box, its close button hidden) — the notice rail standing
+	# over the window's columns pushes the window's top below the rail.
+	var rail := _rail_rect()
+	if rail.size != Vector2.ZERO:
+		var left: float = (view.x - w) / 2.0
+		if rail.position.x < left + w and rail.end.x > left:
 			band_top = maxf(band_top, rail.end.y + Utils.HUD_MARGIN)
-			panel.set_meta("clamp_band_top", band_top)
-	var h := Utils.fraction_px(view.y, HEIGHT_FRACTION, FIT_MIN_HEIGHT, FIT_MAX_HEIGHT,
-			band_top + Utils.HUD_MARGIN)
-	# The band [band_top, view.y - margin]'s centre, relative to the panel's
-	# vertical anchor (0.5).
-	var mid := (band_top - Utils.HUD_MARGIN) / 2.0
-	panel.offset_right = -right
-	panel.offset_left = -right - w
-	panel.offset_top = mid - h / 2.0
-	panel.offset_bottom = mid + h / 2.0
-	Utils.clamp_anchored_panel(panel)
-	# The button row is an HFlowContainer: its wrapped height is known only
-	# after the containers sort at the new width, so the first pass can
-	# under-measure the minimum and the panel grows past the band (measured at
-	# 800x450: its header under the top bar). Fit once more after layout.
-	_settle_fit.call_deferred()
+	panel.set_meta("clamp_band_top", band_top)
+	var floor_gap: float = 0.0 if compact else Utils.HUD_MARGIN
+	# The room the view really has (UI-5 review: a floor here pushed the
+	# window's foot off a 450-px compact view) — the minimum applies only
+	# where it still fits.
+	var room: float = maxf(view.y - band_top - floor_gap, 0.0)
+	var h: float = room if compact else minf(clampf(view.y * HEIGHT_FRACTION, FIT_MIN_HEIGHT, FIT_MAX_HEIGHT), room)
+	var top: float = band_top + maxf(0.0, (room - h) / 2.0)
+	# Centre-anchored offsets, measured from the view's middle.
+	panel.offset_left = -w / 2.0
+	panel.offset_right = w / 2.0
+	panel.offset_top = top - view.y / 2.0
+	panel.offset_bottom = top + h - view.y / 2.0
+	_apply_banner(w - 32.0)
 
 
-func _settle_fit() -> void:
-	await get_tree().process_frame
-	if visible and is_instance_valid($PanelContainer):
-		Utils.clamp_anchored_panel($PanelContainer)
+func _rail_rect() -> Rect2:
+	"""The notice rail's rect when it stands on screen (main.gd hands it over as
+	`avoid_rail`), else an empty rect."""
+	var r = avoid_rail
+	if r is Control and is_instance_valid(r) and (r as Control).is_visible_in_tree():
+		return (r as Control).get_global_rect()
+	return Rect2()
+
+
+func _apply_banner(width: float) -> void:
+	"""F25: the opponent's picture at the window's head; absent on the compact
+	view or while no picture exists (the window lays out the same without)."""
+	if _banner != null and is_instance_valid(_banner):
+		_banner.get_parent().remove_child(_banner)
+		_banner.queue_free()
+	_banner = null
+	if _banner_surface == "":
+		return
+	var b := Illustrations.make_banner(_banner_surface, width)
+	if b == null:
+		return
+	# UI-5 interim fix (Nov 13): the picture never takes more than 15 % of the view.
+	var cap_h: float = get_viewport().get_visible_rect().size.y * 0.15
+	if b.custom_minimum_size.y > cap_h:
+		b.custom_minimum_size = Vector2(0, cap_h)
+	var vb := $PanelContainer/VBoxContainer
+	vb.add_child(b)
+	vb.move_child(b, 0)
+	_banner = b
 
 
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
+	# F25: the window frame (the scene's frame at the window weight).
+	$PanelContainer.add_theme_stylebox_override("panel",
+			Utils.gilt_frame(Utils.UI_POPUP_BG, Utils.UI_GOLD, Utils.FRAME_WINDOW, 16.0))
 	hide()
+	# UI-5 interim fix (Nov 13): a dimming backdrop inside this layer, behind the
+	# window; it swallows clicks and a click closes the window as Esc does.
+	background_overlay.visible = false
+	var backdrop := ColorRect.new()
+	backdrop.name = "Backdrop"
+	backdrop.color = Color(0, 0, 0, 0.55)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.gui_input.connect(_on_overlay_input)
+	add_child(backdrop)
+	move_child(backdrop, 0)
 	# Session UI-2: the war's title in the title face, wrapping rather than
 	# clipping a long stake ("WAR FOR ...").
 	header_label.theme_type_variation = &"ScreenTitle"
@@ -243,6 +280,7 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	# STAKE ("WAR FOR BOHEMIA"); the roster rides the first line of the body.
 	var war_title = str(war_data.get("war_title", ""))
 	header_label.text = (war_title.to_upper() if war_title != "" else "WAR WITH " + opponent_display.to_upper())
+	_banner_surface = "war:" + _current_nation
 	_set_header_flag(_current_nation)
 	_clear_score_bars()
 	_add_tug_of_war_bar(
@@ -294,6 +332,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	_current_nation = str(coalition_data.get("leader", ""))
 	_current_mode = "coalition"
 	header_label.text = str(coalition_data.get("name", "COALITION")).to_upper()
+	_banner_surface = "coalition"
 	_set_header_flag("")
 	_clear_score_bars()
 	# Add a tug-of-war bar per coalition member
@@ -325,6 +364,7 @@ func show_armistice(war_data: Dictionary) -> void:
 	# PC-R7 (i) (S13e part 4): the truce is a pause in a war that keeps its title.
 	var truce_title = str(war_data.get("war_title", ""))
 	header_label.text = ((truce_title.to_upper() + " — ARMISTICE WITH ") if truce_title != "" else "ARMISTICE WITH ") + Utils.display_nation_name(_current_nation).to_upper()
+	_banner_surface = "war:" + _current_nation
 	_set_header_flag(_current_nation)
 	_clear_score_bars()
 	_render_armistice_detail(war_data)
@@ -609,6 +649,10 @@ func _render_war_detail(w: Dictionary):
 	var we = w.get("war_exhaustion", null)
 	var breakdown = w.get("breakdown", null)
 
+	# Session UI-5 interim fix (Nov 13): the figures lead and the prose follows
+	# them — the peace table first (PC-F46: the price of peace above the fold),
+	# then the score breakdown, then the lead-in, the summary and the roster.
+	var prose = ""
 	var bbcode = ""
 
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
@@ -617,17 +661,17 @@ func _render_war_detail(w: Dictionary):
 	# ("Fold, a switch restores") — the mark ends the page's first line (the
 	# state summary below); On the page the line prints exactly as it did.
 	var lead_line = "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate opens the table, where every court signs for itself.[/color]\n\n"
-	bbcode += Utils.bb_lead(lead_line, "war.lead")
+	prose += Utils.bb_lead(lead_line, "war.lead")
 	# PC-R7 (i): the stake named, then who (the header carries the title).
 	var title_line = str(w.get("war_title_line", ""))
 	if title_line == "" and Utils.explanations_folded():
-		bbcode += Utils.lead_mark(lead_line, "war.lead").strip_edges(true, false) + "\n\n"
+		prose += Utils.lead_mark(lead_line, "war.lead").strip_edges(true, false) + "\n\n"
 	if title_line != "":
-		bbcode += Utils.humanize_nation_keys_in_text(title_line) + Utils.lead_mark(lead_line, "war.lead") + "\n"
+		prose += Utils.humanize_nation_keys_in_text(title_line) + Utils.lead_mark(lead_line, "war.lead") + "\n"
 		var roster = str(w.get("war_roster_display", w.get("opponent_display", "")))
 		if roster != "":
-			bbcode += "With: " + Utils.humanize_nation_keys_in_text(roster) + "\n"
-		bbcode += "\n"
+			prose += "With: " + Utils.humanize_nation_keys_in_text(roster) + "\n"
+		prose += "\n"
 
 	# PC-F46 (S15 head, October 25, 2026): THE PEACE TABLE LEADS. The screen
 	# says "the price of peace. Negotiate opens the table", and the table —
@@ -682,7 +726,9 @@ func _render_war_detail(w: Dictionary):
 	if tier_display or (peace_table is Dictionary and (tier_display == "" or Utils.show_note(tier_note_id))) or bool(w.get("settlement_draft_kept", false)):
 		bbcode += "\n"
 
-	# Breakdown
+	# Breakdown (UI-5: after the peace table, before the prose)
+	var tier_bb: String = bbcode
+	bbcode = ""
 	if breakdown != null and breakdown is Dictionary:
 		bbcode += "[color=" + COLOR_HEADER + "]Score Breakdown[/color]"
 		# PC-F84 (S13e part 3): the trend, drawn — it was computed on every
@@ -751,6 +797,8 @@ func _render_war_detail(w: Dictionary):
 			if _captive != 0:
 				bbcode += "  Captive:    " + _signed(_captive) + "\n"
 			bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
+
+	bbcode = tier_bb + bbcode + prose
 
 	var objective = w.get("objective", null)
 	if objective != null and objective is Dictionary:

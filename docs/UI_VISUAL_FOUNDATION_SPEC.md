@@ -1142,3 +1142,137 @@ before the column crowds the title; on a 1600-px-wide view the top bar sheds its
 gold-per-turn figure to keep its date; at Interface Scale 2.0 on a 900-px window no screen pins beside the map, the end
 card's tiles and crest stand aside, and the date reads "September 1805" (or the turn alone); the three re-staged
 frames' marks are not comparable to UI-3's, so they are reported apart.
+
+## 13. Session UI-5 — The Full Measure: sound, pictures, Help & Keys, saves ✅ LANDED November 13, 2026
+
+**The ask.** The user: "do full upgrade of sounds, ux and ui leave nothing unturned look online if needed, be throrough
+and dont leave anything open". Plan Mode drafted it with eighteen decisions taken under the delegation, each one switch
+or one line to reverse; the user approved the plan. The sound half's landing record is `MUSIC_SOUND_SPEC.md` §6; the
+rules and settings keys are `SYSTEMS_REFERENCE.md` §216; the pins `tests/test_ui5_full_measure.py` (a headless probe,
+`tools/ui5_probe.gd`, among them) and `tests/test_ui5_backend.py`; before / after pairs `docs/audits/ui_gilt5/`.
+
+**The decisions (the plan's eighteen, as built):** hover ticks on, quiet (one switch); typing ticks on (one switch);
+the window in the background "Quieter" (−12 dB; Play / Quieter / Mute); rests between pieces on; the war rotation
+drops Brandywine and the two fife medleys (the files stay); new music in peace, war, crisis and a court scene; the
+anthem rule (France the attacker → La Marseillaise, France attacked → the opponent's period anthem or the drum
+sting; the Duchy of Warsaw → Dąbrowski; the Marseillaise's anachronism on the record); the campaign end plays the
+Eroica's finale or its funeral march; idle corps named in the End Turn gate (one switch); no minimap; no WASD; the
+pictures toned toward the parchment and the first thing to step aside on a compact view; colour vision Standard by
+default; tooltips Short (0.3 s); toasts for the client's own acts only; named saves, F5 / F9, a leave confirm; key
+remapping for the global hotkeys; one commit through the hook, then the push.
+
+**As built** (the lead landed the shared kit — the sound engine, `keys.gd`, `toast_layer.gd`, `busy_chip.gd`,
+`illustrations.gd`, the settings keys, the colour-vision swap — then eleven sonnet builders on disjoint files, then
+the `main.gd` integrator, then the lead's measure):
+- **The pictures:** 36 public-domain paintings and engravings (`assets/ui/illustrations/`, a 3:1 banner and a 16:9
+  plate each, one warm grade and a soft vignette; every one in `THIRD_PARTY_LICENSES.md`, its hover names the work) on
+  the letters, the Dispatch and the Correspondence, Le Moniteur, the Cabinet, the settlement table, the war detail
+  (its opponent's battle), the enemy phase, the eight decision dialogs, the School of War card and the campaign end
+  (its plate behind the header). A picture never pushes an answer or a cost below the fold: it shrinks first, steps
+  aside under 72 px, and is gone on the compact view; a letter's picture takes only what its words leave.
+- **The readers' levers (§12):** the compact view folds the HUD (the command window to its line and two lines until the
+  player is at the line, the war list to its chip, the notices to a count chip) and H hides every HUD panel; the
+  Cabinet's second step is Assessment beside Actions; the settlement table leads with its table (the head one verdict
+  and the treasury, the rest behind "▸ counsel"; a title row "THE TABLE — <war>"); the war detail is its own framed
+  window behind a dim backdrop (the peace table first, then the score's breakdown, then the prose); Territories grouped
+  by origin with subtotals, a sort and a fold per group; Forces and Manpower lead with figure cards; the tutorial card's
+  one action a gilt primary that says what it does; Settings in titled cards; the pause menu and the load dialog in the
+  title face with gilt buttons; the board's and the report's ASCII marks are the stat glyphs.
+- **The UX features:** the Help & Keys book (`?` / F10, Keys · Terms · Orders, 46 terms); the busy chip; named saves
+  (the save dialog, F5 "Quicksave" with a toast, F9 behind a confirm, Main Menu / Quit ask Save & leave / Leave / Stay,
+  the autosave's toast); toasts; the top bar's figures count to their new value with a floating ± figure; "Show on map"
+  on a notice and ⌖ on an enemy-phase battle; double-click centres a province; edge scroll (off by default); the map-mode
+  chip; the attack card's force bar (ours against the fog's band, the odds word); idle corps in the End Turn gate; the
+  tooltip delay; colour vision (Red-green safe); key remapping; the command history kept (50); the School of War from
+  the pause menu; "Show first-open notes again".
+- **The dropdowns** wear a gold caret (`assets/ui/icons/ui5_caret_down.svg`, self-authored; the theme's
+  `OptionButton/icons/arrow`).
+
+**The interim reading** (three fresh sonnet readers, `tools/ui_rating/READER_PROMPT.md` verbatim, the frozen rubric, on
+the first full shoot): 7 / 7 / 7, mean of the 90 marks 7.11 — UI-4's final figure. One report swapped its F27 and F28
+lines (each described the other's frame) and is set aside by the protocol, never re-mapped: on the two that read as
+labelled the mean is 7.03 (`tools/ui_rating/scores_ui5.py` carries both). What they named was fixed before the final
+reading, by seven sonnet builders on disjoint files and the lead:
+- *the same bivouac on three sheets in a row* (the petition, the memorial, the objection) and a portrait cropped to its
+  eyes in the Cabinet's strip — each surface its own picture, a wide scene in a strip (the Cabinet the Congress of
+  Vienna, the objection a council of war, the petition the court, the correspondence the meeting after Austerlitz); the
+  objection's 48-px sliver (its card measured before its fitter ran) — the eight decision dialogs' banners follow the
+  width they are laid out at and shrink before they step aside, the card centred below the bar;
+- *two "Not now" answers on one letter* — Berthier's memorial's authored refusal was "Not now" beside the letter's own
+  Not Now: it reads "Let the tent serve", as every other affair refuses in its own voice (display copy; struck from the
+  measured identity);
+- *the Cabinet's prices under the scroll bar* — the actions step keeps a right margin as wide as the bar; the shut
+  Congress button one legible line;
+- *the settlement table* — a title row "THE TABLE — <the war>"; the head one verdict and the treasury, the repeated
+  lines behind "▸ counsel";
+- *the war detail over an undimmed HUD* — its own backdrop; the picture capped at 15 % of the view; the peace table
+  first, then the score's breakdown, then the prose;
+- *the folded war list's empty band; the compact command window that never folded* (the boot hands the line its focus,
+  so "unfocused" was never true on the first view) — the window folds until the player clicks or types in the line, and
+  folded it keeps the day's orders row and steps the chest and the levies aside; the chip's bell (its 256-px source drawn
+  bare at the compact view) is the nav glyph's 18 px;
+- *the ledgers* — Forces and Manpower lead with their glance cards; Territories' group header on one line and its
+  supply cell compact ("OK · cap 60k", the sentence its hover); the Economy's empty Note column dropped;
+- *the Generals* — the stray rule and the gap under the portrait gone, the disabled Reward's reason its hover;
+- *the Balance of Europe's crammed caption row; the designs' status chips that looked like buttons; the Nations cards'
+  empty right half* (the facts in two pairs from 820 px of content);
+- *the tutorial card's action "✎ economy"* — "✎ Write "economy" on the command line", and the card ends above the war
+  list; *the enemy phase's faint outcomes* — badges in the urgency's colour; *the end card's strip* — the plate stands
+  behind the header, darkened, the date line in the light ink; *the tableau's faint quotes* lifted; *the envoys' term
+  pills* flat; *the native-looking dropdowns* — a gold caret (`ui5_caret_down.svg`, self-authored).
+
+**What the engine lane caught before the final shoot** (run before the measure — UI-4's trap), each fixed at its
+cause: the settlement table's title row set the window's width at 2.0 (it trims with an ellipsis and steps aside on the
+compact view); the objection's full-width Cancel added a row at 2.0 (on the compact view Cancel joins the three-to-a-row
+grid again); the war detail's figures-first order had put the score's breakdown above the peace table PC-F46 keeps above
+the fold (the peace table leads again); the Cabinet's new right margin narrowed its prose pages and pushed the designs
+page's Proclaim strip below the fold at 2.0 (the margin is the actions step's alone); the Congress row's reason, shown
+always, and the Cabinet's and the table's header pictures pushed the nation list and the courts below the fold on the
+32:9 panel's 800 logical px (the reason stands with the terms open; the header pictures stand on a 900-px view); the
+letters' new picture pushed the armistice's cost below the fold (a letter's picture takes only what its words leave);
+the petition's card grew 68 px and its top slid under the bar (the banner shrinks first); a typed `:=` on an untyped
+read in the war list (the import's census). The full suite then: 2 of 39,750 failed, both the bytecode pins that need
+`PYTHONDONTWRITEBYTECODE` unset (they pass so, as the hook runs them).
+
+**The final shoot, read frame by frame before the readers:** the compact command window still stood half the view
+(folded, the chest and levies step aside), the table's title doubled its war ("— the table with…"), the
+Correspondence's study (a portrait) cut the Emperor at the forehead in its strip, the end card's date line vanished
+over the plate, and the Vassals cards printed "true" under every locked chip — GDScript's `or` answers a bool, never an
+operand (`str(x or y)`); the sweep found no other instance. Each fixed; the scaled run shot again.
+
+**The measure** — the final tree, as UI-4's was measured (`tools/iq10_run_captures.py`, the windows parked off the
+desktop, no input sent; HEAD `970a534c` shot from a `git worktree` with this session's harness): 193 surfaces (UI-4's 188
+and five new — Help & Keys' two tabs, the save dialog, the load dialog, the pause menu) at Interface Scale 1.0 and 2.0
+(386 frames; HEAD 376): 0 `SCRIPT ERROR`; every shot good; buttons off the view 0 (HEAD 0); map overlaps 0 and hidden map
+furniture 102 (HEAD 0 and 102); grip and tick overlaps 0; verdict gaps 12 (HEAD 12); cut lines 92 (HEAD 81) — nineteen
+surfaces gained one and eight lost one, every new one a scroll fold (a long page continuing under its scroll's edge,
+read by eye; no control is cut). Readability RED 0 / P1 0 over 5,315 rows (HEAD's 5,319, RED 0 / P1 0); contrast 0 rows under 4.5 : 1 of 4,263 measured; consistency 0 hits on 145 of 145 surfaces. **The five physical sizes** (965 frames — every surface at 1920x1080, 2560x1440, 3440x1440, 3840x2160 and 5120x1440 at its derived scale): 0 `SCRIPT ERROR`; readability RED 0 / P1 0 over 14,083 rows; contrast 0 of 12,123 under 4.5 : 1; fit 193 of 193 at 1920x1080, 3840x2160 and 5120x1440; map overlaps 0 over 965 map frames. The records `docs/audits/uxr0/readability_after_{all,named}_2026_11_12.json` re-shot under the same names (`client_commit` "970a534c+UI-5").
+
+**The score** — three fresh sonnet readers, the prompt verbatim, the frozen rubric, the same 30 frame ids and the same
+three stagings as UI-4 (pairs `docs/audits/ui_gilt5/`; `tools/ui_rating/scores_ui5.py`): overall **7 / 7 / 7**; the mean
+of the 90 marks 7.11 → **7.07**; the median of the frame medians 7 → 7; all three read as labelled. Six frames rose —
+the Economy 7 → 8, Manpower 7 → 8, the Cabinet's second step 6 → 7, the enemy phase 7 → 8, the petition 7 → 8, the
+objection 7 → 8; nineteen held; five fell — the Generals' two cards 7 → 6 each, the Vassals 8 → 6, the province panel
+7 → 6, the mailbox 8 → 7.
+
+**After the reading, two captions reverted to UI-4's rule.** The interim fix had printed a locked chip's reason as a
+visible line under the Vassals cards' chips and under the province panel's levy chips; the final readers read both as
+clutter ("turn the explanations into tooltips"; the Vassals card fell 8 → 6, the panel 7 → 6). Folded — the user's
+"Fold, a switch restores" — a locked chip is a lock and dim words and its hover says why (UI-4): both captions are gone,
+the reasons stay as each chip's hover (On the page they print as before). The scored frames F12 and F24 are the
+captioned ones; the pairs show the shipped tree; no fresh reading was taken (no reader shopping).
+
+**What holds it at 7 now** (the final readers' own reasons, by theme): dense small prose in many panels — the
+Generals' cards (the ability lines, the orders row below the fold), the province panel's advice, the settlement table's
+prose under its rows, the war detail's paragraph; plain tables and repeated labels; at Interface Scale 2.0 the command
+card still covers about a third of the map and the war chip and the map controls meet the map's labels; on the 32:9
+panel the HUD is small against the canvas; the map's plaques crowd. These are the levers past 7, each the user's to
+rule (§12's method).
+
+**The live walk** (Mode C, `tools/ui5_mode_c_walk.py` — the real `main.tscn` against a sandboxed backend on port 8006,
+the player's 8005 untouched; frames and `walk.json` in `docs/audits/ui5_mode_c_2026_11_13/`): 11 steps, 0 errors, 0 `SCRIPT ERROR`, in 20 s — the boot; an order typed (`Soult, drill`: refused with its reason, Mack one province off); H (every HUD panel hidden but the top bar, the toast saying how to bring them back) and H again; F10 (Help & Keys, the bindings live); F5 (the quicksave and its toast); F9 (the quickload asks first, inside the load dialog's list); the save dialog (the named slot, the quicksave listed with its date, nation and time); Settings → Sound (Now playing with ⏭, the Music Room by situation); the Envoys road (no court wrote on this seed's first morning — the letters are read in the rated frames F21 / F22); the war detail behind its backdrop; Settings → Display (colour vision, the tooltip delay, the first-open notes). It caught one defect, fixed and walked again: the Music Room's long titles clipped mid-word (an ellipsis now, the whole line the row's hover).
+
+**Costs said once:** about 75 MB more audio (50 files) and 13 MB of pictures (72 files); hover and typing ticks can tire some players (one
+switch each); the End Turn gate fires more often with idle corps on the board (one switch); La Marseillaise is an
+anachronism for the Empire, on the record; the compact view keeps the chest and the levies a click away while the
+command window is folded.

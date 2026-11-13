@@ -47,6 +47,7 @@ func show_reward(card: Dictionary):
 	title_label.text = "REWARD MARSHAL " + m_name.to_upper()
 	# Session UI-2: the medal over the header (the Emperor's honours).
 	_arms_row([{"glyph": "medal"}])
+	_set_banner()
 
 	for child in options_container.get_children():
 		child.queue_free()
@@ -215,6 +216,25 @@ func _set_strip(expectation: int, estate_income: int, pension: int, shortfall: i
 		strip.visible = false
 
 
+func _set_banner() -> void:
+	"""Session UI-5: the reward's picture at the head of the card (null — no
+	picture, or the compact view — leaves the card as it was)."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var w: float = maxf(($PanelContainer as Control).size.x, ($PanelContainer as Control).custom_minimum_size.x)
+	if w <= 0.0:
+		w = 480.0
+	var banner: TextureRect = Illustrations.make_banner("reward", w)
+	if banner == null:
+		return
+	banner.custom_minimum_size.y = minf(banner.custom_minimum_size.y, 100.0)
+	vb.add_child(banner)
+	vb.move_child(banner, 0)
+
+
 func _fit_info() -> void:
 	"""Session UI-2: the explainer sizes to its own text (bounded) and the card
 	shrinks to what it holds — after the layout has given it its width."""
@@ -227,6 +247,13 @@ func _fit_info() -> void:
 		Utils.clamp_centered_panel($PanelContainer)
 		return
 	info_label.custom_minimum_size.y = clampf(info_label.get_content_height() + 12.0, 100.0, 260.0)
+	# Session UI-5: the picture steps aside first when the card would not fit
+	var banner := get_node_or_null("PanelContainer/VBoxContainer/Illustration") as Control
+	if banner != null:
+		banner.visible = true
+		var view_h: float = get_viewport().get_visible_rect().size.y
+		if ($PanelContainer as Control).get_combined_minimum_size().y > view_h * 0.94:
+			banner.visible = false
 	Utils.clamp_centered_panel($PanelContainer)
 	Utils.shrink_centered_panel_to_content($PanelContainer)
 

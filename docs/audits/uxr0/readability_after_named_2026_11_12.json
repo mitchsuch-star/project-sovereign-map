@@ -1,6 +1,6 @@
 {
- "date": "2026_11_12",
- "source": "Session UI-4 final physical shoot (the working tree committed as the UI-4 commit; its parent e835f889; the shipped Text size 115 %)",
+ "date": "ui5fin",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\a133039f038d2894\\606e5a91-709d-4098-8d65-8d28121c327a\\scratchpad\\run_ui5fin_phys\\index.json",
  "surfaces": {
   "ledger_boot_forces": {
    "surface": "Strategic Ledger — Forces tab",
@@ -489,10 +489,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 30,
       "map_small": 0
      },
@@ -507,10 +507,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 32,
       "map_small": 0
      },
@@ -525,10 +525,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 32,
       "map_small": 0
      },
@@ -543,10 +543,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 36,
       "map_small": 0
      },
@@ -561,10 +561,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 32,
       "map_small": 0
      },
@@ -584,10 +584,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -602,10 +602,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -620,10 +620,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -638,10 +638,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -656,10 +656,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -679,10 +679,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 30,
       "map_small": 0
      },
@@ -697,10 +697,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 32,
       "map_small": 0
      },
@@ -715,10 +715,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 32,
       "map_small": 0
      },
@@ -733,10 +733,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 36,
       "map_small": 0
      },
@@ -751,10 +751,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 32,
       "map_small": 0
      },
@@ -774,10 +774,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -792,10 +792,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -810,10 +810,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -828,10 +828,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -846,10 +846,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -964,10 +964,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -982,10 +982,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -1000,10 +1000,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -1018,10 +1018,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -1036,10 +1036,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -1048,7 +1048,7 @@
    }
   }
  },
- "client_commit": "e835f889+UI-4",
+ "client_commit": "970a534c+UI-5",
  "physical_scale": "auto",
- "text_size": 1.15
+ "text_size": 1.0
 }

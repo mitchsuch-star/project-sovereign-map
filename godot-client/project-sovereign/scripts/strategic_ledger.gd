@@ -417,6 +417,8 @@ func _render_forces():
 	var folded := Utils.explanations_folded()
 	var table_rows: Array = []
 	var open_cards := ""
+	# Session UI-5 interim fix (Nov 13): the glance card stands above the table.
+	bbcode += _forces_figure_card(muster)
 	for f in muster:
 		var name = str(f.get("name", "?"))
 		var unit_type = str(f.get("type", "infantry"))
@@ -449,7 +451,7 @@ func _render_forces():
 		var badge_tone := ""
 		match status:
 			"broken", "retreating", "captured":
-				badge_tone = "8b2a2a"
+				badge_tone = Utils.cv_hex("8b2a2a")
 			"drilling":
 				badge_tone = "3a4a6b"
 			"idle":
@@ -470,19 +472,19 @@ func _render_forces():
 
 		# Trust + morale with color thresholds
 		var trust_color = Utils.COLOR_INFO
-		var trust_fill = Utils.COLOR_SUCCESS
+		var trust_fill = Utils.cv_hex(Utils.COLOR_SUCCESS)
 		if trust < 30:
-			trust_color = Utils.COLOR_ERROR
-			trust_fill = Utils.COLOR_ERROR
+			trust_color = Utils.cv_hex(Utils.COLOR_ERROR)
+			trust_fill = Utils.cv_hex(Utils.COLOR_ERROR)
 		elif trust < 55:
 			trust_color = Utils.COLOR_ORANGE
 			trust_fill = Utils.COLOR_ORANGE
 
 		var morale_color = Utils.COLOR_INFO
-		var morale_fill = Utils.COLOR_SUCCESS
+		var morale_fill = Utils.cv_hex(Utils.COLOR_SUCCESS)
 		if morale < 40:
-			morale_color = Utils.COLOR_ERROR
-			morale_fill = Utils.COLOR_ERROR
+			morale_color = Utils.cv_hex(Utils.COLOR_ERROR)
+			morale_fill = Utils.cv_hex(Utils.COLOR_ERROR)
 		elif morale < 60:
 			morale_color = Utils.COLOR_ORANGE
 			morale_fill = Utils.COLOR_ORANGE
@@ -579,6 +581,89 @@ func _render_forces():
 	content_area.text = Utils.dress_heads(bbcode)
 
 
+func _forces_figure_card(muster: Array) -> String:
+	"""Session UI-5: the Forces book's foot — the army's composition as ONE bar
+	(foot / horse / guns, a share of the whole) and the corps' states as chips,
+	both read from the corps the payload already lists."""
+	var by_arm := {"foot": 0, "horse": 0, "guns": 0}
+	var states := {}
+	var total := 0
+	for f in muster:
+		var strength: int = int(f.get("strength", 0))
+		var arm := "foot"
+		var unit_type: String = str(f.get("type", "infantry"))
+		if unit_type == "cavalry":
+			arm = "horse"
+		elif unit_type == "artillery":
+			arm = "guns"
+		by_arm[arm] = int(by_arm[arm]) + strength
+		total += strength
+		var status: String = str(f.get("status", "idle"))
+		var word := "Ready"
+		match status:
+			"moving_to", "pursuing", "supporting", "following":
+				word = "On the march"
+			"fortified":
+				word = "Fortified"
+			"drilling":
+				word = "Drilling"
+			"awaiting_decision":
+				word = "Awaiting a decision"
+			"broken", "retreating":
+				word = "Broken"
+			"captured":
+				word = "Captured"
+		states[word] = int(states.get(word, 0)) + 1
+	# Session UI-5 interim fix (Nov 13): palette tones (the meters' own green and
+	# gilt), not the saturated blue.
+	var tones := {"foot": Utils.cv_hex(Utils.COLOR_SUCCESS), "horse": Utils.COLOR_GOLD, "guns": Utils.COLOR_ORANGE}
+	var width := 220 if Utils.compact_view() else 340
+	var out := Utils.card_open()
+	out += Utils.bb_glyph("strength", 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "]THE ARMY AT A GLANCE[/color]  [color=#" + Utils.COLOR_INFO + "]" + _format_number(total) + " men under arms[/color]\n"
+	var bar := ""
+	var legend := ""
+	var spent := 0
+	var arms: Array = ["foot", "horse", "guns"]
+	for i in range(arms.size()):
+		var arm_key: String = str(arms[i])
+		var n: int = int(by_arm[arm_key])
+		var share := 0
+		if total > 0:
+			share = int(round(100.0 * float(n) / float(total)))
+		var w: int = 0
+		if total > 0 and n > 0:
+			w = maxi(1, int(round(float(width) * float(n) / float(total))))
+		if i == arms.size() - 1:
+			w = maxi(0, width - spent) if n > 0 else 0
+		spent += w
+		if w > 0:
+			bar += "[img width=%d height=10 color=#%s]%s[/img]" % [w, str(tones[arm_key]), Utils.SWATCH]
+		var arm_name: String = {"foot": "Foot", "horse": "Horse", "guns": "Guns"}[arm_key]
+		legend += "   " + Utils.bb_glyph(arm_key, 16, str(tones[arm_key])) + " " + arm_name + " " + _format_number(n) + " (" + str(share) + "%)"
+	if total <= 0:
+		bar = Utils.bb_meter(0, 1, width, 10)
+	out += "  " + bar + "\n" + " " + legend + "\n"
+	var chips := ""
+	for word in ["Ready", "On the march", "Fortified", "Drilling", "Awaiting a decision", "Broken", "Captured"]:
+		var count: int = int(states.get(word, 0))
+		if count <= 0:
+			continue
+		var tone := Utils.COLOR_BADGE_QUIET
+		match word:
+			"Fortified":
+				tone = Utils.cv_hex("2f6b3a")
+			"Drilling", "On the march":
+				tone = "3a4a6b"
+			"Broken", "Captured":
+				tone = Utils.cv_hex("8b2a2a")
+			"Awaiting a decision":
+				tone = Utils.COLOR_WARNING
+		chips += Utils.bb_tag(str(count) + " " + word, tone) + "  "
+	out += "  [color=#" + Utils.COLOR_INFO + "]Corps:[/color] " + chips + "\n"
+	out += Utils.CARD_CLOSE + "\n"
+	return out
+
+
 func _ceiling_line(econ: Dictionary, treasury: int) -> String:
 	"""UXR3-41 (Pre-Deploy S12 part 2): the Ceiling line — where the Charges
 	of Empire steer the chest at the rate in force. It LEADS the Economy tab
@@ -659,9 +744,9 @@ func _render_territories():
 		var income = int(t.get("income", 0))
 		var buildings = t.get("buildings", [])
 
-		var stab_fill = Utils.COLOR_SUCCESS
+		var stab_fill = Utils.cv_hex(Utils.COLOR_SUCCESS)
 		if stability < 40:
-			stab_fill = Utils.COLOR_ERROR
+			stab_fill = Utils.cv_hex(Utils.COLOR_ERROR)
 		elif stability < 70:
 			stab_fill = Utils.COLOR_ORANGE
 		var stab_cell = Utils.bb_meter(stability, 100, 56, 7, stab_fill) + " " + str(stability) + "%"
@@ -676,9 +761,9 @@ func _render_territories():
 		# The slice's own test asserted the backend STRING and never the
 		# render — the un-rewritten-sibling class the review round named,
 		# caught by driving the game.
-		var supply_tone = "2f6b3a"
+		var supply_tone = Utils.cv_hex("2f6b3a")
 		if supply_status == "Over capacity":
-			supply_tone = "8b2a2a"
+			supply_tone = Utils.cv_hex("8b2a2a")
 		elif supply_status == "Crowded":
 			supply_tone = Utils.COLOR_WARNING
 		elif supply_status != "OK":
@@ -688,8 +773,13 @@ func _render_territories():
 		# a table cell: the verdict an inline tag, its terms on the cell's second line
 		# Session UI-4 (November 12, 2026): ONE line — the readers saw two-line rows
 		# ("the wrapped city, plains column", "the dash-filled columns waste space").
-		var supply_cell = Utils.bb_tag(supply_status, supply_tone) + " [color=#" + Utils.COLOR_INFO + "](" \
-			+ str(occupants) + _corps_word + _format_number(supply_cap) + ")[/color]"
+		# Session UI-5 interim fix (Nov 13): the chip and a compact cap; the full
+		# sentence rides the cell's hover.
+		var cap_short := (str(int(round(float(supply_cap) / 1000.0))) + "k") if supply_cap >= 1000 else str(supply_cap)
+		var corps_part := (str(occupants) + " corps · ") if occupants > 0 else ""
+		var supply_cell = Utils.bb_hint(Utils.bb_tag(supply_status, supply_tone) + " [color=#" + Utils.COLOR_INFO + "]· " \
+			+ corps_part + "cap " + cap_short + "[/color]",
+			supply_status + " (" + str(occupants) + _corps_word + _format_number(supply_cap) + ")")
 
 		# Buildings
 		var bld_parts = []
@@ -703,19 +793,145 @@ func _render_territories():
 			else:
 				bld_parts.append("[color=#" + Utils.COLOR_BLUE + "]" + bname + " (" + bstatus + ")[/color]")
 
-		rows.append([
-			"[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color] ",
-			"[color=#" + Utils.COLOR_INFO + "]" + rtype.replace("_", " ") + " · " + terrain.replace("_", " ") + "[/color] ",
-			str(income) + "g ",
-			stab_cell + " ",
-			supply_cell + " ",
-			(_format_number(garrison) if garrison > 0 else "—") + " ",
-			(", ".join(bld_parts) if bld_parts.size() > 0 else "—"),
+		rows.append({
+			"name": name, "income": income, "garrison": garrison, "group": _terr_group_key(t, rtype),
+			"cells": [
+				"[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color] ",
+				"[color=#" + Utils.COLOR_INFO + "]" + rtype.replace("_", " ") + " · " + terrain.replace("_", " ") + "[/color] ",
+				str(income) + "g ",
+				stab_cell + " ",
+				supply_cell + " ",
+				(_format_number(garrison) if garrison > 0 else "—") + " ",
+				(", ".join(bld_parts) if bld_parts.size() > 0 else "—"),
+			],
+		})
+
+	# Session UI-5: the provinces in groups — by how each came to be held (the
+	# payload's `origin`: home soil, then the court it was taken from), or by
+	# KIND on a payload without it — each with a subtotal row (count, income,
+	# garrison) that folds its rows, and a sort toggle (income ↓ / name A–Z)
+	# the session remembers.
+	bbcode += _terr_sort_line()
+	var cells: Array = []
+	var first_key := ""
+	for g in _terr_groups(rows):
+		var key: String = str(g[0])
+		var members: Array = []
+		for r in rows:
+			if str(r["group"]) == key:
+				members.append(r)
+		if members.is_empty():
+			continue
+		if first_key == "":
+			first_key = key
+		if _terr_sort == "name":
+			members.sort_custom(func(a, b): return str(a["name"]) < str(b["name"]))
+		else:
+			members.sort_custom(func(a, b): return int(a["income"]) > int(b["income"]) or (int(a["income"]) == int(b["income"]) and str(a["name"]) < str(b["name"])))
+		var sum_income := 0
+		var sum_garrison := 0
+		for r in members:
+			sum_income += int(r["income"])
+			sum_garrison += int(r["garrison"])
+		var is_open: bool = bool(_terr_open.get(key, key == first_key))
+		var fold_link := "[url=terr:fold:" + key + "]" \
+			+ Utils.bb_hint("[color=#" + Utils.COLOR_GOLD + "]" + ("▾ " if is_open else "▸ ") + str(g[1]) + "[/color]", ("Fold" if is_open else "Open") + " the " + str(g[1]).to_lower() + " group.") + "[/url]"
+		cells.append([
+			"[b]" + fold_link + "[/b]",
+			"[color=#" + Utils.COLOR_INFO + "]" + str(members.size()) + (" province" if members.size() == 1 else " provinces") + "[/color]",
+			"[b]" + str(sum_income) + "g[/b] ",
+			"", "",
+			"[b]" + (_format_number(sum_garrison) if sum_garrison > 0 else "—") + "[/b] ",
+			"",
 		])
+		if is_open:
+			for r in members:
+				cells.append(r["cells"])
 	bbcode += Utils.bb_table(["Province", "Kind", "Income", "Stability", "Supply", "Garrison", "Buildings"],
-		rows, [2, 5], [3, 5, 2, 4, 7, 2, 5], _table_px()) + "\n"
+		cells, [2, 5], [3, 5, 2, 4, 7, 2, 5], _table_px()) + "\n"
 
 	content_area.text = Utils.dress_heads(bbcode)
+
+
+# Session UI-5: the territory groups, in the order they read (key, heading).
+const _TERR_GROUPS := [
+	["seat", "Capital and great cities"],
+	["city", "Cities"],
+	["town", "Towns"],
+	["rural", "Countryside"],
+]
+
+var _terr_sort: String = "income"
+var _terr_open: Dictionary = {}
+
+
+func _terr_group_of(rtype: String) -> String:
+	match rtype:
+		"capital", "major_city":
+			return "seat"
+		"city":
+			return "city"
+		"rural":
+			return "rural"
+	return "town"
+
+
+func _terr_group_key(t: Dictionary, rtype: String) -> String:
+	"""A row's group: by origin when the payload carries it ("home", the court
+	it was taken from, "" = none recorded), else by kind."""
+	if t.has("origin"):
+		var origin: String = str(t.get("origin", ""))
+		if origin == "home":
+			return "home"
+		return ("from:" + origin) if origin != "" else "other"
+	return _terr_group_of(rtype)
+
+
+func _terr_groups(rows: Array) -> Array:
+	"""[key, heading] in reading order for the rows at hand: home soil first,
+	then each court's provinces (the largest share first), then the rest; or
+	the kinds, for a payload without origins."""
+	var by_origin := false
+	var counts := {}
+	for r in rows:
+		var key: String = str(r["group"])
+		counts[key] = int(counts.get(key, 0)) + 1
+		if key == "home" or key == "other" or key.begins_with("from:"):
+			by_origin = true
+	if not by_origin:
+		return _TERR_GROUPS
+	var out: Array = []
+	if counts.has("home"):
+		out.append(["home", "Home"])   # one line in the Province column (UI-5 interim fix)
+	var courts: Array = []
+	for key in counts.keys():
+		if str(key).begins_with("from:"):
+			courts.append(str(key))
+	courts.sort_custom(func(a, b): return int(counts[a]) > int(counts[b]) or (int(counts[a]) == int(counts[b]) and a < b))
+	for key in courts:
+		out.append([key, "Taken from " + Utils.display_nation_name(str(key).substr(5))])
+	if counts.has("other"):
+		out.append(["other", "Other lands"])
+	return out
+
+
+func _terr_first_group_key() -> String:
+	var rows: Array = []
+	for t in cached_data.get("territories", []):
+		if t is Dictionary:
+			rows.append({"group": _terr_group_key(t, str(t.get("region_type", "town")))})
+	for g in _terr_groups(rows):
+		return str(g[0])
+	return ""
+
+
+func _terr_sort_line() -> String:
+	var line := "[color=#" + Utils.COLOR_INFO + "]Sort:[/color] "
+	for opt in [["income", "Income ↓"], ["name", "Name A–Z"]]:
+		var on: bool = _terr_sort == str(opt[0])
+		line += Utils.bb_button_chip("terr:sort:" + str(opt[0]), str(opt[1]),
+			Utils.COLOR_GOLD if on else Utils.COLOR_INFO, _NAVAL_CHIP_BG) + " "
+	return line + "\n\n"
 
 
 func _econ_row(rows: Array, label: String, amount, note: String = "", counts: bool = true, tone: String = "", sub: bool = false) -> void:
@@ -785,6 +1001,17 @@ func _econ_table(rows: Array, subtotal: bool, subtotal_label: String) -> String:
 		cells.append(_econ_cells({"label": subtotal_label, "amount": total, "note": "", "counts": true, "tone": ""}, true))
 	for r in outside:
 		cells.append(_econ_cells(r))
+	# Session UI-5 interim fix (Nov 13): the Note column goes when every note is empty.
+	var any_note := false
+	for c in cells:
+		if str(c[2]) != "":
+			any_note = true
+			break
+	if not any_note:
+		var slim: Array = []
+		for c in cells:
+			slim.append([c[0], c[1]])
+		return Utils.bb_table(["Line", "Gold"], slim, [1], [ECON_COLS[0], ECON_COLS[1]], _table_px()) + "\n"
 	return Utils.bb_table(["Line", "Gold", "Note"], cells, [1], ECON_COLS, _table_px()) + "\n"
 
 
@@ -1163,7 +1390,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		# Session UI-2: the readiness on a meter and the posture as a badge — the
 		# fleet's header row; its words are unchanged.
 		bbcode += "  " + Utils.bb_meter(int(fleet.get("readiness", 0)), 100, 120, 8) + "  " \
-			+ Utils.bb_badge("BLOCKADE" if posture == "blockade" else "GUARD", "8b2a2a" if posture == "blockade" else "3a4a6b")
+			+ Utils.bb_badge("BLOCKADE" if posture == "blockade" else "GUARD", Utils.cv_hex("8b2a2a") if posture == "blockade" else "3a4a6b")
 		bbcode += "\n  Posture: " + posture_line + "\n"
 		# DDB-61: what stops the rot, when she rots.
 		var rot = str(fleet.get("rot_line", ""))
@@ -1431,7 +1658,7 @@ func _render_laws_tab():
 		bbcode += "\n" + Utils.card_open() + Utils.bb_glyph("cabinet", 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "][b]" + str(row.get("name", "")) + "[/b][/color]"
 		match row_status:
 			"in_force":
-				bbcode += "  " + Utils.bb_badge("IN FORCE", "2f6b3a")
+				bbcode += "  " + Utils.bb_badge("IN FORCE", Utils.cv_hex("2f6b3a"))
 			"lapsed":
 				bbcode += "  " + Utils.bb_badge("LAPSED", "8a6d2a")
 			"refused":
@@ -1514,7 +1741,7 @@ func _render_intel():
 			var vis_label = ""
 			match evis:
 				"full":
-					vis_tone = "2f6b3a"
+					vis_tone = Utils.cv_hex("2f6b3a")
 					vis_label = "confirmed"
 				"partial":
 					vis_tone = "3a4a6b"
@@ -1523,7 +1750,7 @@ func _render_intel():
 					vis_tone = "8a6d2a"
 					vis_label = "stale"
 				"last_known":
-					vis_tone = "8b2a2a"
+					vis_tone = Utils.cv_hex("8b2a2a")
 					vis_label = "last known"
 
 			sighted.append(["[color=#" + Utils.COLOR_GOLD + "]" + ename + "[/color] ",
@@ -1572,6 +1799,7 @@ func _render_manpower():
 
 	# Session UI-2: the cost note is the same sentence for every arm of a levy —
 	# it is said ONCE under the pools; a pool whose note differs keeps its own.
+	bbcode += _manpower_figure_card(mp)
 	var shared_note := ""
 	var notes_agree := true
 	for pool_type in ["infantry", "cavalry", "artillery"]:
@@ -1649,6 +1877,45 @@ func _render_manpower():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]Every arm's levy: " + shared_note + "[/color]\n"
 
 	content_area.text = Utils.dress_heads(bbcode)
+
+
+func _manpower_figure_card(mp: Dictionary) -> String:
+	"""Session UI-5: the Manpower book's foot — all three pools on one gauge
+	against their caps, the regrowth a turn and the turns to refill, every
+	figure from the pools' own payload ("—" where nothing regrows)."""
+	var cur_sum := 0
+	var max_sum := 0
+	var regen_sum := 0
+	var refill := 0
+	var stuck := false
+	var width := 200 if Utils.compact_view() else 320
+	for pool_type in ["infantry", "cavalry", "artillery"]:
+		var pool: Dictionary = mp.get(pool_type, {})
+		var current: int = int(pool.get("current", 0))
+		var cap: int = int(pool.get("max", 0))
+		var regen: int = int(pool.get("regen_rate", 0))
+		var turns: int = int(pool.get("turns_until_full", 0))
+		cur_sum += current
+		max_sum += cap
+		regen_sum += regen
+		if turns > 0:
+			refill = maxi(refill, turns)
+		elif turns < 0:
+			stuck = true
+	# Session UI-5 interim fix (Nov 13): no per-arm rows — the three arm cards say them.
+	var out := Utils.card_open()
+	out += Utils.bb_glyph("strength", 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "]THE LEVY AT A GLANCE[/color]\n"
+	out += "  " + Utils.bb_meter(cur_sum, maxi(max_sum, 1), width, 10) + "  " + _format_number(cur_sum) + " / " + _format_number(max_sum) + " men in the pools\n"
+	var refill_text := "—"
+	if cur_sum >= max_sum and max_sum > 0:
+		refill_text = "full"
+	elif regen_sum > 0 and not stuck:
+		refill_text = str(refill) + " turns"
+	elif regen_sum > 0:
+		refill_text = "— (an arm does not regrow)"
+	out += "  Regrowth: [color=#" + Utils.COLOR_GOLD + "]+" + _format_number(regen_sum) + "/turn[/color]   To refill: [color=#" + Utils.COLOR_GOLD + "]" + refill_text + "[/color]\n"
+	out += Utils.CARD_CLOSE + "\n"
+	return out
 
 
 func _render_orders():
@@ -1865,6 +2132,17 @@ func _on_meta_clicked(meta):
 		_rerender_in_place()
 		return
 	var meta_str = str(meta)
+	# Session UI-5: the Territories' sort toggle and group folds.
+	if meta_str.begins_with("terr:sort:"):
+		_terr_sort = meta_str.trim_prefix("terr:sort:")
+		_rerender_in_place()
+		return
+	if meta_str.begins_with("terr:fold:"):
+		var gkey: String = meta_str.trim_prefix("terr:fold:")
+		var was_open: bool = bool(_terr_open.get(gkey, _terr_first_group_key() == gkey))
+		_terr_open[gkey] = not was_open
+		_rerender_in_place()
+		return
 	if meta_str.begins_with("cancel:"):
 		var marshal_name = meta_str.substr(7)
 		if not cancel_order_requested.get_connections().is_empty():

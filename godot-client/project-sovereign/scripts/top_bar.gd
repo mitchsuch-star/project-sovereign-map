@@ -166,16 +166,7 @@ func _ready():
 	# PC15-18: name the focus-safe hotkey form. The bare letter works only
 	# while the command line is unfocused (typing must type); Alt+<key>
 	# works even mid-sentence (main.gd _on_command_input_gui_input).
-	for sname in HOTKEY_HINTS:
-		var key: String = HOTKEY_HINTS[sname]
-		# IQ10-X1: the tooltip names the SCREEN too, because in the compact
-		# bar the button's own text is gone and the icon is all that shows.
-		var screen_title: String = button_map[sname].text.split(" (")[0]
-		var tip := screen_title + " — " + key + ", or Alt+" + key + " while typing"
-		if SECOND_HOTKEYS.has(sname):
-			var second: String = SECOND_HOTKEYS[sname]
-			tip += " (Alt+%s where a graphics overlay keeps Alt+%s)" % [second, key]
-		button_map[sname].tooltip_text = tip
+	refresh_key_hints()
 
 	# Apply normal style to all buttons
 	for btn in button_map.values():
@@ -283,6 +274,58 @@ func _ready():
 	_threat_pulse_timer.wait_time = 0.5
 	_threat_pulse_timer.timeout.connect(_on_threat_pulse)
 	add_child(_threat_pulse_timer)
+
+
+# Session UI-5 (D12): the hint letters follow the player's key bindings.
+const HOTKEY_ACTIONS := {
+	"event_log": "event_log", "ledger": "ledger", "generals": "generals",
+	"diplomatic_ledger": "diplomacy", "dispatch": "dispatch", "gazette": "moniteur",
+}
+
+
+var _turn_tip_base: String = ""
+
+
+func _apply_turn_tip() -> void:
+	var k: String = _hotkey_for("dispatch")
+	turn_label.tooltip_text = _turn_tip_base + "\nClick — the morning dispatch (press %s, or Alt+%s or Alt+B while you type)" % [k, k]
+	if _turn_figure != null:
+		_turn_figure.get_parent().tooltip_text = turn_label.tooltip_text
+
+
+func _threat_tooltip() -> String:
+	var k: String = _hotkey_for("diplomatic_ledger")
+	return THREAT_TOOLTIP.replace("press D, then 3; Alt+D, then Alt+3", "press %s, then 3; Alt+%s, then Alt+3" % [k, k])
+
+
+func _hotkey_for(sname: String) -> String:
+	var fallback: String = str(HOTKEY_HINTS.get(sname, ""))
+	if not HOTKEY_ACTIONS.has(sname):
+		return fallback
+	var named: String = Keys.key_name(str(HOTKEY_ACTIONS[sname]))
+	return named if named != "" else fallback
+
+
+func refresh_key_hints() -> void:
+	"""Rebuild every nav tooltip from the live bindings (main.gd calls this
+	again after a rebind)."""
+	for sname in HOTKEY_HINTS:
+		if not button_map.has(sname):
+			continue
+		var key: String = _hotkey_for(sname)
+		# IQ10-X1: the tooltip names the SCREEN too, because in the compact
+		# bar the button's own text is gone and the icon is all that shows.
+		var btn_node: Button = button_map[sname]
+		if not btn_node.has_meta("screen_title"):
+			btn_node.set_meta("screen_title", btn_node.text.split(" (")[0])
+		var screen_title: String = str(btn_node.get_meta("screen_title"))
+		var tip := screen_title + " — " + key + ", or Alt+" + key + " while typing"
+		if SECOND_HOTKEYS.has(sname):
+			var second: String = SECOND_HOTKEYS[sname]
+			tip += " (Alt+%s where a graphics overlay keeps Alt+%s)" % [second, key]
+		btn_node.tooltip_text = tip
+	if turn_label != null and _turn_tip_base != "":
+		_apply_turn_tip()
 
 
 func set_api_client(client):
@@ -590,10 +633,9 @@ func update_turn(turn_number: int, calendar_label: String = ""):
 		_turn_figure.text = str(int(turn_number)) if calendar_label != "" else ""
 		_turn_figure.get_parent().visible = calendar_label != ""
 	var turn_tip := "Turn " + str(int(turn_number)) + ((" — " + calendar_label) if calendar_label != "" else "")
-	turn_label.tooltip_text = turn_tip + "\nClick — the morning dispatch (press R, or Alt+R or Alt+B while you type)"
+	_turn_tip_base = turn_tip
+	_apply_turn_tip()
 	_queue_fit_right()
-	if _turn_figure != null:
-		_turn_figure.get_parent().tooltip_text = turn_label.tooltip_text
 
 
 func _open_screen(screen_name: String):
@@ -727,12 +769,93 @@ static func _threat_words(threat: int) -> String:
 	return "%d" % threat
 
 
+func _show_threat_figure(threat: int) -> void:
+	_show_figure("threat", threat, threat_label)
+
+
+# ═══ Session UI-5 (D5): the figures count to their new value ═══════════════
+# The treasury, DP, authority and threat count over 0.6 s and a small "+250" /
+# "−80" floats up from the figure and fades. Reduce motion: the figure changes
+# at once and the delta shows briefly without moving. The first fill of a
+# campaign (boot, load) has no delta — `reset_figure_deltas()` forgets the
+# standing values when the world is swapped.
+const FIGURE_COUNT_SECONDS := 0.6
+const FIGURE_DELTA_SECONDS := 1.1
+var _fig_target: Dictionary = {}
+var _fig_tween: Dictionary = {}
+var _dp_max: int = 3
+var _treasury_shown: int = 0
+var _authority_shown: int = 0
+
+
+func reset_figure_deltas() -> void:
+	_fig_target.clear()
+
+
+func _tick_figure(v: float, key: String) -> void:
+	var n: int = int(round(v))
+	match key:
+		"gold":
+			_treasury_shown = n
+			_refresh_treasury_text()
+		"dp":
+			dp_label.text = "%d/%d" % [n, _dp_max]
+		"authority":
+			_authority_shown = n
+			_refresh_authority_text()
+		"threat":
+			threat_label.text = _threat_words(n)
+
+
+func _show_figure(key: String, value: int, anchor: Control) -> void:
+	var first: bool = not _fig_target.has(key)
+	var old: int = int(_fig_target.get(key, value))
+	_fig_target[key] = value
+	var running = _fig_tween.get(key)
+	if running is Tween and (running as Tween).is_valid():
+		(running as Tween).kill()
+	_fig_tween.erase(key)
+	if first or old == value or anchor == null or not anchor.is_visible_in_tree():
+		_tick_figure(float(value), key)
+		return
+	if UiSettings.get_reduce_motion():
+		_tick_figure(float(value), key)
+	else:
+		var tw: Tween = create_tween()
+		tw.tween_method(_tick_figure.bind(key), float(old), float(value), FIGURE_COUNT_SECONDS)
+		_fig_tween[key] = tw
+	_float_delta(anchor, value - old, key == "threat")
+
+
+func _float_delta(anchor: Control, delta: int, rise_is_bad: bool) -> void:
+	var good: bool = (delta > 0) != rise_is_bad
+	var chip := Label.new()
+	chip.theme_type_variation = &"Caption"
+	chip.text = ("+" if delta > 0 else "−") + Utils.format_number(absi(delta))
+	chip.add_theme_color_override("font_color", Utils.cv(Utils.UI_SCORE_POSITIVE) if good else Utils.cv(Utils.UI_SCORE_NEGATIVE_TEXT))
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.top_level = true
+	add_child(chip)
+	var origin: Vector2 = anchor.get_global_rect().position + Vector2(0, anchor.size.y)
+	chip.global_position = origin
+	var tw: Tween = chip.create_tween()
+	if UiSettings.get_reduce_motion():
+		tw.tween_interval(FIGURE_DELTA_SECONDS)
+	else:
+		tw.set_parallel(true)
+		tw.tween_property(chip, "global_position:y", origin.y + 6.0, FIGURE_DELTA_SECONDS).from(origin.y + 16.0)
+		tw.tween_property(chip, "modulate:a", 0.0, FIGURE_DELTA_SECONDS).set_delay(FIGURE_DELTA_SECONDS * 0.4)
+		tw.set_parallel(false)
+	tw.tween_callback(chip.queue_free)
+
+
 func update_diplomatic_fields(data: Dictionary):
 	"""Update all diplomatic top bar fields from /test poll data."""
 	# DP counter
 	var dp = int(data.get("diplomatic_points", 0))
 	var dp_max = int(data.get("max_diplomatic_points", 3))
-	dp_label.text = str(dp) + "/" + str(dp_max)
+	_dp_max = dp_max
+	_show_figure("dp", dp, dp_label)
 	dp_label.tooltip_text = DP_TOOLTIP % [dp, dp_max]
 
 	# AU-1: the Authority chip, from the one key every base response carries.
@@ -744,12 +867,13 @@ func update_diplomatic_fields(data: Dictionary):
 	var brewing = data.get("coalition_brewing", false)
 	_set_threat_gauge(threat)
 	if threat < 30:
+		_show_figure("threat", threat, null)
 		threat_label.visible = false
 		_stop_threat_pulse()
 	elif threat < 60:
 		threat_label.visible = true
-		threat_label.text = _threat_words(threat)
-		threat_label.tooltip_text = THREAT_TOOLTIP
+		_show_threat_figure(threat)
+		threat_label.tooltip_text = _threat_tooltip()
 		threat_label.add_theme_color_override("font_color", Utils.UI_WARNING)
 		if brewing:
 			_start_threat_pulse()
@@ -757,8 +881,8 @@ func update_diplomatic_fields(data: Dictionary):
 			_stop_threat_pulse()
 	else:
 		threat_label.visible = true
-		threat_label.text = _threat_words(threat)
-		threat_label.tooltip_text = THREAT_TOOLTIP
+		_show_threat_figure(threat)
+		threat_label.tooltip_text = _threat_tooltip()
 		threat_label.add_theme_color_override("font_color", Utils.UI_ALERT_TEXT)
 		if brewing:
 			_start_threat_pulse()
@@ -840,6 +964,7 @@ func _group(name: String, glyph_name: String, figure: Control, opens: Callable) 
 	box.add_child(_glyph(glyph_name))
 	box.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			AudioManager.play("click")
 			opens.call())
 	box.mouse_entered.connect(func(): box.modulate = Color(1.12, 1.08, 0.98))
 	box.mouse_exited.connect(func(): box.modulate = Color(1, 1, 1))
@@ -942,6 +1067,7 @@ func _wire_figure(figure: Control, opens: Callable) -> void:
 	_pointer_controls.append(figure)   # the pointing hand once the bar is laid out
 	figure.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			AudioManager.play("click")
 			opens.call())
 
 
@@ -951,6 +1077,7 @@ func update_treasury(gold: int, net: int, has_net: bool = true) -> void:
 	_treasury_gold = int(gold)
 	_treasury_net = int(net)
 	_has_treasury = bool(has_net)
+	_show_figure("gold", _treasury_gold, treasury_label)
 	_refresh_treasury_text()
 	_queue_fit_right()
 
@@ -959,13 +1086,14 @@ func _refresh_treasury_text() -> void:
 	if treasury_label == null:
 		return
 	var gold_words := Utils.format_number(_treasury_gold)
+	var shown_words := Utils.format_number(_treasury_shown)
 	if not _has_treasury:
-		treasury_label.text = gold_words
+		treasury_label.text = shown_words
 		treasury_label.tooltip_text = TREASURY_TOOLTIP % [gold_words, "nothing yet"]
 		return
 	var sign := "+" if _treasury_net >= 0 else "\u2212"
 	var net_words := sign + Utils.format_number(absi(_treasury_net))
-	treasury_label.text = gold_words if _fit_step >= 2 else gold_words + "  " + net_words
+	treasury_label.text = shown_words if _fit_step >= 2 else shown_words + "  " + net_words
 	treasury_label.tooltip_text = TREASURY_TOOLTIP % [gold_words, net_words]
 	treasury_label.get_parent().tooltip_text = treasury_label.tooltip_text
 
@@ -1111,7 +1239,7 @@ func update_authority_chip(payload) -> void:
 		colour = Utils.UI_GOLD
 	authority_chip.add_theme_color_override("font_color", colour)
 	authority_chip.tooltip_text = _authority_tooltip(payload)
-	_refresh_authority_text()
+	_show_figure("authority", value, authority_chip)
 
 
 func _authority_tooltip(payload: Dictionary) -> String:
@@ -1146,8 +1274,7 @@ func _refresh_authority_text() -> void:
 	if _authority_payload.is_empty():
 		authority_chip.text = "—"
 		return
-	var value := int(_authority_payload.get("value", 0))
-	authority_chip.text = "%d" % value
+	authority_chip.text = "%d" % _authority_shown
 
 
 var _current_envoy_count: int = 0
@@ -1441,7 +1568,7 @@ func _fit_bar():
 			# The glyph alone, at its own width (EA-E1) — or the hotkey letter
 			# where no glyph loaded, so the bar never shows a blank square.
 			btn.icon = glyph
-			btn.text = "" if glyph != null else str(HOTKEY_HINTS.get(sname, ""))
+			btn.text = "" if glyph != null else _hotkey_for(sname)
 		else:
 			btn.icon = null
 			btn.text = str(_nav_full_text.get(sname, btn.text))

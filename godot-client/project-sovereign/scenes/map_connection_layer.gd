@@ -49,6 +49,6 @@ func _draw():
 			continue
 		# A small fouled anchor: ring + shank + stock — unmistakable at map
 		# scale and colorblind-safe by shape.
-		draw_arc(glyph_pos, GLYPH_RADIUS, 0.0, TAU, 16, GLYPH_COLOR, 2.0, true)
-		draw_line(glyph_pos + Vector2(0, -GLYPH_RADIUS - 4), glyph_pos + Vector2(0, GLYPH_RADIUS - 2), GLYPH_COLOR, 2.0)
-		draw_line(glyph_pos + Vector2(-4, -GLYPH_RADIUS - 2), glyph_pos + Vector2(4, -GLYPH_RADIUS - 2), GLYPH_COLOR, 2.0)
+		draw_arc(glyph_pos, GLYPH_RADIUS, 0.0, TAU, 16, Utils.cv(GLYPH_COLOR), 2.0, true)
+		draw_line(glyph_pos + Vector2(0, -GLYPH_RADIUS - 4), glyph_pos + Vector2(0, GLYPH_RADIUS - 2), Utils.cv(GLYPH_COLOR), 2.0)
+		draw_line(glyph_pos + Vector2(-4, -GLYPH_RADIUS - 2), glyph_pos + Vector2(4, -GLYPH_RADIUS - 2), Utils.cv(GLYPH_COLOR), 2.0)

@@ -70,7 +70,102 @@ func _ready():
 
 func _on_viewport_size_changed() -> void:
 	if visible:
+		_apply_fold()
 		_fit_panel_to_content()
+
+
+# Session UI-5 (F03, November 12, 2026): at the compact view (Interface Scale
+# 2.0: 800 x 450) the war list starts FOLDED to its header chip ("⚔ 3 wars ▾")
+# so the HUD does not cover the map; a click opens it, a click folds it again.
+# The reader's own choice is kept until the view leaves the compact size.
+var _chip: Button = null
+var _folded: bool = true
+var _fold_chosen: bool = false
+var _hidden_by_fold: Array = []
+var _war_count: int = 0
+var _was_compact: bool = false
+# A war id the panel has not shown before sounds the drum once; the first
+# fill (a loaded game's standing wars) is only recorded, never sounded.
+var _seen_war_ids: Dictionary = {}
+var _first_fill_done: bool = false
+
+
+func _note_new_wars(wars: Array) -> void:
+	var fresh := false
+	var ids: Array = []
+	for w in wars:
+		if not (w is Dictionary):
+			continue
+		if str(w.get("status", "")) != "war":
+			continue
+		var wid: String = str(w.get("war_instance_id", ""))
+		if wid == "":
+			wid = "opp:" + str(w.get("opponent", ""))
+		ids.append(wid)
+	for wid in ids:
+		if not _seen_war_ids.has(wid):
+			_seen_war_ids[wid] = true
+			fresh = true
+	if fresh and _first_fill_done:
+		AudioManager.play("drum_sting")
+	_first_fill_done = true
+
+
+func _ensure_chip() -> void:
+	if _chip != null and is_instance_valid(_chip):
+		return
+	_chip = Button.new()
+	_chip.name = "FoldChip"
+	_chip.theme_type_variation = &"CaptionButton"
+	_chip.custom_minimum_size = Vector2(0, 28)
+	_chip.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_chip.tooltip_text = "The war list — click to open or fold it."
+	_give_row_chrome(_chip)
+	_chip.pressed.connect(_on_chip_pressed)
+	vbox.add_child(_chip)
+	vbox.move_child(_chip, 0)
+
+
+func _on_chip_pressed() -> void:
+	_folded = not _folded
+	_fold_chosen = true
+	_apply_fold()
+	_fit_panel_to_content()
+
+
+func _is_folded_to_chip() -> bool:
+	return _folded and Utils.compact_view() and _chip != null \
+			and is_instance_valid(_chip) and _chip.visible
+
+
+func _apply_fold() -> void:
+	"""The compact view's fold: every child but the chip hidden while folded;
+	off the compact view the chip is gone and the list is whole."""
+	var compact := Utils.compact_view()
+	if compact and not _was_compact:
+		_folded = true
+		_fold_chosen = false
+	_was_compact = compact
+	_ensure_chip()
+	# Restore what a previous fold hid before deciding again.
+	for id in _hidden_by_fold:
+		var node := instance_from_id(int(id)) as Control
+		if node != null and is_instance_valid(node):
+			node.visible = true
+	_hidden_by_fold.clear()
+	_chip.visible = compact
+	if not compact:
+		header_label.visible = true
+		return
+	header_label.visible = false
+	_chip.text = ("⚔ " + str(_war_count) + (" war" if _war_count == 1 else " wars")
+			+ ("  ▾" if _folded else "  ▴"))
+	if _folded:
+		for c in vbox.get_children():
+			if c == _chip or not (c is Control) or not (c as Control).visible:
+				continue
+			(c as Control).visible = false
+			_hidden_by_fold.append(c.get_instance_id())
 
 
 func _add_panel_grain() -> void:
@@ -98,13 +193,19 @@ func _add_panel_grain() -> void:
 func update_wars(data: Dictionary) -> void:
 	"""Rebuild the entire panel from active_wars data."""
 	# Clear existing cards (keep header)
+	_hidden_by_fold.clear()
 	for child in vbox.get_children():
-		if child != header_label:
+		if child != header_label and child != _chip:
 			vbox.remove_child(child)
 			child.queue_free()
 
 	var wars = data.get("wars", [])
 	var foreign_wars = data.get("foreign_wars", [])
+	_note_new_wars(wars if wars is Array else [])
+	_war_count = 0
+	for w0 in wars:
+		if w0 is Dictionary and str(w0.get("status", "")) == "war":
+			_war_count += 1
 	# AI-6c (§4.6b): Europe's own wars keep the panel alive even when
 	# France herself is at peace — that is exactly when they matter.
 	if wars.is_empty() and foreign_wars.is_empty():
@@ -146,6 +247,7 @@ func update_wars(data: Dictionary) -> void:
 		for fw in foreign_wars:
 			_add_foreign_war_row(fw)
 
+	_apply_fold()
 	show()
 	_fit_panel_to_content()
 
@@ -197,6 +299,14 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 		# slack. The top margin is the grip's: its hatch sits in the corner's
 		# padding, never on the header (UXR3-F4, Pre-Deploy S12 part 2).
 		h = clampf(vbox.get_combined_minimum_size().y + 18.0, MIN_HEIGHT, maxf(cap, MIN_HEIGHT))
+		# Session UI-5 interim fix (Nov 13): folded to its chip, the panel is
+		# the chip's own height (plus the frame's margins), no empty band.
+		if _is_folded_to_chip():
+			var sb: StyleBox = panel_container.get_theme_stylebox("panel")
+			var pad: float = 18.0
+			if sb != null:
+				pad = sb.get_margin(SIDE_TOP) + sb.get_margin(SIDE_BOTTOM)
+			h = _chip.get_combined_minimum_size().y + pad
 	var right_inset := EDGE_MARGIN + (view.x - band.y)
 	panel_container.offset_right = -right_inset
 	panel_container.offset_left = -right_inset - w
@@ -697,11 +807,11 @@ static func build_score_track(score: int, opponent: String, width: float, track_
 	figure.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	figure.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if score > 0:
-		figure.add_theme_color_override("font_color", Utils.UI_SCORE_POSITIVE)
+		figure.add_theme_color_override("font_color", Utils.cv(Utils.UI_SCORE_POSITIVE))
 	elif score < 0:
 		# the alert red for words and figures (UI_SCORE_NEGATIVE_TEXT is the
 		# caption red: 3.0 : 1 here, under the body floor)
-		figure.add_theme_color_override("font_color", Utils.UI_ALERT_TEXT)
+		figure.add_theme_color_override("font_color", Utils.cv(Utils.UI_ALERT_TEXT))
 	else:
 		figure.add_theme_color_override("font_color", Utils.UI_SCORE_NEUTRAL)
 	medal.add_child(figure)
@@ -724,7 +834,7 @@ static func _anchor_bar_child(node: Control, a_left: float, a_right: float, o_le
 
 func _get_score_color(score: int) -> Color:
 	if score > 0:
-		return COLOR_GREEN
+		return Utils.cv(COLOR_GREEN)
 	elif score < 0:
-		return Utils.UI_SCORE_NEGATIVE_TEXT   # the score is text (S12)
+		return Utils.cv(Utils.UI_SCORE_NEGATIVE_TEXT)   # the score is text (S12)
 	return COLOR_WHITE

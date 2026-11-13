@@ -6756,7 +6756,7 @@ class CombatExecutor:
                              f"taken.")
                         ),
                         turn_created=int(getattr(world, "current_turn", 0)),
-                        details={"marshal": marshal.name},
+                        details={"marshal": marshal.name, "region": str(marshal.location or "")},
                     ))
                 except Exception as exc:
                     _errors.report(exc, "combat_executor.CombatExecutor._check_marshal_fate: import backend.notifications")
@@ -6822,7 +6822,7 @@ class CombatExecutor:
                         f"decide his fate before he is taken."
                     ),
                     turn_created=int(getattr(world, "current_turn", 0)),
-                    details={"marshal": marshal.name},
+                    details={"marshal": marshal.name, "region": str(marshal.location or "")},
                 ))
             except Exception as exc:
                 _errors.report(exc, "combat_executor.CombatExecutor._check_marshal_fate: import backend.notifications #2")
@@ -11478,6 +11478,10 @@ class CombatExecutor:
             "events": [{
                 "type": "battle",
                 "battle_name": ctx.battle_name,
+                # Session UI-5: where it was fought — the enemy phase's
+                # "⌖ <place>" link pans the map there (display only; the
+                # auto-kill event above has carried it since ER-1).
+                "location": getattr(ctx, "battle_region_name", "") or "",
                 "attacker": ctx.battle_result["attacker"],
                 "defender": ctx.battle_result["defender"],
                 # Side nations so the enemy-phase dialog can color the outcome

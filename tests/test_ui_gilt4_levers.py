@@ -183,7 +183,8 @@ class TestTheCommandWindow:
         the rail's corner at 1600 x 900 — the rail stands aside for a covering
         screen as the war HUD does; a pinned screen is not a covering one."""
         main = _read(SCRIPTS / "main.gd")
-        assert ("notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open())"
+        # Session UI-5: and while the HUD is hidden (H) the rail stands aside too.
+        assert ("notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open() or _hud_hidden)"
                 in _func(main, "_update_war_panel_visibility"))
 
     def test_the_folded_help_stands_whole_at_2_0(self):

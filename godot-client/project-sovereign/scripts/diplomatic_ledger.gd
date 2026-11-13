@@ -384,7 +384,7 @@ func _format_bloc_stamp(stamp) -> String:
 	var stamp_color = Utils.COLOR_INFO
 	match kind:
 		"coalition":
-			stamp_color = COLOR_RED
+			stamp_color = Utils.cv_hex(COLOR_RED)
 		"proper_bloc":
 			stamp_color = Utils.COLOR_COMMAND
 		"descriptive_bloc":
@@ -403,9 +403,27 @@ func _fact_label(glyph_name: String, words: String) -> String:
 	return Utils.bb_glyph(glyph_name, 16, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_INFO + "]" + words + "[/color]"
 
 
-func _facts_table(rows: Array) -> String:
+func _facts_table(rows: Array, wide := false) -> String:
 	if rows.is_empty():
 		return ""
+	# Session UI-5 interim fix (Nov 13): `wide` (a content area of 820 px or more: two label/value pairs need ~760) sets
+	# the rows in two label/value column pairs, so a card does not leave its right
+	# half empty. Rows keep their order: the first half down the left, the rest
+	# down the right.
+	if wide and rows.size() >= 4:
+		var half: int = int(ceil(rows.size() / 2.0))
+		var out2 := "[table=4]"
+		for i in range(half):
+			var left: Array = rows[i]
+			out2 += "[cell bg=#%s,#%s padding=6,2,10,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(left[0])]
+			out2 += "[cell expand=1 bg=#%s,#%s padding=6,2,18,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(left[1])]
+			if i + half < rows.size():
+				var right: Array = rows[i + half]
+				out2 += "[cell bg=#%s,#%s padding=6,2,10,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(right[0])]
+				out2 += "[cell expand=1 bg=#%s,#%s padding=6,2,6,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(right[1])]
+			else:
+				out2 += "[cell padding=6,2,10,2] [/cell][cell expand=1 padding=6,2,6,2] [/cell]"
+		return out2 + "[/table]\n"
 	var out := "[table=2]"
 	for r in rows:
 		out += "[cell bg=#%s,#%s padding=6,2,10,2]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(r[0])]
@@ -503,7 +521,12 @@ func _balance_figures(boe: Dictionary, projection) -> String:
 	if boe.has("dissolution_threat_threshold"):
 		parts.append(Utils.bb_glyph("stability", 18) + " " + Utils.HEAD_OPEN + "<" + str(int(boe.get("dissolution_threat_threshold", 20))) + Utils.HEAD_CLOSE
 			+ " [color=#" + Utils.COLOR_INFO + "]dissolves below[/color]")
-	return gap.join(PackedStringArray(parts)) + "\n"
+	# Session UI-5 interim fix (Nov 13): the figures stand two to a line (they ran
+	# four across and crammed); the figures and words are unchanged.
+	var lines: Array = []
+	for i in range(0, parts.size(), 2):
+		lines.append(gap.join(PackedStringArray(parts.slice(i, i + 2))))
+	return "\n".join(PackedStringArray(lines)) + "\n"
 
 
 
@@ -756,7 +779,7 @@ func _render_nations():
 			if exposure_row_line != "":
 				facts.append([_fact_label("defense", "Exposure: "), "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]"])
 
-		bbcode += _facts_table(facts)
+		bbcode += _facts_table(facts, content_area != null and int(content_area.size.x) >= 820)
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor) — each tie
 		# a state badge, the temper in words after it.
@@ -771,16 +794,16 @@ func _render_nations():
 				var ar_tone = Utils.COLOR_BADGE_QUIET
 				match ar_state:
 					"WAR":
-						ar_tone = "8b2a2a"
+						ar_tone = Utils.cv_hex("8b2a2a")
 					"ALLIANCE", "DEFENSIVE_ALLIANCE":
-						ar_tone = "2f6b3a"
+						ar_tone = Utils.cv_hex("2f6b3a")
 					"NON_AGGRESSION", "OPEN_BORDERS":
 						ar_tone = "3a4a6b"
 				var ar_desc_color = Utils.COLOR_INFO
 				if ar_relation > 0:
 					ar_desc_color = Utils.COLOR_SUCCESS
 				elif ar_relation < 0:
-					ar_desc_color = COLOR_RED
+					ar_desc_color = Utils.cv_hex(COLOR_RED)
 				ai_parts.append(Utils.display_nation_name(ar_nation) + " " + Utils.bb_badge(Utils.display_diplo_state(ar_state), ar_tone) + " — [color=#" + ar_desc_color + "]" + ar_descriptor + " (" + str(ar_relation) + ")[/color]")
 			bbcode += "  AI Relations: " + "   ".join(PackedStringArray(ai_parts)) + "\n"
 
@@ -788,8 +811,8 @@ func _render_nations():
 		var war_score = n.get("war_score_breakdown")
 		if court_open and war_score != null and war_score is Dictionary:
 			var total = int(war_score.get("total", 0))
-			var ws_color = Utils.COLOR_SUCCESS if total > 0 else (COLOR_RED if total < 0 else Utils.COLOR_INFO)
-			var ws_tone = "2f6b3a" if total > 0 else ("8b2a2a" if total < 0 else Utils.COLOR_BADGE_QUIET)
+			var ws_color = Utils.COLOR_SUCCESS if total > 0 else (Utils.cv_hex(COLOR_RED) if total < 0 else Utils.COLOR_INFO)
+			var ws_tone = Utils.cv_hex("2f6b3a") if total > 0 else (Utils.cv_hex("8b2a2a") if total < 0 else Utils.COLOR_BADGE_QUIET)
 			var ws_sign = "+" if total > 0 else ""
 			bbcode += "  War Score: " + Utils.bb_badge(ws_sign + str(total), ws_tone) + "  ("
 			var ws_parts = []
@@ -801,7 +824,7 @@ func _render_nations():
 			for ws_key in ws_keys:
 				var ws_val = int(war_score.get(ws_key, 0))
 				var comp_sign = "+" if ws_val > 0 else ""
-				var comp_color = Utils.COLOR_SUCCESS if ws_val > 0 else (COLOR_RED if ws_val < 0 else Utils.COLOR_INFO)
+				var comp_color = Utils.COLOR_SUCCESS if ws_val > 0 else (Utils.cv_hex(COLOR_RED) if ws_val < 0 else Utils.COLOR_INFO)
 				ws_parts.append(ws_key.capitalize() + " [color=#" + comp_color + "]" + comp_sign + str(ws_val) + "[/color]")
 			bbcode += ", ".join(PackedStringArray(ws_parts)) + ")\n"
 
@@ -1147,7 +1170,9 @@ func _designs_block(designs) -> String:
 					hold_cell += " [color=#" + Utils.COLOR_INFO + "]" + hold_text.replace("[", "[lb]") + "[/color]"
 			elif not folded and hold_text != "":
 				hold_cell = "[color=#" + Utils.COLOR_INFO + "]" + hold_text.replace("[", "[lb]") + "[/color]"
-			design_rows.append([title_cell, meter_cell, hold_cell, Utils.bb_tag(tag_text, tone)])
+			# Session UI-5 interim fix (Nov 13): the status is a FLAT badge (ink in
+			# its tone, no ground, no rim) - the filled "Open" block read as a button.
+			design_rows.append([title_cell, meter_cell, hold_cell, "[color=#" + tone + "]" + tag_text + "[/color]"])
 		if not design_rows.is_empty():
 			out += Utils.bb_table(["Design", "Progress", "Hold", "Status"], design_rows, [], [5, 5, 2, 1], float(_balance_width()) - 16.0) + "\n"
 		out += Utils.CARD_CLOSE
@@ -1180,9 +1205,9 @@ func _render_balance_of_europe():
 		"MODERATE":
 			tier_color = COLOR_AMBER
 		"HIGH":
-			tier_color = COLOR_RED
+			tier_color = Utils.cv_hex(COLOR_RED)
 		"CRITICAL":
-			tier_color = COLOR_RED
+			tier_color = Utils.cv_hex(COLOR_RED)
 			_start_critical_pulse()
 		_:
 			tier_color = Utils.COLOR_INFO
@@ -1204,7 +1229,7 @@ func _render_balance_of_europe():
 		gauge_forms = int(gauge_proj.get("instant_threshold", 80))
 	var bar_color = Utils.COLOR_SUCCESS
 	if threat_level >= 60:
-		bar_color = COLOR_RED
+		bar_color = Utils.cv_hex(COLOR_RED)
 	elif threat_level >= 30:
 		bar_color = COLOR_AMBER
 	# Session UI-4 (November 12, 2026): the three blind readers scored this page
@@ -1280,7 +1305,7 @@ func _render_balance_of_europe():
 	match headline_case:
 		"ACTIVE_COALITION":
 			var leader = Utils.display_nation_name(str(boe.get("coalition_leader", "")))
-			bbcode += "[color=#" + COLOR_RED + "]Coalition declared"
+			bbcode += "[color=#" + Utils.cv_hex(COLOR_RED) + "]Coalition declared"
 			if leader != "":
 				bbcode += " under " + leader
 			bbcode += ".[/color]\n\n"
@@ -1318,7 +1343,7 @@ func _render_balance_of_europe():
 			if s is Dictionary:
 				var s_display = str(s.get("display", str(s)))
 				var s_amount = int(s.get("amount", 0))
-				var s_color = COLOR_RED if s_amount > 0 else (Utils.COLOR_SUCCESS if s_amount < 0 else Utils.COLOR_INFO)
+				var s_color = Utils.cv_hex(COLOR_RED) if s_amount > 0 else (Utils.COLOR_SUCCESS if s_amount < 0 else Utils.COLOR_INFO)
 				source_tags.append(Utils.bb_tag(s_display.replace("[", "(").replace("]", ")"), s_color))
 			else:
 				source_tags.append(Utils.bb_tag(str(s).replace("[", "(").replace("]", ")"), Utils.COLOR_INFO))
@@ -1343,7 +1368,7 @@ func _render_balance_of_europe():
 				var lstatus = str(lrow.get("status", ""))
 				var lcolor = Utils.COLOR_INFO
 				if lstatus == "joins" or lstatus == "refuses" or bool(lrow.get("out_of_time", false)):
-					lcolor = COLOR_RED
+					lcolor = Utils.cv_hex(COLOR_RED)
 				elif lstatus == "bound":
 					lcolor = COLOR_AMBER
 				bbcode += "  • [color=#" + lcolor + "]" + str(lrow.get("text", "")) + "[/color]\n"
@@ -1392,7 +1417,7 @@ func _render_balance_of_europe():
 		var c_name = Utils.humanize_nation_keys_in_text(str(active_coalition.get("name", "Unknown")))
 		var c_leader = Utils.display_nation_name(str(active_coalition.get("leader", "?")))
 		var c_posture = str(active_coalition.get("posture", "defensive"))
-		bbcode += "  [color=#" + COLOR_RED + "]ACTIVE: " + c_name + " — Leader: " + c_leader + ", Posture: " + c_posture.capitalize() + "[/color]\n"
+		bbcode += "  [color=#" + Utils.cv_hex(COLOR_RED) + "]ACTIVE: " + c_name + " — Leader: " + c_leader + ", Posture: " + c_posture.capitalize() + "[/color]\n"
 		bbcode += "  Combined Strength: " + str(active_coalition.get("combined_strength_display", "Unknown")) + "\n\n"
 
 		# Per-member block — Session UI-2: a table (court, strength, exhaustion)
@@ -1561,7 +1586,7 @@ func _render_talleyrand():
 			var au_sign = "+" if bp_auth > 0 else ""
 			bbcode += " + Authority " + au_sign + str(bp_auth)
 		if bp_cap != 0:
-			bbcode += " + Capital [color=#" + COLOR_RED + "]" + str(bp_cap) + "[/color]"
+			bbcode += " + Capital [color=#" + Utils.cv_hex(COLOR_RED) + "]" + str(bp_cap) + "[/color]"
 		# NP-5 THE SEAT (N11): the Emperor holds court in the capital.
 		var bp_seat = int(dp_breakdown.get("seat_bonus", 0))
 		if bp_seat != 0:
@@ -1614,7 +1639,7 @@ func _render_talleyrand():
 			if relation_delta > 0:
 				arrow_color = Utils.COLOR_SUCCESS
 			elif relation_delta < 0:
-				arrow_color = COLOR_RED
+				arrow_color = Utils.cv_hex(COLOR_RED)
 			if initial_desc != current_desc:
 				mission_facts.append([_fact_label("intel", ""), "[color=#" + arrow_color + "]" + initial_desc + " → " + current_desc + " (" + delta_str + ", " + str(m_duration) + " turns)[/color]"])
 			else:
@@ -1707,7 +1732,7 @@ func _render_talleyrand():
 		rel_color = COLOR_AMBER
 	else:
 		rel_desc = "Treacherous"
-		rel_color = COLOR_RED
+		rel_color = Utils.cv_hex(COLOR_RED)
 	var rel_sign = "+" if reliability > 0 else ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]DIPLOMATIC RELIABILITY[/color]\n"
 	bbcode += "  Reliability: [color=#" + rel_color + "]" + rel_sign + str(reliability) + " (" + rel_desc + ")[/color]  " + Utils.bb_relation_meter(reliability, 110, 7) + "\n\n"
@@ -1734,7 +1759,7 @@ func _render_talleyrand():
 				if h_type != "?" and "accept" in h_type.to_lower():
 					h_color = Utils.COLOR_SUCCESS
 				elif h_type != "?" and ("war" in h_type.to_lower() or "break" in h_type.to_lower()):
-					h_color = COLOR_RED
+					h_color = Utils.cv_hex(COLOR_RED)
 				var h_text = h_type.replace("_", " ").capitalize()
 				if h_target:
 					h_text += " — " + h_target
@@ -1817,9 +1842,9 @@ func _format_bargain_entry(b: Dictionary) -> String:
 		"triggered":
 			status_tone = "8a6d2a"
 		"fulfilled":
-			status_tone = "2f6b3a"
+			status_tone = Utils.cv_hex("2f6b3a")
 		"breached":
-			status_tone = "8b2a2a"
+			status_tone = Utils.cv_hex("8b2a2a")
 	entry += "  " + Utils.bb_flag(str(b.get("promiser", "")), 16) + " [color=#" + Utils.COLOR_GOLD + "][b]" + promiser + " → " + beneficiary + "[/b][/color]"
 	entry += "  " + Utils.bb_badge(status.to_upper(), status_tone) + "\n"
 	var bargain_facts: Array = []
@@ -2266,11 +2291,23 @@ func _vassal_action_parts(a: Dictionary, v: Dictionary) -> Array:
 			return [Utils.bb_button_chip(meta, face, chip_text, chip_bg, "", label + " — " + terms), ""]
 		return [Utils.bb_button_chip(meta, label, chip_text, chip_bg),
 			"    [color=#" + Utils.COLOR_INFO + "]" + label + " — " + terms + "[/color]\n"]
-	var reason = str(a.get("disabled_reason", ""))
+	# Session UI-5: the payload's display reason first, then its raw one — the
+	# locked chip's hover (folded) and its stated line (On the page).
+	# (GDScript's `or` answers a bool, never an operand: `str(x or y)` read
+	# "true" on every locked chip — the final shoot's catch.)
+	var reason := ""
+	for reason_key in ["disabled_reason_display", "disabled_reason"]:
+		var said = a.get(reason_key)
+		if said is String and said != "":
+			reason = said
+			break
 	var gated: String = label + " — unavailable"
 	if reason != "":
 		gated += ": " + reason
 	if Utils.explanations_folded():
+		# Folded, a locked chip is a lock and dim words; its hover says why
+		# (UI-4's rule — the final reading read a visible caption per locked
+		# chip as clutter: the Vassals card fell 8 -> 6).
 		return [Utils.bb_chip_disabled(label, "", gated), ""]
 	return [Utils.bb_chip_disabled(label), "    [color=#" + Utils.COLOR_INFO + "]" + gated + "[/color]\n"]
 
@@ -2307,9 +2344,9 @@ static func congress_stance_tone(stance: String) -> String:
 	"""Session UI-2: the stance badge's ground (the same reading as the ink)."""
 	match stance:
 		"RECOGNIZES", "SIGNED":
-			return "2f6b3a"
+			return Utils.cv_hex("2f6b3a")
 		"REFUSES":
-			return "8b2a2a"
+			return Utils.cv_hex("8b2a2a")
 		"SUES":
 			return "8a6d2a"
 		"SHUT OUT":
@@ -2776,7 +2813,7 @@ func _format_settlement_sections(sections) -> String:
 				var detail = str(w.get("detail", ""))
 				var warn_color = Utils.COLOR_INFO
 				if sev == "HARD_STOP":
-					warn_color = COLOR_RED
+					warn_color = Utils.cv_hex(COLOR_RED)
 				bbcode += "      [color=#" + warn_color + "]• [" + sev.replace("_", " ") + "] " + code
 				if detail != "":
 					bbcode += " — " + detail

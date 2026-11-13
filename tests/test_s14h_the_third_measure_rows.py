@@ -10903,6 +10903,12 @@ class TestS14GX74:
         "scale_card.gd": "a settings card: never touches the command line",
         "war_detail_popup.gd": "a non-modal read: never touches the command line",
         "main_menu.gd": "the main menu's settings view, before any campaign",
+        # Session UI-5 (November 12, 2026): five more, each classified.
+        "codex_view.gd": "Help & Keys: main.gd's ladder closes it first and releases the empty line",
+        "save_dialog.gd": "a save dialog: main.gd's ladder closes it first and releases the empty line",
+        "load_dialog.gd": "Esc answers its own Load? card, then closes it: a world swap follows a load",
+        "settings_panel.gd": "a key being rebound: Esc cancels the capture, never touches the command line",
+        "keys.gd": "the binding registry: Esc is RESERVED (it never names it as a key to bind)",
     }
     POPUP_BASE_ROADS = {
         "proclamation_popup.gd": ("proclamation_popup.dismissed.connect(_on_proclamation_dismissed)",
@@ -10972,7 +10978,10 @@ class TestS14GX74:
     def test_the_ladders_own_release_is_untouched(self):
         """The first pass's rungs still close-then-release."""
         ladder = _r16_func(_r16_gd("main.gd"), "_escape_closes_topmost")
-        assert ladder.count("_release_empty_line()") == 5
+        # Session UI-5 re-rules 5 -> 7: two new rungs (Help & Keys, the save
+        # dialog) close-then-release as the first pass's rungs do.
+        assert ladder.count("_release_empty_line()") == 7
+        assert ladder.index("codex.close()") < ladder.index("save_dialog.close()")
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -20270,10 +20279,10 @@ class TestS14GX68:
                        "var rect := term.get_global_rect()",
                        "var card_left := view.x + _card.offset_left",
                        "if rect.end.x + Utils.HUD_MARGIN <= card_left:",
-                       "return minf(view.y, rect.position.y)"):
+                       "return minf(limit, rect.position.y)"):  # Session UI-5 interim fix (Nov 13): the limit starts from the war panel's (F04)
             assert needle in body, needle
-        # absent / hidden / disjoint -> the viewport's bottom
-        assert body.count("return view.y") == 2
+        # absent / hidden / disjoint -> the war-panel-bounded limit (the viewport bottom when that panel is clear)
+        assert body.count("return limit") == 2 and "_war_panel_limit(view, view.y)" in body
 
     def test_the_card_follows_the_window_through_a_setter(self):
         setter = self.SRC[self.SRC.index("var avoid_terminal: Control = null:"):

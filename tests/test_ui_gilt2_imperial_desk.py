@@ -427,5 +427,7 @@ class TestTheCompactViewAndTheInCellTag:
         sheet = _func(_read(SCRIPTS / "marshal_management.gd"), "_render_card")
         assert "Utils.bb_tag(unit_type, arm_tone)" in sheet
         ledger = _read(SCRIPTS / "strategic_ledger.gd")
-        assert "var supply_cell = Utils.bb_tag(supply_status, supply_tone)" in ledger
+        # Session UI-5 interim fix (Nov 13): still an inline tag, now inside the cell's
+        # hover (the compact "OK · cap 60k"; the full sentence rides the hint).
+        assert "var supply_cell = Utils.bb_hint(Utils.bb_tag(supply_status, supply_tone)" in ledger
         assert "Utils.bb_tag(vis_label, vis_tone)])" in ledger

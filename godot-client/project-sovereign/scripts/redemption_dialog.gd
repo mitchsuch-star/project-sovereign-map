@@ -45,6 +45,9 @@ func _ready():
 	settle_button.custom_minimum_size = autonomy_button.custom_minimum_size
 	settle_button.visible = false
 	settle_button.pressed.connect(_on_settle_pressed)
+	# Session UI-5: each course has its own cue (the global click stays out).
+	for b in [settle_button, autonomy_button, admin_button, dismiss_button]:
+		b.set_meta("no_click_sfx", true)
 	var _column = autonomy_button.get_parent()
 	_column.add_child(settle_button)
 	_column.move_child(settle_button, 0)
@@ -58,12 +61,14 @@ func show_redemption(redemption_data: Dictionary):
 	print("  Data: ", redemption_data)
 
 	current_marshal = redemption_data.get("marshal", "Marshal")
+	AudioManager.play("letter_open")
 
 	# Set marshal name header
 	marshal_name_label.text = "%s REQUESTS AUDIENCE" % current_marshal.to_upper()
 	# Session UI-2: the trust glyph over the header — a marshal's loyalty is
 	# what is asked.
 	_arms_row([{"glyph": "trust"}])
+	_set_banner()
 
 	# Set message
 	var message = redemption_data.get("message", "Our relationship has broken down, Sire. Something must change.")
@@ -133,23 +138,47 @@ func refit() -> void:
 
 func _on_settle_pressed():
 	"""FA-D5: the player pays him — the executor prices and gates it."""
+	AudioManager.play("coins_small")
 	hide()
 	choice_made.emit("settle_account")
 
 func _on_autonomy_pressed():
 	"""Player grants marshal autonomy."""
+	AudioManager.play("quill_sign")
 	hide()
 	choice_made.emit("grant_autonomy")
 
 func _on_admin_pressed():
 	"""Player transfers marshal to administrative role."""
+	AudioManager.play("quill_flick")
 	hide()
 	choice_made.emit("administrative_role")
 
 func _on_dismiss_pressed():
 	"""Player dismisses the marshal."""
+	AudioManager.play("back")
 	hide()
 	choice_made.emit("dismiss")
+
+
+func _set_banner() -> void:
+	"""Session UI-5: the redemption's picture at the head of the sheet; it steps
+	aside on the compact view (make_banner returns null there)."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var old: Node = vb.get_node_or_null("Illustration")
+	if old != null:
+		vb.remove_child(old)
+		old.queue_free()
+	var w: float = maxf(panel_container.size.x, panel_container.custom_minimum_size.x)
+	if w <= 0.0:
+		w = 440.0
+	var banner: TextureRect = Illustrations.make_banner("redemption", w)
+	if banner == null:
+		return
+	# up to four arms stand below: the picture is capped so none falls off
+	banner.custom_minimum_size.y = minf(banner.custom_minimum_size.y, 110.0)
+	vb.add_child(banner)
+	vb.move_child(banner, 0)
 
 
 func _arms_row(parts: Array) -> void:

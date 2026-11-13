@@ -43,6 +43,7 @@ signal main_menu_requested  # the Fall: Main Menu · the Peace: Retire to the Tu
 const FONT_ENGRAVED := "res://assets/fonts/Cinzel[wght].ttf"
 const FONT_VOICE := "res://assets/fonts/IMFeENrm28P.ttf"
 const FONT_VOICE_ITALIC := "res://assets/fonts/IMFeENit28P.ttf"
+const PLATE_DIM := 0.68  # Session UI-5: the end plate behind the header, darkened 68 % so the title and the date read
 
 # The register owns the colours, the sound and the buttons. Hex strings are
 # bbcode colours (Utils.bbcode_color); Colors paint the panel.
@@ -125,6 +126,8 @@ var _font_voice_italic: Font = null
 # Session UI-2: THE RECORD's figure strip, pinned between the cause and the
 # reading (the sentences stay in the reading, under it).
 var _strip: Control = null
+# Session UI-5: the end plate over the record (null on the compact view).
+var _plate: TextureRect = null
 
 
 func _ready():
@@ -206,8 +209,15 @@ func show_ending(payload: Dictionary) -> void:
 	var style: Dictionary = REGISTER_STYLE[_register]
 	_apply_style(style)
 	claim_cue(AudioManager.play(str(style["cue"])))  # UX23-R1: leaves with the card
+	# Session UI-5: the ending's music, once over the card (the verdict is silent).
+	match _register:
+		"imperial_peace", "decisive_peace":
+			AudioManager.play_music_once("triumph")
+		"fall", "humbled_peace":
+			AudioManager.play_music_once("lament")
 	_ensure_crest()
 	_ensure_strip()
+	_ensure_plate()
 	_render(style)
 	_arm_buttons(style)
 	show()
@@ -226,7 +236,7 @@ func show_ending(payload: Dictionary) -> void:
 func _ensure_crest() -> void:
 	"""Session UI-2: the Empire's eagle over the verdict (PD)."""
 	var vb := $PanelContainer/VBoxContainer
-	if vb.has_node("Crest"):
+	if vb.find_child("Crest", true, false) != null:
 		return
 	var crest := TextureRect.new()
 	crest.name = "Crest"
@@ -251,6 +261,69 @@ func _ensure_strip() -> void:
 	_strip.name = "RecordStrip"
 	vb.add_child(_strip)
 	vb.move_child(_strip, vb.get_node("HSeparator").get_index() + 1)
+
+
+func _ensure_header() -> PanelContainer:
+	"""Session UI-5 interim fix (Nov 13, F26): the header block (eagle, title,
+	date line, subtitle) stands in ONE container, so the end plate can lie behind
+	all of it. Built once; the four nodes keep their order."""
+	var vb := $PanelContainer/VBoxContainer
+	var header := vb.get_node_or_null("Header") as PanelContainer
+	if header != null:
+		return header
+	header = PanelContainer.new()
+	header.name = "Header"
+	header.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var inner := VBoxContainer.new()
+	inner.name = "HeaderBox"
+	inner.add_theme_constant_override("separation", 8)
+	header.add_child(inner)
+	vb.add_child(header)
+	vb.move_child(header, 0)
+	for n in [vb.find_child("Crest", false, false), title_label, date_label, cause_label]:
+		if n == null:
+			continue
+		n.get_parent().remove_child(n)
+		inner.add_child(n)
+	return header
+
+
+func _ensure_plate() -> void:
+	"""Session UI-5: the end plate - the 16:9 picture of the register's ending,
+	darkened, full width BEHIND the header block (the title reads over it). It
+	steps aside on the compact view, as the crest does, and is rebuilt each
+	time the card rises."""
+	var header := _ensure_header()
+	if _plate != null and is_instance_valid(_plate):
+		if _plate.get_parent() != null:
+			_plate.get_parent().remove_child(_plate)
+		_plate.free()
+	_plate = null
+	# The date line's authored grey reads on the card's own ground; over the
+	# plate it takes the light ink (the final shoot's read: grey on the
+	# painting all but vanished).
+	if date_label != null and not date_label.has_meta("authored_ink"):
+		date_label.set_meta("authored_ink", date_label.get_theme_color("font_color"))
+	if date_label != null:
+		date_label.add_theme_color_override("font_color", date_label.get_meta("authored_ink"))
+	if _compact_card():
+		return
+	var path: String = Illustrations.for_surface("campaign_end:" + _register, "plate")
+	if path == "" or not ResourceLoader.exists(path):
+		return
+	if date_label != null:
+		date_label.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
+	_plate = TextureRect.new()
+	_plate.name = "EndPlate"
+	_plate.texture = load(path)
+	_plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_plate.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_plate.mouse_filter = Control.MOUSE_FILTER_PASS
+	_plate.tooltip_text = Illustrations.credit_for_path(path)
+	# Darkened under the title (the plate is a backdrop, not a picture to read).
+	_plate.modulate = Color.WHITE.darkened(PLATE_DIM)
+	header.add_child(_plate)
+	header.move_child(_plate, 0)
 
 
 func _record_tiles(summary: Dictionary) -> Array:
@@ -360,7 +433,7 @@ func _render(style: Dictionary) -> void:
 		# strip does; the crest, an ornament, steps aside with it.
 		if _compact_card():
 			_strip.visible = false
-	var crest := get_node_or_null("PanelContainer/VBoxContainer/Crest") as Control
+	var crest := $PanelContainer/VBoxContainer.find_child("Crest", true, false) as Control
 	if crest != null:
 		crest.visible = not _compact_card()
 

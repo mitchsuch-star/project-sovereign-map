@@ -287,7 +287,7 @@ func _draw() -> void:
 		pts.append(_ghost_cursor_local)
 	if pts.size() < 2:
 		return
-	var color: Color = GHOST_COLORS.get(_ghost_kind, GHOST_COLORS["march"])
+	var color: Color = Utils.cv(GHOST_COLORS.get(_ghost_kind, GHOST_COLORS["march"]))
 	draw_polyline(pts, GHOST_SHADOW, GHOST_WIDTH + 3.0, true)
 	for i in range(pts.size() - 1):
 		draw_dashed_line(pts[i], pts[i + 1], color, GHOST_WIDTH, GHOST_DASH, true, true)
@@ -354,7 +354,7 @@ func _draw_arrows() -> void:
 		var a: Dictionary = geo["arrow"]
 		var pts: PackedVector2Array = geo["pts"]
 		var kind := "halted" if bool(a.get("halted", false)) else str(a.get("kind", "march"))
-		var color: Color = ARROW_COLORS.get(kind, ARROW_COLORS["march"])
+		var color: Color = Utils.cv(ARROW_COLORS.get(kind, ARROW_COLORS["march"]))
 		var marshal := str(geo["marshal"])
 		if _arrow_dimmed and marshal != _arrow_focus:
 			color.a *= ARROW_DIM

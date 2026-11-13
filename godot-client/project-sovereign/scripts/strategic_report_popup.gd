@@ -15,23 +15,38 @@ signal dismissed
 @onready var content_label = $PanelContainer/VBoxContainer/ContentScroll/ContentLabel
 @onready var continue_button = $PanelContainer/VBoxContainer/ContinueButton
 
-# Status icons (text-based, no image assets needed)
+# Session UI-5: the status marks are inline glyphs, not ASCII. Each status maps
+# to [kind, name]: "glyph" = a stat glyph (Utils.bb_glyph), "icon" = a Phosphor
+# icon (Utils.bb_icon). The meanings are the old marks': ->, [-], [OK], [X],
+# [!], [||], [?], [ ].
 const STATUS_ICONS = {
-	"continues": "->",
+	"continues": ["glyph", "march"],
 	# LV-4 (row EP F2): the two statuses the tick actually sends had no
 	# row, so every standing order rendered the "[ ]" fallback.
-	"active": "->",
-	"consumed": "[-]",
-	"retired": "[-]",
-	"completed": "[OK]",
-	"failed": "[X]",
-	"breaks": "[X]",
-	"awaiting_response": "[!]",
-	"paused": "[||]",
-	"error": "[?]",
+	"active": ["glyph", "march"],
+	"consumed": ["icon", "minus"],
+	"retired": ["icon", "minus"],
+	"completed": ["glyph", "medal"],
+	"failed": ["icon", "x"],
+	"breaks": ["icon", "x"],
+	"awaiting_response": ["icon", "warning"],
+	"paused": ["icon", "hourglass"],
+	"error": ["icon", "question"],
 }
+const STATUS_ICON_FALLBACK := ["icon", "clock"]
+const STATUS_ICON_PX := 18
+
+
+func _status_icon(status: String, hex: String) -> String:
+	"""The inline mark for an order's status, tinted `hex`."""
+	var spec: Array = STATUS_ICONS.get(status, STATUS_ICON_FALLBACK)
+	if str(spec[0]) == "glyph":
+		return Utils.bb_glyph(str(spec[1]), STATUS_ICON_PX, hex)
+	return Utils.bb_icon(Utils.ICON_PHOSPHOR + str(spec[1]) + ".svg", STATUS_ICON_PX, hex)
+
 
 func _ready():
+	continue_button.set_meta("no_click_sfx", true)   # its handler plays the departure cue
 	continue_button.pressed.connect(_on_continue_pressed)
 	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
@@ -53,6 +68,8 @@ func show_reports(reports: Array, turn: int):
 			content += "\n"
 
 	content_label.text = content
+	if not visible:
+		AudioManager.play("page_turn")   # the report's leaf, turned
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -74,11 +91,11 @@ func _format_report(report: Dictionary) -> String:
 	var message = report.get("message", "")
 
 	# Status icon and color
-	var icon = STATUS_ICONS.get(status, "[ ]")
-	var color = _get_status_color(status)
+	var color = _get_status_color(str(status))
+	var icon = _status_icon(str(status), color)
 
 	# Header line: icon + marshal + order type
-	result += "[color=#" + color + "]" + icon + " " + marshal + "[/color]"
+	result += icon + "[color=#" + color + "] " + marshal + "[/color]"
 	result += " [color=#" + Utils.COLOR_INFO + "](" + command_label + ")[/color]\n"
 
 	# Message line
@@ -160,5 +177,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_continue_pressed()
 
 func _on_continue_pressed():
+	if visible:
+		AudioManager.play("back")
 	hide()
 	dismissed.emit()

@@ -151,8 +151,11 @@ static func build_label() -> String:
 # === Shared Color Palette (hex strings for BBCode) ===
 const COLOR_GOLD = "d9c08c"
 const COLOR_COMMAND = "7eb8da"
-const COLOR_SUCCESS = "8fbc8f"
-const COLOR_ERROR = "d06e6e"  # UXR3-X4 (S12 part 2): cd6b6b read 4.42 : 1 on the command window; the same red, lighter
+# Session UI-5 (November 12, 2026): the semantic green and red are static, like
+# the dim greys — Settings → Colour vision → "Red-green safe" re-tones them to
+# blue and orange (Utils.apply_colour_vision); their values are unchanged.
+static var COLOR_SUCCESS := "8fbc8f"
+static var COLOR_ERROR := "d06e6e"  # UXR3-X4 (S12 part 2): cd6b6b read 4.42 : 1 on the command window; the same red, lighter
 # S12 (UXR3-4, UXR3-35): COLOR_ERROR read 3.75 : 1 as chip text on the chip
 # fill 233043; a red chip label takes the same hue, lighter (4.83 : 1).
 const COLOR_ERROR_CHIP = "d68686"
@@ -161,7 +164,7 @@ const COLOR_BATTLE = "daa06d"
 # them (Utils.apply_contrast); every other colour stays a constant.
 static var COLOR_INFO := "a0a0a8"
 const COLOR_MARSHAL = "c9b8e0"
-const COLOR_CONQUEST = "90d890"
+static var COLOR_CONQUEST := "90d890"
 const COLOR_FEEDBACK = "b8a0d9"
 const COLOR_DISPATCH = "c9b878"
 const COLOR_BERTHIER = "B8860B"
@@ -480,6 +483,38 @@ static func _wrap_tooltip_popup(node: Node) -> void:
 	for child in node.get_children():
 		if child is Label:
 			fit_tooltip_label(child as Label, view)
+	_hold_tooltip(node)
+
+
+# Session UI-5 (November 12, 2026): Settings → Tooltip delay. Godot 4.4.1 reads
+# `gui/timers/tooltip_delay_sec` ONCE, when the root viewport is made — a
+# probe measured the popup at 505 ms with the setting changed at run time to
+# 1.6 s and to 0.1 s alike. So project.godot sets the engine's floor (this
+# constant) and the rest of the player's delay is spent with the popup drawn
+# transparent: it is revealed when the delay has passed, and a hover that
+# moves on first never shows it (the engine frees the popup; the reveal finds
+# no node).
+const TOOLTIP_ENGINE_FLOOR_S := 0.05
+
+
+static func _hold_tooltip(popup: Node) -> void:
+	var extra := UiSettings.get_tooltip_delay_seconds() - TOOLTIP_ENGINE_FLOOR_S
+	if extra <= 0.01 or not popup.is_inside_tree():
+		return
+	for child in popup.get_children(true):
+		if child is CanvasItem:
+			(child as CanvasItem).modulate.a = 0.0
+	var t := popup.get_tree().create_timer(extra)
+	t.timeout.connect(Callable(Utils, "_reveal_tooltip").bind(popup.get_instance_id()))
+
+
+static func _reveal_tooltip(popup_id: int) -> void:
+	var popup = instance_from_id(popup_id)
+	if not is_instance_valid(popup):
+		return
+	for child in (popup as Node).get_children(true):
+		if child is CanvasItem:
+			(child as CanvasItem).modulate.a = 1.0
 
 
 static func fit_tooltip_label(label: Label, view: Vector2) -> void:
@@ -1479,9 +1514,55 @@ static func toned_hex(hex: String) -> String:
 	return raise_dim(Color(hex)).to_html(false) if _hc_on else hex
 
 
+# === Session UI-5 (November 12, 2026): colour vision ===
+# "Red-green safe" turns the semantic greens to a blue and the reds to an
+# orange at the SINKS — the BBCode tokens below, and `cv` / `cv_hex` where a
+# surface draws a red or green of its own (the war score's bars, trust,
+# stability, the top bar's deltas). Lightness is kept (a re-toned colour is
+# never darker than the one it replaces, so the contrast floor still holds).
+static var _cv_on := false
+
+
+static func apply_colour_vision() -> void:
+	_cv_on = UiSettings.get_colour_vision() == "red_green"
+	COLOR_SUCCESS = cv_hex("8fbc8f")
+	COLOR_ERROR = cv_hex("d06e6e")
+	COLOR_CONQUEST = cv_hex("90d890")
+
+
+static func colour_vision_on() -> bool:
+	return _cv_on
+
+
+static func cv(c: Color) -> Color:
+	"""A semantic red or green as the player's colour vision reads it."""
+	if not _cv_on or c.s < 0.15:
+		return c
+	var hue := c.h * 360.0
+	var out := c
+	if hue >= 70.0 and hue <= 170.0:
+		out = Color.from_hsv(205.0 / 360.0, clampf(c.s * 1.1, 0.0, 1.0), c.v, c.a)
+	elif hue <= 20.0 or hue >= 335.0:
+		out = Color.from_hsv(28.0 / 360.0, clampf(c.s * 1.1, 0.0, 1.0), clampf(c.v * 1.04, 0.0, 1.0), c.a)
+	else:
+		return c
+	# Never darker than the colour it replaces (the 4.5 : 1 floor holds).
+	var want := c.get_luminance()
+	var steps := 0
+	while out.get_luminance() + 0.002 < want and steps < 24:
+		out = Color.from_hsv(out.h, maxf(0.0, out.s - 0.02), minf(1.0, out.v + 0.03), out.a)
+		steps += 1
+	return out
+
+
+static func cv_hex(hex: String) -> String:
+	return cv(Color(hex)).to_html(false) if _cv_on else hex
+
+
 static func apply_contrast(tree: SceneTree = null) -> void:
 	"""Re-tone the BBCode tokens from the stored setting; with a tree, hook
 	(or unhook) `node_added` and re-tone every node already in it."""
+	apply_colour_vision()
 	_hc_on = UiSettings.get_high_contrast()
 	COLOR_DIM = toned_hex("666670")
 	COLOR_DIMMED = toned_hex("808080")

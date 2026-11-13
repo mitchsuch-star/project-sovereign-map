@@ -19,6 +19,17 @@ signal load_requested
 signal new_game_requested
 signal main_menu_requested
 signal closed
+# Session UI-5: "Save Game…" opens the SaveDialog (main.gd shows it; the old
+# `save_requested` quick-save signal is kept but no longer emitted from here —
+# F5 owns the quicksave now).
+signal save_dialog_requested
+# "Help & Keys" — main.gd opens the Help & Keys book.
+signal help_requested
+# "The School of War…" after its confirm card — main.gd starts the tutorial.
+signal tutorial_requested
+# "Save & leave" on the leave card: main.gd opens the SaveDialog and, once the
+# save lands, leaves (to_menu true = the Main Menu, false = the desktop).
+signal save_and_leave_requested(to_menu: bool)
 # Re-emitted from the embedded SettingsPanel (UI-2 semantics: live-apply every
 # step, persist at drag end / on click or keyboard change).
 signal ui_scale_changed(value, persist)
@@ -33,6 +44,8 @@ signal text_size_changed(value, persist)
 signal hud_width_changed(width)
 # Session UI-3: the very wide screen's map view changed; main.gd re-derives it.
 signal wide_map_changed(mode)
+# Session UI-5: Settings → DISPLAY's "Show first-open notes again".
+signal first_open_reset_requested
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -49,6 +62,23 @@ signal wide_map_changed(mode)
 
 var _settings_panel: SettingsPanel = null
 var _version_line: Label = null  # PB-4: the build stamp line
+
+# Session UI-5: the menu's roads (every button that leaves or opens something),
+# the one card that asks before a road is taken, and the Help / School buttons.
+var _subtitle: Label = null
+var _help_button: Button = null
+var _school_button: Button = null
+var _nav: Array = []
+var _ask_box: VBoxContainer = null
+var _ask_title: Label = null
+var _ask_detail: Label = null
+var _ask_buttons: HBoxContainer = null
+var _ask_to_menu := false
+var _ask_hidden: Array = []
+
+const ROAD_BUSY_TIP := "Answer the question above first."
+const TITLE_FONT_PATH := "res://assets/fonts/Cinzel[wght].ttf"
+const PAIR_PANEL_HALF_W := 230.0
 
 func _ready():
 	save_button.pressed.connect(_on_save)
@@ -71,6 +101,8 @@ func _ready():
 	var vb: VBoxContainer = $PanelContainer/VBoxContainer
 	vb.add_child(resume)
 	vb.move_child(resume, save_button.get_index())
+	resume.theme_type_variation = &"PrimaryButton"   # Session UI-5: the one gilt answer
+	_build_roads(vb, resume)
 	# The shared Settings surface, in a scroll so the pause panel stays
 	# inside small viewports at high Interface Scale.
 	var scroll := ScrollContainer.new()
@@ -86,6 +118,14 @@ func _ready():
 	_settings_panel.text_size_changed.connect(func(v, p): text_size_changed.emit(v, p))
 	_settings_panel.hud_width_changed.connect(func(w): hud_width_changed.emit(w))
 	_settings_panel.wide_map_changed.connect(func(m): wide_map_changed.emit(m))
+	# Session UI-5: Settings' Help & Keys button and its "Show first-open notes
+	# again" reach main.gd through the menu, as the other settings signals do.
+	# (The menu closes first, as its own Help & Keys button does: the book is on
+	# layer 50, under this menu's 120 — UI-5 review.)
+	_settings_panel.help_requested.connect(func():
+		close_menu()
+		help_requested.emit())
+	_settings_panel.first_open_reset_requested.connect(func(): first_open_reset_requested.emit())
 	# PB-4 (the release build): the build stamp on the pause menu too, so a
 	# player reporting from mid-game can quote it without leaving the campaign.
 	_version_line = Label.new()
@@ -99,8 +139,206 @@ func _ready():
 	_set_new_game_confirmation_visible(false)
 	hide()
 
+func _build_roads(vb: VBoxContainer, resume: Button) -> void:
+	"""Session UI-5: the title face, the roads (Help & Keys, The School of War…),
+	the paired rows that keep the menu inside the compact view, and the one card
+	that asks before a road that leaves the campaign is taken."""
+	# The game's title, in the title face (the Main Menu's Cinzel, bold).
+	var title: Label = $PanelContainer/VBoxContainer/TitleLabel
+	title.text = "Ink & Iron"
+	title.theme_type_variation = &"DialogTitleLarge"
+	var cinzel = load(TITLE_FONT_PATH)
+	if cinzel is Font:
+		var face := FontVariation.new()
+		face.base_font = cinzel
+		face.variation_opentype = {"wght": 700}
+		title.add_theme_font_override("font", face)
+	_subtitle = Label.new()
+	_subtitle.name = "SubtitleLabel"
+	_subtitle.text = "Campaign menu"
+	_subtitle.theme_type_variation = &"Caption"
+	_subtitle.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(_subtitle)
+	vb.move_child(_subtitle, title.get_index() + 1)
+
+	save_button.text = "Save Game…"
+	load_button.text = "Load…"
+	_help_button = Button.new()
+	_help_button.name = "HelpButton"
+	_help_button.text = "Help & Keys"
+	_help_button.pressed.connect(_on_help)
+	_school_button = Button.new()
+	_school_button.name = "SchoolButton"
+	_school_button.text = "The School of War…"
+	_school_button.pressed.connect(_on_school)
+	var tips := {
+		save_button: "Write the campaign to a named save.",
+		load_button: "Choose a saved campaign to return to.",
+		new_game_button: "Begin a fresh campaign.",
+		_help_button: "The keys, the terms and the orders.",
+		_school_button: "A short lesson on the Danube; this campaign is autosaved first.",
+		settings_button: "Sound, display, controls.",
+		main_menu_button: "Leave this campaign for the title screen.",
+		quit_button: "Close the game.",
+	}
+	_nav = [save_button, load_button, new_game_button, _help_button, _school_button,
+		settings_button, main_menu_button, quit_button]
+	for b in _nav:
+		(b as Button).set_meta("road_tip", str(tips[b]))
+		(b as Button).tooltip_text = str(tips[b])
+
+	# Paired rows: [Save | Load], [Help | School], [Main Menu | Quit].
+	_pair(vb, save_button, load_button, save_button.get_index())
+	_pair(vb, _help_button, _school_button, settings_button.get_index())
+	_pair(vb, main_menu_button, quit_button, main_menu_button.get_index())
+
+	# The card that asks, just above the exit row.
+	_ask_box = VBoxContainer.new()
+	_ask_box.name = "AskBox"
+	_ask_box.add_theme_constant_override("separation", 6)
+	_ask_box.visible = false
+	vb.add_child(_ask_box)
+	vb.move_child(_ask_box, $PanelContainer/VBoxContainer/HSeparator2.get_index())
+	_ask_title = Label.new()
+	_ask_title.theme_type_variation = &"BodyLarge"
+	_ask_title.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+	_ask_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ask_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ask_box.add_child(_ask_title)
+	_ask_detail = Label.new()
+	_ask_detail.theme_type_variation = &"Caption"
+	_ask_detail.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	_ask_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ask_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ask_box.add_child(_ask_detail)
+	_ask_buttons = HBoxContainer.new()
+	_ask_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_ask_buttons.add_theme_constant_override("separation", 10)
+	_ask_box.add_child(_ask_buttons)
+
+	# Two buttons a row need a wider sheet than the old single column.
+	var panel: PanelContainer = $PanelContainer
+	panel.offset_left = -PAIR_PANEL_HALF_W
+	panel.offset_right = PAIR_PANEL_HALF_W
+	_apply_density(resume)
+
+
+func _pair(vb: VBoxContainer, a: Button, b: Button, at_index: int) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	vb.add_child(row)
+	for btn in [a, b]:
+		if btn.get_parent() != null:
+			btn.get_parent().remove_child(btn)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(btn)
+	vb.move_child(row, mini(at_index, vb.get_child_count() - 1))
+
+
+func _apply_density(resume: Button = null) -> void:
+	"""The roads' height and the gap between them: 44 / 10 at the full view,
+	30 / 4 on the compact one (no button may leave the view)."""
+	var compact := Utils.compact_view()
+	var h := 30.0 if compact else 44.0
+	var buttons: Array = _nav.duplicate()
+	var rb: Button = resume if resume != null else get_node_or_null("PanelContainer/VBoxContainer/ResumeButton") as Button
+	if rb != null:
+		buttons.append(rb)
+	for b in buttons:
+		(b as Button).custom_minimum_size.y = h
+	$PanelContainer/VBoxContainer.add_theme_constant_override("separation", 4 if compact else 10)
+	if _subtitle != null:
+		_subtitle.visible = not compact
+
+
+func _set_roads_available(available: bool) -> void:
+	"""A road that cannot be taken while a question stands is DISABLED, its
+	reason the tooltip (the shared disabled language)."""
+	for b in _nav:
+		Utils.set_available(b as Button, available, str((b as Button).get_meta("road_tip", "")), ROAD_BUSY_TIP)
+
+
+func _fold_for_compact(on: bool) -> void:
+	"""On the compact view a standing question takes the sheet: the roads step
+	aside (they would carry the answer buttons off the view)."""
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	if on:
+		if not Utils.compact_view() or not _ask_hidden.is_empty():
+			return
+		for child in vb.get_children():
+			if child == _ask_box or child == new_game_confirm_box or child.name == "TitleLabel":
+				continue
+			if child is Control and (child as Control).visible:
+				_ask_hidden.append(child)
+				(child as Control).visible = false
+	else:
+		for child in _ask_hidden:
+			if is_instance_valid(child):
+				(child as Control).visible = true
+		_ask_hidden.clear()
+
+
+func _ask(title_text: String, detail_text: String, options: Array) -> void:
+	"""Show the one card: `options` = [[label, id, primary], ...]. Roads are
+	disabled with a reason beneath it; Esc and Stay take it down."""
+	_close_asks()
+	_ask_title.text = title_text
+	_ask_detail.text = detail_text
+	for old in _ask_buttons.get_children():
+		_ask_buttons.remove_child(old)
+		old.queue_free()
+	var last: Button = null
+	for opt in options:
+		var btn := Button.new()
+		btn.text = str(opt[0])
+		btn.custom_minimum_size = Vector2(110, 0)
+		if bool(opt[2]):
+			btn.theme_type_variation = &"PrimaryButton"
+		btn.pressed.connect(_on_ask_answer.bind(str(opt[1])))
+		_ask_buttons.add_child(btn)
+		last = btn
+	new_game_confirm_box.visible = false
+	_ask_box.visible = true
+	_set_roads_available(false)
+	_fold_for_compact(true)
+	AudioManager.play("question")
+	Utils.clamp_centered_panel($PanelContainer)
+	if last != null:
+		last.grab_focus()   # the safe answer (Stay) is the one under Enter
+
+
+func _close_asks() -> void:
+	if _ask_box == null:
+		return
+	_ask_box.visible = false
+	if not new_game_confirm_box.visible:
+		_fold_for_compact(false)
+		_set_roads_available(true)
+
+
+func _on_ask_answer(answer: String) -> void:
+	var to_menu := _ask_to_menu
+	match answer:
+		"go":
+			close_menu()
+			tutorial_requested.emit()
+		"save_leave":
+			close_menu()
+			save_and_leave_requested.emit(to_menu)
+		"leave":
+			if to_menu:
+				close_menu()
+				main_menu_requested.emit()
+			else:
+				get_tree().quit()
+		_:
+			_close_asks()
+
+
 func open_menu():
 	_reset_menu_state()
+	_apply_density()
 	AudioManager.play("door_open")
 	# Re-sync every settings control from disk/backend: the command-window
 	# "Text Size" +/- buttons write the same UiSettings scale value.
@@ -135,23 +373,33 @@ func _reset_menu_state():
 	settings_box.visible = false
 	if $PanelContainer.has_meta("clamp_ceiling_override"):
 		$PanelContainer.remove_meta("clamp_ceiling_override")
+	_close_asks()
 	_set_new_game_confirmation_visible(false)
 
 func _set_new_game_confirmation_visible(confirm_visible: bool):
 	new_game_confirm_box.visible = confirm_visible
-	save_button.disabled = confirm_visible
-	load_button.disabled = confirm_visible
-	new_game_button.disabled = confirm_visible
-	settings_button.disabled = confirm_visible
-	main_menu_button.disabled = confirm_visible
-	quit_button.disabled = confirm_visible
+	if confirm_visible and _ask_box != null:
+		_ask_box.visible = false
+	# Session UI-5: the roads a standing question closes are disabled with a
+	# reason (Utils.set_available), not silently greyed.
+	_set_roads_available(not confirm_visible)
+	_fold_for_compact(confirm_visible)
 	if confirm_visible:
 		settings_box.visible = false
 		confirm_new_game_button.grab_focus()
 
 func _on_save():
+	# Session UI-5: "Save Game…" opens the save dialog (main.gd shows it).
 	close_menu()
-	save_requested.emit()
+	save_dialog_requested.emit()
+
+func _on_help():
+	close_menu()
+	help_requested.emit()
+
+func _on_school():
+	_ask("Leave this campaign for the lesson?", "It was autosaved this morning.",
+		[["Go", "go", true], ["Stay", "stay", false]])
 
 func _on_load():
 	close_menu()
@@ -224,11 +472,16 @@ func _show_settings_page(on: bool) -> void:
 
 
 func _on_main_menu():
-	close_menu()
-	main_menu_requested.emit()
+	_ask_leave(true)
 
 func _on_quit():
-	get_tree().quit()
+	_ask_leave(false)
+
+func _ask_leave(to_menu: bool) -> void:
+	"""Main Menu and Quit to Desktop both ask first and say what is lost."""
+	_ask_to_menu = to_menu
+	_ask("Leave the campaign?", "Orders given since this morning's autosave are lost.",
+		[["Save & leave", "save_leave", true], ["Leave", "leave", false], ["Stay", "stay", false]])
 
 func _on_overlay_input(event):
 	if event is InputEventMouseButton and event.pressed:

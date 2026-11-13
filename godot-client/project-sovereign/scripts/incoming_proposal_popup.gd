@@ -60,6 +60,9 @@ func _ready():
 	counter_btn.pressed.connect(_on_counter)
 	reject_btn.pressed.connect(_on_reject)
 	dismiss_btn.pressed.connect(_on_dismiss)
+	# Session UI-5: each answer plays its own cue (the global click stays out).
+	for b in [accept_btn, counter_btn, reject_btn]:
+		b.set_meta("no_click_sfx", true)
 	# S14G-6: the line under the buttons — what setting the letter aside does
 	# to the Cabinet, where the player decides it (the sentence was on the
 	# button's tooltip only).
@@ -153,10 +156,33 @@ func _figure_row(label: String, figures: Array, tone_hex: String, label_hex: Str
 	return row + " ".join(badges) + "\n"
 
 
+func _is_court_letter(data: Dictionary) -> bool:
+	"""An envoy's letter: not a moment or an affair (no `is_moment`, no
+	`moment_id`, no `register`)."""
+	if bool(data.get("is_moment", false)):
+		return false
+	var moment_id: String = str(data.get("moment_id") if data.get("moment_id") != null else "")
+	var register: String = str(data.get("register") if data.get("register") != null else "")
+	return moment_id == "" and register == ""
+
+
+func _play_letter_open_late() -> void:
+	"""The knock's second half (a bound-method timer; nothing captured)."""
+	if visible:
+		AudioManager.play("letter_open")
+
+
 func show_proposal(data: Dictionary):
 	"""Display incoming proposal popup."""
 	if not _silent_rebuild:
-		AudioManager.play("letter_open")
+		# Session UI-5: a COURT's letter (an envoy, not a moment/affair register)
+		# arrives with a knock and then the seal breaking; a letter of state keeps
+		# the letter's own sound alone.
+		if _is_court_letter(data):
+			AudioManager.play("door_knock")
+			get_tree().create_timer(0.5).timeout.connect(_play_letter_open_late)
+		else:
+			AudioManager.play("letter_open")
 	current_data = data
 	var from_nation = data.get("from_nation", "Unknown")
 	var from_display = Utils.display_nation_name(str(from_nation))
@@ -529,6 +555,7 @@ func show_proposal(data: Dictionary):
 	# the ink, the letterhead, the two-line buttons, the counsel — over the
 	# composed letter; every override removed again for any other register.
 	_dress_letter(data, is_moment, grant_enabled, grant_reason)
+	_set_letter_banner(data)
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -557,10 +584,66 @@ func _fit_to_letter() -> void:
 	var panel := $PanelContainer as Control
 	var have: float = panel.offset_bottom - panel.offset_top
 	content_label.custom_minimum_size.y = 0.0
+	_fit_letter_banner(have)
 	var others: float = panel.get_combined_minimum_size().y
 	var body_h := float(content_label.get_content_height()) + 6.0
 	content_label.custom_minimum_size.y = clampf(body_h, 72.0, maxf(have - others, 72.0))
 	Utils.shrink_centered_panel_to_content(panel)
+
+
+func _set_letter_banner(data: Dictionary) -> void:
+	"""Session UI-5: the letter's picture over the letterhead (the 44-px device
+	stays). A kept node, re-pointed per letter; `_fit_letter_banner` decides
+	whether the sheet has room for it. A silent rebuild keeps the same picture."""
+	var vbox := $PanelContainer/VBoxContainer
+	var banner: TextureRect = vbox.get_node_or_null("LetterBanner") as TextureRect
+	var path: String = Illustrations.for_letter(data)
+	var width: float = clampf(get_viewport().get_visible_rect().size.x * LETTER_WIDTH_FRACTION,
+			LETTER_MIN_WIDTH, LETTER_MAX_WIDTH) - 48.0
+	var target: float = Illustrations.banner_height(width)
+	if path == "" or not ResourceLoader.exists(path) or target <= 0.0:
+		if banner != null:
+			banner.visible = false
+		return
+	if banner == null:
+		banner = TextureRect.new()
+		banner.name = "LetterBanner"
+		banner.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		banner.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		banner.mouse_filter = Control.MOUSE_FILTER_PASS
+		vbox.add_child(banner)
+	if str(banner.get_meta("path", "")) != path:
+		banner.texture = load(path)
+		banner.set_meta("path", path)
+	banner.tooltip_text = Illustrations.credit_for_path(path)
+	banner.set_meta("target_h", target)
+	banner.custom_minimum_size = Vector2(0, target)
+	banner.visible = true
+	vbox.move_child(banner, 0)
+
+
+func _fit_letter_banner(have: float) -> void:
+	"""The banner is the first thing to give up height: it stands only where the
+	box keeps a reading body and the answers beneath it; otherwise it steps aside
+	(hidden), and always on the compact view."""
+	var banner: TextureRect = get_node_or_null("PanelContainer/VBoxContainer/LetterBanner") as TextureRect
+	if banner == null or not banner.has_meta("target_h"):
+		return
+	var target: float = float(banner.get_meta("target_h"))
+	banner.visible = false
+	if Utils.compact_view():
+		return
+	var without: float = ($PanelContainer as Control).get_combined_minimum_size().y
+	# The picture takes only what the letter's words leave: a court's terms (a
+	# truce's cost, its expiry, its cure — PC-F46's "the cost above the fold")
+	# keep the sheet, and the banner steps aside where they would scroll under
+	# it (the engine lane caught the armistice's cure pushed below the fold).
+	var body_h: float = float(content_label.get_content_height()) + 6.0
+	var room: float = have - without - maxf(body_h, 140.0)   # the reading keeps at least ~140 px
+	if room < 60.0:
+		return
+	banner.custom_minimum_size = Vector2(0, minf(target, room))
+	banner.visible = true
 
 
 func _raise_letter_ceiling() -> void:
@@ -680,6 +763,7 @@ func _build_moment_body(data: Dictionary) -> String:
 func _on_accept():
 	# RE-2: the beat draws at the pressed button's rect once the popup is gone
 	_pressed_rect = accept_btn.get_global_rect()
+	AudioManager.play("quill_sign")   # the wax_seal beat follows on a letter of state
 	_disable_buttons()
 	hide()
 	choice_made.emit("accept", current_data)
@@ -688,16 +772,19 @@ func _on_counter():
 	if _is_decree_letter:
 		# AU-3a: the slot answers the letter with its third answer
 		_pressed_rect = counter_btn.get_global_rect()
+		AudioManager.play("quill_sign")   # the Decree seals as an Accept does
 		_disable_buttons()
 		hide()
 		choice_made.emit("decree", current_data)
 		return
+	AudioManager.play("quill_flick")
 	_disable_buttons()
 	hide()
 	choice_made.emit("counter", current_data)
 
 func _on_reject():
 	_pressed_rect = reject_btn.get_global_rect()
+	AudioManager.play("paper_crumple")
 	_disable_buttons()
 	hide()
 	choice_made.emit("reject", current_data)
@@ -1139,6 +1226,11 @@ func _dress_letter(data: Dictionary, is_letter: bool, accept_open: bool, accept_
 		for b in buttons:
 			b.custom_minimum_size = Vector2(140, 45)
 			b.theme_type_variation = _plain_variation.get(b.name, &"")
+		# Session UI-5 interim fix (Nov 13): a court's letter or a client's petition
+		# makes its affirmative answer the gilt primary (as the mailbox's Accept is);
+		# Refuse / Not Now stay secondary. Authored affairs and moments (the
+		# is_letter branch below) keep their two answers equal.
+		accept_btn.theme_type_variation = &"PrimaryButton"
 		_set_aside_line.remove_theme_font_override("font")
 		return
 	_ensure_letter_dress()

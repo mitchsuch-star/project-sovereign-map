@@ -475,6 +475,8 @@ func _ready():
 	# Create API client
 	api_client = load("res://scripts/api_client.gd").new()
 	add_child(api_client)
+	api_client.add_to_group("api_client")   # Session UI-5: the save dialog finds it by group
+	command_history = UiSettings.get_command_history()   # Session UI-5: persisted history
 	# GE-2: every 200-OK body, BEFORE its handler — the one seam that sees the
 	# ratify road and the mailbox roads as well as the command family, so an
 	# ending stamped on any of them is stashed for the handler's own tail.
@@ -500,6 +502,8 @@ func _ready():
 		# BD: "⚔ View the field" links inside the enemy-phase dialog open the
 		# tableau OVER it (layer 121 > 118) without disturbing its input hold.
 		enemy_phase_dialog.view_field_requested.connect(_on_view_field_requested)
+		if enemy_phase_dialog.has_signal("focus_region_requested"):
+			enemy_phase_dialog.focus_region_requested.connect(_on_focus_region_requested)
 
 	# BD: the Battle Diorama. Dismissal continues the control-return chain
 	# exactly like the Proclamation (stash → raise when control returns).
@@ -717,6 +721,14 @@ func _ready():
 		pause_menu.load_requested.connect(_on_pause_load_requested)
 		pause_menu.new_game_requested.connect(_on_pause_new_game_requested)
 		pause_menu.main_menu_requested.connect(_on_pause_main_menu_requested)
+		# Session UI-5: the pause menu's new roads.
+		pause_menu.save_dialog_requested.connect(_on_pause_save_dialog_requested)
+		pause_menu.help_requested.connect(_on_pause_help_requested)
+		pause_menu.tutorial_requested.connect(_on_pause_tutorial_requested)
+		pause_menu.save_and_leave_requested.connect(_on_pause_save_and_leave_requested)
+		pause_menu.first_open_reset_requested.connect(_on_first_open_reset_requested)
+		pause_menu.closed.connect(_on_pause_menu_closed)
+	_ui5_build_overlays()
 
 	# ── Top Bar + Screens (special setup, not managed by DialogManager) ──
 	var top_bar_scene = load("res://scenes/top_bar.tscn")
@@ -813,6 +825,8 @@ func _ready():
 		else:
 			add_child(notification_bar)
 		notification_bar.set_api_client(api_client)
+		if notification_bar.has_signal("show_on_map_requested"):
+			notification_bar.show_on_map_requested.connect(_on_show_on_map_requested)
 		if notification_bar.has_signal("notification_review_requested"):
 			notification_bar.notification_review_requested.connect(_on_notification_review_requested)
 		# UX23-A: a rail row that carries an `action_command` settles the
@@ -949,6 +963,7 @@ func _ready():
 	_apply_ui_scale(UiSettings.get_ui_scale(), false)
 	_setup_scalable_terminal()
 	_build_map_controls()
+	_ui5_build_busy_chip()
 	_build_order_strip()   # CC-3
 	# The pause-menu Settings slider drives the global scale through us (we own
 	# the map compensation + persistence).
@@ -1415,7 +1430,31 @@ const _SCREEN_HOTKEYS := {
 
 func _on_command_input_gui_input(event):
 	"""Handle special keys in command input."""
+	# Session UI-5: a rebound global key is read as its default (Keys.canonical);
+	# a plain typed character always stays what the player typed.
+	var _raw_event = event
+	event = Keys.canonical(event)
+	if _raw_event is InputEventKey and _is_text_key(_raw_event):
+		event = _raw_event
+	elif _raw_event is InputEventKey and not _raw_event.alt_pressed \
+			and _raw_event.keycode in UI5_LINE_OWNED_KEYS:
+		# UI-5 review: the keys the LINE owns (Tab completes, the arrows walk the
+		# history and the offers, Enter sends, Esc lets go, Home/End edit) are
+		# never remapped while typing — a rebind to or from one of them would
+		# otherwise break completion or send a key the line never asked for.
+		event = _raw_event
 	if event is InputEventKey and event.pressed:
+		# Session UI-5: the typing tick (a quill nib per key; never Enter, Tab or arrows).
+		if not event.echo:
+			if event.keycode == KEY_BACKSPACE or event.keycode == KEY_DELETE:
+				AudioManager.keystroke(true)
+			elif event.unicode > 31 and event.unicode != 127 and not event.ctrl_pressed and not event.alt_pressed:
+				AudioManager.keystroke()
+		# Session UI-5: Help & Keys (? on an empty line), Hide-HUD, quicksave,
+		# quickload - the focus-safe forms (Alt+key where a letter types).
+		if _ui5_line_hotkey(_raw_event):
+			command_input.accept_event()
+			return
 		# CC-X10: the safety net. A text key reaching the FOCUSED line while it
 		# is not editing (Godot 4.4 drops editing on submit, and on paths that
 		# never let focus go) switches editing back on first — the signal runs
@@ -1667,6 +1706,7 @@ func _add_to_history(command: String):
 	# Trim to max size
 	while command_history.size() > MAX_HISTORY:
 		command_history.pop_front()
+	UiSettings.set_command_history(command_history)   # Session UI-5: persisted
 
 	# Reset to new command mode
 	history_index = -1
@@ -1703,6 +1743,7 @@ func _forget_unreadable_command(response: Dictionary) -> void:
 	if command_history.is_empty():
 		return
 	command_history.pop_back()
+	UiSettings.set_command_history(command_history)
 	history_index = -1
 	_history_anchor = ""
 
@@ -1731,6 +1772,15 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	# held the caret after the close ("the line keeps focus", DDB-54), and the
 	# next bare G / T / D typed a letter into it (conquest #4, diplomacy #14).
 	# A line holding a draft keeps its caret and its text.
+	# Session UI-5: the Help & Keys book and the save dialog are the topmost.
+	if codex != null and codex.is_open():
+		codex.close()
+		_release_empty_line()
+		return true
+	if save_dialog != null and save_dialog.visible:
+		save_dialog.close()
+		_release_empty_line()
+		return true
 	if battle_diorama and battle_diorama.visible:
 		battle_diorama._on_close_pressed()
 		_release_empty_line()
@@ -1800,7 +1850,12 @@ func _release_empty_line_after_esc() -> void:
 
 func _unhandled_input(event):
 	"""Handle hotkeys when command input is not focused."""
+	var _raw_event = event
+	event = Keys.canonical(event)
 	if event is InputEventKey and event.pressed and not event.echo:
+		if _ui5_global_hotkey(_raw_event):
+			get_viewport().set_input_as_handled()
+			return
 		# ═══ ESC KEY: Smart context-aware (Phase 6.5 + Session A) ═══
 		# Priority: 1) release focus (gui_input), 2) close screen, 3) close pause, 4) open pause
 		if event.keycode == KEY_ESCAPE:
@@ -1913,6 +1968,11 @@ func _minimize_terminal():
 
 func _restore_terminal():
 	"""Expand the terminal panel, hide restore button."""
+	if _hud_hidden:
+		# UI-5 review: Tab / the restore button while the HUD is hidden bring
+		# the WHOLE HUD back (Hide-HUD's own road), never the window alone.
+		_ui5_toggle_hud()
+		return
 	bottom_left_ui.visible = true
 	restore_button.visible = false
 	if resize_grip:
@@ -2120,9 +2180,23 @@ func _relayout_terminal() -> void:
 	# Session UI-2: the log's floor follows the room — 110 on a short logical
 	# view (Interface Scale 2.0 on 900 px: the window yields the map more), the
 	# authored 140, and 180 on a tall one (the 40 px the header's band saved).
+	# Session UI-5 (F03): on the compact view an unfocused window with nothing
+	# out stands as its input line plus about two lines of the log.
+	var collapsed := _ui5_compact_collapsed()
+	_ui5_compact_was = collapsed
 	if output_scroll != null:
-		output_scroll.custom_minimum_size.y = _log_floor()
+		output_scroll.custom_minimum_size.y = (_output_line_px() * 2.0) if collapsed else _log_floor()
 	_fold_header()
+	# Folded, the window is its line, two lines of the log and the day's
+	# orders (turn, actions, administration): the chest and the levies step
+	# aside — the top bar carries the chest, the ledger the levies (the final
+	# shoot's read: the status block alone stood half the compact view).
+	if gold_value != null and gold_value.get_parent() is Control:
+		(gold_value.get_parent() as Control).visible = not collapsed
+	if inf_value != null and inf_value.get_parent() is Control:
+		(inf_value.get_parent() as Control).visible = not collapsed
+	if collapsed and bottom_left_ui != null:
+		disp_h = bottom_left_ui.get_combined_minimum_size().y
 	var left := _terminal_left()
 	bottom_left_ui.offset_left = left
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
@@ -2322,6 +2396,7 @@ func _build_map_controls() -> void:
 			_map_zoom_out_btn = btn
 		elif chip[0] == "FitEuropeButton":
 			_map_fit_btn = btn
+	_ui5_build_map_mode_chip(row)   # Session UI-5: "Lands & rule ▾"
 	add_child(map_controls)
 	map_controls.resized.connect(_queue_fit_map_controls)
 	_queue_fit_map_controls()
@@ -2669,6 +2744,9 @@ func _ctrl_scale_key(keycode: int) -> bool:
 
 func _toggle_terminal():
 	"""Toggle terminal panel visibility."""
+	if _hud_hidden:
+		_ui5_toggle_hud()   # UI-5 review: the hidden HUD comes back whole
+		return
 	if bottom_left_ui.visible:
 		_minimize_terminal()
 	else:
@@ -2747,6 +2825,10 @@ func _execute_end_turn():
 	if _army_warning_stands():
 		_show_lapse_confirmation()
 		return
+	# Session UI-5: corps with no orders yet, named once per gate.
+	if _ui5_idle_warning_stands():
+		_show_lapse_confirmation()
+		return
 
 	_awaiting_end_turn_confirmation = false
 	_set_open_envoys_prompt_visible(false)
@@ -2781,6 +2863,8 @@ func _send_end_turn():
 	_clear_order_selection()   # CC-3: the turn's end lets a selected corps go
 	_army_warned = false   # S14E-7: a passed gate re-arms the army's line for the next day
 	_treasury_warned = false   # S14E-X (DDB-13's sweep): and the treasury's — a deficit that stands gates every turn it stands
+	_idle_warned = false   # Session UI-5: and the idle corps' line
+	_ui5_end_turn_out = true   # the busy chip says "the courts of Europe move"
 	_set_open_envoys_prompt_visible(false)
 	# Add to history
 	_add_to_history("end turn")
@@ -2861,6 +2945,10 @@ func _show_lapse_confirmation():
 	if end_turn_army_warning != "":
 		_army_warned = true
 		parts.append(end_turn_army_warning)
+	# Session UI-5: the idle corps — named last, on their own latch.
+	if _ui5_idle_warning_stands():
+		_idle_warned = true
+		parts.append(_ui5_idle_sentence())
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
@@ -2969,6 +3057,7 @@ func _execute_command():
 	# lands (stop_scribble rides set_input_enabled(true), the one chokepoint
 	# every response path already passes through).
 	AudioManager.start_scribble()
+	_ui5_order_text = command.to_lower()   # Session UI-5: the verb the success cue is chosen from
 
 	# CR-7-3 / CR-7-8: a relayed tail sent UNCHANGED is flagged, and any send
 	# retires whatever relay was pending — the player has moved on.
@@ -4614,6 +4703,9 @@ func _on_command_result(response):
 	_queue_pinned_refresh()
 	if typeof(response) == TYPE_DICTIONARY:
 		_forget_unreadable_command(response)  # CX-7
+		# Session UI-5: the autosave at the turn's start is announced.
+		if bool(response.get("autosaved", false)):
+			ToastLayer.say("Autosaved · " + str(response.get("autosave_label", "")), "letter")
 		# PC15-10 B4b (F9): every deferred surface this response carries is
 		# stashed through ONE chokepoint, BEFORE any routing or early return.
 		_stash_pending_surfaces(response)
@@ -4957,6 +5049,14 @@ func _display_result(response):
 				add_output("[color=#" + Utils.COLOR_INFO + "]" + parts[0] + "[/color]")
 				add_output("")
 				message = parts[1]  # Rest of message
+
+	# Session UI-5: a successful order is heard once as it is carried out, and a
+	# province taken is cheered (once per result).
+	if typeof(response) == TYPE_DICTIONARY and response.get("success", true) != false 			and not bool(response.get("_cue_played", false)):
+		response["_cue_played"] = true
+		_ui5_order_cue(response, event_type)
+		if event_type == "conquest" or (event_type == "battle" and bool(events[0].get("region_conquered", false))):
+			AudioManager.play("crowd_cheer")
 
 	# Color based on event type
 	match event_type:
@@ -5846,31 +5946,33 @@ func _display_morning_dispatch(data: Dictionary):
 
 			# Status icon
 			var icon = ""
+			# Session UI-5: the ASCII marks became glyphs of the same meaning
+			# (one inline picture per state, tinted in the line's own ink).
 			match m_status:
 				"awaiting":
-					icon = "-"
+					icon = _status_mark("hourglass", m_status)
 				"drilling":
-					icon = "*"
+					icon = _status_mark("drum", m_status, true)
 				"fortified":
-					icon = "#"
+					icon = _status_mark("shield", m_status)
 				"retreating":
-					icon = "<"
+					icon = _status_mark("arrow-left", m_status)
 				"broken":
-					icon = "!"
+					icon = _status_mark("warning", m_status)
 				"en_route":
-					icon = ">"
+					icon = _status_mark("march", m_status, true)
 				"idle_restless":
-					icon = "-"
+					icon = _status_mark("hourglass", m_status)
 				"artillery":
-					icon = "+"
+					icon = _status_mark("guns", m_status, true)
 				"awaiting_decision":
 					# FA-N28: a man whose question the player has not answered.
-					icon = "?"
+					icon = _status_mark("question", m_status)
 				"counter_punch":
 					# AAR-25: a free strike, open this turn only.
 					icon = "»"
 				_:
-					icon = "-"
+					icon = _status_mark("hourglass", m_status)
 
 			# Build the line. Separator-based, NOT space-padded columns: the UI
 			# font (EB Garamond) is proportional, so char-count padding rendered
@@ -6383,6 +6485,8 @@ func _update_status(action_summary: Dictionary):
 	# a calendar anchor; "" keeps the plain "Turn N").
 	if top_bar:
 		top_bar.update_turn(current_turn, str(action_summary.get("calendar_label", "")))
+	AudioManager.set_calendar_label(str(action_summary.get("calendar_label", "")))   # Session UI-5: the season's ambience
+	_ui5_calendar_label = str(action_summary.get("calendar_label", ""))
 
 
 func _note_the_end_of_the_day() -> void:
@@ -6764,6 +6868,10 @@ func _refresh_send_button() -> void:
 
 func set_input_enabled(enabled: bool):
 	"""Enable or disable command input and buttons."""
+	# Session UI-5: the quill stops BEFORE the campaign-over coercion below
+	# (the Fall left it looping).
+	if enabled or _campaign_over:
+		AudioManager.stop_scribble()
 	# GE-2 (R3): after the Fall the command line never reopens — every
 	# control-return tail passes here, and the war is over on all of them.
 	# Only a world swap (Load / New Campaign) lifts it.
@@ -6772,7 +6880,11 @@ func set_input_enabled(enabled: bool):
 	if not enabled:
 		_end_reply()   # DDB-57: a send closes the last reply, the window back
 	command_input.editable = enabled
+	if not enabled and _input_open:
+		_ui5_ap_mark = _ui5_ap_total()   # the day's orders as the send left them
+		_ui5_order_text = ""
 	_input_open = enabled
+	_ui5_busy_sync(enabled)
 	_refresh_send_button()
 	end_turn_button.disabled = not enabled
 	diplomacy_button.disabled = not enabled
@@ -6796,6 +6908,7 @@ func set_input_enabled(enabled: bool):
 	# above (so an open, focused line says "Type command...") and on the
 	# closing arm (a line the gate shut cannot be clicked into).
 	_refresh_command_placeholder()
+	_ui5_refresh_compact()   # Session UI-5: the compact window follows the gate and the focus
 
 func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
@@ -7398,6 +7511,7 @@ func _on_saves_listed(response):
 
 func _on_load_save_selected(filename: String):
 	"""Player selected a save to load."""
+	_ui5_busy_kind = "load"
 	set_input_enabled(false)
 	add_output("[color=#" + Utils.COLOR_INFO + "]Loading save...[/color]")
 	api_client.load_game(filename, _on_load_result)
@@ -7427,6 +7541,17 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	# tutorial boot) never got it: the same 5-second peal, one door over.
 	AudioManager.stop_all_cues()
 	AudioManager.stop_all_loops()
+	# Session UI-5: the wind bed died here for the rest of the session — the
+	# study's ambience starts again with the new world.
+	AudioManager.start_ambience()
+	if top_bar and top_bar.has_method("reset_figure_deltas"):
+		top_bar.reset_figure_deltas()
+	_audio_seen_war_ids = {}
+	_war_last_scores = {}
+	if codex != null:
+		codex.close()
+	if save_dialog != null and save_dialog.visible:
+		save_dialog.close()
 	if notification_bar and notification_bar.has_method("update_notifications"):
 		notification_bar.update_notifications([])
 
@@ -7466,6 +7591,8 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	_dismissed_proposal_nation = ""
 	_pending_envoy_request_active = false
 	_awaiting_end_turn_confirmation = false
+	_idle_warned = false   # Session UI-5 review: the idle corps' latch, as the army's and the treasury's
+	_ui5_compact_engaged = false   # F03: a new world opens with the compact window folded
 	# IGR-F review [5]: the letter-book latches are per-turn, and a LOAD
 	# produces no `turn_end` event — so the `_display_turn_change` re-arm never
 	# runs. Loading a save whose turn matches one already raised this session
@@ -7589,6 +7716,7 @@ func _on_load_result(response):
 	"""Handle load result from backend."""
 	if response.success:
 		_apply_world_swap_response(response, "Game loaded successfully.")
+		ToastLayer.say("Loaded · " + (_ui5_calendar_label if _ui5_calendar_label != "" else "save"), "letter")
 	else:
 		set_input_enabled(true)
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + _failure_line(response, "Load failed") + "[/color]")
@@ -8357,12 +8485,17 @@ func _is_modal_dialog_open() -> bool:
 	"""True when a modal dialog requiring player choice is visible.
 	These block EVERYTHING. Campaign log is NOT a modal — it's a screen.
 	Delegates to DialogManager which tracks all registered modal dialogs."""
+	# Session UI-5: the Help & Keys book and the save dialog count as open.
+	if _ui5_overlay_open():
+		return true
 	if dialog_manager:
 		return dialog_manager.is_any_modal_open()
 	return false
 
 func _is_screen_open() -> bool:
 	"""True when a top bar screen is open. Blocks map, allows terminal."""
+	if codex != null and codex.is_open():
+		return true   # Session UI-5: the Help & Keys book is a screen
 	return top_bar != null and top_bar.is_screen_open()
 
 func _is_hotkey_blocked() -> bool:
@@ -9592,6 +9725,12 @@ func _on_modal_shown(dialog_name: String) -> void:
 	"""Any modal but the card lets the selection go."""
 	if dialog_name != "order_card":
 		_clear_order_selection()
+	# Session UI-5: a modal covers the busy chip; one that asks for the line
+	# brings a hidden HUD back.
+	if _busy_chip != null:
+		_busy_chip.hide_busy()
+	if _hud_hidden and dialog_name in UI5_MODALS_THAT_ASK_FOR_THE_LINE:
+		_ui5_toggle_hud()
 
 
 func _order_target_key(region: String, marshal_key: String) -> String:
@@ -10361,7 +10500,11 @@ func _on_map_mode_changed(mode: String):
 	renderer's bare M (signal) and by Alt+M (`_alt_game_key`) alike, so the
 	two routes cannot drift apart. Says which of blended / political /
 	terrain the player landed on."""
-	add_output("[color=#" + Utils.COLOR_INFO + "]Map view: " + mode + "[/color]")
+	var mode_display: String = _ui5_map_mode_name(mode)
+	var view_line: String = "Map view: " + mode_display
+	add_output("[color=#" + Utils.COLOR_INFO + "]" + view_line + "[/color]")
+	ToastLayer.say(view_line, "europe")
+	_ui5_refresh_map_mode_chip(mode)
 
 
 func _on_region_panel_command(command: String):
@@ -10503,7 +10646,7 @@ func _update_war_panel_visibility():
 		and _has_active_wars
 	)
 	if war_status_panel:
-		war_status_panel.visible = should_show
+		war_status_panel.visible = should_show and not _hud_hidden   # Session UI-5: H hides it
 	if not should_show and war_detail_popup:
 		war_detail_popup.hide()
 	# UI-6: the Region Action Panel follows the same rule — never over a
@@ -10516,7 +10659,7 @@ func _update_war_panel_visibility():
 		# width since Session UI-3, layer 50) reach under its corner at
 		# 1600 x 900, where it hid a book's close button. A screen pinned at
 		# the Side Desk is not a covering one: the rail stays beside it.
-		notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open())
+		notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open() or _hud_hidden)
 
 
 func _on_war_card_clicked(nation: String, status: String, war_instance_id: String = ""):
@@ -10693,19 +10836,45 @@ func _process_active_wars(response: Dictionary):
 			if wid != "":
 				current_war_ids[wid] = true
 		var any_new_war := false
-		for wid in current_war_ids:
-			if not _audio_seen_war_ids.has(wid):
+		var first_fill: bool = _audio_seen_war_ids.is_empty()
+		var announced := false
+		var worst_score: int = 0
+		var scores_seen := false
+		var live_scores := {}
+		for w in _cached_wars:
+			var wid2 := str(w.get("war_instance_id", w.get("war_id", "")))
+			var score_raw = w.get("war_score")
+			var score: int = int(score_raw) if score_raw != null else 0
+			if wid2 != "":
+				live_scores[wid2] = score
+			if not scores_seen or score < worst_score:
+				worst_score = score
+				scores_seen = true
+			if wid2 != "" and not _audio_seen_war_ids.has(wid2):
 				any_new_war = true
+				if not first_fill and not announced:
+					# Session UI-5: a NEW war after the opener names its court
+					# (France the attacker plays her own anthem).
+					announced = true
+					AudioManager.announce_war(str(w.get("opponent", "")), str(w.get("france_side", "")) == "attackers")
 		var any_war_ended := false
+		var thanksgiving := false
 		for wid in _audio_seen_war_ids:
 			if not current_war_ids.has(wid):
 				any_war_ended = true
-		if any_new_war:
+				# the Te Deum: a war won well (standing.py TE_DEUM_SCORE = 25)
+				if int(_war_last_scores.get(wid, 0)) >= 25:
+					thanksgiving = true
+		if any_new_war and first_fill:
 			AudioManager.play_music_once("marseillaise")
-		elif any_war_ended:
+		elif any_war_ended and not any_new_war:
 			AudioManager.play("fanfare")
+			if thanksgiving:
+				AudioManager.play("bells_peal")
 		_audio_seen_war_ids = current_war_ids
+		_war_last_scores = live_scores
 		AudioManager.set_war_mood(_has_active_wars)
+		AudioManager.set_war_pressure(worst_score if _has_active_wars else 0)
 
 		# Refresh detail popup if open (in-place update, don't close)
 		if war_detail_popup and war_detail_popup.visible:
@@ -11670,3 +11839,527 @@ func _clear_suggestions() -> void:
 	_suggestions = []
 	_suggestion_index = 0
 	_render_suggestions()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SESSION UI-5 (November 12, 2026) — THE FULL MEASURE: the integrator's block.
+# Everything the wave-1 components ask of main.gd lives here, in one place, so
+# the pinned functions above change by a line, not by a body: Help & Keys, the
+# save dialog and the quick keys, the busy chip, toasts, Hide-HUD, the compact
+# command window, the idle corps in the End Turn gate, the order cues, the
+# map-mode chip and the camera jumps.
+# ════════════════════════════════════════════════════════════════════════════
+
+var codex: CodexView = null
+var save_dialog: SaveDialog = null
+var _busy_chip: BusyChip = null
+var _ui5_end_turn_out := false        # an end turn is on the wire (the chip says "the courts move")
+var _ui5_busy_kind := ""              # "save" / "load" while those calls are out
+var _ui5_leave_pending := ""          # "" | "menu" | "quit" — a Save & leave awaiting its save
+var _ui5_saved_for_leave := false
+var _idle_warned := false             # the End Turn gate's idle-corps latch
+var _hud_hidden := false              # H: the command window, war list, rail and region panel stand aside
+var _hud_was_minimized := false
+var _hud_region_was_open := false
+var _war_last_scores: Dictionary = {}  # war id -> its last war_score (the Te Deum)
+var _ui5_ap_mark := -1                # the day's AP as the send left it (an order that spent some succeeded)
+var _ui5_order_text := ""             # the typed order the success cue is chosen from
+var _ui5_calendar_label := ""
+var _ui5_compact_was := false
+var _ui5_compact_engaged := false      # F03: the player clicked or typed in the line (not the boot's grab)
+var _map_mode_chip: Button = null
+var _ui5_quickload_pending := false
+
+const UI5_MAP_MODE_NAMES := {"blended": "Lands & rule", "political": "Political", "terrain": "Terrain"}
+const UI5_VERB_WORDS := [
+	["unfortify", "unfortify"], ["fortify", "fortify"], ["drill", "drill"], ["train", "drill"],
+	["repair", "repair"], ["build", "build"], ["watchtower", "watchtower"],
+	["retreat", "retreat"], ["fall back", "retreat"], ["withdraw", "retreat"],
+	["garrison", "garrison"], ["recruit", "recruit"], ["scout", "scout"],
+	["charge", "charge"], ["bombard", "bombard"], ["attack", "attack"],
+	["pursue", "pursue"], ["support", "support"], ["march", "move"], ["move", "move"],
+	["hold", "hold"], ["square", "form_square"], ["wait", "wait"],
+]
+const UI5_MODALS_THAT_ASK_FOR_THE_LINE := ["clarification", "objection", "marshal_petition", "redemption"]
+# The keys the focused command line owns — never remapped while typing.
+const UI5_LINE_OWNED_KEYS := [KEY_TAB, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_ENTER,
+	KEY_KP_ENTER, KEY_ESCAPE, KEY_HOME, KEY_END, KEY_PAGEUP, KEY_PAGEDOWN]
+
+
+func _ui5_build_overlays() -> void:
+	"""The Help & Keys book and the save dialog (both CanvasLayers of their own)."""
+	codex = CodexView.new()
+	add_child(codex)
+	codex.closed.connect(_on_codex_closed)
+	save_dialog = SaveDialog.new()
+	add_child(save_dialog)
+	save_dialog.saved.connect(_on_save_dialog_saved)
+	save_dialog.closed.connect(_on_save_dialog_closed)
+	# F03: the compact window follows the player at the line (a click or a key
+	# in it, words in it) — never the boot's own grab of its focus.
+	if not command_input.focus_entered.is_connected(_ui5_refresh_compact):
+		command_input.focus_entered.connect(_ui5_refresh_compact)
+	if not command_input.focus_exited.is_connected(_ui5_line_focus_exited):
+		command_input.focus_exited.connect(_ui5_line_focus_exited)
+	if not command_input.gui_input.is_connected(_ui5_line_gui_input):
+		command_input.gui_input.connect(_ui5_line_gui_input)
+	if not command_input.text_changed.is_connected(_ui5_line_text_changed):
+		command_input.text_changed.connect(_ui5_line_text_changed)
+
+
+func _ui5_overlay_open() -> bool:
+	return (codex != null and codex.is_open()) or (save_dialog != null and save_dialog.visible)
+
+
+# ── hotkeys ─────────────────────────────────────────────────────────────────
+
+func _ui5_global_hotkey(event) -> bool:
+	"""The unfocused road: ?/F10, H, F5, F9 (the event is the RAW press)."""
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return false
+	if pause_menu != null and pause_menu.visible:
+		return false
+	return _ui5_hotkey_core(event, false)
+
+
+func _ui5_line_hotkey(event) -> bool:
+	"""The focused road: a printable key keeps typing (except ? on an empty
+	line); Alt+key and the function keys work while typing."""
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return false
+	return _ui5_hotkey_core(event, true)
+
+
+func _ui5_hotkey_core(event: InputEventKey, on_line: bool) -> bool:
+	var printable: bool = _is_text_key(event)
+	if Keys.is_help_key(event):
+		if event.unicode == 63 and not event.alt_pressed:
+			if on_line and command_input.text.strip_edges() != "":
+				return false   # a question mark in an order
+		elif printable and on_line:
+			return false
+		_ui5_toggle_codex()
+		return true
+	if printable and on_line:
+		return false
+	if Keys.matches(event, "hide_hud"):
+		if _is_modal_dialog_open():
+			return false
+		_ui5_toggle_hud()
+		return true
+	if Keys.matches(event, "quicksave"):
+		if not _is_modal_dialog_open():
+			_ui5_quicksave()
+		return true
+	if Keys.matches(event, "quickload"):
+		if not _is_modal_dialog_open():
+			_ui5_quickload()
+		return true
+	return false
+
+
+func _ui5_toggle_codex() -> void:
+	if codex == null:
+		return
+	if codex.is_open():
+		codex.close()
+		return
+	if _is_modal_dialog_open():
+		return
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	if command_input.has_focus():
+		command_input.release_focus()
+	codex.open("keys")
+	_update_war_panel_visibility()
+
+
+func _on_codex_closed() -> void:
+	_update_war_panel_visibility()
+
+
+func _on_pause_help_requested() -> void:
+	if codex == null:
+		return
+	if command_input.has_focus():
+		command_input.release_focus()
+	codex.open("keys")
+	_update_war_panel_visibility()
+
+
+func _on_pause_menu_closed() -> void:
+	"""A key may have been rebound in Settings: the (L) labels follow."""
+	if top_bar and top_bar.has_method("refresh_key_hints"):
+		top_bar.refresh_key_hints()
+
+
+# ── Hide-HUD (F03) ──────────────────────────────────────────────────────────
+
+func _ui5_toggle_hud() -> void:
+	_hud_hidden = not _hud_hidden
+	if _hud_hidden:
+		if command_input.has_focus():
+			command_input.release_focus()
+		_hud_was_minimized = restore_button != null and restore_button.visible
+		_hud_region_was_open = region_panel != null and region_panel.visible
+		bottom_left_ui.visible = false
+		if resize_grip:
+			resize_grip.visible = false
+		if restore_button:
+			restore_button.visible = false
+		if _busy_chip != null:
+			_busy_chip.visible = false
+		if region_panel and region_panel.visible:
+			region_panel.hide()
+		ToastLayer.say("HUD hidden — press " + Keys.key_name("hide_hud") + " to bring it back", "command")
+	else:
+		if _hud_was_minimized:
+			if restore_button:
+				restore_button.visible = true
+		else:
+			bottom_left_ui.visible = true
+			if resize_grip:
+				resize_grip.visible = true
+		if _hud_region_was_open and region_panel:
+			region_panel.show()
+		_reposition_after_layout()
+		_ui5_busy_sync(_input_open)
+	_update_war_panel_visibility()
+	_push_map_label_avoid_rects()
+	_queue_fit_map_controls()
+
+
+# ── the busy chip ───────────────────────────────────────────────────────────
+
+func _ui5_build_busy_chip() -> void:
+	"""One chip, a child of the root (so it scales with Interface Scale), stood
+	just above the command window's top edge — never over its input line."""
+	_busy_chip = BusyChip.new()
+	add_child(_busy_chip)
+
+
+func _ui5_place_busy_chip() -> void:
+	if _busy_chip == null or not is_instance_valid(_busy_chip) or bottom_left_ui == null:
+		return
+	var rect: Rect2 = bottom_left_ui.get_global_rect()
+	var chip_size: Vector2 = _busy_chip.get_combined_minimum_size()
+	_busy_chip.size = chip_size
+	_busy_chip.global_position = Vector2(rect.position.x + 8.0, maxf(TOP_BAR_RESERVED_PX, rect.position.y - chip_size.y - 4.0))
+
+
+func _ui5_busy_sync(enabled: bool) -> void:
+	"""The one seam every send and every reply passes (set_input_enabled)."""
+	if _busy_chip != null:
+		if enabled or _campaign_over:
+			_ui5_end_turn_out = false
+			_ui5_busy_kind = ""
+			_busy_chip.hide_busy()
+		elif _is_modal_dialog_open():
+			# The line is held for a dialog the PLAYER answers (the enemy phase,
+			# a report, an objection): nothing is out at the backend — no chip.
+			_busy_chip.hide_busy()
+		elif not _hud_hidden and bottom_left_ui != null and bottom_left_ui.visible:
+			var kind := _ui5_busy_kind
+			if kind == "":
+				kind = "enemy" if _ui5_end_turn_out else "order"
+			_busy_chip.show_busy(kind)
+			_ui5_place_busy_chip()
+			_ui5_place_busy_chip.call_deferred()
+
+
+# ── the compact command window (F03) ────────────────────────────────────────
+
+func _ui5_compact_collapsed() -> bool:
+	"""True on the compact view while the player is NOT at the line and no
+	command is out: the window stands as its input line plus about two lines of
+	the log. The interim shoot (November 13) caught the fold never standing: the
+	boot hands the line its focus, so "not focused" was never true on the first
+	view. The fold now opens on the PLAYER's engagement — a click or a key in
+	the line (`_ui5_line_gui_input`), or words standing in it — and closes when
+	the line loses its focus (a click on the map)."""
+	if command_input == null or not Utils.compact_view() or _hud_hidden:
+		return false
+	if not _input_open:
+		return false
+	if not command_input.text.strip_edges().is_empty():
+		return false
+	return not (_ui5_compact_engaged and command_input.has_focus())
+
+
+func _ui5_refresh_compact() -> void:
+	if command_input == null or bottom_left_ui == null:
+		return
+	if _ui5_compact_collapsed() != _ui5_compact_was:
+		_relayout_terminal()
+
+
+func _ui5_line_gui_input(event: InputEvent) -> void:
+	"""F03: a click or a key in the command line is the player at the line."""
+	var engaged := (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) \
+			or (event is InputEventKey and (event as InputEventKey).pressed)
+	if engaged and not _ui5_compact_engaged:
+		_ui5_compact_engaged = true
+		_ui5_refresh_compact()
+
+
+func _ui5_line_focus_exited() -> void:
+	_ui5_compact_engaged = false
+	_ui5_refresh_compact()
+
+
+func _ui5_line_text_changed(_text: String) -> void:
+	_ui5_refresh_compact()
+
+
+# ── the idle corps in the End Turn gate ─────────────────────────────────────
+
+func _ui5_idle_warning_stands() -> bool:
+	return UiSettings.get_idle_warning() and not _idle_warned and not _idle_marshals().is_empty()
+
+
+func _ui5_idle_sentence() -> String:
+	var idle: Array = _idle_marshals()
+	var names := PackedStringArray()
+	for k in idle:
+		if names.size() >= 3:
+			break
+		names.append(str(k))
+	var extra: int = idle.size() - names.size()
+	var who := ""
+	if extra > 0:
+		who = ", ".join(names) + " and %d more" % extra
+	elif names.size() == 1:
+		who = names[0]
+	elif names.size() == 2:
+		who = names[0] + " and " + names[1]
+	else:
+		who = names[0] + ", " + names[1] + " and " + names[2]
+	var have := "has" if (idle.size() == 1) else "have"
+	return "%s %s no orders yet — press End Turn again to end the day." % [who, have]
+
+
+# ── order success cues ──────────────────────────────────────────────────────
+
+func _ui5_ap_total() -> int:
+	return int(actions_remaining) * 100 + int(admin_actions_remaining)
+
+
+func _ui5_verb_for(event_type: String, text: String) -> String:
+	match event_type:
+		"battle", "conquest":
+			return "attack"
+		"bombardment":
+			return "bombard"
+		"move":
+			return "move"
+		"scout":
+			return "scout"
+		"recruit":
+			return "recruit"
+		"defend":
+			return "defend"
+	var t := " " + text + " "
+	for pair in UI5_VERB_WORDS:
+		if t.contains(" " + str(pair[0])):
+			return str(pair[1])
+	return ""
+
+
+func _ui5_order_cue(_response, event_type: String) -> void:
+	"""ONE cue per successful player order: the order spent some of the day
+	(a status, a question, a help line or an end turn spends none)."""
+	var mark := _ui5_ap_mark
+	var text := _ui5_order_text
+	_ui5_ap_mark = -1
+	_ui5_order_text = ""
+	if event_type == "turn_end" or mark < 0:
+		return
+	if _ui5_ap_total() >= mark:
+		return
+	AudioManager.play_result(_ui5_verb_for(event_type, text))
+
+
+# ── the marshal board's marks ───────────────────────────────────────────────
+
+func _status_mark(icon_name: String, status: String, stat_glyph: bool = false) -> String:
+	var hex: String = Utils.COLOR_INFO
+	if status == "broken" or status == "retreating":
+		hex = Utils.COLOR_ERROR
+	elif status == "idle_restless":
+		hex = Utils.COLOR_BATTLE
+	var path: String = Utils.glyph(icon_name) if stat_glyph else (Utils.ICON_PHOSPHOR + icon_name + ".svg")
+	return Utils.bb_icon(path, 16, hex)
+
+
+# ── the map-mode chip ───────────────────────────────────────────────────────
+
+func _ui5_map_mode_name(mode: String) -> String:
+	return str(UI5_MAP_MODE_NAMES.get(mode, mode.capitalize()))
+
+
+func _ui5_current_map_mode() -> String:
+	if map_area != null:
+		var m = map_area.get("_map_fill_mode")
+		if m != null:
+			return str(m)
+	return "blended"
+
+
+func _ui5_build_map_mode_chip(row: HBoxContainer) -> void:
+	_map_mode_chip = Button.new()
+	_map_mode_chip.name = "MapModeButton"
+	_map_mode_chip.focus_mode = Control.FOCUS_NONE
+	_map_mode_chip.custom_minimum_size = Vector2(0, MAP_CONTROL_SIZE)
+	_map_mode_chip.tooltip_text = ("Map view — click (or press %s) to change it.\n"
+		+ "Lands & rule: the nations' colours over the lay of the land\n"
+		+ "Political: the nations' colours alone\n"
+		+ "Terrain: the land alone") % Keys.key_name("map_mode")
+	_map_mode_chip.pressed.connect(_on_map_mode_chip_pressed)
+	row.add_child(_map_mode_chip)
+	_ui5_refresh_map_mode_chip(_ui5_current_map_mode())
+
+
+func _ui5_refresh_map_mode_chip(mode: String) -> void:
+	if _map_mode_chip != null and is_instance_valid(_map_mode_chip):
+		_map_mode_chip.text = _ui5_map_mode_name(mode) + " ▾"
+		_queue_fit_map_controls()
+
+
+func _on_map_mode_chip_pressed() -> void:
+	if map_area != null and map_area.has_method("cycle_map_fill_mode"):
+		_on_map_mode_changed(map_area.cycle_map_fill_mode())
+
+
+# ── saves: the dialog, F5, F9 ───────────────────────────────────────────────
+
+func _ui5_open_save_dialog() -> void:
+	if save_dialog == null:
+		return
+	if command_input.has_focus():
+		command_input.release_focus()
+	var label: String = _ui5_calendar_label if _ui5_calendar_label != "" else ("Turn %d" % current_turn)
+	var nation := Utils.display_nation_name(str(_last_game_state.get("player_nation", "France")))
+	# " - ", not " · ": the backend writes a "·" as "_" in the file's name, and a
+	# default whose slug is stable finds its own slot (the overwrite confirm).
+	save_dialog.open(label + " - " + nation)
+	_update_war_panel_visibility()
+
+
+func _on_pause_save_dialog_requested() -> void:
+	_ui5_leave_pending = ""
+	_ui5_open_save_dialog()
+
+
+func _on_pause_save_and_leave_requested(to_menu: bool) -> void:
+	_ui5_leave_pending = "menu" if to_menu else "quit"
+	_ui5_saved_for_leave = false
+	_ui5_open_save_dialog()
+
+
+func _on_save_dialog_saved(_save_name: String, _calendar_label: String) -> void:
+	_ui5_saved_for_leave = true
+
+
+func _on_save_dialog_closed() -> void:
+	_update_war_panel_visibility()
+	# `closed` comes before `saved` on the same call: decide a frame later.
+	_ui5_resolve_leave.call_deferred()
+
+
+func _ui5_resolve_leave() -> void:
+	var pending := _ui5_leave_pending
+	_ui5_leave_pending = ""
+	if pending == "" or not _ui5_saved_for_leave:
+		return   # closed without a save: the leave is cancelled
+	_ui5_saved_for_leave = false
+	if pending == "menu":
+		_on_pause_main_menu_requested()
+	else:
+		get_tree().quit()
+
+
+func _ui5_quicksave() -> void:
+	if not _input_open or _campaign_over or api_client == null:
+		return
+	if _busy_chip != null:
+		_busy_chip.show_busy("save")
+		_ui5_place_busy_chip()
+		_ui5_place_busy_chip.call_deferred()
+	api_client.save_game("quicksave", _on_quicksave_result)
+
+
+func _on_quicksave_result(response) -> void:
+	if _busy_chip != null:
+		_busy_chip.hide_busy()
+	if response is Dictionary and response.get("success", false):
+		AudioManager.play("confirm")
+		ToastLayer.say("Saved · " + (_ui5_calendar_label if _ui5_calendar_label != "" else "Quicksave"), "letter")
+	else:
+		AudioManager.play("error")
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + _failure_line(response, "Save failed") + "[/color]")
+		add_output("")
+
+
+func _ui5_quickload() -> void:
+	if not _input_open or api_client == null or load_dialog == null:
+		return
+	_ui5_quickload_pending = true
+	api_client.list_saves(_on_quickload_listed)
+
+
+func _on_quickload_listed(response) -> void:
+	if not _ui5_quickload_pending:
+		return
+	_ui5_quickload_pending = false
+	var saves = response.get("saves") if response is Dictionary else null
+	if not (saves is Array):
+		add_output("[color=#" + Utils.COLOR_ERROR + "]Failed to list saves.[/color]")
+		return
+	var found := ""
+	for save_data in saves:
+		if save_data is Dictionary and str(save_data.get("filename", "")).to_lower() == "quicksave.json":
+			found = str(save_data.get("filename", ""))
+	if found == "":
+		ToastLayer.say("No quicksave yet — press " + Keys.key_name("quicksave") + " to make one", "letter")
+		AudioManager.play("error")
+		return
+	var damaged = response.get("damaged", [])
+	load_dialog.show_saves(saves, damaged if damaged is Array else [])
+	load_dialog._on_row_picked(found, "Quicksave")
+
+
+# ── the rest of the pause menu's roads, the camera jumps ────────────────────
+
+func _on_pause_tutorial_requested() -> void:
+	_on_tutorial_boot_requested()
+
+
+func _on_first_open_reset_requested() -> void:
+	if api_client == null:
+		return
+	if api_client.has_method("reset_first_open_acks"):
+		api_client.reset_first_open_acks()
+	api_client.first_open_reset(_on_first_open_reset_result)
+
+
+func _on_first_open_reset_result(response) -> void:
+	if response is Dictionary and response.get("success", true) != false:
+		ToastLayer.say("First-open notes will show again", "intel")
+	else:
+		AudioManager.play("error")
+
+
+func _on_show_on_map_requested(region: String) -> void:
+	"""A notice's "Show on map": the camera goes there (a covering screen steps aside)."""
+	if map_area == null or not map_area.has_method("focus_on_region") or region == "":
+		return
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	map_area.focus_on_region(region)
+	AudioManager.play("select")
+
+
+func _on_focus_region_requested(region: String) -> void:
+	"""The enemy-phase line's pin: the dialog has dismissed; the pan follows (an
+	unknown place, a conquest's "territory", is ignored by the map)."""
+	_on_show_on_map_requested.call_deferred(region)

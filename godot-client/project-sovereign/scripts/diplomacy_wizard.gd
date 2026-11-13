@@ -84,6 +84,10 @@ const CABINET_CEILING_SHARE := Vector2(0.0, 0.8)
 
 
 func _ready():
+	# Session UI-5 (F15): the Assessment and the Actions stand in one body box that
+	# sits side by side (full view, step 2) or stacked (everything else).
+	_build_body()
+	visibility_changed.connect(_on_visibility_changed)
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(assessment_panel)
 	Utils.keep_whole_lines(scroll_container)
@@ -114,6 +118,15 @@ func _ready():
 	# wider than the panel WRAPS (see _add_action_button) instead of dragging
 	# a horizontal scrollbar under the list with its gate reason clipped off.
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Session UI-5 (F15): the actions step keeps a right margin as wide as the
+	# scroll bar so its price cells ("1 DP", "1 DP 1320g") never sit under it
+	# (`_lay_out_prompt` sets it per step: the prose pages keep their width, or
+	# the designs page's Proclaim strip fell below the fold at 2.0).
+	_list_margin = MarginContainer.new()
+	_list_margin.name = "ListMargin"
+	_list_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_container.add_child(_list_margin)
+	content_list.reparent(_list_margin, false)
 	# DDB-7 (Pre-Deploy S13b): a list taller than its pane says so — "▼ more
 	# below" under the list, on the Caption step and the info token, hidden
 	# once the list is read to its end (conquest #22: the recommended mission
@@ -224,6 +237,120 @@ func refit() -> void:
 	way the live wizard does, and so a later Interface Scale change can
 	refit an open wizard without re-fetching."""
 	Utils.clamp_centered_panel($PanelContainer)
+	_sync_body()
+	_sync_banner()
+
+
+# =============================================================================
+# SESSION UI-5 - F15: the Assessment | Actions split, the Cabinet's banner, the
+# court's music
+# =============================================================================
+# The readers (UI_VISUAL_FOUNDATION_SPEC section 12, F15): "split it into
+# Assessment and Actions panels". The body box holds the two: at the full view on
+# step 2 (a panel wide enough for two columns - the Cabinet's default raises its
+# width on that step) the Assessment stands on the left with its own scroll and
+# the Actions on the right (each act a row with its price); at the narrow and the
+# compact views they stack, the Actions at the foot (always in view, their own
+# scroll) and the Assessment, capped by _fit_assessment, above. No copy is cut.
+const CABINET_SPLIT_SHARE := Vector2(0.62, 0.8)
+const SPLIT_MIN_WIDTH := 760.0
+const BANNER_MIN_VIEW_HEIGHT := 880.0   # Session UI-5: the header picture stands on a 900-px view, never on the 32:9 panel's 800 (the engine lane: the nation list and the table's courts below the fold)
+const BANNER_MAX_HEIGHT := 96.0
+var _body: BoxContainer = null
+var _actions_col: VBoxContainer = null
+var _actions_head: Label = null
+var _banner: TextureRect = null
+var _split: bool = false
+var _court_music: bool = false
+
+
+func _build_body() -> void:
+	var vbox: Node = assessment_panel.get_parent()
+	var at: int = assessment_panel.get_index()
+	_body = BoxContainer.new()
+	_body.name = "CabinetBody"
+	_body.vertical = true
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_body.add_theme_constant_override("separation", 6)
+	_actions_col = VBoxContainer.new()
+	_actions_col.name = "ActionsColumn"
+	_actions_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_actions_col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_actions_col.add_theme_constant_override("separation", 6)
+	_actions_head = Label.new()
+	_actions_head.text = "ACTIONS - each with its price"
+	_actions_head.theme_type_variation = &"Caption"
+	_actions_head.add_theme_color_override("font_color", Color("#" + Utils.COLOR_HEADER))
+	_actions_head.visible = false
+	vbox.add_child(_body)
+	vbox.move_child(_body, at)
+	vbox.remove_child(assessment_panel)
+	_body.add_child(assessment_panel)
+	vbox.remove_child(scroll_container)
+	_actions_col.add_child(_actions_head)
+	_actions_col.add_child(scroll_container)
+	_body.add_child(_actions_col)
+
+
+func _sync_body() -> void:
+	"""Side by side only on step 2, off the compact view, in a panel wide enough
+	for two columns; flags are touched on a change only (the fit's measured
+	height is not undone by a later refit)."""
+	if _body == null:
+		return
+	var width: float = $PanelContainer.offset_right - $PanelContainer.offset_left
+	var want: bool = _current_step == 2 and not Utils.compact_view() and width >= SPLIT_MIN_WIDTH
+	if want == _split:
+		return
+	_split = want
+	_body.vertical = not want
+	_actions_head.visible = want
+	if want:
+		assessment_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		assessment_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		assessment_panel.size_flags_stretch_ratio = 1.0
+		assessment_panel.custom_minimum_size.y = 56.0
+	else:
+		_lay_out_prompt(_current_step)
+
+
+func _sync_banner() -> void:
+	"""The Cabinet's header picture: the full view only, and only where the
+	window is tall enough that the list keeps its first rows."""
+	var view_h: float = 0.0
+	if get_viewport() != null:
+		view_h = get_viewport().get_visible_rect().size.y
+	var want: bool = visible and not Utils.compact_view() and view_h >= BANNER_MIN_VIEW_HEIGHT
+	if not want:
+		if _banner != null:
+			_banner.queue_free()
+			_banner = null
+		return
+	if _banner != null or _body == null:
+		return
+	var w: float = $PanelContainer.offset_right - $PanelContainer.offset_left - 40.0
+	var pic: TextureRect = Illustrations.make_banner("cabinet", w)
+	if pic == null:
+		return
+	pic.custom_minimum_size.y = minf(pic.custom_minimum_size.y, BANNER_MAX_HEIGHT)
+	var vbox: Node = _body.get_parent()
+	vbox.add_child(pic)
+	vbox.move_child(pic, _body.get_index())
+	_banner = pic
+
+
+func _on_visibility_changed() -> void:
+	"""The court's music: one request on open, one release on EVERY close path
+	(the flag guards both halves - main.gd's Esc hide included)."""
+	if visible and not _court_music:
+		_court_music = true
+		AudioManager.request_scene_music("court")
+	elif not visible and _court_music:
+		_court_music = false
+		AudioManager.release_scene_music("court")
+		if _banner != null:
+			_banner.queue_free()
+			_banner = null
 
 
 func _lay_out_prompt(step: int) -> void:
@@ -234,12 +361,21 @@ func _lay_out_prompt(step: int) -> void:
 	been written. Step 1 pins it to a one-line floor; steps 2 and 3 expand."""
 	if assessment_panel == null:
 		return
+	# Session UI-5: a fresh layout is stacked; refit (below) re-decides the split.
+	_split = false
+	if _list_margin != null:
+		var bar_w: int = int(ceil(scroll_container.get_v_scroll_bar().get_combined_minimum_size().x))
+		_list_margin.add_theme_constant_override("margin_right", (maxi(bar_w, 12) + 6) if step == 2 else 0)
+	assessment_panel.size_flags_horizontal = Control.SIZE_FILL
+	if _body != null:
+		_body.vertical = true
+		_actions_head.visible = false
 	if step == 1:
 		assessment_panel.size_flags_vertical = Control.SIZE_FILL
 		assessment_panel.custom_minimum_size.y = 40.0
 	elif step == 3 and THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE:
 		# SF7-X28: step 3's prompt is a fixed two-line quote, not an
-		# assessment — expanding it opened a blank band above the list.
+		# assessment - expanding it opened a blank band above the list.
 		assessment_panel.size_flags_vertical = Control.SIZE_FILL
 		assessment_panel.custom_minimum_size.y = 56.0
 	elif step == 4:
@@ -253,6 +389,11 @@ func _lay_out_prompt(step: int) -> void:
 		# its counsel in view (_fit_assessment) and a smaller share of the slack
 		# than the list ("use the full height": the blind reader of step 2).
 		assessment_panel.size_flags_stretch_ratio = 0.3
+	# Session UI-5 (F15): step 2 asks for the wider default (two columns); the
+	# other steps keep the authored width.
+	var raised: bool = step == 2 and not Utils.compact_view()
+	$PanelContainer.set_meta("clamp_ceiling_fraction", CABINET_SPLIT_SHARE if raised else CABINET_CEILING_SHARE)
+	refit()
 
 
 # EA-E5 (SF-RR5, October 21, 2026): step 2's assessment keeps Talleyrand's
@@ -272,6 +413,10 @@ const ASSESSMENT_CAP_SHARE_COMPACT := 0.3
 func _fit_assessment() -> void:
 	await get_tree().process_frame
 	if assessment_panel == null or not visible or _current_step != 2:
+		return
+	# Session UI-5 (F15): side by side the Assessment has the column's whole
+	# height and its own scroll - nothing to cap.
+	if _split:
 		return
 	# Session UI-3 (November 12, 2026): the floor cut Talleyrand's quote to ONE
 	# line - on a 560-wide panel the status line wraps (its relation figure
@@ -410,6 +555,7 @@ func _on_http_completed(result, response_code, headers, body):
 
 func _show_error(msg: String):
 	_current_step = 1  # Reset step so back button works (Fix 7)
+	_sync_body()
 	# S14D-X32 (October 23, 2026): the error view is step 1's — never stranded
 	# under a page's title (THE EMPEROR'S DESIGNS) with no Back.
 	title_label.text = "THE CABINET"
@@ -738,12 +884,13 @@ func _add_congress_row(congress) -> void:
 	row.add_theme_constant_override("separation", 8)
 	var btn = Button.new()
 	var cost = congress.get("cost_text")
-	btn.text = "Summon the Congress of Paris"
+	btn.text = "Summon the Congress"
 	if cost is String and cost != "":
-		btn.text += " (" + cost + ")"
+		# Session UI-5 (F14): short and legible, "2 DP + 1 admin action".
+		var short_cost: String = cost.replace("diplomatic points", "DP").replace("diplomatic point", "DP").replace("administrative action", "admin action")
+		btn.text += " — " + short_cost
 	btn.custom_minimum_size = Vector2(0, 36)
 	btn.theme_type_variation = &"CaptionButton"
-	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.disabled = not available
 	if available:
@@ -758,12 +905,14 @@ func _add_congress_row(congress) -> void:
 		primary.content_margin_top = 4.0
 		primary.content_margin_bottom = 4.0
 		btn.add_theme_stylebox_override("normal", primary)
+		btn.set_meta("no_click_sfx", true)   # Session UI-5: the gavel is its sound
 		btn.pressed.connect(_on_congress_summon_pressed)
 	else:
 		# Session UI-2: the blind readers took the shut Summon for a live
 		# button - it keeps the theme's dashed disabled face and is dimmed
 		# further, and says why under it (the reason line, below).
-		btn.modulate = Color(1, 1, 1, 0.6)
+		# Session UI-5 (F14): disabled but READABLE - no whole-control dimming.
+		btn.add_theme_color_override("font_disabled_color", Utils.UI_REASON_GREY)
 		btn.focus_mode = Control.FOCUS_NONE
 	row.add_child(btn)
 	# The table — every great power's answer, reason and price, on the
@@ -782,7 +931,10 @@ func _add_congress_row(congress) -> void:
 	var reason = congress.get("unavailable_reason")
 	if not available and reason is String and reason != "":
 		btn.tooltip_text = reason
-		if _congress_terms_open or not shows_terms:
+		# The reason is the shut button's hover, and stands under it with the
+		# terms open (Session UI-5: the interim fix showed it always, and on the
+		# 32:9 panel's 800 logical px it pushed the nation list below the fold).
+		if _congress_terms_open:
 			var reason_label = Label.new()
 			reason_label.text = "    " + reason
 			reason_label.theme_type_variation = &"Caption"
@@ -792,6 +944,9 @@ func _add_congress_row(congress) -> void:
 
 
 func _on_congress_summon_pressed():
+	# Session UI-5: the Congress is summoned with the gavel (the button's own
+	# click stands down — `no_click_sfx` where the button is built).
+	AudioManager.play("gavel")
 	_close_wizard()
 	command_selected.emit(CONGRESS_SUMMON_COMMAND)
 
@@ -2014,6 +2169,7 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 # =============================================================================
 
 var _more_below: Label = null
+var _list_margin: MarginContainer = null   # Session UI-5 (F15): the actions step's right margin
 
 
 func _update_more_below() -> void:

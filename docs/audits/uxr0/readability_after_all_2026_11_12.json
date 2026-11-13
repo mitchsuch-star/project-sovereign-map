@@ -1,6 +1,6 @@
 {
- "date": "2026_11_12",
- "source": "Session UI-4 final physical shoot (the working tree committed as the UI-4 commit; its parent e835f889; the shipped Text size 115 %)",
+ "date": "ui5fin",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\a133039f038d2894\\606e5a91-709d-4098-8d65-8d28121c327a\\scratchpad\\run_ui5fin_phys\\index.json",
  "surfaces": {
   "ledger_boot_forces": {
    "surface": "Strategic Ledger — Forces tab",
@@ -9568,10 +9568,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 26,
+      "rows": 27,
       "red": 0,
       "p1": 0,
-      "ok": 26,
+      "ok": 27,
       "map": 0,
       "map_small": 0
      },
@@ -9609,10 +9609,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 34,
+      "rows": 35,
       "red": 0,
       "p1": 0,
-      "ok": 34,
+      "ok": 35,
       "map": 0,
       "map_small": 0
      },
@@ -9663,10 +9663,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 34,
+      "rows": 35,
       "red": 0,
       "p1": 0,
-      "ok": 34,
+      "ok": 35,
       "map": 0,
       "map_small": 0
      },
@@ -9704,10 +9704,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 30,
+      "rows": 32,
       "red": 0,
       "p1": 0,
-      "ok": 30,
+      "ok": 32,
       "map": 0,
       "map_small": 0
      },
@@ -9722,10 +9722,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 30,
+      "rows": 32,
       "red": 0,
       "p1": 0,
-      "ok": 30,
+      "ok": 32,
       "map": 0,
       "map_small": 0
      },
@@ -9740,10 +9740,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 30,
+      "rows": 32,
       "red": 0,
       "p1": 0,
-      "ok": 30,
+      "ok": 32,
       "map": 0,
       "map_small": 0
      },
@@ -9758,10 +9758,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 30,
+      "rows": 32,
       "red": 0,
       "p1": 0,
-      "ok": 30,
+      "ok": 32,
       "map": 0,
       "map_small": 0
      },
@@ -9776,10 +9776,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 30,
+      "rows": 32,
       "red": 0,
       "p1": 0,
-      "ok": 30,
+      "ok": 32,
       "map": 0,
       "map_small": 0
      },
@@ -11224,10 +11224,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 56,
+      "rows": 55,
       "red": 0,
       "p1": 0,
-      "ok": 56,
+      "ok": 55,
       "map": 0,
       "map_small": 0
      },
@@ -11242,10 +11242,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 56,
+      "rows": 55,
       "red": 0,
       "p1": 0,
-      "ok": 56,
+      "ok": 55,
       "map": 0,
       "map_small": 0
      },
@@ -11260,10 +11260,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 56,
+      "rows": 55,
       "red": 0,
       "p1": 0,
-      "ok": 56,
+      "ok": 55,
       "map": 0,
       "map_small": 0
      },
@@ -11278,10 +11278,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 56,
+      "rows": 55,
       "red": 0,
       "p1": 0,
-      "ok": 56,
+      "ok": 55,
       "map": 0,
       "map_small": 0
      },
@@ -11296,10 +11296,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 56,
+      "rows": 55,
       "red": 0,
       "p1": 0,
-      "ok": 56,
+      "ok": 55,
       "map": 0,
       "map_small": 0
      },
@@ -12744,10 +12744,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 11,
+      "rows": 13,
       "red": 0,
       "p1": 0,
-      "ok": 11,
+      "ok": 13,
       "map": 0,
       "map_small": 0
      },
@@ -12762,10 +12762,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 11,
+      "rows": 13,
       "red": 0,
       "p1": 0,
-      "ok": 11,
+      "ok": 13,
       "map": 0,
       "map_small": 0
      },
@@ -12780,10 +12780,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 11,
+      "rows": 13,
       "red": 0,
       "p1": 0,
-      "ok": 11,
+      "ok": 13,
       "map": 0,
       "map_small": 0
      },
@@ -12798,10 +12798,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 11,
+      "rows": 13,
       "red": 0,
       "p1": 0,
-      "ok": 11,
+      "ok": 13,
       "map": 0,
       "map_small": 0
      },
@@ -12816,10 +12816,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 11,
+      "rows": 13,
       "red": 0,
       "p1": 0,
-      "ok": 11,
+      "ok": 13,
       "map": 0,
       "map_small": 0
      },
@@ -12839,10 +12839,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 21,
+      "rows": 23,
       "red": 0,
       "p1": 0,
-      "ok": 21,
+      "ok": 23,
       "map": 0,
       "map_small": 0
      },
@@ -12857,10 +12857,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 21,
+      "rows": 23,
       "red": 0,
       "p1": 0,
-      "ok": 21,
+      "ok": 23,
       "map": 0,
       "map_small": 0
      },
@@ -12875,10 +12875,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 21,
+      "rows": 23,
       "red": 0,
       "p1": 0,
-      "ok": 21,
+      "ok": 23,
       "map": 0,
       "map_small": 0
      },
@@ -12893,10 +12893,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 21,
+      "rows": 23,
       "red": 0,
       "p1": 0,
-      "ok": 21,
+      "ok": 23,
       "map": 0,
       "map_small": 0
      },
@@ -12911,10 +12911,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 21,
+      "rows": 23,
       "red": 0,
       "p1": 0,
-      "ok": 21,
+      "ok": 23,
       "map": 0,
       "map_small": 0
      },
@@ -13789,10 +13789,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 30,
       "map_small": 0
      },
@@ -13807,10 +13807,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 32,
       "map_small": 0
      },
@@ -13825,10 +13825,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 32,
       "map_small": 0
      },
@@ -13843,10 +13843,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 36,
       "map_small": 0
      },
@@ -13861,10 +13861,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 49,
+      "rows": 50,
       "red": 0,
       "p1": 0,
-      "ok": 49,
+      "ok": 50,
       "map": 32,
       "map_small": 0
      },
@@ -13884,10 +13884,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 66,
+      "rows": 67,
       "red": 0,
       "p1": 0,
-      "ok": 66,
+      "ok": 67,
       "map": 27,
       "map_small": 0
      },
@@ -13902,10 +13902,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 66,
+      "rows": 67,
       "red": 0,
       "p1": 0,
-      "ok": 66,
+      "ok": 67,
       "map": 29,
       "map_small": 0
      },
@@ -13920,10 +13920,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 66,
+      "rows": 67,
       "red": 0,
       "p1": 0,
-      "ok": 66,
+      "ok": 67,
       "map": 32,
       "map_small": 0
      },
@@ -13938,10 +13938,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 66,
+      "rows": 67,
       "red": 0,
       "p1": 0,
-      "ok": 66,
+      "ok": 67,
       "map": 28,
       "map_small": 0
      },
@@ -13956,10 +13956,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 66,
+      "rows": 67,
       "red": 0,
       "p1": 0,
-      "ok": 66,
+      "ok": 67,
       "map": 31,
       "map_small": 0
      },
@@ -13979,10 +13979,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 53,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 53,
       "map": 27,
       "map_small": 0
      },
@@ -13997,10 +13997,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 53,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 53,
       "map": 29,
       "map_small": 0
      },
@@ -14015,10 +14015,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 53,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 53,
       "map": 32,
       "map_small": 0
      },
@@ -14033,10 +14033,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 53,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 53,
       "map": 36,
       "map_small": 0
      },
@@ -14051,10 +14051,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 53,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 53,
       "map": 31,
       "map_small": 0
      },
@@ -14074,10 +14074,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14092,10 +14092,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14110,10 +14110,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14128,10 +14128,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14146,10 +14146,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 52,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 52,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14169,10 +14169,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 30,
       "map_small": 0
      },
@@ -14187,10 +14187,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 32,
       "map_small": 0
      },
@@ -14205,10 +14205,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 32,
       "map_small": 0
      },
@@ -14223,10 +14223,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 36,
       "map_small": 0
      },
@@ -14241,10 +14241,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 76,
+      "rows": 87,
       "red": 0,
       "p1": 0,
-      "ok": 76,
+      "ok": 87,
       "map": 32,
       "map_small": 0
      },
@@ -14264,10 +14264,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 51,
+      "rows": 52,
       "red": 0,
       "p1": 0,
-      "ok": 51,
+      "ok": 52,
       "map": 30,
       "map_small": 0
      },
@@ -14282,10 +14282,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 51,
+      "rows": 52,
       "red": 0,
       "p1": 0,
-      "ok": 51,
+      "ok": 52,
       "map": 32,
       "map_small": 0
      },
@@ -14300,10 +14300,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 51,
+      "rows": 52,
       "red": 0,
       "p1": 0,
-      "ok": 51,
+      "ok": 52,
       "map": 32,
       "map_small": 0
      },
@@ -14318,10 +14318,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 51,
+      "rows": 52,
       "red": 0,
       "p1": 0,
-      "ok": 51,
+      "ok": 52,
       "map": 36,
       "map_small": 0
      },
@@ -14336,10 +14336,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 51,
+      "rows": 52,
       "red": 0,
       "p1": 0,
-      "ok": 51,
+      "ok": 52,
       "map": 32,
       "map_small": 0
      },
@@ -14359,10 +14359,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 67,
+      "rows": 68,
       "red": 0,
       "p1": 0,
-      "ok": 67,
+      "ok": 68,
       "map": 39,
       "map_small": 0
      },
@@ -14377,10 +14377,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 67,
+      "rows": 68,
       "red": 0,
       "p1": 0,
-      "ok": 67,
+      "ok": 68,
       "map": 39,
       "map_small": 0
      },
@@ -14395,10 +14395,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 67,
+      "rows": 68,
       "red": 0,
       "p1": 0,
-      "ok": 67,
+      "ok": 68,
       "map": 39,
       "map_small": 0
      },
@@ -14413,10 +14413,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 67,
+      "rows": 68,
       "red": 0,
       "p1": 0,
-      "ok": 67,
+      "ok": 68,
       "map": 40,
       "map_small": 0
      },
@@ -14431,10 +14431,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 67,
+      "rows": 68,
       "red": 0,
       "p1": 0,
-      "ok": 67,
+      "ok": 68,
       "map": 38,
       "map_small": 0
      },
@@ -14454,10 +14454,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -14472,10 +14472,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -14490,10 +14490,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -14508,10 +14508,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -14526,10 +14526,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 6,
+      "rows": 7,
       "red": 0,
       "p1": 0,
-      "ok": 6,
+      "ok": 7,
       "map": 0,
       "map_small": 0
      },
@@ -14644,10 +14644,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 53,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 53,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14662,10 +14662,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 53,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 53,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14680,10 +14680,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 53,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 53,
+      "ok": 54,
       "map": 11,
       "map_small": 0
      },
@@ -14698,10 +14698,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 53,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 53,
+      "ok": 54,
       "map": 15,
       "map_small": 0
      },
@@ -14716,10 +14716,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 53,
+      "rows": 54,
       "red": 0,
       "p1": 0,
-      "ok": 53,
+      "ok": 54,
       "map": 12,
       "map_small": 0
      },
@@ -14834,10 +14834,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -14852,10 +14852,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -14870,10 +14870,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -14888,10 +14888,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -14906,10 +14906,10 @@
      "text_size": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 51,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 51,
       "map": 0,
       "map_small": 0
      },
@@ -17767,6 +17767,481 @@
     }
    }
   },
+  "ui5_codex_keys": {
+   "surface": "Help & Keys — the KEYS tab (Session UI-5)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "ui5_codex_terms": {
+   "surface": "Help & Keys — the TERMS tab (Session UI-5)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "ui5_save_dialog": {
+   "surface": "The save dialog (Session UI-5)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "ui5_load_dialog": {
+   "surface": "The load dialog's rows (Session UI-5)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "ui5_pause_menu": {
+   "surface": "The pause menu, restyled (Session UI-5)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 12,
+      "red": 0,
+      "p1": 0,
+      "ok": 12,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
   "pc_war_card_tooltip": {
    "surface": "The war card's hover text over the map (PC-F47, M1)",
    "readings": {
@@ -17863,7 +18338,7 @@
    }
   }
  },
- "client_commit": "e835f889+UI-4",
+ "client_commit": "970a534c+UI-5",
  "physical_scale": "auto",
- "text_size": 1.15
+ "text_size": 1.0
 }

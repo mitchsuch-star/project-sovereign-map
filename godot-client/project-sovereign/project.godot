@@ -25,6 +25,7 @@ window/size/mode=2
 [gui]
 
 theme/custom="res://ui/main_theme.tres"
+timers/tooltip_delay_sec=0.05
 
 [rendering]
 

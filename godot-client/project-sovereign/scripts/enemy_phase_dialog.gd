@@ -12,6 +12,9 @@ signal dismissed
 # BD: a "⚔ View the field" link was clicked — main.gd opens the tableau
 # over this dialog (layer 121 > 118); the dialog's input hold stands.
 signal view_field_requested(payload: Dictionary)
+# Session UI-5: a "⌖ <place>" link was clicked - the dialog closes the way
+# Continue does, then main.gd pans the map to the region.
+signal focus_region_requested(region: String)
 
 # UI References
 @onready var panel_container = $PanelContainer
@@ -51,8 +54,58 @@ const THE_COLOURS_KNOW_OUR_FRIENDS := true
 
 # BD: tableau payloads for this phase's battles, indexed by the meta link.
 var _diorama_payloads: Array = []
+# Session UI-5: the day's end sounds once per phase (the first Continue), and
+# the "enemy_phase" banner stands at the head of the sheet.
+var _day_ended := false
+var _banner: TextureRect = null
+
+
+func _ensure_banner() -> void:
+	var box: Node = $PanelContainer/VBoxContainer
+	if _banner != null and is_instance_valid(_banner):
+		box.remove_child(_banner)
+		_banner.free()
+	_banner = null
+	var w: float = panel_container.size.x
+	if w < 200.0:
+		w = get_viewport().get_visible_rect().size.x * 0.5
+	_banner = Illustrations.make_banner("enemy_phase", w)
+	if _banner == null:
+		return
+	box.add_child(_banner)
+	box.move_child(_banner, title_label.get_index() + 1)
+
+
+func _place_link(place: String) -> String:
+	"""A '⌖ Place' link line (meta `focus:<region>`) - '' where the event named
+	no place. The region reads through the humanize helper."""
+	var key := place.strip_edges()
+	if key == "" or key == "<null>" or key == "null":
+		return ""
+	return "[color=#" + Utils.COLOR_GOLD + "]    [url=focus:" + key + "]⌖ " \
+		+ Utils.humanize_entity_name(key) + "[/url][/color]\n"
+
+
+func _place_of(event: Dictionary, action: Dictionary) -> String:
+	"""The place a battle event happened, from whichever field it carries:
+	`location`, `region_name`, `region`, or the defender's own `location`."""
+	for key in ["location", "region_name", "region", "battle_location"]:
+		var v = event.get(key, null)
+		if v is String and v != "":
+			return v
+	var dfn = event.get("defender", {})
+	if dfn is Dictionary:
+		var dl = dfn.get("location", null)
+		if dl is String and dl != "":
+			return dl
+	var al = action.get("location", null)
+	if al is String and al != "":
+		return al
+	return ""
+
 
 func _ready():
+	continue_button.set_meta("no_click_sfx", true)   # its handler plays the day's end
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
 	# Session UI-2: each court's move is a card (the marks are put in
@@ -89,6 +142,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 	# Build content
 	_diorama_payloads = []
+	_day_ended = false
 	var content = ""
 
 	var nations = enemy_phase.get("nations", {})
@@ -127,8 +181,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			var nation_color = _get_nation_color(nation)
 			# Session UI-2: the court's flag leads its name.
 			content += Utils.bb_flag(str(nation), 16) + "[color=#" + nation_color + "][b]" + Utils.display_nation_name(nation).to_upper() + "[/b][/color]\n"
-			# UXR3-F6: a ruled line, not typed dashes.
-			content += "[color=#" + Utils.COLOR_INFO + "]" + "─".repeat(28) + "[/color]\n"
+			# Session UI-5 interim fix (Nov 13): the short stray rule under the heading is gone.
 
 			# Process each action
 			var actions = nation_data.get("actions", [])
@@ -149,6 +202,7 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 	# Set content
 	content_label.text = Utils.dress_heads(content)
+	_ensure_banner()
 
 	# Show the dialog
 	show()
@@ -366,8 +420,17 @@ func _format_action(action: Dictionary) -> String:
 	# Session UI-2: the move is a card, led by the glyph of its kind (a loss to
 	# us takes the red tone); the card closes at the end of this function.
 	var card_hex: String = COLOR_ERROR if line_color == COLOR_ERROR else Utils.COLOR_GOLD
-	result += Utils.card_open(card_hex) + Utils.bb_glyph(_action_glyph(action, str(action_type), is_bombardment), 18, card_hex) + " "
-	result += "[color=#" + line_color + "]- " + action_str + "[/color]\n"
+	var first_glyph := Utils.bb_glyph(_action_glyph(action, str(action_type), is_bombardment), 18, card_hex) + " "
+	var outcome_badge := _outcome_badge_for(action)
+	_badge_on_first_line = not outcome_badge.is_empty()
+	if outcome_badge.is_empty():
+		result += Utils.card_open(card_hex) + first_glyph
+		result += "[color=#" + line_color + "]- " + action_str + "[/color]\n"
+	else:
+		# Session UI-5 interim fix (Nov 13, F19): the outcome badge ends the first line
+		result += Utils.card_open(card_hex) + "[table=2][cell expand=1]" + first_glyph
+		result += "[color=#" + line_color + "]- " + action_str + "[/color][/cell]"
+		result += "[cell padding=10,0,2,0]" + _outcome_badge_run(outcome_badge) + "[/cell][/table]\n"
 
 	# Check for battle events
 	var events = action.get("events", [])
@@ -381,7 +444,7 @@ func _format_action(action: Dictionary) -> String:
 			# Pass the action line's own pair so the battle block does not
 			# restate it: "- Mack attacks Ney" was immediately followed by
 			# "Mack attacks Ney" under the battle name, every single turn.
-			result += _format_battle(event, marshal_name, str(target))
+			result += _format_battle(event, marshal_name, str(target), _place_of(event, action))
 		elif event.get("type") == "bombardment":
 			print("[ENEMY_PHASE_DEBUG] Calling _format_bombardment for bombardment event")
 			result += _format_bombardment(event)
@@ -405,6 +468,7 @@ func _format_action(action: Dictionary) -> String:
 			if ga_standing != "":
 				ga_colour = _standing_colour(ga_standing, false)
 			result += "[color=#" + ga_colour + "]    Assault on the garrison of " + ga_region + "[/color]\n"
+			result += _place_link(str(event.get("region", "")))
 			result += "[color=#" + ga_colour + "]      Garrison: " + _format_number(ga_lost)
 			result += " lost, " + _format_number(ga_left) + " still under arms[/color]\n"
 			if ga_att > 0:
@@ -414,6 +478,7 @@ func _format_action(action: Dictionary) -> String:
 			AudioManager.play("cannon_distant")
 			var gd_region = str(event.get("region", "the works"))
 			result += "[color=#" + COLOR_ERROR + "]    The garrison of " + gd_region + " is destroyed.[/color]\n"
+			result += _place_link(str(event.get("region", "")))
 		elif event.get("type") == "conquest":
 			var region = event.get("region", "territory")
 			var capture_choice = event.get("capture_choice", "")
@@ -425,6 +490,10 @@ func _format_action(action: Dictionary) -> String:
 			# IQ-2: both conquest producers stamp `captured_from` (WO-9) — a
 			# province taken from us is a loss, not a victory in green.
 			var conquest_color = COLOR_ERROR if _taken_from_player(event) else Utils.COLOR_CONQUEST
+			# Session UI-5: a province lost to the enemy tolls the bell (the
+			# cue's own throttle and voice cap keep a run of losses to one toll).
+			if _taken_from_player(event):
+				AudioManager.play("bell_toll")
 			# LV-10 (row EP F2): whom it was taken from — the movement
 			# branch's " (was X)" (FA-N33), the same field, the same words.
 			var conquest_from = str(event.get("captured_from", ""))
@@ -443,6 +512,7 @@ func _format_action(action: Dictionary) -> String:
 				result += "[color=#" + conquest_color + "]    " + str(region).to_upper() + " HANDED BACK TO " + conquest_home.to_upper() + conquest_was + "[/color]\n"
 			else:
 				result += "[color=#" + conquest_color + "]    Region captured: " + region + conquest_was + choice_str + "[/color]\n"
+			result += _place_link(str(region))
 
 	# Berthier's After-Action Report (if battle occurred)
 	if action.has("battle_report"):
@@ -502,6 +572,53 @@ func _format_action(action: Dictionary) -> String:
 	return result.trim_suffix("\n") + Utils.CARD_CLOSE + "\n\n"
 
 
+# Session UI-5 interim fix (Nov 13, F19): the outcome is a solid badge at the
+# right end of the event's first line - green for a win, red for a loss or a
+# capture (Utils.cv for the colour-vision swap). Returns [text, tone_hex] or [].
+var _badge_on_first_line := false
+
+
+func _outcome_badge_for(action: Dictionary) -> Array:
+	var evs = action.get("events", [])
+	if not (evs is Array):
+		return []
+	for ev in evs:
+		if typeof(ev) != TYPE_DICTIONARY:
+			continue
+		if str(ev.get("type", "")) != "battle":
+			continue
+		var defender = ev.get("defender", {})
+		var defender_name = Utils.humanize_entity_name(str(defender.get("name", "Unknown")))
+		var victor = ev.get("victor", null)
+		if str(ev.get("outcome", "")) == "stalemate":
+			return ["STALEMATE", Utils.COLOR_BADGE_QUIET]
+		if victor:
+			var victor_s := Utils.humanize_entity_name(str(victor))
+			var tone_c: String = Utils.COLOR_SUCCESS if _victor_is_player(ev, victor_s) else COLOR_ERROR
+			var role := "defender" if victor_s == defender_name else "attacker"
+			var vs := _standing(ev, role)
+			if vs != "":
+				tone_c = _standing_colour(vs, true)
+			if tone_c == Utils.COLOR_SUCCESS:
+				return ["VICTORY", "2f6b3a"]
+			if tone_c == COLOR_ERROR:
+				return ["DEFEAT", "8b2a2a"]
+		return ["BATTLE", Utils.COLOR_BADGE_QUIET]
+	for ev in evs:
+		if typeof(ev) != TYPE_DICTIONARY:
+			continue
+		var kind := str(ev.get("type", ""))
+		if (kind == "conquest" or kind == "move") and str(ev.get("captured_from", "")) != "" and _taken_from_player(ev):
+			return ["CAPTURED", "8b2a2a"]
+	return []
+
+
+func _outcome_badge_run(badge: Array) -> String:
+	"""A solid, bold inline badge (a [bgcolor] run: a nested table squeezes inside a cell)."""
+	var tone: String = Utils.cv_hex(str(badge[1])) if str(badge[1]) in ["2f6b3a", "8b2a2a"] else str(badge[1])
+	return "[bgcolor=#" + tone + "][color=#f4ead2][b]\u00A0" + str(badge[0]).replace(" ", "\u00A0") + "\u00A0[/b][/color][/bgcolor]"
+
+
 func _action_glyph(action: Dictionary, action_type: String, is_bombardment: bool) -> String:
 	"""The glyph of a move's kind: europe for a province changing hands, war for
 	a battle or an assault, guns for a bombardment, march for a move, and so on.
@@ -549,7 +666,7 @@ func _action_glyph(action: Dictionary, action_type: String, is_bombardment: bool
 	return "command"
 
 
-func _format_battle(event: Dictionary, action_marshal: String = "", action_target: String = "") -> String:
+func _format_battle(event: Dictionary, action_marshal: String = "", action_target: String = "", place: String = "") -> String:
 	"""Format battle details.
 
 	`action_marshal`/`action_target` are the pair the caller's action line
@@ -604,8 +721,12 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	elif outcome_color == COLOR_ERROR:
 		result_badge = "DEFEAT"
 		result_tone = "8b2a2a"
-	result += "    " + Utils.bb_badge(result_badge, result_tone) + "\n"
+	# Session UI-5 interim fix (Nov 13): the badge now ends the action's first
+	# line (_outcome_badge_for); a battle with no action line keeps it here.
+	if not _badge_on_first_line:
+		result += "    " + Utils.bb_badge(result_badge, result_tone) + "\n"
 	result += "    " + Utils.bb_glyph("war", 18, Utils.COLOR_BATTLE) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_BATTLE + "]" + battle_title + "[/color][/font]\n"
+	result += _place_link(place)   # Session UI-5: the place, a link to the map
 	var already_stated = (
 		action_marshal != "" and attacker_name == action_marshal
 		and action_target != "" and defender_name == action_target
@@ -1127,6 +1248,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_content_meta_clicked(meta) -> void:
 	"""BD: open the tableau for a battle line's view-field link."""
 	var meta_str := str(meta)
+	if meta_str.begins_with("focus:"):
+		# Session UI-5: close the way Continue does, then ask the map to pan.
+		var region := meta_str.trim_prefix("focus:")
+		_on_continue_pressed()
+		focus_region_requested.emit(region)
+		return
 	if not meta_str.begins_with("diorama:"):
 		return
 	var idx := int(meta_str.trim_prefix("diorama:"))
@@ -1139,5 +1266,8 @@ func _on_content_meta_clicked(meta) -> void:
 func _on_continue_pressed():
 	"""Handle continue button press."""
 	AudioManager.stop_loop("march_long")
+	if not _day_ended:
+		_day_ended = true
+		AudioManager.play("bugle_retreat")   # the day's end
 	hide()
 	dismissed.emit()
