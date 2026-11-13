@@ -645,5 +645,5 @@ class TestTheScreenSays:
 
     def test_the_morale_warning_has_its_space(self):
         src = _read(SCRIPTS / "dispatch_view.gd")
-        assert 'line += " Morale: " + str(m_morale) + "%"' in src
-        assert '" Morale:" + str(' not in src
+        assert 'Utils.bb_tag("Morale " + str(m_morale) + "%"' in src  # Session UI-4: the warning is a state tag in the marshal table
+        assert '"Morale:" + str(' not in src

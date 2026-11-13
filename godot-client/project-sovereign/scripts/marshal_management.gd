@@ -590,6 +590,13 @@ func _skills_block(m: Dictionary) -> String:
 	var bbcode := ""
 	var skills = m.get("skills", {})
 	var skill_notes = m.get("skill_notes", {})
+	# Session UI-4 (November 12, 2026): the bars stand under a "Skills" caption
+	# (the readers: "separate the stats, abilities and orders into distinct
+	# tidy blocks").
+	for skill_name in ["tactical", "shock", "defense", "logistics", "administration", "command"]:
+		if skills.has(skill_name):
+			bbcode += _caption("Skills")
+			break
 	for skill_name in ["tactical", "shock", "defense", "logistics", "administration", "command"]:
 		if not skills.has(skill_name):
 			continue
@@ -599,11 +606,11 @@ func _skills_block(m: Dictionary) -> String:
 	var admin_note = str(m.get("admin_note", ""))
 	if admin_note != "":
 		var admin_color = Utils.COLOR_SUCCESS if str(m.get("admin_tier", "")) == "thrifty" else Utils.COLOR_ORANGE
-		bbcode += "  [color=#" + admin_color + "]" + admin_note + "[/color]\n"
+		bbcode += "  " + _prose("gen.admin." + str(m.get("name", "")), admin_note, admin_color)
 	var rally_note = str(m.get("rally_note", ""))
 	if rally_note != "":
 		var rally_color = Utils.COLOR_SUCCESS if str(m.get("rally_tier", "")) == "fast" else Utils.COLOR_ORANGE
-		bbcode += "  [color=#" + rally_color + "]" + rally_note + "[/color]\n"
+		bbcode += "  " + _prose("gen.rally." + str(m.get("name", "")), rally_note, rally_color)
 	return bbcode
 
 
@@ -641,7 +648,10 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	# cell BESIDE the sheet — the name in the title face, the arm and the
 	# nation, and (below) the prose — instead of alone on a line over an empty
 	# band (the readers' "portrait floats with a wasted gap").
-	var portrait := _portrait_block(name).strip_edges()
+	# Session UI-4 (November 12, 2026): a larger portrait (112 x 140, was 80 x
+	# 100) so its column is not an empty band beside the sheet; the 800 x 450
+	# view keeps the old size.
+	var portrait := (_portrait_block(name) if Utils.compact_view() else _portrait_block(name, 112, 140)).strip_edges()
 	var sheet := ""
 	sheet += "[color=#" + Utils.COLOR_INFO + "]" + key_hint + "[/color]"
 	sheet += Utils.HEAD_OPEN + name + Utils.HEAD_CLOSE
@@ -713,15 +723,15 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	var notes := ""
 	var bio = str(m.get("biography", ""))
 	if bio != "":
-		notes += "[color=#" + Utils.COLOR_INFO + "]" + bio + "[/color]\n"
+		notes += _prose("gen.bio." + name, bio, Utils.COLOR_INFO)
 
 	# ═══════ PERSONALITY & UNIT TYPE ═══════
 	var pers_desc = str(m.get("personality_description", ""))
 	if pers_desc != "":
-		notes += "[color=#" + Utils.COLOR_INFO + "]" + pers_desc + "[/color]\n"
+		notes += _prose("gen.pers." + name, pers_desc, Utils.COLOR_INFO)
 	var type_desc = str(m.get("unit_type_description", ""))
 	if type_desc != "":
-		notes += "[color=#" + Utils.COLOR_INFO + "]" + type_desc + "[/color]\n"
+		notes += _prose("gen.type." + name, type_desc, Utils.COLOR_INFO)
 	bbcode += Utils.bb_portrait_row(portrait, sheet, card_tone) + "\n"
 
 	bbcode += "\n"
@@ -739,12 +749,16 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	var jealous_of = str(m.get("jealous_of", "")) if m.get("jealous_of") != null else ""
 	if jealous_of != "":
 		var jl_turns = int(m.get("jealousy_turns_remaining", 0))
-		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]GRIEVANCE: envious of " + jealous_of
+		var grievance: String = "  [color=#" + Utils.COLOR_ERROR + "]GRIEVANCE: envious of " + jealous_of
 		if jl_turns > 0:
-			bbcode += " (" + str(jl_turns) + " turn" + ("s" if jl_turns != 1 else "") + " unless satisfied)"
+			grievance += " (" + str(jl_turns) + " turn" + ("s" if jl_turns != 1 else "") + " unless satisfied)"
+		grievance += "[/color]"
 		if m.get("jealousy_warned", false):
-			bbcode += " — HE EYES THE ENEMY ON HIS OWN; any order restrains him"
-		bbcode += "[/color]\n"
+			# Session UI-4: the warning's long tail opens from the grievance line
+			bbcode += Utils.bb_note("gen.grievance." + name, grievance,
+				"[color=#" + Utils.COLOR_ERROR + "] — HE EYES THE ENEMY ON HIS OWN; any order restrains him[/color]", "\n")
+		else:
+			bbcode += grievance + "\n"
 	if m.get("jealousy_surge", false):
 		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]VINDICATED — he fights with renewed purpose this turn[/color]\n"
 	var feuds = m.get("feuds", [])
@@ -796,7 +810,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		var steward_note = str(m.get("steward_note", ""))
 		if steward_note != "" and (estate_income > 0 or shortfall > 0):
 			var steward_color = Utils.COLOR_SUCCESS if str(m.get("steward_tier", "")) == "prosperous" else Utils.COLOR_ORANGE
-			bbcode += "  [color=#" + steward_color + "]" + steward_note + "[/color]\n"
+			bbcode += "  " + _prose("gen.steward." + name, steward_note, steward_color)
 		# §0.6.8 item 6, re-surfaced Aug 8, 2026 (user: "I don't see a button to
 		# reward marshals"): the Reward affordance is a real CHIP in the fixed
 		# spot on every card — enabled when there is something to grant or
@@ -830,6 +844,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	# "PRISONER of Austria since T37." — and no line of this renderer read it,
 	# so the card of a marshal in an enemy cell (the Emperor's, in the played
 	# collapse campaigns) showed Location/Stance as if he stood in the field.
+	bbcode += _caption("Status")
 	var status_note = m.get("status_note", "")
 	if (PRISONER_NOTE_ON_THE_CARD and m.get("captured", false)
 			and status_note is String and status_note != ""):
@@ -891,13 +906,21 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	bbcode += "\n"
 
 	# ═══════ UI-6: ORDER CHIPS (target-free orders, one click) ═══════
+	# Session UI-4 (November 12, 2026): ONE row under an "Orders" caption (the
+	# readers' "the action buttons are small and cramped", "disabled chips hard
+	# to tell from the live ones"): every order of the card - Fortify, Drill,
+	# Hold, Fall back, Garrison - in one list, two no-break spaces between the
+	# chips; a locked one is `bb_chip_disabled` (lock glyph, dim ink) and its
+	# reason is its hover when explanations are folded, a stated line under the
+	# row On the page.
+	var order_chips = []
+	var locked_notes: Array = []
 	# Only for a marshal who can act — the executor still owns every gate
 	# (AP, objections, terrain); a refused chip reports like a typed refusal.
 	if (not m.get("captured", false) and not m.get("is_broken", false)
 			and not m.get("is_retreating", false)):
 		var chip_name = str(m.get("name", ""))
 		if chip_name != "":
-			var order_chips = []
 			# CRT-9 (Oct 3, 2026): the card's `order_refusals` — the one
 			# state probe the region panel and the completer read too (the
 			# turn's actions first, then his state, then each verb's own
@@ -914,7 +937,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 				if unfortify_why == "":
 					order_chips.append(Utils.bb_button_chip("order:unfortify:" + chip_name, "Unfortify", Utils.COLOR_COMMAND, "233043"))
 				else:
-					order_chips.append(Utils.bb_chip_disabled("Unfortify") + " [color=#" + Utils.COLOR_INFO + "]" + unfortify_why + "[/color]")
+					order_chips.append(_locked_chip("Unfortify", unfortify_why, locked_notes))
 			elif fortify_why == "":
 				# S14G-X170 (Pre-Deploy S14h part 2, October 26, 2026): the Generals card's
 				# Fortify chip priced nothing while the region panel's names the price a
@@ -926,7 +949,10 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 					fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"
 				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, fortify_label, Utils.COLOR_COMMAND, "233043"))
 			else:
-				order_chips.append(Utils.bb_chip_disabled("Fortify") + " [color=#" + Utils.COLOR_INFO + "]" + fortify_why + "[/color]")
+				# the dimmed chip keeps its bare label (the CN-4 census); the reason is
+				# its hover Folded, the stated line under the row On the page
+				order_chips.append(Utils.bb_chip_disabled("Fortify") if not Utils.explanations_folded() else Utils.bb_chip_disabled("Fortify", "", fortify_why))
+				locked_notes.append(["Fortify", fortify_why])
 			# CN-4: Drill is offered only where the drill would begin;
 			# otherwise it is dimmed beside the executor's own reason (the
 			# card's `drill_refusal`, `tactical_executor.drill_refusal`) —
@@ -937,9 +963,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 				if drill_why == "":
 					order_chips.append(Utils.bb_button_chip("order:drill:" + chip_name, "Drill", Utils.COLOR_COMMAND, "233043"))
 				else:
-					order_chips.append(Utils.bb_chip_disabled("Drill") + " [color=#" + Utils.COLOR_INFO + "]" + drill_why + "[/color]")
-			if order_chips.size() > 0:
-				bbcode += "  " + "  ".join(PackedStringArray(order_chips)) + "\n"
+					order_chips.append(_locked_chip("Drill", drill_why, locked_notes))
 	# CF-6 sibling (October 17, 2026): the card offers the province panel's
 	# Hold · Fall back · Garrison too — lit where the card's `order_refusals`
 	# carries no reason, dimmed beside the reason otherwise, priced from its
@@ -947,7 +971,6 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	# probe names his state as the reason, and the free Fall back is the one
 	# order a corps recovering beside the enemy still has.
 	if not m.get("captured", false) and str(m.get("name", "")) != "":
-		var state_chips = []
 		var state_refusals = m.get("order_refusals", {})
 		if not (state_refusals is Dictionary):
 			state_refusals = {}
@@ -962,11 +985,17 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 				label += " (" + str(ap) + " AP)"
 			var why := str(state_refusals.get(verb, ""))
 			if why == "":
-				state_chips.append(Utils.bb_button_chip("order:" + verb + ":" + str(m.get("name", "")), label, Utils.COLOR_COMMAND, "233043"))
+				order_chips.append(Utils.bb_button_chip("order:" + verb + ":" + str(m.get("name", "")), label, Utils.COLOR_COMMAND, "233043"))
 			else:
-				state_chips.append(Utils.bb_chip_disabled(label) + " [color=#" + Utils.COLOR_INFO + "]" + why + "[/color]")
-		if state_chips.size() > 0:
-			bbcode += "  " + "  ".join(PackedStringArray(state_chips)) + "\n"
+				order_chips.append(_locked_chip(label, why, locked_notes))
+	if order_chips.size() > 0:
+		bbcode += _caption("Orders")
+		# regular spaces at 800 x 450 (a no-break run could overflow the window)
+		var chip_gap := "  " if Utils.compact_view() else "\u00A0\u00A0"
+		bbcode += "  " + chip_gap.join(PackedStringArray(order_chips)) + "\n"
+		if not Utils.explanations_folded():
+			for note in locked_notes:
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(note[0]) + " — " + str(note[1]) + "[/color]\n"
 
 	# ═══════ UNIT SPECIFICS ═══════
 	var specifics = []
@@ -997,7 +1026,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 
 	# Session UI-2 (K): the lore, under the figures, as notes.
 	if notes != "":
-		bbcode += "\n" + notes
+		bbcode += "\n" + _caption("Character") + notes
 
 	# Session UI: the card closes on its last line (the mark heads the blank
 	# line under it).
@@ -1013,6 +1042,30 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 # =============================================================================
 # UI-3 PORTRAIT / ICON HELPERS
 # =============================================================================
+
+func _caption(text: String) -> String:
+	"""Session UI-4 (November 12, 2026): a block's small-caps caption (Skills,
+	Status, Orders, Character) - the card in captioned blocks, one grid."""
+	return "  [color=#" + Utils.COLOR_INFO + "][opentype_features=smcp]" + text + "[/opentype_features][/color]\n"
+
+
+func _prose(id: String, text: String, hex: String, tail: String = "\n") -> String:
+	"""Long card prose opens from its first sentence ("▸ more", `Utils.bb_note`)
+	when folded; On the page every word prints as it did. A one-sentence or
+	short passage is not folded."""
+	var cut: int = Utils.first_sentence_end(text) if text.length() > 90 else -1
+	if cut < 0:
+		return "[color=#" + hex + "]" + text + "[/color]" + tail
+	return Utils.bb_note(id, "[color=#" + hex + "]" + text.substr(0, cut) + "[/color]",
+		"[color=#" + hex + "]" + text.substr(cut) + "[/color]", tail)
+
+
+func _locked_chip(label: String, why: String, locked_notes: Array) -> String:
+	"""A locked order: `bb_chip_disabled`, the reason its hover when folded; the
+	reason is also kept for the stated line under the row On the page."""
+	locked_notes.append([label, why])
+	return Utils.bb_chip_disabled(label, "", why if Utils.explanations_folded() else "")
+
 
 func _strength_line(m: Dictionary) -> String:
 	"""Strength (coloured by losses), morale and range — one line."""
@@ -1050,7 +1103,7 @@ func _ability_line(m: Dictionary) -> String:
 			return presence
 	var line: String = "  [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
 	if ab_effect != "":
-		line += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
+		line += "  " + _prose("gen.ability." + str(m.get("name", "")), ab_effect, Utils.COLOR_INFO, "")
 	return line + "\n\n"
 
 
@@ -1083,7 +1136,7 @@ func _presence_applied_line(m: Dictionary, ab_name: String, ab_effect: String) -
 	var line := "  [color=#" + star_hex + "]★[/color] [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
 	line += "  [color=#" + star_hex + "]+" + str(applied_pct) + "%" + here + "[/color]"
 	if ab_effect != "":
-		line += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
+		line += "  " + _prose("gen.ability." + str(m.get("name", "")), ab_effect, Utils.COLOR_INFO, "")
 	return line + "\n\n"
 
 

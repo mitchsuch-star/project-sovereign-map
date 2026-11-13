@@ -36,8 +36,10 @@ from PIL import Image
 BODY_FLOOR = 4.5
 CAPTION_FLOOR = 3.0
 # Utils.bb_chip_disabled's pill: present-but-locked, an inactive component
-# (a one-cell table since Session UI-2, on the same ground).
-DISABLED_CHIP = ("20242cff", "6f7480ff")
+# (a one-cell table since Session UI-2). Session UI-4 (November 12, 2026): the
+# locked chip lost its box — a transparent ground and rim, a lock before its
+# name — so its exempt pair is the transparent ground and the dim ink.
+DISABLED_CHIP = ("00000000", "6f7480ff")
 
 
 def _lin(c: np.ndarray) -> np.ndarray:

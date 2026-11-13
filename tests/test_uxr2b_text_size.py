@@ -165,7 +165,9 @@ class TestTheTop:
 class TestTheStore:
     def test_the_range_never_goes_under_the_theme(self):
         src = _read(SCRIPTS / "ui_settings.gd")
-        assert "const DEFAULT_TEXT_SIZE := 1.0" in src
+        # Session UI-4 (November 12, 2026): the game ships at 115 % — the
+        # user's ruling on the blind readers' "small body type"; 100 % stays.
+        assert "const DEFAULT_TEXT_SIZE := 1.15" in src
         assert "const MIN_TEXT_SIZE := 1.0" in src
         assert "const MAX_TEXT_SIZE := 1.75" in src
         assert "const TEXT_SIZE_STEP := 0.05" in src
@@ -175,6 +177,7 @@ class TestTheStore:
         assert "clampf(" in body and "MIN_TEXT_SIZE, MAX_TEXT_SIZE" in body
 
     def test_reset_layout_returns_the_text_to_one_hundred(self):
+        # Session UI-4: to the shipped default (115 % since the user's ruling)
         src = _read(SCRIPTS / "ui_settings.gd")
         assert "set_text_size(DEFAULT_TEXT_SIZE)" in G.func_body(src, "reset_layout")
 
@@ -190,7 +193,8 @@ class TestTheThemeSwap:
         # one merge, so the controls re-theme once
         assert code.count("theme.merge_with(") == 1
         assert "set_font_size(" not in code.replace("scaled.set_font_size(", "")
-        # 1.0 at boot is a no-op
+        # the factor already applied is a no-op (Session UI-4: boot applies
+        # the shipped 115 % once; 100 % is then the no-op)
         assert "if is_equal_approx(factor, _text_size_applied):" in code
 
     def test_the_raw_overrides_do_not_ride_it(self):

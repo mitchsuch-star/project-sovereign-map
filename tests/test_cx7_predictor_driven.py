@@ -338,7 +338,10 @@ class TestTheFramesTerminalText:
         (3,328px) — so it never shrank; a source pin passed over it and the
         re-shot frame showed the box unchanged. This pin measures."""
         assert driven.get("interrupt_arm") != "no popup", driven
-        assert driven["interrupt_h_opened"] > driven["interrupt_min_h"], driven
+        # Session UI-4 (November 12, 2026): at the shipped 115 % the question
+        # fills the box the clamp opens (240 = 240) — the box is never SHORTER
+        # than its content, and it settles to exactly its content's height
+        assert driven["interrupt_h_opened"] >= driven["interrupt_min_h"], driven
         assert driven["interrupt_h_settled"] == pytest.approx(driven["interrupt_min_h"]), driven
         assert driven["interrupt_centred"] is True, driven
 

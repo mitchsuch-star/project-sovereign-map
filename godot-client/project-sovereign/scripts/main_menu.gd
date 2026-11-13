@@ -64,10 +64,24 @@ var _leaving := false
 
 var _caption: Label
 var _status_label: Label
+var _status_chip: PanelContainer = null
+# Session UI-4: the version line and the status chip stand in ONE column at the
+# foot of the campaign column (the chip, framed and taller, had grown up over the
+# version line — measured on the first shoot).
+var _footer: VBoxContainer = null
+# Session UI-4: the title's rows step aside from the top on a short window —
+# the eagle, then the overline — before the whole block does (_fit_menu_column);
+# its drawn ink stands this far under its last row's box; the entrance tween is
+# held so a re-fit never moves the block while it slides in.
+const TITLE_STEPS := [[], ["Eagle"], ["Eagle", "OverTitle"]]
+const TITLE_INK_FOOT := 10.0
+var _title_tween: Tween = null
+var _version_line: Label = null
 var _buttons: Dictionary = {}          # id -> Button
 # UXR-1: the first-run sizing card ("Can you read this comfortably?") and the
 # scale this screen derives — see _apply_boot_scale / _maybe_open_scale_card.
 var _scale_card: ScaleCard = null
+var _scale_scrim: ColorRect = null
 var _derived_scale := 1.0
 var _confirm_box: VBoxContainer
 # POSITION 7: Begin and the School of War share the one confirm row — both
@@ -191,9 +205,22 @@ func _apply_boot_scale() -> void:
 
 
 func _build_scale_card() -> void:
+	# Session UI-4 (November 12, 2026): the first-run card stands over a scrim —
+	# the menu and the painting dim behind it while it is open, so it is plainly
+	# the one thing to answer (the readers: the dialog "overlaps the menu").
+	_scale_scrim = ColorRect.new()
+	_scale_scrim.name = "ScaleScrim"
+	_scale_scrim.color = Color(0.0, 0.0, 0.02, 0.72)
+	_scale_scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_scale_scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_scale_scrim.z_index = 90
+	_scale_scrim.visible = false
+	add_child(_scale_scrim)
 	_scale_card = ScaleCard.new()
 	_scale_card.visible = false
+	_scale_card.z_index = 91
 	add_child(_scale_card)
+	_scale_card.visibility_changed.connect(func(): _scale_scrim.visible = _scale_card.visible)
 	_scale_card.scale_previewed.connect(func(v): _on_ui_scale_changed(v, false))
 	_scale_card.accepted.connect(func(v): _on_ui_scale_changed(v, true))
 
@@ -270,13 +297,14 @@ func _build_title_block() -> void:
 	block.position = Vector2(0, 0)
 	block.anchor_left = 0.07
 	block.anchor_right = 0.07
-	block.anchor_top = 0.10
-	block.anchor_bottom = 0.10
+	block.anchor_top = _title_anchor(get_viewport_rect().size.y)
+	block.anchor_bottom = block.anchor_top
 	block.grow_horizontal = Control.GROW_DIRECTION_END
 	block.grow_vertical = Control.GROW_DIRECTION_END
 	block.add_theme_constant_override("separation", 6)
 	block.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(block)
+	block.resized.connect(func(): _fit_menu_column.call_deferred())
 
 	# Session UI-2: the Empire's eagle over the title (PD — THIRD_PARTY_LICENSES).
 	var eagle := TextureRect.new()
@@ -425,18 +453,118 @@ func _build_menu_column() -> void:
 
 
 func _fit_menu_column() -> void:
-	"""Hang the column from 40% of the height, or higher when it would not
-	fit — never below 8 px from the top."""
+	"""Stand the column between the title block and the footer: at 40% of the
+	height when it has the room, higher when not — never above 8 px."""
 	if _menu_column == null or size.y <= 0.0:
 		return
 	var h := size.y
-	var col_h := _menu_column.get_combined_minimum_size().y
-	var top := minf(h * 0.40, maxf(h - col_h - 24.0, 8.0))
+	# Session UI-4 (November 12, 2026): the column stands BETWEEN the title
+	# block and the footer column (the three interim readers: "the subtitle is
+	# overlapped by the first button", "the footer text collides"). At the
+	# shipped 115 % the seed row grew and the footer gained its chip, so on a
+	# short window the parts are planned in order:
+	#  * the title is planned against the TIGHTEST column (spacing 4): its rows
+	#    step aside from the top — the eagle, then the overline — before the
+	#    whole block does (the 800-px logical height of the user's 5120x1440
+	#    panel at 1.80 keeps the wordmark and the subtitle, not the eagle);
+	#  * the title is measured AT REST (its anchor and its rows' heights), never
+	#    at its animated position — the entrance slides it 14 px;
+	#  * the column then loosens into whatever room is left (spacing 12 down to
+	#    4, counted, never toggled, so a re-fit settles) and hangs at 40 % when
+	#    it has the room, as before.
+	# In the compact view (Interface Scale 2.0 on a 900-px window: 450 tall) a
+	# button's face steps in 5 px top and bottom (the label's line, not the
+	# authored minimum, sets a button's height at 115 %) and the title steps
+	# aside — the column is the menu's work (before, column and title stood one
+	# on the other at 2.0). On a window under 1,000 px the title rises to 6 %.
+	var compact := h < Utils.COMPACT_BELOW
+	var short := h < 1000.0
+	for id in _buttons:
+		var mb: Button = _buttons[id]
+		var prominent: bool = mb.theme_type_variation == &"TitleScreenButtonProminent"
+		var want_h: float = (44.0 if prominent else 40.0) if compact \
+			else ((50.0 if prominent else 44.0) if short else (56.0 if prominent else 50.0))
+		if not is_equal_approx(mb.custom_minimum_size.y, want_h):
+			mb.custom_minimum_size.y = want_h
+		var pad: float = 5.0 if compact else 10.0
+		for st in [&"normal", &"hover", &"pressed", &"disabled"]:
+			var sb := mb.get_theme_stylebox(st) as StyleBoxFlat
+			if sb != null and not is_equal_approx(sb.content_margin_top, pad):
+				sb.content_margin_top = pad
+				sb.content_margin_bottom = pad
+	var footer_top: float = h - 24.0
+	if _footer != null:
+		footer_top = h * _footer.anchor_top - _footer.get_combined_minimum_size().y
+	var shown := 0
+	for c in _menu_column.get_children():
+		if c is Control and (c as Control).visible:
+			shown += 1
+	var gaps: int = maxi(shown - 1, 1)
+	var cur_sep: int = _menu_column.get_theme_constant("separation")
+	var col_h12: float = _menu_column.get_combined_minimum_size().y + float((12 - cur_sep) * gaps)
+	var col_h4: float = col_h12 - float(8 * gaps)
+	var title_bottom: float = 0.0
+	var block := get_node_or_null("TitleBlock") as Control
+	if block != null:
+		var rest: float = _title_anchor(h)
+		if (_title_tween == null or not _title_tween.is_running()) \
+				and not is_equal_approx(block.anchor_top, rest):
+			block.anchor_top = rest
+			block.anchor_bottom = rest
+		var limit: float = footer_top - 12.0 - col_h4 - 12.0
+		var skip: Array = []
+		var fits := false
+		for step in TITLE_STEPS:
+			if h * rest + _title_height(block, step) + TITLE_INK_FOOT <= limit:
+				skip = step
+				fits = true
+				break
+		for c in block.get_children():
+			if c is Control:
+				var keep: bool = not skip.has(String(c.name))
+				if (c as Control).visible != keep:
+					(c as Control).visible = keep
+		if block.visible != fits:
+			block.visible = fits
+		if fits:
+			title_bottom = h * rest + _title_height(block, skip) + TITLE_INK_FOOT
+	var room: float = footer_top - 12.0 - (title_bottom + 12.0)
+	var sep := 12
+	if col_h12 > room:
+		sep = maxi(12 - int(ceil((col_h12 - room) / float(gaps))), 4)
+	if sep != cur_sep:
+		_menu_column.add_theme_constant_override("separation", sep)
+	var col_h: float = col_h12 - float((12 - sep) * gaps)
+	var top: float = minf(h * 0.40, footer_top - 12.0 - col_h)
+	top = maxf(top, minf(title_bottom + 12.0, footer_top - 12.0 - col_h))
+	top = maxf(top, 8.0)
 	var frac := clampf(top / h, 0.0, 0.40)
 	if is_equal_approx(_menu_column.anchor_top, frac):
 		return
 	_menu_column.anchor_top = frac
 	_menu_column.anchor_bottom = frac
+
+
+func _title_anchor(h: float) -> float:
+	"""Where the title block rests: 10 % of the height, 6 % under 1,000 px."""
+	return 0.06 if h < 1000.0 else 0.10
+
+
+func _title_height(block: Control, skip: Array) -> float:
+	"""The title block's height at rest with the `skip` rows out: each row's
+	laid-out height (its minimum before the first layout), the block's spacing
+	between them."""
+	var gap := float(block.get_theme_constant("separation"))
+	var total := 0.0
+	var rows := 0
+	for c in block.get_children():
+		var row := c as Control
+		if row == null or skip.has(String(row.name)):
+			continue
+		total += maxf(row.size.y, row.get_combined_minimum_size().y)
+		rows += 1
+	return total + gap * float(maxi(rows - 1, 0))
+
 
 
 func _add_menu_button(id: String, text: String, cb: Callable, prominent: bool) -> void:
@@ -454,14 +582,18 @@ func _make_button(text: String, prominent: bool) -> Button:
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_override("font", _font_button)
 	b.theme_type_variation = &"TitleScreenButtonProminent" if prominent else &"TitleScreenButton"
-	b.add_theme_color_override("font_color", Color(0.93, 0.88, 0.74) if prominent else Color(0.85, 0.82, 0.72))
-	b.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.8))
-	b.add_theme_color_override("font_focus_color", Color(1.0, 0.95, 0.8))
-	b.add_theme_color_override("font_disabled_color", Utils.UI_DISABLED_TEXT)
+	# Session UI-4 (November 12, 2026): the readers took the live menu for
+	# disabled ("low contrast ... look inactive"). A live button is now bright ink
+	# in a clearly lit rim over a lifted face; a waiting one is the house's
+	# disabled language — no face, a thin faint rim, its ink still readable.
+	b.add_theme_color_override("font_color", Color(0.99, 0.95, 0.82) if prominent else Color(0.95, 0.91, 0.80))
+	b.add_theme_color_override("font_hover_color", Color(1.0, 0.97, 0.86))
+	b.add_theme_color_override("font_focus_color", Color(1.0, 0.97, 0.86))
+	b.add_theme_color_override("font_disabled_color", Utils.UI_MENU_WAITING_INK)
 
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.03, 0.045, 0.085, 0.78)
-	normal.border_color = Color(0.85, 0.75, 0.55, 0.5 if prominent else 0.32)
+	normal.bg_color = Color(0.07, 0.09, 0.15, 0.88)
+	normal.border_color = Color(0.90, 0.80, 0.58, 0.9 if prominent else 0.7)
 	normal.set_border_width_all(1)
 	if prominent:
 		normal.border_width_left = 3
@@ -475,8 +607,10 @@ func _make_button(text: String, prominent: bool) -> Button:
 	var pressed: StyleBoxFlat = hover.duplicate()
 	pressed.bg_color = Color(0.14, 0.13, 0.10, 0.9)
 	var disabled: StyleBoxFlat = normal.duplicate()
-	disabled.bg_color = Color(0.03, 0.04, 0.06, 0.62)
+	disabled.draw_center = false
+	disabled.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	disabled.border_color = Utils.UI_FAINT_BORDER
+	disabled.border_width_left = 1
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
@@ -488,24 +622,47 @@ func _make_button(text: String, prominent: bool) -> Button:
 # ── footer: status line + caption + version ─────────────────────────────────
 
 func _build_footer() -> void:
+	# Session UI-4 (November 12, 2026): the status is a framed chip at body size
+	# (the readers: "the warning text at the bottom is tiny", "a red backend
+	# error line") — the same words, with their mark, in a chip whose rim takes
+	# the state's colour (see _apply_backend_state).
+	_footer = VBoxContainer.new()
+	_footer.name = "MenuFooter"
+	_footer.anchor_left = 0.07
+	_footer.anchor_right = 0.6
+	_footer.anchor_top = 0.975
+	_footer.anchor_bottom = 0.975
+	_footer.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_footer.add_theme_constant_override("separation", 4)
+	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_footer)
+	# the column re-fits when the footer's chip takes its words (Session UI-4)
+	_footer.resized.connect(func(): _fit_menu_column.call_deferred())
+	_status_chip = PanelContainer.new()
+	_status_chip.name = "StatusChip"
+	# the chip fills the footer's width: its words wrap (a long launch hint),
+	# and a wrapping label in a shrink-wrapped box has no width at all — the
+	# first shoot stacked the words one letter a line down the screen's edge
+	_status_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_status_label = Label.new()
 	_status_label.name = "StatusLine"
-	_status_label.anchor_left = 0.07
-	_status_label.anchor_right = 0.6
-	_status_label.anchor_top = 0.955
-	_status_label.anchor_bottom = 0.955
-	_status_label.theme_type_variation = &"Caption"
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_status_label.add_theme_constant_override("shadow_offset_y", 1)
 	_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_status_label)
+	_status_chip.add_child(_status_label)
 
 	_caption = Label.new()
 	_caption.name = "PaintingCaption"
-	_caption.anchor_left = 0.55
+	# Session UI-4 (November 12, 2026): the credit stands at the footer's foot,
+	# beside the chip (0.60), growing UP and wrapping in its own share — at 115 %
+	# on the 2.0 compact view it ran over the chip's end and off the right edge
+	_caption.anchor_left = 0.62
 	_caption.anchor_right = 0.97
-	_caption.anchor_top = 0.955
-	_caption.anchor_bottom = 0.955
+	_caption.anchor_top = 0.975
+	_caption.anchor_bottom = 0.975
+	_caption.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_caption.add_theme_font_override("font", _font_fell_italic)
 	# UXR-1: a caption (the painting's credit) — Caption 14, the floor's own
@@ -519,17 +676,16 @@ func _build_footer() -> void:
 
 	var version := Label.new()
 	version.name = "VersionLine"
-	version.anchor_left = 0.07
-	version.anchor_right = 0.6
-	version.anchor_top = 0.925
-	version.anchor_bottom = 0.925
 	version.text = "Ink & Iron — " + Utils.build_label()
 	version.theme_type_variation = &"Caption"
 	version.add_theme_color_override("font_color", Utils.UI_VERSION_LINE)
 	version.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	version.add_theme_constant_override("shadow_offset_y", 1)
 	version.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(version)
+	# the version over the chip, in the footer column (Session UI-4)
+	_version_line = version
+	_footer.add_child(version)
+	_footer.add_child(_status_chip)
 
 
 # ── settings view (the shared SettingsPanel, promoted from pause) ───────────
@@ -775,6 +931,22 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 		_apply_backend_state()
 
 
+func _style_status_chip(rim: Color) -> void:
+	"""Session UI-4: the status chip's frame — a dark ground, a rim in the state's tone."""
+	if _status_chip == null:
+		return
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.03, 0.045, 0.085, 0.9)
+	box.border_color = rim
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(6)
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 6
+	box.content_margin_bottom = 6
+	_status_chip.add_theme_stylebox_override("panel", box)
+
+
 # UXR3-67 (Pre-Deploy S12): a waiting campaign button says why it waits.
 const WAITING_TIP := "Waiting for the game's server…"
 const NO_SAVES_TIP := "No saved campaign yet"
@@ -783,10 +955,13 @@ const NO_SAVES_TIP := "No saved campaign yet"
 func _apply_backend_state() -> void:
 	if _status_label == null:
 		return
+	# Session UI-4: the chip's words change its height — the column re-fits
+	_fit_menu_column.call_deferred()
 	if _backend_up:
 		_status_label.text = "✓ The war office answers.  ·  " + Utils.backend_origin_label()
-		_status_label.add_theme_color_override("font_color", Color(0.55, 0.72, 0.55, 0.9))
-		var version_line := get_node_or_null("VersionLine") as Label
+		_status_label.add_theme_color_override("font_color", Color(0.72, 0.90, 0.72))
+		_style_status_chip(Color(0.45, 0.72, 0.45, 0.8))
+		var version_line := _version_line
 		if version_line != null and _server_version != "" and _server_version != "dev":
 			version_line.text = "Ink & Iron — " + Utils.build_label() + "  ·  build " + _server_version
 	else:
@@ -796,7 +971,8 @@ func _apply_backend_state() -> void:
 		# Session UI-2: an amber notice with its mark, not a raw red line.
 		_status_label.text = "\u26A0 " + ("The war office does not answer — "
 			+ Utils.launch_hint())
-		_status_label.add_theme_color_override("font_color", Color(0.93, 0.74, 0.42, 0.95))
+		_status_label.add_theme_color_override("font_color", Color(0.98, 0.82, 0.52))
+		_style_status_chip(Color(0.93, 0.74, 0.42, 0.85))
 	var has_saves := _saves.size() > 0
 	for id in _buttons:
 		var b: Button = _buttons[id]
@@ -912,6 +1088,8 @@ func _entrance_animation() -> void:
 		title_block.position.y -= 14
 		var tw := create_tween()
 		tw.set_parallel(true)
+		_title_tween = tw
+		tw.finished.connect(func(): _fit_menu_column.call_deferred())
 		tw.tween_property(title_block, "modulate:a", 1.0, 1.1).set_delay(0.15)
 		tw.tween_property(title_block, "position:y", title_block.position.y + 14, 1.1) \
 			.set_delay(0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

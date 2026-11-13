@@ -16677,3 +16677,249 @@ ScrollContainer gives the whole-line pad nowhere to stand (it is added as the sc
 the consistency census's span scanner reads quote characters, so a docstring can move what it treats as routed —
 name a one-off grey as a token; a `.gd` some test reads as cp1252 takes no character outside it (B2 used
 `char(8221)`); builders that share a project must not run Godot — the lead parse-checks and shoots serially.
+
+## §215 Session UI-4 — the levers past 7 (November 12, 2026)
+
+**The session** (`UI_VISUAL_FOUNDATION_SPEC.md` §12 the landing record). Session UI-3's three blind readers held the
+client at 7/7/7 and named why (§11 "What holds it at 7 now"). The user: "do the levers past 7 now". At the session's
+head (Plan Mode) the user ruled two — **"115%"** (the shipped Text size) and **"Screen edges"** (the 32:9 HUD) — and the
+rest was delegated. Display only: no game rule, no backend field, no saved field.
+
+**The type (the user's "115%")** — `UiSettings.DEFAULT_TEXT_SIZE := 1.15` (`MIN_TEXT_SIZE` stays 1.0, so 100 % is a
+choice): every named theme size times the factor — body 16 → 18, Caption 14 → 16, the ladder in step; boot applies it
+once (`Utils.apply_text_size`, at the factor already applied a no-op). An inline icon grows with the words
+(`bb_icon` → `text_px(size)`, so `bb_glyph` / `bb_info_glyph` / the chips' icons; `bb_flag`'s height); a meter is
+geometry and keeps its size. The design system's rule stands: a size is a named theme step — no `[font_size=` in
+BBCode (`test_uxr2_override_diet.py`'s ratchet at 0), no raw override; an emphasis that wanted a larger size took the
+title face at the page's step instead. The harness shoots each checkout at its OWN default (`DEFAULT_TEXT_SIZE` read
+from the constant map; a BEFORE copy at 1.0) and records `text_size_default`; `uxr0_readability_report` keys a
+reading apart only off that default; `--text-size` unsaid = the default, untagged.
+
+**The 32:9 HUD (the user's "Screen edges")** — `Utils.hud_band_full`: "auto" gives the 16:9 zone only while the map
+shows its whole sheet (`UiSettings.get_wide_map() == "sheet"`); while the map fills a ≥ 2.6:1 view the band is the
+whole viewport, so the HUD stands at the screen's edges. `HUD_WIDTHS` gains **"16:9"** (the zone whatever the map
+does; Settings → DISPLAY → HUD width; a frame tag writes it `16X9`). `Utils.very_wide_view(view)`;
+`Utils.hud_size_room(view)` — the width a panel SIZES against: the band, never wider than the zone on a very wide
+view (the command window's default footprint `main._hud_size_room()`, the tutor card's 40 %, the Side Desk's
+third); the band still says where it stands. `main._on_wide_map_changed` refits the band (it depends on the map). The derived Interface Scale's 32:9 term
+0.45 → 0.65 (`UiSettings.ULTRA_WIDE_BONUS`, its twin in `uxr0_readability_report.py`): 5120 x 1440 derives 1.80
+(logical 2,844 x 800) — the interim readers found the edge-anchored HUD "tiny and stranded" at 1.60.
+
+**Disabled reads disabled** — `bb_chip_disabled`: no rim, no ground (`CHIP_DIM_BG` / `CHIP_DIM_RIM` = `00000000`, the
+cell kept so a row never jumps), Phosphor's `lock-simple.svg` (MIT, beside `info.svg`, mipmapped) before the label in
+`CHIP_DIM_INK`; the reason its hover (`tip`) or the stated line on the page. A live chip's rim at full strength
+(`CHIP_RIM_ALPHA` `ff`). The theme's disabled Button face is transparent with its faint dashed rim (its ink unchanged,
+4.5 : 1+); the theme's variations inherit it (the sweep found no button type without a disabled face).
+`uxr2b_contrast_report.DISABLED_CHIP` = the transparent pair (WCAG: an inactive control). The title screen's waiting
+buttons: no face, a thin rim, `Utils.UI_MENU_WAITING_INK`.
+
+**Tables span their pages** — measured: a BBCode table here shrinks to its words (the economy's books stood 130 px wide
+on a 990-px page). `Utils.bb_table(…, width_px)`: each head cell gets `bb_col_floor` — a transparent 1-px-tall image —
+the column's `expand` share of `width_px` less its own words (`_head_words_px`, measured in capitals: the floor errs
+short) and padding; before the text in a right-aligned column, after it elsewhere. The books pass their width
+(`strategic_ledger._table_px()`, the Balance's `_balance_width()`, the Dispatch's and the war detail's labels). The
+Balance's gauge labels stand under their ticks by the same spacer (`_gauge_scale_table`).
+
+**The command window** — the folded boot help is two lines (`_print_boot_help(full)`: the greeting, the two roads to an
+order in `LOG_REPORT` ink, "▸ every command" — `help:boot`, routed first in `_on_output_meta_clicked` — prints the
+whole list below); On the page every line as before. The war list never stands on the window
+(`war_status_panel._clear_the_command_window`, `avoid_control` = the window, set by main.gd, re-fitted at the end of
+`_relayout_terminal`): beside it at its whole width, else risen above it, else shortened; in the compact view it
+narrows to `MIN_WIDTH` (its names clip — 520 px of input row and 330 of war lines cannot stand side by side at 800 px).
+
+**The notice rail** — the war detail starts below the rail when the rail stands over its columns (`avoid_rail` = the
+notification bar's rail panel; the popup's `clamp_band_top` meta, honoured by `Utils.clamp_anchored_panel`): shot
+over the t20 war room it stood under the Imperial Box, its close button hidden. The sibling: the books (62 % wide,
+layer 50) reach under the rail's corner at 1600 x 900 — the rail stands aside for a covering screen as the war HUD
+does (`set_suspended(_is_modal_dialog_open() or _is_screen_open())`); a pinned screen is not a covering one.
+
+**The four screens at 6** —
+- *The Balance of Europe* (`diplomatic_ledger.gd`): the threat as a hero line (the figure in the title face, the tier
+  tag), a gauge across the page (the fill, a ghost to `after_next_war`, ticks at the thresholds, labels under them);
+  a figure row (hegemon share, wars until a coalition brews, the coalition and its leader's flag, the dissolution
+  floor); each road's designs a table — a meter of held / required, hold pips, a status tag, the hint as the title's
+  hover; sources and the courts that would join as tags. Folded, the threat's sentences ride the hero's hover.
+- *The province panel* (`region_panel.gd`): the facts one figure row; the actions grouped (RECRUIT, BUILD, ADMIRALTY,
+  FORCES PRESENT), each group one row of chips, a live chip's figure on its face and its terms its hover; the panel
+  0.25 of the band (440–600). On the page every line as before. Shot over the live map (the measure correction).
+- *The war detail* (`war_detail_popup.gd`): the breakdown a table with centre-zero bars (`Utils.bb_signed_meter`)
+  and "full" tags; "Negotiate with:" and a flag + court button per court (the full words the tooltip); the
+  objective a meter; `WIDTH_FRACTION` 0.28.
+- *The settlement table* (`proposal_confirm_popup.gd`): every court one aligned status row — flag, name ▸, meter,
+  "33 / 50", a status tag, the blocker, Demand more / Ease / Drop (short faces by the affordance's action, the full
+  label and description the hover; the full label on the page); a court's words open under its row (the court in
+  focus opens; On the page all).
+
+**The other surfaces the readers named** — the Strategic Ledger (Economy a table with signed figures and subtotals
+reconciled to the payload's Net; Territories' Kind and Supply on one line; Forces one row per corps with its card
+behind its name), the Generals (captioned blocks, a larger portrait, the orders on one row, long prose from its first
+sentence), the Vassals (the standing and the bond as header tags), the Dispatch (SITUATION's repeating sentence behind
+its ⓘ, "In the offing" tags, MARSHAL STATUS a table), the Correspondence (a glyph per slip), Le Moniteur (each entry a
+row with its section's glyph), the enemy phase (the outcome badge first), the petition (GRANT / REFUSE / LAPSE
+coloured by outcome), the objection (an always-even two-column grid, a coloured consequence caption under each answer;
+no "recommended" face — the game recommends none), the Cabinet (the Recommendation a gold card, KEY FACTORS a table,
+"Talleyrand's counsel" beside his act), the mailbox (the terms as chips), the campaign end (THE RECORD's tile repeats
+behind "▸ more"), Settings (tabs; on / off switch faces), the main menu (live buttons lit, waiting ones faceless, the
+status a framed chip, the first-run card over a scrim).
+
+**The measure correction** — three rated frames are shot as the game shows them (`iq10_run_captures.py`):
+`region_paris_war_room` (the map click's road), `war_detail_t20_war_room` (over the war room of the same fixture —
+`war_room_t20`, recorded by `cap_fixtures`), `main_menu_answering` (the menu's poll cancelled and stopped before its
+flag is set, the first-run card answered); `make_rating_set.STAGED_UI4` maps F24 / F25 / F27 to them
+(`--old-stagings` keeps UI-3's road). The alone shots stay in the census; the score is reported with and without them.
+
+**The title screen** (`main_menu.gd`) — the version line and the status chip are ONE footer column (`MenuFooter`,
+anchored at 0.975 and growing up; the chip fills it — a wrapping label in a shrink-wrapped box has no width and stacked
+its words one letter a line). `_fit_menu_column` stands the campaign column between the title block and that footer:
+the title is planned against the TIGHTEST column (spacing 4) and its rows step aside from the top on a short window
+(`TITLE_STEPS`: all, then the eagle out, then the overline too) before the whole block hides; it is measured AT REST
+(`_title_anchor` — 10 % of the height, 6 % under 1,000 px — plus `_title_height`, each row's laid-out height), never at
+the entrance's sliding position (the tween held in `_title_tween`, its `finished` re-fitting); the column then loosens
+into the room left (spacing 12 down to 4, counted, so a re-fit settles) and hangs at 40 % when it can. The compact
+view's button faces step in 5 px top and bottom (at 115 % the label's line, not the authored minimum, sets a button's
+height). The painting's credit stands beside the chip (0.62–0.97), wrapping and growing up. At 1600 x 900 the whole
+title stands; at 2.0 the title steps aside and the column and the footer stand whole (before, the column and the title
+stood one on the other and the Quit button fell off the bottom).
+
+**The whole-line rest stops on a table's rows** — `Utils._rtl_lines` read a BBCode table as ONE line (one
+`get_line_offset` step), so the rest padded a page to the table's whole height and left a dead band under the Balance's
+gauge. A line taller than `WHOLE_LINE_BLOCK_ROWS` (2.2) text rows is laid out as rows when its height divides into
+whole rows of one of the two table shapes (`_table_row_step`, within `WHOLE_LINE_ROW_FIT` 0.12 of a row): `bb_table`'s
+(the text row, `TABLE_ROW_PAD` 6 and the theme's `table_v_separation`) or a bare `[table]`'s (the text row and the
+separation — the Congress's sitting, which the first rule cut mid-row); any other block stays one box, HEAD's rule (cut
+where it falls, or padded away whole when short). A label exposes no table row positions, so a table whose rows differ
+in height (an icon taller than the text, a wrapped cell) is still cut where it falls — the treaty cards at 2.0, as in
+HEAD.
+
+**The notice rail holds what its slot holds** — `notification_bar._render_rail`: the first `MAX_VISIBLE_ICONS` rail
+notices, then the trailing icons dropped while the rail panel's minimum is wider than the bar (the slot `top_bar._fit_rail`
+sizes); the dropped ones join "+N" (`_on_overflow_pressed` lists whatever the rail does not show); `resized` re-counts
+(`_on_rail_resized`). Measured: at 115 % six icons, the label and "+22" ran ~140 px past the 360-px slot and off the
+right edge on the turn-20 desk.
+
+**Smaller fits** — Settings' thin sections join their neighbours (`_JOIN_PREVIOUS`: INTERFACE under DISPLAY, SPOKEN
+ORDERS under ORDERS — five tabs on one row) and the HUD width / wide map choices are short names, each row's hint naming
+what they do; the Cabinet's assessment up to half the panel (`ASSESSMENT_CAP_SHARE` 0.4 → 0.5: its key-factors table
+stood cut by the acts); the mailbox's reading share 0.62 x 0.94; the command log's short floor 80 px (`LOG_FLOOR_SHORT`);
+the enemy phase fits its reading window (`Utils.fit_reading_window`); the war detail's zero rows one "At nought:" line;
+the Economy's Treasury and Ceiling lines behind its ⓘ (`sl.economy.lead`); the Generals' portrait cell unruled; map
+plates closer than `GATHER_GAP_PX` (6) gather.
+
+**The compact view, after the first final shoot** (thirteen frames worse than HEAD's at Interface Scale 2.0, each
+fixed at its cause):
+- *The stat strip is a flow row* — `stat_strip.gd` extends `HFlowContainer` (`h_separation` / `v_separation` 8; each
+  tile expands within its line), so a strip wider than its page wraps; the ledger's handle is typed `Container`.
+- *The affair letter's answers wrap* — `incoming_proposal_popup.tscn`'s `ButtonContainer` is an `HFlowContainer`
+  (`alignment` centre, 10 / 8; the objection dialog's row since SF-RR5); its reordering by child index is unchanged.
+- *The first-run card scrolls its middle* — `scale_card.gd`: the lead, the sample, the slider and the note stand in
+  `MiddleScroll` (no horizontal scroll); `_fit_to_view` raises the centred clamp's ceiling to the card's whole need
+  (`clamp_ceiling_override`: the frame's margins, every row's minimum, the middle's own height, the gaps), so the
+  window's band, not the authored 460, decides when the middle scrolls; re-fitted one layout pass after `open`.
+- *A long path note opens from its first sentence* — `proposal_confirm_popup.gd`'s picker cells, Folded: the note's
+  first sentence (`Utils.first_sentence_end`) and " …", the whole note its hover; On the page the whole note.
+- *The end card's compact form* — `campaign_end._compact_card()` (`Utils.compact_view()`): the strip and the crest
+  stand aside and `_record_block` prints the figures the tiles held (`tiled` false; the realm line too).
+- *The tutor card's scrolling body rests on whole lines* — `Utils.keep_whole_lines(_body)` once it scrolls.
+- *A desk needs room beside the map* — `top_bar.can_pin()` is false in the compact view: `toggle_pin` leaves the
+  screen open as a book, `refit_active_screen` turns a pinned screen into an open one (`_unpin_to_book`) when the view
+  turns compact, and `_dress_pin_chip` locks the chip with `PIN_COMPACT_TOOLTIP`.
+- *The top bar's date steps* — `_FIT_STEPS` 6 → 8: step 7 drops the date's first word ("September 1805"), step 8
+  shows "Turn N" (`_render_turn_text`; `update_turn` stores `_calendar_label` / `_turn_number`; the whole date stays
+  the hover). IQ10-X1's driven pin passes on its own board; the war room's real chips (the Admiralty's and the
+  Envoys') had pushed the log's button and the gear past both edges again, in HEAD too.
+- *The books' figures* — `_econ_signed` formats with the thousands mark; "Income" is trimmed of its colon.
+
+**The hook's round** (after the final reading; the first commit attempt's 18 engine-lane failures, each at its
+cause): `objection_dialog._fit_compact` — at the compact view the `AnswerGrid` takes three columns, the column's
+separation 4, the answers 39 px, the three rules hidden, no blank line before the stake line (`show_objection` and
+`refit` call it before the clamp); `capture_choice_dialog._fit_compact` — the two answers wrap (`AUTOWRAP_WORD_SMART`,
+`SIZE_EXPAND_FILL`) at the compact view; `proclamation_popup._fit_card` — the card's ceiling the window's height
+(`clamp_ceiling_override`), the reading's minimum its words (the relax cache follows the caller) and `relax_last`
+(the flag yields first), the arms row and the flag row hidden at the compact view, no blank line under the speech
+there; `diplomacy_wizard` — the compact view drops the blank line before Talleyrand's counsel (EA-E5);
+`tutorial_overlay._render` — at the compact view the quill, the door, the skip and the conclude chip are inserted
+under the title (`acts_at`), the lesson under them; `proposal_confirm_popup._court_is_open` — at the compact view no
+court opens unless the player opened it, and the options stand 40 px (45 elsewhere); `war_detail_popup` — Folded,
+the objective's summary keeps the purpose sentence whole (`obj_lead + target_text`) with the meter after it, the
+ticking account behind "▸ more" (EP-F1). Pins in `TestTheHooksRound`.
+
+**The instrument correction** (declared) — `tools/iq10_surface_screenshot.gd` `_under_modal` placed every row at the
+centre of its raw rect; a long scrolled log's raw rect runs far above its scroll, so its centre lay among scrolled-out
+lines — under the top bar at 1920 x 1080, under the province panel at 2560 x 1440 — and five surfaces failed R7's
+third clause on words no one can see. A row inside a ScrollContainer now stands at the centre of its part inside the
+scroll (R7's second clause already read such a row by its ScrollContainer's rect); a row wholly scrolled out is not
+counted. Every flagged row was the command log; no visible row moved.
+
+**The interim reading and its fixes** — the first full shoot read by three fresh sonnet readers (the same 30
+frames, the frozen rubric, the prompt verbatim; all three read as labelled): 7 / 7 / 7, the mean of 90 marks 7.06.
+What they named was fixed at its cause before the final reading: the 32:9 term (F02 "tiny and stranded"); the
+Balance's dead band (the row-step rest above); the Generals' unruled portrait cell (`bb_portrait_row`); the windows
+short of what they hold (the enemy phase's `Utils.fit_reading_window`, `ASSESSMENT_CAP_SHARE` 0.5, the mailbox's 0.62
+x 0.94, `LOG_FLOOR_SHORT` 80); the war detail's noughts on one line; the Economy's lead behind its ⓘ; the title
+screen's footer column and title steps; Settings' joined sections and short names.
+
+**The measure** — the final tree, measured as UI-3's was (`tools/iq10_run_captures.py` on port 8999, the windows
+parked at x 5200, no input sent; HEAD `e835f889` shot from a `git archive` with this session's harness copied in, each
+checkout at its own `DEFAULT_TEXT_SIZE`). Payloads 189 (the new `war_room_t20` among them). 188 surfaces at Interface
+Scale 1.0 and 2.0 (376 frames, the defaults — Folded, Fill, 115 %; re-shot after the hook's round): 0 `SCRIPT ERROR`; readability RED 0 / P1 0 over
+5,319 rows; contrast 0 rows under 4.5 : 1 of 4,304 measured; the consistency census 0 hits on 145 surfaces; grip and
+tick overlaps 0; map overlaps 0 over 376 map frames, hidden map furniture 102 (HEAD's 123); buttons off the view 0
+(HEAD's 34 over 19 frames, every one at 2.0); against HEAD frame by frame, no frame's truncated, clipped, off-view or
+covered counts rose. Cut lines 81 (HEAD's 54): the frame census reads a whole BBCode table as one line, so a table the
+rest stops between its rows is counted (the books are tables now) — read by eye, each rated frame's tables stop on a
+whole row; text-line cuts of 15 px or less are 8 new against 8 gone. **On the page** (188 at 1.0): the
+word multiset of HEAD's frames stands on 177 surfaces; the eleven others are named in `UI_VISUAL_FOUNDATION_SPEC.md`
+§12 (the top bar's fit steps at 1,600 px, the rail's capacity, Settings' short choice names, the menus' derived 180 %
+and HEAD's silent staging, two misreads of the tool). **The five physical sizes** (940 frames): 0 `SCRIPT ERROR`;
+readability RED 0 / P1 0 over 13,695 rows; contrast 0 of 11,824 under; fit 188 of 188 at 1920x1080, 3840x2160 and
+5120x1440; map overlaps 0 over 940 map frames. The records `docs/audits/uxr0/readability_after_{all,named}_2026_11_12.json`
+re-shot (`client_commit` "e835f889+UI-4", 188 surfaces; the named set 1,440 rows).
+
+**The score** (the frozen rubric, the prompt verbatim, the same 30 frame ids, three fresh sonnet readers; F24 / F25 /
+F27 shot as the game shows them, `make_rating_set.STAGED_UI4`; `tools/ui_rating/scores_ui4.py`): overall **7 / 7 / 7**
+— unmoved; the mean of 90 marks 7.00 → **7.11** (7.13 / 7.27 / 6.93); the median of frame medians 7 → 7. On the 27
+frames whose staging never moved the mean held, 7.09 → 7.10. Six frames up (Forces 7 → 8, Vassals 7 → 8, the Balance
+of Europe 6 → 7, the province panel 6 → 7, the main menu 7 → 8, the mailbox 7 → 8), four down (the war room at 2.0
+7 → 6, Manpower 8 → 7, Nations 8 → 7, the Cabinet's second step 7 → 6), 20 level; 15 frames unanimous, 15 one apart.
+The interim reading was 7.06. **Pins:** `tests/test_ui_gilt4_levers.py` — the type (115 % shipped, 100 % a choice), the edges (the band by the
+map's mode, the sizing room, "16:9"), the locked chip and the faceless Button, the command window (the war list clear
+of it, the rail, the boot help, the gathering), the interim reading's fixes, the last fits (the rail's count, the
+instrument's scrolled row), the final shoot's fixes (the strip's and the letter's flow rows, the first-run card's
+scroll, the folded path note, the tutor's whole lines, the desk's room, the date's steps, the end card's compact form,
+the books' figures), tables spanning their pages and the stagings; `TestDriven` runs `tools/ui_gilt4_probe.gd`
+headless (the factor at boot, the band at the edges / the zone / the sheet, a disabled chip with no box and a lock, a
+signed meter, the war list clear of the window). Re-ruled with their reasons: `test_uxr2b_text_size.py` and
+`test_uxr2_grips_driven.py` (the shipped 1.15: 18 / 18 / 16); `test_uxr2b_hud_band.py` (`HUD_WIDTHS` with "16:9";
+`very_wide_view`); `test_ui_gilt2_imperial_desk.py` (the transparent disabled chip and its contrast pair, the live
+rim `ff`, the objection's always-even grid, the 32:9 term 0.65 and 1.80, `_FIT_STEPS` 8); `test_uxr1_scale_fix.py`
+(5120 → 1.80; the tutor card on `hud_size_room`); `test_uxr1b_settings_additions.py` (`_hud_size_room`);
+`test_sf_rr5_the_frames.py` (EA-E6 reads each court row's three buttons; the S14D row's "Demand more");
+`test_ui_gilt_frame.py` (the Economy rides `_econ_table`); `test_uxr4_s15_pc_layout.py` (the war detail 0.28);
+`test_dd_b_the_client_hands.py` (the walk opens "Austria ▸" / "Britain ▸" before "+ Add demand", closes the court it
+worked on by its row's "▾", re-opens only a closed court — an open card's own head also reads "Britain ▸", and pressing
+it folded the demand list — and scrolls the table to "Demands of Britain" and to the staged gold line: at 115 % on the
+user's 800-px-tall panel an open court's words fill the body; the first launch derives 1.80);
+`test_uxr_d4_the_side_desk.py` (the dock's top clears the bar's drawn strip, 44 px plus its growth, which the harness
+now records; Ney's state is read from his Forces row's tag); `test_uxr2b_hud_band.py`'s driven classes (Auto with the
+map filling: the whole viewport; a new `zone` fixture for "16:9": UI-2's zone); `test_uxr2_grips_driven.py` (the reset
+clears the bar's growth and grows to the ledger's minimum, both recorded by `uxr2_grip_harness.gd`);
+`test_cn4_the_chip_honesty_census.py` (`_DIMMED_RUN` reads the lock chip: a transparent cell, the lock image, the
+dimmed label, the reason after the run's gap); `test_iq1_iq1_2_chest_tells_the_truth.py` (the ceiling line rides
+`Utils.bb_lead`); `test_cx7_predictor_driven.py` (the interrupt box opens at least as tall as its question);
+`test_uxr4_s15_pc_layout.py` (PC-F46's needles by size — the terms and the expiry above the fold everywhere, every
+needle in the letter's text; PC-F47's hover may widen past the cap only on a window under 900 px for a block of 12+
+lines); the copy pins in
+`test_affairs_client.py` ("In the offing" a tag), `test_estate_second_pass.py` (Rentes a table row),
+`test_fa_s17_phase4b_2026_09_12.py` (the objective builds into `obj_rest`), `test_nv_d5_colonial_copy.py` (Overseas
+trade a table label), `test_sf7_s9_the_frames.py` (Morale a state tag); `test_uxr0_readability.py` (the AFTER records
+re-shot on this tree, `client_commit` "e835f889+UI-4").
+
+**Traps the session paid for:** a fit diff that compares counts misses a frame whose controls went further off-screen
+than HEAD's (the same count, a worse overflow) — read the frames as well; a capture chain stopped through its shell task
+leaves its runner and its Godot running, and the shell moves on to the next phase — stop the whole tree by command line
+(the chain script, `iq10_run_captures`, `--position 5200`), never by process name; the census reads a BBCode table as
+one line, so a table crossing a scroll's edge counts as a cut whether or not a row is cut — classify by eye; a bare
+`[table]` has no cell padding, so a row model that assumes `bb_table`'s drifts and cuts it mid-row; a client edit
+during the chain makes its phases measure different trees — stop, fix, shoot the whole chain again; `HFlowContainer`
+takes `h_separation` / `v_separation`, not `separation`, and a handle typed `HBoxContainer` breaks the day the strip
+becomes a flow row; a shell heredoc turns a test string's `\n` into a newline — write test edits with the Edit tool.

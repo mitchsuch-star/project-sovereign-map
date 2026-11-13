@@ -1083,7 +1083,8 @@ class TestGodotSurfaces:
         src = (GD_DIR / "scripts" / "strategic_ledger.gd").read_text(
             encoding="utf-8")
         assert '"rente_cost"' in src
-        assert "Rentes: -" in src
+        # Session UI-4: the line is a table row — the label "Rentes", its figure signed in its own cell
+        assert '"Rentes", -rente_cost' in src
 
     def test_dispatch_renders_rises_and_grace(self):
         src = (GD_DIR / "scripts" / "dispatch_view.gd").read_text(

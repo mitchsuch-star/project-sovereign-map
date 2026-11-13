@@ -32,6 +32,15 @@ var _derived_label: Label
 var _derived := 1.0
 var _opened_at := 1.0
 var _built := false
+# Session UI-4 (November 12, 2026): the lead, the sample, the slider and the note
+# stand in ONE scroll; the card asks the centred clamp for its content's height
+# (`clamp_ceiling_override`), so where the window has the room the card shows
+# whole as before (no bar), and where it has not the middle scrolls while the
+# question and the two buttons stand. At the shipped 115 % on the compact 2.0
+# view (450 logical px) the card stood ~80 px taller than the window and its two
+# buttons fell off the bottom.
+var _middle_scroll: ScrollContainer = null
+var _middle: VBoxContainer = null
 
 
 func _ready() -> void:
@@ -68,13 +77,24 @@ func _build() -> void:
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(header)
 
+	_middle_scroll = ScrollContainer.new()
+	_middle_scroll.name = "MiddleScroll"
+	_middle_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_middle_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(_middle_scroll)
+	_middle = VBoxContainer.new()
+	_middle.name = "Middle"
+	_middle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_middle.add_theme_constant_override("separation", 12)
+	_middle_scroll.add_child(_middle)
+
 	var lead := Label.new()
 	lead.text = ("Ink & Iron sized its interface for this screen. Drag the slider until the "
 		+ "lines below read easily from where you sit — every window, ledger and pop-up "
 		+ "follows. Settings → Interface changes it later.")
 	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lead.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
-	vbox.add_child(lead)
+	_middle.add_child(lead)
 
 	# The sample: the three kinds of text the player meets first, at the
 	# theme's own sizes (body 16, Caption 14), so the slider's effect is the
@@ -87,7 +107,7 @@ func _build() -> void:
 	sample_style.set_corner_radius_all(3)
 	sample_style.set_content_margin_all(12)
 	sample.add_theme_stylebox_override("panel", sample_style)
-	vbox.add_child(sample)
+	_middle.add_child(sample)
 	var sample_box := VBoxContainer.new()
 	sample_box.add_theme_constant_override("separation", 6)
 	sample.add_child(sample_box)
@@ -125,13 +145,13 @@ func _build() -> void:
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_value_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7))
 	row.add_child(_value_label)
-	vbox.add_child(row)
+	_middle.add_child(row)
 
 	_derived_label = Label.new()
 	_derived_label.theme_type_variation = &"Caption"
 	_derived_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	_derived_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(_derived_label)
+	_middle.add_child(_derived_label)
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 10)
@@ -162,8 +182,30 @@ func open(current: float, derived: float) -> void:
 	_slider.set_value_no_signal(clampf(current, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE))
 	_update_labels(_slider.value)
 	visible = true
-	Utils.clamp_centered_panel(self)
+	_fit_to_view()
+	# the wrapped lines' heights settle one layout pass after the width does
+	_fit_to_view.call_deferred()
 	_slider.grab_focus()
+
+
+func _fit_to_view() -> void:
+	"""Clamp the card to the window at its content's height (Session UI-4): the
+	clamp's ceiling is raised to the card's whole need — the middle's own height,
+	never the scroll's — so the window's band, not the authored 460, decides
+	when the middle scrolls."""
+	if _middle_scroll != null and _middle != null:
+		var frame := get_theme_stylebox("panel")
+		var need: float = (frame.get_margin(SIDE_TOP) + frame.get_margin(SIDE_BOTTOM)) if frame != null else 0.0
+		var column := _middle_scroll.get_parent() as VBoxContainer
+		var shown := 0
+		for c in column.get_children():
+			if c is Control and (c as Control).visible:
+				shown += 1
+				need += _middle.get_combined_minimum_size().y if c == _middle_scroll \
+					else (c as Control).get_combined_minimum_size().y
+		need += float(column.get_theme_constant("separation")) * float(maxi(shown - 1, 0))
+		set_meta("clamp_ceiling_override", Vector2(0.0, need))
+	Utils.clamp_centered_panel(self)
 
 
 func current_value() -> float:

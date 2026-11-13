@@ -294,7 +294,9 @@ class TestTheStakesTold:
         assert '"stake_line": __import__("backend.game_logic.standing",' in st
         gd = (SCRIPTS / "objection_dialog.gd").read_text(encoding="utf-8")
         assert '"stake_line": objection.get("stake_line", response.get("stake_line", ""))' in gd   # the join
-        assert 'message_label.text += "\\n\\n" + stake_line' in gd
+        # Session UI-4 (November 12, 2026): the compact view spends no blank line
+        # between the objection and its stake (the 2.0 band, SF-RR5)
+        assert 'message_label.text += ("\\n" if Utils.compact_view() else "\\n\\n") + stake_line' in gd
 
     def test_the_vindication_applies_its_constants_and_says_them(self, w):
         from backend.commands import vindication as VI

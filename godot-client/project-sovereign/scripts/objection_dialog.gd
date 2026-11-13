@@ -47,6 +47,7 @@ const TONE_HEADERS = {
 # no cost (every other answer spends trust or an order).
 var cancel_button: Button = null
 var word_button: Button = null
+var _cancel_caption: String = ""
 
 func _ready():
 	# Connect button signals
@@ -72,6 +73,9 @@ func _ready():
 	cancel_button.custom_minimum_size = insist_button.custom_minimum_size
 	insist_button.get_parent().add_child(cancel_button)
 	cancel_button.pressed.connect(_on_cancel_pressed)
+	_cancel_caption = "[center][color=#" + Utils.COLOR_GOLD + "]no AP, no trust spent[/color][/center]"
+
+	_dress_answers()
 
 	# Hide by default
 	hide()
@@ -171,7 +175,8 @@ func show_objection(objection_data: Dictionary):
 	# insisting risks and wins when the field judges the order, under his words.
 	var stake_line = str(objection_data.get("stake_line", ""))
 	if stake_line != "" and stake_line != "null":
-		message_label.text += "\n\n" + stake_line
+		# Session UI-4: the compact view spends no blank line between them
+		message_label.text += ("\n" if Utils.compact_view() else "\n\n") + stake_line
 
 	# Get marshal stats
 	var personality = objection_data.get("personality", "unknown")
@@ -243,6 +248,20 @@ func show_objection(objection_data: Dictionary):
 		else:
 			insist_button.text = "Proceed as Ordered (%+d trust)" % insist_penalty
 
+		# Session UI-4: each answer's consequence as a coloured caption, from the
+		# same numbers the labels above are built from (AP only when the answer
+		# costs more than its face value, as the labels print it).
+		var noted_trust: bool = str(objection_data.get("trust_note", "")) != ""
+		_set_caption(trust_button, _caption_text(
+			int(objection_data.get("trust_ap_cost", 2)) if (has_alternative and noted_trust) else 0,
+			trust_gain))
+		_set_caption(insist_button, _caption_text(
+			int(objection_data.get("insist_ap_cost", 2)) if str(objection_data.get("insist_note", "")) != "" else 0,
+			insist_penalty))
+		_set_caption(compromise_button, _caption_text(
+			int(objection_data.get("compromise_ap_cost", 2)) if (objection_data.has("compromise") and objection_data.compromise != null and str(objection_data.get("compromise_note", "")) != "") else 0,
+			compromise_gain))
+
 		if has_compromise:
 			var comp = objection_data.compromise
 			var comp_desc = _describe_order(comp)
@@ -257,9 +276,11 @@ func show_objection(objection_data: Dictionary):
 			compromise_button.visible = false
 
 	_setup_word_button(objection_data.get("word", {}))
+	_set_caption(cancel_button, _cancel_caption)
 
 	# Show the dialog
 	show()
+	_fit_compact()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
 	# viewport, so a fixed authored rect can carry the action row off-screen
@@ -274,41 +295,155 @@ func show_objection(objection_data: Dictionary):
 func refit() -> void:
 	"""UXR-2's live-refit hook (`Utils.refit_surface`): the clamp, then the
 	shrink to content, exactly as on open."""
+	_fit_compact()
 	Utils.clamp_centered_panel($PanelContainer)
 	_even_the_answers()
 	Utils.shrink_centered_panel_to_content($PanelContainer)
 
 
-func _even_the_answers() -> void:
-	"""Session UI-2: the answers stand on an even two-column grid (the readers:
-	uneven widths) — every visible answer half the row's width, so the rows
-	align whatever each button says — but ONLY when every answer's words fit
-	in half a row. A grid that pushed a long answer onto a row of its own
-	added a row, and at Interface Scale 2.0 the dialog has none to spare: it
-	stood over the top bar's strip (the frames' clamp-band pin). Otherwise the
-	row keeps its natural widths, as before; the grid never adds a row."""
-	# one frame for the clamped panel to lay its row out (the shrink waits two)
-	await get_tree().process_frame
+func _dress_answers() -> void:
+	"""Session UI-4 (November 12, 2026): the readers called the five answers
+	"equal-weight and unevenly laid out" and asked for the consequences colour-
+	coded. The answers move from the wrapping row (kept in the scene, now
+	hidden) into an even two-column grid; each stands in a cell with its
+	consequence as a small coloured caption beneath it (AP in gold, trust gain
+	in the friendly tone, a loss in crimson), built from the numbers the label
+	is built from. The labels themselves are unchanged. No answer is marked
+	"recommended": the game does not recommend one."""
 	var row := insist_button.get_parent() as Control
-	if row == null or not is_instance_valid(row):
+	if row == null:
 		return
-	var answers: Array[Button] = []
-	for b in row.get_children():
-		if b is Button:
-			answers.append(b as Button)
-	# the words first, not the last grid (a refit measures afresh): the
-	# authored width is 0 (the scene's minimum is its 45-px height alone)
-	for b in answers:
-		b.custom_minimum_size.x = 0.0
-	var sep := float(row.get_theme_constant("h_separation"))
-	var half := floorf((row.size.x - sep) / 2.0) if row.size.x > 0.0 else 0.0
-	if half <= 0.0:
+	var grid := GridContainer.new()
+	grid.name = "AnswerGrid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 4)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var vb := row.get_parent()
+	vb.add_child(grid)
+	vb.move_child(grid, row.get_index() + 1)
+	# document order: Trust, Proceed, By My Word, Compromise, Cancel
+	var order: Array = [trust_button, insist_button, word_button, compromise_button, cancel_button]
+	for b in order:
+		var btn := b as Button
+		if btn == null:
+			continue
+		var cell := VBoxContainer.new()
+		cell.name = "Cell" + btn.name
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_theme_constant_override("separation", 2)
+		grid.add_child(cell)
+		btn.get_parent().remove_child(btn)
+		cell.add_child(btn)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# long answers wrap inside their half instead of falling back to
+		# natural widths (the grid is always even)
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.clip_text = false
+		var cap := RichTextLabel.new()
+		cap.name = "Caption"
+		cap.bbcode_enabled = true
+		# one line, its height set (a single figure line never wraps in its half)
+		cap.autowrap_mode = TextServer.AUTOWRAP_OFF
+		cap.custom_minimum_size.y = float(Utils.text_px(22))
+		cap.scroll_active = false
+		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cap.theme_type_variation = &"CaptionRich"   # a named step, never a raw override
+		cap.visible = false
+		cell.add_child(cap)
+		btn.visibility_changed.connect(_sync_cell.bind(btn))
+	row.visible = false
+
+
+func _fit_compact() -> void:
+	"""Session UI-4 (November 12, 2026): the compact view (Interface Scale 2.0 on
+	a 900-px window: 450 tall) — at the shipped 115 % the dialog stood 440 px
+	tall in the clamp's 394-px band, its top under the bar (SF-RR5's rule). There
+	the answers stand three to a row (two rows, not three), the message keeps no
+	floor of its own (its words set its height) and the rules between the parts
+	step aside; every word and every answer stands. A full view keeps the even
+	two-column grid, the floor and the rules."""
+	var compact := Utils.compact_view()
+	var grid := get_node_or_null("PanelContainer/VBoxContainer/AnswerGrid") as GridContainer
+	if grid != null:
+		grid.columns = 3 if compact else 2
+	if message_label != null:
+		if not message_label.has_meta("authored_floor"):
+			message_label.set_meta("authored_floor", message_label.custom_minimum_size.y)
+		message_label.custom_minimum_size.y = 0.0 if compact else float(message_label.get_meta("authored_floor"))
+	for rule_name in ["HSeparator", "HSeparator2", "HSeparator3"]:
+		var rule := get_node_or_null("PanelContainer/VBoxContainer/" + rule_name) as Control
+		if rule != null:
+			rule.visible = not compact
+	# the column's own spacing, and the answers 6 px lower (still a full click)
+	var column := get_node_or_null("PanelContainer/VBoxContainer") as VBoxContainer
+	if column != null:
+		if compact:
+			column.add_theme_constant_override("separation", 4)
+		else:
+			column.remove_theme_constant_override("separation")
+	if grid != null:
+		for cell in grid.get_children():
+			for b in cell.get_children():
+				if b is Button:
+					(b as Button).custom_minimum_size.y = 39.0 if compact else 45.0
+
+
+func _sync_cell(btn: Button) -> void:
+	var cell := btn.get_parent() as Control
+	if cell != null and cell.name.begins_with("Cell"):
+		cell.visible = btn.visible
+
+
+func _caption_text(ap: int, trust: int, authority: int = 0, free_note: String = "") -> String:
+	"""The consequence in figures, coloured by what it does: AP gold, a trust
+	gain in the friendly tone, a loss in the crimson text tone."""
+	var parts: Array = []
+	if free_note != "":
+		parts.append("[color=#" + Utils.COLOR_GOLD + "]" + free_note + "[/color]")
+	if ap > 0:
+		parts.append("[color=#" + Utils.COLOR_GOLD + "]%d AP[/color]" % ap)
+	if authority != 0:
+		var ahex: String = Utils.RELATION_POS if authority > 0 else Utils.UI_ALERT_TEXT.to_html(false)
+		parts.append("[color=#%s]%s authority[/color]" % [ahex, _signed(authority)])
+	if trust != 0:
+		var thex: String = Utils.RELATION_POS if trust > 0 else Utils.UI_ALERT_TEXT.to_html(false)
+		parts.append("[color=#%s]%s trust[/color]" % [thex, _signed(trust)])
+	return "[center]" + "   ".join(PackedStringArray(parts)) + "[/center]"
+
+
+func _signed(n: int) -> String:
+	return ("+%d" % n) if n > 0 else ("−%d" % -n)
+
+
+func _set_caption(btn: Button, text: String) -> void:
+	"""The caption under an answer; the compact view (Interface Scale 2.0)
+	keeps its room for the answers, whose labels carry the same figures."""
+	var cell := btn.get_parent() as Control
+	if cell == null:
 		return
-	for b in answers:
-		if b.visible and b.get_combined_minimum_size().x > half:
-			return
-	for b in answers:
-		b.custom_minimum_size.x = half
+	var cap := cell.get_node_or_null("Caption") as RichTextLabel
+	if cap == null:
+		return
+	cap.text = text
+	cap.visible = text != "" and not Utils.compact_view()
+
+
+func _even_the_answers() -> void:
+	"""Session UI-2 / UI-4: the answers stand on an even two-column grid whatever
+	each says — a long label wraps inside its half (the readers: uneven widths,
+	"equal-weight and unevenly laid out"). UI-2's fallback to natural widths
+	for an answer that did not fit half a row is retired: wrapping lets every
+	answer fit, so the grid is always even and adds at most the wrapped line."""
+	# one frame for the clamped panel to lay its grid out (the shrink waits two)
+	await get_tree().process_frame
+	var grid := get_node_or_null("PanelContainer/VBoxContainer/AnswerGrid") as Control
+	if grid == null or not is_instance_valid(grid):
+		return
+	for cell in grid.get_children():
+		for b in cell.get_children():
+			if b is Button:
+				(b as Button).custom_minimum_size.x = 0.0
 
 func _describe_order(order: Dictionary) -> String:
 	"""Create human-readable description of an order."""
@@ -383,8 +518,10 @@ func _setup_strategic_buttons(options: Array):
 		var ap = proceed_opt.get("ap_cost", 2)
 		var trust = proceed_opt.get("trust_change", -10)
 		insist_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		_set_caption(insist_button, _caption_text(int(ap), int(trust)))
 	else:
 		insist_button.text = "Proceed as Ordered"
+		_set_caption(insist_button, "")
 
 	# Set up Trust/Preferred button
 	if preferred_opt:
@@ -392,9 +529,11 @@ func _setup_strategic_buttons(options: Array):
 		var ap = preferred_opt.get("ap_cost", 1)
 		var trust = preferred_opt.get("trust_change", 12)
 		trust_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		_set_caption(trust_button, _caption_text(int(ap), int(trust)))
 		has_alternative = true
 	else:
 		trust_button.text = "Trust %s's Judgment" % current_marshal
+		_set_caption(trust_button, "")
 		has_alternative = false
 
 	# Set up Compromise button
@@ -403,6 +542,7 @@ func _setup_strategic_buttons(options: Array):
 		var ap = compromise_opt.get("ap_cost", 2)
 		var trust = compromise_opt.get("trust_change", 3)
 		compromise_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		_set_caption(compromise_button, _caption_text(int(ap), int(trust)))
 		compromise_button.visible = true
 		has_compromise = true
 	else:
@@ -454,6 +594,8 @@ func _setup_word_button(word) -> void:
 	word_button.visible = true
 	word_button.text = "By My Word (%+d authority)" % -int(word.get("price", 0))
 	word_button.disabled = refusal != ""
+	# Session UI-4: its price in authority, coloured (never trust)
+	_set_caption(word_button, _caption_text(0, 0, -int(word.get("price", 0))))
 	# the quote and the stake in figures (the panel fits at 2.0 without a line more)
 	word_button.tooltip_text = refusal if refusal != "" else \
 		(str(word.get("line", "")) + "\n" + str(word.get("stake", ""))).strip_edges()

@@ -390,8 +390,11 @@ func _lay_out_furniture(xform: Transform2D, obstacles: Array, pieces: Array) -> 
 # stand behind it ("Napoleon · 6 more"); IGR-G2's co-located "Ney +4" is its
 # own form and untouched. Two plates gather when their authored rects, grown
 # by GATHER_GAP_PX on the screen, touch — a plate with room stands alone.
+# Session UI-4 (November 12, 2026): 2 → 6 px — the blind readers still read
+# the boot map's centre as crowded ("declutter the marshal plaques"): plates
+# a hair apart now gather too; a plate with a clear gap still stands alone.
 const GATHER_FORMAT := "%s · %d more"
-const GATHER_GAP_PX := 2.0
+const GATHER_GAP_PX := 6.0
 
 
 func _gather_names(xform: Transform2D) -> Array:

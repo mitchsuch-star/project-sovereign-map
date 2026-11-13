@@ -162,10 +162,15 @@ class TestTheRefitRoadAndTheReset:
         off = {k: float(v) for k, v in re.findall(r"offset_(left|right|top|bottom) = (-?[0-9.]+)", block)}
         sw, sh = off["right"] - off["left"], off["bottom"] - off["top"]
         aw, ah = max(sw, min(0.62 * vw, 1100.0)), max(sh, min(0.85 * vh, 1000.0))
-        h = min(ah, max(240.0, vh - 88.0))
-        if ah > h and vh - 56.0 > h:
-            h = min(ah, vh - 56.0)
-        want = (min(aw, max(320.0, vw - 24.0)), h)
+        # Session UI-4 (November 12, 2026): the band clears the top bar's drawn
+        # strip (its growth: 2 px at the shipped 115 %), and a Container grows to
+        # its content's minimum (the ledger's tab row on this small logical view)
+        g = float(driven.get("reset_top_bar_growth", 0.0))
+        h = min(ah, max(240.0, vh - 88.0 - 2.0 * g))
+        if ah > h and vh - 56.0 - g > h:
+            h = min(ah, vh - 56.0 - g)
+        min_w = float((driven.get("ledger_min_after_reset") or [0.0, 0.0])[0])
+        want = (max(min(aw, max(320.0, vw - 24.0)), min_w), h)
         assert _near(driven["ledger_after_reset"], want), (driven["ledger_after_reset"], want)
 
     def test_the_command_window_keeps_its_grip(self, driven):
@@ -186,14 +191,16 @@ class TestTheTextSizeSlider:
 
     def test_a_click_rethemes_every_family_live_and_stores_it(self, driven):
         before, after = driven["text_size"]["before"], driven["text_size"]["at_150"]
-        assert (before["line_edit"], before["rich"], before["caption"]) == (16, 16, 14)
+        # Session UI-4: the war room boots at the shipped 115 % (16 → 18, 14 → 16)
+        assert (before["line_edit"], before["rich"], before["caption"]) == (18, 18, 16)
         assert (after["line_edit"], after["rich"], after["caption"]) == (24, 24, 21)
         assert after["stored"] == 1.5
 
     def test_reset_layout_returns_the_text_to_one_hundred(self, driven):
         reset = driven["text_size"]["after_reset"]
-        assert (reset["line_edit"], reset["rich"], reset["caption"]) == (16, 16, 14)
-        assert reset["stored"] == 1.0
+        # Session UI-4: Reset layout returns the shipped 115 %
+        assert (reset["line_edit"], reset["rich"], reset["caption"]) == (18, 18, 16)
+        assert reset["stored"] == 1.15
         assert reset["terminal"] == driven["text_size"]["before"]["terminal"]
 
     def test_the_command_window_keeps_its_width_floor_on_its_input_row(self, driven):

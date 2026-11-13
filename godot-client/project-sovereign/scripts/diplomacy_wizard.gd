@@ -87,6 +87,9 @@ func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(assessment_panel)
 	Utils.keep_whole_lines(scroll_container)
+	# Session UI-4 (November 12, 2026): the Recommendation stands on a gold card
+	# (the readers: "lift the recommendation into a highlighted card").
+	Utils.card_page(assessment_panel)
 	hide()
 	close_button.pressed.connect(_close_wizard)
 	# UXR3-F5: the drawn cross every screen closes with.
@@ -259,7 +262,7 @@ func _lay_out_prompt(step: int) -> void:
 # the status, the space, the counsel's opening two), never more than the text
 # it holds; the chip list scrolls under its "more below".
 const ASSESSMENT_FLOOR_LINES := 5
-const ASSESSMENT_CAP_SHARE := 0.4   # Session UI-3: the whole counsel, at most 40 % of the panel
+const ASSESSMENT_CAP_SHARE := 0.5   # Session UI-4: 0.4 -> 0.5 — the factors table stood cut by the acts   # Session UI-3: the whole counsel, at most 40 % of the panel
 # In the compact view (Interface Scale 2.0, a 360-px panel) 40 % left the acts
 # fewer than two whole rows (EA-E5's driven pin): the heading, the status and the
 # counsel's opening still stand in 30 %.
@@ -590,6 +593,11 @@ func _add_nation_button(nation_data: Dictionary):
 	figures.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	figures.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	figures.theme_type_variation = &"CaptionRich"
+	# Session UI-4: every row's figures take ONE column width, right-aligned, so
+	# the state badges stand at the rows' right edge in a straight line (the
+	# readers: "the At War badges float away from the rows"). A row whose
+	# figures are wider (a MISSION badge beside the state) keeps its own width.
+	figures.custom_minimum_size.x = float(Utils.text_px(230))
 	var bbcode := "[right]" + Utils.bb_badge(state_display, _state_tone(nation_data))
 	# W2: Active mission indicator
 	if nation_data.get("has_active_mission", false):
@@ -1390,7 +1398,9 @@ func _render_preview(data: Dictionary):
 		bbcode += "[color=#" + Utils.COLOR_ORANGE + "]" + Utils.humanize_nation_keys_in_text(holdings_line.replace("[", "[lb]")) + "[/color]\n"
 
 	if assessment_text:
-		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
+		# Session UI-4: the compact view gives the counsel the blank line's room —
+		# at 115 % its opening line stood cut under the assessment's 30 % (EA-E5)
+		bbcode += ("" if Utils.compact_view() else "\n") + "[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
 	# VP-1 (S14b part 2): Talleyrand's reading of this court on the Emperor's
 	# road — the road page (F1 → The Emperor's Designs) holds the rest.
 	var designs_part := ""
@@ -1413,6 +1423,12 @@ func _render_preview(data: Dictionary):
 	# On the page (or opened) every line prints as it did, in the same order.
 	var rec_cut: int = Utils.first_sentence_end(str(recommendation)) if recommendation else -1
 	var counsel_held: bool = rec_cut >= 0 or designs_part != "" or roads_part != ""
+	# Session UI-4: the counsel (the Recommendation, folded or whole, with the
+	# road reading under it) is ONE gold card; the card closes on the counsel's
+	# last line, never on the blank paragraph after it.
+	var counsel_carded: bool = counsel_held or recommendation != ""
+	if counsel_carded:
+		bbcode += Utils.card_open(Utils.COLOR_GOLD)
 	if Utils.show_note(COUNSEL_NOTE) or not counsel_held:
 		if recommendation:
 			bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
@@ -1424,6 +1440,13 @@ func _render_preview(data: Dictionary):
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + opening + "[/color] " + Utils.note_link(COUNSEL_NOTE) + "\n"
 	else:
 		bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
+	if counsel_carded:
+		if bbcode.ends_with("\n[/color]"):
+			bbcode = bbcode.substr(0, bbcode.length() - 9) + "[/color]" + Utils.CARD_CLOSE + "\n"
+		elif bbcode.ends_with("\n"):
+			bbcode = bbcode.substr(0, bbcode.length() - 1) + Utils.CARD_CLOSE + "\n"
+		else:
+			bbcode += Utils.CARD_CLOSE
 
 	# W3: Acceptance preview — key factors
 	var acceptance_preview = data.get("acceptance_preview")
@@ -1432,14 +1455,18 @@ func _render_preview(data: Dictionary):
 		var negatives = acceptance_preview.get("negative", [])
 		if positives.size() > 0 or negatives.size() > 0:
 			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]KEY FACTORS[/color]\n"
+			# Session UI-4: the factors are a small two-column table (factor |
+			# value), each figure in the tone of what it does to the court's
+			# willingness (the readers: "the assessment text is dense ... move
+			# the key factors into a small bar or table").
+			var factor_rows: Array = []
 			for p in positives:
-				var p_label = str(p.get("label", "?"))
-				var p_val = int(p.get("value", 0))
-				bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]+ " + p_label + " (+" + str(p_val) + ")[/color]\n"
+				factor_rows.append([str(p.get("label", "?")),
+					"[color=#" + Utils.COLOR_SUCCESS + "]+" + str(int(p.get("value", 0))) + "[/color]"])
 			for neg in negatives:
-				var neg_label = str(neg.get("label", "?"))
-				var neg_val = int(neg.get("value", 0))
-				bbcode += "  [color=#" + _alert_hex + "]- " + neg_label + " (" + str(neg_val) + ")[/color]\n"
+				factor_rows.append([str(neg.get("label", "?")),
+					"[color=#" + _alert_hex + "]" + str(int(neg.get("value", 0))) + "[/color]"])
+			bbcode += Utils.bb_table(["Factor", "Value"], factor_rows, [1], [4, 1]) + "\n"
 
 	# W4: Cooldown pre-check warning
 	var actions_list = data.get("actions", [])
@@ -1586,6 +1613,11 @@ func _add_action_button(action: Dictionary):
 
 	# The right-hand cell: the price, then the verdict - badges, not prose.
 	var badges := ""
+	# Session UI-4: the ONE recommendation the game makes - Talleyrand's counsel
+	# - is tagged beside its act (no primary face; a running mission's Cancel
+	# also leads the list but is no recommendation).
+	if bool(action.get("counsel_first", false)) and not action_id.begins_with("cancel"):
+		badges += Utils.bb_badge("Talleyrand's counsel", "8a6d2a") + " "
 	if dp_cost > 0:
 		badges += Utils.bb_glyph("dp", 16, Utils.COLOR_GOLD) + " " + str(dp_cost) + " DP  "
 	if gold_cost > 0:

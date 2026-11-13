@@ -374,6 +374,8 @@ func _ready():
 	# UXR-2 part 5: an open detail panel re-bounds its body when the window
 	# or the Interface Scale changes the logical viewport under it.
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	# Session UI-4: the rail holds what its slot holds (_render_rail)
+	resized.connect(_on_rail_resized)
 
 
 func _on_viewport_size_changed() -> void:
@@ -409,28 +411,51 @@ func update_notifications(notifications: Array, silent: bool = false):
 			if not silent:
 				AudioManager.play("notification")
 	current_notifications = notifications.duplicate()
+	_close_expanded_panel()
+	_render_rail()
+	_refresh_visibility()
 
+
+func _render_rail() -> void:
+	"""The rail's icons: the first MAX_VISIBLE_ICONS of the rail's notices —
+	and never more than its slot holds (Session UI-4, November 12, 2026: at the
+	shipped 115 % six icons, the label and the "+N" ran ~140 px past the 360-px
+	slot and off the screen's right edge on a turn-20 desk). The icons that do
+	not fit join the "+N" queue — `_on_overflow_pressed` lists whatever the
+	rail does not show."""
 	for child in icon_container.get_children():
 		icon_container.remove_child(child)
 		child.queue_free()
-
-	_close_expanded_panel()
-
 	var rail_notifications = _visible_notifications_for_rail(current_notifications)
-	var visible_count = min(rail_notifications.size(), MAX_VISIBLE_ICONS)
+	var visible_count: int = mini(rail_notifications.size(), MAX_VISIBLE_ICONS)
 	for i in range(visible_count):
 		var notif: Dictionary = rail_notifications[i]
 		if str(notif.get("type", "")) == "diplomatic_mission":
 			icon_container.add_child(_create_mission_row(notif))
 		else:
 			icon_container.add_child(_create_notification_icon(notif))
+	_set_overflow(maxi(current_notifications.size() - visible_count, 0))
+	var room: float = size.x
+	while room > 0.0 and visible_count > 1 and rail_panel.get_combined_minimum_size().x > room + 0.5:
+		var last: Node = icon_container.get_child(icon_container.get_child_count() - 1)
+		icon_container.remove_child(last)
+		last.queue_free()
+		visible_count -= 1
+		_set_overflow(maxi(current_notifications.size() - visible_count, 0))
 
-	var hidden_count = max(current_notifications.size() - visible_count, 0)
+
+func _set_overflow(hidden_count: int) -> void:
 	overflow_label.visible = hidden_count > 0
 	overflow_label.text = "+%d" % hidden_count
 	overflow_label.tooltip_text = "%d more notices queued behind the rail — click to list them." % hidden_count
 
-	_refresh_visibility()
+
+func _on_rail_resized() -> void:
+	"""The slot changed width (the window, the Interface Scale, the HUD band):
+	the rail re-counts what it holds — its open panel stays where it is."""
+	if current_notifications.is_empty():
+		return
+	_render_rail()
 
 
 func _refresh_visibility():

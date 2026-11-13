@@ -1016,6 +1016,18 @@ def cap_fixtures():
                    source="GET /test → active_wars.wars[0]", staging=staging,
                    facts={"opponent": wars["wars"][0].get("opponent"),
                           "war_score": wars["wars"][0].get("war_score")})
+            if tag == "t20":
+                # Session UI-4 (November 12, 2026): the war room of the SAME
+                # fixture, for the war detail shot over it (`war_detail_t20_war_room`):
+                # the /load answer stands in for /new_game (`_on_new_game_result`
+                # reads its game state), plus the war the popup opens on.
+                record("war_room_t20", {"test": test, "topology": get(c, "/map_topology"),
+                                        "new_game": _loaded, "war": wars["wars"][0],
+                                        "coalition": wars.get("coalition")},
+                       source="GET /test + GET /map_topology + POST /load + active_wars.wars[0]",
+                       staging=staging + " — the war room booted on the loaded board",
+                       facts={"turn": int(world.current_turn),
+                              "opponent": wars["wars"][0].get("opponent")})
         record(f"dispatch_{tag}_loaded", get(c, "/dispatch"), source="GET /dispatch",
                staging=staging + " (the save's own last morning dispatch)")
         response = end_turn(c)

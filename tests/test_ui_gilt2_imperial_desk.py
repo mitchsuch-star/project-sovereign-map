@@ -129,7 +129,8 @@ class TestTheTopBar:
 
     def test_the_bar_sheds_detail_rather_than_overflow(self):
         bar = _read(SCRIPTS / "top_bar.gd")
-        assert "const _FIT_STEPS := 6" in bar
+        # Session UI-4: two more steps, the date's own (its season word, then the turn alone)
+        assert "const _FIT_STEPS := 8" in bar
         fit = _func(bar, "_fit_right_cluster")
         assert "layout.get_combined_minimum_size().x + 16.0 <= view_w" in fit
         assert "offset_bottom = 36.0" in _read(SCENES / "top_bar.tscn")        # the bar stays 36 px
@@ -200,11 +201,12 @@ class TestMotionAndTheBand:
 
     def test_auto_is_the_default_and_both_twins_derive_1_60(self):
         s = _read(SCRIPTS / "ui_settings.gd")
-        assert 'const HUD_WIDTHS := ["auto", "full", "centred"]' in s
-        assert 'const DEFAULT_HUD_WIDTH := "auto"' in s and "const ULTRA_WIDE_BONUS := 0.45" in s
+        assert 'const HUD_WIDTHS := ["auto", "full", "16:9", "centred"]' in s
+        assert 'const DEFAULT_HUD_WIDTH := "auto"' in s and "const ULTRA_WIDE_BONUS := 0.65" in s   # Session UI-4: 0.45 -> 0.65
         sys.path.insert(0, str(REPO / "tools"))
         from uxr0_readability_report import derive_ui_scale
-        assert derive_ui_scale(5120, 1440) == pytest.approx(1.6)
+        # Session UI-4: the 32:9 term 0.45 -> 0.65 — the user's panel derives 1.80
+        assert derive_ui_scale(5120, 1440) == pytest.approx(1.8)
         assert derive_ui_scale(1920, 1080) == pytest.approx(1.0)
 
 
@@ -281,16 +283,25 @@ class TestDriven:
         assert "swatch.png" in h["dressed"]                                  # the bare rule a hairline
         assert h["meter"].count("[img") == 2 and "width=30 " in h["meter"]
         assert h["relation"].count("[img") == 4                              # track, hostile, nought, track
-        assert h["chip"].startswith("[table=1,baseline][cell border=#d9c08cb0 bg=#233043][url=order:drill:Ney]")
-        assert h["chip_off"].startswith("[table=1,baseline][cell border=#4b505c bg=#20242c]")
+        # Session UI-4: a live chip's rim at full strength (b0 → ff) — beside a
+        # locked chip, which has no rim at all
+        assert h["chip"].startswith("[table=1,baseline][cell border=#d9c08cff bg=#233043][url=order:drill:Ney]")
+        # Session UI-4: a locked chip has no rim and no ground (the cell kept,
+        # transparent, so a row never jumps) and a lock before its name
+        assert h["chip_off"].startswith("[table=1,baseline][cell border=#00000000 bg=#00000000]")
+        assert "lock-simple.svg" in h["chip_off"]
         assert h["flatten"] == "a\n[table=2][cell]x y[/cell][cell]z[/cell][/table]\nb"
 
     def test_the_band_and_the_derivation(self, probe):
         b = probe["band"]
         assert b["default_width"] == "auto"
         assert b["auto_std"] == [0.0, 1600.0]
-        assert b["auto_wide"] == [800.0, 2400.0]                             # 1600 wide about 1600
-        assert b["derived_5120"] == pytest.approx(1.6) and b["derived_1920"] == pytest.approx(1.0)
+        # Session UI-4, the user's "Screen edges": Auto on a 32:9 view stands at
+        # the edges while the map fills the width (the default since UI-3);
+        # the 16:9 zone is "16:9"'s, and Auto's with the whole sheet
+        assert b["auto_wide"] == [0.0, 3200.0]
+        # Session UI-4: the 32:9 term 0.65 — the user's panel derives 1.80
+        assert b["derived_5120"] == pytest.approx(1.8) and b["derived_1920"] == pytest.approx(1.0)
 
 
 class TestWhatTheInstrumentsCaught:
@@ -300,11 +311,17 @@ class TestWhatTheInstrumentsCaught:
     def test_the_objections_even_grid_never_adds_a_row(self):
         """At Interface Scale 2.0 the grid pushed a long answer onto a row of
         its own and the dialog stood over the top bar's strip (the frames'
-        clamp-band pin): the answers go even only when every one fits half."""
-        body = _func(_read(SCRIPTS / "objection_dialog.gd"), "_even_the_answers")
-        assert "b.custom_minimum_size.x = 0.0" in body
-        assert "if b.visible and b.get_combined_minimum_size().x > half:" in body
-        assert body.index("> half:") < body.index("b.custom_minimum_size.x = half")
+        clamp-band pin): the answers go even only when every one fits half.
+
+        Session UI-4 (November 12, 2026): the readers asked for the answers
+        "aligned in a grid" — the grid is ALWAYS even now (an `AnswerGrid` of
+        two columns), a long answer wrapping inside its half instead of taking
+        a row of its own; so the natural-width fallback is retired."""
+        src = _read(SCRIPTS / "objection_dialog.gd")
+        dress = _func(src, "_dress_answers")
+        assert 'grid.name = "AnswerGrid"' in dress and "grid.columns = 2" in dress
+        assert "btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART" in dress
+        assert "custom_minimum_size.x = 0.0" in _func(src, "_even_the_answers")
 
     def test_a_red_figure_reads_on_the_dark_ground(self):
         """The figures took the `Figure` step (16 px, body type): the alert red
@@ -331,8 +348,10 @@ class TestWhatTheInstrumentsCaught:
         sys.path.insert(0, str(REPO / "tools"))
         import uxr2b_contrast_report as CR  # noqa: E402
         utils = _read(SCRIPTS / "utils.gd")
-        assert 'const CHIP_DIM_BG := "20242c"' in utils
-        assert CR.DISABLED_CHIP == ("20242cff", "6f7480ff")
+        # Session UI-4: the locked chip has no ground (a transparent cell, a
+        # lock before its name) — the exempt pair follows it.
+        assert 'const CHIP_DIM_BG := "00000000"' in utils
+        assert CR.DISABLED_CHIP == ("00000000", "6f7480ff")
 
     def test_the_new_greys_are_named_tokens(self):
         """The consistency census's R4: no one-off grey in a surface's own files."""

@@ -55,10 +55,14 @@ const _WINDOW_MODE_LABELS := {
 	"borderless": "Borderless window",
 	"windowed": "Windowed",
 }
+# Session UI-4 (November 12, 2026): the choices are short names (the interim
+# readers: "long dropdown labels", "clumsy"); what each does is the row's hint,
+# which already named every choice — no meaning moved off the page.
 const _HUD_WIDTH_LABELS := {
-	"auto": "Auto (the default: a 16:9 band on a very wide screen)",
+	"auto": "Auto (the default)",
 	"full": "Full",
-	"centred": "Centred (a 2560-px band)",
+	"16:9": "16:9 band",
+	"centred": "Centred",
 }
 const _BODY_FONT_LABELS := {
 	"garamond": "Garamond (the default)",
@@ -66,8 +70,8 @@ const _BODY_FONT_LABELS := {
 }
 # Session UI-3 (November 12, 2026): the two new choices, by UiSettings key.
 const _WIDE_MAP_LABELS := {
-	"fill": "The map fills the width (the default)",
-	"sheet": "The whole sheet on the desk",
+	"fill": "Fills the width (the default)",
+	"sheet": "The whole sheet",
 }
 const _EXPLANATION_LABELS := {
 	"folded": "Folded (the default)",
@@ -118,10 +122,109 @@ func _ready() -> void:
 	_build_voice_section()
 	_build_controls_section()
 	_build_credits_section()
+	_dress_switches()
+	_paginate()
 	_http = HTTPRequest.new()
 	_http.timeout = 6.0
 	add_child(_http)
 	_http.request_completed.connect(_on_http_completed)
+
+
+const _TOGGLE_ON := "res://assets/ui/icons/toggle_on.svg"
+const _TOGGLE_OFF := "res://assets/ui/icons/toggle_off.svg"
+# Session UI-4 (November 12, 2026): the seven tabs, in the order the builders
+# add their sections (each section's header starts a page). The words of every
+# section's heading stay on its page; the tab is the short name.
+# Session UI-4, after the first full shoot: a thin section joins the page before
+# it (DISPLAY's three rows alone left the panel an empty box; SPOKEN ORDERS is two
+# hints) — every section keeps its own heading on the page.
+const _JOIN_PREVIOUS := ["INTERFACE", "SPOKEN ORDERS"]
+const _TAB_NAMES := ["DISPLAY", "SOUND", "ORDERS", "CONTROLS", "CREDITS"]
+# The open tab is remembered for the session (the panel is rebuilt per host).
+static var _remembered_tab := 0
+var _pages: Array = []
+var _tabs: Array = []
+var _tab_row: Control = null
+
+
+func _dress_switches() -> void:
+	"""Session UI-4: the readers could not tell High contrast from Reduce motion
+	by their switches. Every CheckButton gets a drawn switch — a gilt track with
+	the knob at the right when on, a dark grey-rimmed track with the knob at the
+	left when off. Guarded: the icons import after the lead's run."""
+	if not (ResourceLoader.exists(_TOGGLE_ON) and ResourceLoader.exists(_TOGGLE_OFF)):
+		return
+	var on_icon: Texture2D = load(_TOGGLE_ON)
+	var off_icon: Texture2D = load(_TOGGLE_OFF)
+	for node in _all_check_buttons(self):
+		for item in ["checked", "checked_mirrored"]:
+			node.add_theme_icon_override(item, on_icon)
+		for item in ["unchecked", "unchecked_mirrored"]:
+			node.add_theme_icon_override(item, off_icon)
+		node.add_theme_icon_override("checked_disabled", on_icon)
+		node.add_theme_icon_override("unchecked_disabled", off_icon)
+
+
+func _all_check_buttons(root: Node) -> Array:
+	var found: Array = []
+	for child in root.get_children():
+		if child is CheckButton:
+			found.append(child)
+		found.append_array(_all_check_buttons(child))
+	return found
+
+
+func _paginate() -> void:
+	"""Session UI-4: the long scroll becomes tabs. Every builder has run as it
+	always did; now each header (and what follows it) moves into its own page
+	and a tab row above shows one page at a time."""
+	var kids: Array = get_children()
+	var page: VBoxContainer = null
+	for child in kids:
+		if child.has_meta("settings_header") \
+				and not (page != null and str((child as Label).text) in _JOIN_PREVIOUS):
+			page = VBoxContainer.new()
+			page.add_theme_constant_override("separation", 6)
+			page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_pages.append(page)
+		if page == null:
+			continue
+		remove_child(child)
+		page.add_child(child)
+	var row := HFlowContainer.new()
+	row.name = "SettingsTabs"
+	_tab_row = row
+	row.add_theme_constant_override("h_separation", 4)
+	row.add_theme_constant_override("v_separation", 2)
+	add_child(row)
+	var styles: Dictionary = Utils.tab_styles(12.0, 6.0)
+	for i in range(_pages.size()):
+		var tab := Button.new()
+		tab.text = _TAB_NAMES[i] if i < _TAB_NAMES.size() else "MORE"
+		tab.name = "Tab" + tab.text.capitalize()
+		tab.focus_mode = Control.FOCUS_NONE
+		Utils.dress_tab(tab, styles)
+		tab.pressed.connect(_show_tab.bind(i))
+		row.add_child(tab)
+		_tabs.append(tab)
+		add_child(_pages[i])
+	_show_tab(clampi(_remembered_tab, 0, maxi(_pages.size() - 1, 0)))
+
+
+func _show_tab(index: int) -> void:
+	_remembered_tab = index
+	# Session UI-4: the tabs fold the panel the way an explanation folds — On the
+	# page every section stands, one under another, and the tab row steps aside
+	# (the switch restores every word: the page check found 500 words a tab away)
+	var paged := Utils.explanations_folded()
+	if _tab_row != null:
+		_tab_row.visible = paged
+	var styles: Dictionary = Utils.tab_styles(12.0, 6.0)
+	for i in range(_pages.size()):
+		(_pages[i] as Control).visible = (i == index) or not paged
+		var tab: Button = _tabs[i]
+		Utils.tint_tab(tab, i == index)
+		Utils.mark_active_tab(tab, i == index, styles["active"])
 
 
 func refresh() -> void:
@@ -199,9 +302,11 @@ func _build_display_section() -> void:
 	add_child(hud_row)
 	_add_hint("Maximized is the game's own boot. Fullscreen takes the whole screen; "
 		+ "a borderless window fills it without a frame; Windowed uses the size "
-		+ "chosen above, centred. On a very wide screen, HUD width: Centred gathers "
-		+ "the command window, the notices, the top bar and the war panel into the "
-		+ "middle 2560 px while the map stays full width.")
+		+ "chosen above, centred. On a very wide screen, HUD width: Auto stands the "
+		+ "command window, the notices, the top bar and the war panel at the screen's "
+		+ "edges while the map fills the width (in a 16:9 band while it shows the whole "
+		+ "sheet); 16:9 keeps them in that band; Centred gathers them into the middle "
+		+ "2560 px while the map stays full width.")
 	# Session UI-3 (November 12, 2026): the very wide screen's map — filling the
 	# width (the default) or the whole sheet on the desk, as before.
 	var wide_row := HBoxContainer.new()
@@ -290,6 +395,7 @@ func _on_explanations_selected(index: int) -> void:
 	var mode: String = UiSettings.EXPLANATIONS[clampi(index, 0, UiSettings.EXPLANATIONS.size() - 1)]
 	UiSettings.set_explanations(mode)
 	_apply_hints()
+	_show_tab(_remembered_tab)   # Session UI-4: the tabs fold and unfold with the switch
 	Utils.notify_explanations_changed()
 
 
@@ -766,6 +872,7 @@ func _add_header(text: String) -> void:
 	var header := Label.new()
 	header.text = text
 	header.theme_type_variation = &"HudTitle"
+	header.set_meta("settings_header", true)
 	header.add_theme_color_override("font_color", Utils.UI_GOLD)
 	add_child(header)
 	add_child(HSeparator.new())

@@ -180,10 +180,12 @@ func _render_issue(keep_scroll: bool = false):
 	var lead = str(issue.get("lead", ""))
 	if lead != "":
 		# Session UI-2: the issue's headline, in the title face.
+		# Session UI-4 (November 12, 2026): the readers wanted the headline larger,
+		# for a broadsheet - the title face at 26 authored px (it follows the type setting).
 		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_GOLD + "]" + lead + "[/color][/font]\n\n"
 
 	bbcode += _section("THE WAR", issue.get("war", []), "war")
-	bbcode += _section("THE COURTS", issue.get("courts", []), "envoy")
+	bbcode += _section("THE COURTS", issue.get("courts", []), "cabinet")
 	# GE-3: the Congress column — the table in the paper's voice every issue
 	# of the sitting, the proclamation on the Imperial Peace's own edition
 	# (`gazette._congress_column`). Absent / empty → no section.
@@ -218,7 +220,9 @@ func _section(title: String, rows, glyph_name: String = "") -> String:
 		out += Utils.bb_glyph(glyph_name, 18) + " "
 	out += Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE + "\n"
 	for i in range(rows.size()):
-		out += "[color=#" + Utils.COLOR_TEXT + "]  " + str(rows[i]) + "[/color]"
+		# Session UI-4: each entry its own row, led by its column's glyph (the
+		# backend sends battles as plain strings - no victor is read from words).
+		out += "[color=#" + Utils.COLOR_TEXT + "]  " + (Utils.bb_glyph(glyph_name, 16, Utils.COLOR_GOLD) + " " if glyph_name != "" else "") + str(rows[i]) + "[/color]"
 		out += (Utils.CARD_CLOSE if i == rows.size() - 1 else "") + "\n"
 	return out + "\n"
 

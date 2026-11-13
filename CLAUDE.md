@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI ✅ Nov 11, UI-2/3 ✅ Nov 12 (§207–§214); next H the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI ✅ Nov 11, UI-2/3/4 ✅ Nov 12 (§207–§215); next H the deploy**.
 
 **▶ LIVE STATE (Nov 12, 2026).** The three most recent rows:
+- **Session UI-4 (Nov 12) — the levers past 7: 115 % type, the 32:9 HUD at the edges, the four 6s rebuilt** (§215).
 - **Session UI-3 (Nov 12) — folds behind ⓘ, the filled 32:9 map, one-scroll table** (§214).
 - **Session UI-2 (Nov 12) — the imperial desk: glyphs, tables, the 16:9 HUD** (§213).
-- **Session UI (Nov 11) — the gilt frame, the desk, the books as cards** (§212).
 
 **Open with the user:** G5's readings (`DYNAMISM_SPEC.md` §7e), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 

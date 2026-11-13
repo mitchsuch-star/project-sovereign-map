@@ -52,7 +52,7 @@ SCALE_MIN = 1.0
 SCALE_MAX = 3.0
 SCALE_ROUND = 0.05
 ULTRA_WIDE_ASPECT = 3.0     # 32:9 (3.56) qualifies; 21:9 (2.39) does not
-ULTRA_WIDE_BONUS = 0.45   # Session UI-2: 0.25 -> 0.45 (the GDScript twin moved with it)
+ULTRA_WIDE_BONUS = 0.65   # Session UI-2: 0.25 -> 0.45; Session UI-4: -> 0.65 (the GDScript twin moved with it)
 
 
 def derive_ui_scale(width: int, height: int, dpi: float = 96.0) -> float:
@@ -130,8 +130,11 @@ def read_run(index_path: pathlib.Path, surfaces: set[str] | None = None,
             scale = float(res.get("scale", res.get("content_scale_factor", 1.0)))
             key = "%dx%d@%.2f" % (int(win[0]), int(win[1]), scale)
             # UXR-D1: a reading at another Text size is keyed apart from it.
+            # Session UI-4: "another" than the game ships — the row's own
+            # default (1.15 from Session UI-4; 1.0 on an older checkout's row).
             text_size = float(res.get("text_size", 1.0) or 1.0)
-            if abs(text_size - 1.0) > 1e-9:
+            text_default = float(res.get("text_size_default", 1.0) or 1.0)
+            if abs(text_size - text_default) > 1e-9:
                 key += "/T%.2f" % text_size
             texts = frames[-1].get("texts") or []
             flagged = []

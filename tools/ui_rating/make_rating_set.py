@@ -1,8 +1,14 @@
 """Copy the fixed blind-rating frame set under neutral names.
 
-usage: python make_rating_set.py <scaled_frames_dir> <physical_frames_dir> <tag> <out_dir>
+usage: python make_rating_set.py <scaled_frames_dir> <physical_frames_dir> <tag> <out_dir> [--old-stagings]
 The mapping (neutral name -> shot) is written to <out_dir>/../<tag>_mapping.json,
 OUTSIDE the folder the readers are shown.
+
+Session UI-4 (November 12, 2026): three frames are shot as the game shows them
+(STAGED_UI4) — the province panel and the war detail over the live war room, the
+menu with the war office answering — a declared measure correction; their marks are
+reported apart from the 27 frames whose staging never moved. `--old-stagings` maps
+them to the alone shots (UI-2's and UI-3's protocol).
 """
 import json
 import shutil
@@ -44,6 +50,14 @@ SET = [
 ]
 
 
+# Session UI-4: the three re-staged frames (neutral id -> the in-context shot's stem).
+STAGED_UI4 = {
+    "F24": "IQ10_REGION_PARIS_WAR_ROOM",
+    "F25": "IQ10_WAR_DETAIL_T20_WAR_ROOM",
+    "F27": "IQ10_MAIN_MENU_ANSWERING",
+}
+
+
 def find(frames: Path, stem: str, tag: str) -> Path | None:
     if "@" in stem:
         base, res = stem.split("@")
@@ -55,9 +69,12 @@ def find(frames: Path, stem: str, tag: str) -> Path | None:
 
 def main() -> int:
     scaled, physical, tag, out = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4])
+    old_stagings = "--old-stagings" in sys.argv[5:]
     out.mkdir(parents=True, exist_ok=True)
     mapping, missing = {}, []
     for fid, kind, stem in SET:
+        if not old_stagings and fid in STAGED_UI4:
+            stem = STAGED_UI4[fid]
         src = find(scaled if kind == "scaled" else physical, stem, tag)
         if src is None:
             missing.append(stem)

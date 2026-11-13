@@ -397,15 +397,22 @@ func _prepare():
 	# or the shot's `text_size`, 1.0 when neither says) — seeded in memory and
 	# applied to the project theme before the scene loads. An older checkout
 	# (a BEFORE worktree) has no Text size: the harness then shoots its 1.0.
-	var text_size := float(shot.get("text_size", _spec.get("text_size", 1.0)))
-	UiSettings._cfg.set_value("display", "text_size", text_size)
+	# Session UI-4: unsaid, the frame is shot at the checkout's OWN default
+	# (UiSettings.DEFAULT_TEXT_SIZE — 1.15 from Session UI-4, 1.0 before it),
+	# and the row records that default so the instruments key a reading apart
+	# only when it was shot at another size than the game ships.
 	var settings_script: Script = UiSettings
-	if settings_script.get_script_constant_map().has("MAX_TEXT_SIZE"):
+	var consts: Dictionary = settings_script.get_script_constant_map()
+	var default_text := float(consts.get("DEFAULT_TEXT_SIZE", 1.0))
+	var text_size := float(shot.get("text_size", _spec.get("text_size", default_text)))
+	UiSettings._cfg.set_value("display", "text_size", text_size)
+	if consts.has("MAX_TEXT_SIZE"):
 		var utils_class: Variant = Utils
 		utils_class.call("apply_text_size")
 	_current["window"] = [size.x, size.y]
 	_current["content_scale_factor"] = _scale()
 	_current["text_size"] = text_size
+	_current["text_size_default"] = default_text
 	# UXR-D2: High contrast (off when unsaid) — seeded and applied like the
 	# game does (main / main_menu re-tone each node as it enters the tree;
 	# a scene shot alone has neither, so the harness hooks the same chokepoint).
@@ -1681,7 +1688,21 @@ func _under_modal(view: Vector2) -> Dictionary:
 			words = (c as LineEdit).text
 		if words == null or (not (c is BaseButton) and str(words).strip_edges() == ""):
 			continue
-		rows.append([layer, r.get_center(), str(root.get_path_to(c)), str(words)])
+		# Session UI-4 (November 12, 2026): a row inside a ScrollContainer stands
+		# where it is SEEN — the centre of its part inside the scroll, as R7 (2)
+		# already reads such a row by its ScrollContainer's rect. The raw centre
+		# of a long scrolled log lay in its scrolled-out lines: under the top bar
+		# at 1920x1080, under the region panel at 2560x1440 — words no one can
+		# see, "under" a panel that covers none of the visible ones. A row wholly
+		# scrolled out is not a row of the frame.
+		var centre := r.get_center()
+		var scroll := _scroll_ancestor(c)
+		if scroll != null:
+			var seen := r.intersection(scroll.get_global_rect())
+			if seen.size.x <= 0.0 or seen.size.y <= 0.0:
+				continue
+			centre = seen.get_center()
+		rows.append([layer, centre, str(root.get_path_to(c)), str(words)])
 	var live_floor := -1000000
 	for l in modal:
 		live_floor = maxi(live_floor, int(l))

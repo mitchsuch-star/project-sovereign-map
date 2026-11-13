@@ -79,7 +79,9 @@ const WAR_BAR_TAG_INSET := 14.0
 # table (its tier, the table's number, the court-by-court line, the lag note)
 # below the fold; the popup takes 0.24 of the width (to 640) and 0.72 of the
 # height (to 880), and `_render_war_detail` leads with the table.
-const WIDTH_FRACTION := 0.24
+# Session UI-4 (November 12, 2026): 0.24 -> 0.28 so the breakdown table and its
+# bars have room (the readers: "narrow and crowded").
+const WIDTH_FRACTION := 0.28
 const HEIGHT_FRACTION := 0.72
 const FIT_MIN_WIDTH := 330.0
 const FIT_MAX_WIDTH := 640.0
@@ -88,6 +90,11 @@ const FIT_MAX_HEIGHT := 880.0
 const DOCK_GAP := 40.0
 const AUTHORED_RIGHT := 240.0  # the .tscn's offset_right: beside the authored 192-px HUD
 var dock_beside: Control = null
+# Session UI-4 (November 12, 2026): the notice rail (main.gd sets it to the
+# notification bar's rail panel). Shot over the t20 war room, the popup stood
+# under the rail's "Imperial Box" — its close button hidden; it now starts
+# below the rail whenever the rail stands over its columns.
+var avoid_rail: Control = null
 
 
 func refit() -> void:
@@ -101,6 +108,12 @@ func refit() -> void:
 	var w := Utils.fraction_px(view.x, WIDTH_FRACTION, FIT_MIN_WIDTH, FIT_MAX_WIDTH,
 			right + Utils.HUD_MARGIN)
 	var band_top := Utils.TOP_BAR_HEIGHT + Utils.HUD_MARGIN
+	panel.remove_meta("clamp_band_top")
+	if avoid_rail != null and is_instance_valid(avoid_rail) and avoid_rail.is_visible_in_tree():
+		var rail := avoid_rail.get_global_rect()
+		if rail.size.x > 0.0 and rail.position.x < view.x - right and rail.end.x > view.x - right - w:
+			band_top = maxf(band_top, rail.end.y + Utils.HUD_MARGIN)
+			panel.set_meta("clamp_band_top", band_top)
 	var h := Utils.fraction_px(view.y, HEIGHT_FRACTION, FIT_MIN_HEIGHT, FIT_MAX_HEIGHT,
 			band_top + Utils.HUD_MARGIN)
 	# The band [band_top, view.y - margin]'s centre, relative to the panel's
@@ -245,6 +258,17 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	var courts = war_data.get("opponents", [])
 	if not (courts is Array) or courts.is_empty():
 		courts = [_current_nation]
+	# Session UI-4 (November 12, 2026): three long "Negotiate with X" buttons
+	# wrapped into a cramped 2 + 1 column (the readers: "a cramped column of
+	# buttons"). A caption, then one flag-and-name button per court in a row;
+	# the full words are each button's hover (and, On the page, its face).
+	var negotiate_caption := Label.new()
+	negotiate_caption.text = "Negotiate with:"
+	negotiate_caption.theme_type_variation = &"Caption"
+	negotiate_caption.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	negotiate_caption.custom_minimum_size = Vector2(0, 36)
+	negotiate_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	button_row.add_child(negotiate_caption)
 	for court in courts:
 		_add_negotiate_button(str(court))
 	if bool(war_data.get("settlement_available", false)):
@@ -670,20 +694,43 @@ func _render_war_detail(w: Dictionary):
 		# for an older payload. Blockade and Captive still render only when
 		# nonzero (most wars are land wars; the row earns its place).
 		var fill = w.get("breakdown_fill", null)
+		# Session UI-4 (November 12, 2026): the three blind readers each
+		# called the eight rows "a long unformatted list" and asked for
+		# bars. The rows are now a table — Component | a centre-zero bar on
+		# the component's own cap | value / cap | a "full" tag (the
+		# "— full" of "Battles +15/15 — full"; the page prints the dash).
 		if fill is Array and not fill.is_empty():
+			var rows: Array = []
+			var folded: bool = Utils.explanations_folded()
+			# Session UI-4: folded, a component at nought is a word on one line
+			# under the bars, not a row of its own (the readers: "cut the score
+			# table to the leading rows"); On the page every row stands.
+			var at_nought: Array = []
 			for f in fill:
 				if not (f is Dictionary):
 					continue
 				var key = str(f.get("key", ""))
 				var value = int(float(f.get("value", 0)))
+				var cap = int(float(f.get("cap", 0)))
 				if (key == "blockade" or key == "captive") and value == 0:
 					continue
+				if cap == 0 and value == 0:
+					continue
 				var label = str(f.get("label", key.capitalize()))
-				var line = "  " + (label + ":").rpad(12) + _signed(value) + "/" + str(int(float(f.get("cap", 0))))
+				if folded and value == 0 and not bool(f.get("full", false)):
+					at_nought.append(label + " 0/" + str(cap))
+					continue
+				if not folded:
+					label += ":"
+				var tag := ""
 				if bool(f.get("full", false)):
-					line += "  [color=" + COLOR_GOLD + "]— full[/color]"
-				bbcode += line + "\n"
-			bbcode += "\n"
+					tag = Utils.bb_tag("full" if folded else "— full", Utils.COLOR_GOLD)
+				rows.append([label, Utils.bb_signed_meter(value, cap, 150, 8),
+						_signed(value) + " / " + str(cap), tag])
+			bbcode += Utils.bb_table(["Component", "Score", "Value", ""], rows, [2], [3, 4, 3, 1],
+				maxf(content_label.size.x - 24.0, 0.0) if content_label.size.x >= 280.0 else 0.0) + "\n"
+			if not at_nought.is_empty():
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]  At nought: " + ", ".join(at_nought) + "[/color]\n"
 		else:
 			bbcode += "  Territory:  " + _signed(int(breakdown.get("territory", 0))) + "\n"
 			bbcode += "  Battles:    " + _signed(int(breakdown.get("battles", 0))) + "\n"
@@ -713,22 +760,40 @@ func _render_war_detail(w: Dictionary):
 		var accumulated = int(float(objective.get("accumulated_ticking", 0)))
 		var rate = int(float(objective.get("ticking_rate", 0)))
 		var active = "active" if bool(objective.get("ticking_active", false)) else "not ticking"
-		bbcode += "Objective: [color=" + COLOR_GOLD + "]" + obj_type + "[/color] - " + target_text
+		var obj_lead = "Objective: [color=" + COLOR_GOLD + "]" + obj_type + "[/color] - "
+		var obj_rest = ""
 		# FA-D2 (slice 17, Phase 2): a coalition row's objective names the court it targets.
 		var against = str(objective.get("against", ""))
 		if against != "" and bool(w.get("is_multi_participant_war", false)):
-			bbcode += " (against " + Utils.display_nation_name(against) + ")"
-		bbcode += " (" + active + ", +" + str(accumulated)
+			obj_rest += " (against " + Utils.display_nation_name(against) + ")"
+		obj_rest += " (" + active + ", +" + str(accumulated)
 		# FA-S17-19 (Phase 4): a rate printed beside "not ticking" read as a
 		# contradiction — "(not ticking, +0, +1/turn)" on the boot board,
 		# where a defence objective ticks only for homeland LOST. State the
 		# rate when it is running; state what WOULD start it when it is not.
 		if rate > 0 and bool(objective.get("ticking_active", false)):
-			bbcode += ", +" + str(rate) + "/turn"
-		bbcode += ")"
+			obj_rest += ", +" + str(rate) + "/turn"
+		obj_rest += ")"
 		if rate > 0 and not bool(objective.get("ticking_active", false)):
-			bbcode += " — +" + str(rate) + "/turn once it begins"
-		bbcode += "\n"
+			obj_rest += " — +" + str(rate) + "/turn once it begins"
+		# Session UI-4 (November 12, 2026): "20 of 28 provinces held" was a
+		# sentence among sentences; the readers wanted figures. When the
+		# summary carries both numbers, Folded draws a meter after it and the
+		# ticking account opens from "▸ more"; the purpose itself stays the ONE
+		# sentence every surface prints (EP-F1: "the homeland — 28 of 28
+		# provinces held"). On the page every word prints as before.
+		var held_re := RegEx.new()
+		held_re.compile("^(.*?)(\\d+) of (\\d+)( provinces? held.*)$")
+		var held_m := held_re.search(target_text)
+		if Utils.explanations_folded() and held_m != null and int(held_m.get_string(3)) > 0:
+			var held_n := int(held_m.get_string(2))
+			var held_of := int(held_m.get_string(3))
+			var obj_summary = obj_lead + target_text + " " + Utils.bb_meter(held_n, held_of, 90, 8)
+			var obj_body = obj_rest
+			bbcode += Utils.bb_note("war.objective." + _slug(_current_war_id if _current_war_id != "" else _current_nation),
+					obj_summary, obj_body, "\n")
+		else:
+			bbcode += obj_lead + target_text + obj_rest + "\n"
 
 	# FA-D4 (slice 17, Phase 2): the verb that sets a war purpose had no UI home.
 	var objective_hint = str(w.get("objective_hint", ""))
@@ -899,9 +964,13 @@ func _clear_buttons():
 func _add_negotiate_button(nation: String):
 	var btn = Button.new()
 	# PC-F41: the button names the court it addresses.
-	btn.text = "Negotiate with " + Utils.display_nation_name(nation)
-	btn.tooltip_text = "Open bilateral peace options with " + Utils.display_nation_name(nation) + " only."
-	btn.custom_minimum_size = Vector2(160, 36)
+	var full_label: String = "Negotiate with " + Utils.display_nation_name(nation)
+	# Session UI-4: Folded, the face is the court's flag and name; the page keeps
+	# the full label on the face. The hover carries the full words either way.
+	btn.text = Utils.display_nation_name(nation) if Utils.explanations_folded() else full_label
+	btn.tooltip_text = full_label + " — open bilateral peace options with " + Utils.display_nation_name(nation) + " only."
+	Utils.apply_flag_icon(btn, nation)
+	btn.custom_minimum_size = Vector2(110, 36)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(func():
 		hide()

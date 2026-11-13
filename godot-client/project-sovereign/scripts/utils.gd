@@ -712,6 +712,8 @@ const UI_PLAQUE_FADE_TO := Color(0.5, 0.5, 0.5)               # a stale plaque's
 const COLOR_BADGE_QUIET := "6b6f80"                            # the region panel's kind-of-province badge
 const UI_DISABLED_TEXT := Color(0.55, 0.55, 0.55, 0.8)      # the title screen's disabled button text
 const UI_FAINT_BORDER := Color(0.5, 0.48, 0.42, 0.2)        # the title screen's disabled button border
+# Session UI-4: a WAITING title-screen button's ink — no face, still read (4.5 : 1+ on the dark painting)
+const UI_MENU_WAITING_INK := Color(0.68, 0.66, 0.60)
 const UI_VERSION_LINE := Color(0.65, 0.63, 0.58, 0.8)       # the build line (title screen, pause menu)
 const UI_CLOSED_ARM := Color(0.55, 0.52, 0.48, 1)           # the petition card's closed command arm
 const UI_MAILBOX_NOTE := Color(0.7, 0.72, 0.78, 1.0)        # the letter-book's caption note
@@ -1106,8 +1108,11 @@ static func bb_flag(nation: String, height: int = 14) -> String:
 		if tex != null and tex.get_height() > 0:
 			aspect = float(tex.get_width()) / float(tex.get_height())
 		_flag_aspect_cache[path] = aspect
-	var width := int(round(height * aspect))
-	return "[img width=%d height=%d]%s[/img] " % [width, height, path]
+	# Session UI-4: a flag stands inline with the words, so it grows with them
+	# (the Text size factor — 14 → 16 at the shipped 115 %).
+	var h := text_px(height)
+	var width := int(round(h * aspect))
+	return "[img width=%d height=%d]%s[/img] " % [width, h, path]
 
 
 static func apply_flag_icon(btn, nation: String) -> void:
@@ -1132,8 +1137,12 @@ static func apply_flag_icon(btn, nation: String) -> void:
 
 static func bb_icon(path: String, size: int, color: String) -> String:
 	"""Inline BBCode icon, tinted (the curated sets ship as white silhouettes
-	so the [img color=...] multiply lands the intended hue)."""
-	return "[img width=%d height=%d color=#%s]%s[/img]" % [size, size, color, path]
+	so the [img color=...] multiply lands the intended hue). Session UI-4: an
+	inline icon grows with the words around it (the Text size factor — an
+	18-px glyph is 21 at the shipped 115 %); a meter is geometry and keeps
+	its size."""
+	var px := text_px(size)
+	return "[img width=%d height=%d color=#%s]%s[/img]" % [px, px, color, path]
 
 
 static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg_hex: String, icon_path := "", tip := "") -> String:
@@ -1273,15 +1282,19 @@ static func bb_chip_disabled(label: String, icon_path := "", tip := "") -> Strin
 	instead of missing. Pair it with a short stated reason after the chip \u2014
 	or, Session UI-3, with explanations folded, carry the reason as the
 	chip's hover (`tip`)."""
-	var inner := ""
+	# Session UI-4 (November 12, 2026): the blind readers could not tell a
+	# locked chip from a live one (two rimmed boxes, grey-blue and grey). A
+	# locked action keeps its words and its place but loses the look of a
+	# button: no rim, no ground (the cell stays, transparent, so a row never
+	# jumps), a lock before its name. The reason is its hover, or the stated
+	# line after it on the page.
+	var inner := bb_icon(LOCK_GLYPH, 16, CHIP_DIM_INK) + "\u00A0"
 	if icon_path != "":
-		inner += bb_icon(icon_path, 18, "6f7480") + " "
+		inner += bb_icon(icon_path, 18, CHIP_DIM_INK) + " "
 	# UXR3-83: the dimmed pill holds together the same way as the lit one.
-	inner += "[color=#6f7480]" + CHIP_PAD + label.replace(" ", "\u00A0") + CHIP_PAD + "[/color]"
+	inner += "[color=#" + CHIP_DIM_INK + "]" + label.replace(" ", "\u00A0") + CHIP_PAD + "[/color]"
 	if tip != "":
 		inner = bb_hint(inner, tip)
-	# Session UI-2: the same rimmed cell as the lit chip, with a dim rim and
-	# ground and no link \u2014 present, plainly not pressable.
 	return CHIP_OPEN_HEAD + CHIP_DIM_RIM + " bg=#" + CHIP_DIM_BG + "]" + inner + CHIP_CLOSE
 
 
@@ -1297,11 +1310,17 @@ const SWATCH := "res://assets/ui/bars/swatch.png"
 const CHIP_PAD := "\u00A0\u00A0"
 const CHIP_OPEN_HEAD := "[table=1,baseline][cell border=#"
 const CHIP_CLOSE := "[/cell][/table]"
-const CHIP_RIM_ALPHA := "b0"
-# the old pill's ground (20242c): the contrast census exempts that pair —
-# an inactive control (WCAG) — so the dimmed cell keeps it.
-const CHIP_DIM_BG := "20242c"
-const CHIP_DIM_RIM := "4b505c"
+# Session UI-4: a live chip's rim at full strength (it was b0) — the lit
+# button beside a locked one, which has no rim at all.
+const CHIP_RIM_ALPHA := "ff"
+# Session UI-4: a locked chip has no ground and no rim (transparent, so the
+# cell keeps its padding and a row never jumps). The contrast census exempts
+# that pair — an inactive control (WCAG; tools/uxr2b_contrast_report.py).
+const CHIP_DIM_BG := "00000000"
+const CHIP_DIM_RIM := "00000000"
+const CHIP_DIM_INK := "6f7480"
+# Phosphor's lock-simple (MIT, shipped beside info.svg): a locked action.
+const LOCK_GLYPH := "res://assets/ui/icons/phosphor/lock-simple.svg"
 const METER_TRACK := "232838"
 const EAGLE := "res://assets/ui/ornaments/eagle_empire.svg"
 # The title face as a resource whose path has no brackets (a BBCode
@@ -1659,7 +1678,9 @@ static func apply_text_size(preview := -1.0) -> void:
 	once. No panel rect, no Interface Scale and no raw override moves: the
 	eighteen named raw overrides (the map's furniture, the title screen's and
 	the tableau's display type) keep their sizes. At the factor already
-	applied it does nothing — 1.0 at boot is a no-op."""
+	applied it does nothing. Session UI-4: the game ships at 115 %
+	(UiSettings.DEFAULT_TEXT_SIZE), so boot applies it once; 100 % is then
+	the no-op it always was."""
 	var factor := UiSettings.get_text_size() if preview < 0.0 else clampf(
 			preview, UiSettings.MIN_TEXT_SIZE, UiSettings.MAX_TEXT_SIZE)
 	if is_equal_approx(factor, _text_size_applied):
@@ -1803,6 +1824,15 @@ const WHOLE_LINE_MAX_SHARE := 0.25
 # always a "line" whatever the window: the bound above is for the TALL boxes
 # — a portrait, a two-line chip — not for the lines it protects.
 const WHOLE_LINE_TEXT_ROW := 52.0
+# Session UI-4: a RichTextLabel "line" taller than this many text rows is a
+# block (a table, a portrait row) — cut at the edge, never padded away.
+const WHOLE_LINE_BLOCK_ROWS := 2.2
+# bb_table's cell padding, top + bottom (padding=6,3,6,3): a table row's height
+# is one text row, this, and the theme's table_v_separation.
+const TABLE_ROW_PAD := 6.0
+# a block's height must divide into whole rows within this share of a row for
+# the rest to read it as a table of one-line rows (_table_row_step)
+const WHOLE_LINE_ROW_FIT := 0.12
 
 
 static func _whole_line_max_box(view_h: float) -> float:
@@ -1876,11 +1906,47 @@ static func _whole_lines_soon(host: Control) -> void:
 static func _rtl_lines(r: RichTextLabel, top: float, out: Array) -> void:
 	var rbox: StyleBox = r.get_theme_stylebox("normal")
 	var t0: float = top + (rbox.get_margin(SIDE_TOP) if rbox else 0.0)
+	# Session UI-4 (November 12, 2026): a "line" taller than two text rows is a
+	# table (the books' figures, the Balance's designs) or a portrait row. The
+	# label cannot say where a table's rows fall, so the rest padded a table
+	# away whole (a dead band up to WHOLE_LINE_MAX_BOX — the Balance) or cut a
+	# row in half at the scroll's foot (three interim readers: "the bottom row
+	# clips mid-line"). A block whose height divides into whole rows of one of
+	# the two table shapes — Utils.bb_table's (a text row, its 3 + 3 cell
+	# padding and the theme's table separation) or a bare [table]'s (a text row
+	# and the separation; the Congress's sitting) — is laid out as those rows,
+	# so the rest stops on a row; any other block stays one box, as before (cut
+	# where it falls, or padded away whole when it is short).
+	var font: Font = r.get_theme_font("normal_font")
+	var row_px: float = font.get_height(r.get_theme_font_size("normal_font_size")) if font != null else 24.0
+	var sep: float = float(r.get_theme_constant("table_v_separation"))
 	var count := r.get_line_count()
 	for i in range(count):
 		var a: float = t0 + float(r.get_line_offset(i))
 		var b: float = t0 + (float(r.get_line_offset(i + 1)) if i + 1 < count else float(r.get_content_height()))
+		if b - a > row_px * WHOLE_LINE_BLOCK_ROWS:
+			var step := _table_row_step(b - a, row_px, sep)
+			if step > 0.0:
+				var y := a
+				while y + step <= b + 0.5:
+					out.append(Vector2(y, y + step))
+					y += step
+				continue
 		out.append(Vector2(a, b))
+
+
+static func _table_row_step(block_h: float, row_px: float, sep: float) -> float:
+	"""The row height a block's rows stand at when it is a table of one-line
+	rows — bb_table's padded row or a bare table's — the one the block's height
+	divides into whole rows (within an eighth of a row); 0 when neither does
+	(rows of differing heights: a wrapped cell, a meter, a portrait)."""
+	for step in [row_px + TABLE_ROW_PAD + sep, row_px + sep]:
+		if step <= 1.0:
+			continue
+		var n: float = block_h / step
+		if n >= 1.5 and absf(n - roundf(n)) <= WHOLE_LINE_ROW_FIT:
+			return step
+	return 0.0
 
 
 static func _whole_line_boxes(sc: ScrollContainer, v: float) -> Array:
@@ -2212,11 +2278,35 @@ static func hud_band_full(view: Vector2) -> Vector2:
 		return Vector2(left, left + UiSettings.HUD_BAND_WIDTH)
 	# Session UI-2: Auto — a 16:9 safe zone about the centre on a very wide
 	# screen (32:9, 32:10); Full everywhere else.
-	if width == "auto" and view.y > 0.0 and view.x / view.y >= UiSettings.SAFE_ZONE_ASPECT:
+	# Session UI-4 (November 12, 2026), the user's "Screen edges": Auto gives
+	# the zone only while the map shows its whole sheet in the middle; while
+	# the map fills the width the HUD stands at the screen's edges. "16:9"
+	# gives the zone whatever the map does.
+	if very_wide_view(view) and (width == "16:9" \
+			or (width == "auto" and UiSettings.get_wide_map() == "sheet")):
 		var zone := floorf(view.y * 16.0 / 9.0)
 		var at := floorf((view.x - zone) / 2.0)
 		return Vector2(at, at + zone)
 	return Vector2(0.0, view.x)
+
+
+static func very_wide_view(view: Vector2) -> bool:
+	"""A view SAFE_ZONE_ASPECT or wider (32:9, 32:10)."""
+	return view.y > 0.0 and view.x / view.y >= UiSettings.SAFE_ZONE_ASPECT
+
+
+static func hud_size_room(view: Vector2) -> float:
+	"""Session UI-4 (November 12, 2026): the width a HUD panel SIZES against —
+	the band's width (`hud_band`), never wider than the 16:9 zone on a very
+	wide view. At the screen's edges of a 3200-px logical view, 0.28 of the
+	band would make the command window 896 px and the tutor card 1,280: the
+	panels keep the sizes they had in the zone, and only their anchors move
+	(`hud_band` still says where they stand)."""
+	var band := hud_band(view)
+	var room := band.y - band.x
+	if very_wide_view(view):
+		room = minf(room, floorf(view.y * 16.0 / 9.0))
+	return room
 
 
 # ── the Side Desk (UXR-D4, Pre-Deploy S12b) ───────────────────────────────
@@ -2254,6 +2344,11 @@ static func dock_rect(panel: Control) -> Rect2:
 	var view: Vector2 = panel.get_viewport().get_visible_rect().size
 	var band := hud_band_full(view)
 	var bw := band.y - band.x
+	# Session UI-4: at the screen's edges of a very wide view the dock keeps
+	# the width it had in the 16:9 zone (a third of 1,600, not of 3,200) —
+	# a reading pane, never a 1,000-px line.
+	if very_wide_view(view):
+		bw = minf(bw, floorf(view.y * 16.0 / 9.0))
 	var want := bw * DOCK_FRACTION
 	if panel.has_meta("clamp_user_size"):
 		want = (panel.get_meta("clamp_user_size") as Vector2).x
@@ -2319,6 +2414,11 @@ static func clamp_anchored_panel(panel: Control) -> void:
 		return
 	var view: Vector2 = viewport.get_visible_rect().size
 	var band_top := TOP_BAR_HEIGHT + top_bar_growth() + HUD_MARGIN
+	# Session UI-4 (November 12, 2026): a panel may set a lower top for its
+	# band (`clamp_band_top`, logical px) — the war detail under the notice
+	# rail it would otherwise stand beneath, its close button hidden.
+	if panel.has_meta("clamp_band_top"):
+		band_top = maxf(band_top, float(panel.get_meta("clamp_band_top")))
 	var max_h := maxf(view.y - band_top - HUD_MARGIN, 0.0)
 	# UXR-D3: x lives in the HUD band (the whole width at Full).
 	var band := hud_band(view)
@@ -2599,17 +2699,58 @@ static func bb_relation_meter(value: int, width: int = 120, height: int = 7) -> 
 	return out
 
 
-static func bb_table(header: Array, rows: Array, right_cols: Array = [], expand: Array = []) -> String:
+static func bb_signed_meter(value: float, cap: float, width: int = 160, height: int = 8) -> String:
+	"""Session UI-4 (November 12, 2026): a signed figure on its own scale,
+	from −cap to +cap, centred on nought — the losing half fills leftward in
+	crimson, the winning half rightward in green (a war's score components:
+	territory −35 of 40, battles +15 of 15). The blind readers asked for the
+	war detail's breakdown "as bars". A cap of 0 reads as 1 (never a divide)."""
+	var half := int(width / 2.0)
+	var c := maxf(absf(cap), 1.0)
+	var v := clampf(value, -c, c)
+	var neg := int(round(float(half) * maxf(-v, 0.0) / c))
+	var pos := int(round(float(half) * maxf(v, 0.0) / c))
+	var out := ""
+	var seg := func(w: int, hex: String) -> String:
+		return "[img width=%d height=%d color=#%s]%s[/img]" % [w, height, hex, SWATCH] if w > 0 else ""
+	out += seg.call(half - neg, METER_TRACK)
+	out += seg.call(neg, RELATION_NEG)
+	out += seg.call(1, COLOR_GOLD)
+	out += seg.call(pos, RELATION_POS)
+	out += seg.call(half - pos, METER_TRACK)
+	return out
+
+
+static func bb_table(header: Array, rows: Array, right_cols: Array = [], expand: Array = [],
+		width_px: float = 0.0) -> String:
 	"""A striped table: a header row (each cell plain words, small caps) over
 	the rows; columns in `right_cols` right-aligned in lining tabular figures;
-	`expand` gives a column its share of the width. No cell holds a newline."""
+	`expand` gives a column its share of the width. No cell holds a newline.
+
+	Session UI-4 (November 12, 2026): `width_px` (the page's width) makes the
+	table SPAN it. Measured: a BBCode table here shrinks to its words — the
+	economy's books stood 130 px wide on a 990-px page, the territories two
+	thirds of theirs — so each head cell gets a transparent floor
+	(`bb_col_floor`), the column's `expand` share of the width less its own
+	words and padding (the words measured in capitals, a little over the small
+	caps they print in, so the table never overruns the page)."""
 	var n := header.size()
 	if n == 0:
 		return ""
+	var floors: Array = []
+	if width_px > 0.0 and expand.size() >= n:
+		var share_total := 0.0
+		for c in range(n):
+			share_total += maxf(float(expand[c]), 0.0)
+		for c in range(n):
+			floors.append(width_px * maxf(float(expand[c]), 0.0) / maxf(share_total, 1.0) - 12.0)
 	var out := "[table=%d]" % n
 	for c in range(n):
 		var ex := ("expand=%d " % int(expand[c])) if c < expand.size() and int(expand[c]) > 0 else ""
 		var head_txt := str(header[c])
+		if not floors.is_empty():
+			var pad := bb_col_floor(float(floors[c]) - _head_words_px(head_txt))
+			head_txt = (pad + head_txt) if c in right_cols else (head_txt + pad)
 		if c in right_cols:
 			head_txt = "[right]" + head_txt + "[/right]"
 		out += "[cell %sbg=#%s padding=6,3,6,3][color=#%s][opentype_features=smcp]%s[/opentype_features][/color][/cell]" \
@@ -2623,10 +2764,30 @@ static func bb_table(header: Array, rows: Array, right_cols: Array = [], expand:
 	return out + "[/table]"
 
 
+static func bb_col_floor(px: float) -> String:
+	"""Session UI-4: a transparent image `px` wide and 1 px tall — a table
+	column's floor (`bb_table`'s `width_px`), or a label set under a gauge's
+	tick. Reads as one space in the parsed text; nothing below 1 px."""
+	var n := int(floor(px))
+	return "[img width=%d height=1 color=#00000000]%s[/img]" % [n, SWATCH] if n >= 1 else ""
+
+
+static func _head_words_px(text: String) -> float:
+	"""A table head's words, measured in capitals at the page's body size (the
+	small caps they print in are a little narrower — the floor errs short)."""
+	var theme: Theme = ThemeDB.get_project_theme()
+	var font: Font = theme.default_font if theme != null and theme.default_font != null else ThemeDB.fallback_font
+	var size: int = theme.get_font_size("normal_font_size", "RichTextLabel") if theme != null else 16
+	return font.get_string_size(bb_plain(text).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+
+
 static func bb_portrait_row(portrait: String, sheet: String, frame_hex: String = COLOR_GOLD) -> String:
-	"""A portrait in a gilt-ruled cell beside its sheet (the sheet may hold
-	several lines — a cell's lines are its own; see flatten_tables)."""
-	return "[table=2][cell border=#" + frame_hex + " padding=2,2,2,2]" + portrait.strip_edges() \
+	"""A portrait beside its sheet (the sheet may hold several lines — a
+	cell's lines are its own; see flatten_tables). Session UI-4: the cell is
+	no longer ruled — a cell is as tall as its row, so the rule ran the
+	sheet's whole height round a portrait half as tall (the readers: "the
+	portrait column is a tall empty box"). `frame_hex` stays for its callers."""
+	return "[table=2][cell padding=2,2,2,2]" + portrait.strip_edges() \
 		+ "[/cell][cell expand=1 padding=12,0,0,0]" + sheet.strip_edges() + "[/cell][/table]"
 
 

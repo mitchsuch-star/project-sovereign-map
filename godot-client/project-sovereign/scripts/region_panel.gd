@@ -66,9 +66,9 @@ const _DOCK_BOTTOM_RESERVE := 56.0
 # UXR-2 (the layout law): the panel's WIDTH is a fraction of the logical
 # viewport between the authored 344 (Scroll 320 + the leather's 24) and a
 # ceiling — it was a bare fixed 344 at every size (9% of the user's panel).
-const _WIDTH_FRACTION := 0.2   # Session UI-2: 0.15 -> 0.2 (the readers: a narrow strip)
-const _MIN_WIDTH := 400.0     # Session UI-2: 344 -> 400
-const _MAX_WIDTH := 560.0
+const _WIDTH_FRACTION := 0.25   # Session UI-4: 0.2 -> 0.25 (the chips on one row, at 115 % type)
+const _MIN_WIDTH := 440.0     # Session UI-4: 400 -> 440
+const _MAX_WIDTH := 600.0     # Session UI-4: 560 -> 600
 
 # The Control whose top edge the panel must stay above (main.gd wires the
 # terminal's BottomLeftUI here). Null = clamp to the viewport bottom only.
@@ -254,6 +254,51 @@ func _dim(label: String, why: String, sep: String = "  ") -> String:
 	return Utils.bb_chip_disabled(label) + sep + "[color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
 
 
+func _facts_row(income: int, stability: int, supply: int, has_garrison: bool, garrison: int) -> String:
+	"""Session UI-4 (November 12, 2026): the province's four facts as ONE figure
+	row — a glyph, the figure in the title face, a caption (the form of the
+	dispatch's situation row). A fogged figure (-1) reads Unknown, as the page's
+	line does. A figure binds to its glyph and caption (U+00A0) so the row wraps
+	BETWEEN facts, never through one."""
+	var nb := " "
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var parts: Array = []
+	var fig_income: String = "Unknown" if income < 0 else str(income) + "g"
+	var fig_stab: String = "Unknown" if stability < 0 else str(stability) + "%"
+	var fig_supply: String = "Unknown" if supply < 0 else Utils.format_number(supply)
+	parts.append(Utils.bb_glyph("income", 18) + nb + Utils.HEAD_OPEN + fig_income + Utils.HEAD_CLOSE + nb + info + "income[/color]")
+	parts.append(Utils.bb_glyph("stability", 18) + nb + Utils.HEAD_OPEN + fig_stab + Utils.HEAD_CLOSE + nb + info + "stability[/color]")
+	parts.append(Utils.bb_glyph("supply", 18) + nb + Utils.HEAD_OPEN + fig_supply + Utils.HEAD_CLOSE + nb + info + "supply[/color]")
+	if has_garrison:
+		var fig_g: String = "Present" if garrison == -1 else Utils.format_number(garrison)
+		var cap_g := "garrison (strength unknown)" if garrison == -1 else "garrison"
+		parts.append(Utils.bb_glyph("garrison", 18) + nb + Utils.HEAD_OPEN + fig_g + Utils.HEAD_CLOSE + nb + info + cap_g.replace(" ", nb) + "[/color]")
+	return "   ".join(PackedStringArray(parts)) + "\n"
+
+
+func _build_item(chip: String, terms_text: String) -> String:
+	"""Session UI-4: one work of the Build fold. On the page its terms print
+	beside it, a row each (as they did); Folded the chip stands alone — its terms
+	are its hover — to join the fold's ONE row."""
+	if Utils.explanations_folded():
+		return chip
+	if terms_text == "":
+		return "    " + chip
+	return "    " + chip + " [color=#" + Utils.COLOR_INFO + "]" + terms_text + "[/color]"
+
+
+func _caption(text: String) -> String:
+	"""Session UI-4: a group's small-caps caption over its ONE row of chips."""
+	return "  [color=#" + Utils.COLOR_INFO + "]" + text + "[/color]"
+
+
+func _chip_row(chips: Array) -> String:
+	"""Session UI-4: a group's chips on ONE row, evenly spaced (the readers:
+	"ragged small chips", "widen the spacing"). A chip's own spaces are bound, so
+	a long row breaks only between chips."""
+	return "    " + "   ".join(PackedStringArray(chips))
+
+
 func _render() -> void:
 	var data: Dictionary = _map_node.region_full_data.get(_region, {})
 	var visibility = str(_map_node.region_visibility.get(_region, "unknown"))
@@ -331,34 +376,44 @@ func _render() -> void:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]Intel: Partial (reports only)[/color]\n"
 		elif visibility == "stale" and controller != _PLAYER_NATION:
 			bbcode += "[color=#" + Utils.COLOR_ORANGE + "]Intel: Stale (outdated)[/color]\n"
+		# Session UI-4 (November 12, 2026): the facts as the page prints them (the
+		# old lines, byte for byte) are built into `facts_page`; Folded they stand
+		# as ONE figure row instead (`_facts_row`) — the readers: "plain lines",
+		# "small, plain text". The same four fields either way.
 		var effective_income = int(data.get("effective_income", 0))
 		var stability = int(data.get("stability", 100))
+		var facts_page := ""
 		# PC15-16: -1 is the fog sentinel on income/stability too (same
 		# CA9-F5 idiom as Supply below) — PARTIAL provinces rendered a
 		# fabricated "Income: 0g / Stability: 0%" as fact.
-		bbcode += Utils.bb_glyph("income", 16) + " "
+		facts_page += Utils.bb_glyph("income", 16) + " "
 		if effective_income < 0:
-			bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
+			facts_page += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
-			bbcode += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
-		bbcode += "   " + Utils.bb_glyph("stability", 16)
+			facts_page += "Income: [color=#" + Utils.COLOR_GOLD + "]" + str(effective_income) + "g[/color]"
+		facts_page += "   " + Utils.bb_glyph("stability", 16)
 		if stability < 0:
-			bbcode += " Stability: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
+			facts_page += " Stability: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]"
 		else:
-			bbcode += " Stability: " + str(stability) + "%"
+			facts_page += " Stability: " + str(stability) + "%"
 		# CA9-F5: -1 is the fog sentinel. `format_number(-1)` renders
 		# "-1", so both readers of this key must branch — the garrison
 		# sibling just below already does.
 		var supply_cap := int(data.get("supply_capacity", 0))
 		var supply_text := "Unknown" if supply_cap < 0 else Utils.format_number(supply_cap)
-		bbcode += "   " + Utils.bb_glyph("supply", 16) + " Supply: " + supply_text + "\n"
+		facts_page += "   " + Utils.bb_glyph("supply", 16) + " Supply: " + supply_text + "\n"
 		# SR-7d DC-3a (RV-13): the poor / stripped mark moved UP to the land's
 		# note under the controller line (UXR3-79, S15 head).
 		var garrison_info = _map_node.region_garrisons.get(_region, null)
+		var g_strength := 0
 		if garrison_info != null:
-			var g_strength = int(garrison_info.get("strength", 0))
+			g_strength = int(garrison_info.get("strength", 0))
 			var g_text = "Present (unknown strength)" if g_strength == -1 else Utils.format_number(g_strength)
-			bbcode += Utils.bb_glyph("garrison", 16) + " Garrison: " + g_text + "\n"
+			facts_page += Utils.bb_glyph("garrison", 16) + " Garrison: " + g_text + "\n"
+		if Utils.explanations_folded():
+			bbcode += _facts_row(effective_income, stability, supply_cap, garrison_info != null, g_strength)
+		else:
+			bbcode += facts_page
 		# S14E-D10 (the sweep): the Descent camp's count on the panel the marches
 		# are ordered from, the map tooltip's twin (the backend stamps `camp_note`
 		# only while the camp counts).
@@ -489,6 +544,7 @@ func _render() -> void:
 
 	# ── Context actions ──
 	var action_rows = []
+	var admiralty_captioned := false   # Session UI-4: Folded, the ADMIRALTY caption stands once
 	var levy = _map_node.levy_status if _map_node != null else {}
 
 	# ── The levy — CN-3 "The Chip Names the Man" (Sept 22, 2026) ──
@@ -505,9 +561,12 @@ func _render() -> void:
 	# otherwise it is dimmed beside the backend's own reason. Nothing is
 	# re-derived here.
 	var recruit_here = data.get("recruit_here", {})
+	var folded_sub_chip := ""   # Session UI-4: Folded, the substitute chip joins the levy's row
+	var recruit_row_at := -1
 	if recruit_here is Dictionary and not recruit_here.is_empty():
 		for recruit_row in _recruit_rows(recruit_here, levy):
 			action_rows.append(recruit_row)
+		recruit_row_at = action_rows.size() - 1   # the levy's last row (Folded: its chips)
 
 	# IQ-10 "The Client Pass" (Sept 19, 2026): the substitute market is open
 	# on ALLY and VASSAL soil — IQ1-3 opened the granary to the engine's own
@@ -550,14 +609,36 @@ func _render() -> void:
 				var _room = int(sub_q.get("room", 0))
 				if _room > 0:
 					_terms += "  (" + Utils.format_number(_room) + " under the establishment)"
-				action_rows.append("  Substitutes: " \
-					+ Utils.bb_button_chip("do:buy substitutes for " + str(sub_q.get("recipient", "")), \
-						"Buy Substitutes", Utils.COLOR_GOLD, _CHIP_BG) \
-					+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _terms + "[/color]")
+				# Session UI-4: Folded, the price rides the chip's face and the
+				# terms its hover, and the chip joins the levy's ONE row.
+				var _sub_face := "Buy Substitutes"
+				var _sub_tip := ""
+				if Utils.explanations_folded():
+					_sub_face += " · " + Utils.format_number(int(sub_q.get("price", 0))) + "g"
+					_sub_tip = _terms
+				var _sub_chip := Utils.bb_button_chip("do:buy substitutes for " + str(sub_q.get("recipient", "")), \
+						_sub_face, Utils.COLOR_GOLD, _CHIP_BG, "", _sub_tip)
+				if Utils.explanations_folded():
+					folded_sub_chip = _sub_chip
+				else:
+					action_rows.append("  Substitutes: " + _sub_chip \
+						+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _terms + "[/color]")
 			else:
-				action_rows.append("  Substitutes: " \
-					+ Utils.bb_chip_disabled("Buy Substitutes", "", str(sub_q.get("short", "")) if Utils.explanations_folded() else "") \
-					+ ("" if Utils.explanations_folded() else "  [color=#" + Utils.COLOR_INFO + "]" + str(sub_q.get("short", "")) + "[/color]"))
+				var _sub_dim := Utils.bb_chip_disabled("Buy Substitutes", "", str(sub_q.get("short", "")) if Utils.explanations_folded() else "")
+				if Utils.explanations_folded():
+					folded_sub_chip = _sub_dim
+				else:
+					action_rows.append("  Substitutes: " + _sub_dim \
+						+ "  [color=#" + Utils.COLOR_INFO + "]" + str(sub_q.get("short", "")) + "[/color]")
+
+	# Session UI-4: Folded, the substitute market's chip stands on the levy's ONE
+	# row (or, with no levy quoted here, under a RECRUIT caption of its own).
+	if folded_sub_chip != "":
+		if recruit_row_at >= 0:
+			action_rows[recruit_row_at] = str(action_rows[recruit_row_at]) + "   " + folded_sub_chip
+		else:
+			action_rows.append(_caption("RECRUIT"))
+			action_rows.append(_chip_row([folded_sub_chip]))
 
 	# Everything below is OWN soil: a building, a repair and a garrison are
 	# the owner's to order, and the executors refuse them on a vassal's
@@ -594,10 +675,11 @@ func _render() -> void:
 					if t is Dictionary and t.has("cost"):
 						var b_label := str(def[1]) + " " + str(int(t.get("cost", 0))) + "g"
 						if admin_why == "":
-							build_rows.append("    " + Utils.bb_button_chip("do:" + str(def[2]) % _region, b_label, Utils.COLOR_GOLD, _CHIP_BG)
-								+ " [color=#" + Utils.COLOR_INFO + "]" + _build_terms_text(b_key, t) + "[/color]")
+							# Session UI-4: Folded, the terms ride the chip as its hover.
+							build_rows.append(_build_item(Utils.bb_button_chip("do:" + str(def[2]) % _region, b_label, Utils.COLOR_GOLD, _CHIP_BG, "", _build_terms_text(b_key, t) if Utils.explanations_folded() else ""),
+								_build_terms_text(b_key, t)))
 						else:
-							build_rows.append("    " + _dim(b_label, admin_why, " "))
+							build_rows.append(_build_item(_dim(b_label, admin_why, " "), ""))
 					elif admin_why == "":
 						build_chips += Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]), Utils.COLOR_GOLD, _CHIP_BG) + " "
 					else:
@@ -607,10 +689,10 @@ func _render() -> void:
 			if wt is Dictionary and wt.has("cost"):
 				var wt_label := "Watchtower " + str(int(wt.get("cost", 0))) + "g"
 				if admin_why == "":
-					build_rows.append("    " + Utils.bb_button_chip("do:build watchtower in " + _region, wt_label, Utils.COLOR_GOLD, _CHIP_BG)
-						+ " [color=#" + Utils.COLOR_INFO + "]eyes on every adjacent province[/color]")
+					build_rows.append(_build_item(Utils.bb_button_chip("do:build watchtower in " + _region, wt_label, Utils.COLOR_GOLD, _CHIP_BG, "", "eyes on every adjacent province" if Utils.explanations_folded() else ""),
+						"eyes on every adjacent province"))
 				else:
-					build_rows.append("    " + _dim(wt_label, admin_why, " "))
+					build_rows.append(_build_item(_dim(wt_label, admin_why, " "), ""))
 			elif admin_why == "":
 				build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
 			else:
@@ -634,12 +716,13 @@ func _render() -> void:
 				var yard_ap := ""
 				if _map_node != null and "naval_overlay" in _map_node and _map_node.naval_overlay is Dictionary:
 					yard_ap = str(_map_node.naval_overlay.get("yard_ap_note", ""))
-				build_rows.append("    " + Utils.bb_button_chip("do:build naval yard in " + _region, yard_label, Utils.COLOR_GOLD, _CHIP_BG)
-					+ " [color=#" + Utils.COLOR_INFO + "]" + (yard_ap + " " if yard_ap != "" else "") + "keels laid and corps embarked here · "
-					+ str(int(yard.get("turns", 0))) + " turns · "
-					+ str(int(yard.get("raised", 0))) + " of " + str(int(yard.get("cap", 0))) + " yards raised[/color]")
+				var yard_terms := (yard_ap + " " if yard_ap != "" else "") + "keels laid and corps embarked here · " \
+					+ str(int(yard.get("turns", 0))) + " turns · " \
+					+ str(int(yard.get("raised", 0))) + " of " + str(int(yard.get("cap", 0))) + " yards raised"
+				build_rows.append(_build_item(Utils.bb_button_chip("do:build naval yard in " + _region, yard_label, Utils.COLOR_GOLD, _CHIP_BG, "", yard_terms if Utils.explanations_folded() else ""),
+					yard_terms))
 			else:
-				build_rows.append("    " + _dim(yard_label, yard_why, " "))
+				build_rows.append(_build_item(_dim(yard_label, yard_why, " "), ""))
 		if build_rows.size() > 0:
 			# The tier upkeep is one figure for every work here — said
 			# once on the header, not repeated per row.
@@ -653,8 +736,12 @@ func _render() -> void:
 				build_head += ":"
 			action_rows.append(build_head)
 			if _build_open:
-				for br in build_rows:
-					action_rows.append(br)
+				# Session UI-4: Folded, the open works stand on ONE row of chips.
+				if Utils.explanations_folded():
+					action_rows.append(_chip_row(build_rows))
+				else:
+					for br in build_rows:
+						action_rows.append(br)
 		if build_chips != "":
 			action_rows.append("  Build: " + build_chips
 				+ ("" if (admin_why == "" or Utils.explanations_folded()) else "[color=#" + Utils.COLOR_INFO + "]" + admin_why + "[/color]"))
@@ -673,11 +760,20 @@ func _render() -> void:
 		var rep_cost := ""
 		if rep is Dictionary and rep.has("cost"):
 			rep_cost = " " + str(int(rep.get("cost", 0))) + "g"
+		# Session UI-4: Folded, the repairs stand on ONE row, each with its terms
+		# as its hover (`repair_chips`); the page prints them as it did.
+		var repair_chips := []
 		if needs_repair and admin_why == "":
-			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair works" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
-				+ "  [color=#" + Utils.COLOR_INFO + "]restore damaged works — and their upkeep[/color]")
+			var rw_chip := Utils.bb_button_chip("do:repair buildings in " + _region, "Repair works" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG, "", "restore damaged works — and their upkeep" if Utils.explanations_folded() else "")
+			if Utils.explanations_folded():
+				repair_chips.append(rw_chip)
+			else:
+				action_rows.append("  " + rw_chip + "  [color=#" + Utils.COLOR_INFO + "]restore damaged works — and their upkeep[/color]")
 		elif needs_repair:
-			action_rows.append("  " + _dim("Repair works" + rep_cost, admin_why))
+			if Utils.explanations_folded():
+				repair_chips.append(_dim("Repair works" + rep_cost, admin_why))
+			else:
+				action_rows.append("  " + _dim("Repair works" + rep_cost, admin_why))
 		# Re-read: the display block's `war_dmg` is scoped to the fog
 		# branch it was declared in (the same reason `buildings` is
 		# re-declared above). This arm is inside the own-soil gate, so the
@@ -689,10 +785,17 @@ func _render() -> void:
 				wd_terms = "−" + str(int(rep.get("war_damage_pct", 0))) + "% of " \
 					+ str(own_war_dmg) + "% — restores income"
 			if admin_why == "":
-				action_rows.append("  " + Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
-					+ "  [color=#" + Utils.COLOR_INFO + "]" + wd_terms + "[/color]")
+				var wd_chip := Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG, "", wd_terms if Utils.explanations_folded() else "")
+				if Utils.explanations_folded():
+					repair_chips.append(wd_chip)
+				else:
+					action_rows.append("  " + wd_chip + "  [color=#" + Utils.COLOR_INFO + "]" + wd_terms + "[/color]")
+			elif Utils.explanations_folded():
+				repair_chips.append(_dim("Repair war damage" + rep_cost, admin_why))
 			else:
 				action_rows.append("  " + _dim("Repair war damage" + rep_cost, admin_why))
+		if not repair_chips.is_empty():
+			action_rows.append(_chip_row(repair_chips))
 
 		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
 		# sites, price quoted from the backend's live constant (honest-chip
@@ -720,8 +823,19 @@ func _render() -> void:
 					# price leads the note, from the overlay (`ship_ap_note`,
 					# `naval.ap_cost_note`: the action table's own number).
 					var ship_ap := str(overlay.get("ship_ap_note", ""))
-					action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
-						+ "  [color=#" + Utils.COLOR_INFO + "]" + (ship_ap + " " if ship_ap != "" else "") + yard_note + "[/color]")
+					var ship_terms: String = (ship_ap + " " if ship_ap != "" else "") + yard_note
+					var ship_chip := Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG, "", ship_terms if Utils.explanations_folded() else "")
+					if Utils.explanations_folded():
+						# Session UI-4: the Admiralty's group, its caption over its chip.
+						action_rows.append(_caption("ADMIRALTY"))
+						action_rows.append(_chip_row([ship_chip]))
+						admiralty_captioned = true
+					else:
+						action_rows.append("  " + ship_chip + "  [color=#" + Utils.COLOR_INFO + "]" + ship_terms + "[/color]")
+				elif Utils.explanations_folded():
+					action_rows.append(_caption("ADMIRALTY"))
+					action_rows.append(_chip_row([_dim("Lay down ships (" + str(ship_cost) + "g)", ship_why)]))
+					admiralty_captioned = true
 				else:
 					action_rows.append("  " + _dim("Lay down ships (" + str(ship_cost) + "g)", ship_why))
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
@@ -745,6 +859,9 @@ func _render() -> void:
 				# CRT-9: the state probe's verdict on this corps' landing.
 				var land_why := str(corps.get("refusal", ""))
 				if land_why != "":
+					if Utils.explanations_folded() and not admiralty_captioned:
+						action_rows.append(_caption("ADMIRALTY"))
+						admiralty_captioned = true
 					action_rows.append("  " + _dim("Land " + who + " here", land_why))
 					continue
 				# S14G-X86 (Pre-Deploy S14h part 2, October 26, 2026): the note
@@ -758,6 +875,9 @@ func _render() -> void:
 				var land_from_why := str(corps.get("from_reason", ""))
 				if land_from_why != "":
 					land_from += " (" + Utils.humanize_nation_keys_in_text(land_from_why) + ")"
+				if Utils.explanations_folded() and not admiralty_captioned:
+					action_rows.append(_caption("ADMIRALTY"))
+					admiralty_captioned = true
 				action_rows.append("  " + Utils.bb_button_chip(
 					"do:land " + who + " in " + _region,
 					"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG)
@@ -787,6 +907,9 @@ func _render() -> void:
 			# own reason (honest availability: never dark and silent).
 			var blocked = naval.get("expedition_blocked", {})
 			if blocked is Dictionary and blocked.has(_region):
+				if Utils.explanations_folded() and not admiralty_captioned:
+					action_rows.append(_caption("ADMIRALTY"))
+					admiralty_captioned = true
 				action_rows.append("  " + _dim("No landing here", Utils.humanize_nation_keys_in_text(str(blocked[_region]))))
 
 	if action_rows.size() > 0:
@@ -904,6 +1027,13 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 				any_ok = true
 			else:
 				shorts[str(q.get("short", ""))] = true
+	# Session UI-4 (November 12, 2026): Folded, the levy is one caption (RECRUIT,
+	# the ordinance's line under it) and ONE row of chips — each live arm carries
+	# its price on its face ("Infantry · 598g") and its terms as its hover, each
+	# refused arm its reason as its hover. On the page the rows below stand as
+	# they did (the terms and reasons printed beside their chips).
+	if Utils.explanations_folded():
+		return _recruit_rows_folded(recruit_here, levy)
 	if not any_ok and shorts.size() == 1:
 		var chips := ""
 		for arm in _RECRUIT_ARMS:
@@ -929,6 +1059,31 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 			rows.append("    " + _dim(str(arm).capitalize(), str(q.get("short", ""))))
 	if refused_row != "":
 		rows.append("    " + refused_row)
+	return rows
+
+
+func _recruit_rows_folded(recruit_here: Dictionary, levy) -> Array:
+	"""Session UI-4: the levy Folded — see `_recruit_rows`. The chips are the
+	LAST row returned (the substitute market's chip joins it, in `_render`)."""
+	var rows := []
+	var chips := []
+	var refused := []
+	for arm in _RECRUIT_ARMS:
+		var q = recruit_here.get(arm, {})
+		if not (q is Dictionary):
+			continue
+		if bool(q.get("ok", false)):
+			var face := str(arm).capitalize()
+			if int(q.get("price", 0)) > 0:
+				face += " · " + Utils.format_number(int(q.get("price", 0))) + "g"
+			chips.append(Utils.bb_button_chip("do:recruit " + str(arm) + " in " + _region, face, Utils.COLOR_GOLD, _CHIP_BG, "", str(q.get("terms", ""))))
+		else:
+			refused.append(_dim(str(arm).capitalize(), str(q.get("short", ""))))
+	rows.append(_caption("RECRUIT"))
+	var note := _ordinance_note(levy)
+	if note != "":
+		rows.append(note)
+	rows.append(_chip_row(chips + refused))
 	return rows
 
 
@@ -978,6 +1133,11 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 		if tactical is Dictionary and not tactical.is_empty():
 			var retreating = bool(tactical.get("retreating", false))
 			var broken = bool(tactical.get("broken", false))
+			# Session UI-4 (November 12, 2026): Folded, his orders stand on ONE row
+			# of chips UNDER his name and strength (each chip leads with two spaces,
+			# so the row is indented four) — the readers: "ragged small chips".
+			if Utils.explanations_folded():
+				row += "\n  "
 			# CF-6 (October 17, 2026): the dimmed list is shared by the CN-4
 			# chips below and the three new ones after them, so one reason is
 			# said once for every chip it stops.
@@ -1217,6 +1377,7 @@ func _quote_rows(quotes) -> String:
 	var shown := 0
 	var hidden := 0
 	var dimmed := []
+	var open_chips := []   # Session UI-4: Folded, the open orders' chips
 	for q in quotes:
 		if not (q is Dictionary):
 			continue
@@ -1227,12 +1388,21 @@ func _quote_rows(quotes) -> String:
 			hidden += 1
 			continue
 		shown += 1
-		out += "  " + Utils.bb_button_chip("do:" + str(q.get("command", "")), _quote_label(q),
-			Utils.COLOR_GOLD, _CHIP_BG)
 		var notes := _quote_notes(q)
+		# Session UI-4 (November 12, 2026): Folded, the open orders stand on ONE
+		# row of chips, what each would also do (`notes`) its hover; the page
+		# prints a chip and its notes a line each, as it did.
+		var quote_chip := Utils.bb_button_chip("do:" + str(q.get("command", "")), _quote_label(q),
+			Utils.COLOR_GOLD, _CHIP_BG, "", notes if Utils.explanations_folded() else "")
+		if Utils.explanations_folded():
+			open_chips.append(quote_chip)
+			continue
+		out += "  " + quote_chip
 		if notes != "":
 			out += "  [color=#" + Utils.COLOR_INFO + "]" + notes + "[/color]"
 		out += "\n"
+	if not open_chips.is_empty():
+		out += _chip_row(open_chips) + "\n"
 	# The refused: all of them when nothing is open (the reason IS the
 	# answer), otherwise behind "+N more…" so the open orders lead.
 	if not dimmed.is_empty():

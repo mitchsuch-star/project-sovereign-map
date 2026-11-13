@@ -47,7 +47,7 @@ ALLOWED = {
     "godot-client/project-sovereign/scripts/main.gd": [r"\| Overseas: \+$"],
     # the ledger's "Overseas trade" row
     "backend/game_logic/ledger.py": [r"^overseas trade$"],
-    "godot-client/project-sovereign/scripts/strategic_ledger.gd": [r"Overseas trade: \+$"],
+    "godot-client/project-sovereign/scripts/strategic_ledger.gd": [r"^Overseas trade$"],  # Session UI-4: the ledger row is a table label now (its figure is a separate cell)
     # the affairs' authored copy — the letter's run-in default (RE-2's dress)
     "godot-client/project-sovereign/scripts/incoming_proposal_popup.gd": [r"^FROM HAITI —$"],
 }

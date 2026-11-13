@@ -62,7 +62,10 @@ const UI_SCALE_BUTTON_STEP := 0.1
 #   clamp [1.0, 3.0], rounded to 0.05
 const DERIVE_FLOOR := 1.0
 const ULTRA_WIDE_ASPECT := 3.0
-const ULTRA_WIDE_BONUS := 0.45
+# Session UI-4 (November 12, 2026): 0.45 -> 0.65 — the three interim readers: the
+# 32:9 HUD "tiny and stranded at the edges", "scale the HUD up on ultrawide"
+# (5120 x 1440 derives 1.80, logical 2844 x 800; the slider still sets any size).
+const ULTRA_WIDE_BONUS := 0.65
 
 static var _cfg: ConfigFile = null
 # UXR-0 (October 9, 2026): the capture harnesses shim `_cfg` onto an in-memory
@@ -279,7 +282,10 @@ static func set_body_font(face: String) -> void:
 # ultra-wide the panels have room and the type is the problem — this grows
 # the type without growing the chrome. Never under 1.0: below it the theme's
 # own sizes would read RED by the readability floor's rule.
-const DEFAULT_TEXT_SIZE := 1.0
+# Session UI-4 (November 12, 2026): the game ships at 115 % — the user's
+# ruling on the blind readers' first reason for 7 ("small body type"): body
+# 16 → 18 px, captions 14 → 16, the ladder in step. 100 % stays a choice.
+const DEFAULT_TEXT_SIZE := 1.15
 const MIN_TEXT_SIZE := 1.0
 const MAX_TEXT_SIZE := 1.75
 const TEXT_SIZE_STEP := 0.05
@@ -334,7 +340,13 @@ static func set_reduce_motion(on: bool) -> void:
 # (SAFE_ZONE_ASPECT and wider: 32:9, 32:10) — the HUD frames the map as it
 # does on a 16:9 screen instead of standing in the far corners (the blind
 # readers' ultrawide frame). "centred" keeps its fixed band.
-const HUD_WIDTHS := ["auto", "full", "centred"]
+# Session UI-4 (November 12, 2026), the user's "Screen edges": once the map
+# fills a very wide view (Session UI-3's "fill"), Auto stands the HUD at the
+# screen's edges — the panels keep the sizes they had in the zone
+# (Utils.hud_size_room), only their anchors move. With the map showing the
+# whole sheet, Auto keeps the zone (the sheet sits in the middle, the panels
+# frame it). "16:9" keeps the zone whatever the map does.
+const HUD_WIDTHS := ["auto", "full", "16:9", "centred"]
 const DEFAULT_HUD_WIDTH := "auto"
 const HUD_BAND_WIDTH := 2560.0
 const SAFE_ZONE_ASPECT := 2.6

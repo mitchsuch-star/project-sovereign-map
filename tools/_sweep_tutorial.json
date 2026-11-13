@@ -16,8 +16,8 @@
   {
     "id": "TUT-3 the skip chip is dropped",
     "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
-    "old": "\t\tlines.append(Utils.bb_button_chip(\"skipstep:\", \"Skip this lesson ▸\", Utils.COLOR_INFO, Utils.CHIP_DIM_BG))",
-    "new": "\t\tpass",
+    "old": "\t\tvar skip := Utils.bb_button_chip(\"skipstep:\", \"Skip this lesson ▸\", Utils.COLOR_INFO, Utils.CHIP_DIM_BG)",
+    "new": "\t\tvar skip := \"\"",
     "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheIdleEmperorStillReachesTheEnd::test_the_card_reaches_the_handoff_by_the_gate_of_the_last_page"
   },
   {

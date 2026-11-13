@@ -158,7 +158,7 @@ func show_mailbox(data: Dictionary):
 		# rect stood and carried the Close button to y=746 — off-screen, the
 		# modal undismissable by mouse, the visible area a flat colour. One
 		# row present and the clamp already fitted the same panel to 776x362.
-		Utils.set_reading_share($PanelContainer, Vector2(0.62, 0.85), Vector2(1100, 1000))
+		Utils.set_reading_share($PanelContainer, Vector2(0.62, 0.94), Vector2(1100, 1000))
 		Utils.clamp_centered_panel($PanelContainer)
 		return
 
@@ -178,7 +178,7 @@ func show_mailbox(data: Dictionary):
 	# panel already fits, and returns early for non-centre-anchored panels.
 	# Session UI-3: the book's reading ceiling (62 x 85 % of the view, capped
 	# 1100 x 1000) - the rows' buttons stand whole instead of at the scroll's foot.
-	Utils.set_reading_share($PanelContainer, Vector2(0.62, 0.85), Vector2(1100, 1000))
+	Utils.set_reading_share($PanelContainer, Vector2(0.62, 0.94), Vector2(1100, 1000))
 	Utils.clamp_centered_panel($PanelContainer)
 	_fit_to_rows()
 
@@ -328,11 +328,22 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 		flag.custom_minimum_size = Vector2(FLAG_PX * 1.5, FLAG_PX)
 		flag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		top_row.add_child(flag)
+	else:
+		# Session UI-4 (November 12, 2026): a court with no flag still holds its
+		# place, so the status badges stand in ONE column down the rows.
+		var no_flag = Control.new()
+		no_flag.custom_minimum_size = Vector2(FLAG_PX * 1.5, FLAG_PX)
+		no_flag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top_row.add_child(no_flag)
 
 	var state_badge = Label.new()
 	state_badge.text = "ACTIVE" if is_active else "WAITING"
 	state_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state_badge.theme_type_variation = &"Caption"
+	# Session UI-4: one width, the word centred - "ACTIVE" and "WAITING" align
+	# (the readers: "align the status tags").
+	state_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	state_badge.custom_minimum_size = Vector2(Utils.text_px(96), 0)
 	state_badge.add_theme_color_override("font_color", Color.html("f4ead2"))
 	state_badge.add_theme_stylebox_override("normal", _badge_box(
 			Color.html("3a4a6b") if is_active else Color.html(Utils.COLOR_BADGE_QUIET)))
@@ -464,32 +475,73 @@ func _badge_box(tone: Color) -> StyleBoxFlat:
 
 
 func _terms_line_label(clauses: Array) -> Control:
-	"""One "Terms: …" line from a letter's clause strings — the letter-book's
-	rows and (S14E-27) every other incoming-proposal row draw it the same way.
-	Session UI-2: the line stands in a framed box (a hairline of gilt on a
-	darker field), so what the letter asks reads as its own block."""
-	var frame = PanelContainer.new()
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var frame_box = StyleBoxFlat.new()
-	frame_box.bg_color = Utils.UI_INK_NAVY
-	frame_box.border_color = Color(Utils.UI_GOLD.r, Utils.UI_GOLD.g, Utils.UI_GOLD.b, 0.45)
-	frame_box.set_border_width_all(1)
-	frame_box.set_corner_radius_all(3)
-	frame_box.content_margin_left = 10.0
-	frame_box.content_margin_right = 10.0
-	frame_box.content_margin_top = 6.0
-	frame_box.content_margin_bottom = 6.0
-	frame.add_theme_stylebox_override("panel", frame_box)
-	var terms_label = Label.new()
+	"""A letter's clause strings as a "Terms" caption over small tag chips, one
+	per clause - the letter-book's rows and (S14E-27) every other
+	incoming-proposal row draw it the same way. Session UI-4 (November 12,
+	2026): the readers found the terms "a dense run-on in a plain box"
+	("summarise the terms as bullet chips"); the words are unchanged, each
+	clause its own chip, a short one beside its neighbours, a long one on a
+	line of its own (it wraps inside its chip). The whole line stays the
+	block's hover, the clauses joined as they were: "Terms: a · b · c"."""
+	var block = VBoxContainer.new()
+	block.mouse_filter = Control.MOUSE_FILTER_PASS
+	block.add_theme_constant_override("separation", 4)
 	var clause_strings: Array[String] = []
 	for clause in clauses:
 		clause_strings.append(Utils.humanize_nation_keys_in_text(str(clause)))
-	terms_label.text = "Terms: " + " · ".join(clause_strings)
-	terms_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	terms_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	terms_label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
-	frame.add_child(terms_label)
-	return frame
+	block.tooltip_text = "Terms: " + " · ".join(clause_strings)
+	var caption = Label.new()
+	caption.text = "Terms"
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caption.theme_type_variation = &"Caption"
+	caption.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	block.add_child(caption)
+	var flow: HFlowContainer = null
+	for text in clause_strings:
+		var chip := _terms_chip(text, text.length() > TERMS_CHIP_SHORT)
+		if text.length() > TERMS_CHIP_SHORT:
+			# a long clause takes the block's width and wraps inside its chip
+			flow = null
+			chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			block.add_child(chip)
+			continue
+		if flow == null:
+			flow = HFlowContainer.new()
+			flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			flow.add_theme_constant_override("h_separation", 6)
+			flow.add_theme_constant_override("v_separation", 6)
+			flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			block.add_child(flow)
+		flow.add_child(chip)
+	return block
+
+
+# a clause this long or shorter rides in the flow beside its neighbours
+const TERMS_CHIP_SHORT := 36
+
+
+func _terms_chip(text: String, wrap: bool) -> PanelContainer:
+	"""One clause as a tag: a hairline of gilt on the darker field, the clause
+	in the bright gilt ink."""
+	var chip = PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box = StyleBoxFlat.new()
+	box.bg_color = Utils.UI_INK_NAVY
+	box.border_color = Color(Utils.UI_GOLD.r, Utils.UI_GOLD.g, Utils.UI_GOLD.b, 0.45)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(10)
+	box.content_margin_left = 10.0
+	box.content_margin_right = 10.0
+	box.content_margin_top = 3.0
+	box.content_margin_bottom = 3.0
+	chip.add_theme_stylebox_override("panel", box)
+	var label = Label.new()
+	label.text = text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
+	label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+	chip.add_child(label)
+	return chip
 
 
 func _open_row(panel: PanelContainer):

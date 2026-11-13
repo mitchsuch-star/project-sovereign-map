@@ -427,22 +427,50 @@ def table(tmp_path_factory) -> dict:
         states["court"] = _act(run, "click Britain")
         states["opened"] = _act(run, "click Open Settlement")
         st = states["opened"]
-        for _ in range(3):
-            if not [b for b in st["buttons"] if b.get("kind") == "link" and b["text"] == "+ Add demand"]:
-                break
-            st = _act(run, "click#1 + Add demand")
-        # Session UI-3 (November 12, 2026), re-ruled consciously: the table is an
-        # accordion — the court in focus, or the first, stands as its whole card;
-        # every other court is one line with its buttons, its words (the demand
-        # lines) behind its name. Britain is a line here, so the player's road
-        # opens its words by its name, then its "+ Add demand".
-        if not [b for b in st["buttons"] if b.get("kind") == "link" and "Demands of Britain" in b["text"]]:
-            st = _act(run, "click Britain ▸")
-            states["britain_opened"] = st
+        # Session UI-4 (November 12, 2026), re-ruled consciously: EVERY court is one
+        # uniform status row and its words (the demand lines, "+ Add demand") stand
+        # behind its name — only the court in focus opens by itself. The player's
+        # road opens the courts by name ("Austria ▸", "Britain ▸") before it can
+        # add a demand.
+        def _open_court(st, court_name):
+            # (only a CLOSED court: an open one carries its row's "▾" — its card's
+            # own head also reads "<court> ▸", and clicking that folded the
+            # demand list the walk had just opened)
+            if [b for b in st["buttons"] if b["text"].strip() == court_name + " ▾"]:
+                return st
+            if [b for b in st["buttons"] if b["text"].strip() == court_name + " ▸"]:
+                st = _act(run, f"click {court_name} ▸")
+                states[court_name.lower() + "_opened"] = st
+            return st
+
+        prev = None
+        for court_name in ("Austria", "Britain"):
+            # Session UI-4: at the shipped 115 % an open court's words fill the
+            # scroll and push the next court's row out of view — the player closes
+            # the court they worked on (its row's own "▾"), as the accordion asks
+            if prev is not None and [b for b in st["buttons"] if b["text"].strip() == prev + " ▾"]:
+                st = _act(run, f"click {prev} ▾")
+                states[prev.lower() + "_closed"] = st
+            st = _open_court(st, court_name)
             for _ in range(3):
                 if not [b for b in st["buttons"] if b.get("kind") == "link" and b["text"] == "+ Add demand"]:
                     break
                 st = _act(run, "click#1 + Add demand")
+            prev = court_name
+        # a re-mount closes every court but the one in focus: Britain's words
+        # must stand again for its folded options to be clicked
+        st = _open_court(st, "Britain")
+        # Session UI-4: on the user's panel (800 logical px tall at the derived
+        # 1.80) the open court's words run below the body's fold — the player
+        # scrolls the table down to its "Demands of Britain" (at one point inside
+        # the body, found once on Britain's row)
+        anchor = [b for b in st["buttons"] if b["text"].strip().startswith("Britain ")]
+        scroll_at = _centre_of(anchor[0]["rect"]) if anchor else None
+        if scroll_at is not None:
+            for _ in range(8):
+                if [b for b in st["buttons"] if "Demands of Britain" in b["text"]]:
+                    break
+                st = _act(run, f"scroll {scroll_at[0]} {scroll_at[1]} down 3")
         states["expanded"] = st
         # the expansion folds each court's options under "▸ Demands of <court> (N)"
         st = _act(run, "click Demands of Britain")
@@ -451,6 +479,15 @@ def table(tmp_path_factory) -> dict:
                 and re.fullmatch(r"Demand \d[\d,]* gold from Britain", b["text"].strip())]
         assert gold, [b["text"] for b in st["buttons"] if b.get("kind") == "link"]
         states["staged"] = _act(run, f"click {gold[0]}")
+        # Session UI-4: the staged gold line stands under Britain's open card,
+        # below the body's fold on the user's panel — the player scrolls to it
+        if scroll_at is not None:
+            st = states["staged"]
+            for _ in range(6):
+                if [i for i in _icons(st, "-") if "gold" in str(i.get("on_line", "")).lower()]:
+                    break
+                st = _act(run, f"scroll {scroll_at[0]} {scroll_at[1]} down 3")
+            states["staged"] = st
         states["minus"] = _act(run, "click - on the Britain gold line")
         plus = (_icons(states["minus"], "+") or [None])[0]
         if plus is not None:
@@ -471,9 +508,11 @@ class TestThePlayersHands:
         assert boot["scene"] == "main_menu"
         assert boot["factor"]["physical_size"] == [5120, 1440]
         # Session UI-2 (November 12, 2026): the 32:9 term 0.25 -> 0.45 (the
-        # user's approved plan) — 5120x1440 derives 1.60 (logical 3200x900).
-        assert boot["ui_scale"]["derived_for_5120x1440"] == 1.6
-        assert boot["ui_scale"]["window"] == 1.6
+        # user's approved plan) — 5120x1440 derived 1.60 (logical 3200x900).
+        # Session UI-4 (November 12, 2026): 0.45 -> 0.65 after the interim readers
+        # found the edge-anchored HUD "tiny and stranded" — 1.80 (logical 2844x800).
+        assert boot["ui_scale"]["derived_for_5120x1440"] == 1.8
+        assert boot["ui_scale"]["window"] == 1.8
         assert "scale_card" in boot["open"]["popups"], "a first launch shows the sizing card"
         assert any("Begin the 1805 Campaign" == b["text"] for b in boot["buttons"])
 

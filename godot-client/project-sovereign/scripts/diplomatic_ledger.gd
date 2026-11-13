@@ -413,11 +413,14 @@ func _facts_table(rows: Array) -> String:
 	return out + "[/table]\n"
 
 
-func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks: Array) -> String:
+func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks: Array, ghost_to: int = -1) -> String:
 	"""The wide threat gauge: 0-100 across `width` px, filled to `level` in
-	`fill_hex`, a 2-px gilt tick at each of `marks` (60 'brews', 80 'forms')."""
+	`fill_hex`, a 2-px gilt tick at each of `marks` (60 'brews', 80 'forms').
+	Session UI-4 (November 12, 2026): `ghost_to` (>= level) lays a lighter ghost
+	segment from the level to where the next war of conquest would take it."""
 	var out := ""
 	var lvl: int = clampi(level, 0, 100)
+	var ghost: int = clampi(ghost_to, lvl, 100) if ghost_to >= 0 else lvl
 	var edges: Array = [0]
 	for m in marks:
 		edges.append(int(m))
@@ -427,13 +430,80 @@ func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks:
 		var b: int = edges[i + 1]
 		var span_w: int = int(round(float(width) * float(b - a) / 100.0))
 		var fill_w: int = int(round(float(span_w) * float(clampi(lvl - a, 0, b - a)) / float(maxi(b - a, 1))))
+		var ghost_w: int = int(round(float(span_w) * float(clampi(ghost - a, 0, b - a)) / float(maxi(b - a, 1)))) - fill_w
+		ghost_w = maxi(ghost_w, 0)
 		if fill_w > 0:
 			out += "[img width=%d height=%d color=#%s]%s[/img]" % [fill_w, height, fill_hex, Utils.SWATCH]
-		if span_w - fill_w > 0:
-			out += "[img width=%d height=%d color=#%s]%s[/img]" % [span_w - fill_w, height, Utils.METER_TRACK, Utils.SWATCH]
+		if ghost_w > 0:
+			out += "[img width=%d height=%d color=#%s55]%s[/img]" % [ghost_w, height, fill_hex, Utils.SWATCH]
+		if span_w - fill_w - ghost_w > 0:
+			out += "[img width=%d height=%d color=#%s]%s[/img]" % [span_w - fill_w - ghost_w, height, Utils.METER_TRACK, Utils.SWATCH]
 		if i < edges.size() - 2:
 			out += "[img width=2 height=%d color=#%s]%s[/img]" % [height + 4, Utils.COLOR_GOLD, Utils.SWATCH]
 	return out
+
+
+func _balance_width() -> int:
+	"""Session UI-4: the Balance page's content width in px (the window's own
+	less its margins and the scroll bar), 640 before the window has a size."""
+	var w: int = int(content_area.size.x) - 64 if content_area != null else 0
+	return w if w > 280 else 640
+
+
+func _gauge_scale_table(brews: int, forms: int) -> String:
+	"""Labels standing under the gauge's ticks: 0, brews N, forms N and 100 at
+	the far right. Measured on the first shoot: a BBCode table shrinks to its
+	words here (the four labels stood together at the left, "0 brews 60 forms
+	80 100"), so each label is set at its tick by a transparent spacer image,
+	the widths read off the gauge's own width and the page's font."""
+	var w := float(_balance_width())
+	var b: int = clampi(brews, 1, 98)
+	var f: int = clampi(forms, b + 1, 99)
+	var font: Font = content_area.get_theme_font("normal_font") if content_area != null else null
+	var size: int = content_area.get_theme_font_size("normal_font_size") if content_area != null else 16
+	var measure := func(text: String) -> float:
+		return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x if font != null else 8.0 * text.length()
+	var spacer := func(px: float) -> String:
+		var n := int(floor(px))
+		return "[img width=%d height=1 color=#00000000]%s[/img]" % [n, Utils.SWATCH] if n >= 1 else ""
+	var ink := "[color=#" + Utils.COLOR_INFO + "]%s[/color]"
+	var out := ""
+	var x := 0.0
+	for mark in [[0.0, "0"], [w * b / 100.0, "brews " + str(brews)], [w * f / 100.0, "forms " + str(forms)]]:
+		var at: float = maxf(float(mark[0]), x)
+		out += spacer.call(at - x) + ink % str(mark[1])
+		x = at + float(measure.call(str(mark[1])))
+	var last_w: float = measure.call("100")
+	out += spacer.call(maxf(w - last_w - x, 4.0)) + ink % "100"
+	return out + "\n"
+
+
+func _balance_figures(boe: Dictionary, projection) -> String:
+	"""Session UI-4: the figure row under the gauge — glyph, figure, caption
+	(the Dispatch's idiom). A figure the payload lacks is skipped."""
+	var gap := "  "
+	var parts: Array = []
+	var hegemon_name := str(boe.get("hegemon", ""))
+	if hegemon_name != "" and hegemon_name != "<null>" and boe.has("hegemon_share"):
+		parts.append(Utils.bb_glyph("europe", 18) + " " + Utils.HEAD_OPEN + str(int(boe.get("hegemon_share", 0))) + "%" + Utils.HEAD_CLOSE
+			+ " [color=#" + Utils.COLOR_INFO + "]of Europe's power[/color]")
+	if projection is Dictionary and projection.has("wars_until_brewing") and str(projection.get("collapse_line", "")) == "":
+		var wars := int(projection.get("wars_until_brewing", 0))
+		parts.append(Utils.bb_glyph("war", 18) + " " + Utils.HEAD_OPEN + str(wars) + Utils.HEAD_CLOSE
+			+ " [color=#" + Utils.COLOR_INFO + "]" + ("wars" if wars != 1 else "war") + " until a coalition brews[/color]")
+	var coalition = boe.get("active_coalition")
+	if coalition is Dictionary:
+		var leader_key := str(coalition.get("leader", ""))
+		parts.append(Utils.bb_flag(leader_key, 18) + Utils.HEAD_OPEN
+			+ Utils.humanize_nation_keys_in_text(str(coalition.get("name", "Coalition"))).replace("[", "[lb]") + Utils.HEAD_CLOSE
+			+ " [color=#" + Utils.COLOR_INFO + "]led by " + Utils.display_nation_name(leader_key) + "[/color]")
+	else:
+		parts.append(Utils.bb_glyph("command", 18) + " " + Utils.HEAD_OPEN + "none" + Utils.HEAD_CLOSE
+			+ " [color=#" + Utils.COLOR_INFO + "]no coalition[/color]")
+	if boe.has("dissolution_threat_threshold"):
+		parts.append(Utils.bb_glyph("stability", 18) + " " + Utils.HEAD_OPEN + "<" + str(int(boe.get("dissolution_threat_threshold", 20))) + Utils.HEAD_CLOSE
+			+ " [color=#" + Utils.COLOR_INFO + "]dissolves below[/color]")
+	return gap.join(PackedStringArray(parts)) + "\n"
 
 
 
@@ -1022,16 +1092,64 @@ func _designs_block(designs) -> String:
 		if not (ds is Array):
 			out += Utils.CARD_CLOSE
 			continue
+		# Session UI-4 (November 12, 2026): the three blind readers called the
+		# designs "a bare list". Each road's designs are now progress rows in one
+		# table — status mark and title, a meter of held / required, the hold pips,
+		# a status tag. Folded, the progress sentence rides the meter's hover and the
+		# hint (and the hold line) the title's; On the page every word prints.
+		var folded: bool = Utils.explanations_folded()
+		var meter_w: int = 110 if Utils.compact_view() else 160
+		var design_rows: Array = []
 		for d in ds:
 			if not (d is Dictionary):
 				continue
 			var status: String = str(d.get("status", ""))
 			var mark: String = "✓" if status == "fulfilled" or status == "met" else ("✗" if status == "lapsed" else "•")
-			var line: String = "    " + mark + " " + str(d.get("title", "")) + " — " + str(d.get("progress", ""))
+			var tone: String = Utils.COLOR_GOLD
+			var tag_text: String = "Open"
+			match status:
+				"fulfilled":
+					tone = Utils.COLOR_SUCCESS
+					tag_text = "Fulfilled"
+				"met":
+					tone = Utils.COLOR_SUCCESS
+					tag_text = "Met"
+				"lapsed":
+					tone = Utils.COLOR_ERROR
+					tag_text = "Lapsed"
+			var held: int = int(d.get("held", 0))
+			var required: int = int(d.get("required", 0))
+			var hold_n: int = int(d.get("hold", 0))
+			var hold_needed: int = int(d.get("hold_needed", 0))
+			var progress_text: String = str(d.get("progress", "")).replace("[", "[lb]")
 			var hold = d.get("hold_line")
-			if hold is String and hold != "":
-				line += " (" + hold + ")"
-			out += "[color=#" + Utils.COLOR_INFO + "]" + line.replace("[", "[lb]") + "[/color]\n"
+			var hold_text: String = hold if hold is String else ""
+			var title_cell: String = "[color=#" + Utils.COLOR_INFO + "]" + mark + " " + str(d.get("title", "")).replace("[", "[lb]") + "[/color]"
+			var title_tip: String = str(d.get("hint", ""))
+			if folded and hold_needed <= 0 and hold_text != "":
+				title_tip += " (" + hold_text + ")"
+			title_cell = Utils.bb_hint(title_cell, title_tip)
+			var meter_cell: String = Utils.bb_meter(held, maxi(required, 1), meter_w, 10, tone)
+			meter_cell += " [color=#" + Utils.COLOR_INFO + "]" + str(held) + " / " + str(required) + "[/color]"
+			if folded:
+				meter_cell = Utils.bb_hint(meter_cell, str(d.get("progress", "")))
+			elif progress_text != "":
+				meter_cell += " [color=#" + Utils.COLOR_INFO + "]— " + progress_text + "[/color]"
+			var hold_cell := ""
+			if hold_needed > 0:
+				var pips := ""
+				for i in range(hold_needed):
+					pips += "●" if i < hold_n else "○"
+				hold_cell = "[color=#" + tone + "]" + pips + "[/color]"
+				if folded:
+					hold_cell = Utils.bb_hint(hold_cell, hold_text)
+				elif hold_text != "":
+					hold_cell += " [color=#" + Utils.COLOR_INFO + "]" + hold_text.replace("[", "[lb]") + "[/color]"
+			elif not folded and hold_text != "":
+				hold_cell = "[color=#" + Utils.COLOR_INFO + "]" + hold_text.replace("[", "[lb]") + "[/color]"
+			design_rows.append([title_cell, meter_cell, hold_cell, Utils.bb_tag(tag_text, tone)])
+		if not design_rows.is_empty():
+			out += Utils.bb_table(["Design", "Progress", "Hold", "Status"], design_rows, [], [5, 5, 2, 1], float(_balance_width()) - 16.0) + "\n"
 		out += Utils.CARD_CLOSE
 	var control = designs.get("control")
 	if control is String and control != "":
@@ -1089,29 +1207,58 @@ func _render_balance_of_europe():
 		bar_color = COLOR_RED
 	elif threat_level >= 30:
 		bar_color = COLOR_AMBER
-	bbcode += Utils.bb_glyph("threat", 28, tier_color) + "  [font=" + Utils.TITLE_FONT + "][color=#" + tier_color + "]" + str(threat_level) + "[/color][/font]  "
-	bbcode += _threat_gauge(threat_level, 360, 16, bar_color, [gauge_brews, gauge_forms]) + "\n"
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(gauge_brews) + " brews · " + str(gauge_forms) + " forms[/color]\n"
-	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100 — " + tier_shown + "[/color]\n"
+	# Session UI-4 (November 12, 2026): the three blind readers scored this page
+	# 6/10 ("plain text blocks with a thin threat meter"). The threat is now a hero
+	# block: the figure large in the title face with its tier as a tag, a gauge the
+	# width of the page (the level, a ghost segment to where the next war of
+	# conquest would take it, ticks at the brewing and the instant threshold), the
+	# scale under its ticks, and a figure row. Folded, the old lines (the
+	# thresholds, "Threat Level:", the projection) stand as the hero's hover;
+	# On the page they print as they did.
+	var folded: bool = Utils.explanations_folded()
+	var projection = boe.get("threat_projection", {})
+	var ghost_to: int = threat_level
+	if projection is Dictionary and projection.has("after_next_war"):
+		ghost_to = int(projection.get("after_next_war", threat_level))
+	var gauge_w: int = _balance_width()
+	var gauge_tip: String = str(gauge_brews) + " brews · " + str(gauge_forms) + " forms. Threat Level: " + str(threat_level) + " / 100 — " + tier_shown + "."
+	var hero: String = Utils.bb_glyph("threat", 28, tier_color) + "  [font=" + Utils.TITLE_FONT + "][color=#" + tier_color + "]" + str(threat_level) + "[/color][/font]"
+	hero += " [color=#" + Utils.COLOR_INFO + "]/ 100[/color]  " + Utils.bb_tag(threat_tier, tier_color) + "\n"
 	# FA-D11 (slice 17, Phase 2): the one number a player plans around — the
 	# backend computed it all along and no renderer read it.
-	var projection = boe.get("threat_projection", {})
 	# IQ-2: a collapsed France is planning no war of conquest — the backend
 	# sends the true reading of the alarm instead of the projection.
 	var projection_collapse = projection.get("collapse_line", "") if projection is Dictionary else ""
+	var projection_line := ""
 	if projection_collapse is String and projection_collapse != "":
-		bbcode += "[color=#" + Utils.COLOR_ERROR + "]" + projection_collapse + "[/color]\n"
+		pass
 	elif projection is Dictionary and projection.size() > 0:
 		var nxt = int(projection.get("after_next_war", threat_level))
 		var brewing = int(projection.get("brewing_threshold", 60))
 		var instant = int(projection.get("instant_threshold", 80))
 		var to_brewing = int(projection.get("wars_until_brewing", 0))
 		var to_instant = int(projection.get("wars_until_instant", 0))
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]Next war of conquest: " + str(threat_level) + " → " + str(nxt)
-		bbcode += " · brews at " + str(brewing) + " (" + (str(to_brewing) + " war" + ("s" if to_brewing != 1 else "") + " away" if to_brewing > 0 else "now") + ")"
-		bbcode += " · forms at once at " + str(instant) + " (" + (str(to_instant) if to_instant > 0 else "now") + ")"
+		projection_line = "Next war of conquest: " + str(threat_level) + " → " + str(nxt)
+		projection_line += " · brews at " + str(brewing) + " (" + (str(to_brewing) + " war" + ("s" if to_brewing != 1 else "") + " away" if to_brewing > 0 else "now") + ")"
+		projection_line += " · forms at once at " + str(instant) + " (" + (str(to_instant) if to_instant > 0 else "now") + ")"
 		var dissolve = int(boe.get("dissolution_threat_threshold", 20))
-		bbcode += " · dissolves below " + str(dissolve) + "[/color]\n"
+		projection_line += " · dissolves below " + str(dissolve)
+	if folded:
+		if projection_line != "":
+			gauge_tip += " " + projection_line + "."
+		bbcode += Utils.bb_hint(hero.trim_suffix("\n"), gauge_tip) + "\n"
+	else:
+		bbcode += hero
+	bbcode += _threat_gauge(threat_level, gauge_w, 20, bar_color, [gauge_brews, gauge_forms], ghost_to) + "\n"
+	bbcode += _gauge_scale_table(gauge_brews, gauge_forms)
+	if not folded:
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(gauge_brews) + " brews · " + str(gauge_forms) + " forms[/color]" + "\n"
+		bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100 — " + tier_shown + "[/color]" + "\n"
+	if projection_collapse is String and projection_collapse != "":
+		bbcode += "[color=#" + Utils.COLOR_ERROR + "]" + projection_collapse + "[/color]" + "\n"
+	elif projection_line != "" and not folded:
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + projection_line + "[/color]" + "\n"
+	bbcode += _balance_figures(boe, projection)
 	bbcode += "\n"
 
 	var headline_case = str(boe.get("headline_case", "NO_HEGEMON"))
@@ -1164,14 +1311,18 @@ func _render_balance_of_europe():
 	if sources.size() == 0:
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "]No new threats[/color]\n"
 	else:
+		# Session UI-4 (November 12, 2026): one signed tag a source, in the
+		# colour its line carried, on one wrapping line instead of a bulleted list.
+		var source_tags: Array = []
 		for s in sources:
 			if s is Dictionary:
 				var s_display = str(s.get("display", str(s)))
 				var s_amount = int(s.get("amount", 0))
 				var s_color = COLOR_RED if s_amount > 0 else (Utils.COLOR_SUCCESS if s_amount < 0 else Utils.COLOR_INFO)
-				bbcode += "  • [color=#" + s_color + "]" + s_display + "[/color]\n"
+				source_tags.append(Utils.bb_tag(s_display.replace("[", "(").replace("]", ")"), s_color))
 			else:
-				bbcode += "  • " + str(s) + "\n"
+				source_tags.append(Utils.bb_tag(str(s).replace("[", "(").replace("]", ")"), Utils.COLOR_INFO))
+		bbcode += "  " + "  ".join(PackedStringArray(source_tags)) + "\n"
 	bbcode += "\n"
 
 	# SF-LB-3 (Score Finish Step 7b): the next league — who would march,
@@ -1207,8 +1358,9 @@ func _render_balance_of_europe():
 		else:
 			var qual_strs = []
 			for q in qualifying:
-				qual_strs.append(Utils.display_nation_name(str(q)))
-			bbcode += "  " + ", ".join(PackedStringArray(qual_strs)) + "\n"
+				# Session UI-4: a flag and a name tag a court that would join.
+				qual_strs.append(Utils.bb_flag(str(q), 16) + Utils.bb_tag(Utils.display_nation_name(str(q)), Utils.COLOR_BADGE_QUIET))
+			bbcode += "  " + "  ".join(PackedStringArray(qual_strs)) + "\n"
 	bbcode += "\n"
 
 	# DY-1 (DYNAMISM_SPEC.md §3, Q6): the Alarm of Europe in words — the
@@ -1812,6 +1964,26 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	if created_turn > 0 and path != "scenario":
 		bbcode += ", Turn " + str(created_turn)
 	bbcode += ")[/color]"
+	# Session UI-4 (November 12, 2026): the readers found the cards "dense lines"
+	# with the secondary rows (Standing, Bond) as prose. Folded, a standing that
+	# blocks a petition ("5 turns until it may ask") and a bond not yet earned
+	# ("no bond yet — ...") become tags in this header line, their full words the
+	# tags' hover; On the page the rows stand as they were (further down).
+	var fold_standing := false
+	var fold_bond := false
+	if Utils.explanations_folded():
+		var standing_words: String = str(v.get("standing", ""))
+		if v.has("standing") and standing_words != "may petition" and standing_words != "":
+			fold_standing = true
+			var standing_tag: String = standing_words
+			var count_end: int = standing_words.find(" until it may ask")
+			if count_end > 0 and standing_words.substr(0, count_end).split(" ")[0].is_valid_int():
+				standing_tag = "asks in " + standing_words.substr(0, count_end)
+			bbcode += "  " + Utils.bb_hint(Utils.bb_tag(standing_tag, Utils.COLOR_BADGE_QUIET), standing_words)
+		var header_bond: String = _vassal_bond_text(v)
+		if v.has("bond") and header_bond.begins_with("no bond yet") and not _vassal_petition_granted(v):
+			fold_bond = true
+			bbcode += "  " + Utils.bb_hint(Utils.bb_tag("no bond yet", Utils.COLOR_BADGE_QUIET), header_bond)
 	# Session UI-3 (November 12, 2026): the client's foreign-policy sentence
 	# stands behind an ⓘ after its header line (On the page it prints below).
 	var policy_line = str(v.get("policy_line", ""))
@@ -1931,10 +2103,11 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 				standing_cell += "  [color=#" + Utils.COLOR_INFO + "]· may petition at the turn's end[/color]"
 			else:
 				standing_cell += "  [color=#" + Utils.COLOR_INFO + "]· next petition in " + str(next_in) + " turn" + ("s" if next_in != 1 else "") + "[/color]"
-		facts.append([_fact_label("authority", "Standing: "), standing_cell])
+		if not fold_standing:   # Session UI-4: folded, a blocked standing is a header tag
+			facts.append([_fact_label("authority", "Standing: "), standing_cell])
 	if v.has("bond") and not bond_led:
 		var bond_text = _vassal_bond_text(v)
-		if bond_text != "":
+		if bond_text != "" and not fold_bond:   # Session UI-4: folded, "no bond yet" is a header tag
 			facts.append([_fact_label("trust", "Bond: "), "[color=#" + Utils.COLOR_INFO + "]" + bond_text + "[/color]"])
 	var remission_left = int(v.get("remission_left", 0))
 	if remission_left > 0:

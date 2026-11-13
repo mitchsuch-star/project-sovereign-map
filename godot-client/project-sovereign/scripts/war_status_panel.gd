@@ -214,12 +214,61 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 		panel_container.anchor_bottom = 1.0
 		panel_container.offset_bottom = -EDGE_MARGIN
 		panel_container.offset_top = -EDGE_MARGIN - h
+	_clear_the_command_window(view)
 
 
 # Session UI-2: below this HUD-band width the panel sits at the top right,
 # under the notice rail's slot (36 bar + 6 gap + 76 slot + 6).
 const NARROW_BELOW_PX := 1000.0
 const NARROW_TOP_GAP := 88.0
+
+# Session UI-4 (November 12, 2026): the command window this panel never
+# stands on (main.gd sets it to the window's PanelContainer), and the gap
+# kept between them.
+var avoid_control: Control = null
+const AVOID_GAP := 8.0
+
+
+func _clear_the_command_window(view: Vector2) -> void:
+	"""Session UI-4 (November 12, 2026): the blind readers' Interface Scale
+	2.0 frame had the war list standing on the command window's corner — each
+	fitted from its own band edge, neither knew the other. Once the rect is
+	set, a panel that meets the window (`avoid_control`, grown by AVOID_GAP)
+	first narrows to stand right of it, never under the width its war lines
+	need whole; else it rises to end above it; else it shortens to end above
+	it, never under MIN_HEIGHT. A view with room for both is untouched."""
+	if avoid_control == null or not is_instance_valid(avoid_control) \
+			or not avoid_control.is_visible_in_tree():
+		return
+	var top_at: float = panel_container.anchor_top * view.y
+	var mine := Rect2(view.x + panel_container.offset_left, top_at + panel_container.offset_top,
+		panel_container.offset_right - panel_container.offset_left,
+		panel_container.offset_bottom - panel_container.offset_top)
+	var theirs := avoid_control.get_global_rect().grow(AVOID_GAP)
+	if not mine.intersects(theirs):
+		return
+	# 1 — beside it: the left edge right of the window, the width still whole.
+	# In the compact view (Interface Scale 2.0 on 1600 x 900: 800 x 450) the
+	# window's own input row is ~520 px and the war lines ~330: both cannot
+	# stand whole side by side, so the list narrows to its floor there and its
+	# names clip with an ellipsis (each row's tooltip and the detail carry
+	# them) — measured, rising above left it 63 px, a header and half a row.
+	var floor_w: float = float(MIN_WIDTH) if Utils.compact_view() else maxf(float(MIN_WIDTH), _content_need_width())
+	if mine.end.x - theirs.end.x >= floor_w:
+		panel_container.offset_left = theirs.end.x - view.x
+		return
+	# 2 — above it: the whole panel risen, its top still under the top bar.
+	var ceiling := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + EDGE_MARGIN
+	var bottom := theirs.position.y
+	if bottom - mine.size.y >= ceiling:
+		panel_container.offset_bottom = bottom - top_at
+		panel_container.offset_top = panel_container.offset_bottom - mine.size.y
+		return
+	# 3 — shorter: from where it starts to the window's top (it scrolls).
+	if bottom - maxf(mine.position.y, ceiling) >= MIN_HEIGHT:
+		var start := maxf(mine.position.y, ceiling)
+		panel_container.offset_top = start - top_at
+		panel_container.offset_bottom = bottom - top_at
 
 
 func _content_need_width() -> float:

@@ -489,6 +489,11 @@ func _reset_measure():
 	# rect is clamped to the logical viewport that scale leaves.
 	var view := root.get_visible_rect().size
 	_out["reset_view"] = [view.x, view.y]
+	# Session UI-4: the clamp clears the top bar's DRAWN strip (2 px taller at the
+	# shipped 115 %) and a Container grows to its content's minimum (the ledger's
+	# tab row at 115 % on a small logical view) — recorded so the pin can say so
+	_out["reset_top_bar_growth"] = Utils.top_bar_growth()
+	_out["ledger_min_after_reset"] = [_panel().get_combined_minimum_size().x, _panel().get_combined_minimum_size().y]
 	_out["ledger_authored"] = _out["screens"]["ledger"].get("authored", [])
 	_top_bar.toggle_screen("ledger")
 	_phase = "text_open"

@@ -134,14 +134,18 @@ func _petition_figure_rows(clauses: Array, grant_figs: Array, refuse_figs: Array
 	var out := ""
 	for i in range(maxi(clauses.size() - 3, 0)):
 		out += "  - %s\n" % str(clauses[i])
-	out += _figure_row("grant", grant_figs, Utils.COLOR_GOLD)
-	out += _figure_row("refuse", refuse_figs, Utils.COLOR_ERROR)
-	out += _figure_row("lapse", ["a lapse is a refusal"], Utils.COLOR_INFO)
+	# Session UI-4 (November 12, 2026): the figures are coloured by OUTCOME, not
+	# by the game's taste - grant in the friendly tone, refuse in the crimson
+	# text tone, a lapse in the quiet grey (the readers: "the chips are muddy ...
+	# colour the chips by outcome"). No answer is marked recommended.
+	out += _figure_row("grant", grant_figs, Utils.RELATION_POS)
+	out += _figure_row("refuse", refuse_figs, Utils.RELATION_NEG, Utils.UI_ALERT_TEXT.to_html(false))
+	out += _figure_row("lapse", ["a lapse is a refusal"], Utils.COLOR_BADGE_QUIET, Utils.UI_TEXT_DIM.to_html(false))
 	return out
 
 
-func _figure_row(label: String, figures: Array, tone_hex: String) -> String:
-	var row := "[color=#" + tone_hex + "][b][opentype_features=smcp]" + label \
+func _figure_row(label: String, figures: Array, tone_hex: String, label_hex: String = "") -> String:
+	var row := "[color=#" + (label_hex if label_hex != "" else tone_hex) + "][b][opentype_features=smcp]" + label \
 		+ "[/opentype_features][/b][/color]  "
 	var badges: Array = []
 	for fig in figures:

@@ -94,9 +94,16 @@ def fresh_staged():
 # more dimmed chips, then the reason. Session UI-2 (November 12, 2026): the
 # dimmed chip is a one-cell table (a dim rim on the old pill's ground) and
 # its bound spaces ride inside the span — the label is stripped.
+# Session UI-4 (November 12, 2026): a locked chip loses the look of a button —
+# its cell is transparent (rim and ground 00000000, the cell kept so a row never
+# jumps) and a lock glyph stands before its name (`Utils.bb_chip_disabled`).
+# (the harness writes the chip's no-break spaces as plain ones, and the reason
+# stands after the run's own gap)
 _DIMMED_RUN = re.compile(
-    r"((?:\s*\[table=1,baseline\]\[cell border=#4b505c bg=#20242c\](?:\[img[^\]]*\][^\[]*\[/img\] )?"
-    r"\[color=#6f7480\][^\[]+\[/color\]\[/cell\]\[/table\])+) "
+    r"((?:\s*\[table=1,baseline\]\[cell border=#00000000 bg=#00000000\]"
+    r"\[img[^\]]*\][^\[]*lock-simple\.svg\[/img\][\u00a0 ]"
+    r"(?:\[img[^\]]*\][^\[]*\[/img\][\u00a0 ])?"
+    r"\[color=#6f7480\][^\[]+\[/color\]\[/cell\]\[/table\])+)\s+"
     r"\[color=#[0-9a-f]+\]([^\[]+)\[/color\]")
 
 

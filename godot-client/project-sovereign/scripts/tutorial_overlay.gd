@@ -492,8 +492,10 @@ func _fit_card_width() -> void:
 	rail (UXR-2: the card covered the very rail its lessons point at), or
 	below it when there is no room beside it in the right half."""
 	var view := _logical_viewport()
-	var band := Utils.hud_band(view)
-	var width := maxf((band.y - band.x) * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH)
+	# Session UI-4: 40 % of the room the HUD SIZES against — the band, never
+	# wider than the 16:9 zone on a very wide view (Utils.hud_size_room): at
+	# the screen's edges of a 3200-px view the card keeps its 640, not 1,280.
+	var width := maxf(Utils.hud_size_room(view) * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH)
 	width = minf(width, maxf(view.x - 2.0 * CARD_MARGIN, 0.0))
 	var place := _card_placement(view, width)
 	_card.offset_left = -(width + CARD_MARGIN + place.x)
@@ -550,6 +552,10 @@ func _fit_card_height() -> void:
 		_body.fit_content = false
 		_body.scroll_active = true
 		_body.custom_minimum_size.y = maxf(room, BODY_MIN_HEIGHT)
+		# Session UI-4 (November 12, 2026): a scrolling body comes to rest on
+		# whole lines, as every reading scroll does — at the shipped 115 % on the
+		# compact 2.0 view its last line stood cut in half (12 px under the edge)
+		Utils.keep_whole_lines(_body)
 
 
 # S14G-X68 (Pre-Deploy S14h part 2, October 26, 2026): the command window
@@ -1016,6 +1022,12 @@ func _render() -> void:
 	if not compact:
 		lines.append(Utils.bb_meter(_step_index + 1, _steps.size(), PROGRESS_METER_WIDTH, 4))
 	lines.append(Utils.HEAD_OPEN + str(step["title"]) + Utils.HEAD_CLOSE)
+	# Session UI-4 (November 12, 2026): in the compact view the card's acts — the
+	# quill, the door, the skip — stand under its title, the lesson under them:
+	# at the shipped 115 % the body's window ended before its last paragraph, and
+	# the door and the skip stood below it (S14D part 2: the card reads its head,
+	# its door and its skip). A full view keeps the lesson first.
+	var acts_at := lines.size()
 	lines.append(_paragraphs(str(step["body"]), "\n" if compact else "\n\n"))
 	var waiting := int(step["turn_gate"]) > _turn
 	# TUT-F4c: an event step the war refuses (the live case — Austria's
@@ -1032,8 +1044,15 @@ func _render() -> void:
 	elif str(step["suggest"]) != "":
 		if not compact:
 			lines.append("")
-		lines.append(Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD))
-		lines.append("[color=#" + Utils.COLOR_INFO + "]Click the quill to place the order on your command line — you give the word.[/color]")
+		var quill := Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD)
+		var quill_note := "[color=#" + Utils.COLOR_INFO + "]Click the quill to place the order on your command line — you give the word.[/color]"
+		if compact:
+			lines.insert(acts_at, quill)
+			lines.insert(acts_at + 1, quill_note)
+			acts_at += 2
+		else:
+			lines.append(quill)
+			lines.append(quill_note)
 	if not waiting and step.has("open"):
 		# Sept 23, 2026: a door, not an order — the chip opens the real
 		# screen (the Cabinet) on the court the card names.
@@ -1041,21 +1060,34 @@ func _render() -> void:
 		var door_primary := str(step["suggest"]) == ""
 		if door_primary and not compact:
 			lines.append("")
-		lines.append(Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")),
+		var door := Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")),
 			PRIMARY_CHIP_TEXT_HEX if door_primary else CHIP_TEXT_HEX,
-			Utils.COLOR_GOLD if door_primary else CHIP_BG_HEX))
+			Utils.COLOR_GOLD if door_primary else CHIP_BG_HEX)
+		if compact:
+			lines.insert(acts_at, door)
+			acts_at += 1
+		else:
+			lines.append(door)
 	if overdue:
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + str(_notes.get("overdue", "")) + "[/color]")
 	if _released_note != "":
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + _released_note + "[/color]")
 	if str(step["id"]) == "handoff":
-		lines.append("")
-		lines.append(Utils.bb_button_chip("skipdone:", "Conclude the lesson", PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD))
+		var conclude := Utils.bb_button_chip("skipdone:", "Conclude the lesson", PRIMARY_CHIP_TEXT_HEX, Utils.COLOR_GOLD)
+		if compact:
+			lines.insert(acts_at, conclude)
+		else:
+			lines.append("")
+			lines.append(conclude)
 	else:
 		# Sept 23, 2026: no step may hold the player hostage — every card
 		# but the last can be skipped on its own, at no cost.
 		# Session UI-2 (H): the quiet one — dim ink on the dim ground.
-		lines.append(Utils.bb_button_chip("skipstep:", "Skip this lesson ▸", Utils.COLOR_INFO, Utils.CHIP_DIM_BG))
+		var skip := Utils.bb_button_chip("skipstep:", "Skip this lesson ▸", Utils.COLOR_INFO, Utils.CHIP_DIM_BG)
+		if compact:
+			lines.insert(acts_at, skip)
+		else:
+			lines.append(skip)
 	_body.text = "\n".join(lines)
 	# UXR-1: a new body may be longer than the screen — re-bound it once the
 	# text has laid out at the card's width.

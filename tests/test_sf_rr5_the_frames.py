@@ -69,7 +69,9 @@ S14D_LINED = {
     "wizard_step1": ("Any court may be treated with here, Sire", None),
     "wizard_formables_step3": ("States not yet on the map, Sire", None),
     "wizard_designs_step4": ("Your own aims, Sire, not the courts'", "Proclaim Road I —"),   # not Road III
-    "settlement_three_courts": ("This is the table, Sire. Every court", "Demand more of Austria"),
+    # Session UI-4: folded, a court row's faces are short — Austria's row is the
+    # first in the body, so its "Demand more" is the first such button
+    "settlement_three_courts": ("This is the table, Sire. Every court", "Demand more"),
     "settlement_pair_substitute": ("A separate peace, Sire, takes this one", "Proceed — separate peace with Austria"),
     "moment_letter_bavarian_match": ("A moment of history, Sire", "Seal the match"),
     "moment_letter_decree_of_berlin": ("A moment of history, Sire", "Sign the Decree"),
@@ -197,6 +199,20 @@ def _seen(frame: dict) -> str:
 def _button(frame: dict, text: str) -> dict:
     hits = [b for b in frame.get("buttons") or [] if b["text"].startswith(text)]
     assert hits, f"no button '{text}' in {[b['text'] for b in frame.get('buttons') or []]}"
+    return hits[0]
+
+
+# Session UI-4 (November 12, 2026): every court is one status row, and folded its
+# three faces are short ("Demand more" / "Ease" / "Drop") with the court's full
+# label as the button's hover; on the page the face is the full label.
+_SHORT_FACE = {"Demand more of ": "Demand more", "Ease ": "Ease", "Drop ": "Drop"}
+
+
+def _court_button(frame: dict, verb: str, court: str) -> dict:
+    hits = [b for b in frame.get("buttons") or []
+            if b["text"].startswith(verb + court)
+            or (b["text"] == _SHORT_FACE[verb] and court in (b.get("tooltip") or ""))]
+    assert hits, f"no '{verb}{court}' in {[(b['text'], b.get('tooltip')) for b in frame.get('buttons') or []]}"
     return hits[0]
 
 
@@ -489,7 +505,7 @@ class TestEAE6EveryCourtKeepsItsRow:
         frame = _frame(record, "settlement_three_courts", scale)
         for court in ("Austria", "Britain", "Russia"):
             for verb in ("Demand more of ", "Ease ", "Drop "):
-                b = _button(frame, verb + court)
+                b = _court_button(frame, verb, court)
                 assert _inside(b["rect_raw"], b["scroll_rect"] or b["rect_raw"]), (court, verb)
         assert _folded(frame) == []
 

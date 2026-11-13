@@ -109,7 +109,10 @@ func show_proclamation(data: Dictionary):
 	# The engraved proclamation line (authored per formation).
 	var proclamation := str(data.get("proclamation", ""))
 	if proclamation != "":
-		bbcode += "[center][i]%s[/i][/center]\n\n" % proclamation
+		# Session UI-4: the compact view spends no blank line under the speech
+		bbcode += "[center][i]%s[/i][/center]\n" % proclamation
+		if not Utils.compact_view():
+			bbcode += "\n"
 
 	# The terms of its birth, stated plainly.
 	var terms = data.get("terms", [])
@@ -161,14 +164,30 @@ func _fit_card() -> void:
 	await get_tree().process_frame
 	if not visible:
 		return
-	if Utils.compact_view():
-		# the compact view: the one clamp at show stands, as before (a second
-		# clamp relaxes the reading again) — its terms and closing line in view
-		return
+	# Session UI-4 (November 12, 2026): at the shipped 115 % the Duchy of Warsaw's
+	# terms ran past the reading's 360-px cap inside the authored 520-px card,
+	# and at 2.0 past the clamp's band (SF-RB11: the closing line and every term
+	# seen). The card's ceiling is now the window's band and the reading sizes to
+	# its words within it (the clamp's relax keeps a value the caller sets as its
+	# ceiling); in the compact view the arms row, an ornament, steps aside.
+	var panel := $PanelContainer as Control
 	var scroll: Control = $PanelContainer/VBoxContainer/ContentScroll
-	scroll.custom_minimum_size.y = clampf(content_label.get_combined_minimum_size().y + 4.0, 60.0, 360.0)
-	Utils.clamp_centered_panel($PanelContainer)
-	Utils.shrink_centered_panel_to_content($PanelContainer)
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var arms := get_node_or_null("PanelContainer/VBoxContainer/ArmsRow") as Control
+	if arms != null:
+		arms.visible = arms.get_child_count() > 0 and not Utils.compact_view()
+	# the new flag, as the end card's crest does, stands aside in the compact view
+	# (the nation's name stands under it in the title face)
+	var flags := get_node_or_null("PanelContainer/VBoxContainer/FlagRow") as Control
+	if flags != null:
+		flags.visible = not Utils.compact_view() and new_flag.texture != null
+	panel.set_meta("clamp_ceiling_override", Vector2(0.0, view.y))
+	# the reading is the card's primary content: the flag gives up its height
+	# first when the window is short (the clamp's `relax_last`)
+	scroll.set_meta("relax_last", true)
+	scroll.custom_minimum_size.y = clampf(content_label.get_combined_minimum_size().y + 4.0, 60.0, view.y)
+	Utils.clamp_centered_panel(panel)
+	Utils.shrink_centered_panel_to_content(panel)
 
 
 func refit() -> void:

@@ -110,7 +110,12 @@ const CORR_SEAL := "res://assets/ui/ornaments/wax_seal.png"
 const CORR_FELL_ITALIC := "res://assets/fonts/IMFeENit28P.ttf"
 const CORR_CINZEL := "res://assets/fonts/Cinzel[wght].ttf"
 const CORR_SHEET_FIELD := Rect2(72, 64, 496, 352)   # the sheet's un-torn inner field (640 × 480 art)
-const CORR_DEVICE_PX := 30.0     # Session UI-2: the slip's device, larger (was 24)
+# Session UI-4 (November 12, 2026): the sealed letter is the desk's focal point
+# ("make the sealed letter the focal point and enlarge it"): its device 40 px (was
+# 30), a glyph by kind at the head of each rubric row, the slips spaced apart.
+const CORR_DEVICE_PX := 40.0
+const CORR_GLYPH_PX := 28.0
+const CORR_SLIP_GAP := 14
 const CORR_SEAL_PX := 30.0       # Session UI-2: the wax seal, larger (was 18)
 const CORR_SCROLL_FLOOR := 160.0                     # the scene's authored scroll minimum (the page never fits smaller)
 const CORR_CHIP_BG := "1A1A2E"                       # the theme's navy plaque under a gold chip
@@ -244,7 +249,6 @@ func _on_dispatch_received(response):
 	# ═══ SITUATION ═══
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]\n"
 	# Session UI-2: the figures lead; the sentences below are their notes.
-	bbcode += _situation_figures(situation)
 	var player_regions = int(situation.get("player_regions", 0))
 	var treasury = int(situation.get("treasury", 0))
 	var treasury_delta = int(situation.get("treasury_delta", 0))
@@ -268,7 +272,18 @@ func _on_dispatch_received(response):
 	var act_sink := str(situation.get("act_sink", ""))
 	if sink_suffix == "" and act_sink != "":
 		sink_suffix = "[color=#" + Utils.COLOR_INFO + "] — " + act_sink + " (F1 → The Emperor's Designs)[/color]"
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix + "\n"
+	# Session UI-4 (November 12, 2026): the readers called the Situation a text
+	# wall that "repeats its own figures". The figures row leads (its tiles are
+	# the numbers); the sentence that restates them stands behind an ⓘ at the
+	# end of that row and prints where it did On the page. The Laws door (a
+	# live chip) never folds: Folded it keeps a line of its own.
+	var holds_words: String = "France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g (" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")"
+	var holds_line: String = "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix + "\n"
+	bbcode += _situation_figures(situation, Utils.lead_mark(holds_words, "dispatch.situation"))
+	if not Utils.explanations_folded() or Utils.show_note("dispatch.situation"):
+		bbcode += holds_line
+	elif sink_suffix != "":
+		bbcode += "[color=#" + Utils.COLOR_INFO + "] " + sink_suffix + "\n"
 	# Tier 1 (DYNAMISM_SPEC §2): the first morning names the campaign's
 	# seed — the key rides the boot briefing only, so every later morning
 	# renders exactly as before.
@@ -290,7 +305,8 @@ func _on_dispatch_received(response):
 	var affairs_watch = situation.get("affairs_watch", null)
 	if affairs_watch is Array:
 		for watch_line in affairs_watch:
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]  IN THE OFFING: " + str(watch_line) + "[/color]\n"
+			# Session UI-4: a tag-led row (the tag is the label, the sentence follows).
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + Utils.bb_tag("In the offing", Utils.COLOR_GOLD) + " " + str(watch_line) + "[/color]\n"
 	# RE-R (docs/RECURRING_EVENTS_SPEC.md §12c, P10): the answers' receipts
 	# the morning after — plain, the same key the terminal's dispatch prints
 	# (`situation.affair_receipt`, absent on every other morning).
@@ -331,7 +347,8 @@ func _on_dispatch_received(response):
 		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
 		auth_color = Utils.COLOR_ERROR
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + (" (" + authority_label + ")" if authority_label != "" else "") + "[/color]\n"
+	# Session UI-4: the authority is a figure (glyph, title-face number), its label beside it.
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color]" + Utils.bb_glyph("authority", 16, auth_color) + " [font=" + Utils.TITLE_FONT + "][color=#" + auth_color + "]" + str(authority) + "[/color][/font][color=#" + auth_color + "]" + (" (" + authority_label + ")" if authority_label != "" else "") + "[/color]\n"
 
 	# ES-7 second pass (§0.6.8 item 4a): expectation RISES — the briefing
 	# announces WHEN a marshal starts expecting more, not just when he sours.
@@ -376,6 +393,8 @@ func _on_dispatch_received(response):
 	# ═══ MARSHAL STATUS ═══
 	if marshals_list.size() > 0:
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]MARSHAL STATUS[/color]\n"
+		var m_rows: Array = []
+		var m_dangers: Array = []
 		for m in marshals_list:
 			var m_name = str(m.get("name", "?"))
 			var m_loc = str(m.get("location", "?"))
@@ -442,34 +461,40 @@ func _on_dispatch_received(response):
 				row_hex = Utils.COLOR_ERROR
 			elif m_status == "idle_restless":
 				row_hex = Utils.COLOR_BATTLE
-			var line = "  " + Utils.bb_glyph(row_glyph, 16, row_hex) + " "
-			if icon in ["!", "?", "»"]:
-				line += icon + " "
-			line += m_name + " — " + m_loc + " — " + _format_number(m_str)
-			if m_note != "":
-				line += " — " + m_note
-
-			# Append trust/morale warnings
+			# Session UI-4 (November 12, 2026): the readers called this section a
+			# dense text wall with "no bars or icons for its numbers". The rows are
+			# a table now - Marshal | Location | Men | State | warning - the state a
+			# tag, the danger a warning tag. Folded, the danger's words are the tag's
+			# hover; On the page the line prints under the table as it did.
+			var state_words: String = str(m_note)
+			if state_words == "":
+				state_words = "Awaiting orders" if m_status == "awaiting" else m_status.replace("_", " ").capitalize()
+			state_words = state_words.replace("\n", " ")
+			# a tag binds its words (no break), so a long note stays plain words that wrap
+			var state_bits: Array = [Utils.bb_tag(state_words, row_hex) if state_words.length() <= 26 else "[color=#" + row_hex + "]" + state_words + "[/color]"]
 			if m_trust_notable and m_trust < 55:
-				line += " Trust:" + str(m_trust)
+				state_bits.append(Utils.bb_tag("Trust " + str(m_trust), Utils.COLOR_WARNING))
 			if m_morale_warning:
-				line += " Morale: " + str(m_morale) + "%"
-
-			# Color based on status
-			var line_color = Utils.COLOR_INFO
-			if m_status == "broken":
-				line_color = Utils.COLOR_ERROR
-			elif m_status == "retreating":
-				line_color = Utils.COLOR_ERROR
-			elif m_status == "idle_restless":
-				line_color = Utils.COLOR_BATTLE
-
-			bbcode += "[color=#" + line_color + "]" + line + "[/color]\n"
-
-			# W6-3 §5.2: danger flag line (fog-legal threat under the row)
-			var m_danger = str(m.get("danger", ""))
+				state_bits.append(Utils.bb_tag("Morale " + str(m_morale) + "%", Utils.COLOR_WARNING))
+			var m_danger = str(m.get("danger", "")).replace("\n", " ")
+			var warn_cell := ""
 			if m_danger != "":
-				bbcode += "[color=#" + Utils.COLOR_WARNING + "]      ⚠ " + m_danger + "[/color]\n"
+				var warn_tag := Utils.bb_tag("⚠", Utils.COLOR_WARNING)
+				warn_cell = Utils.bb_hint(warn_tag, m_danger) if Utils.explanations_folded() else warn_tag
+				m_dangers.append(m_danger)
+			var mark: String = (icon + " ") if icon in ["!", "?", "»"] else ""
+			# Session UI-4: the ⚠ tag stands in the State cell, after the state —
+			# its own column overran the window's edge at the readers' size (the
+			# three interim readers: "the Warn column is cut off")
+			var state_cell: String = " ".join(PackedStringArray(state_bits))
+			if warn_cell != "":
+				state_cell += " " + warn_cell
+			m_rows.append([Utils.bb_glyph(row_glyph, 16, row_hex) + " " + mark + m_name, m_loc.replace("\n", " "),
+					_format_number(m_str), state_cell])
+		bbcode += Utils.bb_table(["Marshal", "Location", "Men", "State"], m_rows, [2], [3, 3, 2, 4]) + "\n"
+		if not Utils.explanations_folded():
+			for d in m_dangers:
+				bbcode += "[color=#" + Utils.COLOR_WARNING + "]      ⚠ " + str(d) + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ INTELLIGENCE ═══
@@ -822,7 +847,7 @@ const _SECTION_KINDS := {
 }
 
 
-func _situation_figures(situation: Dictionary) -> String:
+func _situation_figures(situation: Dictionary, fold_mark: String = "") -> String:
 	"""The figure line that leads SITUATION: regions held, the treasury and its
 	turn, the authority, the enemy's estimated strength — each a glyph, a figure
 	in the title face and a caption. The same fields the sentences under it
@@ -842,7 +867,7 @@ func _situation_figures(situation: Dictionary) -> String:
 	if not (typeof(broke) == TYPE_BOOL and broke) and not (typeof(no_army) == TYPE_BOOL and no_army):
 		out += gap + Utils.bb_glyph("threat", 18) + " " + Utils.HEAD_OPEN + str(int(situation.get("strength_ratio_pct", 0))) + "%" + Utils.HEAD_CLOSE
 		out += " [color=#" + Utils.COLOR_INFO + "]enemy strength[/color]"
-	return out + "\n"
+	return out + fold_mark + "\n"
 
 
 func _dress_sections(bbcode: String) -> String:
@@ -1087,6 +1112,7 @@ func _render_correspondence(data: Dictionary) -> void:
 	"""The one column: the first-open line (once), ON THE DESK, IN THE
 	OFFING, ANSWERED newest first, LEFT UNANSWERED / SET ASIDE, the closing
 	record of a closed file. Every row is the backend's; nothing is derived here."""
+	corr_box.add_theme_constant_override("separation", CORR_SLIP_GAP)
 	for child in corr_box.get_children():
 		corr_box.remove_child(child)
 		child.queue_free()
@@ -1114,7 +1140,8 @@ func _render_correspondence(data: Dictionary) -> void:
 	if offing.is_empty():
 		_add_corr_note(str(empty.get("offing", "")), Utils.COLOR_INFO)
 	for line in offing:
-		_add_corr_note(str(line), Utils.COLOR_INFO)
+		# Session UI-4: each offing item led by a glyph ("icons and spacing so it reads as an inbox")
+		_add_corr_note(str(line), Utils.COLOR_INFO, "turn")
 	var answered = data.get("answered", [])
 	if not (answered is Array):
 		answered = []
@@ -1152,7 +1179,7 @@ func _add_corr_head(text: String, sub: String) -> void:
 	corr_box.add_child(head)
 
 
-func _add_corr_note(text: String, hex: String) -> void:
+func _add_corr_note(text: String, hex: String, glyph: String = "") -> void:
 	if text == "":
 		return
 	var note := RichTextLabel.new()
@@ -1161,7 +1188,8 @@ func _add_corr_note(text: String, hex: String) -> void:
 	note.scroll_active = false
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	note.mouse_filter = Control.MOUSE_FILTER_PASS
-	note.text = "[color=#" + hex + "]" + _corr_esc(text) + "[/color]"
+	var lead := (Utils.bb_glyph(glyph, 18, hex) + " ") if glyph != "" else ""
+	note.text = "[color=#" + hex + "]" + lead + _corr_esc(text) + "[/color]"
 	corr_box.add_child(note)
 
 
@@ -1177,6 +1205,28 @@ func _add_slip(row: Dictionary, kind: String) -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	# Session UI-4: the slip's kind as a glyph - a sealed letter waiting, an
+	# answered one, a closed file; a foreign court's letter (arms on it) an envoy.
+	var dev_kind := ""
+	var dev_row = row.get("device", {})
+	if dev_row is Dictionary:
+		dev_kind = str(dev_row.get("kind", ""))
+	var slip_glyph := "letter"
+	if kind == "answered":
+		slip_glyph = "medal"
+	elif kind == "closing":
+		slip_glyph = "turn"
+	elif dev_kind in ["arms", "sheet"]:
+		slip_glyph = "envoy"
+	var slip_icon := TextureRect.new()
+	slip_icon.texture = load(Utils.glyph(slip_glyph))
+	slip_icon.modulate = Color.html(Utils.INK_RUBRIC)
+	slip_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	slip_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	slip_icon.custom_minimum_size = Vector2(CORR_GLYPH_PX, CORR_GLYPH_PX)
+	slip_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(slip_icon)
 	var rubric := Label.new()
 	rubric.theme_type_variation = &"Caption"
 	rubric.add_theme_font_override("font", _corr_cinzel)

@@ -35,6 +35,7 @@ var current_data: Dictionary = {}
 # `per_court_acceptance` -> the HFlowContainer `_add_settlement_tier2_buttons`
 # fills), the coverage row's host, and the body's "more below" cue.
 var _court_flows: Dictionary = {}
+var _court_open: Dictionary = {}   # nation -> the player's toggle of a court's words (Session UI-4)
 var _coverage_flow: HFlowContainer = null
 var _body_more_below: Control = null
 # the table's S14d first-open line, read once per open (`show_dialogue`) so a
@@ -92,6 +93,13 @@ const PART_TAIL := -3
 const HEAD_FLOOR := 72.0
 # a court's line in the short window: its buttons stand at this height
 const COMPACT_ROW_HEIGHT := 30.0
+# Session UI-4: a court's status row — fixed widths so the courts stand in columns
+const COURT_NAME_WIDTH := 130.0
+const COURT_METER_WIDTH := 140.0
+const COURT_METER_WIDTH_COMPACT := 90.0
+const COURT_SCORE_WIDTH := 66.0
+const COURT_STATUS_WIDTH := 104.0
+const COURT_BLOCKER_WIDTH := 250.0
 # Session UI-3: the body's "more below" strip — the scroll gives it up while
 # lines remain below, so the tag stands under the last line, never on it.
 const BODY_CUE_STRIP := 20.0
@@ -354,7 +362,9 @@ func show_dialogue(data: Dictionary):
 		var disabled_reason = str(opt.get("disabled_reason_display", opt.get("disabled_reason", original_tooltip)))
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
-		btn.custom_minimum_size = Vector2(160, 45)
+		# Session UI-4: 5 px lower in the compact view — at the shipped 115 % the
+		# table's last court row stood at the body's very edge (EA-E6)
+		btn.custom_minimum_size = Vector2(160, 40 if Utils.compact_view() else 45)
 		# Session UI-2: the act a table exists for is its primary button.
 		if original_label.begins_with("Submit for Review") or original_label.begins_with("Ratify"):
 			btn.theme_type_variation = &"PrimaryButton"
@@ -396,7 +406,19 @@ func show_dialogue(data: Dictionary):
 			cell.add_theme_constant_override("separation", 2)
 			cell.add_child(btn)
 			var note := Label.new()
-			note.text = disabled_reason if (not available and disabled_reason != "") else original_tooltip
+			var note_text: String = disabled_reason if (not available and disabled_reason != "") else original_tooltip
+			note.text = note_text
+			# Session UI-4 (November 12, 2026): folded, a note of more than one
+			# sentence stands as its first, marked "…", the whole of it the
+			# note's hover (the button's own tooltip says it too) — a shut
+			# path's 452-character refusal stood as a column of fourteen lines
+			# under its button and, at 115 % on the compact 2.0 view, ran the
+			# panel off the top of the window. On the page the whole note stands.
+			var first_end: int = Utils.first_sentence_end(note_text) if Utils.explanations_folded() else -1
+			if first_end > 0 and first_end < note_text.strip_edges().length():
+				note.text = note_text.substr(0, first_end).strip_edges() + " …"
+				note.tooltip_text = note_text
+				note.mouse_filter = Control.MOUSE_FILTER_PASS
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			note.custom_minimum_size = Vector2(160, 0)
 			note.theme_type_variation = &"Caption"
@@ -525,7 +547,15 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			var btn = Button.new()
 			btn.text = str(aff.get("label", "???"))
 			btn.tooltip_text = str(aff.get("description", ""))
-			btn.custom_minimum_size = Vector2(0.0 if compact else 150.0, COMPACT_ROW_HEIGHT if compact else 36.0)
+			# Session UI-4: folded, a court's three buttons wear short faces (Demand
+			# more / Ease / Drop) in its status row; the full label and the
+			# description are the hover. On the page the full label stands.
+			var short_face: String = _short_face(str(aff.get("action", ""))) if at >= 0 and Utils.explanations_folded() else ""
+			var face_tip: String = str(aff.get("description", ""))
+			if short_face != "":
+				btn.text = short_face
+				face_tip = (str(aff.get("label", "")) + " — " + face_tip) if face_tip != "" else str(aff.get("label", ""))
+			btn.custom_minimum_size = Vector2(0.0 if (compact or short_face != "") else 150.0, COMPACT_ROW_HEIGHT if (compact or short_face != "") else 36.0)
 			# Session UI-2: one button language — the theme's gilt face.
 			btn.theme_type_variation = &"CaptionButton"
 			# Session UI-3: a Button's default STOP eats the wheel before the
@@ -539,14 +569,25 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			# at war with Austria" is the shut chip's own reason.
 			var aff_available := bool(aff.get("available", true))
 			var aff_reason := str(aff.get("disabled_reason_display", ""))
-			Utils.set_available(btn, aff_available, str(aff.get("description", "")),
-				aff_reason if aff_reason != "" else str(aff.get("description", "")))
+			Utils.set_available(btn, aff_available, face_tip,
+				aff_reason if aff_reason != "" else face_tip)
 			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
 			line.add_child(btn)
 		# the host (a court's wrapper beneath its words, the coverage row) stands
 		# only where it holds buttons
 		if line.has_meta("host"):
 			(line.get_meta("host") as Control).visible = true
+
+func _short_face(action: String) -> String:
+	"""Session UI-4: a court row's short button face, by the affordance's action."""
+	match action:
+		"settlement_dial_harsher":
+			return "Demand more"
+		"settlement_dial_generous":
+			return "Ease"
+		"settlement_cover_drop":
+			return "Drop"
+	return ""
 
 func _is_default_builder(dtype: String, data: Dictionary) -> bool:
 	"""PC-F34: true when `show_dialogue`'s match fell to `_build_content`
@@ -1269,26 +1310,19 @@ func _render_per_court_table():
 		lead_label.text = Utils.humanize_nation_keys_in_text(lead.rstrip("\n"))
 		per_court_body.add_child(lead_label)
 	if has_courts:
-		# Session UI-3 (the lead's pass on the frames): an accordion — the court
-		# in focus (`focused_court`, REFRONT-9's), or with none the first, stands
-		# as its whole card; every other court is ONE line (flag, name, score,
-		# its blocker, its three buttons), its words under its name. Three whole
-		# cards could not stand under the head at 1.0 (Russia's buttons at 921
-		# against a window ending at 779 — EA-E6's driven pin); in the compact
-		# view every court is a line.
-		var focused: String = _safe_str(data.get("focused_court"))
+		# Session UI-4 (November 12, 2026): every court is ONE uniform status row
+		# (flag + name as the toggle, the score on a meter, a status tag, the
+		# blocker, the three buttons); the readers wanted "a compact table with one
+		# status line per court". A court's words (band, the envoy, the demand lines)
+		# open under ITS row when its name is clicked; the court in focus
+		# (`focused_court`, REFRONT-9's) opens by itself, the rest stay shut. On the
+		# page every court's words stand, as ever.
 		var court_index := -1
 		for row in per_court:
 			court_index += 1
 			if not (row is Dictionary):
 				continue
-			var nation_key: String = str(row.get("nation", ""))
-			var whole: bool = (nation_key == focused) if focused != "" else (court_index == 0)
-			# Explanations: On the page — every court's words stand, as before:
-			# every court its whole card (the accordion is the folded view's).
-			if not Utils.explanations_folded():
-				whole = true
-			per_court_body.add_child(_court_card(row, court_index, compact or not whole))
+			per_court_body.add_child(_court_card(row, court_index, compact))
 		# the table's closing line (carries / does not carry) and the next step
 		var tail: String = _build_settlement_per_court_block(data, PART_TAIL).rstrip("\n")
 		if tail.strip_edges() != "":
@@ -1365,17 +1399,19 @@ func _slug(key: String) -> String:
 
 
 func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
-	"""Session UI-3: ONE court as ONE card — a dark well a touch darker than the
-	panel, a hairline and a 3-px spine in the colour of where the court stands
-	(`card_underlay.gd`'s look, drawn by real nodes so its buttons can stand
-	inside it). Wide: the court's words (the chunk `_build_settlement_per_court_block`
-	writes for it) with its Demand / Ease / Drop buttons beneath. In the short
-	window (Interface Scale 2.0) the court is ONE line — flag, name, score and
-	its buttons — and its words stand behind its name (a click opens them,
-	`settle.court.<key>`)."""
+	"""Session UI-4: ONE court as ONE uniform status row inside a card — flag and
+	name (the toggle: "Austria ▸" / "Austria ▾"), the score on a meter with its
+	"33 / 50", a status tag (Holding out / Carries / Consents), the blocker, then
+	its real buttons (Demand more / Ease / Drop, added by
+	`_add_settlement_tier2_buttons`). The pieces have fixed widths so the courts
+	stand in columns; a narrow window wraps the buttons to a second line under the
+	status, never off the panel. The court's words (the chunk
+	`_build_settlement_per_court_block` writes for it) stand under the row when it
+	is open (`_court_is_open`)."""
 	var nation: String = str(row.get("nation", "?"))
 	var total = _court_total(row)
-	var tone: Color = Color.from_string(_court_tone_hex(total, row), Color(0.85, 0.75, 0.55))
+	var tone_hex: String = _court_tone_hex(total, row)
+	var tone: Color = Color.from_string(tone_hex, Color(0.85, 0.75, 0.55))
 	var card := PanelContainer.new()
 	card.name = "CourtCard%d" % court_index
 	card.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1410,32 +1446,13 @@ func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
 	chunk = chunk.replace(Utils.CARD_CLOSE, "").rstrip("\n")
 	per_court_table.text = Utils.humanize_nation_keys_in_text(chunk)
 	var buttons := HFlowContainer.new()
-	buttons.name = "CourtActs"
-	buttons.add_theme_constant_override("h_separation", 8)
-	buttons.add_theme_constant_override("v_separation", 4 if compact else 6)
-	buttons.mouse_filter = Control.MOUSE_FILTER_PASS
-	if not compact:
-		inner.add_child(per_court_table)
-		# the acts stand beneath her words; a court with none shows no strip
-		var host := MarginContainer.new()
-		host.name = "CourtActsHost"
-		host.mouse_filter = Control.MOUSE_FILTER_PASS
-		host.add_theme_constant_override("margin_left", 10)
-		host.add_theme_constant_override("margin_right", 8)
-		host.add_theme_constant_override("margin_bottom", 8)
-		host.visible = false
-		host.add_child(buttons)
-		buttons.set_meta("host", host)
-		inner.add_child(host)
-		_court_flows[court_index] = buttons
-		return card
-	# ── the short window: one line, the words behind the name ──
-	var note_id: String = "settle.court." + _slug(nation)
-	# On the page a court's words stand under its line (`show_note`).
-	var is_open: bool = Utils.show_note(note_id)
 	buttons.name = "CourtLine"
-	buttons.add_theme_constant_override("h_separation", 6)
+	buttons.add_theme_constant_override("h_separation", 6 if compact else 8)
+	buttons.add_theme_constant_override("v_separation", 4)
 	buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buttons.mouse_filter = Control.MOUSE_FILTER_PASS
+	var row_h: float = COMPACT_ROW_HEIGHT
+	var is_open: bool = _court_is_open(nation)
 	var flag_path: String = Utils.nation_flag_path(nation)
 	if flag_path != "":
 		var flag_tex: Texture2D = load(flag_path)
@@ -1444,38 +1461,76 @@ func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
 			flag.texture = flag_tex
 			flag.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			flag.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			flag.custom_minimum_size = Vector2(26, COMPACT_ROW_HEIGHT)
+			flag.custom_minimum_size = Vector2(26, row_h)
 			flag.mouse_filter = Control.MOUSE_FILTER_PASS
 			buttons.add_child(flag)
 	var name_button := Button.new()
 	name_button.name = "CourtName"
 	name_button.flat = true
 	name_button.text = "%s %s" % [Utils.display_nation_name(nation), "▾" if is_open else "▸"]
+	name_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name_button.theme_type_variation = &"CaptionButton"
-	name_button.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT)
+	name_button.custom_minimum_size = Vector2(COURT_NAME_WIDTH, row_h)
 	name_button.mouse_filter = Control.MOUSE_FILTER_PASS
 	name_button.add_theme_color_override("font_color", Color(COLOR_GOLD))
 	name_button.tooltip_text = "Open or close %s's terms." % Utils.display_nation_name(nation)
-	name_button.pressed.connect(_on_court_line_toggled.bind(note_id))
+	name_button.pressed.connect(_on_court_line_toggled.bind(nation))
 	buttons.add_child(name_button)
+	# the meter and its figure: score against the bar (no meter where the court's
+	# own offer is on the table — a spacer holds the column)
+	var threshold: int = int(row.get("threshold", 50))
+	var meter_w: float = COURT_METER_WIDTH_COMPACT if compact else COURT_METER_WIDTH
+	var meter_host := Control.new()
+	meter_host.name = "CourtMeter"
+	meter_host.custom_minimum_size = Vector2(meter_w, row_h)
+	meter_host.mouse_filter = Control.MOUSE_FILTER_PASS
+	if total != null:
+		_court_meter_nodes(meter_host, int(total), threshold, tone, meter_w, row_h)
+	buttons.add_child(meter_host)
 	var score := Label.new()
 	score.name = "CourtScore"
-	score.text = _court_score_text(row, total)
+	score.text = ("%d / %d" % [int(total), threshold]) if total != null else ""
 	score.theme_type_variation = &"Caption"
-	score.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT)
+	score.custom_minimum_size = Vector2(COURT_SCORE_WIDTH, row_h)
 	score.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	score.add_theme_color_override("font_color", Color.from_string(_court_text_hex(total, row), Color.WHITE))
 	buttons.add_child(score)
-	# Session UI-3: on a wide window a court's line carries its blocker too —
-	# why it holds out stands beside its score, its words under its name.
+	# the status tag
+	var tag := PanelContainer.new()
+	tag.name = "CourtStatus"
+	tag.custom_minimum_size = Vector2(COURT_STATUS_WIDTH, 0)
+	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tag.mouse_filter = Control.MOUSE_FILTER_PASS
+	var tag_box := StyleBoxFlat.new()
+	tag_box.bg_color = Color(tone.r, tone.g, tone.b, 0.28)
+	tag_box.border_color = Color(tone.r, tone.g, tone.b, 0.8)
+	tag_box.set_border_width_all(1)
+	tag_box.set_corner_radius_all(3)
+	tag_box.content_margin_left = 6.0
+	tag_box.content_margin_right = 6.0
+	tag_box.content_margin_top = 2.0
+	tag_box.content_margin_bottom = 2.0
+	tag.add_theme_stylebox_override("panel", tag_box)
+	var tag_label := Label.new()
+	tag_label.text = _court_status_text(total, row)
+	tag_label.theme_type_variation = &"Caption"
+	tag_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tag_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	tag_label.add_theme_color_override("font_color", Color.from_string(_court_text_hex(total, row), Color.WHITE))
+	tag.add_child(tag_label)
+	buttons.add_child(tag)
+	# the blocker (a wide window; the short one keeps it in the court's words)
 	var blocker_words: String = _safe_str(row.get("top_blocker_display"))
-	if blocker_words != "" and not Utils.compact_view():
+	if not compact:
 		var blocker := Label.new()
 		blocker.name = "CourtBlocker"
-		blocker.text = "Blocker: " + blocker_words
+		blocker.text = ("Blocker: " + blocker_words) if blocker_words != "" else ""
+		blocker.tooltip_text = blocker.text
 		blocker.theme_type_variation = &"Caption"
-		blocker.custom_minimum_size = Vector2(0, COMPACT_ROW_HEIGHT)
+		blocker.custom_minimum_size = Vector2(COURT_BLOCKER_WIDTH, row_h)
 		blocker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		blocker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		blocker.mouse_filter = Control.MOUSE_FILTER_PASS
 		blocker.add_theme_color_override("font_color", Color("#e0a040"))
 		buttons.add_child(blocker)
 	inner.add_child(buttons)
@@ -1487,6 +1542,59 @@ func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
 	return card
 
 
+func _court_is_open(nation: String) -> bool:
+	"""Session UI-4: whether a court's words stand under its row — always On the
+	page; folded, as the player last toggled it, else the court in focus
+	(`focused_court`) is open and the rest shut."""
+	if not Utils.explanations_folded():
+		return true
+	if _court_open.has(nation):
+		return bool(_court_open[nation])
+	# the compact view's rows stand alone (UI-3's rule: each court one line with
+	# its three buttons, every one above the fold — EA-E6); a court's words open
+	# on its name there, never by themselves
+	if Utils.compact_view():
+		return false
+	return nation == _safe_str(current_data.get("focused_court"))
+
+
+func _court_status_text(total, row: Dictionary) -> String:
+	"""The status tag's words: Consents (its own offer is on the table), Carries
+	(its score reaches the bar), else the band as the backend names it (Holding out)."""
+	if bool(row.get("consents", false)) or _safe_str(row.get("band")) == "consented":
+		return "Consents"
+	if _court_standing(total, row) == 2:
+		return "Carries"
+	var band: String = _safe_str(row.get("band_display"))
+	return band if band != "" else _safe_str(row.get("band"))
+
+
+func _court_meter_nodes(host: Control, total: int, threshold: int, tone: Color, w: float, h: float) -> void:
+	"""The row's meter: a track, the fill in the court's tone, and the bar's mark
+	in gilt — the scale runs a fifth past the bar, as `_score_meter`'s does."""
+	var bar_h: float = 10.0
+	var y: float = floorf((h - bar_h) / 2.0)
+	var scale: float = maxf(maxf(float(threshold) * 1.2, float(total)), 1.0)
+	var track := ColorRect.new()
+	track.color = Color.html(Utils.METER_TRACK)
+	track.position = Vector2(0, y)
+	track.size = Vector2(w, bar_h)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(track)
+	var fill := ColorRect.new()
+	fill.color = tone
+	fill.position = Vector2(0, y)
+	fill.size = Vector2(w * clampf(float(total), 0.0, scale) / scale, bar_h)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(fill)
+	var mark := ColorRect.new()
+	mark.color = Color.from_string("#" + Utils.COLOR_GOLD, Color(0.8, 0.7, 0.3))
+	mark.position = Vector2(clampf(floorf(w * float(threshold) / scale), 0.0, w - 2.0), y - 2.0)
+	mark.size = Vector2(2, bar_h + 4.0)
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(mark)
+
+
 func _court_score_text(row: Dictionary, total) -> String:
 	"""The short window's score: '44/50', or the band where the court has none."""
 	if total != null:
@@ -1495,9 +1603,9 @@ func _court_score_text(row: Dictionary, total) -> String:
 	return band if band != "" else _safe_str(row.get("band"))
 
 
-func _on_court_line_toggled(note_id: String) -> void:
-	# the line's click opens or shuts the court's words (a note, `settle.court.<key>`)
-	Utils.toggle_note(note_id)
+func _on_court_line_toggled(nation: String) -> void:
+	# the name's click opens or shuts the court's words (folded only; the page keeps them open)
+	_court_open[nation] = not _court_is_open(nation)
 	_render_per_court_table()
 	_refit_settlement_document()
 

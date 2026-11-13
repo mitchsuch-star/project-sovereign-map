@@ -239,7 +239,11 @@ class TestTheHosts:
         assert "_terminal_uses_default = not UiSettings.has_terminal_size()" in setup
         # UXR-D3 (Pre-Deploy S9b): a fraction of the HUD's room — the band's
         # width by the viewport's height (the whole viewport at Full).
-        assert "UiSettings.default_terminal_size(_hud_room())" in setup
+        # Session UI-4 (November 12, 2026): the room the window SIZES against —
+        # the band, never wider than the 16:9 zone on a very wide view (at the
+        # screen's edges it keeps the zone's size; `_hud_room` stays the cap).
+        assert "UiSettings.default_terminal_size(_hud_size_room())" in setup
+        assert "Utils.hud_size_room(size)" in _func(main, "func _hud_size_room() -> Vector2:")
         resized = _func(main, "func _on_root_resized() -> void:")
         assert "if _terminal_uses_default:" in resized
         reset = _func(main, "func _reset_terminal_size() -> void:")

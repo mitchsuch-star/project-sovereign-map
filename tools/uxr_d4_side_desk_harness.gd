@@ -135,6 +135,8 @@ func _step_pin() -> bool:
 		"grip_visible": grip_visible,
 		"panel": _rect(panel), "view": [view.x, view.y],
 		"dock_width": Utils.dock_width(), "band": [band.x, band.y],
+		# Session UI-4: the dock clears the top bar's DRAWN strip (2 px taller at 115 %)
+		"top_bar_growth": Utils.top_bar_growth(),
 		"map_mouse_filter": int(map_area.mouse_filter), "panning": bool(map_area.get("panning_enabled")),
 		"terminal": _rect(_main.get("bottom_left_ui")),
 		"ledger_reads_on_pin": _reads() - reads,
@@ -400,6 +402,13 @@ func _ledger_line(ledger: Node, name: String) -> String:
 			if head.begins_with(name + " "):
 				return text.substr(pos + line.length() - head.length(), 160).strip_edges()
 			pos += line.length() + 1
+		# Session UI-4: Folded, the Forces book is a table — a corps' row reads
+		# "▸ Ney" in its name cell and the table's cells run together in the
+		# parsed text, its state an upper-case tag (IDLE); the row is read from
+		# the name on.
+		var in_row := text.find("▸ " + name)
+		if in_row >= 0:
+			return text.substr(in_row + 2, 160).strip_edges()
 		return ""
 	return text.substr(at + 1, 160).strip_edges()
 

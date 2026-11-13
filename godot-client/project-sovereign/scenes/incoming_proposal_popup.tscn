@@ -53,10 +53,11 @@ fit_content = false
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
 alignment = 1
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
 
 [node name="AcceptButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(140, 45)

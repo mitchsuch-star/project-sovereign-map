@@ -114,6 +114,7 @@ func show_capture_choice(data: Dictionary):
 
 	# Show the CanvasLayer
 	show()
+	_fit_compact()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
 	# viewport, so a fixed authored rect can carry the action row off-screen
@@ -127,8 +128,25 @@ func show_capture_choice(data: Dictionary):
 func refit() -> void:
 	"""UXR-2's live-refit hook (`Utils.refit_surface`): the clamp, then the
 	shrink to content, exactly as on open."""
+	_fit_compact()
 	Utils.clamp_centered_panel($PanelContainer)
 	Utils.shrink_centered_panel_to_content($PanelContainer)
+
+
+func _fit_compact() -> void:
+	"""Session UI-4 (November 12, 2026): in the compact view (Interface Scale 2.0
+	on a 900-px window: 800 wide) the two answers wrap inside equal halves — at
+	the shipped 115 % their labels at their natural width ran the panel 796 px
+	wide in an 800-px view (SF-RR5's 12-px margins). A full view keeps them on
+	their own lines' widths, as before."""
+	var compact := Utils.compact_view()
+	for b in [plunder_button, secure_button]:
+		var btn := b as Button
+		if btn == null:
+			continue
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if compact else TextServer.AUTOWRAP_OFF
+		if compact:
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _on_plunder_pressed():
 	"""Player chooses the first option (plunder / confiscate)."""

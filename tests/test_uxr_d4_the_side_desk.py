@@ -350,7 +350,9 @@ class TestTheDrivenProof:
         vx, vy = p["view"]
         x, y, w, h = p["panel"]
         assert x + w == pytest.approx(vx - 8.0), "the dock's right edge: HUD_MARGIN off the band's"
-        assert y == pytest.approx(44.0) and y + h == pytest.approx(vy - 8.0), "under the top bar to the bottom"
+        # Session UI-4: under the top bar's DRAWN strip (36 + its growth: 2 px at the shipped 115 %)
+        top = 44.0 + float(p.get("top_bar_growth", 0.0))
+        assert y == pytest.approx(top) and y + h == pytest.approx(vy - 8.0), "under the top bar to the bottom"
         assert vx / 4.0 - 0.5 <= w <= vx / 2.0 + 0.5 and w == pytest.approx(p["dock_width"])
         assert p["band"] == [0.0, pytest.approx(x)], "the HUD band ends at the dock's edge"
         assert p["map_mouse_filter"] == 0 and p["panning"] is True, "STOP: the map takes the mouse"
@@ -371,7 +373,9 @@ class TestTheDrivenProof:
         c = driven["steps"]["command"]
         assert c["ledger_reads"] >= 1, "the command's answer re-read the ledger"
         assert c["pinned"] == "ledger" and c["visible"] is True
-        assert "Status: Idle" in c["ney_before"] and c["ney_after"] != c["ney_before"], (
+        # Session UI-4: Folded, Forces is a table — Ney's row carries his state as a
+        # tag (IDLE); "Status: Idle" lives in the card behind his name's ▸
+        assert "idle" in c["ney_before"].lower() and c["ney_after"] != c["ney_before"], (
             c["ney_before"], c["ney_after"])
         if c["objection_visible"]:
             assert c["objection_layer"] > c["ledger_layer"] and c["ledger_visible_under_popup"] is True

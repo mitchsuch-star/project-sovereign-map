@@ -444,7 +444,8 @@ class TestTheRateIsNotPrintedBesideNotTicking:
     @staticmethod
     def _body():
         src = (GD / "war_detail_popup.gd").read_text(encoding="utf-8")
-        m = re.search(r'bbcode \+= " \(" \+ active \+ ", \+" \+ str\(accumulated\)'
+        # Session UI-4: the objective line builds into obj_rest (a meter + note when Folded)
+        m = re.search(r'obj_rest \+= " \(" \+ active \+ ", \+" \+ str\(accumulated\)'
                       r'(.*?)\n\n', src, re.S)
         assert m, "the objective rate block moved"
         return m.group(1)
@@ -452,7 +453,7 @@ class TestTheRateIsNotPrintedBesideNotTicking:
     def test_a_running_rate_still_prints_inline(self):
         body = self._body()
         assert 'if rate > 0 and bool(objective.get("ticking_active", false)):' in body
-        assert 'bbcode += ", +" + str(rate) + "/turn"' in body
+        assert 'obj_rest += ", +" + str(rate) + "/turn"' in body
 
     def test_a_dormant_rate_says_what_would_start_it(self):
         body = self._body()

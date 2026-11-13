@@ -1,8 +1,13 @@
-extends HBoxContainer
+extends HFlowContainer
 
 # =============================================================================
 # INK & IRON — The Stat Strip (Session UI-2, November 11, 2026)
 # =============================================================================
+# Session UI-4 (November 12, 2026): a FLOW row — the tiles wrap to a second line
+# when the page is narrower than they are. At the shipped 115 % the campaign
+# end's five tiles and the Economy's four stood wider than the compact 2.0 view
+# (800 logical px) and ran the whole window off both edges; a row that fits
+# stands exactly as before (each tile expands within its line).
 # A row of figure tiles a book stands above its page: a glyph, the figure in
 # the title face (theme step `StatFigure`), and a caption under it — the
 # Economy's Treasury / Net / Ceiling, the Forces' Authority, the Manpower's
@@ -22,7 +27,8 @@ const GLYPH_PX := 24
 
 func _ready() -> void:
 	name = "StatStrip"
-	add_theme_constant_override("separation", 8)
+	add_theme_constant_override("h_separation", 8)
+	add_theme_constant_override("v_separation", 8)
 	visible = false
 
 

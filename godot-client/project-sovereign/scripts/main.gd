@@ -646,6 +646,9 @@ func _ready():
 	if war_status_panel:
 		war_status_panel.card_clicked.connect(_on_war_card_clicked)
 		war_status_panel.coalition_header_clicked.connect(_on_coalition_header_clicked)
+		# Session UI-4: the war list never stands on the command window.
+		if "avoid_control" in war_status_panel:
+			war_status_panel.avoid_control = bottom_left_ui
 
 	# UI-6: Region Action Panel — non-modal like the war HUD
 	region_panel = dialog_manager.register("region_panel", "res://scenes/region_panel.tscn", false)
@@ -830,6 +833,11 @@ func _ready():
 	# LIVE left edge (the HUD's width is a viewport fraction, or the player's).
 	if war_detail_popup != null and war_status_panel != null and "dock_beside" in war_detail_popup:
 		war_detail_popup.dock_beside = war_status_panel.panel_container
+	# Session UI-4: ...and starts below the notice rail when the rail stands
+	# over its columns (it hid the popup's close button at t20).
+	if war_detail_popup != null and notification_bar != null and "avoid_rail" in war_detail_popup \
+			and notification_bar.get("rail_panel") is Control:
+		war_detail_popup.avoid_rail = notification_bar.rail_panel
 	# UXR-D3: the map controls step aside for the war HUD as it grows.
 	if war_status_panel != null and war_status_panel.get("panel_container") is Control:
 		war_status_panel.panel_container.item_rect_changed.connect(_queue_fit_map_controls)
@@ -1117,7 +1125,10 @@ func _on_connection_test(response):
 		add_output("")
 
 
-func _print_boot_help() -> void:
+const BOOT_HELP_META := "help:boot"
+
+
+func _print_boot_help(full: bool = false) -> void:
 	"""LV-1 (row EP F1): the boot help, in ONE place.
 
 	It was printed only by `_on_connection_test` — and every road into a
@@ -1125,8 +1136,26 @@ func _print_boot_help() -> void:
 	swap, whose reset CLEARS the terminal. Measured in the live review: a
 	fresh campaign opened on "New campaign ready." and nothing else. The
 	world-swap handler now prints it last, after the briefing, so the orders
-	sit nearest the command line. (PB-2 owns the examples' wording.)"""
-	add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
+	sit nearest the command line. (PB-2 owns the examples' wording.)
+
+	Session UI-4 (November 12, 2026): the blind readers met this list as a
+	dim block in a short window — at Interface Scale 2.0 it stood cut
+	mid-sentence ("shrink the tutorial blurb to one line"). Folded (the
+	Explanations switch's default) it is two lines in the report's ink: the
+	greeting and the two roads to an order (typed, or a click on the map) —
+	short enough to stand whole at 2.0 — and "▸ every command" prints the
+	whole list below (`full`), Berthier's questions with it. On the page it
+	prints as it always did, every word. Folded, the rule comes FIRST and the
+	help last: the log ends on the help's own lines, so a short window (2.0)
+	shows them whole instead of a rule and the help's tail."""
+	if not full:
+		var folded := Utils.explanations_folded()
+		if folded:
+			_add_separator()
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
+		if folded:
+			add_output("[color=#" + Utils.LOG_REPORT + "]Type an order — “Ney, attack Mack” — or click one of your marshals on the map.[/color]  [url=" + BOOT_HELP_META + "][color=#" + Utils.COLOR_GOLD + "]▸ every command[/color][/url]")
+			return
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
@@ -1941,7 +1970,7 @@ func _setup_scalable_terminal() -> void:
 	# (called just before us in _ready()).
 	_terminal_uses_default = not UiSettings.has_terminal_size()
 	if _terminal_uses_default:
-		var default_size := UiSettings.default_terminal_size(_hud_room())
+		var default_size := UiSettings.default_terminal_size(_hud_size_room())
 		_apply_terminal_size(default_size.x, default_size.y)
 	else:
 		_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
@@ -2104,9 +2133,14 @@ func _relayout_terminal() -> void:
 		restore_button.offset_left = left
 		restore_button.offset_right = left + RESTORE_BUTTON_WIDTH
 	_reposition_after_layout()
+	# Session UI-4: the war list re-fits against the window's new rect (it
+	# never stands on it — war_status_panel `_clear_the_command_window`).
+	if war_status_panel != null and war_status_panel.visible \
+			and war_status_panel.has_method("_fit_panel_to_content"):
+		war_status_panel.call_deferred("_fit_panel_to_content")
 
 
-const LOG_FLOOR_SHORT := 110.0
+const LOG_FLOOR_SHORT := 80.0   # Session UI-4: 110 -> 80 — at 2.0 the window ate half the screen
 const LOG_FLOOR := 140.0
 const LOG_FLOOR_TALL := 180.0
 # Session UI-2: under this logical height the header folds into one band.
@@ -2198,6 +2232,15 @@ func _hud_room() -> Vector2:
 	fractions of this, not of the whole viewport."""
 	var band := Utils.hud_band(size)
 	return Vector2(band.y - band.x, size.y)
+
+
+func _hud_size_room() -> Vector2:
+	"""Session UI-4: the room the command window's DEFAULT footprint is a
+	fraction of — the band, never wider than the 16:9 zone on a very wide
+	view (`Utils.hud_size_room`): at the screen's edges the window keeps the
+	size it had in the zone; only its corner moves. The width CAP stays the
+	whole band (`_hud_room`), so a player may still drag it wider."""
+	return Vector2(Utils.hud_size_room(size), size.y)
 
 func _position_resize_grip() -> void:
 	if resize_grip == null or not is_instance_valid(resize_grip):
@@ -2339,6 +2382,10 @@ func _on_wide_map_changed(_mode: String) -> void:
 	if map_area != null and map_area.has_method("apply_boot_view"):
 		map_area.apply_boot_view()
 	_refresh_map_controls()
+	# Session UI-4: on a very wide screen the HUD band follows the map — Auto
+	# stands the HUD at the screen's edges while the map fills the width and
+	# in the 16:9 zone while it shows the whole sheet (Utils.hud_band_full).
+	_refit_hud_band()
 
 
 var _map_controls_fit_queued := false
@@ -2451,7 +2498,7 @@ func _reset_terminal_size() -> void:
 	UiSettings.clear_terminal_size()
 	_terminal_uses_default = true
 	_reply_raised = false   # DDB-57: the reset is the default, not the raise
-	var default_size := UiSettings.default_terminal_size(_hud_room())
+	var default_size := UiSettings.default_terminal_size(_hud_size_room())
 	_apply_terminal_size(default_size.x, default_size.y)
 
 func _on_root_resized() -> void:
@@ -2461,7 +2508,7 @@ func _on_root_resized() -> void:
 	# intent IS the viewport fraction (nothing stored), which follows the
 	# viewport by definition.
 	if _terminal_uses_default:
-		var default_size := UiSettings.default_terminal_size(_hud_room())
+		var default_size := UiSettings.default_terminal_size(_hud_size_room())
 		_terminal_width = clampf(default_size.x, UiSettings.MIN_TERMINAL_WIDTH, UiSettings.MAX_TERMINAL_WIDTH)
 		var default_h := clampf(default_size.y, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
 		if _reply_raised:
@@ -4158,6 +4205,11 @@ func _on_view_field_requested(payload: Dictionary) -> void:
 
 func _on_output_meta_clicked(meta) -> void:
 	var meta_str := str(meta)
+	# Session UI-4: the folded boot help's "▸ every command" — the whole list
+	# printed below, at the log's end (a log is appended to, never rewritten).
+	if meta_str == BOOT_HELP_META:
+		_print_boot_help(true)
+		return
 	if meta_str == "diorama:last" and last_battle_diorama != null:
 		_diorama_standalone = false
 		# A re-view renders the settled final frame instantly (eval §7 Q1 —
@@ -10459,7 +10511,12 @@ func _update_war_panel_visibility():
 	if region_panel and region_panel.visible and (_is_screen_open() or _is_modal_dialog_open()):
 		region_panel.close_panel()
 	if notification_bar and notification_bar.has_method("set_suspended"):
-		notification_bar.set_suspended(_is_modal_dialog_open())
+		# Session UI-4 (November 12, 2026): the rail stands aside for a
+		# covering screen too, as the war HUD does — the books (62 % of the
+		# width since Session UI-3, layer 50) reach under its corner at
+		# 1600 x 900, where it hid a book's close button. A screen pinned at
+		# the Side Desk is not a covering one: the rail stays beside it.
+		notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open())
 
 
 func _on_war_card_clicked(nation: String, status: String, war_instance_id: String = ""):

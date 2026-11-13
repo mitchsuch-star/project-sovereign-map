@@ -77,7 +77,7 @@ The first-pass grab of six generic packs was pruned to a **thematic core + neutr
 
 | Set | License | Location | Role | Credit |
 |-----|---------|----------|------|--------|
-| **Phosphor Icons** (Regular) | MIT | `assets/ui/icons/phosphor/` (51 SVG) | Neutral UI chrome — menus, carets, arrows, gear/search/info/warning, save/load, tabs | Retain `LICENSE`; no in-game credit |
+| **Phosphor Icons** (Regular) | MIT | `assets/ui/icons/phosphor/` (52 SVG — `lock-simple.svg` added by Session UI-4) | Neutral UI chrome — menus, carets, arrows, gear/search/info/warning, save/load, tabs | Retain `LICENSE`; no in-game credit |
 | **Game-icons.net** (curated) | CC-BY 3.0 | `assets/ui/icons/game-icons/` (24 SVG) + `_packs/game-icons-net.zip` (master pool) | Thematic core — units, combat actions, economy, diplomacy | **Visible credit required — see CC-BY** |
 
 | **The stat glyphs** (Session UI-2, November 11, 2026) | CC-BY 3.0 (Game-icons.net) | `assets/ui/icons/glyphs/` (36 SVG, extracted unmodified from `_packs/game-icons-net.zip`, the black fill turned white for `modulate`; each `.import` mipmapped so it renders at 16–28 px) | One glyph per category — gold, DP, authority, threat, foot / horse / guns, the six marshal skills, garrison, supply, stability … | **Visible credit required — see CC-BY.** Per-glyph source icon and author: `assets/ui/icons/glyphs/GLYPHS.txt` (Lorc, Delapouite, Skoll, Sbed, HeavenlyDog) |

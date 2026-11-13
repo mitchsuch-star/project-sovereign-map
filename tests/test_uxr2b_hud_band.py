@@ -101,18 +101,24 @@ def auto(tmp_path_factory) -> dict:
     return _drive(tmp_path_factory, "auto")
 
 
+@pytest.fixture(scope="module")
+def zone(tmp_path_factory) -> dict:
+    return _drive(tmp_path_factory, "16:9")
+
+
 class TestAutoFramesTheMapOnTheUsersPanel:
     """Session UI-2 (November 12, 2026): Auto, the new default — on a 32:9
-    panel the HUD stands in a 16:9 safe zone about the centre (the blind
-    readers' HUD lost in the corners of the 5120 frame); the strip stays
-    full-bleed. On 16:9 Auto is Full (the probe's numbers)."""
+    panel the HUD stood in a 16:9 safe zone about the centre. Session UI-4
+    (November 12, 2026), the user's "Screen edges": while the map fills the
+    width (the default) Auto's band is the WHOLE viewport — the HUD at the
+    screen's edges; "16:9" keeps UI-2's zone one switch away (the class below).
+    The strip stays full-bleed. On 16:9 Auto is Full (the probe's numbers)."""
 
-    def test_the_band_is_a_16_9_zone_about_the_centre(self, auto):
-        vx, vy = auto["view"][0], auto["view"][1]
+    def test_the_band_is_the_whole_screen_while_the_map_fills_it(self, auto):
+        vx = auto["view"][0]
         left, right = auto["band"]
         assert auto["hud_width"] == "auto"
-        assert right - left == pytest.approx(math.floor(vy * 16.0 / 9.0), abs=1.0)
-        assert abs((left + right) / 2.0 - vx / 2.0) <= 1.0, (left, right, vx)
+        assert left == pytest.approx(0.0, abs=0.5) and right == pytest.approx(vx, abs=0.5), (left, right, vx)
 
     @pytest.mark.parametrize("surface", IN_BAND)
     def test_every_hud_rect_is_inside_the_band(self, auto, surface):
@@ -124,6 +130,25 @@ class TestAutoFramesTheMapOnTheUsersPanel:
     def test_the_strip_stays_full_bleed(self, auto):
         r = auto["rects"]["bar_strip"]
         assert r[0] <= 0.5 and r[2] >= auto["view"][0] - 0.5, r
+
+
+class TestSixteenNineKeepsTheZone:
+    """Session UI-4: the HUD width "16:9" — UI-2's safe zone about the centre,
+    whatever the map does."""
+
+    def test_the_band_is_a_16_9_zone_about_the_centre(self, zone):
+        vx, vy = zone["view"][0], zone["view"][1]
+        left, right = zone["band"]
+        assert zone["hud_width"] == "16:9"
+        assert right - left == pytest.approx(math.floor(vy * 16.0 / 9.0), abs=1.0)
+        assert abs((left + right) / 2.0 - vx / 2.0) <= 1.0, (left, right, vx)
+
+    @pytest.mark.parametrize("surface", IN_BAND)
+    def test_every_hud_rect_is_inside_the_band(self, zone, surface):
+        left, right = zone["band"]
+        r = zone["rects"][surface]
+        assert r, f"{surface} was not on screen"
+        assert r[0] >= left - 0.5 and r[2] <= right + 0.5, (surface, r, (left, right))
 
 
 class TestTheDoneWhen:
@@ -190,7 +215,7 @@ class TestTheSources:
         centre at 2.6 : 1 and wider (the blind readers' HUD lost in the
         corners of the 32:9 frame). Full and Centred are as they were."""
         src = G.read(_SCRIPTS / "ui_settings.gd")
-        assert 'const HUD_WIDTHS := ["auto", "full", "centred"]' in src
+        assert 'const HUD_WIDTHS := ["auto", "full", "16:9", "centred"]' in src
         assert 'const DEFAULT_HUD_WIDTH := "auto"' in src
         assert "const SAFE_ZONE_ASPECT := 2.6" in src
         assert "const HUD_BAND_WIDTH := 2560.0" in src
@@ -205,7 +230,12 @@ class TestTheSources:
         # Auto's (the 16:9 zone at SAFE_ZONE_ASPECT and wider).
         assert "var width := UiSettings.get_hud_width()" in full
         assert 'width == "centred"' in full and 'width == "auto"' in full
-        assert "view.x / view.y >= UiSettings.SAFE_ZONE_ASPECT" in full
+        # Session UI-4 (November 12, 2026), the user's "Screen edges": the
+        # zone is "16:9"'s, and Auto's only while the map shows the whole
+        # sheet; while it fills the width Auto stands at the edges.
+        assert "very_wide_view(view)" in full
+        assert 'width == "16:9"' in full and 'UiSettings.get_wide_map() == "sheet"' in full
+        assert "view.x / view.y >= UiSettings.SAFE_ZONE_ASPECT" in G.func_body(utils, "very_wide_view")
         assert "UiSettings.HUD_BAND_WIDTH + 2.0 * HUD_MARGIN" in full
         band = G.func_body(utils, "hud_band")
         assert "var band := hud_band_full(view)" in band

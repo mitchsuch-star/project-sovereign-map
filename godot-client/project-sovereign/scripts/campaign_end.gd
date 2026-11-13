@@ -137,7 +137,28 @@ func _ready():
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
 	# before its parent can scroll. PASS still delivers _gui_input.
 	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	# Session UI-4 (November 12, 2026): THE RECORD's repeats open behind a
+	# "▸ more" (`end.record`) - the link re-draws the card in place.
+	content_label.meta_clicked.connect(_on_meta_clicked)
+	Utils.on_explanations_changed(_on_explanations_changed)
 	_load_fonts()
+
+
+func _on_meta_clicked(meta) -> void:
+	if Utils.is_note_meta(meta):
+		Utils.toggle_note(meta)
+		_on_explanations_changed()
+
+
+func _on_explanations_changed() -> void:
+	"""Session UI-4: re-draw the card from its payload (a note opened, or the
+	Explanations switch moved); the reading keeps its place."""
+	if _payload.is_empty() or not visible:
+		return
+	var held: int = content_scroll.scroll_vertical
+	_render(REGISTER_STYLE[_register])
+	_fit_card()
+	Utils.restore_scroll(content_scroll, held)
 
 
 func _load_fonts() -> void:
@@ -265,6 +286,11 @@ func _record_tiles(summary: Dictionary) -> Array:
 	return tiles
 
 
+func _compact_card() -> bool:
+	"""Session UI-4: the card's compact form (the strip and the crest aside)."""
+	return Utils.compact_view()
+
+
 func _fit_card() -> void:
 	"""Session UI-2: the card fits its record — the reading asks for its own
 	height (capped at the room the clamp leaves), then the panel shrinks to
@@ -326,6 +352,17 @@ func _render(style: Dictionary) -> void:
 
 	if _strip != null and is_instance_valid(_strip):
 		_strip.set_tiles(_record_tiles(summary))
+		# Session UI-4 (November 12, 2026): the compact view (Interface Scale
+		# 2.0 on a 900-px window: 450 tall) has no room for the tiles — at the
+		# shipped 115 % they wrap to two rows and the card's two buttons fell
+		# off the bottom — so the strip stands aside there and THE RECORD prints
+		# the figures in place (`_record_block`, `tiled`), as the reward dialog's
+		# strip does; the crest, an ornament, steps aside with it.
+		if _compact_card():
+			_strip.visible = false
+	var crest := get_node_or_null("PanelContainer/VBoxContainer/Crest") as Control
+	if crest != null:
+		crest.visible = not _compact_card()
 
 	var bbcode := ""
 	# 1. The epilogue — the exile / the funeral / the peace (the Fall and the
@@ -380,6 +417,15 @@ func _heading(text: String, style: Dictionary) -> String:
 	return Utils.bbcode_color("[b]" + text + "[/b]", str(style["title_hex"])) + "\n"
 
 
+func _verdict_title(text: String, hex: String, _px: int) -> String:
+	"""Session UI-4 (November 12, 2026): the verdict as a rating (the
+	readers: "render the verdict as a bold large rating") - the tier's title
+	in the engraved title face. Its size is the page's own step: the design
+	system sets every size on a named theme step, never a BBCode size
+	(tests/test_uxr2_override_diet.py's ratchet stands at 0)."""
+	return "[font=" + Utils.TITLE_FONT + "]" + Utils.bbcode_color(text, hex) + "[/font]\n"
+
+
 func _verdict_block(verdict, style: Dictionary) -> String:
 	if not (verdict is Dictionary) or verdict.is_empty():
 		return ""
@@ -387,11 +433,11 @@ func _verdict_block(verdict, style: Dictionary) -> String:
 	var tier_title := str(verdict.get("title", "")).strip_edges()
 	if _register == "verdict":
 		# The card IS the Verdict: the tier reads as the heading.
-		out += _heading(tier_title if tier_title != "" else "THE VERDICT", style)
+		out += _verdict_title(tier_title if tier_title != "" else "THE VERDICT", str(style["title_hex"]), 30)
 	else:
 		out += _heading("THE VERDICT OF HISTORY", style)
 		if tier_title != "":
-			out += Utils.bbcode_color(tier_title, Utils.COLOR_GOLD) + "\n"
+			out += _verdict_title(tier_title, Utils.COLOR_GOLD, 26)
 	var lines = verdict.get("lines", [])
 	if lines is Array:
 		for ln in lines:
@@ -407,6 +453,12 @@ func _record_block(summary: Dictionary, style: Dictionary) -> String:
 	if not (totals is Dictionary):
 		totals = {}
 	var out := _heading("THE RECORD", style)
+	# Session UI-4 (November 12, 2026): the lines that only repeat a tile of
+	# the strip above (the realm held, provinces taken / lost, coalitions and
+	# peaces) fold behind one "▸ more" (`end.record`) - folded, the record
+	# adds only what no tile shows; On the page every line prints, in place.
+	var repeats := ""
+	var tiled: bool = not totals.is_empty() and not _compact_card()
 	var since = summary.get("record_since_turn")
 	if since != null:
 		out += Utils.bbcode_color("(The record was kept from turn " + str(int(since))
@@ -414,7 +466,11 @@ func _record_block(summary: Dictionary, style: Dictionary) -> String:
 	var held := int(summary.get("provinces_held", 0))
 	var total := int(summary.get("total_regions", 0))
 	if total > 0:
-		out += "The realm at the end: " + Utils.plural(held, "province") + " of " + str(total) + ".\n"
+		var realm := "The realm at the end: " + Utils.plural(held, "province") + " of " + str(total) + ".\n"
+		if tiled:
+			repeats += realm
+		else:
+			out += realm   # no tile shows it (the compact card's strip stands aside)
 	var fought := _n(totals, "battles_fought")
 	if fought > 0:
 		var won := _n(totals, "battles_won")
@@ -438,7 +494,10 @@ func _record_block(summary: Dictionary, style: Dictionary) -> String:
 	var prov := "Provinces taken: " + str(taken) + " · lost: " + str(lost_p)
 	if ceded > 0 or gained > 0:
 		prov += " · ceded by treaty: " + str(ceded) + " · gained by treaty: " + str(gained)
-	out += prov + ".\n"
+	if tiled and ceded <= 0 and gained <= 0:
+		repeats += prov + ".\n"
+	else:
+		out += prov + ".\n"
 	var marshal_bits: Array = []
 	if _n(totals, "marshals_fallen") > 0:
 		marshal_bits.append(Utils.plural(_n(totals, "marshals_fallen"), "marshal") + " fallen")
@@ -459,13 +518,18 @@ func _record_block(summary: Dictionary, style: Dictionary) -> String:
 			shown.append(_esc(str(nm)))
 		coal_line += " (" + ", ".join(shown) + ")"
 	var peaces := _n(totals, "peaces_signed")
-	out += coal_line + " · peaces signed: " + str(peaces) + ".\n"
+	if tiled and not (names is Array and not names.is_empty()):
+		repeats += coal_line + " · peaces signed: " + str(peaces) + ".\n"
+	else:
+		out += coal_line + " · peaces signed: " + str(peaces) + ".\n"
 	var best = summary.get("greatest_victory")
 	if best is Dictionary and not best.is_empty():
 		out += "Greatest victory: " + _battle_line(best, "inflicted") + "\n"
 	var worst = summary.get("worst_defeat")
 	if worst is Dictionary and not worst.is_empty():
 		out += "Worst defeat: " + _battle_line(worst, "suffered") + "\n"
+	if repeats != "":
+		out += Utils.bb_note("end.record", "", repeats.trim_suffix("\n"), "\n")
 	return out + "\n"
 
 

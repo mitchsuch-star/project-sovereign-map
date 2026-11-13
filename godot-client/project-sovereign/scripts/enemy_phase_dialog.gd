@@ -156,7 +156,12 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
 	# viewport, so a fixed authored rect can push the action row off-screen.
 	# Runs AFTER show() so layout has settled.
+	# Session UI-4 (November 12, 2026): a reading window that fits its report
+	# (the three interim readers: "the card is small and the content scrolls
+	# beyond view") — the reading share, then the scroll sized to the report.
+	Utils.set_reading_share($PanelContainer, Vector2(0.5, 0.85), Vector2(820.0, 980.0))
 	Utils.clamp_centered_panel($PanelContainer)
+	Utils.fit_reading_window($PanelContainer, $PanelContainer/VBoxContainer/ContentScroll, content_label)
 
 func _format_action(action: Dictionary) -> String:
 	"""Format a single action with full details."""
@@ -574,6 +579,32 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	var battle_title = event.get("battle_name", attacker_name + " vs " + defender_name)
 	# Session UI-2: the battle's name is its heading — the title face, led by the
 	# crossed-swords glyph.
+	# Session UI-4 (November 12, 2026): the readers asked for "the outcome badge
+	# larger and put first". The outcome is worked out here, ahead of the title,
+	# so the badge LEADS the entry (the Result words stay where they were).
+	var outcome_text = _get_outcome_text(outcome)
+	var outcome_color = Utils.COLOR_INFO
+	if victor:
+		outcome_color = Utils.COLOR_SUCCESS if _victor_is_player(event, str(victor)) else COLOR_ERROR
+		# SF7-X26: the victor's standing toward us, when the event says it.
+		var victor_role := "defender" if str(victor) == defender_name else "attacker"
+		var victor_standing := _standing(event, victor_role)
+		if victor_standing != "":
+			outcome_color = _standing_colour(victor_standing, true)
+	# Session UI-2: the result is a badge first — VICTORY / DEFEAT in the colour
+	# the line already carries (green good news, red bad), BATTLE where it is
+	# neither's, STALEMATE for a drawn field.
+	var result_badge := "BATTLE"
+	var result_tone := Utils.COLOR_BADGE_QUIET
+	if outcome == "stalemate":
+		result_badge = "STALEMATE"
+	elif outcome_color == Utils.COLOR_SUCCESS:
+		result_badge = "VICTORY"
+		result_tone = "2f6b3a"
+	elif outcome_color == COLOR_ERROR:
+		result_badge = "DEFEAT"
+		result_tone = "8b2a2a"
+	result += "    " + Utils.bb_badge(result_badge, result_tone) + "\n"
 	result += "    " + Utils.bb_glyph("war", 18, Utils.COLOR_BATTLE) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_BATTLE + "]" + battle_title + "[/color][/font]\n"
 	var already_stated = (
 		action_marshal != "" and attacker_name == action_marshal
@@ -634,30 +665,7 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	# France. (The old check colored on "defender is a player marshal" against
 	# a hardcoded legacy roster, so Soult/Murat/Lannes victories rendered red
 	# and a player DEFEAT under Ney rendered green.)
-	var outcome_text = _get_outcome_text(outcome)
-	var outcome_color = Utils.COLOR_INFO
-	if victor:
-		outcome_color = Utils.COLOR_SUCCESS if _victor_is_player(event, str(victor)) else COLOR_ERROR
-		# SF7-X26: the victor's standing toward us, when the event says it.
-		var victor_role := "defender" if str(victor) == defender_name else "attacker"
-		var victor_standing := _standing(event, victor_role)
-		if victor_standing != "":
-			outcome_color = _standing_colour(victor_standing, true)
-
-	# Session UI-2: the result is a badge first — VICTORY / DEFEAT in the colour
-	# the line already carries (green good news, red bad), BATTLE where it is
-	# neither's, STALEMATE for a drawn field — then the words as they were.
-	var result_badge := "BATTLE"
-	var result_tone := Utils.COLOR_BADGE_QUIET
-	if outcome == "stalemate":
-		result_badge = "STALEMATE"
-	elif outcome_color == Utils.COLOR_SUCCESS:
-		result_badge = "VICTORY"
-		result_tone = "2f6b3a"
-	elif outcome_color == COLOR_ERROR:
-		result_badge = "DEFEAT"
-		result_tone = "8b2a2a"
-	result += "    " + Utils.bb_badge(result_badge, result_tone) + "\n"
+	# (the outcome and its badge were worked out above, ahead of the title)
 	result += "[color=#" + outcome_color + "]    Result: " + outcome_text
 	if victor:
 		result += " (" + victor + " victorious)"

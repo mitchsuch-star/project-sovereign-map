@@ -70,7 +70,9 @@ DERIVATION_TABLE = [
     ((1920, 1080, 96), 1.00),    # a 24-inch 1080p: nothing to derive
     ((2560, 1440, 96), 1.15),    # a 27-inch 1440p
     ((3440, 1440, 96), 1.15),    # a 34-inch 21:9 (2.39 — under the 32:9 term)
-    ((5120, 1440, 96), 1.60),    # THE USER'S OWN PANEL — 32:9 at 100% (logical 3200x900)
+    # Session UI-4 (November 12, 2026): the 32:9 term 0.45 -> 0.65 — the interim
+    # readers found the edge-anchored HUD "tiny and stranded" on the user's panel
+    ((5120, 1440, 96), 1.80),    # THE USER'S OWN PANEL — 32:9 at 100% (logical 2844x800)
     ((3840, 2160, 144), 1.75),   # a 27-inch 4K at Windows 150%
     ((3840, 2160, 96), 1.50),    # a 43-inch 4K at 100%
     ((1920, 1080, 120), 1.25),   # a 15-inch laptop at 125%
@@ -93,7 +95,7 @@ class TestTheDerivation:
         text = _read(SCRIPTS / "ui_settings.gd")
         assert re.search(r"const MAX_UI_SCALE := 3\.0\b", text)
         assert re.search(r"const ULTRA_WIDE_ASPECT := 3\.0\b", text)
-        assert re.search(r"const ULTRA_WIDE_BONUS := 0\.45\b", text)   # Session UI-2
+        assert re.search(r"const ULTRA_WIDE_BONUS := 0\.65\b", text)   # Session UI-2 0.45, UI-4 0.65
         assert re.search(r"const DERIVE_FLOOR := 1\.0\b", text)
         assert "static func derive_default_ui_scale() -> float" in text
         assert "static func derive_ui_scale_for(width: int, height: int, dpi: float) -> float" in text
@@ -281,7 +283,10 @@ class TestTheTutorCardIsSizedByTheScreen:
         assert re.search(r"const CARD_WIDTH_FRACTION := 0\.40\b", text)
         assert re.search(r"const CARD_MIN_WIDTH := 520\.0\b", text)
         body = text.split("func _fit_card_width() -> void:", 1)[1].split("\nfunc ", 1)[0]
-        assert "(band.y - band.x) * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH" in body
+        # Session UI-4: 40 % of the room the HUD SIZES against (the band, never
+        # wider than the 16:9 zone on a very wide view — at the screen's edges
+        # of a 32:9 view the card keeps its zone-sized width)
+        assert "Utils.hud_size_room(view) * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH" in body
         assert "_card.offset_left" in body and "_card.offset_right" in body
 
     def test_the_body_is_bounded_by_the_viewport_and_scrolls_past_it(self):

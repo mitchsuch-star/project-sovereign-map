@@ -1118,7 +1118,10 @@ class TestTheClientRendersTheThreeStates:
         start = src.index("func _render_economy")
         nxt = src.find("\nfunc ", start + 1)
         economy = src[start:nxt if nxt != -1 else len(src)]
-        assert "bbcode += _ceiling_line(econ, treasury)" in economy, (
+        # Session UI-4 (November 12, 2026): the line still prints first among the
+        # books — Folded behind the book's ⓘ (it repeats the Ceiling tile above it),
+        # On the page in place
+        assert "bbcode += Utils.bb_lead(_ceiling_line(econ, treasury), \"sl.economy.lead\")" in economy, (
             "_render_economy does not print the ceiling line")
         start = src.index("func _ceiling_line")
         nxt = src.find("\nfunc ", start + 1)

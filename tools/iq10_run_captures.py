@@ -1334,6 +1334,39 @@ SHOTS += [
         "must_show": "the pause panel with its Settings unfolded: the Interface Scale slider "
                      "and the sound rows readable, NOT squeezed to a sliver by the clamp",
     },
+    # Session UI-4 (November 12, 2026): two popups the manifest had shot alone
+    # on a flat field, shot as the game shows them — over the live war room.
+    # The province panel opens by the map click's own road (the province lit);
+    # the war detail opens over the war room of the SAME t20 fixture its alone
+    # shot reads (`war_room_t20`, recorded by cap_fixtures). Declared in the
+    # record as a measure correction; the alone shots stay in the census.
+    {
+        "id": "region_paris_war_room",
+        "surface": "Region Action Panel — Paris, over the war room (the map click's road)",
+        "payload": "war_room_boot",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS + [
+            {"call": "_on_map_region_clicked", "args": ["Paris"], "then_wait": 30},
+        ],
+        "settle": 30,
+        "must_show": "the 1805 map with Paris lit, the province panel docked top-left over it: its "
+                     "figure row, its grouped actions, its forces present",
+    },
+    {
+        "id": "war_detail_t20_war_room",
+        "surface": "War Detail popup (t20 fixture) over the t20 war room",
+        "payload": "war_room_t20",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS + [
+            {"node": "@war_detail_popup", "call": "show_war",
+             "args": ["$payload.war", "$payload.coalition"], "then_wait": 30},
+        ],
+        "settle": 30,
+        "must_show": "the t20 war room behind the war detail: the breakdown's bars, the negotiate "
+                     "row, the objective's meter",
+    },
     {
         "id": "tutorial_card",
         "surface": "The School of War card alone (tutorial_overlay.tscn)",
@@ -1395,10 +1428,36 @@ SHOTS += [
         "steps": [{"wait": 90}, {"call": "_open_settings", "then_wait": 12}],
         "settle": 20,
         "settle_ms": 2500,             # the menu's real-time entrance (UXR-3, S11)
-        "must_show": "the SETTINGS view with no card over it: DISPLAY (Window, and Size for "
-                     "Windowed), INTERFACE (the slider, 'Size for this screen (N%)', 'Preview "
-                     "with a sample…', Body text, Reset layout), SOUND, SMARTER PARSING, "
-                     "SPOKEN ORDERS, CONTROLS, CREDITS — every hint's size in the census",
+        "must_show": "the SETTINGS view with no card over it: its tab row (Session UI-4: DISPLAY · "
+                     "SOUND · ORDERS · CONTROLS · CREDITS) on DISPLAY — Window, HUD width, Wide map, "
+                     "then INTERFACE's controls — every hint's size in the census",
+    },
+    # Session UI-4 (November 12, 2026): the menu as a player meets it on every
+    # launch after the first — the war office answering, so the campaign column
+    # is live, and no first-run card (the shot above keeps the first boot with no
+    # server behind it, its buttons waiting, the card over them). The harness has
+    # no server on the menu's port: the menu's own poll is cancelled and stopped
+    # BEFORE its flag is set (a refused request still in flight would put the
+    # column back to waiting), then the card is answered as Looks right does.
+    {
+        "id": "main_menu_answering",
+        "surface": "The main menu (a later launch, the war office answering)",
+        "payload": "test_boot",
+        "scene": "res://scenes/main_menu.tscn",
+        "mode": "call", "method": "",
+        "steps": [
+            {"wait": 60},
+            {"node": "@status_http", "call": "cancel_request"},
+            {"node": "@_poll_timer", "call": "stop"},
+            {"set_path": "_http_mode", "value": ""},
+            {"set_path": "_backend_up", "value": True},
+            {"call": "_apply_backend_state"},
+            {"call": "_close_scale_card", "then_wait": 12},
+        ],
+        "settle": 20,
+        "settle_ms": 2500,
+        "must_show": "the title block, the campaign column LIVE (Begin, the two School rows, Load), "
+                     "the status chip saying the war office answers, no first-run card",
     },
 ]
 
@@ -1838,16 +1897,20 @@ def expand_physical(shots: list[dict], physical_scale: str) -> list[dict]:
 def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str,
                spec_path: pathlib.Path, result_path: pathlib.Path,
                png_dir: pathlib.Path | None = None,
-               text_size: float = 1.0, hud_width: str = "auto",
+               text_size: float | None = None, hud_width: str = "auto",
                high_contrast: bool = False, explanations: str = "folded",
                wide_map: str = "fill") -> tuple[dict, list[dict]]:
     # SF-R (Step 8): a scoring run keeps its frames in its own run directory
     # (`--png-dir`); every other caller writes them to docs/audits as before.
     png_dir = AUDITS if png_dir is None else pathlib.Path(png_dir)
     # UXR-D1: a frame shot at another Text size says so in its name.
-    text_tag = "" if abs(text_size - 1.0) < 1e-9 else "_T%.2f" % text_size
+    # Session UI-4: unsaid (None), every frame is shot at the checkout's own
+    # default (UiSettings.DEFAULT_TEXT_SIZE, read by the harness) and is
+    # untagged; a size given on the command line always tags the frame.
+    text_tag = "" if text_size is None else "_T%.2f" % text_size
     if hud_width != "auto":
-        text_tag += "_HUD_" + hud_width.upper()
+        # a frame name holds no colon (Windows): "16:9" tags as 16X9
+        text_tag += "_HUD_" + hud_width.upper().replace(":", "X")
     if high_contrast:
         text_tag += "_HC"
     # Session UI-3: the game's defaults (explanations folded, the very wide
@@ -1919,7 +1982,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         "window": [1600, 900],
         "window_position": WINDOW_POSITION,
         "result": str(result_path),
-        "text_size": text_size,
+        **({"text_size": text_size} if text_size is not None else {}),
         "hud_width": hud_width,
         "high_contrast": high_contrast,
         "explanations": explanations,
@@ -1977,9 +2040,10 @@ def main() -> int:
                     help="UXR-0: one frame per surface per PHYSICAL_RESOLUTIONS entry")
     ap.add_argument("--physical-scale", default="auto",
                     help="auto (derive_ui_scale) or a number such as 1.0 (the BEFORE picture)")
-    ap.add_argument("--text-size", type=float, default=1.0,
-                    help="UXR-D1: shoot every frame at this Text size (1.0 = the shipped theme)")
-    ap.add_argument("--hud-width", default="auto", choices=["auto", "full", "centred"],
+    ap.add_argument("--text-size", type=float, default=None,
+                    help="UXR-D1: shoot every frame at this Text size (unsaid: the checkout's "
+                         "own default, 1.15 from Session UI-4; a given size tags the frame)")
+    ap.add_argument("--hud-width", default="auto", choices=["auto", "full", "16:9", "centred"],
                     help="UXR-D3: shoot every frame at this HUD width")
     ap.add_argument("--high-contrast", action="store_true",
                     help="UXR-D2: shoot every frame with High contrast on")

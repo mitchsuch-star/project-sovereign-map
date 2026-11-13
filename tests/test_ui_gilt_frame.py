@@ -342,9 +342,15 @@ class TestTheDressedPage:
 
     def test_the_figure_column_rides_the_economy_book(self):
         body = _func(_read(SCRIPTS / "strategic_ledger.gd"), "_render_economy")
-        # Session UI-2: the page's one seam dresses its headings as it sets the text.
-        assert body.index("bbcode = Utils.bb_tabulate(bbcode, content_area)") < body.index(
-            "content_area.text = Utils.dress_heads(bbcode)")
+        # Session UI-4 (November 12, 2026): the blind readers asked for "a
+        # two-column table with right-aligned figures and color-coded signs" —
+        # the books are tables now (label | signed figure | note, a subtotal
+        # under each block, Net last), so the figure column is the table's own
+        # right-aligned column, not bb_tabulate's spacer; the page's one seam
+        # still dresses its headings as it sets the text.
+        assert "_econ_table(" in body and "ECON_COLS" in _read(SCRIPTS / "strategic_ledger.gd")
+        assert "content_area.text = Utils.dress_heads(bbcode)" in body
+        assert "Utils.bb_tabulate(" not in body
 
 
 # ═══════════════════════════════════════════════════════════════════════════

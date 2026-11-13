@@ -53,6 +53,8 @@ var screens: Dictionary = {}    # maps screen name -> node reference
 # never saved.
 var pinned_screen: String = ""
 const PIN_TOOLTIP := "Keep this screen open beside the map — Esc or Unpin closes it"
+# Session UI-4: the compact view leaves no room beside the map for a desk
+const PIN_COMPACT_TOOLTIP := "No room beside the map at this Interface Scale — lower it to keep a screen beside the map"
 var _pin_chips: Dictionary = {}  # screen name -> its header's Pin chip
 var api_client = null
 
@@ -381,6 +383,10 @@ func refit_active_screen() -> void:
 	"""UXR-2: the open screen re-fits the logical viewport (and keeps its
 	grip on its corner) — called by `main._on_root_resized`. UXR-D4: a pinned
 	screen re-docks (its width follows the band)."""
+	if pinned_screen != "" and not can_pin():
+		_unpin_to_book()
+	for chip_screen in _pin_chips:
+		_dress_pin_chip(chip_screen)
 	if active_screen != "" and screens.get(active_screen) != null:
 		Utils.refit_surface(screens[active_screen])
 	if pinned_screen != "" and screens.get(pinned_screen) != null:
@@ -413,13 +419,37 @@ func refresh_pinned() -> void:
 		node.refresh_pinned()
 
 
+func can_pin() -> bool:
+	"""Session UI-4 (November 12, 2026): a desk needs room beside the map. In
+	the compact view (Interface Scale 2.0 on a 900-px window: 800 x 450 logical)
+	the docked screen took the whole width its content needs (the ledger's tab
+	row, 737 px), covering the war room, the command window under it and the
+	map's zoom row off the left edge — there a screen opens as a book."""
+	return not Utils.compact_view()
+
+
 func toggle_pin(screen_name: String) -> void:
 	"""UXR-D4: the header's Pin chip. Pin the open screen to the desk; on a
 	pinned screen the chip reads Unpin, which closes it."""
 	if pinned_screen == screen_name:
 		unpin()
-	elif active_screen == screen_name:
+	elif active_screen == screen_name and can_pin():
 		_pin(screen_name)
+
+
+func _unpin_to_book() -> void:
+	"""Session UI-4: the view turned compact under a pinned screen (the player
+	raised the Interface Scale) — it stays open, as a book, its place in the
+	books kept; the desk's width returns to the HUD."""
+	var screen_name := pinned_screen
+	pinned_screen = ""
+	var node = screens.get(screen_name)
+	if node != null:
+		_set_docked(node, false)
+		active_screen = screen_name
+	_update_button_highlights()
+	screen_changed.emit(active_screen)
+	pin_changed.emit("")
 
 
 func unpin() -> void:
@@ -480,6 +510,18 @@ func _attach_pin_chip(screen_name: String, node: Node) -> void:
 	row.add_child(chip)
 	row.move_child(chip, close_btn.get_index())
 	_pin_chips[screen_name] = chip
+	_dress_pin_chip(screen_name)
+
+
+func _dress_pin_chip(screen_name: String) -> void:
+	"""Session UI-4: where a desk has no room (the compact view) the Pin chip
+	is disabled and its hover says why; an Unpin chip always acts."""
+	var chip := _pin_chips.get(screen_name) as Button
+	if chip == null:
+		return
+	var locked := pinned_screen != screen_name and not can_pin()
+	chip.disabled = locked
+	chip.tooltip_text = PIN_COMPACT_TOOLTIP if locked else PIN_TOOLTIP
 
 
 func _set_docked(node: Node, on: bool) -> void:
@@ -500,6 +542,7 @@ func _set_docked(node: Node, on: bool) -> void:
 	for screen_name in screens:
 		if screens[screen_name] == node and _pin_chips.has(screen_name):
 			(_pin_chips[screen_name] as Button).text = "Unpin" if on else "Pin"
+			_dress_pin_chip(screen_name)
 	if on:
 		_dock(node)
 	else:
@@ -540,10 +583,9 @@ func update_turn(turn_number: int, calendar_label: String = ""):
 	# Session UI-2: the date stands in the title face; the turn's number
 	# beside the hourglass (the tooltip names both). A world with no anchor
 	# keeps its plain "Turn N".
-	if calendar_label != "":
-		turn_label.text = calendar_label
-	else:
-		turn_label.text = "Turn " + str(int(turn_number))
+	_calendar_label = calendar_label
+	_turn_number = int(turn_number)
+	_render_turn_text()
 	if _turn_figure != null:
 		_turn_figure.text = str(int(turn_number)) if calendar_label != "" else ""
 		_turn_figure.get_parent().visible = calendar_label != ""
@@ -935,7 +977,15 @@ func _refresh_treasury_text() -> void:
 # nav's words / glyphs (`_compact`) are decided first, by COMPACT_BELOW_PX.
 var _fit_step := 0
 var _fit_queued := false
-const _FIT_STEPS := 6
+# Session UI-4 (November 12, 2026): two last steps, the date's own — 7 drops its
+# season word ("September 1805"), 8 keeps the turn alone ("Turn 20"); the whole
+# date is always the hover. At the shipped 115 % on the compact 2.0 view (800
+# logical px) six steps left the bar 2–28 px wider than the window, the Event
+# Log's button off its left edge and the menu's gear off its right (IQ10-X1's
+# own two, measured on the war room's real chips).
+const _FIT_STEPS := 8
+var _calendar_label := ""
+var _turn_number := 0
 
 
 func _queue_fit_right() -> void:
@@ -970,6 +1020,20 @@ func _apply_fit_step(step: int) -> void:
 	if _turn_figure != null:
 		_turn_figure.get_parent().visible = step < 6 and _turn_figure.text != ""
 	turn_label.theme_type_variation = &"Caption" if step >= 6 else &"HudTitle"
+	_render_turn_text()
+
+
+func _render_turn_text() -> void:
+	"""The turn's words at the bar's fit step: the whole date, then the month
+	and year (step 7), then the turn alone (step 8); a world with no calendar
+	keeps its plain "Turn N"."""
+	if _calendar_label == "" or _fit_step >= 8:
+		turn_label.text = "Turn " + str(_turn_number)
+	elif _fit_step >= 7:
+		var words := _calendar_label.split(" ", false)
+		turn_label.text = " ".join(words.slice(1)) if words.size() >= 3 else _calendar_label
+	else:
+		turn_label.text = _calendar_label
 
 
 func _make_threat_gauge() -> Control:

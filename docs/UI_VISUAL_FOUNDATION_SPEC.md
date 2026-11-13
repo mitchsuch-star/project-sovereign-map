@@ -958,3 +958,187 @@ you").
 **Costs said once:** a first-time player meets explanations a hover or click away (On the page restores every word);
 on the user's 5120x1440 the map opens magnified 2x with 55 % of its height off screen — ⌂ or Settings for the whole
 sheet — its province edges as today's zoom-in draws them; at the whole-sheet zoom a crowded front shows one plate.
+
+## 12. Session UI-4 — The Levers Past 7 ✅ LANDED November 12, 2026
+
+> **The user's word:** "do the levers past 7 now" — Session UI-3's final readers' own list (§11 "What holds it at 7
+> now"). **The two rulings asked at the session's head** (Plan Mode, with frames and costs): the type — the user's
+> **"115%"**; the 32:9 HUD — the user's **"Screen edges"**. The rest under the standing delegation ("DO BEST").
+> Rules `SYSTEMS_REFERENCE.md` §215; pins `tests/test_ui_gilt4_levers.py` (a headless probe among them,
+> `tools/ui_gilt4_probe.gd`); before / after pairs `docs/audits/ui_gilt4/`.
+
+**The rulings made under the delegation, each with its reason.** *Panels keep their 16:9-zone sizes on a very wide
+view; only their anchors move* — at 3,200 logical px, 0.28 of the band would have made the command window 896 px wide
+and the tutor card 1,280. *Disabled reads disabled* — a disabled chip loses its box (a lock glyph and dim ink, the
+reason its hover); a disabled Button keeps its words and loses its face (transparent, a faint dashed rim, its ink still
+4.5 : 1); a live chip's rim at full strength. *Emphasis only where the game recommends* — Talleyrand's counsel in the
+Cabinet is tagged; the petition's and the objection's answers take consequence colours, never a "recommended" face
+(the game recommends none of them). *Three frames shot as the game shows them* — the province panel over the live map
+(the map click's road), the war detail over the turn-20 war room, the main menu with the war office answering — a
+measure correction, declared: UI-3 shot the first two alone over a black field and the third with the war office
+silent; the alone shots stay in the census, and the score is reported with and without the three. *The fold switch* —
+"On the page" keeps every word; a surface this session restructured carries its new layout in both modes, so the
+page check is the word multiset, not the bytes. *Not touched, with the reason:* the School of War's lever is
+tightening its copy (a cut — the user's word); the Moniteur's per-battle victor marks need structured battle data the
+backend does not send.
+
+**As built** (one commit; nine sonnet builders on disjoint files after the lead landed the shared kit and the
+harness, then the lead's pass on every frame):
+- **The type:** the shipped Text size is 115 % (body 16 → 18 px, captions 14 → 16, the ladder in step); 100–175 %
+  stays in Settings. Inline icons and flags grow with the words; meters keep their geometry.
+- **The 32:9 HUD at the screen's edges** while the map fills a ≥ 2.6 : 1 view; a new HUD width **"16:9"** keeps the
+  zone one switch away, and "Auto" keeps the zone while the map shows the whole sheet. The user's 5120x1440 panel
+  derives Interface Scale 1.80 (the 32:9 term 0.45 → 0.65, after the interim readers).
+- **One disabled language** — chips, theme Buttons, the title screen's waiting buttons.
+- **The four screens at 6:** *the Balance of Europe* — the threat a hero figure and tier tag over a gauge across the
+  page (a ghost to the next war, ticks and labels at the thresholds), a figure row (hegemon share, wars until a
+  coalition brews, the coalition's leader), each road's designs a table of meters, hold pips and status tags; *the
+  province panel* — its facts one figure row, its actions grouped (RECRUIT, BUILD, ADMIRALTY, FORCES) with each live
+  chip's figure on its face; *the war detail* — the score breakdown a table of centre-zero bars with "full" tags, one
+  flag button per court under "Negotiate with:", the objective a meter, the panel 28 % of the band; *the settlement
+  table* — every court one aligned status row (flag, name ▸, meter, "33 / 50", status, blocker, Demand more / Ease /
+  Drop), a court's words opening under its row.
+- **Figures, not prose, on the surfaces the readers named:** the Strategic Ledger (Economy a table of signed figures
+  with subtotals reconciled to the payload's net; Forces one row per corps), the Generals (captioned blocks, a larger
+  portrait, the orders on one row), the Dispatch (MARSHAL STATUS a table, "In the offing" tags), Le Moniteur (each
+  entry its row and glyph), the enemy phase (the outcome badge first), the petition and the objection (consequence
+  colours, an even two-column grid), the Cabinet (the Recommendation a gold card, KEY FACTORS a table), the mailbox
+  (terms as chips), the campaign end (the record's repeats behind ▸), Settings (five tabs, switch faces, short choice
+  names), the main menu (live buttons lit, waiting ones faceless, the status a framed chip).
+- **The command window at 2.0:** the folded boot help is two lines ("▸ every command" prints the rest); the war list
+  never stands on the window (beside it, else above it, else shortened).
+- **Tables span their pages** (a BBCode table here shrinks to its words — the economy's books stood 130 px wide on a
+  990-px page).
+- **The notice rail:** the war detail starts below it; it stands aside for a covering screen; it holds as many
+  notices as its slot does (the rest behind "+N").
+
+**What the frames and the instruments caught after the build**, each fixed at its cause: five builders' untyped `:=`
+on Variants failed the parse (two driven tests caught it); four `[font_size=` tags against the override diet's
+ratchet at 0 (the title face or the theme step instead); two one-off greys (named tokens); tables shrinking to their
+words (`bb_table`'s width floors); the Balance's gauge labels clustering (spacers measured by the font); the
+Dispatch's warning column clipped at 2.0 (the ⚠ in the State cell); the menu's status chip zero-wide (a wrapping
+label in a shrink box stacked one letter a line); the main-menu staging racing a refused poll.
+
+**The interim reading** (three fresh sonnet readers on the first full shoot, before the record; all three read as
+labelled): 7 / 7 / 7, the mean of the 90 marks **7.06** (UI-3's final 7.00). What they named was fixed at its cause
+before the final reading:
+- *the 32:9 HUD at the edges read "tiny and stranded"* (F02, 6 / 7 / 6) — the 32:9 term 0.45 → 0.65, so the user's
+  panel derives 1.80;
+- *a dead band under the Balance's gauge* — the whole-line rest padded a table as one line; it now stops on a table's
+  rows;
+- *the Generals' portrait in an empty ruled box* — unruled;
+- *windows short of what they hold* — the enemy phase fits its reading window, the Cabinet's assessment takes up to
+  half the panel, the mailbox reads at 62 % x 94 %, the command log's short floor 80 px;
+- *the war detail's zero rows one a line* — one "At nought:" line; *the Economy's repeats* — behind its ⓘ;
+- *the main menu — "the subtitle is overlapped by the first button", "the footer text collides"* — the version line
+  and the status chip one footer column; the menu column stands between the title and the footer; on a short window
+  the title's rows step aside from the top (the eagle, then the overline) before the whole block does, measured at
+  rest (the entrance slides it); the painting's credit stands beside the chip, wrapping;
+- *Settings — "tabs wrapped onto two lines", "mostly empty", "long dropdown labels"* (F28, 6 / 6 / 6) — five tabs
+  (INTERFACE joins DISPLAY, SPOKEN ORDERS joins ORDERS), the choices short names (each row's hint names what they do);
+- *the interim fit run:* the notice rail ran off the right edge at turn 20 (it now holds what its slot holds), and
+  five "under a modal" hits were the instrument reading a scrolled log by the centre of its whole content — the
+  harness now places a row inside a scroll at the centre of its visible part, as R7's own overflow rule already read
+  such a row (a correction, declared; `SYSTEMS_REFERENCE.md` §215).
+
+**The first final shoot, read frame by frame before the readers** (the scaled run against HEAD's, every frame's fit
+records compared; thirteen frames got worse, all at Interface Scale 2.0, where 115 % type ran wider or taller than an
+800 x 450 view), each fixed at its cause and the whole measure shot again:
+- *the stat strip never wrapped* — the campaign end's five tiles and the Economy's four ran the window off both edges:
+  the strip is a flow row (a row that fits stands as before); at the compact view the end card stands aside its strip
+  and its crest, an ornament, and THE RECORD prints the figures in place (the reward dialog's own rule);
+- *the affair letter's four answers ran off both edges* — they wrap, two by two (the objection's flow row);
+- *the first-run card stood ~80 px taller than the view, its buttons off the bottom* — its middle scrolls while the
+  question and the two buttons stand; where the window has the room it shows whole, as before;
+- *a shut counsel path's 452-character refusal ran its panel off the top* — folded, a note opens from its first
+  sentence, the whole of it the hover (On the page, every word);
+- *the School of War card's body cut its last line in half* — it rests on whole lines, as every reading scroll does;
+- *the Side Desk at 2.0* — HEAD already docked the ledger over the war room there (six buttons off-screen, twenty rows
+  under it); a desk needs room beside the map, so at the compact view a screen opens as a book (its Pin locked, the
+  hover says why) and a pinned one becomes a book when the view turns compact;
+- *the top bar at 2.0* — IQ10-X1, closed in September, had come back on the war room's real chips (the log's button
+  off the left edge, the gear off the right, in HEAD too): the bar's last two fit steps are the date's own (its season
+  word, then the turn alone; the whole date its hover);
+- *the Economy's figures* carry the thousands mark the tiles above them do ("+2,590g"), and "Income" lost a colon a
+  trim left behind.
+
+**The hook's full run, after the final reading** (the first commit attempt: 18 of 39,681 tests failed, every one
+in the engine lane's frame and driven pins at 115 %; the commit was refused and each was taken at its cause):
+- *Real fit defects at 2.0, fixed:* the objection dialog stood 440 px tall in the 394-px band, its top under the bar
+  — the compact view sets its answers three to a row, tightens its spacing and spends no blank line in the message;
+  the capture choice ran 796 px wide — its answers wrap in equal halves; the Duchy of Warsaw's terms stood below the
+  proclamation's fold at 1.0 and 2.0 — its reading sizes to its words within the window's band and is the last to
+  give up height (the flag first; at 2.0 the flag row stands aside, as the end card's crest does); the Cabinet's
+  counsel stood cut at 2.0 — the compact view gives it the blank line's room; the Table card's door and skip stood
+  below its body — at 2.0 the card's acts stand under its title; the settlement table's third court touched the
+  body's edge — at 2.0 no court opens by itself and the answers stand 5 px lower.
+- *A contract restored:* the war detail's purpose is again the one sentence every surface prints (EP-F1: "the
+  homeland — 28 of 28 provinces held"), the meter now after it.
+- *Pins re-ruled to the session's own rulings, each with its reason:* the HUD band under Auto is the whole screen
+  while the map fills it ("16:9" keeps the zone, its own driven fixture); the dock and the reset clear the bar's
+  drawn strip (2 px taller at 115 %) and a container grows to its content's minimum; the chip census reads the lock
+  chip; the chest test reads the ceiling line inside its fold; Ney's state is his Forces row's tag; the interrupt
+  box is never shorter than its question; the armistice letter's cost (its terms and its expiry) stands above the
+  fold on every size and the rest is a scroll away on a short window; a war-card hover too tall for the user's
+  800-px panel widens by the hook's own small-window rule; the DD-B walk closes the court it worked on, opens only a
+  closed court and scrolls the table (at 115 % an open court fills the body on the user's panel).
+- The scaled run and the page run were shot again on this tree (the figures below); the physical sizes stand from the
+  final measure — the compact view never occurs there, and the two changes that reach a full view (the war detail's
+  line, the proclamation's reading) are read by the frame and driven pins.
+
+**The measure** — the final tree, measured as UI-3's was (`tools/iq10_run_captures.py` on port 8999, the windows
+parked at x 5200, no input sent; HEAD `e835f889` shot from a `git archive` with this session's harness, each checkout
+at its own shipped Text size). 188 surfaces (UI-3's 185 and the three stagings) at Interface Scale 1.0 and 2.0 (376
+frames; Folded, Fill, 115 %; re-shot after the hook's round): 0 `SCRIPT ERROR`; readability RED 0 / P1 0 over 5,319 rows; contrast 0 rows under 4.5 : 1
+of 4,304 measured; consistency 0 hits on 145 surfaces; map overlaps 0, hidden map furniture 102 (HEAD's 123); buttons
+off the view 0 (HEAD's 34, over 19 frames, all at 2.0); no frame's fit signals worse than HEAD's. Cut lines 81 (HEAD's
+54): the census reads a whole BBCode table as one line, and the books are tables now, so a table the rest stops between
+its rows counts as cut — read by eye, every rated frame's tables stop on a whole row; the small text-line cuts (15 px
+or less) are 8 new against 8 gone, most a few px of a line's padding. **On the page** (188 at 1.0, `--explanations page`): every word of HEAD's stands on 177
+surfaces (the word multiset, as ruled). The eleven others, each named: the top bar sheds its Talleyrand chip and the
+gold-per-turn figure on a 1,600-px-wide view at 115 % (the four war-room frames and the pause menu's settings — its fit
+steps since UI-2); the turn-20 war detail's rail holds three notices, the rest behind "+25"; Settings' HUD-width
+choices are short names (the row's hint names each; the page check first found 500 words a tab away, so On the page
+now shows every Settings section); the menus read the derived 180 % where HEAD read 160 % (the 32:9 term), and HEAD's
+page run shot the answering menu silent (the staging race fixed this session); the Dispatch receipt's "an" and the
+mailbox's "the" stand (counted directly — the tool's glued-blob method misread the new chips). **The five physical
+sizes** (940 frames): 0 `SCRIPT ERROR`; readability RED 0 / P1 0 over 13,695 rows; contrast 0 of 11,824 under; fit 188
+of 188 at 1920x1080, 3840x2160 and 5120x1440; map overlaps 0 over 940 map frames. The records
+`docs/audits/uxr0/readability_after_{all,named}_2026_11_12.json` re-shot (`client_commit` "e835f889+UI-4"). The
+figures and the method: `SYSTEMS_REFERENCE.md` §215.
+
+**The score** — three fresh sonnet readers, the frozen rubric, the prompt verbatim, the same 30 frame ids (pairs
+`docs/audits/ui_gilt4/`; `tools/ui_rating/scores_ui4.py`):
+
+| Reading | Overall | Mean of the marks | Median of frame medians |
+|---|---|---|---|
+| UI-3's final (the base, HEAD `e835f889`) | 7 / 7 / 7 | 7.00 | 7 |
+| UI-4 interim | 7 / 7 / 7 | 7.06 | 7 |
+| **UI-4 final** | **7 / 7 / 7** | **7.11** | **7** |
+| UI-4 final — the 27 frames whose staging never moved | — | 7.09 → 7.10 | 7 → 7 |
+
+**The overall marks did not pass 7.** On all 30 frames the mean rose 7.00 → 7.11; on the 27 whose staging never
+moved it held, 7.09 → 7.10 — most of the rise is the three frames now shot as the game shows them (the province panel
+6 → 7, the main menu 7 → 8, the war detail 6 → 6). Six frames rose (Forces 7 → 8, Vassals 7 → 8, the Balance of Europe
+6 → 7, the province panel 6 → 7, the main menu 7 → 8, the mailbox 7 → 8), four fell (the war room at 2.0 7 → 6,
+Manpower 8 → 7, Nations 8 → 7, the Cabinet's second step 7 → 6), 20 held; 15 frames unanimous, 15 one apart. Of the
+four screens at 6, the Balance and the province panel rose to 7; the war detail and the settlement table hold at 6.
+
+**What holds it at 7 now** (the final readers' own reasons, by theme, frame ids as in the pairs): text-heavy windows
+and small body type (all three OVERALL lines: "competent rather than commercial grade"); the four frames two readers
+marked 6 — the war room at 2.0 (F03: "the panels cover the map" — measured, they stand apart from one another; at
+800 x 450 the HUD covers most of the map), the Cabinet's second step (F15: "split it into Assessment and Actions
+panels", one scroll, not two), the settlement table (F16: "lead with the table and fold the paragraphs above it"), the
+war detail (F25: "give it its own full-height window"); uniform lists (Territories' 28 rows), half-empty panels (the
+lower thirds of Forces and Manpower), the School of War card's text (F04: "make the one action a prominent button"),
+Settings' form-like page (F28: "group the options into cards"). These are the levers past 7 — the user's to rule
+(`docs/STATUS.md`, "Open with you").
+
+**Costs said once:** long pages scroll about 15 % more at 115 % (100 % one slider away); on the 5120x1440 panel the
+HUD's two ends stand about 5,000 px apart ("16:9" restores the zone); a disabled chip reads as locked text, not a
+button (its hover says why); each court's words are a click away on the settlement table (On the page opens them
+all); Folded, Settings shows one section at a time; on a window under about 1,000 px tall the menu's eagle steps aside
+before the column crowds the title; on a 1600-px-wide view the top bar sheds its Talleyrand chip and the
+gold-per-turn figure to keep its date; at Interface Scale 2.0 on a 900-px window no screen pins beside the map, the end
+card's tiles and crest stand aside, and the date reads "September 1805" (or the turn alone); the three re-staged
+frames' marks are not comparable to UI-3's, so they are reported apart.

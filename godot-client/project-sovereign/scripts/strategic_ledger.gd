@@ -52,6 +52,10 @@ var tab_buttons: Array = []
 var _active_tab_style: StyleBoxFlat = null
 var _normal_tab_style: StyleBoxFlat = null
 
+# Session UI-4 (November 12, 2026): the Economy tables' column weights (line | gold | note).
+const ECON_COLS := [3, 2, 7]
+
+
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_area)
@@ -402,6 +406,17 @@ func _render_forces():
 	var widest := 1
 	for f in muster:
 		widest = maxi(widest, int(f.get("strength", 0)))
+	# Session UI-4 (November 12, 2026): the blind readers called the Forces body
+	# "plain stacked text with small, repetitive rows" and asked for "each corps a
+	# compact table row with a morale/trust bar". Folded (the default) the muster
+	# is ONE table — the arm's glyph and the name, the strength on its meter,
+	# morale and trust on theirs, where he stands, the state as a tag — and the
+	# rest of each corps' card (the facts, W/L, stance, order, flags, the Seat)
+	# opens behind the corps' name, a note of its own (`sl.forces.<name>`), under
+	# the table. On the page every corps stands as the card it was.
+	var folded := Utils.explanations_folded()
+	var table_rows: Array = []
+	var open_cards := ""
 	for f in muster:
 		var name = str(f.get("name", "?"))
 		var unit_type = str(f.get("type", "infantry"))
@@ -415,9 +430,8 @@ func _render_forces():
 		var won = int(f.get("battles_won", 0))
 		var lost = int(f.get("battles_lost", 0))
 		var flags = f.get("special_flags", {})
+		var note_id := "sl.forces." + name.replace(" ", "_")
 
-		# Session UI: a corps a card (the marks; `card_underlay.gd` paints).
-		bbcode += Utils.card_open()
 		# Session UI-2: the card leads with its header — the arm's glyph, the
 		# name in gilt, the arm in words (UXR3-F6: never a bracketed "[INF]"),
 		# the state as a badge — then the strength as a figure on its meter.
@@ -426,29 +440,32 @@ func _render_forces():
 			arm_glyph = "horse"
 		elif unit_type == "artillery":
 			arm_glyph = "guns"
-		bbcode += Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " "
+		var head := Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " "
 		if bool(f.get("sovereign", false)):
-			bbcode += "[color=#" + Utils.COLOR_GOLD + "]THE EMPEROR — " + name + "[/color]"
+			head += "[color=#" + Utils.COLOR_GOLD + "]THE EMPEROR — " + name + "[/color]"
 		else:
-			bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + unit_type.capitalize() + "[/color]"
+			head += "[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color]"
+		head += "  [color=#" + Utils.COLOR_INFO + "]" + unit_type.capitalize() + "[/color]"
+		var badge_tone := ""
 		match status:
 			"broken", "retreating", "captured":
-				bbcode += "  " + Utils.bb_badge(status.replace("_", " ").to_upper(), "8b2a2a")
+				badge_tone = "8b2a2a"
 			"drilling":
-				bbcode += "  " + Utils.bb_badge(status.replace("_", " ").to_upper(), "3a4a6b")
+				badge_tone = "3a4a6b"
 			"idle":
 				pass
 			_:
-				bbcode += "  " + Utils.bb_badge(status.replace("_", " ").to_upper(), Utils.COLOR_BADGE_QUIET)
-		bbcode += "\n"
-		bbcode += "  Strength: [color=#" + Utils.COLOR_GOLD + "]" + _format_number(strength) + "[/color]  " \
+				badge_tone = Utils.COLOR_BADGE_QUIET
+		if badge_tone != "":
+			head += "  " + Utils.bb_badge(status.replace("_", " ").to_upper(), badge_tone)
+		var strength_line := "  Strength: [color=#" + Utils.COLOR_GOLD + "]" + _format_number(strength) + "[/color]  " \
 			+ Utils.bb_meter(strength, widest, 150, 8) + "\n"
 		# The Seat (NP-5): the Emperor holding court in his own capital is
 		# worth a diplomatic point a turn — the backend's own figure.
 		var seat_dp := int(f.get("seat_dp", 0))
+		var seat_line := ""
 		if seat_dp > 0:
-			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Holds court at " + str(f.get("location", "")) \
+			seat_line = "  [color=#" + Utils.COLOR_GOLD + "]Holds court at " + str(f.get("location", "")) \
 				+ " — the Seat: +" + str(seat_dp) + " DP a turn[/color]\n"
 
 		# Trust + morale with color thresholds
@@ -475,16 +492,20 @@ func _render_forces():
 		# in the captor's own capital at strength 0 with "No active orders" —
 		# the persistent surface the player opens, saying the one thing that is
 		# not true. Where he is held is not where he is posted.
+		var where_text := ""
+		var figures_line := ""
 		if bool(f.get("captured", false)):
 			var captor = Utils.display_nation_name(str(f.get("captured_by", "")))
-			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]Held by " + captor + " at " + loc + "[/color]"
+			where_text = "[color=#" + Utils.COLOR_ERROR + "]Held by " + captor + " at " + loc + "[/color]"
+			figures_line += "  " + where_text
 		else:
-			bbcode += "  Location: " + loc
-		bbcode += "   " + Utils.bb_glyph("morale", 16, morale_fill) + " Morale: [color=#" + morale_color + "]" + str(morale) + "%[/color] " \
+			where_text = loc
+			figures_line += "  Location: " + loc
+		figures_line += "   " + Utils.bb_glyph("morale", 16, morale_fill) + " Morale: [color=#" + morale_color + "]" + str(morale) + "%[/color] " \
 			+ Utils.bb_meter(morale, 100, 60, 7, morale_fill)
-		bbcode += "   " + Utils.bb_glyph("trust", 16, trust_fill) + " Trust: [color=#" + trust_color + "]" + str(trust) + "[/color] " \
+		figures_line += "   " + Utils.bb_glyph("trust", 16, trust_fill) + " Trust: [color=#" + trust_color + "]" + str(trust) + "[/color] " \
 			+ Utils.bb_meter(trust, 100, 60, 7, trust_fill)
-		bbcode += "   W/L: " + str(won) + "/" + str(lost) + "\n"
+		figures_line += "   W/L: " + str(won) + "/" + str(lost) + "\n"
 
 		# The notes under the figures: status and stance, the order, the flags.
 		# FA-32: the status of a prisoner reads in the error colour, as before.
@@ -496,12 +517,12 @@ func _render_forces():
 				status_color = Utils.COLOR_BLUE
 			"idle":
 				status_color = Utils.COLOR_INFO
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Status:[/color] [color=#" + status_color + "]" + status.replace("_", " ").capitalize() + "[/color]"
-		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Stance: " + stance + "[/color]\n"
+		var notes: String = "  [color=#" + Utils.COLOR_INFO + "]Status:[/color] [color=#" + status_color + "]" + status.replace("_", " ").capitalize() + "[/color]"
+		notes += "  [color=#" + Utils.COLOR_INFO + "]Stance: " + stance + "[/color]\n"
 
 		# Strategic order
 		if strat != "None":
-			bbcode += "  Order: " + strat + "\n"
+			notes += "  Order: " + strat + "\n"
 
 		# Special flags
 		var flag_parts = []
@@ -514,10 +535,46 @@ func _render_forces():
 		if flags.get("exhausted", false):
 			flag_parts.append("EXHAUSTED")
 		if flag_parts.size() > 0:
-			bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]" + " | ".join(flag_parts) + "[/color]\n"
+			notes += "  [color=#" + Utils.COLOR_ORANGE + "]" + " | ".join(flag_parts) + "[/color]\n"
 
-		bbcode += Utils.CARD_CLOSE
-		bbcode += "\n"
+		if folded:
+			# The table row: the name opens the corps' card (its hover says so).
+			var open_here := Utils.note_is_open(note_id)
+			var name_link := "[url=" + Utils.NOTE_META + note_id + "]" \
+				+ Utils.bb_hint("[color=#" + Utils.COLOR_GOLD + "]" + ("▾ " if open_here else "▸ ") + name + "[/color]", "Open " + name + "'s card — the facts, W/L, stance, order and flags.") + "[/url]"
+			var name_cell := Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " " + name_link
+			if bool(f.get("sovereign", false)):
+				name_cell = Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "]THE EMPEROR —[/color] " + name_link
+			var tag_tone := badge_tone if badge_tone != "" else Utils.COLOR_BADGE_QUIET
+			var state_cell := Utils.bb_tag(status.replace("_", " ").to_upper(), tag_tone)
+			if strat != "None":
+				state_cell += " [color=#" + Utils.COLOR_INFO + "]" + strat + "[/color]"
+			table_rows.append([
+				name_cell,
+				"[color=#" + Utils.COLOR_GOLD + "]" + _format_number(strength) + "[/color] " + Utils.bb_meter(strength, widest, 72, 8),
+				"[color=#" + morale_color + "]" + str(morale) + "%[/color] " + Utils.bb_meter(morale, 100, 44, 7, morale_fill),
+				"[color=#" + trust_color + "]" + str(trust) + "[/color] " + Utils.bb_meter(trust, 100, 44, 7, trust_fill),
+				where_text,
+				state_cell,
+			])
+
+		# Session UI: a corps a card (the marks; `card_underlay.gd` paints). On the
+		# page every corps stands as a card; Folded only the corps whose note was
+		# opened stands under the table, with its `▾ less`.
+		if not folded or Utils.note_is_open(note_id):
+			var card := Utils.card_open()
+			card += head + (("  " + Utils.note_link(note_id)) if folded else "") + "\n"
+			card += strength_line + seat_line + figures_line + notes
+			card += Utils.CARD_CLOSE
+			card += "\n"
+			if folded:
+				open_cards += card
+			else:
+				bbcode += card
+
+	if folded:
+		bbcode += Utils.bb_table(["Corps", "Strength", "Morale", "Trust", "Location", "Order"], table_rows, [], [5, 4, 3, 3, 4, 5], _table_px()) + "\n"
+		bbcode += open_cards
 
 	content_area.text = Utils.dress_heads(bbcode)
 
@@ -629,7 +686,9 @@ func _render_territories():
 		# "(1 marshals" read as a typo on every single-corps province.
 		var _corps_word = " marshal, cap " if occupants == 1 else " marshals, cap "
 		# a table cell: the verdict an inline tag, its terms on the cell's second line
-		var supply_cell = Utils.bb_tag(supply_status, supply_tone) + "\n[color=#" + Utils.COLOR_INFO + "](" \
+		# Session UI-4 (November 12, 2026): ONE line — the readers saw two-line rows
+		# ("the wrapped city, plains column", "the dash-filled columns waste space").
+		var supply_cell = Utils.bb_tag(supply_status, supply_tone) + " [color=#" + Utils.COLOR_INFO + "](" \
 			+ str(occupants) + _corps_word + _format_number(supply_cap) + ")[/color]"
 
 		# Buildings
@@ -646,7 +705,7 @@ func _render_territories():
 
 		rows.append([
 			"[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color] ",
-			"[color=#" + Utils.COLOR_INFO + "]" + rtype.replace("_", " ") + ",\n" + terrain.replace("_", " ") + "[/color] ",
+			"[color=#" + Utils.COLOR_INFO + "]" + rtype.replace("_", " ") + " · " + terrain.replace("_", " ") + "[/color] ",
 			str(income) + "g ",
 			stab_cell + " ",
 			supply_cell + " ",
@@ -654,9 +713,88 @@ func _render_territories():
 			(", ".join(bld_parts) if bld_parts.size() > 0 else "—"),
 		])
 	bbcode += Utils.bb_table(["Province", "Kind", "Income", "Stability", "Supply", "Garrison", "Buildings"],
-		rows, [2, 5], [3, 3, 1, 3, 5, 2, 4]) + "\n"
+		rows, [2, 5], [3, 5, 2, 4, 7, 2, 5], _table_px()) + "\n"
 
 	content_area.text = Utils.dress_heads(bbcode)
+
+
+func _econ_row(rows: Array, label: String, amount, note: String = "", counts: bool = true, tone: String = "", sub: bool = false) -> void:
+	# Session UI-4 (November 12, 2026): one line of the books as DATA — its label,
+	# its signed figure (null = a line of words only), the note that rides beside
+	# it, whether it is part of Net (`counts`), and a colour for the figure that
+	# overrides the sign's own (the informational Materiel is dim).
+	rows.append({"label": label, "amount": amount, "note": note, "counts": counts, "tone": tone, "sub": sub})
+
+
+func _econ_signed(n: int) -> String:
+	# the books' figures carry the thousands mark the tiles above them do
+	# ("+2,590g" under "8,677G" — the table printed "+2590g")
+	return ("+" if n >= 0 else "-") + _format_number(absi(n)) + "g"
+
+
+func _econ_cells(r: Dictionary, bold: bool = false) -> Array:
+	# A row's three cells. The label in plain ink (a sub-line indented, in dim ink);
+	# the figure signed — green for money in, crimson for money out — in tabular
+	# figures (the table right-aligns it); the note dim. A long note rides the
+	# label's hover Folded (Utils.bb_hint) and prints in its column On the page.
+	var label := str(r.get("label", ""))
+	var note := str(r.get("note", ""))
+	var amount = r.get("amount", null)
+	var shown_note := note
+	if Utils.explanations_folded() and note.length() > 44 and label != "":
+		label = Utils.bb_hint(label, note)
+		shown_note = ""
+	var label_cell := label
+	if not bool(r.get("counts", true)) and amount != null:
+		label_cell = "[color=#" + Utils.COLOR_INFO + "]" + label + "[/color]"
+	var fig := ""
+	if amount != null:
+		var tone := str(r.get("tone", ""))
+		if tone == "":
+			tone = Utils.COLOR_SUCCESS if int(amount) >= 0 else Utils.COLOR_ERROR
+		fig = "[color=#" + tone + "]" + _econ_signed(int(amount)) + "[/color]"
+	var note_cell := ""
+	if shown_note != "":
+		note_cell = "[color=#" + Utils.COLOR_INFO + "]" + shown_note + "[/color]"
+	if bold:
+		label_cell = "[b]" + label_cell + "[/b]"
+		if fig != "":
+			fig = "[b]" + fig + "[/b]"
+	return [label_cell, fig, note_cell]
+
+
+func _econ_table(rows: Array, subtotal: bool, subtotal_label: String) -> String:
+	# Session UI-4: a block of the books as ONE table — line | figure | note —
+	# the figure column right-aligned so the gold reads down a column. The
+	# subtotal is printed only by a caller that has proved the rows reconcile to
+	# the payload's own Net (see _render_economy); lines outside Net follow it.
+	var counted: Array = []
+	var outside: Array = []
+	var total := 0
+	for r in rows:
+		if bool(r.get("counts", true)) or r.get("amount", null) == null or bool(r.get("sub", false)):
+			counted.append(r)
+			if r.get("amount", null) != null and bool(r.get("counts", true)):
+				total += int(r.get("amount", 0))
+		else:
+			outside.append(r)
+	var cells: Array = []
+	for r in counted:
+		cells.append(_econ_cells(r))
+	if subtotal:
+		cells.append(_econ_cells({"label": subtotal_label, "amount": total, "note": "", "counts": true, "tone": ""}, true))
+	for r in outside:
+		cells.append(_econ_cells(r))
+	return Utils.bb_table(["Line", "Gold", "Note"], cells, [1], ECON_COLS, _table_px()) + "\n"
+
+
+func _table_px() -> float:
+	"""Session UI-4: the width a book's table spans (Utils.bb_table's
+	`width_px`) — the page's own, less the scroll bar and the card margins;
+	0 (natural width) before the page has a size."""
+	if content_area == null or content_area.size.x < 320.0:
+		return 0.0
+	return content_area.size.x - 48.0
 
 
 func _render_economy():
@@ -674,16 +812,27 @@ func _render_economy():
 
 	var trade = int(econ.get("trade_income", 0))
 
-	# Session UI-2: the books in two groups — INCOME above, CHARGES below, a rule
-	# and Net under both. Every line keeps its words; each lands in its group.
-	var inc := ""
-	var chg := ""
-	bbcode += "  Treasury: " + _format_number(treasury) + "g\n"
+	# Session UI-4 (November 12, 2026): the blind readers called this body "a flat
+	# list of gold-on-navy lines" and asked for "a two-column table with
+	# right-aligned figures and color-coded signs". The books are now two TABLES —
+	# INCOME, then CHARGES — each line its label, its signed figure and its note;
+	# a subtotal under a block, and Net bold and last. Every line keeps its words
+	# (a long note rides its label's hover Folded; On the page it prints). A
+	# subtotal is printed ONLY when the rows printed sum to the payload's own Net —
+	# never a figure the backend did not stand behind (SC-33).
+	var inc: Array = []
+	var chg: Array = []
+	var outside: Array = []
+	# Session UI-4: these two repeat the tiles above (the readers: "drop the
+	# redundant header lines") — folded they stand behind the book's ⓘ.
+	bbcode += Utils.bb_lead("  Treasury: " + _format_number(treasury) + "g\n", "sl.economy.lead")
 	# UXR3-41: the ceiling leads the books (the helper's comment).
-	bbcode += _ceiling_line(econ, treasury)
-	inc += "  Income:   +" + str(income) + "g\n"
+	bbcode += Utils.bb_lead(_ceiling_line(econ, treasury), "sl.economy.lead")
+	var income_prefix := "  Income:   +"  # the old line's own words; the row's label is its name
+	# (strip again after the "+": "Income:   +" left its colon behind the spaces)
+	_econ_row(inc, income_prefix.strip_edges().trim_suffix("+").strip_edges().trim_suffix(":"), income)
 	if trade > 0:
-		inc += "  Trade:    +" + str(trade) + "g\n"
+		_econ_row(inc, "Trade", trade)
 	# PRE-EC ledger floor (ECONOMY_REVISIT_SPEC.md §0): admin_bonus, treaty_gold
 	# and vassal_tribute are folded into `net` by ledger.py _build_economy but
 	# were never rendered here, so the visible lines did not sum to Net whenever
@@ -691,39 +840,19 @@ func _render_economy():
 	# "invisible tribute" bug class). Render every component that feeds Net.
 	var admin_bonus = int(econ.get("admin_bonus", 0))
 	if admin_bonus != 0:
-		var ab_sign = "+" if admin_bonus > 0 else ""
-		var admin_bonus_line: String = "  Admin:    " + ab_sign + str(admin_bonus) + "g\n"
-		if admin_bonus > 0:
-			inc += admin_bonus_line
-		else:
-			chg += admin_bonus_line
+		_econ_row(inc if admin_bonus > 0 else chg, "Admin", admin_bonus)
 	var treaty_gold = int(econ.get("treaty_gold", 0))
 	if treaty_gold != 0:
-		var tg_sign = "+" if treaty_gold > 0 else ""
-		var treaty_gold_line: String = "  Treaty:   " + tg_sign + str(treaty_gold) + "g\n"
-		if treaty_gold > 0:
-			inc += treaty_gold_line
-		else:
-			chg += treaty_gold_line
+		_econ_row(inc if treaty_gold > 0 else chg, "Treaty", treaty_gold)
 	var vassal_tribute = int(econ.get("vassal_tribute", 0))
 	if vassal_tribute != 0:
-		var vt_sign = "+" if vassal_tribute > 0 else ""
-		var vassal_tribute_line: String = "  Tribute:  " + vt_sign + str(vassal_tribute) + "g\n"
-		if vassal_tribute > 0:
-			inc += vassal_tribute_line
-		else:
-			chg += vassal_tribute_line
+		_econ_row(inc if vassal_tribute > 0 else chg, "Tribute", vassal_tribute)
 	# SC-33 recurring settlement streams (G4F smoke follow-up): the ratified
 	# gold-per-turn tribute is real per-turn cash — show its net line and the
 	# per-stream detail instead of leaving it dispatch-only.
 	var settlement_gold = int(econ.get("settlement_gold", 0))
 	if settlement_gold != 0:
-		var sg_sign = "+" if settlement_gold > 0 else ""
-		var settlement_gold_line: String = "  Settlements: " + sg_sign + str(settlement_gold) + "g\n"
-		if settlement_gold > 0:
-			inc += settlement_gold_line
-		else:
-			chg += settlement_gold_line
+		_econ_row(inc if settlement_gold > 0 else chg, "Settlements", settlement_gold)
 	# EA-1 (the economy audit, Oct 5 2026): the recurring transfers between
 	# courts, signed, each stream naming its counterparty and what is owed —
 	# a sponsorship moved the chest 200 a turn and no line said so.
@@ -731,14 +860,12 @@ func _render_economy():
 	# on the trade we actually earn across the line — its own Net line.
 	var cs_loss = int(econ.get("continental_system", 0))
 	if cs_loss > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Continental System: -" + str(cs_loss) + "g  (trade with Britain closed)[/color]\n"
+		_econ_row(chg, "Continental System", -cs_loss, "trade with Britain closed")
 	var subsidies = int(econ.get("subsidies", 0))
 	var subsidy_streams = econ.get("subsidy_streams", [])
 	if subsidies != 0 or (subsidy_streams is Array and subsidy_streams.size() > 0):
-		var sub_sign = "+" if subsidies > 0 else ""
-		var sub_color = Utils.COLOR_SUCCESS if subsidies >= 0 else Utils.COLOR_WARNING
-		var sub_block := ""
-		sub_block += "  [color=#" + sub_color + "]Subsidies: " + sub_sign + str(subsidies) + "g[/color]\n"
+		var sub_rows: Array = []
+		_econ_row(sub_rows, "Subsidies", subsidies)
 		if subsidy_streams is Array:
 			for st in subsidy_streams:
 				if not (st is Dictionary):
@@ -747,44 +874,44 @@ func _render_economy():
 				var who = Utils.display_nation_name(str(st.get("counterparty", "")))
 				var amount = int(st.get("amount", 0))
 				var owed = int(st.get("owed", amount))
-				var line = ("from " if incoming else "to ") + who + ": " + ("+" if incoming else "-") + str(amount) + "g"
+				var line = ""
 				if owed > amount:
-					line += " (" + str(owed) + "g owed — the chest paid " + str(amount) + "g)"
+					line += str(owed) + "g owed — the chest paid " + str(amount) + "g"
 				var left = int(st.get("turns_remaining", 0))
 				if left > 0:
-					line += ", " + str(left) + " turn" + ("s" if left != 1 else "") + " left"
-				sub_block += "    [color=#" + Utils.COLOR_INFO + "](" + line + ")[/color]\n"
+					line += (", " if line != "" else "") + str(left) + " turn" + ("s" if left != 1 else "") + " left"
+				_econ_row(sub_rows, "    " + ("from " if incoming else "to ") + who, amount if incoming else -amount, line, false, "", true)
 		if subsidies >= 0:
-			inc += sub_block
+			inc.append_array(sub_rows)
 		else:
-			chg += sub_block
+			chg.append_array(sub_rows)
 	# ES-2 (Economy Revisit S6): recurring cost of holding non-homeland
 	# soil — a signed Net component of its own (Income stays gross), so it
 	# must render for the visible lines to sum to Net (SC-33 invariant).
 	var occupation = int(econ.get("occupation", 0))
 	if occupation > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Occupation: -" + str(occupation) + "g[/color]\n"
+		_econ_row(chg, "Occupation", -occupation)
 	# EC-W1 (Econ War-Coupling): income suspended by hostile armies standing
 	# on our provinces — its own signed Net component (SC-33 contract).
 	var contributions = int(econ.get("contributions", 0))
 	if contributions > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Contributions: -" + str(contributions) + "g[/color]\n"
+		_econ_row(chg, "Contributions", -contributions)
 	# EB-5a (Econ Balance): what our own armies requisition from the enemy
 	# provinces they disrupt — a positive signed Net component.
 	var requisitions = int(econ.get("requisitions", 0))
 	if requisitions > 0:
-		inc += "  [color=#" + Utils.COLOR_SUCCESS + "]Requisitions: +" + str(requisitions) + "g[/color]\n"
+		_econ_row(inc, "Requisitions", requisitions)
 	# EB-2 (Econ Balance): the authored overseas/colonial pool, modulated
 	# by who commands the sea — a positive signed Net component.
 	var overseas = int(econ.get("overseas", 0))
 	if overseas > 0:
-		inc += "  [color=#" + Utils.COLOR_SUCCESS + "]Overseas trade: +" + str(overseas) + "g[/color]\n"
+		_econ_row(inc, "Overseas trade", overseas)
 	# EB-1 (Econ Balance): the Charges of Empire — the condition-priced
 	# draw on the treasury (absorbs EC-W2's War Effort; the WE term rides
 	# inside the rate). The named terms render so the rate explains itself.
 	var state_charges = int(econ.get("state_charges", 0))
 	if state_charges > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Charges of Empire: -" + str(state_charges) + "g[/color]\n"
+		var terms_text := ""
 		var charge_terms = econ.get("state_charges_terms", [])
 		if charge_terms is Array and charge_terms.size() > 0:
 			var term_bits = []
@@ -793,37 +920,37 @@ func _render_economy():
 			# Slice 17 review round (L2-7): the terms are rate points, not gold —
 			# the backend states the unit from the constants it computes with.
 			var rate_note = str(econ.get("state_charges_rate_note", ""))
-			var terms_text = ", ".join(PackedStringArray(term_bits))
+			terms_text = ", ".join(PackedStringArray(term_bits))
 			if rate_note != "":
 				terms_text += " — " + rate_note
-			chg += "    [color=#" + Utils.COLOR_INFO + "](" + terms_text + ")[/color]\n"
+		_econ_row(chg, "Charges of Empire", -state_charges, terms_text)
 		# SR-5a question (c): why the draw moved since the last charged turn.
 		var charges_delta_note = str(econ.get("state_charges_delta_note", ""))
 		if charges_delta_note != "":
-			chg += "    [color=#" + Utils.COLOR_INFO + "](" + charges_delta_note + ")[/color]\n"
+			_econ_row(chg, "", null, charges_delta_note)
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).
 	var dotation_skim = int(econ.get("dotation_skim", 0))
 	if dotation_skim > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Dotations: -" + str(dotation_skim) + "g[/color]\n"
+		_econ_row(chg, "Dotations", -dotation_skim)
 	# ES-7 second pass (§0.6.8): the rente bill — treasury pensions at
 	# premium; its own signed Net component (same SC-33 contract).
 	var rente_cost = int(econ.get("rente_cost", 0))
 	if rente_cost > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Rentes: -" + str(rente_cost) + "g[/color]\n"
+		_econ_row(chg, "Rentes", -rente_cost)
 	# SR-5r RF-1 (REFORMS_SPEC §2.2): the upkeep of the laws in force — its
 	# own signed Net component (same SC-33 contract).
 	var laws = int(econ.get("laws", 0))
 	if laws > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Laws: -" + str(laws) + "g[/color]\n"
+		_econ_row(chg, "Laws", -laws)
 	# EC-U2 (Combat Overhaul Phase 4): per-turn maintenance of built
 	# structures (depots, forts, training grounds, markets, stables,
 	# watchtowers) — the conquest-free gold sink; its own signed Net
 	# component (same SC-33 contract, NET_GOLD_COMPONENTS-guarded).
 	var infrastructure = int(econ.get("infrastructure", 0))
 	if infrastructure > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Infrastructure: -" + str(infrastructure) + "g[/color]\n"
+		_econ_row(chg, "Infrastructure", -infrastructure)
 	# DEF-5 naval (NV-1): the blockade's trade suspension + the Admiralty's
 	# war ship upkeep — signed Net components (same SC-33 contract).
 	var blockade = int(econ.get("blockade", 0))
@@ -833,21 +960,21 @@ func _render_economy():
 		var blockade_note = str(econ.get("blockade_note", ""))
 		if blockade_note == "":
 			blockade_note = "trade halved under enemy sail"
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Blockade: -" + str(blockade) + "g  (" + blockade_note + ")[/color]\n"
+		_econ_row(chg, "Blockade", -blockade, blockade_note)
 	# DY-7 (DYNAMISM_SPEC.md §6): a crown unrecognized — our trade with the
 	# withholding courts halved; its own signed Net component (SC-33).
 	var recognition = int(econ.get("recognition", 0))
 	if recognition > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Recognition: -" + str(recognition) + "g  (the courts that withhold our crown trade at half)[/color]\n"
+		_econ_row(chg, "Recognition", -recognition, "the courts that withhold our crown trade at half")
 	var admiralty = int(econ.get("admiralty", 0))
 	if admiralty > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Admiralty: -" + str(admiralty) + "g[/color]\n"
+		_econ_row(chg, "Admiralty", -admiralty)
 	# FA-D26 (slice 17, Phase 2): the Butcher's Bill (EC-W3) — charged at the
 	# battle, OUTSIDE Net by design (the plunder-gold precedent), so it is
 	# informational: dimmed, and NOT part of the SC-33 sum above.
 	var materiel = int(econ.get("materiel", 0))
 	if materiel > 0:
-		chg += "  [color=#" + Utils.COLOR_INFO + "]Materiel: -" + str(materiel) + "g  (guns, horses and stores lost with the fallen this turn — paid at the field, outside Net)[/color]\n"
+		_econ_row(outside, "Materiel", -materiel, "guns, horses and stores lost with the fallen this turn — paid at the field, outside Net", false, Utils.COLOR_INFO)
 	# ES-3 (Economy Revisit S5): Upkeep is split into the base line and an
 	# over-limit surcharge line (backend guarantees base + surcharge == the
 	# folded total, so the visible lines still sum to Net — §3 invariant).
@@ -859,21 +986,18 @@ func _render_economy():
 	# EAD-1 (the economy gate): campaign pay is part of the surcharge too.
 	var campaign_pay = int(econ.get("campaign_pay", 0))
 	var over_limit_surcharge = upkeep_surcharge - grande_armee - campaign_pay
-	chg += "  Upkeep:   -" + str(upkeep_base) + "g\n"
 	# SR-5a question (c): the army is paid for the men under arms today, and
 	# the note says how the bill moved since the last turn it was charged.
-	var upkeep_note = str(econ.get("upkeep_note", ""))
-	if upkeep_note != "":
-		chg += "    [color=#" + Utils.COLOR_INFO + "](" + upkeep_note + ")[/color]\n"
+	_econ_row(chg, "Upkeep", -upkeep_base, str(econ.get("upkeep_note", "")))
 	if over_limit_surcharge > 0:
 		var force_limit = int(econ.get("force_limit", 0))
 		var army_total = int(econ.get("army_strength_total", 0))
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Over-limit surcharge: -" + str(over_limit_surcharge) + "g"
+		var over_note := ""
 		if force_limit > 0:
-			chg += "  (" + _format_number(army_total) + " / " + _format_number(force_limit) + " force limit)"
-		chg += "[/color]\n"
+			over_note = _format_number(army_total) + " / " + _format_number(force_limit) + " force limit"
+		_econ_row(chg, "Over-limit surcharge", -over_limit_surcharge, over_note)
 	if grande_armee > 0:
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Grande Armée surcharge: -" + str(grande_armee) + "g[/color]\n"
+		_econ_row(chg, "Grande Armée surcharge", -grande_armee)
 	if campaign_pay > 0:
 		# EAD-1: the corps fed by contract on allied or neutral soil, named.
 		var fed_at = []
@@ -882,14 +1006,21 @@ func _render_economy():
 			for g in ground:
 				if g is Dictionary:
 					fed_at.append(str(g.get("marshal", "")) + " at " + str(g.get("region", "")) + " (" + str(g.get("holder", "")) + ")")
-		chg += "  [color=#" + Utils.COLOR_WARNING + "]Campaign pay: -" + str(campaign_pay) + "g"
+		var pay_note := ""
 		if fed_at.size() > 0:
-			chg += "  (fed by contract on allied or neutral soil: " + ", ".join(PackedStringArray(fed_at)) + ")"
-		chg += "[/color]\n"
+			pay_note = "fed by contract on allied or neutral soil: " + ", ".join(PackedStringArray(fed_at))
+		_econ_row(chg, "Campaign pay", -campaign_pay, pay_note)
+
+	# The subtotals stand only if the printed rows reach the payload's own Net.
+	var rows_sum := 0
+	for r in inc + chg:
+		if bool(r.get("counts", true)) and r.get("amount", null) != null:
+			rows_sum += int(r.get("amount", 0))
+	var reconciles: bool = (rows_sum == net)
 
 	# Session UI-2: the two groups stand here, under the heading each is named by.
-	bbcode += Utils.bb_section("INCOME", "income") + inc
-	bbcode += Utils.bb_section("CHARGES", "admin") + chg
+	bbcode += Utils.bb_section("INCOME", "income") + _econ_table(inc, reconciles, "Subtotal")
+	bbcode += Utils.bb_section("CHARGES", "admin") + _econ_table(chg + outside, reconciles, "Subtotal")
 
 	# "The Levy is Open" (econ spec review §6). The force limit used to render
 	# ONLY inside the over-limit branch above — visible exactly while the gate
@@ -918,17 +1049,21 @@ func _render_economy():
 				+ _format_number(int(levy.get("infantry_amount", 0))) + " foot for " \
 				+ str(int(levy.get("infantry_price", 0))) + "g" \
 				+ "  (pool " + _format_number(int(levy.get("infantry_pool", 0))) + ")[/color]\n"
+		bbcode += "\n"
 
-	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
-	var net_sign = "+" if net >= 0 else ""
-	# the total rule: a gilt hairline (an image — box-drawing text at 40 % read 2.65 : 1)
-	bbcode += "  [img width=220 height=1 color=#" + Utils.COLOR_GOLD + "99]" + Utils.SWATCH + "[/img]\n"
-	bbcode += "  [b]Net:      [color=#" + net_color + "]" + net_sign + str(net) + "g[/color][/b]\n"
+	# Net: bold and last of the books, its own one-row table on the same column
+	# weights (the gold figure lines up under the blocks above).
 	# EA-13 (the economy audit, Oct 5 2026): which lines moved since
 	# yesterday's accounts, and why — the backend's sentence, verbatim.
-	var moves_note = str(econ.get("net_moves_note", ""))
-	if moves_note != "":
-		bbcode += "    [color=#" + Utils.COLOR_INFO + "](" + moves_note + ")[/color]\n"
+	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
+	var net_note := str(econ.get("net_moves_note", ""))
+	var net_label := "Net"
+	if Utils.explanations_folded() and net_note.length() > 44:
+		net_label = Utils.bb_hint(net_label, net_note)
+		net_note = ""
+	bbcode += "[table=3][cell expand=%d bg=#%s padding=6,4,6,4][b][color=#%s]%s[/color][/b][/cell]" % [ECON_COLS[0], Utils.TABLE_HEAD_BG, Utils.COLOR_GOLD, net_label]
+	bbcode += "[cell expand=%d bg=#%s padding=6,4,6,4][right][opentype_features=tnum,lnum][b][color=#%s]%s[/color][/b][/opentype_features][/right][/cell]" % [ECON_COLS[1], Utils.TABLE_HEAD_BG, net_color, _econ_signed(net)]
+	bbcode += "[cell expand=%d bg=#%s padding=6,4,6,4][color=#%s]%s[/color][/cell][/table]\n" % [ECON_COLS[2], Utils.TABLE_HEAD_BG, Utils.COLOR_INFO, net_note]
 
 	# IQ-1 SW-0 "The Chest Speaks". `Spent` is informational and sits BELOW
 	# Net on purpose: money already gone this turn (the projection above
@@ -963,7 +1098,7 @@ func _render_economy():
 			region_rows.append(["[color=#" + Utils.COLOR_GOLD + "]" + str(entry.get("region", "?")) + "[/color]",
 				"[color=#" + Utils.COLOR_INFO + "]" + str(entry.get("type", "town")).replace("_", " ") + "[/color]",
 				str(int(entry.get("income", 0))) + "g"])
-		bbcode += Utils.bb_table(["Province", "Kind", "Income"], region_rows, [2], [4, 3, 2]) + "\n"
+		bbcode += Utils.bb_table(["Province", "Kind", "Income"], region_rows, [2], [4, 3, 2], _table_px()) + "\n"
 
 	# Construction
 	var queue = econ.get("construction_queue", [])
@@ -973,7 +1108,7 @@ func _render_economy():
 		for item in queue:
 			works_rows.append(["[color=#" + Utils.COLOR_GOLD + "]" + str(item.get("region", "?")) + "[/color]",
 				str(item.get("building", "?")), str(int(item.get("turns_remaining", 0))) + " turns"])
-		bbcode += Utils.bb_table(["Province", "Building", "Left"], works_rows, [2], [4, 4, 2]) + "\n"
+		bbcode += Utils.bb_table(["Province", "Building", "Left"], works_rows, [2], [4, 4, 2], _table_px()) + "\n"
 
 	# NV-12 "The Clear Deck": THE ADMIRALTY is a first-class book now
 	# (tab 7, key 7) — it used to render at the BOTTOM of this tab, behind
@@ -983,10 +1118,8 @@ func _render_economy():
 	if adm_ptr is Dictionary and adm_ptr.get("active", false):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]→ THE ADMIRALTY has its own book — press 7 (Alt+7 while you type).[/color]\n"
 
-	# Session UI (November 11, 2026): the gold figures stand in one right-aligned
-	# column (`Utils.bb_tabulate` — an invisible spacer for ONE of the spaces after
-	# each colon; the page's parsed text is character-identical).
-	bbcode = Utils.bb_tabulate(bbcode, content_area)
+	# Session UI-4: the page no longer rides `Utils.bb_tabulate` — the gold figures
+	# stand in the tables' own right-aligned column.
 	content_area.text = Utils.dress_heads(bbcode)
 
 
@@ -1397,7 +1530,7 @@ func _render_intel():
 				Utils.bb_flag(enation) + " " + Utils.display_nation_name(enation) + " ",
 				"at " + eloc + " ", estr + " ",
 				Utils.bb_tag(vis_label, vis_tone)])
-		bbcode += Utils.bb_table(["Marshal", "Nation", "Where", "Strength", "Reading"], sighted, [3], [3, 3, 3, 2, 2]) + "\n"
+		bbcode += Utils.bb_table(["Marshal", "Nation", "Where", "Strength", "Reading"], sighted, [3], [3, 3, 3, 2, 2], _table_px()) + "\n"
 		bbcode += Utils.CARD_CLOSE
 
 	# Nation summaries
@@ -1414,7 +1547,7 @@ func _render_intel():
 			summary_rows.append([Utils.bb_flag(sname) + " " + Utils.display_nation_name(sname) + " ",
 				str(smarshals) + " marshals spotted ", "~" + _format_number(sstrength) + " est. strength ",
 				Utils.plural(sregions, "province")])
-		bbcode += Utils.bb_table(["Nation", "Marshals", "Strength", "Provinces"], summary_rows, [2, 3], [3, 3, 3, 2]) + "\n"
+		bbcode += Utils.bb_table(["Nation", "Marshals", "Strength", "Provinces"], summary_rows, [2, 3], [3, 3, 3, 2], _table_px()) + "\n"
 		bbcode += Utils.CARD_CLOSE
 
 	if unknown_count > 0:
@@ -1815,7 +1948,7 @@ func _on_overlay_input(event):
 # The figures a book is opened for, as tiles above its page (scripts/
 # stat_strip.gd): the chest on Economy, the army on Forces, the realm on
 # Territories, the pools on Manpower. The page's words below are unchanged.
-var _strip: HBoxContainer = null
+var _strip: Container = null   # Session UI-4: the strip is a flow row (it wraps)
 
 
 func _build_strip() -> void:

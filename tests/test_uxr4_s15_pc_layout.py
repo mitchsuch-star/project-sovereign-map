@@ -202,7 +202,8 @@ class TestPCF46:
 
     def test_the_war_popup_takes_more_room_and_leads_with_its_peace_table(self):
         src = _read(SCRIPTS / "war_detail_popup.gd")
-        assert _const(src, "WIDTH_FRACTION") == 0.24 and _const(src, "FIT_MAX_WIDTH") == 640.0
+        # Session UI-4: 0.24 -> 0.28 so the breakdown table and its bars have room
+        assert _const(src, "WIDTH_FRACTION") == 0.28 and _const(src, "FIT_MAX_WIDTH") == 640.0
         assert _const(src, "HEIGHT_FRACTION") == 0.72 and _const(src, "FIT_MAX_HEIGHT") == 880.0
         body = _func(src, "_render_war_detail")
         order = [body.index(x) for x in ('"Settlement Tier: [color="', 'peace_table.get("lines", [])',
@@ -268,12 +269,18 @@ class TestPCF46:
         # The letter still stands at 80 % (720 px) and 860 wide with its whole
         # cost above the fold; the War Summary, which PC-F46 put LAST, lies
         # under it there, as on any 900-px window - in the letter, a scroll away.
-        needles = LETTER_NEEDLES if size != "5120x1440" else LETTER_NEEDLES[:-1]
+        # Session UI-4 (November 12, 2026): at the shipped 115 % the letter's cost
+        # stands above the fold — its terms and its expiry — and on a short window
+        # what follows is a scroll away IN the letter: at 1920x1080 the War Summary,
+        # on the user's 5120x1440 panel (800 logical px at the derived 1.80) the cure,
+        # the consequences and the War Summary.
+        needles = LETTER_NEEDLES[:-1] if size != "5120x1440" else LETTER_NEEDLES[:3]
         for needle in needles:
             assert needle in seen, (size, needle)
         whole = "\n".join(t.get("text", "") for t in frame.get("texts") or []
                           if t["path"].startswith("IncomingProposalPopup") and t["path"].endswith("ContentLabel"))
-        assert "War Summary" in whole, size
+        for needle in LETTER_NEEDLES:
+            assert needle in whole, (size, needle)
         # the answers stand outside the scroll, inside the window
         view = [0.0, 0.0, vw, vh]
         names = {b["text"] for b in frame["buttons"] if b["text"]}
@@ -408,8 +415,12 @@ class TestPCF47:
         assert t["autowrap"] == 3 and t["bg_alpha"] == 1.0
         assert t["lines"] >= min_lines, t["lines"]
         assert _inside(t["rect"], [0.0, 0.0, vw, vh]), (t["rect"], vw, vh)
-        # a wrapped block: no wider than the cap plus the panel's margins
-        assert t["rect"][2] <= 720 + 40
+        # a wrapped block: no wider than the cap plus the panel's margins — save
+        # where the hook's small-window rule widened a block that stood taller
+        # than the window at the cap (Session UI-4: the war card's 25 lines at the
+        # shipped 115 % on the user's 800-px-tall panel)
+        if t["rect"][2] > 720 + 40:
+            assert vh < 900 and t["lines"] >= 12, (t["rect"], vh, t["lines"])
 
     def test_driven_a_small_window_keeps_the_hover_inside_it(self, drive):
         """Interface Scale 2.0 on 1600 x 900 (800 x 450 logical). The refusal
