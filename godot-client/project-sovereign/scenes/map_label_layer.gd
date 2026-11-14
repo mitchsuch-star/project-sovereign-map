@@ -397,6 +397,19 @@ const GATHER_FORMAT := "%s · %d more"
 const GATHER_GAP_PX := 6.0
 
 
+func _selection_boost(plate: Label) -> int:
+	"""Session UI-6: the selected marshal's plate always stands as a lead
+	(rank +2e9, the renderer's word on who is selected)."""
+	if _renderer != null and _renderer.has_method("gather_rank_boost"):
+		return int(_renderer.gather_rank_boost(str(plate.get_meta("gather_name", ""))))
+	return 0
+
+
+func regather() -> void:
+	"""Session UI-6: the selection changed — lay the plates out again."""
+	_furniture_version += 1
+
+
 func _gather_names(xform: Transform2D) -> Array:
 	"""At the whole-sheet view: walk a nation's name plates (`name` / `stack`)
 	from the highest rank down; a plate whose authored rect touches a plate
@@ -430,7 +443,7 @@ func _gather_names(xform: Transform2D) -> Array:
 		entries.append({
 			"rect": _project_rect(xform, _item_world_rect(item["nodes"])),
 			"nation": str(plate.get_meta("gather_nation", "")),
-			"rank": int(plate.get_meta("gather_rank", 0)),
+			"rank": int(plate.get_meta("gather_rank", 0)) + _selection_boost(plate),
 			"count": int(plate.get_meta("gather_count", 1)),
 		})
 	for group in gather_groups(entries, GATHER_GAP_PX):

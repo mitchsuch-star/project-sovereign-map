@@ -770,7 +770,7 @@ class TestTheInsistArmNamesItsPrice:
         import pathlib
         src = pathlib.Path("godot-client/project-sovereign/scripts/objection_dialog.gd").read_text(encoding="utf-8")
         assert 'objection_data.has("insist_note")' in src
-        assert "Proceed as Ordered (%d AP" in src
+        assert '_face("Proceed as Ordered", "%d AP' in src  # UI-6: the page keeps the parenthetical via _face
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -419,3 +419,22 @@ def garrison_regen_line(world, event: Dict[str, Any], viewer: str) -> Optional[s
 def visible_tuple(sighting: Dict[str, Any]) -> Tuple[str, str, str]:
     """(name, location, visibility) — the three things a row says."""
     return (sighting["name"], sighting["location"], sighting["visibility"])
+
+
+def whither(world, man, place, lead: str = "to") -> str:
+    """UI6-X35 (Session UI-6, November 13, 2026): the " to <place>" a line
+    about WHERE a commander went may carry. A foreign commander's position is
+    the fog's (THE DOCTRINE — his name and side are public): the place is said
+    only for our own men and for a foreign corps IN SIGHT where he now stands
+    (`in_sight`, the one rule — call this AFTER the move); for a man out of
+    sight it is "" and the line simply drops it ("Archduke Charles withdraws
+    after the battle."). PURE."""
+    viewer = getattr(world, "player_nation", None)
+    if man is not None and viewer and getattr(man, "nation", None) != viewer:
+        try:
+            if not in_sight(world, viewer, man):
+                return ""
+        except Exception as exc:
+            report(exc, "intel_surfaces.whither: in_sight")
+            return ""
+    return f" {lead} {place}" if place else ""

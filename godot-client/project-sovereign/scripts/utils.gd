@@ -770,6 +770,18 @@ const UI_FOUNDER_TINT := Color(0.42, 0.40, 0.42, 1.0)       # a foundering ship
 const UI_DEAD_RING := Color(0.45, 0.45, 0.48, 1.0)          # a fallen marshal's locket ring
 const UI_END_PLATE_BG := Color(0.17, 0.15, 0.11, 1.0)       # the end card's register plate
 const UI_HINT_GREY := Color(0.7, 0.7, 0.75, 1)              # a dialog's hint line (Load, Reward)
+# Session UI-6 (November 13, 2026): the title screen's drawn gilt faces and the
+# tableau's secondary Replay face — named here, never one-off literals (UXR-3's
+# consistency census).
+const UI_MENU_FACE_PROMINENT := Color(0.13, 0.15, 0.23, 0.92)  # the menu's prominent live face
+const UI_MENU_FACE := Color(0.105, 0.12, 0.19, 0.9)            # a sibling live face
+const UI_MENU_FACE_FOOT := Color(0.065, 0.08, 0.135, 0.94)     # a live face's lower band
+const UI_MENU_FACE_HOVER := Color(0.17, 0.185, 0.28, 0.94)     # a live face under the pointer
+const UI_MENU_FACE_HOVER_FOOT := Color(0.09, 0.105, 0.17, 0.95)
+const UI_MENU_FACE_PRESSED := Color(0.09, 0.09, 0.08, 0.95)    # the sunk well
+const UI_MENU_FACE_PRESSED_FOOT := Color(0.12, 0.11, 0.09, 0.95)
+const UI_REPLAY_FACE := Color(0.13, 0.095, 0.06, 1.0)          # the tableau's Replay (secondary)
+const UI_REPLAY_FACE_HOVER := Color(0.20, 0.15, 0.09, 1.0)
 const COLOR_REPORT := "aaaaaa"                              # the enemy phase's report lines (toned at the site)
 # UXR3-X4 (Pre-Deploy S12 part 2): the war-room log's own colours, named —
 # main.gd wrote them as literals the contrast instrument cannot read (the log
@@ -2343,11 +2355,65 @@ static func hud_band(view: Vector2) -> Vector2:
 	band gives the dock its third — it ends at the dock's left edge (the
 	dock's width plus HUD_MARGIN off its right), so every HUD surface that
 	measures from it stands beside the dock. The dock itself and the top
-	bar's strip measure the whole band (`hud_band_full`)."""
+	bar's strip measure the whole band (`hud_band_full`).
+
+	Session UI-6 (November 13, 2026): on a very wide view with HUD width Auto
+	and the map filling the width, the HUD stands in two full-height columns
+	(`hud_columns`) and this band is the GAP between them — the map's room,
+	where the province panel, the order card, the tutor card and the map's
+	controls stand. The columns themselves are read through `hud_band_full`
+	(the command desk) and `hud_anchor_band` (the notice rail, the war list)."""
 	var band := hud_band_full(view)
+	var cols := hud_columns(view)
+	band.x += cols.x
+	# The interim blind reading (November 13): a full-height right column held
+	# one small war list over bare leather ("a large empty Active Wars panel";
+	# "fill or collapse the empty right column"). The right column is collapsed:
+	# the map's room runs to the screen's edge and the notice rail and the war
+	# list keep the column's width at its top (`hud_anchor_band`); only the
+	# desk keeps a full-height column.
 	if _dock_width > 0.0:
 		band.y = maxf(band.x, band.y - _dock_width - HUD_MARGIN)
 	return band
+
+
+# Session UI-6: the columns' one switch (false: the UI-4 corners at every width).
+const HUD_COLUMNS_ACTIVE := true
+
+
+static func hud_columns(view: Vector2) -> Vector2:
+	"""Session UI-6 (November 13, 2026): the widths of the HUD's two
+	full-height columns, (left, right) in logical px — the readers' "tiny HUD
+	stranded in the corners" of a 32:9 frame. Zero unless the view is very
+	wide (`very_wide_view`), HUD width is Auto and the map fills the width
+	(Session UI-3's "fill"), and the view is not the compact one (the slim bar
+	answers a short view). Left: the command desk, a fraction of the width
+	between a floor and a ceiling; right: the notice rail and the war list —
+	0 while a screen is pinned at the Side Desk (the dock is the right edge's
+	then). HUD width "Full" keeps UI-4's corners; "16:9" and "Centred" their
+	bands."""
+	if not HUD_COLUMNS_ACTIVE or view.y < COMPACT_BELOW or not very_wide_view(view):
+		return Vector2.ZERO
+	if UiSettings.get_hud_width() != "auto" or UiSettings.get_wide_map() != "fill":
+		return Vector2.ZERO
+	var left := floorf(clampf(view.x * UiSettings.COLUMN_LEFT_FRACTION,
+			UiSettings.COLUMN_LEFT_MIN, UiSettings.COLUMN_LEFT_MAX))
+	var right := 0.0
+	if _dock_width <= 0.0:
+		right = floorf(clampf(view.x * UiSettings.COLUMN_RIGHT_FRACTION,
+				UiSettings.COLUMN_RIGHT_MIN, UiSettings.COLUMN_RIGHT_MAX))
+	return Vector2(left, right)
+
+
+static func hud_anchor_band(view: Vector2) -> Vector2:
+	"""Session UI-6: the band the right-hand HUD anchors to — the notice rail
+	and the war list. In the columns' layout, the right column's span; else
+	the HUD band (`hud_band`, which a pinned dock narrows)."""
+	var cols := hud_columns(view)
+	if cols.y > 0.0:
+		var full := hud_band_full(view)
+		return Vector2(full.y - cols.y, full.y)
+	return hud_band(view)
 
 
 static func hud_band_full(view: Vector2) -> Vector2:

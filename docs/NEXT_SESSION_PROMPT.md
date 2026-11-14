@@ -1,15 +1,21 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
 
-> Overwritten each time a session hands off. Current hand-over: **November 13, 2026 — SESSION UI-5 ✅ LANDED: THE
-> FULL MEASURE** (`UI_VISUAL_FOUNDATION_SPEC.md` §13; `MUSIC_SOUND_SPEC.md` §6; `SYSTEMS_REFERENCE.md` §216;
-> `tests/test_ui5_full_measure.py`). The user's "do full upgrade of sounds, ux and ui leave nothing unturned": the
-> sound engine rebuilt (five buses, the study's ambience, every surface cued, music by mood with the courts' 1805
-> anthems, every file measured), 50 new public-domain sounds, 36 period paintings, the Help & Keys book, named saves
-> and F5 / F9, toasts, key remapping, colour vision, and the readers' levers; blind readers 7 / 7 / 7, mean 7.11 →
-> 7.07. It follows Sessions UI, UI-2, UI-3 and UI-4 (November 11–12, the client's re-skin; their records §9–§12).
-> **Session H's walk now includes the user's own look and listen:** the Music Room (Settings → Sound), the frames in
-> `docs/audits/ui_gilt5/` and the live walk's in `docs/audits/ui5_mode_c_2026_11_13/`; the eighteen decisions each
-> one switch or one line; the levers the final readers name (§13 "What holds it at 7 now"), the user's to rule.
+> Overwritten each time a session hands off. Current hand-over: **November 13, 2026 — SESSION UI-6 ✅ LANDED: THE
+> LAST READING** (`UI_VISUAL_FOUNDATION_SPEC.md` §14; `SYSTEMS_REFERENCE.md` §217; `BUG_FIXES.md` §UI6;
+> `tests/test_ui6_*.py`, `tests/test_parse_preview*.py`). The user's "this is last scoring make all deicisons and fix
+> this, while at it please analyze if there are better ways to interact with gernals as well and to make typing
+> clicking etc cleaner": every decision ruled (UI-5's eighteen kept, N1–N12 new); the generals rebuilt for play (the
+> selection card with seven fixed slots and digits 1–7, right-click orders, the next idle marshal after an order, the
+> marshal row, the Generals screen as roster + detail with its orders pinned); typing (the readback line,
+> `GET /parse_preview`, never executed; the history's offers on today's board); the fog ruled by the recorded doctrine
+> (name and side public, place secret) with every position leak in the live order road fixed (four compound-subject rows left open, at session H's head — (0) below); the crash the measure
+> found (a scroll flipping its bar forever in one frame — every ScrollContainer keeps its gutter); blind readers
+> 7 / 7 / 7, the mean of the marks 7.07 → 7.43 (every UI-5 six now 7 or 8 but the war room at 2.0). **Session H's walk now includes the user's own look at UI-6:** the frames in `docs/audits/ui_gilt6/`,
+> the live walk's in `docs/audits/ui6_mode_c_2026_11_13/`; each decision one switch or one line; the levers the final
+> readers name (§14 "What holds it now"), the user's to rule.
+>
+> The sessions before it: **Session UI-5 (November 13) — the full measure** (§13; sound, pictures, Help & Keys,
+> saves; 7 / 7 / 7, mean 7.07) and Sessions UI, UI-2, UI-3, UI-4 (November 11–12, the client's re-skin; §9–§12).
 >
 > The session before the UI sessions: **November 11, 2026 — SESSION G5 ✅ LANDED: A
 > CLIENT RALLIES AGAINST THE HOUSE** (`DYNAMISM_SPEC.md` §7e the landing record, §2b session G5, §8 rows G5-*;
@@ -103,7 +109,12 @@
 > (d) **jena's Pope under Vienna's wing** — the deterrence working, or an understudy's ask-ladder one refusal short
 > (`REFUSAL_MEMORY_TURNS`); (e) session F's three, session E's four, session D's three and session C's five stand.
 
-**NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(1) the gate
+**NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(0) Session UI-6's
+four open rows** (`BUG_FIXES.md` §UI6 — UI6-X70, X73, X74, X75: a report subject naming a friend or a title, a third
+clause after an arrival, a friend-only report subject, a title-first list; nothing spent wrongly by any): each is a
+strict-xfail pin in `tests/test_ui6_fog_siblings.py` that turns red the day it lands — fix each at its cause, sweep
+the class on both roads (`/command` and `GET /parse_preview`; rule 10), re-point the pin to the landing's words, and
+the census reads 0 open defect rows before (1); **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
 (`_dy_signature_g5_2026_11_11.json`, session G5's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —

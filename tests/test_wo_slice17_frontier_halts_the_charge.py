@@ -449,7 +449,13 @@ class TestWO25TheAutonomousAttackNeverAsks:
         combat_executor: the two `_execute_attack` staging sites, the
         charge's staging site, the reckless-popup predicate and the muster
         gate (review round). The flags themselves are read ONCE, inside the
-        predicate. A sixth site or a lost one changes this consciously."""
+        predicate. A sixth site or a lost one changes this consciously.
+
+        UI6-X16 (Session UI-6, November 13, 2026) added two, consciously: the
+        typed charge's fog rule (`_execute_glorious_charge` — an ordered
+        charge at a man out of sight never prints his distance) and the guns'
+        range check (`_attack_range_check` — the same for a bombardment). Each
+        keeps an unordered attack on its own road."""
         code = _code_only(COMBAT_PY.read_text(encoding="utf-8"))
         # `_code_only` emits one token per line - squeeze before matching
         # a multi-token needle (the slice-10 trap, met again here).
@@ -462,7 +468,7 @@ class TestWO25TheAutonomousAttackNeverAsks:
         calls = (squeezed.count("_attack_is_unordered(command)")
                  + squeezed.count("_attack_is_unordered(ctx.command)")
                  - squeezed.count("def_attack_is_unordered(command)"))
-        assert calls == 5
+        assert calls == 7
         assert code.count('"_jealousy_autonomous"') == 1
         assert code.count('"_defiance"') == 1
 

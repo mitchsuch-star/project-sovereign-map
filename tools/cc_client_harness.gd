@@ -142,6 +142,10 @@ func _tick():
 			_boot()
 		"run":
 			_run()
+		"cc3_digit":
+			_cc3_after_the_digit()   # Session UI-6: k14's answer read, k15 (Next marshal ON)
+		"cc3_digit_on":
+			_cc3_after_the_next()
 		"cc3_view":
 			# The live boot shows the map when /map_topology answers; the stub
 			# never does (`_run` hands the map the topology itself).
@@ -268,6 +272,18 @@ func _click(region: String, marshal: String = "", shift: bool = false, fogged: S
 	map.set("last_click_ctrl", false)
 	map.set("last_click_fogged", fogged)
 	_main.call("_on_map_region_clicked", region)
+
+
+func _right_click(region: String, marshal: String = "") -> void:
+	"""Session UI-6 (N3): what `map_renderer_base` records on a RIGHT press,
+	then the signal it emits — `order_context_requested(region, marshal)`,
+	`marshal` the piece in sight ("" for a province or a fog chip)."""
+	var map = _map()
+	map.set("last_click_marshal", marshal)
+	map.set("last_click_shift", false)
+	map.set("last_click_ctrl", false)
+	map.set("last_click_fogged", "")
+	_main.call("_on_order_context_requested", region, marshal)
 
 
 func _panel_open_on(region: String) -> bool:
@@ -502,8 +518,11 @@ func _run():
 		# every piece. A 1600x900 window, then the whole theatre in view.
 		root.mode = Window.MODE_WINDOWED
 		root.size = Vector2i(1600, 900)
-		_phase = "cc3_view"
-		_wait = 6
+		# Session UI-6: k14's answer re-selects a frame later (deferred) — the
+		# two digit phases read it, then the view (whose fit resets the camera
+		# k15 moved) and the drag follow as before.
+		_phase = "cc3_digit"
+		_wait = 4
 
 
 func _calls_since(n: int, prefix: String) -> Array:
@@ -750,15 +769,25 @@ func _run_cc3() -> void:
 		_out["k7c_asked"] = _calls_since(n, "order_quote:")
 		_key(KEY_ESCAPE)
 
-	# k8 — a corps of ours: SUPPORT.
+	# k8 — a corps of ours: SUPPORT — the RIGHT click's (Session UI-6, N3;
+	# a drop on him is the other road, pinned by the drag's own rules).
 	if cc3.has("ally"):
 		_select(cc3)
 		n = _api.calls.size()
-		_click(str(cc3["ally_location"]), str(cc3["ally"]))
+		_right_click(str(cc3["ally_location"]), str(cc3["ally"]))
 		_out["k8_asked"] = _calls_since(n, "order_quote:")
 		_api.answer(_quote_key(cc3, "ally", str(cc3["ally"])), {"success": true, "quote": cc3["ally_quote"]})
 		_out["k8_card_command"] = str(card.call("command"))
 		_key(KEY_ESCAPE)
+		# k8c — Session UI-6 (N3): the LEFT click on another of ours picks HIM:
+		# no card, no quote asked; his reach is asked for, as any selection's.
+		_select(cc3)
+		n = _api.calls.size()
+		_click(str(cc3["ally_location"]), str(cc3["ally"]))
+		_out["k8c_selected"] = _selected()
+		_out["k8c_card_open"] = bool(card.visible)
+		_out["k8c_asked"] = _calls_since(n, "order_quote:")
+		_out["k8c_reach_asked"] = _calls_since(n, "march_reach:")
 
 	# k8b — a refused order: the card says why and Send is shut; its Enter
 	# only closes the card.
@@ -861,6 +890,128 @@ func _run_cc3() -> void:
 	_out["k12_card_after_click"] = bool(card.visible)
 	_key(KEY_ESCAPE)
 	_fresh("")
+
+	# k13 — Session UI-6 (N3): the right click. With him selected a province
+	# is the MARCH card on its own quote; himself lets him go; with nothing
+	# selected a piece of ours on an EMPTY line is selected; with a draft on
+	# the line it only dismisses (the panel shuts, the line is untouched).
+	_select(cc3)
+	n = _api.calls.size()
+	_right_click(dest)
+	_out["k13_card_open"] = bool(card.visible)
+	_out["k13_asked"] = _calls_since(n, "order_quote:")
+	_api.answer(_quote_key(cc3, "dest", dest), {"success": true, "quote": cc3["dest_quote"]})
+	_out["k13_card_command"] = str(card.call("command"))
+	_key(KEY_ESCAPE)                                   # the card's Esc: back to him
+	_out["k13_selected_after_card_esc"] = _selected()
+	_right_click(home, subject)
+	_out["k13_self_lets_go"] = _selected()
+	_fresh("")
+	n = _api.calls.size()
+	_right_click(home, subject)
+	_out["k13_empty_line_selects"] = _selected()
+	_out["k13_reach_asked"] = _calls_since(n, "march_reach:")
+	_out["k13_panel_after_select"] = bool(panel.visible)
+	_api.answer("march_reach:" + subject, cc3["reach"])
+	var far_k13 := str(_spec.get("province", "Moravia"))
+	var draft_k13 := str(_spec.get("own_marshal", "Ney")) + ", ho"
+	_fresh(draft_k13)
+	_click(far_k13)                                    # no name slot: the panel opens (c4)
+	_out["k13_draft_panel_before"] = _panel_open_on(far_k13)
+	_right_click(home, subject)
+	_out["k13_draft_selected"] = _selected()
+	_out["k13_draft_panel_after"] = bool(panel.visible)
+	_out["k13_draft_line"] = str(line.text)
+	_fresh("")
+
+	# k14 — Session UI-6 (N2/N5): the selection card stands in the strip's
+	# place, his seven fixed slots on it; a digit on the EMPTY line presses a
+	# slot — a locked one sends nothing (the line unfocused: the map's road),
+	# a lit one sends "<Name>, <verb>" down the chip road (the line focused:
+	# no order begins with a digit) and the send lets him go. The reply is
+	# answered; the next phase reads the re-select (N4, Off in a harness).
+	_select(cc3)
+	var sc = _main.get("_selection_card")
+	_out["k14_card_visible"] = sc != null and bool(sc.visible)
+	_out["k14_strip_visible"] = bool((_main.get("_order_strip") as Control).visible)
+	_out["k14_card_marshal"] = str(sc.call("current_marshal")) if sc != null else ""
+	var specs: Array = sc.get("_specs") if sc != null else []
+	_out["k14_slots"] = specs.map(func(s): return [int(s["slot"]), str(s["verb"]), bool(s["locked"])])
+	var lit := -1
+	var lit_verb := ""
+	var locked := -1
+	for spec in specs:
+		if lit < 0 and not bool(spec["locked"]) and str(spec["verb"]) != "cancel":
+			lit = int(spec["slot"])
+			lit_verb = str(spec["verb"])
+		if locked < 0 and bool(spec["locked"]):
+			locked = int(spec["slot"])
+	_out["k14_lit"] = [lit, lit_verb]
+	_out["k14_locked"] = locked
+	if locked > 0:
+		_main.get_viewport().gui_release_focus()
+		before = _sends().size()
+		_key(KEY_0 + locked, 48 + locked)
+		_out["k14_locked_sends"] = _sends().slice(before)
+		_out["k14_selected_after_locked"] = _selected()
+		_out["k14_line_after_locked"] = str(line.text)
+	_api.held_sends.clear()
+	if lit > 0:
+		line.grab_focus()
+		before = _sends().size()
+		_key(KEY_0 + lit, 48 + lit)
+		_out["k14_lit_sends"] = _sends().slice(before)
+		_out["k14_line_after_lit"] = str(line.text)
+		_out["k14_selected_after_lit"] = _selected()
+		_out["k14_card_sent_for"] = str(_main.get("_card_sent_for"))
+		_api.answer_send({"success": true, "message": "Orders received."})
+	_out["k14_subject"] = subject
+
+
+func _cc3_after_the_digit() -> void:
+	"""Session UI-6 (N4). k14's answer came back a few frames ago: with Next
+	marshal after an order OFF (a driven harness's default) he is selected
+	again, his card on his state. k15: ON, the same slot's answer selects the
+	next idle marshal — never him — and the camera goes to him."""
+	var cc3: Dictionary = _spec["cc3"]
+	var sc = _main.get("_selection_card")
+	_out["k14_reselected"] = _selected()
+	_out["k14_card_after_answer"] = sc != null and bool(sc.visible)
+	UiSettings.set_next_marshal_after_order(true)
+	_out["k15_setting_on"] = UiSettings.get_next_marshal_after_order()
+	_select(cc3)
+	_out["k15_idle"] = (_main.call("_idle_marshals") as Array).duplicate()
+	var lit: int = int((_out.get("k14_lit", [-1, ""]) as Array)[0])
+	_out["k15_sends"] = []
+	if lit > 0:
+		_line().grab_focus()
+		_api.held_sends.clear()
+		var before := _sends().size()
+		_key(KEY_0 + lit, 48 + lit)
+		_out["k15_sends"] = _sends().slice(before)
+		_api.answer_send({"success": true, "message": "Orders received."})
+	_phase = "cc3_digit_on"
+	_wait = 4
+
+
+func _cc3_after_the_next() -> void:
+	_out["k15_selected"] = _selected()
+	UiSettings.set_next_marshal_after_order(false)
+	_fresh("")
+	_out["api_calls"] = _api.calls
+	_phase = "cc3_view"
+	_wait = 6
+
+
+func _push_right(at: Vector2, pressed: bool) -> void:
+	"""Session UI-6: a RIGHT button press (or release) as the engine delivers it."""
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_RIGHT
+	ev.pressed = pressed
+	ev.button_mask = MOUSE_BUTTON_MASK_RIGHT if pressed else 0
+	ev.position = at
+	ev.global_position = at
+	root.push_input(ev, true)
 
 
 func _push_motion(at: Vector2, held: bool) -> void:
@@ -1021,6 +1172,39 @@ func _run_cc3_drag() -> void:
 	_push_left(piece, false)
 	_out["d5_line"] = str(_line().text)
 	_out["d5_selected"] = _selected()
+	_fresh("")
+
+	# d6 — Session UI-6 (N3): the RIGHT button, pushed as the engine delivers
+	# it. On his piece with nothing selected and the line empty, he is
+	# selected — and the right button never arms a drag.
+	_hover(piece)
+	n = _api.calls.size()
+	_push_right(piece, true)
+	_out["d6_pending"] = bool(_order().get("drag_pending", false))
+	_out["d6_selected"] = _selected()
+	_push_right(piece, false)
+	_out["d6_dragging"] = bool(_order().get("dragging", false))
+	_api.answer("march_reach:" + subject, cc3["reach"])
+	# d7 — with him selected, the right button on a province is its march card.
+	# (Sensitive: the province stands clear of the selection card now up.)
+	_out["d7_uncovered"] = _uncovered(map, dest_pt)
+	_hover(dest_pt)
+	n = _api.calls.size()
+	_push_right(dest_pt, true)
+	_push_right(dest_pt, false)
+	_out["d7_asked"] = _calls_since(n, "order_quote:")
+	_api.answer(_quote_key(cc3, "dest", drag_dest), {"success": true, "quote": cc3["drag_quote"]})
+	_out["d7_card_open"] = bool(card.visible)
+	_out["d7_card_command"] = str(card.call("command"))
+	_key(KEY_ESCAPE)
+	# d8 — the right button on open water still dismisses: he is let go.
+	if water.x >= 0.0:
+		_out["d8_uncovered"] = _uncovered(map, water)
+		_out["d8_selected_before_water"] = _selected()
+		_hover(water)
+		_push_right(water, true)
+		_push_right(water, false)
+		_out["d8_selected_after_water"] = _selected()
 	_fresh("")
 	# CC-X13: orders given with the terminal minimized — the replies land in
 	# a log no one can see (frames pass while it is hidden, as they do while

@@ -32,7 +32,7 @@ signal dismissed
 const TRAY_W := 1000.0
 # Session UI-2: 684 (was 660) - the strength band takes a 42-px row under the
 # stage, the shelves move below it, and the verdict keeps its room.
-const TRAY_H := 684.0
+const TRAY_H := 744.0   # Session UI-6: 744 (was 684) - the stage grew 60 px so the armies fill the field
 # Session UI-2: THE STRENGTH BAND - each side's strength before -> after as a
 # drawn bar with its figures, in the row under the stage (the band that stood
 # empty wood on a field without a shelf).
@@ -40,13 +40,13 @@ const BAND_H := 36.0
 const BAND_GAP := 6.0
 const STAGE_MARGIN_X := 26.0
 const STAGE_TOP := 52.0
-const STAGE_H := 380.0
+const STAGE_H := 440.0
 const SHELF_H := 66.0
 # UXR-X9: the verdict's room — never less than one line, and ending this far
 # above the nameplate's top.
 const VERDICT_ROOM_MIN := 30.0
 const VERDICT_PLATE_GAP := 6.0
-const FIGURE_PX := 58.0
+const FIGURE_PX := 80.0   # Session UI-6: 80 (was 58) - the readers: "the sprites are small, enlarge the armies"
 # IQ-5 review (B): the `faith` caption sits UNDER a corps' figures, outboard
 # (away from the clash line), wrapped in this block-local width. Measured
 # headless on the real tableau (both columns, depths 1-2, reinforced and
@@ -623,6 +623,7 @@ func _build_verdict_and_plate() -> void:
 func _build_buttons() -> void:
 	_btn_close = Button.new()
 	_btn_close.text = "Close"
+	_btn_close.theme_type_variation = &"PrimaryButton"   # Session UI-6: Close is the primary act
 	_btn_close.custom_minimum_size = Vector2(110, 34)
 	_btn_close.pressed.connect(_on_close_pressed)
 	_tray_inner.add_child(_btn_close)
@@ -633,6 +634,10 @@ func _build_buttons() -> void:
 
 	_btn_replay = Button.new()
 	_btn_replay.text = "Replay"
+	_btn_replay.add_theme_stylebox_override("normal", _replay_face(false))   # UI-6: a gilt-rimmed face
+	_btn_replay.add_theme_stylebox_override("hover", _replay_face(true))
+	_btn_replay.add_theme_color_override("font_color", Utils.UI_GOLD)
+	_btn_replay.add_theme_color_override("font_hover_color", Utils.UI_GOLD)
 	_btn_replay.custom_minimum_size = Vector2(110, 34)
 	_btn_replay.pressed.connect(_on_replay_pressed)
 	_tray_inner.add_child(_btn_replay)
@@ -641,6 +646,21 @@ func _build_buttons() -> void:
 	_skip_hint = _mk_label(_tray_inner, "click anywhere to skip ▸", &"Caption",
 			Color(Utils.COLOR_DIMMED))
 	_skip_hint.position = Vector2(22.0, TRAY_H - 40.0)
+
+
+func _replay_face(hover: bool) -> StyleBox:
+	"""Session UI-6: Replay is the secondary button - a dark face with a gilt rim
+	(the primary Close beside it is gilt-filled)."""
+	var st := StyleBoxFlat.new()
+	st.bg_color = Utils.UI_REPLAY_FACE_HOVER if hover else Utils.UI_REPLAY_FACE
+	st.border_color = Utils.UI_GOLD
+	st.set_border_width_all(2 if hover else 1)
+	st.set_corner_radius_all(3)
+	st.content_margin_left = 12.0
+	st.content_margin_right = 12.0
+	st.content_margin_top = 6.0
+	st.content_margin_bottom = 6.0
+	return st
 
 
 func _mk_label(parent: Node, text: String, variation: StringName, color: Color,
@@ -935,7 +955,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	# of the formation they are in. NV-8b: and they sail LARGER — three
 	# small ships on a wide sea read sparse; a liner has presence.
 	var fig_px := FIGURE_PX * 1.3 if arm == "ship" else FIGURE_PX
-	var spread := 66.0 if arm == "ship" else 30.0
+	var spread := 84.0 if arm == "ship" else 42.0
 	var rear := count - mini(count, 3)
 	for j in range(rear):
 		var f := DioramaFigure.new()
@@ -1069,6 +1089,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	if faith != "":
 		var faith_l := _mk_label(block, faith, &"Caption",
 				Color(0.90, 0.68, 0.64, 1.0), _font_voice)
+		faith_l.theme_type_variation = &"BodyLarge"   # Session UI-6: the italic caption at the body step
 		faith_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		faith_l.custom_minimum_size = Vector2(FAITH_CAPTION_W, 0.0)
 		faith_l.size = Vector2(FAITH_CAPTION_W, 14.0)
@@ -1211,7 +1232,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 			g.text = grudge
 			if _font_voice != null:
 				g.add_theme_font_override("font", _font_voice)
-			g.theme_type_variation = &"Caption"
+			g.theme_type_variation = &"BodyLarge"   # UI-6: the italic caption at the body step
 			g.add_theme_color_override("font_color",
 					Color(0.90, 0.68, 0.64, 1.0))
 			text_box.add_child(g)

@@ -22,12 +22,42 @@ signal order_command(command: String)
 # PC15-10 B1 "The Antechamber": the card's "Hear him" chip — main.gd
 # fetches the waiting petition (GET /marshal_petition) into its dialog.
 signal audience_requested
+# Session UI-6 (November 13, 2026): the detail's last button, "On the map" —
+# main.gd centres the war room on him (the roster's marshal, by his key).
+signal locate_requested(marshal_name: String)
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
 @onready var close_button = $PanelContainer/VBoxContainer/HeaderRow/CloseButton
-@onready var scroll_container = $PanelContainer/VBoxContainer/ScrollContainer
-@onready var content_area = $PanelContainer/VBoxContainer/ScrollContainer/ContentArea
+@onready var title_label = $PanelContainer/VBoxContainer/HeaderRow/TitleLabel
+@onready var split = $PanelContainer/VBoxContainer/Split
+@onready var roster_column = $PanelContainer/VBoxContainer/Split/RosterColumn
+@onready var commission_button = $PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead/CommissionButton
+@onready var doctrine_button = $PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead/ToolRow/DoctrineButton
+@onready var laurels_button = $PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead/ToolRow/LaurelsButton
+@onready var roster_scroll = $PanelContainer/VBoxContainer/Split/RosterColumn/RosterScroll
+@onready var roster_list = $PanelContainer/VBoxContainer/Split/RosterColumn/RosterScroll/RosterList
+@onready var detail_header = $PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader
+@onready var portrait_rect = $PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/PortraitRect
+@onready var monogram_label = $PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/PortraitRect/MonogramLabel
+@onready var header_info = $PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/HeaderInfo
+@onready var name_label = $PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/HeaderInfo/NameLabel
+@onready var tags_label = $PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/HeaderInfo/TagsLabel
+@onready var order_bar = $PanelContainer/VBoxContainer/Split/DetailPane/OrderBar
+@onready var scroll_container = $PanelContainer/VBoxContainer/Split/DetailPane/ScrollContainer
+@onready var content_area = $PanelContainer/VBoxContainer/Split/DetailPane/ScrollContainer/ContentArea
+
+# Session UI-6: the master-detail kit, loaded by path (the class names register
+# with Godot's --import afterwards).
+const MarshalKit := preload("res://scripts/marshal_state.gd")
+const RosterRow := preload("res://scripts/marshal_roster_row.gd")
+const StatStripKit := preload("res://scripts/stat_strip.gd")
+# The folded title's hover: the page's lead-in (a folded reason is a hover).
+const LEAD_TIP := "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Esc closes it (Alt+G while you type)."
+# Under this panel width (logical px) the roster is portraits alone.
+const NARROW_BELOW := 760.0
+const ROSTER_W := 236
+const ROSTER_W_NARROW := 64
 
 # File-specific colors (not in Utils)
 # UXR-D2: the faintest grey was Utils.COLOR_DIM; S12 (UXR3-25) set every body
@@ -94,6 +124,16 @@ var _doctrine_open := false
 # Stored at open() so the screen can refresh in place after a reward
 # command lands (strategic_ledger.gd precedent).
 var _api_client_ref = null
+# Session UI-6 (master-detail, Folded only): whom the detail shows (his key;
+# persists across refresh and the Side Desk's re-reads), which roster-head view
+# stands in his place ("", "doctrine", "laurels"; the commission bench keeps
+# `_commission_view`), the roster's display order, the narrow roster flag and
+# the figure strip the header carries.
+var _selected_name := ""
+var _detail_view := ""
+var _roster_names: Array = []
+var _narrow := false
+var _figure_strip = null
 
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
@@ -113,6 +153,7 @@ func _ready():
 	# §0.6.8: bbcode [url=reward:N] affordances (strategic_ledger pattern)
 	content_area.meta_clicked.connect(_on_meta_clicked)
 	Utils.on_explanations_changed(_rerender_in_place)
+	_build_master_detail_chrome()
 	hide()
 
 
@@ -129,6 +170,16 @@ func _input(event):
 	# switch. A digit belongs to whoever has the caret.
 	var _focused = get_viewport().gui_get_focus_owner()
 	if _focused is LineEdit or _focused is TextEdit:
+		return
+	# Session UI-6: Folded, the digits, Up/Down and Enter belong to the roster
+	# (the old scroll below is On the page's) — unless the screen is docked at the
+	# Side Desk: then the war room keeps the keys (the selection card's digits 1-7,
+	# the line's Up/Down/Enter) and the roster takes clicks only.
+	var docked: bool = $PanelContainer.has_meta("side_desk_docked")
+	if _master_detail() and docked:
+		return
+	if _master_detail() and _roster_key(event, _focused):
+		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var index = -1
@@ -166,6 +217,7 @@ func _input(event):
 func open(api_client):
 	"""Fetch marshal overview from backend and display it."""
 	_api_client_ref = api_client
+	_clear_master_detail()
 	content_area.text = "[color=#" + Utils.COLOR_INFO + "]Loading marshal data...[/color]"
 	AudioManager.play("panel_open")
 	show()
@@ -227,6 +279,11 @@ func _on_meta_clicked(meta):
 		_render_current_view()
 	elif meta_str == "doctrine:toggle":
 		# UXR3-24 / UXR3-80: the fold; the reader's place in the scroll stays.
+		if _master_detail():
+			# Session UI-6: the doctrine's own view — its hide link goes back.
+			_detail_view = ""
+			_render_current_view()
+			return
 		_doctrine_open = not _doctrine_open
 		var held_scroll: int = scroll_container.scroll_vertical
 		_render_current_view()
@@ -257,6 +314,7 @@ func close_view():
 	cached_ladder = []
 	cached_recruitment = {}
 	_commission_view = false
+	_detail_view = ""
 	closed.emit()
 
 
@@ -295,7 +353,10 @@ func _on_data_received(response):
 
 
 func _render_current_view():
-	if _commission_view:
+	_apply_layout_mode()
+	if _master_detail():
+		_render_master_detail()
+	elif _commission_view:
 		_render_commission_view()
 	else:
 		_render_all_cards()
@@ -1296,3 +1357,712 @@ func _on_overlay_input(event):
 	"""Click on dark overlay to close."""
 	if event is InputEventMouseButton and event.pressed:
 		close_view()
+
+
+# =============================================================================
+# SESSION UI-6 (November 13, 2026) - THE MASTER-DETAIL GENERALS (Folded only)
+# =============================================================================
+# Folded (the default), the screen is a roster beside one marshal: the roster
+# column (a head of three buttons over a real Button per marshal) and a detail
+# pane (a header with his likeness, tags, status and figures; the order bar,
+# real Buttons pinned ABOVE the scroll; then the body: skills as a grid,
+# abilities as chips, the Reward line, status, one Character fold). On the
+# page (`Utils.explanations_folded()` false) none of this is drawn: the roster,
+# header and order bar are hidden and `_render_all_cards` prints the screen
+# exactly as it always did. Every string builder above is untouched; what
+# follows is new functions only.
+# =============================================================================
+
+func _master_detail() -> bool:
+	"""The Folded layout (a switch in Settings restores the page)."""
+	return Utils.explanations_folded()
+
+
+func _apply_layout_mode() -> void:
+	var md := _master_detail()
+	roster_column.visible = md
+	if not md:
+		detail_header.visible = false
+		order_bar.visible = false
+	# the lead-in the page prints stands behind the title as its hover
+	title_label.tooltip_text = LEAD_TIP if md else ""
+	title_label.mouse_filter = Control.MOUSE_FILTER_PASS if md else Control.MOUSE_FILTER_IGNORE
+
+
+func _build_master_detail_chrome() -> void:
+	"""Once, from `_ready`: the figure strip, the head's buttons, the panel's
+	resize watch."""
+	_figure_strip = StatStripKit.new()
+	header_info.add_child(_figure_strip)
+	roster_column.size_flags_horizontal = Control.SIZE_FILL
+	split.split_offset = 0
+	split.dragger_visibility = SplitContainer.DRAGGER_HIDDEN
+	tags_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	commission_button.pressed.connect(_on_head_button.bind("commission"))
+	doctrine_button.pressed.connect(_on_head_button.bind("doctrine"))
+	laurels_button.pressed.connect(_on_head_button.bind("laurels"))
+	$PanelContainer.resized.connect(_on_panel_resized)
+
+
+func _on_panel_resized() -> void:
+	if visible and _master_detail() and cached_data.size() > 0 and _narrow != _is_narrow():
+		call_deferred("_render_current_view")
+
+
+func _is_narrow() -> bool:
+	"""A portrait-only roster: the Side Desk, a small window, the 2.0 view."""
+	if Utils.compact_view():
+		return true
+	var panel: Control = $PanelContainer
+	if panel.has_meta("side_desk_docked"):
+		return true
+	var w: float = maxf(panel.size.x, panel.offset_right - panel.offset_left)
+	return w > 0.0 and w < NARROW_BELOW
+
+
+func _clear_master_detail() -> void:
+	"""Between openings: no stale rows or header under 'Loading...'."""
+	for c in roster_list.get_children():
+		roster_list.remove_child(c)
+		c.queue_free()
+	_roster_names = []
+	detail_header.visible = false
+	order_bar.visible = false
+
+
+func _render_master_detail() -> void:
+	_narrow = _is_narrow()
+	_resolve_selection()
+	_build_roster()
+	_update_head_buttons()
+	var m: Dictionary = _selected_card()
+	if _commission_view:
+		_show_detail_chrome(false)
+		_render_commission_view()
+	elif _detail_view == "doctrine":
+		_show_detail_chrome(false)
+		content_area.text = Utils.dress_heads(_doctrine_view())
+	elif _detail_view == "laurels" or m.is_empty():
+		_show_detail_chrome(false)
+		content_area.text = Utils.dress_heads(_laurels_view())
+	else:
+		_show_detail_chrome(true)
+		_fill_header(m)
+		_fill_order_bar(m)
+		content_area.text = Utils.dress_heads(_detail_body(m, _index_of(_selected_name)))
+
+
+func _show_detail_chrome(on: bool) -> void:
+	detail_header.visible = on
+	if not on:
+		order_bar.visible = false
+
+
+func _doctrine_view() -> String:
+	"""OUR DOCTRINE, open (its own view; the hide link goes back)."""
+	var held := _doctrine_open
+	_doctrine_open = true
+	var bbcode := _render_doctrine()
+	_doctrine_open = held
+	if bbcode == "":
+		bbcode = "[color=#" + Utils.COLOR_INFO + "]No doctrine stands.[/color]"
+	return bbcode
+
+
+func _laurels_view() -> String:
+	"""THE LAURELS and REIGNING, where the roster's head button opens them."""
+	var bbcode := _render_glory_ladder() + _render_reigning()
+	if bbcode == "":
+		bbcode = "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]"
+	return bbcode
+
+
+# ── the roster ────────────────────────────────────────────────────────────
+
+func _display_order() -> Array:
+	"""Cached indices in roster order: what asks for the Emperor (a prisoner, a
+	petitioner) first, then the Emperor, then the rest as the payload lists."""
+	var apex := -1
+	for i in range(cached_data.size()):
+		if bool(cached_data[i].get("sovereign", false)):
+			apex = i
+			break
+	var out: Array = []
+	for i in range(cached_data.size()):
+		if i == apex:
+			continue
+		var um: Dictionary = cached_data[i]
+		if bool(um.get("captured", false)) or bool(um.get("seeks_audience", false)):
+			out.append(i)
+	if apex >= 0:
+		out.append(apex)
+	for i in range(cached_data.size()):
+		if i != apex and not (i in out):
+			out.append(i)
+	return out
+
+
+func _is_urgent(m: Dictionary) -> bool:
+	"""A gilt dot: captured, a petition waiting, or a grievance."""
+	if bool(m.get("captured", false)) or bool(m.get("seeks_audience", false)):
+		return true
+	var envy = m.get("jealous_of")
+	return envy != null and str(envy) != ""
+
+
+func _resolve_selection() -> void:
+	_roster_names = []
+	for i in _display_order():
+		_roster_names.append(str(cached_data[i].get("name", "")))
+	if _selected_name == "" or not (_selected_name in _roster_names):
+		_selected_name = str(_roster_names[0]) if _roster_names.size() > 0 else ""
+
+
+func _selected_card() -> Dictionary:
+	var at := _index_of(_selected_name)
+	if at < 0:
+		return {}
+	return cached_data[at]
+
+
+func _index_of(marshal_name: String) -> int:
+	for i in range(cached_data.size()):
+		if str(cached_data[i].get("name", "")) == marshal_name:
+			return i
+	return -1
+
+
+func _build_roster() -> void:
+	for c in roster_list.get_children():
+		roster_list.remove_child(c)
+		c.queue_free()
+	roster_column.custom_minimum_size.x = ROSTER_W_NARROW if _narrow else ROSTER_W
+	var showing_marshal := _detail_view == "" and not _commission_view
+	var slot := 0
+	for i in _display_order():
+		var m: Dictionary = cached_data[i]
+		var status: Dictionary = MarshalKit.status_of(MarshalKit.from_overview(m))
+		var row = RosterRow.new()
+		roster_list.add_child(row)
+		row.setup(m, status, slot, _narrow,
+			showing_marshal and str(m.get("name", "")) == _selected_name, _is_urgent(m))
+		row.chosen.connect(select_marshal)
+		slot += 1
+
+
+func _update_head_buttons() -> void:
+	var candidates = cached_recruitment.get("candidates", []) if cached_recruitment is Dictionary else []
+	var has_bench: bool = candidates is Array and candidates.size() > 0
+	_set_head_button(commission_button, "Commission a Marshal", Utils.ICON_PHOSPHOR + "crown.svg")
+	_set_head_button(doctrine_button, "Doctrine", Utils.glyph("medal"))
+	_set_head_button(laurels_button, "Laurels", Utils.glyph("glory"))
+	commission_button.disabled = not has_bench
+	var tip := "Commission a Marshal" if _narrow else ""
+	if not has_bench:
+		tip = "The bench is empty — every marshal France could call already serves."
+	commission_button.tooltip_text = tip
+	doctrine_button.tooltip_text = "Doctrine" if _narrow else ""
+	laurels_button.tooltip_text = "Laurels" if _narrow else ""
+	doctrine_button.visible = cached_doctrine is Dictionary and not cached_doctrine.is_empty()
+	laurels_button.visible = (cached_ladder is Array and cached_ladder.size() > 1) \
+		or (cached_reigning is Array and cached_reigning.size() > 0)
+	commission_button.set_pressed_no_signal(_commission_view)
+	doctrine_button.set_pressed_no_signal(_detail_view == "doctrine" and not _commission_view)
+	laurels_button.set_pressed_no_signal(_detail_view == "laurels" and not _commission_view)
+
+
+func _set_head_button(btn: Button, words: String, icon_path: String) -> void:
+	"""Wide: the words. Narrow: the glyph alone (the words its hover)."""
+	if _narrow:
+		btn.text = ""
+		Utils.apply_button_icon(btn, icon_path)
+	else:
+		btn.text = words
+		btn.icon = null
+
+
+func _on_head_button(kind: String) -> void:
+	match kind:
+		"commission":
+			_commission_view = not _commission_view
+			_detail_view = ""
+		"doctrine":
+			_commission_view = false
+			_detail_view = "" if _detail_view == "doctrine" else "doctrine"
+		"laurels":
+			_commission_view = false
+			_detail_view = "" if _detail_view == "laurels" else "laurels"
+	_render_current_view()
+	scroll_container.scroll_vertical = 0
+
+
+func select_marshal(marshal_name: String) -> void:
+	"""Open the detail at him (the roster's click; the war room's 'Generals'
+	door). Remembered before the data lands, kept across every refresh."""
+	_selected_name = marshal_name
+	_commission_view = false
+	_detail_view = ""
+	if not _master_detail() or not visible or cached_data.size() == 0:
+		return
+	_render_current_view()
+	scroll_container.scroll_vertical = 0
+
+
+# ── keys ──────────────────────────────────────────────────────────────────
+
+func _roster_key(event, focused) -> bool:
+	"""Digits 1-9 pick by roster position, Up/Down step, Enter reaches the
+	first lit order. True when the key was the roster's."""
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return false
+	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
+		return false
+	var code: int = event.keycode
+	if code >= KEY_1 and code <= KEY_9:
+		var slot: int = code - KEY_1
+		if slot < _roster_names.size():
+			select_marshal(str(_roster_names[slot]))
+			return true
+		return false
+	if code == KEY_UP:
+		return _step_selection(-1)
+	if code == KEY_DOWN:
+		return _step_selection(1)
+	if code == KEY_ENTER or code == KEY_KP_ENTER:
+		# a focused button is pressed by Enter itself; only the roster's rows
+		# (and no focus at all) hand Enter to the order bar
+		if focused is Button and not (focused is RosterRow):
+			return false
+		return _focus_first_order()
+	return false
+
+
+func _step_selection(delta: int) -> bool:
+	if _roster_names.is_empty():
+		return false
+	var at: int = _roster_names.find(_selected_name)
+	var to: int = clampi(at + delta, 0, _roster_names.size() - 1)
+	select_marshal(str(_roster_names[to]))
+	return true
+
+
+func _focus_first_order() -> bool:
+	for c in order_bar.get_children():
+		if c is Button and not c.disabled and c.focus_mode != Control.FOCUS_NONE:
+			c.grab_focus()
+			return true
+	return false
+
+
+# ── the detail's header ───────────────────────────────────────────────────
+
+func _tone_color(hex: String) -> Color:
+	return Color.html("#" + hex)
+
+
+func _fill_header(m: Dictionary) -> void:
+	var mname := str(m.get("name", ""))
+	var view: Dictionary = MarshalKit.from_overview(m)
+	var status: Dictionary = MarshalKit.status_of(view)
+	var is_sovereign := bool(m.get("sovereign", false))
+	name_label.text = Utils.display_marshal_name(mname)
+	var path: String = MarshalKit.portrait_path(mname)
+	if path != "":
+		portrait_rect.texture = load(path)
+		monogram_label.visible = false
+	else:
+		portrait_rect.texture = null
+		monogram_label.text = MarshalKit.monogram(mname)
+		monogram_label.visible = true
+
+	# the arm and the nation as tags (inline runs, the card's own idiom)
+	var unit_type := str(m.get("unit_type", "Infantry"))
+	var arm_tone: String = Utils.COLOR_CHIP_BG_NAVY
+	if unit_type == "Cavalry":
+		arm_tone = Utils.COLOR_ORANGE
+	elif unit_type == "Artillery":
+		arm_tone = Utils.COLOR_ERROR
+	var nation := str(m.get("nation", "?"))
+	var tags := Utils.bb_tag(unit_type, arm_tone) + "  " + Utils.bb_flag(nation) + " " \
+		+ Utils.bb_tag(Utils.display_nation_name(nation), Utils.COLOR_BADGE_QUIET)
+
+	# what he is doing, in his status tone; the Emperor's own state line leads
+	var tone := str(status.get("tone", Utils.COLOR_GOLD))
+	var detail := str(status.get("detail", ""))
+	var state_line := str(m.get("sovereign_state_line", ""))
+	if is_sovereign and state_line != "":
+		detail = Utils.humanize_nation_keys_in_text(state_line)
+	var doing := ""
+	if str(status.get("glyph", "")) != "":
+		doing += Utils.bb_glyph(str(status["glyph"]), 16, tone) + " "
+	doing += "[color=#" + tone + "]" + detail + "[/color]"
+	var where := Utils.humanize_entity_name(str(m.get("location", "")))
+	if where != "" and not detail.containsn(where):
+		doing += "  [color=#" + Utils.COLOR_INFO + "]· at " + where + "[/color]"
+	var text := tags + "\n" + doing
+	if Utils.compact_view():
+		# the 2.0 view: figures ride a line, not a strip (the orders stay above the fold)
+		text += "\n[color=#" + Utils.COLOR_INFO + "]Strength " + Utils.format_number(int(m.get("strength", 0))) \
+			+ " · Morale " + str(int(m.get("morale", 100))) + "% · Range " + str(int(m.get("movement_range", 1))) + "[/color]"
+		_figure_strip.set_tiles([])
+	else:
+		_figure_strip.set_tiles(_figure_tiles(m))
+	tags_label.text = text
+
+
+func _figure_tiles(m: Dictionary) -> Array:
+	"""The header's strip: strength, morale, range, trust, glory, record."""
+	var tiles: Array = []
+	var strength := int(m.get("strength", 0))
+	var starting := int(m.get("starting_strength", 0))
+	var strength_tile := {"glyph": "strength", "figure": Utils.format_number(strength), "caption": "Strength",
+		"tip": "Of " + Utils.format_number(starting) + " at the start"}
+	if starting > 0:
+		var ratio := float(strength) / float(starting)
+		if ratio < 0.3:
+			strength_tile["tone"] = _tone_color(Utils.COLOR_ERROR)
+		elif ratio < 0.6:
+			strength_tile["tone"] = _tone_color(Utils.COLOR_ORANGE)
+	tiles.append(strength_tile)
+
+	var morale := int(m.get("morale", 100))
+	var morale_tile := {"glyph": "morale", "figure": str(morale) + "%", "caption": "Morale"}
+	if morale < 40:
+		morale_tile["tone"] = _tone_color(Utils.COLOR_ERROR)
+	elif morale < 60:
+		morale_tile["tone"] = _tone_color(Utils.COLOR_ORANGE)
+	tiles.append(morale_tile)
+
+	tiles.append({"glyph": "march", "figure": str(int(m.get("movement_range", 1))), "caption": "Range"})
+
+	var trust_val := int(m.get("trust_value", 70))
+	tiles.append({"glyph": "trust", "figure": str(trust_val), "caption": str(m.get("trust_label", "Neutral")),
+		"tone": _tone_color(_trust_hex(trust_val)), "meter": trust_val, "meter_max": 100})
+
+	var glory := int(m.get("glory", 0))
+	var glory_rank := int(m.get("glory_rank", 0))
+	var glory_roster := int(m.get("glory_roster", 0))
+	var glory_tile := {"glyph": "glory", "figure": str(glory), "caption": "Glory"}
+	if glory > 0:
+		glory_tile["tone"] = _tone_color(Utils.COLOR_GOLD)
+	if glory_rank > 0 and glory_roster > 1:
+		glory_tile["tip"] = "Rank " + str(glory_rank) + " of " + str(glory_roster) + " on the ladder"
+	if bool(m.get("glory_crowned", false)):
+		glory_tile["caption"] = "★ Crowned"
+	tiles.append(glory_tile)
+
+	var vindication := int(m.get("vindication_score", 0))
+	var overridden := int(m.get("orders_overridden", 0))
+	var record_tip := "Vindication " + ("+" if vindication > 0 else "") + str(vindication)
+	if overridden > 0:
+		record_tip += " · overridden " + str(overridden) + "x"
+	tiles.append({"glyph": "medal", "figure": str(int(m.get("battles_won", 0))) + "W/" + str(int(m.get("battles_lost", 0))) + "L",
+		"caption": "Record", "tip": record_tip})
+	return tiles
+
+
+# ── the order bar ─────────────────────────────────────────────────────────
+
+func _fill_order_bar(m: Dictionary) -> void:
+	"""Real Buttons, pinned above the scroll, one per slot of the kit's seven
+	(Cancel order only while he has a standing order). A locked order is a
+	disabled button whose reason is its hover."""
+	for c in order_bar.get_children():
+		order_bar.remove_child(c)
+		c.queue_free()
+	var mname := str(m.get("name", ""))
+	if bool(m.get("captured", false)) or mname == "":
+		order_bar.visible = false
+		return
+	order_bar.visible = true
+	var standing: bool = MarshalKit.has_standing_order(MarshalKit.from_overview(m))
+	for spec in MarshalKit.order_specs(MarshalKit.from_overview(m)):
+		if str(spec["verb"]) == "cancel" and not standing:
+			continue
+		order_bar.add_child(_order_button(mname, spec))
+	var locate := Button.new()
+	locate.text = "On the map"
+	Utils.apply_button_icon(locate, Utils.glyph("europe"))
+	locate.tooltip_text = "Show " + Utils.display_marshal_name(mname) + " on the map"
+	locate.focus_mode = Control.FOCUS_ALL
+	locate.pressed.connect(_on_locate_pressed.bind(mname))
+	order_bar.add_child(locate)
+
+
+func _order_button(mname: String, spec: Dictionary) -> Button:
+	var btn := Button.new()
+	var face := str(spec["label"])
+	var price_words: String = MarshalKit.price_text(int(spec["price"]))
+	if price_words != "":
+		face += " · " + (price_words if price_words == "free" else price_words + " AP")
+	btn.text = face
+	btn.focus_mode = Control.FOCUS_ALL
+	if bool(spec["locked"]):
+		btn.disabled = true
+		Utils.apply_button_icon(btn, Utils.LOCK_GLYPH)
+		var why := str(spec["reason"])
+		if why == "":
+			why = "He is not yours to order."
+		btn.tooltip_text = why
+	else:
+		Utils.apply_button_icon(btn, Utils.glyph(str(spec["glyph"])))
+		btn.tooltip_text = "Sends: " + _order_sentence(mname, str(spec["verb"]))
+		btn.pressed.connect(_on_order_pressed.bind(btn, mname, str(spec["verb"])))
+	return btn
+
+
+func _order_sentence(mname: String, verb: String) -> String:
+	"""The sentence a player would type: '<Name>, <verb>'."""
+	return mname + ", " + verb
+
+
+func _on_order_pressed(btn: Button, mname: String, verb: String) -> void:
+	"""The chip's handshake for a real Button: clear `order_taken`, hand the
+	order to main.gd's one road, grey the button only when it took it."""
+	Utils.order_taken = false
+	order_command.emit(_order_sentence(mname, verb))
+	if Utils.order_taken and is_instance_valid(btn):
+		btn.text = "Sent"
+		btn.disabled = true
+		btn.tooltip_text = ""
+
+
+func _on_locate_pressed(mname: String) -> void:
+	locate_requested.emit(mname)
+
+
+# ── the detail's body ─────────────────────────────────────────────────────
+
+func _detail_body(m: Dictionary, index: int) -> String:
+	var bbcode := ""
+	bbcode += _skills_grid(m)
+	bbcode += _ability_chips(m)
+	bbcode += _reward_lines(m, index)
+	bbcode += _grievance_lines(m)
+	bbcode += _status_lines(m)
+	bbcode += _character_fold(m)
+	return bbcode
+
+
+func _skill_tone(val: int) -> String:
+	if val >= 8:
+		return Utils.COLOR_SUCCESS
+	if val <= 3:
+		return Utils.COLOR_ERROR
+	return Utils.COLOR_INFO
+
+
+func _skills_grid(m: Dictionary) -> String:
+	"""The six skills as a 3 x 2 grid: glyph, name, value over a small meter;
+	each skill's note is that cell's hover (it is not printed)."""
+	var skills = m.get("skills", {})
+	if not (skills is Dictionary):
+		return ""
+	var notes = m.get("skill_notes", {})
+	if not (notes is Dictionary):
+		notes = {}
+	var cells := ""
+	var count := 0
+	for skill_name in SKILL_GLYPHS:
+		if not skills.has(skill_name):
+			continue
+		var val := int(skills.get(skill_name, 5))
+		var tone := _skill_tone(val)
+		var tip := str(notes.get(skill_name, ""))
+		var head := Utils.bb_glyph(skill_name, 16, Utils.COLOR_GOLD) + " " + str(skill_name).capitalize() \
+			+ " [color=#" + tone + "]" + str(val) + "[/color]"
+		var meter := Utils.bb_meter(float(clampi(val, 0, 10)), 10.0, 96, 8, tone)
+		cells += "[cell expand=1 padding=6,4,10,4]" + Utils.bb_hint(head, tip) + "\n" + Utils.bb_hint(meter, tip) + "[/cell]"
+		count += 1
+	if count == 0:
+		return ""
+	return _caption("Skills") + "[table=3]" + cells + "[/table]\n"
+
+
+func _ability_chips(m: Dictionary) -> String:
+	"""The signature ability, The Intendance, The Rally and the Steward as
+	chips; the prose behind each is its hover."""
+	var chips: Array = []
+	var presence := ""
+	var ab_name := str(m.get("ability_name", ""))
+	var ab_effect := str(m.get("ability_effect", ""))
+	if bool(m.get("ability_active", false)) and ab_name != "":
+		if bool(m.get("sovereign", false)):
+			presence = _presence_applied_line(m, ab_name, ab_effect).strip_edges()
+		if presence == "":
+			chips.append(Utils.bb_hint(Utils.bb_tag(ab_name, CHIP_GILT_BG, CHIP_GILT_INK), ab_effect))
+	var admin_note := str(m.get("admin_note", ""))
+	if admin_note != "":
+		var admin_tone: String = Utils.COLOR_SUCCESS if str(m.get("admin_tier", "")) == "thrifty" else Utils.COLOR_ORANGE
+		chips.append(Utils.bb_hint(Utils.bb_tag("The Intendance", admin_tone), admin_note))
+	var rally_note := str(m.get("rally_note", ""))
+	if rally_note != "":
+		var rally_tone: String = Utils.COLOR_SUCCESS if str(m.get("rally_tier", "")) == "fast" else Utils.COLOR_ORANGE
+		chips.append(Utils.bb_hint(Utils.bb_tag("The Rally", rally_tone), rally_note))
+	var steward_note := str(m.get("steward_note", ""))
+	if steward_note != "" and (int(m.get("estate_income", 0)) > 0 or int(m.get("expectation_shortfall", 0)) > 0):
+		var steward_tone: String = Utils.COLOR_SUCCESS if str(m.get("steward_tier", "")) == "prosperous" else Utils.COLOR_ORANGE
+		chips.append(Utils.bb_hint(Utils.bb_tag("The Steward", steward_tone), steward_note))
+	var out := ""
+	if presence != "":
+		out += presence + "\n"
+	if chips.size() > 0:
+		out += _caption("Abilities") + "  " + "  ".join(PackedStringArray(chips)) + "\n"
+	return out
+
+
+func _reward_lines(m: Dictionary, index: int) -> String:
+	"""The Reward line, PRINTED (the PS-3 ruling: reactive but explicit - its
+	reasons are never folded), with the Hear-him chip when he seeks audience.
+	The gate is the card's own, unchanged (ES-7: no proactive endow)."""
+	var bbcode := ""
+	var expectation := int(m.get("expectation", 0))
+	var estate_income := int(m.get("estate_income", 0))
+	var pension := int(m.get("pension", 0))
+	var shortfall := int(m.get("expectation_shortfall", 0))
+	var estate_title := str(m.get("estate_title", ""))
+	var is_dotation := bool(m.get("is_dotation_world", false))
+	if bool(m.get("sovereign", false)):
+		if is_dotation:
+			var sov_why := str(m.get("sovereign_note", "The Empire is his estate."))
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg", sov_why) \
+				+ "  [color=#" + Utils.COLOR_INFO + "]" + sov_why + "[/color]\n"
+	elif expectation > 0 or estate_income > 0 or pension > 0:
+		if estate_title != "":
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + estate_title + "[/color]"
+		var exp_color: String = Utils.COLOR_SUCCESS
+		if m.get("is_eroding", false):
+			exp_color = Utils.COLOR_ERROR
+		elif shortfall > 0:
+			exp_color = Utils.COLOR_WARNING
+		bbcode += "  [color=#" + exp_color + "]Expects: " + str(expectation) + "g/turn | Estates: " + str(estate_income) + "g/turn"
+		if pension > 0:
+			bbcode += " | Rente: " + str(pension) + "g/turn (costs " + str(int(m.get("pension_cost", 0))) + "g)"
+		if shortfall > 0:
+			bbcode += " | Shortfall: " + str(shortfall) + "g"
+			if m.get("is_eroding", false):
+				bbcode += " — loyalty eroding"
+		bbcode += "[/color]\n"
+		if m.get("captured", false):
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+				+ "  [color=#" + Utils.COLOR_INFO + "]held prisoner — his rewards await his release[/color]\n"
+		elif shortfall > 0 or pension > 0:
+			bbcode += "  " + _button_chip("reward:" + str(index), "Reward — estate or rente…", CHIP_GILT_INK, CHIP_GILT_BG, _ICON_GAME + "estate-domaine.svg")
+			var eligible = m.get("eligible_estates", [])
+			if shortfall > 0 and eligible is Array and eligible.size() > 0:
+				bbcode += "  [color=#" + Utils.COLOR_INFO + "]or type: 'endow " + str(m.get("name", "?")) + " with " + str(eligible[0]) + "'[/color]"
+			bbcode += "\n"
+		else:
+			bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+				+ "  [color=#" + Utils.COLOR_INFO + "]his expectation is met — new victories raise it[/color]\n"
+	elif is_dotation and not m.get("captured", false):
+		bbcode += "  " + Utils.bb_chip_disabled("Reward…", _ICON_GAME + "estate-domaine.svg") \
+			+ "  [color=#" + Utils.COLOR_INFO + "]victories raise his expectation — then endow a conquered province (a Duchy) or grant a rente (gold/turn)[/color]\n"
+	if m.get("seeks_audience", false):
+		bbcode += "  " + _button_chip("audience:open", "Hear him — he seeks an audience", CHIP_GILT_INK, CHIP_GILT_BG, _ICON_PHOSPHOR + "scales.svg") + "\n"
+	return bbcode
+
+
+func _grievance_lines(m: Dictionary) -> String:
+	"""Envy, vindication, feuds and separations, as the card states them."""
+	var bbcode := ""
+	var mname := str(m.get("name", ""))
+	var jealous_of := str(m.get("jealous_of", "")) if m.get("jealous_of") != null else ""
+	if jealous_of != "":
+		var jl_turns := int(m.get("jealousy_turns_remaining", 0))
+		var grievance: String = "  [color=#" + Utils.COLOR_ERROR + "]GRIEVANCE: envious of " + jealous_of
+		if jl_turns > 0:
+			grievance += " (" + str(jl_turns) + " turn" + ("s" if jl_turns != 1 else "") + " unless satisfied)"
+		grievance += "[/color]"
+		if m.get("jealousy_warned", false):
+			bbcode += Utils.bb_note("gen.grievance." + mname, grievance,
+				"[color=#" + Utils.COLOR_ERROR + "] — HE EYES THE ENEMY ON HIS OWN; any order restrains him[/color]", "\n")
+		else:
+			bbcode += grievance + "\n"
+	if m.get("jealousy_surge", false):
+		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]VINDICATED — he fights with renewed purpose this turn[/color]\n"
+	var feuds = m.get("feuds", [])
+	if feuds is Array and feuds.size() > 0:
+		bbcode += "  [color=#" + Utils.COLOR_ORANGE + "]Entrenched feud: " + ", ".join(feuds) + "[/color]\n"
+	var separations = m.get("separations", [])
+	if separations is Array and separations.size() > 0:
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]Kept apart from: " + ", ".join(separations) + " (Berthier watches)[/color]\n"
+	return bbcode
+
+
+func _status_lines(m: Dictionary) -> String:
+	"""Status, compact: where he stands and his stance, his flags, his standing
+	order, the arm's specifics and his relationships."""
+	var bbcode := _caption("Status")
+	var status_note = m.get("status_note", "")
+	if PRISONER_NOTE_ON_THE_CARD and m.get("captured", false) and status_note is String and status_note != "":
+		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]" + Utils.humanize_nation_keys_in_text(status_note) + "[/color]\n"
+	bbcode += "  Location: " + str(m.get("location", "?")) + "  Stance: " + _stance_colored(str(m.get("stance", "neutral")))
+	var flags: Array = []
+	if m.get("is_broken", false):
+		flags.append("[color=#" + Utils.COLOR_ERROR + "]BROKEN (recovery: " + str(int(m.get("broken_recovery", 0))) + ")[/color]")
+	if m.get("is_retreating", false):
+		flags.append("[color=#" + Utils.COLOR_ERROR + "]RETREATING (stage: " + str(int(m.get("retreat_recovery", 0))) + ")[/color]")
+	if m.get("is_wounded", false):
+		flags.append("[color=#" + Utils.COLOR_ERROR + "]WOUNDED (until turn " + str(int(m.get("wounded_until_turn", 0))) + ")[/color]")
+	if m.get("is_fortified", false):
+		flags.append("[color=#" + Utils.COLOR_BLUE + "]FORTIFIED +" + str(int(m.get("defense_bonus", 0))) + "%[/color]")
+	var iron_stacks := int(m.get("iron_resolve_stacks", 0))
+	if iron_stacks > 0:
+		flags.append("[color=#" + Utils.COLOR_GOLD + "]IRON RESOLVE " + str(iron_stacks) + "/" + str(int(m.get("iron_resolve_max_stacks", 3))) \
+			+ " (+" + str(int(m.get("iron_resolve_bonus_pct", 0))) + "% next attack)[/color]")
+	if m.get("is_drilling", false):
+		var drill_txt := "DRILL LOCKED" if m.get("drilling_locked", false) else "DRILLING"
+		var shock := int(m.get("shock_bonus", 0))
+		if shock > 0:
+			drill_txt += " (+" + str(shock * 10) + "% shock)"
+		flags.append("[color=#" + Utils.COLOR_BLUE + "]" + drill_txt + "[/color]")
+	if m.get("square_formation", false):
+		flags.append("[color=#" + Utils.COLOR_GOLD + "]SQUARE (+5% def, cav -40%, arty +50% vuln)[/color]")
+	if m.get("is_autonomous", false):
+		var reason := str(m.get("autonomy_reason", ""))
+		flags.append("[color=#" + Utils.COLOR_ORANGE + "]AUTONOMOUS" + (" (" + reason + ")" if reason != "" else "") + "[/color]")
+	if int(m.get("idle_turns", 0)) >= 2:
+		flags.append("[color=#" + Utils.COLOR_INFO + "]IDLE " + str(int(m.get("idle_turns", 0))) + " turns[/color]")
+	if flags.size() > 0:
+		bbcode += "\n  " + " | ".join(flags)
+	var strat = m.get("strategic_order")
+	if strat != null and strat is Dictionary:
+		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]Order: " + str(strat.get("command_type", "?")) + " → " + str(strat.get("target", "?")) + "[/color]"
+	bbcode += "\n"
+	var specifics: Array = []
+	if m.get("cavalry", false):
+		if m.get("counter_punch_available", false):
+			specifics.append("[color=#" + Utils.COLOR_SUCCESS + "]Counter-Punch READY[/color]")
+		if m.get("holding_position", false):
+			specifics.append("[color=#" + Utils.COLOR_BLUE + "]Holding Position[/color]")
+	if m.get("artillery", false):
+		specifics.append("Bombardments: " + str(int(m.get("bombardments_this_turn", 0))) + "/2")
+		if m.get("moved_this_turn", false):
+			specifics.append("[color=#" + Utils.COLOR_ORANGE + "]Moved (cannot fire)[/color]")
+	if specifics.size() > 0:
+		bbcode += "  " + " | ".join(specifics) + "\n"
+	var rels = m.get("relationships", [])
+	if rels is Array and rels.size() > 0:
+		var rel_parts: Array = []
+		for r in rels:
+			rel_parts.append(str(r.get("name", "?")) + ": " + _relationship_colored(int(r.get("value", 0)), str(r.get("label", "Professional"))))
+		# UI6-X53 (the final readers' F10: "a dangling 'Relationships:' with nothing under
+		# it"): a table below the heading was one box the pane's fold cut, the heading left
+		# alone at the foot. One wrapped paragraph, as the card prints it On the page: the
+		# heading never stands without its first names.
+		bbcode += "  Relationships: " + ", ".join(rel_parts) + "\n"
+	return bbcode
+
+
+func _character_fold(m: Dictionary) -> String:
+	"""ONE fold for the lore: biography, personality and unit type."""
+	var body := ""
+	for key in ["biography", "personality_description", "unit_type_description"]:
+		var words := str(m.get(key, ""))
+		if words != "":
+			body += "[color=#" + Utils.COLOR_INFO + "]" + words + "[/color]\n"
+	if body == "":
+		return ""
+	var summary := "  [color=#" + Utils.COLOR_INFO + "][opentype_features=smcp]Character[/opentype_features][/color]"
+	return Utils.bb_note("gen.char." + str(m.get("name", "")), summary, "\n" + body, "\n")

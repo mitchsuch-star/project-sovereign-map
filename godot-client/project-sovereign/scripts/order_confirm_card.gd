@@ -52,6 +52,13 @@ var _group_plan: Dictionary = {}     # the group's: {send, held, total, ap_left,
 var _avoid: Array = []
 const CARD_WIDTH := 560.0
 const CARD_EDGE := 12.0
+# Session UI-6 (November 13, 2026): the card never takes more than this share
+# of the HUD band (a narrow band — the compact view's, a docked desk's) …
+const BAND_SHARE := 0.9
+# … and its three buttons stay whole: under this inner width they drop their
+# authored minimum widths (150 / 130 / 130) to their words' own.
+const BUTTONS_AUTHORED_W := 430.0
+var _button_min_w: Dictionary = {}   # button name -> its authored minimum width
 
 
 func _ready():
@@ -450,7 +457,11 @@ func refit() -> void:
 	# size and place below.
 	Utils.clamp_centered_panel($PanelContainer)
 	var view := panel.get_viewport_rect().size
-	var w := minf(CARD_WIDTH, maxf(160.0, view.x - 2.0 * CARD_EDGE))
+	# Session UI-6: min(560, 0.9 × the HUD band), never past the viewport.
+	var band := Utils.hud_band(view)
+	var w := minf(minf(CARD_WIDTH, (band.y - band.x) * BAND_SHARE), maxf(160.0, view.x - 2.0 * CARD_EDGE))
+	w = maxf(w, 160.0)
+	_fit_buttons(w)
 	panel.custom_minimum_size = Vector2(w, 0.0)
 	var h := minf(_content_height(w, view.y), maxf(120.0, view.y - 2.0 * CARD_EDGE))
 	var top := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + CARD_EDGE
@@ -508,6 +519,22 @@ func _content_height(w: float, view_h: float) -> float:
 	var terms_h := minf(float(terms_label.get_content_height()), room)
 	terms_label.custom_minimum_size = Vector2(0.0, terms_h)
 	return others + terms_h
+
+
+func _fit_buttons(w: float) -> void:
+	"""Session UI-6: the buttons stay whole at the card's width — under their
+	authored row (BUTTONS_AUTHORED_W) inside the frame they shrink to their
+	words; with room again they take their authored widths back."""
+	var frame: StyleBox = ($PanelContainer as PanelContainer).get_theme_stylebox("panel")
+	var inner: float = w - (frame.get_minimum_size().x if frame != null else 40.0)
+	var tight: bool = inner < BUTTONS_AUTHORED_W
+	for button in [send_button, line_button, cancel_button]:
+		var b := button as Button
+		if b == null:
+			continue
+		if not _button_min_w.has(b.name):
+			_button_min_w[b.name] = b.custom_minimum_size.x
+		b.custom_minimum_size.x = 0.0 if tight else float(_button_min_w[b.name])
 
 
 func placed_rect() -> Rect2:

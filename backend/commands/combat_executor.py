@@ -30,6 +30,7 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # One name now; objection_v2 has no imports back into commands (safe).
 from backend.commands.objection_v2 import REGION_FORTIFICATION_DEFENSE_BONUS
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.game_logic.intel_surfaces import whither as _whither  # UI6-X35: a foreign commander's place is the fog's
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 from backend import errors as _errors
 
@@ -243,6 +244,44 @@ def _near_miss_of_a_roster_name(raw_words, world, marshal, shared_words=()) -> b
     return False
 
 
+def shared_name_word_in(raw, world, marshal) -> str:
+    """UI6-X37: the first word of the player's OWN target words that PARTLY
+    names a foreign commander though it fits more than one man on the roster
+    ("Archduke" — John in sight, Charles out of it), or "". PURE; reads the
+    roster omnisciently and prints nothing of any man."""
+    from backend.ai.attack_vocabulary import (
+        guard_attack_verbs, IDIOM_FILLER_WORDS)
+    raw = str(raw or "").lower()
+    skip = (guard_attack_verbs() | _GUARD_FILLER_WORDS | IDIOM_FILLER_WORDS
+            | {str(getattr(marshal, "name", "")).lower()})
+    words = [w for w in re.findall(r"[a-z']+", raw) if w not in skip and len(w) >= 3]
+    tokens: Dict[str, int] = {}
+    foreign = set()
+    for m in getattr(world, "marshals", {}).values():
+        for w in set(re.findall(r"[a-z']+", humanize_entity_name(m.name).lower())):
+            tokens[w] = tokens.get(w, 0) + 1
+            if getattr(m, "nation", None) != getattr(marshal, "nation", None):
+                foreign.add(w)
+    for w in words:
+        if tokens.get(w, 0) > 1 and w in foreign:
+            return w
+    return ""
+
+
+def unique_bearer_in_sight(world, marshal, word):
+    """UI6-X61: the ONE foreign commander IN SIGHT whose printed name carries
+    `word` (a title or name two commanders share - "Archduke"), else None
+    (none in sight, or several). Fog-honest: only men in sight are counted, so
+    nothing is revealed of a bearer out of it."""
+    word = str(word or "").lower()
+    if not word:
+        return None
+    bearers = [e for e in world.get_visible_enemies(marshal.nation)
+               if int(getattr(e, "strength", 0) or 0) > 0
+               and word in set(re.findall(r"[a-z']+", humanize_entity_name(e.name).lower()))]
+    return bearers[0] if len(bearers) == 1 else None
+
+
 def guessed_target_refusal(world, marshal, command, target,
                            resolved_target=None, enemy_candidates=(),
                            auto_resolved: bool = False) -> Optional[Dict]:
@@ -336,6 +375,11 @@ def guessed_target_refusal(world, marshal, command, target,
         # Austria, and a word SHARED by two commanders grounds neither.
         for w in raw_target_words:
             if w in _shared_words:
+                # UI6-X61: a shared word names its UNIQUE bearer in sight.
+                _bearer = unique_bearer_in_sight(world, marshal, w)
+                if (_bearer is not None and (tl == _bearer.name.lower()
+                                             or hum == humanize_entity_name(_bearer.name).lower())):
+                    return True
                 continue
             if len(w) >= 4 and (w in tl or w in hum):
                 return True
@@ -357,8 +401,13 @@ def guessed_target_refusal(world, marshal, command, target,
 
     # The player said something specific and it grounds nothing.
     near_miss = False
-    if auto_resolved and _near_miss_of_a_roster_name(
-            raw_target_words, world, marshal, _shared_words):
+    # UI6-X37: a word that PARTLY names a commander — a title or name two of
+    # them share ("Archduke": John in sight, Charles out of it) — is no
+    # description either; the engine's nearest-foe pick behind a disclosure
+    # would be a substitution said after the battle. Ask, free.
+    _partly_names_a_man = bool(shared_name_word_in(raw, world, marshal))
+    if auto_resolved and (_partly_names_a_man or _near_miss_of_a_roster_name(
+            raw_target_words, world, marshal, _shared_words)):
         # CQ-30: the words are a NEAR MISS of a commander's name — the player
         # named Charles and slipped a letter. Not a description; never a
         # different army. The ASK arm below, fog-honest.
@@ -852,6 +901,90 @@ def charge_has_a_man(target_marshal) -> bool:
     return target_marshal is not None
 
 
+# ── UI6-X15 / UI6-X16 (Session UI-6, November 13, 2026): THE DOCTRINE on the
+# battle roads the named attack does not run through. A foreign commander's
+# NAME and SIDE are public; his POSITION — his province, his distance,
+# whether he is in range — is the fogged half (`llm_client._askable_enemy_
+# names`). Measured on the 1805 boot (Kutuzov in fog): "Attack Marshal
+# Kutuzov" answered "No marshals in range of Kutuzov", "Murat, charge
+# Kutuzov" "Kutuzov is too far for Glorious Charge! Distance: 4, Range: 2",
+# "Lannes, bombard Kutuzov" (guns) "Target out of range … adjacent regions",
+# and the bare "bombard Kutuzov" "No artillery in bombardment range of
+# Kutuzov" — each a verdict read off his LIVE province. Each now answers as
+# the named road does ("No intelligence on Kutuzov's position"), free.
+
+def _sighted_by_the_player(world, enemy) -> bool:
+    """THE one sighting rule (`intel_surfaces.in_sight`) for the player."""
+    from backend.game_logic.intel_surfaces import in_sight
+    return in_sight(world, getattr(world, "player_nation", None), enemy)
+
+
+def where_the_player_places(world, enemy):
+    """`(province, "live" | "last")` — where the PLAYER places a foreign
+    commander by THE one sighting rule (`intel_surfaces`: in sight, where he
+    stands; out of sight, his newest sighting) — or `(None, "")` when no
+    report places him. Our own corps and a court with no fog (an AI reading
+    its own board never comes here) read live."""
+    player = getattr(world, "player_nation", None)
+    if enemy is None:
+        return None, ""
+    if getattr(enemy, "nation", None) == player or getattr(enemy, "captured_by", ""):
+        # ours; or a prisoner — the prisoner road answers for a captive
+        return enemy.location, "live"
+    from backend.game_logic.intel_surfaces import in_sight, last_seen
+    if in_sight(world, player, enemy):
+        return enemy.location, "live"
+    seen = last_seen(world, player, enemy.name)
+    if seen and seen.get("location"):
+        return str(seen["location"]), "last"
+    return None, ""
+
+
+def no_guns_refusal(marshal, command) -> Optional[Dict]:
+    """PF-7 / UI6-X46: a "bombard" verb typed to a marshal with NO guns is
+    refused - the ONE answer, given FIRST (before the range check, the
+    sighting rule and every side effect of the attack road), so a man with no
+    guns is never told how far a target is or where it stands. Player-issued
+    only: the AI, strategic execution and auto-dispatch pass `command=None`."""
+    if not command or getattr(marshal, "artillery", False):
+        return None
+    raw = str(command.get("raw_command") or "").lower()
+    if not any(v in raw for v in ("bombard", "barrage", "shell", "cannonade")):
+        return None
+    return {
+        "success": False,
+        "message": (f"Berthier shakes his head. \"{marshal.name} commands "
+                    f"no guns, Sire — he cannot bombard. Order a direct "
+                    f"assault, or bring an artillery corps within range.\""),
+        "free_action": True,
+        "variable_action_cost": 0,
+    }
+
+
+def unseen_target_refusal(world, enemy, actor: str,
+                          verb: str = "give chase") -> Optional[Dict]:
+    """The free answer to a battle order on a foreign commander OUT of the
+    player's sight (`intel_surfaces.in_sight`), or None for one in sight, one
+    of ours, or no man at all. Named — his name is public — with nothing of
+    where he stands: the strategic pursuit's own words ("No intelligence on
+    Kutuzov's position, Sire. Scout for him before Ney can give chase.").
+    A prisoner is answered by the prisoner road, never here."""
+    player = getattr(world, "player_nation", None)
+    if (enemy is None or getattr(enemy, "nation", None) == player
+            or getattr(enemy, "captured_by", "")):
+        return None
+    from backend.game_logic.intel_surfaces import in_sight
+    if in_sight(world, player, enemy):
+        return None
+    return {
+        "success": False,
+        "message": (f"No intelligence on {humanize_entity_name(enemy.name)}'s "
+                    f"position, Sire. Scout for him before {actor} can {verb}."),
+        "variable_action_cost": 0,
+        "fogged": True,
+    }
+
+
 @dataclass(slots=True, repr=False, eq=False)
 class AttackContext:
     marshal: Any
@@ -1097,19 +1230,25 @@ def war_purpose_bar(world, attacker_nation: str, target_nation: str) -> str:
     return str(words.get("display") or "")
 
 
-def peace_soil_refusal(marshal, enemy_marshal, block) -> dict:
+def peace_soil_refusal(marshal, enemy_marshal, block, world=None) -> dict:
     """DDB-14 / DDB-X17: the refusal of a field on peace soil, in ONE set of
     words for the attack and the charge — at no cost, naming the court."""
     from backend.display_names import display_nation as _dn, humanize_entity_name as _hn
     owner = _dn(block["owner"])
+    # UI6-X35: where a foreign commander stands is the fog's — a man out of
+    # sight is named by his court, never by the ground under him.
+    _seen = world is None or bool(_whither(world, enemy_marshal, "x"))
+    _ground = (f"{enemy_marshal.location} is {owner}'s soil" if _seen
+               else f"{_hn(enemy_marshal.name)} serves {owner}")
     return {
         "success": False,
         "peace_soil": block["owner"],
         "message": (
             # S14E-X74: the roster key ("ArchdukeCharles") is never printed.
             f"{_hn(marshal.name)} cannot march on {_hn(enemy_marshal.name)}: "
-            f"{enemy_marshal.location} is {owner}'s soil, and we are at peace "
-            f"with {owner} — no corps of ours may take the field there."),
+            f"{_ground}, and we are at peace "
+            f"with {owner} — no corps of ours may take the field "
+            f"{'there' if _seen else 'against him'}."),
     }
 
 
@@ -1275,6 +1414,11 @@ def pursuit_ask(ctx, cost):
             or _attack_is_unordered(cmd)):
         return None
     world, marshal, enemy = ctx.world, ctx.marshal, ctx.enemy_by_name
+    # UI6-X38: a court we are at peace with is no pursuit to offer — the
+    # upgrade's own free refusal ("We are not at war with …") answers it, as
+    # it answers a man within reach (and as the readback reads it).
+    if not world.is_at_war(marshal.nation, enemy.nation):
+        return None
     raw = str(cmd.get("_raw_input") or "")
     from backend.commands.parser import rewrite_take_objective
     if raw and rewrite_take_objective(raw, None, world)[0] != raw:
@@ -1357,7 +1501,7 @@ def pursuit_ask(ctx, cost):
         riders += " " + march_guard_sentence(_guard)
     question = (f"{placed}, {marches} off.{riders} Pursue him "
                 f"({cost} AP — a standing order; {first_march}), or cancel?")
-    reissue = f"{marshal.name}, attack {enemy.name}"
+    reissue = f"{humanize_entity_name(marshal.name)}, attack {quarry}"   # UI6-X27 (R7)
     return {
         "success": True,
         "free_action": True,
@@ -1376,7 +1520,8 @@ def pursuit_ask(ctx, cost):
             "target": enemy.name,
             "command": reissue,
             "aliases": ["pursue", "pursue him", f"pursue {enemy.name.lower()}",
-                        strategic_reissue_command(marshal.name, "PURSUE", enemy.name).lower()],
+                        strategic_reissue_command(marshal.name, "PURSUE", enemy.name).lower(),
+                        f"{marshal.name} pursue {enemy.name}".lower()],
             # The answer re-issues the attack as asked: the range check's
             # upgrade runs, with the player's own words (NPC-11).
             "flags": {"_pursuit_confirmed": True, "_raw_input": raw},
@@ -7315,7 +7460,7 @@ class CombatExecutor:
             _pay_note = campaign_pay_note(world, marshal, retreat_to, old_loc)
             # S14G-X29: ... and the front the rout lands on (the pay's sibling).
             _pay_note += front_note(world, marshal, retreat_to)
-            return f"{_fate_prefix}{_toll_prefix}[!] {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns){_pay_note}"
+            return f"{_fate_prefix}{_toll_prefix}[!] {_shown_name(marshal.name)}'s broken army flees{_whither(world, marshal, retreat_to)}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns){_pay_note}"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -7452,7 +7597,8 @@ class CombatExecutor:
             return {
                 "success": False,
                 "message": (
-                    f"{marshal.name}'s guns cannot reach {defender.location} — "
+                    f"{_shown_name(marshal.name)}'s guns cannot reach "
+                    f"{defender.location if _whither(world, defender, 'x') else 'him'} — "
                     f"no battery carries across open water, Sire. The sea is "
                     f"the fleet's business."
                 ),
@@ -7977,6 +8123,10 @@ class CombatExecutor:
 
     def _attack_open(self, ctx: AttackContext):
         """Stage 1 of `_execute_attack`: Square break, the war-purpose stager, counter-punch, drill and moved-artillery gates."""
+        # UI6-X46: a marshal with no guns cannot bombard - the first refusal, free.
+        _no_guns = no_guns_refusal(ctx.marshal, ctx.command)
+        if _no_guns is not None:
+            return _no_guns
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(ctx.marshal, "attack")
         # DDB-42: where this attack's alarm rows begin (the result names them).
@@ -8140,6 +8290,17 @@ class CombatExecutor:
                                 and ctx.world.is_at_war(ctx.marshal.nation, ctx.m.nation)):
                             charge_target_marshal = ctx.m
                             break
+                    # UI6-X16: the player's blood-up charge rides only at a man
+                    # IN SIGHT — the terrain arm below printed his province
+                    # ("Mountains terrain at Carniola blocks the cavalry
+                    # charge!") and the auto-charge his distance. A man out of
+                    # sight takes the ordinary attack road, which answers him
+                    # as the named road does (the pursuit, or no intelligence).
+                    _sighted_only = is_player and not _no_charge_popup
+                    if (_sighted_only and charge_target_marshal is not None
+                            and unseen_target_refusal(ctx.world, charge_target_marshal,
+                                                      ctx.marshal.name) is not None):
+                        charge_target_marshal = None
                     if charge_target_marshal:
                         # DDB-X17: a charge onto soil we are at peace with is
                         # refused before either popup is mounted — "charge"
@@ -8148,7 +8309,7 @@ class CombatExecutor:
                             self, ctx.marshal, charge_target_marshal, ctx.world)
                         if _peace_charge is not None:
                             return peace_soil_refusal(
-                                ctx.marshal, charge_target_marshal, _peace_charge)
+                                ctx.marshal, charge_target_marshal, _peace_charge, ctx.world)
                         # Check terrain at DEFENDER's location (not attacker's)
                         charge_target_region = ctx.world.get_region(charge_target_marshal.location)
                         if charge_target_region and charge_target_region.terrain in CHARGE_BLOCKED_TERRAIN:
@@ -8170,6 +8331,11 @@ class CombatExecutor:
                                 continue  # Skip the blocked target
                             # DDB-X17: no alternative on peace soil is offered.
                             if charge_on_peace_soil(self, ctx.marshal, ctx.m, ctx.world) is not None:
+                                continue
+                            # UI6-X16: nor, to the player, a man out of sight
+                            # (the line prints his province and distance).
+                            if _sighted_only and unseen_target_refusal(
+                                    ctx.world, ctx.m, ctx.marshal.name) is not None:
                                 continue
                             dist = ctx.world.get_distance(ctx.marshal.location, ctx.m.location)
                             if dist <= ctx.marshal.movement_range:
@@ -8281,6 +8447,16 @@ class CombatExecutor:
         # `find_nearest_enemy` has no nation parameter on either side.
         ctx._nation_hint = str((ctx.command or {}).get("target_nation_hint", "") or "")
 
+        # UI6-X61: a title or name two commanders share ("Archduke") acts on its
+        # UNIQUE bearer in sight - the reply names him, nothing is revealed of the
+        # bearers out of sight. None in sight, or several, opens the free ask
+        # (`guessed_target_refusal`); never a non-bearer.
+        if not ctx.target and ctx.marshal.nation == ctx.world.player_nation:
+            _shared = shared_name_word_in(
+                (ctx.command or {}).get("_raw_input") or "", ctx.world, ctx.marshal)
+            _bearer = unique_bearer_in_sight(ctx.world, ctx.marshal, _shared) if _shared else None
+            if _bearer is not None:
+                ctx.target = _bearer.name
         # Handle None target - find nearest enemy for this marshal
         if not ctx.target:
             # Find the nearest enemy to this specific marshal
@@ -8629,6 +8805,17 @@ class CombatExecutor:
             if ctx.distance > ctx.marshal.movement_range:
                 # ARTILLERY: Block PURSUE auto-promotion — artillery can't chase
                 if getattr(ctx.marshal, 'artillery', False):
+                    # UI6-X16: to the player, a man OUT of sight is no range
+                    # verdict ("Target out of range … adjacent regions" said
+                    # where he is not) — answered by name, free.
+                    if (ctx.enemy_by_name is not None
+                            and ctx.marshal.nation == ctx.world.player_nation
+                            and not _attack_is_unordered(ctx.command)
+                            and not (ctx.command or {}).get("_strategic_execution")):
+                        _unseen = unseen_target_refusal(
+                            ctx.world, ctx.enemy_by_name, ctx.marshal.name, "open fire")
+                        if _unseen is not None:
+                            return _unseen
                     return {
                         "success": False,
                         "message": f"Target out of range. {ctx.marshal.name}'s artillery can only engage adjacent regions."
@@ -8924,7 +9111,7 @@ class CombatExecutor:
                 self, ctx.marshal, ctx.enemy_marshal.location, ctx.world,
                 enemy_nation=ctx.enemy_marshal.nation)
             if _peace_soil is not None:
-                return peace_soil_refusal(ctx.marshal, ctx.enemy_marshal, _peace_soil)
+                return peace_soil_refusal(ctx.marshal, ctx.enemy_marshal, _peace_soil, ctx.world)
 
         # ════════════════════════════════════════════════════════════
         # BOMBARDMENT: Region-name targeting selects strongest enemy (§4.4)
@@ -9274,17 +9461,9 @@ class CombatExecutor:
         # / defiance callers pass command=None and are unaffected. Same-region
         # artillery "bombard" -> full battle is intended (BOMBARDMENT_SPEC §3)
         # and handled by the routing below, so this only fires with no guns.
-        _bombard_verbs = ("bombard", "barrage", "shell", "cannonade")
-        if (ctx.command
-                and any(v in (ctx.command.get("raw_command") or "").lower()
-                        for v in _bombard_verbs)
-                and not getattr(ctx.marshal, 'artillery', False)):
-            return {
-                "success": False,
-                "message": (f"Berthier shakes his head. \"{ctx.marshal.name} commands "
-                            f"no guns, Sire — he cannot bombard. Order a direct "
-                            f"assault, or bring an artillery corps within range.\""),
-            }
+        _no_guns = no_guns_refusal(ctx.marshal, ctx.command)
+        if _no_guns is not None:
+            return _no_guns
 
         if (getattr(ctx.marshal, 'artillery', False)
                 and ctx.marshal.location != ctx.enemy_marshal.location):
@@ -11088,7 +11267,8 @@ class CombatExecutor:
                         ctx.p.location = origin
                         ctx.p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
                         ctx.forced_retreat_msg += (
-                            f"\n{ctx.p.name} withdraws to {origin} after the battle.")
+                            f"\n{_shown_name(ctx.p.name)} withdraws"
+                            f"{_whither(ctx.world, ctx.p, origin)} after the battle.")
             if not ctx.def_won:
                 for ctx.p in ctx.def_participants:
                     origin = ctx.reinforcer_origin.get(ctx.p.name)
@@ -11100,7 +11280,8 @@ class CombatExecutor:
                         ctx.p.location = origin
                         ctx.p.clear_iron_resolve()  # MC-1c: a move (direct assignment)
                         ctx.forced_retreat_msg += (
-                            f"\n{ctx.p.name} withdraws to {origin} after the battle.")
+                            f"\n{_shown_name(ctx.p.name)} withdraws"
+                            f"{_whither(ctx.world, ctx.p, origin)} after the battle.")
 
             # Clean up destroyed non-primary participants
             # PC15-1 sibling seam: the [S62] rout loop above can CAPTURE a
@@ -12402,7 +12583,19 @@ class CombatExecutor:
                 # Found pending charge - route to respond handler
                 return self.respond_to_glorious_charge("charge", world)
 
-            return {"success": False, "message": "Charge requires a marshal. Try: 'Ney, charge Wellington'"}
+            # UI6-X16's sweep: the example named Wellington — on no roster of
+            # the 1805 campaign — led by Ney, who is no cavalryman. It names
+            # a cavalryman of ours and a foe at war IN SIGHT, or none at all.
+            _cav = next((m for m in world.get_player_marshals()
+                         if getattr(m, "cavalry", False) and m.strength > 0
+                         and not getattr(m, "captured_by", "")), None)
+            _foe = next((e for e in world.get_visible_enemies(world.player_nation)
+                         if e.strength > 0), None)
+            _example = (f" Try: '{_cav.name}, charge {humanize_entity_name(_foe.name)}'."
+                        if _cav is not None and _foe is not None else "")
+            return {"success": False,
+                    "message": ("Charge requires a marshal — a Glorious Charge is "
+                                f"led by a reckless cavalryman.{_example}")}
 
         marshal = world.get_marshal(marshal_name)
         if not marshal:
@@ -12475,6 +12668,74 @@ class CombatExecutor:
                     return m
         return None
 
+    @staticmethod
+    def _unseen_charge_quarry(marshal, target_marshal, world, command) -> Optional[Dict]:
+        """UI6-X16 (Session UI-6, November 13, 2026): the player's own ORDERED
+        charge at a man OUT of sight never answers with where he stands —
+        "Kutuzov is too far for Glorious Charge! Distance: 4, Range: 2" was his
+        distance, the peace-soil refusal printed his province, and the
+        leapfrog's "Cannot charge through <middle>" named the road toward him.
+        Each such verdict is this free refusal ("No intelligence on his
+        position"), as the attack road answers him; a man within the charge's
+        reach is met as the attack road meets him (the battle). An unordered
+        charge (a sally, a jealous glory attack) and the AI keep their road:
+        None for them, for a man in sight, and for no man at all."""
+        if (target_marshal is None or marshal.nation != world.player_nation
+                or _attack_is_unordered(command)
+                or (command or {}).get("_strategic_execution")
+                or (command or {}).get("_autonomous_execution")):
+            return None
+        return unseen_target_refusal(world, target_marshal, marshal.name, "charge")
+
+    @staticmethod
+    def _province_hides_commander(marshal, target, target_marshal, world, command) -> bool:
+        """UI6-X28 (Session UI-6, November 13, 2026): the player typed a
+        PROVINCE ("Murat, charge Podolia") and the lookup resolved it to the
+        commander standing there — whose fogged name then came back in the
+        refusal ("No intelligence on Kutuzov's position"), so the player
+        could type provinces and learn which holds a man out of sight (a
+        province with none said "Cannot find target"). A province target
+        answers identically whether or not a commander OUT of sight stands in
+        it — as the attack and bombard roads answer it. True: treat the
+        province as holding no foe. A commander IN SIGHT in it may be charged
+        as before; a target typed as a NAME is the name road's (X16)."""
+        if target_marshal is None or not target:
+            return False
+        if target_marshal.name.lower() == str(target).lower():
+            return False
+        if world.get_region(target) is None:
+            return False
+        # the one gate for "an ORDERED charge at a man out of sight" (X16)
+        return CombatExecutor._unseen_charge_quarry(
+            marshal, target_marshal, world, command) is not None
+
+    @staticmethod
+    def _charge_leapfrog_block(marshal, target_marshal, world) -> Optional[Dict]:
+        """A two-region charge's middle province held by a foe at war: the
+        refusal that names it, or None (lifted out of
+        `_execute_glorious_charge` unchanged — the code-health ratchet)."""
+        origin_region = world.get_region(marshal.location)
+        target_location = target_marshal.location
+        middle_regions = []
+        for adj in origin_region.adjacent_regions:
+            if world.get_distance(adj, target_location) == 1:
+                middle_regions.append(adj)
+
+        for middle in middle_regions:
+            enemies_in_middle = [
+                m for m in world.get_marshals_in_region(middle)
+                if m.nation != marshal.nation and m.strength > 0
+                and world.is_at_war(marshal.nation, m.nation)
+            ]
+            if enemies_in_middle:
+                blocking_enemy = enemies_in_middle[0]
+                return {
+                    "success": False,
+                    "message": f"Cannot charge through {middle} - {blocking_enemy.name} blocks the path!",
+                    "blocked_by": blocking_enemy.name
+                }
+        return None
+
     def _execute_glorious_charge(self, marshal, target: str, world: WorldState,
                                  game_state: Dict, command: Dict = None) -> Dict:
         """
@@ -12501,10 +12762,15 @@ class CombatExecutor:
         # Find target (a pure read — DDB-X17 refuses peace soil from it
         # before the square is broken, so the refusal costs nothing)
         target_marshal = self._glorious_charge_target(marshal, target, world)
+        if self._province_hides_commander(marshal, target, target_marshal, world, command):
+            target_marshal = None   # UI6-X28: a province answers as an empty one
+        _unseen = self._unseen_charge_quarry(marshal, target_marshal, world, command)  # UI6-X16
         if target_marshal is not None:
             _peace_charge = charge_on_peace_soil(self, marshal, target_marshal, world)
             if _peace_charge is not None:
-                return peace_soil_refusal(marshal, target_marshal, _peace_charge)
+                return _unseen or peace_soil_refusal(marshal, target_marshal, _peace_charge, world)
+        if _unseen and world.get_distance(marshal.location, target_marshal.location) > marshal.movement_range:
+            return _unseen
 
         # Auto-break square formation (Session 67)
         self._executor._auto_break_square(marshal, "attack")
@@ -12596,26 +12862,9 @@ class CombatExecutor:
 
         # Check for leapfrog (same as normal attack)
         if distance == 2:
-            origin_region = world.get_region(marshal.location)
-            target_location = target_marshal.location
-            middle_regions = []
-            for adj in origin_region.adjacent_regions:
-                if world.get_distance(adj, target_location) == 1:
-                    middle_regions.append(adj)
-
-            for middle in middle_regions:
-                enemies_in_middle = [
-                    m for m in world.get_marshals_in_region(middle)
-                    if m.nation != marshal.nation and m.strength > 0
-                    and world.is_at_war(marshal.nation, m.nation)
-                ]
-                if enemies_in_middle:
-                    blocking_enemy = enemies_in_middle[0]
-                    return {
-                        "success": False,
-                        "message": f"Cannot charge through {middle} - {blocking_enemy.name} blocks the path!",
-                        "blocked_by": blocking_enemy.name
-                    }
+            _blocked = self._charge_leapfrog_block(marshal, target_marshal, world)
+            if _blocked is not None:
+                return _unseen or _blocked   # UI6-X16: no road named toward a man unseen
 
         # V2-2: Engagement check — skip if already fought this pair this turn
         for battle in world.battles_this_turn:
@@ -13472,7 +13721,17 @@ class CombatExecutor:
                 if distance <= 1:  # Can attack (adjacent or same region)
                     combat_ready.append((marshal, enemy, distance))
                 else:  # Out of range but can move toward
-                    out_of_range.append((marshal, enemy, distance))
+                    # UI6-X15's sweep (Session UI-6, November 13, 2026): the
+                    # move-toward reads only a foe IN SIGHT. A bare "attack"
+                    # with nobody in contact walked Bernadotte toward the
+                    # Archduke Charles in fog ("advances toward … Distance to
+                    # enemy: 1 region") — his place, read off the roster, and
+                    # an action spent marching on it.
+                    seen = world.find_nearest_enemy(
+                        marshal.location,
+                        filter_fn=lambda e: _sighted_by_the_player(world, e))
+                    if seen:
+                        out_of_range.append((marshal, seen[0], seen[1]))
 
         return combat_ready, out_of_range, filtered_out
 
@@ -13586,7 +13845,8 @@ class CombatExecutor:
 
                 message = (
                     f"No marshals in attack range!\n\n"
-                    f"{closest_marshal.name} advances toward {target_enemy.name}:\n"
+                    f"{closest_marshal.name} advances toward "
+                    f"{humanize_entity_name(target_enemy.name)}:\n"
                     f"  {old_location} -> {next_region}\n"
                     f"  Distance to enemy: {_plural(int(remaining_distance), 'region')}\n\n"
                 )
@@ -13635,6 +13895,18 @@ class CombatExecutor:
             return {
                 "success": False,
                 "message": f"No combat-ready marshals!\n{', '.join(filtered_out)}"
+            }
+
+        # UI6-X15's sweep: foes still in the field, none of them in sight —
+        # never "you may have won", never a march on a place nobody has seen.
+        if any(int(getattr(e, "strength", 0) or 0) > 0
+               and not getattr(e, "captured_by", "")
+               for e in world.get_hostile_marshals(world.player_nation)):
+            return {
+                "success": False,
+                "message": ("No foe is in sight, Sire — attack whom? Name the foe, or "
+                            "scout for one. Nothing has been relayed."),
+                "variable_action_cost": 0,
             }
 
         return {
@@ -13760,8 +14032,28 @@ class CombatExecutor:
                 return {"kind": "error", "error": {
                     "success": False,
                     "message": f"{target} has already been destroyed!"}}
-            result = world.find_nearest_marshal_to_region(enemy.location)
+            # UI6-X15 (Session UI-6, November 13, 2026): THE DOCTRINE on the
+            # marshal-less road. "Attack Marshal Kutuzov" / "everyone attack
+            # Kutuzov" (Kutuzov in fog) answered "No marshals in range of
+            # Kutuzov" — a verdict read off his LIVE province — and, had a
+            # corps stood near him, the pick would have named the man nearest
+            # a place nobody has seen. A commander out of sight is answered
+            # as the named road answers him: by name, free, nothing of where
+            # he stands. One in sight keeps the pick and its answer.
+            _place, _seen = where_the_player_places(world, enemy)
+            if _place is None:
+                return {"kind": "error", "error": unseen_target_refusal(
+                    world, enemy, "our marshals")}
+            result = world.find_nearest_marshal_to_region(_place)
             if not result:
+                if _seen == "last":
+                    # his last sighting is the player's own intelligence
+                    return {"kind": "error", "error": {
+                        "success": False,
+                        "message": (f"No marshals in range of {humanize_entity_name(_place)}, "
+                                    f"where {humanize_entity_name(enemy.name)} was last "
+                                    f"reported, Sire."),
+                        "variable_action_cost": 0}}
                 return {"kind": "error", "error": {
                     "success": False,
                     "message": f"No marshals in range of {target}"}}
@@ -13924,8 +14216,14 @@ class CombatExecutor:
             best_marshal = None
             best_enemy = None
             best_distance = 999
+            # UI6-X16's sibling: the pick reads only foes IN SIGHT (the bare
+            # attack's own rule, `_attack_nearest_target`) — it read the whole
+            # roster and could lay the guns on a man the player cannot see.
+            from backend.game_logic.intel_surfaces import in_sight as _in_sight
+            _player = world.player_nation
             for m in ready_artillery:
-                nearest = world.find_nearest_enemy(m.location)
+                nearest = world.find_nearest_enemy(
+                    m.location, filter_fn=lambda e: _in_sight(world, _player, e))
                 if nearest:
                     enemy, dist = nearest
                     if enemy.strength > 0 and dist <= 2 and dist < best_distance:
@@ -13945,8 +14243,13 @@ class CombatExecutor:
         routed_command = dict(command)
         # Resolve target location for distance sorting
         target_location = None
+        _unseen = None
         enemy = world.get_enemy_by_name(target)
         if enemy and enemy.strength > 0:
+            # UI6-X16: a man OUT of the player's sight is no range verdict
+            # ("No artillery in bombardment range of Kutuzov" read his live
+            # province) — answered by name, free, below.
+            _unseen = unseen_target_refusal(world, enemy, "our guns", "open fire")
             target_location = enemy.location
         else:
             target_region, error = self._executor._fuzzy_match_region(target, world)
@@ -13967,6 +14270,8 @@ class CombatExecutor:
                 candidates.append((m, dist))
 
         if not candidates:
+            if _unseen is not None:
+                return _unseen
             names = ", ".join(f"{m.name} at {m.location}" for m in ready_artillery)
             return {
                 "success": False,
@@ -13994,6 +14299,16 @@ class CombatExecutor:
 
         if not world:
             return {"success": False, "message": "Error: No world state"}
+
+        # UI6-X39: a commander named as the retreat's DESTINATION is no place
+        # ("all corps retreat to Kutuzov" ran the general retreat and dropped
+        # the name) - refused free in the single retreat's words.
+        from backend.commands import exit_predicate as _xp
+        _named = _xp.retreat_destination_commander(
+            str((command or {}).get("_raw_input") or (command or {}).get("raw_command") or ""),
+            world)
+        if _named is not None:
+            return _xp.retreat_commander_refusal(_named, "the army", "everyone retreat")
 
         player_marshals = world.get_player_marshals()
 

@@ -174,8 +174,13 @@ class TestTheOtherTwoSeams:
 
 class TestTheParseAndTheRecord:
 
+    # RE-POINTED by UI6-X9 (Session UI-6, November 13, 2026): the two-word
+    # title name rides on the Archduke JOHN, who stands in sight at Tyrol on
+    # the boot. The Archduke Charles stands in fog at Carniola, and an arrival
+    # attack is armed only on a foe in sight (the drop note's own rule) —
+    # `test_a_man_out_of_sight_arms_no_attack` below.
     @pytest.mark.parametrize("text,expected", [
-        ("Ney, march to Swabia then attack Archduke Charles", "ArchdukeCharles"),
+        ("Ney, march to Swabia then attack Archduke John", "ArchdukeJohn"),
         ("Ney, march to Swabia then attack Mack", "Mack"),
         ("Ney, march to Swabia, attack Mack", "Mack"),
         ("Ney, march to Swabia then attack", None),
@@ -199,6 +204,19 @@ class TestTheParseAndTheRecord:
         assert got.get("attack_on_arrival") is False
         assert got.get("arrival_target") is None
         assert "No foe called Zorglub" in (got.get("dropped_arrival_note") or "")
+
+    def test_a_man_out_of_sight_arms_no_attack(self, shipped):
+        """UI6-X9 (Session UI-6, November 13, 2026): the Archduke Charles in
+        fog at Carniola rode the parametrize above ARMED — an attack on a man
+        the player cannot see, with the "no foe called … is in sight" note an
+        invented name gets withheld. The march stands, nothing is armed, and
+        the note names him (his name is no fog secret, his place is)."""
+        got = M.parser.parse("Ney, march to Swabia then attack Archduke Charles",
+                             M.get_llm_game_state(), world=M.world)
+        assert got.get("strategic_type") == "MOVE_TO"
+        assert got.get("attack_on_arrival") is False
+        assert got.get("arrival_target") is None
+        assert "No foe called Archduke Charles is in sight" in str(got.get("dropped_arrival_note"))
 
     def test_it_round_trips(self):
         order = StrategicOrder(command_type="MOVE_TO", target="Swabia", target_type="region",

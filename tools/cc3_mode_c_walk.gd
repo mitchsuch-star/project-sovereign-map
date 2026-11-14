@@ -22,6 +22,13 @@ extends SceneTree
 #   6 dropped  — released on a province: the card for that province
 #   7 attack   — with a selection, a click on an enemy we see: the attack card
 #
+# Session UI-6 (November 13, 2026) — the new gestures:
+#   8 card     — a click on a piece of ours: the selection card, its seven slots
+#   9 right    — a right-click on a province in his reach: the march card
+#  10 pick     — with him selected, a left click on another of ours selects HIM
+#  11 digit    — the card's slot 1 (Hold) by its digit: sent, and (Next marshal
+#                Off under a harness) he is selected again, his card on his state
+#
 # `walk.json` records what each step read: the selection, the card's command
 # beside the quote's, what was sent and the backend's reply.
 
@@ -107,14 +114,28 @@ func _click(at: Vector2) -> void:
 	await _button(at, false)
 
 
-func _key(keycode: int) -> void:
+func _key(keycode: int, unicode: int = 0) -> void:
 	for pressed in [true, false]:
 		var ev := InputEventKey.new()
 		ev.keycode = keycode
 		ev.physical_keycode = keycode
+		ev.unicode = unicode
 		ev.pressed = pressed
 		root.push_input(ev)
 	await _frames(3)
+
+
+func _right(at: Vector2) -> void:
+	"""Session UI-6: a right-click as the engine delivers it (press, release)."""
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_RIGHT
+		ev.pressed = pressed
+		ev.button_mask = MOUSE_BUTTON_MASK_RIGHT if pressed else 0
+		ev.position = at
+		ev.global_position = at
+		root.push_input(ev, true)
+	await _frames(2)
 
 
 func _shot(name: String, note: String) -> void:
@@ -312,6 +333,58 @@ func _walk() -> void:
 		_out["enemy_quote"] = quotes3.get("enemy:" + enemy, {})
 		await _shot("7_attack", "with %s selected, a click on %s" % [second, enemy])
 		await _key(KEY_ESCAPE)
+	await _key(KEY_ESCAPE)
+
+	# 8 — Session UI-6: the selection card in the strip's place.
+	map.call("focus_on_region", str(_main.call("_marshal_entry", subject).get("location", "")))
+	await _frames(6)
+	piece = map.call("screen_point_of_marshal", subject)
+	await _click(piece)
+	await _settle()
+	var sc = _main.get("_selection_card")
+	_out["card_visible"] = sc != null and bool(sc.visible)
+	_out["card_marshal"] = str(sc.call("current_marshal")) if sc != null else ""
+	await _shot("8_selection_card", "a click on %s: the selection card and its seven slots" % subject)
+
+	# 9 — a right-click on a province in his reach: the march card.
+	var reach3: Dictionary = _main.get("_order_reach")
+	var drops3 := _candidates(reach3, map, 1)
+	if not drops3.is_empty():
+		var rc_pt: Vector2 = map.call("screen_point_of_region", str(drops3[0]))
+		await _motion(rc_pt)
+		await _right(rc_pt)
+		await _settle()
+		_out["right_click_dest"] = str(drops3[0])
+		_out["right_click_card_open"] = card != null and card.visible
+		_out["right_click_quote"] = (_main.get("_order_quotes") as Dictionary).get("dest:" + str(drops3[0]), {})
+		await _shot("9_right_click", "a right-click on %s: the march card" % str(drops3[0]))
+		await _key(KEY_ESCAPE)   # the card's Esc: back to him
+
+	# 10 — with him selected, a left click on another of ours selects HIM.
+	if second != "" and str(_main.get("_order_marshal")) == subject:
+		map.call("focus_on_region", str(_main.call("_marshal_entry", second).get("location", "")))
+		await _frames(6)
+		var piece3: Vector2 = map.call("screen_point_of_marshal", second)
+		await _click(piece3)
+		await _settle()
+		_out["picked"] = str(_main.get("_order_marshal"))
+		await _shot("10_pick", "with %s selected, a left click on %s: %s is selected" % [subject, second, second])
+	await _key(KEY_ESCAPE)
+
+	# 11 — the card's slot 1 (Hold) by its digit, on the Emperor (a sovereign
+	# never objects): the order goes; its answer selects him again (Next
+	# marshal is Off under a harness), his card on his new state.
+	map.call("focus_on_region", str(_main.call("_marshal_entry", subject).get("location", "")))
+	await _frames(6)
+	piece = map.call("screen_point_of_marshal", subject)
+	await _click(piece)
+	await _settle()
+	await _key(KEY_1, 49)
+	await _settle()
+	await _frames(8)
+	_out["digit_tail"] = _terminal_tail(400)
+	_out["digit_reselected"] = str(_main.get("_order_marshal"))
+	await _shot("11_digit", "the digit 1: %s holds; his card again, on his new state" % subject)
 	await _key(KEY_ESCAPE)
 	_main.call("_restore_terminal")
 	_finish()

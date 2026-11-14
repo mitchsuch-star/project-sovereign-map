@@ -166,6 +166,17 @@ func _update_page_row():
 		page_label.text = "Issue %d of %d" % [_index + 1, _issues.size()]
 	else:
 		page_label.text = ""
+	# Session UI-6: a disabled turn keeps UI-4's dashed, ground-less look but its
+	# words are the legible grey (the readers: "the disabled Later issue is hard
+	# to read"), and Folded its reason is the hover.
+	for b in [prev_button, next_button]:
+		(b as Button).add_theme_color_override("font_disabled_color", Color.html(Utils.COLOR_INFO))
+		(b as Button).tooltip_text = ""
+	if Utils.explanations_folded() and have:
+		if prev_button.disabled:
+			prev_button.tooltip_text = "This is the first issue in the archive."
+		if next_button.disabled:
+			next_button.tooltip_text = "This is the newest issue."
 
 
 func _render_issue(keep_scroll: bool = false):
@@ -242,12 +253,107 @@ func _section(title: String, rows, glyph_name: String = "") -> String:
 	if glyph_name != "":
 		out += Utils.bb_glyph(glyph_name, 18) + " "
 	out += Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE + "\n"
+	if title == "THE WAR" and Utils.explanations_folded():
+		return out + _war_rows(rows) + "\n"
 	for i in range(rows.size()):
 		# Session UI-4: each entry its own row, led by its column's glyph (the
 		# backend sends battles as plain strings - no victor is read from words).
 		out += "[color=#" + Utils.COLOR_TEXT + "]  " + (Utils.bb_glyph(glyph_name, 16, Utils.COLOR_GOLD) + " " if glyph_name != "" else "") + str(rows[i]) + "[/color]"
 		out += (Utils.CARD_CLOSE if i == rows.size() - 1 else "") + "\n"
 	return out + "\n"
+
+
+# ── Session UI-6 (the press): THE WAR as headlines ───────────────────────────
+# Folded, each battle of THE WAR is a bold headline - the place in the title
+# face, a result badge - over "Attacker ▸ Defender" and its casualty pair, the
+# marshal's quoted word a dim italic line under it; a capture is one compact line.
+# The backend's rows are plain strings (the campaign log's lines), so they are read
+# back here with one pattern; a row it does not fit prints as it always did. On the
+# page every row prints as before.
+static var _battle_re: RegEx = null
+const _RESULT_TAIL := [" decisive victory", " tactical victory", " holds the field"]
+
+
+func _war_rows(rows: Array) -> String:
+	var out := ""
+	for i in range(rows.size()):
+		var row: String = str(rows[i])
+		var piece: String = _battle_block(row)
+		if piece == "":
+			piece = _plain_war_row(row)
+		out += piece
+		if i == rows.size() - 1:
+			out = out.rstrip("\n") + Utils.CARD_CLOSE + "\n"
+	return out
+
+
+func _plain_war_row(row: String) -> String:
+	var glyph := "garrison" if " captured by " in row else "war"
+	return "[color=#" + Utils.COLOR_TEXT + "]  " + Utils.bb_glyph(glyph, 16, Utils.COLOR_GOLD) + " " + row + "[/color]\n"
+
+
+func _name_of(tagged: String) -> String:
+	"""'Archduke John (Austria)' -> 'Archduke John'."""
+	var cut := tagged.rfind(" (")
+	return tagged if cut <= 0 or not tagged.ends_with(")") else tagged.substr(0, cut)
+
+
+func _nation_of(tagged: String) -> String:
+	var cut := tagged.rfind(" (")
+	return "" if cut <= 0 or not tagged.ends_with(")") else tagged.substr(cut + 2, tagged.length() - cut - 3)
+
+
+func _battle_block(row: String) -> String:
+	"""'' when `row` is not a battle line."""
+	if _battle_re == null:
+		_battle_re = RegEx.create_from_string("^(?:(.+?): )?(.+?) attacked (.+?)(?: at ([^—]+?))? — (.+?) \\(([\\d,]+) / ([\\d,]+) casualties\\)(.*)$")
+	var m: RegExMatch = _battle_re.search(row)
+	if m == null:
+		return ""
+	var place: String = m.get_string(1)
+	if place == "":
+		place = m.get_string(4)
+	if place == "":
+		place = "A battle"
+	var atk_tag: String = m.get_string(2)
+	var def_tag: String = m.get_string(3)
+	var result: String = m.get_string(5)
+	var rest: String = m.get_string(8).strip_edges()
+	if rest.begins_with("— "):
+		rest = rest.substr(2)
+	var atk_name: String = _name_of(atk_tag)
+	var def_name: String = _name_of(def_tag)
+	# who won: the name before the result's tail
+	var victor := ""
+	for tail in _RESULT_TAIL:
+		if result.ends_with(tail):
+			victor = result.substr(0, result.length() - tail.length())
+	var france_atk: bool = _nation_of(atk_tag) == "France"
+	var france_def: bool = _nation_of(def_tag) == "France"
+	var badge := ""
+	if result == "stalemate":
+		badge = Utils.bb_badge("STALEMATE", Utils.COLOR_WARNING, Utils.COLOR_TEXT)
+	elif result == "mutual destruction":
+		badge = Utils.bb_badge("MUTUAL RUIN", Utils.COLOR_ERROR, Utils.COLOR_TEXT)
+	elif victor != "":
+		var decisive: bool = result.ends_with(" decisive victory")
+		var word: String = "DECISIVE VICTORY" if decisive else ("HOLDS THE FIELD" if result.ends_with(" holds the field") else "VICTORY")
+		if france_atk or france_def:
+			var france_won: bool = (victor == atk_name and france_atk) or (victor == def_name and france_def)
+			if france_won:
+				badge = Utils.bb_badge(word, Utils.COLOR_SUCCESS, Utils.COLOR_TEXT)
+			else:
+				badge = Utils.bb_badge("DEFEAT" if not result.ends_with(" holds the field") else "REPULSED", Utils.COLOR_ERROR, Utils.COLOR_TEXT)
+		else:
+			badge = Utils.bb_badge(word, Utils.COLOR_INFO, Utils.COLOR_TEXT)
+	else:
+		badge = Utils.bb_badge(result.to_upper(), Utils.COLOR_INFO, Utils.COLOR_TEXT)
+	var out := "  " + Utils.bb_glyph("war", 18, Utils.COLOR_GOLD) + " " + Utils.HEAD_OPEN + place + Utils.HEAD_CLOSE + "  " + badge + "\n"
+	out += "[color=#" + Utils.COLOR_TEXT + "]      [b]" + atk_tag + " ▸ " + def_tag + "[/b][/color]"
+	out += "  [color=#" + Utils.COLOR_INFO + "]casualties[/color] [opentype_features=tnum,lnum][b]" + m.get_string(6) + "[/b] / [b]" + m.get_string(7) + "[/b][/opentype_features]\n"
+	if rest != "":
+		out += "[color=#" + Utils.COLOR_INFO + "]      [i]" + rest + "[/i][/color]\n"
+	return out
 
 
 func _on_overlay_input(event):

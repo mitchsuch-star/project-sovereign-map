@@ -69,7 +69,9 @@ def strategic_reissue_command(marshal_name: str, strategic_type: str,
     """The command the clarification popup reissues for a strategic choice
     ("Ney pursue Bagration") — identical format to main.gd's legacy path."""
     keyword = STRATEGIC_REISSUE_KEYWORDS.get(strategic_type, "pursue")
-    return f"{marshal_name} {keyword} {target}"
+    # UI6-X27 (R7): the command a client may print names men by their
+    # display names ("Ney pursue Archduke John"), never the roster key.
+    return f"{humanize_entity_name(marshal_name)} {keyword} {humanize_entity_name(target)}"
 
 
 # Actions the executor treats as free — asking a clarification for these is
@@ -200,11 +202,12 @@ def build_marshal_choice_clarification(world, parsed: Dict,
     order_text = raw_input.strip()
     options: List[Dict] = []
     for m in candidates[:8]:
+        shown = humanize_entity_name(m.name)   # UI6-X27 (R7): display, never the key
         options.append({
-            "label": m.name,
+            "label": shown,
             "value": "assign_marshal",
             "target": m.name,
-            "command": f"{m.name}, {order_text}",
+            "command": f"{shown}, {order_text}",
         })
 
     question = f"Which marshal shall {_verb_phrase(action, strategic_type, target)}, Sire?"
@@ -243,11 +246,12 @@ def build_contact_attack_clarification(world, candidates, raw_input: str) -> Opt
 
     options: List[Dict] = []
     for m, enemy in pairs[:8]:
+        shown = humanize_entity_name(m.name)   # UI6-X27 (R7): display, never the key
         options.append({
-            "label": m.name,
+            "label": shown,
             "value": "assign_marshal",
             "target": m.name,
-            "command": f"{m.name}, attack {enemy.name}",
+            "command": f"{shown}, attack {humanize_entity_name(enemy.name)}",
         })
 
     return _clarification_response(
@@ -289,9 +293,10 @@ def build_attack_target_clarification(world, marshal, enemies,
         return None
 
     # R7: the LABEL is player-facing copy, so it must never carry a raw
-    # camelCase key ("ArchdukeJohn at Tyrol"). The `target` and `command`
-    # fields stay RAW — they are machine fields, and the reissue has to resolve
-    # through the ordinary named-attack pipeline. Both forms ride `aliases` so
+    # camelCase key ("ArchdukeJohn at Tyrol"). UI6-X27: the typed `command`
+    # is display too (the client may print it); only `target` stays the raw
+    # machine field. The reissue resolves through the ordinary named-attack
+    # pipeline either way. Both forms ride `aliases` so
     # a player who types back what he READ resolves by design, not by luck.
     options: List[Dict] = []
     for enemy in visible[:6]:
@@ -301,7 +306,7 @@ def build_attack_target_clarification(world, marshal, enemies,
             "label": f"{name_display} at {location_display}",
             "value": "attack_target_choice",
             "target": enemy.name,
-            "command": f"{marshal.name}, attack {enemy.name}",
+            "command": f"{humanize_entity_name(marshal.name)}, attack {name_display}",
             # The typed channel is the PRIMARY answer path in the terminal, so
             # the bare name and the target-qualified form must both resolve.
             "aliases": [enemy.name, enemy.location,
@@ -317,7 +322,7 @@ def build_attack_target_clarification(world, marshal, enemies,
         # no hidden man; the default is the substitution refusal as before.
         question=(question or (
             f"Your order names no foe our maps know, Sire — "
-            f"{marshal.name} will not charge at a guess. Whom shall "
+            f"{humanize_entity_name(marshal.name)} will not charge at a guess. Whom shall "
             f"he engage?")),
         options=options,
         clarification_kind="attack_target",
@@ -327,7 +332,7 @@ def build_attack_target_clarification(world, marshal, enemies,
 
 
 def build_proper_name_clarification(world, marshal, foes, raw_input: str,
-                                    question: str) -> Optional[Dict]:
+                                    question: str, verb: str = "attack") -> Optional[Dict]:
     """SF-V4 (CRT-10, Oct 3, 2026): the ask for an attack on a proper name
     the map does not know — "No foe called Zorglub is in sight, Sire. The
     nearest in sight is Mack at Swabia — shall Ney engage him?".
@@ -339,24 +344,36 @@ def build_proper_name_clarification(world, marshal, foes, raw_input: str,
     the bare "attack <foe>", which re-enters the bare-attack pick (S5-D1) —
     the TARGET question, never the marshal question. Returns None when no
     answer could afford the attack, so the caller keeps its refusal.
+
+    UI6-X16: ``verb`` is the order's own ("charge", "bombard"; default
+    "attack") — an answer re-issues the order the player gave, so a charge
+    asked about stays a charge.
     """
     visible = [e for e in (foes or []) if getattr(e, "strength", 0) > 0]
     if not visible:
         return None
     if not _answer_is_affordable(world, "attack"):
         return None
+    verb = verb if verb in ("attack", "charge", "bombard") else "attack"
     options: List[Dict] = []
     for index, enemy in enumerate(visible[:6]):
         name_display = humanize_entity_name(enemy.name)
         location_display = humanize_entity_name(enemy.location)
-        command = (f"{marshal.name}, attack {enemy.name}" if marshal is not None
-                   else f"attack {enemy.name}")
+        # UI6-X27 (R7): the typed command the client may print is the display
+        # name ("Ney, attack Archduke John"); the parser resolves it to the
+        # same roster key as the raw one.
+        command = (f"{humanize_entity_name(marshal.name)}, {verb} {name_display}"
+                   if marshal is not None else f"{verb} {name_display}")
         aliases = [enemy.name, enemy.location, name_display, location_display,
                    f"attack {enemy.name}", f"attack {name_display}",
                    f"attack {location_display}", f"engage {name_display}"]
+        if verb != "attack":
+            aliases += [f"{verb} {enemy.name}", f"{verb} {name_display}"]
         if index == 0:
             aliases += ["him", "attack him", "engage him", "yes, attack him",
                         "yes attack him", "yes, engage him", "go on", "do so"]
+            if verb != "attack":
+                aliases += [f"{verb} him", f"yes, {verb} him"]
         options.append({
             "label": f"{name_display} at {location_display}",
             "value": "attack_target_choice",
@@ -414,14 +431,14 @@ def build_move_destination_clarification(world, marshal,
             "label": display,
             "value": "move_destination_choice",
             "target": name,
-            "command": f"{marshal.name}, {verb} {name}",
+            "command": f"{humanize_entity_name(marshal.name)}, {verb} {display}",
             "aliases": [name, display,
                         f"{verb} {name}", f"{verb} {display}"],
         })
 
     return _clarification_response(
         world,
-        question=(f"Where shall {marshal.name} march, Sire? He stands at "
+        question=(f"Where shall {humanize_entity_name(marshal.name)} march, Sire? He stands at "
                   f"{humanize_entity_name(marshal.location)}."),
         options=options,
         clarification_kind="move_destination",
@@ -459,11 +476,12 @@ def build_unknown_name_clarification(world, unknown_name: str,
         if not candidate or candidate.lower() in seen:
             continue
         seen.add(candidate.lower())
-        reissued, count = token_re.subn(candidate, raw_input, count=1)
+        shown = humanize_entity_name(candidate)   # UI6-X27 (R7): display, never the key
+        reissued, count = token_re.subn(lambda _m: shown, raw_input, count=1)
         if count == 0:
             continue
         options.append({
-            "label": candidate,
+            "label": shown,
             "value": "substitute_marshal",
             "target": candidate,
             "command": reissued,

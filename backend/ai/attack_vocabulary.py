@@ -103,6 +103,9 @@ _INFLECTED = BATTLE_VERBS - {"rout"}
 BATTLE_VERB_RE = re.compile(
     "(?:" + _word_alternation(_INFLECTED) + r"|\brouts?\b)", re.IGNORECASE)
 CAPTURE_VERB_RE = re.compile(_word_alternation(CAPTURE_VERBS), re.IGNORECASE)
+# UI6-X16: the object readers (`proper_name.attack_tail`) hear the guns too —
+# the mock chain routes these to `attack`, and the order's object is theirs.
+BOMBARD_VERB_RE = re.compile(_word_alternation(BOMBARD_VERBS), re.IGNORECASE)
 
 # ── Idioms: whole phrases that mean "attack", with no routable verb ─────────
 # "give them hell" is the reported case. Each of these is a phrase a player

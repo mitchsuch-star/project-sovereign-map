@@ -177,6 +177,10 @@ func _on_explanations_changed() -> void:
 		var keep: int = scroll_container.scroll_vertical
 		_render_preview(_last_preview_data)
 		Utils.restore_scroll(scroll_container, keep)
+	elif _current_step == 1 and not _last_nations_data.is_empty():
+		var keep1: int = scroll_container.scroll_vertical
+		_render_nations(_last_nations_data)
+		Utils.restore_scroll(scroll_container, keep1)
 
 
 func open():
@@ -261,6 +265,10 @@ var _actions_col: VBoxContainer = null
 var _actions_head: Label = null
 var _banner: TextureRect = null
 var _split: bool = false
+# Session UI-6 (F15): Folded, the two columns stand about 45 / 55 (the actions
+# column wider - its rows carry a price and a verdict); On the page 1 : 1.
+const ASSESSMENT_COLUMN_RATIO := 0.45
+const ACTIONS_COLUMN_RATIO := 0.55
 var _court_music: bool = false
 
 
@@ -308,9 +316,11 @@ func _sync_body() -> void:
 	if want:
 		assessment_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		assessment_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		assessment_panel.size_flags_stretch_ratio = 1.0
+		assessment_panel.size_flags_stretch_ratio = ASSESSMENT_COLUMN_RATIO if Utils.explanations_folded() else 1.0
+		_actions_col.size_flags_stretch_ratio = ACTIONS_COLUMN_RATIO if Utils.explanations_folded() else 1.0
 		assessment_panel.custom_minimum_size.y = 56.0
 	else:
+		_actions_col.size_flags_stretch_ratio = 1.0
 		_lay_out_prompt(_current_step)
 
 
@@ -407,7 +417,11 @@ const ASSESSMENT_CAP_SHARE := 0.5   # Session UI-4: 0.4 -> 0.5 — the factors t
 # In the compact view (Interface Scale 2.0, a 360-px panel) 40 % left the acts
 # fewer than two whole rows (EA-E5's driven pin): the heading, the status and the
 # counsel's opening still stand in 30 %.
-const ASSESSMENT_CAP_SHARE_COMPACT := 0.3
+# Session UI-6: 0.3 -> 0.33 — with the counsel card first (F15) the quote's opening
+# line stood cut by 6 px at the foot on the 392-px panel (Austria's war title wraps
+# the status line); the acts' scroll keeps two whole rows (its window snaps to whole
+# rows — the band under "more below" was that snap's pad, ~45 px).
+const ASSESSMENT_CAP_SHARE_COMPACT := 0.33
 
 
 func _fit_assessment() -> void:
@@ -429,8 +443,30 @@ func _fit_assessment() -> void:
 	var panel_h: float = $PanelContainer.offset_bottom - $PanelContainer.offset_top
 	var share: float = ASSESSMENT_CAP_SHARE_COMPACT if Utils.compact_view() else ASSESSMENT_CAP_SHARE
 	var cap: float = maxf(56.0, panel_h * share)
-	assessment_panel.custom_minimum_size.y = clampf(ceilf(upto + top + 6.0), 56.0, cap)
+	var h: float = clampf(ceilf(upto + top + 6.0), 56.0, cap)
+	if h < upto + top + 6.0:
+		# Session UI-6: capped, the box ends on a WHOLE line (the whole-line rule,
+		# UXR3-F3) — a sliver of the next line stood under the quote's opening.
+		var bottom: float = box.get_margin(SIDE_BOTTOM) if box else 0.0
+		h = _whole_lines_within(h - top - bottom) + top + bottom
+	assessment_panel.custom_minimum_size.y = maxf(h, 56.0)
 	refit()
+
+
+func _whole_lines_within(limit: float) -> float:
+	"""The assessment's text height that ends on a whole line at or under
+	`limit` px (the first line's bottom at least)."""
+	var count: int = assessment_panel.get_line_count()
+	var best := 0.0
+	for i in range(count):
+		var line_bottom: float = float(assessment_panel.get_line_offset(i + 1)) if i + 1 < count \
+				else float(assessment_panel.get_content_height())
+		if line_bottom > limit + 0.5:
+			break
+		best = line_bottom
+	if best <= 0.0:
+		return limit
+	return ceilf(best) + 1.0
 
 
 func _close_wizard():
@@ -717,11 +753,12 @@ func _add_nation_button(nation_data: Dictionary):
 		why = state_display.substr(cut + 3)
 		state_display = state_display.substr(0, cut)
 
+	var folded: bool = Utils.explanations_folded()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	var btn = Button.new()
 	btn.text = Utils.display_nation_name(nation_name)
-	btn.custom_minimum_size = Vector2(0, 44)
+	btn.custom_minimum_size = Vector2(0, 40 if folded else 44)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -731,6 +768,11 @@ func _add_nation_button(nation_data: Dictionary):
 	btn.pressed.connect(_on_nation_selected.bind(nation_name))
 	row.add_child(btn)
 
+	if folded:
+		_add_nation_columns(row, nation_data, state_display)
+		content_list.add_child(row)
+		_add_why_line(why)
+		return
 	var figures := RichTextLabel.new()
 	figures.bbcode_enabled = true
 	figures.fit_content = true
@@ -762,6 +804,10 @@ func _add_nation_button(nation_data: Dictionary):
 	figures.text = bbcode
 	row.add_child(figures)
 	content_list.add_child(row)
+	_add_why_line(why)
+
+
+func _add_why_line(why: String) -> void:
 	if why != "":
 		var why_label := Label.new()
 		why_label.text = "    " + why
@@ -769,6 +815,47 @@ func _add_nation_button(nation_data: Dictionary):
 		why_label.add_theme_color_override("font_color", Utils.UI_GOLD)
 		why_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_list.add_child(why_label)
+
+
+func _add_nation_columns(row: HBoxContainer, nation_data: Dictionary, state_display: String) -> void:
+	"""Session UI-6 (F14): Folded, a court's row is FIXED COLUMNS on one line -
+	flag and name (the button), the state tag, the relation meter and its
+	figure - each cell centred on the button's height, so every row's tag and
+	meter stand in one straight line (the readers: the row sat misaligned
+	with the relation text). The words are the page branch's."""
+	var tag := RichTextLabel.new()
+	tag.bbcode_enabled = true
+	tag.fit_content = true
+	tag.scroll_active = false
+	tag.autowrap_mode = TextServer.AUTOWRAP_OFF
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tag.theme_type_variation = &"CaptionRich"
+	tag.custom_minimum_size.x = float(Utils.text_px(86))
+	var tags := "[center]" + Utils.bb_badge(state_display, _state_tone(nation_data))
+	if nation_data.get("has_active_mission", false):
+		tags += " " + Utils.bb_badge("MISSION", "8a6d2a")
+	tag.text = tags + "[/center]"
+	row.add_child(tag)
+	var relation = nation_data.get("relation")
+	var rel_cell := RichTextLabel.new()
+	rel_cell.bbcode_enabled = true
+	rel_cell.fit_content = true
+	rel_cell.scroll_active = false
+	rel_cell.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rel_cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rel_cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rel_cell.theme_type_variation = &"CaptionRich"
+	rel_cell.custom_minimum_size.x = float(Utils.text_px(170))
+	if relation != null:
+		var rel: int = int(relation)
+		var rel_sign = "+" if rel > 0 else ""
+		var rel_desc = str(nation_data.get("relation_descriptor", ""))
+		var cell: String = Utils.bb_relation_meter(rel, 80, 7) + " " + rel_sign + str(rel)
+		if rel_desc != "":
+			cell += " (" + rel_desc + ")"
+		rel_cell.text = cell
+	row.add_child(rel_cell)
 
 
 func _on_nation_selected(nation: String):
@@ -963,6 +1050,9 @@ func _on_congress_table_pressed():
 func _add_designs_row(designs) -> void:
 	if not (designs is Dictionary) or designs.is_empty():
 		return
+	if Utils.explanations_folded():
+		_add_designs_row_folded(designs)
+		return
 	var lbl = RichTextLabel.new()
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
@@ -981,6 +1071,51 @@ func _add_designs_row(designs) -> void:
 	btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
 	btn.pressed.connect(_on_designs_pressed)
 	content_list.add_child(btn)
+
+
+func _add_designs_row_folded(designs: Dictionary) -> void:
+	"""Folded only (Session UI-6): the Designs block on ONE status line (the
+	tail after the first em dash is its hover) and the two doors side by side,
+	the full words as tooltips — so the nation rows keep the window."""
+	var line_text: String = str(designs.get("line") if designs.get("line") != null else "")
+	var head: String = line_text
+	var tail: String = ""
+	var cut: int = line_text.find("—")
+	if cut >= 0:
+		head = line_text.substr(0, cut).strip_edges()
+		tail = line_text.substr(cut + 1).strip_edges()
+	var lbl := Label.new()
+	lbl.text = "The Emperor's Designs" + (" — " + head if head != "" else "")
+	lbl.theme_type_variation = &"Caption"
+	lbl.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
+	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	lbl.clip_text = true
+	lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+	lbl.tooltip_text = tail if tail != "" else line_text
+	content_list.add_child(lbl)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	content_list.add_child(row)
+	var d_btn := Button.new()
+	d_btn.text = "The Emperor's Designs"
+	d_btn.tooltip_text = "The Emperor's Designs — the roads of the Empire"
+	d_btn.custom_minimum_size = Vector2(0, 36)
+	d_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	d_btn.theme_type_variation = &"CaptionButton"
+	d_btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+	d_btn.pressed.connect(_on_designs_pressed)
+	row.add_child(d_btn)
+	var f_btn := Button.new()
+	f_btn.text = "Formable Nations"
+	f_btn.tooltip_text = "Formable Nations — states that could yet exist"
+	f_btn.custom_minimum_size = Vector2(0, 36)
+	f_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	f_btn.theme_type_variation = &"CaptionButton"
+	f_btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+	f_btn.pressed.connect(_on_formables_pressed)
+	row.add_child(f_btn)
+	_formables_in_row = true
 
 
 func _on_designs_pressed():
@@ -1334,7 +1469,13 @@ func _on_proclaim_pressed(command: String):
 # STEP 3: FORMABLE NATIONS (NA-6d §11.6-8 — the Formables button)
 # =============================================================================
 
+var _formables_in_row: bool = false
+
+
 func _add_formables_button():
+	if _formables_in_row:
+		_formables_in_row = false
+		return
 	var btn = Button.new()
 	btn.text = "Formable Nations — states that could yet exist"
 	btn.custom_minimum_size = Vector2(0, 36)
@@ -1503,7 +1644,15 @@ func _render_preview(data: Dictionary):
 	bbcode += Utils.bb_flag(_selected_nation, 20)
 	# Session UI-2: the heading in the title face; the court's STATE a badge and
 	# its RELATION a meter with its figure - the figures lead, the prose follows.
-	bbcode += Utils.HEAD_OPEN + "TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + Utils.HEAD_CLOSE + "\n"
+	# Session UI-6 (EA-E5 at the compact view): Folded on the compact view the
+	# window's own title names the court ("THE CABINET — Austria") and the
+	# Recommendation now leads the counsel (F15), so the heading steps aside —
+	# Talleyrand's quote opens in the assessment's 30 % above the acts again.
+	# Elsewhere, and On the page, the heading stands as authored.
+	if Utils.explanations_folded() and Utils.compact_view():
+		bbcode += " "
+	else:
+		bbcode += Utils.HEAD_OPEN + "TALLEYRAND'S ASSESSMENT — " + Utils.display_nation_name(_selected_nation).to_upper() + Utils.HEAD_CLOSE + "\n"
 	var state_tone := "3a4a6b"
 	match str(data.get("current_state", "")):
 		"WAR":
@@ -1518,6 +1667,9 @@ func _render_preview(data: Dictionary):
 	if war_title != "":
 		bbcode += " [color=#" + state_color + "]— the " + Utils.humanize_nation_keys_in_text(war_title) + "[/color]"
 	bbcode += "   Relation: " + Utils.bb_relation_meter(relation, 90, 7) + " [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
+	# Session UI-6 (F15): Folded, Talleyrand's counsel card stands FIRST, right
+	# under the status line; On the page it stays where it was (after the quote).
+	var counsel_at: int = bbcode.length()
 	# S14E-10: why the court is cold - the grievance it holds, by its kind,
 	# with the price of Make Amends (the relation line gave the figure only).
 	var grievance_line = data.get("grievance_line", "")
@@ -1581,18 +1733,30 @@ func _render_preview(data: Dictionary):
 	# Session UI-4: the counsel (the Recommendation, folded or whole, with the
 	# road reading under it) is ONE gold card; the card closes on the counsel's
 	# last line, never on the blank paragraph after it.
+	# Session UI-6 (F15): Folded, the counsel card is built on its own and set
+	# first; On the page it follows the quote as it always did (bbcode as before).
+	var folded_counsel: bool = Utils.explanations_folded()
+	var head_bb: String = bbcode
+	if folded_counsel:
+		bbcode = ""
 	var counsel_carded: bool = counsel_held or recommendation != ""
 	if counsel_carded:
 		bbcode += Utils.card_open(Utils.COLOR_GOLD)
 	if Utils.show_note(COUNSEL_NOTE) or not counsel_held:
 		if recommendation:
-			bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+			if Utils.explanations_folded():
+				bbcode += _verdict_line(str(recommendation), rec_cut, true) + "\n"
+			else:
+				bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
 		bbcode += designs_part + roads_part
 		if Utils.explanations_folded() and counsel_held:
 			bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
 	elif recommendation:
 		var opening: String = str(recommendation).substr(0, rec_cut) if rec_cut >= 0 else str(recommendation)
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + opening + "[/color] " + Utils.note_link(COUNSEL_NOTE) + "\n"
+		if Utils.explanations_folded():
+			bbcode += _verdict_line(opening, -1, false) + " " + Utils.note_link(COUNSEL_NOTE) + "\n"
+		else:
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + opening + "[/color] " + Utils.note_link(COUNSEL_NOTE) + "\n"
 	else:
 		bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
 	if counsel_carded:
@@ -1602,6 +1766,9 @@ func _render_preview(data: Dictionary):
 			bbcode = bbcode.substr(0, bbcode.length() - 1) + Utils.CARD_CLOSE + "\n"
 		else:
 			bbcode += Utils.CARD_CLOSE
+
+	if folded_counsel:
+		bbcode = head_bb.substr(0, counsel_at) + bbcode + head_bb.substr(counsel_at)
 
 	# W3: Acceptance preview — key factors
 	var acceptance_preview = data.get("acceptance_preview")
@@ -1621,7 +1788,7 @@ func _render_preview(data: Dictionary):
 			for neg in negatives:
 				factor_rows.append([str(neg.get("label", "?")),
 					"[color=#" + _alert_hex + "]" + str(int(neg.get("value", 0))) + "[/color]"])
-			bbcode += Utils.bb_table(["Factor", "Value"], factor_rows, [1], [4, 1]) + "\n"
+			bbcode += Utils.bb_table(["Factor", "Value"], factor_rows, [1], [4, 1], _factors_width()) + "\n"
 
 	# W4: Cooldown pre-check warning
 	var actions_list = data.get("actions", [])
@@ -1679,6 +1846,43 @@ func _render_preview(data: Dictionary):
 	for action in actions:
 		_add_action_button(action)
 	call_deferred("_update_more_below")
+
+
+func _verdict_line(text: String, cut: int, whole: bool) -> String:
+	"""Session UI-6 (F15): the counsel's verdict - "Recommendation:" and the
+	Recommendation's first sentence - in the title face (the readers: put the
+	recommendation first and loud); whatever follows the first sentence stays
+	in the body face, in gold. `whole` = the Recommendation in full (open or a
+	single sentence), else `text` is the opening alone."""
+	var head: String = text
+	var rest := ""
+	if whole and cut >= 0:
+		head = text.substr(0, cut)
+		rest = text.substr(cut)
+	# On the compact view the title face wraps the sentence to two lines in the
+	# assessment's 30 % and pushes Talleyrand's quote under its fold (EA-E5): there
+	# the verdict is bold gilt in the body face — still first and loud, one line.
+	if Utils.compact_view():
+		var line: String = "[b][color=#" + Utils.COLOR_GOLD + "]Recommendation: " + head.strip_edges() + "[/color][/b]"
+		if rest != "":
+			line += "[color=#" + Utils.COLOR_GOLD + "]" + rest + "[/color]"
+		return line
+	var out: String = Utils.HEAD_OPEN + "Recommendation: " + head.strip_edges() + Utils.HEAD_CLOSE
+	if rest != "":
+		out += "[color=#" + Utils.COLOR_GOLD + "]" + rest + "[/color]"
+	return out
+
+
+func _factors_width() -> float:
+	"""Session UI-6 (F15): the key-factors table spans its column when Folded
+	(0 = the old shrink-to-words table, On the page)."""
+	if not Utils.explanations_folded():
+		return 0.0
+	var panel_w: float = $PanelContainer.offset_right - $PanelContainer.offset_left
+	var share: float = 1.0
+	if _split:
+		share = ASSESSMENT_COLUMN_RATIO / (ASSESSMENT_COLUMN_RATIO + ACTIONS_COLUMN_RATIO)
+	return maxf(160.0, panel_w * share - 48.0)
 
 
 const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]
@@ -1761,6 +1965,11 @@ func _add_action_button(action: Dictionary):
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if has_reason:
 		btn.tooltip_text = disabled_reason
+	if not available and Utils.explanations_folded():
+		# Session UI-6 (F15): a shut act reads shut - the theme's faceless button
+		# with its faint dashed rim - yet its words stay legible (dim, not
+		# faded: contrast over 4.5:1 on the panel); its reason is the hover.
+		btn.add_theme_color_override("font_disabled_color", Utils.UI_TEXT_DIM)
 
 	if available:
 		btn.pressed.connect(_on_action_selected.bind(action_id, action))
@@ -1791,7 +2000,7 @@ func _add_action_button(action: Dictionary):
 		cell.text = "[right]" + badges.strip_edges() + "[/right]"
 		if not available:
 			# a shut act's figures are dimmed with it - it never reads as live
-			cell.modulate = Color(1, 1, 1, 0.6)
+			cell.modulate = Color(1, 1, 1, 0.85 if Utils.explanations_folded() else 0.6)
 		row.add_child(cell)
 	content_list.add_child(row)
 	# Session UI-3 (November 12, 2026): "Fold, a switch restores" - the act's
@@ -1806,7 +2015,7 @@ func _add_action_button(action: Dictionary):
 		note_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 		note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_list.add_child(note_label)
-	if has_reason:
+	if has_reason and not Utils.explanations_folded():
 		var reason_label = Label.new()
 		reason_label.text = "    " + disabled_reason
 		reason_label.theme_type_variation = &"Caption"
@@ -2195,6 +2404,9 @@ func _add_first_open_line(data: Dictionary) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
+	# Session UI-6: a first-open line is never folded (the user's standing ruling:
+	# the first-open lines stay on the face), Folded or On the page alike — it
+	# prints once, at the head of the view, and is acknowledged as drawn.
 	lbl.text = "[color=#" + Utils.COLOR_INFO + "]" + _bb(line) + "[/color]"
 	content_list.add_child(lbl)
 	first_open_seen.emit(screen)

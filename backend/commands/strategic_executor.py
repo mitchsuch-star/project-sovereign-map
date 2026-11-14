@@ -5,11 +5,13 @@ Handles strategic order execution: MOVE_TO, PURSUE, HOLD, SUPPORT, cancel, objec
 Extracted from executor.py in R11 (Architecture Refactoring Session 11).
 """
 import random
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from backend.ai.generic_targets import is_generic_target
 from backend.ai.strategic_parser import unmapped_terrain_noun
 from backend.ai.strategic_parser import march_slot_is_empty  # CX3-R2
+from backend.ai.strategic_parser import march_verb_stands_alone  # UI6-X72
 
 # CX3-R2 (Score Finish Step 7 slice 8, October 4, 2026): a march with an
 # EMPTY destination slot asks where, free, as `move to` does. False = the
@@ -498,6 +500,32 @@ def order_verb_display(order_or_action: str) -> str:
     return _action_display_name(key)
 
 
+def foreign_support_refusal(world, marshal, foreigner, verb: str = "support") -> Dict:
+    """UI6-X17: the free answer to SUPPORT / follow aimed at a FOREIGN
+    commander — his name and side are public (the doctrine), nothing of
+    where he stands. At war, the pursuit is his road; at peace (an ally, a
+    neutral), "We are not at war with <court>" and no road is taught — the
+    pursuit the old line taught is refused at peace."""
+    from backend.game_logic.formations import formed_display_name
+    shown = humanize_entity_name(foreigner.name)
+    court = formed_display_name(world, foreigner.nation)
+    actor = humanize_entity_name(marshal.name)
+    if world.is_at_war(marshal.nation, foreigner.nation):
+        return {
+            "success": False,
+            "message": (f"{shown} serves {court}, an enemy of ours, Sire — {verb} "
+                        f"is for your own marshals."),
+            "suggestion": f"To chase him: '{actor}, pursue {shown}'.",
+            "variable_action_cost": 0,
+        }
+    return {
+        "success": False,
+        "message": (f"We are not at war with {court}, Sire — {shown} serves "
+                    f"{court}, and {verb} is for your own marshals."),
+        "variable_action_cost": 0,
+    }
+
+
 def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
     """Best-effort resolve a messy MOVE_TO/HOLD target phrase to a real region.
 
@@ -515,7 +543,13 @@ def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
     best = None
     for region_name in world.regions:
         rl = region_name.lower()
-        if len(rl) >= 4 and rl in lowered and (best is None or len(region_name) > len(best)):
+        # UI6-X31 (Session UI-6, November 13, 2026): a province is named as a
+        # WORD of the phrase, never as a fragment of another word — "Davout,
+        # hold BernardimFreire" read the Portuguese commander's key as
+        # "Bern" and marched to Bern, the commander's name read as a
+        # destination (and "hold Bernadotte" did the same to our own man).
+        if (len(rl) >= 4 and (best is None or len(region_name) > len(best))
+                and re.search(r"(?<![a-z])" + re.escape(rl) + r"(?![a-z])", lowered)):
             best = region_name
     if best is not None:
         return best
@@ -526,8 +560,27 @@ def _resolve_region_from_phrase(world, phrase: str, actor_nation: str = ""):
     visible = _visible_marshal_names(world, actor_nation)
     for marshal in world.marshals.values():
         name = getattr(marshal, "name", "")
-        if name and name.lower() in lowered and name in visible:
+        if (name and name in visible
+                and re.search(r"(?<![a-z])" + re.escape(name.lower()) + r"(?![a-z])", lowered)):
             return marshal.location
+    return None
+
+
+def _foreign_commander_named(world, phrase: str, actor_nation: str):
+    """UI6-X20: the foreign commander `phrase` IS (his roster key or the name
+    the map prints, whole and case-insensitive — never a substring), or None.
+    A prisoner, or a name that is also a province, is no commander here."""
+    low = str(phrase or "").strip().lower()
+    if not low:
+        return None
+    for m in (getattr(world, "marshals", None) or {}).values():
+        if getattr(m, "nation", None) == actor_nation:
+            continue
+        if low not in (str(m.name).lower(), humanize_entity_name(m.name).lower()):
+            continue
+        if getattr(m, "captured_by", "") or m.name in (getattr(world, "regions", None) or {}):
+            return None
+        return m
     return None
 
 
@@ -1276,7 +1329,8 @@ class StrategicExecutor:
         if (A_BARE_MARCH_ASKS_WHERE and ctx.is_generic and ctx.strategic_type == "MOVE_TO"
                 and ctx.marshal.nation == getattr(ctx.world, "player_nation", None)
                 and not ctx.command.get("_strategic_execution")
-                and march_slot_is_empty(ctx.parsed_command.get("raw_input"))):
+                and (march_slot_is_empty(ctx.parsed_command.get("raw_input"))
+                     or march_verb_stands_alone(ctx.parsed_command.get("raw_input")))):
             from backend.commands.clarification import (
                 build_move_destination_clarification)
             ask = build_move_destination_clarification(
@@ -1297,6 +1351,21 @@ class StrategicExecutor:
                 ctx.target = resolution["target"]
                 ctx.target_type = resolution["target_type"]
                 print(f"[STRATEGIC] Generic resolved -> {ctx.target} ({ctx.target_type})")
+            elif (ctx.strategic_type in ("MOVE_TO", "PURSUE")
+                    and ctx.marshal.nation == getattr(ctx.world, "player_nation", None)
+                    and not ctx.command.get("_strategic_execution")):
+                # UI6-X63: no foe in sight to resolve a bare march or pursuit to —
+                # "Ney, march" spent 2 AP on "Ney begins march to None". Ask, free,
+                # naming no man (the fog: nothing of anyone out of sight).
+                where = humanize_entity_name(ctx.marshal.location)
+                if ctx.strategic_type == "MOVE_TO":
+                    text = (f"Where shall {ctx.marshal.name} march, Sire? No foe is in sight to "
+                            f"march on - name a destination. He stands at {where}.")
+                else:
+                    text = (f"Whom shall {ctx.marshal.name} pursue, Sire? No foe is in sight - "
+                            f"name the one to pursue. He stands at {where}.")
+                return {"success": False, "free_action": True, "variable_action_cost": 0,
+                        "message": text}
         return _NEXT_STAGE
 
     def _strategic_validate_target(self, ctx: StrategicCommandContext):
@@ -1358,11 +1427,14 @@ class StrategicExecutor:
                     "variable_action_cost": 0,
                 }
             if ally.nation != ctx.marshal.nation:
-                return {
-                    "success": False,
-                    "message": f"{ctx.target} is an enemy! Use PURSUE instead.",
-                    "suggestion": f"Try: '{ctx.marshal.name}, pursue {ctx.target}'"
-                }
+                # UI6-X17 (Session UI-6, November 13, 2026): say what is true.
+                # "support Hohenlohe" answered "Hohenlohe is an enemy! Use
+                # PURSUE instead" with France at PEACE with Prussia (and the
+                # pursuit it taught is refused at peace). A foreign commander,
+                # at peace or at war, is no friend to support.
+                return foreign_support_refusal(
+                    ctx.world, ctx.marshal, ally,
+                    "follow" if ctx.parsed_command.get("standing_follow") else "support")
             # FA slice 7 review round (R2-5): "Davout, support Ney" with Ney
             # in Austrian hands created a SUPPORT order marching toward the
             # captor's capital, 2 AP.
@@ -1409,6 +1481,25 @@ class StrategicExecutor:
                         ctx.target = _m.name
                         enemy = _m
                         break
+            # UI6-X71: a word two commanders share ("pursue the Archduke") is its
+            # ONE bearer in sight, as the attack road reads it (UI6-X61); none in
+            # sight, or several, keeps the free refusal below. The player's own
+            # order only; fog-honest (`unique_bearer_in_sight` counts men in sight).
+            if (not enemy and ctx.target
+                    and ctx.marshal.nation == getattr(ctx.world, "player_nation", None)
+                    and not ctx.command.get("_strategic_execution")):
+                from backend.commands.combat_executor import (
+                    shared_name_word_in, unique_bearer_in_sight)
+                _word = re.sub(r"^the\s+", "", str(ctx.target).strip(), flags=re.IGNORECASE)
+                # a word two commanders SHARE only - a unique surname ("pursue
+                # Charles") stays CA8-28's exact refusal
+                _word = (shared_name_word_in(_word, ctx.world, ctx.marshal)
+                         if _word and len(_word.split()) == 1 else "")
+                _bearer = unique_bearer_in_sight(ctx.world, ctx.marshal, _word) if _word else None
+                if _bearer is not None:
+                    print(f"[STRATEGIC] PURSUE '{ctx.target}' -> '{_bearer.name}' (the one in sight)")
+                    ctx.target = _bearer.name
+                    enemy = _bearer
             # FA slice 7 (NPC-19): `Ney, pursue Mack` accepted a 2-AP chase of
             # a man in our own cells — the named arm read no captivity.
             from backend.commands import prisoners as _prisoners
@@ -1604,6 +1695,20 @@ class StrategicExecutor:
                             "nation_named": nation,
                             "variable_action_cost": 0,
                         }
+                    # UI6-X20 (Session UI-6, November 13, 2026): a FOREIGN
+                    # commander whom the phrase scan could not place (out of
+                    # sight — `_visible_marshal_names`) is answered as the
+                    # tactical road answers him: named, never placed. "Davout,
+                    # hold Kutuzov" said "Region 'Kutuzov' not found. From
+                    # Rhineland the roads lead to: …", reading his name as a
+                    # misspelt province.
+                    _foreign = (_foreign_commander_named(ctx.world, dest, ctx.marshal.nation)
+                                if ctx.marshal.nation == ctx.world.player_nation else None)
+                    if _foreign is not None:
+                        from backend.commands.movement_executor import commander_not_a_province
+                        return commander_not_a_province(
+                            ctx.world, ctx.marshal, _foreign,
+                            "hold" if ctx.strategic_type == "HOLD" else "march to")
                     # CA8-28: the same misspelling got a suggestion or a shrug
                     # depending on the VERB — "move to Venetia" answered "Did
                     # you mean 'Vienna'?" (the tactical path owns both fuzzy

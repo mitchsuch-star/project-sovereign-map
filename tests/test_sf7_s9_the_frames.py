@@ -440,7 +440,12 @@ class TestTheLineFitsTheBaize:
         assert base_y - step_y * 3 - 158.0 * last_scale >= 60.0 - 0.5
         # and the authored steps would NOT have (the defect, measured)
         assert 128.0 + 118.0 * 3 + 100.0 * last_scale > sw / 2.0 - 16.0
-        assert base_y - 66.0 * 3 - 158.0 * last_scale < 60.0
+        # Session UI-6: the stage grew 60 px (STAGE_H 440), so the VERTICAL
+        # authored step now fits at four ranks; the defect stays on the x axis.
+        # Re-pointed: the pin states that the authored steps overflow on at
+        # least one axis, which is the defect the shrink answers.
+        assert (128.0 + 118.0 * 3 + 100.0 * last_scale > sw / 2.0 - 16.0
+                or base_y - 66.0 * 3 - 158.0 * last_scale < 60.0)
 
     def test_two_contingents_keep_the_authored_steps(self):
         assert self._steps(2) == (118.0, 66.0)

@@ -207,6 +207,9 @@ class TestTheTextSizeSlider:
         """UXR-X21: the stats line wraps (an HFlowContainer), so the command
         window's width floor is its input row, not a 513-px stats line — at
         150 % the window grows by the input row's growth, not by 40 %."""
+        main_src = (_PROJECT / "scripts" / "main.gd").read_text(encoding="utf-8")
+        bar_max = float(re.search(r"^const BAR_MAX_WIDTH := ([0-9.]+)", main_src, re.M).group(1))
+        bar_share = float(re.search(r"^const BAR_WIDTH_SHARE := ([0-9.]+)", main_src, re.M).group(1))
         for key in ("before", "at_150"):
             reading = driven["text_size"][key]
             rows = reading["rows_min_width"]
@@ -214,6 +217,16 @@ class TestTheTextSizeSlider:
             # drawn at the width it was asked for, or at the input row's floor
             # (plus the panel's chrome — margins and stylebox, under 70 px)
             floor = max(rows["InputSection"], rows["TitleRow"]) + 70.0
+            if reading.get("desk_mode") == "bar":
+                # RE-POINTED (Session UI-6): this phase stands on an 888 x 500
+                # logical view — the compact one — where the window is the slim
+                # bar: its width is the bar's own (BAR_MAX_WIDTH, or the view's
+                # BAR_WIDTH_SHARE), the stored size untouched, and its input row
+                # still fits inside it.
+                want = min(bar_max, float(int(reading["view"][0] * bar_share)))
+                assert abs(reading["terminal"][0] - want) <= 1.0, (key, want, reading)
+                assert rows["InputSection"] <= reading["terminal"][0], (key, reading)
+                continue
             assert reading["terminal"][0] <= max(reading["requested"][0], floor) + 1.0, (key, reading)
 
 

@@ -83,6 +83,42 @@ const _EXPLANATION_LABELS := {
 	"page": "On the page",
 }
 
+# Session UI-6: FOLDED, a short choice is a segmented control (a row of gilt
+# toggle buttons, one pressed) beside its dropdown, which steps aside; On the
+# page the dropdown stands exactly as it always did. Short names, by UiSettings key.
+# The interim blind reading (November 13): with every four-way choice a row of
+# four buttons the tab read as "a long wall of toggles and segmented buttons"
+# (6 / 6 / 7, against UI-5's 7 / 7 / 7 with drop-downs) — so a segmented control
+# is for a choice of up to three; window, HUD width and tooltip delay keep their
+# drop-downs folded too.
+const _SEGMENT_MAX_CHOICES := 3
+const _SEGMENT_LABELS := {
+	"maximized": "Maximized", "fullscreen": "Fullscreen", "borderless": "Borderless",
+	"windowed": "Windowed",
+	"auto": "Auto", "full": "Full", "16:9": "16:9", "centred": "Centred",
+	"garamond": "Garamond", "plain": "Plain",
+	"fill": "Fills width", "sheet": "Whole sheet",
+	"folded": "Folded", "page": "On the page",
+	"play": "Play", "quiet": "Quieter", "mute": "Mute",
+	"standard": "Standard", "red_green": "Red-green safe",
+	"instant": "Instant", "short": "Short", "normal": "Normal", "long": "Long",
+}
+# Session UI-6: FOLDED, a card joins the one before it (fewer boxes); On the page
+# every card stands as it did. follower title -> leader title; the leader's
+# heading takes a plainer name while merged.
+const _MERGES := {
+	"Map & HUD": "Window", "Accessibility": "Scale & type",
+	"Behaviour": "Levels", "Help": "Keys",
+}
+const _MERGE_TITLES := {
+	"Window": "Window & map", "Scale & type": "Interface",
+	"Levels": "Levels & switches", "Keys": "Keys & help",
+}
+var _segments: Array = []        # {option, row, buttons}
+var _card_nodes: Dictionary = {}  # title -> {panel, box, heading, title, moved}
+var _next_marshal_toggle: CheckButton = null
+var _readback_toggle: CheckButton = null
+
 var _scale_dragging := false
 var _scale_slider: HSlider
 var _scale_value: Label
@@ -162,6 +198,7 @@ func _ready() -> void:
 	_dress_switches()
 	_paginate()
 	_refresh_new_controls()
+	_snap_whole_rows.call_deferred()
 	_http = HTTPRequest.new()
 	_http.timeout = 6.0
 	add_child(_http)
@@ -183,6 +220,7 @@ static var _remembered_tab := 0
 var _pages: Array = []
 var _tabs: Array = []
 var _tab_row: Control = null
+var _tab_repeats: Array = []   # Session UI-6: headings (and their rules) that repeat a tab's name
 
 
 func _dress_switches() -> void:
@@ -223,19 +261,36 @@ func _paginate() -> void:
 			(kids[at] as Node).set_meta("card_title", str(start["title"]))
 	var page: VBoxContainer = null
 	var card_box: VBoxContainer = null
+	var section := ""
+	var mark_rule := false
 	for child in kids:
+		if mark_rule:
+			mark_rule = false
+			if child is HSeparator:
+				_tab_repeats.append(child)
 		if child.has_meta("settings_header"):
 			card_box = null   # a heading stands on the page, never inside a card
-			if not (page != null and str((child as Label).text) in _JOIN_PREVIOUS):
+			section = str((child as Label).text)
+			if not (page != null and section in _JOIN_PREVIOUS):
 				page = VBoxContainer.new()
 				page.add_theme_constant_override("separation", 6)
 				page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_pages.append(page)
+			# UI-6: a header that only repeats its tab's name steps aside while the
+			# tabs show (the tab says it); On the page, the tab row gone, it stands
+			# as authored — the final page census found DISPLAY / SOUND / CONTROLS /
+			# CREDITS missing there when the header (and its rule) were freed
+			var tab_at: int = _pages.size() - 1
+			if tab_at < _TAB_NAMES.size() and _same_words(section, str(_TAB_NAMES[tab_at])) \
+					and not section in _JOIN_PREVIOUS:
+				_tab_repeats.append(child)
+				mark_rule = true
 		if page == null:
 			continue
 		remove_child(child)
 		if child.has_meta("card_title"):
 			card_box = _make_card(page, str(child.get_meta("card_title")))
+			_card_nodes[str(child.get_meta("card_title"))]["section"] = section
 		if card_box != null:
 			card_box.add_child(child)
 		else:
@@ -260,6 +315,10 @@ func _paginate() -> void:
 	_show_tab(clampi(_remembered_tab, 0, maxi(_pages.size() - 1, 0)))
 
 
+func _same_words(a: String, b: String) -> bool:
+	return a.strip_edges().to_lower() == b.strip_edges().to_lower()
+
+
 func _begin_card(title: String) -> void:
 	"""F28: the next control added starts a titled card (see `_card_starts`)."""
 	_card_starts.append({"index": get_child_count(), "title": title})
@@ -280,7 +339,138 @@ func _make_card(page: VBoxContainer, title: String) -> VBoxContainer:
 	heading.theme_type_variation = &"HudTitle"
 	heading.add_theme_color_override("font_color", Utils.UI_GOLD)
 	box.add_child(heading)
+	_card_nodes[title] = {"panel": card, "box": box, "heading": heading, "title": title, "moved": []}
 	return box
+
+
+func _apply_card_merge() -> void:
+	"""Session UI-6: folded, a follower card's controls move into its leader's box
+	and its own card hides; On the page they move back, in order, and every
+	heading reads as before. Idempotent."""
+	var merged := Utils.explanations_folded()
+	for follower_title in _MERGES:
+		var leader: Dictionary = _card_nodes.get(_MERGES[follower_title], {})
+		var follower: Dictionary = _card_nodes.get(follower_title, {})
+		if leader.is_empty() or follower.is_empty():
+			continue
+		var lbox: VBoxContainer = leader["box"]
+		var fbox: VBoxContainer = follower["box"]
+		var moved: Array = follower["moved"]
+		if merged and moved.is_empty():
+			var kids: Array = fbox.get_children()
+			for i in range(1, kids.size()):
+				moved.append(kids[i])
+			for node in moved:
+				(node as Node).reparent(lbox, false)
+			(follower["panel"] as Control).visible = false
+		elif not merged and not moved.is_empty():
+			for node in moved:
+				if is_instance_valid(node):
+					(node as Node).reparent(fbox, false)
+			moved.clear()
+			(follower["panel"] as Control).visible = true
+		var heading: Label = leader["heading"]
+		heading.text = str(_MERGE_TITLES.get(leader["title"], leader["title"])) if merged else str(leader["title"])
+	# UI-6: a card title that repeats the section header right above it is hidden
+	for key in _card_nodes:
+		var node: Dictionary = _card_nodes[key]
+		var h: Label = node["heading"]
+		h.visible = not _same_words(h.text, str(node.get("section", "")))
+
+
+func _add_segments(row: HBoxContainer, option: OptionButton, keys: Array, default_key: String = "") -> void:
+	"""Session UI-6: the segmented twin of `option`, its buttons direct children
+	of the row (so the row's hint is their hover too). Pressing one selects the
+	same item and fires the dropdown's own handler. A choice of more than
+	_SEGMENT_MAX_CHOICES keeps its dropdown (no segments)."""
+	if keys.size() > _SEGMENT_MAX_CHOICES:
+		return
+	var group := ButtonGroup.new()
+	var buttons: Array = []
+	var styles: Dictionary = _segment_styles()
+	row.add_theme_constant_override("separation", 6)
+	for i in range(keys.size()):
+		var key: String = str(keys[i])
+		var b := Button.new()
+		b.name = "Segment_" + key.replace(":", "x")
+		b.text = str(_SEGMENT_LABELS.get(key, key))
+		b.toggle_mode = true
+		b.button_group = group
+		b.clip_text = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.custom_minimum_size = Vector2(0, 30)
+		if key == default_key:
+			b.tooltip_text = "The default choice"
+		for state in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
+			b.add_theme_stylebox_override(state, styles[state])
+		b.pressed.connect(_on_segment_pressed.bind(option, i))
+		row.add_child(b)
+		buttons.append(b)
+	_segments.append({"option": option, "row": row, "buttons": buttons})
+
+
+func _segment_styles() -> Dictionary:
+	var out: Dictionary = {}
+	var base := StyleBoxFlat.new()
+	base.bg_color = Color(0.06, 0.07, 0.11, 0.55)
+	base.border_color = Color(Utils.UI_GOLD, 0.35)
+	var hover: StyleBoxFlat = base.duplicate()
+	hover.bg_color = Color(Utils.UI_GOLD, 0.10)
+	var active: StyleBoxFlat = base.duplicate()
+	active.bg_color = Color(Utils.UI_GOLD, 0.28)
+	active.border_color = Utils.UI_GOLD_BRIGHT
+	for box in [base, hover, active]:
+		var flat: StyleBoxFlat = box
+		flat.set_border_width_all(1)
+		flat.set_corner_radius_all(4)
+		flat.content_margin_left = 8
+		flat.content_margin_right = 8
+		flat.content_margin_top = 4
+		flat.content_margin_bottom = 4
+	out["normal"] = base
+	out["hover"] = hover
+	out["pressed"] = active
+	out["hover_pressed"] = active
+	out["disabled"] = base
+	out["focus"] = StyleBoxEmpty.new()
+	return out
+
+
+func _on_segment_pressed(option: OptionButton, index: int) -> void:
+	if option == null or option.selected == index:
+		_sync_segments()
+		return
+	option.select(index)
+	option.item_selected.emit(index)
+	_sync_segments()
+
+
+func _sync_segments() -> void:
+	"""Folded: the segments show and the dropdown steps aside; On the page the
+	dropdown stands alone. The pressed segment follows the dropdown."""
+	var folded := Utils.explanations_folded()
+	for entry in _segments:
+		var option: OptionButton = entry["option"]
+		if not is_instance_valid(option):
+			continue
+		option.visible = not folded
+		var buttons: Array = entry["buttons"]
+		for i in range(buttons.size()):
+			var b: Button = buttons[i]
+			b.visible = folded
+			b.set_pressed_no_signal(i == option.selected)
+			var ink: Color = Utils.UI_GOLD_BRIGHT if i == option.selected else Utils.toned(Utils.UI_TEXT_DIM)
+			b.add_theme_color_override("font_color", ink)
+			b.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)
+			b.add_theme_color_override("font_pressed_color", Utils.UI_GOLD_BRIGHT)
+			b.add_theme_color_override("font_hover_pressed_color", Utils.UI_GOLD_BRIGHT)
+
+
+func _snap_whole_rows() -> void:
+	"""Session UI-6: the host's scroll comes to rest on a whole row."""
+	if is_inside_tree():
+		Utils.keep_whole_lines(self)
 
 
 func _show_tab(index: int) -> void:
@@ -291,9 +481,14 @@ func _show_tab(index: int) -> void:
 	# Session UI-4: the tabs fold the panel the way an explanation folds — On the
 	# page every section stands, one under another, and the tab row steps aside
 	# (the switch restores every word: the page check found 500 words a tab away)
+	_apply_card_merge()
+	_sync_segments()
 	var paged := Utils.explanations_folded()
 	if _tab_row != null:
 		_tab_row.visible = paged
+	for node in _tab_repeats:
+		if is_instance_valid(node):
+			(node as Control).visible = not paged
 	var styles: Dictionary = Utils.tab_styles(12.0, 6.0)
 	for i in range(_pages.size()):
 		(_pages[i] as Control).visible = (i == index) or not paged
@@ -346,6 +541,7 @@ func _build_display_section() -> void:
 	_window_mode.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_window_mode.item_selected.connect(_on_window_mode_selected)
 	row.add_child(_window_mode)
+	_add_segments(row, _window_mode, UiSettings.WINDOW_MODES, UiSettings.DEFAULT_WINDOW_MODE)
 	add_child(row)
 
 	_window_size_row = HBoxContainer.new()
@@ -378,6 +574,7 @@ func _build_display_section() -> void:
 	_hud_width.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_hud_width.item_selected.connect(_on_hud_width_selected)
 	hud_row.add_child(_hud_width)
+	_add_segments(hud_row, _hud_width, UiSettings.HUD_WIDTHS, UiSettings.DEFAULT_HUD_WIDTH)
 	add_child(hud_row)
 	_add_hint("Maximized is the game's own boot. Fullscreen takes the whole screen; "
 		+ "a borderless window fills it without a frame; Windowed uses the size "
@@ -403,6 +600,7 @@ func _build_display_section() -> void:
 	_wide_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_wide_map.item_selected.connect(_on_wide_map_selected)
 	wide_row.add_child(_wide_map)
+	_add_segments(wide_row, _wide_map, UiSettings.WIDE_MAPS, UiSettings.DEFAULT_WIDE_MAP)
 	add_child(wide_row)
 	_add_hint("On a very wide screen (32:9) the map opens filling the width — the "
 		+ "Home button shows the whole sheet and back. The whole sheet opens it on "
@@ -455,6 +653,7 @@ func _refresh_display_controls() -> void:
 		_motion_toggle.set_pressed_no_signal(UiSettings.get_reduce_motion())
 	if _fit_button != null:
 		_fit_button.text = "Size for this screen (%d%%)" % int(round(UiSettings.derive_default_ui_scale() * 100.0))
+	_sync_segments()
 
 
 func _on_window_mode_selected(index: int) -> void:
@@ -500,6 +699,14 @@ func _build_interface_section() -> void:
 	_begin_card("Scale & type")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
+	# The lead's frame reading (Session UI-6, November 13): with the card title
+	# that repeated its section dropped, the slider stood unnamed — it says
+	# what it scales, as "Text size" below it does.
+	var scale_lbl := Label.new()
+	scale_lbl.text = "Interface scale"
+	scale_lbl.theme_type_variation = &"Caption"
+	scale_lbl.custom_minimum_size.x = 72
+	row.add_child(scale_lbl)
 	_scale_slider = HSlider.new()
 	_scale_slider.min_value = UiSettings.MIN_UI_SCALE
 	_scale_slider.max_value = UiSettings.MAX_UI_SCALE
@@ -610,6 +817,7 @@ func _build_interface_section() -> void:
 	_body_font.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_font.item_selected.connect(_on_body_font_selected)
 	font_row.add_child(_body_font)
+	_add_segments(font_row, _body_font, UiSettings.BODY_FONTS, UiSettings.DEFAULT_BODY_FONT)
 	add_child(font_row)
 
 	_begin_card("Accessibility")
@@ -652,6 +860,7 @@ func _build_interface_section() -> void:
 	_explanations.select(maxi(UiSettings.EXPLANATIONS.find(UiSettings.get_explanations()), 0))
 	_explanations.item_selected.connect(_on_explanations_selected)
 	explain_row.add_child(_explanations)
+	_add_segments(explain_row, _explanations, UiSettings.EXPLANATIONS, UiSettings.DEFAULT_EXPLANATIONS)
 	add_child(explain_row)
 	_add_hint("Folded keeps every page to its figures: what a page is for stands behind "
 		+ "its ⓘ, what a button does is its hover, and long counsel opens from ▸ more. "
@@ -665,6 +874,10 @@ func _build_interface_section() -> void:
 	_tooltip_delay = _option_row("Tooltip delay", "TooltipDelayOption", UiSettings.TOOLTIP_DELAYS,
 			_TOOLTIP_DELAY_LABELS, _on_tooltip_delay_selected)
 	_add_hint("How long the cursor rests on a control or the map before its tooltip shows.")
+	_readback_toggle = _add_switch("Read back typed orders", "ReadbackToggle", UiSettings.get_readback())
+	_readback_toggle.toggled.connect(func(on: bool): UiSettings.set_readback(on))
+	_add_hint("While you type, a line above the command line says how the order reads "
+		+ "and what it costs. It never sends anything; Enter still does.")
 	_first_open_btn = Button.new()
 	_first_open_btn.name = "FirstOpenResetButton"
 	_first_open_btn.text = "Show first-open notes again"
@@ -850,6 +1063,7 @@ func _build_sound_section() -> void:
 	_room_scroll = ScrollContainer.new()
 	_room_scroll.name = "MusicRoomScroll"
 	_room_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_room_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE   # UI6-X22: the bar's gutter is kept
 	_room_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_room_box.add_child(_room_scroll)
 	_room_list = VBoxContainer.new()
@@ -916,6 +1130,11 @@ func _option_row(label_text: String, node_name: String, keys: Array, labels: Dic
 	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	option.item_selected.connect(handler)
 	row.add_child(option)
+	if keys.size() <= _SEGMENT_MAX_CHOICES:
+		var defaults := {"BackgroundAudioOption": UiSettings.DEFAULT_BACKGROUND_AUDIO,
+				"ColourVisionOption": UiSettings.DEFAULT_COLOUR_VISION,
+				"TooltipDelayOption": UiSettings.DEFAULT_TOOLTIP_DELAY}
+		_add_segments(row, option, keys, str(defaults.get(node_name, "")))
 	add_child(row)
 	return option
 
@@ -959,8 +1178,13 @@ func _refresh_new_controls() -> void:
 	if _first_open_btn != null:
 		# Only a campaign has notes to bring back: the pause menu's panel shows it.
 		_first_open_btn.visible = _is_in_game()
+	if _next_marshal_toggle != null:
+		_next_marshal_toggle.set_pressed_no_signal(UiSettings.get_next_marshal_after_order())
+	if _readback_toggle != null:
+		_readback_toggle.set_pressed_no_signal(UiSettings.get_readback())
 	_refresh_remap()
 	_refresh_now_playing()
+	_sync_segments()
 
 
 func _is_in_game() -> bool:
@@ -1218,6 +1442,11 @@ func _build_parser_section() -> void:
 	_idle_toggle = _add_switch("Warn of idle corps at End Turn", "IdleWarningToggle",
 			UiSettings.get_idle_warning())
 	_idle_toggle.toggled.connect(func(on: bool): UiSettings.set_idle_warning(on))
+	_next_marshal_toggle = _add_switch("Next marshal after an order", "NextMarshalToggle",
+			UiSettings.get_next_marshal_after_order())
+	_next_marshal_toggle.toggled.connect(func(on: bool): UiSettings.set_next_marshal_after_order(on))
+	_add_hint("After an order from the selection card, the next idle marshal is selected "
+		+ "and the map moves to him. Off keeps the same marshal selected.")
 
 
 func _key_placeholder() -> String:

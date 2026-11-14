@@ -17,6 +17,7 @@ extends Control
 
 var BACKEND_URL: String = Utils.backend_url()   # Golden Rule 7 — the one origin
 const GAME_SCENE := "res://scenes/main.tscn"
+const GILT_BUTTON := preload("res://scripts/gilt_button.gd")   # Session UI-6: the drawn button face
 const PAINTINGS_DIR := "res://assets/ui/paintings/"
 
 const SLIDE_SECONDS := 13.0     # hold per painting (motion runs the whole time)
@@ -391,22 +392,43 @@ func _build_menu_column() -> void:
 	# Tier 1 (DYNAMISM_SPEC §2): the campaign's seed — rolled by the backend
 	# (GET /test prefills the box once), kept or overtyped by the player.
 	# Only Begin reads it; the School's lessons stay seedless by design.
-	var seed_row := HBoxContainer.new()
-	seed_row.add_theme_constant_override("separation", 8)
+	# Session UI-6 (F27, the readers: "the Seed field is small and odd - move it
+	# into an options row"): the seed stands in ONE options row - a framed strip the
+	# width of the buttons, its label at the buttons' own inset, the field filling
+	# the rest of the row - not a bare label and a 240 px box hung under Begin.
+	var seed_row := PanelContainer.new()
+	seed_row.name = "SeedOptionsRow"
+	seed_row.custom_minimum_size = Vector2(520, 0)
+	var seed_box := StyleBoxFlat.new()
+	seed_box.bg_color = Color(0.03, 0.045, 0.085, 0.78)
+	seed_box.border_color = Color(Utils.UI_GOLD, 0.34)
+	seed_box.set_border_width_all(1)
+	seed_box.content_margin_left = 18
+	seed_box.content_margin_right = 10
+	seed_box.content_margin_top = 5
+	seed_box.content_margin_bottom = 5
+	seed_row.add_theme_stylebox_override("panel", seed_box)
+	var seed_hbox := HBoxContainer.new()
+	seed_hbox.add_theme_constant_override("separation", 12)
+	seed_row.add_child(seed_hbox)
 	var seed_label := Label.new()
 	seed_label.text = "Seed"
 	seed_label.theme_type_variation = &"Caption"
-	seed_label.add_theme_color_override("font_color", Utils.UI_HINT_GREY)
+	seed_label.custom_minimum_size = Vector2(Utils.text_px(56), 0)
+	seed_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	seed_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	seed_label.add_theme_constant_override("shadow_offset_y", 1)
 	seed_label.tooltip_text = "Every campaign is recorded under a seed. Keep the roll, or type one to replay a campaign's variance."
-	seed_row.add_child(seed_label)
+	seed_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	seed_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	seed_hbox.add_child(seed_label)
 	_seed_edit = LineEdit.new()
-	_seed_edit.custom_minimum_size = Vector2(240, 34)
+	_seed_edit.custom_minimum_size = Vector2(0, 32)
+	_seed_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_seed_edit.placeholder_text = "rolling…"
 	_seed_edit.tooltip_text = seed_label.tooltip_text
 	_seed_edit.text_changed.connect(func(_t: String): _seed_touched = true)
-	seed_row.add_child(_seed_edit)
+	seed_hbox.add_child(_seed_edit)
 	_menu_column.add_child(seed_row)
 
 	# the Begin confirm row (shown only when Begin would replace a campaign)
@@ -488,7 +510,7 @@ func _fit_menu_column() -> void:
 			mb.custom_minimum_size.y = want_h
 		var pad: float = 5.0 if compact else 10.0
 		for st in [&"normal", &"hover", &"pressed", &"disabled"]:
-			var sb := mb.get_theme_stylebox(st) as StyleBoxFlat
+			var sb: StyleBox = mb.get_theme_stylebox(st)
 			if sb != null and not is_equal_approx(sb.content_margin_top, pad):
 				sb.content_margin_top = pad
 				sb.content_margin_bottom = pad
@@ -574,6 +596,28 @@ func _add_menu_button(id: String, text: String, cb: Callable, prominent: bool) -
 	_buttons[id] = b
 
 
+func _button_face(head: Color, foot: Color, rim: Color, rim_w: int, glow: float, inset: float,
+		dashed: bool) -> StyleBox:
+	"""Session UI-6: one drawn menu-button face (scripts/gilt_button.gd), margins as
+	the column measured them (10 / 18), the disabled one without lift or highlight."""
+	var f: StyleBox = GILT_BUTTON.new()
+	f.set("bg_color", head)
+	f.set("bg_foot", foot)
+	f.set("border_color", rim)
+	f.set("rim_width", rim_w)
+	f.set("corner", 0 if dashed else 2)
+	f.set("glow", glow)
+	f.set("inset", inset)
+	f.set("dashed", dashed)
+	if dashed:
+		f.set("shadow_alpha", 0.0)
+		f.set("highlight", 0.0)
+	f.set_content_margin_all(10)
+	f.content_margin_left = 18
+	f.content_margin_right = 18
+	return f
+
+
 func _make_button(text: String, prominent: bool) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -589,28 +633,25 @@ func _make_button(text: String, prominent: bool) -> Button:
 	b.add_theme_color_override("font_color", Color(0.99, 0.95, 0.82) if prominent else Color(0.95, 0.91, 0.80))
 	b.add_theme_color_override("font_hover_color", Color(1.0, 0.97, 0.86))
 	b.add_theme_color_override("font_focus_color", Color(1.0, 0.97, 0.86))
-	b.add_theme_color_override("font_disabled_color", Utils.UI_MENU_WAITING_INK)
+	# Session UI-6 (F27): a waiting row fades further - its words dim, its face gone,
+	# its rim dashed (the gilt button's own disabled language) - so it reads plainly
+	# unavailable beside a live one (the readers: "the disabled rows look similar to
+	# the active ones"); the reason stays its hover (WAITING_TIP / NO_SAVES_TIP).
+	b.add_theme_color_override("font_disabled_color", Utils.UI_DISABLED_TEXT)
 
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.07, 0.09, 0.15, 0.88)
-	normal.border_color = Color(0.90, 0.80, 0.58, 0.9 if prominent else 0.7)
-	normal.set_border_width_all(1)
-	if prominent:
-		normal.border_width_left = 3
-	normal.set_content_margin_all(10)
-	normal.content_margin_left = 18
-	normal.content_margin_right = 18
-	var hover: StyleBoxFlat = normal.duplicate()
-	hover.bg_color = Color(0.10, 0.115, 0.19, 0.82)
-	hover.border_color = Color(0.94, 0.88, 0.69, 0.9)
-	hover.border_width_left = 3
-	var pressed: StyleBoxFlat = hover.duplicate()
-	pressed.bg_color = Color(0.14, 0.13, 0.10, 0.9)
-	var disabled: StyleBoxFlat = normal.duplicate()
-	disabled.draw_center = false
-	disabled.bg_color = Color(0.0, 0.0, 0.0, 0.0)
-	disabled.border_color = Utils.UI_FAINT_BORDER
-	disabled.border_width_left = 1
+	# Session UI-6 (F27: "give the sibling buttons a bit more finish"): the live
+	# faces are the drawn gilt button (lit head, rim, highlight, lift shadow; a warm
+	# glow on hover, a sunk well when pressed); the prominent one wears a 2 px rim.
+	var rim_live := Color(0.90, 0.80, 0.58, 0.95 if prominent else 0.75)
+	var normal: StyleBox = _button_face(
+		Utils.UI_MENU_FACE_PROMINENT if prominent else Utils.UI_MENU_FACE,
+		Utils.UI_MENU_FACE_FOOT, rim_live, 2 if prominent else 1, 0.0, 0.0, false)
+	var hover: StyleBox = _button_face(Utils.UI_MENU_FACE_HOVER, Utils.UI_MENU_FACE_HOVER_FOOT,
+		Color(Utils.UI_GOLD_BRIGHT, 0.95), 2 if prominent else 1, 0.35, 0.0, false)
+	var pressed: StyleBox = _button_face(Utils.UI_MENU_FACE_PRESSED, Utils.UI_MENU_FACE_PRESSED_FOOT,
+		Color(Utils.UI_GOLD_BRIGHT, 0.95), 2 if prominent else 1, 0.0, 0.5, false)
+	var disabled: StyleBox = _button_face(Color(0, 0, 0, 0), Color(0, 0, 0, 0),
+		Color(Utils.UI_GOLD, 0.3), 1, 0.0, 0.0, true)
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
@@ -678,7 +719,11 @@ func _build_footer() -> void:
 	version.name = "VersionLine"
 	version.text = "Ink & Iron — " + Utils.build_label()
 	version.theme_type_variation = &"Caption"
-	version.add_theme_color_override("font_color", Utils.UI_VERSION_LINE)
+	# Session UI-6 (F27: "the build string is dim"): the bright dim-ink token at full
+	# alpha with a dark outline - over the painting it reads at >= 4.5:1.
+	version.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	version.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	version.add_theme_constant_override("outline_size", 3)
 	version.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	version.add_theme_constant_override("shadow_offset_y", 1)
 	version.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -716,6 +761,7 @@ func _build_settings_view() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, 520)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE   # UI6-X22: the bar's gutter is kept
 	vbox.add_child(scroll)
 	_settings_panel = (load("res://scenes/settings_panel.tscn") as PackedScene).instantiate()
 	_settings_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -947,6 +993,18 @@ func _style_status_chip(rim: Color) -> void:
 	_status_chip.add_theme_stylebox_override("panel", box)
 
 
+func _size_status_chip(long_words: bool) -> void:
+	"""Session UI-6 (F27: "the status bar is wide"): the chip is no wider than its
+	words - the short 'war office answers' line stands unwrapped in a chip that
+	shrinks to it; the long launch hint (the war office is down) still takes the
+	footer's width and wraps there (a wrapping label in a shrink-wrapped box has no
+	width at all)."""
+	if _status_chip == null or _status_label == null:
+		return
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if long_words else TextServer.AUTOWRAP_OFF
+	_status_chip.size_flags_horizontal = Control.SIZE_FILL if long_words else Control.SIZE_SHRINK_BEGIN
+
+
 # UXR3-67 (Pre-Deploy S12): a waiting campaign button says why it waits.
 const WAITING_TIP := "Waiting for the game's server…"
 const NO_SAVES_TIP := "No saved campaign yet"
@@ -961,6 +1019,7 @@ func _apply_backend_state() -> void:
 		_status_label.text = "✓ The war office answers.  ·  " + Utils.backend_origin_label()
 		_status_label.add_theme_color_override("font_color", Color(0.72, 0.90, 0.72))
 		_style_status_chip(Color(0.45, 0.72, 0.45, 0.8))
+		_size_status_chip(false)
 		var version_line := _version_line
 		if version_line != null and _server_version != "" and _server_version != "dev":
 			version_line.text = "Ink & Iron — " + Utils.build_label() + "  ·  build " + _server_version
@@ -973,6 +1032,7 @@ func _apply_backend_state() -> void:
 			+ Utils.launch_hint())
 		_status_label.add_theme_color_override("font_color", Color(0.98, 0.82, 0.52))
 		_style_status_chip(Color(0.93, 0.74, 0.42, 0.85))
+		_size_status_chip(true)
 	var has_saves := _saves.size() > 0
 	for id in _buttons:
 		var b: Button = _buttons[id]

@@ -1436,6 +1436,24 @@ class CommandExecutor:
                 if _disclosure:
                     _ptrace.decide("executor", "substitution_disclosed", _disclosure[:120])
                     result["message"] = (f"{result.get('message') or ''}\n\n{_disclosure}").strip()
+            # UI6-X25 (widened): "Ney, attack Mack and Kutuzov" acts on the
+            # first name and used to drop the rest without a word — the reply
+            # says which names it read and did not act on (names only).
+            if (_depth == 0 and isinstance(result, dict) and result.get("message")
+                    and not (parsed_command.get("command") or {}).get("_autonomous_execution")
+                    and not (parsed_command.get("command") or {}).get("_strategic_execution")
+                    and not parsed_command.get("_ai_command")):
+                try:
+                    from backend.commands.proper_name import second_name_note
+                    _note = second_name_note(
+                        str(parsed_command.get("raw_input") or ""),
+                        (game_state or {}).get("world"),
+                        (parsed_command.get("command") or {}).get("marshal"))
+                except Exception as _exc:
+                    report(_exc, "executor.execute: second_name_note")
+                    _note = ""
+                if _note and _note not in str(result["message"]):
+                    result["message"] = f"{result['message']}\n\n{_note}".strip()
             # SR5B-1: this frame's set-aside orders — restored when the
             # order that set them aside was refused, else let go.
             _aside = self._orders_set_aside[_aside_mark:]
@@ -2119,7 +2137,11 @@ class CommandExecutor:
         # substitution further down (`guessed_target_refusal`). Player's
         # typed road only: AI, strategic execution and muster re-issues carry
         # no raw text (SCORE_FINISH_SPEC.md §6.3).
+        # UI6-X16: a NAMED marshal's charge is read here too (a bare
+        # "charge" is the pending-charge answer or "Charge requires a
+        # marshal"), and the bombard verbs ride `attack`.
         if ((action == "attack"
+                or (action == "charge" and command.get("marshal"))
                 or command.get("type") in ("general_attack", "auto_assign_attack"))
                 and not is_ai_command
                 and not is_strategic_execution
@@ -2203,11 +2225,26 @@ class CommandExecutor:
         # ════════════════════════════════════════════════════════════
         if (not is_ai_command and not is_strategic_execution
                 and not parsed_command.get("is_strategic")):
+            _commander_block = _exit_predicate.commander_object_pre_check(
+                command, action, world,
+                raw=str(command.get("_raw_input") or parsed_command.get("raw_input") or ""))
+            if _commander_block is not None:
+                _ptrace.decide("executor", "commander_object_refused",
+                               _commander_block["message"][:120])
+                return _commander_block
             _place_block = _exit_predicate.place_pre_check(command, action, world)
             if _place_block is not None:
                 _ptrace.decide("executor", "place_mismatch_refused",
                                _place_block["message"][:120])
                 return _place_block
+            # UI6-X67: "retreat from <a province he is not in>" - refused free.
+            _from_block = _exit_predicate.retreat_from_pre_check(
+                command, action, world,
+                raw=str(command.get("_raw_input") or parsed_command.get("raw_input") or ""))
+            if _from_block is not None:
+                _ptrace.decide("executor", "retreat_from_refused",
+                               _from_block["message"][:120])
+                return _from_block
 
         st.action = action
         return None
@@ -3719,8 +3756,23 @@ class CommandExecutor:
         elif action == "retreat":
             # W6-1 (BUG-CA-2): a stated destination ("retreat to Rhineland")
             # rides through — honored when legal, named when substituted.
+            # UI6-X59: "retreat from <place>" names where he falls back FROM,
+            # never a destination.
+            _raw_retreat = command.get("_raw_input") if isinstance(command, dict) else ""
+            _from_place = _exit_predicate.retreat_from_place(_raw_retreat, target)
+            # UI6-X64: a stated destination the parse did not bind ("retreat to
+            # Zorglub") still reaches W6-1, which names the substitution;
+            # UI6-X67: so does one after his own province ("retreat from
+            # Rhineland to Lorraine" - the parse bound the from-place).
+            if _from_place or not target:
+                _stated = _exit_predicate.retreat_stated_destination(_raw_retreat)
+                if _from_place and _stated:
+                    _from_place, target = None, _stated
+                elif not target:
+                    target = _stated
             return self._movement._execute_retreat_action(
-                marshal, world, game_state, target=target)
+                marshal, world, game_state,
+                target=None if _from_place else target, from_place=_from_place)
         elif action == "drill":
             return self._tactical._execute_drill(command, game_state)
         elif action == "fortify":

@@ -377,7 +377,9 @@ func _render_forces():
 	if forces_cabinet is Dictionary and forces_cabinet.get("live", false):
 		bbcode += _cabinet_block(forces_cabinet)
 	elif forces_cabinet is Dictionary:
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]THE CABINET — Talleyrand is at the Cabinet, free to send: press F1, choose a court, and send him on a mission.[/color]\n\n"
+		# Session UI-6: the idle Cabinet's sentence is prose the tiles do not need —
+		# Folded it stands behind the book's ⓘ; On the page it prints as it did.
+		bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]THE CABINET — Talleyrand is at the Cabinet, free to send: press F1, choose a court, and send him on a mission.[/color]\n\n", "sl.forces.lead")
 
 	# Authority — global player stat (V2b)
 	var authority = int(cached_data.get("authority", 100))
@@ -387,7 +389,9 @@ func _render_forces():
 		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
 		auth_color = Utils.COLOR_ERROR
-	bbcode += "Authority: [color=#" + auth_color + "]" + str(authority) + (" (" + authority_label + ")" if authority_label != "" else "") + "[/color]\n\n"
+	# Session UI-6: the Authority tile above says this figure — Folded the line
+	# stands behind the ⓘ; On the page it prints.
+	bbcode += Utils.bb_lead("Authority: [color=#" + auth_color + "]" + str(authority) + (" (" + authority_label + ")" if authority_label != "" else "") + "[/color]\n\n", "sl.forces.lead")
 
 	if forces.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]\n"
@@ -547,10 +551,19 @@ func _render_forces():
 			var name_cell := Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " " + name_link
 			if bool(f.get("sovereign", false)):
 				name_cell = Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "]THE EMPEROR —[/color] " + name_link
-			var tag_tone := badge_tone if badge_tone != "" else Utils.COLOR_BADGE_QUIET
+			# Session UI-6: the ORDER badge is toned by state — idle in gold, an
+			# order (a march, a hold, a pursuit) in the command tone, trouble and
+			# drilling as before, any other state in the quiet tone.
+			var tag_tone: String = Utils.COLOR_BADGE_QUIET
+			if badge_tone != "" and badge_tone != Utils.COLOR_BADGE_QUIET:
+				tag_tone = badge_tone
+			elif status == "idle" and strat == "None":
+				tag_tone = Utils.COLOR_GOLD
+			elif strat != "None" or status in ["moving_to", "pursuing", "supporting", "following", "marching"]:
+				tag_tone = Utils.COLOR_COMMAND
 			var state_cell := Utils.bb_tag(status.replace("_", " ").to_upper(), tag_tone)
 			if strat != "None":
-				state_cell += " [color=#" + Utils.COLOR_INFO + "]" + strat + "[/color]"
+				state_cell += " [color=#" + Utils.COLOR_COMMAND + "]" + strat + "[/color]"
 			table_rows.append([
 				name_cell,
 				"[color=#" + Utils.COLOR_GOLD + "]" + _format_number(strength) + "[/color] " + Utils.bb_meter(strength, widest, 72, 8),
@@ -793,8 +806,16 @@ func _render_territories():
 			else:
 				bld_parts.append("[color=#" + Utils.COLOR_BLUE + "]" + bname + " (" + bstatus + ")[/color]")
 
+		# Session UI-6: the row's own fields mark an exception — stability under
+		# 100, a supply verdict other than OK, war damage, a building that is not
+		# plainly built.
+		var is_exception: bool = stability < 100 or supply_status != "OK" or war_dmg > 0
+		for b in buildings:
+			if str(b.get("status", "built")) != "built":
+				is_exception = true
 		rows.append({
 			"name": name, "income": income, "garrison": garrison, "group": _terr_group_key(t, rtype),
+			"exception": is_exception, "has_buildings": bld_parts.size() > 0,
 			"cells": [
 				"[color=#" + Utils.COLOR_GOLD + "]" + name + "[/color] ",
 				"[color=#" + Utils.COLOR_INFO + "]" + rtype.replace("_", " ") + " · " + terrain.replace("_", " ") + "[/color] ",
@@ -814,6 +835,7 @@ func _render_territories():
 	bbcode += _terr_sort_line()
 	var cells: Array = []
 	var first_key := ""
+	var folded_rows := Utils.explanations_folded()
 	for g in _terr_groups(rows):
 		var key: String = str(g[0])
 		var members: Array = []
@@ -845,10 +867,58 @@ func _render_territories():
 			"",
 		])
 		if is_open:
-			for r in members:
-				cells.append(r["cells"])
-	bbcode += Utils.bb_table(["Province", "Kind", "Income", "Stability", "Supply", "Garrison", "Buildings"],
-		cells, [2, 5], [3, 5, 2, 4, 7, 2, 5], _table_px()) + "\n"
+			if not folded_rows:
+				for r in members:
+					cells.append(r["cells"])
+			else:
+				# Session UI-6: the exceptions first (the sort keeps within each
+				# half), the run of healthy rows folded behind one line.
+				var healthy: Array = []
+				var shown := 0
+				for r in members:
+					if bool(r["exception"]):
+						cells.append(r["cells"])
+						shown += 1
+					else:
+						healthy.append(r)
+				# The lead's frame reading (November 13): a group with nothing
+				# amiss folded ALL its rows ("28 more at 100 %") and the book stood
+				# two-thirds empty. The healthy rows fill the page up to
+				# _TERR_SHOWN rows (the sort's best first); only the rest folds.
+				var room: int = maxi(_TERR_SHOWN - shown, 3)
+				var rest: Array = []
+				for r in healthy:
+					if room > 0:
+						cells.append(r["cells"])
+						room -= 1
+					else:
+						rest.append(r)
+				var more_open: bool = bool(_terr_more.get(key, false)) or rest.size() < 3
+				if rest.size() >= 3:
+					var more_link := "[url=terr:more:" + key + "]" \
+						+ Utils.bb_hint("[color=#" + Utils.COLOR_INFO + "]" + ("▾ " if more_open else "▸ ") \
+						+ str(rest.size()) + " more at 100 %[/color]", ("Fold" if more_open else "Show") + " the " + str(rest.size()) + " more provinces with nothing amiss.") + "[/url]"
+					cells.append([more_link, "", "", "", "", "", ""])
+				if more_open:
+					for r in rest:
+						cells.append(r["cells"])
+	var heads: Array = ["Province", "Kind", "Income", "Stability", "Supply", "Garrison", "Buildings"]
+	var spans: Array = [3, 5, 2, 4, 7, 2, 5]
+	if folded_rows:
+		# a column empty on every row (the Buildings dashes) is hidden
+		var any_buildings := false
+		for r in rows:
+			if bool(r["has_buildings"]):
+				any_buildings = true
+				break
+		if not any_buildings:
+			heads = heads.slice(0, 6)
+			spans = spans.slice(0, 6)
+			var slim: Array = []
+			for c in cells:
+				slim.append(c.slice(0, 6))
+			cells = slim
+	bbcode += Utils.bb_table(heads, cells, [2, 5], spans, _table_px()) + "\n"
 
 	content_area.text = Utils.dress_heads(bbcode)
 
@@ -863,6 +933,8 @@ const _TERR_GROUPS := [
 
 var _terr_sort: String = "income"
 var _terr_open: Dictionary = {}
+var _terr_more: Dictionary = {}   # Session UI-6: the groups whose healthy rows are shown
+const _TERR_SHOWN := 10           # Session UI-6: rows a group shows before its healthy rest folds
 
 
 func _terr_group_of(rtype: String) -> String:
@@ -979,11 +1051,50 @@ func _econ_cells(r: Dictionary, bold: bool = false) -> Array:
 	return [label_cell, fig, note_cell]
 
 
-func _econ_table(rows: Array, subtotal: bool, subtotal_label: String) -> String:
+func _econ_table(rows: Array, subtotal: bool, subtotal_label: String, note_col: int = -1) -> String:
 	# Session UI-4: a block of the books as ONE table — line | figure | note —
 	# the figure column right-aligned so the gold reads down a column. The
 	# subtotal is printed only by a caller that has proved the rows reconcile to
 	# the payload's own Net (see _render_economy); lines outside Net follow it.
+	# Session UI-6: Folded, the caller decides the Note column for BOTH tables
+	# (note_col 1 = shown, 0 = hidden) so the gold stands in one column down the
+	# page; On the page (note_col -1) each table decides for itself, as before.
+	var cells: Array = _econ_build(rows, subtotal, subtotal_label)
+	if note_col >= 0:
+		# The interim blind reading (November 13): folded, the Note column stood
+		# empty but for one line ("the Note column is mostly empty") — a line's
+		# note is its label's hover, and both tables are Line | Gold.
+		var folded_cells: Array = []
+		for c in cells:
+			var label: String = str(c[0])
+			var note_words: String = Utils.bb_plain(str(c[2]))
+			if note_words != "":
+				label = Utils.bb_hint(label, note_words)
+			folded_cells.append([label, c[1]])
+		return Utils.bb_table(["Line", "Gold"], folded_cells, [1], [ECON_COLS[0], ECON_COLS[1]], _table_px()) + "\n"
+	var any_note := false
+	for c in cells:
+		if str(c[2]) != "":
+			any_note = true
+			break
+	if note_col >= 0:
+		any_note = (note_col == 1)
+	if not any_note:
+		var slim: Array = []
+		for c in cells:
+			slim.append([c[0], c[1]])
+		return Utils.bb_table(["Line", "Gold"], slim, [1], [ECON_COLS[0], ECON_COLS[1]], _table_px()) + "\n"
+	return Utils.bb_table(["Line", "Gold", "Note"], cells, [1], ECON_COLS, _table_px()) + "\n"
+
+
+func _econ_has_note(rows: Array, subtotal: bool, subtotal_label: String) -> bool:
+	for c in _econ_build(rows, subtotal, subtotal_label):
+		if str(c[2]) != "":
+			return true
+	return false
+
+
+func _econ_build(rows: Array, subtotal: bool, subtotal_label: String) -> Array:
 	var counted: Array = []
 	var outside: Array = []
 	var total := 0
@@ -1001,18 +1112,50 @@ func _econ_table(rows: Array, subtotal: bool, subtotal_label: String) -> String:
 		cells.append(_econ_cells({"label": subtotal_label, "amount": total, "note": "", "counts": true, "tone": ""}, true))
 	for r in outside:
 		cells.append(_econ_cells(r))
-	# Session UI-5 interim fix (Nov 13): the Note column goes when every note is empty.
-	var any_note := false
-	for c in cells:
-		if str(c[2]) != "":
-			any_note = true
-			break
-	if not any_note:
-		var slim: Array = []
-		for c in cells:
-			slim.append([c[0], c[1]])
-		return Utils.bb_table(["Line", "Gold"], slim, [1], [ECON_COLS[0], ECON_COLS[1]], _table_px()) + "\n"
-	return Utils.bb_table(["Line", "Gold", "Note"], cells, [1], ECON_COLS, _table_px()) + "\n"
+	return cells
+
+
+func _econ_balance_bar(rows: Array, net: int, reconciles: bool) -> String:
+	"""Session UI-6: income against charges as two meters on ONE scale (the
+	larger of the two), each with its figure, the net at the end. Empty when
+	the rows do not reach the payload's Net (never a figure the backend did not
+	stand behind) or when there is nothing to set against anything."""
+	if not reconciles:
+		return ""
+	var money_in := 0
+	var money_out := 0
+	for r in rows:
+		if not bool(r.get("counts", true)) or r.get("amount", null) == null:
+			continue
+		var amount: int = int(r.get("amount", 0))
+		if amount >= 0:
+			money_in += amount
+		else:
+			money_out += -amount
+	if money_in <= 0 and money_out <= 0:
+		return ""
+	var scale_max: int = maxi(money_in, money_out)
+	var width := 180 if Utils.compact_view() else 300
+	var net_color: String = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
+	var out := Utils.card_open()
+	out += Utils.bb_glyph("income", 16, Utils.COLOR_SUCCESS) + " [color=#" + Utils.COLOR_INFO + "]Income [/color] " \
+		+ Utils.bb_meter(money_in, scale_max, width, 9, Utils.COLOR_SUCCESS) \
+		+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _econ_signed(money_in) + "[/color]\n"
+	out += Utils.bb_glyph("admin", 16, Utils.COLOR_ERROR) + " [color=#" + Utils.COLOR_INFO + "]Charges[/color] " \
+		+ Utils.bb_meter(money_out, scale_max, width, 9, Utils.COLOR_ERROR) \
+		+ "  [color=#" + Utils.COLOR_ERROR + "]" + _econ_signed(-money_out) + "[/color]" \
+		+ "   [color=#" + Utils.COLOR_GOLD + "]Net[/color] [b][color=#" + net_color + "]" + _econ_signed(net) + "[/color][/b]\n"
+	out += Utils.CARD_CLOSE + "\n"
+	return out
+
+
+func _econ_band() -> String:
+	"""Session UI-6: the visual break between the income table and the charges —
+	a quiet band the width of the tables."""
+	var px: int = int(_table_px())
+	if px < 60:
+		px = 240
+	return "[img width=%d height=4 color=#%s]%s[/img]\n" % [px, Utils.TABLE_HEAD_BG, Utils.SWATCH]
 
 
 func _table_px() -> float:
@@ -1021,6 +1164,11 @@ func _table_px() -> float:
 	0 (natural width) before the page has a size."""
 	if content_area == null or content_area.size.x < 320.0:
 		return 0.0
+	# Session UI-6: Folded the tables run out to the stat tiles' right edge (the
+	# readers: "the tiles are not aligned with the tables") — the scroll bar's
+	# lane is all that is left; On the page the margin stays as it was.
+	if Utils.explanations_folded():
+		return content_area.size.x - 30.0
 	return content_area.size.x - 48.0
 
 
@@ -1246,8 +1394,22 @@ func _render_economy():
 	var reconciles: bool = (rows_sum == net)
 
 	# Session UI-2: the two groups stand here, under the heading each is named by.
-	bbcode += Utils.bb_section("INCOME", "income") + _econ_table(inc, reconciles, "Subtotal")
-	bbcode += Utils.bb_section("CHARGES", "admin") + _econ_table(chg + outside, reconciles, "Subtotal")
+	# Session UI-6 (the last reading): Folded, ONE bar sets income against charges
+	# under the tiles, the net at its end, and a band breaks the two tables. The
+	# figures are the printed rows' own, drawn only where they reach the payload's
+	# Net (the subtotal's rule); On the page the books stand as they did.
+	var folded_books := Utils.explanations_folded()
+	if folded_books:
+		bbcode += _econ_balance_bar(inc + chg, net, reconciles)
+	var note_col := -1
+	if folded_books:
+		var chg_all: Array = chg + outside
+		var has_note: bool = _econ_has_note(inc, reconciles, "Subtotal") or _econ_has_note(chg_all, reconciles, "Subtotal")
+		note_col = 1 if has_note else 0
+	bbcode += Utils.bb_section("INCOME", "income") + _econ_table(inc, reconciles, "Subtotal", note_col)
+	if folded_books:
+		bbcode += _econ_band()
+	bbcode += Utils.bb_section("CHARGES", "admin") + _econ_table(chg + outside, reconciles, "Subtotal", note_col)
 
 	# "The Levy is Open" (econ spec review §6). The force limit used to render
 	# ONLY inside the over-limit branch above — visible exactly while the gate
@@ -1810,6 +1972,13 @@ func _render_manpower():
 			notes_agree = false
 	if not notes_agree:
 		shared_note = ""
+	# Session UI-6 (the last reading): Folded, the three arms are ONE table (the
+	# readers: "each pool restates its figures in three lines") with a recruit
+	# button per arm under it. On the page each arm stands as the card it was.
+	if Utils.explanations_folded():
+		bbcode += _manpower_table(mp)
+		content_area.text = Utils.dress_heads(bbcode)
+		return
 	for pool_type in ["infantry", "cavalry", "artillery"]:
 		var pool = mp.get(pool_type, {})
 		var current = int(pool.get("current", 0))
@@ -1879,6 +2048,90 @@ func _render_manpower():
 	content_area.text = Utils.dress_heads(bbcode)
 
 
+func _manpower_table(mp: Dictionary) -> String:
+	"""Session UI-6: the pools as one table — arm · pool · regen a turn · price
+	of a levy · the pool on its meter (every meter the same width, one column) —
+	then one recruit button per arm. A button is the same `do:` road the Admiralty
+	chips use (the typed command, "recruit infantry"); a locked arm keeps its
+	place, dim, and its reason is the hover. The laws inside the figures and the
+	levy's cost note ride the cells' hovers."""
+	var rows: Array = []
+	var chips := ""
+	var meter_w := 90 if Utils.compact_view() else 210   # the interim readers: "the pool bars are tiny"
+	for pool_type in ["infantry", "cavalry", "artillery"]:
+		var pool: Dictionary = mp.get(pool_type, {})
+		if pool.is_empty():
+			continue
+		var current: int = int(pool.get("current", 0))
+		var max_val: int = int(pool.get("max", 0))
+		var regen: int = int(pool.get("regen_rate", 0))
+		var recruit_amt: int = int(pool.get("recruit_amount", 0))
+		var recruit_cost: int = int(pool.get("recruit_price", int(pool.get("recruit_base_cost", 0))))
+		var cost_note: String = str(pool.get("cost_note", ""))
+		var turns_full: int = int(pool.get("turns_until_full", 0))
+		var arm_glyph := "foot"
+		var arm_word := "Foot"
+		if pool_type == "cavalry":
+			arm_glyph = "horse"
+			arm_word = "Horse"
+		elif pool_type == "artillery":
+			arm_glyph = "guns"
+			arm_word = "Guns"
+		var pool_color: String = Utils.COLOR_INFO
+		var pool_fill: String = Utils.COLOR_GOLD
+		if current == 0:
+			pool_color = Utils.COLOR_ERROR
+			pool_fill = Utils.COLOR_ERROR
+		elif current < recruit_amt:
+			pool_color = Utils.COLOR_ORANGE
+			pool_fill = Utils.COLOR_ORANGE
+		var regen_text := "+" + _format_number(regen)
+		var regen_tip := ""
+		if turns_full == 0:
+			regen_tip = "Full."
+		elif turns_full == -1:
+			regen_tip = "This arm does not regrow."
+		else:
+			regen_tip = str(turns_full) + " turns to full."
+		for term in pool.get("regen_terms", []):
+			if term is Array and term.size() >= 2:
+				regen_tip += " Includes +" + str(int(term[1])) + "% regen — " + str(term[0]) + "."
+		var regen_cell := "[color=#" + Utils.COLOR_SUCCESS + "]" + regen_text + "[/color][color=#" + Utils.COLOR_INFO + "]/turn[/color]"
+		regen_cell = Utils.bb_hint(regen_cell, regen_tip)
+		var price_tip := cost_note
+		for term in pool.get("price_terms", []):
+			if term is Array and term.size() >= 2:
+				price_tip += (" " if price_tip != "" else "") + "The draft price includes ×" + str(snappedf(float(term[1]), 0.01)) + " — " + str(term[0]) + "."
+		var depot_closed = pool.get("depot_closed", false)
+		var closed: bool = typeof(depot_closed) == TYPE_BOOL and depot_closed
+		var price_cell := "[color=#" + Utils.COLOR_INFO + "]—[/color]" if closed else "[color=#" + Utils.COLOR_GOLD + "]" + str(recruit_cost) + "g[/color]"
+		if price_tip != "":
+			price_cell = Utils.bb_hint(price_cell, price_tip)
+		rows.append([
+			Utils.bb_glyph(arm_glyph, 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "]" + arm_word + "[/color]",
+			"[color=#" + pool_color + "]" + _format_number(current) + "[/color] / " + _format_number(max_val),
+			regen_cell,
+			price_cell,
+			Utils.bb_meter(current, maxi(max_val, 1), meter_w, 12, pool_fill),
+		])
+		# the recruit button: the levy's size and price on its face
+		var face: String = arm_word + " " + _format_number(recruit_amt) + " · " + str(recruit_cost) + "g"
+		if closed and cost_note != "":
+			chips += Utils.bb_chip_disabled(arm_word, "", cost_note) + "  "
+		elif recruit_amt <= 0:
+			chips += Utils.bb_chip_disabled(arm_word, "", "No levy of this arm is offered.") + "  "
+		elif current < recruit_amt:
+			chips += Utils.bb_chip_disabled(face, "", "The pool holds " + _format_number(current) + "; a levy takes " + _format_number(recruit_amt) + ".") + "  "
+		else:
+			var tip: String = "Raise " + _format_number(recruit_amt) + " " + pool_type + " at the capital for " + str(recruit_cost) + "g."
+			if cost_note != "":
+				tip += " " + cost_note
+			chips += Utils.bb_button_chip("do:recruit " + pool_type, face, Utils.COLOR_GOLD, _NAVAL_CHIP_BG, "", tip) + "  "
+	var out := Utils.bb_table(["Arm", "Pool", "Regen", "Levy", "Pool bar"], rows, [1, 2, 3], [3, 3, 3, 2, 4], _table_px()) + "\n"
+	out += "[color=#" + Utils.COLOR_INFO + "]Recruit:[/color] " + chips + "\n"
+	return out
+
+
 func _manpower_figure_card(mp: Dictionary) -> String:
 	"""Session UI-5: the Manpower book's foot — all three pools on one gauge
 	against their caps, the regrowth a turn and the turns to refill, every
@@ -1888,7 +2141,7 @@ func _manpower_figure_card(mp: Dictionary) -> String:
 	var regen_sum := 0
 	var refill := 0
 	var stuck := false
-	var width := 200 if Utils.compact_view() else 320
+	var width := 200 if Utils.compact_view() else 520   # the interim readers: "half the window is empty"
 	for pool_type in ["infantry", "cavalry", "artillery"]:
 		var pool: Dictionary = mp.get(pool_type, {})
 		var current: int = int(pool.get("current", 0))
@@ -2135,6 +2388,11 @@ func _on_meta_clicked(meta):
 	# Session UI-5: the Territories' sort toggle and group folds.
 	if meta_str.begins_with("terr:sort:"):
 		_terr_sort = meta_str.trim_prefix("terr:sort:")
+		_rerender_in_place()
+		return
+	if meta_str.begins_with("terr:more:"):
+		var mkey: String = meta_str.trim_prefix("terr:more:")
+		_terr_more[mkey] = not bool(_terr_more.get(mkey, false))
 		_rerender_in_place()
 		return
 	if meta_str.begins_with("terr:fold:"):

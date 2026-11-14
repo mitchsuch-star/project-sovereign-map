@@ -6178,7 +6178,7 @@
     },
     {
       "id": "cr7-arrival-object-parsed",
-      "utterance": "Ney, march to Swabia then attack Archduke Charles",
+      "utterance": "Ney, march to Swabia then attack Archduke John",
       "world": "1805",
       "expected": {
         "success": true,
@@ -6188,7 +6188,7 @@
         "attack_on_arrival": true
       },
       "source": "CR-7-6",
-      "notes": "The arrival order carries its object (arrival_target=ArchdukeCharles, read by strategic.pick_contact_enemy), asserted in pytest; the corpus can pin only the arrival flag."
+      "notes": "The arrival order carries its object (arrival_target=ArchdukeJohn, read by strategic.pick_contact_enemy), asserted in pytest; the corpus can pin only the arrival flag. RE-POINTED by UI6-X9 (Session UI-6, November 13, 2026): the row named the Archduke Charles, who stands in fog at Carniola on the boot, and an arrival attack is now armed only on a foe in sight (tests/test_cr7_6_the_arrival_order_carries_its_object.py::test_a_man_out_of_sight_arms_no_attack); the Archduke John stands in sight at Tyrol."
     },
     {
       "id": "cr7-9-and-means-both",

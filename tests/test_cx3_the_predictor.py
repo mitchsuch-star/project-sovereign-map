@@ -47,11 +47,12 @@ FOG
 ===
 The completer's only board source is the `/command` response's own
 `game_state`, whose `enemies` dict the backend has already fog-filtered, so
-nothing it generates can name a hidden corps. History stays SESSION-ONLY and
-is deliberately never written to `user://`: 4.7% of the archived commands
+nothing it generates can name a hidden corps. 4.7% of the archived commands
 name a marshal fogged on the 1805 boot board, and `Ney, attack Archduke
 Charles` parses at 0.95 and executes — a persisted history would carry those
-names into a campaign that never saw them.
+names into a campaign that never saw them. Session UI-5 persisted it (through
+UiSettings); Session UI-6 (UI6-X1) filters it where it shows: the offer and
+the Up/Down walk read only the lines whose every word stands on today's board.
 """
 
 import io
@@ -415,12 +416,24 @@ class TestTheHistoryWalk:
 
     def test_history_is_never_persisted(self):
         """The fog rule. A history written to `user://` would carry a
-        marshal's name into a campaign that never saw him."""
+        marshal's name into a campaign that never saw him.
+
+        RE-POINTED (Session UI-6, UI6-X1): Session UI-5 persists the history
+        through UiSettings (never a raw `user://` write here — still pinned),
+        so the rule now holds where the history SHOWS: the completer's offer
+        reads only the lines whose every word stands on today's board
+        (`_history_safe_lines`; driven in tests/test_cx_readback_history_fog.py).
+        RE-POINTED again by the session's ruling: the Up/Down walk recalls every
+        line the player typed, as typed (his own words, keyed back on demand) —
+        only the OFFER, the table's suggestion, keeps to today's board."""
         source = _gd_source()
         for line in source.splitlines():
             if "command_history" in line and "user://" in line:
                 pytest.fail(line)
         assert "_history_anchor" in source
+        assert "var remembered: Array = command_history" in _gd_function("_history_pool", "_history_previous")
+        build = source[source.index("func _build_completions"):source.index("func _add_addressee_or_bare")]
+        assert "_history_safe_lines()" in build and "command_history[i]" not in build
 
 
 class TestTheCompletionSurface:

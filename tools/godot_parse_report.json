@@ -442,6 +442,30 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/marshal_state.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/marshal_chip_row.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/marshal_roster_row.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/selection_card.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -521,6 +545,24 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/cx_r2_completer_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/readback_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ui6_scroll_flip_probe.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ui6_mode_c_walk.gd"
     },
     {
       "errors": [],
@@ -631,5 +673,5 @@
       "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-11-13T07:58:26Z"
+  "timestamp": "2026-11-13T20:13:09Z"
 }

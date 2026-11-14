@@ -59,11 +59,112 @@ text = "X"
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+[node name="Split" type="HSplitContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+dragger_visibility = 1
+
+[node name="RosterColumn" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Split"]
+custom_minimum_size = Vector2(236, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RosterHead" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Split/RosterColumn"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CommissionButton" type="Button" parent="PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead"]
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+toggle_mode = true
+text = "Commission a Marshal"
+
+[node name="ToolRow" type="HBoxContainer" parent="PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DoctrineButton" type="Button" parent="PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead/ToolRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Doctrine"
+
+[node name="LaurelsButton" type="Button" parent="PanelContainer/VBoxContainer/Split/RosterColumn/RosterHead/ToolRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Laurels"
+
+[node name="RosterScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer/Split/RosterColumn"]
+vertical_scroll_mode = 4
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="RosterList" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Split/RosterColumn/RosterScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="DetailPane" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DetailHeader" type="HBoxContainer" parent="PanelContainer/VBoxContainer/Split/DetailPane"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PortraitRect" type="TextureRect" parent="PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader"]
+custom_minimum_size = Vector2(96, 120)
+layout_mode = 2
+size_flags_vertical = 0
+clip_contents = true
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MonogramLabel" type="Label" parent="PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/PortraitRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"StatFigure"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderInfo" type="VBoxContainer" parent="PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/HeaderInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
+theme_type_variation = &"ScreenTitle"
+text_overrun_behavior = 3
+
+[node name="TagsLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/HeaderInfo"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="OrderBar" type="HFlowContainer" parent="PanelContainer/VBoxContainer/Split/DetailPane"]
+visible = false
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer/Split/DetailPane"]
+vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ContentArea" type="RichTextLabel" parent="PanelContainer/VBoxContainer/ScrollContainer"]
+[node name="ContentArea" type="RichTextLabel" parent="PanelContainer/VBoxContainer/Split/DetailPane/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

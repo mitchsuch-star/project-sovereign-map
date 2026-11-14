@@ -282,7 +282,11 @@ class TestTheArmyNamedAfterTheVerb:
         assert "the corps at Rhineland" in resp["message"], resp["message"]
         assert f"{len(at)} corps" in resp["message"]
         for name in at:
-            assert f"{name}:" in resp["message"] or f"{name} " in resp["message"], resp["message"]
+            # UI6-X26: every corps refused alike (Swabia is held by Mack), so
+            # the reply is the one reason, free — and still names the corps
+            # the order went to
+            assert name in resp["message"], resp["message"]
+        assert resp["message"].endswith("all answer alike.") and resp["success"] is False
         elsewhere = [m.name for m in M.world.marshals.values()
                      if m.nation == "France" and m.location != "Rhineland"]
         assert elsewhere and not any(f"{name}:" in resp["message"] for name in elsewhere), resp["message"]

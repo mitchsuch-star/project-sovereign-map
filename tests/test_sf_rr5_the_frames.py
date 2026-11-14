@@ -490,7 +490,13 @@ class TestEAE5TheAssessmentIsRead:
                  if b.get("scroll_rect") and b["text"] and b["text"] not in ("Back", "Cancel")]
         seen = [b for b in chips if _inside(b["rect_raw"], b["scroll_rect"])]
         assert len(seen) >= 2, [b["text"] for b in seen]
-        assert "more below" in _seen(frame)
+        # RE-POINTED (Session UI-6): the cue is honest both ways — "more below"
+        # while acts stand under the fold (2.0), and none when every act is in
+        # view (1.0, where UI-5's side-by-side columns now hold all ten).
+        if len(seen) < len(chips):
+            assert "more below" in _seen(frame)
+        else:
+            assert "more below" not in _seen(frame), [b["text"] for b in chips]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -514,8 +520,17 @@ class TestEAE6EveryCourtKeepsItsRow:
         seen = _seen(_frame(record, "settlement_three_courts", scale))
         # CONSCIOUS FLIP (S14D-X6, October 23, 2026): PROPOSE has no Ratify — its
         # heading names the draft; "cannot be ratified now" is REVIEW's.
-        assert "This draft will not carry as it stands." in seen
-        assert "cannot be ratified" not in seen
+        # RE-POINTED (Session UI-6, F16): Folded on the full view, the verdict is
+        # the panel's tile under the title row — PROPOSE's figure "Will not carry"
+        # over "3 of 3 hold out" — and the heading sentence is that tile's hover
+        # (On the page prints it). The compact view keeps the page's head
+        # (`_figures_first` is false there), so at 2.0 the sentence stands.
+        if scale == 2.0:
+            assert "This draft will not carry as it stands." in seen
+        else:
+            assert "Will not carry" in seen and "3 of 3 hold out" in seen
+        assert "cannot be ratified" not in seen and "Cannot be ratified" not in seen
+        assert "Ready to ratify" not in seen
         assert "Austria" in seen
 
 

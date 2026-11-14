@@ -60,6 +60,7 @@ text = "X"
 layout_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -73,6 +74,7 @@ scroll_active = false
 text = "No dispatch available yet."
 
 [node name="CorrespondenceScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+vertical_scroll_mode = 4
 visible = false
 custom_minimum_size = Vector2(0, 160)
 layout_mode = 2

@@ -274,11 +274,21 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 	var max_h := float(int(view.y * MAX_HEIGHT_RATIO))
 	var stored := UiSettings.get_panel_size("war_status", Vector2.ZERO)
 	# UXR-D3: the HUD band's right edge, and a fraction of its width.
-	var band := Utils.hud_band(view)
+	# Session UI-6 (November 13, 2026): the band the right-hand HUD anchors to
+	# (`Utils.hud_anchor_band`) — on a very wide screen the right column, which
+	# the list fills under the notice rail, growing down; folded to its chip
+	# (the compact view) the panel is the chip's own width, under the bell.
+	var band := Utils.hud_anchor_band(view)
 	var room := band.y - band.x
+	var column := Utils.hud_columns(view).y > 0.0
+	var chip := _is_folded_to_chip()
 	var w: float
 	if drag != Vector2.ZERO:
 		w = drag.x
+	elif chip:
+		w = panel_container.get_combined_minimum_size().x + CHIP_SLACK
+	elif column:
+		w = room - 2.0 * EDGE_MARGIN
 	elif stored != Vector2.ZERO:
 		w = stored.x
 	else:
@@ -287,12 +297,15 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 		# needs whole — the Side Desk's dock narrows the band, and at the
 		# floor "Britain + Austria + Russia" was cut to "Rus".
 		w = maxf(w, _content_need_width())
-	w = clampf(w, MIN_WIDTH, maxf(room - 2.0 * EDGE_MARGIN, MIN_WIDTH))
+	w = clampf(w, CHIP_MIN_WIDTH if chip else float(MIN_WIDTH), maxf(room - 2.0 * EDGE_MARGIN, MIN_WIDTH))
 	var h: float
 	if drag != Vector2.ZERO:
 		h = clampf(drag.y, MIN_HEIGHT, maxf(max_h, MIN_HEIGHT))
 	else:
 		var cap := max_h
+		if column:
+			# Session UI-6: the column's whole height under the rail's slot
+			cap = view.y - (Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + NARROW_TOP_GAP) - EDGE_MARGIN
 		if stored != Vector2.ZERO:
 			cap = minf(cap, stored.y)
 		# +18 covers the panel stylebox content margins (12 top + 4 bottom) +
@@ -313,8 +326,12 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 	# Session UI-2: on a narrow logical view (Interface Scale 2.0 on a 1600-px
 	# window: 800 wide) the war list stands at the top right under the notice
 	# rail, so it never meets the command window or the zoom chips.
-	if room < NARROW_BELOW_PX:
+	# Session UI-6: the right column stands it there too (top-anchored, growing
+	# down); folded to its chip it stands under the rail's own rect (the bell).
+	if column or room < NARROW_BELOW_PX:
 		var top := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + NARROW_TOP_GAP
+		if chip:
+			top = _under_the_rail()
 		panel_container.anchor_top = 0.0
 		panel_container.anchor_bottom = 0.0
 		panel_container.offset_top = top
@@ -331,6 +348,23 @@ func _apply_geometry(drag: Vector2 = Vector2.ZERO) -> void:
 # under the notice rail's slot (36 bar + 6 gap + 76 slot + 6).
 const NARROW_BELOW_PX := 1000.0
 const NARROW_TOP_GAP := 88.0
+# Session UI-6 (November 13, 2026): folded to its chip ("⚔ 1 war ▾") the panel
+# is the chip's own width (it reserved ~277 px, the hidden rows' width) and
+# stands RAIL_CHIP_GAP under the notice rail's own rect — the bell at the
+# compact view — which main.gd hands it (`avoid_rail`).
+const CHIP_SLACK := 8.0
+const CHIP_MIN_WIDTH := 60.0
+const RAIL_CHIP_GAP := 6.0
+var avoid_rail: Control = null
+
+
+func _under_the_rail() -> float:
+	"""The folded chip's top: under the notice rail where it stands (its bell
+	at the compact view), else just under the top bar."""
+	var top := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + RAIL_CHIP_GAP
+	if avoid_rail != null and is_instance_valid(avoid_rail) and avoid_rail.is_visible_in_tree():
+		top = maxf(top, avoid_rail.get_global_rect().end.y + RAIL_CHIP_GAP)
+	return top
 
 # Session UI-4 (November 12, 2026): the command window this panel never
 # stands on (main.gd sets it to the window's PanelContainer), and the gap

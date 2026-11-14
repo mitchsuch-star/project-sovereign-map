@@ -11035,6 +11035,11 @@ PC-X21 the bilateral ratifier dropped an occupied-homeland cession silently (F52
 
 ### 128.2 The selection
 
+> **Amended by §217 (Session UI-6, November 13, 2026):** the status strip is the SELECTION CARD (seven fixed order
+> slots, digits 1–7); a RIGHT-click is an order with a corps selected (a province: march, an enemy in sight: attack,
+> another of ours: support) and a LEFT-click on another of ours selects him (it opened a support card); after an order
+> the next idle marshal is selected (Settings, on). The confirm card (§128.3) and the drag (§128.4) are unchanged.
+
 - **Select:** on an EMPTY line a plain click on a piece of ours selects him (`main._select_marshal`; Shift writes his name — CC-1 — and Ctrl is CC-5's group): the province panel shuts; a gold **ring** stands at his feet (`scenes/map_order_layer.gd` — screen-space like the label layer, crisp at every zoom); the **status strip** — bottom centre, above the map's controls, clamped in the HUD band, taking no mouse — reads "Soult selected — click a province: march · an enemy: attack · a marshal: support · Esc cancels", then the bands' legend, how many provinces lie on his roads and what a march costs (or "No march today — <the probe's reason>"); his reach is asked ONCE (`GET /march_reach`).
 - **The tint:** every province he can march to is tinted by ETA band on its true silhouette — this turn · 1 turn · 2–3 turns · 4+ (`ORDER_BAND_COLORS`) — and the rest washed dark (`ORDER_OUT_OF_REACH`): the owner fill's own palette pattern on its own lookup texture (`REACH_FILL_SHADER`, `reach_fill_layer`), one ≤128-entry upload per selection, hidden while nothing is selected.
 - **The ghost road:** the cursor over a province draws the reach's road (pinned equal to the quote's) from his feet — a pip where he stands at each turn's end, an arrow, a badge ("2 turns · 1 AP") on the side the road travels; after a 0.15 s rest the exact quote is fetched ONCE (kept for the selection's life, dropped when the selection or the board under it changes) and the badge reads its terms. Over an enemy or a corps of ours the ghost waits for that quote (an attack red, a support blue).
@@ -16995,3 +17000,122 @@ clears the current world's seen set; end turn passes `autosaved` / `autosave_lab
 
 **Authored copy:** Berthier's memorial's refusal is "Let the tent serve" (it read "Not now", beside the letter's own
 Not Now button — two "Not now" answers on one sheet); display copy, struck from the measured identity.
+
+## §217 Session UI-6 — the last reading: the Generals and the command line rebuilt for play (November 13, 2026)
+
+**The session** (`UI_VISUAL_FOUNDATION_SPEC.md` §14 the record; `BUG_FIXES.md` §UI6 the defects). The user: "this is
+last scoring make all deicisons and fix this, while at it please analyze if there are better ways to interact with
+gernals as well and to make typing clicking etc cleaner". Plan Mode drafted it and the user approved it. No game rule
+changes; the backend gains a read-only endpoint (`GET /parse_preview`) and display-only fields; the live order road's
+fog siblings are fixed (below).
+
+**One reading of a marshal** (`scripts/marshal_state.gd`, `MarshalState`, static): `from_overview(card)` /
+`from_board(entry, row)` → a view; `status_of(view)` → {key idle | marching | fortified | drilling | holding | prisoner |
+petition, label, detail, tone, glyph, idle} (it mirrors `main._idle_marshals()`); `order_specs(view)` → the SEVEN FIXED
+slots {slot, verb, label, price, locked, reason} from the board's `order_prices` / `order_refusals` — 1 Hold, 2 Fortify /
+Unfortify, 3 Drill, 4 Scout, 5 Fall back, 6 Garrison, 7 Cancel order; `portrait_path` (path strings, probed once —
+`_portrait_paths`, no Resource: S14E-X207's census). The roster, the selection card, the marshal row and the province
+panel's forces rows all read it.
+
+**The war room's interaction** (`main.gd`; `SYSTEMS_REFERENCE` §128–§130 amended here):
+- **The selection card** (`scripts/selection_card.gd`) replaces the text strip: portrait, name, strength and morale,
+  status, actions left; the seven fixed slots with their digits — a locked slot keeps its place, dimmed, its reason the
+  hover; a press sends "<Name>, <verb>" down the chip road (one in-flight latch); the hint line keeps
+  `order_strip_text()` (the CC harness reads it); a Ctrl-click group shows a group face (names, summed price, "march
+  together"); at Interface Scale 2.0 glyph and digit, the label its hover. On 32:9 it docks in the right column's wing.
+- **Digits 1–7** press the card's slots only while a marshal is selected, no group, the line empty and not editing, no
+  card, screen or modal (`_ui6_digits_live`); a locked slot plays the deny cue. No letter hotkey was added.
+- **Right-click** (`map_renderer_base.order_context_requested(region, marshal)` → `_on_order_context_requested`): with a
+  marshal selected — a province: the march card; an enemy in sight: the attack card; another of ours: the support card;
+  a fog chip: a march to its province (never naming him); nothing selected — an own piece on an empty line is selected;
+  elsewhere it dismisses as before. **A left-click on another of ours re-selects** (`_order_target_key(via_right)` maps
+  "ally:" to "pick:" on the left path); support stays on the right-click and the drag.
+- **The next idle marshal after an order** (Settings → ORDERS, `orders/next_marshal_after_order`, default on; off under a
+  harness): after a card verb, a gesture order or a confirm-card send that began from a selection, the next idle marshal
+  is selected and the camera eases to him (`_ui6_after_order`, `_card_sent_for`); off, he is selected again. Never after
+  a typed line. A send still lets the selection go first (the CC-3 pin); the result re-selects.
+- **The marshal row** (`scripts/marshal_chip_row.gd`) in the desk: idle first and gilt, "+N" opens the Generals; a click
+  selects him, a double-click opens his Generals detail, a click while a draft stands writes his name (CC-1's pen); on
+  32:9 a portrait grid; at 2.0 "● N idle".
+- **Toasts:** an order sent from behind a screen (the Generals' bar, the province panel) toasts its answer (UI-5's
+  decision 15, one act added).
+
+**The Generals** (`marshal_management.gd/.tscn`, `scripts/marshal_roster_row.gd`): master-detail by default (folded) —
+the roster (Commission a Marshal, Doctrine, Laurels at its head, each switching the detail; one `MarshalRosterRow` per
+marshal — portrait, name in the HUD's title step, "place · strength" and the status badge on one line, a gilt dot when
+urgent; the Emperor, the urgent and the prisoners first) and the detail (portrait, name, tags, a status line, a figure
+strip, the ORDER BAR — real Buttons pinned above the scroll: Hold, Fortify / Unfortify, Drill, Scout, Fall back,
+Garrison, ⌖ On the map — priced, locked with the reason as the hover; skills as a 3×2 tile grid, abilities as chips, the
+Reward line printed, the relationships wrapping). Digits select by roster position, Up / Down move, Enter focuses the
+first lit order; the Side Desk dock and the compact view show a portrait-only roster. `locate_requested(name)` closes the
+screen, selects him and moves the camera. **On the page** hides the roster, header and bar and renders
+`_render_all_cards` untouched.
+
+**The readback** (`backend/commands/parse_preview.py`, `GET /parse_preview?line=`; the client's own `HTTPRequest`,
+`api_client.get_parse_preview` / `cancel_parse_preview`): how a typed line would be read — the marshal, the verb, the
+target, the price, the turns, whether he may object, or why it would be refused — never executed (the pure `/command`
+stages only, a dedicated mock-only parser under a lock, the parse trace cleared, the dice untouched, `busy` while a POST
+holds the state, the LLM state cached per state epoch `_STATE_EPOCH`). A line the live client would hand the model reads
+"secretary" and quotes nothing (Golden Rule 6). Output a whitelist, every number int(). The client's row
+(`_readback_row`, Settings → DISPLAY `display/readback`, default on; off under a harness): a 220 ms rest, one request in
+flight, a stale answer dropped by its serial and its line, a small cache; "▸ Ney · attack Mack (Bavaria) · 1 action · he
+may object", "✕ Davout — fortified — unfortify first", "? No marshal 'Nye' — [Ney]?" (a candidate FILLS the line, never
+sends); notes fold to the hover. Census: `tests/test_parse_preview_vs_command.py` (the readback and `/command` agree on
+marshal, action and target over the corpus).
+
+**The fog doctrine** (recorded; `llm_client._askable_enemy_names`, `tests/test_crt2_the_name_is_never_replaced.py`): a
+commander's NAME and SIDE are public; his POSITION (province, distance, range, strength, any figure of his corps) is the
+fog's. The readback answers a commander out of sight as `/command` does and never carries where he stands
+(`_unseen_reading`; `target_place` only in sight — `intel_surfaces.in_sight`). Fixed in the live road (each a position or
+a sibling of one; `BUG_FIXES.md` §UI6): a cautious delegation scouted his live province (X14); "No marshals in range of
+him" (X15); charge and bombard dropped the first name (X16); "support Hohenlohe" at peace (X17); the reason clause's
+wording (X18); Berthier's mock recovery suggested "move to <commander>" (X19); the readback quoted "hold <commander>"
+(X20); an unseen commander's live province kept as a target snapshot (X21); an arrival attack armed on a man in fog (X9);
+a reason clause on no roster became our order and fought a battle (X10, P1). Four more fixer rounds, each broken-tested by two adversarial verifiers (X25 … X62): a commander as the object of a stationary verb or a retreat is refused free in one wording (`exit_predicate.commander_object_pre_check`, `retreat_commander_refusal`); a collective quote prices only the corps that will take the order (`group_orders`); a battle report places a foreign man only where he stands in sight (`intel_surfaces.whither`); a typed province answers alike with or without a fogged occupant; a pronoun binds to the name its clause gave, and after a compound subject it is refused free naming both; a title two men share acts on its unique bearer in sight, else the free ask (the DD0-S5 register kept); "so / therefore / thus / hence <order>" takes exactly the typed "then" road; no line bypasses a gate the single order obeys (the charge's arming, the guns). The closing pass (X63 … X76): a march verb that names nothing ("Ney, march", "Ney, go") asks where, free (`strategic_parser.march_verb_stands_alone`, beside CX3-R2's `march_slot_is_empty`), and an unresolved bare march or pursuit with no foe in sight asks naming no one; "retreat from <a province he is not in>" is refused free beside `place_pre_check` (`exit_predicate.retreat_from_pre_check`; his own province, a plain phrase or a court retreat; "from his province to Y" honours Y), a pronoun bound to a commander takes the commander refusal, and a stated destination the parse missed reaches W6-1's named substitution; two orders joined by "because" / "since" are refused free naming both (kind `two_orders`); with / along with / together with / as well as / alongside join a list, a foreign man after one drawing the second-name note and a marshal of ours after one left to the muster; a pursuit of a word two commanders share takes its one bearer in sight (`shared_name_word_in` + `unique_bearer_in_sight`; a unique surname stays CA8-28's exact refusal). **The history** (`command_history`, 50,
+persisted since UI-5): the completer OFFERS only lines whose every word stands on today's board
+(`_history_line_is_safe`); the Up / Down walk recalls every line typed, as typed.
+
+**The command desk** (`main.gd _relayout_terminal`, one mode switch, every node name kept; `TERMINAL_*_FRACTION` /
+`default_terminal_size` untouched): **desk** — a title row, one status row (actions, admin, the levies with glyphs), the
+marshal row, the log bottom-aligned in brighter ink, the line with the send glyph (shown while the line holds an order;
+On the page "Execute" always), "⚖ Cabinet" and End Turn (E), the readback row above the line; Turn and Gold rows hidden
+(the top bar carries both; its narrow date keeps the turn, "1 · September 1805"). **bar** (the compact view, logical
+height < 600): `[line | send | End Turn (E) | ⋯]` over the last reply's line carrying "T1 · ⚔ 4/4 · ✎ 2/2" and
+"● N idle"; ⋯ = the Cabinet, interface scale, map view, every command, the log, minimise; the log a drawer upward (≤ 40 %),
+opened by the reply line / ⋯ / a tall reply, closed by Esc / a send / a press outside (`_ui5_log_open`, an explicit flag
+replacing UI-5's focus fold); the map-mode chip hidden (M cycles). The folded log is never measured (UI6-X32): a hidden label keeps a 1-px width, so `_snap_output_to_a_whole_line` returns while the log is not visible in the tree and `_hold_tall_reply` answers the folded bar by its line count (`_ui6_hold_reply`); opening the log relayouts, re-snaps and scrolls to its newest line. **column** (a very wide view, HUD width Auto, Wide map
+Fill — `Utils.hud_columns`: left clamp(0.17·w, 420–560), right clamp(0.15·w, 380–480)): the desk a full-height left
+column; `Utils.hud_band` returns the room from the desk's column to the screen's edge (the province panel, the order
+card, the tutor card and the letters land in the map's room), `hud_band_full` the screen, `hud_anchor_band` the right
+column's span, where the notice rail and the war list keep the column's width at the top right; the map takes a left
+inset and fills its room (`map_renderer_base.COLUMN_FILL_ASPECT` 2.2). The interim blind reading collapsed the RIGHT
+column (its full-height frame over one small war list read as "a large empty panel"): `hud_band` no longer subtracts
+it, and `main.WING_FRAME_DRAWN` is false — the province panel and the selection card stand at the map's right edge.
+
+**The map's plaques** (`map_label_layer.gd`, `map_renderer_base.gd`): a nation's touching plates gather at ANY zoom (the
+selected marshal always leads; per-marshal hover boxes kept); "· N more" for gathered and stacked plates alike; the fog
+chips stay one per force (each a click target).
+
+**The panels** (folded only; On the page unchanged): the province panel leads with its figures row; RECRUIT one line (a
+"Levies ×1.45" tag, its sentence the hover; one lock chip when every arm is refused for one reason); Build's upkeep a tag;
+FORCES PRESENT one row per marshal (his name selects him, strength, state badge, the context verbs, "+N orders" whose
+hover names each folded order and why a locked one is refused). The war detail: the backdrop hides the HUD
+(`BACKDROP_ALPHA` 0.85); a GROUND block (backend sidecar `ground` beside `war_title_line`: "We hold 4 of theirs" / "They
+hold 9 of ours", flags, names); the score table at the page's width (`_table_px`, redrawn when the label settles at
+another width); the tail as tiles and tables. The settlement table: a verdict panel ("Will not carry — 3 of 3 hold out",
+the treasury tiles), larger court meters, a "The peace" card, counsel one fold (backend sidecars in
+`settlement_staging`). The Generals, the ledgers, the Cabinet, the press, the letters, the enemy phase, the diorama, the
+end card, the menu, the mailbox, Settings and the tutor card: each its readers' named change (§14). The Cabinet's second step sets the counsel card first (the Recommendation's first sentence in the title face); folded on the compact view the assessment's heading steps aside (the window's title names the court) and the verdict is bold gilt in the body face, one line, so Talleyrand's quote still opens above the fold (EA-E5).
+
+**The late rules** (the interim reading, the engine lanes and the lead's frame readings): Settings' segmented controls are for a choice of up to three (`settings_panel._SEGMENT_MAX_CHOICES` 3 — window, HUD width and tooltip delay keep their drop-downs folded too; the interim readers' "long wall of toggles and segmented buttons"); a heading that repeats its tab's name steps aside only while the tabs show (UI6-X52); a court's fact longer than a grid cell (`diplomatic_ledger.GRID_FACT_MAX_CHARS` 44) prints under the Nations grid as one full-width line, and the ledger's page keeps a right text margin (`PAGE_RIGHT_MARGIN` 16, UI6-X48); the war detail's Objective tile prints the war's purpose sentence (EP-F1, UI6-X51); the log's whole-line pad tells the layout and the scroll re-reads its child before the end is taken (UI6-X40).
+
+**Scroll containers keep their bar's gutter** (UI6-X22): every ScrollContainer in the client — 21 scene nodes and the six
+built in code — is `vertical_scroll_mode` SCROLL_MODE_RESERVE (4): a child's width never depends on whether the bar
+shows, so a text whose height is not monotonic in its width (inline chips rewrapping) cannot flip the bar forever inside
+one frame. A new ScrollContainer fails `tests/test_ui6_scroll_gutter.py`'s census until it does the same.
+
+**The instrument** (UI6-X23): `tools/iq10_run_captures.py::script_errors` reads every shot after the first begins.
+
+**Settings keys added:** `orders/next_marshal_after_order` (true; false under a harness), `display/readback` (true;
+false under a harness). Columns: `UiSettings.COLUMN_LEFT_FRACTION` 0.17 (`_MIN` 420, `_MAX` 560),
+`COLUMN_RIGHT_FRACTION` 0.15 (`_MIN` 380, `_MAX` 480).

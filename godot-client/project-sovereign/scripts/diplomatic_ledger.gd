@@ -90,6 +90,11 @@ func _ready():
 	# sixth screen: the user's ruling, October 12, 2026).
 	ResizeGrip.attach_centered($PanelContainer, "diplomatic_ledger")
 	content_area.meta_clicked.connect(_on_content_meta_clicked)
+	# The lead's frame reading (Session UI-6, November 13): a tab drawn before
+	# the window's first layout measured its tables against the 640-px fallback
+	# (the nation cards' facts stood at ~70 % of the card). Once the page settles
+	# at another width the open tab is drawn again, the scroll kept.
+	content_area.resized.connect(_on_content_resized)
 	# Session UI-3 (November 12, 2026): the Explanations switch re-renders the
 	# open tab from the cached ledger, the scroll kept.
 	Utils.on_explanations_changed(_rerender_keeping_scroll)
@@ -114,6 +119,15 @@ func _ready():
 	# Session UI: every court, treaty and client a card (the marks are in the
 	# builders; `scripts/card_underlay.gd` paints them).
 	Utils.card_page(content_area)
+	# Session UI-6 (the lead's dry-run reading of F11): the page's text stops short
+	# of the cards' right hairline. The theme gives a RichTextLabel no margin and a
+	# card is drawn 2 px inside the label's edge, so a grid with long values
+	# (Austria's Weariness and Exposure) grew to the label's full width and ran
+	# past the card's border ("… the rest" at the edge). Godot grows a table's
+	# long-text columns until it fills the available width; the margin caps it.
+	var page_box := StyleBoxEmpty.new()
+	page_box.content_margin_right = PAGE_RIGHT_MARGIN
+	content_area.add_theme_stylebox_override("normal", page_box)
 
 	# Critical threat pulse timer
 	_critical_pulse_timer = Timer.new()
@@ -431,6 +445,64 @@ func _facts_table(rows: Array, wide := false) -> String:
 	return out + "[/table]\n"
 
 
+# Session UI-6 (November 13, 2026): the readers called the Nations card "seven rows per
+# nation repeat the same labels" with "a lot of empty right-hand space". Folded, a
+# court's facts stand in PAIRS across the whole width (Doctrine | Diplomat,
+# Authority | Regions, Army | Treaties): each label a glyph and a small caption (the
+# colon dropped - the caption is the label), each value in its own ink. Every fact of
+# the old card is still a cell, in its order; On the page `_facts_table` stands.
+func _caption_of(label_cell: String) -> String:
+	return label_cell.replace(": [/color]", "[/color]")
+
+
+func _court_grid(rows: Array) -> String:
+	if rows.is_empty():
+		return ""
+	# Session UI-6 (second shoot): the grid SPANS the card's inner width and a long value
+	# wraps in its cell. A zero-padding spacer row of transparent floors (the way
+	# `Utils.bb_table` sets its head cells) fixes the label columns at ~118 px and
+	# gives the two value columns the rest in equal shares.
+	# the card's inner width: the page's own less the card's spine and padding
+	# (the Balance page's -64 is a book's margin; a card's text runs nearer)
+	var span_w: float = float(_balance_width())
+	var label_w: float = 118.0
+	var value_w: float = maxf((span_w - 2.0 * label_w) / 2.0, 60.0)
+	# The lead's final-shoot reading (Session UI-6, UI6-X48): a SENTENCE in a grid
+	# cell (Austria's Weariness and Exposure) made Godot grow its column to the
+	# label's full width with the cells' padding laid on top — the grid ran past
+	# the card's hairline whatever the page's margin. A fact longer than a cell
+	# holds prints under the grid as one full-width line; the short facts keep
+	# their pairs. (Folded only: On the page keeps `_facts_table`.)
+	var short: Array = []
+	var long: Array = []
+	for row in rows:
+		var fact: Array = row
+		if Utils.bb_plain(str(fact[1])).length() > GRID_FACT_MAX_CHARS:
+			long.append(fact)
+		else:
+			short.append(fact)
+	var out := ""
+	if not short.is_empty():
+		out += "[table=4]"
+		for k in range(2):
+			out += "[cell padding=0,0,0,0]%s[/cell]" % Utils.bb_col_floor(label_w - 14.0)
+			out += "[cell expand=1 padding=0,0,0,0]%s[/cell]" % Utils.bb_col_floor(value_w - (22.0 if k == 0 else 10.0))
+		var i := 0
+		while i < short.size():
+			for k in range(2):
+				if i + k < short.size():
+					var r: Array = short[i + k]
+					out += "[cell bg=#%s,#%s padding=6,3,8,3]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, _caption_of(str(r[0]))]
+					out += "[cell expand=1 bg=#%s,#%s padding=4,3,%d,3]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, 18 if k == 0 else 6, str(r[1])]
+				else:
+					out += "[cell padding=6,3,8,3] [/cell][cell expand=1 padding=4,3,6,3] [/cell]"
+			i += 2
+		out += "[/table]\n"
+	for r in long:
+		out += " " + _caption_of(str(r[0])) + "  " + str(r[1]) + "\n"
+	return out
+
+
 func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks: Array, ghost_to: int = -1) -> String:
 	"""The wide threat gauge: 0-100 across `width` px, filled to `level` in
 	`fill_hex`, a 2-px gilt tick at each of `marks` (60 'brews', 80 'forms').
@@ -463,9 +535,29 @@ func _threat_gauge(level: int, width: int, height: int, fill_hex: String, marks:
 
 func _balance_width() -> int:
 	"""Session UI-4: the Balance page's content width in px (the window's own
-	less its margins and the scroll bar), 640 before the window has a size."""
+	less its margins and the scroll bar), 640 before the window has a size.
+	Session UI-6: the width used is remembered (`_on_content_resized`)."""
 	var w: int = int(content_area.size.x) - 64 if content_area != null else 0
-	return w if w > 280 else 640
+	var out: int = w if w > 280 else 640
+	_width_used = out
+	return out
+
+
+var _width_used := -1   # the content width the open tab's tables were drawn to
+# Session UI-6: the page's right text margin — no text or table reaches the cards' hairline.
+const PAGE_RIGHT_MARGIN := 16.0
+# Session UI-6 (UI6-X48): a court's fact longer than this prints under its grid, full width.
+const GRID_FACT_MAX_CHARS := 44
+
+
+func _on_content_resized() -> void:
+	"""Redraw the open tab once its page settles at a width its tables were not
+	drawn to (more than 16 px off) — never on a sub-pixel jitter."""
+	if not visible or _width_used < 0 or cached_data.is_empty() or content_area == null:
+		return
+	var w: int = int(content_area.size.x) - 64
+	if w > 280 and absi(w - _width_used) > 16:
+		call_deferred("_rerender_keeping_scroll")
 
 
 func _gauge_scale_table(brews: int, forms: int) -> String:
@@ -779,7 +871,10 @@ func _render_nations():
 			if exposure_row_line != "":
 				facts.append([_fact_label("defense", "Exposure: "), "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]"])
 
-		bbcode += _facts_table(facts, content_area != null and int(content_area.size.x) >= 820)
+		if Utils.explanations_folded():
+			bbcode += _court_grid(facts)
+		else:
+			bbcode += _facts_table(facts, content_area != null and int(content_area.size.x) >= 820)
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor) — each tie
 		# a state badge, the temper in words after it.
@@ -1081,6 +1176,88 @@ func _render_treaties():
 # =============================================================================
 # TAB 3: BALANCE OF EUROPE (VP1-X6: the button's title, every pointer's name)
 
+func _designs_one_table(roads: Array) -> String:
+	"""Session UI-6 (November 13, 2026): the readers called the stacked Design /
+	Progress / Hold / Status headers a repeat, the Road headers weak and the columns
+	dead space. Folded, the designs stand in ONE table under ONE header row spread
+	across the page; each road is a band row (its numeral and its name in the title
+	face, on a tinted ground - the proclaimed road in the gilt) followed by its
+	designs' rows. The meters are wide and fill in the stronger tokens; the progress
+	sentence rides the meter's hover, the hint the title's, the hold line the pips'."""
+	# the interim readers: the table stood ~80 px short of its card's edge (a card's
+	# text runs nearer the edge than the book's -64 margin) — the card's width
+	var width: float = float(_balance_width()) + 30.0
+	var shares: Array = [5, 5, 2, 1]
+	var share_sum: float = 13.0
+	var heads: Array = ["Design", "Progress", "Hold", "Status"]
+	var out := Utils.card_open(Utils.COLOR_GOLD) + "[table=4]"
+	for c in range(4):
+		var floor_px: float = width * float(shares[c]) / share_sum - 12.0 - Utils._head_words_px(str(heads[c]))
+		out += "[cell expand=%d bg=#%s padding=6,3,6,3][color=#%s][opentype_features=smcp]%s%s[/opentype_features][/color][/cell]" \
+			% [int(shares[c]), Utils.TABLE_HEAD_BG, Utils.COLOR_GOLD, str(heads[c]), Utils.bb_col_floor(floor_px)]
+	var progress_px: float = width * 5.0 / share_sum
+	var meter_w: int = clampi(int(progress_px) - 80, 110, 420)
+	var row_i := 0
+	for road in roads:
+		if not (road is Dictionary):
+			continue
+		if road.get("forsworn") is bool and road.get("forsworn"):
+			continue
+		var ds = road.get("designs")
+		if not (ds is Array):
+			continue
+		var proclaimed: bool = road.get("proclaimed") is bool and road.get("proclaimed")
+		var band_tone: String = Utils.COLOR_GOLD if proclaimed else Utils.COLOR_BADGE_QUIET
+		var band_ink: String = Utils.COLOR_GOLD if proclaimed else Utils.COLOR_TEXT
+		var band_title: String = str(road.get("title", "")).replace("[", "[lb]")
+		out += "[cell bg=#%s33 padding=6,6,6,6]%s [font=%s][color=#%s]Road %s[/color][/font][/cell]" \
+			% [band_tone, Utils.bb_glyph("march", 18, band_ink), Utils.TITLE_FONT, band_ink, str(road.get("numeral", ""))]
+		out += "[cell bg=#%s33 padding=6,6,6,6][font=%s][color=#%s]%s[/color][/font][/cell]" % [band_tone, Utils.TITLE_FONT, band_ink, band_title]
+		out += "[cell bg=#%s33 padding=6,6,6,6] [/cell][cell bg=#%s33 padding=6,6,6,6] [/cell]" % [band_tone, band_tone]
+		for d in ds:
+			if not (d is Dictionary):
+				continue
+			var status: String = str(d.get("status", ""))
+			var mark: String = "✓" if status == "fulfilled" or status == "met" else ("✗" if status == "lapsed" else "•")
+			var tone: String = Utils.COLOR_WARNING
+			var tag_text: String = "Open"
+			match status:
+				"fulfilled":
+					tone = Utils.COLOR_CONQUEST
+					tag_text = "Fulfilled"
+				"met":
+					tone = Utils.COLOR_CONQUEST
+					tag_text = "Met"
+				"lapsed":
+					tone = Utils.COLOR_ERROR_CHIP
+					tag_text = "Lapsed"
+			var held: int = int(d.get("held", 0))
+			var required: int = int(d.get("required", 0))
+			var hold_n: int = int(d.get("hold", 0))
+			var hold_needed: int = int(d.get("hold_needed", 0))
+			var hold = d.get("hold_line")
+			var hold_text: String = hold if hold is String else ""
+			var title_cell: String = "[color=#" + Utils.COLOR_INFO + "]" + mark + " " + str(d.get("title", "")).replace("[", "[lb]") + "[/color]"
+			var title_tip: String = str(d.get("hint", ""))
+			if hold_needed <= 0 and hold_text != "":
+				title_tip += " (" + hold_text + ")"
+			title_cell = Utils.bb_hint(title_cell, title_tip)
+			var meter_cell: String = Utils.bb_meter(held, maxi(required, 1), meter_w, 12, tone)
+			meter_cell += " [color=#" + Utils.COLOR_INFO + "]" + str(held) + " / " + str(required) + "[/color]"
+			meter_cell = Utils.bb_hint(meter_cell, str(d.get("progress", "")))
+			var hold_cell := ""
+			if hold_needed > 0:
+				var pips := ""
+				for i in range(hold_needed):
+					pips += "●" if i < hold_n else "○"
+				hold_cell = Utils.bb_hint("[color=#" + tone + "]" + pips + "[/color]", hold_text)
+			var stripe: String = Utils.ZEBRA_A if row_i % 2 == 0 else Utils.ZEBRA_B
+			row_i += 1
+			for cell_txt in [title_cell, meter_cell, hold_cell, "[color=#" + tone + "]" + tag_text + "[/color]"]:
+				out += "[cell bg=#%s padding=6,3,6,3]%s[/cell]" % [stripe, cell_txt]
+	return out + "[/table]\n" + Utils.CARD_CLOSE
+
+
 func _designs_block(designs) -> String:
 	"""VP-1: the Emperor's designs on the Balance of Europe — the road and
 	its two designs, or the three roads before a proclamation. The controls
@@ -1099,7 +1276,13 @@ func _designs_block(designs) -> String:
 	var roads = designs.get("roads")
 	if not (roads is Array):
 		return out + "\n"
+	# Session UI-6 (November 13, 2026): folded, every road stands in ONE table.
+	var one_table: bool = Utils.explanations_folded()
+	if one_table:
+		out += _designs_one_table(roads)
 	for road in roads:
+		if one_table:
+			break
 		if not (road is Dictionary):
 			continue
 		var proclaimed: bool = road.get("proclaimed") is bool and road.get("proclaimed")
@@ -1190,7 +1373,10 @@ func _render_balance_of_europe():
 		return
 	var bbcode = ""
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]BALANCE OF EUROPE[/color]\n"
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]────────────────[/color]\n"
+	# the interim blind reading (Session UI-6, November 13): folded, the short
+	# rule under the heading read as "a stray rule"; On the page it stands
+	if not Utils.explanations_folded():
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]────────────────[/color]\n"
 
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]COALITION THREAT[/color]\n"
 
@@ -2040,19 +2226,32 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		loyalty_color = Utils.COLOR_ERROR
 	elif loyalty < 60:
 		loyalty_color = COLOR_AMBER
-	bbcode += "  " + Utils.bb_meter(loyalty, 100, _LOYALTY_BAR_W, _LOYALTY_BAR_H, loyalty_color)
-	bbcode += "  Loyalty [color=#" + loyalty_color + "]" + str(loyalty) + "/100[/color]"
 	var forecast = int(v.get("loyalty_forecast", 0))
 	var trend = str(v.get("loyalty_trend", "stable"))
 	var forecast_sign = "+" if forecast > 0 else ""
+	var trend_text := ""
 	match trend:
 		"rising":
-			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]↑ " + forecast_sign + str(forecast) + "/turn[/color]"
+			trend_text = "  [color=#" + Utils.COLOR_SUCCESS + "]↑ " + forecast_sign + str(forecast) + "/turn[/color]"
 		"falling":
-			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]↓ " + str(forecast) + "/turn[/color]"
+			trend_text = "  [color=#" + Utils.COLOR_ERROR + "]↓ " + str(forecast) + "/turn[/color]"
 		_:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]≈ steady[/color]"
-	bbcode += "\n"
+			trend_text = "  [color=#" + Utils.COLOR_INFO + "]≈ steady[/color]"
+	# Session UI-6 (November 13, 2026): the readers asked for bolder card figures.
+	# Folded, the loyalty meter (wider, with its trend) leads a figure STRIP (below);
+	# On the page the meter line stands as it did.
+	var folded_card: bool = Utils.explanations_folded()
+	var strip: Array = []
+	if folded_card:
+		# the interim readers (November 13): the four tiles on one line clipped the
+		# garrison's ("no g…") — the meter narrower, every tile's tail its hover
+		strip.append(Utils.bb_meter(loyalty, 100, 120, 14, loyalty_color) + "  [font=" + Utils.TITLE_FONT + "][color=#" + loyalty_color + "]" \
+			+ str(loyalty) + "[/color][/font][color=#" + Utils.COLOR_INFO + "]/100 loyalty[/color]" + trend_text)
+	else:
+		bbcode += "  " + Utils.bb_meter(loyalty, 100, _LOYALTY_BAR_W, _LOYALTY_BAR_H, loyalty_color)
+		bbcode += "  Loyalty [color=#" + loyalty_color + "]" + str(loyalty) + "/100[/color]"
+		bbcode += trend_text
+		bbcode += "\n"
 
 	# ── Warning band + the grip-aware recovery hint ──
 	var warning = str(v.get("warning", ""))
@@ -2104,7 +2303,32 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 				tribute_cell += "   [color=#" + COLOR_AMBER + "]Wavering — no standing to petition[/color]"
 		"disaffected":
 			tribute_cell += "   [color=#" + Utils.COLOR_ERROR + "]Disaffected — refuses new calls to arms[/color]"
-	facts.append([_fact_label("gold", "Tribute: "), tribute_cell])
+	if folded_card:
+		# the figure in the title face, "/turn tribute" beside it; the rate and the
+		# call-to-arms standing ride a hover and a tag (no word cut)
+		var tribute_tile: String = Utils.bb_glyph("gold", 20, Utils.COLOR_GOLD) + " "
+		tribute_tile += "[font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(tribute) + "g[/color][/font]"
+		tribute_tile += " [color=#" + Utils.COLOR_INFO + "]/turn[/color]"
+		# the note (the rate, a remission) is the tile's hover: one short line a tile
+		var tribute_tip: String = str(v.get("tribute_note", "")) if v.has("tribute_note") else str(tribute_pct) + "% of their income"
+		tribute_tile = Utils.bb_hint(tribute_tile, "Tribute " + tribute_tip)
+		strip.append(tribute_tile)
+		var call_ink: String = Utils.COLOR_SUCCESS
+		var call_words: String = ""
+		match contribution:
+			"loyal":
+				call_words = "Answers the call to arms"
+			"wavering":
+				call_ink = COLOR_AMBER
+				call_words = "Wavering"
+			"disaffected":
+				call_ink = Utils.COLOR_ERROR
+				call_words = "Disaffected"
+		if call_words != "":
+			var call_tip: String = tribute_cell.substr(tribute_cell.rfind("[color=")) if tribute_cell.rfind("[color=") >= 0 else call_words
+			strip.append(Utils.bb_glyph("command", 20, call_ink) + " " + Utils.bb_hint("[color=#" + call_ink + "]" + call_words + "[/color]", call_tip))
+	else:
+		facts.append([_fact_label("gold", "Tribute: "), tribute_cell])
 
 	# ── IQ-7 The Client's Petition: standing, cadence, bond, remission ──
 	# Every key is display-only and present only when the backend's
@@ -2139,16 +2363,32 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		facts.append([_fact_label("gold", "Tribute remitted: "), "[color=#" + Utils.COLOR_GOLD + "]" + str(remission_left) + " collection" + ("s" if remission_left != 1 else "") + "[/color]"])
 
 	# ── Garrison lever (VP-D1) ──
+	# Session UI-6: folded, the garrison, subsidy and laws are figure tiles of the
+	# strip (+N in the title face, its caption, the full sentence as the hover).
 	var capital = str(v.get("capital", ""))
 	if v.get("garrison_present", false):
-		facts.append([_fact_label("garrison", ""), "[color=#" + Utils.COLOR_SUCCESS + "]Garrisoned — our presence in " + capital + " steadies them (+" + str(int(v.get("garrison_bonus", 2))) + "/turn)[/color]"])
+		var garrison_line: String = "Garrisoned — our presence in " + capital + " steadies them (+" + str(int(v.get("garrison_bonus", 2))) + "/turn)"
+		if folded_card:
+			strip.append(Utils.bb_hint(Utils.bb_glyph("garrison", 20, Utils.COLOR_SUCCESS) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_SUCCESS + "]+" \
+				+ str(int(v.get("garrison_bonus", 2))) + "[/color][/font] [color=#" + Utils.COLOR_INFO + "]/turn garrison[/color]", garrison_line))
+		else:
+			facts.append([_fact_label("garrison", ""), "[color=#" + Utils.COLOR_SUCCESS + "]" + garrison_line + "[/color]"])
 	elif capital != "":
-		facts.append([_fact_label("garrison", ""), "[color=#" + Utils.COLOR_INFO + "]No garrison — a corps in " + capital + " would add a standing +2/turn[/color]"])
+		var no_garrison_line: String = "No garrison — a corps in " + capital + " would add a standing +2/turn"
+		if folded_card:
+			strip.append(Utils.bb_hint(Utils.bb_glyph("garrison", 20, Utils.CHIP_DIM_INK) + " [color=#" + Utils.COLOR_INFO + "]no garrison[/color]", no_garrison_line))
+		else:
+			facts.append([_fact_label("garrison", ""), "[color=#" + Utils.COLOR_INFO + "]" + no_garrison_line + "[/color]"])
 
 	# ── Standing subsidy (treaty gold_per_turn — a forecast term, so name it) ──
 	var subsidy = int(v.get("subsidy_bonus", 0))
 	if subsidy > 0:
-		facts.append([_fact_label("income", ""), "[color=#" + Utils.COLOR_SUCCESS + "]Subsidized — treaty gold steadies them (+" + str(subsidy) + "/turn)[/color]"])
+		var subsidy_line: String = "Subsidized — treaty gold steadies them (+" + str(subsidy) + "/turn)"
+		if folded_card:
+			strip.append(Utils.bb_hint(Utils.bb_glyph("income", 20, Utils.COLOR_SUCCESS) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_SUCCESS + "]+" \
+				+ str(subsidy) + "[/color][/font] [color=#" + Utils.COLOR_INFO + "]/turn subsidy[/color]", subsidy_line))
+		else:
+			facts.append([_fact_label("income", ""), "[color=#" + Utils.COLOR_SUCCESS + "]" + subsidy_line + "[/color]"])
 
 	# ── The laws that bind them (SR-5r RF-4b, T8 — the forecast's own term) ──
 	for term in v.get("law_terms", []):
@@ -2156,7 +2396,12 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			var law_name = str(term[0])
 			if law_name != "":
 				law_name = law_name.substr(0, 1).to_upper() + law_name.substr(1)
-			facts.append([_fact_label("administration", ""), "[color=#" + Utils.COLOR_SUCCESS + "]" + law_name + " binds them (+" + str(int(term[1])) + "/turn)[/color]"])
+			var law_line: String = law_name + " binds them (+" + str(int(term[1])) + "/turn)"
+			if folded_card:
+				strip.append(Utils.bb_hint(Utils.bb_glyph("administration", 20, Utils.COLOR_SUCCESS) + " [font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_SUCCESS + "]+" \
+					+ str(int(term[1])) + "[/color][/font] [color=#" + Utils.COLOR_INFO + "]/turn " + law_name.replace("[", "(") + "[/color]", law_line))
+			else:
+				facts.append([_fact_label("administration", ""), "[color=#" + Utils.COLOR_SUCCESS + "]" + law_line + "[/color]"])
 
 	# ── Granted provinces (VS-3 provenance) ──
 	var granted = v.get("granted_regions", [])
@@ -2165,6 +2410,8 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 		for g in granted:
 			granted_strs.append(str(g))
 		facts.append([_fact_label("europe", ""), "[color=#" + Utils.COLOR_INFO + "]Ceded to them: " + ", ".join(PackedStringArray(granted_strs)) + "[/color]"])
+	if folded_card:
+		bbcode += _vassal_strip(strip)
 	bbcode += _facts_table(facts)
 
 	# ── Action chips (honest availability — the wizard's own gate rows) ──
@@ -2174,19 +2421,69 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	if actions is Array and actions.size() > 0:
 		var chips: Array = []
 		var notes := ""
-		for a in actions:
-			var parts: Array = _vassal_action_parts(a, v)
-			if parts.is_empty():
-				continue
-			chips.append(parts[0])
-			notes += parts[1]
+		# Session UI-6: folded, a card whose every action is locked for the SAME
+		# reason shows ONE lock chip, the reason its hover.
+		var shared_reason: String = _vassal_shared_lock_reason(actions) if folded_card else ""
+		if shared_reason != "":
+			chips.append(Utils.bb_chip_disabled("All instruments locked", "", shared_reason))
+		else:
+			for a in actions:
+				var parts: Array = _vassal_action_parts(a, v)
+				if parts.is_empty():
+					continue
+				chips.append(parts[0])
+				notes += parts[1]
 		if not chips.is_empty():
-			bbcode += "  " + "  ".join(PackedStringArray(chips)) + "\n" + notes
+			bbcode += "  " + ("   " if folded_card else "  ").join(PackedStringArray(chips)) + "\n" + notes
 	elif actions_blocked:
 		pass  # section-level notice already shown
 	bbcode += Utils.CARD_CLOSE
 	bbcode += "\n"
 	return bbcode
+
+
+func _vassal_strip(tiles: Array) -> String:
+	"""Session UI-6: a client's figures as a strip - three tiles to a row, each a
+	glyph, a figure in the title face and its caption on one line (a cell never
+	holds a newline), the row's cells spread across the card."""
+	if tiles.is_empty():
+		return ""
+	# One line to four tiles (loyalty, tribute, call to arms, garrison); a fuller
+	# strip wraps into two even rows.
+	var per_row: int = tiles.size() if tiles.size() <= 4 else int(ceil(tiles.size() / 2.0))
+	var out := "[table=%d]" % per_row
+	for i in range(tiles.size()):
+		out += "[cell expand=1 bg=#%s,#%s padding=8,5,14,5]%s[/cell]" % [Utils.ZEBRA_A, Utils.ZEBRA_B, str(tiles[i])]
+	var pad: int = (per_row - tiles.size() % per_row) % per_row
+	for i in range(pad):
+		out += "[cell expand=1 padding=8,5,14,5] [/cell]"
+	return out + "[/table]\n"
+
+
+func _vassal_locked_reason(a: Dictionary) -> String:
+	for reason_key in ["disabled_reason_display", "disabled_reason"]:
+		var said = a.get(reason_key)
+		if said is String and said != "":
+			return said
+	return ""
+
+
+func _vassal_shared_lock_reason(actions: Array) -> String:
+	"""The one reason every action of a card is locked for, or "" (an action is
+	open, a reason differs or is missing, or there is a single action)."""
+	if actions.size() < 2:
+		return ""
+	var shared := ""
+	for a in actions:
+		if not (a is Dictionary) or not _VASSAL_ACTION_LABELS.has(str(a.get("action", ""))):
+			continue
+		if a.get("available", false):
+			return ""
+		var why: String = _vassal_locked_reason(a)
+		if why == "" or (shared != "" and why != shared):
+			return ""
+		shared = why
+	return shared
 
 
 # IQ-7: the bond line. The backend's `bond` is the lord–client relation plus
@@ -2235,7 +2532,12 @@ func _vassal_action_parts(a: Dictionary, v: Dictionary) -> Array:
 	var action_id = str(a.get("action", ""))
 	if not _VASSAL_ACTION_LABELS.has(action_id):
 		return []
-	var label = str(_VASSAL_ACTION_LABELS[action_id])
+	var plain_label: String = str(_VASSAL_ACTION_LABELS[action_id])
+	# Session UI-6: folded, a chip face is the title face (larger, bolder); the
+	# plain words ride the hover and the page.
+	var label: String = plain_label
+	if Utils.explanations_folded():
+		label = "[font=" + Utils.TITLE_FONT + "]" + plain_label + "[/font]"
 	var nation = str(v.get("name", ""))
 	var dp_cost = int(a.get("dp_cost", 1))
 	var gold_cost = int(a.get("gold_cost", 0))
@@ -2288,7 +2590,7 @@ func _vassal_action_parts(a: Dictionary, v: Dictionary) -> Array:
 			var face: String = label
 			if action_id != "grant_region_to_vassal":
 				face += " · " + cost_text
-			return [Utils.bb_button_chip(meta, face, chip_text, chip_bg, "", label + " — " + terms), ""]
+			return [Utils.bb_button_chip(meta, face, chip_text, chip_bg, "", plain_label + " — " + terms), ""]
 		return [Utils.bb_button_chip(meta, label, chip_text, chip_bg),
 			"    [color=#" + Utils.COLOR_INFO + "]" + label + " — " + terms + "[/color]\n"]
 	# Session UI-5: the payload's display reason first, then its raw one — the
@@ -2301,7 +2603,7 @@ func _vassal_action_parts(a: Dictionary, v: Dictionary) -> Array:
 		if said is String and said != "":
 			reason = said
 			break
-	var gated: String = label + " — unavailable"
+	var gated: String = plain_label + " — unavailable"
 	if reason != "":
 		gated += ": " + reason
 	if Utils.explanations_folded():

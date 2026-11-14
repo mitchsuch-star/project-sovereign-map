@@ -536,6 +536,10 @@ func _text_sizes() -> Dictionary:
 		out["rows_min_width"] = rows
 		# the footprint the window was ASKED for (its fraction or the grip's)
 		out["requested"] = [float(_main.get("_terminal_width")), float(_main.get("_terminal_height"))]
+		# Session UI-6: the window's form for this view (desk / bar / column) and the view
+		out["desk_mode"] = str(_main.call("_desk_mode")) if _main.has_method("_desk_mode") else ""
+		var view := root.get_visible_rect().size
+		out["view"] = [view.x, view.y]
 	out["stored"] = UiSettings.get_text_size()
 	return out
 
@@ -658,7 +662,15 @@ func _band_show():
 func _band_measure():
 	var view := root.get_visible_rect().size
 	var band := Utils.hud_band(view)
+	# Session UI-6 (November 13, 2026): the band WITH the HUD's columns
+	# (`hud_band_full`, where the desk, the rail and the war list stand), the
+	# map's gap between them (`hud_band`, where the province panel and the map
+	# controls stand), and the columns' widths — zero off the very wide Auto view.
+	var full := Utils.hud_band_full(view)
+	var cols := Utils.hud_columns(view)
 	_out["band"] = {"view": [view.x, view.y], "band": [band.x, band.y],
+			"band_full": [full.x, full.y], "gap": [band.x, band.y], "columns": [cols.x, cols.y],
+			"desk_mode": str(_main.call("_desk_mode")) if _main.has_method("_desk_mode") else "",
 			"hud_width": UiSettings.get_hud_width()}
 	var rects := {}
 	rects["terminal"] = _rect_of(_main.get_node_or_null("BottomLeftUI"))

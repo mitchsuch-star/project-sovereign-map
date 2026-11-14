@@ -98,21 +98,24 @@ class DelegationMatch:
 
     ``target`` is the ATTACK target (an enemy marshal to give battle, or a
     region to assault). ``scout_target`` is the OBSERVE target — you attack an
-    army but you scout a *place*, so for an enemy marshal this is his LOCATION
-    (region), which the scout executor can actually reach; for a region
-    objective the two coincide.
+    army but you scout a *place*, so for a foreign commander this is where
+    the PLAYER places him (UI6-X14: in sight, his province; out of sight, his
+    last sighting — `observe_place`), and None when no report of ours places
+    him; for a region objective the two coincide. ``scout_seen`` says which:
+    "live" (in sight, or a region), "last" (his last sighting) or "" (none).
     """
 
     __slots__ = ("marshal", "personality", "target", "scout_target",
-                 "target_display", "verb", "clause", "spoken")
+                 "target_display", "verb", "clause", "spoken", "scout_seen")
 
     def __init__(self, marshal: str, personality: str, target: str,
-                 scout_target: str, target_display: str, verb: str,
-                 clause: str, spoken: str = ""):
+                 scout_target: Optional[str], target_display: str, verb: str,
+                 clause: str, spoken: str = "", scout_seen: str = "live"):
         self.marshal = marshal
         self.personality = personality
         self.target = target                # ATTACK target (marshal or region)
-        self.scout_target = scout_target    # OBSERVE target (a region)
+        self.scout_target = scout_target    # OBSERVE target (a region, or None)
+        self.scout_seen = scout_seen if scout_target else ""
         self.target_display = target_display  # player-facing label
         self.verb = verb                    # matched delegation verb
         self.clause = clause                # e.g. 'deal with Mack' (verb + RESOLVED target)
@@ -126,6 +129,44 @@ class DelegationMatch:
         self.spoken = spoken or clause
 
 
+def observe_place(world, name: str, for_marshal=None) -> Optional[str]:
+    """UI6-X14 (Session UI-6, November 13, 2026): the province a delegation
+    may OBSERVE a foreign commander at — where the ORDER-GIVER places him,
+    by THE one sighting rule (`strategic.pursue_known_location` →
+    `intel_surfaces.last_seen`: in sight, where he stands; out of sight, his
+    newest sighting), or None when no report of ours places him.
+
+    The scout's object used to be read off the omniscient roster: "Bernadotte,
+    deal with Kutuzov" (Kutuzov in fog) scouted Podolia and printed "~38,000
+    troops" for an action, "Davout, deal with Kutuzov" answered "Podolia is
+    too far to scout (distance: 4)", and the literal ASK offered "Soult scout
+    Podolia" — the doctrine's fogged half (his NAME and SIDE are public, his
+    POSITION is not), read off the roster by three arms of one detector."""
+    man = world.get_marshal(name) if hasattr(world, "get_marshal") else None
+    if man is None:
+        return None
+    if for_marshal is not None:
+        from backend.commands.strategic import pursue_known_location
+        return pursue_known_location(world, for_marshal, man)
+    from backend.game_logic.intel_surfaces import last_seen
+    seen = last_seen(world, getattr(world, "player_nation", ""), man.name)
+    return seen["location"] if seen else None
+
+
+def _observe_source(world, name: str, place: Optional[str], for_marshal=None) -> str:
+    """"live" when the commander stands IN SIGHT at `place`, "last" when
+    `place` is his last sighting, "" when no report places him."""
+    if not place:
+        return ""
+    man = world.get_marshal(name) if hasattr(world, "get_marshal") else None
+    viewer = (getattr(for_marshal, "nation", None)
+              or getattr(world, "player_nation", None))
+    if man is None or viewer != getattr(world, "player_nation", None):
+        return "live"
+    from backend.game_logic.intel_surfaces import in_sight
+    return "live" if in_sight(world, viewer, man) else "last"
+
+
 def _resolve_target(world, remainder: str,
                     for_marshal=None) -> Optional[tuple]:
     """Resolve the text after the delegation verb to a concrete target.
@@ -133,12 +174,14 @@ def _resolve_target(world, remainder: str,
     Prefers an enemy marshal (the §6.2 "target = enemy" table), then a region
     (the "target = objective" table), then a NATION reference resolved to the
     nearest visible enemy of that nation (PC15-8). Returns (attack_target,
-    scout_target, display) or None. For an enemy marshal, scout_target is his
-    LOCATION (you scout a place); for a region they coincide. Matches the
-    LONGEST known entity name in the remainder so "ArchdukeCharles" beats a
-    "Charles" fragment. Backend uses raw names; Godot humanizes camelCase at
-    render. ``for_marshal`` (the addressed marshal) anchors the nation arm's
-    nearest-enemy pick.
+    scout_target, display) or None. For an enemy marshal, scout_target is
+    where the player PLACES him (`observe_place` — UI6-X14: his province in
+    sight, his last sighting out of it, None when no report places him; never
+    his live province off the roster); for a region they coincide. Matches
+    the LONGEST known entity name in the remainder so "ArchdukeCharles" beats
+    a "Charles" fragment. Backend uses raw names; Godot humanizes camelCase
+    at render. ``for_marshal`` (the addressed marshal) anchors the nation
+    arm's nearest-enemy pick and is the order-giver the sighting is read for.
     """
     if not remainder:
         return None
@@ -180,13 +223,17 @@ def _resolve_target(world, remainder: str,
                         best is None or len(token) > best[0]):
                     best = (len(token), name, scout_target)
 
-    _match({m.name: (getattr(m, "location", m.name) or m.name)
+    # UI6-X14: the NAME is matched on the whole foreign roster (his name is
+    # public — the doctrine); the place is read only after the match, through
+    # the player's own sighting (`observe_place`), never off the roster.
+    _match({m.name: m.name
             for m in world.get_enemy_marshals()
             if getattr(m, "strength", 0) > 0})
     if best is not None:
         # target/scout_target stay RAW (executor + reissue keys); the display is
         # humanized so no camelCase key ever reaches player copy (R7).
-        return best[1], best[2], humanize_entity_name(best[1])
+        return best[1], observe_place(world, best[1], for_marshal), \
+            humanize_entity_name(best[1])
 
     # No enemy matched — try a region objective (attack == scout == region).
     _match({r: r for r in getattr(world, "regions", {})})
@@ -323,7 +370,31 @@ def detect_delegation(world, raw_command: str,
         _typed = target_display
     spoken = f"{verb} {_typed}".strip() or clause
     return DelegationMatch(marshal.name, personality, target, scout_target,
-                           target_display, verb, clause, spoken)
+                           target_display, verb, clause, spoken,
+                           scout_seen=_observe_source(world, target, scout_target, marshal))
+
+
+def unplaced_delegation_message(match: DelegationMatch) -> str:
+    """UI6-X14: the answer to a delegation whose quarry no report of ours
+    places (a foreign commander out of sight, never sighted) — the arm that
+    would observe him, or ask how, has no province to name. His NAME is
+    public (the doctrine), so he is named; nothing of where he stands is
+    said, and nothing is spent. The aggressive arm's pursuit answers the
+    same case in its own words ("No intelligence on Kutuzov's position,
+    Sire. Scout for him before Ney can give chase.")."""
+    return (f"No intelligence on {match.target_display}'s position, Sire — no "
+            f"report of ours places him, so {match.marshal} has nothing to "
+            f"observe or engage. Scout for him first; nothing has been relayed.")
+
+
+def delegation_is_unplaced(world, match: Optional[DelegationMatch]) -> bool:
+    """UI6-X14: True when the delegation names a FOREIGN commander whom no
+    report of ours places (`scout_target` None) — the cautious and the ASK
+    arms answer `unplaced_delegation_message` instead of observing."""
+    if match is None or match.scout_target:
+        return False
+    man = world.get_marshal(match.target) if hasattr(world, "get_marshal") else None
+    return man is not None and getattr(man, "nation", None) != getattr(world, "player_nation", None)
 
 
 # Battle-STARTING actions. A cautious marshal must never be handed one of these
@@ -452,7 +523,12 @@ def describe_cautious_delegation(match: DelegationMatch,
     surface NAMES the marshal's character) with a typed one-tap reissue. Honest
     copy: the scout still burns a turn (§6.3c "battle-starting vs not, NOT
     reversible vs irreversible")."""
-    if action == "scout":
+    if action == "scout" and getattr(match, "scout_seen", "") == "last":
+        # UI6-X14: out of sight, he observes the ground our last report
+        # placed him on — the player's own intelligence, never his live one.
+        deed = (f"will reconnoiter {humanize_entity_name(str(match.scout_target))}, "
+                f"where {match.target_display} was last reported, before he commits")
+    elif action == "scout":
         deed = f"will reconnoiter {match.target_display} before he commits"
     elif action == "hold":
         deed = "will hold his ground and stay poised"

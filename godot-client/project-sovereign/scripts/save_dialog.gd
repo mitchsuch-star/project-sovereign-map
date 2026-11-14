@@ -293,6 +293,7 @@ func _build() -> void:
 	_scroll = ScrollContainer.new()
 	_scroll.name = "ScrollContainer"
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE   # UI6-X22: the bar's gutter is kept
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_vbox.add_child(_scroll)
 	_list = VBoxContainer.new()

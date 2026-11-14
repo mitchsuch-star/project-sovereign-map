@@ -392,12 +392,31 @@ class TestTheReadingsFixes:
             assert "const BANNER_MIN_VIEW_HEIGHT := 880.0" in _script(name), name
 
     def test_the_compact_window_folds_until_the_player_is_at_the_line(self):
+        """RE-POINTED (Session UI-6, November 13, 2026): UI-5's fold followed the
+        line's focus — a click on the map folded the window under the player's
+        hand and a key in the line threw it open (the F03 readers' "the command
+        card covers a third of the map" stood whenever he typed). The compact
+        view's window is now ONE form, the slim bar, with an explicit log drawer
+        (`_ui5_log_open`) that opens on a click of the reply line, ⋯ or a reply of
+        more than a line, and folds on Esc, a send and a press outside. The intent
+        held: at 2.0 the window gives the map back its room; the chest and the
+        turn stand in the top bar."""
         main = _script("main.gd")
-        body = _func(main, "func _ui5_compact_collapsed(")
-        assert "_ui5_compact_engaged and command_input.has_focus()" in body
-        assert "command_input.gui_input.connect(_ui5_line_gui_input)" in main
-        relayout = main[main.index("var collapsed := _ui5_compact_collapsed()"):]
-        assert "(gold_value.get_parent() as Control).visible = not collapsed" in relayout[:1600]
+        body = _func(main, "func _ui5_bar_mode() -> bool:")
+        assert "Utils.compact_view()" in body and '_desk_mode_now == "bar"' in body
+        assert "var _ui5_log_open := false" in main
+        # the focus-driven fold and its four connections are gone
+        assert "_ui5_compact_engaged" not in main and "_ui5_compact_collapsed" not in main
+        assert "command_input.gui_input.connect(_ui5_line_gui_input)" not in main
+        relayout = _func(main, "func _relayout_terminal() -> void:")
+        assert "(gold_value.get_parent() as Control).visible = full_header" in relayout
+        assert 'var full_header := mode != "bar" and not Utils.explanations_folded()' in relayout
+        # the drawer folds on a send and on Esc (the line's own rung and the ladder's)
+        assert "_ui5_close_log()" in _func(main, "func _execute_command():")
+        esc = _func(main, "func _on_command_input_gui_input(event):")
+        esc = esc[esc.index("elif event.keycode == KEY_ESCAPE:"):]
+        assert esc.index("_clear_suggestions()") < esc.index("_ui5_close_log()") < esc.index("_clear_order_selection()")
+        assert "_ui5_close_log()" in _func(main, "func _escape_closes_topmost(")
 
     def test_the_war_detail_leads_with_the_peace_table(self):
         body = _func(_script("war_detail_popup.gd"), "func _render_war_detail(")

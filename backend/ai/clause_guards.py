@@ -879,7 +879,10 @@ def strip_condition_clauses(text: str) -> Tuple[str, bool]:
 # leaves nothing and is refused with its clause quoted, not shrugged at.
 # The rule: the reason is not the order.
 
-_REASON_SUBORDINATOR = r"(?:as|because|since|now\s+that|seeing\s+(?:that|as))"
+# UI6-X30 sweep: "so" / "for" / "given" / "considering" / "seeing" / "now" lead a
+# reason as "as" does ("Ney, retreat for Mack is attacking" FOUGHT).
+_REASON_SUBORDINATOR = (r"(?:as|because|since|so|for|now(?:\s+that)?|seeing(?:\s+(?:that|as))?"
+                        r"|given(?:\s+that)?|considering(?:\s+that)?)")
 _REASON_PRONOUN = r"(?:they|he|she)"
 # A hostile party named by class. The demonym arm is morphological
 # (`Austrians`, `Bavarians`, `Prussians`, `British`, `Portuguese`) so the
@@ -905,11 +908,42 @@ _REASON_PRED = (
     r"(?:" + _REASON_AUX + r"\s+(?:not\s+|n[o']t\s+)?\w+|" + _HOSTILE_VERB + r")")
 
 
+# UI6-X30 (Session UI-6, November 13, 2026): a REASON clause also ends where
+# a consequence is joined to it — "Ney, Mack is attacking Swabia so attack
+# him" / "…, Kutuzov is attacking so retreat" were refused as reports (the
+# clause ran on over its own "so attack him"); with a comma they were read.
+# "so" / "therefore" / "thus" / "hence" end a reason clause as "then" does;
+# "so that" / "so much" do not (they stay inside it). The reason's own verb is
+# still blanked, never the order (UI6-X10).
+REASON_END_RE = re.compile(
+    _CLAUSE_END_RE.pattern
+    + r"|\s+(?:so(?!\s+(?:that|much|many|far|long|as)\b)|therefore|thus|hence)\s+",
+    re.IGNORECASE)
+
+
+_REASON_PRONOUN_RE = re.compile(_REASON_PRONOUN, re.IGNORECASE)
+_ORDER_PRONOUN_RE = re.compile(r"\b(?:him|them|her)\b", re.IGNORECASE)
+
+
+def _name_in_foes(subject: str, foes) -> bool:
+    """`subject` (lower-cased, an honorific allowed, a possessive tail
+    allowed) is one of the roster ``foes``."""
+    low = re.sub(r"['’]s\s+\w+$", "", subject.strip())
+    low = re.sub(r"^(?:" + HONORIFIC + r")", "", low, flags=re.IGNORECASE).strip()
+    return any(low == str(f).strip().lower() for f in (foes or ()) if f)
+
+
 def _reason_pattern(foes) -> "re.Pattern":
     names = sorted({str(n).strip() for n in (foes or ()) if n and str(n).strip()},
                    key=len, reverse=True)
     subjects = [_REASON_PRONOUN, _REASON_THE_PARTY]
     if names:
+        _one = (r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:"
+                + "|".join(re.escape(n) for n in names) + r")\b")
+        # UI6-X54: a COMPOUND subject ("Mack and Kutuzov are marching so ...") is
+        # one report clause too - read whole, never "Mack ... marching" with the
+        # report's first name left on the line as the order's own.
+        subjects.append(_one + r"(?:" + _COMPOUND_JOIN + _one + r")+")
         subjects.append(
             r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:"
             + "|".join(re.escape(n) for n in names)
@@ -937,11 +971,236 @@ def reason_clause_spans(text: str,
             break
         # The clause runs from the SUBJECT to the clause end; the comma or
         # subordinator that introduced it goes too.
-        end_match = _CLAUSE_END_RE.search(text, found.end("subj"))
+        end_match = REASON_END_RE.search(text, found.end("subj"))
         clause_end = end_match.start() if end_match else len(text)
-        spans.append((found.start(), clause_end))
+        start = found.start()
+        # UI6-X36: a PRONOUN behind the clause ("Kutuzov is attacking Swabia
+        # so attack HIM") stands for the clause's subject when the subject is
+        # a man on the roster — the sentence gave his name, and the order is
+        # about him (acted on, or refused for want of a sighting) — never the
+        # nearest man in sight. The name stays; only the report is blanked.
+        subject = found.group("subj").strip().lower()
+        if (_REASON_PRONOUN_RE.fullmatch(subject) is None
+                and not subject.startswith("the ")
+                and _ORDER_PRONOUN_RE.search(text, clause_end)
+                and _name_in_foes(subject, foes)):
+            start = found.end("subj")
+        spans.append((start, clause_end))
         pos = max(clause_end, found.end())
+    spans.extend(purpose_tail_spans(text, spans))
+    spans.sort()
     return spans
+
+
+# UI6-X33 (Session UI-6, November 13, 2026): X30 let "so" END a reason clause,
+# which is right when an ORDER follows it ("Mack is attacking Swabia so attack
+# him") and wrong after an order's OWN object: "Ney, hold Lorraine so Mack
+# can't pass" is a hold of Lorraine with a PURPOSE tail, and the tail's name
+# (Mack, Kutuzov) replaced the object or fused into it ("Lorraine So Mack").
+# A connective ("so", "therefore", "thus", "hence") behind an order, followed
+# by anything that is not itself an order verb, is a tail: blanked, it
+# supplies no name and no verb. Followed by an order verb it is a second
+# order ("fortify Kutuzov so attack Mack") — the parser's one-order-at-a-time
+# split reads the connective like "and".
+_PURPOSE_LEAD_RE = re.compile(
+    r"\s+(?:so(?!\s+(?:that|much|many|far|long|as)\b)|therefore|thus|hence"
+    r"|in\s+order\s+that|lest)\s+",
+    re.IGNORECASE)
+PURPOSE_LEAD_RE = _PURPOSE_LEAD_RE    # UI6-X44: proper_name cuts its list at a purpose tail
+
+
+# UI6-X39: behind a RETREAT, "for" / "considering" / "given" / "seeing" + a
+# name is the reason he falls back, never where to ("retreat for Moore").
+_RETREAT_VERB_RE = re.compile(r"\b(?:retreat|fall\s+back|withdraw|retire|pull\s+back)\b",
+                              re.IGNORECASE)
+_RETREAT_REASON_LEAD_RE = re.compile(
+    r"\s+(?:for|considering|given|seeing)\s+(?=(?-i:[A-Z]))", re.IGNORECASE)
+
+
+def purpose_tail_spans(text: str,
+                       taken: Iterable[Tuple[int, int]] = ()) -> List[Tuple[int, int]]:
+    """Where the PURPOSE tails are: from the connective to the clause end,
+    for a connective that follows an order of ours (`taken` — the reason
+    spans already found — is blanked first so a reason's own verb is never
+    "the order before the tail") and is not followed by an order verb."""
+    if not text:
+        return []
+    probe = list(text)
+    for start, end in taken:
+        for i in range(start, min(end, len(probe))):
+            probe[i] = " "
+    probe_text = "".join(probe)
+    from .llm_client import ADDRESS_TOKEN_RE    # lazy: llm_client imports this module
+    address = ADDRESS_TOKEN_RE.match(probe_text)
+    head_from = address.end() if address else 0
+    out: List[Tuple[int, int]] = []
+    pos = 0
+    while pos < len(text):
+        m = _PURPOSE_LEAD_RE.search(text, pos)
+        r = _RETREAT_REASON_LEAD_RE.search(text, pos)
+        reason_lead = r is not None and (m is None or r.start() < m.start())
+        if reason_lead:
+            m = r
+        if m is None:
+            break
+        pos = m.end()
+        if any(s <= m.start() < e for s, e in taken):
+            continue
+        if m.start() < head_from or not _ROUTED_ORDER_VERB_RE.search(
+                probe_text[head_from:m.start()]):
+            continue
+        if reason_lead:
+            if not _RETREAT_VERB_RE.search(probe_text[head_from:m.start()]):
+                continue
+        elif _ROUTED_ORDER_VERB_RE.match(text, m.end()):
+            continue          # two orders: the split reads it, not this cut
+        end_match = _CLAUSE_END_RE.search(text, m.end())
+        end = end_match.start() if end_match else len(text)
+        if end <= m.end():
+            continue
+        out.append((m.start(), end))
+        pos = max(pos, end)
+    return out
+
+
+_CONSEQUENCE_LEAD_RE = re.compile(
+    r"\s+(?:so(?!\s+(?:that|much|many|far|long|as)\b)|therefore|thus|hence)\s+",
+    re.IGNORECASE)
+
+
+# UI6-X57: the trailing retreat may carry its own "to / from <name>" ("hold
+# Lorraine retreat to Mack") - it is the same second order.
+_BARE_TRAILING_RETREAT_RE = re.compile(
+    r"(?<=[A-Za-z])\s+(retreat|fall\s+back|withdraw)"
+    r"(?:\s+(?:to|toward|towards|from)\s+[^,;.!?]+?)?(?=\s*[.!]*\s*$)", re.IGNORECASE)
+_NOT_A_CLAUSE_END = frozenset({
+    "and", "then", "to", "or", "not", "never", "dont", "don't", "must", "should", "will",
+    "please", "can", "could", "would", "may", "might", "shall", "let", "lets", "let's",
+    "now", "also", "just", "again", "immediately", "quickly", "slowly", "at", "he",
+    "you", "we", "they", "gradually", "orderly", "begin", "start", "keep", "stop"})
+
+
+def consequence_as_then(text: str, foes: Iterable[str] = ()) -> str:
+    """UI6-X41: "<an order> so|therefore|thus|hence <an order verb> ..." is two
+    orders joined as "then" joins them, and takes EXACTLY that road (the one
+    sequel relay the parser already proves and pins) - the connective is
+    rewritten to " then " before any reader sees the line. Never a reason
+    clause's consequence ("Mack is attacking Swabia so attack him": once the
+    reason is blanked no order of ours stands before the connective, so the
+    line is left to X30), never a purpose tail (no order verb follows it)."""
+    if not text:
+        return text
+    if not _CONSEQUENCE_LEAD_RE.search(text):
+        # no connective at all: "hold Lorraine retreat" - a bare retreat verb
+        # ENDING behind an order's object is a second order, joined as "then"
+        bare = _BARE_TRAILING_RETREAT_RE.search(text)
+        if bare is None:
+            return text
+        head = text[:bare.start()]
+        from .llm_client import ADDRESS_TOKEN_RE    # lazy: llm_client imports this module
+        address = ADDRESS_TOKEN_RE.match(head)
+        ordered = head[address.end():] if address else head
+        # the word before it must be a NAME as typed ("hold Lorraine retreat");
+        # "guard the retreat" / "cut off his line of retreat" are nouns
+        _typed = re.findall(r"[A-Za-z']+", ordered)[-1:] or [""]
+        last_word = [_typed[0].lower()]
+        # UI6-X58: or a BARE ORDER VERB ("march retreat", "hold retreat"): two
+        # orders with no object between them, joined as "then" joins them
+        _bare_verb = (_ROUTED_ORDER_VERB_RE.fullmatch(_typed[0]) is not None
+                      and len(re.findall(r"[A-Za-z']+", ordered)) <= 2)
+        if ((not _typed[0][:1].isupper() and not _bare_verb) or last_word[0] in _NOT_A_CLAUSE_END
+                or _RETREAT_VERB_RE.search(ordered)
+                or not _ROUTED_ORDER_VERB_RE.search(ordered)):
+            return text
+        return head + " then " + bare.group(1) + text[bare.end(1):]
+    probe = list(text)
+    for start, end in reason_clause_spans(text, foes):
+        for i in range(start, min(end, len(probe))):
+            probe[i] = " "
+    probe_text = "".join(probe)
+    from .llm_client import ADDRESS_TOKEN_RE    # lazy: llm_client imports this module
+    address = ADDRESS_TOKEN_RE.match(probe_text)
+    head_from = address.end() if address else 0
+    out, pos = [], 0
+    for m in _CONSEQUENCE_LEAD_RE.finditer(text):
+        if m.start() < pos or m.start() < head_from:
+            continue
+        if not _ROUTED_ORDER_VERB_RE.match(text, m.end()):
+            continue
+        if not _ROUTED_ORDER_VERB_RE.search(probe_text[head_from:m.start()]):
+            continue
+        out.append(text[pos:m.start()])
+        out.append(" then ")
+        pos = m.end()
+    if not out:
+        return text
+    return "".join(out) + text[pos:]
+
+
+_COMPOUND_JOIN = (r"(?:\s*,\s*(?:and\s+)?|\s+and\s+|\s*&\s*"
+                  r"|\s+(?:with|plus|along\s+with|together\s+with|as\s+well\s+as)\s+)")
+_AUXILIARY_SUBJECT_WORDS = frozenset({"are", "is", "was", "were", "have", "has", "had", "will"})
+_COMPOUND_BOUNDARY_RE = re.compile(
+    r"\s+(?:so|therefore|thus|hence|then|and)\s+|[;,.]\s*", re.IGNORECASE)
+
+
+def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Iterable[str] = ()):
+    """UI6-X43 / UI6-X54: "Ney, Kutuzov and Mack are coming so attack him" - a
+    pronoun behind a COMPOUND subject has no single referent. Returns
+    ``(names, pronoun, verb)`` - the names as typed, the pronoun (him / them)
+    and the order verb it follows - or None. The parser refuses it free, by
+    name (the one-commander-per-order rule); never binds the man in sight.
+
+    Read on the typed line BEFORE any split or rewrite, so every joiner (so,
+    therefore, thus, hence, then, ";", "and", a comma, a period, nothing) and
+    every predicate ("are attacking", "have attacked Swabia", "are in ...")
+    reaches the same refusal. The subject may join with and / & / with / plus,
+    may carry a title alone ("the Archduke"), and may mix a friend with a foe
+    (`friends` - the roster of ours - joins the list; a list with no foe in it
+    is not this rule's). A leading ADDRESS ("Ney,") is not a subject."""
+    foe_names = sorted({str(n).strip() for n in (foes or ()) if n and str(n).strip()},
+                       key=len, reverse=True)
+    if not text or not foe_names:
+        return None
+    titles = {n.split()[0] for n in foe_names if len(n.split()) > 1 and len(n.split()[0]) > 3}
+    foe_set = {n.lower() for n in foe_names} | {t.lower() for t in titles}
+    friend_names = {str(n).strip() for n in (friends or ()) if n and str(n).strip()}
+    names = sorted(set(foe_names) | titles | friend_names, key=len, reverse=True)
+    if len(names) < 2:
+        return None
+    start = 0
+    from .llm_client import ADDRESS_TOKEN_RE    # lazy: llm_client imports this module
+    address = ADDRESS_TOKEN_RE.match(text)
+    if address is not None and address.group(1).lower() not in foe_set:
+        start = address.end()
+    one = (r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:" + "|".join(re.escape(n) for n in names) + r")\b")
+    found = re.search(
+        r"(?P<list>" + one + r"(?:" + _COMPOUND_JOIN + one + r")+)\s+(?P<pred>" + _REASON_PRED + r")\b",
+        text[start:], re.IGNORECASE)
+    if found is None:
+        return None
+    listed = [p.strip() for p in re.split(_COMPOUND_JOIN, found.group("list"), flags=re.IGNORECASE)
+              if p and p.strip()]
+    shown = []
+    for p in listed:
+        p = re.sub(r"^(?:the\s+)?(?:" + HONORIFIC + r")?", "", p.strip(), flags=re.IGNORECASE).strip()
+        if p.lower() in _AUXILIARY_SUBJECT_WORDS:
+            continue      # "Mack and Kutuzov, are attacking": the comma's "are" is no name
+        if p and p.lower() not in {s.lower() for s in shown}:
+            shown.append(" ".join(w[:1].upper() + w[1:] for w in p.split()))
+    if len(shown) < 2 or not any(s.lower() in foe_set for s in shown):
+        return None
+    rest = text[start + found.end():]
+    boundary = _COMPOUND_BOUNDARY_RE.search(rest)
+    scope = rest[boundary.end():] if boundary else rest
+    verb = _ROUTED_ORDER_VERB_RE.search(scope) or _ROUTED_ORDER_VERB_RE.search(rest)
+    if verb is None:
+        return None
+    after = scope if _ROUTED_ORDER_VERB_RE.search(scope) else rest
+    pronoun = re.search(r"\b(him|them)\b", after[verb.end():], re.IGNORECASE)
+    if pronoun is None:
+        return None
+    return shown, pronoun.group(1).lower(), verb.group(0).lower()
 
 
 def strip_reason_clauses(text: str,

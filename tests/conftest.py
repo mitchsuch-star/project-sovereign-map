@@ -161,6 +161,9 @@ ENGINE_LANES = {
         "test_cn3_the_chip_tells_the_truth",
         "test_cn4_the_chip_honesty_census",
         "test_cx7_predictor_driven",
+        # Session UI-6: the readback row and the history's fog filter — the
+        # real `main.tscn` behind an API stub, headless (tools/readback_harness.gd)
+        "test_cx_readback_history_fog",
         "test_nui2_the_fleet_rides_at_anchor",
         "test_nui_the_admiralty_on_the_map",
         "test_sf7_s8_the_screen_says",
@@ -168,6 +171,9 @@ ENGINE_LANES = {
         "test_uxr3_s12_fixes",
         # Session UI-5: the full measure's headless probe (tools/ui5_probe.gd)
         "test_ui5_full_measure",
+        # Session UI-6: UI6-X22, the scroll that flipped forever, headless
+        # (tools/ui6_scroll_flip_probe.gd)
+        "test_ui6_scroll_gutter",
         # four 40-turn driver children at once and no engine: it rode the one
         # lane, and it stays in one so its load never lands on all three
         "test_sf_page_the_front_page_of_the_peace",

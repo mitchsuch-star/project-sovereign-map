@@ -7583,6 +7583,10 @@ _R32_READS_AS = {
     # Napoleon's side" (`strategic.support_terms_clause`); AO's follow parses as
     # the SUPPORT that stands (`standing_follow`).
     "follow": ("move", "SUPPORT"),
+    # UI6-X20's sweep (Session UI-6, November 13, 2026): a commander's name
+    # given to the garrison is answered with the garrison's own order —
+    # "a garrison is left where the corps stands: 'Davout, garrison'".
+    "garrison": ("garrison", None),
 }
 # What fills a placeholder in the tail of a quoted order, by verb.
 _R32_OBJECT = {"attack": "Mack", "charge": "Mack", "pursue": "Mack",
@@ -9898,7 +9902,8 @@ class TestS14E27:
         build = _r18_func(panel, "_build_item_row")
         assert "var open_btn = Button.new()" in build
         assert 'open_btn.text = "Open ▸"' in build
-        assert "open_btn.flat = true" in build
+        # Session UI-6 (the interim blind reading): the word wears the button's face
+        assert "open_btn.flat = false" in build
         assert "open_btn.pressed.connect(_open_row.bind(panel))" in build
         # the Label that was not a press is gone
         assert "open_label" not in build

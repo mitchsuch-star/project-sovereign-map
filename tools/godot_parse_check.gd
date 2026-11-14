@@ -113,6 +113,13 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/codex_view.gd",
 	"res://scripts/codex_terms.gd",
 	"res://scripts/save_dialog.gd",
+	# Session UI-6 (November 13, 2026): the one reading of a marshal, the
+	# command desk's marshal row, the Generals' roster row and the war room's
+	# selection card (XR-1 — every touched script parses in the harness).
+	"res://scripts/marshal_state.gd",
+	"res://scripts/marshal_chip_row.gd",
+	"res://scripts/marshal_roster_row.gd",
+	"res://scripts/selection_card.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -194,6 +201,13 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/cn3_region_panel_harness.gd",
 	"res://../../tools/cx7_predictor_harness.gd",
 	"res://../../tools/cx_r2_completer_harness.gd",
+	# Session UI-6: the readback row and the history's fog filter, driven
+	# (tests/test_cx_readback_history_fog.py)
+	"res://../../tools/readback_harness.gd",
+	# Session UI-6: UI6-X22, the scroll that flipped forever (tests/test_ui6_scroll_gutter.py)
+	"res://../../tools/ui6_scroll_flip_probe.gd",
+	# Session UI-6: the Mode C walk (tools/ui6_mode_c_walk.py)
+	"res://../../tools/ui6_mode_c_walk.gd",
 	# NUI "The Admiralty on the Map" (tests/test_nui_the_admiralty_on_the_map.py)
 	"res://../../tools/nui_top_bar_harness.gd",
 	"res://../../tools/nui_map_capture.gd",

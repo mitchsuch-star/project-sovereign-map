@@ -65,6 +65,13 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     # that touched them.
     "incoming_proposal_popup.gd",
     "dispatch_view.gd",
+    # Session UI-6 (November 13, 2026): the four new scripts, extended in the
+    # slice that added them (§7) — the marshal kit, the desk's marshal row,
+    # the Generals' roster row and the war room's selection card.
+    "marshal_state.gd",
+    "marshal_chip_row.gd",
+    "marshal_roster_row.gd",
+    "selection_card.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

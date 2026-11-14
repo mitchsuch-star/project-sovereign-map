@@ -170,7 +170,7 @@ class TestPCF46:
 
     def test_the_letters_ceiling_grows_with_the_window(self):
         src = _read(SCRIPTS / "incoming_proposal_popup.gd")
-        assert _const(src, "LETTER_HEIGHT_FRACTION") == 0.8
+        assert _const(src, "LETTER_HEIGHT_FRACTION") == 0.88   # Session UI-6: 0.8 -> 0.88 (the rim padding)
         assert _const(src, "LETTER_WIDTH_FRACTION") == 0.45
         assert _const(src, "LETTER_MAX_WIDTH") == 860.0
         # the authored rect (680 x 440, the .tscn's offsets) is the FLOOR
@@ -236,6 +236,8 @@ class TestPCF46:
         letter = rec[("pc_armistice_letter", size, "after")]
         vw, vh = letter["logical_viewport"]
         x, y, w, h = letter["panel_rect"]
+        # the COMMITTED S15 record, shot at the 0.8 ceiling it was built with; the live
+        # letter's 0.88 (Session UI-6, the rim's padding) is the driven pin's below
         assert h == int(vh * 0.8) and w == 860, letter["panel_rect"]
         assert y >= 44 and y + h <= vh - 12 and x >= 12 and x + w <= vw - 12
         assert all(letter["seen_above_the_fold"][n] for n in LETTER_NEEDLES), letter["seen_above_the_fold"]
@@ -263,7 +265,7 @@ class TestPCF46:
         frame = drive["frames"][f"pc_armistice_letter__{size}"]
         vw, vh = frame["logical_viewport"]
         x, y, w, h = _panel(frame, "IncomingProposalPopup")
-        assert int(h) == int(vh * 0.8) and int(w) == 860, (size, [x, y, w, h])
+        assert int(h) == int(vh * 0.88) and int(w) == 860, (size, [x, y, w, h])
         assert y >= 44 - 0.5 and y + h <= vh - 12 + 0.5
         seen = _seen(frame, "IncomingProposalPopup")
         # Session UI-2 (November 12, 2026): the 32:9 derivation 1.40 -> 1.60

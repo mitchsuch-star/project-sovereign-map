@@ -11993,9 +11993,10 @@ class TestS14G19:
 
     def test_the_stack_label_is_the_lead_marshals_click_target(self):
         body = _r19_func(_r19_src(BASE_GD), "_create_marshal_nodes")
-        # the lead is taken in the SAME loop that names the label ("Ney +4")
+        # the lead is taken in the SAME loop that names the label ("Ney · 4 more" — Session UI-6 gave the
+        # stack the gathered plates' one phrasing, map_label_layer's GATHER_FORMAT)
         loop = body.index("var lead_marshal: Dictionary = {}")
-        assert loop < body.index("lead_marshal = m") < body.index('var stack_text := "%s +%d" % [lead_name, group_size - 1]')
+        assert loop < body.index("lead_marshal = m") < body.index('var stack_text := "%s · %d more" % [lead_name, group_size - 1]')
         added = body.index('_add_label_hitbox(label_hitboxes, stack_label, {"marshal": lead_marshal})')
         assert body.index('_add_furniture("stack", [stack_label])') < added < body.index("stack_row += 1")
 

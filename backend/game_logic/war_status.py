@@ -458,6 +458,8 @@ def _title_block(world, war_id: str, court: str = "") -> Dict[str, Any]:
         "war_title": str(rec.get("title") or ""),
         "war_title_source": str(rec.get("source") or ""),
         "war_title_line": str(rec.get("line") or ""),
+        # UI-6: the sentence's structure (names + int counts), beside it.
+        "war_ground": dict(rec.get("ground") or {}),
         "war_title_display": str(rec.get("display") or ""),
         "war_roster_display": str(rec.get("roster_display") or ""),
         "war_stake": list(rec.get("stake") or []),

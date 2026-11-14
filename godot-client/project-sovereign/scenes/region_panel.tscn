@@ -52,6 +52,7 @@ focus_mode = 0
 text = "X"
 
 [node name="Scroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+vertical_scroll_mode = 4
 custom_minimum_size = Vector2(320, 40)
 layout_mode = 2
 horizontal_scroll_mode = 0

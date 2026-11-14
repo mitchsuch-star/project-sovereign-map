@@ -719,7 +719,7 @@ def _peace_soil_refusal_line(world, marshal, enemy) -> str:
     if owner is None:
         return ""
     from backend.commands.combat_executor import peace_soil_refusal
-    return str(peace_soil_refusal(marshal, enemy, {"owner": owner})["message"])
+    return str(peace_soil_refusal(marshal, enemy, {"owner": owner}, world)["message"])
 
 
 def _band_range(label: str) -> Tuple[int, int]:

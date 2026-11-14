@@ -2751,6 +2751,23 @@ class EconomyExecutor:
             named_region, named_error = self._executor._fuzzy_match_region(
                 named, world, near=region_name)
             if named_error is not None:
+                # UI6-X20's sweep: a COMMANDER's name is no misspelt province
+                # ("Davout, garrison Kutuzov" → "Region 'Kutuzov' not
+                # found…") — named, never placed (the move / scout / hold
+                # roads' own answer, in the garrison's terms).
+                _man = world.get_marshal(named) if hasattr(world, "get_marshal") else None
+                if (_man is not None and _man.nation != marshal.nation
+                        and not getattr(_man, "captured_by", "")
+                        and _man.name not in world.regions):
+                    from backend.display_names import humanize_entity_name
+                    _shown = humanize_entity_name(marshal_name)
+                    return {
+                        "success": False,
+                        "message": (f"{humanize_entity_name(_man.name)} is a commander, "
+                                    f"Your Majesty, not a province — a garrison is left "
+                                    f"where the corps stands: '{_shown}, garrison'."),
+                        "variable_action_cost": 0,
+                    }
                 return named_error
             if named_region is not None and named_region.name != region_name:
                 from backend.display_names import humanize_entity_name

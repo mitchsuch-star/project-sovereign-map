@@ -25,7 +25,7 @@ LABEL_GD = PROJECT / "scenes" / "map_label_layer.gd"
 HARNESS = REPO / "tools" / "s14h_r19_label_click_harness.gd"
 
 def _r19_board():
-    """Five corps of ours stacked at Rhineland (a collapsed group, "<lead> +4"),
+    """Five corps of ours stacked at Rhineland (a collapsed group, "<lead> · 4 more"),
     Bernadotte alone at Franconia (his own name label), on the shipped boot."""
     from tests import _chip_census as C
     import backend.main as M
@@ -94,7 +94,8 @@ class TestS14G19Driven:
 
     def test_the_stack_label_is_found_and_has_a_clear_point(self, _r19_driven):
         assert _r19_driven["stack_found"] is True
-        assert _r19_driven["stack_text"].endswith(" +4"), _r19_driven["stack_text"]
+        # Session UI-6: the stack reads as the gathered plates do ("<lead> · N more")
+        assert _r19_driven["stack_text"].endswith(" · 4 more"), _r19_driven["stack_text"]
         assert _r19_driven["stack_clear_point"] is True
 
     def test_hovering_the_stack_label_names_its_lead(self, _r19_driven):

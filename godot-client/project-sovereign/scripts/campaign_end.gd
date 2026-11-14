@@ -128,6 +128,12 @@ var _font_voice_italic: Font = null
 var _strip: Control = null
 # Session UI-5: the end plate over the record (null on the compact view).
 var _plate: TextureRect = null
+# Session UI-6: THE VERDICT as one plaque - a framed pull-quote (the tier in the
+# title face, its lines beneath) instead of a run of plain text in the reading.
+var _plaque: PanelContainer = null
+var _plaque_heading: Label = null
+var _plaque_tier: Label = null
+var _plaque_lines: RichTextLabel = null
 
 
 func _ready():
@@ -218,6 +224,7 @@ func show_ending(payload: Dictionary) -> void:
 	_ensure_crest()
 	_ensure_strip()
 	_ensure_plate()
+	_ensure_plaque()
 	_render(style)
 	_arm_buttons(style)
 	show()
@@ -324,6 +331,94 @@ func _ensure_plate() -> void:
 	_plate.modulate = Color.WHITE.darkened(PLATE_DIM)
 	header.add_child(_plate)
 	header.move_child(_plate, 0)
+
+
+func _ensure_plaque() -> void:
+	"""Session UI-6 (F26, the readers: "the verdict is a long run of plain text -
+	make it a pull-quote / one verdict plaque"): the plaque stands outside the
+	reading - a gilt hairline frame, the heading, the tier in the title face
+	large, the verdict's lines centred beneath. Built once; `_place_plaque` and
+	`_fill_plaque` dress it for each register."""
+	if _plaque != null and is_instance_valid(_plaque):
+		return
+	_plaque = PanelContainer.new()
+	_plaque.name = "VerdictPlaque"
+	_plaque.visible = false
+	var box := VBoxContainer.new()
+	box.name = "PlaqueBox"
+	box.add_theme_constant_override("separation", 6)
+	_plaque.add_child(box)
+	_plaque_heading = Label.new()
+	_plaque_heading.name = "PlaqueHeading"
+	_plaque_heading.theme_type_variation = &"Caption"
+	_plaque_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_plaque_heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(_plaque_heading)
+	_plaque_tier = Label.new()
+	_plaque_tier.name = "PlaqueTier"
+	_plaque_tier.theme_type_variation = &"DisplayTitleLarge"
+	_plaque_tier.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_plaque_tier.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_plaque_tier.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(_plaque_tier)
+	_plaque_lines = RichTextLabel.new()
+	_plaque_lines.name = "PlaqueLines"
+	_plaque_lines.bbcode_enabled = true
+	_plaque_lines.fit_content = true
+	_plaque_lines.scroll_active = false
+	_plaque_lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_plaque_lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if _font_engraved != null:
+		_plaque_tier.add_theme_font_override("font", _font_engraved)
+	if _font_voice != null:
+		_plaque_lines.add_theme_font_override("normal_font", _font_voice)
+		_plaque_lines.theme_type_variation = &"BodyLargeRich"
+	if _font_voice_italic != null:
+		_plaque_lines.add_theme_font_override("italics_font", _font_voice_italic)
+	box.add_child(_plaque_lines)
+
+
+func _plaque_wanted(verdict) -> bool:
+	"""The plaque stands wherever the verdict has words and the card has room
+	(the compact view keeps the verdict in the reading, as the strip steps aside)."""
+	return verdict is Dictionary and not (verdict as Dictionary).is_empty() and not _compact_card()
+
+
+func _place_plaque(on: bool) -> void:
+	"""The plaque's place in the card: over the reading on the Verdict's own card
+	(the verdict IS the card), under it on the others (the closing block, as the
+	verdict has always stood after the record)."""
+	var vb := $PanelContainer/VBoxContainer
+	if _plaque.get_parent() != null:
+		_plaque.get_parent().remove_child(_plaque)
+	_plaque.visible = on
+	vb.add_child(_plaque)
+	var at: int = content_scroll.get_index()
+	vb.move_child(_plaque, at if _register == "verdict" else at + 1)
+
+
+func _fill_plaque(verdict: Dictionary, style: Dictionary) -> void:
+	var tier_title := Utils.humanize_nation_keys_in_text(str(verdict.get("title", "")).strip_edges())
+	var tone: Color = style["border"]
+	var box_bg: Color = (style["bg"] as Color).lightened(0.05)
+	_plaque.add_theme_stylebox_override("panel", Utils.gilt_frame(box_bg, tone, Utils.FRAME_HAIRLINE, 18.0))
+	var heading_hex: String = str(style["title_hex"]) if _register == "verdict" else Utils.COLOR_GOLD
+	_plaque_heading.text = "" if _register == "verdict" else "THE VERDICT OF HISTORY"
+	_plaque_heading.visible = _plaque_heading.text != ""
+	_plaque_heading.add_theme_color_override("font_color", Color("#" + str(style["title_hex"])))
+	if tier_title == "":
+		tier_title = "THE VERDICT"
+	_plaque_tier.text = tier_title
+	_plaque_tier.add_theme_color_override("font_color", Color("#" + heading_hex))
+	var out := ""
+	var lines = verdict.get("lines", [])
+	if lines is Array:
+		for ln in lines:
+			out += _esc(str(ln)) + "\n"
+	var closing := str(verdict.get("closing", "")).strip_edges()
+	if closing != "":
+		out += "[i]" + _esc(closing) + "[/i]\n"
+	_plaque_lines.text = "[center]" + Utils.humanize_nation_keys_in_text(out.trim_suffix("\n")) + "[/center]"
 
 
 func _record_tiles(summary: Dictionary) -> Array:
@@ -450,7 +545,15 @@ func _render(style: Dictionary) -> void:
 	# 2. The Verdict — its own card on the parchment register, the closing
 	#    block on the others.
 	var verdict = summary.get("verdict")
-	var verdict_block := _verdict_block(verdict, style)
+	# Session UI-6: the verdict stands in its plaque (every word of it - the tier,
+	# its lines, its closing - moves there from the reading); the reading keeps it
+	# only where the plaque has no room (the compact card).
+	var plaqued: bool = _plaque_wanted(verdict)
+	if _plaque != null and is_instance_valid(_plaque):
+		_place_plaque(plaqued)
+		if plaqued:
+			_fill_plaque(verdict, style)
+	var verdict_block := "" if plaqued else _verdict_block(verdict, style)
 	if _register == "verdict":
 		bbcode += verdict_block
 	# 2b. GE-3: the Imperial Peace's own block — the four courts with SIGNED /
@@ -796,6 +899,15 @@ func _arm_buttons(style: Dictionary) -> void:
 	primary_btn.text = str(style["primary"])
 	primary_btn.disabled = false
 	primary_btn.visible = true
+	# Session UI-6 (F26: "the buttons are small - make them bolder"): the primary
+	# answer is the gilt PrimaryButton, taller and wider than the authored 250 x 46;
+	# the secondary is a plain button of the same size beside it. The compact card
+	# (Interface Scale 2.0) keeps them to the room it has.
+	var btn_h: float = 40.0 if _compact_card() else 58.0
+	var btn_w: float = 260.0 if _compact_card() else 300.0
+	primary_btn.theme_type_variation = &"PrimaryButton"
+	primary_btn.custom_minimum_size = Vector2(btn_w, btn_h)
+	secondary_btn.custom_minimum_size = Vector2(btn_w, btn_h)
 	var secondary := str(style["secondary"])
 	secondary_btn.text = secondary
 	secondary_btn.visible = secondary != ""

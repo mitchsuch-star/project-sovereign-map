@@ -4619,6 +4619,12 @@ def build_settlement_confirm_dialogue(
                   if _status_quo_review and not _has_material_concession_terms(
                       preview.get("settlement_terms") or [])
                   else "")
+    # Session UI-6 (F16): structured sidecars beside the sentences above (the
+    # sentences are unchanged) so the client can draw chips and badges.
+    _status_quo_regions = settlement_status_quo_regions(
+        world, war_instance, proposer_side, covered,
+        preview.get("settlement_terms") or [])
+    _manner_badges = settlement_manner_badges(list(preview.get("manner_lines") or []))
     # S14E-15: what this peace does to a formable road the bloc has begun
     # against a covered court — the road builder's own line, beside (never
     # inside) the status-quo review, whose emptiness keys the White Peace label.
@@ -4631,6 +4637,8 @@ def build_settlement_confirm_dialogue(
         "dialogue_mode": dialogue_mode,
         "status_quo_review": _status_quo_review,
         "held_line_note": _held_note,
+        "status_quo_regions": _status_quo_regions,
+        "manner_badges": _manner_badges,
         "road_closing_lines": _road_closing,
         # VP1-X7 (S14b part 2): the Revanche and the manner, top level (the
         # nested preview copy is not read by the client).
@@ -4896,6 +4904,68 @@ def settlement_status_quo_review(world: Any, war_instance: Mapping[str, Any],
                 seen.add(line)
                 (first if "to us by the treaty" in line else rest).append(line)
     return first + rest
+
+
+def settlement_status_quo_regions(world: Any, war_instance: Mapping[str, Any],
+                                  proposer_side: str, covered: Iterable[str],
+                                  settlement_terms: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Session UI-6: the provinces `settlement_status_quo_review` titles, as
+    structured rows `{"region": name, "house": nation}` (the ratifier's own
+    `status_quo_forecast` entries, the same pairs and the same skips) - a
+    sidecar for the client's chips; the review's sentences are untouched.
+    Pure read; [] when nothing is titled."""
+    from backend.game_logic.game_end import status_quo_forecast
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
+    side_by_nation = dict((war_instance or {}).get("side_by_nation") or {})
+    covered_set = {str(c) for c in (covered or []) if c}
+    ours = [n for n, side in side_by_nation.items() if side == proposer_side]
+    moved: set = set()
+    for term in settlement_terms or []:
+        if isinstance(term, Mapping):
+            moved.update(cession_shaped_regions(term))
+    out: List[Dict[str, Any]] = []
+    seen: set = set()
+    for a in sorted(ours):
+        lord = str(world._top_overlord(a) or a)
+        for b in sorted(covered_set):
+            if world.get_diplomatic_state(a, b) not in ("WAR", "ARMISTICE"):
+                continue
+            if (lord != a and lord in ours
+                    and world.get_diplomatic_state(lord, b) in ("WAR", "ARMISTICE")):
+                continue
+            for entry in status_quo_forecast(world, a, b, moved):
+                house = str(entry.get("house") or "")
+                for rs in (entry.get("titled") or {}).values():
+                    for region in rs:
+                        if region not in seen:
+                            seen.add(region)
+                            out.append({"region": str(region), "house": house})
+    return out
+
+
+def settlement_manner_badges(manner_lines: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Session UI-6: each court's manner line (`table_manner_lines`) as a
+    badge row `{"court", "manner"}`; `manner` is partition / subjugation /
+    moderate, `guarded` (the homeland guard voids it) or `none`. Read off the
+    line itself, so the badge can never disagree with the sentence beside it."""
+    from backend.game_logic.imperial_designs import MANNER_WORDS
+    out: List[Dict[str, Any]] = []
+    for row in manner_lines or []:
+        if not isinstance(row, Mapping):
+            continue
+        line = str(row.get("line") or "")
+        if not line:
+            continue
+        kind = "none"
+        if " — but while " in line:
+            kind = "guarded"
+        else:
+            for key, words in MANNER_WORDS.items():
+                if f"manner of this peace: {words} " in line:
+                    kind = key
+                    break
+        out.append({"court": str(row.get("court") or ""), "manner": kind})
+    return out
 
 
 def covered_courts_at_war(world: Any, war: Mapping[str, Any], *, player: str) -> List[str]:

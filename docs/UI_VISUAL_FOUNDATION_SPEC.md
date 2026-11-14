@@ -1276,3 +1276,168 @@ the player's 8005 untouched; frames and `walk.json` in `docs/audits/ui5_mode_c_2
 switch each); the End Turn gate fires more often with idle corps on the board (one switch); La Marseillaise is an
 anachronism for the Empire, on the record; the compact view keeps the chest and the levies a click away while the
 command window is folded.
+
+## 14. Session UI-6 — The Last Reading: every decision ruled, the Generals and the command line rebuilt for play ✅ LANDED November 13, 2026
+
+**The ask.** The user, after UI-5's reading (7 / 7 / 7, mean 7.07): "this is last scoring make all deicisons and fix
+this, while at it please analyze if there are better ways to interact with gernals as well and to make typing clicking
+etc cleaner". Plan Mode drafted it and the user approved the plan: every open decision ruled, the frames the readers
+held at 6 rebuilt and every other frame given its readers' named change, the generals' interaction and the command line
+analysed and rebuilt, then one interim and one final blind reading — the last scoring. The rules and the new client
+surfaces are `SYSTEMS_REFERENCE.md` §217; the defects found on the way are `BUG_FIXES.md` §UI6; the pins are
+`tests/test_ui6_*.py`, `tests/test_parse_preview*.py`, `tests/test_cx_readback_history_fog.py`; before / after pairs
+`docs/audits/ui_gilt6/`.
+
+**The decisions — all ruled** (each one switch or one line to reverse). UI-5's eighteen, final: hover ticks on and quiet
+(−22 dB, one voice, 70 ms); typing ticks on (±7 % pitch, ±1.5 dB, 35 ms); the background window "Quieter" (−12 dB);
+rests between pieces; the war rotation without Brandywine and the two fife medleys; music in peace / war / crisis /
+court; the anthem rule (the Marseillaise's anachronism on the record); the Eroica at the campaign's end; idle corps named
+at End Turn (the marshal row now shows them before it); no minimap; no WASD (typing owns the letters; arrows pan; digits
+act on a selected marshal); pictures toned, first to step aside; colour vision Standard; tooltips Short (0.3 s); toasts
+for the client's own acts — plus one: an order sent from behind a screen toasts its answer; named saves, F5 / F9, the
+leave confirm; key remapping (the new digit keys fixed, like the in-screen numbers); one commit through the hook, then
+the push. The readers' levers (UI-5 §13 "What holds it at 7 now"): all built. New: N1 the Generals master-detail by
+default (On the page keeps the card list word for word) · N2 the selection card's verbs send at once, the price on the
+face · N3 right-click orders; a left-click on another of ours re-selects · N4 the next idle marshal after an order
+(Settings, On) · N5 digits 1–7 press the card's fixed slots · N6 the readback line (Settings, On) · N7 Execute a send
+glyph shown with text, "⚖ Cabinet" · N8 Turn and Gold off the command window (the top bar carries both) · N9 on a very
+wide screen two full-height columns (HUD width "Full" keeps UI-4's corners) · N10 plaques gather at every zoom · N11 the
+war detail's backdrop hides the HUD · N12 the fog: ruled by the recorded doctrine (below).
+
+**The analysis of the generals and the line** (nine readers over the code and prior art, three design passes; the
+record is the plan): what Row CC had built (select then click, drag a piece, standing-order arrows, `.` for the next
+idle marshal, Ctrl-click groups, the slot-aware completer) and what was missing — a selected marshal had a two-line text
+strip and no order buttons; right-click only dismissed and a left-click on a friend opened a support card; marshal state
+was invisible on the board; the Generals screen was one scrolling label of ~30-line cards; a typed line could not be
+checked before Enter. Set aside, each with its reason: colouring the typed words (Godot's LineEdit cannot colour spans;
+the readback carries the signal), skipping the confirm card for free orders (the card is the seal), refusal suggestions
+as chips (43 backend literals; the readback catches the error first), queueing a line while a reply is out (the CC-X10
+focus trap), box select (Ctrl-click groups exist).
+
+**As built** — the lead's kit (`scripts/marshal_state.gd`: ONE reading of a marshal for every surface), then eight
+builders on disjoint files (wave 1: the HUD, the Generals, the province panel, the war detail, the settlement table, the
+map, the readback and its fog, the selection card), the lead's check, nine more (wave 2: the two ledgers, the Cabinet,
+the press, the letters and the objection, the enemy phase and the diorama, the end card, the menu and the mailbox,
+Settings and the tutor card, and the `main.gd` interaction integrator), two backend sweeps of the live order road, and
+the lead's reading of every rated frame (below):
+- **The generals' interaction:** the selection card (portrait, strength and morale, status, actions left, the seven
+  fixed slots with their digits; a locked slot dimmed in place, its reason the hover; a group face for a Ctrl-click
+  group); digits 1–7 on an empty line; right-click orders; a left-click on another of ours selects him; the next idle
+  marshal after an order; the marshal row in the desk (idle first and gilt, "+N" opens the Generals, a click selects,
+  a double-click opens his detail); the province panel's names select him; an order sent from behind a screen toasts
+  its answer.
+- **The Generals screen:** roster + detail (Commission a Marshal, Doctrine and Laurels at the roster's head; each row a
+  portrait, the name, "place · strength" with the status badge, a gilt dot when urgent; the detail's order bar pinned
+  above the scroll — Hold, Fortify / Unfortify, Drill, Scout, Fall back, Garrison, ⌖ On the map — priced, locked with
+  its reason as the hover; skills as a tile grid, abilities as chips, the Reward line printed); digits, Up / Down and
+  Enter in the roster; On the page the card list word for word.
+- **Typing:** the readback row (`GET /parse_preview`, never executed: "▸ Ney · attack Mack (Swabia) · 1 action",
+  "✕ … — free refusal", "? No marshal 'Zorglub' of ours" with a candidate that fills the line); the completer's
+  history offers only lines today's board stands behind; the Up / Down walk recalls every line typed; the shared prefix
+  of an offer dim, its changing tail gold.
+- **The command desk:** desk / bar / column (§217): Turn and Gold in the top bar; the send glyph with text; "⚖ Cabinet";
+  the 2.0 slim bar `[line | send | End Turn (E) | ⋯]` over the last reply's line with "T1 · ⚔ 4/4 · ✎ 2/2" and
+  "● N idle", the log a drawer; on a very wide screen the desk a full-height column (the right column collapsed by
+  the interim reading).
+- **The map:** plaques gather at every zoom ("· N more"); right-click orders; the map's room on 32:9 runs from the desk
+  to the screen's edge.
+- **The panels at 6:** the province panel (figures first; RECRUIT one line with a "Levies ×1.45" tag; Build's upkeep a
+  tag; FORCES PRESENT one row per marshal, "+N orders" whose hover names each folded order and its reason); the war
+  detail (a backdrop that hides the HUD; the GROUND block; the score table at the page's width, redrawn when the page
+  settles); the settlement table (a verdict panel, the treasury tiles, larger court meters, "The peace" card, counsel
+  one fold); the Vassals (a figure strip, larger actions, one lock chip for one shared reason).
+- **Every other frame, its readers' change:** the tutor card a lead line and bullets (verbs bold); Forces' prose behind
+  ⓘ; the Economy an income-against-charges bar and one column of gold (a line's note its hover); Territories grouped,
+  exceptions first, the healthy rows to the page's foot then one fold; Manpower one row an arm with larger bars and
+  Recruit buttons; the Nations cards' facts spanning the card; the Balance's roads in one table with section bands; the
+  Cabinet's Designs compacted (more nations in view), the second step's recommendation first and loud; the Dispatch's
+  figures first (and a wide scene, Thévenin's Surrender of Ulm, where a face had been cropped); the Moniteur's battles
+  bold with result badges; the enemy phase's summary line first; the diorama's armies larger; the petition's chips
+  larger; the letters set as a letter is (a part opens on its own line, a new paragraph indented, the words inside the
+  torn rim, the sheet 0.88 of the view so the answers stand above the fold); the objection a uniform grid, a cost said
+  once (under its button); the end card's verdict a plaque; the menu's seed in an options row; Settings in segmented
+  controls with the two new switches and no repeated label; the mailbox's terms one chip row and a button-faced Open;
+  the Correspondence's empty sections said, its sealed letter a larger action.
+
+**The fog, ruled.** The plan filed three leaks on the rule "a hidden name reads exactly like an unknown one". The
+recorded doctrine is narrower — a commander's NAME and SIDE are public, his POSITION is the fog's
+(`llm_client._askable_enemy_names`, pinned by `tests/test_crt2_the_name_is_never_replaced.py`) — and the lead ruled for
+the doctrine: the readback and the live road answer a commander out of sight as `/command` does and never say where he
+stands; what leaked a position (a cautious delegation's scout of his live province, "No marshals in range of him", an
+arrival attack armed on him) is fixed; what only named him or his side is closed BY DESIGN with that reason
+(`BUG_FIXES.md` §UI6). The history's offers keep the board filter (an offer is the table's suggestion); the Up / Down walk
+recalls every line typed, as typed.
+
+**The crash the measure found.** The first full shoot died at the province panel on the compact view: the panel's
+scroll toggled its bar ~780 times a second inside one frame (its text, with inline chips, is 336 px tall at 336 px wide
+and 333 px at 328), memory climbing until the engine died — a freeze then a crash a player at that window size would
+have met. Every ScrollContainer in the client now keeps its bar's gutter (SCROLL_MODE_RESERVE); pinned by a census and a
+headless replay of the dumped panel (`BUG_FIXES.md` UI6-X22). The same reading found the shoot's own error count read
+the first shot only (UI6-X23) and, behind it, a misspelt property that left the Generals roster without names (UI6-X24).
+
+**The interim reading** (three fresh readers, `READER_PROMPT.md` verbatim, the frozen rubric, the same thirty ids
+and stagings, on the first full shoot): 7 / 7 / 7, mean 7.28 against UI-5's 7.07 — the selection card, the Generals,
+the panels and the press each a point up. What they held at 6 they named: on 32:9 the full-height right column held
+one small war list over bare leather and the log stood cut at its top (F02); at 2.0 the bar's line ran out
+("▸ every c…") and the labels crowded (F03); the Austria card clipped at the right (F11); the Vassals rows clipped and
+wrapped (F12); the designs table cut at its foot and narrower than its frame, a stray rule under the heading (F13);
+Settings "a long wall of toggles and segmented buttons" (F28, UI-5's readers had given it 7 / 7 / 7).
+
+**After it:** the right column collapsed (the map's room runs from the desk to the screen's edge; the notice rail and
+the war list keep the column's width at its top — `hud_anchor_band`); the Vassals a figure strip that fits; the
+Balance's table at the page's width and its rule On the page only; the economy's notes hovers, the manpower bars
+larger, the roster's strength "24k"; the mailbox's Open a button; Settings' segmented controls kept for choices of up
+to three (window, HUD width and tooltip delay are drop-downs again, folded too). Then the engine lanes, BEFORE any
+final shoot, as the plan required: twelve failures and ten errors — the GE-2 client harness never exiting (UI6-X32: the
+folded bar's log measured at 1 px wide, a frame of minutes — a freeze a player at 2.0 would have met as the log grew),
+Talleyrand's quote under the Cabinet's fold at 2.0 (UI6-X47), the war's purpose folded into a hover (UI6-X51), and
+pins re-pointed to the interim reading's rulings (the 32:9 band, the settlement's verdict tile, the bar's width) — all
+green on re-run.
+
+**The lead's dry run** (a full shoot read frame by frame, and the five instruments): the 32:9 log's top line still cut
+— the whole-line pad grew the label but the scroll kept its old end, a stale maximum UI6-X22's reserved gutter had
+exposed (UI6-X40); Austria's open card still past its hairline (UI6-X48); the bar's line still "▸ every c…" — the
+link's words joined by no-break spaces (UI6-X49); the Correspondence's gilt action flagged by the contrast census on an
+undeclared white (UI6-X50). Each fixed and pinned before the final shoot.
+
+**The fog, four more rounds and a closing pass** (fixers A16 to A19, each followed by two adversarial verifiers; then the lead on A19's verifiers' finds, UI6-X63 … X76 — a lone march asks, a retreat from where he does not stand is refused free, "because" between two orders is refused naming both, a co-subject's "with Kutuzov" names the dropped man, a pursued shared title takes its one bearer in sight; four rows open, heading session H: UI6-X70, X73, X74, X75): UI6-X25 … X62 — a
+commander as the object of a stationary verb or a retreat, the collective's honest quote, raw keys in the asks, the
+charge's province oracle, the readback's parity, the reason and purpose clauses, the second name, a battle report that
+placed a man out of sight (X35), a title two men share; and A17's own "so" split, which misrouted orders and let a
+charge bypass its arming gate, replaced by the proven "then" road (X41). Every row is filed in `BUG_FIXES.md` §UI6.
+
+**The final reading — the last scoring** (three fresh readers on the final shoot, `READER_PROMPT.md` verbatim, the
+frozen rubric, the same thirty ids and stagings; each report checked against its frames — no slip, no missing line):
+**7 / 7 / 7** — per-reader means 7.47, 7.40, 7.43; the mean of the marks **7.07 → 7.43** (UI-5's final to this one;
+**7.09 → 7.41** on the 27 frames whose staging never moved); the median of the frame medians 7 → 7. Ten frames up —
+the Generals 6 → 8 at boot and at turn 20, the Vassals 6 → 7, the settlement table 6 → 7, the province panel 6 → 7,
+the war detail 6 → 7, the Dispatch 7 → 8, the mailbox 7 → 8, the Correspondence 7 → 8, the main menu 8 → 9; eighteen
+level; two down a point (Manpower 8 → 7: "half the window is empty, the recruit buttons small"; the affair letter
+8 → 7: "dense text on the busy paper, cramped buttons"). One frame stands at 6, as it did at UI-5: the war room at
+Interface Scale 2.0 ("labels collide, the map cropped, the bottom bar heavy"). `tools/ui_rating/scores_ui6.py`; the
+pairs `docs/audits/ui_gilt6/` — the frames the readers rated (the Nations frame re-shot before the reading for its
+long facts, UI6-X48). After the reading one reader's nit was fixed: the Generals' detail left "Relationships:" alone
+at its fold (UI6-X53).
+
+**The measure** (the final shoot: 386 frames at 1.0 and 2.0, the 32:9 war room at five physical sizes; 0 script
+errors in either log): readability RED 0 / P1 0 (6,092 rows; 264 physical); contrast 0 under 4.5 : 1 (4,851 measured;
+256 physical); the consistency census 0 hits; fit all; buttons off view 0; map overlaps 0; cut lines 85 against
+HEAD's 89 (every one a box taller than its window, cut by design — RR5-X4) and 0 on the physical frames. On the page
+(`--explanations page`): every word of HEAD's stands on 184 of 193 surfaces by full text; of the nine exceptions seven are artifacts (HEAD's run-together table cells — "componentscorevalueterritory", "clickdismisses" — and the notice rail's "Imperial Box (25)" behind the war detail's backdrop, by design N11), and two were real — Settings' tab-name headings, fixed (UI6-X52) and re-shot. By visible text 180 of 193: the rest are words moved below a fold (the end cards' plaques, a letter's paragraphs, Paris's explanation), each present in full.
+
+**What holds it now** (the final readers' own words, the levers past 7 — the user's to rule): "many screens are dense
+scrolls of small text with empty or clipped areas … reaching 9 needs tighter information design and fit, with less
+prose, content-sized windows and a decluttered map"; "small dense text, plain tables, clipped lists and empty panel
+areas"; "dense small text, crowded map plaques, empty window space, and long text walls inside popups hold it at
+competent rather than polished". By frame: at 2.0 the plaques collide and the bar covers the map (F03, the one 6); on
+32:9 the desk's log is a wall of the boot's help (F02); the Nations cards read "like a database" (F11); the Cabinet's
+first step opens on a paragraph with the nations under the fold (F14); the letters' bodies dense, their buttons small
+(F22); Manpower and the Vassals half empty (F08, F12); Settings a long list of small controls (F28).
+
+**Costs, said once.** A left-click on a friend no longer orders support (right-click or the drag does); the next idle
+marshal after an order moves the camera (one switch); the readback asks the backend while you type (one switch; it never
+sends); the command window no longer shows Turn and Gold (the top bar does); "The Cabinet" reads "⚖ Cabinet" and
+Execute is a glyph; at 2.0 the log is a drawer; on 32:9 the map's room runs from the desk to the screen's edge (HUD
+width Full restores the corners); plaques gather at mid zoom, so a few names sit behind "· N more"; Settings' four-way
+choices are drop-downs again, folded too; on the compact view the Cabinet's second step drops its heading (the
+window's title names the court).

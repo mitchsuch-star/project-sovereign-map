@@ -157,6 +157,22 @@ def _issuer_nation(world, issuing_marshal: Optional[str]) -> Optional[str]:
     return getattr(world, "player_nation", None)
 
 
+# UI6-X6 (Session UI-6, November 13, 2026): the words that stand in the
+# `until <who> is destroyed` slot WITHOUT naming anyone — a pronoun or a
+# generic noun keeps the order's own target ("pursue Mack until he is
+# destroyed"); any other word is a NAME, and a name the board cannot meet is
+# refused (rule 2), never minted as "(until Lorraine is destroyed)".
+_NOT_A_NAME = frozenset({
+    "he", "she", "it", "they", "him", "her", "them", "we", "us", "you", "i",
+    "his", "its", "their", "our", "your", "my", "this", "that", "these", "those",
+    "enemy", "enemies", "foe", "foes", "army", "armies", "corps", "troops", "men",
+    "soldiers", "force", "forces", "column", "columns", "garrison", "garrisons",
+    "everyone", "everybody", "anyone", "anybody", "someone", "somebody", "nobody",
+    "everything", "anything", "something", "nothing", "all", "none", "each",
+    "both", "either", "neither", "one", "who", "what", "which", "there", "here",
+})
+
+
 def parse_condition(command_lower: str, target: str, *, world=None,
                     issuing_marshal: Optional[str] = None,
                     current_turn: Optional[int] = None) -> ConditionRead:
@@ -204,7 +220,19 @@ def parse_condition(command_lower: str, target: str, *, world=None,
     if dm:
         who_raw = dm.groupdict().get("who")
         if who_raw and world is not None:
-            who = _resolve_marshal(who_raw, world)
+            # "until it's destroyed" / "until Mack's destroyed": the word under
+            # its contraction ("is" folded onto it).
+            bare = re.sub(r"['’](?:s|re|ll|d)$", "", who_raw.lower()).strip("'’")
+            who = _resolve_marshal(who_raw, world) or (
+                _resolve_marshal(bare, world) if bare != who_raw.lower() else None)
+            if who is None and bare not in _NOT_A_NAME:
+                # UI6-X6 (Session UI-6, November 13, 2026): a NAME on no
+                # roster is refused, never minted (rule 2) — "hold Lorraine
+                # until Zorglub is destroyed" minted "(until Lorraine is
+                # destroyed)". A pronoun or a generic word keeps the order's
+                # own target ("pursue Mack until he is destroyed").
+                read.refusal = {"kind": "unknown_referent", "name": who_raw.capitalize()}
+                return read
             cond["until_marshal_destroyed"] = who.name if who is not None else target
         else:
             cond["until_marshal_destroyed"] = target

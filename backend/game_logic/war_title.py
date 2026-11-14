@@ -188,6 +188,32 @@ def _ground_rung(world, ground) -> List[Tuple[int, int, str, str]]:
     return [row for row in ground if row[3] in passing]
 
 
+def _ground_sidecar(world, theirs, mine) -> Dict[str, Any]:
+    """UI-6 (November 13, 2026): the holdings sentence's STRUCTURE, beside the
+    sentence (which `_line` still writes unchanged) - the war detail draws
+    chips from it instead of parsing prose. Names only (diplomacy has no fog,
+    holdings are public); every count an int (Golden Rule 2). Rows are
+    {province, owner, holder}: owner the court whose home it is, holder the
+    controller. `theirs_held_by_us` is what our side holds of theirs,
+    `ours_held_by_them` what they hold of ours."""
+    def _row(name: str, owner: str) -> Dict[str, Any]:
+        holder = str(getattr(world.regions.get(name), "controller", "") or "")
+        return {
+            "province": str(name),
+            "owner": str(owner), "owner_display": formed_display_name(world, str(owner)),
+            "holder": holder,
+            "holder_display": formed_display_name(world, holder) if holder else "",
+        }
+    taken = [_row(name, owner) for _t, _c, name, owner in theirs]
+    lost = [_row(name, owner) for _t, _c, name, owner in mine]
+    return {
+        "theirs_held_by_us": taken,
+        "ours_held_by_them": lost,
+        "theirs_held_count": int(len(taken)),
+        "ours_held_count": int(len(lost)),
+    }
+
+
 def _names(regions: List[str]) -> str:
     if not regions:
         return ""
@@ -218,7 +244,7 @@ def war_title(world, war_id: str = "", *, chair: Optional[str] = None,
     roster_display = " + ".join(formed_display_name(world, n) for n in roster)
     out: Dict[str, Any] = {
         "war_id": war_id, "chair": chair, "title": "", "source": "", "stake": [],
-        "theirs_we_hold": [], "ours_they_hold": [], "roster": list(roster),
+        "theirs_we_hold": [], "ours_they_hold": [], "ground": {}, "roster": list(roster),
         "roster_display": roster_display, "display": "", "line": "",
     }
     # 1. the chair's named purpose — an AI design war's purpose carries its
@@ -262,6 +288,7 @@ def war_title(world, war_id: str = "", *, chair: Optional[str] = None,
     mine = sorted(_ground(world, ground_enemies, ours), key=lambda r: (-r[1], r[0], r[2]))
     out["theirs_we_hold"] = [name for _t, _c, name, _o in theirs]
     out["ours_they_hold"] = [name for _t, _c, name, _o in mine]
+    out["ground"] = _ground_sidecar(world, theirs, mine)
     if not out["title"]:
         # 4. the ground — above the floor (`_ground_rung`): the capital, two
         # provinces or a quarter of the owner's home; a lone beachhead

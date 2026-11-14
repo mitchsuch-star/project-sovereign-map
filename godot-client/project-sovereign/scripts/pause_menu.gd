@@ -108,6 +108,7 @@ func _ready():
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, 440)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE   # UI6-X22: the bar's gutter is kept
 	settings_box.add_child(scroll)
 	_settings_panel = (load("res://scenes/settings_panel.tscn") as PackedScene).instantiate()
 	_settings_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -265,7 +265,35 @@ def corps_takes_no_ground(marshal) -> bool:
     return bool(in_recovery()) if callable(in_recovery) else False
 
 
-def _marshal_not_a_province(world, marshal, target, region_error):
+def commander_not_a_province(world, marshal, named, verb: str) -> Dict:
+    """The free answer to a province verb aimed at a foreign COMMANDER —
+    "Kutuzov is a commander, Sire, not a province. Name the province to
+    scout" — named (his name and side are public), never placed.
+
+    UI6-X17's sweep (Session UI-6, November 13, 2026): the line named the
+    scout for every verb ("Ney, move to Kutuzov" → "Name the province to
+    scout") and taught "'Ney, pursue Hohenlohe'" with France at PEACE with
+    Prussia — an order the pursuit refuses. It names its own verb, and the
+    pursuit only at war; UI6-X20: the HOLD and the march roads say it too
+    (they answered "Region 'Kutuzov' not found. From Rhineland the roads
+    lead to: …")."""
+    from backend.display_names import humanize_entity_name
+    shown = humanize_entity_name(named.name)
+    message = f"{shown} is a commander, Sire, not a province. Name the province to {verb}"
+    try:
+        at_war = bool(world.is_at_war(marshal.nation, named.nation))
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "movement_executor.commander_not_a_province: world.is_at_war")
+        at_war = False
+    if at_war:
+        message += f", or '{humanize_entity_name(marshal.name)}, pursue {shown}'."
+    else:
+        message += "."
+    return {"success": False, "message": message, "variable_action_cost": 0}
+
+
+def _marshal_not_a_province(world, marshal, target, region_error, verb: str = "scout"):
     """FA slice 7 review round (R2-8): `Ney, move to Mack` / `Ney, scout
     Mack` with Mack a prisoner printed FA-24's own sentence — "Region 'Mack'
     not found. Did you mean 'La Mancha'?" — from two more verbs. A name that
@@ -278,14 +306,7 @@ def _marshal_not_a_province(world, marshal, target, region_error):
     if getattr(named, "captured_by", ""):
         return _prisoners.prisoner_refusal(world, named, marshal.nation)
     if named.nation != marshal.nation:
-        from backend.display_names import humanize_entity_name
-        return {
-            "success": False,
-            "message": (f"{humanize_entity_name(named.name)} is a commander, Sire, "
-                        f"not a province. Name the province to scout, or "
-                        f"'{marshal.name}, pursue {humanize_entity_name(named.name)}'."),
-            "variable_action_cost": 0,
-        }
+        return commander_not_a_province(world, marshal, named, verb)
     return region_error
 
 
@@ -991,7 +1012,7 @@ class MovementExecutor:
         target_region, error = self._executor._fuzzy_match_region(
             target, world, near=marshal.location)
         if error:
-            return _marshal_not_a_province(world, marshal, target, error)
+            return _marshal_not_a_province(world, marshal, target, error, verb="move to")
 
         # Get the corrected target name from fuzzy match
         target_name = target_region.name if hasattr(target_region, 'name') else target
@@ -1848,6 +1869,19 @@ class MovementExecutor:
         # Fuzzy match target region
         target_region, error = self._executor._fuzzy_match_region(target, world)
         if error:
+            # UI6-X20's sweep: "scout Kutuzov" answered "Region 'Kutuzov' not
+            # found." — a commander's name is no misspelt province; named,
+            # never placed (the addressed scout's own answer).
+            named = world.get_marshal(str(target).strip()) if hasattr(world, "get_marshal") else None
+            if (named is not None and named.nation != world.player_nation
+                    and not getattr(named, "captured_by", "")
+                    and named.name not in world.regions):
+                return {
+                    "success": False,
+                    "message": (f"{humanize_entity_name(named.name)} is a commander, Sire, "
+                                f"not a province. Name the province to scout."),
+                    "variable_action_cost": 0,
+                }
             return error
 
         target_name = target_region.name if hasattr(target_region, 'name') else target
@@ -1900,7 +1934,7 @@ class MovementExecutor:
         return self._executor._execute_specific(routed_command, game_state)
 
     def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict,
-                                target: str = None) -> Dict:
+                                target: str = None, from_place: str = None) -> Dict:
         """
         Execute retreat order - FREE ACTION, initiates recovery from combat penalty.
 
@@ -1977,6 +2011,17 @@ class MovementExecutor:
         # Rhineland" → Dresden happened silently.
         # ════════════════════════════════════════════════════════════
         substitution_note = ""
+        if from_place:
+            # UI6-X59: "retreat from <place>" - where he falls back FROM. His own
+            # province is a plain retreat; any other is said plainly (his place
+            # and the doctrine's pick only - nothing of a man out of sight).
+            _from_region, _ = self._executor._fuzzy_match_region(from_place, world)
+            _from_name = getattr(_from_region, "name", None)
+            if _from_name and _from_name != marshal.location:
+                substitution_note = (
+                    f" {marshal.name} stands at {humanize_entity_name(marshal.location)}, "
+                    f"not {humanize_entity_name(_from_name)} - he falls back from "
+                    f"{humanize_entity_name(marshal.location)} to {best_region}.")
         if target:
             stated_region, _match_error = self._executor._fuzzy_match_region(target, world)
             stated_name = (stated_region.name

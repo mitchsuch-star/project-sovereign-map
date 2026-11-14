@@ -32,6 +32,11 @@ from tests import _godot_scenes as G
 # (scene, node path) → why it may stand outside a scroll, checked below.
 ALLOW_SCENE = {
     ("tutorial_overlay.tscn", "Card/VBox/BodyText"): "bounds itself",
+    # Session UI-6 (November 13, 2026): the Generals' detail header — his tags,
+    # what he is doing and (the 2.0 view) his figures: three fixed lines at
+    # most, set in one place (proof below); the body below stays in its scroll.
+    ("marshal_management.tscn",
+     "PanelContainer/VBoxContainer/Split/DetailPane/DetailHeader/HeaderInfo/TagsLabel"): "three fixed lines",
 }
 # (script, variable) → why, checked below.
 ALLOW_SCRIPT = {
@@ -50,6 +55,15 @@ ALLOW_SCRIPT = {
     # (`_body_label` builds and RETURNS them, so the census cannot follow the
     # add_child) — every caller sets them under PerCourtScroll (proof below).
     ("proposal_confirm_popup.gd", "label"): "added under the body scroll by every caller",
+    # Session UI-6 (November 13, 2026): one fixed line each — the Correspondence's
+    # sealed-letter action (returned to the slip's box under the desk's scroll), the
+    # Cabinet row's state tag and relation cell (unwrapped, in the scrolled court
+    # list); and the end card's verdict plaque — the verdict's own few lines, which
+    # the card's fitter measures (proof below).
+    ("dispatch_view.gd", "action"): "one fixed line",
+    ("diplomacy_wizard.gd", "tag"): "one fixed line",
+    ("diplomacy_wizard.gd", "rel_cell"): "one fixed line",
+    ("campaign_end.gd", "_plaque_lines"): "the verdict's own lines; the card's fitter bounds it",
 }
 # ScrollContainers that declare no height floor: a floorless list is squeezed
 # to a strip by fixed chrome (the IGR-F letter-book shape). It may only fall.
@@ -261,6 +275,19 @@ class TestTheAllowListIsProven:
         for var in ("lead_label", "tail_label", "footer_label"):
             assert f"per_court_body.add_child({var})" in render, var
         assert "per_court_body.add_child(_court_card(" in render or "per_court_body.add_child(card)" in render
+        # Session UI-6: the Generals' header tags — three fixed lines at most,
+        # written in one place (his tags, his state, the 2.0 view's figures).
+        generals = scripts["marshal_management.gd"]
+        header = G.func_body(generals, "_fill_header")
+        assert 'var text := tags + "\\n" + doing' in header
+        assert generals.count("tags_label.text =") == 1
+        # Session UI-6: the one-line labels never wrap; the plaque is measured by its card.
+        wizard = G.func_body(scripts["diplomacy_wizard.gd"], "_add_nation_columns")
+        assert "tag.autowrap_mode = TextServer.AUTOWRAP_OFF" in wizard
+        assert "rel_cell.autowrap_mode = TextServer.AUTOWRAP_OFF" in wizard
+        corr = G.func_body(scripts["dispatch_view.gd"], "_corr_primary_action")
+        assert "action.autowrap_mode = TextServer.AUTOWRAP_OFF" in corr
+        assert "func _fit_card(" in scripts["campaign_end.gd"]
 
     def test_the_rail_body_scrolls_with_the_wheel(self, tree):
         """A bounded body that scrolls must take the wheel itself (a

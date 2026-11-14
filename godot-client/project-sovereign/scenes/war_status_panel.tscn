@@ -33,6 +33,7 @@ grow_vertical = 0
 theme_override_styles/panel = SubResource("GiltFrame_panel")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer"]
+vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0

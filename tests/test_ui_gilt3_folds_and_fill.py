@@ -251,13 +251,15 @@ class TestTheWideMap:
         assert "map_area.home_view()" in _func(main, "_on_fit_europe")
         assert "map_area.home_tip()" in _func(main, "_refresh_map_controls")
 
-    def test_names_gather_only_at_the_whole_sheet(self):
-        assert "is_at_min_zoom()" in _func(self.SRC, "gathers_names")
+    def test_names_gather_at_any_zoom_when_plates_touch(self):
+        # Session UI-6: the zoom gate is gone; plates gather wherever they touch
+        # and split as space opens.
+        assert "is_at_min_zoom()" not in _func(self.SRC, "gathers_names")
         layer = _read(SCENES / "map_label_layer.gd")
         assert 'const GATHER_FORMAT := "%s · %d more"' in layer
         assert '"gathered": gathered' in layer
-        # IGR-G2's co-located stack keeps its own form
-        assert 'var stack_text := "%s +%d" % [lead_name, group_size - 1]' in self.SRC
+        # Session UI-6: the co-located stack speaks the gather's one phrasing
+        assert 'var stack_text := "%s · %d more" % [lead_name, group_size - 1]' in self.SRC
 
 
 class TestTheHarness:

@@ -156,12 +156,18 @@ class TestTheDock:
         assert "inset = maxf(size.x - Utils.hud_band(size).y, 0.0)" in inset
         r = G.read(SCENES / "map_renderer_base.gd")
         assert "s.x = maxf(s.x - _inset_view_px(), 1.0)" in G.func_body(r, "_get_camera_viewport_size")
-        assert ("map_camera.offset = Vector2(_inset_view_px() / 2.0 / maxf(_zoom_level, 0.001), 0.0)"
+        # Session UI-6: the offset is right minus left (the HUD's left column).
+        assert ("map_camera.offset = Vector2(_inset_offset_px() / 2.0 / maxf(_zoom_level, 0.001), 0.0)"
                 in G.func_body(r, "_sync_camera_zoom"))
+        assert "return (_right_inset - _left_inset) * _viewport_pixel_scale()" in G.func_body(r, "_inset_offset_px")
+        assert "return (_left_inset + _right_inset) * _viewport_pixel_scale()" in G.func_body(r, "_inset_view_px")
         assert "var viewport_center = _view_centre()" in G.func_body(r, "_zoom_at_point")
         assert "global_position + _view_centre()" in G.func_body(r, "zoom_step")
         setter = G.func_body(r, "set_right_inset")
         assert "var was_fit := is_fit_view()" in setter and "fit_europe()" in setter
+        left = G.func_body(r, "set_left_inset")
+        assert "var was_fit := is_fit_view()" in left and "var was_fill := _is_fill_view()" in left
+        assert "_left_inset = inset" in left and "fit_europe()" in left and "_apply_fill_view()" in left
 
     def test_no_hud_line_is_cut_beside_the_dock(self):
         war = G.read(SCRIPTS / "war_status_panel.gd")

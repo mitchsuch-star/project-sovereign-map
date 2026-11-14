@@ -79,6 +79,12 @@ const FIT_MIN_WIDTH := 330.0
 const FIT_MAX_WIDTH := 1100.0
 const FIT_MIN_HEIGHT := 440.0
 const FIT_MAX_HEIGHT := 1300.0
+# UI-6 (F25): the dimmer behind the window.
+const BACKDROP_ALPHA := 0.85
+# UI-6: the ground block's chip rows hold this many provinces, then "+N"
+# (the compact view holds fewer — a 14-province line never passes two rows).
+const GROUND_CHIPS := 6
+const GROUND_CHIPS_COMPACT := 4
 # main.gd still hands these two over; a centred window no longer docks or
 # dodges the rail, so they are kept for the call and unused.
 var dock_beside: Control = null
@@ -163,6 +169,11 @@ func _apply_banner(width: float) -> void:
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
 	Utils.keep_whole_lines(content_label)
+	# The lead's frame reading (Session UI-6, November 13): the page is drawn
+	# before the window's first layout, so its tables spanned a stale width
+	# (the score's breakdown stood at ~60 % of the page). Once the label settles
+	# at another width the open page is drawn again, to its real width.
+	content_label.resized.connect(_on_content_resized)
 	# F25: the window frame (the scene's frame at the window weight).
 	$PanelContainer.add_theme_stylebox_override("panel",
 			Utils.gilt_frame(Utils.UI_POPUP_BG, Utils.UI_GOLD, Utils.FRAME_WINDOW, 16.0))
@@ -172,7 +183,9 @@ func _ready():
 	background_overlay.visible = false
 	var backdrop := ColorRect.new()
 	backdrop.name = "Backdrop"
-	backdrop.color = Color(0, 0, 0, 0.55)
+	# UI-6 (F25): near-opaque — the HUD behind read as clutter at 0.55 and the
+	# command panel poked through; full-screen, so nothing of it shows.
+	backdrop.color = Color(0, 0, 0, BACKDROP_ALPHA)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.gui_input.connect(_on_overlay_input)
@@ -324,6 +337,9 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 		_add_request_terms_button(_current_war_id, _current_nation, rt_state)
 	show()
 	refit()
+	# UI-6: the page was drawn before the window had its rect, so its tables
+	# had no width to span — draw it again once the layout has settled.
+	_rerender_local.call_deferred()
 
 
 func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
@@ -727,7 +743,9 @@ func _render_war_detail(w: Dictionary):
 		bbcode += "\n"
 
 	# Breakdown (UI-5: after the peace table, before the prose)
-	var tier_bb: String = bbcode
+	# UI-6 (F25): Folded, the GROUND block (what each side holds of the other's,
+	# as chips) leads the figures; On the page it is "" and nothing changes.
+	var tier_bb: String = _ground_block(w) + bbcode
 	bbcode = ""
 	if breakdown != null and breakdown is Dictionary:
 		bbcode += "[color=" + COLOR_HEADER + "]Score Breakdown[/color]"
@@ -774,7 +792,7 @@ func _render_war_detail(w: Dictionary):
 				rows.append([label, Utils.bb_signed_meter(value, cap, 150, 8),
 						_signed(value) + " / " + str(cap), tag])
 			bbcode += Utils.bb_table(["Component", "Score", "Value", ""], rows, [2], [3, 4, 3, 1],
-				maxf(content_label.size.x - 24.0, 0.0) if content_label.size.x >= 280.0 else 0.0) + "\n"
+				_table_px()) + "\n"
 			if not at_nought.is_empty():
 				bbcode += "[color=#" + Utils.COLOR_INFO + "]  At nought: " + ", ".join(at_nought) + "[/color]\n"
 		else:
@@ -798,7 +816,16 @@ func _render_war_detail(w: Dictionary):
 				bbcode += "  Captive:    " + _signed(_captive) + "\n"
 			bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
 
+	# UI-6 (F25): Folded, the prose (the lead-in, the holdings sentence, the
+	# roster) leaves the page for the ONE note at the foot, and the tail is
+	# figures — tiles and tables. The old tail below is the On-the-page path,
+	# byte for byte; Folded never reaches it.
+	if Utils.explanations_folded():
+		prose = ""
 	bbcode = tier_bb + bbcode + prose
+	if Utils.explanations_folded():
+		content_label.text = Utils.humanize_nation_keys_in_text(bbcode + _figures_tail(w, lead_line))
+		return
 
 	var objective = w.get("objective", null)
 	if objective != null and objective is Dictionary:
@@ -918,6 +945,280 @@ func _render_war_detail(w: Dictionary):
 	if refused_peace != "" and refused_peace != "null":
 		bbcode += "[color=" + COLOR_AMBER + "]" + refused_peace + "[/color]\n"
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+
+
+func _table_px() -> float:
+	"""UI-6: the width a table spans — the page's own width once it has one;
+	before the first layout, the window's rect less its frame and scrollbar
+	(the first draw happens before `refit` and measured 0 → a narrow table).
+	The width used is remembered: `_on_content_resized` redraws the page when
+	the label settles at another."""
+	var px := 0.0
+	if content_label.size.x >= 280.0:
+		px = maxf(content_label.size.x - 24.0, 0.0)
+	else:
+		var panel: Control = $PanelContainer
+		var w: float = panel.offset_right - panel.offset_left
+		if w >= 330.0:
+			px = w - 72.0
+	_table_px_used = px
+	return px
+
+
+var _table_px_used := -1.0   # the width the open page's tables were drawn to
+
+
+func _on_content_resized() -> void:
+	"""Redraw the open page once its label settles at a width its tables were
+	not drawn to (more than 16 px off) — never on a sub-pixel jitter."""
+	if not visible or _table_px_used < 0.0 or content_label.size.x < 280.0:
+		return
+	if absf((content_label.size.x - 24.0) - _table_px_used) > 16.0:
+		call_deferred("_rerender_local")
+
+
+func _quiet_chip(text: String, hint: String = "") -> String:
+	"""A province or court chip: the quiet badge, its full words the hover."""
+	return Utils.bb_hint(Utils.bb_tag(text, Utils.COLOR_BADGE_QUIET), hint)
+
+
+func _ground_row(lead: String, tail: String, rows: Array, count: int, tone: String, owner_side: bool) -> String:
+	"""One row of the GROUND block: `We hold [N] of theirs` then up to six
+	province chips and `+N`; every full name is a hover (bb_hint)."""
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var names: Array = []
+	for r in rows:
+		if r is Dictionary:
+			names.append(str(r.get("province", "")))
+	var out := info + lead + " [/color]"
+	var badge := Utils.bb_tag(str(count), tone if count > 0 else Utils.COLOR_BADGE_QUIET)
+	out += Utils.bb_hint(badge, ", ".join(names)) + info + " " + tail + "[/color]"
+	if count <= 0:
+		return out + "\n"
+	var cap: int = GROUND_CHIPS_COMPACT if Utils.compact_view() else GROUND_CHIPS
+	var shown := 0
+	var rest: Array = []
+	for r in rows:
+		if not (r is Dictionary):
+			continue
+		var prov := str(r.get("province", ""))
+		if shown < cap:
+			var who: String
+			if owner_side:
+				who = str(r.get("owner_display", r.get("owner", ""))) + "’s, held by " + str(r.get("holder_display", r.get("holder", "")))
+			else:
+				who = "ours, held by " + str(r.get("holder_display", r.get("holder", "")))
+			out += "  " + _quiet_chip(prov, prov + " — " + who)
+			shown += 1
+		else:
+			rest.append(prov)
+	if not rest.is_empty():
+		out += "  " + _quiet_chip("+" + str(rest.size()), ", ".join(rest))
+	return out + "\n"
+
+
+func _ground_block(w: Dictionary) -> String:
+	"""UI-6 (F25): the holdings paragraph as figures — two rows, a count badge
+	and province chips each, then `With:` as flag chips. Folded only (On the
+	page the paragraph prints where it always did); the sentence itself waits
+	in the foot note."""
+	if not Utils.explanations_folded():
+		return ""
+	var ground = w.get("war_ground", null)
+	if not (ground is Dictionary) or ground.is_empty():
+		return ""
+	var out := ""
+	out += _ground_row("We hold", "of theirs", ground.get("theirs_held_by_us", []),
+			int(ground.get("theirs_held_count", 0)), Utils.COLOR_SUCCESS, true)
+	out += _ground_row("They hold", "of ours", ground.get("ours_held_by_them", []),
+			int(ground.get("ours_held_count", 0)), Utils.COLOR_ERROR_CHIP, false)
+	var courts = w.get("opponents", [])
+	if not (courts is Array) or courts.is_empty():
+		courts = [_current_nation]
+	out += "[color=#" + Utils.COLOR_INFO + "]With:[/color]"
+	for c in courts:
+		out += " " + Utils.bb_flag(str(c), 14) + _quiet_chip(Utils.display_nation_name(str(c)))
+	return out + "\n\n"
+
+
+func _objective_parts(w: Dictionary) -> Dictionary:
+	"""The objective's words and figures, split for the tile and the foot note
+	(the same reading the On-the-page tail prints in one line)."""
+	var objective = w.get("objective", null)
+	if not (objective is Dictionary):
+		return {}
+	var accumulated := int(float(objective.get("accumulated_ticking", 0)))
+	var rate := int(float(objective.get("ticking_rate", 0)))
+	var ticking := bool(objective.get("ticking_active", false))
+	var rest := ""
+	var against := str(objective.get("against", ""))
+	if against != "" and bool(w.get("is_multi_participant_war", false)):
+		rest += " (against " + Utils.display_nation_name(against) + ")"
+	rest += " (" + ("active" if ticking else "not ticking") + ", +" + str(accumulated)
+	if rate > 0 and ticking:
+		rest += ", +" + str(rate) + "/turn"
+	rest += ")"
+	if rate > 0 and not ticking:
+		rest += " — +" + str(rate) + "/turn once it begins"
+	var target_text: String = Utils.objective_targets_text(objective, "target pending")
+	var held_re := RegEx.new()
+	held_re.compile("(\\d+) of (\\d+) provinces? held")
+	var m := held_re.search(target_text)
+	var held_n := -1
+	var held_of := 0
+	if m != null:
+		held_n = int(m.get_string(1))
+		held_of = int(m.get_string(2))
+	return {
+		"type": str(objective.get("type_display", "Objective")),
+		"target": target_text, "rest": rest, "held_n": held_n, "held_of": held_of,
+	}
+
+
+func _tiles(w: Dictionary) -> String:
+	"""UI-6: Duration | Enemy exhaustion | Objective as one strip of figures."""
+	var duration := int(float(w.get("duration", 0)))
+	var started := int(float(w.get("started_turn", 0)))
+	var dur_cell := Utils.bb_hint(str(duration) + (" turn" if duration == 1 else " turns"),
+			"Since Turn " + str(started))
+	var we = w.get("war_exhaustion", null)
+	var we_cell := ""
+	if we != null:
+		var we_int := int(float(we))
+		var we_color := COLOR_WHITE
+		if we_int >= 80:
+			we_color = COLOR_RED
+		elif we_int >= 40:
+			we_color = COLOR_AMBER
+		var terms: Array = []
+		var ex_terms = w.get("exhaustion_terms", null)
+		if ex_terms is Dictionary:
+			for ln in ex_terms.get("lines", []):
+				terms.append(str(ln))
+		we_cell = Utils.bb_hint("[color=" + we_color + "]" + str(we_int) + "[/color] "
+				+ Utils.bb_meter(we_int, 100, 70, 8, we_color.trim_prefix("#")), " ".join(terms))
+	else:
+		we_cell = "[color=" + COLOR_DIMMED + "]Unknown[/color]"
+	var parts := _objective_parts(w)
+	var obj_cell := "[color=" + COLOR_DIMMED + "]—[/color]"
+	if not parts.is_empty():
+		var tip := str(parts.get("type", "")) + " - " + str(parts.get("target", "")) + str(parts.get("rest", ""))
+		if int(parts.get("held_n", -1)) >= 0 and int(parts.get("held_of", 0)) > 0:
+			var n := int(parts.get("held_n", 0))
+			var total := int(parts.get("held_of", 0))
+			# EP-F1: the war's purpose is ONE sentence on every surface, printed
+			# ("the homeland — 28 of 28 provinces held") — it is no reason to fold
+			# into a hover; the ticking account stays the hover.
+			obj_cell = Utils.bb_hint(Utils.bb_meter(n, total, 90, 8) + " " + str(parts.get("target", "")), tip)
+		else:
+			obj_cell = Utils.bb_hint("[color=" + COLOR_GOLD + "]" + str(parts.get("type", "")) + "[/color]", tip)
+	return Utils.bb_table(["Duration", "Enemy exhaustion", "Objective"],
+			[[dur_cell, we_cell, obj_cell]], [], [3, 4, 5], _table_px()) + "\n"
+
+
+func _standing_table(w: Dictionary) -> String:
+	"""UI-6: Standing as a table — flag + court | side badge | standing | share."""
+	var contribution = w.get("contribution_share", [])
+	if not (contribution is Array) or contribution.is_empty():
+		var out := ""
+		for ln in Utils.standing_lines(w):
+			out += "[color=#" + Utils.COLOR_INFO + "]" + str(ln) + "[/color]\n"
+		return out
+	var rows: Array = []
+	for row in contribution:
+		if not (row is Dictionary):
+			continue
+		var nation := str(row.get("nation", "?"))
+		var name_cell: String = Utils.bb_flag(nation, 14) + Utils.display_nation_name(nation)
+		if bool(row.get("is_leader", false)):
+			name_cell += " " + Utils.bb_hint(Utils.bb_glyph("command", 16), "Leads its side of the war")
+		var side := str(row.get("side_label", ""))
+		var side_cell := ""
+		if side != "":
+			side_cell = Utils.bb_tag(side, Utils.COLOR_SUCCESS if side == Utils.display_nation_name("France") else Utils.COLOR_ERROR_CHIP)
+		var pct := int(round(float(row.get("material_share_pct", 0))))
+		rows.append([name_cell, side_cell, str(row.get("standing_display", "Standing pending")),
+				Utils.bb_meter(pct, 100, 70, 8) + " " + str(pct) + "%"])
+	var out2 := "[color=" + COLOR_HEADER + "]Standing[/color]\n"
+	out2 += Utils.bb_table(["Court", "Side", "Standing", "Share"], rows, [], [4, 4, 3, 4], _table_px()) + "\n"
+	var overflow := int(w.get("contribution_overflow_count", 0))
+	if overflow > 0:
+		out2 += "[color=#" + Utils.COLOR_INFO + "]  +" + Utils.plural(overflow, "more participant") + "[/color]\n"
+	return out2
+
+
+func _battles_table(w: Dictionary) -> String:
+	"""UI-6: Recent battles as result badge | place | turn."""
+	var recent = w.get("recent_battles", [])
+	if not (recent is Array) or recent.is_empty():
+		return ""
+	var rows: Array = []
+	for b in recent:
+		if not (b is Dictionary):
+			continue
+		var won := bool(b.get("won", false))
+		var badge: String = Utils.bb_tag("Victory", Utils.COLOR_SUCCESS) if won else Utils.bb_tag("Defeat", Utils.COLOR_ERROR_CHIP)
+		if bool(b.get("decisive", false)):
+			badge += " " + Utils.bb_hint(Utils.bb_glyph("medal", 16), "A decisive battle")
+		rows.append([badge, str(b.get("location", "?")), "T" + str(int(b.get("turn", 0)))])
+	return "\n[color=" + COLOR_HEADER + "]Recent Battles[/color]\n" \
+			+ Utils.bb_table(["Result", "Place", "Turn"], rows, [2], [3, 6, 2], _table_px()) + "\n"
+
+
+func _account_body(w: Dictionary, lead_line: String) -> String:
+	"""UI-6: every sentence the Folded page took off it, in the ONE note at the
+	foot: the holdings sentence and its roster, the objective in full, its
+	hint, the enemy's objective, the casus belli, what the exhaustion is made
+	of, their fleet, the page's lead-in."""
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var body := "\n"
+	var title_line := str(w.get("war_title_line", ""))
+	if title_line != "":
+		body += Utils.humanize_nation_keys_in_text(title_line) + "\n"
+		var roster := str(w.get("war_roster_display", w.get("opponent_display", "")))
+		if roster != "":
+			body += "With: " + Utils.humanize_nation_keys_in_text(roster) + "\n"
+	var parts := _objective_parts(w)
+	if not parts.is_empty():
+		body += "Objective: [color=" + COLOR_GOLD + "]" + str(parts.get("type", "")) + "[/color] - " \
+				+ str(parts.get("target", "")) + str(parts.get("rest", "")) + "\n"
+	var objective_hint := str(w.get("objective_hint", ""))
+	if objective_hint != "":
+		body += info + objective_hint + "[/color]\n"
+	var enemy_objective = w.get("enemy_objective", null)
+	if enemy_objective is Dictionary:
+		body += "Enemy Objective: " + str(enemy_objective.get("type_display", "Objective")) + "\n"
+	var stated_reason := str(w.get("stated_reason", ""))
+	if stated_reason != "":
+		body += "Casus belli: " + stated_reason + "\n"
+	var ex_terms = w.get("exhaustion_terms", null)
+	if ex_terms is Dictionary:
+		for ln in ex_terms.get("lines", []):
+			body += info + Utils.humanize_nation_keys_in_text(str(ln)) + "[/color]\n"
+	var naval_line := str(w.get("naval_line", ""))
+	if naval_line != "":
+		body += "Their fleet: " + Utils.humanize_nation_keys_in_text(naval_line) + "\n"
+	body += info + lead_line.strip_edges() + "[/color]\n"
+	return body
+
+
+func _figures_tail(w: Dictionary, lead_line: String) -> String:
+	"""UI-6 (F25): the Folded war detail's tail — tiles, the standing table, the
+	battles table, the court's next letter, then ONE `▸ more` that opens the
+	prose. Nothing is cut: every sentence the old tail printed stands in the
+	note or on a hover."""
+	var slug := _slug(_current_war_id if _current_war_id != "" else _current_nation)
+	var out := "\n" + _tiles(w) + "\n" + _standing_table(w) + _battles_table(w)
+	var next_letter = w.get("next_letter", null)
+	if next_letter is Dictionary and str(next_letter.get("display", "")) != "":
+		out += "\n[color=" + COLOR_AMBER + "]" + str(next_letter.get("display", "")) + "[/color]\n"
+	var refused_peace := str(w.get("refused_peace", ""))
+	if refused_peace != "" and refused_peace != "null":
+		out += "[color=" + COLOR_AMBER + "]" + refused_peace + "[/color]\n"
+	out += "\n" + Utils.bb_note("war.account." + slug,
+			"[color=#" + Utils.COLOR_INFO + "]The account of this war[/color]",
+			_account_body(w, lead_line), "\n")
+	return out
 
 
 func _render_coalition_detail(coalition_data: Dictionary, wars: Array):

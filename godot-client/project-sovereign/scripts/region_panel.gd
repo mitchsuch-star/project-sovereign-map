@@ -34,6 +34,11 @@ signal closed
 # CC-2 "March here": the panel wants the backend's quotes for this province
 # (main.gd fetches GET /march_quotes and hands them back to set_march_quotes).
 signal quotes_requested(region: String)
+# Session UI-6 (November 13, 2026): a marshal's name in FORCES PRESENT selects
+# him on the map (main.gd answers; meta "select:<Name>").
+signal marshal_select_requested(marshal_name: String)
+
+const _MarshalState = preload("res://scripts/marshal_state.gd")
 
 @onready var panel_container = $PanelContainer
 @onready var title_label = $PanelContainer/VBoxContainer/HeaderRow/TitleLabel
@@ -93,6 +98,81 @@ func _on_avoid_control_changed():
 	if visible:
 		_fit_height()
 
+
+# Session UI-6 (the lead's wave-1 shoot, November 13, 2026): on a very wide
+# screen the HUD stands in two full-height columns and the right one is the
+# CONTEXT WING (main.gd draws its frame) — the notice rail, the war list and,
+# under them, this panel at the column's full width. `avoid_above` is the war
+# list's panel (main.gd wires it): the panel docks below it, and refits as it
+# grows or goes. Everywhere else the panel stands as before.
+const _WING_INSET := 8.0       # inside the wing's frame, as the war list stands (its EDGE_MARGIN)
+const _WING_TOP_GAP := 88.0    # under the rail's slot when no war list stands (the list's own NARROW_TOP_GAP)
+const _WING_BOTTOM := 10.0     # the column's foot, the command desk's own margin
+var avoid_above: Control = null:
+	set(value):
+		if avoid_above != null and is_instance_valid(avoid_above):
+			if avoid_above.item_rect_changed.is_connected(_on_avoid_above_changed):
+				avoid_above.item_rect_changed.disconnect(_on_avoid_above_changed)
+			if avoid_above.visibility_changed.is_connected(_on_avoid_above_changed):
+				avoid_above.visibility_changed.disconnect(_on_avoid_above_changed)
+		avoid_above = value
+		if avoid_above != null:
+			avoid_above.item_rect_changed.connect(_on_avoid_above_changed)
+			avoid_above.visibility_changed.connect(_on_avoid_above_changed)
+
+
+func _on_avoid_above_changed():
+	if visible and _wing_band().y > _wing_band().x:
+		_fit_height()
+
+
+func _wing_band() -> Vector2:
+	"""The right column's span while the HUD stands in its two columns, else
+	(0, 0)."""
+	var view := get_viewport().get_visible_rect().size
+	if Utils.hud_columns(view).y <= 0.0:
+		return Vector2.ZERO
+	return Utils.hud_anchor_band(view)
+
+
+func _wing_top() -> float:
+	"""The panel's top in the wing: under the war list (with room left for a
+	useful panel), else under the rail's slot — a long war list is stood over
+	(this layer is above the list's) rather than squeezing the panel."""
+	var top := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + _WING_TOP_GAP
+	if avoid_above != null and is_instance_valid(avoid_above) and avoid_above.is_visible_in_tree():
+		var below := avoid_above.get_global_rect().end.y + Utils.HUD_MARGIN
+		var view_h := get_viewport().get_visible_rect().size.y
+		if view_h - _WING_BOTTOM - below >= _DOCK_BESIDE_BELOW_H:
+			top = maxf(top, below)
+	return top
+
+
+func _fit_width_in_wing(wing: Vector2) -> void:
+	"""The panel at the wing's full width, under the war list."""
+	var w := maxf(wing.y - wing.x - 2.0 * _WING_INSET, 240.0)
+	scroll.custom_minimum_size.x = w - 24.0
+	content_area.custom_minimum_size.x = w - 44.0
+	panel_container.offset_left = wing.x + _WING_INSET
+	panel_container.offset_right = panel_container.offset_left + w
+	panel_container.offset_top = _wing_top()
+
+
+func _fit_height_in_wing() -> void:
+	"""The panel's height in the wing: its content, down to the column's foot
+	(the command desk is in the other column — nothing to dodge here)."""
+	var vp_bottom := get_viewport().get_visible_rect().size.y
+	var top := _wing_top()
+	panel_container.offset_top = top
+	var header_h := 0.0
+	var header = panel_container.get_node_or_null("VBoxContainer/HeaderRow")
+	if header != null:
+		header_h = header.size.y
+	var available := maxf(vp_bottom - _WING_BOTTOM - _CLAMP_MARGIN - top - header_h - 24.0, _MIN_CONTENT_H)
+	var content_h := float(content_area.get_content_height()) + 4.0
+	scroll.custom_minimum_size.y = clampf(content_h, 40.0, available)
+	panel_container.size = Vector2.ZERO
+
 var _region: String = ""
 # WO-V-D1 (Score Finish Step 7 slice 8): the Build rows fold behind one
 # header that names their count — the section had grown from one chips row
@@ -107,6 +187,16 @@ var _quotes: Dictionary = {}
 var _quotes_region := ""
 var _march_more := false
 const _MARCH_SHOWN := 5
+# Session UI-6: the marshals whose "+N orders" row stands open (name -> true).
+var _orders_open: Dictionary = {}
+# Session UI-6: at the compact view the panel is capped at this share of the
+# HUD band (never under _COMPACT_MIN_WIDTH) - it stops covering a third of the map.
+const _COMPACT_FRACTION := 0.30
+const _COMPACT_MIN_WIDTH := 360.0
+# The context verbs a marshal's row leads with when no enemy shares the
+# province: the two most useful of these that stand lit, in this order.
+const _CONTEXT_VERBS := ["fortify", "unfortify", "drill", "scout", "hold", "garrison", "retreat"]
+const _CONTEXT_SHOWN := 2
 
 
 func _ready():
@@ -133,10 +223,20 @@ func _fit_width() -> void:
 	content follow; the PanelContainer shrink-wraps them)."""
 	if scroll == null or content_area == null or panel_container == null:
 		return
+	# Session UI-6: on a very wide screen the panel stands in the right wing.
+	var wing := _wing_band()
+	if wing.y > wing.x:
+		_fit_width_in_wing(wing)
+		return
 	var view := get_viewport().get_visible_rect().size
 	# UXR-D3: docked at the HUD band's left edge, a fraction of its width.
 	var band := Utils.hud_band(view)
 	var w := Utils.fraction_px(band.y - band.x, _WIDTH_FRACTION, _MIN_WIDTH, _MAX_WIDTH, 24.0)
+	if Utils.compact_view():
+		# Session UI-6: at the compact view (Interface Scale 2.0 on a 900-px
+		# screen) the panel is capped at about 30 % of the HUD band - never under
+		# 360 - so it stops covering a third of the map.
+		w = minf(w, maxf((band.y - band.x) * _COMPACT_FRACTION, _COMPACT_MIN_WIDTH))
 	scroll.custom_minimum_size.x = w - 24.0
 	content_area.custom_minimum_size.x = w - 44.0
 	panel_container.offset_left = band.x + _PANEL_LEFT
@@ -158,6 +258,7 @@ func show_region(region_name: String, map_node) -> void:
 		_quotes = {}
 		_quotes_region = ""
 		_march_more = false
+		_orders_open = {}
 	_fit_width()
 	_render()
 	show()
@@ -235,6 +336,20 @@ func _on_meta_clicked(meta):
 	elif meta_str == "toggle:march_more":
 		_march_more = not _march_more
 		_render()
+	elif meta_str.begins_with("toggle:orders:"):
+		# Session UI-6: a marshal's "+N orders" row opens / shuts in place.
+		var who := meta_str.substr("toggle:orders:".length())
+		if who != "":
+			if _orders_open.has(who):
+				_orders_open.erase(who)
+			else:
+				_orders_open[who] = true
+			_render_keeping_scroll()
+	elif meta_str.begins_with("select:"):
+		# Session UI-6: his name selects him on the map; sends no command.
+		var picked := meta_str.substr("select:".length())
+		if picked != "":
+			marshal_select_requested.emit(picked)
 
 
 func _render_keeping_scroll() -> void:
@@ -254,7 +369,7 @@ func _dim(label: String, why: String, sep: String = "  ") -> String:
 	return Utils.bb_chip_disabled(label) + sep + "[color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
 
 
-func _facts_row(income: int, stability: int, supply: int, has_garrison: bool, garrison: int) -> String:
+func _facts_row(income: int, stability: int, supply: int, has_garrison: bool, garrison: int, war_damage: int = 0) -> String:
 	"""Session UI-4 (November 12, 2026): the province's four facts as ONE figure
 	row — a glyph, the figure in the title face, a caption (the form of the
 	dispatch's situation row). A fogged figure (-1) reads Unknown, as the page's
@@ -273,6 +388,13 @@ func _facts_row(income: int, stability: int, supply: int, has_garrison: bool, ga
 		var fig_g: String = "Present" if garrison == -1 else Utils.format_number(garrison)
 		var cap_g := "garrison (strength unknown)" if garrison == -1 else "garrison"
 		parts.append(Utils.bb_glyph("garrison", 18) + nb + Utils.HEAD_OPEN + fig_g + Utils.HEAD_CLOSE + nb + info + cap_g.replace(" ", nb) + "[/color]")
+	# Session UI-6 (November 13, 2026): war damage is a RED figure tile in the
+	# row (it was a sentence under it); the sentence is the tile's hover.
+	if war_damage > 0:
+		var red := "[color=#" + Utils.COLOR_ERROR + "]"
+		var tile := Utils.bb_glyph("war", 18, Utils.COLOR_ERROR) + nb + "[font=" + Utils.TITLE_FONT + "]" + red \
+			+ str(war_damage) + "%[/color][/font]" + nb + red + "war" + nb + "damage[/color]"
+		parts.append(Utils.bb_hint(tile, "War damage " + str(war_damage) + "% — suppressing this province's income"))
 	return "   ".join(PackedStringArray(parts)) + "\n"
 
 
@@ -356,6 +478,7 @@ func _render() -> void:
 		bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(road_note) + ".[/color]\n"
 
 	# ── Fog-honest economy block ──
+	var folded_facts := ""   # Session UI-6: Folded, the figures row (spliced in before ACTIONS)
 	if visibility == "unknown" or visibility == "last_known":
 		var intel_note = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
@@ -411,7 +534,9 @@ func _render() -> void:
 			var g_text = "Present (unknown strength)" if g_strength == -1 else Utils.format_number(g_strength)
 			facts_page += Utils.bb_glyph("garrison", 16) + " Garrison: " + g_text + "\n"
 		if Utils.explanations_folded():
-			bbcode += _facts_row(effective_income, stability, supply_cap, garrison_info != null, g_strength)
+			# Session UI-6: Folded, the figures row LEADS - it is spliced in under
+			# the controller line, before ACTIONS (war damage a red tile in it).
+			folded_facts = _facts_row(effective_income, stability, supply_cap, garrison_info != null, g_strength, int(data.get("war_damage", 0)))
 		else:
 			bbcode += facts_page
 		# S14E-D10 (the sweep): the Descent camp's count on the panel the marches
@@ -435,9 +560,12 @@ func _render() -> void:
 		# soil, so neither line can render an enemy's ruin.
 		var war_dmg := int(data.get("war_damage", 0))
 		if war_dmg > 0:
-			bbcode += "War damage: [color=#" + Utils.COLOR_ERROR + "]" \
-				+ str(war_dmg) + "%[/color]  [color=#" + Utils.COLOR_INFO \
-				+ "]suppressing this province's income[/color]\n"
+			# Session UI-6: Folded, war damage is a red tile in the figures row
+			# (its sentence the tile's hover); the page prints the line as it did.
+			if not Utils.explanations_folded():
+				bbcode += "War damage: [color=#" + Utils.COLOR_ERROR + "]" \
+					+ str(war_dmg) + "%[/color]  [color=#" + Utils.COLOR_INFO \
+					+ "]suppressing this province's income[/color]\n"
 		var watchtower := str(data.get("watchtower", "none"))
 		if watchtower == "damaged":
 			bbcode += "Watchtower: [color=#" + Utils.COLOR_ERROR + "]damaged[/color]\n"
@@ -472,7 +600,10 @@ func _render() -> void:
 	if marshals is Array and marshals.size() > 0:
 		bbcode += "\n" + Utils.HEAD_OPEN + "FORCES PRESENT" + Utils.HEAD_CLOSE + "\n"
 		for m in marshals:
-			bbcode += _format_marshal_row(m, enemy_names)
+			if Utils.explanations_folded():
+				bbcode += _marshal_row_folded(m, enemy_names)   # Session UI-6: one row a marshal
+			else:
+				bbcode += _format_marshal_row(m, enemy_names)
 
 	# ── CC-2 "March here": the click orders, as the backend quoted them ──
 	if _quotes_region == _region and not _quotes.is_empty():
@@ -731,7 +862,12 @@ func _render() -> void:
 			var works := str(build_rows.size()) + (" work" if build_rows.size() == 1 else " works")
 			var build_head := "  [url=toggle:build]" + ("▾ Build" if _build_open else "▸ Build — " + works) + "[/url]"
 			if upkeep > 0:
-				build_head += " [color=#" + Utils.COLOR_INFO + "](each finished work keeps " + str(upkeep) + "g a turn)[/color]"
+				if Utils.explanations_folded():
+					# Session UI-6: a tag, "40g / turn each" - the sentence its hover.
+					build_head += " " + Utils.bb_hint(Utils.bb_tag(str(upkeep) + "g / turn each", Utils.COLOR_BADGE_QUIET),
+						"each finished work keeps " + str(upkeep) + "g a turn")
+				else:
+					build_head += " [color=#" + Utils.COLOR_INFO + "](each finished work keeps " + str(upkeep) + "g a turn)[/color]"
 			if _build_open:
 				build_head += ":"
 			action_rows.append(build_head)
@@ -878,6 +1014,21 @@ func _render() -> void:
 				if Utils.explanations_folded() and not admiralty_captioned:
 					action_rows.append(_caption("ADMIRALTY"))
 					admiralty_captioned = true
+				if Utils.explanations_folded():
+					# Session UI-6: Folded, the chip stands alone - the men, the odds,
+					# what winning the throw gets him and the levers are ITS hover.
+					var land_tip: String = (land_cost + " " if land_cost != "" else "") \
+						+ Utils.format_number(int(corps.get("strength", 0))) + " men from " + land_from \
+						+ " · " + str(odds) + " in 100 slip past"
+					var land_prize_said := str(corps.get("prize", ""))
+					if land_prize_said != "":
+						land_tip += ". If it lands: " + Utils.humanize_nation_keys_in_text(land_prize_said)
+					var land_levers := str(corps.get("levers", ""))
+					if land_levers != "":
+						land_tip += ". " + Utils.humanize_nation_keys_in_text(land_levers)
+					action_rows.append("  " + Utils.bb_button_chip("do:land " + who + " in " + _region,
+						"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG, "", land_tip))
+					continue
 				action_rows.append("  " + Utils.bb_button_chip(
 					"do:land " + who + " in " + _region,
 					"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG)
@@ -912,11 +1063,15 @@ func _render() -> void:
 					admiralty_captioned = true
 				action_rows.append("  " + _dim("No landing here", Utils.humanize_nation_keys_in_text(str(blocked[_region]))))
 
+	# Session UI-6: Folded, the figures row leads (under the controller line,
+	# before ACTIONS); the page has none here and splices ACTIONS as it did.
 	if action_rows.size() > 0:
 		var actions := Utils.HEAD_OPEN + "ACTIONS" + Utils.HEAD_CLOSE + "\n"
 		for row in action_rows:
 			actions += row + "\n"
 		bbcode = bbcode.substr(0, actions_at) + actions + "\n" + bbcode.substr(actions_at)
+	if folded_facts != "":
+		bbcode = bbcode.substr(0, actions_at) + folded_facts + bbcode.substr(actions_at)
 
 	content_area.text = bbcode
 	# fit_content needs a layout pass before get_content_height() is real.
@@ -929,9 +1084,14 @@ func _fit_height() -> void:
 	# deferred after every render and again on viewport resize.
 	if not visible or scroll == null:
 		return
+	# Session UI-6: in the right wing the column's foot is the floor.
+	if _wing_band().y > _wing_band().x:
+		_fit_height_in_wing()
+		return
 	var vp_bottom := get_viewport().get_visible_rect().size.y
 	var limit := vp_bottom
-	if avoid_control != null and is_instance_valid(avoid_control) and avoid_control.visible:
+	if avoid_control != null and is_instance_valid(avoid_control) and avoid_control.visible \
+			and _avoid_overlaps_panel():
 		limit = minf(limit, avoid_control.get_global_rect().position.y)
 	var header_h := 0.0
 	var header = panel_container.get_node_or_null("VBoxContainer/HeaderRow")
@@ -972,12 +1132,29 @@ func _beside_terminal_left(available: float) -> float:
 		return -1.0
 	if avoid_control == null or not is_instance_valid(avoid_control) or not avoid_control.visible:
 		return -1.0
-	var left := avoid_control.get_global_rect().end.x + Utils.HUD_MARGIN
+	if not _avoid_overlaps_panel():
+		return -1.0   # Session UI-6: a column beside the panel (32:9) is nothing to dock around
+	var left :=avoid_control.get_global_rect().end.x + Utils.HUD_MARGIN
 	var width: float = scroll.custom_minimum_size.x + 24.0   # `scroll` is untyped: no `:=`
 	var band := Utils.hud_band(get_viewport().get_visible_rect().size)
 	if left + width > band.y:
 		return -1.0
 	return left
+
+
+func _avoid_overlaps_panel() -> bool:
+	"""Session UI-6: does the avoided control (the command desk) share any of
+	the panel's HOME columns? The 32:9 layout stands the desk in a full-height
+	column to the panel's left, where its top edge says nothing about how tall
+	the panel may be - clamping to it collapsed the panel's height. Measured
+	against the home dock (never the live offset), so docking beside the desk
+	does not flip the answer."""
+	if avoid_control == null or not is_instance_valid(avoid_control):
+		return false
+	var rect := avoid_control.get_global_rect()
+	var panel_left := _home_left()
+	var panel_right: float = panel_left + scroll.custom_minimum_size.x + 24.0   # `scroll` is untyped: no `:=` on its fields
+	return rect.position.x < panel_right and rect.end.x > panel_left
 
 
 func _place_dock_left(left: float) -> void:
@@ -1065,9 +1242,14 @@ func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
 func _recruit_rows_folded(recruit_here: Dictionary, levy) -> Array:
 	"""Session UI-4: the levy Folded — see `_recruit_rows`. The chips are the
 	LAST row returned (the substitute market's chip joins it, in `_render`)."""
+	# Session UI-6 (November 13, 2026): the caption, the ordinance as a
+	# "Levies ×1.45" tag (the whole sentence its hover) and the arm chips stand
+	# on ONE line; when every arm is refused for the SAME reason, ONE lock chip
+	# "Levies" carries it as its hover instead of three dim chips.
 	var rows := []
 	var chips := []
-	var refused := []
+	var refused := []   # [arm word, reason] pairs
+	var shorts := {}
 	for arm in _RECRUIT_ARMS:
 		var q = recruit_here.get(arm, {})
 		if not (q is Dictionary):
@@ -1078,13 +1260,41 @@ func _recruit_rows_folded(recruit_here: Dictionary, levy) -> Array:
 				face += " · " + Utils.format_number(int(q.get("price", 0))) + "g"
 			chips.append(Utils.bb_button_chip("do:recruit " + str(arm) + " in " + _region, face, Utils.COLOR_GOLD, _CHIP_BG, "", str(q.get("terms", ""))))
 		else:
-			refused.append(_dim(str(arm).capitalize(), str(q.get("short", ""))))
-	rows.append(_caption("RECRUIT"))
-	var note := _ordinance_note(levy)
-	if note != "":
-		rows.append(note)
-	rows.append(_chip_row(chips + refused))
+			refused.append([str(arm).capitalize(), str(q.get("short", ""))])
+			shorts[str(q.get("short", ""))] = true
+	var locked := []
+	if chips.is_empty() and shorts.size() == 1 and refused.size() > 0:
+		locked.append(Utils.bb_chip_disabled("Levies", "", str(shorts.keys()[0])))
+	else:
+		for r in refused:
+			locked.append(_dim(str(r[0]), str(r[1])))
+	var line := _caption("RECRUIT")
+	var tag := _ordinance_tag(levy)
+	if tag != "":
+		line += "  " + tag
+	line += "   " + "   ".join(PackedStringArray(chips + locked))
+	rows.append(line)
 	return rows
+
+
+func _ordinance_tag(levy) -> String:
+	"""Session UI-6: the ordinance as ONE tag - "Levies ×1.45" over the limit (the
+	figure every chip's price already carries), "Levies open" under it - the
+	page's whole sentence (`_ordinance_note`'s words) its hover. "" with no limit."""
+	if not (levy is Dictionary) or int(levy.get("force_limit", 0)) <= 0:
+		return ""
+	var over := int(levy.get("over_by", 0))
+	if over > 0:
+		var sentence := Utils.format_number(over) + " over the ordinance"
+		var face := "Levies over"
+		var mult := int(levy.get("ordinance_mult_pct", 100))
+		if mult > 100:
+			var times: String = "%.2f" % (float(mult) / 100.0)
+			sentence += " — every levy costs ×" + times
+			face = "Levies ×" + times
+		return Utils.bb_hint(Utils.bb_tag(face, Utils.COLOR_WARNING), sentence)
+	return Utils.bb_hint(Utils.bb_tag("Levies open", Utils.COLOR_SUCCESS),
+		Utils.format_number(int(levy.get("headroom", 0))) + " under the ordinance")
 
 
 func _ordinance_note(levy) -> String:
@@ -1239,6 +1449,138 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	return row + "\n"
 
 
+# Session UI-6: the arm's stat glyph for the FORCES PRESENT row's strength figure.
+const _ARM_GLYPH := {"infantry": "foot", "cavalry": "horse", "artillery": "guns", "emperor": "command"}
+
+
+func _marshal_row_folded(m: Dictionary, enemy_names: Array) -> String:
+	"""Session UI-6 (November 13, 2026): ONE row per marshal, Folded - his name
+	(ours: a link, meta "select:<Name>", that selects him on the map), his
+	strength with the arm's glyph, a status badge (`MarshalState.status_of`, the
+	one reading the Generals and the war room share), then the CONTEXT verbs -
+	Attack <enemy> where an enemy shares the province, else the two most useful
+	orders that stand lit - and a "+N orders" toggle (meta "toggle:orders:<Name>")
+	that opens the rest in place. The muster lines the page prints under each
+	Attack chip are that chip's hover. Every chip sends the command it always
+	sent; the probe's reasons are the locked chips' hovers."""
+	var m_name := str(m.get("name", "?"))
+	var shown_name := Utils.humanize_entity_name(m_name)
+	var mine := str(m.get("nation", "")) == _PLAYER_NATION
+	var nb := " "
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var row := "  "
+	if mine:
+		row += "[url=select:" + m_name + "][color=#" + Utils.COLOR_TEXT + "]" + shown_name + "[/color][/url]"
+	else:
+		row += "[color=#" + Utils.COLOR_ERROR + "]" + shown_name + "[/color]"
+	var m_strength := int(m.get("strength", 0))
+	if m_strength > 0:
+		var fig := Utils.format_number(m_strength)
+		var arm_glyph := str(_ARM_GLYPH.get(str(m.get("arm", "")), ""))
+		var face := info + fig + "[/color]"
+		if arm_glyph != "":
+			face = Utils.bb_glyph(arm_glyph, 16, Utils.COLOR_INFO) + nb + face
+		row += "  " + Utils.bb_hint(face, fig + _arm_word(m))
+	var tactical = m.get("tactical_state", {})
+	if not mine or not (tactical is Dictionary) or tactical.is_empty():
+		return row + "\n"
+	var view: Dictionary = _MarshalState.from_board(m, {})
+	var status: Dictionary = _MarshalState.status_of(view)
+	var tone := str(status.get("tone", Utils.COLOR_GOLD))
+	var badge := Utils.bb_tag(str(status.get("label", "")), tone)
+	var badge_glyph := str(status.get("glyph", ""))
+	if badge_glyph != "":
+		badge = Utils.bb_glyph(badge_glyph, 16, tone) + nb + badge
+	row += "  " + Utils.bb_hint(badge, str(status.get("detail", "")))
+	# ── the verbs ──
+	var specs: Array = _MarshalState.order_specs(view)
+	var refusals: Dictionary = view["refusals"]
+	var grounded := bool(view.get("broken", false)) or bool(view.get("retreating", false))
+	var attack_why := str(refusals.get("attack", ""))
+	var context := []
+	var attack_lit := false
+	if not grounded:
+		for i in range(mini(enemy_names.size(), 2)):
+			var enemy := str(enemy_names[i])
+			if enemy == "":
+				continue
+			var enemy_shown := Utils.humanize_entity_name(enemy)
+			if attack_why == "":
+				var tips := []
+				var chip_muster := _here_attack_muster(m_name, enemy)
+				if chip_muster != "":
+					tips.append(_muster_tail(chip_muster))
+				var chip_alarm := _here_attack_muster(m_name, enemy, "alarm")   # what a win here adds to Europe's alarm
+				if chip_alarm != "":
+					tips.append(chip_alarm)
+				context.append(Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR_CHIP, _CHIP_BG, " · ".join(PackedStringArray(tips))))
+				attack_lit = true
+			else:
+				context.append(Utils.bb_chip_disabled("Attack " + enemy_shown, "", attack_why))
+	var shown_verbs := {}
+	if not attack_lit:
+		var lit_chips := 0
+		for want in _CONTEXT_VERBS:
+			if lit_chips >= _CONTEXT_SHOWN:
+				break
+			for spec in specs:
+				if str(spec["verb"]) == str(want) and not bool(spec["locked"]):
+					context.append(_order_chip(spec, m_name))
+					shown_verbs[str(want)] = true
+					lit_chips += 1
+	var rest_lit := []
+	var rest_locked := []
+	for spec in specs:
+		var verb := str(spec["verb"])
+		if verb == "cancel" or shown_verbs.has(verb):
+			continue
+		if bool(spec["locked"]):
+			rest_locked.append(_order_chip(spec, m_name))
+		else:
+			rest_lit.append(_order_chip(spec, m_name))
+	var rest := rest_lit + rest_locked
+	var orders_open := _orders_open.has(m_name)
+	var verbs_line := context.duplicate()
+	if not rest.is_empty():
+		var toggle_words := "fewer orders" if orders_open else "+" + str(rest.size()) + " orders"
+		var toggle_bb := info + toggle_words + "[/color]"
+		if not orders_open:
+			# The CN-4 census (the lead's engine run, November 13): the orders
+			# folded behind "+N orders" showed no reason anywhere — a folded
+			# reason is a hover, so the fold's own hover names each hidden
+			# order, and why a locked one would be refused.
+			var hidden := []
+			for spec in specs:
+				var hidden_verb := str(spec["verb"])
+				if hidden_verb == "cancel" or shown_verbs.has(hidden_verb):
+					continue
+				var part := str(spec["label"])
+				if bool(spec["locked"]) and str(spec.get("reason", "")) != "":
+					part += " — " + str(spec.get("reason", ""))
+				hidden.append(part)
+			toggle_bb = Utils.bb_hint(toggle_bb, " · ".join(PackedStringArray(hidden)))
+		verbs_line.append("[url=toggle:orders:" + m_name + "]" + toggle_bb + "[/url]")
+	if not verbs_line.is_empty():
+		row += "\n    " + "   ".join(PackedStringArray(verbs_line))
+	if orders_open and not rest.is_empty():
+		row += "\n    " + "   ".join(PackedStringArray(rest))
+	return row + "\n"
+
+
+func _order_chip(spec: Dictionary, m_name: String) -> String:
+	"""Session UI-6: one of a marshal's order slots as a chip - priced on its
+	face when it costs ("Hold (2 AP)"), locked (lock + dim words) with the
+	probe's reason as its hover when the executor would refuse it."""
+	var verb := str(spec["verb"])
+	var label := str(spec["label"])
+	var price := int(spec["price"])
+	if price > 0:
+		label += " (" + str(price) + " AP)"
+	if bool(spec["locked"]):
+		return Utils.bb_chip_disabled(label, "", str(spec["reason"]))
+	return Utils.bb_button_chip("order:" + verb + ":" + m_name, label, Utils.COLOR_COMMAND, _CHIP_BG)
+
+
 func _here_attack_muster(m_name: String, enemy: String, key: String = "muster") -> String:
 	"""S14E-X79: Berthier's one-line muster for `<m_name>, attack <enemy>` when
 	both stand in this province -- the quote the backend's `here` list carries
@@ -1326,16 +1668,13 @@ func _march_here_section() -> String:
 	var out := ""
 	var march = _quotes.get("march", [])
 	if march is Array and not march.is_empty():
-		out += "\n" + Utils.HEAD_OPEN + "MARCH HERE" + Utils.HEAD_CLOSE + "  [color=#" \
-			+ Utils.COLOR_INFO + "]a standing order — he marches on each turn[/color]\n"
+		out += _march_caption("MARCH HERE", "a standing order — he marches on each turn")
 		out += _quote_rows(march)
 	var support = _quotes.get("support", [])
 	if support is Array:
 		for row in support:
 			if row is Dictionary:
-				out += "\n" + Utils.HEAD_OPEN + "SUPPORT " \
-					+ str(row.get("ally_shown", "")).to_upper() + Utils.HEAD_CLOSE + "  [color=#" \
-					+ Utils.COLOR_INFO + "]he follows, and marches to the guns[/color]\n"
+				out += _march_caption("SUPPORT " + str(row.get("ally_shown", "")).to_upper(), "he follows, and marches to the guns")
 				out += _quote_rows(row.get("quotes", []))
 	# AO (October 17, 2026): the SUPPORT that stands — one row per corps of
 	# ours standing here, each chip `<Marshal>, follow <ally>`.
@@ -1343,18 +1682,15 @@ func _march_here_section() -> String:
 	if follow is Array:
 		for row in follow:
 			if row is Dictionary:
-				out += "\n" + Utils.HEAD_OPEN + "FOLLOW " \
-					+ str(row.get("ally_shown", "")).to_upper() + Utils.HEAD_CLOSE + "  [color=#" \
-					+ Utils.COLOR_INFO + "]he marches where " + str(row.get("ally_shown", "")) \
-					+ " marches, turn after turn, and to his guns[/color]\n"
+				out += _march_caption("FOLLOW " + str(row.get("ally_shown", "")).to_upper(),
+					"he marches where " + str(row.get("ally_shown", "")) + " marches, turn after turn, and to his guns")
 				out += _quote_rows(row.get("quotes", []))
 	# AO: the Staff's one order for the Emperor's column — a chip when the
 	# army can march here as one, else dimmed beside the reason (the law not
 	# in force, no Emperor in the field, authority below the gate, the pool).
 	var army = _quotes.get("army", null)
 	if army is Dictionary and not army.is_empty():
-		out += "\n" + Utils.HEAD_OPEN + "THE ARMY" + Utils.HEAD_CLOSE + "  [color=#" \
-			+ Utils.COLOR_INFO + "]one order, the Staff's price, every corps within the Emperor's reach[/color]\n"
+		out += _march_caption("THE ARMY", "one order, the Staff's price, every corps within the Emperor's reach")
 		out += _quote_rows([army])
 		out += _army_detour_rows(army)   # S14E-X135: which corps take a long or foreign road
 		out += _army_rider_rows(army)   # S14G-11 / S14G-7 / S14G-2: and which cross guarded ground, march to a front, carry terms
@@ -1366,6 +1702,15 @@ func _march_here_section() -> String:
 					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
 				out += _quote_rows(row.get("quotes", []))
 	return out
+
+
+func _march_caption(title: String, sentence: String) -> String:
+	"""Session UI-6: a march group's caption. On the page the sentence prints
+	beside it (as it did); Folded the caption stands alone and the sentence is
+	its hover."""
+	if Utils.explanations_folded():
+		return "\n" + Utils.bb_hint(Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE, sentence) + "\n"
+	return "\n" + Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE + "  [color=#" + Utils.COLOR_INFO + "]" + sentence + "[/color]\n"
 
 
 func _quote_rows(quotes) -> String:
@@ -1389,6 +1734,12 @@ func _quote_rows(quotes) -> String:
 			continue
 		shown += 1
 		var notes := _quote_notes(q)
+		# Session UI-6: Folded, the Staff's per-corps lines (the long road, the
+		# guarded ground, the front, the terms) ride the ARMY chip's hover.
+		if Utils.explanations_folded() and str(q.get("kind", "")) == "army":
+			var corps_said := _army_corps_tip(q)
+			if corps_said != "":
+				notes = notes + (" · " if notes != "" else "") + corps_said
 		# Session UI-4 (November 12, 2026): Folded, the open orders stand on ONE
 		# row of chips, what each would also do (`notes`) its hover; the page
 		# prints a chip and its notes a line each, as it did.
@@ -1423,6 +1774,8 @@ func _army_detour_rows(army: Dictionary) -> String:
 	road would be asked about (`corps[].detour`, S14E-X88) -- the row's note
 	counts them ("3 of 5 corps take a long or foreign road"), these say which."""
 	var out := ""
+	if Utils.explanations_folded():
+		return out   # Session UI-6: Folded, these ride the army chip's hover (`_army_corps_tip`)
 	var corps = army.get("corps", [])
 	if not (corps is Array):
 		return out
@@ -1442,6 +1795,8 @@ func _army_rider_rows(army: Dictionary) -> String:
 	(`corps[].guard`), the front it marches to (`corps[].front`) and the standing
 	order's terms (`corps[].terms`), each the sentence the corps' own card prints."""
 	var out := ""
+	if Utils.explanations_folded():
+		return out   # Session UI-6: Folded, these ride the army chip's hover (`_army_corps_tip`)
 	var corps = army.get("corps", [])
 	if not (corps is Array):
 		return out
@@ -1453,6 +1808,23 @@ func _army_rider_rows(army: Dictionary) -> String:
 			if said != "":
 				out += "    [color=#" + Utils.COLOR_INFO + "]" + str(c.get("shown", "")) + " — " + said + "[/color]\n"
 	return out
+
+
+func _army_corps_tip(army: Dictionary) -> String:
+	"""Session UI-6: the per-corps lines (detour, guard, front, terms) the page
+	prints under the army row, as ONE string for the ARMY chip's hover."""
+	var said_all := []
+	var corps = army.get("corps", [])
+	if not (corps is Array):
+		return ""
+	for c in corps:
+		if not (c is Dictionary):
+			continue
+		for rider in ["detour", "guard", "front", "terms"]:
+			var said := str(c.get(rider, ""))
+			if said != "":
+				said_all.append(str(c.get("shown", "")) + " — " + said)
+	return " · ".join(PackedStringArray(said_all))
 
 
 func _quote_label(q: Dictionary) -> String:

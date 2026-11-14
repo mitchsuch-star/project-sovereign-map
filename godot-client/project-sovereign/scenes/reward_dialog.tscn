@@ -69,6 +69,7 @@ scroll_active = true
 ; minimum drops far enough for the clamp to actually bite on a halved logical
 ; viewport — without this the clamp is cosmetic.
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+vertical_scroll_mode = 4
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_vertical = 3

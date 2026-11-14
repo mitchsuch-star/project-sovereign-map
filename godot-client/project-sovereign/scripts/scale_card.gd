@@ -80,6 +80,7 @@ func _build() -> void:
 	_middle_scroll = ScrollContainer.new()
 	_middle_scroll.name = "MiddleScroll"
 	_middle_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_middle_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE   # UI6-X22: the bar's gutter is kept
 	_middle_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(_middle_scroll)
 	_middle = VBoxContainer.new()

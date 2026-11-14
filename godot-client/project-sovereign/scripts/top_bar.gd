@@ -1154,12 +1154,19 @@ func _apply_fit_step(step: int) -> void:
 func _render_turn_text() -> void:
 	"""The turn's words at the bar's fit step: the whole date, then the month
 	and year (step 7), then the turn alone (step 8); a world with no calendar
-	keeps its plain "Turn N"."""
+	keeps its plain "Turn N".
+
+	Session UI-6 (November 13, 2026): from step 6 the hourglass and its figure
+	have stepped aside, so the turn rides the date ("1 · September 1805") —
+	the turn stays on screen at every scale (the command window no longer
+	carries it, the plan's N8)."""
 	if _calendar_label == "" or _fit_step >= 8:
 		turn_label.text = "Turn " + str(_turn_number)
 	elif _fit_step >= 7:
 		var words := _calendar_label.split(" ", false)
-		turn_label.text = " ".join(words.slice(1)) if words.size() >= 3 else _calendar_label
+		turn_label.text = str(_turn_number) + " · " + (" ".join(words.slice(1)) if words.size() >= 3 else _calendar_label)
+	elif _fit_step >= 6:
+		turn_label.text = str(_turn_number) + " · " + _calendar_label
 	else:
 		turn_label.text = _calendar_label
 
@@ -1533,9 +1540,16 @@ func _fit_rail() -> void:
 		return
 	var view := get_viewport().get_visible_rect().size
 	# UXR-D3: a fraction of the HUD band, inset from the band's right edge.
-	var band := Utils.hud_band(view)
-	var w := Utils.fraction_px(band.y - band.x, RAIL_WIDTH_FRACTION, RAIL_MIN_WIDTH, RAIL_MAX_WIDTH,
-			2.0 * RAIL_RIGHT_INSET)
+	# Session UI-6 (November 13, 2026): the band the right-hand HUD anchors to
+	# (`Utils.hud_anchor_band`) — on a very wide screen the right column, whose
+	# width the rail fills (the war list stands under it at the same left edge).
+	var band := Utils.hud_anchor_band(view)
+	var w: float
+	if Utils.hud_columns(view).y > 0.0:
+		w = maxf(band.y - band.x - Utils.HUD_MARGIN - RAIL_RIGHT_INSET, RAIL_MIN_WIDTH)
+	else:
+		w = Utils.fraction_px(band.y - band.x, RAIL_WIDTH_FRACTION, RAIL_MIN_WIDTH, RAIL_MAX_WIDTH,
+				2.0 * RAIL_RIGHT_INSET)
 	notification_area.offset_right = -RAIL_RIGHT_INSET - (view.x - band.y)
 	notification_area.offset_left = notification_area.offset_right - w
 	notification_area.offset_top = Utils.TOP_BAR_HEIGHT + RAIL_GAP + Utils.top_bar_growth()

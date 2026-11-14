@@ -116,7 +116,7 @@ const LETTER_BY_PROPOSAL := [
 # eyes in the Cabinet's strip: each surface has its own picture, and a strip
 # header carries a wide scene, never a face.
 const SURFACES := {
-	"dispatch": "courier", "gazette": "moniteur", "cabinet": "congress",
+	"dispatch": "ulm", "gazette": "moniteur", "cabinet": "congress",
 	"correspondence": "treaty",
 	"congress": "congress", "settlement": "tilsit", "rebellion": "rising",
 	"sabotage": "talleyrand", "paradox": "horatii", "school": "arcole",

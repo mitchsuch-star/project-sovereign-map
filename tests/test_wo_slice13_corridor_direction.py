@@ -242,6 +242,12 @@ class TestTheReviewRoundSeams:
             mack.location = name
             mack.strength = 30000
             set_diplomatic_state(world, "France", "Austria", "WAR")
+            # UI6-X15's sweep (Session UI-6, November 13, 2026): a bare
+            # attack's move-toward reads only a foe IN SIGHT (it walked a
+            # corps toward a man in fog, off the roster) — the bait stands
+            # where our scouts can see him, as the exploit needs him seen.
+            from backend.models.intel import PARTIAL
+            world._intel_entry(name).visibility = PARTIAL
             return name
         raise AssertionError(
             "staging drifted: no bait province beyond the frontier")

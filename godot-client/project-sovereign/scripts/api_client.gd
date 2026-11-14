@@ -19,6 +19,13 @@ var _first_open_acked: Dictionary = {}
 # UXR-D4 (Pre-Deploy S12b): the requests this client has SENT, by endpoint —
 # the Side Desk's driven proof counts a pinned ledger's re-reads on it.
 var sent_counts: Dictionary = {}
+# Session UI-6 (the readback): `GET /parse_preview` rides its OWN HTTPRequest,
+# so a typed order never queues behind a keystroke's question. It bypasses the
+# request queue and `response_received` (a reading is nothing the game acts
+# on), at most one is in flight (a newer line cancels the older), and its
+# errors are silent — the callback gets {} and the row keeps what it showed.
+var preview_request: HTTPRequest
+var _preview_cb: Callable = Callable()
 
 
 func _ready():
@@ -26,6 +33,10 @@ func _ready():
 	http_request.timeout = 30.0
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
+	preview_request = HTTPRequest.new()
+	preview_request.timeout = 3.0
+	add_child(preview_request)
+	preview_request.request_completed.connect(_on_preview_completed)
 
 
 # --- Generic helpers ---
@@ -182,6 +193,40 @@ func get_group_quotes(marshal_names: Array, dest: String, callback: Callable):
 		names.append(str(n))
 	_send_get("/march_quotes?marshals=" + ",".join(names).uri_encode() + "&dest="
 		+ dest.uri_encode(), callback)
+
+func get_parse_preview(line: String, callback: Callable) -> void:
+	"""Session UI-6 "the readback": how `line` WOULD be read — the marshal, the
+	verb, the target, the price, or why it would be refused — before Enter.
+	The backend never executes it (`backend/commands/parse_preview.py`). Its
+	own HTTPRequest (never the shared queue); a newer line cancels the older;
+	the callback gets the reading, or {} on any failure (silent)."""
+	cancel_parse_preview()
+	_preview_cb = callback
+	var error: int = preview_request.request(API_URL + "/parse_preview?line=" + line.uri_encode())
+	if error != OK:
+		var failed: Callable = _preview_cb
+		_preview_cb = Callable()
+		if failed.is_valid():
+			failed.call({})
+
+func cancel_parse_preview() -> void:
+	"""Drop the reading in flight (a keystroke, a send, a disabled line): its
+	answer, if it still lands, reaches nobody."""
+	if preview_request != null:
+		preview_request.cancel_request()
+	_preview_cb = Callable()
+
+func _on_preview_completed(result, response_code, _headers, body) -> void:
+	var waiting: Callable = _preview_cb
+	_preview_cb = Callable()
+	if not waiting.is_valid():
+		return
+	var reading: Dictionary = {}
+	if result == HTTPRequest.RESULT_SUCCESS and int(response_code) == 200:
+		var parser := JSON.new()
+		if parser.parse(body.get_string_from_utf8()) == OK and typeof(parser.data) == TYPE_DICTIONARY:
+			reading = parser.data
+	waiting.call(reading)
 
 func activate_mailbox_item(mailbox_id: int, callback: Callable):
 	_send_post("/mailbox/activate", {"mailbox_id": mailbox_id}, callback)

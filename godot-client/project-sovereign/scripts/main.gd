@@ -449,10 +449,16 @@ var _history_walk_text: String = ""
 # CX-3: raised from 10 BECAUSE the walk is prefix-filtered now. Measured,
 # lengthening an UNFILTERED walk makes the feature worse (16.3% at 50
 # against 14.8% at 10, because each Up press costs a keystroke); filtered,
-# the same change is worth 12.6% -> 21.4%. Session-only and never written
-# to `user://` — a persisted history would carry a marshal's name into a
-# campaign that never saw him, which is a fog leak on a surface with no
-# filter (4.7% of the archived commands name a fogged marshal).
+# the same change is worth 12.6% -> 21.4%. Session UI-5 PERSISTS it
+# (UiSettings' command history), so a remembered line can name a marshal
+# this campaign never showed (4.7% of the archived commands name a fogged
+# marshal) — Session UI-6 (UI6-X1) filters what the COMPLETER offers: only a
+# line whose every word stands on today's board is suggested
+# (`_history_line_is_safe`). The Up / Down walk recalls every line the player
+# typed, as typed — a typo walked back to be mended, a free word kept: a
+# commander's name is public and only his place is fogged
+# (`llm_client._askable_enemy_names`), so the walk writes nothing the player
+# did not write.
 const MAX_HISTORY = 50
 
 # Message history limit (prevents infinite growth)
@@ -668,6 +674,14 @@ func _ready():
 		# live top edge, and closing it clears the map's selected-province glow.
 		region_panel.avoid_control = bottom_left_ui
 		region_panel.closed.connect(_on_region_panel_closed)
+		# Session UI-6: a marshal's name in FORCES PRESENT selects him (the
+		# panel shuts — the selection card takes its place); on a very wide
+		# screen the panel docks in the right column under the war list.
+		if region_panel.has_signal("marshal_select_requested"):
+			region_panel.marshal_select_requested.connect(_on_panel_marshal_select)
+		if "avoid_above" in region_panel and war_status_panel != null \
+				and war_status_panel.get("panel_container") is Control:
+			region_panel.avoid_above = war_status_panel.panel_container
 
 	# POSITION 7: the School of War tutor card — non-modal like the war HUD.
 	# modal=false is LOAD-BEARING: a modal registration would block ESC/pause,
@@ -681,6 +695,11 @@ func _ready():
 
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
+		# Session UI-6: the war detail covers the war room — the notice rail
+		# (the top bar's layer 75) stood bright over its 0.85 backdrop (layer
+		# 30); it steps aside while the detail is open, as for any modal.
+		if war_detail_popup.has_signal("visibility_changed"):
+			war_detail_popup.visibility_changed.connect(_ui6_refresh_rail_suspension)
 		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
 		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
 		if war_detail_popup.has_signal("settlement_clicked"):
@@ -799,6 +818,10 @@ func _ready():
 				# PC15-10 B1: the card's "Hear him" chip — the antechamber.
 				if instance.has_signal("audience_requested"):
 					instance.audience_requested.connect(_open_marshal_audience)
+				# Session UI-6: "On the map" — the screen shuts, he is selected,
+				# the camera goes to him.
+				if instance.has_signal("locate_requested"):
+					instance.locate_requested.connect(_on_generals_locate_requested)
 			elif config[0] == "ledger":
 				# NV-6: THE ADMIRALTY's order chips (posture, the Diversion)
 				if instance.has_signal("naval_command"):
@@ -843,6 +866,14 @@ func _ready():
 		# its lessons point at (beside it, or below it on a narrow screen).
 		if tutorial_overlay != null and "avoid_rail" in tutorial_overlay:
 			tutorial_overlay.avoid_rail = notification_bar.rail_panel
+		# Session UI-6: the war list's chip stands under the rail's bell at the
+		# compact view, and the map's labels dodge the rail — both re-read it
+		# whenever it moves, folds or comes and goes.
+		if war_status_panel != null and "avoid_rail" in war_status_panel:
+			war_status_panel.avoid_rail = notification_bar.rail_panel
+		if notification_bar.get("rail_panel") is Control:
+			notification_bar.rail_panel.item_rect_changed.connect(_ui6_on_rail_moved)
+			notification_bar.visibility_changed.connect(_ui6_on_rail_moved)
 	# UXR-2 (the anchors): the war-detail popup docks beside the war HUD's
 	# LIVE left edge (the HUD's width is a viewport fraction, or the player's).
 	if war_detail_popup != null and war_status_panel != null and "dock_beside" in war_detail_popup:
@@ -869,6 +900,11 @@ func _ready():
 	# UX pass July 16: right-click / open-water click dismiss the panel.
 	if map_area and map_area.has_signal("map_dismiss_requested"):
 		map_area.map_dismiss_requested.connect(_on_map_dismiss_requested)
+	# Session UI-6 (N3): a right-click on a province or a piece is an order
+	# with a corps selected (its card), a selection on an empty line, else
+	# the old dismiss (`_on_order_context_requested`).
+	if map_area and map_area.has_signal("order_context_requested"):
+		map_area.order_context_requested.connect(_on_order_context_requested)
 	# FA-S13-1(b): the bare M key (map focused) reports the mode through the
 	# SAME sentence the Alt+M route prints — the renderer has no terminal.
 	if map_area and map_area.has_signal("map_mode_changed"):
@@ -941,6 +977,9 @@ func _ready():
 	_install_suggestion_row()
 	if not command_input.text_changed.is_connected(_on_command_text_changed):
 		command_input.text_changed.connect(_on_command_text_changed)
+	# Session UI-6: the desk's three forms — the marshal row, the bar's second
+	# row and its ⋯ menu, the send glyph — built before the first relayout.
+	_ui6_build_desk()
 
 	# Minimize/Restore terminal panel
 	if not minimize_button.pressed.is_connected(_minimize_terminal):
@@ -965,6 +1004,7 @@ func _ready():
 	_build_map_controls()
 	_ui5_build_busy_chip()
 	_build_order_strip()   # CC-3
+	_ui6_build_selection_card()   # Session UI-6: the card in the strip's slot (and the 32:9 wing)
 	# The pause-menu Settings slider drives the global scale through us (we own
 	# the map compensation + persistence).
 	if pause_menu and pause_menu.has_signal("ui_scale_changed"):
@@ -1162,15 +1202,19 @@ func _print_boot_help(full: bool = false) -> void:
 	whole list below (`full`), Berthier's questions with it. On the page it
 	prints as it always did, every word. Folded, the rule comes FIRST and the
 	help last: the log ends on the help's own lines, so a short window (2.0)
-	shows them whole instead of a rule and the help's tail."""
+	shows them whole instead of a rule and the help's tail.
+
+	Session UI-6 (November 13, 2026), folded: ONE line — the greeting, in the
+	report's brighter ink, and "▸ every command". The rule above it is gone
+	(the readers' "stray rule"), the example order waits in the empty line's
+	placeholder (COMMAND_PLACEHOLDER_EXAMPLE) and the marshal row above the log
+	is the click road. On the page every line prints as before."""
 	if not full:
 		var folded := Utils.explanations_folded()
 		if folded:
-			_add_separator()
-		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
-		if folded:
-			add_output("[color=#" + Utils.LOG_REPORT + "]Type an order — “Ney, attack Mack” — or click one of your marshals on the map.[/color]  [url=" + BOOT_HELP_META + "][color=#" + Utils.COLOR_GOLD + "]▸ every command[/color][/url]")
+			add_output("[color=#" + Utils.LOG_REPORT + "]Your marshals await your orders, Sire.[/color]  [url=" + BOOT_HELP_META + "][color=#" + Utils.COLOR_GOLD + "]▸ every command[/color][/url]")
 			return
+		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
@@ -1185,7 +1229,9 @@ func _print_boot_help(full: bool = false) -> void:
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] (Alt+G while you type) to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever the line is empty and you are not typing — Alt+key while you type[/color]")
 	# CC-3: the map's order gesture, taught where the orders are.
-	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes[/color]")
+	# Session UI-6: the gestures as they now stand — a click on another of ours
+	# selects him; support is a right click or a drag; his card's orders are 1-7.
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map orders: with nothing typed, click one of your marshals (or his name in the marshal row, or drag his piece) — his roads light up and his card shows his orders, 1 to 7 — then click or right-click a province or an enemy, or right-click another marshal to support him: a card shows the exact order before it goes[/color]")
 	# CC-5: the war table — the arrows, the idle corps, the group.
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • The war table: every standing order is an arrow on the map — click it to cancel or change it; [b].[/b] (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card[/color]")
 	add_output("")
@@ -1326,6 +1372,9 @@ func _remember_game_state(game_state: Dictionary) -> void:
 	"""
 	if game_state is Dictionary:
 		_last_game_state = game_state.duplicate(true)
+		_ui6_refresh_marshal_row()   # Session UI-6: the desk's marshal row reads the same board
+		_history_known_built = false   # UI6-X1: the board's words are read again
+		_readback_forget()             # Session UI-6: a new board, new readings
 
 
 func _update_map_from_game_state(game_state: Dictionary) -> void:
@@ -1401,6 +1450,7 @@ func _on_command_text_changed(_text: String) -> void:
 	# which lives only on an empty line, is let go.
 	if _text.strip_edges() != "":
 		_clear_order_selection()
+	_readback_changed(_text)   # Session UI-6 (N6): the readback reads the line
 
 
 func _on_command_submitted(_text: String):
@@ -1472,6 +1522,12 @@ func _on_command_input_gui_input(event):
 			# after every reply (with a draft it is a full stop, as typed).
 			_cycle_idle_marshal()
 			command_input.accept_event()
+		elif not event.alt_pressed and _ui6_slot_digit(event) > 0 and _ui6_digits_live():
+			# Session UI-6 (N5): a digit on an EMPTY line presses the selected
+			# marshal's card slot — no order begins with a digit (the `.`
+			# precedent), and the line holds the keyboard after every reply.
+			_ui6_press_slot(_ui6_slot_digit(event))
+			command_input.accept_event()
 		elif event.ctrl_pressed and _ctrl_scale_key(event.keycode):
 			# UXR-1b: the Interface Scale keys, reachable while typing (a
 			# LineEdit would otherwise eat Ctrl+= as text).
@@ -1540,6 +1596,8 @@ func _on_command_input_gui_input(event):
 			# focus away from a player who only wanted the list gone.
 			if not _suggestions.is_empty():
 				_clear_suggestions()
+			elif _ui5_log_open:
+				_ui5_close_log()   # Session UI-6: then the bar's open log folds
 			elif _order_engaged():
 				_clear_order_selection()   # CC-3: then a selected corps (CC-5: or a group)
 			elif _escape_closes_topmost():
@@ -1604,6 +1662,14 @@ func _alt_game_key(keycode: int) -> bool:
 			if _map_keys_live():
 				_cycle_idle_marshal()
 			return true
+		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7:
+			# Session UI-6 (N5): Alt+digit — the selected marshal's card slot,
+			# the focus-safe form (ours only while a marshal is selected).
+			if _order_marshal == "":
+				return false
+			if _ui6_digits_live():
+				_ui6_press_slot(keycode - KEY_0)
+			return true
 	return false
 
 
@@ -1625,15 +1691,21 @@ func _map_keys_live() -> bool:
 func _history_pool() -> Array:
 	"""The history entries that begin with what is typed, oldest first.
 
-	An empty (or whitespace) line yields the whole history, so the walk is
-	byte-for-byte the old one until the player has typed something.
-	"""
+	An empty (or whitespace) line yields the whole remembered history; typed
+	words narrow it as before.
+
+	Session UI-6: the walk recalls the player's OWN lines, every one as typed
+	(a typo comes back to be mended); only the completer's offers read
+	`_history_safe_lines()` (UI6-X1) — an offer is the table's suggestion and
+	stands on today's board. A name is public under the fog doctrine; the walk
+	writes nothing the player did not write."""
 	var prefix: String = command_input.text if history_index == -1 else _history_anchor
 	prefix = prefix.strip_edges()
+	var remembered: Array = command_history
 	if prefix == "":
-		return command_history
+		return remembered
 	var out := []
-	for past in command_history:
+	for past in remembered:
 		if str(past).to_lower().begins_with(prefix.to_lower()):
 			out.append(past)
 	return out
@@ -1665,6 +1737,7 @@ func _history_previous():
 	_history_walk_text = command_input.text       # CX3-R7
 	command_input.caret_column = command_input.text.length()
 	_clear_suggestions()
+	_readback_sync()   # Session UI-6: a walked line is read (a code write emits no text_changed)
 
 func _history_next():
 	"""Navigate to next command in history (down arrow).
@@ -1691,6 +1764,7 @@ func _history_next():
 		_history_walk_text = ""                   # CX3-R7
 		command_input.caret_column = command_input.text.length()
 		_history_anchor = ""
+	_readback_sync()   # Session UI-6: the walked (or restored) line is read
 
 func _add_to_history(command: String):
 	"""Add command to history if valid."""
@@ -1793,6 +1867,11 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	if top_bar and top_bar.is_screen_open():
 		top_bar.close_all_screens()
 		_release_empty_line()
+		return true
+	# Session UI-6: the slim bar's open log folds — the topmost thing on the
+	# compact view's floor (the line's own Esc folds it before the ladder).
+	if _ui5_log_open and not _is_modal_dialog_open():
+		_ui5_close_log()
 		return true
 	# CC-3: a selected corps swallows one Esc — the topmost thing on
 	# the map (the card's own Esc is the card's, read in its _input).
@@ -1955,6 +2034,11 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_PERIOD and not event.shift_pressed and not event.ctrl_pressed:
 			_cycle_idle_marshal()
 			get_viewport().set_input_as_handled()
+		# Session UI-6 (N5): a digit presses the selected marshal's card slot
+		# (the RAW key: the digits are fixed, never remapped — Keys.RESERVED).
+		elif _ui6_slot_digit(_raw_event) > 0 and _ui6_digits_live():
+			_ui6_press_slot(_ui6_slot_digit(_raw_event))
+			get_viewport().set_input_as_handled()
 
 func _minimize_terminal():
 	"""Collapse the terminal panel, show restore button."""
@@ -2021,6 +2105,12 @@ func _setup_scalable_terminal() -> void:
 	# DDB-57: a wheel notch over the command window moves three whole lines.
 	if output_scroll and not output_scroll.gui_input.is_connected(_on_output_wheel):
 		output_scroll.gui_input.connect(_on_output_wheel)
+	# Session UI-6 (the interim blind reading, November 13): on 32:9 the log's
+	# top line stood half cut under the marshal row ("clipped scrolling text") —
+	# the column's relayout changed the log's height and the whole-line snap
+	# kept the old height's. The log re-snaps when its own size changes.
+	if output_scroll and not output_scroll.resized.is_connected(_on_output_scroll_resized):
+		output_scroll.resized.connect(_on_output_scroll_resized)
 
 	# Restore the persisted footprint — or, with nothing stored, the VIEWPORT
 	# FRACTION (UXR-1b, October 9, 2026): the 400x270 default was a 24-inch
@@ -2079,11 +2169,13 @@ func _on_output_wheel(event: InputEvent) -> void:
 func _begin_reply() -> void:
 	"""DDB-57: a typed order's reply opens here — after the echo, at the send."""
 	_reply_from_paragraph = output_display.get_paragraph_count() if output_display else -1
+	_reply_line_count = 0   # Session UI-6: the bar counts the reply's lines
 
 
 func _end_reply() -> void:
 	"""DDB-57: the next command closes the reply and puts the window back."""
 	_reply_from_paragraph = -1
+	_reply_held = false   # Session UI-6: the bar's and the column's hold lets go
 	if _reply_raised:
 		_reply_raised = false
 		_apply_terminal_size(_terminal_width, _reply_restore_height)
@@ -2100,10 +2192,20 @@ func _reply_top_px() -> float:
 
 func _hold_tall_reply() -> bool:
 	"""DDB-57: true when an open reply is taller than the window — which is
-	then raised (once) and the view put on the reply's first line."""
+	then raised (once) and the view put on the reply's first line.
+
+	Session UI-6: only the desk raises. The bar opens its log upward for a
+	reply of more than a line, the column's long log only scrolls — each
+	then holds the view on the reply's first line (`_ui6_hold_reply`)."""
 	if _reply_from_paragraph < 0 or output_display == null or not bottom_left_ui.visible:
 		return false
+	# UI6-X32: the folded bar counts the reply's lines (`_reply_line_count`) and
+	# never measures its hidden log (a 1-px label: see `_snap_output_to_a_whole_line`).
+	if _desk_mode_now == "bar" and not _ui5_log_open:
+		return _ui6_hold_reply(0.0)
 	var reply_h: float = float(output_display.get_content_height()) - _reply_top_px()
+	if _desk_mode_now == "bar" or _desk_mode_now == "column":
+		return _ui6_hold_reply(reply_h)
 	if not _reply_raised:
 		if reply_h <= output_scroll.size.y:
 			return false
@@ -2168,7 +2270,17 @@ func _relayout_terminal() -> void:
 	"""Fit the DESIRED size to the current viewport for display only. Anchored
 	bottom-left: the fixed corner stays, width extends offset_right, height
 	extends offset_top (negative = upward). Growing the window back restores the
-	intended footprint because _terminal_width/height are left untouched here."""
+	intended footprint because _terminal_width/height are left untouched here.
+
+	Session UI-6 (November 13, 2026): the window takes one of three forms
+	(`_desk_mode`) — the DESK (as before: folded, its header one line of
+	figures), the slim BAR on the compact view (the line, End Turn and ⋯ over
+	the last reply's line, the log a drawer that opens upward — `_ui5_log_open`)
+	and the COLUMN on a very wide screen (the whole left column; the map's room
+	is the gap). The bar and the column size themselves: neither reads nor
+	writes the stored size, and neither shows the grip."""
+	var mode := _desk_mode()
+	_ui6_apply_desk_mode(mode)
 	var disp_w = clampf(_terminal_width, UiSettings.MIN_TERMINAL_WIDTH,
 			maxf(UiSettings.MIN_TERMINAL_WIDTH, _hud_room().x - TERMINAL_ANCHOR_LEFT * 2.0))
 	# Reserve the top-bar strip (CanvasLayer 75, y 0..36): without it a
@@ -2180,24 +2292,32 @@ func _relayout_terminal() -> void:
 	# Session UI-2: the log's floor follows the room — 110 on a short logical
 	# view (Interface Scale 2.0 on 900 px: the window yields the map more), the
 	# authored 140, and 180 on a tall one (the 40 px the header's band saved).
-	# Session UI-5 (F03): on the compact view an unfocused window with nothing
-	# out stands as its input line plus about two lines of the log.
-	var collapsed := _ui5_compact_collapsed()
-	_ui5_compact_was = collapsed
+	# Session UI-6: the bar's log is its drawer — BAR_LOG_SHARE of the view
+	# while it stands open (hidden while it is folded).
 	if output_scroll != null:
-		output_scroll.custom_minimum_size.y = (_output_line_px() * 2.0) if collapsed else _log_floor()
+		output_scroll.custom_minimum_size.y = _ui6_bar_log_height() if mode == "bar" else _log_floor()
 	_fold_header()
-	# Folded, the window is its line, two lines of the log and the day's
-	# orders (turn, actions, administration): the chest and the levies step
-	# aside — the top bar carries the chest, the ledger the levies (the final
-	# shoot's read: the status block alone stood half the compact view).
+	# Session UI-6 (N8): folded, the chest and the turn leave the window — the
+	# top bar carries both, the turn at every scale; the bar shows "T1" on its
+	# reply line. On the page the desk's header stands as authored.
+	var full_header := mode != "bar" and not Utils.explanations_folded()
 	if gold_value != null and gold_value.get_parent() is Control:
-		(gold_value.get_parent() as Control).visible = not collapsed
-	if inf_value != null and inf_value.get_parent() is Control:
-		(inf_value.get_parent() as Control).visible = not collapsed
-	if collapsed and bottom_left_ui != null:
-		disp_h = bottom_left_ui.get_combined_minimum_size().y
+		(gold_value.get_parent() as Control).visible = full_header
+	if turn_value != null and turn_value.get_parent() is Control:
+		(turn_value.get_parent() as Control).visible = full_header
 	var left := _terminal_left()
+	if mode == "bar":
+		# The bar is its rows: its width a share of the view, its height its
+		# own minimum (offset_top = offset_bottom; the frame grows upward to it,
+		# grow_vertical BEGIN) — the offers, the readback and the open log each
+		# raise it, and it falls back the moment they go.
+		disp_w = minf(BAR_MAX_WIDTH, floorf(size.x * BAR_WIDTH_SHARE))
+		disp_h = 0.0
+	elif mode == "column":
+		# The whole left column, under the top bar to the bottom margin.
+		disp_w = maxf(Utils.hud_columns(size).x - TERMINAL_ANCHOR_LEFT - Utils.HUD_MARGIN,
+				UiSettings.MIN_TERMINAL_WIDTH)
+		disp_h = maxf(size.y + TERMINAL_ANCHOR_BOTTOM - _ui6_column_top(), UiSettings.MIN_TERMINAL_HEIGHT)
 	bottom_left_ui.offset_left = left
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
 	bottom_left_ui.offset_right = left + disp_w
@@ -2212,6 +2332,7 @@ func _relayout_terminal() -> void:
 	if war_status_panel != null and war_status_panel.visible \
 			and war_status_panel.has_method("_fit_panel_to_content"):
 		war_status_panel.call_deferred("_fit_panel_to_content")
+	_ui6_fit_right_wing()   # Session UI-6: the 32:9 right column's frame follows the form
 
 
 const LOG_FLOOR_SHORT := 80.0   # Session UI-4: 110 -> 80 — at 2.0 the window ate half the screen
@@ -2296,8 +2417,12 @@ func _dress_status_glyphs() -> void:
 
 func _terminal_left() -> float:
 	"""UXR-D3: the command window's fixed left edge — the HUD band's left
-	edge plus the authored 10 (0 + 10 at Full, as ever)."""
-	return Utils.hud_band(size).x + TERMINAL_ANCHOR_LEFT
+	edge plus the authored 10 (0 + 10 at Full, as ever).
+
+	Session UI-6: the band WITH its columns (`hud_band_full`) — in the
+	columns' layout `hud_band` is the map's gap, and the desk stands in the
+	left column outside it."""
+	return Utils.hud_band_full(size).x + TERMINAL_ANCHOR_LEFT
 
 
 func _hud_room() -> Vector2:
@@ -2319,6 +2444,9 @@ func _hud_size_room() -> Vector2:
 func _position_resize_grip() -> void:
 	if resize_grip == null or not is_instance_valid(resize_grip):
 		return
+	# Session UI-6: the grip is the desk's — the bar and the column size
+	# themselves (a drag there would store a size neither reads).
+	resize_grip.visible = bottom_left_ui.visible and _desk_mode_now == "desk"
 	if not bottom_left_ui.visible:
 		return
 	# Read the ACTUAL rendered rect: BottomLeftUI is a PanelContainer, so it
@@ -2337,6 +2465,28 @@ func _reposition_after_layout() -> void:
 	call_deferred("_resnap_output")
 
 
+var _resnap_queued := false
+var _resnap_height := -1.0
+
+
+func _on_output_scroll_resized() -> void:
+	"""The log's height changed (a relayout, the column, the drawer): re-snap its
+	top onto a whole line once, after the layout settles (a width-only change
+	re-wraps and is caught by add_output's own snap)."""
+	if output_scroll == null or _resnap_queued:
+		return
+	if is_equal_approx(output_scroll.size.y, _resnap_height):
+		return
+	_resnap_height = output_scroll.size.y
+	_resnap_queued = true
+	call_deferred("_resnap_output_once")
+
+
+func _resnap_output_once() -> void:
+	_resnap_queued = false
+	_resnap_output()
+
+
 func _resnap_output() -> void:
 	"""UXR-D4 (Pre-Deploy S12b): the command window re-fitted — the Side
 	Desk's dock narrowed the HUD band, the scale or the window changed — so
@@ -2353,7 +2503,7 @@ func _resnap_output() -> void:
 	await get_tree().process_frame
 	await _snap_output_to_a_whole_line()
 	await get_tree().process_frame
-	if _reply_raised:
+	if _reply_raised or _reply_held:
 		output_scroll.scroll_vertical = int(_reply_top_px())   # DDB-57: the reply's first line
 	elif at_end:
 		output_scroll.scroll_vertical = int(bar.max_value)
@@ -2488,7 +2638,11 @@ func _fit_map_controls() -> void:
 	elif restore_button != null and restore_button.visible:
 		x = maxf(x, restore_button.get_global_rect().end.x + Utils.HUD_MARGIN)
 	var hud := _war_hud_rect()
-	if hud.size.x > 0.0 and x + cs.x > hud.position.x - Utils.HUD_MARGIN:
+	# Session UI-6: only a war HUD that reaches the controls' row moves them —
+	# at 2.0 the war list is a chip at the top right, and the controls stay
+	# at the slim bar's right instead of climbing onto the northern labels (F03).
+	if hud.size.x > 0.0 and x + cs.x > hud.position.x - Utils.HUD_MARGIN \
+			and hud.end.y > y - Utils.HUD_MARGIN:
 		x = hud.end.x - cs.x
 		y = hud.position.y - Utils.HUD_MARGIN - cs.y
 	map_controls.position = Vector2(x, y)
@@ -2523,6 +2677,21 @@ func _push_map_label_avoid_rects() -> void:
 	# CC-3: and the selection's strip while it stands.
 	if _order_strip != null and is_instance_valid(_order_strip) and _order_strip.visible:
 		rects.append(_order_strip.get_global_rect())
+	# Session UI-6: the selection card in its place, and the 32:9 right wing.
+	if _selection_card != null and is_instance_valid(_selection_card) and _selection_card.visible:
+		rects.append(_selection_card.get_global_rect())
+	if _right_wing != null and is_instance_valid(_right_wing) and _right_wing.visible:
+		rects.append(_right_wing.get_global_rect())
+	# Session UI-6: the war list (its chip at 2.0) and the notice rail (its
+	# bell) — the compact view's top-right corner was where the names met
+	# them (F03: "the war chip and the map controls overlap the labels").
+	var war := _war_hud_rect()
+	if war.size.x > 0.0:
+		rects.append(war)
+	if notification_bar != null and notification_bar.has_method("rail_rect"):
+		var rail: Rect2 = notification_bar.rail_rect()
+		if rail.size.x > 0.0:
+			rects.append(rail)
 	map_area.set_ui_avoid_rects(rects)
 
 func _on_grip_gui_input(event: InputEvent) -> void:
@@ -2610,13 +2779,19 @@ func _on_root_resized() -> void:
 func _fit_map_inset() -> void:
 	"""UXR-D4 (Pre-Deploy S12b): the strip a pinned screen's dock covers on
 	the map's right — from the dock's left edge (where `Utils.hud_band` now
-	ends) to the window's — or 0 with nothing pinned."""
+	ends) to the window's — or 0 with nothing pinned.
+
+	Session UI-6 (November 13, 2026): and the HUD's two columns on a very wide
+	screen (`Utils.hud_columns`) — the map's room is the gap between them, so
+	the filled view covers the gap (the map's fill rule reads the left inset)."""
 	if map_area == null or not map_area.has_method("set_right_inset"):
 		return
 	var inset := 0.0
-	if Utils.dock_width() > 0.0:
+	if Utils.dock_width() > 0.0 or Utils.hud_columns(size).y > 0.0:
 		inset = maxf(size.x - Utils.hud_band(size).y, 0.0)
 	map_area.set_right_inset(inset)
+	if map_area.has_method("set_left_inset"):
+		map_area.set_left_inset(maxf(Utils.hud_band(size).x - Utils.hud_band_full(size).x, 0.0))
 
 func _apply_ui_scale(scale: float, persist: bool = true) -> void:
 	"""Global interface scale via content_scale_factor (UI-2 / DEF-13 fold).
@@ -2970,6 +3145,8 @@ func _execute_command():
 	# nothing on the line (nor an armed end turn) goes beneath it.
 	if _order_card_open():
 		return
+	_readback_cancel()     # Session UI-6: the line goes, and its reading with it
+	_card_sent_for = ""    # Session UI-6 (N4): a typed line never moves the selection on
 	var command = command_input.text.strip_edges()
 
 	if command.is_empty():
@@ -3006,6 +3183,7 @@ func _execute_command():
 	# dropped here: it is the player's own, and comes back at control return.
 	_offered_command = ""
 	_clear_order_selection()   # CC-3: and a selected corps — a send lets him go
+	_ui5_close_log()   # Session UI-6: a send folds the bar's log (a reply of more than a line reopens it)
 
 	# Add to history before clearing
 	_add_to_history(command)
@@ -4441,6 +4619,7 @@ func _fill_pending_remedy() -> void:
 	var cmd := pending_remedy_command
 	pending_remedy_command = ""
 	_offer_beside_line(cmd, false)
+	_readback_sync()   # Session UI-6: the seam the readback design names
 
 
 func _fill_pending_relay() -> void:
@@ -4465,6 +4644,7 @@ func _fill_pending_relay() -> void:
 	command_input.caret_column = cmd.length()
 	_last_relay_fill = cmd
 	_refresh_suggestions()
+	_readback_sync()   # Session UI-6: the relayed tail on the line is read
 
 
 func _stash_petition(response: Dictionary) -> void:
@@ -4701,6 +4881,7 @@ func _on_command_result(response):
 	# once this response is handled (deferred, so every route — early
 	# returns included — reaches it; coalesced with the end-turn tail's).
 	_queue_pinned_refresh()
+	_readback_forget()   # Session UI-6: every /command answer ages the readings held
 	if typeof(response) == TYPE_DICTIONARY:
 		_forget_unreadable_command(response)  # CX-7
 		# Session UI-5: the autosave at the turn's start is announced.
@@ -6309,7 +6490,12 @@ func _display_morning_dispatch(data: Dictionary):
 
 	# ═══ BERTHIER'S NOTE ═══
 	add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]")
-	add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	# Session UI-6 (November 13, 2026): folded, the dispatch's closing rule goes —
+	# the desk's short, bottom-aligned log showed it alone over the greeting (the
+	# blind readers' "stray rule", twice); the blank line still parts the
+	# dispatch from what follows. On the page the block closes on its rule.
+	if not Utils.explanations_folded():
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]")
 	add_output("")
 
 func _show_pending_dispatch():
@@ -6487,6 +6673,9 @@ func _update_status(action_summary: Dictionary):
 		top_bar.update_turn(current_turn, str(action_summary.get("calendar_label", "")))
 	AudioManager.set_calendar_label(str(action_summary.get("calendar_label", "")))   # Session UI-5: the season's ambience
 	_ui5_calendar_label = str(action_summary.get("calendar_label", ""))
+	# Session UI-6: the figures' hovers, and the slim bar's "T1 · 4/4 · 2/2".
+	_ui6_refresh_status_tips()
+	_ui6_refresh_bar()
 
 
 func _note_the_end_of_the_day() -> void:
@@ -6620,6 +6809,7 @@ func _set_cabinet_locked(locked: bool, until: int = 0) -> void:
 		diplomacy_button.text = _cabinet_face_default_text
 		diplomacy_button.add_theme_color_override("font_color", _cabinet_face_default_color)
 		diplomacy_button.tooltip_text = _cabinet_tooltip_default
+	_ui6_dress_cabinet()   # Session UI-6 (N7): folded, "⚖ Cabinet" (its shut face shortened too)
 
 
 func _set_pending_decisions(names) -> void:
@@ -6707,10 +6897,13 @@ func _apply_manpower(pools: Dictionary):
 	_update_manpower_display()
 
 func _update_manpower_display():
-	"""Update manpower pool display with formatting."""
-	inf_value.text = _format_number(infantry_pool)
-	cav_value.text = _format_number(cavalry_pool)
-	art_value.text = _format_number(artillery_pool)
+	"""Update manpower pool display with formatting. Session UI-6: folded,
+	each levy reads in thousands ("80k") beside its glyph — the whole figure
+	is the hover; On the page the whole number prints as authored."""
+	inf_value.text = _levy_text(infantry_pool)
+	cav_value.text = _levy_text(cavalry_pool)
+	art_value.text = _levy_text(artillery_pool)
+	_ui6_refresh_status_tips()
 	# Color shift when pools are low
 	if cavalry_pool < 5000:
 		cav_value.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
@@ -6754,14 +6947,19 @@ func add_output(text: String):
 	# here — the one place the terminal is written.
 	_output_messages.append(text)
 	output_display.append_text(text + "\n")
-	
+	_ui6_note_log_line(text)   # Session UI-6: the bar's reply line reads the newest
+
 	# Ensure scroll to bottom
 	await get_tree().process_frame
-	_snap_output_to_a_whole_line()
+	# UI6-X40: the whole-line pad's layout first — the snap waits a frame when the
+	# pad moves — THEN the end. Scrolled in the same frame, the end was the old
+	# one (the label grows by the pad only at the next layout) and the view's top
+	# line stood cut by the pad: 11.8 px on the 32:9 desk column's log.
+	await _snap_output_to_a_whole_line()
 	# DDB-57: a reply taller than the window stands on its first line.
 	if _hold_tall_reply():
 		await get_tree().process_frame
-		if _reply_raised:
+		if _reply_raised or _reply_held:
 			output_scroll.scroll_vertical = int(_reply_top_px())
 		return
 	output_scroll.scroll_vertical = output_scroll.get_v_scroll_bar().max_value
@@ -6777,6 +6975,15 @@ var _output_pad: StyleBoxEmpty = null
 
 func _snap_output_to_a_whole_line() -> void:
 	if output_display == null or output_scroll == null:
+		return
+	# UI6-X32 (Session UI-6): nothing to snap while the log is hidden — the
+	# bar's folded drawer, a minimised window. A hidden label keeps a 1-px
+	# width (every character its own line) and the walk below reads each
+	# line's offset from the top, so the snap went quadratic: GE-2's Verdict
+	# day at the compact view spent minutes in one frame. Opening the log
+	# re-snaps it (`_relayout_terminal` -> `_resnap_output`, and the
+	# `output_scroll.resized` hook).
+	if not output_scroll.is_visible_in_tree():
 		return
 	if _output_pad == null:
 		_output_pad = StyleBoxEmpty.new()
@@ -6794,6 +7001,17 @@ func _snap_output_to_a_whole_line() -> void:
 				break
 	if not is_equal_approx(_output_pad.content_margin_bottom, pad):
 		_output_pad.content_margin_bottom = pad
+		# UI6-X40: a stylebox margin grows the label but never tells its parent a
+		# new minimum, so the scroll kept its old max (1978 against the label's
+		# 1991 on the 32:9 log) and the end cut the top line by the pad. Under
+		# UI-5's AUTO scroll mode the bar's show / hide re-sorted the scroll by
+		# chance; UI6-X22's reserved gutter re-sorts on nothing — so say it, and
+		# have the scroll re-read its child (it caches the child's minimum only
+		# when its own is recomputed) and re-sort, so its max is the new height.
+		output_display.update_minimum_size()
+		output_scroll.update_minimum_size()
+		output_scroll.get_combined_minimum_size()
+		output_scroll.queue_sort()
 		await get_tree().process_frame
 
 func _display_feedback(feedback: Dictionary):
@@ -6855,8 +7073,15 @@ func _refresh_send_button() -> void:
 	if send_button == null or command_input == null:
 		return
 	var empty: bool = str(command_input.text).strip_edges() == ""
-	Utils.set_available(send_button, _input_open and not empty, "",
+	var folded := Utils.explanations_folded()
+	Utils.set_available(send_button, _input_open and not empty, SEND_GLYPH_TIP if folded else "",
 		EXECUTE_EMPTY_TIP if (_input_open and empty) else "")
+	# Session UI-6 (N7): folded, Execute is a send glyph that stands only while
+	# the line holds an order (Enter sends either way); On the page it is the
+	# authored button, always there. Deferred: this runs inside the line's draw.
+	var shown := (not empty) or not folded
+	if send_button.visible != shown:
+		send_button.set_deferred("visible", shown)
 	# CC-X12 (CC-3's sweep): a selected corps lives only beside an EMPTY line
 	# — a line filled by CODE (a suggestion taken, the history walked, a relay,
 	# a tutor's chip) lets him go as a typed draft does. This hook is the
@@ -6879,6 +7104,7 @@ func set_input_enabled(enabled: bool):
 		enabled = false
 	if not enabled:
 		_end_reply()   # DDB-57: a send closes the last reply, the window back
+		_readback_cancel()   # Session UI-6: a closed line has no reading
 	command_input.editable = enabled
 	if not enabled and _input_open:
 		_ui5_ap_mark = _ui5_ap_total()   # the day's orders as the send left them
@@ -6904,11 +7130,11 @@ func set_input_enabled(enabled: bool):
 		_fill_pending_remedy()
 		# CC-0: and a draft the player parked to send an offered order.
 		_restore_parked_draft()
+		_readback_sync()   # Session UI-6: whatever the line holds now is read once
 	# S14E-21: the placeholder reads the gate AND the focus — after the grab
 	# above (so an open, focused line says "Type command...") and on the
 	# closing arm (a line the gate shut cannot be clicked into).
 	_refresh_command_placeholder()
-	_ui5_refresh_compact()   # Session UI-5: the compact window follows the gate and the focus
 
 func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
@@ -7592,7 +7818,9 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	_pending_envoy_request_active = false
 	_awaiting_end_turn_confirmation = false
 	_idle_warned = false   # Session UI-5 review: the idle corps' latch, as the army's and the treasury's
-	_ui5_compact_engaged = false   # F03: a new world opens with the compact window folded
+	# Session UI-6: a new world opens with the slim bar's log folded, its reply line blank.
+	_ui5_close_log()
+	_bar_reply_text = ""
 	# IGR-F review [5]: the letter-book latches are per-turn, and a LOAD
 	# produces no `turn_end` event — so the `_display_turn_change` re-arm never
 	# runs. Loading a save whose turn matches one already raised this session
@@ -7607,6 +7835,12 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	_offered_command = ""
 	_parked_draft = ""
 	_clear_order_selection()   # CC-3: a load or a new campaign lets him go
+	# Session UI-6: no reading, no remembered answer and no board's words
+	# outlive the world they were read on; an order's re-select goes with it.
+	_card_sent_for = ""
+	_readback_cancel()
+	_readback_forget()
+	_history_known_built = false
 
 	if clear_output:
 		output_display.clear()
@@ -9015,6 +9249,8 @@ func _on_reward_command_result(response):
 		var generals_screen = top_bar.screens["generals"]
 		if generals_screen and generals_screen.has_method("refresh_if_open"):
 			generals_screen.refresh_if_open()
+	_ui6_toast_reply(response)      # Session UI-6 (decision 15): sent from behind a screen, it says so
+	_ui6_order_answered(response)   # Session UI-6 (N4): a card verb's answer re-selects
 
 
 # ═══════ UI-6: VASSAL CHIPS + DIPLOMATIC-LEDGER ACTIONS ═══════
@@ -9162,6 +9398,7 @@ func _on_map_region_clicked(region_name: String):
 		_group_click(region_name)
 		return
 	if _order_marshal != "":
+		# Session UI-6 (N3): the left path — another of ours is picked, not supported
 		_order_click(region_name, _last_click_target_key())
 		return
 	# CC-1: a click while the line waits for a name writes the name there
@@ -9231,6 +9468,10 @@ func _is_text_key(event: InputEventKey) -> bool:
 
 const COMMAND_PLACEHOLDER_FOCUSED := "Type command..."
 const COMMAND_PLACEHOLDER_RELEASED := "Esc: menu · click to type"
+# Session UI-6 (November 13, 2026): folded, the empty line shows an order to
+# copy — the example the boot help's second line used to print (On the page
+# the line reads COMMAND_PLACEHOLDER_FOCUSED, as authored).
+const COMMAND_PLACEHOLDER_EXAMPLE := "Ney, attack Mack…"
 
 
 func _refresh_command_placeholder() -> void:
@@ -9247,6 +9488,8 @@ func _refresh_command_placeholder() -> void:
 		return
 	if command_input.editable and not command_input.has_focus():
 		command_input.placeholder_text = COMMAND_PLACEHOLDER_RELEASED
+	elif Utils.explanations_folded():
+		command_input.placeholder_text = COMMAND_PLACEHOLDER_EXAMPLE   # Session UI-6
 	else:
 		command_input.placeholder_text = COMMAND_PLACEHOLDER_FOCUSED
 
@@ -9275,6 +9518,7 @@ func _retire_line_latches() -> void:
 	_last_relay_fill = ""
 	_offered_command = ""
 	_clear_order_selection()      # CC-3: a send lets a selected corps go
+	_ui5_close_log()              # Session UI-6: and folds the bar's open log
 
 
 func _offer_beside_line(cmd: String, announce: bool) -> void:
@@ -9305,6 +9549,7 @@ func _restore_parked_draft() -> void:
 		_refresh_draft_glow()
 	else:
 		_offer_beside_line(draft, false)
+	_readback_sync()   # Session UI-6: the draft back on the line is read
 
 
 func _type_through_ready() -> bool:
@@ -9331,6 +9576,7 @@ func _input(event: InputEvent) -> void:
 	L/T/G/D/R/N/Tab/M/+/- did their own things. With a draft on the line, a
 	printable key, Backspace, Delete or Enter goes to the draft instead. The
 	arrow keys still pan; an empty line keeps every hotkey."""
+	_ui6_press_outside_folds_the_log(event)   # Session UI-6: never consumes the press
 	if not (event is InputEventKey) or not event.pressed:
 		return
 	if event.ctrl_pressed or event.alt_pressed or event.meta_pressed:
@@ -9639,6 +9885,7 @@ func _select_marshal(key: String) -> void:
 	if map_area and map_area.has_method("set_order_selection"):
 		map_area.set_order_selection(key)
 	_render_order_strip()
+	_ui6_mark_selected()   # Session UI-6: his chip in the marshal row wears the bright rim
 	AudioManager.play("select")
 	_fetch_order_reach()
 
@@ -9715,6 +9962,7 @@ func _clear_order_selection() -> void:
 		order_card.close_card()
 		_update_war_panel_visibility()
 	_render_order_strip()
+	_ui6_mark_selected()   # Session UI-6: and the marshal row lets him go
 
 
 func _order_card_open() -> bool:
@@ -9733,18 +9981,23 @@ func _on_modal_shown(dialog_name: String) -> void:
 		_ui5_toggle_hud()
 
 
-func _order_target_key(region: String, marshal_key: String) -> String:
+func _order_target_key(region: String, marshal_key: String, via_right := true) -> String:
 	"""What a click or a drop on `marshal_key` (a piece, "" for none) or on
 	`region` orders the selected corps to do, as a quote key: "self" (his own
 	piece), "ally:<key>" (a corps of ours — support), "enemy:<key>" (a corps
 	we see and are at war with — attack), "dest:<province>" (march), or ""
 	(open water). A foreign corps we are not at war with is a march to his
-	province — the backend's `attack` is an order, never a declaration."""
+	province — the backend's `attack` is an order, never a declaration.
+
+	Session UI-6 (N3): `via_right` false is the LEFT click, on which another
+	of ours is "pick:<key>" — he becomes the selection (a misclick used to
+	open a SUPPORT card). Support is the right click's, and the drag's and
+	the hover's (their callers keep the default)."""
 	if marshal_key != "":
 		if marshal_key == _order_marshal:
 			return "self"
 		if _own_field_marshal(marshal_key):
-			return "ally:" + marshal_key
+			return ("ally:" if via_right else "pick:") + marshal_key
 		var enemies = _last_game_state.get("enemies", {})
 		var row = enemies.get(marshal_key, null) if enemies is Dictionary else null
 		if row is Dictionary:
@@ -9755,14 +10008,21 @@ func _order_target_key(region: String, marshal_key: String) -> String:
 	return ("dest:" + region) if region != "" else ""
 
 
-func _order_click(region: String, marshal_key: String) -> void:
+func _order_click(region: String, marshal_key: String, via_right := false) -> void:
 	"""A click on the map with a corps selected: the confirm card for what it
-	names — never the panel. His own piece again lets him go."""
+	names — never the panel. His own piece again lets him go.
+
+	Session UI-6 (N3): the left click on another of ours selects HIM; the
+	right click (`via_right`, `_on_order_context_requested`) opens his
+	support card, as a drop on him does."""
 	if not _order_input_ready():
 		return   # nothing acts while a command is on the wire
-	var key := _order_target_key(region, marshal_key)
+	var key := _order_target_key(region, marshal_key, via_right)
 	if key == "self" or key == "":
 		_clear_order_selection()
+		return
+	if key.begins_with("pick:"):
+		_select_marshal(key.substr(5))
 		return
 	_open_order_card(key)
 
@@ -9799,6 +10059,9 @@ func _order_card_avoid() -> Array:
 		out.append(map_area.order_screen_rect())
 	if _order_strip != null and _order_strip.visible:
 		out.append(_order_strip.get_global_rect())
+	# Session UI-6: the selection card in the strip's place.
+	if _selection_card != null and is_instance_valid(_selection_card) and _selection_card.visible:
+		out.append(_selection_card.get_global_rect())
 	return out
 
 
@@ -9876,6 +10139,10 @@ func _send_map_order(command: String) -> void:
 		add_output("[color=#" + Utils.COLOR_ERROR
 			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
 		return
+	# Session UI-6 (N4): the order began from his selection — its answer
+	# selects the next idle marshal (or him again); the send lets him go first.
+	_card_sent_for = _order_marshal
+	_card_sent_stays = false
 	_clear_order_selection()
 	_update_war_panel_visibility()
 	_chip_command_in_flight = true
@@ -9894,6 +10161,7 @@ func _send_map_order(command: String) -> void:
 func _on_map_order_result(response):
 	_chip_command_in_flight = false
 	_on_command_result(response)
+	_ui6_order_answered(response)   # Session UI-6 (N4): the gesture's answer re-selects
 
 
 func _on_map_order_hover(region: String, marshal_key: String) -> void:
@@ -10092,6 +10360,7 @@ func _on_cancel_order_result(response) -> void:
 		var ledger_screen = top_bar.screens["ledger"]
 		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
 			ledger_screen.refresh_if_open()
+	_ui6_order_answered(response)   # Session UI-6: the card's Cancel selects him again
 
 
 # ── the next idle marshal ──────────────────────────────────────────────────
@@ -10190,6 +10459,7 @@ func _set_order_group(members: Array) -> void:
 	if map_area and map_area.has_method("set_order_group"):
 		map_area.set_order_group(_order_group)
 	_render_order_strip()
+	_ui6_mark_selected()   # Session UI-6: a group is no one chip's
 	AudioManager.play("select")
 
 
@@ -10370,10 +10640,20 @@ func _build_order_strip() -> void:
 
 
 func order_strip_text() -> String:
-	"""The strip's words, plain — read by the CC harness."""
-	if _order_strip == null or not _order_strip.visible:
+	"""The strip's words, plain — read by the CC harness.
+
+	Session UI-6: the selection card stands in the strip's place and shows
+	these words as its hint; the strip's label still carries them (the strip
+	itself stays hidden while the card stands)."""
+	if _order_strip_label == null or _ui6_selection_surface() == null:
 		return ""
 	return _order_strip_label.get_parsed_text()
+
+
+# Session UI-6 (N3): the card's hint. The card's title names him, its slots
+# his own orders; the hint is what a click on the map does (a left click on
+# another of ours picks him — the hint keeps to the orders).
+const ORDER_STRIP_HINT := "Right-click a province: march · an enemy: attack · a marshal: support · Esc cancels"
 
 
 func _render_order_strip() -> void:
@@ -10381,13 +10661,13 @@ func _render_order_strip() -> void:
 		return
 	if _order_marshal == "" and _order_group.size() < 2:
 		_order_strip.visible = false
+		_ui6_hide_selection_card()   # Session UI-6: the card goes with the selection
 		_queue_fit_map_controls()
 		return
 	if _order_group.size() >= 2:
 		_show_order_strip(_group_strip_text())
 		return
-	var text := ("[b]" + Utils.humanize_entity_name(_order_marshal) + "[/b] selected — click a "
-		+ "province: march · an enemy: attack · a marshal: support · Esc cancels")
+	var text := ORDER_STRIP_HINT
 	if _order_reach.is_empty():
 		text += "\n[color=#" + Utils.COLOR_INFO + "]Reading his roads…[/color]"
 	elif not bool(_order_reach.get("ok", false)):
@@ -10426,6 +10706,14 @@ func _group_strip_text() -> String:
 
 func _show_order_strip(text: String) -> void:
 	_order_strip_label.text = text
+	# Session UI-6: the selection card carries the words in the strip's place
+	# (a hidden HUD hides it with the rest — H).
+	if _hud_hidden or _ui6_show_selection_card(text):
+		_order_strip.visible = false
+		if _hud_hidden:
+			_ui6_hide_selection_card()
+		_queue_fit_map_controls()
+		return
 	# The strip's two lines, measured (no `fit_content`: UXR-2's scroll rule
 	# keeps unbounded text out of a panel's minimum) — unwrapped, so their
 	# own widths, laid out on a wide line first.
@@ -10438,27 +10726,42 @@ func _show_order_strip(text: String) -> void:
 
 func _fit_order_strip() -> void:
 	"""The strip's place: centred over the map's controls, clear of the
-	command window, clamped inside the HUD band."""
-	if _order_strip == null or not _order_strip.visible:
+	command window, clamped inside the HUD band.
+
+	Session UI-6: on the compact view, over the slim bar (and its open log) —
+	the room right of the bar is the map controls' (`_hud_desk_rect`). The
+	selection card stands in the strip's slot (`_ui6_selection_surface`); in
+	the columns' layout it docks at the foot of the right wing instead."""
+	var surface: Control = _ui6_selection_surface()
+	if surface == null:
+		return
+	if _ui6_dock_card_in_wing(surface):
 		return
 	var band := Utils.hud_band(size)
-	var cs := _order_strip.get_combined_minimum_size()
+	var cs := surface.get_combined_minimum_size()
 	var anchor_x := (band.x + band.y) / 2.0
 	var bottom := size.y - Utils.HUD_MARGIN
 	if map_controls != null and is_instance_valid(map_controls) and map_controls.visible:
 		anchor_x = map_controls.position.x + map_controls.size.x / 2.0
 		bottom = map_controls.position.y - Utils.HUD_MARGIN
 	var x := floorf(anchor_x - cs.x / 2.0)
-	if bottom_left_ui != null and bottom_left_ui.visible:
+	var desk := _hud_desk_rect()
+	if _ui5_bar_mode() and desk.size.x > 0.0:
+		x = floorf(desk.position.x + (desk.size.x - cs.x) / 2.0)
+		bottom = desk.position.y - Utils.HUD_MARGIN
+	elif bottom_left_ui != null and bottom_left_ui.visible:
 		x = maxf(x, bottom_left_ui.get_global_rect().end.x + Utils.HUD_MARGIN)
 	x = clampf(x, band.x + Utils.HUD_MARGIN, maxf(band.x + Utils.HUD_MARGIN, band.y - Utils.HUD_MARGIN - cs.x))
-	_order_strip.position = Vector2(x, bottom - cs.y)
-	_order_strip.size = cs
+	# Session UI-6: never under the top bar (the bar's open log can stand tall).
+	var top_floor := TOP_BAR_RESERVED_PX + Utils.top_bar_growth() + Utils.HUD_MARGIN
+	surface.position = Vector2(x, maxf(top_floor, bottom - cs.y))
+	surface.size = cs
 
 
 func _on_map_dismiss_requested():
 	"""Right-click or open-water click on the map — put the panel away (and,
-	CC-3, let a selected corps go)."""
+	CC-3, let a selected corps go). Session UI-6: the right-click on nothing
+	(no province, no piece — `_on_order_context_requested` takes the rest)."""
 	_clear_order_selection()
 	if region_panel and region_panel.visible:
 		region_panel.close_panel()
@@ -10958,6 +11261,7 @@ func _on_tutorial_suggest_command(cmd: String) -> void:
 	command_input.text = cmd
 	command_input.caret_column = cmd.length()
 	command_input.grab_focus()
+	_readback_sync()   # Session UI-6: the filled line is read (a code write emits no text_changed)
 
 func _on_tutorial_open_cabinet(nation: String) -> void:
 	"""POSITION 7 (Sept 23, 2026): the tutor card's Cabinet chip opens the
@@ -11047,14 +11351,22 @@ func _on_new_game_result(response):
 #     filtering worth more than three points. The two findings are only
 #     inconsistent if you change one at a time, so this changes both.
 #
-# HISTORY IS SESSION-ONLY, AND DELIBERATELY NOT PERSISTED. 4.7% of the
-# archived commands name a marshal who is FOGGED on the 1805 boot board
-# (`ArchdukeCharles` 37 times, `Kutuzov` 28), and `Ney, attack Archduke
-# Charles` parses at 0.95 and executes. A history written to `user://` would
-# carry those names into a campaign that never saw them — a fog leak on a
-# surface with no filter. The completer's OTHER source is `game_state`, whose
-# `enemies` dict the backend has already fog-filtered, so nothing generated
-# here can name a hidden corps.
+# HISTORY IS PERSISTED — AND ITS OFFERS ARE FILTERED (UI6-X1; the walk is not).
+# 4.7% of the archived commands name a marshal who is FOGGED on the 1805 boot
+# board (`ArchdukeCharles` 37 times, `Kutuzov` 28), and `Ney, attack Archduke
+# Charles` parses at 0.95 and executes. Session UI-5 writes the history to the
+# player's settings (it outlives a restart), so it can carry those names into
+# a campaign that never saw them. Session UI-6: a remembered line is OFFERED
+# here only when EVERY word in it stands on today's board — our marshals, the
+# corps in sight, the provinces, this table's verbs and a few joining words
+# (`_history_line_is_safe`); the client keeps no roster of who is hidden, so
+# the test is a whitelist and a hidden or invented name simply fails it (an
+# offer is the table's suggestion). The Up/Down walk is the player's own
+# recall and writes every line back as typed: a name is public under the fog
+# doctrine (only a commander's place is secret), so it discloses nothing.
+# The completer's OTHER source is `game_state`, whose `enemies` dict the
+# backend has already fog-filtered, so nothing generated here can name a
+# hidden corps.
 #
 # IT COMPLETES THE SLOT THE PLAYER IS IN, not the whole line. The grammar is
 # `<Marshal>, <verb> <target>`, so there are only three slots and the prefix
@@ -11196,6 +11508,8 @@ func _install_suggestion_row() -> void:
 	_suggestion_row.visible = false
 	layout.add_child(_suggestion_row)
 	layout.move_child(_suggestion_row, input_row.get_index())
+	# Session UI-6 (N6): the readback row, right after it — next to the line.
+	_ui6_install_readback_row(layout, input_row)
 
 
 func _own_marshal_names() -> Array:
@@ -11527,9 +11841,11 @@ func _build_completions(typed: String) -> Array:
 
 	# 1. What this player has already sent — 86% of the archive is exact
 	#    repeats, so a past command is the likeliest next one, and it costs
-	#    nothing to keep.
-	for i in range(command_history.size() - 1, -1, -1):
-		var past := str(command_history[i])
+	#    nothing to keep. UI6-X1: only the lines today's board can stand
+	#    behind (a fogged name withholds its line).
+	var remembered := _history_safe_lines()
+	for i in range(remembered.size() - 1, -1, -1):
+		var past := str(remembered[i])
 		if _starts_with_ci(past, prefix) and not seen.has(past.to_lower()):
 			seen[past.to_lower()] = true
 			out.append(past)
@@ -11744,21 +12060,35 @@ func _render_suggestions() -> void:
 		_suggestion_row.visible = false
 		_suggestion_row.text = ""
 		return
+	# Session UI-6 (the readers: "a dense line of five whole sentences"): the
+	# words every offer shares print dim and each offer's own tail in gold, so
+	# the eye lands on what differs; the highlighted offer stands in brackets,
+	# its tail the brightest. The offered lines, their marks and their links
+	# are unchanged (the row's theme font is the line's, CX3-R8).
+	var shared := _ui6_shared_offer_head()
+	var lit_hex: String = Utils.UI_GOLD_BRIGHT.to_html(false)
 	var parts := []
 	for i in range(_suggestions.size()):
 		var line := str(_suggestions[i]).strip_edges()
 		# CC-0: mark what is held beside the line — the offer (↳) and the
 		# player's own parked draft (↩) — so neither reads as a guess.
 		var raw := str(_suggestions[i])
+		var mark := ""
 		if raw == _offered_command:
-			line = "↳ " + line
+			mark = "↳ "
 		elif raw == _parked_draft:
-			line = "↩ " + line
+			mark = "↩ "
+		var head := ""
+		var tail := line
+		if shared != "" and line.length() > shared.length() and line.begins_with(shared):
+			head = line.substr(0, shared.length())
+			tail = line.substr(shared.length())
 		var shown: String
 		if i == _suggestion_index:
-			shown = Utils.bbcode_color("[" + line + "]", Utils.COLOR_GOLD)
+			shown = (Utils.bbcode_color("[" + mark, Utils.COLOR_GOLD) + _ui6_dim(head)
+				+ Utils.bbcode_color(tail, lit_hex) + Utils.bbcode_color("]", Utils.COLOR_GOLD))
 		else:
-			shown = Utils.bbcode_color(line, Utils.COLOR_INFO)
+			shown = _ui6_dim(mark + head) + Utils.bbcode_color(tail, Utils.COLOR_GOLD)
 		parts.append("[url=sugg:%d]%s[/url]" % [i, shown])   # CC-1: clickable
 	var hint := "(Tab)" if _suggestions.size() < 2 else "(Tab · ↓)"
 	_suggestion_row.text = ("  " + "   ".join(parts) + "  "
@@ -11820,6 +12150,7 @@ func _take_suggestion(i: int) -> void:
 	command_input.caret_column = command_input.text.length()
 	_refresh_after_accept()
 	_refresh_draft_glow()
+	_readback_sync()   # Session UI-6: the taken offer is read
 
 
 func _refresh_after_accept() -> void:
@@ -11833,6 +12164,7 @@ func _refresh_after_accept() -> void:
 			_suggestion_index = i
 			break
 	_render_suggestions()
+	_readback_sync()   # Session UI-6: the filled line is read
 
 
 func _clear_suggestions() -> void:
@@ -11865,8 +12197,6 @@ var _war_last_scores: Dictionary = {}  # war id -> its last war_score (the Te De
 var _ui5_ap_mark := -1                # the day's AP as the send left it (an order that spent some succeeded)
 var _ui5_order_text := ""             # the typed order the success cue is chosen from
 var _ui5_calendar_label := ""
-var _ui5_compact_was := false
-var _ui5_compact_engaged := false      # F03: the player clicked or typed in the line (not the boot's grab)
 var _map_mode_chip: Button = null
 var _ui5_quickload_pending := false
 
@@ -11895,16 +12225,10 @@ func _ui5_build_overlays() -> void:
 	add_child(save_dialog)
 	save_dialog.saved.connect(_on_save_dialog_saved)
 	save_dialog.closed.connect(_on_save_dialog_closed)
-	# F03: the compact window follows the player at the line (a click or a key
-	# in it, words in it) — never the boot's own grab of its focus.
-	if not command_input.focus_entered.is_connected(_ui5_refresh_compact):
-		command_input.focus_entered.connect(_ui5_refresh_compact)
-	if not command_input.focus_exited.is_connected(_ui5_line_focus_exited):
-		command_input.focus_exited.connect(_ui5_line_focus_exited)
-	if not command_input.gui_input.is_connected(_ui5_line_gui_input):
-		command_input.gui_input.connect(_ui5_line_gui_input)
-	if not command_input.text_changed.is_connected(_ui5_line_text_changed):
-		command_input.text_changed.connect(_ui5_line_text_changed)
+	# Session UI-6: UI-5's focus-driven compact fold (the line's focus and keys
+	# folded and unfolded the window under the player's hand) is retired — the
+	# compact view's slim bar keeps one form, its log an explicit drawer
+	# (`_ui5_log_open`, the SESSION UI-6 block at the file's end).
 
 
 func _ui5_overlay_open() -> bool:
@@ -12025,6 +12349,9 @@ func _ui5_toggle_hud() -> void:
 		_reposition_after_layout()
 		_ui5_busy_sync(_input_open)
 	_update_war_panel_visibility()
+	# Session UI-6: the 32:9 wing and the selection card stand aside with the HUD.
+	_ui6_fit_right_wing()
+	_render_order_strip()
 	_push_map_label_avoid_rects()
 	_queue_fit_map_controls()
 
@@ -12044,6 +12371,12 @@ func _ui5_place_busy_chip() -> void:
 	var rect: Rect2 = bottom_left_ui.get_global_rect()
 	var chip_size: Vector2 = _busy_chip.get_combined_minimum_size()
 	_busy_chip.size = chip_size
+	# Session UI-6: in the column the window is the whole left column — the
+	# chip stands at the bottom-left corner of the map's gap instead.
+	if _desk_mode_now == "column":
+		_busy_chip.global_position = Vector2(Utils.hud_band(size).x + Utils.HUD_MARGIN,
+				size.y - Utils.HUD_MARGIN - chip_size.y)
+		return
 	_busy_chip.global_position = Vector2(rect.position.x + 8.0, maxf(TOP_BAR_RESERVED_PX, rect.position.y - chip_size.y - 4.0))
 
 
@@ -12069,46 +12402,15 @@ func _ui5_busy_sync(enabled: bool) -> void:
 
 # ── the compact command window (F03) ────────────────────────────────────────
 
-func _ui5_compact_collapsed() -> bool:
-	"""True on the compact view while the player is NOT at the line and no
-	command is out: the window stands as its input line plus about two lines of
-	the log. The interim shoot (November 13) caught the fold never standing: the
-	boot hands the line its focus, so "not focused" was never true on the first
-	view. The fold now opens on the PLAYER's engagement — a click or a key in
-	the line (`_ui5_line_gui_input`), or words standing in it — and closes when
-	the line loses its focus (a click on the map)."""
-	if command_input == null or not Utils.compact_view() or _hud_hidden:
-		return false
-	if not _input_open:
-		return false
-	if not command_input.text.strip_edges().is_empty():
-		return false
-	return not (_ui5_compact_engaged and command_input.has_focus())
-
-
-func _ui5_refresh_compact() -> void:
-	if command_input == null or bottom_left_ui == null:
-		return
-	if _ui5_compact_collapsed() != _ui5_compact_was:
-		_relayout_terminal()
-
-
-func _ui5_line_gui_input(event: InputEvent) -> void:
-	"""F03: a click or a key in the command line is the player at the line."""
-	var engaged := (event is InputEventMouseButton and (event as InputEventMouseButton).pressed) \
-			or (event is InputEventKey and (event as InputEventKey).pressed)
-	if engaged and not _ui5_compact_engaged:
-		_ui5_compact_engaged = true
-		_ui5_refresh_compact()
-
-
-func _ui5_line_focus_exited() -> void:
-	_ui5_compact_engaged = false
-	_ui5_refresh_compact()
-
-
-func _ui5_line_text_changed(_text: String) -> void:
-	_ui5_refresh_compact()
+func _ui5_bar_mode() -> bool:
+	"""Session UI-6 (November 13, 2026): the compact view's slim command bar
+	stands (the desk in its "bar" form, the HUD shown). One explicit state —
+	the bar and its log drawer, `_ui5_log_open` — replaced UI-5's fold, which
+	followed the line's focus: a click on the map folded the window under the
+	player's hand and a key in the line threw it open again (the F03 readers'
+	"the command card covers a third of the map" stood whenever he typed)."""
+	return _desk_mode_now == "bar" and Utils.compact_view() and not _hud_hidden \
+			and bottom_left_ui != null and bottom_left_ui.visible
 
 
 # ── the idle corps in the End Turn gate ─────────────────────────────────────
@@ -12363,3 +12665,1443 @@ func _on_focus_region_requested(region: String) -> void:
 	"""The enemy-phase line's pin: the dialog has dismissed; the pan follows (an
 	unknown place, a conquest's "territory", is ignored by the map)."""
 	_on_show_on_map_requested.call_deferred(region)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SESSION UI-6 (November 13, 2026) — THE COMMAND DESK: one window, three forms.
+# The blind readers' F01–F03: a cramped desk with a stray rule and an empty
+# band above the prompt; at Interface Scale 2.0 the command card over a third
+# of the map; on 32:9 "the tiny HUD stranded in the corners". The window keeps
+# every node path and takes the form its view asks for (`_desk_mode`):
+#   desk    as authored — folded, its header one line of figures (the turn and
+#           the chest are the top bar's), the marshal row above the log, the
+#           log on the line, the send glyph and "⚖ Cabinet";
+#   bar     the compact view: [line | send | End Turn (E) | ⋯] over the last
+#           reply's line ("● N idle" · the reply · "T1 · 4/4 · 2/2"); the log a
+#           drawer that opens upward (`_ui5_log_open`);
+#   column  a very wide view (Utils.hud_columns): the whole left column — the
+#           marshals a portrait grid, a long log; the map in the gap.
+# Layout only: every order still travels the /command road as typed text.
+# ════════════════════════════════════════════════════════════════════════════
+
+const MarshalChipRowScript := preload("res://scripts/marshal_chip_row.gd")
+const MarshalStateKit := preload("res://scripts/marshal_state.gd")
+const DESK_PATH := "BottomLeftUI/MainMargin/MainLayout"
+const STATUS_PATH := "BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"
+const BAR_MAX_WIDTH := 560.0
+const BAR_WIDTH_SHARE := 0.70
+const BAR_LOG_SHARE := 0.40
+const BAR_REPLY_LINES := 2           # a typed order's reply this many lines long opens the bar's log
+const DESK_MARGIN := 6               # the desk's inner margin inside the gilt frame (authored 12)
+const BAR_MARGIN := 0                # the bar's: the frame's own 12 is its margin
+const DESK_SEPARATION := 8
+const BAR_SEPARATION := 4
+const CABINET_FACE_SHORT := "⚖ Cabinet"
+const CABINET_SHUT_FACE_SHORT := "⚖ Cabinet — shut"
+const SEND_GLYPH := "letter"
+const SEND_GLYPH_TIP := "Send the order (Enter)"
+const SEND_GLYPH_PX := 32.0
+const MORE_CABINET := 1
+const MORE_SCALE_UP := 2
+const MORE_SCALE_DOWN := 3
+const MORE_MAP_MODE := 4
+const MORE_HELP := 5
+const MORE_LOG := 6
+const MORE_MINIMISE := 7
+
+var _desk_mode_now := ""
+var _ui5_log_open := false           # bar: the log drawer stands open above the line
+var _reply_held := false             # bar / column: the view holds the open reply's first line
+var _reply_line_count := 0           # the open reply's lines (the bar opens its log at BAR_REPLY_LINES)
+var _marshal_row = null              # the MarshalChipRow (scripts/marshal_chip_row.gd, loaded by path)
+var _bar_row: HBoxContainer = null
+var _bar_reply: Button = null
+var _bar_figures: RichTextLabel = null
+var _more_button: MenuButton = null
+var _bar_reply_text := ""
+var _send_words := ""                # the send button's authored words
+
+
+func _desk_mode() -> String:
+	"""The command window's form for this view: "bar" on the compact view
+	(under Utils.COMPACT_BELOW logical px tall — Interface Scale 2.0 on a
+	900-px screen), "column" where the HUD stands in two full-height columns
+	(Utils.hud_columns: a very wide view, HUD width Auto, the map filling the
+	width), else "desk"."""
+	if Utils.compact_view():
+		return "bar"
+	if Utils.hud_columns(size).x > 0.0:
+		return "column"
+	return "desk"
+
+
+func _ui6_build_desk() -> void:
+	"""The new parts, built in code (no scene node renamed): the marshal row,
+	the bar's second row (the idle chip, the reply line, the day's figures),
+	the ⋯ menu in the input row, the send glyph and the log on the line."""
+	var layout := get_node_or_null(DESK_PATH) as VBoxContainer
+	if layout == null or command_input == null:
+		return
+	# the Cabinet's and the send button's authored faces, kept to put back
+	if diplomacy_button != null and _cabinet_face_default_text == "":
+		_cabinet_face_default_text = diplomacy_button.text
+		_cabinet_face_default_color = diplomacy_button.get_theme_color("font_color")
+		_cabinet_tooltip_default = diplomacy_button.tooltip_text
+	if send_button != null:
+		_send_words = str(send_button.text)
+	# the marshal row, under the header
+	_marshal_row = MarshalChipRowScript.new()
+	layout.add_child(_marshal_row)
+	var header := layout.get_node_or_null("Header")
+	layout.move_child(_marshal_row, (header.get_index() + 1) if header != null else 0)
+	_marshal_row.marshal_pressed.connect(_on_marshal_chip_pressed)
+	_marshal_row.marshal_double_pressed.connect(_on_marshal_chip_opened)
+	_marshal_row.more_pressed.connect(_on_marshal_row_more)
+	_marshal_row.idle_pressed.connect(_on_marshal_row_idle)
+	# the bar's second row, under the line
+	_bar_row = HBoxContainer.new()
+	_bar_row.name = "BarStatusRow"
+	_bar_row.add_theme_constant_override("separation", 8)
+	_bar_row.visible = false
+	layout.add_child(_bar_row)
+	_bar_reply = Button.new()
+	_bar_reply.name = "ReplyLine"
+	_bar_reply.flat = true
+	_bar_reply.focus_mode = Control.FOCUS_NONE
+	_bar_reply.theme_type_variation = &"CaptionButton"
+	_bar_reply.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_bar_reply.clip_text = true
+	_bar_reply.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_bar_reply.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_bar_reply.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_bar_reply.add_theme_color_override("font_color", Color.html("#" + Utils.LOG_REPORT))
+	_bar_reply.pressed.connect(_ui6_toggle_log)
+	_bar_row.add_child(_bar_reply)
+	_bar_figures = RichTextLabel.new()
+	_bar_figures.name = "BarFigures"
+	_bar_figures.bbcode_enabled = true
+	_bar_figures.scroll_active = false   # measured, never fit_content (UXR-2's scroll rule)
+	_bar_figures.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_bar_figures.theme_type_variation = &"CaptionRich"
+	_bar_figures.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_bar_figures.mouse_filter = Control.MOUSE_FILTER_PASS
+	_bar_row.add_child(_bar_figures)
+	# ⋯ — the bar's menu: the Cabinet, the scale, the map's view, every
+	# command, the log, minimise (each the handler its own control calls)
+	var input_row: Node = command_input.get_parent()
+	if input_row != null:
+		_more_button = MenuButton.new()
+		_more_button.name = "MoreButton"
+		_more_button.focus_mode = Control.FOCUS_NONE
+		_more_button.flat = false
+		_more_button.theme_type_variation = &"CaptionButton"
+		_more_button.tooltip_text = "More — the Cabinet, the interface scale, the map's view, every command, the log"
+		Utils.apply_button_icon(_more_button, Utils.ICON_PHOSPHOR + "list.svg")
+		_more_button.visible = false
+		input_row.add_child(_more_button)
+		_more_button.about_to_popup.connect(_ui6_fill_more_menu)
+		var menu := _more_button.get_popup()
+		menu.id_pressed.connect(_ui6_on_more_menu)
+		menu.popup_hide.connect(_ui6_on_more_menu_hidden)
+	# the log stands on the line: two boot lines sat at the top of a 140-px
+	# floor (the readers' "empty band above the prompt")
+	if output_display != null and "vertical_alignment" in output_display:
+		output_display.set("vertical_alignment", VERTICAL_ALIGNMENT_BOTTOM)
+	_ui6_dress_send_button()
+	_ui6_dress_cabinet()
+	Utils.on_explanations_changed(_ui6_on_explanations_changed)
+
+
+func _ui6_apply_desk_mode(mode: String) -> void:
+	"""The window's parts for its form — every relayout runs it (each write
+	lands only on a change); the marshal row moves only when the form does."""
+	var changed := mode != _desk_mode_now
+	_desk_mode_now = mode
+	var bar := mode == "bar"
+	if not bar:
+		_ui5_log_open = false
+	var header := get_node_or_null(DESK_PATH + "/Header") as Control
+	if header != null:
+		header.visible = not bar
+	var margin := get_node_or_null("BottomLeftUI/MainMargin") as Control
+	if margin != null:
+		for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+			_ui6_set_constant(margin, side, BAR_MARGIN if bar else DESK_MARGIN)
+	var layout := get_node_or_null(DESK_PATH) as Control
+	if layout != null:
+		_ui6_set_constant(layout, "separation", BAR_SEPARATION if bar else DESK_SEPARATION)
+	if output_scroll != null:
+		output_scroll.visible = (not bar) or _ui5_log_open
+	if diplomacy_button != null:
+		diplomacy_button.visible = not bar   # the bar's ⋯ carries the Cabinet
+	if _more_button != null:
+		_more_button.visible = bar
+	if _bar_row != null:
+		_bar_row.visible = bar
+	if _map_mode_chip != null and is_instance_valid(_map_mode_chip):
+		_map_mode_chip.visible = not bar     # M still cycles; the bar's ⋯ names the view
+	if changed:
+		_ui6_seat_marshal_row(mode)
+	_ui6_dress_status_row()
+	_ui6_refresh_bar()
+
+
+func _ui6_set_constant(node: Control, constant: String, value: int) -> void:
+	if node.has_theme_constant_override(constant) and node.get_theme_constant(constant) == value:
+		return
+	node.add_theme_constant_override(constant, value)
+
+
+func _ui6_seat_marshal_row(mode: String) -> void:
+	"""The marshal row's seat and form: under the header on the desk ("row")
+	and in the column ("grid"); at the head of the bar's second row on the
+	compact view ("idle" — one "● N idle" chip)."""
+	if _marshal_row == null or not is_instance_valid(_marshal_row):
+		return
+	var layout := get_node_or_null(DESK_PATH)
+	if layout == null:
+		return
+	if mode == "bar" and _bar_row != null:
+		if _marshal_row.get_parent() != _bar_row:
+			_marshal_row.reparent(_bar_row, false)
+		_bar_row.move_child(_marshal_row, 0)
+		_marshal_row.set_mode("idle")
+		return
+	if _marshal_row.get_parent() != layout:
+		_marshal_row.reparent(layout, false)
+	var header := layout.get_node_or_null("Header")
+	layout.move_child(_marshal_row, (header.get_index() + 1) if header != null else 0)
+	_marshal_row.set_mode("grid" if mode == "column" else "row")
+
+
+func _ui6_column_top() -> float:
+	"""The column's top edge: under the top bar's drawn strip."""
+	return TOP_BAR_RESERVED_PX + Utils.top_bar_growth() + Utils.HUD_MARGIN
+
+
+func _ui6_bar_log_height() -> float:
+	"""The bar's log drawer, open: BAR_LOG_SHARE of the view's height."""
+	return floorf(size.y * BAR_LOG_SHARE)
+
+
+func _hud_desk_rect() -> Rect2:
+	"""The command window's drawn rect (the bar with its open log), or an
+	empty rect while it is hidden or minimised — read by the surfaces placed
+	against the bar (the selection's strip)."""
+	if bottom_left_ui == null or not bottom_left_ui.visible:
+		return Rect2()
+	return bottom_left_ui.get_global_rect()
+
+
+# ── the desk's words: the figures, the levies, the Cabinet, the send glyph ──
+
+func _ui6_dress_status_row() -> void:
+	"""Folded, the desk's status line is figures — the day's two pools and
+	the three levies, each led by its glyph, its words the hover (the turn
+	and the chest are the top bar's); On the page the keys print as authored
+	("Actions:", "Inf:" …)."""
+	var status := get_node_or_null(STATUS_PATH)
+	if status == null:
+		return
+	var keys_shown := not Utils.explanations_folded()
+	for path in ["ActionsDisplay/ActionsLabel", "AdminDisplay/AdminLabel",
+			"ManpowerDisplay/InfLabel", "ManpowerDisplay/CavLabel", "ManpowerDisplay/ArtLabel"]:
+		var key_label := status.get_node_or_null(path) as Control
+		if key_label != null:
+			key_label.visible = keys_shown
+
+
+func _ui6_refresh_status_tips() -> void:
+	"""The figures' hovers: the words a folded key gave up."""
+	if actions_value != null and actions_value.get_parent() is Control:
+		(actions_value.get_parent() as Control).tooltip_text = "Military actions left today: %d of %d" % [
+			int(actions_remaining), int(max_actions)]
+	if admin_value != null and admin_value.get_parent() is Control:
+		(admin_value.get_parent() as Control).tooltip_text = "Administrative actions left today: %d of %d" % [
+			int(admin_actions_remaining), int(max_admin_actions)]
+	if inf_value != null and inf_value.get_parent() is Control:
+		(inf_value.get_parent() as Control).tooltip_text = (
+			"Levies in the depots — infantry %s · cavalry %s · artillery %s (the Ledger's Manpower book)"
+			% [_format_number(infantry_pool), _format_number(cavalry_pool), _format_number(artillery_pool)])
+
+
+func _levy_text(n) -> String:
+	"""A levy's figure: folded, in thousands ("80k"); On the page the whole
+	number as authored ("80,000")."""
+	if not Utils.explanations_folded():
+		return _format_number(n)
+	return _ui6_thousands(int(n))
+
+
+static func _ui6_thousands(n: int) -> String:
+	"""A levy in thousands: 80,000 → "80k", 7,500 → "7.5k", 900 → "900"."""
+	var a := absi(n)
+	var minus := "−" if n < 0 else ""
+	if a >= 10000:
+		return minus + str(roundi(float(a) / 1000.0)) + "k"
+	if a >= 1000:
+		var k := snappedf(float(a) / 1000.0, 0.1)
+		var shown: String = str(int(k)) if is_equal_approx(k, floorf(k)) else String.num(k, 1)
+		return minus + shown + "k"
+	return minus + str(a)
+
+
+func _ui6_dress_send_button() -> void:
+	"""N7: folded, Execute is a send glyph (a sealed letter — the order goes
+	out) that stands only while the line holds an order (`_refresh_send_button`;
+	Enter sends either way); On the page, the authored words."""
+	if send_button == null:
+		return
+	if Utils.explanations_folded():
+		Utils.apply_icon_only_button(send_button, Utils.glyph(SEND_GLYPH))
+		send_button.custom_minimum_size = Vector2(SEND_GLYPH_PX, SEND_GLYPH_PX)
+	else:
+		send_button.icon = null
+		send_button.expand_icon = false
+		send_button.text = _send_words
+		send_button.custom_minimum_size = Vector2.ZERO
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			send_button.remove_theme_stylebox_override(state)
+		for tone in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
+			send_button.remove_theme_color_override(tone)
+	_refresh_send_button()
+
+
+func _ui6_dress_cabinet() -> void:
+	"""N7: folded, the Cabinet reads "⚖ Cabinet" (shut: "⚖ Cabinet — shut",
+	still amber, the court named on the hover); On the page its authored
+	words. Runs after every `_set_cabinet_locked`, which writes those."""
+	if diplomacy_button == null or _cabinet_face_default_text == "":
+		return
+	if Utils.explanations_folded():
+		diplomacy_button.text = CABINET_SHUT_FACE_SHORT if _cabinet_locked else CABINET_FACE_SHORT
+	else:
+		diplomacy_button.text = CABINET_SHUT_FACE if _cabinet_locked else _cabinet_face_default_text
+
+
+func _ui6_on_explanations_changed() -> void:
+	"""Settings → Explanations moved: the desk's words re-dress in place."""
+	_ui6_dress_send_button()
+	_ui6_dress_cabinet()
+	_update_manpower_display()
+	_refresh_command_placeholder()
+	_relayout_terminal()
+	if not _readback_last.is_empty() and _readback_row != null and _readback_row.visible:
+		_readback_render(_readback_last.duplicate(true))   # its notes fold (or print) with the switch
+
+
+# ── the bar: its second row, its log drawer, its ⋯ ──────────────────────────
+
+func _ui6_refresh_bar() -> void:
+	"""The bar's second row: the last reply's line and the day's figures."""
+	if _bar_row == null or not _bar_row.visible:
+		return
+	if _bar_reply != null:
+		_bar_reply.text = _bar_reply_text
+		_bar_reply.tooltip_text = ("The log — click to fold it (Esc)" if _ui5_log_open
+			else "The last reply — click to open the log above the line")
+	if _bar_figures != null:
+		_bar_figures.text = _ui6_bar_figures_bbcode()
+		# One short line, measured unwrapped (the order strip's idiom): no
+		# `fit_content`, so no unbounded text feeds the bar's minimum.
+		_bar_figures.size = Vector2(4096.0, _bar_figures.size.y)
+		_bar_figures.custom_minimum_size = Vector2(float(_bar_figures.get_content_width()),
+				float(_bar_figures.get_content_height()))
+		_bar_figures.tooltip_text = ("Turn %d · military actions %d of %d · administrative actions %d of %d"
+			% [int(current_turn), int(actions_remaining), int(max_actions),
+				int(admin_actions_remaining), int(max_admin_actions)])
+
+
+func _ui6_bar_figures_bbcode() -> String:
+	"""(e): "T1 · ⟨actions⟩ 4/4 · ⟨admin⟩ 2/2" — the turn the bar lost with
+	its header, and the day's two pools in the header's own tones."""
+	var a_hex: String = Utils.COLOR_SUCCESS
+	if int(actions_remaining) <= 1:
+		a_hex = Utils.COLOR_ERROR
+	elif int(actions_remaining) <= 2:
+		a_hex = Utils.COLOR_WARNING
+	var m_hex: String = Utils.COLOR_INFO if int(admin_actions_remaining) == 0 else Utils.COLOR_COMMAND
+	var sep := " [color=#" + Utils.COLOR_INFO + "]·[/color] "
+	return ("[color=#" + Utils.COLOR_GOLD + "]T" + str(int(current_turn)) + "[/color]" + sep
+		+ Utils.bb_glyph("actions", 16, a_hex) + " [color=#" + a_hex + "]"
+		+ str(int(actions_remaining)) + "/" + str(int(max_actions)) + "[/color]" + sep
+		+ Utils.bb_glyph("admin", 16, m_hex) + " [color=#" + m_hex + "]"
+		+ str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions)) + "[/color]")
+
+
+func _ui6_note_log_line(text: String) -> void:
+	"""The bar's reply line reads the log's newest words (a rule or a blank
+	is no line); a typed order's reply counts its lines (`_ui6_hold_reply`)."""
+	var plain := Utils.bb_plain(text)
+	if plain.replace("─", "").replace("═", "").strip_edges() == "":
+		return
+	# The interim blind reading (November 13): the boot greeting's folded link
+	# ran the bar's line out ("▸ every c…"); the ⋯ menu carries Every command.
+	# (a link's words are joined by no-break spaces in the log - normalised first,
+	# or the suffix never matched: the dry-run shoot still read "▸ every c…")
+	plain = plain.replace("\u00A0", " ").trim_suffix("▸ every command").strip_edges()
+	_bar_reply_text = plain
+	if _reply_from_paragraph >= 0:
+		_reply_line_count += 1
+	if _bar_reply != null and _desk_mode_now == "bar":
+		_bar_reply.text = plain
+
+
+func _ui5_open_log(scroll_to_end: bool = true) -> void:
+	"""The bar's log opens upward above its line (BAR_LOG_SHARE of the view):
+	a click on the reply line, ⋯ → Open the log, every command, or a typed
+	order's reply of more than a line (`_hold_tall_reply`)."""
+	if _desk_mode_now != "bar" or _ui5_log_open:
+		return
+	_ui5_log_open = true
+	_relayout_terminal()
+	if scroll_to_end and not _reply_held:
+		_scroll_output_to_end()
+
+
+func _ui5_close_log() -> void:
+	"""The log folds: Esc, a send, a press outside the bar."""
+	if not _ui5_log_open:
+		return
+	_ui5_log_open = false
+	_relayout_terminal()
+
+
+func _ui6_toggle_log() -> void:
+	if _ui5_log_open:
+		_ui5_close_log()
+	else:
+		_ui5_open_log()
+
+
+func _ui6_hold_reply(reply_h: float) -> bool:
+	"""The bar and the column hold a typed order's reply on its first line
+	instead of raising the window: the bar opens its log for a reply of
+	BAR_REPLY_LINES lines or more (once — a log the player folded stays
+	folded), the column's long log only scrolls."""
+	if _desk_mode_now == "bar" and not _ui5_log_open:
+		if _reply_held or _reply_line_count < BAR_REPLY_LINES:
+			return false
+		_reply_held = true
+		_ui5_open_log(false)
+	elif not _reply_held:
+		if reply_h <= output_scroll.size.y:
+			return false
+		_reply_held = true
+	output_scroll.scroll_vertical = int(_reply_top_px())
+	return true
+
+
+func _ui6_press_outside_folds_the_log(event: InputEvent) -> void:
+	"""A left press outside the bar (and its open log) folds the log. Never
+	consumed: the map, a panel or a button beneath still takes the press."""
+	if not _ui5_log_open or not (event is InputEventMouseButton):
+		return
+	var mb := event as InputEventMouseButton
+	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if _more_button != null and _more_button.get_popup().visible:
+		return
+	var desk := _hud_desk_rect()
+	if desk.size.x > 0.0 and desk.has_point(mb.position):
+		return
+	_ui5_close_log()
+
+
+func _ui6_fill_more_menu() -> void:
+	"""⋯'s entries, read fresh as it opens (the Cabinet's face, the map's
+	view, the log's state)."""
+	if _more_button == null:
+		return
+	var menu := _more_button.get_popup()
+	menu.clear()
+	var cabinet_face: String = str(diplomacy_button.text) if diplomacy_button != null else CABINET_FACE_SHORT
+	menu.add_item(cabinet_face + "  (F1)", MORE_CABINET)
+	if diplomacy_button != null:
+		var at := menu.get_item_index(MORE_CABINET)
+		menu.set_item_tooltip(at, str(diplomacy_button.tooltip_text))
+		menu.set_item_disabled(at, bool(diplomacy_button.disabled))
+	menu.add_separator()
+	menu.add_item("Larger interface  (Ctrl+=)", MORE_SCALE_UP)
+	menu.add_item("Smaller interface  (Ctrl+−)", MORE_SCALE_DOWN)
+	menu.add_item("Map view: " + _ui5_map_mode_name(_ui5_current_map_mode())
+		+ "  (" + Keys.key_name("map_mode") + ")", MORE_MAP_MODE)
+	menu.add_separator()
+	menu.add_item("Every command", MORE_HELP)
+	menu.add_item("Fold the log" if _ui5_log_open else "Open the log", MORE_LOG)
+	menu.add_item("Minimise the window  (Alt+`)", MORE_MINIMISE)
+
+
+func _ui6_on_more_menu(id: int) -> void:
+	match id:
+		MORE_CABINET:
+			_on_diplomacy_button_pressed()
+		MORE_SCALE_UP:
+			_step_ui_scale(1)
+		MORE_SCALE_DOWN:
+			_step_ui_scale(-1)
+		MORE_MAP_MODE:
+			_on_map_mode_chip_pressed()
+		MORE_HELP:
+			# the list as a reply: the log opens on its first line
+			_begin_reply()
+			_print_boot_help(true)
+		MORE_LOG:
+			_ui6_toggle_log()
+		MORE_MINIMISE:
+			_minimize_terminal()
+
+
+func _ui6_on_more_menu_hidden() -> void:
+	"""The menu shut: the line takes the keys back (CC-X10's re-arm)."""
+	if command_input != null and command_input.editable and command_input.has_focus():
+		_resume_editing()
+
+
+func _ui6_on_rail_moved() -> void:
+	"""The notice rail moved, folded or came and went: the war chip under it
+	re-fits and the map's labels re-read what they dodge."""
+	_queue_fit_map_controls()
+	if war_status_panel != null and war_status_panel.visible \
+			and war_status_panel.has_method("_fit_panel_to_content"):
+		war_status_panel.call_deferred("_fit_panel_to_content")
+
+
+# ── the marshal row: our corps in the field, idle first ─────────────────────
+
+func _ui6_marshal_rows() -> Array:
+	"""Our corps in the field on the last board, each read by the shared kit
+	(the view the selection card and the Generals' roster read too). The
+	board's `marshals` are our own: no foreign corps reaches the row."""
+	var rows: Array = []
+	var marshals = _last_game_state.get("marshals", {})
+	if not (marshals is Dictionary):
+		return rows
+	for key in marshals.keys():
+		var k := str(key)
+		if not _own_field_marshal(k):
+			continue
+		var row = marshals[key]
+		var view: Dictionary = MarshalStateKit.from_board(_marshal_entry(k), row if row is Dictionary else {})
+		rows.append({"key": k, "view": view, "status": MarshalStateKit.status_of(view)})
+	return rows
+
+
+func _ui6_refresh_marshal_row() -> void:
+	"""A new board: the row re-reads it (it rebuilds only on a change)."""
+	if _marshal_row == null or not is_instance_valid(_marshal_row):
+		return
+	_marshal_row.set_rows(_ui6_marshal_rows())
+	_ui6_mark_selected()
+
+
+func _ui6_mark_selected() -> void:
+	"""The selection changed: his chip wears the bright rim (a group: none)."""
+	if _marshal_row != null and is_instance_valid(_marshal_row):
+		_marshal_row.set_selected(_order_marshal)
+
+
+func _on_marshal_chip_pressed(key: String) -> void:
+	"""A chip of the marshal row: on an empty line he is selected and the
+	camera goes to him (the map click's own road, CC-3). With a draft on the
+	line it is CC-1's pen: his name is written at the caret (Session UI-6 —
+	as a Shift-click on his piece writes it); it never sends."""
+	if command_input == null:
+		return
+	if command_input.text.strip_edges() != "":
+		_ui6_pen_writes_marshal(key)
+		return
+	if not _order_input_ready() or not _own_field_marshal(key):
+		return
+	if _order_marshal != key:
+		_select_marshal(key)
+	if map_area != null and map_area.has_method("focus_on_marshal"):
+		map_area.focus_on_marshal(key)
+
+
+func _on_marshal_chip_opened(key: String) -> void:
+	"""A double-click on his chip: the Generals screen, open on him (the
+	master-detail's select — remembered until the screen's data lands)."""
+	if key == "":
+		return
+	var generals = top_bar.screens.get("generals", null) if top_bar != null else null
+	if generals != null and generals.has_method("select_marshal"):
+		generals.select_marshal(key)
+	_ui6_open_generals()
+
+
+func _on_marshal_row_more() -> void:
+	"""The row's "+N": every marshal, in the Generals screen (G)."""
+	_ui6_open_generals()
+
+
+func _on_marshal_row_idle() -> void:
+	"""The bar's "● N idle": the next idle marshal, as `.` is."""
+	_cycle_idle_marshal()
+
+
+func _ui6_open_generals() -> void:
+	"""The Generals screen, as the top bar's own button opens it."""
+	if top_bar == null or _is_modal_dialog_open():
+		return
+	if not top_bar.screens.has("generals") or top_bar.screens["generals"] == null:
+		return
+	if top_bar.get_active_screen() != "generals":
+		top_bar.toggle_screen("generals")
+
+
+# ── the offers: the shared head dim, each tail gold ─────────────────────────
+
+func _ui6_shared_offer_head() -> String:
+	"""The words every offer begins with, cut back to a whole word (the slot
+	the player is in): "Ney, attack " over "Ney, attack Mack" and "Ney, attack
+	Deroy". One offer shares what the player has typed of it."""
+	var lines: Array = []
+	for s in _suggestions:
+		lines.append(str(s).strip_edges())
+	if lines.is_empty():
+		return ""
+	var head: String = str(lines[0])
+	if lines.size() == 1:
+		var typed: String = str(command_input.text) if command_input != null else ""
+		head = head.substr(0, typed.length()) if head.to_lower().begins_with(typed.to_lower()) else ""
+	else:
+		for other in lines:
+			var o := str(other)
+			var n := 0
+			var top := mini(head.length(), o.length())
+			while n < top and head[n] == o[n]:
+				n += 1
+			head = head.substr(0, n)
+	var cut := head.rfind(" ")
+	return head.substr(0, cut + 1) if cut >= 0 else ""
+
+
+func _ui6_dim(text: String) -> String:
+	return Utils.bbcode_color(text, Utils.COLOR_INFO) if text != "" else ""
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SESSION UI-6 (November 13, 2026) — THE INTERACTION: the generals and the line.
+# Row CC built most of the clicking; what it lacked (the plan's analysis):
+#   * the selection card (scripts/selection_card.gd) in the strip's place —
+#     his face, his state, seven FIXED order slots that send at once down the
+#     chip road (N2), digits 1-7 on an empty line (N5);
+#   * the right click is an order with a corps selected (N3) — a province:
+#     march, an enemy in sight: attack, another of ours: support — and the
+#     LEFT click on another of ours picks him (it used to open a support card);
+#   * after an order the next idle marshal is selected, the camera on him
+#     (Settings → Next marshal after an order, N4; Off: he is selected again);
+#   * the marshal row's pen, the Generals' "On the map", the province panel's
+#     names and a toast for an order sent from behind a screen (decision 15);
+#   * the readback (N6): how the typed line will be read, before Enter —
+#     GET /parse_preview, never sent; its chips FILL the line;
+#   * UI6-X1: the persisted history OFFERS only lines every word of which
+#     stands on today's board (the Up / Down walk recalls every line typed);
+#   * on 32:9 the right column a framed wing (the province panel docks in it,
+#     the selection card at its foot); the war detail suspends the rail.
+# Every order still travels the /command road as typed text; the executor
+# judges every rule (prices and refusals are the backend's, read through the
+# shared MarshalState kit).
+# ════════════════════════════════════════════════════════════════════════════
+
+const SelectionCardScript := preload("res://scripts/selection_card.gd")
+# The group face's hint: its title names the corps, its sum line the price.
+const GROUP_CARD_HINT := "Click a province: march together · Ctrl-click a marshal: add or drop him · Esc cancels"
+const WING_INSET := 4.0              # the wing's frame inside the right column (the war list stands 8 in)
+const WING_FRAME_DRAWN := false     # the interim reading: the empty full-height frame is not drawn
+const WING_TOP_GAP := 2.0            # under the top bar's strip, enclosing the rail's slot (6 under it)
+const WING_PAD := 8.0                # the selection card inside the wing's frame
+const TOAST_REPLY_MAX := 96
+const READBACK_DEBOUNCE_SEC := 0.22
+const READBACK_CACHE_MAX := 24
+const READBACK_MIN_CHARS := 4
+const READBACK_MAX_CHARS := 500
+const READBACK_STALE_ALPHA := 0.5
+const READBACK_CHIPS_MAX := 3
+const READBACK_ASK_KINDS := ["unknown_name", "needs_marshal", "secretary", "pending"]
+const READBACK_LEAD_WORDS := ["what", "how", "where", "who", "everyone", "all"]
+# UI6-X1: the joining words a remembered order may carry beside the board's
+# names and the completer's verbs (never a proper name).
+const HISTORY_JOIN_WORDS := ["to", "then", "until", "for", "turns", "turn", "arrives", "relieved",
+	"the", "and", "what", "if", "can", "i", "do", "a", "at", "on", "in", "of", "his", "all",
+	"every", "everyone", "now", "infantry", "cavalry", "artillery", "men", "start", "begin",
+	"dig", "here", "up", "out", "off"]
+# Typographic marks that split words like the plain ones do.
+const HISTORY_BREAKS := "’‘“”—–…"
+
+var _selection_card = null           # the SelectionCard (loaded by path)
+var _right_wing: PanelContainer = null
+var _card_sent_for := ""             # the marshal whose card (or gesture) sent the order on the wire
+var _card_sent_stays := false        # his card's Cancel: the answer selects him again, whatever the setting
+var _readback_row: RichTextLabel = null
+var _readback_timer: Timer = null
+var _readback_serial := 0
+var _readback_asked := ""
+var _readback_cache: Dictionary = {}
+var _readback_last: Dictionary = {}
+var _history_known: Dictionary = {}
+var _history_known_built := false
+
+
+# ── the selection card ──────────────────────────────────────────────────────
+
+func _ui6_build_selection_card() -> void:
+	"""The selection card, a child of the root after the strip (so it scales
+	with Interface Scale and draws over the map), and the 32:9 right wing it
+	docks in (built first: the card draws over it)."""
+	_ui6_build_right_wing()
+	if _selection_card != null:
+		return
+	_selection_card = SelectionCardScript.new()
+	add_child(_selection_card)
+	_selection_card.verb_pressed.connect(_on_selection_verb)
+	_selection_card.cancel_order_pressed.connect(_on_selection_cancel)
+	_selection_card.close_pressed.connect(_clear_order_selection)
+	# its size settles after its labels measure themselves: the slot follows
+	_selection_card.resized.connect(_queue_fit_map_controls)
+	_selection_card.visibility_changed.connect(_queue_fit_map_controls)
+
+
+func _ui6_selection_surface() -> Control:
+	"""What stands in the strip's slot: the card, else (no card built) the
+	strip, else nothing."""
+	if _selection_card != null and is_instance_valid(_selection_card) and _selection_card.visible:
+		return _selection_card
+	if _order_strip != null and is_instance_valid(_order_strip) and _order_strip.visible:
+		return _order_strip
+	return null
+
+
+func _ui6_show_selection_card(hint: String) -> bool:
+	"""Raise the card on the selection — one marshal's face (his board view
+	through the kit, his morale from the roster row), or a Ctrl-click group's.
+	False when there is no card to raise."""
+	if _selection_card == null or not is_instance_valid(_selection_card):
+		return false
+	_ui6_card_width_cap()
+	if _order_group.size() >= 2:
+		_selection_card.show_group(_order_group, _ui6_group_total(), int(actions_remaining), GROUP_CARD_HINT)
+		return true
+	if _order_marshal == "":
+		return false
+	var marshals = _last_game_state.get("marshals", {})
+	var row = marshals.get(_order_marshal, {}) if marshals is Dictionary else {}
+	if not (row is Dictionary):
+		row = {}
+	var view: Dictionary = MarshalStateKit.from_board(_marshal_entry(_order_marshal), row)
+	if (row as Dictionary).has("morale"):
+		view["morale"] = int(row.get("morale", 0))
+	_selection_card.show_for(view, _order_marshal, int(actions_remaining), hint)
+	return true
+
+
+func _ui6_hide_selection_card() -> void:
+	if _selection_card != null and is_instance_valid(_selection_card) and _selection_card.visible:
+		_selection_card.hide_card()
+
+
+func _ui6_group_total() -> int:
+	"""A march for the whole group: each man's own price (the board's
+	`order_prices.march`, the executor's) — `_group_strip_text`'s sum."""
+	var total := 0
+	for key in _order_group:
+		var ts = _marshal_entry(str(key)).get("tactical_state", {})
+		var prices = ts.get("order_prices", {}) if ts is Dictionary else {}
+		total += int(prices.get("march", 0)) if prices is Dictionary else 0
+	return total
+
+
+func _ui6_card_width_cap() -> void:
+	"""On 32:9 the card stands in the right wing, narrower than its own width:
+	its cap is the wing's room (read by the card where it offers `width_cap`;
+	a card without it keeps its width and stands right-aligned in the wing)."""
+	if _selection_card == null or not ("width_cap" in _selection_card):
+		return
+	var cap := 0.0
+	if _right_wing != null and is_instance_valid(_right_wing) and _right_wing.visible:
+		cap = maxf(_right_wing.size.x - 2.0 * WING_PAD, 0.0)
+	_selection_card.set("width_cap", cap)
+
+
+func _on_selection_verb(verb: String, marshal: String) -> void:
+	"""N2: a slot of the card — a click, or its digit. His order goes out at
+	once down the chip road (`_on_reward_command`: the ONE in-flight latch,
+	the echo, the history), as the province panel's chips do; its price was
+	on the slot's face. The send lets the selection go (CC-3); the answer
+	selects the next idle marshal, or him again (N4)."""
+	if verb == "" or marshal == "" or _chip_command_in_flight or not _order_input_ready():
+		return
+	_card_sent_for = marshal
+	_card_sent_stays = false
+	_on_reward_command(marshal + ", " + verb)
+
+
+func _on_selection_cancel(marshal: String) -> void:
+	"""Slot 7: his standing order cancelled down the arrow card's one road
+	(`_send_cancel_order`, POST /cancel_order); freed of it, he is selected
+	again for his next order."""
+	if marshal == "" or _chip_command_in_flight or not _order_input_ready():
+		return
+	_card_sent_for = marshal
+	_card_sent_stays = true
+	_send_cancel_order(marshal)
+
+
+# ── the digits (N5) ─────────────────────────────────────────────────────────
+
+func _ui6_slot_digit(event) -> int:
+	"""The card slot (1-7) a key names — the top row's digit (or, on a layout
+	that shifts its digits, the key in that place) or the keypad's; pressed,
+	no echo, no Ctrl / Shift / Meta. 0 for any other key. The digits are fixed
+	(Keys.RESERVED): never remapped, like the books' own numbers."""
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return 0
+	if event.ctrl_pressed or event.shift_pressed or event.meta_pressed:
+		return 0
+	var code: int = event.keycode
+	if code >= KEY_KP_1 and code <= KEY_KP_7:
+		return code - KEY_KP_0
+	if not (code >= KEY_1 and code <= KEY_7):
+		code = event.physical_keycode
+	if code >= KEY_1 and code <= KEY_7:
+		return code - KEY_0
+	return 0
+
+
+func _ui6_digits_live() -> bool:
+	"""N5's gate: one marshal selected (no group) and his card standing, the
+	line EMPTY (no order begins with a digit — the `.` precedent: focused or
+	not, an empty line gives its digits to the card), nothing on the wire and
+	no order card, screen, modal or pause menu."""
+	return (_selection_card != null and is_instance_valid(_selection_card)
+		and _selection_card.visible and _order_marshal != "" and _order_group.size() < 2
+		and command_input != null and command_input.text.strip_edges() == ""
+		and _order_input_ready() and not _order_card_open())
+
+
+func _ui6_press_slot(n: int) -> void:
+	"""The card presses its slot `n` (a locked or missing one plays the deny
+	cue itself and sends nothing)."""
+	if _selection_card != null and is_instance_valid(_selection_card):
+		_selection_card.press_slot(n)
+
+
+# ── the right click (N3) ────────────────────────────────────────────────────
+
+func _on_order_context_requested(region: String, marshal_key: String) -> void:
+	"""The map's RIGHT click on a province or a piece (`marshal_key` is the
+	piece in sight, "" for a province or a fog chip — a fog chip never names
+	its man). With a corps selected it is his ORDER on the left click's card
+	road (`_order_click`): a province — the march card; an enemy in sight at
+	war — the attack card; another of ours — the support card; a fog chip —
+	a march to its province; himself — let go. A Ctrl-click group marches
+	together. With nothing selected, a piece of ours on an EMPTY line is
+	selected (the left click's rules, `_click_selects_a_marshal`); anything
+	else dismisses, as the right click always did."""
+	if _is_screen_open() or _is_modal_dialog_open():
+		return
+	var drafting: bool = command_input != null and command_input.text.strip_edges() != ""
+	if _order_engaged() and drafting:
+		_clear_order_selection()   # CC-X12: a draft owns the clicks
+	if _order_group.size() >= 2:
+		_group_click(region)
+		return
+	if _order_marshal != "":
+		_order_click(region, marshal_key, true)
+		return
+	if not drafting and marshal_key != "" and _click_selects_a_marshal():
+		return
+	_on_map_dismiss_requested()
+
+
+# ── the next marshal after an order (N4) ────────────────────────────────────
+
+func _ui6_order_answered(response) -> void:
+	"""The answer to an order a card slot, a gesture or the card's Cancel
+	sent: once control is back, the selection moves on (`_ui6_after_order`).
+	A typed line never sets `_card_sent_for`, so it never moves anything."""
+	var actor := _card_sent_for
+	var stays := _card_sent_stays
+	_card_sent_for = ""
+	_card_sent_stays = false
+	if actor == "":
+		return
+	var took: bool = response is Dictionary and bool((response as Dictionary).get("success", false))
+	_ui6_after_order.call_deferred(actor, stays or not took)
+
+
+func _ui6_after_order(actor: String, stay: bool) -> void:
+	"""Settings → Next marshal after an order. On: the next idle marshal (in
+	the board's roster order after `actor`, never `actor`) is selected and
+	the camera eases to him — none idle, nothing moves. Off — or the order was
+	refused, or it was his Cancel (`stay`): `actor` is selected again, his
+	card showing his new state (Fortify → Unfortify). Only on an EMPTY line
+	with control back (a question the answer raised keeps the floor)."""
+	if actor == "" or _order_engaged() or not _order_input_ready():
+		return
+	if command_input.text.strip_edges() != "":
+		return
+	if not stay and UiSettings.get_next_marshal_after_order():
+		var nxt := _ui6_next_idle_after(actor)
+		if nxt == "":
+			return
+		_idle_cursor = nxt
+		_select_marshal(nxt)
+		if map_area != null and map_area.has_method("focus_on_marshal"):
+			map_area.focus_on_marshal(nxt)
+		return
+	if _own_field_marshal(actor):
+		_select_marshal(actor)
+
+
+func _ui6_next_idle_after(actor: String) -> String:
+	"""The first idle marshal after `actor` in the board's roster order
+	(wrapping; `_idle_marshals()` is the one idle test), never `actor`."""
+	var idle := _idle_marshals()
+	idle.erase(actor)
+	if idle.is_empty():
+		return ""
+	var order: Array = []
+	var marshals = _last_game_state.get("marshals", {})
+	if marshals is Dictionary:
+		for k in marshals.keys():
+			order.append(str(k))
+	var at := order.find(actor)
+	if at >= 0:
+		for step in range(1, order.size() + 1):
+			var k: String = order[(at + step) % order.size()]
+			if k in idle:
+				return k
+	return str(idle[0])
+
+
+# ── an order sent from behind a screen (decision 15) ────────────────────────
+
+func _ui6_toast_reply(response) -> void:
+	"""Decision 15's one new act: an order sent from behind a covering screen
+	(the Generals' order bar) says its answer in a toast — the log stands
+	hidden under the screen. The reply's first line as the log prints it, a
+	refusal under the warning glyph. Never a locked reason: those are hovers."""
+	if not (response is Dictionary) or not _is_screen_open():
+		return
+	var first := ""
+	for line in Utils.bb_plain(str((response as Dictionary).get("message", ""))).split("\n"):
+		var t := str(line).strip_edges()
+		if t != "":
+			first = t
+			break
+	if first == "":
+		return
+	if first.length() > TOAST_REPLY_MAX:
+		first = first.substr(0, TOAST_REPLY_MAX - 1).strip_edges() + "…"
+	var took: bool = bool((response as Dictionary).get("success", false))
+	ToastLayer.say(first, "command" if took else "threat")
+
+
+# ── the Generals, the province panel, the marshal row's pen ─────────────────
+
+func _on_generals_locate_requested(marshal_name: String) -> void:
+	"""The Generals' "On the map": the screen shuts (its own key's road — a
+	screen pinned at the Side Desk stays: the map is live beside it), he is
+	selected and the camera goes to him. With a draft on the line only the
+	camera moves (the draft owns the clicks — the `.` rule)."""
+	if marshal_name == "" or top_bar == null:
+		return
+	if str(top_bar.get_active_screen()) == "generals":
+		top_bar.toggle_screen("generals")
+	var key := marshal_name if _own_field_marshal(marshal_name) else _marshal_key_for(marshal_name)
+	if _own_field_marshal(key) and command_input != null \
+			and command_input.text.strip_edges() == "" and _order_input_ready():
+		_select_marshal(key)
+	if map_area != null and map_area.has_method("focus_on_marshal"):
+		map_area.focus_on_marshal(key)
+
+
+func _on_panel_marshal_select(marshal_name: String) -> void:
+	"""The province panel's FORCES PRESENT: a name of ours selects him — the
+	panel shuts (a selection keeps it shut) and the selection card stands in
+	its place; the camera goes to him. Only on an empty line (a draft owns
+	the clicks)."""
+	if marshal_name == "" or not _own_field_marshal(marshal_name):
+		return
+	if command_input == null or command_input.text.strip_edges() != "" or not _order_input_ready():
+		return
+	_select_marshal(marshal_name)
+	if map_area != null and map_area.has_method("focus_on_marshal"):
+		map_area.focus_on_marshal(marshal_name)
+
+
+func _ui6_pen_writes_marshal(key: String) -> void:
+	"""CC-1's pen for the marshal row: with a draft on the line his name is
+	written at the caret — over a typed prefix of it where the line waits for
+	a name, else where the caret stands (as a Shift-click on his piece writes
+	it). It never sends."""
+	if command_input == null or not command_input.editable or key == "":
+		return
+	var shown := Utils.humanize_entity_name(key)
+	_line_insert_name(shown, maxi(_click_name_plan(shown), 0), false)
+
+
+# ── the war detail covers the rail ──────────────────────────────────────────
+
+func _ui6_refresh_rail_suspension() -> void:
+	"""The war detail opened or shut: the notice rail stands aside for it as
+	for any covering surface — `_update_war_panel_visibility`'s own rule (a
+	modal, a covering screen, the hidden HUD) — and comes back as it shuts."""
+	if notification_bar and notification_bar.has_method("set_suspended"):
+		notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open() or _hud_hidden)
+
+
+# ── the 32:9 right wing ─────────────────────────────────────────────────────
+
+func _ui6_build_right_wing() -> void:
+	"""The very wide view's right column as a full-height framed wing, the
+	left column's twin (the desk's own frame), behind the notice rail and the
+	war list (their CanvasLayers draw over it) — the readers' "empty space on
+	the ultrawide": one small war list over a full height of bare leather.
+	It is the CONTEXT wing: the province panel docks in it under the war list
+	(region_panel.gd), the selection card at its foot. It takes the mouse, as
+	the desk does (no click falls through it to the map)."""
+	if _right_wing != null:
+		return
+	_right_wing = PanelContainer.new()
+	_right_wing.name = "RightWing"
+	var frame: StyleBox = bottom_left_ui.get_theme_stylebox("panel") if bottom_left_ui != null else null
+	if frame == null:
+		frame = Utils.leather_frame(Utils.FRAME_HUD, 12.0)
+	_right_wing.add_theme_stylebox_override("panel", frame)
+	_right_wing.mouse_filter = Control.MOUSE_FILTER_STOP
+	_right_wing.visible = false
+	add_child(_right_wing)
+
+
+func _ui6_fit_right_wing() -> void:
+	"""The wing's rect: the right column (`Utils.hud_anchor_band`), from just
+	under the top bar to the desk's bottom margin — standing only while the
+	HUD stands in its two columns (a very wide view, HUD width Auto, the map
+	filling the width, no Side Desk pinned) and is not hidden (H)."""
+	if _right_wing == null or not is_instance_valid(_right_wing):
+		return
+	# The interim blind reading (November 13): the full-height frame over one
+	# small war list read as "a large empty panel" — the right column is
+	# collapsed (`Utils.hud_band`) and its frame is no longer drawn; the rail,
+	# the war list, the province panel and the card stand over the map's edge.
+	var shown: bool = WING_FRAME_DRAWN and Utils.hud_columns(size).y > 0.0 and not _hud_hidden
+	if _right_wing.visible != shown:
+		_right_wing.visible = shown
+		_queue_fit_map_controls()
+	if not shown:
+		return
+	var band := Utils.hud_anchor_band(size)
+	var top := TOP_BAR_RESERVED_PX + Utils.top_bar_growth() + WING_TOP_GAP
+	var bottom := size.y + TERMINAL_ANCHOR_BOTTOM
+	_right_wing.position = Vector2(band.x + WING_INSET, top)
+	_right_wing.size = Vector2(maxf(band.y - band.x - 2.0 * WING_INSET, 0.0), maxf(bottom - top, 0.0))
+
+
+func _ui6_dock_card_in_wing(surface: Control) -> bool:
+	"""On 32:9 the selection card stands at the foot of the right wing, inside
+	its frame (centred; a card wider than the wing's room keeps its right
+	edge in the frame). False where there is no wing (the strip's slot)."""
+	if surface == null or surface != _selection_card or _right_wing == null \
+			or not is_instance_valid(_right_wing) or not _right_wing.visible:
+		return false
+	var wing := _right_wing.get_global_rect()
+	var cs := surface.get_combined_minimum_size()
+	var room := wing.size.x - 2.0 * WING_PAD
+	var x := wing.position.x + WING_PAD + floorf((room - cs.x) / 2.0)
+	if cs.x > room:
+		x = wing.end.x - WING_PAD - cs.x
+	surface.position = Vector2(x, wing.end.y - WING_PAD - cs.y)
+	surface.size = cs
+	return true
+
+
+# ── the readback (N6) ───────────────────────────────────────────────────────
+
+func _ui6_install_readback_row(layout: Node, input_row: Node) -> void:
+	"""THE READBACK ROW: one RichTextLabel in the window's own VBox, right
+	after the completion row, next to the line it reads. No font override
+	(the theme's 16 is the line's, as the completion row's is). Measured,
+	never fit_content (UXR-2's scroll rule): its height is its wrapped lines'
+	(`_readback_fit_now`) — the bar grows upward while it stands. Its links
+	FILL the line; nothing here ever sends."""
+	if _readback_row != null or layout == null or input_row == null:
+		return
+	_readback_row = RichTextLabel.new()
+	_readback_row.name = "ReadbackRow"
+	_readback_row.bbcode_enabled = true
+	_readback_row.fit_content = false
+	_readback_row.scroll_active = false
+	_readback_row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_readback_row.meta_underlined = false
+	_readback_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_readback_row.visible = false
+	_readback_row.meta_clicked.connect(_on_readback_meta_clicked)
+	_readback_row.resized.connect(_readback_fit_now)
+	layout.add_child(_readback_row)
+	layout.move_child(_readback_row, input_row.get_index())
+	_readback_timer = Timer.new()
+	_readback_timer.name = "ReadbackDebounce"
+	_readback_timer.one_shot = true
+	_readback_timer.timeout.connect(_readback_ask)
+	add_child(_readback_timer)
+
+
+func _readback_sync() -> void:
+	"""The one seam every code write of the line calls (a code write emits no
+	`text_changed`): the history walk, an offer taken, a relay filled, a draft
+	restored, control returning."""
+	if command_input != null:
+		_readback_changed(command_input.text)
+
+
+func _readback_changed(text: String) -> void:
+	"""The line changed: ask — after READBACK_DEBOUNCE_SEC at rest — how the
+	backend would read it, if it could be an order; a remembered reading shows
+	at once; the reading on show dims (kept, never blanked) until the new one
+	lands; an empty or unwanted line hides the row."""
+	if _readback_row == null:
+		return
+	var line := text.strip_edges()
+	if not _readback_wanted(line):
+		_readback_cancel()
+		return
+	if _readback_cache.has(line):
+		_readback_settle()
+		_readback_render(_readback_cache[line])
+		return
+	_readback_dim()
+	_readback_settle()
+	_readback_asked = line
+	if _readback_timer != null:
+		_readback_timer.start(READBACK_DEBOUNCE_SEC)
+
+
+func _readback_wanted(line: String) -> bool:
+	"""Ask only for a line that could be an order: 4 to 500 characters, the
+	line open (no modal, not after the Fall), no cheat or debug line, and an
+	addressee's comma, a first word the completer knows (or a question's), or
+	the name of one of our marshals. Settings → DISPLAY → Readback."""
+	if _readback_row == null or not UiSettings.get_readback():
+		return false
+	if line.length() < READBACK_MIN_CHARS or line.length() > READBACK_MAX_CHARS:
+		return false
+	if command_input == null or not command_input.editable or _campaign_over or _is_modal_dialog_open():
+		return false
+	var low := line.to_lower()
+	if low.begins_with("cheat ") or low.begins_with("debug "):
+		return false
+	if line.find(",") >= 2:
+		return true
+	var words := _history_words(line)
+	if words.is_empty():
+		return false
+	var first := str(words[0])
+	if first in READBACK_LEAD_WORDS:
+		return true
+	for row in _MARSHAL_VERBS:
+		if first == str(row[0]).split(" ")[0]:
+			return true
+	for row in _BARE_COMMANDS:
+		if first == str(row[0]).split(" ")[0]:
+			return true
+	var own := {}
+	for shown in _own_marshal_names():
+		for w in _history_words(str(shown)):
+			own[str(w)] = true
+	for w in words:
+		if own.has(str(w)):
+			return true
+	return false
+
+
+func _readback_ask() -> void:
+	"""The rest ran out: ONE request for the line as it stands now (its own
+	HTTPRequest — a /command never queues behind it)."""
+	if command_input == null or api_client == null or not api_client.has_method("get_parse_preview"):
+		return
+	var line: String = command_input.text.strip_edges()
+	if line == "" or line != _readback_asked or not _readback_wanted(line):
+		return
+	_readback_serial += 1
+	var serial := _readback_serial
+	api_client.get_parse_preview(line, func(reading): _on_readback(serial, line, reading))
+
+
+func _on_readback(serial: int, line: String, reading) -> void:
+	"""A stale answer is dropped — by its serial AND by its line (the backend
+	echoes the line it read) — and so is one for a closed line; `busy` and a
+	failed wire ({}) keep the old reading dimmed."""
+	if serial != _readback_serial or command_input == null or not command_input.editable:
+		return
+	if not (reading is Dictionary) or (reading as Dictionary).is_empty():
+		return
+	var resp: Dictionary = reading
+	var now: String = command_input.text.strip_edges()
+	if line != now or str(resp.get("line", "")) != now:
+		return
+	if str(resp.get("kind", "")) == "busy":
+		return
+	if _readback_cache.size() >= READBACK_CACHE_MAX:
+		_readback_cache.clear()
+	_readback_cache[line] = resp
+	_readback_render(resp)
+
+
+func _readback_settle() -> void:
+	"""The rest and the question in flight are dropped (its answer, if it
+	still lands, reaches nobody — the serial moved on)."""
+	if _readback_timer != null:
+		_readback_timer.stop()
+	_readback_serial += 1
+	_readback_asked = ""
+	if api_client != null and api_client.has_method("cancel_parse_preview"):
+		api_client.cancel_parse_preview()
+
+
+func _readback_cancel() -> void:
+	"""The line went — a send, a closed line, an empty or unwanted line, a
+	world swap: nothing waits and the row hides."""
+	_readback_settle()
+	_readback_hide()
+
+
+func _readback_forget() -> void:
+	"""A /command answer or a new board: the readings held were read on the
+	old state (the backend's epoch moved with the POST)."""
+	_readback_cache.clear()
+
+
+func _readback_dim() -> void:
+	if _readback_row != null and _readback_row.visible:
+		_readback_row.modulate.a = READBACK_STALE_ALPHA
+
+
+func _readback_hide() -> void:
+	if _readback_row == null:
+		return
+	_readback_row.visible = false
+	_readback_row.text = ""
+	_readback_row.tooltip_text = ""
+	_readback_row.custom_minimum_size = Vector2.ZERO
+	_readback_row.modulate.a = 1.0
+	_readback_last = {}
+
+
+func _readback_render(resp: Dictionary) -> void:
+	"""One line in the reading's own words (the parts are built by the
+	backend; the client only colours them by role): "▸" in gold for an order,
+	a question, a report, the Cabinet's or a delegation; "✕" in red for a
+	refusal (its reason prints inline — it IS the answer to the line, not a
+	locked chip's reason); "?" in amber for an unknown name, a missing
+	addressee, the secretary's reading or a standing question, with its
+	candidates as links that FILL the line. Folded, the notes are the row's
+	hover; the compact view drops them. `none` and `busy` change nothing."""
+	if _readback_row == null:
+		return
+	var kind := str(resp.get("kind", ""))
+	if kind == "" or kind == "none" or kind == "busy":
+		_readback_dim()
+		return
+	var ask: bool = kind in READBACK_ASK_KINDS
+	var glyph := "▸"
+	var glyph_hex: String = Utils.COLOR_GOLD
+	if kind == "refusal":
+		glyph = "✕"
+		glyph_hex = Utils.COLOR_ERROR
+	elif ask:
+		glyph = "?"
+		glyph_hex = Utils.COLOR_WARNING
+	var folded := Utils.explanations_folded()
+	var compact := Utils.compact_view()
+	var shown := PackedStringArray()
+	var notes := PackedStringArray()
+	var parts = resp.get("parts", [])
+	if parts is Array:
+		for part in parts:
+			if not (part is Dictionary):
+				continue
+			var role := str((part as Dictionary).get("role", ""))
+			var words := str((part as Dictionary).get("text", "")).strip_edges()
+			if words == "":
+				continue
+			if compact and words == "he may object":
+				words = "may object"
+			if role == "note":
+				if compact:
+					continue
+				if folded:
+					notes.append(words)
+					continue
+			shown.append(Utils.bbcode_color(_ui6_bb_escape(words), _readback_part_hex(role, ask)))
+	var body := (" " + Utils.bbcode_color("·", Utils.COLOR_INFO) + " ").join(shown)
+	if kind == "cabinet":
+		body = "[url=cabinet:open]" + body + "[/url]"   # the Cabinet's door, as F1 opens it
+	_readback_last = resp
+	_readback_row.text = Utils.bbcode_color(glyph, glyph_hex) + " " + body + _readback_chips(resp, ask)
+	_readback_row.tooltip_text = Utils.clean_tip(" · ".join(notes))
+	_readback_row.modulate.a = 1.0
+	_readback_row.visible = true
+	_readback_fit_now.call_deferred()
+
+
+func _readback_part_hex(role: String, ask: bool) -> String:
+	"""A part's ink by its role (the design's §3.5)."""
+	match role:
+		"head":
+			return Utils.COLOR_WARNING if ask else Utils.COLOR_TEXT
+		"warn":
+			return Utils.COLOR_WARNING
+		"bad":
+			return Utils.COLOR_ERROR
+	return Utils.COLOR_INFO
+
+
+func _readback_chips(resp: Dictionary, ask: bool) -> String:
+	"""The reading's candidates as links — `fill:N` FILLS the line with
+	candidate N's whole line; it never sends."""
+	var cands = resp.get("candidates", [])
+	if not (cands is Array) or (cands as Array).is_empty():
+		return ""
+	var links := PackedStringArray()
+	for i in range(mini((cands as Array).size(), READBACK_CHIPS_MAX)):
+		var c = cands[i]
+		if not (c is Dictionary):
+			continue
+		var label := str((c as Dictionary).get("label", "")).strip_edges()
+		if label == "":
+			continue
+		links.append("[url=fill:%d]%s[/url]" % [i, Utils.bbcode_color(
+			"[lb]" + _ui6_bb_escape(label) + "[rb]", Utils.COLOR_GOLD)])
+	if links.is_empty():
+		return ""
+	return (" " + Utils.bbcode_color("—", Utils.COLOR_INFO) + " " + " ".join(links)
+		+ (Utils.bbcode_color("?", Utils.COLOR_WARNING) if ask else ""))
+
+
+func _readback_fit_now() -> void:
+	"""The row's height is its wrapped lines' (no fit_content)."""
+	if _readback_row == null or not is_instance_valid(_readback_row) or not _readback_row.visible:
+		return
+	var h := float(_readback_row.get_content_height())
+	if absf(_readback_row.custom_minimum_size.y - h) > 0.5:
+		_readback_row.custom_minimum_size = Vector2(0.0, h)
+
+
+func _on_readback_meta_clicked(meta) -> void:
+	"""A candidate FILLS the line with its whole line and puts the caret at
+	its end — the player's own draft, repaired by his click (Ctrl+Z in the
+	line undoes it); `cabinet:open` opens the Cabinet as F1 does. Nothing is
+	sent: Enter stays the player's."""
+	var m := str(meta)
+	if m == "cabinet:open":
+		if not _is_modal_dialog_open():
+			_open_diplomacy_wizard()
+		return
+	if not m.begins_with("fill:") or command_input == null or not command_input.editable:
+		return
+	var i := int(m.substr(5))
+	var cands = _readback_last.get("candidates", [])
+	if not (cands is Array) or i < 0 or i >= (cands as Array).size() or not (cands[i] is Dictionary):
+		return
+	var line := str((cands[i] as Dictionary).get("line", "")).strip_edges()
+	if line == "":
+		return
+	command_input.text = line
+	command_input.caret_column = line.length()
+	command_input.grab_focus()
+	_resume_editing()
+	_on_command_text_changed(command_input.text)
+
+
+static func _ui6_bb_escape(text: String) -> String:
+	"""Words that may carry a bracket (the player's own token, echoed) as
+	text, never as a tag."""
+	return text.replace("[", "\u0001").replace("]", "[rb]").replace("\u0001", "[lb]")
+
+
+# ── UI6-X1: the persisted history offers only what the board shows ─────────
+
+func _history_line_is_safe(line: String) -> bool:
+	"""A remembered line may be OFFERED (the completer's first step) or WALKED
+	(Up / Down) only when every word in it stands on today's board
+	(`_history_known_words`; a number always does). The client keeps no roster
+	of who is hidden, so the test is a whitelist: a fogged commander's name —
+	or a typo — is on none of its lists and the line is withheld. Before the
+	first board of a session nothing naming a marshal is offered (fail closed)."""
+	var known := _history_known_words()
+	for word in _history_words(line):
+		var w := str(word)
+		if w.is_valid_int():
+			continue
+		if not known.has(w):
+			return false
+	return true
+
+
+func _history_safe_lines() -> Array:
+	"""The remembered lines today's board can stand behind, oldest first."""
+	var out: Array = []
+	for past in command_history:
+		if _history_line_is_safe(str(past)):
+			out.append(past)
+	return out
+
+
+func _history_known_words() -> Dictionary:
+	"""Every word today's board can stand behind: our marshals, the corps in
+	sight (the backend's fog-filtered `enemies`), every province, the
+	completer's own verbs and continuations, the client's verb words, the
+	words after which the line waits for a name, and a few joining words.
+	Built once a board (`_remember_game_state` drops it)."""
+	if _history_known_built:
+		return _history_known
+	var known := {}
+	for w in HISTORY_JOIN_WORDS:
+		known[str(w)] = true
+	for w in _NAME_SLOT_WORDS:
+		known[str(w)] = true
+	for row in _MARSHAL_VERBS:
+		_history_add_words(known, str(row[0]))
+	for row in _CONTINUATIONS:
+		_history_add_words(known, str(row[1]))
+	for row in _BARE_COMMANDS:
+		_history_add_words(known, str(row[0]))
+	for pair in UI5_VERB_WORDS:
+		_history_add_words(known, str(pair[0]))
+	var marshals = _last_game_state.get("marshals", {})
+	if marshals is Dictionary:
+		for key in marshals.keys():
+			_history_add_words(known, str(key))
+			_history_add_words(known, Utils.humanize_entity_name(str(key)))
+	var enemies = _last_game_state.get("enemies", {})
+	if enemies is Dictionary:
+		for key in enemies.keys():
+			_history_add_words(known, str(key))
+			_history_add_words(known, Utils.humanize_entity_name(str(key)))
+	for region in _region_names():
+		_history_add_words(known, str(region))
+	_history_known = known
+	_history_known_built = true
+	return known
+
+
+static func _history_add_words(known: Dictionary, text: String) -> void:
+	for w in _history_words(text):
+		known[str(w)] = true
+
+
+static func _history_words(text: String) -> PackedStringArray:
+	"""A line's words, as the history's test reads them: lower case, split at
+	anything that is not a letter or a digit (a comma, an apostrophe, a
+	hyphen, a typographic mark)."""
+	var clean := ""
+	for ch in text.to_lower():
+		var c: String = str(ch)
+		var code: int = c.unicode_at(0)
+		var letter: bool = (code >= 48 and code <= 57) or (code >= 97 and code <= 122) \
+			or (code > 191 and not HISTORY_BREAKS.contains(c))
+		clean += c if letter else " "
+	return clean.split(" ", false)

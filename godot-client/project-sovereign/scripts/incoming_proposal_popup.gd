@@ -21,7 +21,11 @@ signal first_open_seen(screen: String)
 
 # PC-F46 (S15 head): the letter's box as a fraction of the logical viewport —
 # the authored 680 x 440 is the floor (`incoming_proposal_popup.tscn`).
-const LETTER_HEIGHT_FRACTION := 0.8
+# Session UI-6 (the lead's frame reading, November 13): the words now stand
+# inside the torn rim (LETTER_SHEET_PAD_X / _Y), two lines more on a long
+# letter — the ceiling rises 0.8 -> 0.88 so "What each answer does" and the
+# lapse line stay above the fold (PC-F46's own purpose).
+const LETTER_HEIGHT_FRACTION := 0.88
 const LETTER_WIDTH_FRACTION := 0.45
 const LETTER_MIN_WIDTH := 680.0
 const LETTER_MIN_HEIGHT := 440.0
@@ -93,6 +97,11 @@ func _assessment_block() -> String:
 	Folded, its first sentence and a more/less link (`Utils.bb_note`)."""
 	if _assessment_text == "":
 		return ""
+	# Session UI-6: a client's petition prints Talleyrand's reading WHOLE, in the
+	# bright body ink (the readers: "truncated", "dim"). A reading is short; the
+	# fold stays for the longer assessments of a court's treaty.
+	if _assessment_id == NOTE_PETITION and Utils.explanations_folded():
+		return "\n[color=#" + Utils.COLOR_TEXT + "]" + _assessment_text + "[/color]\n"
 	var cut := _assessment_text.find(". ")
 	var summary := _assessment_text
 	var rest := ""
@@ -147,12 +156,20 @@ func _petition_figure_rows(clauses: Array, grant_figs: Array, refuse_figs: Array
 	return out
 
 
+func _chip(text: String, tone_hex: String) -> String:
+	"""Session UI-6: a consequence chip at body size with room around it (the
+	shared badge hugs its words; the readers: "the chip text is small, enlarge
+	the consequence chips"). The tone and the ink are the badge's own."""
+	return "[table=1,baseline][cell bg=#" + tone_hex + "66 padding=10,6,10,6][color=#" + Utils.COLOR_TEXT + "]" \
+		+ text.replace(" ", " ") + "[/color]" + Utils.CHIP_CLOSE
+
+
 func _figure_row(label: String, figures: Array, tone_hex: String, label_hex: String = "") -> String:
 	var row := "[color=#" + (label_hex if label_hex != "" else tone_hex) + "][b][opentype_features=smcp]" + label \
 		+ "[/opentype_features][/b][/color]  "
 	var badges: Array = []
 	for fig in figures:
-		badges.append(Utils.bb_badge(str(fig), tone_hex))
+		badges.append(_chip(str(fig), tone_hex))
 	return row + " ".join(badges) + "\n"
 
 
@@ -280,6 +297,10 @@ func show_proposal(data: Dictionary):
 		var pet_pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, pet_pers_str, from_display]
 		bbcode += "[b]The petition:[/b]\n"
+		# Session UI-6: the figure rows lead with chips whose tops touch the heading's
+		# descenders; folded, the heading keeps one line of its own air.
+		if figure_mode:
+			bbcode += "\n"
 		panel_style.border_color = _default_border_color
 	elif is_counter:
 		# Counter-offer: distinct header + context
@@ -709,6 +730,70 @@ func _moment_quote(data: Dictionary, action: String) -> String:
 	return str(_moment_answer(data, action).get("quote", ""))
 
 
+const PARA_ABBREVIATIONS := ["St", "Mr", "Mrs", "Dr", "Gen", "Col", "Capt", "Mme", "Mlle", "No", "vs", "Fr", "Ft", "Mt"]
+const PARA_SENTENCES := 2
+const PARA_MIN_CHARS := 150
+
+
+func _gap() -> String:
+	"""Session UI-6: the break between a letter's parts. The lead's frame
+	reading (November 13): a whole blank line between every part (and between
+	every group of sentences) pushed "What each answer does" — the answers'
+	costs — below the sheet's fold on the longer letters. A part opens on its
+	own line, as HEAD set it (each part has its own face or rubric); a new
+	paragraph inside a passage is marked as a letter is set — its first line
+	indented (`PARA_INDENT`), no blank line."""
+	return "\n"
+
+
+# a printed letter's paragraph mark: two em spaces at the new paragraph's head
+const PARA_INDENT := "\u2003\u2003"
+
+
+func _paragraphs(text: String) -> String:
+	"""Session UI-6 (the readers: "a dense block ... break the text into short
+	paragraphs"): a long passage is set in groups of `PARA_SENTENCES` sentences,
+	each group its own paragraph. Layout only - the same words in the same order;
+	only the space after a group's last full stop becomes a break. A sentence
+	ends at . ! or ? then a space then a capital or an opening quote, and not
+	after a known abbreviation."""
+	if text.length() < PARA_MIN_CHARS:
+		return text
+	var sentences: Array = []
+	var start := 0
+	var i := 0
+	var n := text.length()
+	while i < n - 2:
+		var c := text[i]
+		if (c == "." or c == "!" or c == "?") and text[i + 1] == " ":
+			var nxt := text[i + 2]
+			var opens: bool = nxt == "\"" or nxt == "“" or (nxt != nxt.to_lower() and nxt == nxt.to_upper())
+			if not opens:
+				i += 1
+				continue
+			var j := i
+			while j > start and text[j - 1] != " ":
+				j -= 1
+			var token := text.substr(j, i - j)
+			if c == "." and (token in PARA_ABBREVIATIONS or token.length() == 1):
+				i += 1
+				continue
+			sentences.append(text.substr(start, i + 1 - start))
+			start = i + 2
+			i = start
+			continue
+		i += 1
+	sentences.append(text.substr(start))
+	if sentences.size() <= PARA_SENTENCES:
+		return text
+	var groups: Array = []
+	var k := 0
+	while k < sentences.size():
+		groups.append(" ".join(PackedStringArray(sentences.slice(k, k + PARA_SENTENCES))))
+		k += PARA_SENTENCES
+	return ("\n" + PARA_INDENT).join(PackedStringArray(groups))
+
+
 func _build_moment_body(data: Dictionary) -> String:
 	"""S14c (docs/EVENTS_SPEC.md §2's copy contract): the record, the board
 	(derived lines), then what each answer does — the plan's own quotes, the
@@ -729,17 +814,17 @@ func _build_moment_body(data: Dictionary) -> String:
 	if fo is Dictionary and str(fo.get("line", "")) != "":
 		out += "[color=#" + Utils.INK_SEPIA + "]" + _moment_text(fo.get("line", "")) + "[/color]\n"
 		first_open_seen.emit(str(fo.get("screen", "moment_letter")))
-	var writer_line := _moment_text(data.get("line", ""))
+	var writer_line := _paragraphs(_moment_text(data.get("line", "")))
 	if writer_line != "":
-		out += writer_line + "\n"
-	var record := _moment_text(data.get("record", ""))
+		out += writer_line + _gap()
+	var record := _paragraphs(_moment_text(data.get("record", "")))
 	if record != "":
-		out += "[font=" + LETTER_FELL_ITALIC + "]" + record + "[/font]\n"
-	var exhibit := _moment_text(data.get("exhibit", ""))
+		out += "[font=" + LETTER_FELL_ITALIC + "]" + record + "[/font]" + _gap()
+	var exhibit := _paragraphs(_moment_text(data.get("exhibit", "")))
 	if exhibit != "":
 		var exhibit_from := _moment_text(data.get("exhibit_from", EXHIBIT_FROM_DEFAULT))
 		out += "[color=#" + Utils.INK_RUBRIC + "]" + exhibit_from.to_upper() + "[/color]\n"
-		out += "[font=" + LETTER_FELL_ROMAN + "]" + exhibit + "[/font]\n"
+		out += "[font=" + LETTER_FELL_ROMAN + "]" + exhibit + "[/font]" + _gap()
 	var board = data.get("board", [])
 	if board is Array:
 		for line in board:
@@ -748,7 +833,8 @@ func _build_moment_body(data: Dictionary) -> String:
 			out += "[color=#" + Utils.INK_RUBRIC + "]" + LETTER_FLEURON + "[/color] " + _moment_text(line) + "\n"
 	var answers = data.get("answers", [])
 	if answers is Array and answers.size() > 0:
-		out += "[color=#" + Utils.INK_RUBRIC + "][b]" + "What each answer does".to_upper() + "[/b][/color]\n"
+		# one gap, never two: the board's lines end on their own newline
+		out = out.trim_suffix("\n") + _gap() + "[color=#" + Utils.INK_RUBRIC + "][b]" + "What each answer does".to_upper() + "[/b][/color]\n"
 		for a in answers:
 			if not (a is Dictionary):
 				continue
@@ -1057,6 +1143,9 @@ const LETTER_BUTTON_MIN_HEIGHT := 56.0
 const LETTER_BUTTON_LINE_MAX := 40
 const LETTER_BEAT_SECONDS := 0.8
 const LETTER_SEAL_PX := 48.0
+# Session UI-6: the torn rim reaches ~40 px into the sheet; the words stay inside it
+const LETTER_SHEET_PAD_X := 40.0
+const LETTER_SHEET_PAD_Y := 34.0
 const NOT_NOW_DESK_LINE := "waits on the desk"
 const EXHIBIT_FROM_DEFAULT := "FROM HAITI —"
 
@@ -1088,11 +1177,11 @@ func _ensure_letter_dress() -> void:
 	for side in ["left", "right"]:
 		_sheet.set("texture_margin_" + side, 48.0)
 		_sheet.set("expand_margin_" + side, 12.0)
-		_sheet.set("content_margin_" + side, 24.0)
+		_sheet.set("content_margin_" + side, LETTER_SHEET_PAD_X)
 	for side in ["top", "bottom"]:
 		_sheet.set("texture_margin_" + side, 40.0)
 		_sheet.set("expand_margin_" + side, 12.0)
-		_sheet.set("content_margin_" + side, 24.0)
+		_sheet.set("content_margin_" + side, LETTER_SHEET_PAD_Y)
 	# High contrast: a flat cream sheet under the same ink (the ink IS the
 	# contrast; `Utils.contrast_node` raises mid greys only, never ink)
 	_sheet_hc = StyleBoxFlat.new()
@@ -1135,16 +1224,13 @@ func _ensure_letter_dress() -> void:
 	_dateline_label.add_theme_font_override("font", _cinzel)
 	_dateline_label.add_theme_color_override("font_color", Color.html(Utils.INK_RUBRIC))
 	_letterhead.add_child(_dateline_label)
-	# the seal well: a faint wax-red ring (a bordered round Panel)
+	# Session UI-6: the empty ring was a stray element (the readers) - the court's
+	# arms already stand at the head (the device slot), so the well is only the
+	# device's width of nothing, keeping the dateline centred on the sheet.
 	_seal_well = Panel.new()
 	_seal_well.custom_minimum_size = Vector2(LETTER_DEVICE_PX, LETTER_DEVICE_PX)
 	_seal_well.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ring := StyleBoxFlat.new()
-	ring.bg_color = Color(0, 0, 0, 0)
-	ring.border_color = Color(Color.html(Utils.INK_RUBRIC), 0.35)
-	ring.set_border_width_all(1)
-	ring.set_corner_radius_all(int(LETTER_DEVICE_PX / 2.0))
-	_seal_well.add_theme_stylebox_override("panel", ring)
+	_seal_well.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	_letterhead.add_child(_seal_well)
 	var vbox := $PanelContainer/VBoxContainer
 	vbox.add_child(_letterhead)

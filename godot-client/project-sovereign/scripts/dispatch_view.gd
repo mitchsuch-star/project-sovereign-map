@@ -116,6 +116,7 @@ const CORR_SHEET_FIELD := Rect2(72, 64, 496, 352)   # the sheet's un-torn inner 
 const CORR_DEVICE_PX := 40.0
 const CORR_GLYPH_PX := 28.0
 const CORR_SLIP_GAP := 14
+const CORR_SLIP_GAP_FOLDED := 10   # Session UI-6: Folded, the rows stand closer
 const CORR_SEAL_PX := 30.0       # Session UI-2: the wax seal, larger (was 18)
 const CORR_SCROLL_FLOOR := 160.0                     # the scene's authored scroll minimum (the page never fits smaller)
 const CORR_CHIP_BG := "1A1A2E"                       # the theme's navy plaque under a gold chip
@@ -168,12 +169,38 @@ func _ensure_banner(key: String = "dispatch", cap_h: float = 0.0) -> void:
 	_banner = Illustrations.make_banner(key, w)
 	if _banner == null:
 		return
+	# Session UI-6: the courier's face is never cut (the centred cover crop took his hat).
+	if key == "dispatch":
+		_focus_banner(_banner, w, BANNER_FOCUS_Y)
 	# Session UI-5 interim fix (Nov 13): the Correspondence page wears
 	# its own wide scene (the catalogue's "correspondence"), capped low so more of the desk shows.
 	if cap_h > 0.0:
 		_banner.custom_minimum_size.y = minf(_banner.custom_minimum_size.y, cap_h)
 	box.add_child(_banner)
 	box.move_child(_banner, 1)
+
+const BANNER_FOCUS_Y := 0.12   # Session UI-6: the share of the spare height cropped from the TOP (0 = keep the top)
+
+
+func _focus_banner(rect: TextureRect, width: float, focus_y: float) -> void:
+	"""Session UI-6: crop the banner's picture to its 3:1 frame by hand, the
+	spare height taken mostly from below (`focus_y` = the share taken above), so
+	a subject near the top - a face under a plume - stays whole. The cover mode
+	then only trims a hair if the window is a little wider than asked."""
+	var tex: Texture2D = rect.texture
+	var h: float = rect.custom_minimum_size.y
+	if tex == null or h <= 0.0 or width <= 0.0:
+		return
+	var tw: float = float(tex.get_width())
+	var th: float = float(tex.get_height())
+	var rh: float = tw * h / width
+	if rh >= th:
+		return
+	var atlas := AtlasTexture.new()
+	atlas.atlas = tex
+	atlas.region = Rect2(0.0, (th - rh) * clampf(focus_y, 0.0, 1.0), tw, rh)
+	rect.texture = atlas
+
 
 func refresh_pinned() -> void:
 	"""UXR-D4 (Pre-Deploy S12b): the Side Desk re-reads a pinned screen
@@ -237,7 +264,9 @@ func _on_dispatch_received(response):
 	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
 
 	# ═══ DISPATCH HEADER ═══
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+	# Session UI-6: the header rules are centred hairlines, the Moniteur's form.
+	var dispatch_rule := "[center][img width=420 height=1 color=#" + Utils.COLOR_GOLD + "99]" + Utils.SWATCH + "[/img][/center]\n"
+	bbcode += dispatch_rule
 	# HC-0: dated header on anchored campaigns ("" keeps plain "Turn N").
 	var calendar_label = str(data.get("calendar_label", ""))
 	var turn_text = "Turn " + str(turn_num)
@@ -250,10 +279,17 @@ func _on_dispatch_received(response):
 	var lead_line := "[color=#" + Utils.COLOR_INFO + "]" + lead_words + "[/color]\n"
 	bbcode += "[center]" + Utils.HEAD_OPEN + "MORNING DISPATCH — " + turn_text + Utils.HEAD_CLOSE + Utils.lead_mark(lead_words, "dispatch.lead") + "[/center]\n"
 	bbcode += "[center][color=#" + Utils.COLOR_INFO + "]Chief of Staff Berthier reporting[/color][/center]\n"
-	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
+	bbcode += dispatch_rule
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += Utils.bb_lead(lead_line, "dispatch.lead")
 	bbcode += "\n"
+	# Session UI-6 (the press): Folded, the situation's headline figures lead as a
+	# row of tiles directly under the title line, before the beats (the readers:
+	# "the key figures are buried"). On the page the figures stay under SITUATION.
+	if Utils.explanations_folded():
+		bbcode += _headline_tiles(situation, Utils.lead_mark(
+				"France holds " + str(int(situation.get("player_regions", 0))) + " regions. Treasury: " + _format_number(int(situation.get("treasury", 0))) + "g.",
+				"dispatch.situation"))
 	var congress_at := bbcode.length()
 
 	# ═══ W6-3 HEADLINE — the turn's top story, then up to 2 sub-beats ═══
@@ -264,7 +300,9 @@ func _on_dispatch_received(response):
 		var sub_beats = headline.get("sub_beats", [])
 		if sub_beats is Array:
 			for beat in sub_beats:
-				bbcode += "[color=#" + Utils.COLOR_INFO + "]  • " + str(beat) + "[/color]\n"
+				# Session UI-6: Folded, the beats stand in the brighter ink.
+				var beat_hex: String = Utils.COLOR_TEXT if Utils.explanations_folded() else Utils.COLOR_INFO
+				bbcode += "[color=#" + beat_hex + "]  • " + str(beat) + "[/color]\n"
 		bbcode += "\n"
 	# S14E-X122 (S14f part 2): the re-read keeps the morning's headline and
 	# Berthier's note by design (re-deriving them is not a pure read) while the
@@ -306,7 +344,8 @@ func _on_dispatch_received(response):
 	# live chip) never folds: Folded it keeps a line of its own.
 	var holds_words: String = "France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g (" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")"
 	var holds_line: String = "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix + "\n"
-	bbcode += _situation_figures(situation, Utils.lead_mark(holds_words, "dispatch.situation"))
+	if not Utils.explanations_folded():
+		bbcode += _situation_figures(situation, Utils.lead_mark(holds_words, "dispatch.situation"))
 	if not Utils.explanations_folded() or Utils.show_note("dispatch.situation"):
 		bbcode += holds_line
 	elif sink_suffix != "":
@@ -874,6 +913,32 @@ const _SECTION_KINDS := {
 }
 
 
+func _headline_tiles(situation: Dictionary, fold_mark: String = "") -> String:
+	"""Session UI-6: the page's headline figures as tiles - a caption over a glyph
+	and a title-face figure each: regions held, the treasury and its turn, the
+	authority, the enemy's estimated strength. The same fields `_situation_figures`
+	read; nothing is derived. Its own card, then a blank line."""
+	var heads: Array = ["Regions", "Treasury", "Authority"]
+	var delta := int(situation.get("treasury_delta", 0))
+	var delta_hex: String = Utils.COLOR_SUCCESS if delta >= 0 else Utils.COLOR_ERROR
+	var cells: Array = [
+		Utils.bb_glyph("europe", 20) + " " + Utils.HEAD_OPEN + str(int(situation.get("player_regions", 0))) + Utils.HEAD_CLOSE,
+		Utils.bb_glyph("gold", 20) + " " + Utils.HEAD_OPEN + _format_number(int(situation.get("treasury", 0))) + "g" + Utils.HEAD_CLOSE
+			+ " [color=#" + delta_hex + "](" + ("+" if delta >= 0 else "") + _format_number(delta) + ")[/color]",
+		Utils.bb_glyph("authority", 20) + " " + Utils.HEAD_OPEN + str(int(situation.get("authority", 100))) + Utils.HEAD_CLOSE,
+	]
+	var no_army = situation.get("no_field_army", false)
+	var broke = situation.get("bankrupt", false)
+	if not (typeof(broke) == TYPE_BOOL and broke) and not (typeof(no_army) == TYPE_BOOL and no_army):
+		heads.append("Enemy strength")
+		cells.append(Utils.bb_glyph("threat", 20) + " " + Utils.HEAD_OPEN + str(int(situation.get("strength_ratio_pct", 0))) + "%" + Utils.HEAD_CLOSE)
+	cells[cells.size() - 1] = str(cells[cells.size() - 1]) + fold_mark
+	var expand: Array = []
+	for _h in heads:
+		expand.append(1)
+	return Utils.card_open() + Utils.bb_table(heads, [cells], [], expand) + Utils.CARD_CLOSE + "\n\n"
+
+
 func _situation_figures(situation: Dictionary, fold_mark: String = "") -> String:
 	"""The figure line that leads SITUATION: regions held, the treasury and its
 	turn, the authority, the enemy's estimated strength — each a glyph, a figure
@@ -1143,7 +1208,8 @@ func _render_correspondence(data: Dictionary) -> void:
 	"""The one column: the first-open line (once), ON THE DESK, IN THE
 	OFFING, ANSWERED newest first, LEFT UNANSWERED / SET ASIDE, the closing
 	record of a closed file. Every row is the backend's; nothing is derived here."""
-	corr_box.add_theme_constant_override("separation", CORR_SLIP_GAP)
+	var folded: bool = Utils.explanations_folded()
+	corr_box.add_theme_constant_override("separation", CORR_SLIP_GAP_FOLDED if folded else CORR_SLIP_GAP)
 	for child in corr_box.get_children():
 		corr_box.remove_child(child)
 		child.queue_free()
@@ -1158,27 +1224,43 @@ func _render_correspondence(data: Dictionary) -> void:
 	var standing = data.get("standing", [])
 	if not (standing is Array):
 		standing = []
-	_add_corr_head("ON THE DESK (%d)" % standing.size(), "letters that wait for the Emperor")
-	if standing.is_empty():
-		_add_corr_note(str(empty.get("desk", "")), Utils.COLOR_INFO)
+	# Session UI-6: Folded, an empty section says so in ONE quiet line - its
+	# heading carries the backend's own empty sentence - never a line of its own
+	# that the scroll can leave below the fold.
+	if standing.is_empty() and folded and str(empty.get("desk", "")) != "":
+		_add_corr_head("ON THE DESK (0)", str(empty.get("desk", "")))
+	else:
+		_add_corr_head("ON THE DESK (%d)" % standing.size(), "letters that wait for the Emperor")
+		if standing.is_empty():
+			_add_corr_note(str(empty.get("desk", "")), Utils.COLOR_INFO)
 	for row in standing:
 		if row is Dictionary:
 			_add_slip(row, "standing")
 	var offing = data.get("offing", [])
 	if not (offing is Array):
 		offing = []
-	_add_corr_head("IN THE OFFING", "matters that may yet write; none is promised")
-	if offing.is_empty():
-		_add_corr_note(str(empty.get("offing", "")), Utils.COLOR_INFO)
+	if offing.is_empty() and folded and str(empty.get("offing", "")) != "":
+		_add_corr_head("IN THE OFFING", str(empty.get("offing", "")))
+	else:
+		_add_corr_head("IN THE OFFING", "matters that may yet write; none is promised")
+		if offing.is_empty():
+			_add_corr_note(str(empty.get("offing", "")), Utils.COLOR_INFO)
 	for line in offing:
 		# Session UI-4: each offing item led by a glyph ("icons and spacing so it reads as an inbox")
-		_add_corr_note(str(line), Utils.COLOR_INFO, "turn")
+		if folded:
+			_add_offing_row(str(line))
+		else:
+			_add_corr_note(str(line), Utils.COLOR_INFO, "turn")
 	var answered = data.get("answered", [])
 	if not (answered is Array):
 		answered = []
-	_add_corr_head("ANSWERED (%d)" % answered.size(), "newest first")
-	if answered.is_empty():
-		_add_corr_note(str(empty.get("answered", "")), Utils.COLOR_INFO)
+	if answered.is_empty() and folded:
+		var none_words: String = str(empty.get("answered", ""))
+		_add_corr_head("ANSWERED (0)", none_words if none_words != "" else "Nothing has yet been answered.")
+	else:
+		_add_corr_head("ANSWERED (%d)" % answered.size(), "newest first")
+		if answered.is_empty():
+			_add_corr_note(str(empty.get("answered", "")), Utils.COLOR_INFO)
 	for row in answered:
 		if row is Dictionary:
 			_add_slip(row, "answered")
@@ -1208,6 +1290,27 @@ func _add_corr_head(text: String, sub: String) -> void:
 		bb += "  [color=#" + Utils.COLOR_INFO + "]— " + sub + "[/color]"
 	head.text = bb
 	corr_box.add_child(head)
+
+
+func _add_offing_row(line: String) -> void:
+	"""Session UI-6 (Folded): an offing matter as a compact row - the glyph, who may
+	write (in the gold), then the condition. The backend's line is
+	"condition - Name may write of ..."; the words are only reordered."""
+	var cut: int = line.rfind(" — ")
+	if cut <= 0 or cut + 3 >= line.length():
+		_add_corr_note(line, Utils.COLOR_INFO, "turn")
+		return
+	var cond: String = line.substr(0, cut)
+	var who: String = line.substr(cut + 3)
+	var note := RichTextLabel.new()
+	note.bbcode_enabled = true
+	note.fit_content = true
+	note.scroll_active = false
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	note.mouse_filter = Control.MOUSE_FILTER_PASS
+	note.text = Utils.bb_glyph("turn", 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "]" + _corr_esc(who) \
+			+ "[/color] [color=#" + Utils.COLOR_INFO + "]· " + _corr_esc(cond) + "[/color]"
+	corr_box.add_child(note)
 
 
 func _add_corr_note(text: String, hex: String, glyph: String = "") -> void:
@@ -1287,8 +1390,36 @@ func _add_slip(row: Dictionary, kind: String) -> void:
 	body.text = _corr_body_bbcode(row, kind)
 	body.meta_clicked.connect(_on_corr_meta)
 	box.add_child(body)
+	if kind == "standing" and Utils.explanations_folded() and int(row.get("mailbox_id", 0)) > 0:
+		box.add_child(_corr_primary_action(int(row.get("mailbox_id", 0))))
 	panel.add_child(box)
 	corr_box.add_child(panel)
+
+
+func _corr_primary_action(mailbox_id: int) -> Control:
+	"""Session UI-6: the sealed letter's action, a larger gilt primary of its own
+	(the readers: "a thin footer button; make the sealed letter a larger action") -
+	the title face, a glyph, navy ink on the gilt. The same `corr:read:<id>` meta the
+	old chip carried (`_on_corr_meta`), on a label of its own."""
+	var action := RichTextLabel.new()
+	action.bbcode_enabled = true
+	action.fit_content = true
+	action.scroll_active = false
+	action.autowrap_mode = TextServer.AUTOWRAP_OFF   # one fixed line (UXR-2's scroll census)
+	action.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action.mouse_filter = Control.MOUSE_FILTER_PASS
+	action.theme_type_variation = &"BodyLargeRich"
+	var ink: String = Utils.UI_INK_NAVY.to_html(false)
+	# the label is all gilt chip: its base ink is the navy too (the contrast census
+	# measures a label's default colour as well as its spans, and the theme's white
+	# read 1.7 : 1 on the gilt though no word was drawn in it)
+	action.add_theme_color_override("default_color", Utils.UI_INK_NAVY)
+	action.text = "[font=" + Utils.TITLE_FONT + "]" + Utils.CHIP_OPEN_HEAD + Utils.COLOR_GOLD + Utils.CHIP_RIM_ALPHA + " bg=#" + Utils.COLOR_GOLD \
+			+ " padding=14,6,14,6][url=" + "corr:read:" + str(mailbox_id) + "]" \
+			+ "[color=#" + ink + "]" + Utils.bb_glyph("letter", 20, ink) + Utils.CHIP_PAD + "Read\u00A0the\u00A0letter\u00A0▸" + Utils.CHIP_PAD + "[/color][/url]" \
+			+ Utils.CHIP_CLOSE + "[/font]"
+	action.meta_clicked.connect(_on_corr_meta)
+	return action
 
 
 func _corr_rubric(row: Dictionary, kind: String) -> String:
@@ -1333,7 +1464,8 @@ func _corr_body_bbcode(row: Dictionary, kind: String) -> String:
 		if not parts.is_empty():
 			lines.append("[color=#" + Utils.INK_BODY + "]" + "  ·  ".join(parts) + "[/color]")
 		var mailbox_id := int(row.get("mailbox_id", 0))
-		if mailbox_id > 0:
+		# Session UI-6: Folded, the chip is the slip's own gilt action (`_corr_primary_action`).
+		if mailbox_id > 0 and not Utils.explanations_folded():
 			lines.append(Utils.bb_button_chip("corr:read:" + str(mailbox_id), "Read the letter ▸", Utils.COLOR_GOLD, CORR_CHIP_BG))
 		return "\n".join(lines)
 	# answered: what it did, what came of it (at sea, or the echo), the fate, the chips

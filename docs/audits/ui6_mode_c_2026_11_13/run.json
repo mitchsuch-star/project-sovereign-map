@@ -1,0 +1,255 @@
+{
+ "port": 8006,
+ "started": "2026-11-13T15:14:55",
+ "engine_exit": 0,
+ "engine_s": 27.1,
+ "engine_log_bytes": 479,
+ "script_errors": [],
+ "engine_errors": 0,
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "ms": 25521,
+  "results": [
+   {
+    "did": "booted the real main.tscn and cleared the boot overlays",
+    "ok": true,
+    "saw": "booted=true turn=1 row chips=[\"Ney\", \"Davout\", \"Soult\"]",
+    "step": "boot"
+   },
+   {
+    "card": {
+     "lit": [
+      1,
+      2,
+      4,
+      5
+     ],
+     "marshal": "Ney",
+     "specs": 7,
+     "title": "Right-click a province: march · an enemy: attack · a marshal: support · Esc cancels\n■ this turn   ■ 1 turn   ■ 2–3 turns   ■ 4+ turns   59 provinces on his road ...",
+     "visible": true
+    },
+    "did": "selected Ney through the row (chip click)",
+    "ok": true,
+    "saw": "selected=Ney card visible=true slots=7 lit=[1, 2, 4, 5]",
+    "step": "marshal_row"
+   },
+   {
+    "did": "pushed digit 1 with Ney selected and the line empty",
+    "log_tail": "staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Ney, hold\nNey will hold Rhineland. Holding position. He will drop this order for any battle within two provinces in a war of ours. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)\n   [2/4 actions remaining]\n\n",
+    "ok": true,
+    "saw": "log last line: '[2/4 actions remaining]' (changed=true) selected_now=Davout ap=2",
+    "slot": 1,
+    "step": "digit"
+   },
+   {
+    "did": "right-clicked Swabia next to Davout (order_context_requested)",
+    "ok": true,
+    "province": "Swabia",
+    "saw": "order card open=true title='ORDERS FOR DAVOUT' command='Davout, march to Swabia'",
+    "step": "right_click"
+   },
+   {
+    "did": "pressed the card's send",
+    "log_tail": "s to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Ney, hold\nNey will hold Rhineland. Holding position. He will drop this order for any battle within two provinces in a war of ours. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)\n   [2/4 actions remaining]\n\n\n► Davout, march to Swabia\n\n⚠ Marshal Davout raises concerns...\n\n",
+    "ok": true,
+    "saw": "log last line: '⚠ Marshal Davout raises concerns...'; card still open=false",
+    "step": "right_click_send"
+   },
+   {
+    "did": "answered the marshal's objection: Cancel the Order",
+    "ok": true,
+    "saw": "log last line: 'The order to Davout is withdrawn, Sire — nothing is spent.'",
+    "step": "objection_answered"
+   },
+   {
+    "did": "typed 'Ney, attack Mack', waited ~0.8 s",
+    "ok": true,
+    "saw": "▸ Ney · attack Mack (Swabia) · 1 action",
+    "step": "readback_ney"
+   },
+   {
+    "did": "typed 'Kutuzov, retreat', waited ~0.8 s",
+    "ok": true,
+    "saw": "✕ Kutuzov serves Russia — he does not answer to us · free refusal",
+    "step": "readback_fog"
+   },
+   {
+    "did": "typed 'Zorglub, retreat', waited ~0.8 s",
+    "ok": true,
+    "saw": "? No marshal ‘Zorglub’ of ours",
+    "step": "readback_unknown"
+   },
+   {
+    "did": "pressed G",
+    "ok": true,
+    "saw": "generals visible=true roster rows=8",
+    "step": "generals_open"
+   },
+   {
+    "did": "pressed 'On the map' for Davout",
+    "ok": true,
+    "saw": "button found=true screen closed=true selected=Davout",
+    "step": "generals_on_the_map"
+   },
+   {
+    "did": "set Interface Scale 2.0 (was 1.80)",
+    "ok": true,
+    "saw": "compact_view=true slim bar mode=true desk=bar",
+    "step": "compact_bar"
+   },
+   {
+    "did": "toggled the log drawer open (reply-line road)",
+    "ok": true,
+    "saw": "log drawer open=true",
+    "step": "compact_log_open"
+   },
+   {
+    "did": "pushed Esc",
+    "ok": true,
+    "saw": "drawer open after Esc=false",
+    "step": "compact_log_esc"
+   },
+   {
+    "did": "restored Interface Scale",
+    "ok": true,
+    "saw": "scale=1.80 bar_mode=false",
+    "step": "scale_restored"
+   }
+  ],
+  "steps": [
+   {
+    "frame": "UI6_WALK_01_boot_2026_11_13.jpg",
+    "ms": 13151,
+    "note": "the war room after the backend's first board",
+    "saved": true,
+    "step": "boot",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_02_marshal_row_2026_11_13.jpg",
+    "ms": 13740,
+    "note": "the selection card for Ney, its seven slots",
+    "saved": true,
+    "step": "marshal_row",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_03_digit_2026_11_13.jpg",
+    "ms": 14767,
+    "note": "slot 1 by its digit; the reply in the log",
+    "saved": true,
+    "step": "digit",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_04_right_click_card_2026_11_13.jpg",
+    "ms": 15617,
+    "note": "the march card for Swabia",
+    "saved": true,
+    "step": "right_click_card",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_05_right_click_sent_2026_11_13.jpg",
+    "ms": 16209,
+    "note": "the march sent; the reply in the log",
+    "saved": true,
+    "step": "right_click_sent",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_06_objection_answered_2026_11_13.jpg",
+    "ms": 16820,
+    "note": "the objection answered; the line open again",
+    "saved": true,
+    "step": "objection_answered",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_07_readback_ney_2026_11_13.jpg",
+    "ms": 18429,
+    "note": "readback of 'Ney, attack Mack'",
+    "saved": true,
+    "step": "readback_ney",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_08_readback_fog_2026_11_13.jpg",
+    "ms": 19940,
+    "note": "readback of 'Kutuzov, retreat'",
+    "saved": true,
+    "step": "readback_fog",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_09_readback_unknown_2026_11_13.jpg",
+    "ms": 21431,
+    "note": "readback of 'Zorglub, retreat'",
+    "saved": true,
+    "step": "readback_unknown",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_10_readback_cleared_2026_11_13.jpg",
+    "ms": 21702,
+    "note": "the line cleared, the reading gone",
+    "saved": true,
+    "step": "readback_cleared",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_11_generals_2026_11_13.jpg",
+    "ms": 22306,
+    "note": "the master-detail roster",
+    "saved": true,
+    "step": "generals",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_12_generals_on_the_map_2026_11_13.jpg",
+    "ms": 23118,
+    "note": "the screen shut, he is selected on the map",
+    "saved": true,
+    "step": "generals_on_the_map",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_13_bar_2_0_2026_11_13.jpg",
+    "ms": 24231,
+    "note": "Interface Scale 2.0: the slim bar",
+    "saved": true,
+    "step": "bar_2_0",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_14_bar_log_open_2026_11_13.jpg",
+    "ms": 24598,
+    "note": "the log drawer open above the line",
+    "saved": true,
+    "step": "bar_log_open",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_15_bar_log_closed_2026_11_13.jpg",
+    "ms": 25003,
+    "note": "the drawer folded",
+    "saved": true,
+    "step": "bar_log_closed",
+    "turn": 1
+   },
+   {
+    "frame": "UI6_WALK_16_scale_restored_2026_11_13.jpg",
+    "ms": 25521,
+    "note": "the scale back",
+    "saved": true,
+    "step": "scale_restored",
+    "turn": 1
+   }
+  ]
+ },
+ "total_s": 28.8
+}

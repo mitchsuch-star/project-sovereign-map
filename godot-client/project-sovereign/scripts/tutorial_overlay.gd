@@ -68,6 +68,16 @@ const PROGRESS_METER_WIDTH := 180
 # a paragraph holds at most this many characters before the next sentence
 # starts a new one (the sentences are the card's own; only the breaks are new)
 const PARAGRAPH_SOFT_LIMIT := 80
+# Session UI-6 (F04): FOLDED, the lesson reads as a lead line and a short list
+# (one sentence a bullet, the words and their order the lesson's own); a sentence
+# that opens with one of these verbs carries it in bold. On the page keeps the
+# paragraphs above. The banner is a wide scene (never a face), kept short.
+const BODY_INK_HEX := "d8d4c8"
+const BANNER_MAX_HEIGHT := 84.0
+const KEY_VERBS := ["Order", "Send", "Press", "Type", "Ask", "Answer", "Spend", "Read", "Bombard",
+	"Attack", "March", "Say", "Click", "Choose", "Confirm", "Hold", "Stand", "Raise", "Hire",
+	"Scout", "Fortify", "Enact", "Open", "Restore", "Occupy", "Strike", "Compromise", "Yield"]
+const BANNER_PICTURE := {"tutorial": "ulm", "tutorial_table": "treaty"}
 
 # UXR-1 (October 9, 2026): the card is sized to the SCREEN, not to a 24-inch
 # monitor. Its width is a fraction of the logical viewport between a floor
@@ -481,7 +491,10 @@ func _ready() -> void:
 	_act_button.name = "ActButton"
 	_act_button.theme_type_variation = &"PrimaryButton"
 	_act_button.visible = false
-	_act_button.clip_text = true
+	# Session UI-6 (F04): the face wraps rather than clips, and stands tall.
+	_act_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_act_button.custom_minimum_size = Vector2(0, 40)
+	_act_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_act_button.pressed.connect(_on_act_pressed)
 	$Card/VBox.add_child(_act_button)
 	$Card/VBox.move_child(_act_button, _body.get_index() + 1)
@@ -659,7 +672,7 @@ func _war_panel_limit(view: Vector2, limit: float) -> float:
 	var card_left := view.x + _card.offset_left
 	if rect.end.x <= card_left or rect.position.y <= _card.offset_top + BODY_MIN_HEIGHT:
 		return limit
-	return minf(limit, rect.position.y - CARD_MARGIN)
+	return minf(limit, rect.position.y - 2.0 * CARD_MARGIN)
 
 
 func _on_viewport_changed() -> void:
@@ -1075,7 +1088,10 @@ func _render() -> void:
 	# the door and the skip stood below it (S14D part 2: the card reads its head,
 	# its door and its skip). A full view keeps the lesson first.
 	var acts_at := lines.size()
-	lines.append(_paragraphs(str(step["body"]), "\n" if compact else "\n\n"))
+	if Utils.explanations_folded():
+		lines.append(_lead_and_bullets(str(step["body"])))
+	else:
+		lines.append(_paragraphs(str(step["body"]), "\n" if compact else "\n\n"))
 	var waiting := int(step["turn_gate"]) > _turn
 	# TUT-F4c: an event step the war refuses (the live case — Austria's
 	# reserve massed in Bohemia while the card demanded its capture) must
@@ -1165,9 +1181,11 @@ func _sync_banner(compact: bool) -> void:
 	if compact:
 		return
 	var width: float = maxf(_card.offset_right - _card.offset_left - 20.0, 200.0)
-	_banner = Illustrations.make_banner("school", width)
+	var picture: String = Illustrations.path_of(str(BANNER_PICTURE.get(_lesson_id, "ulm")))
+	_banner = Illustrations.make_banner(picture if picture != "" else "school", width)
 	if _banner == null:
 		return
+	_banner.custom_minimum_size.y = minf(_banner.custom_minimum_size.y, BANNER_MAX_HEIGHT)
 	$Card/VBox.add_child(_banner)
 	$Card/VBox.move_child(_banner, _body.get_index())
 
@@ -1175,6 +1193,49 @@ func _sync_banner(compact: bool) -> void:
 func _on_act_pressed() -> void:
 	if _suggest_cmd != "":
 		suggest_command.emit(_suggest_cmd)
+
+
+# ── lead line and bullets (Session UI-6, F04) ───────────────────────────────
+
+static func _sentences(body: String) -> PackedStringArray:
+	"""The body cut after each sentence's end (the same rule `_paragraphs` uses)."""
+	var sentences := PackedStringArray()
+	var start := 0
+	var n := body.length()
+	var i := 0
+	while i < n - 2:
+		var ch := body[i]
+		if (ch == "." or ch == "?" or ch == "!") and body[i + 1] == " ":
+			var nxt := body[i + 2]
+			if (nxt >= "A" and nxt <= "Z") or nxt == "[":
+				sentences.append(body.substr(start, i + 1 - start))
+				start = i + 2
+				i += 2
+				continue
+		i += 1
+	sentences.append(body.substr(start))
+	return sentences
+
+
+static func _lead_and_bullets(body: String) -> String:
+	"""The first sentence as the lead line, every other sentence one bullet, a
+	key verb opening a bullet in bold gold. Same words, same order."""
+	var sentences := _sentences(body)
+	var out := "[color=#" + BODY_INK_HEX + "]" + sentences[0] + "[/color]"
+	if sentences.size() == 1:
+		return out
+	var items := PackedStringArray()
+	for i in range(1, sentences.size()):
+		var sentence: String = sentences[i]
+		var cut := sentence.find(" ")
+		var first := sentence.substr(0, cut) if cut > 0 else sentence
+		var bare := first.trim_suffix(",").trim_suffix(";")
+		if bare in KEY_VERBS:
+			sentence = "[color=#" + Utils.COLOR_GOLD + "][b]" + bare + "[/b][/color]" + sentence.substr(bare.length())
+		# The lead's frame reading (November 13): the list's bullet stood flush
+		# against its words ("•Before orders") — a bound space opens the gap.
+		items.append("[color=#" + BODY_INK_HEX + "] " + sentence + "[/color]")
+	return out + "\n[ul]" + "\n".join(items) + "[/ul]"
 
 
 # ── paragraphs (Session UI-2, H) ────────────────────────────────────────────

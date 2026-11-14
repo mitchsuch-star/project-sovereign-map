@@ -94,6 +94,16 @@ game_state = {"world": None, "debug_mode": DEBUG_MODE}
 # "bound to a different event loop" error this indirection exists to prevent.
 # The weak keys also mean entries retire with their loop instead of leaking.
 _state_locks: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()
+# UI-6 the readback (`GET /parse_preview`): a counter that moves whenever the
+# world may have — after every POST (`serialize_state_mutations`) and on every
+# world swap (`_set_active_world`). The readback caches its parse state per
+# epoch (Rule 8: `get_llm_game_state` scans every region).
+_STATE_EPOCH = 0
+
+
+def _bump_state_epoch() -> None:
+    global _STATE_EPOCH
+    _STATE_EPOCH += 1
 
 
 def get_state_lock() -> asyncio.Lock:
@@ -224,6 +234,7 @@ def _set_active_world(new_world: WorldState) -> WorldState:
     global world
     world = new_world
     game_state["world"] = new_world
+    _bump_state_epoch()   # UI-6: the readback's cache never outlives a swap
     return new_world
 
 
@@ -534,7 +545,9 @@ def _attach_nation_identity_overrides(response: dict, world) -> None:
 # enemy addressee (WO-1), and a reward whose object is one of our fallen
 # (CRT-2 / CQ-17, SR-3b) — both carry candidates=[], so without this arm
 # they fall through to the generic Berthier recovery.
-VERBATIM_PARSE_REFUSAL_KINDS = frozenset({"enemy_addressee", "fallen_recipient"})
+VERBATIM_PARSE_REFUSAL_KINDS = frozenset({"enemy_addressee", "fallen_recipient",
+                                          "compound_pronoun", "arrival_charge",
+                                          "two_orders"})    # UI6-X43 / X56 / X65
 THE_COLOURS_KNOW_OUR_FRIENDS = True      # SF7-X26: each enemy-phase battle names its sides' standing toward the player, so an ally's victory is not printed as a defeat
 
 _QUESTION_STATES = frozenset({
@@ -3116,7 +3129,10 @@ async def serialize_state_mutations(request: Request, call_next):
     """
     if request.method == "POST":
         async with get_state_lock():
-            return await call_next(request)
+            try:
+                return await call_next(request)
+            finally:
+                _bump_state_epoch()   # UI-6: the readback re-reads after any POST
     return await call_next(request)
 
 
@@ -4146,6 +4162,7 @@ def _command_delegation(ctx: CommandContext):
     from backend.commands.clarification import register_pending_clarification
     from backend.commands.delegation import (
         build_delegation_clarification,
+        delegation_is_unplaced,
         delegation_witness,
         describe_cautious_delegation,
         detect_delegation,
@@ -4153,6 +4170,7 @@ def _command_delegation(ctx: CommandContext):
         resolve_delegation_flavor,
         resolve_live_cautious_prefix,
         route_arm,
+        unplaced_delegation_message,
     )
     # ════════════════════════════════════════════════════════════
     # CR-5: PERSONALITY-BIASED DISAMBIGUATION (COMMAND_ROBUSTNESS_SPEC §6).
@@ -4214,13 +4232,35 @@ def _command_delegation(ctx: CommandContext):
             # parse (`deal with the attack on Mack`) still asks.
             _arm = route_arm(_deleg.personality,
                              delegation_witness(ctx.parsed, _deleg))
+            if _arm in ("cautious", "ask") and delegation_is_unplaced(world, _deleg):
+                # UI6-X14 (Session UI-6, November 13, 2026): a foreign
+                # commander no report of ours places — out of sight, never
+                # sighted. The cautious arm re-issued a scout of his LIVE
+                # province (read off the roster: "Bernadotte scouts Podolia …
+                # Kutuzov (Russia): ~38,000 troops", an action spent; "Podolia
+                # is too far to scout (distance: 4)") and the ASK offered
+                # "scout Podolia". Neither arm has a province to name: refused
+                # by name, free (the aggressive arm's pursuit refuses the same
+                # case in its own words).
+                _ptrace.decide("delegation", "unplaced", _deleg.target)
+                return build_base_response(
+                    world, success=False,
+                    message=unplaced_delegation_message(_deleg),
+                    action_info={
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    })
             if _arm == "cautious":
                 # Deterministic: a cautious marshal observes first (§6.2).
-                # Re-issue an explicit scout at the OBSERVE target (the
-                # enemy's location) — a plain re-parse, no LLM (Golden Rule
-                # 6). This also corrects the live LLM's unreliable target
-                # resolution (playtest: "deal with Kutuzov" mis-scouted
-                # Algarve); the detector's target is authoritative.
+                # Re-issue an explicit scout at the OBSERVE target — where
+                # the player PLACES the enemy (UI6-X14: in sight, his
+                # province; out of sight, his last sighting) — a plain
+                # re-parse, no LLM (Golden Rule 6). This also corrects the
+                # live LLM's unreliable target resolution (playtest: "deal
+                # with Kutuzov" mis-scouted Algarve); the detector's target
+                # is authoritative.
                 _reissue = f"{_deleg.marshal} scout {_deleg.scout_target}"
                 _ptrace.note("delegation", "cautious_reissue", ctx.command_text, _reissue)
                 ctx.parsed = parser.parse(_reissue, ctx.llm_game_state, world=world)
@@ -4687,11 +4727,26 @@ def _command_ordinary_road(ctx: CommandContext):
                 # fight; the honest one names what was heard and asks
                 # for the order that was not.
                 _clause = str(_detail.get("clause") or "").strip()
-                _addressee = ctx.parsed.get("partial_marshal") or "the marshal"
+                _addressee = (ctx.parsed.get("partial_marshal")
+                              or _addressed_marshal_of(world, ctx.command_text)
+                              or "the marshal")
                 _heard = f" — '{_clause}' —" if _clause else ""
+                # UI6-X18 (Session UI-6, November 13, 2026): the line says
+                # what is true of the clause's SUBJECT — "what the enemy is
+                # about" was said of one of our own ("Davout is attacking"),
+                # of a province and of a bridge.
+                from backend.ai.llm_client import reason_clause_subject
+                _kind, _subject = reason_clause_subject(_clause, world)
+                _told = {
+                    "enemy": "what the enemy is about",
+                    "friend": f"what {_subject} is about",
+                    "commander": f"what {_subject} is about",
+                    "court": f"what {_subject} is about",
+                    "province": f"what passes at {_subject}",
+                }.get(_kind, "how matters stand")
                 refusal_msg = (
-                    f"Berthier waits, pen raised. \"You have told me what "
-                    f"the enemy is about, Sire{_heard} but not what "
+                    f"Berthier waits, pen raised. \"You have told me "
+                    f"{_told}, Sire{_heard} but not what "
                     f"{_addressee} is to do about it. Nothing has been "
                     f"relayed; give me his order and I shall carry it at "
                     f"once.\"")
@@ -6938,6 +6993,23 @@ def _player_marshal_names(world) -> list:
         return []
 
 
+def _addressed_marshal_of(world, text: str) -> str:
+    """UI6-X18's sibling: the marshal of OURS a line addresses ("Ney, …"),
+    by his roster name, or "" — the reason refusal said "the marshal" of
+    "Ney, Davout is attacking" (a refused parse carries no marshal)."""
+    try:
+        from backend.ai.llm_client import ADDRESS_TOKEN_RE
+        m = ADDRESS_TOKEN_RE.match(text or "")
+        if not m:
+            return ""
+        man = world.get_marshal(m.group(1))
+        if man is not None and getattr(man, "nation", None) == world.player_nation:
+            return man.name
+    except Exception as exc:
+        _errors.report(exc, "main._addressed_marshal_of: the address token")
+    return ""
+
+
 @app.get("/dispatch")
 def get_dispatch():
     """Get the last morning dispatch for re-read screen."""
@@ -7560,6 +7632,65 @@ def get_march_reach_endpoint(marshal: str = ""):
         _errors.report(e, "main.get_march_reach_endpoint: the reach", every=True)
         return {"success": False, "error": str(e),
                 **_errors.debug_fields(e, "main.get_march_reach_endpoint: the reach", DEBUG_MODE)}
+
+
+def _posts_in_flight() -> bool:
+    """UI-6: whether a POST holds a state lock right now (an end turn mutates
+    for seconds; a GET is lock-free and must not read a half-moved world)."""
+    try:
+        return any(lock.locked() for lock in list(_state_locks.values()))
+    except Exception as e:
+        _errors.report(e, "main._posts_in_flight: the state locks")
+        return True
+
+
+def _premise_reading(text: str, target_world) -> tuple:
+    """UI-6 the readback's premise stage — `_command_parse`'s own (SF-CMD-1
+    W2): the premise read off the sentence (pure) and checked against the
+    board the player can see. Returns `(the rest of the line, refused)`;
+    nothing is written."""
+    from backend.ai.condition_grammar import (A_PREMISE_IS_CHECKED_AT_ISSUANCE,
+                                              premise_refusal, split_premise)
+    if not A_PREMISE_IS_CHECKED_AT_ISSUANCE:
+        return text, False
+    player = target_world.player_nation
+    rest, premise = split_premise(
+        text, [m.name for m in target_world.marshals.values() if m.nation != player],
+        list(target_world.regions.keys()),
+        [m.name for m in target_world.marshals.values() if m.nation == player])
+    return rest, bool(premise and premise_refusal(target_world, premise))
+
+
+@app.get("/parse_preview")
+def get_parse_preview(line: str = ""):
+    """UI-6 "The readback" (Session UI-6, November 13, 2026): how a typed
+    line WOULD be read — marshal, verb, target, price, clock, objection, or
+    the refusal — before Enter. NEVER executes, never spends an action, never
+    calls the model, never writes history, a popup or a trace; a line the
+    live model would read answers "secretary" and quotes nothing (GR6); a
+    commander out of sight is read by name and side as `/command` reads him
+    and nothing of where he stands or what he fields rides the reading (R5,
+    the doctrine of `llm_client._askable_enemy_names`); every number an int
+    (GR2). `backend/commands/parse_preview.py` is the reader; the
+    main.py-local pieces ride in at call time (tests swap the world and the
+    parser)."""
+    clipped = str(line or "")[:500]
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    try:
+        from backend.commands import parse_preview as _pp
+        return _pp.preview(
+            world, clipped,
+            llm_state=get_llm_game_state, epoch=_STATE_EPOCH,
+            lost_marshal_refusal=_addressed_lost_marshal_refusal,
+            why_rx=_WHY_RX, live_llm=getattr(parser, "llm", None),
+            posts_in_flight=_posts_in_flight,
+            unbound_addressee=executor._unbound_addressee,
+            premise_reader=_premise_reading)
+    except Exception as e:
+        _errors.report(e, "main.get_parse_preview: the readback")
+        return {"success": True, "kind": "none", "line": clipped, "parts": [],
+                "candidates": [], "epoch": int(_STATE_EPOCH)}
 
 
 @app.get("/diplomatic_preview")

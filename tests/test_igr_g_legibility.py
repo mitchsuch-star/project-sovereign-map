@@ -179,7 +179,7 @@ class TestG2PieceStacks:
                 "\t\t\t\tand int(nation_counts.get(nation, 0)) > 3)" in body)
         assert "if not in_collapsed_group:" in body
         # One label per collapsed GROUP, named from that group's own lead.
-        assert 'var stack_text := "%s +%d" % [lead_name, group_size - 1]' in body
+        assert 'var stack_text := "%s · %d more" % [lead_name, group_size - 1]' in body
         assert "if group_size <= 3:" in body
         # A second collapsed nation stacks a row higher, never overprinting.
         assert "float(stack_row) * 13.0" in body

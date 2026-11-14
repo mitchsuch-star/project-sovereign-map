@@ -338,6 +338,11 @@ class TestTheWarRoomsControlsSayWhenTheyCannotAct:
         assert "_input_open = enabled" in enable and "_refresh_send_button()" in enable
         refresh = _func(_src("scripts/main.gd"), "_refresh_send_button")
         assert "Utils.set_available(send_button, _input_open and not empty" in refresh
+        # Session UI-6 (N7): folded, Execute is a send glyph that stands only
+        # with an order on the line (Enter sends either way); On the page the
+        # authored button stands as before. Its availability is the pin above.
+        assert 'send_button.set_deferred("visible", shown)' in refresh
+        assert "var shown := (not empty) or not folded" in refresh
 
     def test_the_map_reports_its_view(self):
         rend = _code("scenes/map_renderer_base.gd")

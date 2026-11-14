@@ -44,6 +44,7 @@ from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.game_logic.intel_surfaces import whither as _whither  # UI6-X35: a foreign commander's place is the fog's
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 from backend.errors import report
 
@@ -16987,7 +16988,7 @@ class WorldState:
                         enemy.retreating = True
                         enemy.retreat_recovery = 0
                         enemy.retreated_this_turn = True
-                        forced_retreat_msg = f" {_shown_name(enemy.name)}'s broken army flees to {retreat_to}!"
+                        forced_retreat_msg = f" {_shown_name(enemy.name)}'s broken army flees{_whither(self, enemy, retreat_to)}!"
                         # S14E-X132 (XD7's sweep): a rout onto allied or neutral soil says the pay it draws.
                         from backend.commands.movement_executor import campaign_pay_line as _ac_pay
                         forced_retreat_msg += (" " + _ac_pay(self, enemy, retreat_to, old_enemy_loc)).rstrip()
@@ -17016,7 +17017,7 @@ class WorldState:
                         if enemy.strategic_order:
                             enemy.strategic_order = None
                             clear_order_bound_interrupt(enemy)  # NPC-2
-                        forced_retreat_msg = f" {_shown_name(enemy.name)}'s army is SHATTERED and flees to {spawn_loc}!"
+                        forced_retreat_msg = f" {_shown_name(enemy.name)}'s army is SHATTERED and flees{_whither(self, enemy, spawn_loc)}!"
                         self.log_event({"type": "marshal_broken", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
                                         "location": old_enemy_loc})
@@ -17035,7 +17036,7 @@ class WorldState:
                         marshal.retreat_recovery = 0
                         marshal.retreated_this_turn = True
                         marshal.clear_combat_transient_state()
-                        forced_retreat_msg += f" {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!"
+                        forced_retreat_msg += f" {_shown_name(marshal.name)}'s broken army flees{_whither(self, marshal, retreat_to)}!"
                         # S14E-X132 (XD7's sweep): ... and the charger's own rout the same.
                         from backend.commands.movement_executor import campaign_pay_line as _ac_pay
                         forced_retreat_msg += (" " + _ac_pay(self, marshal, retreat_to, old_atk_loc)).rstrip()
@@ -17065,7 +17066,7 @@ class WorldState:
                         if marshal.strategic_order:
                             marshal.strategic_order = None
                             clear_order_bound_interrupt(marshal)  # NPC-2
-                        forced_retreat_msg += f" {_shown_name(marshal.name)}'s army is SHATTERED and flees to {spawn_loc}!"
+                        forced_retreat_msg += f" {_shown_name(marshal.name)}'s army is SHATTERED and flees{_whither(self, marshal, spawn_loc)}!"
                         self.log_event({"type": "marshal_broken", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
                                         "location": old_atk_loc})

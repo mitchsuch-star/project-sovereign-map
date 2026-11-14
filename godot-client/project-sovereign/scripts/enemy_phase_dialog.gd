@@ -173,6 +173,12 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 		# for a payload that is neither.
 		content = "[color=#" + Utils.COLOR_INFO + "]No enemy actions this turn.[/color]"
 	else:
+		# Session UI-6 (F19): the report opens on ONE summary line - what the
+		# phase held, counted from the entries' own kinds - before the entries.
+		if Utils.explanations_folded():
+			var summary := _phase_summary(nations)
+			if summary != "":
+				content += Utils.bb_glyph("war", 18, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_GOLD + "][b]" + summary + "[/b][/color]\n\n"
 		for nation in nations:
 			var nation_data = nations[nation]
 			var action_count = nation_data.get("action_count", 0)
@@ -186,7 +192,10 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 			# Process each action
 			var actions = nation_data.get("actions", [])
 			for action in actions:
-				content += _format_action(action)
+				var entry_text: String = _format_action(action)
+				if Utils.explanations_folded():
+					entry_text = _lighten_details(entry_text)   # Session UI-6: detail in a lighter ink
+				content += entry_text
 
 			content += "\n"
 
@@ -216,6 +225,165 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	Utils.set_reading_share($PanelContainer, Vector2(0.5, 0.85), Vector2(820.0, 980.0))
 	Utils.clamp_centered_panel($PanelContainer)
 	Utils.fit_reading_window($PanelContainer, $PanelContainer/VBoxContainer/ContentScroll, content_label)
+	_connect_entry_snap()
+
+
+# Session UI-6 (F19) -----------------------------------------------------------
+# The detail lines of an entry were COLOR_ERROR / COLOR_INFO / the report grey on
+# the crimson-navy ground; the readers asked for a lighter ink. Each is lifted
+# toward white (the same hue) so the detail reads >= 4.5 : 1 on the ground.
+const DETAIL_LIFT := 0.35
+const DETAIL_GROUND := Color(0.102, 0.102, 0.18, 1.0)   # the dialog's own fill (enemy_phase_dialog.tscn)
+var _snap_tick := 0
+var _snap_wired := false
+
+
+func _detail_hex(hex: String) -> String:
+	"""A detail ink: `hex` lightened until it reads >= 4.5 : 1 on the dialog's
+	ground (one lift, then more only if the hue still falls short)."""
+	var c := Color.html("#" + hex)
+	var lift := DETAIL_LIFT
+	var out := c.lightened(lift)
+	while _contrast(out, DETAIL_GROUND) < 4.5 and lift < 0.95:
+		lift += 0.1
+		out = c.lightened(lift)
+	return out.to_html(false)
+
+
+func _contrast(a: Color, b: Color) -> float:
+	var la := _rel_lum(a)
+	var lb := _rel_lum(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+
+func _rel_lum(c: Color) -> float:
+	var ch: Array = []
+	for v in [c.r, c.g, c.b]:
+		var f: float = float(v)
+		ch.append(f / 12.92 if f <= 0.03928 else pow((f + 0.055) / 1.055, 2.4))
+	return 0.2126 * float(ch[0]) + 0.7152 * float(ch[1]) + 0.0722 * float(ch[2])
+
+
+func _lighten_details(entry: String) -> String:
+	"""The folded page's detail lines (the four-space indented `[color=#..]` runs)
+	in a lighter ink; the heading line of an entry and every word stay as they are."""
+	var inks: Array = [COLOR_ERROR, Utils.COLOR_INFO, Utils.toned_hex(Utils.COLOR_REPORT)]
+	for hex in inks:
+		entry = entry.replace("[color=#" + str(hex) + "]    ", "[color=#" + _detail_hex(str(hex)) + "]    ")
+	return entry
+
+
+func _phase_summary(nations: Dictionary) -> String:
+	"""'3 battles · 2 captures · Austria advances' - counted from the entries' own
+	events (a battle / assault is a battle; a province changing hands, on any
+	event, is one capture per entry), and the courts that marched named."""
+	var battles := 0
+	var captures := 0
+	var movers: Array = []
+	for nation in nations:
+		var nd = nations[nation]
+		if not (nd is Dictionary):
+			continue
+		var moved := false
+		for action in nd.get("actions", []):
+			if not (action is Dictionary):
+				continue
+			var ai_action = action.get("ai_action", {})
+			var kind := str(ai_action.get("action", "")) if ai_action is Dictionary else ""
+			if kind in ["move", "forced_march"]:
+				moved = true
+			var captured := false
+			var evs = action.get("events", [])
+			if evs is Array:
+				for ev in evs:
+					if typeof(ev) != TYPE_DICTIONARY:
+						continue
+					var et := str(ev.get("type", ""))
+					if et == "battle" or et == "garrison_assault":
+						battles += 1
+					if et == "conquest" or bool(ev.get("region_conquered", false)) \
+							or (et == "move" and str(ev.get("captured_from", "")) != ""):
+						captured = true
+			if captured:
+				captures += 1
+				moved = true
+		if moved:
+			movers.append(Utils.display_nation_name(str(nation)))
+	var parts: Array = []
+	if battles > 0:
+		parts.append("%d battle%s" % [battles, "" if battles == 1 else "s"])
+	if captures > 0:
+		parts.append("%d capture%s" % [captures, "" if captures == 1 else "s"])
+	if movers.size() == 1:
+		parts.append(str(movers[0]) + " advances")
+	elif movers.size() == 2:
+		parts.append(str(movers[0]) + " and " + str(movers[1]) + " advance")
+	elif movers.size() > 2:
+		parts.append("%d courts advance" % movers.size())
+	if parts.is_empty():
+		var n := 0
+		for nation in nations:
+			n += 1
+		parts.append("1 court acts" if n == 1 else "%d courts act" % n)
+	return " · ".join(PackedStringArray(parts))
+
+
+func _connect_entry_snap() -> void:
+	"""The scroll comes to rest on a whole entry: once the bar stops moving, an
+	entry cut by the top edge is brought to its head (or the next one's)."""
+	if _snap_wired:
+		return
+	var sc: ScrollContainer = $PanelContainer/VBoxContainer/ContentScroll
+	_snap_wired = true
+	sc.get_v_scroll_bar().value_changed.connect(func(_v: float):
+		_snap_tick += 1
+		var mine := _snap_tick
+		await get_tree().create_timer(0.2).timeout
+		if mine == _snap_tick and visible:
+			_snap_to_entry())
+
+
+func _entry_tops() -> Array:
+	"""[[top_y, bottom_y], ...] of every card, in the label's own coordinates -
+	empty if the label's paragraphs disagree with the text's (no guess)."""
+	var text := Utils.flatten_tables(content_label.text)
+	if text.find(Utils.CARD_CLOSE) < 0:
+		return []
+	var count: int = content_label.get_paragraph_count()
+	if count != text.count("\n") + 1:
+		return []
+	var box: StyleBox = content_label.get_theme_stylebox("normal")
+	var top: float = box.get_margin(SIDE_TOP) if box != null else 0.0
+	var foot := float(content_label.get_content_height())
+	var out: Array = []
+	for card in Utils.CARD_UNDERLAY.cards_in(text):
+		var first: int = card[0]
+		var last: int = card[1]
+		if first >= count:
+			continue
+		var y0: float = top + content_label.get_paragraph_offset(first)
+		var y1: float = top + (content_label.get_paragraph_offset(last + 1) if last + 1 < count else foot)
+		out.append([y0, y1])
+	return out
+
+
+func _snap_to_entry() -> void:
+	var sc: ScrollContainer = $PanelContainer/VBoxContainer/ContentScroll
+	var bar := sc.get_v_scroll_bar()
+	var sv := float(sc.scroll_vertical)
+	if sv >= bar.max_value - bar.page - 2.0:
+		return   # at the foot: the last entry is whole by being last
+	var cards := _entry_tops()
+	for i in range(cards.size()):
+		var y0: float = cards[i][0]
+		var y1: float = cards[i][1]
+		if sv > y0 + 1.0 and sv < y1:
+			var target := y0
+			if sv - y0 > (y1 - y0) * 0.5 and i + 1 < cards.size():
+				target = float(cards[i + 1][0])
+			sc.scroll_vertical = int(target)
+			return
+
 
 func _format_action(action: Dictionary) -> String:
 	"""Format a single action with full details."""

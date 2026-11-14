@@ -350,6 +350,19 @@ const HUD_WIDTHS := ["auto", "full", "16:9", "centred"]
 const DEFAULT_HUD_WIDTH := "auto"
 const HUD_BAND_WIDTH := 2560.0
 const SAFE_ZONE_ASPECT := 2.6
+# Session UI-6 (November 13, 2026): Auto on a very wide view with the map
+# filling the width frames the map with two FULL-HEIGHT columns (Utils
+# hud_columns) — the command desk at the left, the notice rail and the war
+# list at the right; the map's room is the gap between them. Each column is a
+# fraction of the view between a floor and a ceiling (logical px): on the
+# user's 5120 x 1440 panel (2844 x 800 at 1.80) 483 and 426. "Full" keeps
+# UI-4's corners, "16:9" and "Centred" their bands; Reset layout restores Auto.
+const COLUMN_LEFT_FRACTION := 0.17
+const COLUMN_LEFT_MIN := 420.0
+const COLUMN_LEFT_MAX := 560.0
+const COLUMN_RIGHT_FRACTION := 0.15
+const COLUMN_RIGHT_MIN := 380.0
+const COLUMN_RIGHT_MAX := 480.0
 
 
 static func get_hud_width() -> String:
@@ -609,6 +622,37 @@ static func get_idle_warning() -> bool:
 
 static func set_idle_warning(on: bool) -> void:
 	_config().set_value("orders", "idle_warning", on)
+	_save()
+
+
+# --- Session UI-6 (November 13, 2026): the next idle marshal after an order ---
+# Settings → ORDERS (the plan's N4): after a card verb, a gesture order or a
+# confirm-card send that began from a selection, the next idle marshal is
+# selected and the camera eases to him; off, the same marshal is selected
+# again. Never after a typed line. A driven harness keeps the selection its
+# script made (`harness_active`, the idle-warning precedent above); a
+# player's default is ON.
+static func get_next_marshal_after_order() -> bool:
+	return bool(_config().get_value("orders", "next_marshal_after_order", not harness_active()))
+
+
+static func set_next_marshal_after_order(on: bool) -> void:
+	_config().set_value("orders", "next_marshal_after_order", on)
+	_save()
+
+
+# --- Session UI-6: the readback line above the command line ---
+# Settings → DISPLAY (the plan's N6): while the player types, one line says
+# what the order will do ("▸ Ney · attack Mack (Bavaria) · 1 action") — read
+# from the backend's parse preview, never sent. A driven harness types its
+# own lines and reads its own frames: off there unless it switches it on
+# (`harness_active`); a player's default is ON.
+static func get_readback() -> bool:
+	return bool(_config().get_value("display", "readback", not harness_active()))
+
+
+static func set_readback(on: bool) -> void:
+	_config().set_value("display", "readback", on)
 	_save()
 
 

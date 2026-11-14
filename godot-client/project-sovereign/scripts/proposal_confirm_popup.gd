@@ -95,7 +95,7 @@ const HEAD_FLOOR := 72.0
 const COMPACT_ROW_HEIGHT := 30.0
 # Session UI-4: a court's status row — fixed widths so the courts stand in columns
 const COURT_NAME_WIDTH := 130.0
-const COURT_METER_WIDTH := 140.0
+const COURT_METER_WIDTH := 160.0
 const COURT_METER_WIDTH_COMPACT := 90.0
 const COURT_SCORE_WIDTH := 66.0
 const COURT_STATUS_WIDTH := 104.0
@@ -114,6 +114,13 @@ const DEMAND_GOLD_MAGNITUDE_STEP = 100
 # table: the narration and the advice stand BELOW it behind "▸ counsel" when
 # Explanations is Folded (On the page they stand in the head, where they were).
 const COUNSEL_NOTE_ID := "settle.counsel"
+# Session UI-6 (F16): Folded, the table is figures first - a verdict panel under
+# the title row (`_sync_verdict_panel`), "The peace" as a card above the counsel
+# (`_build_peace_bbcode`), the repeated verdict lines folded into the verdict
+# tile's hover and the one counsel note. On the page nothing of this stands.
+const _StatStrip := preload("res://scripts/stat_strip.gd")
+const PEACE_CHIP_CAP := 10
+var _verdict_panel: Control = null
 # the dialogues that are a treaty or a settlement on the desk: parchment on open,
 # quill then seal on a signing, the soft "back" on a cancel
 const TREATY_DTYPES := ["settlement_confirm", "settlement_scope_replace_confirm",
@@ -462,6 +469,7 @@ func show_dialogue(data: Dictionary):
 	# run by `_render_per_court_table` every time the body is built).
 
 	_sync_head_banner(is_settlement_table)
+	_sync_verdict_panel(is_settlement_table)
 	show()
 	_after_shown(str(dtype), is_settlement_table, was_visible)
 	# Fit the panel to the CURRENT logical viewport. Must run AFTER show() so
@@ -799,7 +807,11 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# dials and Submit for Review — so its heading names the draft and the
 	# review; REVIEW keeps ratification.
 	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
-	if dialogue_mode == "PROPOSE":
+	if _figures_first(data):
+		# Session UI-6 (F16): Folded, the verdict is the panel's tile under the
+		# title row (`_sync_verdict_panel`); its heading sentence is that tile's hover.
+		pass
+	elif dialogue_mode == "PROPOSE":
 		# Session UI-2: the verdict stands in the title face — gilt when the
 		# table carries, the alert red when it does not.
 		if can_ratify_now:
@@ -871,6 +883,9 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	var review = data.get("review_sections", {})
 	var sections = review.get("sections", {}) if review is Dictionary else {}
 	var bbcode = ""
+	# Session UI-6 (F16): Folded, the reading, the titles, the manner, the allies,
+	# the warnings and the terms stand in "The peace" card and the counsel note.
+	var figures: bool = _figures_first(data)
 	# S14d (TABLE_LESSON_SPEC §2 line 3): the table's first-open line stood
 	# here, the footer's head, while the head region was a one-line scroll at
 	# Interface Scale 2.0. Session UI-3 (November 12, 2026): the head never
@@ -880,7 +895,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	# SC-19's settlement voice (the backend-resolved `talleyrand_text`): the
 	# live-review line or the blocked banner, under the table since UXR3-31.
 	var heading_voice = str(data.get("talleyrand_text", ""))
-	if heading_voice != "":
+	if heading_voice != "" and not figures:
 		# Session UI-2: Talleyrand's reading is a quote block. Session UI-3: it
 		# opens from its first sentence ("▸ more"), the whole reading in place.
 		bbcode += _quote_block(_fold_first_sentence("settle.talleyrand", heading_voice), "e0c070") + "\n"
@@ -888,7 +903,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	# ratifier's own status-quo rule, read before the signature, our own
 	# homeland first.
 	var titled = data.get("status_quo_review", [])
-	if titled is Array and titled.size() > 0:
+	if titled is Array and titled.size() > 0 and not figures:
 		# PC-F33 (S13e part 4): the "White Peace" that confirms every holding
 		# is labelled as the peace on the held line.
 		var held_note = str(data.get("held_line_note", ""))
@@ -909,7 +924,8 @@ func _build_settlement_footer(data: Dictionary) -> String:
 
 	# VP1-X7 (S14b part 2): the table's Revanche and each covered court's
 	# manner — the latch's own reading of these terms.
-	bbcode += _settlement_designs_lines(data)
+	if not figures:
+		bbcode += _settlement_designs_lines(data)
 
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
@@ -933,7 +949,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		bbcode += "\n"
 
 	var allies = sections.get("allies", {}) if sections is Dictionary else {}
-	if allies is Dictionary:
+	if allies is Dictionary and not figures:
 		var rows = allies.get("rows", [])
 		if rows is Array and rows.size() > 0:
 			bbcode += "[b]Allies and Standing[/b]\n"
@@ -965,7 +981,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	# the list is the allies that will be punished and the figures the ones
 	# that will be applied.
 	var left_out = data.get("shut_out_forecast", [])
-	if left_out is Array and left_out.size() > 0:
+	if left_out is Array and left_out.size() > 0 and not figures:
 		bbcode += "[b]Left out of the peace[/b]\n"
 		for left_row in left_out:
 			if not left_row is Dictionary:
@@ -981,7 +997,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	# touch ("Spain fights on alone against Britain - the table does not touch
 	# her war.") - stated before the click, from the same plan the ratifier runs.
 	var ally_lines = data.get("ally_standing_forecast", [])
-	if ally_lines is Array and ally_lines.size() > 0:
+	if ally_lines is Array and ally_lines.size() > 0 and not figures:
 		bbcode += "[b]The allies[/b]\n"
 		for ally_row in ally_lines:
 			if not ally_row is Dictionary:
@@ -1083,7 +1099,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			bbcode += "[color=%s]%s[/color]\n\n" % [threat_color, threat_display]
 
 	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
-	if warnings is Dictionary:
+	if warnings is Dictionary and not figures:
 		var inline_warns = warnings.get("inline", [])
 		if inline_warns is Array and inline_warns.size() > 0:
 			bbcode += "[b]Warnings[/b]\n"
@@ -1104,7 +1120,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			bbcode += "\n"
 
 	var terms = sections.get("terms", {}) if sections is Dictionary else {}
-	if terms is Dictionary:
+	if terms is Dictionary and not figures:
 		var term_rows = terms.get("rows", [])
 		if term_rows is Array and term_rows.size() > 0:
 			bbcode += "[b]Terms[/b]\n"
@@ -1188,7 +1204,7 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		bbcode += "[b]Not available now[/b]\n" + withheld_lines
 
 	var ttext = data.get("talleyrand_text", "")
-	if ttext:
+	if ttext and not figures:
 		# the same reading, closing the footer: one note (`settle.talleyrand`)
 		# opens both
 		bbcode += _quote_block(_fold_first_sentence("settle.talleyrand", str(ttext), "\"", "\""), "c0b080")
@@ -1369,6 +1385,11 @@ func _render_per_court_table():
 			tail_label.name = "PerCourtTail"
 			tail_label.text = Utils.humanize_nation_keys_in_text(tail)
 			per_court_body.add_child(tail_label)
+		# Session UI-6 (F16): "The peace" - a card above the counsel (Folded)
+		if _figures_first(data):
+			var peace: String = _build_peace_bbcode(data)
+			if peace.strip_edges() != "":
+				per_court_body.add_child(_peace_card(peace))
 		# F16: the narration and the advice, under the table, folded
 		var counsel: String = _build_settlement_counsel_below(data).rstrip("\n")
 		if counsel.strip_edges() != "":
@@ -1714,6 +1735,7 @@ func _on_explanations_changed() -> void:
 	if not visible or str(current_data.get("type", "")) != "settlement_confirm":
 		return
 	_rerender_settlement_head()
+	_sync_verdict_panel(true)
 	_render_per_court_table()
 	_refit_settlement_document()
 
@@ -1829,7 +1851,8 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	# Guided Terms §3.4 (GT-A1): the shared-treasury allocation line, one pool
 	# across every court's France-paid gold. PROPOSE-only payload.
 	var treasury = data.get("treasury_line", {})
-	if authoring_surface and treasury is Dictionary and treasury.size() > 0:
+	# Session UI-6: Folded, the treasury stands as the verdict panel's tiles.
+	if authoring_surface and treasury is Dictionary and treasury.size() > 0 and not _figures_first(data):
 		bbcode += "[color=#d9c08c][b]Treasury[/b] %s gold: committed %s / reserve %s / remaining %s[/color]\n" % [
 			Utils.format_number(int(treasury.get("treasury", 0))),
 			Utils.format_number(int(treasury.get("committed", 0))),
@@ -2134,6 +2157,10 @@ func _build_settlement_per_court_block(data: Dictionary, part: int = PART_ALL) -
 		# the card ends on the line above; the blank paragraph is the gap
 		bbcode += Utils.CARD_CLOSE + "\n"
 	if part >= 0:
+		return bbcode
+	# Session UI-6 (F16): Folded, the court count and the how-to-carry line are
+	# the verdict tile's hover and stand in the counsel note (`_verdict_words`).
+	if _figures_first(data):
 		return bbcode
 	var overall = data.get("overall_acceptance", {})
 	if overall is Dictionary:
@@ -2605,6 +2632,8 @@ func _first_open_bbcode(data: Dictionary, screen: String) -> String:
 	if line == "":
 		return ""
 	first_open_seen.emit(screen)
+	# Session UI-6 (F16): the line stays on the figures-first table in its quiet
+	# info ink — never a dim step under the contrast floor (UXR3's census).
 	return "[color=#" + Utils.COLOR_INFO + "]" + line.replace("[", "[lb]") + "[/color]\n"
 
 
@@ -3261,6 +3290,9 @@ func _on_visibility_changed() -> void:
 	if _banner != null:
 		_banner.queue_free()
 		_banner = null
+	if _verdict_panel != null:
+		_verdict_panel.queue_free()
+		_verdict_panel = null
 
 
 var _title_row: Label = null
@@ -3332,6 +3364,389 @@ func _sync_head_banner(is_settlement_table: bool) -> void:
 	_banner = pic
 
 
+# ── Session UI-6 (F16): the settlement table, figures first ─────────────────
+# Folded only (Utils.explanations_folded()) and not in the short window: a
+# verdict panel (one status tile + the treasury tiles) under the title row, the
+# repeated verdict lines folded into the tile's hover and the one counsel note,
+# "The peace" as a card above the counsel. On the page every sentence stands
+# where it always stood.
+
+func _figures_first(data: Dictionary) -> bool:
+	"""True when the table is drawn figures first: Folded, the full view, a
+	settlement table with at least one court."""
+	if not Utils.explanations_folded() or Utils.compact_view():
+		return false
+	if str(data.get("type", data.get("dialogue_type", ""))) != "settlement_confirm":
+		return false
+	var rows = data.get("per_court_acceptance", [])
+	return rows is Array and (rows as Array).size() > 0
+
+
+func _holdout_count(data: Dictionary) -> int:
+	var n: int = 0
+	for row in data.get("per_court_acceptance", []):
+		if not (row is Dictionary):
+			continue
+		if bool(row.get("consents", false)) or _safe_str(row.get("band")) == "consented":
+			continue
+		if _court_standing(_court_total(row), row) != 2:
+			n += 1
+	return n
+
+
+func _verdict_heading_words(data: Dictionary) -> String:
+	"""The heading sentence the head prints On the page (`_build_settlement_content`)."""
+	var war_label: String = str(data.get("war_label", data.get("war_id", "Settlement")))
+	var can: bool = bool(data.get("can_ratify", true))
+	if str(data.get("dialogue_mode", "REVIEW")) == "PROPOSE":
+		if can:
+			return "Settlement of %s — every court consents; submit it for review" % war_label
+		return "This draft will not carry as it stands."
+	if can:
+		return "Settlement of %s — ready for ratification" % war_label
+	return "This settlement cannot be ratified now."
+
+
+func _verdict_words(data: Dictionary) -> String:
+	"""Every sentence Folded takes off the page's tail, in one string: the
+	heading, the carry verdict, the court count and the how-to-carry line. It is
+	the verdict tile's hover; the opened counsel note prints them too."""
+	var parts: Array = [_verdict_heading_words(data)]
+	var overall = data.get("overall_acceptance", {})
+	if overall is Dictionary:
+		var verdict_line: String = _safe_str(overall.get("carry_verdict_display"))
+		if verdict_line != "":
+			parts.append(verdict_line)
+		var summary: String = _safe_str(overall.get("summary_display"))
+		if summary != "":
+			parts.append(summary)
+	var hint: String = _safe_str(data.get("propose_carry_hint"))
+	if hint != "":
+		parts.append(hint)
+	return " ".join(PackedStringArray(parts))
+
+
+func _verdict_tiles(data: Dictionary) -> Array:
+	var rows: Array = data.get("per_court_acceptance", [])
+	var total: int = rows.size()
+	var holdouts: int = _holdout_count(data)
+	var can: bool = bool(data.get("can_ratify", true))
+	var propose: bool = str(data.get("dialogue_mode", "REVIEW")) == "PROPOSE"
+	var figure: String
+	if propose:
+		figure = "Will carry" if can else "Will not carry"
+	else:
+		figure = "Ready to ratify" if can else "Cannot be ratified"
+	var caption: String
+	if can:
+		caption = "%d of %d courts consent" % [total - holdouts, total]
+	elif holdouts > 0:
+		caption = "%d of %d hold out" % [holdouts, total]
+	else:
+		caption = "ratification is blocked"
+	var tone: Color = Color.from_string("#" + (_TEXT_CARRIES if can else _ALERT_HEX), Color.WHITE)
+	var tiles: Array = [{
+		"glyph": "medal" if can else "threat",
+		"figure": figure,
+		"caption": caption,
+		"tone": tone,
+		"tip": Utils.clean_tip(_verdict_words(data)),
+	}]
+	var treasury = data.get("treasury_line", {})
+	if propose and treasury is Dictionary and treasury.size() > 0:
+		var pool: String = "Treasury %s gold." % Utils.format_number(int(treasury.get("treasury", 0)))
+		tiles.append({"glyph": "gold", "figure": Utils.format_number(int(treasury.get("committed", 0))),
+			"caption": "Committed", "tip": pool})
+		tiles.append({"glyph": "gold", "figure": Utils.format_number(int(treasury.get("reserve", 0))),
+			"caption": "Reserve", "tip": pool})
+		tiles.append({"glyph": "gold", "figure": Utils.format_number(int(treasury.get("remaining", 0))),
+			"caption": "Remaining", "tip": pool})
+	return tiles
+
+
+func _sync_verdict_panel(is_settlement_table: bool) -> void:
+	"""Session UI-6 (F16): the verdict panel under the title row (and the header
+	picture, where the view has one): a stat strip, the status tile first."""
+	if _verdict_panel != null:
+		_verdict_panel.queue_free()
+		_verdict_panel = null
+	if not is_settlement_table or not _figures_first(current_data):
+		return
+	var vb: VBoxContainer = $PanelContainer/VBoxContainer
+	var strip = _StatStrip.new()
+	strip.name = "VerdictPanel"
+	vb.add_child(strip)
+	vb.move_child(strip, content_label.get_index())
+	strip.set_tiles(_verdict_tiles(current_data))
+	_verdict_panel = strip
+
+
+func _peace_nation_cell(nation: String) -> String:
+	if nation == "":
+		return ""
+	return Utils.bb_flag(nation, 16) + Utils.display_nation_name(nation)
+
+
+func _peace_term_glyph(label: String) -> String:
+	var l: String = label.to_lower()
+	if l.find("gold") >= 0 or l.find("indemn") >= 0 or l.find("tribute") >= 0:
+		return "gold"
+	if l.find("fleet") >= 0 or l.find("navy") >= 0 or l.find("naval") >= 0:
+		return "fleet"
+	if l.find("army") >= 0 or l.find("troops") >= 0 or l.find("disarm") >= 0 or l.find("garrison") >= 0:
+		return "foot"
+	if l.find("alliance") >= 0 or l.find("vassal") >= 0 or l.find("ally") >= 0 or l.find("trade") >= 0 or l.find("treaty") >= 0:
+		return "envoy"
+	if l.find("province") >= 0 or l.find("cede") >= 0 or l.find("cession") >= 0 or l.find("carve") >= 0 or l.find("region") >= 0:
+		return "europe"
+	return "letter"
+
+
+func _peace_manner_label(kind: String) -> String:
+	match kind:
+		"partition":
+			return "partition"
+		"subjugation":
+			return "subjugation"
+		"moderate":
+			return "moderate peace"
+		"guarded":
+			return "voided"
+	return "no terms"
+
+
+func _peace_manner_tone(kind: String) -> String:
+	match kind:
+		"partition", "subjugation", "moderate":
+			return _TONE_CARRIES
+		"guarded":
+			return _TONE_NEAR
+	return Utils.COLOR_CHIP_BG_NAVY
+
+
+func _peace_titles_bbcode(data: Dictionary) -> String:
+	"""The titled provinces as chips (a held-line peace's badge beside them);
+	every sentence of the review is the lead word's hover."""
+	var titled = data.get("status_quo_review", [])
+	if not (titled is Array) or (titled as Array).size() == 0:
+		return ""
+	var sentences: Array = []
+	for line in titled:
+		sentences.append(str(line))
+	var review_words: String = " ".join(PackedStringArray(sentences))
+	var regions = data.get("status_quo_regions", [])
+	var names: Array = []
+	if regions is Array:
+		for entry in regions:
+			if entry is Dictionary and _safe_str(entry.get("region")) != "":
+				names.append(_safe_str(entry.get("region")))
+	var out: String = ""
+	if names.is_empty():
+		# an older payload: the review's own lines, as they were
+		out += Utils.bb_glyph("europe", 16, Utils.COLOR_GOLD) + " [b]What the treaty titles[/b]\n"
+		for line in sentences:
+			out += "  [color=#" + Utils.COLOR_GOLD + "]*[/color] %s\n" % line
+	else:
+		out += Utils.bb_glyph("europe", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint("[b]Titled[/b]", review_words) + "  "
+		var shown: int = mini(names.size(), PEACE_CHIP_CAP)
+		for i in shown:
+			out += Utils.bb_badge(str(names[i]), Utils.COLOR_CHIP_BG_NAVY) + " "
+		if names.size() > shown:
+			var rest: Array = []
+			for i in range(shown, names.size()):
+				rest.append(str(names[i]))
+			out += Utils.bb_hint(Utils.bb_badge("+%d" % (names.size() - shown), Utils.COLOR_CHIP_BG_NAVY), ", ".join(PackedStringArray(rest))) + " "
+		out += "\n"
+	var held_note: String = _safe_str(data.get("held_line_note"))
+	if held_note != "":
+		out += "  " + Utils.bb_hint(Utils.bb_badge("White Peace — held line", _TONE_NEAR), held_note) + "\n"
+	return out
+
+
+func _peace_manner_bbcode(data: Dictionary) -> String:
+	var manner_lines = data.get("manner_lines", [])
+	if not (manner_lines is Array) or (manner_lines as Array).size() == 0:
+		return ""
+	var badges = data.get("manner_badges", [])
+	var kind_by_court: Dictionary = {}
+	if badges is Array:
+		for b in badges:
+			if b is Dictionary:
+				kind_by_court[_safe_str(b.get("court"))] = _safe_str(b.get("manner"))
+	var out: String = ""
+	var label_row: String = ""
+	for ml in manner_lines:
+		if not (ml is Dictionary) or _safe_str(ml.get("line")) == "":
+			continue
+		var court: String = _safe_str(ml.get("court"))
+		var line: String = Utils.humanize_nation_keys_in_text(_safe_str(ml.get("line")))
+		if not kind_by_court.has(court):
+			# no badge for this court (an older payload): its sentence, as it stood
+			out += "[color=#e0c070]" + line.replace("[", "[lb]") + "[/color]\n"
+			continue
+		var kind: String = str(kind_by_court[court])
+		label_row += Utils.bb_flag(court, 16) + Utils.bb_hint(
+			Utils.bb_badge("%s: %s" % [Utils.display_nation_name(court), _peace_manner_label(kind)], _peace_manner_tone(kind)), line) + "  "
+	if label_row != "":
+		out += Utils.bb_glyph("envoy", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint("[b]Manner[/b]", "The manner of this peace, court by court.") + "  " + label_row + "\n"
+	return out
+
+
+func _peace_revanche_bbcode(data: Dictionary) -> String:
+	var line: String = _safe_str(data.get("revanche_line"))
+	if line == "":
+		return ""
+	var stands: bool = line.begins_with("Revanche stands")
+	var head: String = line.split(":")[0].strip_edges()
+	return Utils.bb_glyph("war", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint(
+		Utils.bb_badge(head, _TONE_SHORT if stands else Utils.COLOR_CHIP_BG_NAVY), Utils.humanize_nation_keys_in_text(line)) + "\n"
+
+
+func _peace_terms_bbcode(data: Dictionary) -> String:
+	var review = data.get("review_sections", {})
+	var sections = review.get("sections", {}) if review is Dictionary else {}
+	var terms = sections.get("terms", {}) if sections is Dictionary else {}
+	if not (terms is Dictionary):
+		return ""
+	var term_rows = terms.get("rows", [])
+	if not (term_rows is Array) or (term_rows as Array).size() == 0:
+		return ""
+	var out: String = Utils.bb_glyph("letter", 16, Utils.COLOR_GOLD) + " [b]Terms[/b]\n"
+	for term in term_rows:
+		if not (term is Dictionary):
+			continue
+		var label: String = str(term.get("display_label", term.get("type_display", "Settlement term")))
+		var role: String = str(term.get("role_display", term.get("role", "")))
+		if role != "":
+			label = role + ": " + label
+		out += "    " + Utils.bb_glyph(_peace_term_glyph(label), 16, Utils.COLOR_GOLD) + " " + label + "\n"
+	var overflow: int = int(terms.get("overflow_count", 0))
+	if overflow > 0:
+		out += "    [color=#" + Utils.COLOR_INFO + "]+%d more terms in the ledger[/color]\n" % overflow
+	return out
+
+
+func _peace_relation_text(row: Dictionary) -> String:
+	var delta: int = int(row.get("relation_delta", 0))
+	return ("%+d relation" % delta) if delta != 0 else ""
+
+
+func _peace_table_bbcode(data: Dictionary) -> String:
+	"""Allies, the ones left out and the warnings as ONE compact table (flag |
+	stamp | note); each row's whole sentence is its hover."""
+	var review = data.get("review_sections", {})
+	var sections = review.get("sections", {}) if review is Dictionary else {}
+	var rows: Array = []
+	var allies = sections.get("allies", {}) if sections is Dictionary else {}
+	if allies is Dictionary:
+		var ally_rows = allies.get("rows", [])
+		if ally_rows is Array:
+			for row in ally_rows:
+				if not (row is Dictionary):
+					continue
+				var nation: String = str(row.get("nation", "?"))
+				var standing: String = str(row.get("standing_display", row.get("standing", "Standing").replace("_", " ").capitalize()))
+				var stamps: Array = []
+				var side_label: String = str(row.get("side_label", row.get("side", "")))
+				if side_label != "":
+					stamps.append(side_label)
+				if bool(row.get("is_leader", false)):
+					stamps.append("war leader")
+				if bool(row.get("is_beneficiary", false)):
+					stamps.append("rewarded")
+				var stamp_cell: String = ""
+				for st in stamps:
+					stamp_cell += Utils.bb_tag(str(st), Utils.COLOR_CHIP_BG_NAVY) + " "
+				rows.append([_peace_nation_cell(nation), stamp_cell, standing])
+		var overflow: int = int(allies.get("overflow_count", 0)) if allies is Dictionary else 0
+		if overflow > 0:
+			rows.append(["", "", "+%d more participants in the ledger" % overflow])
+	var left_out = data.get("shut_out_forecast", [])
+	if left_out is Array:
+		for row in left_out:
+			if not (row is Dictionary):
+				continue
+			var sentence: String = _safe_str(row.get("display"))
+			if sentence == "":
+				continue
+			var figure: String = _peace_relation_text(row)
+			if figure == "":
+				figure = sentence
+			rows.append([_peace_nation_cell(_safe_str(row.get("nation"))),
+				Utils.bb_hint(Utils.bb_tag("Left out", _TONE_SHORT), sentence),
+				Utils.bb_hint(figure, sentence)])
+	var ally_lines = data.get("ally_standing_forecast", [])
+	if ally_lines is Array:
+		for row in ally_lines:
+			if not (row is Dictionary):
+				continue
+			var ally_sentence: String = _safe_str(row.get("display"))
+			if ally_sentence == "":
+				continue
+			var rewarded: bool = _safe_str(row.get("kind")) == "rewarded"
+			var ally_figure: String = _peace_relation_text(row)
+			if ally_figure == "":
+				ally_figure = "war goes on" if not rewarded else "thanks us"
+			rows.append([_peace_nation_cell(_safe_str(row.get("nation"))),
+				Utils.bb_hint(Utils.bb_tag("Rewarded" if rewarded else "Fights on", _TONE_CARRIES if rewarded else Utils.COLOR_CHIP_BG_NAVY), ally_sentence),
+				Utils.bb_hint(ally_figure, ally_sentence)])
+	var warnings = sections.get("warnings", {}) if sections is Dictionary else {}
+	if warnings is Dictionary:
+		var inline_warns = warnings.get("inline", [])
+		if inline_warns is Array:
+			for warning in inline_warns:
+				if not (warning is Dictionary):
+					continue
+				var hard: bool = str(warning.get("severity", "WARNING")) == "HARD_STOP"
+				var label: String = str(warning.get("code_display", warning.get("code", "Concern").replace("_", " ").capitalize()))
+				var detail: String = str(warning.get("detail", ""))
+				rows.append(["", Utils.bb_tag("Hard stop" if hard else "Warning", _TONE_SHORT if hard else _TONE_NEAR),
+					Utils.bb_hint(label, detail)])
+		var overflow_warns = warnings.get("overflow", []) if warnings is Dictionary else []
+		if overflow_warns is Array and (overflow_warns as Array).size() > 0:
+			rows.append(["", "", "+%d more warnings in the ledger" % (overflow_warns as Array).size()])
+	if rows.is_empty():
+		return ""
+	return Utils.bb_table(["Court", "Stamp", "Note"], rows, [], [3, 3, 6]) + "\n"
+
+
+func _build_peace_bbcode(data: Dictionary) -> String:
+	"""Session UI-6 (F16): "The peace" - what the treaty titles (chips), the held
+	line (a badge), the manner per court (badges), the Revanche (a badge), the
+	terms (a glyph list) and the allies / left out / warnings table. Every long
+	sentence is a hover (`Utils.bb_hint`); '' when the draft says none of it."""
+	var body: String = ""
+	body += _peace_titles_bbcode(data)
+	body += _peace_manner_bbcode(data)
+	body += _peace_revanche_bbcode(data)
+	body += _peace_terms_bbcode(data)
+	body += _peace_table_bbcode(data)
+	if body.strip_edges() == "":
+		return ""
+	return Utils.bb_section("The peace") + body.rstrip("\n")
+
+
+func _peace_card(bbcode: String) -> Control:
+	"""The card the peace stands in: the court cards' well and a gilt hairline."""
+	var card := PanelContainer.new()
+	card.name = "PerCourtPeaceCard"
+	card.mouse_filter = Control.MOUSE_FILTER_PASS
+	var well := StyleBoxFlat.new()
+	well.bg_color = Color(0, 0, 0, 0.22)
+	well.border_color = Color(Utils.UI_GOLD, 0.32)
+	well.set_border_width_all(1)
+	well.content_margin_left = 1.0
+	well.content_margin_right = 1.0
+	well.content_margin_top = 1.0
+	well.content_margin_bottom = 1.0
+	card.add_theme_stylebox_override("panel", well)
+	var label := _body_label(10.0, 8.0, 6.0, 6.0)
+	label.name = "PerCourtPeace"
+	label.text = Utils.humanize_nation_keys_in_text(bbcode)
+	card.add_child(label)
+	return card
+
+
 func _build_settlement_counsel_below(data: Dictionary) -> String:
 	"""F16: the table's narration and Talleyrand's advice, BELOW the table behind
 	"▸ counsel" (Folded). On the page they stand in the head
@@ -3360,12 +3775,32 @@ func _build_settlement_counsel_below(data: Dictionary) -> String:
 	var opened: bool = Utils.note_is_open(COUNSEL_NOTE_ID)
 	var words: String = "▾ counsel" if opened else "▸ counsel"
 	var bbcode: String = "[url=" + Utils.NOTE_META + COUNSEL_NOTE_ID + "][color=#" + Utils.COLOR_GOLD + "]" + words + "[/color][/url]\n"
+	var figures: bool = _figures_first(data)
+	var reading: String = _safe_str(data.get("talleyrand_text"))
+	if figures:
+		# Session UI-6: the ONE counsel fold - Talleyrand's reading has no fold of
+		# its own; its first sentence is this link's hover.
+		var cut: int = _first_sentence_end(reading)
+		var first_words: String = reading if cut < 0 else reading.substr(0, cut)
+		bbcode = "[url=" + Utils.NOTE_META + COUNSEL_NOTE_ID + "]" + Utils.bb_hint(
+			"[color=#" + Utils.COLOR_GOLD + "]" + words + "[/color]", first_words) + "[/url]\n"
 	if opened:
 		bbcode += war_bb + covered_bb + verdict_bb
 		if narration != "":
 			bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % narration
 		if advisory != "":
 			bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
+		if figures:
+			# the words Folded took off the table's tail, and the reading whole
+			if overall is Dictionary:
+				var summary: String = _safe_str(overall.get("summary_display"))
+				if summary != "":
+					bbcode += "[b][color=#%s]%s[/color][/b]\n" % [_TEXT_CARRIES if bool(overall.get("carries", false)) else _TEXT_NEAR, summary]
+			var carry_hint: String = _safe_str(data.get("propose_carry_hint"))
+			if carry_hint != "":
+				bbcode += "[color=#" + _TEXT_NEAR + "]▸ %s[/color]\n" % carry_hint
+			if reading != "":
+				bbcode += _quote_block(reading, "e0c070")
 	return bbcode
 
 

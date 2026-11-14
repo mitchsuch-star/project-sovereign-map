@@ -454,16 +454,34 @@ class TestNPC3TheSharedTitle:
         This one hands the guard a resolution the parser is not involved in —
         target ArchdukeJohn, raw text naming only the shared title — and the
         guard must refuse rather than let "Archduke" stand as grounding.
+
+        RE-POINTED November 13, 2026 (Session UI-6, UI6-X61 — the lead's ruling
+        between NPC-3 and DD0-S5's `test_the_archduke_in_sight_is_john`): the
+        guard grounds a shared title's ONE bearer IN SIGHT — the man the player
+        can see is the man the word names — and still refuses the two cases
+        NPC-3's hole went through: a bearer out of sight, and either of two in
+        sight. The mutation this pin was written for (the guard's shared-word
+        skip removed) still turns it red: both refusals below would pass.
         """
         from backend.commands.combat_executor import guessed_target_refusal
         assert sum(1 for m in world.marshals
                    if m.startswith("Archduke")) >= 2, "the title is shared"
-        out = guessed_target_refusal(
-            world, world.marshals["Ney"],
-            {"_raw_input": "Ney, attack the Archduke"},
-            "ArchdukeJohn")
-        assert out is not None, (
-            "a title owned by two commanders grounds neither of them")
+        seen = {m.name for m in world.get_visible_enemies("France")}
+        assert "ArchdukeJohn" in seen and "ArchdukeCharles" not in seen, seen
+        raw = {"_raw_input": "Ney, attack the Archduke"}
+        # the one bearer in sight is the man named
+        assert guessed_target_refusal(world, world.marshals["Ney"], dict(raw),
+                                      "ArchdukeJohn") is None
+        # a bearer out of sight is never grounded by the title
+        assert guessed_target_refusal(world, world.marshals["Ney"], dict(raw),
+                                      "ArchdukeCharles") is not None, (
+            "a hidden bearer must never be grounded by a shared title")
+        # two bearers in sight: the title grounds neither of them
+        world.marshals["ArchdukeCharles"].location = world.marshals["ArchdukeJohn"].location
+        world.calculate_visibility()
+        assert guessed_target_refusal(world, world.marshals["Ney"], dict(raw),
+                                      "ArchdukeJohn") is not None, (
+            "a title owned by two commanders in sight grounds neither of them")
 
     def test_a_UNIQUE_partial_name_still_grounds(self, world):
         """Control arm for the above — the fix must not become a blanket

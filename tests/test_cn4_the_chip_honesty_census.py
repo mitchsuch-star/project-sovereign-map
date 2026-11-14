@@ -1217,6 +1217,11 @@ REVIEWED = {
     ("strategic_ledger.gd", '"cancel:" + mname'): "cancels the standing order via /cancel_order; gated on actions",
     # Session UI-5: the Territories book's sort — a client-side re-order of the rows it shows (income / name), no command sent
     ("strategic_ledger.gd", '"terr:sort:" + str(opt[0])'): "client-side: re-sorts the Territories table it is drawn on; sends nothing",
+    # Session UI-6 (F08 — "show recruit as a button"): the Manpower book's levy chip per arm, the typed
+    # `recruit <arm>` (the capital's default levy the book's card quotes) down the Admiralty chips' road
+    # (`naval_command` -> main's `_on_naval_command`); a closed depot, an empty pool or a pool under one levy
+    # dims it with bb_chip_disabled, the reason its hover.
+    ("strategic_ledger.gd", '"do:recruit " + pool_type'): "sends `recruit <arm>` (the capital levy the card quotes); dimmed when the pool cannot levy",
     # main.gd — SR-5r RF-4b: the lapse forecast's "repeal X instead" chip on
     # the end-turn banner and the terminal dispatch (backend-composed; the
     # typed `repeal <law>` down the ledger's chip road). Driven through
@@ -1269,3 +1274,48 @@ class TestTheInventoryIsComplete:
         planted = src + '\n\tvar x = Utils.bb_button_chip("do:burn " + _region, "Burn", "fff", "000")\n'
         assert '"do:burn " + _region' in _chip_urls(planted)
         assert ("region_panel.gd", '"do:burn " + _region') not in REVIEWED
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Session UI-6 (November 13, 2026): the province panel's two new links
+# ═══════════════════════════════════════════════════════════════════════════
+# A marshal's NAME in FORCES PRESENT and his "+N orders" toggle are [url] links,
+# not bb_button_chip calls, so the chip inventory above does not see them. Each
+# is reviewed HERE: neither sends a command (the chips under them do, and those
+# are the rows above), and each is handled by `_on_meta_clicked`.
+REVIEWED_PANEL_METAS = {
+    "select:": "selects the marshal on the map (region_panel.marshal_select_requested -> main.gd); sends nothing",
+    "toggle:orders:": "opens/shuts that marshal's remaining order chips in place (a local re-render); sends nothing",
+}
+
+
+class TestThePanelsLinkMetasAreReviewed:
+
+    def _panel(self):
+        return (C.SCRIPTS / "region_panel.gd").read_text(encoding="utf-8")
+
+    def test_every_url_meta_the_panel_writes_is_a_chip_or_reviewed(self):
+        src = self._panel()
+        written = set()
+        for m in re.finditer(r"\[url=([a-z_]+:?[a-z_]*:?)", src):
+            written.add(m.group(1))
+        # the chips' own metas (do:/order:/negotiate:/admiralty/toggle:build/
+        # toggle:march_more) are the bb_button_chip rows in REVIEWED or the two
+        # long-standing toggles; the rest must be named above
+        long_standing = {"toggle:build", "toggle:march_more", "toggle:", "toggle"}
+        unreviewed = sorted(w for w in written
+                            if w not in REVIEWED_PANEL_METAS and w not in long_standing)
+        assert unreviewed == [], unreviewed
+        for meta in REVIEWED_PANEL_METAS:
+            assert f"[url={meta}" in src, meta
+
+    def test_each_reviewed_meta_is_handled_and_sends_no_command(self):
+        src = self._panel()
+        handler = src.split("func _on_meta_clicked(", 1)[1].split("\nfunc ", 1)[0]
+        for meta in REVIEWED_PANEL_METAS:
+            assert f'meta_str.begins_with("{meta}")' in handler, meta
+        select = handler.split('begins_with("select:")', 1)[1]
+        assert "marshal_select_requested.emit(picked)" in select
+        assert "region_command.emit" not in select.split("\n\tel", 1)[0]
+        toggle = handler.split('begins_with("toggle:orders:")', 1)[1].split('begins_with("select:")', 1)[0]
+        assert "region_command.emit" not in toggle and "_orders_open" in toggle

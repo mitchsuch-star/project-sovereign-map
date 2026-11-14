@@ -30,6 +30,11 @@ signal piece_drag_cancelled(marshal_name: String)
 # lets the arrows take a click (`arrow_click_check`: the line empty, nothing
 # on the wire); a piece or a fog chip under the cursor wins over an arrow.
 signal order_arrow_clicked(marshal_name: String)
+# Session UI-6: a RIGHT click on a province or a piece asks the owner for the
+# order's card (march / attack / support by what is under the cursor).
+# `marshal` is the visible piece's roster key ("" for a province or a fog chip,
+# which never names its man). Right-click on nothing still dismisses.
+signal order_context_requested(region: String, marshal: String)
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
@@ -100,6 +105,12 @@ var _sail_items: Dictionary = {}
 # anchor use the room left of it (the camera's offset centres the view
 # there); 0 — no dock — leaves every one of them as it was.
 var _right_inset := 0.0
+# Session UI-6: the twin on the map's LEFT — the 32:9 HUD's left column covers
+# the map's left edge, the room is the gap between the columns.
+var _left_inset := 0.0
+# Session UI-6: the gap between two HUD columns on a 32:9 screen reads 2.42:1,
+# under SAFE_ZONE_ASPECT (2.6); with a left column up the fill rule reads this.
+const COLUMN_FILL_ASPECT := 2.2
 const DEFAULT_CAPITAL_REGIONS := ["Paris", "Berlin", "Vienna", "London", "Madrid"]
 const DEFAULT_MAP_PADDING: float = 140.0
 const MAP_BACKGROUND_COLOR := Color(0.12, 0.13, 0.14, 1.0)
@@ -637,7 +648,10 @@ func _fills_width() -> bool:
 	keeps the filled view."""
 	if map_canvas_size == Vector2.ZERO or UiSettings.get_wide_map() != "fill":
 		return false
-	return is_wide_room(_get_camera_viewport_size())
+	var room := _get_camera_viewport_size()
+	if _left_inset > 0.0 and room.y > 0.0 and room.x / room.y >= COLUMN_FILL_ASPECT:
+		return true   # Session UI-6: the gap between the HUD columns
+	return is_wide_room(room)
 
 
 func _get_fill_zoom_level() -> float:
@@ -2240,8 +2254,24 @@ func _gather_rank(marshal: Dictionary) -> int:
 
 
 func gathers_names() -> bool:
-	"""The layer gathers crowded name plates only at the whole-sheet view."""
-	return map_canvas_size != Vector2.ZERO and pieces_layer != null and is_at_min_zoom()
+	"""Session UI-6: the layer gathers a nation's touching plates at ANY zoom
+	(they split as space opens) — the readers' crowded plaques were not only a
+	whole-sheet matter."""
+	return map_canvas_size != Vector2.ZERO and pieces_layer != null
+
+
+func gather_rank_boost(display_name: String) -> int:
+	"""Session UI-6: the SELECTED marshal's plate (or a Ctrl-click group
+	member's) always stands as a lead: rank +2e9 over any other."""
+	if display_name == "":
+		return 0
+	var keys: Array = order_group.duplicate() if order_group.size() >= 2 else []
+	if order_selected != "":
+		keys.append(order_selected)
+	for k in keys:
+		if Utils.display_marshal_name(str(k)) == display_name:
+			return 2000000000
+	return 0
 
 
 func gather_label(label: Label, words: String) -> Vector2:
@@ -2532,7 +2562,7 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 					lead_name = Utils.display_marshal_name(str(m.get("name", "?")))  # LV-2
 					lead_marshal = m
 					break
-			var stack_text := "%s +%d" % [lead_name, group_size - 1]
+			var stack_text := "%s · %d more" % [lead_name, group_size - 1]
 			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0 + plate_pad
 			var stack_h := _furn(17.0)
 			var rear_ranks := 1 if marshals.size() <= 4 else 2
@@ -2899,14 +2929,21 @@ func _get_camera_viewport_size() -> Vector2:
 
 
 func _inset_view_px() -> float:
-	"""The dock's strip in the camera's (SubViewport) px."""
-	return _right_inset * _viewport_pixel_scale()
+	"""The strips the dock (right) and the HUD's left column took, in the
+	camera's (SubViewport) px — the room the view does not have."""
+	return (_left_inset + _right_inset) * _viewport_pixel_scale()
+
+
+func _inset_offset_px() -> float:
+	"""Session UI-6: the camera offset's pixels (right minus left) — the room's
+	centre against the viewport's, in the camera's px."""
+	return (_right_inset - _left_inset) * _viewport_pixel_scale()
 
 
 func _view_centre() -> Vector2:
 	"""The centre of the map's room in this Control's logical px — the
 	viewport's centre, or left of it by half the dock's strip."""
-	return Vector2((size.x - _right_inset) / 2.0, size.y / 2.0)
+	return Vector2((size.x + _left_inset - _right_inset) / 2.0, size.y / 2.0)
 
 
 func set_right_inset(px: float) -> void:
@@ -2921,6 +2958,31 @@ func set_right_inset(px: float) -> void:
 	# room left of the dock — a dock can drop a 32:9 room under 2.6).
 	var was_fill := _is_fill_view()
 	_right_inset = inset
+	_update_zoom_floor()
+	if was_fill:
+		if _fills_width():
+			_apply_fill_view()
+		else:
+			fit_europe()
+	elif was_fit:
+		fit_europe()
+	else:
+		_sync_camera_zoom()
+		if map_camera != null:
+			_set_camera_position(map_camera.position)
+
+
+func set_left_inset(px: float) -> void:
+	"""Session UI-6: the HUD's left column took (or gave back) the map's left
+	edge on a very wide screen — the twin of `set_right_inset`: a whole-map
+	view stays the whole map and the filled view stays filled, re-derived on
+	the gap between the columns; any other view keeps its zoom, re-clamped."""
+	var inset := maxf(px, 0.0)
+	if is_equal_approx(inset, _left_inset):
+		return
+	var was_fit := is_fit_view()
+	var was_fill := _is_fill_view()
+	_left_inset = inset
 	_update_zoom_floor()
 	if was_fill:
 		if _fills_width():
@@ -2978,7 +3040,7 @@ func _sync_camera_zoom():
 	map_camera.zoom = Vector2(_zoom_level, _zoom_level)
 	# UXR-D4: the camera's position is the centre of the map's ROOM; the
 	# offset (world units) shifts the view by half the dock's strip.
-	map_camera.offset = Vector2(_inset_view_px() / 2.0 / maxf(_zoom_level, 0.001), 0.0)
+	map_camera.offset = Vector2(_inset_offset_px() / 2.0 / maxf(_zoom_level, 0.001), 0.0)
 
 
 func _get_camera_half_extents() -> Vector2:
@@ -3296,10 +3358,26 @@ func _input(event):
 				map_dismiss_requested.emit()
 			return
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			# UX pass July 16: right-click = dismiss, the map-game convention.
+			# UX pass July 16: right-click on nothing = dismiss, the map-game
+			# convention. Session UI-6: on a province or a piece it asks the
+			# owner for the order's card; the right button never arms a drag.
 			if is_panning:
 				return
-			map_dismiss_requested.emit()
+			last_click_shift = event.shift_pressed
+			last_click_ctrl = event.ctrl_pressed
+			last_click_marshal = str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
+			last_click_fogged = str(hovered_fogged_force.get("name", "")) if hovered_fogged_force.size() > 0 else ""
+			var ctx_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
+			if _label_region_hit != "":
+				ctx_region = _label_region_hit
+			if ctx_region == "":
+				ctx_region = hovered_region
+			if ctx_region != "" and not _is_region_wired(ctx_region):
+				return
+			if ctx_region != "" or last_click_marshal != "":
+				order_context_requested.emit(str(ctx_region), last_click_marshal)
+			else:
+				map_dismiss_requested.emit()
 			return
 
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_MIDDLE:
@@ -3520,6 +3598,8 @@ func set_order_group(keys: Array) -> void:
 	"""CC-5: the owner's Ctrl-click group (two or more roster keys; fewer is
 	no group) — a ring at every member's feet."""
 	order_group = keys.duplicate() if keys.size() >= 2 else []
+	if map_label_layer != null:
+		map_label_layer.regather()   # Session UI-6: a selected plate stays a lead
 	_refresh_order_ring()
 	_refresh_arrow_hover(mouse_position)
 
@@ -3657,6 +3737,8 @@ func set_order_selection(marshal_name: String) -> void:
 	"""CC-3: the corps the owner selected (roster key) — the ring at his feet;
 	his reach is tinted when it comes back (`set_order_reach`)."""
 	order_selected = marshal_name
+	if map_label_layer != null:
+		map_label_layer.regather()   # Session UI-6: a selected plate stays a lead
 	_order_bands = {}
 	_order_reach_ok = false
 	_order_hover_last = ""

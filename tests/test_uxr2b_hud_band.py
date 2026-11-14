@@ -38,6 +38,16 @@ _HARNESS = _REPO / "tools" / "uxr2_grip_harness.gd"
 # Every HUD surface the band confines (the strip itself stays full-bleed).
 IN_BAND = ("terminal", "restore_button", "screen_buttons", "right_section", "rail_slot",
            "war_hud", "region_panel", "map_controls")
+# Session UI-6 (November 13, 2026): Auto on the user's 32:9 panel frames the map
+# with two full-height columns (`Utils.hud_columns`) — the desk at the left, the
+# rail and the war list at the right — and `hud_band` is the GAP between them.
+# The surfaces that stand in the columns (and the strip's clusters) live inside
+# the whole band (`hud_band_full`); the ones that stand on the map, in the gap.
+IN_BAND_FULL = ("terminal", "restore_button", "screen_buttons", "right_section", "rail_slot",
+                "war_hud")
+# Session UI-6 (wave 2): on the columns layout the province panel docks in the RIGHT
+# column under the war list (the context wing), so only the map controls stand in the gap.
+IN_GAP = ("map_controls",)
 
 _CANDIDATES = [
     os.environ.get("GODOT_BIN", ""),
@@ -115,17 +125,61 @@ class TestAutoFramesTheMapOnTheUsersPanel:
     The strip stays full-bleed. On 16:9 Auto is Full (the probe's numbers)."""
 
     def test_the_band_is_the_whole_screen_while_the_map_fills_it(self, auto):
+        """RE-POINTED (Session UI-6): the WHOLE band (`hud_band_full`) is the
+        screen, as UI-4 ruled; `hud_band` is now the map's room beside the
+        desk's column. RE-POINTED again by the interim blind reading (November
+        13: "a large empty Active Wars panel" — "fill or collapse the empty
+        right column"): the right column is COLLAPSED — the map's room runs to
+        the screen's edge, and the right column's width (`columns[1]`) is the
+        span the notice rail and the war list keep at its top
+        (`hud_anchor_band`)."""
         vx = auto["view"][0]
-        left, right = auto["band"]
         assert auto["hud_width"] == "auto"
+        left, right = auto["band_full"]
         assert left == pytest.approx(0.0, abs=0.5) and right == pytest.approx(vx, abs=0.5), (left, right, vx)
+        cl, cr = auto["columns"]
+        assert cl > 0.0 and cr > 0.0, auto["columns"]
+        gl, gr = auto["gap"]
+        assert gl == pytest.approx(cl, abs=0.5) and gr == pytest.approx(vx, abs=0.5), (auto["gap"], cl, cr)
+        assert auto["desk_mode"] == "column"
 
-    @pytest.mark.parametrize("surface", IN_BAND)
+    @pytest.mark.parametrize("surface", IN_BAND_FULL)
     def test_every_hud_rect_is_inside_the_band(self, auto, surface):
-        left, right = auto["band"]
+        left, right = auto["band_full"]
         r = auto["rects"][surface]
         assert r, f"{surface} was not on screen"
         assert r[0] >= left - 0.5 and r[2] <= right + 0.5, (surface, r, (left, right))
+
+    @pytest.mark.parametrize("surface", IN_GAP)
+    def test_the_maps_surfaces_stand_in_the_gap(self, auto, surface):
+        left, right = auto["gap"]
+        r = auto["rects"][surface]
+        assert r, f"{surface} was not on screen"
+        assert r[0] >= left - 0.5 and r[2] <= right + 0.5, (surface, r, (left, right))
+
+    def test_the_province_panel_docks_in_the_right_column(self, auto):
+        """Session UI-6: the right column is the context wing — the province
+        panel stands in it. RE-POINTED by the interim reading (the right
+        column collapsed): the panel stands at the screen's right edge within
+        the column's old span (`vx - columns[1]` .. `vx`), inside the map's
+        room — never over the desk."""
+        r = auto["rects"]["region_panel"]
+        assert r, "region_panel was not on screen"
+        vx = auto["view"][0]
+        span_left = vx - auto["columns"][1]
+        assert r[0] >= span_left - 0.5 and r[2] <= auto["band_full"][1] + 0.5, (r, span_left, auto["band_full"])
+        assert r[0] >= auto["gap"][0] - 0.5, (r, auto["gap"])
+
+    def test_the_columns_stand_outside_the_gap(self, auto):
+        """The desk fills the left column and never stands on the map's room.
+        RE-POINTED by the interim reading (the right column collapsed): the war
+        list keeps the right column's span at the screen's top right
+        (`hud_anchor_band`), in the map's room beside the desk."""
+        left, right = auto["gap"]
+        assert auto["rects"]["terminal"][2] <= left + 0.5, (auto["rects"]["terminal"], left)
+        vx = auto["view"][0]
+        war = auto["rects"]["war_hud"]
+        assert war[0] >= vx - auto["columns"][1] - 0.5 and war[2] <= vx + 0.5, (war, auto["columns"], vx)
 
     def test_the_strip_stays_full_bleed(self, auto):
         r = auto["rects"]["bar_strip"]
@@ -240,16 +294,24 @@ class TestTheSources:
         band = G.func_body(utils, "hud_band")
         assert "var band := hud_band_full(view)" in band
         assert "band.y = maxf(band.x, band.y - _dock_width - HUD_MARGIN)" in band
+        # Session UI-6: the columns come off the whole band before the dock does
+        assert band.index("var cols := hud_columns(view)") < band.index("_dock_width")
         assert "var band := hud_band(view)" in G.func_body(utils, "clamp_anchored_panel")
         main = G.read(_SCRIPTS / "main.gd")
-        assert "Utils.hud_band(size).x + TERMINAL_ANCHOR_LEFT" in G.func_body(main, "_terminal_left")
+        # RE-POINTED (Session UI-6): the desk's corner is the WHOLE band's — in the
+        # columns' layout `hud_band` is the map's gap and the desk stands left of it
+        assert "Utils.hud_band_full(size).x + TERMINAL_ANCHOR_LEFT" in G.func_body(main, "_terminal_left")
         assert "_hud_room().x - TERMINAL_ANCHOR_LEFT * 2.0" in G.func_body(main, "_relayout_terminal")
         assert "mouse_pos.x - _terminal_left()" in G.func_body(main, "_resize_terminal_from_mouse")
         top = G.read(_SCRIPTS / "top_bar.gd")
         # The strip runs above the dock: the whole band.
         assert "Utils.hud_band_full(view)" in G.func_body(top, "_fit_bar")
-        assert "Utils.hud_band(view)" in G.func_body(top, "_fit_rail")
-        assert "Utils.hud_band(view)" in G.func_body(G.read(_SCRIPTS / "war_status_panel.gd"), "_apply_geometry")
+        # RE-POINTED (Session UI-6): the rail and the war list anchor to the right
+        # column in the columns' layout, to the HUD band everywhere else
+        assert "Utils.hud_anchor_band(view)" in G.func_body(top, "_fit_rail")
+        assert "Utils.hud_anchor_band(view)" in G.func_body(G.read(_SCRIPTS / "war_status_panel.gd"), "_apply_geometry")
+        anchor = G.func_body(utils, "hud_anchor_band")
+        assert "return hud_band(view)" in anchor and "Vector2(full.y - cols.y, full.y)" in anchor
         assert "Utils.hud_band(view)" in G.func_body(G.read(_SCRIPTS / "region_panel.gd"), "_fit_width")
         assert "Utils.hud_band(view)" in G.func_body(G.read(_SCRIPTS / "tutorial_overlay.gd"), "_card_placement")
 

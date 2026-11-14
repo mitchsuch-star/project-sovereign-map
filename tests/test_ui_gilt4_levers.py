@@ -188,9 +188,22 @@ class TestTheCommandWindow:
                 in _func(main, "_update_war_panel_visibility"))
 
     def test_the_folded_help_stands_whole_at_2_0(self):
+        """RE-POINTED (Session UI-6, November 13, 2026): folded, the help is ONE
+        line — the greeting and "▸ every command" (the readers' F01: "make the
+        greeting copy a compact orders list or chips"); the second line's example
+        order waits in the empty line's placeholder and the marshal row is the
+        click road. The intent held: whole at 2.0, every command a click away,
+        and On the page every line of the list prints."""
         main = _read(SCRIPTS / "main.gd")
         body = _func(main, "_print_boot_help")
-        assert "or click one of your marshals on the map.[/color]" in body
+        assert "or click one of your marshals on the map.[/color]" not in body
+        assert "▸ every command" in body
+        assert 'const COMMAND_PLACEHOLDER_EXAMPLE := "Ney, attack Mack…"' in main
+        assert "COMMAND_PLACEHOLDER_EXAMPLE" in _func(main, "_refresh_command_placeholder")
+        # no rule above the folded line (the readers' "stray rule")
+        at = body.index("if folded:")
+        folded = body[at:body.index("return", at)]
+        assert "_add_separator()" not in folded
         # Berthier's question stands in the full list, every word
         assert "\\\"what can I do\\\" (Berthier names the orders the board takes today)" in body
 
@@ -343,7 +356,12 @@ class TestTheFinalShootsFixes:
         assert "const _FIT_STEPS := 8" in bar
         turn = _func(bar, "_render_turn_text")
         assert 'if _calendar_label == "" or _fit_step >= 8:' in turn
-        assert 'turn_label.text = " ".join(words.slice(1)) if words.size() >= 3 else _calendar_label' in turn
+        # RE-POINTED (Session UI-6): the narrow date keeps the turn ("1 · September
+        # 1805") — the hourglass's figure steps aside at 6, and the command window
+        # no longer carries the turn (the plan's N8: the turn on screen at every scale)
+        assert ('turn_label.text = str(_turn_number) + " · " + (" ".join(words.slice(1)) '
+                'if words.size() >= 3 else _calendar_label)') in turn
+        assert 'turn_label.text = str(_turn_number) + " · " + _calendar_label' in turn
         assert "_render_turn_text()" in _func(bar, "_apply_fit_step")
         assert "_render_turn_text()" in _func(bar, "update_turn")
 

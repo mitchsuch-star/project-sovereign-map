@@ -399,7 +399,9 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	# row stays clickable.
 	var open_btn = Button.new()
 	open_btn.text = "Open ▸"
-	open_btn.flat = true
+	# Session UI-6 (the interim blind reading, November 13): "the small 'Open' links
+	# are weak — make them look like buttons": the word wears the button's face
+	open_btn.flat = false
 	open_btn.theme_type_variation = &"CaptionButton"
 	open_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	open_btn.tooltip_text = "Open this letter"
@@ -441,7 +443,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 			vbox.add_child(voice_label)
 		var clauses = digest_row.get("clauses", [])
 		if clauses is Array and clauses.size() > 0:
-			vbox.add_child(_terms_line_label(clauses))
+			vbox.add_child(_terms_line_label(clauses, summary_display))
 		vbox.add_child(_build_action_row(mailbox_id))
 	else:
 		# S14E-27: a row that opens its letter in full still shows what the
@@ -449,7 +451,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 		# the row) and says, on one line, why it is not answered in place.
 		var row_terms = item.get("terms_lines", [])
 		if row_terms is Array and row_terms.size() > 0:
-			vbox.add_child(_terms_line_label(row_terms))
+			vbox.add_child(_terms_line_label(row_terms, summary_display))
 		var row_reason = str(item.get("reason", "")).strip_edges()
 		if row_reason != "":
 			var reason_label = Label.new()
@@ -475,7 +477,7 @@ func _badge_box(tone: Color) -> StyleBoxFlat:
 	return box
 
 
-func _terms_line_label(clauses: Array) -> Control:
+func _terms_line_label(clauses: Array, heading := "") -> Control:
 	"""A letter's clause strings as a "Terms" caption over small tag chips, one
 	per clause - the letter-book's rows and (S14E-27) every other
 	incoming-proposal row draw it the same way. Session UI-4 (November 12,
@@ -487,19 +489,51 @@ func _terms_line_label(clauses: Array) -> Control:
 	var block = VBoxContainer.new()
 	block.mouse_filter = Control.MOUSE_FILTER_PASS
 	block.add_theme_constant_override("separation", 4)
+	var folded: bool = Utils.explanations_folded()
 	var clause_strings: Array[String] = []
 	for clause in clauses:
-		clause_strings.append(Utils.humanize_nation_keys_in_text(str(clause)))
+		var one: String = Utils.humanize_nation_keys_in_text(str(clause))
+		# Session UI-6: folded, a term that only repeats the card's heading
+		# ("Proposal: Non-Aggression Pact" under "Incoming proposal: Non-Aggression
+		# Pact") is dropped; on the page every term stands.
+		if folded and _term_repeats_heading(one, heading):
+			continue
+		clause_strings.append(one)
+	if clause_strings.is_empty() and folded:
+		block.queue_free()
+		return Control.new()
 	block.tooltip_text = "Terms: " + " · ".join(clause_strings)
-	var caption = Label.new()
-	caption.text = "Terms"
-	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	caption.theme_type_variation = &"Caption"
-	caption.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
-	block.add_child(caption)
+	# Session UI-6 (F29: "a repeated Terms label", "compress the terms to one
+	# line / a chip row"): folded, the block is the chip row alone - each term a
+	# glyph and its figure, no caption (the hover still reads "Terms: ..."); On the
+	# page the "Terms" caption stands over the chips, as it always has.
+	if not folded:
+		var caption = Label.new()
+		caption.text = "Terms"
+		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		caption.theme_type_variation = &"Caption"
+		caption.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+		block.add_child(caption)
 	var flow: HFlowContainer = null
 	for text in clause_strings:
-		var chip := _terms_chip(text, text.length() > TERMS_CHIP_SHORT)
+		if folded:
+			# Session UI-6: folded, every term is a chip on ONE wrapping row; a
+			# long term's face is its lead words, the whole term its hover.
+			var face: String = _term_face(text)
+			var fchip := _terms_chip(face, false, true, text)
+			if face != text:
+				fchip.mouse_filter = Control.MOUSE_FILTER_PASS
+				fchip.tooltip_text = text
+			if flow == null:
+				flow = HFlowContainer.new()
+				flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				flow.add_theme_constant_override("h_separation", 6)
+				flow.add_theme_constant_override("v_separation", 6)
+				flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				block.add_child(flow)
+			flow.add_child(fchip)
+			continue
+		var chip := _terms_chip(text, text.length() > TERMS_CHIP_SHORT, folded)
 		if text.length() > TERMS_CHIP_SHORT:
 			# a long clause takes the block's width and wraps inside its chip
 			flow = null
@@ -521,7 +555,7 @@ func _terms_line_label(clauses: Array) -> Control:
 const TERMS_CHIP_SHORT := 36
 
 
-func _terms_chip(text: String, wrap: bool) -> PanelContainer:
+func _terms_chip(text: String, wrap: bool, with_glyph := false, glyph_text := "") -> PanelContainer:
 	"""One clause as a tag: a hairline of gilt on the darker field, the clause
 	in the bright gilt ink."""
 	var chip = PanelContainer.new()
@@ -542,8 +576,80 @@ func _terms_chip(text: String, wrap: bool) -> PanelContainer:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
 	label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
-	chip.add_child(label)
+	if not with_glyph:
+		chip.add_child(label)
+		return chip
+	# Session UI-6: the term's own glyph leads its figure.
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+	var icon := TextureRect.new()
+	icon.texture = load(Utils.glyph(_term_glyph(glyph_text if glyph_text != "" else text)))
+	icon.modulate = Utils.UI_GOLD
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	chip.add_child(row)
 	return chip
+
+
+# Session UI-6: folded terms. A term is a repeat when its words (past a leading
+# "Label: ") sit inside the card's heading.
+func _term_repeats_heading(term: String, heading: String) -> bool:
+	var h := heading.strip_edges().to_lower()
+	if h == "":
+		return false
+	var body := term.strip_edges()
+	var cut := body.find(": ")
+	if cut >= 0:
+		body = body.substr(cut + 2)
+	body = body.strip_edges().to_lower()
+	return body != "" and h.contains(body)
+
+
+# A long term's chip face: its lead words, past a leading "Clause: ", up to the
+# first dash or colon; a short term keeps its words.
+func _term_face(text: String) -> String:
+	if text.length() <= TERMS_CHIP_SHORT:
+		return text
+	var face := text
+	if face.begins_with("Clause: "):
+		face = face.substr(8)
+	var stop := face.length()
+	for sep in [" \u2014 ", " - ", ": "]:
+		var at := face.find(sep)
+		if at > 0 and at < stop:
+			stop = at
+	face = face.substr(0, stop).strip_edges()
+	return face if face != "" else text
+
+
+# Session UI-6: which stat glyph a term's words call for - the first rule whose
+# keyword the clause holds; a clause no rule knows takes the letter.
+const TERM_GLYPHS := [
+	[["gold", "pay", "tribute", "subsid", "indemn", "loan"], "gold"],
+	[["trade", "commerce", "income"], "income"],
+	[["alliance", "allied", "pact", "defen", "guarantee"], "defense"],
+	[["peace", "treaty", "truce", "armistice", "ceasefire"], "letter"],
+	[["troops", "men ", "contingent", "regiment", "army"], "foot"],
+	[["fleet", "naval", "ship", "blockade"], "fleet"],
+	[["border", "passage", "transit", "march", "territory", "province", "cede", "region"], "march"],
+	[["war", "attack", "invade"], "war"],
+]
+
+
+func _term_glyph(text: String) -> String:
+	var low := text.to_lower()
+	for rule in TERM_GLYPHS:
+		for word in (rule[0] as Array):
+			if low.contains(str(word)):
+				return str(rule[1])
+	return "letter"
 
 
 func _open_row(panel: PanelContainer):
@@ -571,16 +677,23 @@ func _build_action_row(mailbox_id: int) -> HBoxContainer:
 	var accept_btn = Button.new()
 	accept_btn.text = "Accept"
 	accept_btn.theme_type_variation = &"PrimaryButton"   # Session UI-2: the one gilt answer
-	accept_btn.custom_minimum_size = Vector2(112, 34)
+	# Session UI-6 (F29: "make the Accept button larger"): taller and wider, the
+	# gilt answer the row's eye lands on; Decline is the plain button beside it.
+	accept_btn.custom_minimum_size = Vector2(168, 46)
 	accept_btn.pressed.connect(_on_row_action.bind(mailbox_id, "accept"))
 	row.add_child(accept_btn)
 
 	var decline_btn = Button.new()
 	decline_btn.text = "Decline"
-	decline_btn.custom_minimum_size = Vector2(112, 34)
+	decline_btn.custom_minimum_size = Vector2(120, 46)
 	decline_btn.pressed.connect(_on_row_action.bind(mailbox_id, "reject"))
 	row.add_child(decline_btn)
 
+	if Utils.explanations_folded():
+		# Session UI-6: folded, the pointer on the row says it (a hover, not a caption)
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.tooltip_text = "or click the letter to reply in full"
+		return row
 	var hint = Label.new()
 	hint.text = "or click the letter to reply in full"
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE

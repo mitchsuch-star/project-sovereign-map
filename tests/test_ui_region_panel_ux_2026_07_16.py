@@ -109,8 +109,14 @@ class TestDismissLadder:
         src = _read(SCENES / "map_renderer_base.gd")
         assert "signal map_dismiss_requested" in src
         assert "MOUSE_BUTTON_RIGHT" in src
-        # Both the sea-click else-branch and right-click emit it.
+        # Both the sea-click else-branch and right-click on nothing emit it.
         assert src.count("map_dismiss_requested.emit()") >= 2
+        # Session UI-6: right-click on a province or a piece asks the owner for
+        # the order's card instead.
+        assert "signal order_context_requested(region: String, marshal: String)" in src
+        right = src.split("elif event.button_index == MOUSE_BUTTON_RIGHT:", 1)[1]
+        right = right.split("\n\t\telif", 1)[0].split("\n\tif ", 1)[0]
+        assert "order_context_requested.emit(" in right and "map_dismiss_requested.emit()" in right
 
     def test_main_connects_dismiss_and_clears_selection(self):
         src = _read(SCRIPTS / "main.gd")

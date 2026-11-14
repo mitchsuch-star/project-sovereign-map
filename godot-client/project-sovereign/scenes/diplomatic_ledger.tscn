@@ -104,6 +104,7 @@ text = "CONGRESS"
 layout_mode = 2
 
 [node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+vertical_scroll_mode = 4
 layout_mode = 2
 size_flags_vertical = 3
 

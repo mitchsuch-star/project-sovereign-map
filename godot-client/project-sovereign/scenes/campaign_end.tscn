@@ -76,6 +76,7 @@ layout_mode = 2
 ; length, so it scrolls; the title block above and the button row below stay
 ; pinned whatever the epilogue runs to (the Proclamation's shape).
 [node name="ContentScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+vertical_scroll_mode = 4
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3

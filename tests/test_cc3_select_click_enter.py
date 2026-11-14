@@ -512,10 +512,13 @@ class TestTheSelection:
         assert driven["k1_reach_asked"] == ["march_reach:" + cc3["subject"]]
 
     def test_the_strip_says_what_each_click_does(self, driven):
-        shown = humanize_entity_name(_cc3(driven)["subject"])
+        """RE-POINTED (Session UI-6, N3): the words are the selection card's
+        hint (`order_strip_text()` keeps its contract — the card stands in the
+        strip's place, its title names him). The right click is the order —
+        a province, an enemy, a marshal (support); a LEFT click on another of
+        ours picks him (`test_a_corps_of_ours_is_the_support_quote`)."""
         assert driven["k1_strip_loading"].startswith(
-            f"{shown} selected — click a province: march · an enemy: attack · "
-            "a marshal: support · Esc cancels")
+            "Right-click a province: march · an enemy: attack · a marshal: support · Esc cancels")
         assert "Reading his roads" in driven["k1_strip_loading"]
         n = len(_cc3(driven)["reach"]["reach"])
         assert f"{n} provinces on his roads" in driven["k1_strip"]
@@ -617,10 +620,16 @@ class TestTheCard:
         assert driven["k7c_asked"] == [f"order_quote:{cc3['subject']}|dest|{cc3['enemy_location']}"]
 
     def test_a_corps_of_ours_is_the_support_quote(self, driven):
+        """RE-POINTED (Session UI-6, N3): support is the RIGHT click's (and the
+        drag's); the LEFT click on another of ours selects HIM — no card, no
+        quote (it used to open a support card: a misclick could order one)."""
         cc3 = _cc3(driven)
         assert driven["k8_asked"] == [f"order_quote:{cc3['subject']}|ally|{cc3['ally']}"]
         assert driven["k8_card_command"] == cc3["ally_quote"]["command"]
         assert cc3["ally_quote"]["kind"] == "support"
+        assert driven["k8c_selected"] == cc3["ally"]
+        assert driven["k8c_card_open"] is False and driven["k8c_asked"] == []
+        assert driven["k8c_reach_asked"] == ["march_reach:" + cc3["ally"]]
 
     def test_a_refused_order_says_why_and_cannot_be_sent(self, driven):
         cc3 = _cc3(driven)
@@ -714,6 +723,90 @@ class TestTheDrag:
         assert driven["d5_pending"] is False
         assert driven["d5_line"].endswith(", march to " + shown)
         assert driven["d5_selected"] == ""
+
+
+class TestTheRightClickAndTheCard:
+    """Session UI-6 (November 13, 2026) — the war room's new gestures, read off
+    the same driven run (`tools/cc_client_harness.gd` k13–k15, d6–d8): the
+    right click as the order (N3), the selection card's fixed slots and their
+    digits (N2/N5), and the next marshal after an order (N4)."""
+
+    def test_the_right_click_on_a_province_is_its_march_card(self, driven):
+        cc3 = _cc3(driven)
+        assert driven["k13_card_open"] is True
+        assert driven["k13_asked"] == [f"order_quote:{cc3['subject']}|dest|{cc3['dest']}"]
+        assert driven["k13_card_command"] == cc3["dest_quote"]["command"]
+        assert driven["k13_selected_after_card_esc"] == cc3["subject"]
+
+    def test_the_right_click_on_himself_lets_him_go(self, driven):
+        assert driven["k13_self_lets_go"] == ""
+
+    def test_with_nothing_selected_it_selects_a_piece_of_ours(self, driven):
+        cc3 = _cc3(driven)
+        assert driven["k13_empty_line_selects"] == cc3["subject"]
+        assert driven["k13_reach_asked"] == ["march_reach:" + cc3["subject"]]
+        assert driven["k13_panel_after_select"] is False
+
+    def test_with_a_draft_it_only_dismisses(self, driven):
+        assert driven["k13_draft_panel_before"] is True        # sensitive: a panel stood
+        assert driven["k13_draft_selected"] == ""
+        assert driven["k13_draft_panel_after"] is False
+        assert driven["k13_draft_line"].endswith(", ho")       # the draft untouched
+
+    def test_the_card_stands_in_the_strips_place(self, driven):
+        cc3 = _cc3(driven)
+        assert driven["k14_card_visible"] is True and driven["k14_strip_visible"] is False
+        assert driven["k14_card_marshal"] == cc3["subject"]
+        assert [s[0] for s in driven["k14_slots"]] == [1, 2, 3, 4, 5, 6, 7]   # fixed slots
+        assert driven["k14_slots"][6][1] == "cancel"
+
+    def test_a_locked_slot_sends_nothing(self, driven):
+        assert driven["k14_locked"] > 0
+        assert driven["k14_locked_sends"] == []
+        assert driven["k14_selected_after_locked"] == _cc3(driven)["subject"]
+        assert driven["k14_line_after_locked"] == ""
+
+    def test_a_lit_slot_sends_his_order_down_the_chip_road(self, driven):
+        cc3 = _cc3(driven)
+        slot, verb = driven["k14_lit"]
+        assert slot > 0, "no lit slot on the boot board — the digit pin is vacuous"
+        assert driven["k14_lit_sends"] == [f"send:{cc3['subject']}, {verb}"]
+        assert driven["k14_line_after_lit"] == ""            # the digit typed nothing
+        assert driven["k14_selected_after_lit"] == ""        # a send lets him go (CC-3)
+        assert driven["k14_card_sent_for"] == cc3["subject"]
+
+    def test_off_the_answer_selects_him_again(self, driven):
+        assert driven["k14_reselected"] == _cc3(driven)["subject"]
+        assert driven["k14_card_after_answer"] is True
+
+    def test_on_the_answer_selects_the_next_idle_marshal(self, driven):
+        cc3 = _cc3(driven)
+        assert driven["k15_setting_on"] is True
+        assert driven["k15_sends"] == [f"send:{cc3['subject']}, {driven['k14_lit'][1]}"]
+        others = [k for k in driven["k15_idle"] if k != cc3["subject"]]
+        if others:
+            assert driven["k15_selected"] in others, (driven["k15_selected"], others)
+        else:
+            assert driven["k15_selected"] == ""
+
+    def test_the_right_button_selects_and_never_drags(self, driven):
+        cc3 = _cc3(driven)
+        assert driven["d6_pending"] is False and driven["d6_dragging"] is False
+        assert driven["d6_selected"] == cc3["subject"]
+
+    def test_the_right_button_on_a_province_opens_its_card(self, driven):
+        cc3 = _cc3(driven)
+        assert driven["d7_uncovered"] is True, "the selection card stood over the province"
+        assert driven["d7_asked"] == [f"order_quote:{cc3['subject']}|dest|{cc3['drag_dest']}"]
+        assert driven["d7_card_open"] is True
+        assert driven["d7_card_command"] == cc3["drag_quote"]["command"]
+
+    def test_the_right_button_on_open_water_still_dismisses(self, driven):
+        if driven["d_water"][0] < 0:
+            pytest.fail("no open water on screen to right-click on")
+        assert driven["d8_uncovered"] is True
+        assert driven["d8_selected_before_water"] == _cc3(driven)["subject"]   # sensitive
+        assert driven["d8_selected_after_water"] == ""
 
 
 class TestTheRestoredTerminal:

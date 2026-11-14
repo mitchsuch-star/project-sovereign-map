@@ -851,7 +851,8 @@ class TestGuessedTargetGuard:
         })
         dialogue = {"options": result["options"]}
         answer = interpret_clarification_answer(dialogue, "ArchdukeJohn")
-        assert answer.get("command") == "Massena, attack ArchdukeJohn"
+        # UI6-X27 (R7): the typed command names him as the map does
+        assert answer.get("command") == "Massena, attack Archduke John"
 
     def test_target_named_by_location_passes_the_guard(self, world):
         # "the force at Tyrol" — the resolved enemy's LOCATION appears in
@@ -936,18 +937,47 @@ class TestGuessedTargetGuard:
         above, which types the UNIQUE surname "John", still grounds and
         still passes — that is what keeps this from being a blanket
         tightening.
+
+        RE-POINTED November 13, 2026 (Session UI-6, UI6-X61 — the lead's ruling
+        between this pin and DD0-S5's `test_the_archduke_in_sight_is_john`): a
+        shared title grounds its ONE bearer IN SIGHT — the man the player can
+        see is the man the word names — and never a hidden bearer, never one of
+        two in sight. NPC-3's hole (typed words grounding the WRONG Archduke)
+        stays shut: a resolution to the bearer out of sight, or to either of two
+        in sight, is still refused at a guess.
         """
-        world = WorldState.from_dict(
-            WorldState.from_scenario(str(SCENARIO_PATH)).to_dict())
+        base = WorldState.from_scenario(str(SCENARIO_PATH)).to_dict()
+        world = WorldState.from_dict(base)
         assert sum(1 for m in world.marshals
                    if m.startswith("Archduke")) >= 2, (
             "precondition: the title really is shared")
-        result = _execute(world, {
-            "marshal": "Massena", "action": "attack",
-            "target": "ArchdukeJohn", "type": "specific",
-            "_raw_input": "Massena, attack the Archduke",
-        })
-        assert "will not charge at a guess" in str(result.get("message", "")), (
+        assert world.marshals["ArchdukeJohn"].name in {
+            m.name for m in world.get_visible_enemies("France")}, "precondition: John in sight"
+        assert "ArchdukeCharles" not in {
+            m.name for m in world.get_visible_enemies("France")}, "precondition: Charles hidden"
+
+        def attack(target, tweak=None):
+            board = WorldState.from_dict(base)
+            if tweak:
+                tweak(board)
+            return str(_execute(board, {
+                "marshal": "Massena", "action": "attack",
+                "target": target, "type": "specific",
+                "_raw_input": "Massena, attack the Archduke",
+            }).get("message", ""))
+
+        # the one bearer in sight is the man named
+        assert "will not charge at a guess" not in attack("ArchdukeJohn")
+        # a resolution to the bearer OUT of sight is a guess (NPC-3's hole)
+        assert "will not charge at a guess" in attack("ArchdukeCharles"), (
+            "a hidden bearer must never be grounded by a shared title")
+
+        def both_in_sight(board):
+            board.marshals["ArchdukeCharles"].location = board.marshals["ArchdukeJohn"].location
+            board.calculate_visibility()
+
+        # two bearers in sight: the word names neither
+        assert "will not charge at a guess" in attack("ArchdukeJohn", both_in_sight), (
             "an ambiguous title must be asked about, not guessed at")
 
 

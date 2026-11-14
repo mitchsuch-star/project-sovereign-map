@@ -424,6 +424,35 @@ func _sync_fold() -> void:
 	icon_container.visible = not _is_folded()
 	if _is_folded():
 		overflow_label.visible = false
+	_seat_folded_rail(_is_folded())
+
+
+func _seat_folded_rail(folded: bool) -> void:
+	"""Session UI-6 (November 13, 2026): folded, the rail is its bell chip
+	alone at the slot's right edge — the "Imperial Box" words and the spacer
+	step aside, so the compact view's top-right corner holds a small chip, not
+	a 360-px band (the war chip stands under it; the map's labels dodge it).
+	Unfolded, the panel spans the slot as authored."""
+	var words := rail_panel.get_node_or_null("RailLayout/RailLabel") as Control
+	var spacer := rail_panel.get_node_or_null("RailLayout/Spacer") as Control
+	if words != null:
+		words.visible = not folded
+	if spacer != null:
+		spacer.visible = not folded
+	rail_panel.anchor_left = 1.0 if folded else 0.0
+	rail_panel.anchor_right = 1.0
+	rail_panel.offset_left = 0.0
+	rail_panel.offset_right = 0.0
+	rail_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN if folded else Control.GROW_DIRECTION_BOTH
+
+
+func rail_rect() -> Rect2:
+	"""Session UI-6: where the rail stands on screen (its bell chip while it
+	is folded at the compact view), or an empty rect while it is hidden — the
+	war chip stands under it and the map's labels dodge it (main.gd)."""
+	if rail_panel == null or not is_instance_valid(rail_panel) or not rail_panel.is_visible_in_tree():
+		return Rect2()
+	return rail_panel.get_global_rect()
 
 
 func _on_viewport_size_changed() -> void:

@@ -929,6 +929,30 @@ def _clean_target_text(text: str) -> Optional[str]:
     return text.strip() if text.strip() else None
 
 
+def _known_place_of(world, issuing, marshal) -> Optional[str]:
+    """UI6-X21 (Session UI-6, November 13, 2026): the snapshot a NON-war
+    commander target is stored with — where the ISSUER may place him. Our
+    own corps (and any target of an AI issuer, who reads its own board) live;
+    a FOREIGN commander, for the player, by THE one sighting rule
+    (`intel_surfaces.last_seen`: in sight, where he stands; out of sight, his
+    newest sighting) — None when no report places him. The parse used to
+    store an UNSEEN neutral's LIVE province (`Hohenlohe` → Silesia) on the
+    order it rode; nothing printed it yet, and now nothing can."""
+    player = getattr(world, "player_nation", None)
+    issuer_nation = getattr(issuing, "nation", None) if issuing is not None else player
+    if (getattr(marshal, "nation", None) == issuer_nation
+            or issuer_nation != player):
+        return marshal.location
+    try:
+        from backend.game_logic.intel_surfaces import last_seen
+        seen = last_seen(world, player, marshal.name)
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "strategic_parser._known_place_of: intel_surfaces.last_seen")
+        return None
+    return str(seen["location"]) if seen and seen.get("location") else None
+
+
 def _classify_target(
     target_text: str,
     issuing_marshal: Optional[str],
@@ -964,8 +988,12 @@ def _classify_target(
             }
 
     # Check if target is a marshal (case-insensitive lookup)
+    from backend.display_names import humanize_entity_name as _shown
+    _typed = target_text.lower()
     for marshal_name, marshal in world.marshals.items():
-        if marshal_name.lower() == target_text.lower():
+        # UI6-X34: the printed form too ("Bernardim Freire") — only the roster
+        # key matched, so the spaced name was a PROVINCE the readback priced.
+        if marshal_name.lower() == _typed or _shown(marshal_name).lower() == _typed:
             issuing = world.get_marshal(issuing_marshal) if issuing_marshal else None
             is_enemy = False
             if issuing:
@@ -985,7 +1013,7 @@ def _classify_target(
                 return {
                     "target": marshal_name,
                     "target_type": "marshal",
-                    "target_snapshot_location": marshal.location,
+                    "target_snapshot_location": _known_place_of(world, issuing, marshal),
                     "convert_to_pursue": False,
                 }
 
@@ -1146,15 +1174,42 @@ def _extract_arrival_target(command_lower: str, marshal_name: Optional[str],
         return None
     try:
         from backend.ai.condition_grammar import _resolve_marshal, _issuer_nation
+        from backend.commands.proper_name import object_words
     except Exception as exc:  # pragma: no cover
         report(exc, "strategic_parser._extract_arrival_target: import backend.ai.condition_grammar")
         return None
     found = _resolve_marshal(obj, world)
     if found is None:
+        # UI6-X9's sweep: "then attack Mack and Archduke John" named Mack
+        # first and armed nobody (the whole run resolved to no one, and every
+        # contact seam fell back to `enemies[0]`) — the object names its man
+        # FIRST, up to the first conjunction (`proper_name`'s grammar).
+        words = object_words(obj)
+        for k in range(len(words), 0, -1):
+            found = _resolve_marshal(" ".join(words[:k]), world)
+            if found is not None:
+                break
+    if found is None:
         return None
     nation = _issuer_nation(world, marshal_name)
     if nation is not None and getattr(found, "nation", None) == nation:
         return None
+    # UI6-X9 (Session UI-6, November 13, 2026): the arrival attack is armed
+    # on a foe IN SIGHT — the drop note's own rule ("No foe called … is in
+    # sight — no attack armed on arrival"). This read the whole roster, so
+    # "march to Swabia then attack Kutuzov" with Kutuzov in fog armed an
+    # attack on him and withheld the note a name on no roster gets
+    # (`proper_name.arrival_object_note` now says it for him too). The
+    # player's own orders only: an AI's march reads its own omniscient board.
+    player = getattr(world, "player_nation", None)
+    if nation is not None and nation == player:
+        try:
+            from backend.game_logic.intel_surfaces import in_sight
+            if not in_sight(world, player, found):
+                return None
+        except Exception as exc:
+            report(exc, "strategic_parser._extract_arrival_target: intel_surfaces.in_sight")
+            return None
     return found.name
 
 
@@ -1222,6 +1277,20 @@ def clause_can_carry_an_arrival_verb(clause: str) -> bool:
 # province and raised a bad-odds interrupt at Mack, while its sibling
 # `move to ` asked where for free.
 _OBJECT_PREPOSITIONS = ("to", "toward", "towards", "for", "on", "upon")
+
+
+_LONE_MARCH_RE = re.compile(
+    r"^\s*(?:" + HONORIFIC + r")?(?:[A-Za-z][\w'’-]*(?:\s+[A-Za-z][\w'’-]*)?\s*[,:]\s*)?"
+    r"(?:march|move|go|proceed)(?:\s+(?:now|at\s+once|out))?\s*[.!?…]*\s*$",
+    re.IGNORECASE)
+
+
+def march_verb_stands_alone(raw_text) -> bool:
+    """UI6-X72: True when the order is a march verb with NOTHING after it ("Ney,
+    march", "Davout: move now") - no destination named, as `march_slot_is_empty`'s
+    "Ney, march to" names none. "Ney, march on the enemy" and "Ney, pursue" keep
+    the nearest foe in sight."""
+    return bool(raw_text) and _LONE_MARCH_RE.match(str(raw_text)) is not None
 
 
 def march_slot_is_empty(raw_text) -> bool:

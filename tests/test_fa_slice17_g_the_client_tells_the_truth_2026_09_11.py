@@ -225,7 +225,12 @@ class TestFAS131TheMapKeysAgree:
         assert "_on_map_mode_changed(map_area.cycle_map_fill_mode())" in alt
         handler = _code_only(_func_body(main, "func _on_map_mode_changed("))
         assert 'Map view: " + mode' in handler
-        assert _code_only(main).count("Map view: ") == 1, "ONE printer, or the two routes drift apart"
+        # Session UI-6: the slim bar's ⋯ menu names the view on its item
+        # ("Map view: Lands & rule  (M)") — a label, not a printer; the ONE
+        # sentence the two routes print is still built in one place.
+        assert _code_only(main).count('"Map view: " + mode') == 1, "ONE printer, or the two routes drift apart"
+        assert _code_only(main).count("Map view: ") == 2
+        assert 'menu.add_item("Map view: " + _ui5_map_mode_name(_ui5_current_map_mode())' in main
 
     def test_the_credits_line_branches_on_the_build(self):
         src = _read(SCRIPTS / "settings_panel.gd")

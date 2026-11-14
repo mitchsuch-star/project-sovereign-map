@@ -245,6 +245,7 @@ theme_type_variation = &"Caption"
 text = "10,000"
 
 [node name="OutputScroll" type="ScrollContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
+vertical_scroll_mode = 4
 custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 size_flags_vertical = 3

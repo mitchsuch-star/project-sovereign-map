@@ -1337,15 +1337,20 @@ class TestDelegationCopyHumanizesEnemyKeys:
     copy (R7 chokepoint), and the natural spaced form the UI shows must resolve
     too — the winner is still keyed by the raw name for the executor."""
 
-    def _camel_enemy(self, world):
+    def _camel_enemy(self, world, in_sight=None):
+        from backend.game_logic.intel_surfaces import in_sight as _seen
         for m in world.get_enemy_marshals():
             if getattr(m, "strength", 0) > 0 and " " not in m.name and \
                     any(c.isupper() for c in m.name[1:]):
-                return m.name
+                if in_sight is None or _seen(world, world.player_nation, m) == in_sight:
+                    return m.name
         return None
 
     def test_camelcase_key_never_leaks_into_any_surface(self, world1805):
-        key = self._camel_enemy(world1805)
+        # UI6-X14 (November 13, 2026): the ASK's scout names a PLACE only for
+        # a man the player places — one in sight here (the Archduke John at
+        # Tyrol); the fogged Archduke Charles has nothing to observe (below).
+        key = self._camel_enemy(world1805, in_sight=True)
         assert key is not None, "expected a camelCase enemy in the 1805 roster"
         human = humanize_entity_name(key)
         assert human != key and " " in human       # sanity: it really splits
@@ -1364,6 +1369,18 @@ class TestDelegationCopyHumanizesEnemyKeys:
         assert key not in note and human in note
         odds = describe_inferred_bad_odds("Ney", key)
         assert key not in odds and human in odds
+
+    def test_a_camelcase_key_out_of_sight_has_nothing_to_observe(self, world1805):
+        """UI6-X14: his NAME resolves (it is public, and keyed raw for the
+        executor), his place does not — no report of ours places him, so the
+        scout's object is None (the router refuses, free) and no surface
+        carries the key."""
+        key = self._camel_enemy(world1805, in_sight=False)
+        assert key is not None, "expected a fogged camelCase enemy on the 1805 boot"
+        m = detect_delegation(world1805, f"Soult, deal with {key}", None)
+        assert m is not None and m.target == key
+        assert m.scout_target is None and m.scout_seen == ""
+        assert key not in m.target_display and key not in m.clause
 
     def test_natural_spaced_enemy_name_resolves(self, world1805):
         key = self._camel_enemy(world1805)

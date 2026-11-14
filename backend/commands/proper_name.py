@@ -51,7 +51,7 @@ _BLOCKING_PREFIXES = frozenset({
 
 # The words that end the object: punctuation is cut first; these end it too.
 _TAIL_STOPS = frozenset({
-    "and", "or", "but", "then", "so", "nor", "yet",
+    "and", "or", "but", "then", "so", "nor", "yet", "therefore", "thus", "hence",
     "at", "on", "in", "near", "from", "with", "without", "by", "before",
     "after", "toward", "towards", "across", "over", "through", "along",
     "behind", "beyond", "past", "around", "beside", "below", "above",
@@ -217,16 +217,43 @@ def proper_name_in(tail: str, world, viewer: Optional[str] = None) -> Optional[s
     return " ".join(named)
 
 
-def attack_tail(raw: str) -> Optional[str]:
-    """The text after the FIRST battle or capture verb of ``raw`` — the
-    object position of an attack order — or None."""
-    from backend.ai.attack_vocabulary import BATTLE_VERB_RE, CAPTURE_VERB_RE
+def _first_battle_verb(raw: str):
+    """The FIRST battle, capture or bombard verb of ``raw`` (a regex match),
+    or None. UI6-X16: the bombard verbs ("bombard", "shell", "cannonade")
+    ride the attack action in the mock chain and were read by no object
+    reader — "Lannes, bombard Zorglub" disclosed and proceeded against Mack,
+    "Lannes, bombard Kutuzov and Mack" shelled Mack."""
+    from backend.ai.attack_vocabulary import (BATTLE_VERB_RE, BOMBARD_VERB_RE,
+                                              CAPTURE_VERB_RE)
     hits = [m for m in (BATTLE_VERB_RE.search(raw or ""),
-                        CAPTURE_VERB_RE.search(raw or "")) if m]
+                        CAPTURE_VERB_RE.search(raw or ""),
+                        BOMBARD_VERB_RE.search(raw or "")) if m]
     if not hits:
         return None
-    first = min(hits, key=lambda m: m.start())
+    return min(hits, key=lambda m: m.start())
+
+
+def attack_tail(raw: str) -> Optional[str]:
+    """The text after the FIRST battle, capture or bombard verb of ``raw`` —
+    the object position of an attack order — or None."""
+    first = _first_battle_verb(raw)
+    if first is None:
+        return None
     return (raw or "")[first.end():]
+
+
+def attack_verb(raw: str) -> str:
+    """The order's own verb for the answers that re-issue it: "charge" or
+    "bombard" when the line's first battle verb is one (UI6-X16 — the ask
+    re-issues the order the player gave), else "attack"."""
+    first = _first_battle_verb(raw)
+    word = first.group(0).lower() if first is not None else ""
+    if word.startswith("charg"):
+        return "charge"
+    from backend.ai.attack_vocabulary import BOMBARD_VERBS
+    if any(word.startswith(v) for v in BOMBARD_VERBS):
+        return "bombard"
+    return "attack"
 
 
 # ── the answer ──────────────────────────────────────────────────────────
@@ -315,9 +342,10 @@ def _own_marshal_at_head(tail: str, world, viewer: Optional[str]) -> Optional[st
 
 
 def _ask(world, marshal, foes: list, raw: str, question: str,
-         interpreted) -> Optional[Dict]:
+         interpreted, verb: str = "attack") -> Optional[Dict]:
     from backend.commands.clarification import build_proper_name_clarification
-    response = build_proper_name_clarification(world, marshal, foes, raw, question)
+    response = build_proper_name_clarification(world, marshal, foes, raw, question,
+                                               verb=verb)
     if response is None:
         return None
     response["interpreted_target"] = interpreted.name if interpreted else None
@@ -329,13 +357,20 @@ def attack_proper_name_ask(world, marshal, raw: str) -> Optional[Dict]:
     """The answer to an attack whose object is a proper name the map does
     not know (``marshal`` None for the bare "attack Zorglub"), or None.
     Every answer is free: an ``awaiting_clarification`` question or a
-    ``success: False`` refusal at cost 0."""
+    ``success: False`` refusal at cost 0.
+
+    UI6-X16 (Session UI-6, November 13, 2026): a CHARGE or a BOMBARDMENT
+    is read here too, and its ask re-issues the order the player gave
+    ("shall Murat charge him?" → "Murat, charge Mack") — "Murat, charge
+    Zorglub and Mack" charged Mack and "Lannes, bombard Zorglub" shelled him
+    behind a disclosure."""
     if not A_PROPER_NAME_ASKS or not raw or world is None:
         return None
     viewer = getattr(marshal, "nation", None) or getattr(world, "player_nation", None)
     tail = attack_tail(raw)
     if tail is None:
         return None
+    verb = attack_verb(raw)
     # DD0-1 (October 10, 2026): an attack whose object is one of OUR OWN
     # marshals, or "everything" / "everyone", is refused or asked — never
     # the nearest enemy behind a disclosure.
@@ -362,8 +397,10 @@ def attack_proper_name_ask(world, marshal, raw: str) -> Optional[Dict]:
             }
         in_sight = ", ".join(f"{humanize_entity_name(f.name)} at {humanize_entity_name(f.location)}"
                              for f in foes[:4])
+        _whom = "Attack" if verb == "attack" else verb.capitalize()
         asked = _ask(world, marshal, foes, raw,
-                     f"Attack whom, Sire? Name the foe — in sight: {in_sight}.", None)
+                     f"{_whom} whom, Sire? Name the foe — in sight: {in_sight}.", None,
+                     verb=verb)
         if asked is not None:
             return asked
     name = proper_name_in(tail, world, viewer)
@@ -414,28 +451,234 @@ def attack_proper_name_ask(world, marshal, raw: str) -> Optional[Dict]:
                     f"mean {humanize_entity_name(near.name)} at "
                     f"{humanize_entity_name(near.location)}?")
         return _ask(world, marshal, [near] + [f for f in foes if f is not near],
-                    raw, question, near)
-    engage = f"shall {who} engage him?" if marshal is not None else "shall we engage him?"
+                    raw, question, near, verb=verb)
+    _deed = "engage" if verb == "attack" else verb
+    engage = f"shall {who} {_deed} him?" if marshal is not None else f"shall we {_deed} him?"
     question = (f"{lead + ' ' if lead else f'No foe called {shown_name} is in sight, Sire. '}"
                 f"The nearest in sight is {humanize_entity_name(nearest.name)} at "
                 f"{humanize_entity_name(nearest.location)} — {engage}")
-    return _ask(world, marshal, foes, raw, question, nearest)
+    return _ask(world, marshal, foes, raw, question, nearest, verb=verb)
+
+
+def unseen_commander_named(obj_text: str, world, viewer: Optional[str]):
+    """UI6-X9: the foreign commander an object names FIRST (`object_words`,
+    a leading honorific or filler word aside; matched on his full forms —
+    the key and the printed name) when he is OUT OF the player's sight (THE
+    one rule, `intel_surfaces.in_sight`), or None. His name is no fog
+    secret; an order resting on where he stands cannot be given."""
+    player = getattr(world, "player_nation", None)
+    if world is None or viewer is None or viewer != player:
+        return None
+    words = object_words(obj_text)
+    while words and words[0].lower() in _FILLER:
+        words = words[1:]
+    if not words or words[0].lower() in _BLOCKING_PREFIXES:
+        return None
+    forms: Dict[str, object] = {}
+    for m in (getattr(world, "marshals", None) or {}).values():
+        if getattr(m, "nation", None) == viewer:
+            continue
+        for form in (m.name, humanize_entity_name(m.name)):
+            forms.setdefault(str(form).lower(), m)
+    for k in range(len(words), 0, -1):
+        found = forms.get(" ".join(words[:k]).lower())
+        if found is None:
+            continue
+        try:
+            from backend.game_logic.intel_surfaces import in_sight
+            return None if in_sight(world, viewer, found) else found
+        except Exception as exc:
+            report(exc, "proper_name.unseen_commander_named: intel_surfaces.in_sight")
+            return found
+    return None
 
 
 def arrival_object_note(obj_text: str, world, marshal_name: Optional[str]) -> Optional[str]:
     """SF-V4 §6.3 item 4 — "march to Swabia then attack Zorglub": the march
     stands, NO attack is armed on arrival, and the reply names the dropped
     word. The note for that, or None when the arrival object names no
-    unknown proper name."""
+    unknown proper name.
+
+    UI6-X9 (Session UI-6, November 13, 2026): the note's rule is "in sight",
+    and it now holds for a real commander out of sight as for a name on no
+    roster — "march to Swabia then attack Kutuzov" armed an attack on a man
+    in fog and said nothing (`strategic_parser._extract_arrival_target`
+    read the whole roster). He is named as the map prints him (his name is
+    no secret); nothing of where he stands is said."""
     if not A_PROPER_NAME_ASKS or world is None:
         return None
     viewer = None
     if marshal_name:
         m = world.get_marshal(marshal_name)
         viewer = getattr(m, "nation", None)
-    name = proper_name_in(obj_text, world, viewer or getattr(world, "player_nation", None))
+    viewer = viewer or getattr(world, "player_nation", None)
+    name = proper_name_in(obj_text, world, viewer)
     if name is None:
-        return None
+        unseen = unseen_commander_named(obj_text, world, viewer)
+        if unseen is None:
+            return None
+        name = humanize_entity_name(unseen.name)
     shown_name = name[:1].upper() + name[1:]
     return (f"No foe called {shown_name} is in sight — the march stands, and "
             f"no attack is armed on arrival; name the foe and he will strike")
+
+
+_NAME_JOIN_RE = re.compile(
+    r"(\s*(?:,|;|&|\band\b|\bplus\b|\bthen\b|\bso\b|\btherefore\b|\bthus\b|\bhence\b"
+    r"|\balong\s+with\b|\btogether\s+with\b|\bas\s+well\s+as\b|\balongside\b|\bwith\b)\s*)",
+    re.IGNORECASE)
+# UI6-X69: the co-subject joiners ("attack Mack along with Kutuzov") - a FOREIGN
+# commander after one is a second object the order drops, and the note says so;
+# a marshal of ours after one is company the muster reads for itself ("WILL
+# JOIN - Davout"), never a dropped object.
+_SOFT_JOINERS = frozenset({"with", "along with", "together with", "as well as", "alongside"})
+_ORDER_TAIL_VERB_RE = re.compile(r"\b(?:pursue|pursuit|chase|hunt)\b", re.IGNORECASE)
+# UI6-X34: the other order verbs whose OBJECT may be a list — "support Davout
+# and Kutuzov", "hold Bern and Kutuzov", "march to Swabia and Kutuzov".
+_LIST_ORDER_VERB_RE = re.compile(
+    r"\b(?:support|assist|aid|reinforce|hold|defend|protect|guard|march|move|"
+    r"advance|head|proceed|go|ride|fortify|garrison|scout|follow)\b"
+    r"(?:\s+(?:to|toward|towards|into|on|upon|at|for))?", re.IGNORECASE)
+# a second segment may repeat the order's own verb: "attack Mack and attack
+# Kutuzov", "attack Mack therefore attack Kutuzov" (a different verb is a second
+# order, which the relay carries — never a second NAME).
+_HARD_JOINERS = frozenset({"and", "so", "therefore", "thus", "hence", "plus", "&", ","})
+
+
+def _list_order_tail(raw: str):
+    """``(verb word, object tail)`` of the order whose object may be a list,
+    or None: the first battle / pursuit verb, else the first list-order verb
+    after the address."""
+    first = _first_battle_verb(raw)
+    if first is not None:
+        return first.group(0).lower(), raw[first.end():]
+    match = _ORDER_TAIL_VERB_RE.search(raw)
+    if match is not None:
+        return match.group(0).lower(), raw[match.end():]
+    from backend.ai.llm_client import ADDRESS_TOKEN_RE
+    address = ADDRESS_TOKEN_RE.match(raw)
+    start = address.end() if address else 0
+    match = _LIST_ORDER_VERB_RE.search(raw, start)
+    if match is None:
+        return None
+    return re.match(r"[a-z]+", match.group(0).lower()).group(0), raw[match.end():]
+
+
+class _Place:
+    """A province standing where a commander would, so the note names it."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+
+def _segment_words(segment: str) -> List[str]:
+    return [_strip_possessive(w) for w in _WORD_RE.findall(segment)]
+
+
+def _commander_in(words: List[str], forms: Dict[str, object]):
+    """The roster marshal a segment IS the full name of — the whole span
+    first (a title is part of "Archduke John"), then with leading filler and
+    title words dropped ("Marshal Davout")."""
+    words = list(words)
+    while words:
+        found = forms.get(" ".join(words).lower())
+        if found is not None:
+            return found
+        if words[0].lower() in _FILLER or words[0].lower() in _TITLE_WORDS:
+            words = words[1:]
+        else:
+            return None
+    return None
+
+
+def second_commander_named(raw: str, world, addressee: Optional[str] = None):
+    """UI6-X25 / X34 (widened): the commanders an order's OBJECT names as a
+    LIST — "Ney, attack Mack and Kutuzov" -> (Mack, Kutuzov), "Ney, hold
+    Lorraine and Kutuzov" -> (Lorraine, Kutuzov), "Ney, attack Mack
+    therefore attack Kutuzov" -> (Mack, Kutuzov) — as (first, others), the
+    first a roster marshal (or, for a place order, the province), or None.
+    The order falls on the first; the rest were dropped in silence (CRT-2's
+    rule: say which name was read). Only a segment that IS a commander's
+    full name counts ("Mack and Davout support" is a second order, not a
+    second target; "then" / ";" tails ride the relay's own note); the
+    addressee is never a target. For a place order the others are FOREIGN
+    commanders (our own marshals beside a place are the second-name road's).
+    Names only — never a place of a man's."""
+    if world is None or not raw:
+        return None
+    read = _list_order_tail(raw)
+    if read is None:
+        return None
+    verb, tail = read
+    tail = re.split(r"[.!?()\"—–:]", tail, maxsplit=1)[0]
+    # UI6-X44: a PURPOSE tail ("so Mack and Kutuzov can't pass", "lest …") is
+    # a clause about them, never part of the order's list of objects; UI6-X41:
+    # and "therefore attack Kutuzov" is a second order on the `then` road -
+    # the relay's note says it waits, so no list note says it was dropped.
+    from backend.ai.clause_guards import PURPOSE_LEAD_RE
+    _purpose = PURPOSE_LEAD_RE.search(tail)
+    if _purpose is not None:
+        tail = tail[:_purpose.start()]
+    viewer = getattr(world, "player_nation", None)
+    forms: Dict[str, object] = {}
+    for m in (getattr(world, "marshals", None) or {}).values():
+        if m.name == addressee:
+            continue
+        for form in (m.name, humanize_entity_name(m.name)):
+            forms.setdefault(str(form).lower(), m)
+    places: Dict[str, str] = {}
+    for r in (getattr(world, "regions", None) or {}):
+        for form in (str(r), humanize_entity_name(str(r))):
+            places.setdefault(form.lower(), str(r))
+    parts = _NAME_JOIN_RE.split(tail)
+    segments = parts[0::2]
+    joiners = [re.sub(r"\s+", " ", j.strip().lower()) for j in parts[1::2]]
+    found: List[object] = []
+    for index, segment in enumerate(segments):
+        words = _segment_words(segment)
+        if index and words and words[0].lower() == verb:
+            if joiners[index - 1] not in _HARD_JOINERS:
+                continue
+            words = words[1:]
+        while words and words[0].lower() in _FILLER:
+            words = words[1:]
+        if not words:
+            continue
+        marshal = _commander_in(words, forms)
+        if marshal is None and not found:
+            place = places.get(" ".join(w for w in words if w.lower() != "the").lower())
+            if place is not None:
+                found.append(_Place(place))
+                continue
+        if marshal is None:
+            if found:
+                continue  # a later segment that names nobody binds nothing
+            return None
+        if marshal in found:
+            continue
+        if (found and isinstance(found[0], _Place)
+                and getattr(marshal, "nation", None) == viewer):
+            continue
+        if (index and joiners[index - 1] in _SOFT_JOINERS
+                and getattr(marshal, "nation", None) == viewer):
+            continue
+        found.append(marshal)
+    if len(found) < 2:
+        return None
+    return found[0], found[1:]
+
+
+def second_name_note(raw: str, world, addressee: Optional[str] = None) -> str:
+    """The sentence that says which names a list order read and which it did
+    not act on ("Kutuzov, named after Mack, was not acted on — one order
+    falls on one commander; give him a line of his own."), or "". Names
+    only: nothing of where any of them stands."""
+    named = second_commander_named(raw, world, addressee)
+    if named is None:
+        return ""
+    first, others = named
+    dropped = " and ".join(humanize_entity_name(o.name) for o in others)
+    verb = "were" if len(others) > 1 else "was"
+    pron = "them" if len(others) > 1 else "him"
+    return (f"{dropped}, named after {humanize_entity_name(first.name)}, {verb} not acted on "
+            f"— one order falls on one commander; give {pron} a line of his own.")

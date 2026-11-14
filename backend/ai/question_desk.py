@@ -2106,7 +2106,7 @@ def _peace_soil_refusal_text(combat, world, lead, enemy) -> str:
                                 enemy_nation=enemy.nation)
     if block is None:
         return ""
-    said = str(peace_soil_refusal(lead, enemy, block)["message"])
+    said = str(peace_soil_refusal(lead, enemy, block, world)["message"])
     return f"The order would be refused, Sire: {said} Nothing spent."
 
 

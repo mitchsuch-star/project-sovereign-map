@@ -76,7 +76,7 @@ func _ready():
 	word_button.visible = false
 	cancel_button = Button.new()
 	cancel_button.name = "CancelButton"
-	cancel_button.text = "Cancel the Order (no cost)"
+	cancel_button.text = _face("Cancel the Order", "no cost")
 	cancel_button.theme_type_variation = insist_button.theme_type_variation
 	cancel_button.custom_minimum_size = insist_button.custom_minimum_size
 	insist_button.get_parent().add_child(cancel_button)
@@ -242,24 +242,27 @@ func show_objection(objection_data: Dictionary):
 			# SFR-D3: trusting him names its price when it is more than the
 			# order's face value (a fortify from NEUTRAL is two actions).
 			if str(objection_data.get("trust_note", "")) != "":
-				trust_button.text = "Trust %s: %s (%d AP — %s, %+d trust)" % [
-					current_marshal, alt_desc, int(objection_data.get("trust_ap_cost", 2)),
-					str(objection_data.get("trust_note", "")), trust_gain]
+				trust_button.text = _face("Trust %s: %s" % [current_marshal, alt_desc], "%d AP — %s, %+d trust" % [
+					int(objection_data.get("trust_ap_cost", 2)), str(objection_data.get("trust_note", "")), trust_gain])
+				if Utils.explanations_folded():
+					trust_button.tooltip_text = str(objection_data.get("trust_note", ""))
 			else:
-				trust_button.text = "Trust %s: %s (%+d trust)" % [current_marshal, alt_desc, trust_gain]
+				trust_button.text = _face("Trust %s: %s" % [current_marshal, alt_desc], "%+d trust" % trust_gain)
 		else:
-			trust_button.text = "Trust %s's Judgment (%+d trust)" % [current_marshal, trust_gain]
+			trust_button.text = _face("Trust %s's Judgment" % current_marshal, "%+d trust" % trust_gain)
 
 		# AAR-23 (CRT-7): the insist arm names its price when the executor
 		# will charge more than the order's face value — a fortify from
 		# NEUTRAL is two actions, the auto-shift first. The backend stamps
 		# `insist_ap_cost` + `insist_note` only in that case.
 		if objection_data.has("insist_note") and str(objection_data.get("insist_note", "")) != "":
-			insist_button.text = "Proceed as Ordered (%d AP — %s, %+d trust)" % [
+			insist_button.text = _face("Proceed as Ordered", "%d AP — %s, %+d trust" % [
 				int(objection_data.get("insist_ap_cost", 2)),
-				str(objection_data.get("insist_note", "")), insist_penalty]
+				str(objection_data.get("insist_note", "")), insist_penalty])
+			if Utils.explanations_folded():
+				insist_button.tooltip_text = str(objection_data.get("insist_note", ""))
 		else:
-			insist_button.text = "Proceed as Ordered (%+d trust)" % insist_penalty
+			insist_button.text = _face("Proceed as Ordered", "%+d trust" % insist_penalty)
 
 		# Session UI-4: each answer's consequence as a coloured caption, from the
 		# same numbers the labels above are built from (AP only when the answer
@@ -279,11 +282,13 @@ func show_objection(objection_data: Dictionary):
 			var comp = objection_data.compromise
 			var comp_desc = _describe_order(comp)
 			if str(objection_data.get("compromise_note", "")) != "":
-				compromise_button.text = "Compromise: %s (%d AP — %s, %+d trust)" % [
-					comp_desc, int(objection_data.get("compromise_ap_cost", 2)),
-					str(objection_data.get("compromise_note", "")), compromise_gain]
+				compromise_button.text = _face("Compromise: %s" % comp_desc, "%d AP — %s, %+d trust" % [
+					int(objection_data.get("compromise_ap_cost", 2)),
+					str(objection_data.get("compromise_note", "")), compromise_gain])
+				if Utils.explanations_folded():
+					compromise_button.tooltip_text = str(objection_data.get("compromise_note", ""))
 			else:
-				compromise_button.text = "Compromise: %s (%+d trust)" % [comp_desc, compromise_gain]
+				compromise_button.text = _face("Compromise: %s" % comp_desc, "%+d trust" % compromise_gain)
 			compromise_button.visible = true
 		else:
 			compromise_button.visible = false
@@ -356,6 +361,9 @@ func _dress_answers() -> void:
 		btn.get_parent().remove_child(btn)
 		cell.add_child(btn)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Session UI-6: the answer fills its cell's height, so the buttons of a row
+		# stand level whatever each label wraps to (the caption keeps its own line)
+		btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		# long answers wrap inside their half instead of falling back to
 		# natural widths (the grid is always even)
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -393,10 +401,14 @@ func _fit_compact() -> void:
 	var cancel_cell: Control = (cancel_button.get_parent() as Control) if cancel_button != null else null
 	if grid != null and cancel_cell != null and String(cancel_cell.name).begins_with("Cell"):
 		var column_vb: Node = grid.get_parent()
-		if compact and cancel_cell.get_parent() != grid:
+		# Session UI-6: on the full view Cancel also joins the grid whenever the
+		# answers standing make an odd count (four answers = a 2 x 2 block, no
+		# lone full-width button); with an even count it keeps its own row.
+		var joins: bool = compact or _standing_answers() % 2 == 1
+		if joins and cancel_cell.get_parent() != grid:
 			cancel_cell.get_parent().remove_child(cancel_cell)
 			grid.add_child(cancel_cell)
-		elif not compact and cancel_cell.get_parent() == grid:
+		elif not joins and cancel_cell.get_parent() == grid:
 			grid.remove_child(cancel_cell)
 			column_vb.add_child(cancel_cell)
 			column_vb.move_child(cancel_cell, grid.get_index() + 1)
@@ -424,11 +436,28 @@ func _fit_compact() -> void:
 		cancel_button.custom_minimum_size.y = 39.0 if compact else 45.0
 
 
+func _standing_answers() -> int:
+	"""Session UI-6: how many of the marshal's own answers stand (Cancel not
+	counted) - the grid's even count is decided from it."""
+	var n := 0
+	for b in [trust_button, insist_button, word_button, compromise_button]:
+		if b != null and (b as Button).visible:
+			n += 1
+	return n
+
+
 func _sync_cell(btn: Button) -> void:
 	var cell := btn.get_parent() as Control
 	if cell != null and cell.name.begins_with("Cell"):
 		cell.visible = btn.visible
 
+
+func _face(base: String, cost: String) -> String:
+	"""Folded: the button face carries the answer only; the coloured caption under
+	it carries the cost. On the page: the cost stays in parentheses."""
+	if Utils.explanations_folded():
+		return base
+	return "%s (%s)" % [base, cost]
 
 func _caption_text(ap: int, trust: int, authority: int = 0, free_note: String = "") -> String:
 	"""The consequence in figures, coloured by what it does: AP gold, a trust
@@ -479,6 +508,26 @@ func _even_the_answers() -> void:
 		for b in cell.get_children():
 			if b is Button:
 				(b as Button).custom_minimum_size.x = 0.0
+	# Session UI-6: every answer the height of the tallest (a wrapped label sets
+	# it), across the rows and Cancel's row too - a uniform grid, not a ragged one.
+	var tallest := 0.0
+	var all_buttons: Array = []
+	for cell in _answer_cells(grid):
+		for b in cell.get_children():
+			if b is Button and (b as Button).is_visible_in_tree():
+				all_buttons.append(b)
+				tallest = maxf(tallest, (b as Button).get_combined_minimum_size().y)
+	for b in all_buttons:
+		(b as Button).custom_minimum_size.y = tallest
+
+
+func _answer_cells(grid: Node) -> Array:
+	"""The grid's cells, plus Cancel's own cell when it stands on a row of its own."""
+	var cells: Array = grid.get_children()
+	var cancel_cell: Node = cancel_button.get_parent() if cancel_button != null else null
+	if cancel_cell != null and cancel_cell.get_parent() != grid and not cells.has(cancel_cell):
+		cells.append(cancel_cell)
+	return cells
 
 func _describe_order(order: Dictionary) -> String:
 	"""Create human-readable description of an order."""
@@ -552,7 +601,7 @@ func _setup_strategic_buttons(options: Array):
 		var text = proceed_opt.get("text", "Proceed as Ordered")
 		var ap = proceed_opt.get("ap_cost", 2)
 		var trust = proceed_opt.get("trust_change", -10)
-		insist_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		insist_button.text = _face(text, "%d AP, %+d trust" % [ap, trust])
 		_set_caption(insist_button, _caption_text(int(ap), int(trust)))
 	else:
 		insist_button.text = "Proceed as Ordered"
@@ -563,7 +612,7 @@ func _setup_strategic_buttons(options: Array):
 		var text = preferred_opt.get("text", "Accept Alternative")
 		var ap = preferred_opt.get("ap_cost", 1)
 		var trust = preferred_opt.get("trust_change", 12)
-		trust_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		trust_button.text = _face(text, "%d AP, %+d trust" % [ap, trust])
 		_set_caption(trust_button, _caption_text(int(ap), int(trust)))
 		has_alternative = true
 	else:
@@ -576,7 +625,7 @@ func _setup_strategic_buttons(options: Array):
 		var text = compromise_opt.get("text", "Compromise")
 		var ap = compromise_opt.get("ap_cost", 2)
 		var trust = compromise_opt.get("trust_change", 3)
-		compromise_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		compromise_button.text = _face(text, "%d AP, %+d trust" % [ap, trust])
 		_set_caption(compromise_button, _caption_text(int(ap), int(trust)))
 		compromise_button.visible = true
 		has_compromise = true
@@ -631,7 +680,7 @@ func _setup_word_button(word) -> void:
 		return
 	var refusal := str(word.get("refusal", ""))
 	word_button.visible = true
-	word_button.text = "By My Word (%+d authority)" % -int(word.get("price", 0))
+	word_button.text = _face("By My Word", "%+d authority" % -int(word.get("price", 0)))
 	word_button.disabled = refusal != ""
 	# Session UI-4: its price in authority, coloured (never trust)
 	_set_caption(word_button, _caption_text(0, 0, -int(word.get("price", 0))))

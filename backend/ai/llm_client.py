@@ -456,7 +456,7 @@ def _askable_enemy_names(game_state: Optional[Dict]):
 
 
 def foe_names_for_guards(game_state: Optional[Dict] = None,
-                         names=None) -> List[str]:
+                         names=None, text: Optional[str] = None) -> List[str]:
     """CRT-1: every enemy commander the sentence may name as the SUBJECT of a
     reason clause — the roster KEYS and the forms the game PRINTS.
 
@@ -466,7 +466,13 @@ def foe_names_for_guards(game_state: Optional[Dict] = None,
     is attacking` ATTACKED him while `Ney, retreat, Mack is attacking`
     retreated — the CX-7 through-line one guard over. Both registers go in,
     supplied by R7's own chokepoint. ``names`` overrides the roster read
-    (the parser's fuzzy scan already holds one)."""
+    (the parser's fuzzy scan already holds one).
+
+    UI6-X10: with ``text`` (the sentence the guard will read), the subjects
+    of ITS reason clauses that no foe roster holds ride along too
+    (`reason_subjects_in`) — every reader of the sentence (the mock chain,
+    the parser's word scan, the strategic layer) hands the same text, so
+    all three blank the same clause."""
     base = list(names) if names is not None else list(
         _askable_enemy_names(game_state) or [])
     from backend.display_names import humanize_entity_name
@@ -479,7 +485,230 @@ def foe_names_for_guards(game_state: Optional[Dict] = None,
             if key and key not in seen:
                 seen.add(key)
                 out.append(form.strip())
+    if text:
+        for subject in reason_subjects_in(text, game_state, foes=out):
+            key = subject.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(subject)
     return out
+
+
+# UI6-X10 (Session UI-6, November 13, 2026): "Ney, retreat, Zorglub is
+# attacking" FOUGHT — a battle at Swabia, an action spent — because a reason
+# clause was blanked only when its subject was a pronoun, "the <party>" or a
+# foe on the roster, so a name on NO roster kept its clause and the mock
+# chain read the clause's verb as OUR order. Measured on the same board: a
+# friend ("Ney, retreat, Davout is attacking"), a province ("…, Swabia is
+# attacked"), a thing ("…, the bridge is under attack") and the subordinate
+# form ("Ney, retreat as Zorglub attacks") all fought too. CRT-1's rule is the
+# reason is not the order — WHATEVER its subject. A clause is a report when
+# its predicate is one: an auxiliary and a verb, or a hostile verb INFLECTED
+# ("attacks", "attacked", "attacking") — never the bare imperative, which is
+# an order to a man ("…, Zorglub attack Mack" stays the unbound address's).
+_REASON_SUBJECT_SCAN_RE = re.compile(
+    r"(?P<lead>\b(?:as|because|since|now\s+that|seeing\s+(?:that|as)"
+    r"|given\s+that|considering\s+that)\s+|,\s*"
+    r"|\b(?:so|for|now|seeing|given|considering)\s+(?=(?-i:[A-Z])))"   # a NAME follows ("for three turns" is no reason)
+    r"(?P<article>the\s+)?(?:" + HONORIFIC + r")?"
+    r"(?P<subj>[A-Za-z][\w'’-]*?)(?:['’]s\s+\w+)?\s+"
+    r"(?P<pred>(?:is|are|was|were|will|shall|would|could|might|may|has|have|had)"
+    r"\s+(?:not\s+|n[o']t\s+)?\w+|[A-Za-z]+)\b",
+    re.IGNORECASE)
+# The words that open a clause without naming anyone (a pronoun, a deictic,
+# the expletive "it"/"there", "now is the time to …", a quantifier).
+_NOT_A_REASON_SUBJECT = frozenset({
+    "i", "me", "my", "we", "us", "our", "you", "your", "he", "him", "his",
+    "she", "her", "they", "them", "their", "it", "its", "this", "that",
+    "these", "those", "there", "here", "now", "then", "today", "tonight",
+    "tomorrow", "time", "what", "which", "who", "whom", "whose", "where",
+    "when", "why", "how", "all", "everything", "everyone", "everybody",
+    "nothing", "nobody", "something", "someone", "somebody", "anything",
+    "anyone", "anybody", "one", "none", "each", "both", "either", "neither",
+    "sire", "please", "so", "and", "or", "but", "if", "unless", "until",
+    "till", "while", "once", "as", "because", "since", "though", "although",
+    "yes", "no", "not", "never", "again", "also", "just", "only", "still",
+    "even", "let",
+    # a preposition heads no subject ("Ney, without attacking, move …")
+    "without", "with", "after", "before", "during", "despite", "against",
+    "toward", "towards", "into", "onto", "upon", "over", "under", "behind",
+    "beyond", "near", "from", "for", "of", "at", "in", "on", "by", "to", "via",
+    "lest", "whilst", "whether", "than",
+})
+_ANTECEDENT_RE = re.compile(r"\b(?:him|her|it|them|there|his|its|their)\b", re.IGNORECASE)
+_INFINITIVE_RE = re.compile(r"\bto\s+[a-z]", re.IGNORECASE)
+
+
+def _inflected_hostile_verb(word: str) -> bool:
+    """`word` is a hostile verb of the CRT-1 list INFLECTED ("attacks",
+    "attacked", "attacking", "rallies") — a report, never the imperative."""
+    from .clause_guards import _HOSTILE_VERB
+    bare = re.sub(r"\(\?:ies\|y\|s\|es\|ed\|ing\)\?$", "", _HOSTILE_VERB)
+    if bare == _HOSTILE_VERB:      # the list changed shape: claim nothing
+        return False
+    return bool(re.fullmatch(r"(?:" + bare + r")(?:ies|s|es|ed|ing)", word or "", re.IGNORECASE))
+
+
+def reason_subjects_in(text: str, game_state: Optional[Dict] = None,
+                       foes=()) -> List[str]:
+    """UI6-X10 — the SUBJECTS of the third-party reason clauses in ``text``
+    that the foe roster (``foes``) does not hold, for `strip_reason_clauses`
+    to blank by the same rule it blanks a foe's. PURE.
+
+    * Beside an order of ours, any subject — a name on no roster, a friend,
+      a province, a court, a thing ("the bridge") — save a name the board
+      knows that a pronoun behind the clause may stand for ("Davout, Ney is
+      attacking Mack, support him" keeps its antecedent).
+    * A line that is ONLY the report (no order of ours beside it) is refused
+      by the guard, its clause quoted — unless the clause carries the order
+      itself in an infinitive and its subject is no capitalised name ("Ney,
+      the time has come to attack Mack", "orders are to attack Mack").
+    * Never an order verb ("Lannes, keep falling back"), a pronoun or deictic
+      (`_NOT_A_REASON_SUBJECT`), the addressee, or a bare imperative
+      predicate ("…, Zorglub attack Mack" is an order to a man)."""
+    if not text:
+        return []
+    from .clause_guards import REASON_END_RE as _CLAUSE_END_RE, order_verb_re
+    world = (game_state or {}).get("world") if isinstance(game_state, dict) else None
+    foe_forms = {str(f).strip().lower() for f in (foes or ()) if f}
+    known_cache: List[set] = []
+
+    def _known() -> set:
+        """The names the board knows besides its foes (our marshals, the
+        provinces, the courts) — read only when a clause needs it (once per
+        typed line at most; most lines carry no reason clause)."""
+        if known_cache:
+            return known_cache[0]
+        known = set()
+        for key in ("marshals", "map_data"):
+            for name in _game_state_dict(game_state, key):
+                known.update(p.lower() for p in _name_match_patterns(str(name)))
+                known.add(str(name).lower())
+        if world is not None:
+            try:
+                for marshal in world.get_player_marshals():
+                    known.update(p.lower() for p in _name_match_patterns(marshal.name))
+                known.update(str(r).lower() for r in (getattr(world, "regions", None) or {}))
+            except Exception as exc:
+                report(exc, "llm_client.reason_subjects_in: the world's rosters")
+        known.update(_extract_known_nations(game_state).keys())
+        known_cache.append(known)
+        return known
+
+    address = ADDRESS_TOKEN_RE.match(text)
+    addressee = address.group(1).lower() if address else ""
+    out: List[str] = []
+    pos = 0
+    while pos < len(text):
+        m = _REASON_SUBJECT_SCAN_RE.search(text, pos)
+        if m is None:
+            break
+        pos = m.start() + 1        # leads may overlap ("retreat as Zorglub …")
+        subj = re.sub(r"['’]s$", "", m.group("subj"))
+        low = subj.lower()
+        pred = m.group("pred")
+        if " " not in pred.strip() and not _inflected_hostile_verb(pred):
+            continue
+        if (not low or low in _NOT_A_REASON_SUBJECT or low == addressee
+                or low in foe_forms or subj in out
+                # an order verb is the order, never the clause's subject:
+                # "Lannes, keep falling back", "Ney, start attacking"
+                or order_verb_re().fullmatch(subj)):
+            continue
+        end = _CLAUSE_END_RE.search(text, m.end("subj"))
+        clause_end = end.start() if end else len(text)
+        residue = text[:m.start()] + " " * (clause_end - m.start()) + text[clause_end:]
+        has_order = bool(order_verb_re().search(residue))
+        article = bool(m.group("article"))
+        if has_order:
+            # Beside an order of ours: a name the board knows may be the
+            # antecedent of a pronoun behind the clause — then it stays.
+            if (not article and low in _known()
+                    and _ANTECEDENT_RE.search(text[clause_end:])):
+                continue
+        else:
+            # The line was only this report: the guard refuses it, quoted —
+            # unless the clause carries the order itself ("the time has come
+            # to attack Mack"); a capitalised name inside the line is a man.
+            proper = subj[:1].isupper() and m.start() > 0 and not article
+            if not proper and _INFINITIVE_RE.search(text[m.start():clause_end]):
+                continue
+        out.append(subj)
+    return out
+
+
+_REASON_LEAD_RE = re.compile(
+    r"^\s*(?:(?:as|because|since|now\s+that|seeing\s+(?:that|as)|while|when)\s+)?"
+    r"(?:the\s+)?(?:" + HONORIFIC + r")?", re.IGNORECASE)
+_ENEMY_PRONOUNS = frozenset({"he", "she", "they", "it", "him", "them", "enemy",
+                             "enemies", "foe", "foes", "the enemy"})
+
+
+def reason_clause_subject(clause: str, world) -> Tuple[str, str]:
+    """UI6-X18 (Session UI-6, November 13, 2026): what a refused reason
+    clause is ABOUT, as ``(kind, shown)`` — so the refusal says what is true
+    of its subject. "Ney, Davout is attacking" was answered "You have told
+    me what the enemy is about" of one of our own marshals; "Swabia is
+    attacked" and "the bridge is under attack" were "the enemy" too.
+
+    * ``("enemy", "")``      — a pronoun or "the enemy", a court at war with
+      us (its demonym: "the Austrians"), or a commander of one (in sight or
+      not — his name is public; nothing of where he stands is read);
+    * ``("friend", name)``   — one of our own marshals;
+    * ``("commander", name)`` — a foreign commander of a court at peace;
+    * ``("court", name)``    — a court at peace with us;
+    * ``("province", name)`` — a province of the map;
+    * ``("thing", "")``      — anything else (an object, a name on no roster).
+    PURE."""
+    from backend.display_names import humanize_entity_name
+    text = _REASON_LEAD_RE.sub("", str(clause or ""), count=1)
+    words = re.findall(r"[A-Za-z][\w'’-]*", text)
+    words = [re.sub(r"['’]s$", "", w) for w in words]
+    if not words or world is None:
+        return ("enemy", "") if words and words[0].lower() in _ENEMY_PRONOUNS else ("thing", "")
+    if words[0].lower() in _ENEMY_PRONOUNS:
+        return "enemy", ""
+    player = getattr(world, "player_nation", None)
+
+    def _at_war(nation) -> bool:
+        try:
+            return bool(nation and player and world.is_at_war(player, nation))
+        except Exception as exc:
+            report(exc, "llm_client.reason_clause_subject: world.is_at_war")
+            return False
+
+    marshal_forms: Dict[str, object] = {}
+    for m in (getattr(world, "marshals", None) or {}).values():
+        for form in _name_match_patterns(str(m.name)):
+            marshal_forms.setdefault(form, m)
+    region_forms = {}
+    for r in (getattr(world, "regions", None) or {}):
+        for form in _name_match_patterns(str(r)):
+            region_forms.setdefault(form, r)
+    from backend.ai.strategic_parser import demonym_to_nation
+    from backend.ai.nation_names import resolve_typed_nation
+    for k in range(min(4, len(words)), 0, -1):
+        span = " ".join(words[:k]).lower()
+        man = marshal_forms.get(span)
+        if man is not None:
+            if getattr(man, "nation", None) == player:
+                return "friend", humanize_entity_name(man.name)
+            if _at_war(man.nation):
+                return "enemy", ""
+            return "commander", humanize_entity_name(man.name)
+        if span in region_forms:
+            return "province", humanize_entity_name(region_forms[span])
+        nation = None
+        try:
+            nation = resolve_typed_nation(span, world) or demonym_to_nation(span, world)
+        except Exception as exc:
+            report(exc, "llm_client.reason_clause_subject: the court")
+        if nation and nation != player:
+            if _at_war(nation):
+                return "enemy", ""
+            from backend.game_logic.formations import formed_display_name
+            return "court", formed_display_name(world, nation)
+    return "thing", ""
 
 
 def _hostile_first(game_state: Optional[Dict], enemy_names):
@@ -1245,6 +1474,95 @@ def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
     return (f"Berthier studies the map. \"Sire, I note the reference to "
             f"{target} — but no corps of ours can march there today. "
             f"{why}{door} {THREE_DOORS}\"")
+
+
+def _commander_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
+    """UI6-X19 (Session UI-6, November 13, 2026): the shrug's line when the
+    only name it recognised is a COMMANDER's. It offered "'Ney, move to
+    Mack'" — an order the executor refuses ("Mack is a commander, Sire, not a
+    province") — whoever he was. Now it offers what the board takes: for one
+    of ours, the support that marches to him; for a foreign commander IN
+    SIGHT, the attack (at war) and the march to the province he stands in
+    when a road of ours reaches it; for one OUT of sight, no road at all (his
+    position is the fogged half — the doctrine) — only the intel road.
+
+    None when the name is no commander's (the caller keeps its templates).
+    A cold parse (no world) knows only the rosters it was handed: the line
+    drops the march and keeps the attack (an enemy) or the support (ours)."""
+    from backend.display_names import humanize_entity_name
+    key = str(target or "")
+    if not key:
+        return None
+    world = (game_state or {}).get("world")
+    marshals = _game_state_dict(game_state, "marshals")
+    enemies = _game_state_dict(game_state, "enemies")
+    shown = humanize_entity_name(key)
+    first = humanize_entity_name(str(next(iter(marshals), "Ney")))
+    if world is None:
+        if key in marshals:
+            other = next((humanize_entity_name(str(n)) for n in marshals if n != key), first)
+            return (f"\"Regarding {shown}, Sire — I need a marshal and an action. "
+                    f"To march to his side: '{other}, support {shown}'.\" "
+                    f"Berthier taps the map pointedly.")
+        if key in enemies:
+            return (f"\"Regarding {shown}, Sire — I need a marshal and an action. "
+                    f"For example: '{first}, attack {shown}'.\" Berthier taps the map "
+                    f"pointedly.")
+        return None
+    man = world.get_marshal(key) if hasattr(world, "get_marshal") else None
+    if man is None:
+        return None
+    shown = humanize_entity_name(man.name)
+    player = getattr(world, "player_nation", None)
+    field = [m for m in world.get_player_marshals()
+             if int(getattr(m, "strength", 0) or 0) > 0 and not getattr(m, "captured_by", "")]
+    if getattr(man, "nation", None) == player:
+        other = next((m for m in field if m.name != man.name), None)
+        if other is None:
+            return None
+        return (f"\"Regarding {shown}, Sire — I need a marshal and an action. To "
+                f"march a corps to his side: '{humanize_entity_name(other.name)}, "
+                f"support {shown}'; to order {shown} himself, address him: "
+                f"'{shown}, hold'.\" Berthier taps the map pointedly.")
+    from backend.game_logic.intel_surfaces import in_sight
+    if not in_sight(world, player, man):
+        return (f"\"Regarding {shown}, Sire — no report of ours places him, so I "
+                f"can name no road to him. For word of him, ask 'where is "
+                f"{shown}'.\" Berthier taps the map pointedly.")
+    try:
+        at_war = bool(world.is_at_war(player, man.nation))
+    except Exception as exc:
+        report(exc, "llm_client._commander_suggestion: world.is_at_war")
+        at_war = False
+    where = humanize_entity_name(man.location)
+    def _reach(m):
+        d = world.get_distance(m.location, man.location)
+        return (d if isinstance(d, int) else 999, m.name)
+    actor = min(field, key=_reach, default=None)
+    if actor is None:
+        return None
+    name = humanize_entity_name(actor.name)
+    orders = [f"'{name}, attack {shown}'"] if at_war else []
+    try:
+        from backend.commands.strategic import issuance_road_refusal, plot_route
+        if actor.location != man.location:
+            road, verdict = plot_route(world, actor, man.location,
+                                       use_weighted=True, want_verdict=True)
+            if road is not None and issuance_road_refusal(
+                    world, actor, man.location, "MOVE_TO", verdict) is None:
+                orders.append(f"'{name}, move to {where}'")
+    except Exception as exc:
+        report(exc, "llm_client._commander_suggestion: the road law")
+    if not orders:
+        from backend.game_logic.formations import formed_display_name
+        court = formed_display_name(world, man.nation)
+        return (f"\"Regarding {shown}, Sire — he serves {court}, and no order of ours "
+                f"reaches him today. For word of him, ask 'where is {shown}'.\" "
+                f"Berthier taps the map pointedly.")
+    hint = _attack_preview_sentence(name, shown) if at_war else ""
+    return (f"\"Regarding {shown}, Sire — he stands at {where}. I need a marshal and "
+            f"an action — try {' or '.join(orders)}.{hint}\" Berthier taps the map "
+            f"pointedly.")
 
 
 def _known_nation_names(game_state: Optional[Dict]) -> list:
@@ -2496,6 +2814,22 @@ class LLMClient:
             return False
         if str(getattr(result, "command_type", "") or "") == "diplomatic":
             return False
+        # UI6-X19's live sibling: "Ney, move to Mack" / "Ney, scout Davout"
+        # read as orders here and the executor refuses them ("Mack is a
+        # commander, Sire, not a province") — a commander is no destination
+        # for the province verbs (a MARCH to him is the strategic road's own
+        # pursuit or support, and stands).
+        target = str(getattr(result, "target", "") or "")
+        if (action in ("move", "scout") and target
+                and not re.search(r"\bmarch", text or "", re.IGNORECASE)):
+            rosters = set(_game_state_dict(game_state, "marshals")) | set(
+                _game_state_dict(game_state, "enemies"))
+            world = (game_state or {}).get("world")
+            if world is not None:
+                rosters |= set((getattr(world, "marshals", None) or {}).keys())
+            if target in rosters and target not in ((getattr(world, "regions", None) or {})
+                                                    if world is not None else {}):
+                return False
         return True
 
     def sanitise_berthier_reply(self, reply: str, game_state: Optional[Dict]) -> str:
@@ -2582,6 +2916,20 @@ class LLMClient:
 
         recognized_marshal = partial_parse.get("recognized_marshal")
         recognized_target = partial_parse.get("recognized_target")
+        # UI6-X12 (Session UI-6, November 13, 2026; R7): every name a template
+        # PRINTS is the printed form. The partial parse carries roster KEYS,
+        # so "Archduke Charles, status" was answered "Regarding
+        # ArchdukeCharles, Sire — … 'Ney, move to ArchdukeCharles'". The keys
+        # stay for the lookups (`marshal_title`, `_place_suggestion`); the
+        # parser reads the printed form of a name as it reads the key.
+        from backend.display_names import humanize_entity_name as _shown
+        marshal_names = [_shown(str(n)) for n in marshal_names]
+        first_marshal = _shown(str(first_marshal))
+        first_enemy = _shown(str(first_enemy))
+        _target_key = recognized_target
+        recognized_target = _shown(str(recognized_target)) if recognized_target else recognized_target
+        _marshal_key = recognized_marshal
+        recognized_marshal = _shown(str(recognized_marshal)) if recognized_marshal else recognized_marshal
 
         # CX5-L5-F5 (Step 7 slice 5a): a line that mentions a retreat the
         # parser read as somebody ELSE'S (the CX-5 noun rule) was answered
@@ -2598,7 +2946,7 @@ class LLMClient:
         if recognized_marshal:
             # SF5-X3: the man by his title — a client's general is not a
             # Marshal of the Empire, and the Emperor is not one either.
-            _who = marshal_title((game_state or {}).get("world"), recognized_marshal)
+            _who = marshal_title((game_state or {}).get("world"), _marshal_key)
             templates = [
                 (f"Berthier adjusts his spectacles. \"Sire, I understand this concerns "
                  f"{_who}, but I cannot determine the order. "
@@ -2616,7 +2964,11 @@ class LLMClient:
         elif recognized_target:
             # First contact (Sept 23, 2026): the road law is read before
             # a march is suggested — see `_place_suggestion`.
-            _placed = _place_suggestion(game_state, recognized_target)
+            _placed = _place_suggestion(game_state, _target_key)
+            # UI6-X19: a commander's name is no destination — the line
+            # offers the orders the board takes for HIM, never "move to Mack".
+            if not _placed:
+                _placed = _commander_suggestion(game_state, _target_key)
             templates = [_placed] if _placed else [
                 (f"Berthier studies the map. \"Sire, I note the reference to "
                  f"{recognized_target}, but which marshal should act? "
@@ -2930,7 +3282,7 @@ class LLMClient:
             # condition keeps its refusal or hand-off and only the enemy's
             # verb is removed from what the chain below may read. Measured
             # before this line: `Ney, retreat as they attack` FOUGHT.
-            _foes = foe_names_for_guards(game_state)
+            _foes = foe_names_for_guards(game_state, text=guarded)   # UI6-X10
             _reason_spans = reason_clause_spans(guarded, foes=_foes)
             _reason_clause = (guarded[_reason_spans[0][0]:_reason_spans[0][1]]
                               .strip(" ,") if _reason_spans else "")

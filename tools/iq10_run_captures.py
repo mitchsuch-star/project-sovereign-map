@@ -2092,8 +2092,10 @@ def script_errors(log_path: pathlib.Path) -> list[str]:
     body = text
     if "[IQ10] BEGIN" in text:
         body = text.split("[IQ10] BEGIN", 1)[1]
-    if "[IQ10] END" in body:
-        body = body.split("[IQ10] END", 1)[0]
+    # UI6-X23 (Session UI-6, November 13, 2026): the count stopped at the FIRST
+    # shot's END — every later shot's errors went uncounted (a whole shoot's 77
+    # read "0"). Everything after the first shot begins counts; the engine's
+    # exit noise is ERROR / WARNING, never SCRIPT ERROR.
     return [ln.strip() for ln in body.splitlines() if "SCRIPT ERROR" in ln]
 
 

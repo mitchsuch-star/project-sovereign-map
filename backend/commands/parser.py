@@ -25,6 +25,8 @@ from backend.ai.attack_vocabulary import (IDIOM_FILLER_WORDS,
 from backend.ai.clause_guards import (
     HONORIFIC,
     is_question,
+    compound_pronoun_reading,
+    consequence_as_then,
     strip_condition_clauses,
     strip_deferred_clauses,
     strip_negated_clauses,
@@ -76,7 +78,7 @@ A_ROUTED_WORD_IS_NEVER_A_NAME = True
 # SF-V4: the attack verbs whose next word is the order's TARGET (object
 # position) — never read as an unknown executor by the word scan.
 from backend.ai.attack_vocabulary import BATTLE_VERB_RE as _BV, CAPTURE_VERB_RE as _CV
-from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import humanize_entity_name, marshal_title  # SF5-X3: the ONE style for a marshal in prose
 _OBJECT_OF_ATTACK_RE = re.compile(
     '(?:' + _BV.pattern + ')|(?:' + _CV.pattern + ')', re.IGNORECASE)
 _NAVAL_META_VERBS = frozenset({"build_fleet", "set_fleet_posture", "naval_diversion"})
@@ -143,8 +145,14 @@ _STAND_FAST_FIRST_CLAUSE_RE = re.compile(
 
 
 def _head_can_carry_arrival(first: str) -> bool:
-    """CR-7-1 — may an attack tail fuse onto this head?  See the rule above."""
-    return clause_can_carry_an_arrival(first)
+    """CR-7-1 — may an attack tail fuse onto this head?  See the rule above.
+    UI6-X55: a RETREAT head ("fall back to Lorraine then attack Mack") is not a
+    march - fused, the retreat was silently replaced by a 2-AP march."""
+    return clause_can_carry_an_arrival(first) and not _RETREAT_HEAD_RE.search(first)
+
+
+_RETREAT_HEAD_RE = re.compile(r"\b(?:retreat|fall\s+back|withdraw|retire|pull\s+back)\b",
+                              re.IGNORECASE)
 
 
 def _tail_fuses_onto_head(first: str, tail: str) -> bool:
@@ -161,7 +169,8 @@ def _tail_fuses_onto_head(first: str, tail: str) -> bool:
     first_clause = re.split(r'\s*[,;]\s*|\s+(?:and\s+)?then\s+|\s+and\s+',
                             tail.strip(), maxsplit=1)[0]
     return bool(ARRIVAL_VERB_TAIL_RE.match(first_clause)
-                and clause_can_carry_an_arrival_verb(first))
+                and clause_can_carry_an_arrival_verb(first)
+                and not _RETREAT_HEAD_RE.search(first))
 
 
 # CR-7-1 rider (CQ-9): "move to" / "go to" are the TACTICAL move by design
@@ -473,6 +482,7 @@ def rewrite_inflected_order(command_text: str, game_state, sovereign: str = "") 
 # stylistic — see `_and_clause_is_a_second_order`.
 _SECOND_ORDER_VERBS = (
     r'attack|assault|engage|storm|charge|bombard|retreat'
+    r'|fall\s+back|pull\s+back'     # UI6-X58: "defend and fall back" is two orders
     r'|withdraw|move|march|advance|scout|hold|defend|fortify|entrench'
     r'|drill|wait|garrison|recruit|build|repair|support|reinforce'
     r'|pursue|chase|blockade')
@@ -490,9 +500,14 @@ def _second_order_verbs() -> str:
             else _SECOND_ORDER_VERBS)
 
 
+# UI6-X33/X34: "so" / "therefore" / "thus" / "hence" before an order verb
+# join two orders as "and" does ("fortify Kutuzov so attack Mack").
+_BARE_RETREAT_TAIL_RE = re.compile(
+    r"(?:retreat|fall\s+back|withdraw|retire|pull\s+back)(?:\s+(?:to|toward|towards|from)\s+[^,;]+)?",
+    re.IGNORECASE)
 _AND_VERB_SPLIT_RE = LeveredPattern(
-    r'\s+and\s+(?=(?:' + _SECOND_ORDER_VERBS_WIDE + r')\b)',
-    r'\s+and\s+(?=(?:' + _SECOND_ORDER_VERBS + r')\b)',
+    r'\s+(?:and|so|therefore|thus|hence)\s+(?=(?:' + _SECOND_ORDER_VERBS_WIDE + r')\b)',
+    r'\s+(?:and|so|therefore|thus|hence)\s+(?=(?:' + _SECOND_ORDER_VERBS + r')\b)',
     re.IGNORECASE)
 # SF-CMD-1 W5 / CRT-11: the second name is heard at a comma.
 THE_SECOND_NAME_IS_HEARD_AT_A_COMMA = True
@@ -597,6 +612,15 @@ def _game_state_dict_p(game_state, key: str) -> dict:
         return {}
     value = game_state.get(key)
     return value if isinstance(value, dict) else {}
+
+
+def _tail_names_a_foe(tail: str, game_state) -> bool:
+    """UI6-X41: the tail names an enemy commander (his NAME is public, the
+    fog keeps only his place) - so it carries its own object even where the
+    fast layer binds nothing for a man out of sight."""
+    lowered = tail.lower()
+    return any(re.search(r'\b' + re.escape(f.lower()) + r'\b', lowered)
+               for f in foe_names_for_guards(game_state) if f)
 
 
 def _split_sequential_orders(command_text: str, game_state=None):
@@ -1641,6 +1665,35 @@ def _edit_distance_at_most(a: str, b: str, limit: int) -> bool:
     return previous[-1] <= limit
 
 
+def _attack_object_commander(command_text: str, enemy_names) -> Optional[str]:
+    """UI6-X11: the foreign commander an attack's OBJECT names first, or
+    None. The object is `proper_name`'s own grammar (the words after the
+    battle verb up to the first comma, conjunction or preposition, a
+    leading honorific or filler word aside); the name is matched EXACTLY on
+    its full forms — the key and the printed name — so a surname alone, or
+    a slip of a name, never binds a man (CRT-2's near-miss ask keeps those).
+    PURE."""
+    from backend.commands.proper_name import (_BLOCKING_PREFIXES, _FILLER,
+                                              attack_tail, object_words)
+    tail = attack_tail(command_text or "")
+    if tail is None:
+        return None
+    words = object_words(tail)
+    while words and words[0].lower() in _FILLER:
+        words = words[1:]
+    if not words or words[0].lower() in _BLOCKING_PREFIXES:
+        return None
+    forms = {}
+    for name in enemy_names or ():
+        for form in (str(name), humanize_entity_name(str(name))):
+            forms.setdefault(form.lower(), str(name))
+    for k in range(len(words), 0, -1):
+        hit = forms.get(" ".join(words[:k]).lower())
+        if hit:
+            return hit
+    return None
+
+
 def _closest_by_edit_distance(word: str, names, limit: int = 1):
     """The unique name within `limit` edits of `word` (case-insensitive),
     or None when zero or multiple qualify. Used to keep an edit-distance-1
@@ -1850,6 +1903,30 @@ def _extract_player_marshal_names(world, player_nation: Optional[str]) -> List[s
             continue
         names.append(name)
     return names
+
+
+_BECAUSE_ORDER_RE = re.compile(
+    r"^(?P<head>.*?\b(?:attack|march|move|go|advance|proceed|hold|pursue|chase|follow|support|"
+    r"scout|fortify|defend|drill|retreat|charge|bombard|garrison|recruit)\b[^,;.!?]*?)\s+"
+    r"(?:because|since)\s+(?P<tail>(?:attack|march|move|go|advance|proceed|hold|pursue|chase|"
+    r"follow|support|scout|fortify|defend|drill|retreat|charge|bombard|garrison)\s+"
+    r"(?:to\s+|on\s+|at\s+)?[A-Z][^,;.!?]*)$")
+
+
+def _because_joins_two_orders(text: str):
+    """UI6-X65: the refusal text when a reason word joins two ORDERS (the second an
+    imperative verb with a capitalised object: "move to Lorraine because attack
+    Mack"), else None. A reason clause with its own subject ("because Mack is
+    coming") is a reason, read elsewhere, never this."""
+    found = _BECAUSE_ORDER_RE.match(str(text or "").strip())
+    if found is None:
+        return None
+    head = found.group("head").strip()
+    if "," in head:
+        head = head.split(",", 1)[1].strip()
+    tail = found.group("tail").strip()
+    return (f"Two orders, Sire: '{head}' and '{tail}' - one at a time; give the second "
+            f"with 'then', or as its own line. Nothing has been relayed.")
 
 
 class CommandParser:
@@ -2102,15 +2179,38 @@ class CommandParser:
                 enemy_nation = formed_display_name(
                     world, getattr(enemy_obj, "nation", ""))
         side = enemy_nation or "the enemy"
+        # UI6-X12's sibling (R7): the orders it teaches name him as the map
+        # prints him — "attack Archduke Charles", never the raw key — and the
+        # parser reads the printed form as it reads the key.
+        shown = humanize_entity_name(enemy_addressee)
+        # UI6-X19's sweep (Session UI-6, November 13, 2026): the roads it
+        # teaches are roads the board takes. "Hohenlohe" (France at PEACE with
+        # Prussia) was taught "'attack Hohenlohe' or 'pursue Hohenlohe'" — both
+        # refused at peace; a man no report of ours places is taught the intel
+        # road alone (his attack and his pursuit answer "No intelligence on
+        # his position"). His name and side stay public — the doctrine.
+        teach = f"To move against him: 'attack {shown}' or 'pursue {shown}'; "
+        if world is not None:
+            enemy_obj = getattr(world, "marshals", {}).get(enemy_addressee)
+            player = getattr(world, "player_nation", None)
+            if enemy_obj is not None and player and enemy_obj.nation != player:
+                try:
+                    at_war = bool(world.is_at_war(player, enemy_obj.nation))
+                except Exception as exc:
+                    report(exc, "parser._enemy_addressee_refusal: world.is_at_war")
+                    at_war = True
+                from backend.game_logic.intel_surfaces import last_seen
+                if not at_war:
+                    teach = f"We are not at war with {side}; "
+                elif not last_seen(world, player, enemy_obj.name):
+                    teach = "No report of ours places him; "
         return {
             "error": (f"{marshal_title(world, enemy_addressee, start=True)} commands for {side}, "
                       f"Sire — he does not answer to us."),
             # Review round: an enemy-name lead can be an intel ask, not an
             # attempted order — name the intel road beside the sword.
-            "suggestion": (f"To move against him: 'attack "
-                           f"{enemy_addressee}' or 'pursue "
-                           f"{enemy_addressee}'; for word of him, ask "
-                           f"'where is {enemy_addressee}'."),
+            "suggestion": (f"{teach}for word of him, ask "
+                           f"'where is {shown}'."),
             "kind": "enemy_addressee",
             "unknown_name": enemy_addressee,
             "candidates": [],
@@ -2128,6 +2228,71 @@ class CommandParser:
                                or (llm_result or {}).get("live_consulted")):
             return getattr(self.llm, "provider_name", None) or "mock"
         return mode
+
+    _CHARGE_ARRIVAL_TAIL_RE = re.compile(
+        r"(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|\s*[;,]\s*)(?=charg(?:e|es|ed|ing)\b)",
+        re.IGNORECASE)
+
+    def _charge_on_arrival_refusal(self, command_text: str, game_state, world) -> Optional[Dict]:
+        """UI6-X56: "Murat, march to Swabia then charge Mack" - the arrival
+        road carries a plain ATTACK, never a charge, so the charge's own gate
+        (and its name) can neither be asked nor kept there. Refused free,
+        naming both orders: unarmed, by the charge's own gate; armed, by
+        saying the charge is given when he stands before the foe."""
+        tail = self._CHARGE_ARRIVAL_TAIL_RE.search(command_text or "")
+        if tail is None or world is None:
+            return None
+        address = ADDRESS_TOKEN_RE.match(command_text)
+        if address is None:
+            return None
+        spoken = address.group(1).lower()
+        marshal = next((m for n, m in world.marshals.items()
+                        if n.lower() == spoken and m.nation == world.player_nation), None)
+        head = command_text[address.end():tail.start()].strip()
+        if marshal is None or not head or not _head_can_carry_arrival(command_text[:tail.start()]):
+            return None
+        if re.search(r"[,;]|\s(?:and|then)\s", head):
+            return None       # a THIRD clause: the charge is the relay's, not the arrival's
+        from backend.commands.parse_preview import _charge_gate
+        who = humanize_entity_name(marshal.name)
+        gate = _charge_gate(marshal)
+        order = command_text[tail.end():].strip().rstrip(".!")
+        if gate.startswith("one victory"):
+            error = (f"{who} needs one victory first, Sire — a charge cannot be armed "
+                     f"for his arrival ('{head}' then '{order}'). Nothing has been relayed.")
+        elif gate:
+            error = (f"{who}: {gate}, Sire — a charge cannot be armed for his arrival "
+                     f"('{head}' then '{order}'). Nothing has been relayed.")
+        else:
+            error = (f"A charge is given when {who} stands before the foe, Sire — the "
+                     f"arrival road carries an attack, not a charge. Give '{who}, {head}' "
+                     f"now and '{who}, {order}' when he arrives. Nothing has been relayed.")
+        return {"error": error, "suggestion": None, "kind": "arrival_charge",
+                "unknown_name": None, "candidates": []}
+
+    @staticmethod
+    def _compound_pronoun_refusal(command_text: str, game_state) -> Optional[Dict]:
+        """UI6-X43 / X54: the free refusal for a pronoun behind a COMPOUND
+        subject ("Ney, Mack and Kutuzov are attacking so attack him"): it
+        names every man it read and the verb, spends nothing and relays
+        nothing. None when the line has no such subject."""
+        _compound = compound_pronoun_reading(
+            command_text, foe_names_for_guards(game_state, text=command_text),
+            _player_marshal_names(game_state))
+        if _compound is None:
+            return None
+        _shown, _pron, _verb = _compound
+        _both = " and ".join(_shown) if _pron == "them" else (
+            ", ".join(_shown[:-1]) + " or " + _shown[-1])
+        _say = (f"'{_pron}' is {_both}, Sire, and one order falls on one commander"
+                if _pron == "them" else f"'{_pron}' could be {_both}, Sire")
+        return {
+            "error": f"{_say} — name the one to {_verb}. Nothing has been relayed.",
+            "suggestion": None,
+            "kind": "compound_pronoun",
+            "unknown_name": None,
+            "candidates": [],
+        }
 
     def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str, world=None,
                               game_state=None,
@@ -2181,6 +2346,32 @@ class CommandParser:
             command_text, world, game_state)
         if enemy_refusal is not None:
             return (llm_result, enemy_refusal)
+        # UI6-X43: a pronoun behind a COMPOUND subject ("Kutuzov and Mack are
+        # coming so attack him") has no single referent - refused free by
+        # name, never bound to the man in sight.
+        _compound = self._compound_pronoun_refusal(command_text, game_state)
+        if _compound is not None:
+            return (llm_result, _compound)
+        # UI6-X45: "Ney, Brunswick is marching so scout him" - a man's name
+        # that is ALSO a province: the pronoun is the commander, and the
+        # province verb is refused as it is for Mack (never a scout of the
+        # province the sentence did not name).
+        if (llm_result.get("action") == "scout" and llm_result.get("marshal")
+                and re.search(r"\bscout\s+(?:him|them|her)\b", command_text, re.IGNORECASE)):
+            from backend.ai.reading import foe_named_in as _foe_in
+            _subject = _foe_in(command_text, self._get_known_enemies(world))
+            _who = world.get_marshal(llm_result["marshal"]) if world is not None else None
+            _man = world.get_marshal(_subject) if (world is not None and _subject) else None
+            if (_who is not None and _man is not None
+                    and self._names_a_known_region(_subject, world)):
+                from backend.commands.movement_executor import commander_not_a_province
+                return (llm_result, {
+                    "error": commander_not_a_province(world, _who, _man, "scout")["message"],
+                    "suggestion": None,
+                    "kind": "compound_pronoun",
+                    "unknown_name": None,
+                    "candidates": [],
+                })
         # CRT-2 / CQ-17: a reward goes to its OBJECT, on both roads — the
         # recipient named after the address replaces the addressee the
         # extraction bound (see `reward_recipient_from_text`).
@@ -2586,6 +2777,22 @@ class CommandParser:
         # to regions/enemies ("invest in Austria" must not become the
         # Spanish region Asturias)
         _VASSAL_ACTIONS = VASSAL_FAMILY_ACTIONS
+        # UI6-X11 (Session UI-6, November 13, 2026): THE NAME THE SENTENCE
+        # GIVES IS THE ONE ACTED ON (CRT-2). The mock chain reads only the foes
+        # in SIGHT (R5), so "Ney, attack Kutuzov and Mack" — Kutuzov in fog —
+        # bound Mack and FOUGHT him, the name the sentence gave first dropped
+        # in silence (a name on no roster in that place gets the proper-name
+        # ask). The attack's object names its man first: a commander on the
+        # roster there is the target, and the executor answers for him exactly
+        # as for "Ney, attack Kutuzov" ("No intelligence on Kutuzov's
+        # position", free) — his name is no fog secret, his place is.
+        # UI6-X16: and the charge ("Murat, charge Kutuzov and Mack" charged
+        # MACK) — the bombard verbs ride the attack action and `attack_tail`
+        # now reads them ("Lannes, bombard Kutuzov and Mack" shelled Mack).
+        if llm_result.get("action") in ("attack", "charge") and world is not None:
+            _named_first = _attack_object_commander(command_text, known_enemies)
+            if _named_first and _named_first != llm_result.get("target"):
+                llm_result["target"] = _named_first
         # IGR-A3: a bare NATION name ("move to Austria") is neither a province
         # nor a demonym. It must not be fuzzy-rewritten — that marched Ney to
         # Asturias, and "Britain" to Brittany — and it must NOT be nulled
@@ -2748,7 +2955,8 @@ class CommandParser:
             # ("Mack cannot be reached, Sire — no such province"). The
             # blank is same-length, and `split()` drops it.
             _scan_text, _ = strip_reason_clauses(
-                command_text, foes=foe_names_for_guards(names=known_enemies))
+                command_text, foes=foe_names_for_guards(
+                    game_state, names=known_enemies, text=command_text))   # UI6-X10
             # SF7-X10 (Score Finish Step 7 slice 5b): the CONDITION clause
             # too — `Ney, fall back while Mack advances` (and `before …`,
             # and the trailing `in case …` precaution) retreated correctly
@@ -2894,12 +3102,31 @@ class CommandParser:
         head_parse = self.llm.fast_parse(first, game_state)
         if head_parse.action == "unknown":
             return None
+        # UI6-X58: a bare RETREAT behind another order ("defend and retreat",
+        # "hold Lorraine and retreat") is a second order the head must not eat:
+        # the tail is relayed with its note, never dropped, never the verb that
+        # replaces the head's.
+        if (head_parse.action != "retreat" and _BARE_RETREAT_TAIL_RE.fullmatch(tail.strip(" .!"))):
+            return (first, tail)
         tail_parse = self.llm.fast_parse(tail, game_state)
-        if tail_parse.action == "unknown" or not tail_parse.target:
+        if tail_parse.action == "unknown":
             return None
-        if head_parse.target and str(tail_parse.target).strip().lower() == str(
+        if not tail_parse.target:
+            # UI6-X41: an enemy commander's NAME is public (the doctrine), so a
+            # tail that names one carries its own object even where the fast
+            # layer binds nothing for a man out of sight - "charge Mack and
+            # attack Kutuzov" was one muster attack on Mack, the charge's
+            # arming gate bypassed and the charge silently rewritten.
+            if not _tail_names_a_foe(tail, game_state):
+                return None
+        if head_parse.target and tail_parse.target and str(
+                tail_parse.target).strip().lower() == str(
                 head_parse.target).strip().lower():
-            return None
+            # UI6-X41: a CHARGE is gated (one victory arms it) - "charge Mack
+            # and attack Mack" is not one order said twice; folded, the line
+            # ran as a plain muster attack and the charge was silently dropped.
+            if not (head_parse.action == "charge" and tail_parse.action != "charge"):
+                return None
         return (first, tail)
 
     # The verb FAMILIES a bare second verb repeats rather than adds to:
@@ -2987,7 +3214,7 @@ class CommandParser:
             tail_parse = self.llm.fast_parse(tail, game_state)
             if tail_parse.action == "unknown":
                 return None
-            if not tail_parse.target and any(
+            if not tail_parse.target and not _tail_names_a_foe(tail, game_state) and any(
                     head_parse.action in fam and tail_parse.action in fam
                     for fam in self._SAME_FAMILY):
                 return None
@@ -3034,6 +3261,32 @@ class CommandParser:
         _sovereign = _find_player_sovereign(world if world is not None
                                             else (game_state or {}).get("world")
                                             if isinstance(game_state, dict) else None)
+        # UI6-X54: a pronoun behind a COMPOUND subject has no single referent
+        # whatever the joiner or the verb - read on the typed line BEFORE any
+        # split, rewrite or binding can carry the man in sight in its place.
+        _compound = self._compound_pronoun_refusal(command_text, game_state)
+        if _compound is not None:
+            _ptrace.decide("parser", "compound_pronoun", _compound["error"][:120])
+            return {"success": False, "error": _compound["error"], "suggestion": None,
+                    "raw_input": typed_text, "kind": "compound_pronoun",
+                    "unknown_name": None, "candidates": [], "mode": self._failure_road(None)}
+        # UI6-X65: "<an order> because|since <an order verb> <Name>" - two orders
+        # joined by a reason word; the second replaced the first ("Ney, move to
+        # Lorraine because attack Mack" fought Mack). Refused free, both named.
+        _two = _because_joins_two_orders(command_text)
+        if _two is not None:
+            _ptrace.decide("parser", "two_orders", _two[:120])
+            return {"success": False, "error": _two, "suggestion": None,
+                    "raw_input": typed_text, "kind": "two_orders",
+                    "unknown_name": None, "candidates": [], "mode": self._failure_road(None)}
+        # UI6-X41 / X55: "<an order> so|therefore|thus|hence <an order verb>" is
+        # two orders joined as "then" joins them - rewritten HERE, before the
+        # promotion of a tactical "move to" into the march idiom and every
+        # other reader of a typed "then", so the two roads are one.
+        _b = command_text
+        command_text = consequence_as_then(
+            command_text, foes=foe_names_for_guards(game_state, text=command_text))
+        _ptrace.note("parser", "consequence_as_then", _b, command_text)
         # DD-0 S4 (October 10, 2026): THE READING — one tokenised reading of
         # the typed line, peeled from the outside in (the support suffix, the
         # precaution, the reason tail, the trailing vocative, the address, the
@@ -3299,6 +3552,12 @@ class CommandParser:
             _b = command_text
             command_text = strip_self_markers(command_text)
             _ptrace.note("parser", "strip_self_markers", _b, command_text)
+            # UI6-X41: "<order> so|therefore|thus|hence <order verb> ..." takes
+            # the `then` road (the one proven sequel relay), never its own path.
+            _b = command_text
+            command_text = consequence_as_then(
+                command_text, foes=foe_names_for_guards(game_state, text=command_text))
+            _ptrace.note("parser", "consequence_as_then", _b, command_text)
 
             # CR-2: sequential compound orders — parse the FIRST clause and
             # report the dropped tail instead of letting the second clause
@@ -3321,6 +3580,15 @@ class CommandParser:
                 command_text, _q_subjects(game_state))
             if _asks:
                 _ptrace.decide("parser", "is_question", "a question is never split")
+            if not _asks:
+                _arrival_charge = self._charge_on_arrival_refusal(
+                    command_text, game_state, world)
+                if _arrival_charge is not None:
+                    _ptrace.decide("parser", "arrival_charge", _arrival_charge["error"][:120])
+                    return {"success": False, "error": _arrival_charge["error"],
+                            "suggestion": None, "raw_input": command_text,
+                            "kind": "arrival_charge", "unknown_name": None,
+                            "candidates": [], "mode": self._failure_road(None)}
             sequel_split = (None if _asks
                             else _split_sequential_orders(command_text, game_state))
             # DD0-5 (October 10, 2026): "what's in Tyrol? Massena, find out" —
@@ -3690,7 +3958,8 @@ class CommandParser:
                     # read "fall back" as a march toward Mack here while
                     # the action chain read a HOLD.
                     strategic_text, _ = strip_reason_clauses(
-                        strategic_text, foes=foe_names_for_guards(game_state))
+                        strategic_text, foes=foe_names_for_guards(
+                            game_state, text=strategic_text))   # UI6-X10
                     strategic_text, _ = strip_deferred_clauses(strategic_text)
                     # CR-7-5: the clause guard's HAND-OFF. The handed-off
                     # span is blanked SAME-LENGTH for the strategic layer
@@ -3757,6 +4026,21 @@ class CommandParser:
                         strategic = None
                     if (strategic and _resolved_action == "retreat" and strategic.get("strategic_type") == "MOVE_TO" and (strategic.get("target") or "generic") == "generic"):
                         strategic = None
+                    # UI6-X42: "fall back Kutuzov" / "withdraw from Mack" - a
+                    # commander (or a title two share) is no destination; the
+                    # strategic table read him as a PURSUE quarry ("scout for
+                    # him before Ney can give chase"). The retreat stays a
+                    # retreat and meets X39's refusal in the executor.
+                    if strategic and strategic.get("strategic_type") in ("MOVE_TO", "PURSUE"):
+                        from backend.commands.exit_predicate import retreat_destination_commander
+                        if retreat_destination_commander(
+                                effective_text, world, marshal_name) is not None:
+                            # "fall back to Mack" read as a PURSUIT of Mack (a
+                            # retreat that fights him): it is a retreat, and
+                            # the executor refuses its commander-object.
+                            strategic = None
+                            result["command"]["action"] = "retreat"
+                            _resolved_action = "retreat"
                     if (strategic and _resolved_action == "attack"
                             and _a_generic_follow_keeps_the_attack(
                                 _resolved_action, strategic, command_dict.get("target"),
@@ -3858,13 +4142,21 @@ class CommandParser:
                         # corrected ("pursue Macck") keeps its did-you-mean.
                         from backend.ai.reading import foe_named_in as _foe_named_in
                         _tactical_target = result["command"].get("target")
+                        # UI6-X45: a PRONOUN object ("pursue him") after a clause
+                        # whose subject is a commander stands for that commander
+                        # even where his name is also a province (Brunswick) -
+                        # the chain bound him; the strategic scan read "him" as
+                        # a place ("Cannot find 'Him' to pursue").
+                        _pronoun_object = (str(strategic_target or "").strip().lower()
+                                           in ("him", "them", "her", "it"))
                         if (strategic.get("target_type") == "region"
                                 and _tactical_target
                                 and not self._names_a_known_region(strategic_target, world)
-                                and not self._names_a_known_region(_tactical_target, world)
+                                and (_pronoun_object or not self._names_a_known_region(_tactical_target, world))
                                 and _tactical_target in self._get_known_enemies(world)
-                                and _foe_named_in(effective_text, self._get_known_enemies(world))
-                                == _tactical_target):
+                                and (_foe_named_in(effective_text, self._get_known_enemies(world))
+                                     == _tactical_target
+                                     or (_pronoun_object and _tactical_target.lower() in effective_text.lower()))):
                             _ptrace.note("strategic", "tactical_target_kept",
                                          strategic_target, _tactical_target)
                             strategic_target = _tactical_target
