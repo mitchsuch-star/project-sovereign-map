@@ -241,6 +241,21 @@ def _save_data(world: WorldState, save_name: str) -> Dict:
                         reason=UNSERIALIZABLE_REASON) from exc
 
 
+def _to_the_disk(handle) -> None:
+    """WS-4 (the weak-spot review, November 14, 2026): the bytes reach the
+    disk BEFORE the rename puts them in the slot's place. Without it the
+    rename can outlive a power cut that the data did not — the slot (the
+    autosave is written over every turn) is then an empty or half-written
+    file, and the save it replaced is gone. The flush is the write itself (a
+    full disk fails here, as it did at close); the sync is best-effort — a
+    file system that refuses it must not fail a save that was written."""
+    handle.flush()
+    try:
+        os.fsync(handle.fileno())
+    except (OSError, ValueError, AttributeError) as exc:
+        report(exc, "save_manager.save_game: syncing the file to the disk")
+
+
 def _write(filepath: Path, save_data: Dict) -> None:
     """Stage 3: the atomic write — a temp file, then the rename, so a failure
     never leaves the slot half-written (the previous save stays whole).
@@ -250,6 +265,7 @@ def _write(filepath: Path, save_data: Dict) -> None:
     try:
         with open(tmp_path, 'w', encoding='utf-8') as f:
             json.dump(save_data, f, indent=2)
+            _to_the_disk(f)
         os.replace(str(tmp_path), str(filepath))
     except Exception as exc:
         _discard(tmp_path)
@@ -271,6 +287,26 @@ def _discard(tmp_path: Path) -> None:
         report(exc, "save_manager.save_game: removing the half-written file")
 
 
+RESERVED_NAME_REASON = "That name belongs to the autosave. Choose another."
+EMPTY_NAME_REASON = "Name the save first."
+
+
+def reserved_name_refusal(safe_name: str) -> str:
+    """WS-4 (the weak-spot review, November 14, 2026): the sentence that
+    refuses a MANUAL save its file name, or "". The autosave's slot is the
+    autosave's: `save autosave` (typed, or sent to /save) wrote the player's
+    named save into autosave.json, and the next end of turn wrote over it
+    without a word — the save dialog alone refused the name (`save_dialog.gd`,
+    the same sentence). A name that leaves no file stem is refused too (it
+    wrote `.json`)."""
+    stem = str(safe_name or "").strip()
+    if not stem:
+        return _sentence(SAVE_FAILED_HEAD, EMPTY_NAME_REASON)
+    if stem.lower() == Path(AUTOSAVE_FILENAME).stem.lower():
+        return _sentence(SAVE_FAILED_HEAD, RESERVED_NAME_REASON)
+    return ""
+
+
 def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optional[Path] = None) -> Dict:
     """
     Save game state to JSON file.
@@ -289,12 +325,15 @@ def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optiona
         its sentence here.
     """
     try:
-        _ensure_folder()
-        save_data = _save_data(world, save_name)
         if filepath is None:
             # Auto-generate filename from save name
             safe_name = "".join(c if c.isalnum() or c in "- _" else "_" for c in save_name)
+            _refused = reserved_name_refusal(safe_name)   # WS-4: the autosave's slot
+            if _refused:
+                return {"success": False, "message": _refused, "filepath": ""}
             filepath = SAVE_DIR / f"{safe_name}.json"
+        _ensure_folder()
+        save_data = _save_data(world, save_name)
         _write(filepath, save_data)
     except SaveError as err:
         return _failed(err, filepath="")
@@ -1152,9 +1191,24 @@ def list_saves() -> List[Dict]:
     return scan_saves()[0]
 
 
+def _is_autosave_slot(filepath: Path) -> bool:
+    """WS-4 (the weak-spot review, November 14, 2026): the autosave's file by
+    any spelling the file system reads as it — NTFS ignores case and trailing
+    dots and spaces, so `Autosave.json` and `autosave.json.` open
+    autosave.json."""
+    if str(filepath.name).rstrip(". ").lower() == AUTOSAVE_FILENAME:
+        return True
+    try:
+        slot = filepath.parent / AUTOSAVE_FILENAME
+        return slot.exists() and filepath.exists() and os.path.samefile(filepath, slot)
+    except OSError as exc:
+        report(exc, "save_manager.delete_save: reading the slot")
+        return False
+
+
 def delete_save(filepath: Path) -> Dict:
     """Delete a save file. Cannot delete autosave."""
-    if filepath.name == AUTOSAVE_FILENAME:
+    if _is_autosave_slot(filepath):
         return {"success": False, "message": "Cannot delete autosave"}
     try:
         if filepath.exists():

@@ -28,6 +28,7 @@ from backend.build_info import build_version  # noqa: E402
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse  # WS-1: the foreign caller's 403
 from pydantic import BaseModel, Field  # noqa: F401
 
 from backend import errors as _errors  # CODE-3: `report` is a local name below
@@ -3093,13 +3094,63 @@ from backend.game_logic.enemy_phase_fog import (  # noqa: E402
 _filter_tactical_events_by_visibility = _filter_tactical_events_by_fog  # P3-2: consolidated alias
 
 
-# Allow Godot to connect
+# WS-1 (the weak-spot review, November 14, 2026): the door is this machine's.
+# The client is a native Godot HTTPRequest — it sends no Origin header, and
+# CORS never applied to it. A BROWSER page is what sends one, and under the
+# wildcard this used to be, any page the player had open could POST /new_game,
+# /delete_save or /load to 127.0.0.1 and read the answers. CORS is granted to
+# pages served from this machine only, and `refuse_foreign_callers` (below, the
+# outermost middleware) turns every other caller away before any route — or
+# the state lock — sees it.
+_LOCAL_ORIGIN_PATTERN = r"^https?://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$"
+_LOCAL_ORIGIN_RE = re.compile(_LOCAL_ORIGIN_PATTERN, re.I)
+# `testserver` is Starlette's TestClient: a name no outside page can be served
+# under and reach this machine.
+_LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "[::1]", "::1", "testserver"})
+FOREIGN_CALLER_MESSAGE = "This server answers only the game on this machine."
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=_LOCAL_ORIGIN_PATTERN,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _host_name(host: str) -> str:
+    """`127.0.0.1:8005` -> `127.0.0.1`; `[::1]:8005` -> `[::1]`."""
+    host = (host or "").strip().lower()
+    if host.startswith("["):
+        return host[:host.index("]") + 1] if "]" in host else host
+    return host.rsplit(":", 1)[0] if ":" in host else host
+
+
+def _foreign_caller(headers) -> bool:
+    """WS-1: a request that did not come from this machine's own game — one
+    carrying an `Origin` that is not a page served here (a browser on another
+    site, a sandboxed frame's "null"), or one addressed to a `Host` that is
+    not this machine (a DNS-rebinding page reaches 127.0.0.1 under its own
+    name). A caller with no Origin at all — the Godot client, curl, the
+    playtest driver — is the game."""
+    origin = headers.get("origin")
+    if origin is not None and not _LOCAL_ORIGIN_RE.match(origin.strip()):
+        return True
+    host = headers.get("host")
+    return bool(host) and _host_name(host) not in _LOCAL_HOSTS
+
+
+# WS-6 (the weak-spot review, November 14, 2026): the readings that STAMP the
+# board and put it back — a quote prices the muster's coordination on the
+# marshals themselves (`combat_executor._priced_coordination`) and rolls the
+# mood on the game's own dice before restoring them
+# (`order_quotes._without_spending_the_dice`). Read lock-free, a quote in
+# flight when the order was sent ran beside the order's own thread: its restore
+# could land over the battle's stamps, or wind the dice back over rolls the
+# order had just made. They hold the lock a POST holds; every other GET stays
+# lock-free.
+_LOCKED_READS = frozenset({"/parse_preview", "/march_quotes"})
+# The POSTs holding the state lock or waiting for it (`_posts_in_flight`).
+_POSTS_IN_FLIGHT = 0
 
 
 # 3A-1: Serialize state-mutating requests to prevent concurrent corruption
@@ -3126,13 +3177,37 @@ async def serialize_state_mutations(request: Request, call_next):
     wraps the whole request rather than a narrower critical section: the
     protection covers ~14 mutating endpoints, and narrowing it to the command
     path alone would leave the rest racing the world object.
+
+    WS-6 (November 14, 2026): the two readings that stamp the board and put
+    it back (`_LOCKED_READS`) take the same lock, and a POST is counted while
+    it holds the lock or waits for it (`_posts_in_flight`).
     """
+    global _POSTS_IN_FLIGHT
     if request.method == "POST":
+        _POSTS_IN_FLIGHT += 1
+        try:
+            async with get_state_lock():
+                try:
+                    return await call_next(request)
+                finally:
+                    _bump_state_epoch()   # UI-6: the readback re-reads after any POST
+        finally:
+            _POSTS_IN_FLIGHT -= 1
+    if request.method == "GET" and request.url.path in _LOCKED_READS:
+        # a quote: it holds the lock and moves no clock
         async with get_state_lock():
-            try:
-                return await call_next(request)
-            finally:
-                _bump_state_epoch()   # UI-6: the readback re-reads after any POST
+            return await call_next(request)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def refuse_foreign_callers(request: Request, call_next):
+    """WS-1 (the weak-spot review, November 14, 2026): registered LAST, so it
+    runs FIRST — a caller that is not this machine's own game is answered 403
+    before the state lock is taken or any route runs (`_foreign_caller`)."""
+    if _foreign_caller(request.headers):
+        return JSONResponse(status_code=403, content={
+            "success": False, "message": FOREIGN_CALLER_MESSAGE})
     return await call_next(request)
 
 
@@ -3937,7 +4012,7 @@ def _command_pending_answers(ctx: CommandContext):
             for opt in _dlg_options if opt.get("action")
         }
         _is_option_digit = (
-            _pending_answer_token.isdigit()
+            _pending_answer_token.isdecimal()   # WS-7: a superscript is a digit and no number
             and 1 <= int(_pending_answer_token) <= len(_dlg_options))
         if _is_option_digit or (
                 _pending_answer_token
@@ -7635,13 +7710,12 @@ def get_march_reach_endpoint(marshal: str = ""):
 
 
 def _posts_in_flight() -> bool:
-    """UI-6: whether a POST holds a state lock right now (an end turn mutates
-    for seconds; a GET is lock-free and must not read a half-moved world)."""
-    try:
-        return any(lock.locked() for lock in list(_state_locks.values()))
-    except Exception as e:
-        _errors.report(e, "main._posts_in_flight: the state locks")
-        return True
+    """UI-6: whether a POST holds the state lock, or waits for it, right now
+    (an end turn mutates for seconds; the readback answers "busy" rather than
+    read a half-moved world). WS-6: COUNTED by `serialize_state_mutations`,
+    not read off the lock — the readback itself now holds that lock while it
+    reads (`_LOCKED_READS`), and its own hold is not a POST."""
+    return _POSTS_IN_FLIGHT > 0
 
 
 def _premise_reading(text: str, target_world) -> tuple:

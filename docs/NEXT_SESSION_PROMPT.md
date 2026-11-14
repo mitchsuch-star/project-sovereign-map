@@ -114,7 +114,7 @@ four open rows** (`BUG_FIXES.md` §UI6 — UI6-X70, X73, X74, X75: a report subj
 clause after an arrival, a friend-only report subject, a title-first list; nothing spent wrongly by any): each is a
 strict-xfail pin in `tests/test_ui6_fog_siblings.py` that turns red the day it lands — fix each at its cause, sweep
 the class on both roads (`/command` and `GET /parse_preview`; rule 10), re-point the pin to the landing's words, and
-the census reads 0 open defect rows before (1); **(1) the gate
+the census reads 0 open defect rows before (1) — counting **the weak-spot review's seven** (`BUG_FIXES.md` §WS, November 14, 2026: WS-10, WS-11 and WS-12 are the user's rulings, put to them first; WS-13, WS-14 and WS-15 fixed at their cause; WS-R's twelve finds each confirmed or refuted; pins in `tests/test_ws_weak_spot_review_2026_11_13.py`); **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
 (`_dy_signature_g5_2026_11_11.json`, session G5's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —

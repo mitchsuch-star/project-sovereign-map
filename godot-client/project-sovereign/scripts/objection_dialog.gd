@@ -176,6 +176,13 @@ func show_objection(objection_data: Dictionary):
 	AudioManager.stop_player(_open_cue)
 	_open_cue = AudioManager.play("sword_draw")  # a marshal stands his ground
 	current_marshal = objection_data.get("marshal", "Marshal")
+	# WS-5 (the weak-spot review, November 14, 2026): the three answers' folded
+	# notes are THIS objection's. The dialog is one scene reused for every
+	# objection and the hovers were only ever set, never cleared - a fortify's
+	# "2 AP - auto-shift first" stayed on Proceed for the next marshal's attack.
+	for _answer in [trust_button, insist_button, compromise_button]:
+		if _answer != null:
+			_answer.tooltip_text = ""
 
 	# V2a: Apply tone-based styling (border color + header text)
 	var tone = objection_data.get("tone", "firm")

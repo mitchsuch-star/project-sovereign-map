@@ -13246,6 +13246,10 @@ func _ui6_open_generals() -> void:
 		return
 	if not top_bar.screens.has("generals") or top_bar.screens["generals"] == null:
 		return
+	# WS-9 (the weak-spot review, November 14, 2026): pinned beside the map it is
+	# open already - the toggle below would unpin it and close it.
+	if top_bar.get_pinned_screen() == "generals":
+		return
 	if top_bar.get_active_screen() != "generals":
 		top_bar.toggle_screen("generals")
 

@@ -985,6 +985,16 @@ def unseen_target_refusal(world, enemy, actor: str,
     }
 
 
+def shelled_morale(before, after):
+    """m3, corrected (WS-3, the weak-spot review, November 14, 2026): guns
+    alone never break a corps — a bombardment takes morale no lower than the
+    forced-retreat threshold — and they never RALLY one. The floor was written
+    `if morale < threshold: morale = threshold`, which lifted a corps that was
+    already under it: a beaten corps at 12 was shelled UP to 25. A corps
+    already under the threshold stays where it stood."""
+    return max(after, min(before, FORCED_RETREAT_THRESHOLD))
+
+
 @dataclass(slots=True, repr=False, eq=False)
 class AttackContext:
     marshal: Any
@@ -1232,12 +1242,29 @@ def war_purpose_bar(world, attacker_nation: str, target_nation: str) -> str:
 
 def peace_soil_refusal(marshal, enemy_marshal, block, world=None) -> dict:
     """DDB-14 / DDB-X17: the refusal of a field on peace soil, in ONE set of
-    words for the attack and the charge — at no cost, naming the court."""
+    words for the attack and the charge — at no cost, naming the court.
+
+    WS-2 (the weak-spot review, November 14, 2026): UI6-X35 names a man out
+    of sight by his court ("<he> serves <court>, and we are at peace with
+    <court>") — true when the soil is his own court's. But every caller's
+    guard (`field_on_peace_soil`) returns NO block for a man on his own
+    court's soil, so on every real road the court was a THIRD one: a Russian
+    on Prussian soil "served Prussia" — false, and it told whose ground he
+    stood on. A man out of sight on a third court's soil gets the one unseen
+    answer every other battle order on him gets (`unseen_target_refusal`)."""
     from backend.display_names import display_nation as _dn, humanize_entity_name as _hn
     owner = _dn(block["owner"])
     # UI6-X35: where a foreign commander stands is the fog's — a man out of
     # sight is named by his court, never by the ground under him.
     _seen = world is None or bool(_whither(world, enemy_marshal, "x"))
+    if not _seen and block["owner"] != getattr(enemy_marshal, "nation", None):
+        return unseen_target_refusal(world, enemy_marshal, marshal.name) or {
+            "success": False,
+            "message": (f"No intelligence on {_hn(enemy_marshal.name)}'s position, "
+                        f"Sire. Scout for him before {marshal.name} can give chase."),
+            "variable_action_cost": 0,
+            "fogged": True,
+        }
     _ground = (f"{enemy_marshal.location} is {owner}'s soil" if _seen
                else f"{_hn(enemy_marshal.name)} serves {owner}")
     return {
@@ -6712,6 +6739,10 @@ class CombatExecutor:
         attacker_losses = max(
             attacker_losses,
             int(_floor_base * self.GARRISON_ASSAULT_LOSS_FLOOR))
+        # WS-8 (the weak-spot review, November 14, 2026): a corps loses no more
+        # men than it brought — the floor reads the GARRISON, so a remnant
+        # under it "lost" more than its strength.
+        attacker_losses = min(attacker_losses, max(int(attacker_strength), 0))
         garrison_losses = max(
             garrison_losses, int(garrison_strength * 0.10), 1)
         if region is not None:
@@ -7685,10 +7716,10 @@ class CombatExecutor:
         bombardment_morale = -3
         if getattr(defender, 'square_formation', False):
             bombardment_morale -= 15
+        _morale_before = defender.morale
         defender.adjust_morale(bombardment_morale)
-        # m3: Floor morale at forced-retreat threshold — bombardment alone shouldn't collapse armies
-        if defender.morale < FORCED_RETREAT_THRESHOLD:
-            defender.morale = FORCED_RETREAT_THRESHOLD
+        # m3: guns alone never break a corps — nor rally one (`shelled_morale`, WS-3)
+        defender.morale = shelled_morale(_morale_before, defender.morale)
 
         # Capture target location before defender might be broken/moved
         target_location = defender.location
@@ -7717,10 +7748,10 @@ class CombatExecutor:
 
                 if collateral_casualties > 0:
                     force.take_casualties(collateral_casualties)
+                    _force_morale_before = force.morale
                     force.adjust_morale(-1)
-                    # m3: Floor morale at forced-retreat threshold for collateral too
-                    if force.morale < FORCED_RETREAT_THRESHOLD:
-                        force.morale = FORCED_RETREAT_THRESHOLD
+                    # m3: the same floor for collateral, and never a rally (WS-3)
+                    force.morale = shelled_morale(_force_morale_before, force.morale)
 
                     is_friendly = (force.nation == marshal.nation)
 

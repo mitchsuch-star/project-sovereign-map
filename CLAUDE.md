@@ -430,4 +430,4 @@ deliberately NOT used — see STATUS.md for why, so it is not re-litigated.
 (Sept 26, 2026: L-1 made the parse prompt static-first, so the structural
 reason recorded there no longer holds; caching stays off until the user decides.)
 
-`.env`: `LLM_MODE=mock|anthropic|groq` (`groq` is an unimplemented stub — degrades to fast-parser-only; Pre-EA item), `ANTHROPIC_API_KEY` if anthropic. Server: `127.0.0.1:8005`, CORS enabled.
+`.env`: `LLM_MODE=mock|anthropic|groq` (`groq` is an unimplemented stub — degrades to fast-parser-only; Pre-EA item), `ANTHROPIC_API_KEY` if anthropic. Server: `127.0.0.1:8005`, CORS local-only.

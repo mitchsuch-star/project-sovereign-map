@@ -388,7 +388,8 @@ def _pending_question(world, text: str) -> Optional[str]:
         if not options and isinstance(dialogue.get("popup_payload"), dict):
             options = dialogue["popup_payload"].get("options") or []
         ids = {str(o.get("action") or "").strip().lower() for o in options if isinstance(o, dict)}
-        if (low.isdigit() and 1 <= int(low) <= len(options)) or (low and low in ids):
+        # WS-7: `isdecimal` — a typed superscript is a digit and no number
+        if (low.isdecimal() and 1 <= int(low) <= len(options)) or (low and low in ids):
             return "A letter waits — this line answers it"
     return None
 
