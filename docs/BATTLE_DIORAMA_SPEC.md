@@ -1310,6 +1310,8 @@ code, before anything was changed. **Nothing crashes, leaks or touches a save.**
 | BA2-X14, the half left | BA-3, with its walk of record | A gunner ordered in support is named twice in one plan. The fix changes the staged scene `the_guns`, whose payload and frames are on record. |
 | BA2-X17 | BA-3, with its walk of record | The walk's record carries a hash of each source and no test compared them; four sources that shape the walk are not on its list. |
 | BA2-X16, the siblings | Session H | The four older live-client walk tools export before they judge; the mutation sweep takes no lock against a second copy. |
+| BA2-X20 | BA-3, behind a seam in its measure | A battle between other crowns lights its province at FULL for the player. Older than row BA. Handed over by the user's word; the recommendation is below. |
+| BA2-X21 | BA-3, with its Commit chips | No quote names the men an order's first march costs. Older than row BA. Handed over by the user's word; the recommendation is below. |
 
 #### Read and left as it is
 
@@ -1319,12 +1321,44 @@ code, before anything was changed. **Nothing crashes, leaks or touches a save.**
   `siege_diorama._in_sight` always passes; what keeps an unseen fight from the player is the enemy phase's
   own filter. No channel was found by which a tableau leaves the backend without passing that filter. The
   gate's tests read the gate alone. Whether a battle between two other crowns should light its province for
-  the player is the fog doctrine's question, and the user's.
+  the player is the fog doctrine's question, and the user's. *(Answered the same day: BA2-X20, below.)*
 - The assault's `walls` beat tells a watcher that the fortress stands (§220.2 rules it for all three fog
   cases; a watcher sees the province whole).
 - An order's first march costs men by the ordinary march rule, and the chip does not say so; no march quote
   does. Recommended to the user, not built: every order that marches quotes the march's cost in men.
+  *(Handed to BA-3 the same day: BA2-X21, below.)*
 - The client: nothing found. It was read, not run.
+
+#### Handed to BA-3 by the user's word (November 15, 2026)
+
+The user, on the three points the review left with him: "make allr eccomendations here … and hand them to
+ba 3 in next session". The recommendations are BA-2's session's, made under that word. BA-3 builds them, each
+behind a seam or in one line, and its plan's gate may overrule any of them (`NEXT_SESSION_PROMPT.md` scope
+6b). Two are rows with strict-xfail pins (BA2-X20, BA2-X21); the commit that records this hand-off changes no
+code of the game.
+
+1. **A battle lights its field for those who fought in it (BA2-X20).** `update_intel_from_battle` grants the
+   player FULL sight only when he is a party to the battle (his nation attacks or defends, or a marshal of
+   his fought) or it is fought on his own soil; a battle between other crowns leaves the province at the
+   sight he had. `FOG_OF_WAR_SPEC.md` §4.4 was written when "every battle in the current game involves a
+   player marshal"; on the 1805 map the courts fight each other, and each such battle showed him the
+   commanders, the men and the morale of two crowns he had no one near, for two turns. So that Europe does
+   not go dark, the Gazette prints such a battle as news the turn after — who fought, where, who held the
+   field, no numbers — when it is a great battle or an ally's in a war he shares. The commanded arms play
+   France by what France sees: an arm of BA-3's measure, reported per seed.
+2. **A quote names the men its first march costs (BA2-X21).** The march rule is exact, so the figure is: the
+   calculation split from its application, a `march_cost` line on every quote of an order that marches at
+   once, shown where the quote's other notes are. It moves no number.
+3. **How BA-3 takes the rows.** The seam arms in this order: BA2-X2; BA2-X12; BA2-X10 with the support
+   order's approach rule — recommended IN; both rewrite the SUPPORT order's first step, so one change and two
+   seams; BA2-X10's road keeps to provinces he may enter, and where none goes round the order ends at the
+   approach and says so; BA2-X20; then the two ticked rules and the rounds. BA2-X14's left half and BA2-X17
+   ride the walk of record; BA2-X21 rides the Commit chips. The head's second question: yes — a pursuit
+   ability fires for any corps of the victor that FOUGHT on the field, whether it marched in or stood there.
+   The head's third: as many rounds as the actions allow — Press is the attack order the command line
+   already takes. If the plan finds all of it more than one session, the cut that keeps each seam with its
+   measure is the roads and the fog first, the rounds second, both before Session H; nothing moves after the
+   deploy.
 
 #### Verification
 

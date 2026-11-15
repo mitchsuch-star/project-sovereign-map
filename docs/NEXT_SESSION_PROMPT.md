@@ -21,6 +21,11 @@
 > **The session's review (November 15, 2026 — the spec's §15.13, `tests/test_ba2_the_review.py`) added twelve
 > rows, BA2-X8 … BA2-X19:** seven fixed in its own commit; **BA2-X10, BA2-X12, BA2-X14 and BA2-X17 are THIS
 > session's** (scope 6a below); **BA2-X16 heads Session H** (the tools' siblings).
+> **Then the user, on what the review left with him: "make allr eccomendations here … and hand them to ba 3 in
+> next session" (November 15, 2026).** BA-2's session made the recommendations and they are THIS session's to
+> build (scope 6b below): **BA2-X20** a battle lights its field for those who fought in it; **BA2-X21** a quote
+> names the men its first march costs; the support order's approach rule, IN; answers to the head's second
+> and third questions; and the order in which the review's rows are taken.
 
 **NOW — BA-3: THE ROUNDS** (`BATTLE_DIORAMA_SPEC.md` §15.11 "What BA-3 becomes", §15.5.6 as amended, §15.5.7,
 §15.7). First check `git log` — BA-2 is `567f3e85`, its review's fixes are the commit after it — and that the
@@ -28,8 +33,9 @@ tree is clean. Open in Plan Mode with a slice plan. Read first: `STATUS.md` ▶ 
 (before the code), `SYSTEMS_REFERENCE.md` §219 and §220 (the rules and the traps).
 
 **Three questions go to the user at its head, and a fourth decision rides scope 5** (§15.7 — put content-first,
-co-equal, nothing pre-recommended in the question itself; only the first has an answer on record to give when
-asked — §15.11 decision 4; the second and the third have none):
+co-equal, nothing pre-recommended in the question itself). Each now has an answer on record, to give when
+asked: the first is §15.11 decision 4; the second, the third and the fourth are BA-2's session's, made at the
+user's "make allr eccomendations here" (scope 6b):
 
 1. **The round's price.** §15.11 decision 4: a round costs what an attack costs (priced rounds cannot be
    cheesed, so the hinge may be offered on any hanging day). The plan of record before it said no action; the
@@ -88,10 +94,43 @@ asked — §15.11 decision 4; the second and the third have none):
    `backend/game_logic/battle_diorama.py`, `tools/ba1_stage_battles.py`, `tools/ba1_acts_walk.py` and the
    client's `utils.gd` to `WALK.SOURCES`; when the walk of record is run, the comparison of its hashes with the
    tree becomes a plain green test (`TestTheWalksRecordAndItsSources`).
+6b. **Handed over by the user's word (November 15, 2026: "make allr eccomendations here … and hand them to
+   ba 3 in next session").** Recommendations made by BA-2's session under that word. Each is one seam or one
+   line to reverse, and this session's plan gate may still overrule any of them.
+   - **BA2-X20 — a battle lights its field for those who fought in it.** `WorldState.update_intel_from_battle`
+     grants the player FULL sight only when he is a party to the battle (his nation attacks or defends, or a
+     marshal of his fought) or it is fought on his own soil; a battle between other crowns leaves the province
+     at the sight he had. Behind a seam, an arm of the measure: the commanded arms play France by what France
+     sees, so the band may move — report it per seed. With it, so that Europe does not go dark: the Gazette
+     prints another crown's battle as news the turn after (who fought, where, who held the field, no numbers)
+     when it is a great battle or an ally's in a war the player shares. Why: `FOG_OF_WAR_SPEC.md` §4.4 was
+     written when "every battle in the current game involves a player marshal".
+   - **BA2-X21 — a quote names the men its first march costs.** The march rule is exact
+     (`MovementExecutor._calculate_movement_attrition`): split the calculation from its application and put a
+     `march_cost` line on the march, support, follow, pursue and move-to quotes; the Commit chips are bring
+     rows and inherit it. It moves no number.
+   - **The support order's approach rule (scope 5): IN.** With it the muster and the chips agree (BA2-X7
+     closes), and a corps like Murat can be committed by an order at all.
+   - **BA2-X10's rule:** the road round keeps to provinces he may enter; where none goes round, the order ends
+     at the approach and says so. Build it WITH the approach rule — both rewrite the SUPPORT order's first step
+     (`_handle_first_step_blocked`, `_strategic_first_step`): one change, two seams.
+   - **The head's second question — yes:** a pursuit ability fires for any corps of the victor that FOUGHT on
+     the field, whether it marched in or stood there (never one that did not fight; highest only; the Old Fox
+     still halves it). A man who stood ready should not count for less than one who came late.
+   - **The head's third question — as many rounds as the actions allow:** Press is the attack order the
+     command line already takes, at its price and with the penalty a second attack already carries; a table
+     that offered less than the command line would be a new rule.
+   - **The order of the arms:** BA2-X2, BA2-X12, BA2-X10 with the approach rule, BA2-X20, then the two ticked
+     rules and the rounds. BA2-X14's left half and BA2-X17 ride the walk of record, after the last scene is
+     staged; BA2-X21 rides the Commit chips.
+   - **Size, as information:** this session now carries the rounds, NP-D1, the two ticked rules, WS-16 and
+     eight rows. If the plan finds that more than one session, the cut that keeps every seam with its measure
+     is the roads and the fog first (BA2-X2, X10, X12, X20, the approach rule), the rounds second (with BA2-X7,
+     X14, X17, X21, NP-D1, WS-16 and the ticked rules) — both before Session H. Nothing moves after the deploy.
 7. **ONE measure with arms**, reported per seed: arm 0 = every seam at HEAD's answer, byte-identical on the
    standing series; then each rule; then BA2-X2's fix (the jena world-line moves from the turn Prussia's phase
-   is no longer lost); then BA2-X10's and BA2-X12's fixes, each behind its seam; then the rounds answered each
-   way. "Byte-identical" is read with `tools/keyed_world_probe.py` (`run` once a tree, then `compare`). The
+   is no longer lost); then BA2-X12's, BA2-X10's and BA2-X20's fixes, each behind its seam; then the rounds
+   answered each way. "Byte-identical" is read with `tools/keyed_world_probe.py` (`run` once a tree, then `compare`). The
    "seeded dice" arm calls
    `campaign_variance.serve_campaign` on the harness's own world. The commanded band's arm 0 is BA-1's shipped
    record (`tools/_ba1_band_2026_11_14.json`, arm ALL: 26 / 27 / 28).

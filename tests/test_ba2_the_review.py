@@ -4,7 +4,7 @@ Six readers went over commit 567f3e85, each in a lane: the two tableaux and
 their wiring, the script and the fog, the chips played out on later boards and
 other seeds, the client, the tests and tools, the records. Nothing crashed,
 leaked or touched a save. What they found is pinned here by the behaviour, a
-class a row — `docs/BUG_FIXES.md` §BA2, rows BA2-X8 … BA2-X19; the record is
+class a row — `docs/BUG_FIXES.md` §BA2, rows BA2-X8 … BA2-X21; the record is
 `docs/BATTLE_DIORAMA_SPEC.md` §15.13.
 
 Each case is staged on the 1805 board the session's own tests use
@@ -23,7 +23,7 @@ import pytest
 from backend.commands import order_quotes
 from backend.game_logic import battle_script, siege_diorama
 from backend.game_logic.diplomacy import can_enter_territory
-from backend.models.intel import FULL
+from backend.models.intel import FULL, PARTIAL
 from backend.models.marshal import StrategicOrder
 from tests._ledgers import doc_text
 from tools import ba1_acts_walk as WALK
@@ -582,4 +582,74 @@ class TestTheRecordsSayWhatIsNext:
     def test_the_ledger_holds_the_reviews_rows(self):
         ledger = doc_text("BUG_FIXES.md")
         rows = re.findall(r"^\| \*\*(BA2-X\d+)\*\* \| P\d \| (✅ FIXED|OPEN) ", ledger, flags=re.M)
-        assert [name for name, _state in rows] == [f"BA2-X{n}" for n in range(1, 20)]
+        assert [name for name, _state in rows] == [f"BA2-X{n}" for n in range(1, 22)]
+
+
+# ════════════════════════════════════════════════════════════════════════
+# BA2-X20, BA2-X21 — handed to BA-3 by the user's word (November 15, 2026):
+# "make allr eccomendations here … and hand them to ba 3 in next session"
+# ════════════════════════════════════════════════════════════════════════
+
+class TestABattleLightsItsFieldForThoseWhoFoughtIt:
+    """BA2-X20 (OPEN, owner row BA's session BA-3). The fog spec's rule —
+    "Fighting in a region immediately grants FULL visibility of that region"
+    — was written when every battle was the player's. The courts fight each
+    other now, and `update_intel_from_battle` still lights the field for the
+    player: the commanders, the men and the morale of two crowns he has no
+    one near, for two turns. The recommendation handed to BA-3: a battle
+    lights its field for those who fought in it."""
+
+    def test_the_players_own_battle_lights_its_field(self):
+        world, executor = STAGE._board()
+        world.get_region_intel("Swabia").visibility = PARTIAL
+        random.seed(0)
+        with STAGE._quiet():
+            executor._execute_attack(
+                world.marshals["Ney"], "Mack", world, {"world": world, "executor": executor})
+        assert world.get_region_intel("Swabia").visibility == FULL
+
+    @pytest.mark.xfail(strict=True, reason="BA2-X20 OPEN — owner row BA's session BA-3")
+    def test_a_battle_of_two_other_crowns_gives_the_player_no_sight(self):
+        world, executor = STAGE._board()
+        STAGE._war(world, "Prussia", "Austria")
+        hohenlohe, john = world.marshals["Hohenlohe"], world.marshals["ArchdukeJohn"]
+        john.location = "Lithuania"      # Russia's soil beside Silesia: France has no one near
+        assert world.get_region_intel("Lithuania").visibility not in (FULL, PARTIAL)
+        random.seed(1)
+        with STAGE._quiet():
+            result = executor._execute_attack(
+                hohenlohe, "ArchdukeJohn", world, {"world": world, "executor": executor})
+        assert result.get("success"), result.get("message")
+        assert world.get_region_intel("Lithuania").visibility != FULL
+
+
+class TestAQuoteNamesWhatItsFirstMarchCosts:
+    """BA2-X21 (OPEN, owner row BA's session BA-3). An order that marches at
+    once costs men by the ordinary march rule — an exact figure
+    (`MovementExecutor._calculate_movement_attrition`) — and no quote names
+    it: the player reads the loss in the order's reply, after the action is
+    spent. The recommendation handed to BA-3: every quote of an order that
+    marches says what the march costs."""
+
+    @staticmethod
+    def _case():
+        world, executor = _staged("Bohemia", "Ney", "Munich", "Soult", "Swabia")
+        return world, executor, world.marshals["Ney"], world.marshals["Soult"]
+
+    def test_the_march_is_paid_for_when_the_order_is_given(self):
+        world, executor, ney, soult = self._case()
+        quote = order_quotes.support_quote(world, soult, ney)
+        before = int(soult.strength)
+        _send(world, executor, quote, "Ney")
+        assert soult.location == "Munich" and int(soult.strength) < before
+
+    @pytest.mark.xfail(strict=True, reason="BA2-X21 OPEN — owner row BA's session BA-3")
+    def test_the_quote_names_the_men_the_march_costs(self):
+        world, executor, ney, soult = self._case()
+        quote = order_quotes.support_quote(world, soult, ney)
+        before = int(soult.strength)
+        _send(world, executor, quote, "Ney")
+        lost = before - int(soult.strength)
+        assert lost > 0
+        said = " ".join(str(value) for value in quote.values() if isinstance(value, str))
+        assert f"{lost:,}" in said
