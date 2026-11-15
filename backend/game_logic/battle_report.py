@@ -1381,4 +1381,14 @@ def generate_bombardment_report(bombardment_data: Dict, player_nation: str = "Fr
     Returns:
         str: Berthier observation text.
     """
-    return _pick_bombardment_observation(bombardment_data, player_nation)
+    text = _pick_bombardment_observation(bombardment_data, player_nation)
+    # BA2-X1 (row BA, BA-2, November 14, 2026): every line above is written
+    # from behind OUR guns ("our fire", "the enemy position", "our own forces
+    # were caught") — said of an enemy battery shelling Ney it read "Ney's
+    # numbers absorb our fire". Berthier reports the Emperor's batteries; of
+    # another crown's he says nothing. The line is still PICKED first, so the
+    # draw it takes is the draw it always took.
+    firing = str(bombardment_data.get("attacker_nation", "") or "")
+    if firing and firing != player_nation:
+        return ""
+    return text

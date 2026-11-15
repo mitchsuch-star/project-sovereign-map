@@ -18,6 +18,7 @@ from backend.commands.objection_v2 import ConcernLevel
 from backend.display_names import action_display_name as _action_display_name
 from backend.display_names import proposal_display_name as _proposal_display_name
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend.game_logic.siege_diorama import with_bombardment_tableau as _with_bombardment_tableau  # BA-2
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
 # Single source of truth — imported by executor.py (P3-1 consolidation)
@@ -2606,9 +2607,9 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 if defiant_action == "bombardment":
                     nearest = world.find_nearest_enemy(marshal.location)
                     if nearest and nearest[1] <= 2:
-                        defiant_execution = self._executor._combat._execute_bombardment(
+                        defiant_execution = _with_bombardment_tableau(world, self._executor._combat._execute_bombardment(
                             marshal, nearest[0], world, game_state
-                        )
+                        ), marshal, nearest[0])  # BA-2: a standalone bombardment carries its tableau
                     else:
                         defiant_action = "wait"
                         defiant_execution = self._executor._tactical._execute_wait(marshal, world, game_state)
@@ -3124,7 +3125,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             if marshal:
                 nearest = world.find_nearest_enemy(marshal.location)
                 if nearest and nearest[1] <= 2:
-                    result = self._executor._combat._execute_bombardment(marshal, nearest[0], world, game_state)
+                    result = _with_bombardment_tableau(world, self._executor._combat._execute_bombardment(marshal, nearest[0], world, game_state), marshal, nearest[0])  # BA-2
                 else:
                     result = {"success": False, "message": f"{marshal_name} has no valid bombardment target in range."}
             else:

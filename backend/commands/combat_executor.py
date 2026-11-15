@@ -33,6 +33,12 @@ from backend.display_names import marshal_title  # SF5-X3: the ONE style for a m
 from backend.game_logic.intel_surfaces import whither as _whither  # UI6-X35: a foreign commander's place is the fog's
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 from backend import errors as _errors
+# Row BA, BA-2: the tableau of a garrison assault and of a standalone
+# bombardment rides the result it describes (display only; no import back).
+from backend.game_logic.siege_diorama import (
+    with_assault_tableau as _with_assault_tableau,
+    with_bombardment_tableau as _with_bombardment_tableau,
+)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -6391,6 +6397,13 @@ class CombatExecutor:
 
         # [5C-6] Fog/intel update after garrison battle
         world.update_intel_from_battle(target_region.name, world.current_turn)
+        # BA-2: what the assault's tableau is built from (`siege_diorama`) —
+        # the walls' owner read BEFORE any capture below flips it.
+        _tableau = dict(
+            attacker_before=pre_battle_atk_strength, attacker_losses=attacker_losses,
+            garrison_before=old_garrison, garrison_losses=garrison_losses, capitulated=capitulated,
+            defender_nation=target_region.controller, drilled=_drill_spent, iron=iron_stacks_fired,
+            fortified=target_region.has_building("fortification"))
 
         # Check if garrison collapsed
         # Capital garrisons collapse below 5k threshold; detachment garrisons fight to destruction
@@ -6528,7 +6541,7 @@ class CombatExecutor:
                 msg += f" {capture_result['message']}"
                 # S14G-X12: the alarm the assault's win wrote, said.
                 msg += self._alarm_rider(world, marshal, _alarm_from)
-                return {
+                return _with_assault_tableau(world, {
                     "success": True,
                     "message": msg,
                     "occupation_started": True,
@@ -6539,7 +6552,7 @@ class CombatExecutor:
                         "turns_required": capture_result["turns_required"],
                     }],
                     "new_state": game_state
-                }
+                }, marshal, target_region, _tableau)
 
             # S14G-1: a liberation says whose ground it is and that it went back.
             msg += self._capture_words(
@@ -6584,7 +6597,7 @@ class CombatExecutor:
                 result["pending_capture_choice"] = True
                 result["capture_data"] = world.pending_capture_choice
 
-            return result
+            return _with_assault_tableau(world, result, marshal, target_region, _tableau)
         else:
             # Garrison holds — attacker stays in place
             msg = assault_line + (
@@ -6645,7 +6658,7 @@ class CombatExecutor:
                     _standing.courts_garrison(world, marshal.nation, target_region, pre_battle_atk_strength,
                                               _garrison_report.garrison_effective(target_region, old_garrison), False)
 
-            return {
+            return _with_assault_tableau(world, {
                 "success": True,
                 "message": msg,
                 "events": [{
@@ -6656,7 +6669,7 @@ class CombatExecutor:
                     "attacker_losses": int(attacker_losses),
                     "garrison_remaining": int(target_region.garrison_strength),
                 }],
-            }
+            }, marshal, target_region, _tableau, held=True)
 
     @staticmethod
     def _fall_clause(world, marshal, removed: bool) -> str:
@@ -8060,7 +8073,8 @@ class CombatExecutor:
             "fort_old": fortification_old,
             "fort_new": fortification_new,
             "collateral": collateral_results,
-        })
+            "attacker_nation": marshal.nation,
+        }, player_nation=str(getattr(world, "player_nation", "France") or "France"))
 
         # ════════════════════════════════════════════════════════════
         # BUILD RESULT DICT
@@ -9601,8 +9615,11 @@ class CombatExecutor:
 
         if (getattr(ctx.marshal, 'artillery', False)
                 and ctx.marshal.location != ctx.enemy_marshal.location):
-            ctx.bombard_result = self._execute_bombardment(
-                ctx.marshal, ctx.enemy_marshal, ctx.world, ctx.game_state)
+            # BA-2: a STANDALONE bombardment carries its tableau (the cannonade
+            # alone); the supporting salvo before an assault never does.
+            ctx.bombard_result = _with_bombardment_tableau(ctx.world, self._execute_bombardment(
+                ctx.marshal, ctx.enemy_marshal, ctx.world, ctx.game_state),
+                ctx.marshal, ctx.enemy_marshal)
             if ctx.drill_cancelled_message:
                 ctx.bombard_result["message"] = ctx.drill_cancelled_message + ctx.bombard_result["message"]
             if ctx.counter_punch_message:

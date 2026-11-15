@@ -1,0 +1,132 @@
+{
+ "kind": "assault",
+ "fate": "capitulated",
+ "battle_name": "Capitulation of Vienna",
+ "region": "Vienna",
+ "turn": 1,
+ "outcome": "attacker_victory",
+ "victor": "Ney",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": false,
+ "region_conquered": true,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 24000,
+    "casualties": 639,
+    "remaining": 23361,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 639,
+  "committed_total": 24000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Vienna garrison",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 3000,
+    "casualties": 3000,
+    "remaining": 0,
+    "status": "destroyed",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "garrison": true
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3000,
+  "committed_total": 3000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "The garrison of Vienna laid down its arms before the assault went home.",
+ "banner": "THE GARRISON CAPITULATES",
+ "fortified": false,
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney comes up before the walls of Vienna.",
+      "weight": "detail"
+     },
+     {
+      "kind": "walls",
+      "side": "defender",
+      "actor": "Vienna garrison",
+      "text": "The garrison of Vienna mans its walls: 3,000 men.",
+      "weight": "detail",
+      "men": 3000,
+      "fortified": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "storm",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney's columns go in against the walls with ladders.",
+      "weight": "head",
+      "temper": "aggressive"
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "capitulates",
+      "side": "defender",
+      "actor": "Vienna garrison",
+      "text": "The garrison of Vienna lays down its arms.",
+      "weight": "head"
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "province",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Vienna falls to France.",
+      "weight": "head",
+      "region": "Vienna"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Ney": "aggressive",
+   "Vienna garrison": "steady"
+  }
+ }
+}

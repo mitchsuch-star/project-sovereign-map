@@ -260,6 +260,10 @@ const TOOL_SCRIPTS = [
 	# Row BA, BA-1: the camera for the battle's acts (tools/ba1_acts_walk.py;
 	# its record is read by tests/test_ba1_the_battle_in_acts.py)
 	"res://../../tools/ba1_acts_walk.gd",
+	# Row BA, BA-2: the plan's loop pressed in the real client
+	# (tools/ba2_mode_c_walk.py; its record is read by
+	# tests/test_ba2_the_walls_and_the_guns.py)
+	"res://../../tools/ba2_mode_c_walk.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

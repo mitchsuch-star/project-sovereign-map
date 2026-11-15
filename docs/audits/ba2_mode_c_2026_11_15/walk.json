@@ -1,0 +1,161 @@
+{
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "ms": 47396,
+  "results": [
+    {
+      "did": "booted the real main.tscn against the sandboxed backend",
+      "ok": true,
+      "saw": "booted=true turn=1 actions=4",
+      "step": "boot"
+    },
+    {
+      "did": "clicked Swabia on the map (region_clicked)",
+      "ok": true,
+      "panel_tail": "Bavaria   City   Plains   \n  Unknown income     Unknown stability     Unknown supply\nACTIONS\n    Negotiate with Bavaria  \n\nIntel: Partial (reports only)\n\nMARCH HERE\n      Bernadotte · 1 AP · this turn       Davout · 1 AP · this turn       Lannes · 1 AP · this turn       Murat · 1 AP · this turn       Napoleon · 1 AP · this turn  \n  +3 more…\n\nTHE ARMY\n    The army  \n\nATTACK MACK\n      Bernadotte · attack · 1 AP       Davout · attack · 1 AP       Lannes · attack · 1 AP       Murat · attack · 1 AP       Napoleon · attack · 1 AP  \n  ▸ Bring up — 6 orders\n  +3 more…",
+      "saw": "panel visible=true province=Swabia fold=[\"▸ Bring up — 6 orders\"]",
+      "step": "panel_open"
+    },
+    {
+      "bring_lines": [
+        "▾ Bring up",
+        "to support Bernadotte:     Soult · 1 AP",
+        "to support Davout:     Soult · 1 AP",
+        "to support Lannes:     Murat · 1 AP       Soult · 1 AP",
+        "to support Murat:     Soult · 1 AP",
+        "to support Napoleon:     Soult · 1 AP",
+        "to support Ney:     Soult · 1 AP"
+      ],
+      "did": "pressed the fold (toggle:bring) and '+N more' (toggle:march_more)",
+      "ok": true,
+      "saw": "Soult offered to [\"Bernadotte\", \"Davout\", \"Lannes\", \"Murat\", \"Napoleon\", \"Ney\"]; Murat to [\"Lannes\"]; Bernadotte to []",
+      "step": "panel_fold_open"
+    },
+    {
+      "did": "pressed the panel's chip 'Soult, support Ney'",
+      "log_tail": " you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Soult, support Ney\nSoult moves to support Ney (at Rhineland). Moves to Rhineland.\nRhineland feeds 60,000; the 80,000 men standing there would lose ~1,200 a turn to short supply. Soult holds your written order: when Ney leads a battle within reach, he will march to the guns. He goes to Ney now and stays only while Ney is in danger — the order lapses of itself once Ney is out of danger; 'Soult, follow Ney' keeps him at Ney's side. Name a duration to hold him to it. \"Soult, support Ney.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)\n   [3/4 actions remaining]\n\n",
+      "ok": true,
+      "saw": "the chip stood on Ney's line=true; actions 4 -> 3; objected=false; a question raised=''; the log:  order lapses of itself once Ney is out of danger; 'Soult, follow Ney' keeps him at Ney's side. Name a duration to hold him to it. \"Soult, support Ney.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)\n   [3/4 actions remaining]",
+      "step": "panel_chip"
+    },
+    {
+      "did": "selected Lannes (the marshal row's handler) and right-clicked Mack's piece at Swabia",
+      "ok": true,
+      "saw": "card open=true command='Lannes, attack Mack'; Murat's chip=true; 'he may object'=true",
+      "step": "card_open",
+      "terms": "1 action · attacks at once\nBerthier adds: Ney, Davout, Murat and Napoleon would answer the guns — Lannes 18,000, 113,511 with the muster committed, against Mack (large force) — weighed together, the balance of force looks favorable.\nA win here adds +3 to Europe's alarm (+5 more if decisive; none on your own soil) — now 70/100.\nBring up — a chip sends that order now, and this card closes:\n    Murat · support Lannes · 1 AP    about 76% to make it in time; about 100% under a written order · he may object\n    Soult · support Lannes · 1 AP    awaits explicit orders and will NOT march; about 95% under a written order · Mack blocks the road at Swabia — Soult goes round him by Lorraine, to the letter of the order. · replaces his support of Ney"
+    },
+    {
+      "did": "pressed the card's chip 'Murat, support Lannes'",
+      "log_tail": "\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)\n   [3/4 actions remaining]\n\n\n► Murat, support Lannes\nMurat moves to support Lannes (at Franche-Comte). Murat holds your written order: when Lannes leads a battle within reach, he will march to the guns. He goes to Lannes now and stays only while Lannes is in danger — the order lapses of itself once Lannes is out of danger; 'Murat, follow Lannes' keeps him at Lannes's side. Name a duration to hold him to it. He will drop this order for any battle within two provinces in a war of ours. Murat: \"He shall have my sabers the moment he needs them — and I shall have a share of the credit.\"\n   [2/4 actions remaining]\n\n",
+      "ok": true,
+      "saw": "card shut at once=true; actions 3 -> 2; objected=false; a question raised=''; selected again=Lannes; the log: im at Lannes's side. Name a duration to hold him to it. He will drop this order for any battle within two provinces in a war of ours. Murat: \"He shall have my sabers the moment he needs them — and I shall have a share of the credit.\"\n   [2/4 actions remaining]",
+      "step": "card_chip"
+    },
+    {
+      "did": "Lannes's attack card opened again (already selected)",
+      "ok": true,
+      "saw": "card open=true; the muster: Berthier adds: Ney, Davout, Murat and Napoleon would answer the guns — Lannes 18,000, 118,568 with the muster committed, against Mack (large force) — weighed together, the balance of force looks favorable.; Murat counted=true; no chip for him again=true",
+      "step": "card_again",
+      "terms": "1 action · attacks at once\nBerthier adds: Ney, Davout, Murat and Napoleon would answer the guns — Lannes 18,000, 118,568 with the muster committed, against Mack (large force) — weighed together, the balance of force looks favorable.\nA win here adds +3 to Europe's alarm (+5 more if decisive; none on your own soil) — now 70/100.\nBring up — a chip sends that order now, and this card closes:\n    Soult · support Lannes · 1 AP    awaits explicit orders and will NOT march; about 95% under a written order · Mack blocks the road at Swabia — Soult goes round him by Lorraine, to the letter of the order. · replaces his support of Ney"
+    },
+    {
+      "did": "selected Ney (the marshal row's handler) and opened his attack card",
+      "ok": true,
+      "saw": "card open=true command='Ney, attack Mack'; the muster: Berthier adds: Davout, Soult, Lannes, Murat and Napoleon would answer the guns — Ney 24,000, 124,468 with the muster committed, against Mack (large force) — weighed together, the balance of force looks favorable.; Soult counted=true; no chip offered=true",
+      "step": "lead_card",
+      "terms": "1 action · attacks at once\nBerthier adds: Davout, Soult, Lannes, Murat and Napoleon would answer the guns — Ney 24,000, 124,468 with the muster committed, against Mack (large force) — weighed together, the balance of force looks favorable.\nA win here adds +3 to Europe's alarm (+5 more if decisive; none on your own soil) — now 70/100."
+    },
+    {
+      "did": "pressed the card's Send (Ney, attack Mack)",
+      "ok": true,
+      "plan": "The plan: Ney leads; Soult ordered in support.",
+      "saw": "actions 2 -> 1; objected=false; the tableau up=true; Act I: The plan: Ney leads; Soult ordered in support.",
+      "step": "attack_sent"
+    }
+  ],
+  "steps": [
+    {
+      "frame": "BA2_WALK_01_panel_fold_shut_2026_11_15.jpg",
+      "ms": 13623,
+      "note": "the province panel at Swabia: the ATTACK rows, the plan behind one fold",
+      "saved": true,
+      "step": "panel_fold_shut",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_02_panel_fold_open_2026_11_15.jpg",
+      "ms": 14279,
+      "note": "the fold open: a line per lead, a chip per corps and its price",
+      "saved": true,
+      "step": "panel_fold_open",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_03_panel_chip_sent_2026_11_15.jpg",
+      "ms": 15252,
+      "note": "the order taken: the log's answer, an action spent",
+      "saved": true,
+      "step": "panel_chip_sent",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_04_card_open_2026_11_15.jpg",
+      "ms": 16302,
+      "note": "Lannes's attack card: the muster, then the plan's chips",
+      "saved": true,
+      "step": "card_open",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_05_card_chip_sent_2026_11_15.jpg",
+      "ms": 17502,
+      "note": "the order sent from the card; Lannes selected again",
+      "saved": true,
+      "step": "card_chip_sent",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_06_card_again_2026_11_15.jpg",
+      "ms": 17884,
+      "note": "the card again: Murat in the muster, no chip for him",
+      "saved": true,
+      "step": "card_again",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_07_lead_card_2026_11_15.jpg",
+      "ms": 18922,
+      "note": "Ney's attack card: Soult in the muster; Murat and Bernadotte offered no chip",
+      "saved": true,
+      "step": "lead_card",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_08_act_one_2026_11_15.jpg",
+      "ms": 22207,
+      "note": "the battle on the table: Act I",
+      "saved": true,
+      "step": "act_one",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_09_the_battle_plays_2026_11_15.jpg",
+      "ms": 31294,
+      "note": "the acts play",
+      "saved": true,
+      "step": "the_battle_plays",
+      "turn": 1
+    },
+    {
+      "frame": "BA2_WALK_10_the_field_at_rest_2026_11_15.jpg",
+      "ms": 47396,
+      "note": "the field at rest",
+      "saved": true,
+      "step": "the_field_at_rest",
+      "turn": 1
+    }
+  ]
+}

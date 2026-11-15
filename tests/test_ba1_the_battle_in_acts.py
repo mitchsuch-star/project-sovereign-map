@@ -87,7 +87,9 @@ def driven(tmp_path_factory):
 class TestTheActsDriven:
     def test_the_engine_ran_clean(self, driven):
         assert driven["errors"] == []
-        assert len(driven["by_id"]) == len(driven["shots"]) == 15
+        # three battles and their settled frames, Ulm's nine settings shots, and
+        # (BA-2) the old four-seat payload's pair, which every walk carries
+        assert len(driven["by_id"]) == len(driven["shots"]) == 17
         assert all(r.get("ok") for r in driven["by_id"].values())
         assert set(driven["slow_by_id"]) == set(FIRST_INSTANT_SHOTS)
         assert all(r.get("ok") for r in driven["slow_by_id"].values())
@@ -245,7 +247,7 @@ class TestTheWalkOfRecord:
         """BA1-X8's measure, on every staged triumph: the left laurel on the
         seal, the right one under Replay; nothing on a plate without laurels."""
         by = {r["id"]: r for r in record["results"]}
-        triumphs = plain = 0
+        triumphs = plain = wide = 0
         for rid, res in by.items():
             if not rid.endswith("__settled"):
                 continue
@@ -253,12 +255,18 @@ class TestTheWalkOfRecord:
             found = WALK.chrome_overlaps(frame)
             if frame["laurels"] == 2:
                 triumphs += 1
-                assert len(found) == 2 and found[0].startswith("laurel_l ") and " over seal " in found[0], (rid, found)
-                assert found[1].startswith("laurel_r ") and " over replay " in found[1], (rid, found)
+                assert found and found[0].startswith("laurel_l ") and " over seal " in found[0], (rid, found)
+                # the right laurel goes under Replay where the plate is wide
+                # enough to reach it; BA-2's assault plates ("STORMING OF
+                # VIENNA") are narrower, and on them only the left one is over
+                assert len(found) in (1, 2), (rid, found)
+                if len(found) == 2:
+                    wide += 1
+                    assert found[1].startswith("laurel_r ") and " over replay " in found[1], (rid, found)
             else:
                 plain += 1
                 assert found == [], (rid, found)
-        assert triumphs >= 3 and plain >= 3
+        assert triumphs >= 3 and plain >= 3 and wide >= 3
 
     def test_the_staged_battles_show_what_they_were_staged_for(self):
         manifest = json.loads((AUDIT / "payloads" / "manifest.json").read_text(encoding="utf-8"))

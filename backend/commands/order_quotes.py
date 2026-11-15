@@ -164,6 +164,10 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
         # lapse, an aggressive man's interrupt) - "" when it has nothing to say.
         "terms": "",
         "already": False,
+        # BA-2: an attack's plan, orderable — the orders the game already has
+        # that would bring a corps standing by (`bring_quotes`; [] for every
+        # other order).
+        "bring": [],
     }
 
 
@@ -801,11 +805,141 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     q.update(ok=True, ap=ap, turns=0, road=[enemy.location],
              objection=_tactical_objection(world, marshal, "attack", enemy.name),
              muster=_muster_line(world, marshal, enemy),
-             alarm=_alarm_line(world, marshal, enemy))
+             alarm=_alarm_line(world, marshal, enemy),
+             bring=bring_quotes(world, marshal, enemy, memo=memo))
     force = _force_block(world, marshal, enemy)
     if force is not None:
         q["force"] = force
     return q
+
+
+# The muster's reasons a WRITTEN ORDER answers — the three its own hint names
+# (`combat_executor.muster_row_hint`): the literal man who awaits orders, the
+# eye on a crown, the corps holding a position.
+BROUGHT_BY_AN_ORDER = ("literal_awaits_orders", "eyes_on_a_crown", "holding_position")
+# A corps that would come anyway is offered the order only when it lifts his
+# odds by this much — the muster's own bar for naming the lever
+# (`CombatExecutor._arrival_odds_row`).
+BRING_ODDS_GAIN = 15
+
+
+def _stop_this_turn(world, marshal, q: Dict[str, Any]) -> str:
+    """Where a standing order's FIRST march leaves him this turn — the order
+    is taken and he sets off at once (`_strategic_first_step`): as far along
+    the quote's road as he ranges, short of a corps we see on it (one in the
+    road's first province meets the order where he stands). His own province
+    when the road is empty. An unseen corps is a surprise no quote may name."""
+    walked = marshal.location
+    reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    for province in list(q.get("road") or [])[:reach]:
+        if visible_foe_on_road(world, world.player_nation, [province]) is not None:
+            break
+        walked = province
+    return walked
+
+
+def _first_step_asks(world, q: Dict[str, Any], dest: str) -> bool:
+    """A corps we SEE in the road's first province, and that province not the
+    friend's own: the order's first step is then no march — the aggressive man
+    fights at once if the numbers favour him, every other asks the Emperor's
+    orders (`_contact_line`'s personality arms; a literal man's quote already
+    carries his road ROUND the foe). Of the question's four answers one keeps
+    the order ("Go Around"), one sends him in alone and two abandon it, the
+    action spent: an order that asks is not an order that brings."""
+    first = list(q.get("road") or [])[:1]
+    return (bool(first) and first[0] != dest
+            and visible_foe_on_road(world, world.player_nation, first) is not None)
+
+
+def _odds_under_the_order(reader, lead, marshal, stop: str, battle_region: str, world) -> int:
+    """His odds of answering these guns once the order is written, read from
+    where its first march leaves him (the departing ground is part of the roll:
+    from the mountains at Munich, Bernadotte's 47 % at Franconia is nothing).
+    A copy stands at `stop`; the corps itself is not moved."""
+    import copy
+    ghost = copy.copy(marshal)
+    ghost.location = stop
+    row = reader._arrival_odds_row(lead, ghost, battle_region, world, "x")
+    return int(row.get("arrival_odds_with_support", 0))
+
+
+def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None) -> List[Dict[str, Any]]:
+    """Row BA, BA-2 (BATTLE_DIORAMA_SPEC §15.5.5): the plan of battle,
+    orderable at the attack row. For an attack by `lead` on `enemy`: every
+    corps of ours standing by that the muster says will NOT come, or may not,
+    and that the order the game already has would bring — THAT order, quoted
+    at its own price (`support_quote`), with the reason and the odds before
+    and after. No new order and no new number: the muster ladder as
+    `CombatExecutor.muster_odds` walks it, the odds `_arrival_odds_row` prints.
+
+    **It promises only what the order delivers.** A SUPPORT order marches the
+    corps toward the lead at once, so the odds "under a written order" are
+    read from where that first march leaves him (`_stop_this_turn`,
+    `_odds_under_the_order`), and a row is offered only when he will still
+    stand on the field or beside it with odds above nothing — and, for a man
+    who would come anyway, `BRING_ODDS_GAIN` better than he has now. Nor is a
+    row offered when the order's first step meets a corps we see on his road
+    (`_first_step_asks`): he would fight at once on his own, or ask — on the
+    opening board Murat, whose road to Ney runs through Mack.
+
+    PURE: it prices the plan, it does not stage it (never
+    `_build_muster_preview`, which spends the one-time muster hint). Each row
+    is a `support_quote` plus `why`, `code`, `odds_now` (percent; −1 for a man
+    who will not march unordered) and `odds_with` (percent, under the order;
+    −1 for an order that would be refused)."""
+    out: List[Dict[str, Any]] = []
+    if lead.nation != world.player_nation:
+        return out
+    try:
+        from backend.commands.combat_executor import answering_defender
+        from backend.display_names import MUSTER_REASON_DISPLAY
+        reader = _MUSTER_READER.get("combat")
+        if reader is None:
+            from backend.commands.executor import CommandExecutor
+            reader = _MUSTER_READER["combat"] = CommandExecutor()._combat
+        battle_region = answering_defender(world, enemy).location
+        region = world.get_region(battle_region)
+        beside = set(region.adjacent_regions) if region is not None else set()
+        for m in _field_marshals(world):
+            if m.name == lead.name:
+                continue
+            if m.location != battle_region and m.location not in beside:
+                continue
+            will_join, code = reader._muster_reason(m, lead, battle_region, lead.nation, world)
+            odds_now = -1
+            if will_join:
+                if code == "has_support_order" or m.location == battle_region:
+                    continue
+                odds_now = int(reader._arrival_odds_row(
+                    lead, m, battle_region, world, code).get("arrival_odds", 0))
+            elif code not in BROUGHT_BY_AN_ORDER:
+                continue
+            q = support_quote(world, m, lead, memo=memo)
+            odds_with = -1
+            if q["ok"]:
+                if q["already"]:
+                    continue
+                if _first_step_asks(world, q, lead.location):
+                    continue          # the order would raise his question, or his own fight
+                stop = _stop_this_turn(world, m, q)
+                if stop != battle_region and stop not in beside:
+                    continue          # the order's first march takes him out of reach
+                odds_with = 100 if stop == battle_region else _odds_under_the_order(
+                    reader, lead, m, stop, battle_region, world)
+                if odds_with <= 0 or (will_join and odds_with < odds_now + BRING_ODDS_GAIN):
+                    continue
+            if will_join:
+                why = f"about {odds_now}% to make it in time"
+            else:
+                why = str(MUSTER_REASON_DISPLAY.get(code, "") or "will not march unordered")
+            if odds_with >= 0:
+                why += f"; about {odds_with}% under a written order"
+            q.update(why=why, code=str(code), odds_now=odds_now, odds_with=odds_with)
+            out.append(q)
+    except Exception as exc:
+        report(exc, "order_quotes.bring_quotes: the muster ladder")
+        return []
+    return sorted(out, key=_sort_key)
 
 
 def group_march_quotes(world, names: List[str], dest: str) -> Dict[str, Any]:

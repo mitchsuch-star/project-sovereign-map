@@ -463,9 +463,10 @@ SHOTS: list[dict] = [
         for tag, payload, label, must in [
             ("rout_conquest", "rout_conquest", "a rout and a conquest",
              "the beaten line's ROUTED under its feet; the conquest sub-banner under the banner"),
-            ("four_contingents", "four", "four contingents a side",
-             "four ranks a side receding, every name and strength line at the theme's size; "
-             "the reserve tails; the depth-2 faith caption on the baize"),
+            ("four_contingents", "four", "six corps against five (three seats a side, BA-2)",
+             "three corps a side in the order of battle — the lead forward, a wing on either "
+             "hand — every name and strength line at the theme's size; the reserve counted "
+             "beside each loss counter; a wing's faith caption on the baize"),
             ("naval", "naval", "a fleet action",
              "the line of battle at sea; STRUCK / SUNK under the hulls; the sail counts"),
             # UXR-X9 (Pre-Deploy S12 part 2): not a checklist surface — the
@@ -494,9 +495,11 @@ SHOTS: list[dict] = [
         }
         for tag, payload, label, must in [
             ("field_at_rest", "ulm", "a great battle at rest",
-             "four French ranks on their plinths, the pips ticked off; the dice with the roll's "
-             "parts, what it did and each side's luck; the beaten lead driven back, his plinth "
-             "turned down; the advance's toll under the lead's feet, not on his strength line"),
+             "the French order of battle on its plinths (BA-2: the lead forward, a wing on either "
+             "hand, the reserve counted beside the loss counter), the pips ticked off; the dice "
+             "with the roll's parts, what it did and each side's luck; the beaten lead driven "
+             "back, his plinth turned down; the advance's toll under the lead's feet, not on his "
+             "strength line"),
             ("enemy_came_up", "enemy_comes", "an enemy corps that came up",
              "the enemy's second corps in the line, made out; the dice; a repulsed attack"),
             ("the_guns", "guns", "a battle the guns opened",
@@ -528,9 +531,108 @@ SHOTS: list[dict] = [
         "mode": "call", "method": "show_diorama",
         "args": ["$payload", False],
         "steps": [{"call": "_on_replay_pressed"}],
-        "settle_ms": 13800,
+        # the dice come at 13.6 s and tumble for 0.6 (BA-2's three seats moved
+        # the timeline: 13.8 s caught them mid-tumble, the sum not yet told)
+        "settle_ms": 15000,
         "must_show": "IV · THE CRISIS named; the dice on the baize with the roll told beneath; "
                      "the odometers running",
+    },
+    # ═══ Row BA, BA-2 (November 14-15, 2026) — the walls, the guns, the order
+    # of battle (capture group `walls_and_guns`) ═════════════════════════════
+    *[
+        {
+            "id": f"diorama_ba2_{tag}",
+            "surface": f"Battle Diorama — BA-2 ({label})",
+            "payload": f"diorama_ba2_{payload}",
+            "scene": "res://scenes/battle_diorama.tscn",
+            "mode": "call", "method": "show_diorama",
+            "args": ["$payload", False],
+            "must_show": must,
+        }
+        for tag, payload, label, must in [
+            ("order_of_battle", "order_of_battle", "three corps a side, the reserve counted",
+             "each side's lead forward and nearest the line, a wing on either hand behind it; "
+             "'+N in reserve' and its dead beside each side's loss counter; no line of one corps "
+             "on another's men"),
+            ("walls_carried", "walls_carried", "a garrison's wall carried",
+             "the battlemented wall between the garrison and the line, broken down from its "
+             "crest on the stormers' side, their colour on what is left of it, the ladders "
+             "against the breach; the garrison block with no portrait and no standard, STORMED "
+             "under it; no dice"),
+            ("our_walls_hold", "our_walls_hold", "our own wall held",
+             "our garrison on the left behind its wall, shot-marked and whole; the enemy fallen "
+             "back from it; THE WALLS HOLD"),
+            ("capitulated", "capitulated", "a garrison that yielded",
+             "the wall whole under a white flag, no ladder against it; CAPITULATED under the "
+             "garrison block"),
+            ("works_levelled", "works_levelled", "a cannonade that levelled the works",
+             "the battery and its target, no dice; what is left of the target's field works at "
+             "his feet; THE WORKS ARE LEVELLED"),
+            ("our_own_under_the_guns", "our_own_under_the_guns", "our own corps under our guns",
+             "our own corps seated beside the target in its own colours; its dead counted in "
+             "OUR loss counter and bar, not the enemy's"),
+            ("square", "square", "a square against horse",
+             "the infantry's stands formed in square on their slab, the ground mark at its two "
+             "corners; the horse repulsed"),
+            ("dispositions", "dispositions", "our own dispositions",
+             "our corps on the left behind its field works: the bank and its stakes between the "
+             "corps and the line"),
+        ]
+    ],
+    {
+        "id": "diorama_ba2_act_storm",
+        "surface": "Battle Diorama — BA-2 (mid-act: the storm)",
+        "payload": "diorama_ba2_walls_carried",
+        "scene": "res://scenes/battle_diorama.tscn",
+        "mode": "call", "method": "show_diorama",
+        "args": ["$payload", False],
+        "steps": [{"call": "_on_replay_pressed"}],
+        # the storm is told at 5.6 s; by 7.0 the ladders are up and the
+        # stormers closed up, and nothing is fading
+        "settle_ms": 7000,
+        "must_show": "III · THE ASSAULT named; the stormers closed up at the foot of a WHOLE wall, "
+                     "the ladders against it; the development's sentence beneath",
+    },
+    {
+        "id": "region_swabia_bring",
+        "surface": "Region Action Panel — Swabia, the plan at the attack row (BA-2)",
+        "payload": "region_bring",
+        "scene": "res://scenes/region_panel.tscn",
+        "mode": "map_stub", "method": "show_region",
+        "args": ["Swabia", "$map"],
+        "steps": [
+            {"call": "set_march_quotes", "args": ["Swabia", "$payload.quotes"]},
+            {"wait": 8},
+        ],
+        "must_show": "under ATTACK MACK, each corps' attack chip and beneath the row ONE fold, "
+                     "'▸ Bring up — N orders' — never a wall of chips",
+    },
+    {
+        "id": "region_swabia_bring_open",
+        "surface": "Region Action Panel — Swabia, the plan's fold open (BA-2)",
+        "payload": "region_bring",
+        "scene": "res://scenes/region_panel.tscn",
+        "mode": "map_stub", "method": "show_region",
+        "args": ["Swabia", "$map"],
+        "steps": [
+            {"call": "set_march_quotes", "args": ["Swabia", "$payload.quotes"]},
+            {"wait": 4},
+            {"call": "_on_meta_clicked", "args": ["toggle:bring"]},
+            {"wait": 8},
+        ],
+        "must_show": "'▾ Bring up' open: a line per corps that could lead, the existing order "
+                     "said once on it ('to support Davout:'), then one chip per corps the muster "
+                     "says will not come or may not — the man and the price ('Soult · 1 AP')",
+    },
+    {
+        "id": "order_card_bring",
+        "surface": "Order card — an attack with the plan's chips (BA-2)",
+        "payload": "region_bring",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS FOR NEY", "", []],
+        "must_show": "the attack's price and Berthier's muster, then 'Bring up' and a chip per "
+                     "corps with the reason beside it; Send / Put in line / Cancel whole",
     },
     {
         "id": "enemy_phase_iq5",

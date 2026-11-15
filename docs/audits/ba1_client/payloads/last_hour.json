@@ -19,22 +19,22 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 24000,
-    "casualties": 1834,
-    "remaining": 22166,
+    "casualties": 2122,
+    "remaining": 21878,
     "status": "engaged",
     "lead": true,
     "crowned": false,
     "sovereign": false,
-    "advance_losses": 317,
-    "after_advance": 21849
+    "advance_losses": 300,
+    "after_advance": 21578
    },
    {
     "name": "Davout",
     "nation": "France",
     "arm": "infantry",
     "committed": 26000,
-    "casualties": 1191,
-    "remaining": 24809,
+    "casualties": 1377,
+    "remaining": 24623,
     "status": "reinforced",
     "lead": false,
     "crowned": false,
@@ -45,20 +45,8 @@
     "nation": "France",
     "arm": "cavalry",
     "committed": 22000,
-    "casualties": 503,
-    "remaining": 21497,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Lannes",
-    "nation": "France",
-    "arm": "infantry",
-    "committed": 18000,
-    "casualties": 1030,
-    "remaining": 16970,
+    "casualties": 582,
+    "remaining": 21418,
     "status": "reinforced",
     "lead": false,
     "crowned": false,
@@ -78,10 +66,10 @@
     "absence_reason": "awaits explicit orders"
    }
   ],
-  "reserve_count": 2,
-  "casualties_total": 5016,
-  "committed_total": 100000,
-  "reserve_casualties": 458,
+  "reserve_count": 3,
+  "casualties_total": 5273,
+  "committed_total": 90000,
+  "reserve_casualties": 1192,
   "nation": "France"
  },
  "defender": {
@@ -91,22 +79,22 @@
     "nation": "Austria",
     "arm": "infantry",
     "committed": 52000,
-    "casualties": 21786,
-    "remaining": 30214,
-    "status": "routed",
+    "casualties": 18325,
+    "remaining": 33675,
+    "status": "engaged",
     "lead": true,
     "crowned": false,
     "sovereign": false
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 21786,
+  "casualties_total": 18325,
   "committed_total": 52000,
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position — though Bernadotte never arrived, Sire. And Mack was taken on that field — France holds him.",
- "enemy_voice": "Mack: \"This is not a rout. It is a revision of the plan.\"",
+ "observation": "Reinforcements from Davout, Lannes and Murat bolstered Ney's position — though Bernadotte and Napoleon never arrived, Sire.",
+ "enemy_voice": "Mack: \"A temporary derangement of the arithmetic. Vienna will understand.\"",
  "script": {
   "version": 1,
   "form": "full",
@@ -128,9 +116,9 @@
       "text": "Davout marches from Rhineland to the sound of the guns.",
       "weight": "detail",
       "late": false,
-      "score": 79,
+      "score": 78,
       "bar": 55,
-      "margin": 24,
+      "margin": 23,
       "origin": "Rhineland",
       "ordered": false,
       "concealed": false
@@ -138,27 +126,13 @@
      {
       "kind": "arrive",
       "side": "attacker",
-      "actor": "Lannes",
-      "text": "Lannes marches from Franche-Comte to the sound of the guns.",
-      "weight": "detail",
-      "late": false,
-      "score": 103,
-      "bar": 55,
-      "margin": 48,
-      "origin": "Franche-Comte",
-      "ordered": false,
-      "concealed": false
-     },
-     {
-      "kind": "arrive",
-      "side": "attacker",
       "actor": "Murat",
-      "text": "Murat comes up from Franche-Comte at the last hour (56 against a bar of 55).",
+      "text": "Murat comes up from Franche-Comte at the last hour (58 against a bar of 55).",
       "weight": "head",
       "late": true,
-      "score": 56,
+      "score": 58,
       "bar": 55,
-      "margin": 1,
+      "margin": 3,
       "origin": "Franche-Comte",
       "ordered": false,
       "concealed": false
@@ -170,15 +144,6 @@
       "text": "Soult does not come: awaits explicit orders.",
       "weight": "head",
       "status": "refused"
-     },
-     {
-      "kind": "presence",
-      "side": "attacker",
-      "actor": "Ney",
-      "text": "The Emperor commands in person: +10% along the line.",
-      "weight": "head",
-      "pct": 10,
-      "dimmed": false
      }
     ]
    },
@@ -222,25 +187,23 @@
       "kind": "dice",
       "side": "attacker",
       "actor": "Ney",
-      "text": "The fortune of the day: Ney rolls 4, +1 for his eye for ground: 5.",
+      "text": "The fortune of the day: Ney rolls 7, +1 for his eye for ground: 8.",
       "weight": "head",
-      "natural": 4,
+      "natural": 7,
       "skill": 1,
       "flank": 0,
-      "modified": 5,
+      "modified": 8,
       "critical": "",
-      "swing": -2,
+      "swing": 5,
       "fortune_attacker": 6,
-      "fortune_defender": 0
+      "fortune_defender": -1
      },
      {
-      "kind": "break",
-      "side": "defender",
-      "actor": "Mack",
-      "text": "Mack is taken on the field.",
-      "weight": "head",
-      "how": "captured",
-      "morale": 20
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
      }
     ]
    },
@@ -251,10 +214,10 @@
       "kind": "advance_to",
       "side": "attacker",
       "actor": "Ney",
-      "text": "Ney advances into Swabia.",
+      "text": "Ney advances into Swabia, where Mack still stands.",
       "weight": "detail",
       "to": "Swabia",
-      "contested": false
+      "contested": true
      }
     ]
    }
@@ -263,7 +226,6 @@
    "Ney": "aggressive",
    "Davout": "cautious",
    "Murat": "aggressive",
-   "Lannes": "aggressive",
    "Soult": "literal",
    "Mack": "literal"
   }

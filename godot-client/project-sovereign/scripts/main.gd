@@ -633,6 +633,7 @@ func _ready():
 		order_card.standing_cancel_requested.connect(_on_standing_cancel_requested)
 		order_card.standing_change_requested.connect(_on_standing_change_requested)
 		order_card.group_send_requested.connect(_on_group_send_requested)
+		order_card.bring_requested.connect(_on_order_card_bring)   # row BA, BA-2
 	dialog_manager.modal_shown.connect(_on_modal_shown)
 
 	_configure_response_routes()
@@ -5305,6 +5306,20 @@ func _display_result(response):
 	# Common Peace: compact result feedback after the confirm popup resolves.
 	if response.has("settlement_result_feedback") and response.settlement_result_feedback is Dictionary:
 		_display_settlement_result_feedback(response.settlement_result_feedback)
+
+	# Row BA, BA-2 (November 14, 2026): a garrison assault and a bombardment
+	# carry a tableau as a battle does — on their first event. A battle's own
+	# renderer draws its link (`_display_battle_result`); every other event
+	# type's is drawn, and its payload stashed, HERE (the BD §14.1 lesson: the
+	# link and the stash are one place, whichever endpoint answered).
+	if event_type != "battle" and events.size() > 0 and events[0] is Dictionary \
+			and battle_diorama != null:
+		var siege_tableau = events[0].get("diorama")
+		if siege_tableau is Dictionary and not siege_tableau.is_empty():
+			last_battle_diorama = siege_tableau
+			if bool(siege_tableau.get("significant", false)):
+				pending_diorama_data = siege_tableau
+			add_output("[color=#" + Utils.COLOR_GOLD + "]   [url=diorama:last]⚔ View the field[/url][/color]")
 
 	# NV-7: a fleet action's replay link. Stashed at the same place it is
 	# drawn (the BD §14.1 lesson) so the link and the tableau can never
@@ -10102,6 +10117,18 @@ func _on_order_quote(serial: int, key: String, response) -> void:
 
 func _on_order_card_send(command: String) -> void:
 	_send_map_order(command)
+
+
+func _on_order_card_bring(command: String) -> void:
+	"""Row BA, BA-2 (November 14, 2026): a `bring` chip on an attack's card —
+	the order that brings a corps standing by goes down the card's own road
+	(the typed road: its objection, its echo, its latch), and its answer
+	selects the attack's lead again whatever the "next marshal" setting, so
+	the next card quotes the muster as it then stands."""
+	var was_flying := _chip_command_in_flight
+	_send_map_order(command)
+	if _chip_command_in_flight and not was_flying:
+		_card_sent_stays = true
 
 
 func _on_order_card_line(command: String) -> void:

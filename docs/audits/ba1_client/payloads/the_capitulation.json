@@ -29,36 +29,24 @@
     "after_advance": 21849
    },
    {
+    "name": "Napoleon",
+    "nation": "France",
+    "arm": "emperor",
+    "committed": 10000,
+    "casualties": 458,
+    "remaining": 9542,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": true
+   },
+   {
     "name": "Davout",
     "nation": "France",
     "arm": "infantry",
     "committed": 26000,
     "casualties": 1191,
     "remaining": 24809,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Murat",
-    "nation": "France",
-    "arm": "cavalry",
-    "committed": 22000,
-    "casualties": 503,
-    "remaining": 21497,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Lannes",
-    "nation": "France",
-    "arm": "infantry",
-    "committed": 18000,
-    "casualties": 1030,
-    "remaining": 16970,
     "status": "reinforced",
     "lead": false,
     "crowned": false,
@@ -78,10 +66,10 @@
     "absence_reason": "awaits explicit orders"
    }
   ],
-  "reserve_count": 2,
+  "reserve_count": 3,
   "casualties_total": 5016,
   "committed_total": 100000,
-  "reserve_casualties": 458,
+  "reserve_casualties": 1533,
   "nation": "France"
  },
  "defender": {
@@ -105,7 +93,7 @@
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position — though Bernadotte never arrived, Sire. And Mack was taken on that field — France holds him.",
+ "observation": "The Emperor watched this field. Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position — though Bernadotte never arrived, Sire. And Mack was taken on that field — France holds him.",
  "enemy_voice": "Mack: \"This is not a rout. It is a revision of the plan.\"",
  "script": {
   "version": 1,
@@ -138,28 +126,14 @@
      {
       "kind": "arrive",
       "side": "attacker",
-      "actor": "Lannes",
-      "text": "Lannes marches from Franche-Comte to the sound of the guns.",
+      "actor": "Napoleon",
+      "text": "Napoleon marches from Lorraine to the sound of the guns.",
       "weight": "detail",
       "late": false,
-      "score": 103,
+      "score": 83,
       "bar": 55,
-      "margin": 48,
-      "origin": "Franche-Comte",
-      "ordered": false,
-      "concealed": false
-     },
-     {
-      "kind": "arrive",
-      "side": "attacker",
-      "actor": "Murat",
-      "text": "Murat comes up from Franche-Comte at the last hour (56 against a bar of 55).",
-      "weight": "head",
-      "late": true,
-      "score": 56,
-      "bar": 55,
-      "margin": 1,
-      "origin": "Franche-Comte",
+      "margin": 28,
+      "origin": "Lorraine",
       "ordered": false,
       "concealed": false
      },
@@ -261,9 +235,8 @@
   ],
   "tempers": {
    "Ney": "aggressive",
+   "Napoleon": "sovereign",
    "Davout": "cautious",
-   "Murat": "aggressive",
-   "Lannes": "aggressive",
    "Soult": "literal",
    "Mack": "literal"
   }

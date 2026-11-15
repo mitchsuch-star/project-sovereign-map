@@ -33,6 +33,9 @@ signal cancelled
 signal standing_cancel_requested(marshal: String)
 signal standing_change_requested(marshal: String)
 signal group_send_requested(lines: Array, held: Array)
+# Row BA, BA-2: a `bring` chip on an attack's card — the order that brings a
+# corps standing by, sent at once (the card closes; the lead is selected again).
+signal bring_requested(command: String)
 
 @onready var title_label: Label = $PanelContainer/VBox/TitleLabel
 @onready var command_label: Label = $PanelContainer/VBox/CommandLabel
@@ -66,6 +69,7 @@ func _ready():
 	send_button.pressed.connect(_on_send)
 	line_button.pressed.connect(_on_line)
 	cancel_button.pressed.connect(_on_cancel)
+	terms_label.meta_clicked.connect(_on_terms_meta)
 
 
 func _wear(mode: String) -> void:
@@ -595,6 +599,7 @@ func _terms(q: Dictionary) -> String:
 	var alarm := str(q.get("alarm", ""))
 	if alarm != "":
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + alarm + "[/color]")
+	lines.append_array(_bring_lines(q))
 	var contact := str(q.get("contact", ""))
 	var note := str(q.get("note", ""))
 	if contact != "":
@@ -630,6 +635,70 @@ func _terms(q: Dictionary) -> String:
 	if terms_text != "":
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + terms_text + "[/color]")
 	return "\n".join(lines)
+
+
+# ── Row BA, BA-2 (November 14, 2026): the plan of battle on the attack's card ──
+# The quote's `bring` rows (`order_quotes.bring_quotes`): for each corps of ours
+# standing by that the muster says will NOT come, or may not, the order the game
+# already has that would bring him — SUPPORT's own quote, with the muster's
+# reason or his odds before and after. A chip sends that order at once down the
+# card's own road; the card closes (its muster is no longer true) and the lead
+# is selected again, so the next card quotes the muster as it then stands.
+const BRING_CHIP_BG := "233043"
+const BRING_LEAD := "Bring up — a chip sends that order now, and this card closes:"
+
+
+static func bring_label(b: Dictionary) -> String:
+	"""`Soult · support Ney · 1 AP` — the man, the order in its own words (the
+	quote's command after his name), its price."""
+	var command := str(b.get("command", ""))
+	var cut := command.find(", ")
+	return str(b.get("shown", "")) + " · " + (command.substr(cut + 2) if cut >= 0 else command) \
+		+ " · " + str(int(b.get("ap", 0))) + " AP"
+
+
+func _bring_lines(q: Dictionary) -> PackedStringArray:
+	"""A line per `bring` row under the muster: the chip, then why the order is
+	needed (the muster's reason he stays, or his odds before and after) — or,
+	for an order that would be refused, its words dimmed beside the reason."""
+	var lines := PackedStringArray()
+	var rows = q.get("bring", [])
+	if not (rows is Array):
+		return lines
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	for b in rows:
+		if not (b is Dictionary) or bool(b.get("already", false)) or str(b.get("command", "")) == "":
+			continue
+		if bool(b.get("ok", false)):
+			var said := str(b.get("why", ""))
+			# what the order's first step MEETS (a corps we see on his road)
+			if str(b.get("contact", "")) != "":
+				said += (" · " if said != "" else "") + str(b.get("contact", ""))
+			if str(b.get("replaces", "")) != "":
+				said += (" · " if said != "" else "") + "replaces " + str(b.get("replaces", ""))
+			if str(b.get("objection", "none")) == "possible":
+				said += (" · " if said != "" else "") + "he may object"
+			lines.append("  " + Utils.bb_button_chip("do:" + str(b.get("command", "")), bring_label(b),
+				Utils.COLOR_GOLD, BRING_CHIP_BG) + ("  " + info + said + "[/color]" if said != "" else ""))
+		else:
+			lines.append("  " + Utils.bb_chip_disabled(str(b.get("shown", "")) + " · support", "", "")
+				+ "  " + info + str(b.get("refusal", "")) + "[/color]")
+	if not lines.is_empty():
+		lines.insert(0, info + BRING_LEAD + "[/color]")
+	return lines
+
+
+func _on_terms_meta(meta) -> void:
+	"""A `bring` chip pressed: its own quoted command is handed on, the card
+	shut first (an order's card answers once)."""
+	var meta_str := str(meta)
+	if _mode != "order" or not visible or not meta_str.begins_with("do:"):
+		return
+	var cmd := meta_str.substr("do:".length())
+	if cmd == "":
+		return
+	_close_quietly()
+	bring_requested.emit(cmd)
 
 
 static func _price(ap: int) -> String:

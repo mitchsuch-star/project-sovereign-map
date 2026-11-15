@@ -1,0 +1,134 @@
+{
+ "kind": "assault",
+ "fate": "stormed",
+ "battle_name": "Storming of Vienna",
+ "region": "Vienna",
+ "turn": 1,
+ "outcome": "attacker_victory",
+ "victor": "Ney",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 24000,
+    "casualties": 1598,
+    "remaining": 22402,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 1598,
+  "committed_total": 24000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Vienna garrison",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 6000,
+    "casualties": 6000,
+    "remaining": 0,
+    "status": "destroyed",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "garrison": true
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 6000,
+  "committed_total": 6000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Vienna is carried by storm.",
+ "banner": "THE WALLS ARE CARRIED",
+ "fortified": true,
+ "sub_banner": "Vienna is occupied: 1 turn to hold it.",
+ "siege_turns": 1,
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney comes up before the walls of Vienna.",
+      "weight": "detail"
+     },
+     {
+      "kind": "walls",
+      "side": "defender",
+      "actor": "Vienna garrison",
+      "text": "The garrison of Vienna mans its walls, under the fortress: 6,000 men.",
+      "weight": "detail",
+      "men": 6000,
+      "fortified": true
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "storm",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney's columns go in against the walls with ladders.",
+      "weight": "head",
+      "temper": "aggressive"
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "wall_falls",
+      "side": "defender",
+      "actor": "Vienna garrison",
+      "text": "The walls of Vienna are carried: the garrison is overrun.",
+      "weight": "head"
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "occupy",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Vienna is occupied: 1 turn to hold it.",
+      "weight": "head",
+      "turns": 1
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Ney": "aggressive",
+   "Vienna garrison": "steady"
+  }
+ }
+}

@@ -1,0 +1,121 @@
+{
+ "kind": "bombardment",
+ "battle_name": "Cannonade at Swabia",
+ "region": "Swabia",
+ "turn": 1,
+ "outcome": "bombardment",
+ "victor": null,
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "grim",
+ "significant": false,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Marmont",
+    "nation": "France",
+    "arm": "artillery",
+    "committed": 3000,
+    "casualties": 53,
+    "remaining": 2947,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 689,
+  "committed_total": 21000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 52000,
+    "casualties": 3607,
+    "remaining": 48393,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Lannes",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 18000,
+    "casualties": 636,
+    "remaining": 17364,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false,
+    "bystander": true,
+    "friendly_fire": true,
+    "of_the_guns": true
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3607,
+  "committed_total": 52000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Sire, our own forces were caught in Marmont's bombardment. Regrettable, but unavoidable.",
+ "banner": "THE GUNS SPEAK",
+ "works_old": 0,
+ "works_new": 0,
+ "battery_at": "Rhineland",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "cannonade",
+    "beats": [
+     {
+      "kind": "battery",
+      "side": "attacker",
+      "actor": "Marmont",
+      "text": "Marmont's guns open from Rhineland on Mack: 3,607 fall. The answering fire costs the battery 53.",
+      "weight": "head",
+      "dealt": 3607,
+      "target": "Mack",
+      "taken": 53
+     },
+     {
+      "kind": "bystander",
+      "side": "defender",
+      "actor": "Lannes",
+      "text": "Our own Lannes, standing by, is caught under the guns: 636 fall.",
+      "weight": "head",
+      "lost": 636,
+      "ours": true
+     },
+     {
+      "kind": "shaken",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack's line stands under the fire at 97% morale.",
+      "weight": "detail",
+      "morale": 97
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Marmont": "steady",
+   "Lannes": "steady",
+   "Mack": "steady"
+  }
+ }
+}

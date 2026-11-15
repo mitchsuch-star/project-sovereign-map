@@ -1,0 +1,134 @@
+{
+ "kind": "assault",
+ "fate": "held",
+ "battle_name": "Assault on Vienna",
+ "region": "Vienna",
+ "turn": 1,
+ "outcome": "defender_victory",
+ "victor": "Vienna garrison",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 24000,
+    "casualties": 5328,
+    "remaining": 18672,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 5328,
+  "committed_total": 24000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Vienna garrison",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 25000,
+    "casualties": 9852,
+    "remaining": 15148,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "garrison": true
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 9852,
+  "committed_total": 25000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "The walls of Vienna stand. 15,148 defenders remain behind them.",
+ "banner": "THE ASSAULT FAILS",
+ "fortified": false,
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney comes up before the walls of Vienna.",
+      "weight": "detail"
+     },
+     {
+      "kind": "walls",
+      "side": "defender",
+      "actor": "Vienna garrison",
+      "text": "The garrison of Vienna mans its walls: 25,000 men.",
+      "weight": "detail",
+      "men": 25000,
+      "fortified": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "storm",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney's columns go in against the walls with ladders.",
+      "weight": "head",
+      "temper": "aggressive"
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "wall_holds",
+      "side": "defender",
+      "actor": "Vienna garrison",
+      "text": "The walls of Vienna hold: 15,148 defenders remain.",
+      "weight": "head",
+      "remaining": 15148,
+      "lost": 9852
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "repulsed",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney draws off from the walls, 5,328 men the fewer.",
+      "weight": "detail",
+      "lost": 5328
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Ney": "aggressive",
+   "Vienna garrison": "steady"
+  }
+ }
+}

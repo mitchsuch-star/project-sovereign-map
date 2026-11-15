@@ -43,7 +43,15 @@ from backend import errors as _errors
 from backend.models.intel import FULL
 
 # Cap per the eval's §7 Q3 answer: fixed figure blocks, summarize the tail.
-MAX_CONTINGENTS_PER_SIDE = 4
+#
+# Row BA, BA-2 (BATTLE_DIORAMA_SPEC §15.11, the user's "make best call",
+# November 14, 2026): THREE seats and a reserve. The table lays an order of
+# battle — the lead in the centre and a wing on either side — and the layout
+# study found no place on it for a fourth corps (the names and captions leave
+# none). Four seats were a file of ranks; three are a centre and two wings in
+# every battle, the great ones included. The corps beyond the cap stand in
+# reserve, counted with their dead (`reserve_count`, `reserve_casualties`).
+MAX_CONTINGENTS_PER_SIDE = 3
 
 # Decisive outcomes — full victories break a side; tactical wins are a
 # bloodier draw. mutual_destruction is decisive in the way that matters
@@ -175,9 +183,13 @@ def _side_contingents(world, lead, participants: list, distribution: dict,
     arrived = {r.get("marshal") for r in reinforcements if r.get("arrived")}
     contingents: List[dict] = []
 
+    # The seats (BA-2: three of them): the lead, then the sovereign's own
+    # corps if it fought — "The Emperor commands in person" is told of a man
+    # who stands on the table — then the largest.
     fought = sorted(
         participants,
-        key=lambda p: (0 if p.name == lead.name else 1,
+        key=lambda p: (0 if p.name == lead.name
+                       else 1 if getattr(p, "is_sovereign", False) else 2,
                        -pre_strengths.get(p.name, 0)),
     )
     for p in fought:

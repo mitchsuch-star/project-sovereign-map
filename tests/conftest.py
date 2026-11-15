@@ -158,6 +158,8 @@ ENGINE_LANES = {
         # Row BA, BA-1: the real tableau playing the acts, headless, the scene
         # run eight times faster (tools/ba1_acts_walk.gd)
         "test_ba1_the_battle_in_acts",
+        # Row BA, BA-2: the same harness on the walls, the guns and the board
+        "test_ba2_the_walls_and_the_guns",
     }),
     "engine_panels": frozenset({
         # the CN-3 region-panel harness and its kin (tests/_chip_census.render)

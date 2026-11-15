@@ -1176,6 +1176,17 @@ REVIEWED = {
     # against POST /command on a fresh board (tests/test_cc2_march_here.py),
     # the panel driven against real quotes (tools/cc_client_harness.gd).
     ("region_panel.gd", '"do:" + str(q.get("command", ""))'): "driven; the quote drift-pinned (CC-2)",
+    # Row BA, BA-2 (November 15, 2026): the plan's chips — a `bring` row of an
+    # attack quote (`order_quotes.bring_quotes`: the EXISTING support quote).
+    # Every row's command is SENT on a fresh board and the muster read after it
+    # (tests/test_ba2_backend_walls_guns_plan.py::TestBringQuotes — an order is
+    # offered if and only if sending it brings the corps), and through
+    # POST /command with the price checked
+    # (tests/test_ba2_the_walls_and_the_guns.py::TestThePlanIsOrderable).
+    ("region_panel.gd", '"do:" + str(b.get("command", ""))'):
+        "the bring row's own command; sent and the muster read after it (BA-2)",
+    ("order_confirm_card.gd", '"do:" + str(b.get("command", ""))'):
+        "the same rows on the attack's card; the press is handed to main.gd's own send road (BA-2)",
     ("region_panel.gd", '"order:unfortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:fortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:drill:" + m_name'): "driven; dimmed with the executor's reason",
@@ -1302,7 +1313,9 @@ class TestThePanelsLinkMetasAreReviewed:
         # the chips' own metas (do:/order:/negotiate:/admiralty/toggle:build/
         # toggle:march_more) are the bb_button_chip rows in REVIEWED or the two
         # long-standing toggles; the rest must be named above
-        long_standing = {"toggle:build", "toggle:march_more", "toggle:", "toggle"}
+        # (row BA, BA-2: `toggle:bring` is the third fold — the ATTACK rows'
+        # "Bring up" line, opened and shut in place; it sends nothing)
+        long_standing = {"toggle:build", "toggle:march_more", "toggle:bring", "toggle:", "toggle"}
         unreviewed = sorted(w for w in written
                             if w not in REVIEWED_PANEL_METAS and w not in long_standing)
         assert unreviewed == [], unreviewed

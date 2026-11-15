@@ -771,6 +771,14 @@ const UI_DEAD_RING := Color(0.45, 0.45, 0.48, 1.0)          # a fallen marshal's
 # Row BA (BA-1, November 14, 2026): the corps plinth and the battle's acts.
 const UI_PLINTH_FACE_DOWN := Color(0.62, 0.60, 0.58, 1.0)   # a beaten corps' slab, dulled
 const UI_CORPS_UNSEEN := Color(0.30, 0.27, 0.24, 1.0)       # an enemy corps coming up, not yet made out
+# Row BA (BA-2, November 14, 2026): the walls, the works and the reserve.
+const UI_WALL_STONE := Color(0.58, 0.55, 0.50, 1.0)         # a garrison's curtain wall
+const UI_WALL_SHADE := Color(0.36, 0.33, 0.30, 1.0)         # its shaded face and its gate
+const UI_WALL_SCAR := Color(0.20, 0.17, 0.15, 1.0)          # shot holes, and the breach's dark
+const UI_WORKS_EARTH := Color(0.42, 0.33, 0.22, 1.0)        # field works: thrown-up earth
+const UI_WORKS_CREST := Color(0.56, 0.46, 0.32, 1.0)        # the rampart's lit crest
+const UI_WHITE_FLAG := Color(0.93, 0.91, 0.86, 1.0)         # a garrison's white flag
+const UI_SQUARE_MARK := Color(0.79, 0.76, 0.70, 0.75)       # the ground mark of a corps in square
 const UI_END_PLATE_BG := Color(0.17, 0.15, 0.11, 1.0)       # the end card's register plate
 const UI_HINT_GREY := Color(0.7, 0.7, 0.75, 1)              # a dialog's hint line (Load, Reward)
 # Session UI-6 (November 13, 2026): the title screen's drawn gilt faces and the

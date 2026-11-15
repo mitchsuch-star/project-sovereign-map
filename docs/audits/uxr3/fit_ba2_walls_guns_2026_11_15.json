@@ -1,0 +1,1420 @@
+{
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\index.json",
+ "client_commit": "74d9d139",
+ "physical_scale": "auto",
+ "surfaces": {
+  "diorama_aadj": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_AADJ_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_AADJ_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_AADJ_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_dadj": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_DADJ_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_DADJ_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_DADJ_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_rout_conquest": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_ROUT_CONQUEST_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_ROUT_CONQUEST_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_ROUT_CONQUEST_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_four_contingents": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_FOUR_CONTINGENTS_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_FOUR_CONTINGENTS_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_FOUR_CONTINGENTS_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_naval": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_NAVAL_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_NAVAL_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_NAVAL_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_verdict_worst": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_VERDICT_WORST_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_VERDICT_WORST_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_VERDICT_WORST_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_field_at_rest": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_FIELD_AT_REST_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_FIELD_AT_REST_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_FIELD_AT_REST_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_enemy_came_up": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ENEMY_CAME_UP_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ENEMY_CAME_UP_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ENEMY_CAME_UP_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_the_guns": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_THE_GUNS_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_THE_GUNS_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_THE_GUNS_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_defeat": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_DEFEAT_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_DEFEAT_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_DEFEAT_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_watched": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_WATCHED_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_WATCHED_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_WATCHED_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_act_approach": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ACT_APPROACH_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ACT_APPROACH_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ACT_APPROACH_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_act_crisis": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ACT_CRISIS_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ACT_CRISIS_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA1_ACT_CRISIS_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_order_of_battle": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_ORDER_OF_BATTLE_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_ORDER_OF_BATTLE_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_ORDER_OF_BATTLE_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_walls_carried": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_WALLS_CARRIED_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_WALLS_CARRIED_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_WALLS_CARRIED_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_our_walls_hold": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_OUR_WALLS_HOLD_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_OUR_WALLS_HOLD_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_OUR_WALLS_HOLD_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_capitulated": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_CAPITULATED_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_CAPITULATED_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_CAPITULATED_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_works_levelled": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_WORKS_LEVELLED_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_WORKS_LEVELLED_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_WORKS_LEVELLED_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_our_own_under_the_guns": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_OUR_OWN_UNDER_THE_GUNS_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_OUR_OWN_UNDER_THE_GUNS_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_OUR_OWN_UNDER_THE_GUNS_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_square": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_SQUARE_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_SQUARE_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_SQUARE_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_dispositions": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_DISPOSITIONS_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_DISPOSITIONS_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_DISPOSITIONS_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba2_act_storm": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_ACT_STORM_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_ACT_STORM_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_DIORAMA_BA2_ACT_STORM_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "region_swabia_bring": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [],
+     "live_floor": -1000000,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_REGION_SWABIA_BRING_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [],
+     "live_floor": -1000000,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_REGION_SWABIA_BRING_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [],
+     "live_floor": -1000000,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_REGION_SWABIA_BRING_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "region_swabia_bring_open": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [],
+     "live_floor": -1000000,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_REGION_SWABIA_BRING_OPEN_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [],
+     "live_floor": -1000000,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_REGION_SWABIA_BRING_OPEN_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [],
+     "live_floor": -1000000,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_REGION_SWABIA_BRING_OPEN_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "order_card_bring": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      123
+     ],
+     "live_floor": 123,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_ORDER_CARD_BRING_1920x1080_S1.00_2026_11_15.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      123
+     ],
+     "live_floor": 123,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_ORDER_CARD_BRING_5120x1440_S1.80_2026_11_15.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      123
+     ],
+     "live_floor": 123,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\frames\\UXR0_ORDER_CARD_BRING_3840x2160_S1.50_2026_11_15.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  }
+ }
+}

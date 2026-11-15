@@ -29,36 +29,24 @@
     "after_advance": 22484
    },
    {
+    "name": "Napoleon",
+    "nation": "France",
+    "arm": "emperor",
+    "committed": 9038,
+    "casualties": 260,
+    "remaining": 8778,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": true
+   },
+   {
     "name": "Davout",
     "nation": "France",
     "arm": "infantry",
     "committed": 23998,
     "casualties": 692,
     "remaining": 23306,
-    "status": "engaged",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Murat",
-    "nation": "France",
-    "arm": "cavalry",
-    "committed": 21153,
-    "casualties": 305,
-    "remaining": 20848,
-    "status": "engaged",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Lannes",
-    "nation": "France",
-    "arm": "infantry",
-    "committed": 15531,
-    "casualties": 560,
-    "remaining": 14971,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -78,10 +66,10 @@
     "absence_reason": "awaits explicit orders"
    }
   ],
-  "reserve_count": 2,
+  "reserve_count": 3,
   "casualties_total": 2975,
   "committed_total": 93720,
-  "reserve_casualties": 260,
+  "reserve_casualties": 865,
   "nation": "France"
  },
  "defender": {
@@ -105,7 +93,7 @@
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "Ney fought without Bernadotte's support. The roads, or the will, proved insufficient. And Mack was taken on that field — France holds him.",
+ "observation": "The Emperor watched this field. Ney fought without Bernadotte's support. The roads, or the will, proved insufficient. And Mack was taken on that field — France holds him.",
  "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
  "script": {
   "version": 1,
@@ -120,6 +108,24 @@
       "actor": "Ney",
       "text": "Ney attacks Mack at Swabia.",
       "weight": "detail"
+     },
+     {
+      "kind": "plan",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The plan: Ney leads; the attack from 2 provinces (+1 on the dice).",
+      "weight": "head",
+      "supports": [],
+      "came": 0,
+      "flank": 1,
+      "origins": [
+       "Franche-Comte",
+       "Rhineland"
+      ],
+      "drilled": 0,
+      "stance": "",
+      "stance_pct": 0,
+      "guns": []
      },
      {
       "kind": "absent",
@@ -231,9 +237,8 @@
   ],
   "tempers": {
    "Ney": "aggressive",
+   "Napoleon": "sovereign",
    "Davout": "cautious",
-   "Murat": "aggressive",
-   "Lannes": "aggressive",
    "Soult": "literal",
    "Mack": "literal"
   }

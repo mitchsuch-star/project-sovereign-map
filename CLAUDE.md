@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; ROW AU ✅ COMPLETE Nov 3–6 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI ✅ Nov 11, UI-2/3/4 ✅ Nov 12, UI-5, UI-6 ✅ Nov 13 (§207–§217); BA-1 ✅ Nov 14 (§219); next BA-2, BA-3, then H the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; ROW AU ✅ COMPLETE Nov 3–6 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1 ✅ Nov 14 (§219), BA-2 ✅ Nov 15 (§220); next BA-3, then H the deploy**.
 
-**▶ LIVE STATE (Nov 14, 2026).** The three most recent rows:
+**▶ LIVE STATE (Nov 15, 2026).** The three most recent rows:
+- **Row BA, BA-2 (Nov 15) — the board, the walls, the guns** (§220).
 - **Row BA, BA-1 (Nov 14) — the battle in acts: seeded dice, the script, the table** (§219).
-- **The weak-spot review (Nov 14) — nine fixes, the open rows filed** (§218).
-- **Session UI-6 (Nov 13) — the last reading: Generals, the line, the fog** (§217).
+- **The weak-spot review (Nov 14) — nine fixes** (§218).
 
-**Open with the user:** G5's readings (`DYNAMISM_SPEC.md` §7e), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a), UI-5's look and listen (UI spec §13), UI-6's look (§14), BA-1's plinth name, BA-3's questions (`BATTLE_DIORAMA_SPEC.md` §15.7).
+**Open with the user:** G5's readings (`DYNAMISM_SPEC.md` §7e), the flip's two readings (spec §6.8.3), the certificate (§153.3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a), UI-5's look and listen (UI spec §13), UI-6's look (§14), BA-1's plinth name, BA-2's readings (battle spec §15.12), BA-3's questions (§15.7).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 
@@ -175,7 +175,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `strategic_executor.py` (`_execute_strategic_command` = 11 `_strategic_*` stages, _execute_cancel, objection handling) |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md`, `docs/V2B_DEFIANCE_SPEC.md` |
-| Battle tableau / acts / battle dice | `docs/BATTLE_DIORAMA_SPEC.md` §15 (§15.10 FIRST), SYSTEMS_REFERENCE §219, `battle_script.py`, `battle_acts.gd`, `campaign_variance.battle_rng` |
+| Battle tableau / acts / battle dice | `docs/BATTLE_DIORAMA_SPEC.md` §15 (§15.10–12 FIRST), SYSTEMS_REFERENCE §219–220, `battle_script.py`, `siege_diorama.py`, `battle_acts.gd`, `campaign_variance.battle_rng` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `intel.py`, `intel_report.py`, `map.gd`. Use `get_visible_enemies()` for player-facing, `get_enemies_of_nation()` for omniscient only |
 | Manpower / recruitment | `world_state.py` (manpower constants), `economy_executor.py` (_execute_recruit), `enemy_ai.py` (P1/P4.5/P7) |
 | Artillery / bombardment | `marshal.py` (artillery flag), `combat.py` (cavalry counter, fort degradation), `combat_executor.py` (_execute_bombardment, _distribute_casualties), `enemy_ai.py` (_score_artillery_position) |

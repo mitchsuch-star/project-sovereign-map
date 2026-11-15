@@ -657,7 +657,7 @@ the provinces the attack comes from and the flank's +N on the dice, a drilled as
 guns in support); the attack row of the province panel and the muster card carry, per nearby
 corps, a chip for the existing order that would bring him, priced on its face.
 
-**15.5.6 The crisis — the Emperor's word.** Asked on a field battle the player ordered, where the
+**15.5.6 The crisis — the Emperor's word.** *(Amended November 14, 2026 by §15.11: the presence gate below is struck — the hand is in every battle the player fights — and BA-3 re-plans this section as "the rounds".)* Asked on a field battle the player ordered, where the
 Emperor stood on the field and the day hangs (both leads standing, the enemy still on the field).
 One order — Press (the lead renews the assault), The Guard (the Emperor's own corps attacks), Hold
 — and the lead answers by temperament through the systems that already exist: the concern
@@ -686,8 +686,8 @@ in the game: after a reload a different order may be given.
 | Session | Scope | Done when |
 |---|---|---|
 | **BA-1 — the dice and the acts** | §15.5.1, §15.5.2, §15.5.3 | the same save fights the same battle; the script is on both transports, fog-true at PARTIAL and FULL; the tableau plays the acts in the Blend look with the dice; the parse harness and the instruments are green; a Mode C walk is recorded |
-| **BA-2 — the walls, the guns and the order of battle** | §15.5.4, §15.5.5 | an assault and a bombardment each render a tableau on both roads; the plan is named in Act I and orderable at the attack row |
-| **BA-3 — the crisis** | §15.5.6, §15.5.7 | the council asks, answers and plays on; NP-D1 closed; both rules behind function seams; ONE measure with arms (all seams at HEAD's answer byte-identical on the standing series, then each rule, then the crisis answered each way), reported per seed |
+| **BA-2 — the walls, the guns and the order of battle** | §15.5.4, §15.5.5, and by §15.11 the board and the manoeuvre | an assault and a bombardment each render a tableau on both roads; the plan is named in Act I and orderable at the attack row — **✅ LANDED November 15, 2026 (§15.12)** |
+| **BA-3 — the rounds** (§15.11; it was "the crisis") | §15.5.6 as amended by §15.11, §15.5.7, BA2-X2, BA2-X7 | the council asks, answers and plays on; NP-D1 closed; both rules behind function seams; ONE measure with arms (all seams at HEAD's answer byte-identical on the standing series, then each rule, then the crisis answered each way), reported per seed |
 
 BA-2 and BA-3 each open in Plan Mode with their own slice plan. Three questions go to the user at
 BA-3's head (raised by the design review, November 14): the stroke's price (the plan of record says
@@ -717,7 +717,8 @@ the brief form runs about six seconds and the full form about sixteen to twenty.
 ### 15.9 Left with the user
 
 Blücher's "Vorwärts!" in the 1805 game (not ticked, not built); a riposte council on defence; the
-marshals' own settlement of a hanging day. Open rows are not closed silently: WS-13 ("outnumbered"
+marshals' own settlement of a hanging day (§15.11 rules on these two under the user's delegation:
+neither is built — the riposte is offered as an ordinary order in BA-3). Open rows are not closed silently: WS-13 ("outnumbered"
 read on the two leads) is untouched, and the acts show those beats as the engine reads them.
 
 ### 15.10 LANDING RECORD — BA-1 "the dice and the acts" BUILT November 14, 2026 (authoritative)
@@ -960,3 +961,305 @@ BA-2: the garrison assault's and the bombardment's tableau; the plan of battle n
 orderable at the attack row. BA-3: the crisis, NP-D1, the two rule changes, WS-16, the measure
 with arms (its "seeded dice" arm calls `serve_campaign` on the harness's own world). Nothing of
 those is in the client or the wire today, and no control promises them.
+
+### 15.11 BA-2's gate — the board and the hand (November 14, 2026, authoritative; it amends §15.5–§15.9)
+
+**The user's words (November 14, 2026).** Beside the BA-2 brief: "also evaluate how player agency
+should work in battles i want it to be like watching an inetretsing strtagic battle with flanks and
+movements unfold but the player has abstrtact interactions think black and white how the demi god
+controls the town a cool way to interatc that relfects how battles wrre back then" — then, to the
+model put back to him, "Plan on it". On defence: "make decision yourself do researcxh". Away from
+the Emperor: "make best call". Then: "and we dont ened to use emperor framing the concept is to
+make battles an enaging autobattler with abtract player feedback you are playing the emperor thew
+whole time", and "but they should mvoe in napolenic stile of course keep going". On four corps a
+side: "make best call". The plan was drafted in Plan Mode and approved ("go ahead with plan").
+
+**The concept, as ruled.** The player sets the board; the battle plays itself, moving as armies of
+the period moved; between rounds the table offers abstract commands. BA-2 builds the first two —
+everything the player sets and everything he watches. BA-3 builds the third.
+
+**What was measured for it** (read-only probes; five named seeds, 40 turns each; the France of the
+AI-France harness is played by the courts' own AI, not a person):
+
+| | lodi | marengo | austerlitz | jena | wagram |
+|---|---|---|---|---|---|
+| Every court's field battles / the day hangs | 84 / 45 | 75 / 37 | 58 / 34 | 72 / 36 | 61 / 28 |
+| AI-played France attacks / the day hangs | 40 / 15 | 29 / 12 | 34 / 11 | 25 / 11 | 27 / 9 |
+| …with the Emperor's corps on the field / hangs | 17 / 6 | 10 / 2 | 14 / 4 | 7 / 2 | 9 / 3 |
+| France defends / the day hangs | 13 / 10 | 8 / 4 | 5 / 3 | 9 / 7 | 4 / 3 |
+| A court attacks the Emperor's own stack | 0 | 2 | 0 | 1 | 1 |
+
+The day hangs in 180 of 350 field battles (75 won on points, 71 drawn, 34 lost on points). With
+§15.5.6's "the Emperor stood on the field" gate the hinge would have come up 17 times in five
+campaigns; without it, 58 times — about one attack in three.
+
+**Seven decisions under the delegation (each one line to reverse).**
+
+1. **The hand is in every battle the player fights.** No rule hangs on where the Napoleon piece
+   stands ("you are playing the emperor the whole time"). §15.5.6's presence gate is struck; the
+   rest of §15.5.6 is BA-3's to re-plan as "the rounds" (below).
+2. **On defence** the hand is the board the player left: Act I names his dispositions (built here)
+   and, once the enemy's phase has ended, a defended day that hung offers the riposte as the
+   ordinary attack order at its ordinary price — free where the lead already holds a counter-punch
+   (BA-3). Nothing new resolves inside the enemy's phase. The standing instruction to the Guard is
+   not built: a court attacked the Emperor's own stack 0, 2, 0, 1, 1 times.
+3. **Away from the Emperor**: superseded by decision 1. "Marshals settle a hanging day alone" is
+   not built: a court's marshal already decides a second attack by the AI's own decision tree.
+4. **A round costs what an attack costs** (the answer recommended for BA-3's first head question,
+   the stroke's price; the question stays the user's): priced rounds cannot be cheesed, so the
+   hinge may be offered on any hanging day.
+5. **Session shape.** BA-2 carries the board and the manoeuvre as well as the walls, the guns and
+   the plan (the wall storm and the battery use the same movement verbs, and the table is re-shot
+   once). BA-3 becomes "the rounds". Nothing moves after the deploy.
+6. **Four corps a side: three seats and a reserve.** The layout study (stage 948 × 440, the shipped
+   Text size 115 %) found that a centre and two wings fit for up to three corps a side and that
+   nothing seats a fourth: the table seats three (`MAX_CONTINGENTS_PER_SIDE` 4 → 3, display only),
+   the rest stand in reserve, counted with their dead as the table already did. The seats go to the
+   lead, then the Emperor's corps if it fought, then the largest. The other answer — the wedge to
+   three, the old file at four — would have left the wedge out of exactly the battles played in
+   full; it stays the fallback for a payload that seats four (an old save's).
+7. **The AI crash found in passing** (seed jena: Prussia's turn dies on `KeyError: 'Yorck'`) is
+   filed here (BUG_FIXES §BA2, BA2-X2) and owned by BA-3, whose measure can show what the one-line
+   fix moves.
+
+**What BA-3 becomes — "the rounds"** (its own Plan Mode; the three head questions of §15.7 stay the
+user's, with decision 4 as the answer recommended to the first). A battle the player fights is
+played in rounds. When a day hangs the table stays up and offers, on the pieces themselves, the
+existing orders at their ordinary prices: **Press** (the lead attacks again, with the penalty his
+second attack already carries), **Commit** (a chip per corps an order would still bring — the same
+rows as BA-2's `bring`; the Guard when the Emperor's own corps is at hand, with the two morale
+numbers ruled for NP-D1), **Hold**. The lead answers through the objection road as it stands. After
+the enemy's phase a defended day that hung offers **Riposte** the same way. BA-3 also keeps NP-D1,
+the two rules of §15.5.7, WS-16, the BA2-X2 fix behind its seam, BA2-X7 (the muster's lever
+sentences held to what the order delivers — the Commit chips are those rows), and ONE measure
+with arms. Its
+named test is `tests/test_ba3_the_rounds.py` (it supersedes §15.7's `test_ba3_the_crisis.py`) with
+`tests/test_ws16_the_same_order_draws_the_same_temper.py` as named.
+
+### 15.12 LANDING RECORD — BA-2 "the board, the walls and the guns" BUILT November 14–15, 2026 (authoritative)
+
+**What a player sees.** Each side stands in an order of battle: the lead forward and nearest the
+line, a wing on either hand behind it, the rest in reserve — counted, with their dead, beside their
+side's loss counter. Foot comes on in column and deploys into line; horse comes on at the trot,
+charges home and recoils, and in pursuit sweeps round the beaten corps; guns unlimber forward of
+the line; a corps the battle met in square stands in square; a flank comes in as a column on the
+enemy's wing; field works stand as a bank with its stakes. Act I names the plan the player's orders
+amount to — or, when he is attacked, his dispositions. A garrison assault opens the table: a
+battlemented wall between the garrison and the line, the stormers going in by column with ladders,
+then the wall scarred, broken down under the stormers' colour, or under a white flag. A bombardment
+plays the cannonade alone. At the attack row and on the attack card each corps the muster says will
+not come, or may not, carries a chip for the order the game already has that would bring him.
+
+#### The two tableaux — `backend/game_logic/siege_diorama.py`
+
+- Both build the field battle's payload shape and ride its two keys (`battle_diorama` at the top
+  level, `events[0]["diorama"]`), so the stash, the auto-play, the enemy phase and both links work
+  unchanged; `payload["kind"]` (`assault`, `bombardment`; absent for a field battle) says which
+  table to lay. Every number is an int. Display only: the module assigns to nothing it is handed.
+- **The assault** is built at the three returns of `_resolve_garrison_combat` (a wrap each,
+  `with_assault_tableau`), so every caller is covered — the player's attack, the AI's P4.25, the
+  naval landing. `fate` is `held`, `stormed` or `capitulated`; the garrison is one contingent with
+  no marshal (`garrison: True`). It is `significant` when the player is a party, the wall fell or
+  the engagement is great, and `dramatic` when the wall fell or it is great. This closes the
+  garrison rider of §12.5 (CA8-25).
+- **The bombardment** is attached at every STANDALONE call site of `_execute_bombardment`
+  (`with_bombardment_tableau`: the attack router, two in `meta_executor`, one in
+  `strategic_executor`) and never inside it, nor on the supporting salvo before an assault (that
+  one stays a beat of the battle it prepares). It opens by itself only when the target is destroyed
+  or his works are brought down to nothing.
+- The tableau rides a COPY of the event (`_carry`): `_execute_bombardment` logs the very dict it
+  returns, and a picture written on it would be in the campaign log and the save.
+
+#### The script — every new beat's fog case (decided before it was written; §219.2)
+
+| Beat | Told to |
+|---|---|
+| `plan` — the attack's (the lead; corps ordered in support, one who was ordered and did not come among them; the provinces and the flank's +N; a drilled assault; stance; guns in support) | case 1: the player's own side only |
+| `plan` on defence — "Your dispositions" (heights, field works, the fortress, a square, stance, batteries on overwatch, corps in support); it replaces the `ground` beat it would repeat | case 1 only |
+| the assault's `open`, `walls`, `storm`, `wall_holds` / `wall_falls` / `capitulates`, `province`, `occupy`, `repulsed` | all three cases: what the field showed, and the garrison's figures as the assault's own report prints them |
+| the assault's `drilled`, `ability` | case 1 only: the storming side's own rows |
+| the cannonade's `battery` (who fired on whom, how many fell), `destroyed` | all three cases |
+| the battery's own losses and the province it fired from, `bystander`, `works`, `shaken` | cases 1 and 2; never a watcher |
+
+A watcher's payload keeps to his script: no works figures, no province fired from, the plain
+banner, and levelled works open nothing. No plan beat is told for a bare one-corps attack. A
+cannonade is told whole (`form` `full`).
+
+#### The plan, orderable — `backend/commands/order_quotes.py`
+
+`bring_quotes` walks the muster ladder as the muster's own odds do and returns, for each corps of
+ours in the battle's province or beside it that will not come for a reason an order answers
+(`literal_awaits_orders`, `eyes_on_a_crown`, `holding_position`) or whose odds an order lifts by 15
+points (the muster's own bar for naming the lever), the EXISTING `support_quote` — its command and
+its price — with the reason, or the odds before and after. Pure (it never stages the muster, which
+would spend the one-time muster hint); `[]` for a lead that is not the player's. Every attack quote
+carries the rows as `bring`. No new order, no new modifier, no new lever constant.
+
+**It promises only what the order delivers.** A SUPPORT order marches the corps toward the lead at
+once, so the odds "under a written order" are read from where that first march leaves him
+(`_stop_this_turn`: the quote's own road as far as he ranges, short of a corps we see on it;
+`_odds_under_the_order`: the muster's roll from there, on a copy of the corps), and a row is
+offered only when he will still stand on the field or beside it with odds above nothing. On the
+campaign's opening board that takes Bernadotte out: the ladder gives him 47 % from Franconia, the
+order marches him to Munich, and from its mountains he cannot reach the field. The test holds the
+offer to the game itself — each candidate's order is sent on a fresh board and the muster read
+after it: offered if and only if it brings him.
+
+**An order that asks is not an order that brings** (`_first_step_asks`). Where a corps we see
+stands in the road's FIRST province (and that province is not the friend's own), the order's first
+step is no march: the aggressive man fights at once if the numbers favour him, every other asks.
+On the opening board that is Murat, whose road to Ney runs through Mack — the order stops him on
+"Mack blocks the path at Swabia. Odds unfavorable. Your orders?" (the client's MURAT REPORTS), and
+of its four answers one keeps the order (Go Around), one sends him in alone (Commit the Attack) and
+two abandon it with the action spent (Hold Position, Cancel Order). No row. The first oracle read
+the muster with the question still standing and passed him; pressing the chip in the real client
+(`tools/ba2_mode_c_walk.py`) found it. Murat keeps a row for Lannes, beside whom he stands (no road
+to walk). For every corps that could lead on Mack, not Ney alone, each offered order is sent on a
+fresh board (eight on the staged opening board): the order is his — at once, or after an objection
+his chip said was possible ("he may object") is insisted on — no question is raised, nothing is
+fought, and the lead's muster counts him as ordered. What the order MEETS on the road still rides
+a row (`contact`: "Mack blocks the road at Swabia — Soult goes round him by Lorraine, to the letter
+of the order"; a march that "halts before him this turn") and is said on the chip.
+
+#### The table — `scripts/battle_acts.gd` (the host's pinned bodies untouched; its hooks still four)
+
+- **Three seats and a reserve** (§15.11 decision 6): `MAX_CONTINGENTS_PER_SIDE` 4 → 3; seats to
+  the lead, then the Emperor's corps if it fought, then the largest. `_relay` lays the wedge before
+  a corps' home is read (the lead 330, 342; the near wing 128, 380; the far wing 128, 182; the
+  right side mirrored); `_wedge_is_clear` measures the live boxes and `_unrelay` puts the host's
+  file back when a pair of lines is closer than 3 px (Text size 120 % and over); a duel of one
+  corps a side and an old payload that seats four keep the file.
+- **The reserve's note** stands beside its side's loss counter: the count on one line, its dead on
+  a second, held back until the gavel as every mark laid from the result is (BA1-X6).
+- **The verbs**, each keyed on data the payload already carries and none adding a beat or a second:
+  column into line, the trot / charge / recoil, the pursuit's sweep, guns unlimbered, the last hour
+  at the double, the flank as a column round the enemy lead's outer end, the wings a short step
+  forward with the lead.
+- **The ground**: `SiegeWall` (whole until the crisis; then held, stormed or capitulated), `Rampart`
+  (field works at three pixels a percent, read off the beats alone, so a watcher who is told of
+  none sees none), `SquareMark` and `_form_square` (the stands re-formed as a wargamer lays a
+  square, in the host's own drawing order).
+- **The chips and the links**: `region_panel.gd` (a marshal's own row; the ATTACK rows, behind one
+  fold when several corps could lead), `order_confirm_card.gd` (the chip whole, the reason beside
+  it; `bring_requested`), `main.gd` (`_on_order_card_bring`; the terminal's "⚔ View the field" for
+  an assault and a cannonade), `enemy_phase_dialog.gd` (`_field_link` on three rows).
+
+#### The finds (BUG_FIXES §BA2)
+
+Seven rows. **Fixed:** BA2-X1 — Berthier's bombardment line is written from behind our guns, and the
+enemy phase printed it for enemy batteries ("Ney's numbers absorb our fire"); he reports the
+Emperor's batteries only, and the line is still picked first so no measured series moves. BA2-X3
+(the session's own, caught by its frames) — a corps of the battery's own side caught under the fire
+was counted in the target side's losses. BA2-X4 (the harness's) — the walk kept end frames with the
+verdict half written. BA2-X5 — the settled frame of a defeat left the victor's standard at home
+where the played end leaves it advanced (older than the acts). **Open:** BA2-X2, BA-3's — a court's
+whole turn is lost to a `KeyError` when a corps beaten to nothing is raised again in the middle of
+its phase (seed jena, Prussia, Yorck; found by the probe above); its one-line fix moves a measured
+world-line and lands behind a seam in BA-3's measure. BA2-X7, BA-3's — Berthier's muster promises
+what the order does not deliver: on the opening battle it says a written order "would likely bring"
+Bernadotte, and the order marches him out of reach; and it names the same order for Murat, whom it
+stops on his question (older than this session; the first cut of the chips repeated both as
+buttons — the first was caught by sending each chip's order, the second by pressing the chips in
+the real client; the chips are honest now, the muster's sentences are filed). BA2-X6, Session H's — a long province's panel opened with its
+fold through a line (fixed: `_window_on_whole_lines`); scrolled, it can still rest on a cut line.
+
+One of the session's own, caught by its named test and fixed before the measure of record: the
+stormers closed up into columns and stood in line again a quarter second later whenever they won —
+the host shudders a line that takes fire and puts each man back where he stood when the shudder
+was scheduled. The column now forms after it (`_close_up`, `AFTER_THE_RECOIL`), and the walk
+claims it at the storm.
+
+#### Left with the user (each one line to change)
+
+- **Three seats and a reserve in every battle**, the great ones included; the fallback (the wedge
+  to three, the old file at four) is one constant and one cap.
+- **A garrison that yields is drawn fallen**, with CAPITULATED under it: the tableau topples every
+  figure of a corps that is no more, and the garrison's men are lost to its crown either way.
+- **A garrison under the collapse line gives way without a fight** (SF7-X31): a march in, not an
+  assault — no tableau.
+- **"Breaks or destroys its target"** is read as "destroys its target or levels his works": guns
+  never break a corps.
+- **The province panel says the order once on the line** ("Bring up to support Ney:") and each chip
+  is the man and the price ("Soult · 1 AP"); the attack card prints the chip whole ("Soult ·
+  support Ney · 1 AP"). §15.5.5's "priced on its face" holds on both.
+- **A chip on the attack card sends the order at once and closes the card** (its muster is no
+  longer true), the lead selected again.
+- **Berthier says nothing of an enemy battery's fire** (BA2-X1): the enemy phase's bombardment
+  report keeps its figures and loses the line that was in the wrong voice.
+- **A chip is offered only when the order brings the man, without a question** — so on the opening
+  battle Ney's attack offers Soult alone: Bernadotte's order would march him out of reach and
+  Murat's would stop him on "Your orders?" (Mack stands on his road), though Berthier's muster
+  still names the order for both (BA2-X7, BA-3's). Murat has a chip for Lannes, beside whom he
+  stands.
+- **Recommended, and a rule, so yours** (BA-3's Commit would use it): a SUPPORT order whose road's
+  first province holds the very corps the friend is to attack should halt at the approach and join
+  the next attack there — the arm the order already has when the foe holds the friend's own
+  province — so that a corps like Murat can be committed by an order at all. Not built.
+
+#### Verification (the final tree, November 15, 2026)
+
+- **Played by hand through the game server** (`/command`, `/march_quotes`, the enemy phase's
+  chokepoint, `/save`) before the long runs: a wall stormed (both transports one payload, no float);
+  a battery fired (a link: `significant` false; nothing of the tableau in the event log or the
+  save); a chip pressed and then the attack (Soult's SUPPORT order taken at 1 action, the muster
+  then names him, Act I reads "The plan: Ney leads; Soult ordered in support"); each chip's order
+  sent on a fresh board and the muster read after it (which is what took Bernadotte's chip away —
+  BA2-X7), then every chip for every corps that could lead on Mack (eight orders on the staged
+  board: each taken, no question raised, nothing fought); an enemy assault on
+  Paris carried through the enemy phase with its tableau on the action and on its event (held: a
+  link; stormed: it seizes the screen).
+- **The plan's loop pressed in the real client** (`tools/ba2_mode_c_walk.py`; record and frames
+  `docs/audits/ba2_mode_c_2026_11_15/`): the real main scene against a sandboxed backend on the
+  opening board — the panel's fold and its "+N more" (Soult offered to six leads, Murat to Lannes
+  alone, Bernadotte to none); the panel's chip pressed (Soult to Ney: 4 → 3 actions, no question);
+  a chip pressed on Lannes's attack card (Murat: the card shut at once, 3 → 2 actions, Lannes
+  selected again, his next card counts Murat and offers him no chip); Ney's card (Soult in the
+  muster, no chip left); the attack sent; Act I reads "The plan: Ney leads; Soult ordered in
+  support." 9 of 9 steps hold, 10 frames kept, 0 script errors. Its FIRST run is what found Murat's question (BA2-X7's second half): his
+  chip for Ney raised MURAT REPORTS, and the walk could go no further.
+- **BA-2 moves no number.** The keyed world probe — every top-level key of `world.to_dict()` hashed after each turn, `PYTHONHASHSEED=0`, a notification's fresh uuid masked — on seeds jena and marengo, 30 ambient turns of the 1805 campaign, 212 keys a turn: the final backend reads identical to HEAD `74d9d139`, turn for turn and key for key, on both (jena's one lost court's turn, BA2-X2, stands in both).
+- **What the plan's rows cost.** The province panel's one request at Swabia on the opening board —
+  the busiest there is: eight corps quoted the attack, seven rows of the plan — takes 31.3 ms at HEAD `74d9d139` and 38.4 ms on the final tree
+  (best of 15, in process).
+- **The walk of record** (`docs/audits/ba1_client/walk_record.json`; windowed, at the scenes' own
+  speed): 22 engagements fought on the 1805 board through the real attack road, and BA-1's
+  own four-a-side payload kept as it was staged — 55 shots, 0 script errors, every claim
+  holds; 33 frames kept (`BA1_01` … `BA1_33`). The claims this session added: a wall
+  opens whole and ends as the assault left it, as the settled frame has it, no stormer in its
+  stone, no ladder against a wall that held; a garrison shows no portrait and no standard; a
+  cannonade names the cannonade alone and throws no dice; field works stand at the strength the
+  battle met them with and end where its report says; two or three corps a side lay the wedge —
+  the lead nearest the centre line, the wings on their own hands, the two sides mirrored — and
+  anything else keeps the file; no line of a corps stands on another corps' men; a corps comes on
+  in column and ends in line; a corps told in square stands in square from the first frame; at
+  the storm the wall is still whole, the ladders are up and the stormers are closed up in column;
+  every standard stands at the end where the settled frame has it; the reserve's dead are not on
+  the table when the acts open. **Each was watched failing with its fix switched off**
+  (`tools/ba2_switch_off.py`, ten cases — the four read in a showing's first instant at the
+  scene's own speed): ten of ten caught. (The walk ran before the chips' rule was tightened for
+  Murat; that change is in `order_quotes.py` and the tests, none of them a source the walk
+  fingerprints. The captures, the instruments, the kept frames and the live-client walk were all
+  shot after it.)
+- **The instruments** (`docs/audits/uxr0/{readability,contrast}_ba2_walls_guns_2026_11_15.json`,
+  `docs/audits/uxr3/{fit,frame_census}_ba2_walls_guns_2026_11_15.json`): 25 surfaces —
+  the six standing tableau states and BA-1's seven (all re-shot on three seats), eight new settled
+  states, the storm mid-act, the province panel with the plan's fold shut and open, and the attack
+  card — at the five physical sizes with the Interface Scale each derives: readability 2,855
+  rows, RED 0, P1 0; contrast 2,855 measured, 0 under the floor; fit 25 of 25 at
+  1920×1080, 3840×2160 and 5120×1440; the frame census 125 frames, no cut line (it
+  read one on the province panel at 5120×1440 — BA2-X6 — before the fold was set), no grip or tick
+  overlap, the verdict's room 9.6 px at the least.
+- **The parse harness:** 98 scripts and 17 scenes, no error.
+- **Tests:** the session's five files in the engine (`tests/test_ba2_the_walls_and_the_guns.py`, `tests/test_ba2_backend_walls_guns_plan.py`, `tests/test_ba1_the_battle_in_acts.py`, `tests/test_battle_script.py`, `tests/test_battle_diorama.py`): 226 passed, 5 xfailed — the strict pins of the five open rows (BA2-X2, BA2-X6, BA2-X7, BA1-X4, BA1-X8). The 230 test files that read the changed surfaces, run before the chips' rule was tightened for Murat: 14,206 passed, 3 skipped, 12 xfailed.
+- **The full suite on the final tree:** 40,961 passed, 27 skipped, 20 xfailed, 0 failed (four workers under `--dist loadgroup`, 17:29 — the hook's ten workers want more memory than was free beside the user's open applications; the hook itself runs at the commit).
+- **Not measured here:** the readers' blind marks (a battle in acts is motion; the user's own look
+  is the reading), and Text size 150 % and over (BA1-X4, open for Session H: at those sizes the
+  wedge gives way to the file by `_wedge_is_clear`, and the file's own lines run together as
+  before).
+
+#### Owned by the session after this one
+
+BA-3 "the rounds" (§15.11): the table's commands between rounds (Press, Commit, Hold; Riposte after
+the enemy's phase), NP-D1, the two rules of §15.5.7, WS-16, BA2-X2 behind its seam, BA2-X7, ONE
+measure with arms. Nothing of those is in the client or the wire today, and no control promises them: the
+chips BA-2 added are the SUPPORT order the game already had.

@@ -1,0 +1,188 @@
+{
+ "battle_name": "Battle of Franconia",
+ "region": "Franconia",
+ "turn": 1,
+ "outcome": "stalemate",
+ "victor": null,
+ "attacker_nation": "Austria",
+ "defender_nation": "France",
+ "player_side": "defender",
+ "register": "grim",
+ "significant": true,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 52000,
+    "casualties": 2738,
+    "remaining": 49262,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 2738,
+  "committed_total": 52000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Bernadotte",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 17000,
+    "casualties": 3435,
+    "remaining": 13565,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3435,
+  "committed_total": 17000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "observation": "Our fortifications have sustained damage in the fighting. The walls will not hold forever, Your Majesty.",
+ "enemy_voice": "Mack: \"You see? The position was sound. It is always sound.\"",
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack attacks Bernadotte at Franconia.",
+      "weight": "detail"
+     },
+     {
+      "kind": "plan",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Your dispositions: Bernadotte holds behind field works (+16%); a defensive posture (+15%).",
+      "weight": "head",
+      "supports": [],
+      "came": 0,
+      "terrain_pct": 0,
+      "works_pct": 16,
+      "walls_pct": 0,
+      "square": false,
+      "stance": "defensive",
+      "stance_pct": 15,
+      "overwatch": 0
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack advances to his mark, as ordered, and no further.",
+      "weight": "head",
+      "temper": "literal",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte holds his ground and lets them come (+5%).",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 5,
+      "penalty": false
+     },
+     {
+      "kind": "outnumbered",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte stands firm against numbers (+10%).",
+      "weight": "detail",
+      "pct": 10,
+      "penalty": false
+     },
+     {
+      "kind": "stance",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte stands on the defensive (+15%).",
+      "weight": "detail",
+      "pct": 15,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "The fortune of the day: Mack rolls 5: 5.",
+      "weight": "head",
+      "natural": 5,
+      "skill": 0,
+      "flank": 0,
+      "modified": 5,
+      "critical": "",
+      "swing": -2,
+      "fortune_attacker": -5,
+      "fortune_defender": 0
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "works",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte's works are battered: 16% to 11%.",
+      "weight": "detail",
+      "old": 16,
+      "new": 11
+     },
+     {
+      "kind": "counter_punch",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte has held, and a free blow is his.",
+      "weight": "detail"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Mack": "literal",
+   "Bernadotte": "cautious"
+  }
+ }
+}

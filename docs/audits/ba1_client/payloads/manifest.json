@@ -2,11 +2,12 @@
  "ulm_full": {
   "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
   "ambient_seed": 1,
-  "shows": "a great battle won: 3 corps march to the guns, Soult awaits orders, the Emperor in person, the enemy's line broken",
+  "shows": "a great battle won: 2 corps march to the guns as the wings, 3 more in reserve, Soult awaits orders, the enemy's line broken",
+  "kind": "battle",
   "form": "full",
   "register": "triumph",
   "beats": {
-   "approach": 6,
+   "approach": 5,
    "assault": 3,
    "crisis": 2,
    "pursuit": 2
@@ -16,10 +17,11 @@
   "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
   "ambient_seed": 8,
   "shows": "Mack is taken on the field.",
+  "kind": "battle",
   "form": "full",
   "register": "triumph",
   "beats": {
-   "approach": 6,
+   "approach": 5,
    "assault": 3,
    "crisis": 2,
    "pursuit": 1
@@ -27,21 +29,9 @@
  },
  "last_hour": {
   "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
-  "ambient_seed": 8,
-  "shows": "Murat comes up at the last hour (56 against a bar of 55)",
-  "form": "full",
-  "register": "triumph",
-  "beats": {
-   "approach": 6,
-   "assault": 3,
-   "crisis": 2,
-   "pursuit": 1
-  }
- },
- "the_flank": {
-  "staging": "Two attacks on Swabia in one turn: Lannes goes in first from Franche-Comte, then Ney from the Rhineland: the second comes in on a flank.",
-  "ambient_seed": 15,
-  "shows": "The attack comes in from 2 provinces (Franche-Comte, Rhineland): +1 on the dice.",
+  "ambient_seed": 154,
+  "shows": "Murat comes up at the last hour (58 against a bar of 55)",
+  "kind": "battle",
   "form": "full",
   "register": "triumph",
   "beats": {
@@ -51,10 +41,25 @@
    "pursuit": 1
   }
  },
+ "the_flank": {
+  "staging": "Two attacks on Swabia in one turn: Lannes goes in first from Franche-Comte, then Ney from the Rhineland: the second comes in on a flank.",
+  "ambient_seed": 15,
+  "shows": "The attack comes in from 2 provinces (Franche-Comte, Rhineland): +1 on the dice.",
+  "kind": "battle",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 5,
+   "assault": 3,
+   "crisis": 2,
+   "pursuit": 1
+  }
+ },
  "ordinary_brief": {
   "staging": "Lannes alone against the Archduke John in the Tyrol; nobody near.",
   "ambient_seed": 0,
   "shows": "an ordinary exchange (defender_tactical_victory): the brief form",
+  "kind": "battle",
   "form": "brief",
   "register": "defeat",
   "beats": {
@@ -67,6 +72,7 @@
   "staging": "The enemy's turn: Mack falls on Bernadotte in Franconia, the Archduke John in the Tyrol beside it.",
   "ambient_seed": 0,
   "shows": "a defeat on the defence: the player's line on the left, beaten",
+  "kind": "battle",
   "form": "brief",
   "register": "defeat",
   "beats": {
@@ -80,6 +86,7 @@
   "staging": "Two courts' war in full sight: Kutuzov against Hohenlohe in Silesia.",
   "ambient_seed": 0,
   "shows": "another court's battle, seen in full: the observer's register",
+  "kind": "battle",
   "form": "brief",
   "register": "observer",
   "beats": {
@@ -92,6 +99,7 @@
   "staging": "Davout against the Archduke John in the mountains, nobody near.",
   "ambient_seed": 0,
   "shows": "neither line gives way: the day hangs",
+  "kind": "battle",
   "form": "brief",
   "register": "grim",
   "beats": {
@@ -104,6 +112,7 @@
   "staging": "Marmont's guns, commissioned and ordered to support Ney, fire first.",
   "ambient_seed": 0,
   "shows": "a supporting battery fires before the assault",
+  "kind": "battle",
   "form": "full",
   "register": "triumph",
   "beats": {
@@ -118,6 +127,7 @@
   "staging": "Davout, from Munich, attacks Kutuzov in the Tyrol; Buxhowden stands in Bohemia beside the field, ordered to support Kutuzov: the enemy's corps comes up unseen. (An Austrian corps cannot be staged for this: the court's doctrine holds the Archduke John's best march, 67, under his bar of 70 — the Hofkriegsrat's slowness is the game's, not the tool's.)",
   "ambient_seed": 9,
   "shows": "Buxhowden comes up unseen and is turned up on arrival",
+  "kind": "battle",
   "form": "full",
   "register": "defeat",
   "beats": {
@@ -126,17 +136,162 @@
    "crisis": 2
   }
  },
- "four_a_side": {
+ "the_reserve": {
   "staging": "Ulm with the whole Austrian army in Swabia: the Archdukes John and Charles beside Mack, and Schwarzenberg and Hiller commissioned from the pool. Four corps a side on the table, the French reserve behind: the deepest line the table seats.",
   "ambient_seed": 0,
-  "shows": "four corps a side on the table, 2 and 0 more in reserve (attacker_tactical_victory)",
+  "shows": "three corps a side on the table, 3 and 1 more in reserve (attacker_tactical_victory)",
+  "kind": "battle",
   "form": "full",
   "register": "triumph",
   "beats": {
-   "approach": 6,
+   "approach": 5,
    "assault": 3,
    "crisis": 2,
    "pursuit": 1
+  }
+ },
+ "two_a_side": {
+  "staging": "Davout and Lannes against Kutuzov and Buxhowden in the Tyrol: two corps a side — a lead and one wing each.",
+  "ambient_seed": 0,
+  "shows": "two corps a side: a lead and a wing each (defender_tactical_victory)",
+  "kind": "battle",
+  "form": "full",
+  "register": "defeat",
+  "beats": {
+   "approach": 3,
+   "assault": 2,
+   "crisis": 2,
+   "pursuit": 1
+  }
+ },
+ "our_dispositions": {
+  "staging": "The enemy's turn: Mack falls on Bernadotte in Franconia, who stands behind field works on the defensive.",
+  "ambient_seed": 0,
+  "shows": "Your dispositions: Bernadotte holds behind field works (+16%); a defensive posture (+15%).",
+  "kind": "battle",
+  "form": "brief",
+  "register": "grim",
+  "beats": {
+   "approach": 2,
+   "assault": 4,
+   "crisis": 2,
+   "pursuit": 2
+  }
+ },
+ "square_and_horse": {
+  "staging": "Murat's horse, from Munich, rides at the Archduke John in the Tyrol, who has formed square.",
+  "ambient_seed": 0,
+  "shows": "Archduke John's squares stand against the horse (−40%).",
+  "kind": "battle",
+  "form": "brief",
+  "register": "defeat",
+  "beats": {
+   "approach": 2,
+   "assault": 4,
+   "crisis": 2
+  }
+ },
+ "assault_held": {
+  "staging": "Ney, from Bohemia, storms Vienna: the capital's garrison of 25,000 and no corps in it.",
+  "ambient_seed": 0,
+  "shows": "a garrison assault: the wall held (THE ASSAULT FAILS)",
+  "kind": "assault",
+  "form": "brief",
+  "register": "defeat",
+  "beats": {
+   "approach": 2,
+   "assault": 1,
+   "crisis": 1,
+   "pursuit": 1
+  }
+ },
+ "assault_stormed": {
+  "staging": "Vienna held by 6,000: the assault carries the wall and the city falls.",
+  "ambient_seed": 0,
+  "shows": "a garrison assault: the wall stormed (THE WALLS ARE CARRIED)",
+  "kind": "assault",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 2,
+   "assault": 1,
+   "crisis": 1,
+   "pursuit": 1
+  }
+ },
+ "assault_occupied": {
+  "staging": "Vienna held by 6,000 under a fortress: the wall is carried and the occupation begins.",
+  "ambient_seed": 0,
+  "shows": "a garrison assault: the wall stormed (THE WALLS ARE CARRIED)",
+  "kind": "assault",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 2,
+   "assault": 1,
+   "crisis": 1,
+   "pursuit": 1
+  }
+ },
+ "assault_capitulated": {
+  "staging": "A detachment of 3,000 in Vienna, assaulted at more than four to one: it lays down its arms.",
+  "ambient_seed": 0,
+  "shows": "a garrison assault: the wall capitulated (THE GARRISON CAPITULATES)",
+  "kind": "assault",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 2,
+   "assault": 1,
+   "crisis": 1,
+   "pursuit": 1
+  }
+ },
+ "assault_on_ours": {
+  "staging": "The enemy's turn: Mack, from Artois, storms Paris — our own garrison.",
+  "ambient_seed": 0,
+  "shows": "the enemy storms our garrison: THE WALLS HOLD",
+  "kind": "assault",
+  "form": "brief",
+  "register": "triumph",
+  "beats": {
+   "approach": 2,
+   "assault": 1,
+   "crisis": 1,
+   "pursuit": 1
+  }
+ },
+ "bombard_link": {
+  "staging": "Marmont's guns, in the Rhineland, bombard Mack in Swabia: the cannonade alone.",
+  "ambient_seed": 0,
+  "shows": "a bombardment: a link by default, the cannonade alone",
+  "kind": "bombardment",
+  "form": "full",
+  "register": "grim",
+  "beats": {
+   "cannonade": 2
+  }
+ },
+ "bombard_levels": {
+  "staging": "Mack behind light field works: one salvo brings them down to nothing.",
+  "ambient_seed": 0,
+  "shows": "a bombardment that levels the works: it opens by itself",
+  "kind": "bombardment",
+  "form": "full",
+  "register": "grim",
+  "beats": {
+   "cannonade": 3
+  }
+ },
+ "bombard_ours": {
+  "staging": "Lannes stands in Swabia with Mack as Marmont's guns open on him: our own corps is caught under our own fire.",
+  "ambient_seed": 2,
+  "shows": "Our own Lannes, standing by, is caught under the guns: 636 fall.",
+  "kind": "bombardment",
+  "form": "full",
+  "register": "grim",
+  "beats": {
+   "cannonade": 3
   }
  }
 }

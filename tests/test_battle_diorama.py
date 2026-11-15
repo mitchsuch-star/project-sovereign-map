@@ -241,7 +241,10 @@ class TestContingentCap:
             atk_participants=[lead] + extras)
         side = payload["attacker"]
         assert len(side["contingents"]) == MAX_CONTINGENTS_PER_SIDE
-        assert side["reserve_count"] == 2
+        # BA-2 (the user's "make best call", November 14, 2026): THREE seats —
+        # a centre and two wings — and the rest stand in reserve.
+        assert MAX_CONTINGENTS_PER_SIDE == 3
+        assert side["reserve_count"] == 6 - MAX_CONTINGENTS_PER_SIDE
         # The lead is never capped out.
         assert side["contingents"][0]["name"] == "Ney"
         # Totals still count EVERY corps, shown or reserved.

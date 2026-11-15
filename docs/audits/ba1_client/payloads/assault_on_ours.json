@@ -1,0 +1,134 @@
+{
+ "kind": "assault",
+ "fate": "held",
+ "battle_name": "Assault on Paris",
+ "region": "Paris",
+ "turn": 1,
+ "outcome": "defender_victory",
+ "victor": "Paris garrison",
+ "attacker_nation": "Austria",
+ "defender_nation": "France",
+ "player_side": "defender",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 52000,
+    "casualties": 6250,
+    "remaining": 45750,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 6250,
+  "committed_total": 52000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Paris garrison",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 25000,
+    "casualties": 12500,
+    "remaining": 12500,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "garrison": true
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 12500,
+  "committed_total": 25000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "observation": "The walls of Paris stand. 12,500 defenders remain behind them.",
+ "banner": "THE WALLS HOLD",
+ "fortified": false,
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack comes up before the walls of Paris.",
+      "weight": "detail"
+     },
+     {
+      "kind": "walls",
+      "side": "defender",
+      "actor": "Paris garrison",
+      "text": "The garrison of Paris mans its walls: 25,000 men.",
+      "weight": "head",
+      "men": 25000,
+      "fortified": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "storm",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack's columns go in against the walls with ladders.",
+      "weight": "head",
+      "temper": "literal"
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "wall_holds",
+      "side": "defender",
+      "actor": "Paris garrison",
+      "text": "The walls of Paris hold: 12,500 defenders remain.",
+      "weight": "head",
+      "remaining": 12500,
+      "lost": 12500
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "repulsed",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack draws off from the walls, 6,250 men the fewer.",
+      "weight": "detail",
+      "lost": 6250
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Mack": "literal",
+   "Paris garrison": "steady"
+  }
+ }
+}

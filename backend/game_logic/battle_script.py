@@ -207,6 +207,115 @@ class _Script:
         self.acts[act].append(beat)
 
 
+def _listed(names) -> str:
+    """"Davout", "Davout and Lannes", "Davout, Lannes and Murat"."""
+    shown = [_n(n) for n in names if n]
+    if len(shown) <= 1:
+        return "".join(shown)
+    return ", ".join(shown[:-1]) + " and " + shown[-1]
+
+
+def _posture(stance: Optional[dict]) -> str:
+    return "aggressive" if str((stance or {}).get("label", "")).startswith("Aggressive") \
+        else "defensive"
+
+
+def _plan(script: _Script, attacker, defender, battle_result: dict,
+          reinforcements: Dict[str, list], facts: dict,
+          player_side: Optional[str]) -> bool:
+    """§15.5.5 (BA-2): Act I names the plan the player's orders amount to —
+    the orders the game already has, each with its number, and nothing else.
+
+    Fog case 1 only: a side's orders are its own to read, so the beat is
+    written for the player's side and never for the other. No beat where
+    there is no order to name — a bare one-corps attack has no plan, and
+    ground the map gave (the heights, the river) is no order of his.
+
+    Returns True when the player's DEFENSIVE dispositions were told, so the
+    `ground` beat that would say the same works twice is left out."""
+    if player_side not in ("attacker", "defender"):
+        return False
+    lead = attacker if player_side == "attacker" else defender
+    rows = _rows(battle_result, player_side)
+    mine = [r for r in (reinforcements.get(player_side) or [])
+            if isinstance(r, dict) and r.get("marshal")
+            and (r.get("has_explicit_order") or r.get("arrived_via_support"))]
+    ordered = [str(r.get("marshal")) for r in mine]
+    came = sum(1 for r in mine if r.get("arrived"))
+    stance = _row(rows, "Aggressive stance") or _row(rows, "Defensive stance")
+    posture = _posture(stance) if stance else ""
+    support = f"{_listed(ordered)} ordered in support" if ordered else ""
+
+    if player_side == "attacker":
+        bonus = _i(facts.get("flanking_bonus"))
+        origins = sorted(str(o) for o in (facts.get("flanking_origins") or []) if o)
+        drilled = _row(rows, "Drill training")
+        guns: List[str] = []
+        for result in facts.get("auto_bombardment_results") or []:
+            br = (result or {}).get("bombardment_result") if isinstance(result, dict) else None
+            gunner = str(((br or {}).get("attacker") or {}).get("name", "") or "")
+            if gunner and gunner not in guns:
+                guns.append(gunner)
+        clauses = [support] if support else []
+        if bonus > 0:
+            clauses.append(
+                f"the attack from {len(origins)} provinces (+{bonus} on the dice)"
+                if len(origins) >= 2 else f"the flank turned (+{bonus} on the dice)")
+        if drilled:
+            clauses.append(f"a drilled assault ({_signed(drilled)})")
+        if stance:
+            clauses.append(f"{'an' if posture == 'aggressive' else 'a'} {posture} posture "
+                           f"({_signed(stance)})")
+        if guns:
+            clauses.append(f"{_listed(guns)}'s guns in support")
+        if not clauses:
+            return False
+        script.add("approach", _beat(
+            "plan", "attacker", lead.name,
+            f"The plan: {_n(lead.name)} leads; " + "; ".join(clauses) + ".",
+            weight="head", supports=ordered, came=came, flank=bonus, origins=origins,
+            drilled=_i((drilled or {}).get("value")), stance=posture,
+            stance_pct=_i((stance or {}).get("value")), guns=guns))
+        return False
+
+    terrain = _row(rows, "Terrain (")
+    works = _row(rows, "Fortified position")
+    walls = _row(rows, "Fortification building")
+    square = _row(rows, "Square formation")
+    count = _i(facts.get("overwatch_count"))
+    overwatch = _row(_rows(battle_result, "attacker"), "Artillery overwatch") if count > 0 else None
+    if not (works or walls or square or overwatch or stance or support):
+        return False
+    stands = []
+    if terrain:
+        ground = str(terrain.get("label", ""))[len("Terrain ("):].rstrip(")").lower()
+        stands.append(f"{_GROUND.get(ground, f'on {ground} ground')} ({_signed(terrain)})")
+    if works:
+        stands.append(f"behind field works ({_signed(works)})")
+    if walls:
+        stands.append(f"under the fortress ({_signed(walls)})")
+    if square:
+        stands.append("formed in square")
+    clauses = [f"{_n(lead.name)} holds" + (" " + ", ".join(stands) if stands else "")]
+    if stance:
+        clauses.append(f"{'an' if posture == 'aggressive' else 'a'} {posture} posture "
+                       f"({_signed(stance)})")
+    if overwatch:
+        clauses.append(f"{count} batter{'ies' if count != 1 else 'y'} covering the approach "
+                       f"({_signed(overwatch)} on every attacker)")
+    if support:
+        clauses.append(support)
+    script.add("approach", _beat(
+        "plan", "defender", lead.name,
+        "Your dispositions: " + "; ".join(clauses) + ".",
+        weight="head", supports=ordered, came=came,
+        terrain_pct=_i((terrain or {}).get("value")),
+        works_pct=_i((works or {}).get("value")),
+        walls_pct=_i((walls or {}).get("value")), square=bool(square),
+        stance=posture, stance_pct=_i((stance or {}).get("value")), overwatch=count))
+    return True
+
+
 def _approach(script: _Script, payload: dict, attacker, defender,
               battle_result: dict, reinforcements: Dict[str, list],
               facts: dict, player_side: Optional[str]) -> None:
@@ -215,6 +324,9 @@ def _approach(script: _Script, payload: dict, attacker, defender,
         "open", "attacker", attacker.name,
         f"{_n(attacker.name)} attacks {_n(defender.name)} at {region}."),
         named=(defender.name,))
+    # BA-2 (§15.5.5): the plan the player's orders amount to, named first.
+    dispositions_told = _plan(script, attacker, defender, battle_result,
+                              reinforcements, facts, player_side)
 
     for side in ("attacker", "defender"):
         lead = attacker if side == "attacker" else defender
@@ -302,7 +414,9 @@ def _approach(script: _Script, payload: dict, attacker, defender,
         clauses.append(f"under the fortress ({_signed(walls)})")
     if square:
         clauses.append("formed in square")
-    if clauses:
+    # (his own dispositions were told by the plan: the same works are not
+    # told twice)
+    if clauses and not dispositions_told:
         script.add("approach", _beat(
             "ground", "defender", defender.name,
             f"{_n(defender.name)} stands " + ", ".join(clauses) + ".",
@@ -647,3 +761,178 @@ def build_battle_script(world, payload: dict, attacker, defender,
                  for act in ACTS if script.acts[act]],
         "tempers": tempers,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Row BA, session BA-2 — the walls and the guns (BATTLE_DIORAMA_SPEC §15.5.4)
+#
+# The payloads are `siege_diorama`'s. The fog case of every beat below was
+# decided before it was written (SYSTEMS_REFERENCE §219.2):
+#
+#   the assault     open, walls, storm, wall_holds / wall_falls / capitulates,
+#                   province, occupy, repulsed — ALL THREE cases: who came
+#                   before the walls, what the walls did and whose the
+#                   province is now are what the field showed, and the
+#                   garrison's numbers are the assault's own report (the
+#                   enemy phase prints "N lost, M still under arms").
+#                   drilled, ability — case 1 only: the storming side's own
+#                   rows; the enemy's are never told.
+#   the cannonade   battery, destroyed — all three: who fired on whom, and
+#                   who was destroyed. The battery's own losses, the province
+#                   it fired from, bystander, works and shaken — cases 1 and
+#                   2 (a party's own report prints each of them: "X fires
+#                   from A on Y", "return fire", "Fort degraded", "morale");
+#                   never to a watcher.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _script_out(script: _Script, payload: dict, tempers: Dict[str, str],
+                whole: bool = False) -> dict:
+    full = bool(whole or payload.get("great_battle") or payload.get("dramatic"))
+    return {
+        "version": 1,
+        "form": "full" if full else "brief",
+        "acts": [{"act": act, "beats": script.acts[act]}
+                 for act in ACTS if script.acts[act]],
+        "tempers": tempers,
+    }
+
+
+def build_assault_script(world, payload: dict, marshal,
+                         facts: Optional[dict] = None) -> dict:
+    """The script of one garrison assault: the approach, the storm, what the
+    wall did, and the province. No cannonade and no dice — the exchange at a
+    wall is not rolled (`CombatExecutor.garrison_exchange`)."""
+    facts = facts if isinstance(facts, dict) else {}
+    player_side = payload.get("player_side")
+    region = _n(str(payload.get("region", "") or ""))
+    fate = str(payload.get("fate", "") or "held")
+    garrison = (((payload.get("defender") or {}).get("contingents") or [{}])[0]) or {}
+    walls = str(garrison.get("name", "") or "")
+    name = marshal.name
+    script = _Script({name, walls})
+
+    script.add("approach", _beat(
+        "open", "attacker", name,
+        f"{_n(name)} comes up before the walls of {region}."), named=(walls,))
+    men = _i(garrison.get("committed"))
+    script.add("approach", _beat(
+        "walls", "defender", walls,
+        f"The garrison of {region} mans its walls"
+        f"{', under the fortress' if payload.get('fortified') else ''}: {men:,} men.",
+        weight="head" if player_side == "defender" else "detail",
+        men=men, fortified=bool(payload.get("fortified"))))
+
+    script.add("assault", _beat(
+        "storm", "attacker", name,
+        f"{_n(name)}'s columns go in against the walls with ladders.",
+        weight="head", temper=temper_of(marshal)), named=(walls,))
+    if player_side == "attacker":
+        drilled = _i(facts.get("drilled")) * 10
+        if drilled > 0:
+            script.add("assault", _beat(
+                "drilled", "attacker", name,
+                f"{_n(name)}'s drilled battalions go in as one (+{drilled}%).",
+                weight="head", pct=drilled, penalty=False))
+        iron = _i(facts.get("iron_pct"))
+        if iron > 0:
+            script.add("assault", _beat(
+                "ability", "attacker", name,
+                f"{_n(name)}'s coiled resolve is released: Iron Resolve (+{iron}%).",
+                weight="head", ability="Iron Resolve", pct=iron))
+
+    left = _i(garrison.get("remaining"))
+    if fate == "held":
+        script.add("crisis", _beat(
+            "wall_holds", "defender", walls,
+            f"The walls of {region} hold: {left:,} defenders remain.",
+            weight="head", remaining=left, lost=_i(garrison.get("casualties"))))
+    elif fate == "capitulated":
+        script.add("crisis", _beat(
+            "capitulates", "defender", walls,
+            f"The garrison of {region} lays down its arms.", weight="head"))
+    else:
+        script.add("crisis", _beat(
+            "wall_falls", "defender", walls,
+            f"The walls of {region} are carried: the garrison is overrun.",
+            weight="head"))
+
+    if payload.get("region_conquered"):
+        line = str(payload.get("liberation_line", "") or "")
+        if not line:
+            victor = display_nation(str(payload.get("attacker_nation", "") or ""))
+            line = f"{region} falls to {victor}." if victor else f"{region} changes hands."
+        script.add("pursuit", _beat(
+            "province", "attacker", name, line, weight="head", region=region))
+    elif fate != "held" and payload.get("sub_banner"):
+        script.add("pursuit", _beat(
+            "occupy", "attacker", name, str(payload["sub_banner"]), weight="head",
+            turns=_i(payload.get("siege_turns"))))
+    elif fate == "held":
+        attacker = (((payload.get("attacker") or {}).get("contingents") or [{}])[0]) or {}
+        lost = _i(attacker.get("casualties"))
+        script.add("pursuit", _beat(
+            "repulsed", "attacker", name,
+            f"{_n(name)} draws off from the walls, {lost:,} men the fewer.",
+            lost=lost))
+
+    return _script_out(script, payload, {name: temper_of(marshal), walls: "steady"})
+
+
+def build_bombardment_script(world, payload: dict, battery, target, br: dict) -> dict:
+    """The script of one standalone bombardment: the cannonade alone."""
+    br = br if isinstance(br, dict) else {}
+    player_side = payload.get("player_side")
+    gunner, struck = battery.name, target.name
+    shown = {str(c.get("name", "") or "")
+             for side in ("attacker", "defender")
+             for c in ((payload.get(side) or {}).get("contingents") or [])}
+    script = _Script(shown)
+    dealt = _i((br.get("defender") or {}).get("casualties"))
+    taken = _i((br.get("attacker") or {}).get("casualties"))
+    left = _i((br.get("defender") or {}).get("remaining"))
+    party = bool(player_side)
+
+    at = str(payload.get("battery_at", "") or "")
+    whence = f" from {at}" if party and at and at != str(payload.get("region", "") or "") else ""
+    text = f"{_n(gunner)}'s guns open{whence} on {_n(struck)}: {dealt:,} fall."
+    if party and taken > 0:
+        text += f" The answering fire costs the battery {taken:,}."
+    script.add("cannonade", _beat(
+        "battery", "attacker", gunner, text, weight="head",
+        dealt=dealt, target=struck, **({"taken": taken} if party else {})),
+        named=(struck,))
+
+    if party:
+        for c in (payload.get("defender") or {}).get("contingents") or []:
+            if not c.get("bystander"):
+                continue
+            other, lost = str(c.get("name", "") or ""), _i(c.get("casualties"))
+            ours = bool(c.get("friendly_fire")) and player_side == "attacker"
+            script.add("cannonade", _beat(
+                "bystander", "defender", other,
+                (f"Our own {_n(other)}, standing by, is caught under the guns: {lost:,} fall."
+                 if ours else
+                 f"{_n(other)}'s corps, standing by, is caught in the fire: {lost:,} fall."),
+                weight="head" if ours else "detail", lost=lost, ours=ours))
+        if br.get("fort_degraded"):
+            old, new = _i(br.get("fort_old")), _i(br.get("fort_new"))
+            script.add("cannonade", _beat(
+                "works", "defender", struck,
+                (f"{_n(struck)}'s works are levelled." if new <= 0 else
+                 f"{_n(struck)}'s works come down from {old}% to {new}%."),
+                weight="head", old=old, new=new))
+    if left <= 0:
+        script.add("cannonade", _beat(
+            "destroyed", "defender", struck,
+            f"{_n(struck)}'s corps is destroyed under the guns.", weight="head"))
+    elif party:
+        morale = _i((br.get("defender") or {}).get("morale"))
+        script.add("cannonade", _beat(
+            "shaken", "defender", struck,
+            f"{_n(struck)}'s line stands under the fire at {morale}% morale.",
+            morale=morale))
+
+    # A cannonade is ONE act of a few beats: it is told whole. The brief form
+    # keeps one head beat an act, which here would leave out the works coming
+    # down and our own corps caught under our own guns.
+    return _script_out(script, payload, {n: "steady" for n in shown if n}, whole=True)

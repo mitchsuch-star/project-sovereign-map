@@ -29,30 +29,6 @@
     "after_advance": 21687
    },
    {
-    "name": "Davout",
-    "nation": "France",
-    "arm": "infantry",
-    "committed": 26000,
-    "casualties": 1302,
-    "remaining": 24698,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Lannes",
-    "nation": "France",
-    "arm": "infantry",
-    "committed": 18000,
-    "casualties": 1127,
-    "remaining": 16873,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
     "name": "Napoleon",
     "nation": "France",
     "arm": "emperor",
@@ -63,6 +39,18 @@
     "lead": false,
     "crowned": false,
     "sovereign": true
+   },
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 26000,
+    "casualties": 1302,
+    "remaining": 24698,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
    },
    {
     "name": "Soult",
@@ -78,10 +66,10 @@
     "absence_reason": "awaits explicit orders"
    }
   ],
-  "reserve_count": 2,
+  "reserve_count": 3,
   "casualties_total": 4936,
   "committed_total": 78000,
-  "reserve_casualties": 0,
+  "reserve_casualties": 1127,
   "nation": "France"
  },
  "defender": {
@@ -132,20 +120,6 @@
       "bar": 55,
       "margin": 21,
       "origin": "Rhineland",
-      "ordered": false,
-      "concealed": false
-     },
-     {
-      "kind": "arrive",
-      "side": "attacker",
-      "actor": "Lannes",
-      "text": "Lannes marches from Franche-Comte to the sound of the guns.",
-      "weight": "detail",
-      "late": false,
-      "score": 94,
-      "bar": 55,
-      "margin": 39,
-      "origin": "Franche-Comte",
       "ordered": false,
       "concealed": false
      },
@@ -270,9 +244,8 @@
   ],
   "tempers": {
    "Ney": "aggressive",
-   "Davout": "cautious",
-   "Lannes": "aggressive",
    "Napoleon": "sovereign",
+   "Davout": "cautious",
    "Soult": "literal",
    "Mack": "literal"
   }

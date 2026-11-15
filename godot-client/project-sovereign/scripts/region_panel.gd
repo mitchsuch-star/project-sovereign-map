@@ -170,8 +170,30 @@ func _fit_height_in_wing() -> void:
 		header_h = header.size.y
 	var available := maxf(vp_bottom - _WING_BOTTOM - _CLAMP_MARGIN - top - header_h - 24.0, _MIN_CONTENT_H)
 	var content_h := float(content_area.get_content_height()) + 4.0
-	scroll.custom_minimum_size.y = clampf(content_h, 40.0, available)
+	scroll.custom_minimum_size.y = _window_on_whole_lines(content_h, available)
 	panel_container.size = Vector2.ZERO
+
+
+func _window_on_whole_lines(content_h: float, available: float) -> float:
+	"""The scroll window's height: the content's when it fits, else the room
+	there is cut back to the last line that fits WHOLE. BA2-X6 (row BA, BA-2,
+	November 15, 2026): a long province — its march, army and attack rows on a
+	short screen — opened with its fold through the middle of a line (13 px of
+	a row at 5120 × 1440, the frame census). The panel opens at its top, so
+	the fold is set between two lines there."""
+	if content_h <= available:
+		return clampf(content_h, 40.0, available)
+	var frame: StyleBox = content_area.get_theme_stylebox("normal")
+	var top: float = frame.get_margin(SIDE_TOP) if frame != null else 0.0
+	var lines: int = content_area.get_line_count()
+	var fits := 0.0
+	for i in range(lines):
+		var line_end: float = top + (float(content_area.get_line_offset(i + 1)) if i + 1 < lines
+				else content_h)
+		if line_end > available:
+			break
+		fits = line_end
+	return clampf(fits if fits >= 40.0 else available, 40.0, available)
 
 var _region: String = ""
 # WO-V-D1 (Score Finish Step 7 slice 8): the Build rows fold behind one
@@ -187,6 +209,8 @@ var _quotes: Dictionary = {}
 var _quotes_region := ""
 var _march_more := false
 const _MARCH_SHOWN := 5
+# Row BA, BA-2: the ATTACK rows' "Bring up" fold stands open.
+var _bring_open := false
 # Session UI-6: the marshals whose "+N orders" row stands open (name -> true).
 var _orders_open: Dictionary = {}
 # Session UI-6: at the compact view the panel is capped at this share of the
@@ -258,6 +282,7 @@ func show_region(region_name: String, map_node) -> void:
 		_quotes = {}
 		_quotes_region = ""
 		_march_more = false
+		_bring_open = false
 		_orders_open = {}
 	_fit_width()
 	_render()
@@ -336,6 +361,9 @@ func _on_meta_clicked(meta):
 	elif meta_str == "toggle:march_more":
 		_march_more = not _march_more
 		_render()
+	elif meta_str == "toggle:bring":
+		_bring_open = not _bring_open
+		_render_keeping_scroll()
 	elif meta_str.begins_with("toggle:orders:"):
 		# Session UI-6: a marshal's "+N orders" row opens / shuts in place.
 		var who := meta_str.substr("toggle:orders:".length())
@@ -1109,7 +1137,7 @@ func _fit_height() -> void:
 				- _CLAMP_MARGIN - header_h - 24.0
 	available = maxf(available, _MIN_CONTENT_H)
 	var content_h := float(content_area.get_content_height()) + 4.0
-	scroll.custom_minimum_size.y = clampf(content_h, 40.0, available)
+	scroll.custom_minimum_size.y = _window_on_whole_lines(content_h, available)
 	# The PanelContainer keeps yesterday's taller size unless reset — shrink it
 	# back to its minimum so closing a long province and opening a short one
 	# doesn't leave a stretched empty frame.
@@ -1330,6 +1358,9 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	var row = "  "
 	# S14E-X79: Berthier's muster for each Attack chip below, one line apiece.
 	var muster_lines := []
+	# Row BA, BA-2: under them, the order that brings each corps standing by.
+	var bring_lines := []
+	var bring_seen := {}
 	var nation_color = Utils.COLOR_TEXT if m_nation == _PLAYER_NATION else Utils.COLOR_ERROR
 	row += "[color=#" + nation_color + "]" + shown_name + "[/color]"
 	if m_strength > 0:
@@ -1424,6 +1455,7 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 							var chip_alarm := _here_attack_muster(m_name, enemy, "alarm")   # S14G-X165: what a win here adds to Europe's alarm
 							if chip_alarm != "":
 								muster_lines.append("Attack " + enemy_shown + ": " + chip_alarm)
+							bring_lines.append_array(_bring_lines(_here_attack_bring(m_name, enemy), bring_seen))
 						else:
 							dimmed.append(["Attack " + enemy_shown, attack_why])
 				if not fortified and fortify_why != "":
@@ -1446,6 +1478,8 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 			row += _dimmed_chips(dimmed_all)
 	for muster_line in muster_lines:
 		row += "\n    [color=#" + Utils.COLOR_INFO + "]" + str(muster_line) + "[/color]"
+	for bring_line in bring_lines:
+		row += "\n" + str(bring_line)
 	return row + "\n"
 
 
@@ -1499,6 +1533,10 @@ func _marshal_row_folded(m: Dictionary, enemy_names: Array) -> String:
 	var attack_why := str(refusals.get("attack", ""))
 	var context := []
 	var attack_lit := false
+	# Row BA, BA-2: the order that brings each corps standing by, one line of
+	# chips under the verbs (each chip's reason its hover).
+	var bring_lines := []
+	var bring_seen := {}
 	if not grounded:
 		for i in range(mini(enemy_names.size(), 2)):
 			var enemy := str(enemy_names[i])
@@ -1506,6 +1544,7 @@ func _marshal_row_folded(m: Dictionary, enemy_names: Array) -> String:
 				continue
 			var enemy_shown := Utils.humanize_entity_name(enemy)
 			if attack_why == "":
+				bring_lines.append_array(_bring_lines(_here_attack_bring(m_name, enemy), bring_seen))
 				var tips := []
 				var chip_muster := _here_attack_muster(m_name, enemy)
 				if chip_muster != "":
@@ -1564,6 +1603,8 @@ func _marshal_row_folded(m: Dictionary, enemy_names: Array) -> String:
 		row += "\n    " + "   ".join(PackedStringArray(verbs_line))
 	if orders_open and not rest.is_empty():
 		row += "\n    " + "   ".join(PackedStringArray(rest))
+	for bring_line in bring_lines:
+		row += "\n" + str(bring_line)
 	return row + "\n"
 
 
@@ -1601,6 +1642,172 @@ func _here_attack_muster(m_name: String, enemy: String, key: String = "muster") 
 			if q is Dictionary and str(q.get("marshal", "")) == m_name and bool(q.get("ok", false)):
 				return str(q.get(key, ""))   # S14G-X165: "alarm" too (the muster's alarm clause)
 	return ""
+
+
+# ── Row BA, BA-2 (November 14, 2026): the plan of battle at the attack row ──
+# An attack quote carries `bring` (`order_quotes.bring_quotes`): for each corps
+# of ours standing by that the muster says will NOT come, or may not, the order
+# the game already has that would bring him — SUPPORT's own quote (its command,
+# its price) with the muster's reason or his odds before and after. A chip
+# sends that typed order down the chip road ("do:"), and the muster then reads
+# him as ordered. No new order and no new number: the panel prints what it is
+# given, and judges nothing.
+const _BRING_LEAD := "Bring up"
+const _BRING_SENTENCE := "the written order that brings him to these guns"
+
+
+func _here_attack_bring(m_name: String, enemy: String) -> Array:
+	"""The `bring` rows of `<m_name>, attack <enemy>` when both stand in this
+	province — off the same `here` quote `_here_attack_muster` reads; [] until
+	the quotes for THIS province have arrived."""
+	if _quotes_region != _region or _quotes.is_empty():
+		return []
+	var rows = _quotes.get("attack", [])
+	if not (rows is Array):
+		return []
+	for row in rows:
+		if not (row is Dictionary) or str(row.get("enemy", "")) != enemy:
+			continue
+		var here = row.get("here", [])
+		if not (here is Array):
+			return []
+		for q in here:
+			if q is Dictionary and str(q.get("marshal", "")) == m_name and bool(q.get("ok", false)):
+				var bring = q.get("bring", [])
+				return bring if bring is Array else []
+	return []
+
+
+func _bring_order(b: Dictionary) -> String:
+	"""The order in its own words: the quote's command after the man's name
+	(`Soult, support Ney` -> `support Ney`)."""
+	var command := str(b.get("command", ""))
+	var cut := command.find(", ")
+	return command.substr(cut + 2) if cut >= 0 else command
+
+
+func _bring_label(b: Dictionary, priced: bool = true, with_order: bool = true) -> String:
+	"""`Soult · support Ney · 1 AP` — the man, the order in its own words and,
+	when it would be taken, its price; `Soult · 1 AP` where the line's lead-in
+	has already said the order (`with_order` false)."""
+	var label := str(b.get("shown", ""))
+	if with_order:
+		label += " · " + _bring_order(b)
+	if priced:
+		label += " · " + str(int(b.get("ap", 0))) + " AP"
+	return label
+
+
+func _bring_said(b: Dictionary) -> String:
+	"""What the order changes, then what else the click does: the muster's
+	reason he stays or his odds before and after (`why`), what the order's
+	first step MEETS (`contact`: a corps we see on his road — he attacks at once
+	if the numbers favour him, else asks), and the quote's own riders
+	(`_quote_notes`: the order it replaces, whether he may object). For an
+	order that would be refused, the quote's reason alone."""
+	if not bool(b.get("ok", false)):
+		return str(b.get("refusal", ""))
+	var parts := []
+	var why := str(b.get("why", ""))
+	if why != "":
+		parts.append(why)
+	var contact := str(b.get("contact", ""))
+	if contact != "" and contact != str(b.get("note", "")):
+		parts.append(contact)
+	var notes := _quote_notes(b)
+	if notes != "":
+		parts.append(notes)
+	return " · ".join(PackedStringArray(parts))
+
+
+func _bring_chip(b: Dictionary, tip: String, with_order: bool = true) -> String:
+	"""One `bring` row as a chip: lit, it sends the row's own command; locked
+	(the order would be refused) it keeps its words and its place."""
+	if not bool(b.get("ok", false)):
+		return Utils.bb_chip_disabled(_bring_label(b, false, with_order), "", tip)
+	return Utils.bb_button_chip("do:" + str(b.get("command", "")), _bring_label(b, true, with_order),
+		Utils.COLOR_GOLD, _CHIP_BG, "", tip)
+
+
+func _bring_block(groups: Array) -> String:
+	"""The plan under a row of attack chips. ONE corps that could lead: his
+	`Bring up` line, as it stands in a marshal's own row. Several: one fold —
+	`▸ Bring up — 9 orders`, what they are its hover (on the page: beside it) —
+	and, open, a line per lead: `to support Davout:` then a chip per corps, the
+	man and the price. Nine chips under five were a wall (the frames, November 15)."""
+	var out := ""
+	if groups.is_empty():
+		return out
+	if groups.size() == 1:
+		for line in _bring_lines(groups[0][1], {}):
+			out += str(line) + "\n"
+		return out
+	var total := 0
+	for g in groups:
+		for b in g[1]:
+			if b is Dictionary and not bool(b.get("already", false)) and str(b.get("command", "")) != "":
+				total += 1
+	if total == 0:
+		return out
+	var head := ("▾ " + _BRING_LEAD) if _bring_open \
+			else ("▸ " + _BRING_LEAD + " — " + Utils.plural(total, "order"))
+	if Utils.explanations_folded():
+		out += "  [url=toggle:bring]" + Utils.bb_hint(head, _BRING_SENTENCE) + "[/url]\n"
+	else:
+		out += "  [url=toggle:bring]" + head + "[/url]  [color=#" + Utils.COLOR_INFO + "](" \
+			+ _BRING_SENTENCE + ")[/color]\n"
+	if _bring_open:
+		for g in groups:
+			for line in _bring_lines(g[1], {}, "    ", "", false):
+				out += str(line) + "\n"
+	return out
+
+
+func _bring_lines(rows: Array, seen: Dictionary, indent: String = "    ",
+		lead_in: String = _BRING_LEAD, say_what: bool = true) -> Array:
+	"""The `bring` rows as lines, each order once (`seen`, by its command: two
+	Attack chips on one field share their rows). Folded: ONE line — the lead-in
+	(its sentence the hover), then the chips, each chip's reason its hover. On
+	the page: the lead-in and its sentence, then a line per chip with its reason
+	beside it. `say_what` false: the sentence was said by the fold above."""
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var folded := Utils.explanations_folded()
+	var chips := []
+	var out := []
+	var kept := []
+	var orders := {}
+	for b in rows:
+		if not (b is Dictionary) or bool(b.get("already", false)):
+			continue
+		var command := str(b.get("command", ""))
+		if command == "" or seen.has(command):
+			continue
+		seen[command] = true
+		kept.append(b)
+		orders[_bring_order(b)] = true
+	# The panel is narrow: where every row on the line is the SAME order (they
+	# are, for one lead), the lead-in says it once — "Bring up to support Ney:"
+	# — and each chip is the man and the price.
+	var once: bool = orders.size() == 1
+	if once:
+		var to_order: String = "to " + str(orders.keys()[0])
+		lead_in = (lead_in + " " + to_order) if lead_in != "" else to_order
+	for b in kept:
+		var said := _bring_said(b)
+		if folded:
+			chips.append(_bring_chip(b, said, not once))
+		else:
+			out.append(indent + "  " + _bring_chip(b, "", not once)
+				+ ("  " + info + said + "[/color]" if said != "" else ""))
+	if not chips.is_empty():
+		var said_lead := info + lead_in + ":[/color]"
+		if say_what:
+			said_lead = Utils.bb_hint(said_lead, _BRING_SENTENCE)
+		out.append(indent + said_lead + "   " + "   ".join(PackedStringArray(chips)))
+	elif not out.is_empty():
+		out.insert(0, indent + info + lead_in
+			+ ((" — " + _BRING_SENTENCE) if say_what else "") + ":[/color]")
+	return out
 
 
 func _muster_tail(muster: String) -> String:
@@ -1723,6 +1930,9 @@ func _quote_rows(quotes) -> String:
 	var hidden := 0
 	var dimmed := []
 	var open_chips := []   # Session UI-4: Folded, the open orders' chips
+	# Row BA, BA-2: each attack quote's `bring` rows — the order that brings a
+	# corps standing by — under the row's chips (`_bring_block`).
+	var bring_groups := []    # [the lead's printed name, his `bring` rows]
 	for q in quotes:
 		if not (q is Dictionary):
 			continue
@@ -1745,6 +1955,9 @@ func _quote_rows(quotes) -> String:
 		# prints a chip and its notes a line each, as it did.
 		var quote_chip := Utils.bb_button_chip("do:" + str(q.get("command", "")), _quote_label(q),
 			Utils.COLOR_GOLD, _CHIP_BG, "", notes if Utils.explanations_folded() else "")
+		var bring = q.get("bring", [])
+		if bring is Array and not bring.is_empty():
+			bring_groups.append([str(q.get("shown", "")), bring])
 		if Utils.explanations_folded():
 			open_chips.append(quote_chip)
 			continue
@@ -1754,6 +1967,7 @@ func _quote_rows(quotes) -> String:
 		out += "\n"
 	if not open_chips.is_empty():
 		out += _chip_row(open_chips) + "\n"
+	out += _bring_block(bring_groups)
 	# The refused: all of them when nothing is open (the reason IS the
 	# answer), otherwise behind "+N more…" so the open orders lead.
 	if not dimmed.is_empty():

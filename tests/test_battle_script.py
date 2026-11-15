@@ -770,9 +770,11 @@ class TestFog:
                          atk_participants=[ney] + extras, atk_reinf=rows)
         seated = {c["name"] for side in ("attacker", "defender")
                   for c in payload[side]["contingents"]}
-        assert payload["attacker"]["reserve_count"] == 3
+        # BA-2: three seats a side (the lead and two wings); the other four of
+        # the seven stand in reserve, and two of the six arrivals are seated.
+        assert payload["attacker"]["reserve_count"] == 4
         named = {b["actor"] for b in _beats(payload["script"]) if b["actor"]}
-        assert named <= seated and len(_beats(payload["script"], "approach", "arrive")) == 3
+        assert named <= seated and len(_beats(payload["script"], "approach", "arrive")) == 2
         assert set(payload["script"]["tempers"]) == seated
 
 

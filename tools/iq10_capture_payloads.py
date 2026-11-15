@@ -805,8 +805,9 @@ def cap_diorama_states():
     record("diorama_uxr2_four", four,
            source="backend.game_logic.battle_diorama.build_battle_diorama",
            staging="tests/test_battle_diorama.py helpers: six French corps against five "
-                   "allied ones — the cap seats four a side, the rest ride the reserve tail; "
-                   "Davout marched to the guns; Lannes' faith is spent",
+                   "allied ones — the cap seats three a side (BA-2: a centre and two wings; it "
+                   "seated four), the rest ride the reserve; Davout marched to the guns; "
+                   "Lannes' faith is spent",
            facts={"attacker": [(c.get("name"), c.get("status")) for c in
                                four["attacker"]["contingents"]],
                   "attacker_reserve": four["attacker"].get("reserve_count"),
@@ -883,6 +884,60 @@ def cap_battle_acts():
                facts={"shows": reason, "form": script.get("form"),
                       "register": payload.get("register"),
                       "acts": [b["act"] for b in script.get("acts") or []]})
+
+
+def cap_walls_and_guns():
+    """Row BA, BA-2 (November 14-15, 2026) — the walls, the guns and the order
+    of battle. The tableau's new states, REAL engagements on the 1805 board
+    through the real attack road (`tools/ba1_stage_battles.py`, each scene on
+    the ambient seed its walk of record kept): three corps a side with the
+    reserve counted; a wall carried, our own wall held, a garrison that
+    yielded; a cannonade that levels the works and one that catches our own
+    corps; a square against horse; our own dispositions. And the plan at the
+    attack row: the 1805 boot's own quotes for Swabia (`GET /march_quotes`),
+    whose attack quotes carry the `bring` rows."""
+    import ba1_stage_battles as stage
+    seeds = json.loads((REPO / "docs" / "audits" / "ba1_client" / "payloads" / "manifest.json")
+                       .read_text(encoding="utf-8"))
+    for scene, name in (("the_reserve", "order_of_battle"), ("assault_stormed", "walls_carried"),
+                        ("assault_on_ours", "our_walls_hold"), ("assault_capitulated", "capitulated"),
+                        ("bombard_levels", "works_levelled"),
+                        ("bombard_ours", "our_own_under_the_guns"),
+                        ("square_and_horse", "square"), ("our_dispositions", "dispositions")):
+        seed = int(seeds[scene]["ambient_seed"])
+        payload, reason, _result = stage.fight(scene, seed)
+        if not isinstance(payload, dict) or not reason:
+            raise RuntimeError(f"ba2 scene {scene} did not stage on seed {seed}")
+        script = payload.get("script") or {}
+        record(f"diorama_ba2_{name}", payload,
+               source="CommandExecutor._execute_attack -> battle_diorama / siege_diorama "
+                      "(payload['kind'], payload['script'])",
+               staging=f"tools/ba1_stage_battles.py scene `{scene}`, ambient seed {seed}: "
+                       + " ".join((stage.SCENES[scene][0].__doc__ or "").split()),
+               facts={"shows": reason, "kind": payload.get("kind", "battle"),
+                      "fate": payload.get("fate"), "register": payload.get("register"),
+                      "seats": [len((payload.get(side) or {}).get("contingents") or [])
+                                for side in ("attacker", "defender")],
+                      "reserve": [int((payload.get(side) or {}).get("reserve_count") or 0)
+                                  for side in ("attacker", "defender")],
+                      "acts": [b["act"] for b in script.get("acts") or []]})
+
+    world, c = fresh()
+    quotes = get(c, "/march_quotes?region=Swabia")
+    lead = next(q for row in quotes.get("attack") or [] for q in row.get("quotes") or []
+                if q.get("marshal") == "Ney" and q.get("kind") == "attack")
+    if not lead.get("bring"):
+        raise RuntimeError("the boot's attack quote for Ney on Mack carries no `bring` row")
+    gs = (get(c, "/test").get("game_state") or {})
+    record("region_bring", {"game_state": gs, "quotes": quotes, "order_quote": lead},
+           source="GET /march_quotes?region=Swabia (order_quotes.march_quotes_for_region -> "
+                  "attack_quote -> bring_quotes) + GET /test -> game_state",
+           staging="1805 boot; nothing written",
+           facts={"lead": lead.get("marshal"), "command": lead.get("command"),
+                  "bring": [{"corps": b.get("marshal"), "command": b.get("command"),
+                             "ap": b.get("ap"), "code": b.get("code"),
+                             "odds_now": b.get("odds_now"), "odds_with": b.get("odds_with")}
+                            for b in lead.get("bring") or []]})
 
 
 def cap_petition():
@@ -2901,6 +2956,7 @@ CAPTURES = {
     "battles": cap_battles,
     "diorama_states": cap_diorama_states,
     "battle_acts": cap_battle_acts,
+    "walls_and_guns": cap_walls_and_guns,
     "petition": cap_petition,
     "moments": cap_moments,
     "prisoner": cap_prisoner,

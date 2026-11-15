@@ -369,9 +369,12 @@ class TestTheReserveNamesItsDead:
 
     def test_the_unseated_corps_dead_ride_the_tail(self):
         from backend.game_logic import battle_diorama as BD
+        # Row BA, BA-2 (November 14, 2026): the table seats three a side (a
+        # centre and two wings), so of five corps two stand in reserve.
         side = BD._cap_side(self._contingents([100, 200, 300, 400, 258]))
-        assert side["reserve_count"] == 1
-        assert side["reserve_casualties"] == 258
+        assert BD.MAX_CONTINGENTS_PER_SIDE == 3
+        assert side["reserve_count"] == 2
+        assert side["reserve_casualties"] == 400 + 258
         shown = sum(c["casualties"] for c in side["contingents"])
         assert shown + side["reserve_casualties"] == side["casualties_total"]
 

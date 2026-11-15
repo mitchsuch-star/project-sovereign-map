@@ -55,6 +55,37 @@ const ADVANCE_PX := 18.0
 const EDGE_KEEP := 90.0         # an arriving corps starts on the baize
 const RANK_GAP_MIN := 106.0     # two ranks never stand closer than this (118 at rest)
 
+# ── Row BA, session BA-2: the order of battle ───────────────────────────────
+# The user's words of November 14, 2026 (BATTLE_DIORAMA_SPEC.md §15.11):
+# "watching an interesting strategic battle with flanks and movements unfold",
+# "an engaging autobattler", "they should move in napoleonic style". A side
+# seats THREE corps (the backend's cap): the lead in the centre and most
+# advanced, a wing behind him on either side. The stations are the LEFT
+# side's, in the stage's pixels (the right mirrors x → width − x); they were
+# laid out against the real label boxes, the dice tray, the crossed swords,
+# the banner and the loss counters at Text size 100 % and the shipped 115 %.
+# `_relay` keeps the host's file when the table cannot take them — an old
+# payload that seats four, a duel of one corps a side, Text size 120 % and
+# over (`_wedge_is_clear` measures the live boxes). One constant reverses it.
+const ORDER_OF_BATTLE := true
+const WEDGE_LEAD := Vector2(330.0, 342.0)
+const WEDGE_NEAR := Vector2(128.0, 380.0)
+const WEDGE_FAR := Vector2(128.0, 182.0)
+const WEDGE_ROLES := ["lead", "near", "far"]
+const SAFE_GAP := 3.0           # two corps' words and bodies never stand closer
+const GUN_POCKET := Vector2(292.0, 136.0)   # the off-field gun's place on a wedge (left side)
+const RESERVE_NOTE_Y := 24.0    # the reserve's note stands beside its side's loss counter
+const COLUMN_SQUEEZE := 0.32    # a corps in column: its files closed up to this much of the line
+# The host's own two figures (battle_diorama.gd): where `_make_block` plants a
+# corps' standard (38 art px toward the clash) and how far `_schedule_standards`
+# advances the victor's on a defeat (its alarm register).
+const STANDARD_AT := 38.0
+const ALARM_ADVANCE := 60.0
+# The host shudders a line that takes fire (`DioramaFigure.recoil`: 0.25 s,
+# 0.15 s a rank later) and puts each man back where he stood WHEN IT WAS
+# SCHEDULED. A verb that moves men as the fight opens waits it out.
+const AFTER_THE_RECOIL := 0.45
+
 const BRASS := Color(0.72, 0.60, 0.36, 1.0)
 const BONE := Color(0.788, 0.761, 0.698, 1.0)
 const GOLD := Color(0.851, 0.753, 0.549, 1.0)
@@ -70,6 +101,12 @@ var _played: Array = []         # [{act, beat, captioned, hold}] this showing pl
 var _vignette_settled := Color.WHITE   # the baize's cast (a defeat's is red)
 var _reserve_tails: Array = []         # [{label, full}] "+3 corps in reserve — 481 lost"
 const RESERVE_DEAD := " — "            # what follows it on the tail is what the reserve lost
+# BA-2: the board and the two new tables.
+var _laid := "file"                    # "wedge" when the order of battle is laid
+var _reserve_dead: Array = []          # the reserve's dead, a line of its own on a wedge
+var _wall: SiegeWall = null            # a garrison's wall (kind "assault")
+var _works: Dictionary = {}            # corps name -> its Rampart (field works)
+var _squares: Array = []               # the ground marks of corps in square
 
 
 static func mode() -> String:
@@ -217,6 +254,14 @@ func dress(final_frame: bool) -> void:
 	_put_the_chrome_back()
 	if host._is_naval():
 		return
+	_laid = "file"
+	_reserve_dead = []
+	_wall = null
+	_works = {}
+	_squares = []
+	# BA-2: the order of battle, laid BEFORE a corps' home is read — everything
+	# after this stands on the station it is given here.
+	var relaid: Array = _relay()
 	for b in host._blocks_left + host._blocks_right:
 		var c: Dictionary = b["data"]
 		var name: String = str(c.get("name", ""))
@@ -237,8 +282,15 @@ func dress(final_frame: bool) -> void:
 		_keep_words_on_the_baize(b)
 		_advance_toll_under_the_feet(b)
 		_find_strength_line(b)
+		if bool(c.get("garrison", false)):
+			_dress_garrison(b)
+	if not relaid.is_empty() and not _wedge_is_clear():
+		_unrelay(relaid)
+	if _kind() == "assault":
+		_build_the_wall()      # before the rest is planned: the stormers stop at its foot
 	_plan_rest()
 	_keep_the_end()
+	_dress_the_kind()
 
 	var sw: float = host._stage.size.x
 	_act_label = host._mk_label(host._stage, "", &"Caption", BRASS, host._font_engraved)
@@ -263,6 +315,263 @@ func dress(final_frame: bool) -> void:
 	elif plays():
 		_played = _plan()
 		_set_opening()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BA-2: the order of battle
+# ─────────────────────────────────────────────────────────────────────────────
+
+func _kind() -> String:
+	"""A field battle ("battle"), a garrison assault ("assault") or a
+	standalone bombardment ("bombardment"): the payload says which table to
+	lay (backend/game_logic/siege_diorama.py)."""
+	return str(host._data.get("kind", "battle")) if host != null else "battle"
+
+
+func _relay() -> Array:
+	"""Each side's lead in the centre and most advanced, its second corps on
+	the near wing and its third on the far wing. Returns what it moved — to be
+	put back if the table cannot take it — or [] where the host's file
+	stands: the switch is off, a duel of one corps a side, or an old payload
+	that seats four."""
+	if not ORDER_OF_BATTLE:
+		return []
+	var sides: Array = [host._blocks_left, host._blocks_right]
+	var most: int = maxi((sides[0] as Array).size(), (sides[1] as Array).size())
+	if most < 2 or most > WEDGE_ROLES.size():
+		return []
+	var sw: float = host._stage.size.x
+	var stations: Array = [WEDGE_LEAD, WEDGE_NEAR, WEDGE_FAR]
+	var saved: Array = []
+	for side in sides:
+		for k in range((side as Array).size()):
+			var b: Dictionary = side[k]
+			var node: Node2D = b["node"]
+			var boxes: Array = []
+			for child in node.get_children():
+				if child is Label:
+					var l: Label = child
+					boxes.append([l, l.position, l.size, l.custom_minimum_size, l.autowrap_mode])
+			saved.append({"block": b, "position": node.position, "z": node.z_index,
+					"depth": b["depth"], "boxes": boxes})
+			var st: Vector2 = stations[k]
+			var to: Vector2 = st if bool(b["is_left"]) else Vector2(sw - st.x, st.y)
+			_recut_captions(b, to)
+			node.position = to
+			# the nearer corps draws over the farther; the wings fall together
+			# (the host staggers its topples by depth)
+			node.z_index = 20 - [1, 0, 2][k]
+			b["depth"] = 0 if k == 0 else 1
+			b["role"] = WEDGE_ROLES[k]
+	_laid = "wedge"
+	return saved
+
+
+func _unrelay(saved: Array) -> void:
+	"""The table could not take the order of battle (a pair of lines closer
+	than SAFE_GAP: Text size 120 % and over, a name longer than any the
+	stations were laid for): every corps back on the host's file, its words
+	as the host cut them, and the acts' own fitting run again from there."""
+	for row in saved:
+		var b: Dictionary = row["block"]
+		var node: Node2D = b["node"]
+		node.position = row["position"]
+		node.z_index = int(row["z"])
+		b["depth"] = row["depth"]
+		b.erase("role")
+		for box in row["boxes"]:
+			var l: Label = box[0]
+			if not is_instance_valid(l):
+				continue
+			l.autowrap_mode = box[4]
+			l.custom_minimum_size = box[3]
+			l.size = box[2]
+			l.position = box[1]
+		b["home"] = node.position
+		_keep_words_on_the_baize(b)
+	_laid = "file"
+
+
+func _recut_captions(b: Dictionary, to: Vector2) -> void:
+	"""The host cut each caption under a corps' feet to the baize's margin from
+	the place it laid the corps (`_keep_fate_on_baize`): at its station the
+	same rule is read again from there."""
+	var left: bool = bool(b["is_left"])
+	var pad: float = host.BAIZE_PAD
+	var full: float = host.FAITH_CAPTION_W
+	for child in (b["node"] as Node2D).get_children():
+		if not (child is Label) or (child as Label).position.y < 0.0:
+			continue
+		var l: Label = child
+		var w: float
+		if left:
+			var inboard: float = l.position.x + l.size.x
+			w = maxf(inboard - maxf(inboard - full, pad - to.x), host.FATE_MIN_W)
+			l.position.x = inboard - w
+		else:
+			w = maxf(minf(l.position.x + full, host._stage.size.x - pad - to.x) - l.position.x,
+					host.FATE_MIN_W)
+		if l.autowrap_mode != TextServer.AUTOWRAP_OFF:
+			l.custom_minimum_size.x = w
+		l.size.x = w
+
+
+func _on_stage(item: CanvasItem, local: Rect2) -> Rect2:
+	"""`local` (in the item's own space) in the stage's pixels."""
+	var xf: Transform2D = host._stage.get_global_transform().affine_inverse() \
+			* item.get_global_transform()
+	return Rect2(xf * local.position, Vector2.ZERO).expand(xf * local.end)
+
+
+func _label_ink(l: Label) -> Rect2:
+	"""A line's own extent on the stage (a label's box is wider than its
+	words: the two leads' name boxes overlap by design, their words do not)."""
+	var need: Vector2 = l.get_minimum_size()
+	var wrapped: bool = l.autowrap_mode != TextServer.AUTOWRAP_OFF
+	var w: float = l.size.x if wrapped else minf(l.size.x, need.x)
+	var h: float = maxf(l.size.y, need.y) if wrapped else minf(l.size.y, need.y)
+	var x := 0.0
+	if l.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT:
+		x = l.size.x - w
+	elif l.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER:
+		x = (l.size.x - w) / 2.0
+	return _on_stage(l, Rect2(x, 0.0, w, h))
+
+
+func _words(b: Dictionary) -> Array:
+	"""Every line a corps carries, shown or held back (a held-back line WILL
+	be shown: the table must have room for it)."""
+	var out: Array = []
+	for child in (b["node"] as Node2D).get_children():
+		if child is Label and (child as Label).text.strip_edges() != "":
+			out.append(_label_ink(child))
+	return out
+
+
+func _body(b: Dictionary) -> Array:
+	"""The slab with its men, and the portrait: what a neighbour's words may
+	not stand on."""
+	var out: Array = []
+	var art: Node2D = (b["node"] as Node2D).get_node_or_null("Art")
+	if art != null:
+		out.append(_on_stage(art, Rect2(-DioramaPlinth.HALF_W, -50.0,
+				DioramaPlinth.HALF_W * 2.0, 74.0)))
+	var locket: Control = b["locket"]
+	if locket != null and is_instance_valid(locket) and locket.visible:
+		out.append(_on_stage(locket, Rect2(Vector2.ZERO, locket.size)))
+	return out
+
+
+func _chrome_rects() -> Array:
+	"""What already stands on the baize: the loss counters, the crossed
+	swords and the dice tray's room."""
+	var out: Array = []
+	for piece in [host._odo_left_cap, host._odo_left, host._odo_right_cap, host._odo_right,
+			host._clash_label]:
+		if piece is Label and is_instance_valid(piece):
+			out.append(_label_ink(piece))
+	out.append(Rect2(host._stage.size.x / 2.0 - 110.0, 74.0, 220.0, DiceTray.ROOM_H))
+	return out
+
+
+func _wedge_is_clear() -> bool:
+	"""No line of a corps off the baize, on the chrome, or within SAFE_GAP of
+	a neighbour's line, slab or portrait — measured on the live boxes."""
+	var sw: float = host._stage.size.x
+	var sh: float = host._stage.size.y
+	var pad: float = host.BAIZE_PAD
+	var chrome: Array = _chrome_rects()
+	for side in [host._blocks_left, host._blocks_right]:
+		for a in side:
+			var words: Array = _words(a)
+			for r in words:
+				var rect: Rect2 = r
+				if rect.position.x < pad - 1.0 or rect.end.x > sw - pad + 1.0 \
+						or rect.position.y < 0.0 or rect.end.y > sh:
+					return false
+				for c in chrome:
+					if rect.grow(SAFE_GAP).intersects(c):
+						return false
+			for other in side:
+				if other == a:
+					continue
+				var theirs: Array = _words(other) + _body(other)
+				for r in words:
+					for o in theirs:
+						if (r as Rect2).grow(SAFE_GAP).intersects(o):
+							return false
+	return true
+
+
+func _room_fwd(b: Dictionary) -> float:
+	"""How far a lead may go toward the clash before a line of his crosses the
+	centre or meets the crossed swords."""
+	var mid: float = host._stage.size.x / 2.0
+	var left: bool = bool(b["is_left"])
+	var swords: Rect2 = _label_ink(host._clash_label)
+	var room := 400.0
+	for r in _words(b):
+		var rect: Rect2 = r
+		var edge: float = rect.end.x if left else rect.position.x
+		var limit: float = (mid - 6.0 - edge) if left else (edge - mid - 6.0)
+		if rect.position.y < swords.end.y and rect.end.y > swords.position.y:
+			limit = minf(limit, (swords.position.x - 6.0 - edge) if left
+					else (edge - swords.end.x - 6.0))
+		room = minf(room, limit)
+	return maxf(room, 0.0)
+
+
+func _clear_back(b: Dictionary, side: Array, want: float) -> float:
+	"""How far of `want` px a corps can fall back toward its own edge before
+	its words or its body come within SAFE_GAP of a neighbour's."""
+	var mine: Array = _words(b) + _body(b)
+	var theirs: Array = []
+	for other in side:
+		if other != b:
+			theirs += _words(other) + _body(other)
+	var step := Vector2(_outward(b) * 2.0, 0.0)
+	var got := 0.0
+	while got + 2.0 <= want:
+		var shift: Vector2 = step * (got / 2.0 + 1.0)
+		for r in mine:
+			var moved := Rect2((r as Rect2).position + shift, (r as Rect2).size)
+			for o in theirs:
+				if moved.grow(SAFE_GAP).intersects(o):
+					return got
+		got += 2.0
+	return got
+
+
+func _dress_garrison(b: Dictionary) -> void:
+	"""A garrison has no commander: no portrait, and no standard to take. Its
+	fate is the wall's — STORMED or CAPITULATED where a corps reads DESTROYED."""
+	(b["locket"] as CanvasItem).visible = false
+	var std = b["standard"]
+	if std != null and is_instance_valid(std):
+		(std as CanvasItem).visible = false
+	var word: Label = b["status_label"]
+	if word != null and is_instance_valid(word):
+		match str(host._data.get("fate", "")):
+			"stormed":
+				word.text = "STORMED"
+			"capitulated":
+				word.text = "CAPITULATED"
+
+
+func _dress_the_kind() -> void:
+	"""What a table carries beyond its corps: the banner's own words, the
+	reserve's note on a wedge, a garrison's wall, field works, the ground mark
+	of a corps in square."""
+	var banner: String = str(host._data.get("banner", ""))
+	if banner != "" and banner != "<null>":
+		host._banner.text = banner
+	var sub: String = str(host._data.get("sub_banner", ""))
+	if sub != "" and sub != "<null>" and host._sub_banner.text == "":
+		host._sub_banner.text = sub
+	if _laid == "wedge":
+		_rehome_the_reserve()
+	_build_the_works()
+	_mark_the_squares()
 
 
 func _dice_beat() -> Dictionary:
@@ -433,6 +742,55 @@ func _tell_the_reserves_dead() -> void:
 	for tail in _reserve_tails:
 		if is_instance_valid(tail["label"]):
 			(tail["label"] as Label).text = str(tail["full"])
+	# BA-2: on a wedge the reserve's dead is a line of its own
+	for dead in _reserve_dead:
+		if is_instance_valid(dead):
+			(dead as Label).visible = true
+
+
+func _rehome_the_reserve() -> void:
+	"""BA-2. On a wedge the baize's bottom corner is the near wing's, so the
+	reserve's note stands beside its side's loss counter: how many corps wait
+	behind the line and, on a line of its own that comes with the gavel as
+	every figure of the end does, what they lost. It is set clear of the
+	counter's own figure at its FINAL width."""
+	var sw: float = host._stage.size.x
+	var sides: Array = host._side_payloads()
+	for node in host._transients:
+		if not (node is Label) or not is_instance_valid(node):
+			continue
+		var tail: Label = node
+		if not tail.text.contains(" corps in reserve"):
+			continue
+		var left: bool = tail.position.x < sw / 2.0
+		var odo: Label = host._odo_left if left else host._odo_right
+		var shown: String = odo.text
+		odo.text = Utils.format_number(int((sides[0 if left else 1] as Dictionary).get(
+				"casualties_total", 0)))
+		var figure_w: float = odo.get_minimum_size().x
+		odo.text = shown
+		var edge: float = maxf(14.0 + figure_w + 12.0, 104.0)
+		var full: String = tail.text
+		var cut: int = full.find(RESERVE_DEAD)
+		tail.autowrap_mode = TextServer.AUTOWRAP_OFF
+		tail.text = (full.substr(0, cut) if cut >= 0 else full).replace(
+				" corps in reserve", " in reserve")
+		tail.size = tail.get_minimum_size()
+		tail.position = Vector2(edge if left else sw - edge - tail.size.x, RESERVE_NOTE_Y)
+		if cut < 0:
+			continue
+		# the second line of the SAME note: the tail line's own ink (the host's
+		# engraved caption — the one dim step the tableau keeps)
+		var dead: Label = host._mk_label(host._stage, full.substr(cut + RESERVE_DEAD.length()),
+				&"Caption", tail.get_theme_color(&"font_color"))
+		dead.size = dead.get_minimum_size()
+		dead.position = Vector2(edge if left else sw - edge - dead.size.x,
+				RESERVE_NOTE_Y + tail.size.y - 4.0)
+		host._transients.append(dead)
+		_reserve_dead.append(dead)
+	# the file's hold-back rewrites a tail's own text; these carry their dead
+	# on the second line instead
+	_reserve_tails = []
 
 
 func _attacker_left() -> bool:
@@ -488,6 +846,19 @@ func _plan_rest() -> void:
 			"advance_to":
 				if not wants.has(name):
 					wants[name] = ADVANCE_PX
+	if _kind() == "assault":
+		# BA-2: the stormers go to the foot of the wall; where it holds they
+		# fall back to their mark, where it falls they stand in the breach.
+		for who in _blocks:
+			var stormer: Dictionary = _blocks[who]
+			if bool((stormer["data"] as Dictionary).get("garrison", false)):
+				continue
+			stormer["storm_reach"] = _storm_reach(stormer)
+			if str(host._data.get("fate", "held")) != "held":
+				wants[who] = float(stormer["storm_reach"])
+	if _laid == "wedge":
+		_plan_rest_on_the_wedge(wants)
+		return
 	for side in [host._blocks_left, host._blocks_right]:
 		var n: int = side.size()
 		var d: Array = []
@@ -502,6 +873,26 @@ func _plan_rest() -> void:
 			d[k] = maxf(d[k], d[k + 1] - maxf(gap - RANK_GAP_MIN, 0.0))
 		for k in range(n):
 			side[k]["rest_dx"] = -_outward(side[k]) * float(d[k])
+
+
+func _plan_rest_on_the_wedge(wants: Dictionary) -> void:
+	"""BA-2, the order of battle's rest. A beaten corps is driven back toward
+	its own edge as far as the baize and its neighbours allow: the lead toward
+	the wings behind him and never onto them; a wing, whose words already
+	stand at the baize's edge, a few pixels (its plinth turned down says the
+	rest). Only the lead goes forward, and never so far that a line of his
+	crosses the centre or meets the crossed swords."""
+	for side in [host._blocks_left, host._blocks_right]:
+		for b in side:
+			var want: float = float(wants.get(str((b["data"] as Dictionary).get("name", "")), 0.0))
+			if str(b.get("role", "lead")) != "lead":
+				want = minf(want, 0.0)
+			var d := 0.0
+			if want > 0.0:
+				d = minf(want, _room_fwd(b))
+			elif want < 0.0:
+				d = -_clear_back(b, side, minf(-want, _room_back(b)))
+			b["rest_dx"] = -_outward(b) * d
 
 
 func _room_back(b: Dictionary) -> float:
@@ -556,6 +947,16 @@ func _set_opening() -> void:
 	for tail in _reserve_tails:
 		var full: String = str(tail["full"])
 		(tail["label"] as Label).text = full.substr(0, full.find(RESERVE_DEAD))
+	# BA-2: what the reserve lost (a wedge's second line), a garrison's wall as
+	# it ENDS and works as the battle left them are the result's too — hidden
+	# or whole until their moment, never drawn at no alpha.
+	for dead in _reserve_dead:
+		if is_instance_valid(dead):
+			(dead as Label).visible = false
+	if _wall != null and is_instance_valid(_wall):
+		_wall.stand_whole()
+	for name in _works:
+		(_works[name] as Rampart).stand_as_built()
 	for item in _played:
 		var beat: Dictionary = item["beat"]
 		if str(beat.get("kind", "")) != "arrive":
@@ -611,11 +1012,33 @@ func settle() -> void:
 			toll.visible = true
 			toll.modulate.a = 1.0
 	_the_end_is_told()
+	_the_ground_is_as_it_ended()
+	_the_victors_standard_stands_forward()
 	if _act_label != null:
 		_act_label.visible = false
 	if _dice != null:
 		_dice.visible = true
 		_dice.settle()
+
+
+func _the_victors_standard_stands_forward() -> void:
+	"""BA2-X5. On a defeat the played tableau advances the victor's lead
+	standard onto the player's half and leaves it there (the host's alarm
+	register, `_schedule_standards`); the settled frame — a skip, a second
+	viewing, Final frame only — never showed it (`_apply_final_frame_instant`,
+	pinned). Where the acts end is where the settled frame stands: the same
+	standard, the same distance, measured from where the host planted it (so a
+	second call moves nothing)."""
+	if str(host._data.get("register", "")) != "defeat" \
+			or str(host._data.get("player_side", "")) == "":
+		return
+	for b in host._blocks_right:
+		if bool((b["data"] as Dictionary).get("lead", false)) \
+				and str(b["status"]) not in ["routed", "destroyed"]:
+			var std = b["standard"]
+			if std != null and is_instance_valid(std):
+				(std as Node2D).position.x = -STANDARD_AT - ALARM_ADVANCE
+			return
 
 
 func _come_to_rest() -> void:
@@ -627,11 +1050,13 @@ func _come_to_rest() -> void:
 	if _act_label != null and is_instance_valid(_act_label):
 		_act_label.visible = false
 	_tell_the_reserves_dead()
+	_the_ground_is_as_it_ended()
 	for name in _blocks:
 		var b: Dictionary = _blocks[name]
 		var node: Node2D = b["node"]
 		if not is_instance_valid(node):
 			continue
+		_in_line(b)
 		var plinth: DioramaPlinth = b.get("plinth", null)
 		if plinth != null:
 			plinth.set_face_down(str(b["status"]) in ["routed", "destroyed"])
@@ -681,13 +1106,15 @@ func play() -> void:
 	var fight_from := -1.0
 	var fight_to := t
 	var first_break := -1.0
+	# BA-2: a bombardment is the cannonade alone — its count runs with the guns.
+	var fight_acts: Array = ["cannonade"] if _kind() == "bombardment" else ["assault", "crisis"]
 	for row in _played:
 		var act: String = str(row["act"])
 		var beat: Dictionary = row["beat"]
 		var hold: float = float(row["hold"])
 		row["at"] = t          # when this development begins (the walk's camera reads it)
 		_at(t, _show_beat.bind(act, beat, bool(row["captioned"])))
-		if act in ["assault", "crisis"]:
+		if act in fight_acts:
 			if fight_from < 0.0:
 				fight_from = t
 			fight_to = t + hold
@@ -723,6 +1150,17 @@ func play() -> void:
 	host._seq.parallel().tween_callback(host._show_banner).set_delay(t + 0.10)
 	host._seq.parallel().tween_callback(host._type_verdict).set_delay(t + 0.55)
 	host._seq.parallel().tween_callback(func(): host._enter_final(true)).set_delay(t + 0.70)
+
+	# BA-2, the manoeuvre: every corps comes on in COLUMN and deploys into line
+	# — those on the field as the table opens, those that march in as they
+	# arrive. Set AFTER the count is scheduled: the host's recoil reads each
+	# man's place when it is scheduled, and that place is his place in LINE.
+	for b in host._blocks_left + host._blocks_right:
+		if not _manoeuvres(b):
+			continue
+		_in_column(b)
+		if not bool(b.get("arrives", false)):
+			_deploy(b, 0.32, 0.34)
 
 
 func _at(t: float, what: Callable) -> void:
@@ -799,7 +1237,7 @@ func _show_beat(act: String, beat: Dictionary, captioned: bool) -> void:
 	match str(beat.get("kind", "")):
 		"arrive":
 			if b != null:
-				_march_in(b)
+				_march_in(b, bool(beat.get("late", false)))
 		"flank":
 			_draw_flank(attacker_side)
 		"battery":
@@ -808,6 +1246,45 @@ func _show_beat(act: String, beat: Dictionary, captioned: bool) -> void:
 		"advance":
 			if b != null:
 				_advance(b, str(beat.get("temper", "steady")), attacker_side)
+		# ── BA-2: the plan, the walls, the guns ──
+		"plan":
+			_tell_the_plan(beat)
+		"walls":
+			if _wall != null and is_instance_valid(_wall):
+				_wall.pulse()
+		"storm":
+			if b != null:
+				_storm(b)
+		"wall_holds":
+			_the_wall_answers(false)
+		"wall_falls", "capitulates":
+			_the_wall_answers(true)
+			if b != null:
+				_waver(b)
+				host._cue("drum_sting")
+		"repulsed", "occupy":
+			if b != null:
+				_slide(b, 0.8)
+		"province":
+			if b != null and _kind() == "assault":
+				_slide(b, 0.8)
+			elif b != null:
+				_pulse(b["locket"])
+		"bystander":
+			if b != null:
+				_struck(b)
+		"shaken":
+			if b != null:
+				for f in b["figures"]:
+					f.recoil(0.1)
+		"destroyed":
+			if b != null:
+				_waver(b)
+				host._cue("drum_sting")
+		"works":
+			_batter(str(beat.get("actor", "")))
+			if b != null:
+				_pulse(b["locket"])
 		"dice":
 			if _dice != null and is_instance_valid(_dice):
 				_dice.visible = true
@@ -821,9 +1298,12 @@ func _show_beat(act: String, beat: Dictionary, captioned: bool) -> void:
 				_pulse(lead["locket"])
 		"pursue":
 			if b != null:
-				host._cue("cavalry" if str((b["data"] as Dictionary).get("arm", "")) == "cavalry"
-						else "bugle_charge")
-				_slide(b, 0.8)
+				var horse: bool = str((b["data"] as Dictionary).get("arm", "")) == "cavalry"
+				host._cue("cavalry" if horse else "bugle_charge")
+				if horse:
+					_sweep(b, 0.8)
+				else:
+					_slide(b, 0.8)
 		"leave":
 			if b != null:
 				if str(beat.get("how", "")) != "withdrew":
@@ -870,50 +1350,98 @@ func _reveal(b: Dictionary, tw: Tween) -> void:
 	b["unseen_labels"] = []
 
 
-func _march_in(b: Dictionary) -> void:
-	"""A corps comes onto the table from its own edge; an enemy corps that
-	came up unseen is turned up as it arrives."""
+func _march_in(b: Dictionary, late: bool = false) -> void:
+	"""A corps comes onto the table from its own edge, in column, and deploys
+	into line at its station; one that comes up at the last hour comes at the
+	double. An enemy corps that came up unseen is turned up as it arrives."""
 	var node: Node2D = b["node"]
 	host._cue("march_step")
+	var march: float = 0.55 if late else 0.9
 	var tw: Tween = node.create_tween()
 	tw.tween_property(node, "modulate:a", 1.0, 0.3)
-	tw.parallel().tween_property(node, "position", b["home"], 0.9) \
+	tw.parallel().tween_property(node, "position", b["home"], march) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_reveal(b, tw)
+	_deploy(b, march * 0.7, 0.3)
 
 
 func _advance(b: Dictionary, temper: String, attacking: bool) -> void:
-	"""Each temperament closes in its own way. The defender's line answers
-	in kind but does not leave its ground."""
+	"""Each temperament closes in its own way, and each arm in its own: horse
+	comes on at the trot, charges home and recoils to re-form; guns unlimber
+	forward of the line; foot goes in as its commander is. The defender's
+	line answers in kind but does not leave its ground. On the order of
+	battle the wings press with the lead, a short way, each in its own lane."""
 	var node: Node2D = b["node"]
 	var toward: float = -_outward(b)
 	var home_x: float = (b["home"] as Vector2).x
+	# BA-2: on a wedge no line of a lead's may cross the centre or meet the
+	# crossed swords (the file's reaches were laid out for the file)
+	var cap: float = _room_fwd(b) if _laid == "wedge" else 1000.0
+	var arm: String = str((b["data"] as Dictionary).get("arm", "infantry"))
 	var tw: Tween = node.create_tween()
 	if attacking:
-		host._cue("bugle_charge" if temper == "aggressive" else "musket_volley")
-	match temper:
-		"aggressive":
-			# ahead of the line, at once, and a little too far
-			tw.tween_property(node, "position:x", home_x + toward * (28.0 if attacking else 12.0), 0.34) \
-				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		"cautious":
-			# by measured steps: a step, a halt, a step
-			var step: float = 7.0 if attacking else 0.0
-			tw.tween_property(node, "position:x", home_x + toward * step, 0.30)
-			tw.tween_interval(0.28)
-			tw.tween_property(node, "position:x", home_x + toward * step * 2.0, 0.30)
-		"literal":
-			# to his mark, in one even movement, and no further
-			tw.tween_property(node, "position:x", home_x + toward * (12.0 if attacking else 0.0), 0.55) \
-				.set_trans(Tween.TRANS_LINEAR)
-		"sovereign":
-			# the line dresses on him: he does not surge, his corps closes up
-			tw.tween_property(node, "position:x", home_x + toward * (8.0 if attacking else 0.0), 0.6) \
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-			_pulse(b["locket"])
-		_:
-			tw.tween_property(node, "position:x", home_x + toward * (12.0 if attacking else 0.0), 0.45) \
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		host._cue("cavalry" if arm == "cavalry"
+				else ("bugle_charge" if temper == "aggressive" else "musket_volley"))
+	if attacking and arm == "cavalry":
+		tw.tween_property(node, "position:x", home_x + toward * minf(8.0, cap), 0.22)
+		tw.tween_property(node, "position:x", home_x + toward * minf(34.0, cap), 0.16) \
+			.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+		tw.tween_property(node, "position:x", home_x + toward * minf(14.0, cap), 0.30) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	elif attacking and arm == "artillery":
+		# unlimbered a little forward of the line, and no further
+		tw.tween_property(node, "position:x", home_x + toward * minf(10.0, cap), 0.4) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	else:
+		match temper:
+			"aggressive":
+				# ahead of the line, at once, and a little too far
+				tw.tween_property(node, "position:x",
+						home_x + toward * minf(28.0 if attacking else 12.0, cap), 0.34) \
+					.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			"cautious":
+				# by measured steps: a step, a halt, a step
+				var step: float = minf(7.0, cap / 2.0) if attacking else 0.0
+				tw.tween_property(node, "position:x", home_x + toward * step, 0.30)
+				tw.tween_interval(0.28)
+				tw.tween_property(node, "position:x", home_x + toward * step * 2.0, 0.30)
+			"literal":
+				# to his mark, in one even movement, and no further
+				tw.tween_property(node, "position:x",
+						home_x + toward * minf(12.0 if attacking else 0.0, cap), 0.55) \
+					.set_trans(Tween.TRANS_LINEAR)
+			"sovereign":
+				# the line dresses on him: he does not surge, his corps closes up
+				tw.tween_property(node, "position:x",
+						home_x + toward * minf(8.0 if attacking else 0.0, cap), 0.6) \
+					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+				_pulse(b["locket"])
+			_:
+				tw.tween_property(node, "position:x",
+						home_x + toward * minf(12.0 if attacking else 0.0, cap), 0.45) \
+					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if attacking and _laid == "wedge" and str(b.get("role", "")) == "lead":
+		_the_wings_press(b)
+
+
+func _the_wings_press(lead: Dictionary) -> void:
+	"""The order of battle goes in together: each wing a short step forward in
+	its own lane as the lead closes, and back to its station."""
+	var side: Array = host._blocks_left if bool(lead["is_left"]) else host._blocks_right
+	for wing in side:
+		if wing == lead or bool(wing.get("arrives", false)) and \
+				not is_equal_approx((wing["node"] as Node2D).modulate.a, 1.0):
+			continue
+		var node: Node2D = wing["node"]
+		var home_x: float = (wing["home"] as Vector2).x
+		var step: float = -_outward(wing) * 16.0
+		var tw: Tween = node.create_tween()
+		tw.tween_interval(0.12)
+		tw.tween_property(node, "position:x", home_x + step, 0.32) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_interval(0.5)
+		tw.tween_property(node, "position:x", home_x, 0.36) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 
 
 func _slide(b: Dictionary, seconds: float) -> void:
@@ -922,6 +1450,22 @@ func _slide(b: Dictionary, seconds: float) -> void:
 	var tw: Tween = node.create_tween()
 	tw.tween_property(node, "position", _rest_pos(b), seconds) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+
+
+func _sweep(b: Dictionary, seconds: float) -> void:
+	"""Horse in pursuit: not straight at the beaten line but round its flank —
+	a short curve off its lane and in again — to the same resting place a
+	slide would take it to."""
+	var node: Node2D = b["node"]
+	var rest: Vector2 = _rest_pos(b)
+	# toward the middle of the baize, whichever side of it the corps stands
+	var off: float = -10.0 if rest.y > host._stage.size.y * 0.75 else 10.0
+	var mid: Vector2 = (node.position + rest) / 2.0 + Vector2(0.0, off)
+	var tw: Tween = node.create_tween()
+	tw.tween_property(node, "position", mid, seconds * 0.5) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(node, "position", rest, seconds * 0.5) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _waver(b: Dictionary) -> void:
@@ -959,7 +1503,10 @@ func _fire(gunner, target_name: String, attacker_fires: bool) -> void:
 	var dir: float = 1.0 if from_left else -1.0
 	var muzzle: Vector2
 	if gunner != null:
-		muzzle = (gunner["node"] as Node2D).position + Vector2(52.0 * dir, -34.0)
+		# (the muzzle follows the art's own scale: a wing's guns are smaller)
+		var gun_art: Node2D = (gunner["node"] as Node2D).get_node_or_null("Art")
+		var gs: float = gun_art.scale.x if gun_art != null else 1.0
+		muzzle = (gunner["node"] as Node2D).position + Vector2(52.0 * dir, -34.0) * gs
 	else:
 		var side: Dictionary = host._side_payloads()[0 if from_left else 1]
 		var gun := DioramaFigure.new()
@@ -967,6 +1514,11 @@ func _fire(gunner, target_name: String, attacker_fires: bool) -> void:
 				Utils.NATION_COLORS.get(str(side.get("nation", "")), Utils.UI_NEUTRAL_FIGURE),
 				host.SHELF_FIGURE_PX * 1.35)
 		gun.position = Vector2(66.0 if from_left else sw - 66.0, sh * 0.80)
+		if _laid == "wedge":
+			# BA-2: the baize's bottom corner is the near wing's — the gun
+			# stands in the pocket above and behind the lead
+			gun.position = GUN_POCKET if from_left else Vector2(sw - GUN_POCKET.x, GUN_POCKET.y)
+			gun.z_index = 30
 		gun.modulate.a = 0.0
 		host._stage.add_child(gun)
 		host._transients.append(gun)
@@ -1049,6 +1601,24 @@ func _draw_flank(attacker_flanks: bool) -> void:
 		Vector2(mid + dir * 228.0, foot - 14.0),
 		Vector2(mid + dir * 228.0, foot - 44.0),
 	])
+	if _laid == "wedge":
+		# BA-2: on the order of battle the march goes round the enemy lead's
+		# outer end, through the notch his near wing does not cover, and up
+		# onto his flank — read off where he stands, not off the file.
+		var foe = null
+		for lead in _leads():
+			if bool(lead["is_left"]) != from_left:
+				foe = lead
+		if foe != null:
+			var at: Vector2 = foe["home"]
+			var round_x: float = at.x + dir * (DioramaPlinth.HALF_W + 13.0)
+			pts = PackedVector2Array([
+				Vector2(mid - dir * 230.0, foot),
+				Vector2(mid - dir * 20.0, foot),
+				Vector2(round_x - dir * 14.0, foot),
+				Vector2(round_x, foot - 14.0),
+				Vector2(round_x, at.y - 40.0),
+			])
 	var line := Line2D.new()
 	line.width = 3.0
 	line.default_color = Color(GOLD, 0.9)
@@ -1072,6 +1642,562 @@ func _draw_flank(attacker_flanks: bool) -> void:
 	tw.tween_interval(1.6)
 	tw.tween_property(line, "modulate:a", 0.0, 0.5)
 	tw.parallel().tween_property(head, "modulate:a", 0.0, 0.5)
+
+	# BA-2: the flank is a MARCH — a column in the attacker's colours goes
+	# along the line as it is drawn and stands on the enemy's flank while the
+	# development is told. It is a development, not a corps: it fades with it.
+	var side: Dictionary = host._side_payloads()[0 if from_left else 1]
+	var column := DioramaFigure.new()
+	column.setup("infantry", "r" if from_left else "l",
+			Utils.NATION_COLORS.get(str(side.get("nation", "")), Utils.UI_NEUTRAL_FIGURE),
+			host.SHELF_FIGURE_PX)
+	column.position = pts[0]
+	column.z_index = 30
+	column.modulate.a = 0.0
+	host._stage.add_child(column)
+	host._transients.append(column)
+	var march: Tween = column.create_tween()
+	march.tween_property(column, "modulate:a", 1.0, 0.12)
+	for i in range(1, pts.size()):
+		march.tween_property(column, "position", pts[i], 0.16)
+	march.tween_interval(1.6)
+	march.tween_property(column, "modulate:a", 0.0, 0.5)
+
+
+# =============================================================================
+# BA-2: the manoeuvre — column and line, the plan, the square, the works, the wall
+# =============================================================================
+# Every verb here is keyed on something the payload already carries (a corps'
+# arm, a beat's flags, the wall's fate) and adds neither a beat nor a second to
+# a showing. What is laid from the battle's RESULT — the wall as it ended, the
+# works as the battle left them — is held back until its moment (BA1-X6).
+
+func _manoeuvres(b: Dictionary) -> bool:
+	"""A corps that comes on in column: not a garrison (it stands behind its
+	wall) and not a corps in square (it is already formed)."""
+	return not bool((b["data"] as Dictionary).get("garrison", false)) \
+			and not bool(b.get("in_square", false))
+
+
+func _in_column(b: Dictionary) -> void:
+	"""Its files closed up on the centre: a column of march."""
+	for f in b["figures"]:
+		var fig: Node2D = f
+		if not fig.has_meta(&"ba_line_x"):
+			fig.set_meta(&"ba_line_x", fig.position.x)
+		fig.position.x = float(fig.get_meta(&"ba_line_x")) * COLUMN_SQUEEZE
+
+
+func _close_up(b: Dictionary, delay: float, seconds: float) -> void:
+	"""Line into column, in time: the files close on the centre."""
+	for f in b["figures"]:
+		var fig: Node2D = f
+		if not fig.has_meta(&"ba_line_x"):
+			fig.set_meta(&"ba_line_x", fig.position.x)
+		var tw: Tween = fig.create_tween()
+		tw.tween_interval(delay)
+		tw.tween_property(fig, "position:x",
+				float(fig.get_meta(&"ba_line_x")) * COLUMN_SQUEEZE, seconds) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+
+
+func _deploy(b: Dictionary, delay: float, seconds: float) -> void:
+	"""…and into line: the files open out to their places."""
+	for f in b["figures"]:
+		var fig: Node2D = f
+		if not fig.has_meta(&"ba_line_x"):
+			continue
+		var tw: Tween = fig.create_tween()
+		tw.tween_interval(delay)
+		tw.tween_property(fig, "position:x", float(fig.get_meta(&"ba_line_x")), seconds) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _in_line(b: Dictionary) -> void:
+	"""At once: every man on his place in the line (the gavel, for whatever
+	the showing did not bring there)."""
+	for f in b["figures"]:
+		var fig: Node2D = f
+		if is_instance_valid(fig) and fig.has_meta(&"ba_line_x"):
+			fig.position.x = float(fig.get_meta(&"ba_line_x"))
+			fig.remove_meta(&"ba_line_x")
+
+
+func _tell_the_plan(beat: Dictionary) -> void:
+	"""The plan is shown on the board: the lead answers, then each corps
+	ordered in support and each battery it names, in turn."""
+	var names: Array = [str(beat.get("actor", ""))]
+	for key in ["supports", "guns"]:
+		var listed = beat.get(key, [])
+		if listed is Array:
+			for n in listed:
+				names.append(str(n))
+	var k := 0
+	for n in names:
+		var b = _blocks.get(n, null)
+		if b == null:
+			continue
+		var tw: Tween = (b["node"] as Node2D).create_tween()
+		tw.tween_interval(0.22 * k)
+		tw.tween_callback(_pulse.bind(b["locket"]))
+		k += 1
+
+
+func _storm_reach(b: Dictionary) -> float:
+	"""How far a storming corps goes: to the foot of the wall, and never so
+	far that a line of his meets one of the garrison's. The same whether the
+	wall will hold or fall — the storm tells nothing of its end."""
+	if _wall == null or not is_instance_valid(_wall):
+		return 0.0
+	var toward: float = -_outward(b)
+	var home_x: float = (b["home"] as Vector2).x
+	var reach: float = (_wall.position.x - toward * (_wall.reach() + 2.0)
+			- (home_x + toward * DioramaPlinth.HALF_W)) * toward
+	var theirs: Array = []
+	for who in _blocks:
+		if bool((_blocks[who]["data"] as Dictionary).get("garrison", false)):
+			theirs += _words(_blocks[who])
+	for r in _words(b):
+		var mine: Rect2 = r
+		for o in theirs:
+			var other: Rect2 = o
+			if mine.position.y < other.end.y and mine.end.y > other.position.y:
+				var room: float = (other.position.x - mine.end.x) if toward > 0.0 \
+						else (mine.position.x - other.end.x)
+				reach = minf(reach, room - 6.0)
+	return clampf(reach, 0.0, 96.0)
+
+
+func _storm(b: Dictionary) -> void:
+	"""The stormers close up into columns and go in to the foot of the wall,
+	the ladders raised."""
+	var node: Node2D = b["node"]
+	var toward: float = -_outward(b)
+	var home_x: float = (b["home"] as Vector2).x
+	host._cue("bugle_charge")
+	# closed up at once, a victor's stormers stood in line again a quarter
+	# second later (the host's recoil): they close up as they come
+	_close_up(b, AFTER_THE_RECOIL, 0.25)
+	if _wall != null and is_instance_valid(_wall):
+		_wall.raise_ladders()
+	var tw: Tween = node.create_tween()
+	tw.tween_property(node, "position:x", home_x + toward * float(b.get("storm_reach", 0.0)), 0.55) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _the_wall_answers(fell: bool) -> void:
+	"""What the wall did, at its moment: it stands and the stormers fall back
+	from it, or it is carried (or yields) and they stand in the breach."""
+	if _wall != null and is_instance_valid(_wall):
+		_wall.show_the_end()
+	for who in _blocks:
+		var b: Dictionary = _blocks[who]
+		if bool((b["data"] as Dictionary).get("garrison", false)):
+			continue
+		_deploy(b, 0.0, 0.3)
+		if not fell:
+			host._cue("bugle_retreat")
+			_slide(b, 0.9)
+
+
+func _struck(b: Dictionary) -> void:
+	"""A corps standing by is caught in the fire."""
+	var node: Node2D = b["node"]
+	for i in range(2):
+		var hit := Burst.new()
+		hit.position = node.position + Vector2(-14.0 + 28.0 * i, -30.0 - 6.0 * i)
+		hit.dir = 0.0
+		host._stage.add_child(hit)
+		host._transients.append(hit)
+		hit.go(0.1 + 0.2 * i)
+	for f in b["figures"]:
+		f.recoil(0.25)
+
+
+func _build_the_wall() -> void:
+	"""A garrison's curtain wall, between its block and the line. It opens
+	WHOLE: what the assault did to it is the result's, and comes with the
+	crisis (`_the_wall_answers`) or with the settled frame."""
+	for who in _blocks:
+		var keeper: Dictionary = _blocks[who]
+		if not bool((keeper["data"] as Dictionary).get("garrison", false)):
+			continue
+		var node: Node2D = keeper["node"]
+		var toward: float = -_outward(keeper)
+		_wall = SiegeWall.new()
+		_wall.facing = toward
+		_wall.fortified = bool(host._data.get("fortified", false))
+		_wall.fate = str(host._data.get("fate", "held"))
+		for other in _blocks:
+			var stormer: Dictionary = (_blocks[other] as Dictionary)["data"]
+			if not bool(stormer.get("garrison", false)) and bool(stormer.get("lead", false)):
+				_wall.victor = Utils.NATION_COLORS.get(
+						str(stormer.get("origin_nation", stormer.get("nation", ""))),
+						Utils.UI_NEUTRAL_FIGURE)
+		_wall.position = Vector2(
+				node.position.x + toward * (DioramaPlinth.HALF_W + SiegeWall.HALF_W
+						+ SiegeWall.BATTER - 1.0),
+				node.position.y + 24.0)
+		_wall.z_index = 19
+		host._stage.add_child(_wall)
+		host._transients.append(_wall)
+		return
+
+
+func _build_the_works() -> void:
+	"""Field works stand as a drawn rampart in front of the corps that threw
+	them up, at the strength the battle met them with, and come down by what
+	the battle's own report says. Read off the beats alone: a watcher is told
+	of no works (they are the side's own), so none is drawn for him."""
+	var marks: Dictionary = {}          # corps -> [as built %, as it ended %]
+	for item in _all_beats():
+		var beat: Dictionary = item["beat"]
+		var who: String = str(beat.get("actor", ""))
+		match str(beat.get("kind", "")):
+			"ground", "plan":
+				var pct: int = int(beat.get("works_pct", 0))
+				if pct > 0 and not marks.has(who):
+					marks[who] = [pct, pct]
+			"works":
+				marks[who] = [int(beat.get("old", 0)), int(beat.get("new", 0))]
+	for who in marks:
+		var b = _blocks.get(who, null)
+		if b == null:
+			continue
+		var node: Node2D = b["node"]
+		var art: Node2D = node.get_node_or_null("Art")
+		var s: float = art.scale.x if art != null else 1.0
+		var bank := Rampart.new()
+		bank.facing = -_outward(b)
+		bank.built = int(marks[who][0])
+		bank.ended = int(marks[who][1])
+		bank.position = node.position + Vector2(
+				bank.facing * (DioramaPlinth.HALF_W * s + Rampart.BACK + 2.0), 24.0 * s)
+		bank.z_index = 19
+		host._stage.add_child(bank)
+		host._transients.append(bank)
+		bank.stand_as_built()
+		_works[who] = bank
+
+
+func _batter(who: String) -> void:
+	"""The works come down, at the moment the battle's report tells it."""
+	var bank = _works.get(who, null)
+	if bank != null and is_instance_valid(bank):
+		(bank as Rampart).come_down()
+
+
+func _the_ground_is_as_it_ended() -> void:
+	"""At once: the wall as the assault left it, the works as the battle did."""
+	if _wall != null and is_instance_valid(_wall):
+		_wall.show_the_end()
+	for who in _works:
+		if is_instance_valid(_works[who]):
+			(_works[who] as Rampart).stand_as_ended()
+
+
+func _mark_the_squares() -> void:
+	"""A corps the battle met in square stands in square: its rear rank faces
+	about and the square is marked on its slab. A disposition, not a result —
+	it stands from the first frame; and only where the script tells it (the
+	enemy's in a battle the player fought, never a watched one's)."""
+	var who: Dictionary = {}
+	for item in _all_beats():
+		var beat: Dictionary = item["beat"]
+		match str(beat.get("kind", "")):
+			"ground", "plan":
+				if bool(beat.get("square", false)):
+					who[str(beat.get("actor", ""))] = true
+			"square":
+				# the row is the horse's own: the squares are the corps it rode at
+				var rider_left: bool = (str(beat.get("side", "")) == "attacker") == _attacker_left()
+				for lead in _leads():
+					if bool(lead["is_left"]) != rider_left:
+						who[str((lead["data"] as Dictionary).get("name", ""))] = true
+	for n in who:
+		var b = _blocks.get(n, null)
+		if b == null:
+			continue
+		var art: Node2D = (b["node"] as Node2D).get_node_or_null("Art")
+		if art == null:
+			continue
+		b["in_square"] = true
+		_form_square(b, art)
+		var mark := SquareMark.new()
+		art.add_child(mark)
+		art.move_child(mark, 1)          # over the slab, under the men
+		_squares.append(mark)
+
+
+func _form_square(b: Dictionary, art: Node2D) -> void:
+	"""The stands of a corps in square as a wargamer lays them: a face to the
+	enemy and a face to the rear, the far and the near face, the colours
+	inside. Each stand keeps the place in the host's drawing order it was built
+	with (far to near), so nothing is re-parented and the host's own tumbles
+	still find their men."""
+	var toward: float = -_outward(b)
+	# far face · rear face · front face · the colours · near face
+	var slots: Array = [Vector2(0.0, -24.0), Vector2(-toward * 36.0, -11.0),
+			Vector2(toward * 36.0, -11.0), Vector2(0.0, -9.0), Vector2(0.0, 3.0)]
+	var k := 0
+	for child in art.get_children():
+		if not (child is DioramaFigure) or not (b["figures"] as Array).has(child):
+			continue
+		var stand: Node2D = child
+		stand.position = slots[mini(k, slots.size() - 1)]
+		# the rear face looks the other way
+		stand.scale.x = -absf(stand.scale.x) if k == 1 else absf(stand.scale.x)
+		k += 1
+
+
+class SiegeWall:
+	extends Node2D
+	# A garrison's wall: a battlemented curtain between the garrison and the
+	# line, its foot at the origin, `facing` the unit x toward the stormers.
+	# Stone, courses, parapet and merlons are DRAWN (no new art). It stands
+	# whole until the assault's end is told; then it is scarred (held), broken
+	# down under the stormers' colour (stormed) or flies a white flag
+	# (capitulated).
+
+	const HALF_W := 20.0
+	const HEIGHT := 104.0       # its foot to the walkway
+	const MERLON := 12.0        # the battlements above the walkway
+	const BATTER := 4.0         # how far its foot spreads
+	const OUTWORK := 18.0       # a fortress's outer work, on the stormers' side
+	# A carried wall's broken edge: (toward the stormers from its centre, below
+	# the walkway), from the crest down to the stormers' face.
+	const BREACH := [Vector2(-3.0, 0.0), Vector2(3.0, 30.0), Vector2(9.0, 38.0),
+			Vector2(14.0, 60.0), Vector2(20.0, 66.0)]
+
+	var facing := -1.0
+	var fortified := false
+	var fate := "held"
+	var victor := Color.WHITE   # the stormers' colour, flown on a wall they carried
+	var _state := "whole"       # whole | held | stormed | capitulated
+	var _ladders := 0.0         # 0 … 1: how far up the wall the ladders stand
+
+	func state() -> String:
+		return _state
+
+	func stone() -> Rect2:
+		"""The curtain itself, in its own space: what no corps may stand in."""
+		return Rect2(-HALF_W, -HEIGHT - MERLON, HALF_W * 2.0, HEIGHT + MERLON)
+
+	func reach() -> float:
+		"""How far its stone stands toward the stormers, from its centre."""
+		return HALF_W + (OUTWORK if fortified else BATTER)
+
+	func stand_whole() -> void:
+		_state = "whole"
+		_ladders = 0.0
+		queue_redraw()
+
+	func show_the_end() -> void:
+		if _state == fate:
+			return
+		_state = fate
+		if fate != "stormed":
+			_ladders = 0.0      # they fell back from it, or it opened its gates
+		queue_redraw()
+
+	func raise_ladders() -> void:
+		var tw: Tween = create_tween()
+		tw.tween_method(_set_ladders, 0.0, 1.0, 0.45)
+
+	func _set_ladders(v: float) -> void:
+		if _state == "whole":
+			_ladders = v
+			queue_redraw()
+
+	func pulse() -> void:
+		var tw: Tween = create_tween()
+		tw.tween_property(self, "modulate", Color(1.25, 1.22, 1.15, 1.0), 0.16)
+		tw.tween_property(self, "modulate", Color.WHITE, 0.26)
+
+	func _broken_at(below: float) -> float:
+		"""Where a carried wall's broken edge stands `below` px under the
+		walkway (toward the stormers, from its centre); under the breach, the
+		whole width."""
+		for i in range(1, BREACH.size()):
+			var a: Vector2 = BREACH[i - 1]
+			var b: Vector2 = BREACH[i]
+			if below <= b.y:
+				return lerpf(a.x, b.x, clampf((below - a.y) / maxf(b.y - a.y, 0.001), 0.0, 1.0))
+		return HALF_W
+
+	func _draw() -> void:
+		var f: float = facing
+		var top: float = -HEIGHT
+		var stone_c: Color = Utils.UI_WALL_STONE
+		var shade: Color = Utils.UI_WALL_SHADE
+		var scar: Color = Utils.UI_WALL_SCAR
+		var carried: bool = _state == "stormed"
+		if fortified:
+			# a fortress: a low sloped outwork at the curtain's foot
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(f * HALF_W, 0.0), Vector2(f * (HALF_W + OUTWORK), 0.0),
+				Vector2(f * (HALF_W + OUTWORK - 7.0), -36.0), Vector2(f * HALF_W, -36.0)]), shade)
+			draw_line(Vector2(f * (HALF_W + OUTWORK - 7.0), -36.0), Vector2(f * HALF_W, -36.0),
+					stone_c, 2.0)
+		# the curtain, battered at its foot; a carried wall is broken down from
+		# its crest on the stormers' side
+		var body := PackedVector2Array([
+			Vector2(-f * (HALF_W + BATTER), 0.0), Vector2(-f * HALF_W, -26.0),
+			Vector2(-f * HALF_W, top)])
+		if carried:
+			for p in BREACH:
+				body.append(Vector2(f * (p as Vector2).x, top + (p as Vector2).y))
+		else:
+			body.append(Vector2(f * HALF_W, top))
+		body.append(Vector2(f * HALF_W, -26.0))
+		body.append(Vector2(f * (HALF_W + BATTER), 0.0))
+		draw_colored_polygon(body, stone_c)
+		# the parapet and its merlons — on a carried wall, what is left of them
+		var from: float = -HALF_W - 3.0
+		var to: float = HALF_W + 3.0
+		if carried:
+			if f > 0.0:
+				to = -3.0
+			else:
+				from = 3.0
+		draw_rect(Rect2(from, top - 4.0, to - from, 6.0), stone_c)
+		var merlons: int = 2 if carried else 4
+		var gap: float = (to - from - 8.0 * merlons) / float(merlons - 1)
+		for i in range(merlons):
+			draw_rect(Rect2(from + (8.0 + gap) * i, top - MERLON, 8.0, MERLON - 4.0), stone_c)
+		# the far face in shade
+		var far: float = -f * HALF_W
+		draw_rect(Rect2(minf(far, far * 0.4), top, HALF_W * 0.6, HEIGHT), Color(shade, 0.5))
+		# the courses and their joints (only where the stone still stands)
+		var line_c := Color(shade, 0.7)
+		var row := 0
+		var y: float = -16.0
+		while y > top + 6.0:
+			var edge: float = _broken_at(y - top) if carried else HALF_W
+			draw_line(Vector2(-f * HALF_W, y), Vector2(f * edge, y), line_c, 1.0)
+			var above: float = maxf(y - 16.0, top)
+			var over: float = _broken_at(above - top) if carried else HALF_W
+			var jx: float = -HALF_W + 7.0 + (7.0 if row % 2 == 1 else 0.0)
+			while jx < HALF_W - 2.0:
+				if jx * f < over - 1.0:
+					draw_line(Vector2(jx, y), Vector2(jx, above), Color(shade, 0.4), 1.0)
+				jx += 14.0
+			row += 1
+			y -= 16.0
+		# a loophole in its outer half
+		draw_rect(Rect2(f * 6.0 - 1.5, top + 72.0, 3.0, 13.0), scar)
+		if _state == "held":
+			# it stood: shot marks on its outer face
+			for at in [Vector2(f * 9.0, top + 26.0), Vector2(f * 4.0, top + 44.0),
+					Vector2(f * 13.0, top + 56.0)]:
+				draw_circle(at, 3.0, scar)
+		elif carried:
+			# the rubble of the breach, and the stormers' colour on the crest
+			for i in range(5):
+				draw_circle(Vector2(f * (HALF_W - 2.0 + 6.0 * i), -3.0 - float((7 - i) % 3)),
+						3.5 + float(i % 2), shade if i % 2 == 0 else scar)
+			var staff := Vector2(-f * 13.0, top - MERLON)
+			draw_line(staff, staff + Vector2(0.0, -22.0), scar, 2.0)
+			draw_rect(Rect2(minf(staff.x, staff.x - f * 18.0), staff.y - 22.0, 18.0, 11.0), victor)
+		elif _state == "capitulated":
+			var staff_top := Vector2(0.0, top - MERLON - 30.0)
+			draw_line(Vector2(0.0, top - 4.0), staff_top, scar, 2.0)
+			draw_rect(Rect2(minf(0.0, f * 22.0), staff_top.y, 22.0, 14.0), Utils.UI_WHITE_FLAG)
+		if _ladders > 0.0:
+			for i in range(2):
+				var foot := Vector2(f * (reach() + 12.0 + 13.0 * i), 0.0)
+				var head_y: float = top * (0.66 + 0.3 * i) * _ladders
+				if carried:
+					head_y = maxf(head_y, top + 62.0 + 4.0 * i)   # onto the lip of the breach
+				var head := Vector2(f * HALF_W, head_y)
+				for rail in [0.0, 5.0]:
+					draw_line(foot + Vector2(f * rail, 0.0), head + Vector2(f * rail, 0.0),
+							Utils.UI_WORKS_CREST, 2.0)
+				for k in range(1, 6):
+					var rung: Vector2 = foot.lerp(head, float(k) / 6.0)
+					draw_line(rung, rung + Vector2(f * 5.0, 0.0), Utils.UI_WORKS_CREST, 1.0)
+
+
+class Rampart:
+	extends Node2D
+	# Field works: a bank of thrown-up earth with a firing step behind it and
+	# sharpened stakes out of its face, in front of the corps that made them —
+	# its foot at the origin, `facing` the unit x toward the enemy. Its height
+	# is the works' strength in percent, as the battle's report gives it.
+
+	const PX_PER_PCT := 3.0
+	const MAX_H := 58.0
+	const MIN_H := 4.0          # under this the works are levelled
+	const BACK := 18.0          # its foot behind the crest …
+	const FRONT := 18.0         # … and before it
+
+	var facing := 1.0
+	var built := 0              # as the battle met them
+	var ended := 0              # as it left them
+	var _pct := 0.0
+
+	func shown_pct() -> int:
+		return int(round(_pct))
+
+	func stand_as_built() -> void:
+		_pct = float(built)
+		queue_redraw()
+
+	func stand_as_ended() -> void:
+		_pct = float(ended)
+		queue_redraw()
+
+	func come_down() -> void:
+		var tw: Tween = create_tween()
+		tw.tween_method(_set_pct, _pct, float(ended), 0.6) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	func _set_pct(v: float) -> void:
+		_pct = v
+		queue_redraw()
+
+	func _draw() -> void:
+		var f: float = facing
+		var h: float = clampf(_pct * PX_PER_PCT, 0.0, MAX_H)
+		if h < MIN_H:
+			# levelled: the earth thrown down, a stake left in it
+			for i in range(5):
+				draw_circle(Vector2(f * (-12.0 + 7.0 * i), -2.0 - float(i % 2)),
+						3.0 + float(i % 2), Utils.UI_WORKS_EARTH)
+			draw_line(Vector2(f * 6.0, -3.0), Vector2(f * 15.0, -8.0), Utils.UI_WORKS_CREST, 1.5)
+			return
+		# the bank: a firing step behind, steep toward the enemy
+		var step := Vector2(-f * 8.0, -h * 0.55)
+		var crest := Vector2(-f * 2.0, -h)
+		var lip := Vector2(f * 5.0, -h + 3.0)
+		var toe := Vector2(f * FRONT, 0.0)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(-f * BACK, 0.0), Vector2(-f * 13.0, -h * 0.55), step, crest, lip, toe]),
+			Utils.UI_WORKS_EARTH)
+		draw_polyline(PackedVector2Array([step, crest, lip]), Utils.UI_WORKS_CREST, 2.0)
+		# the fraises: sharpened stakes out of its outer slope
+		if h > 12.0:
+			var stakes: int = 3 if h < 30.0 else 4
+			for i in range(stakes):
+				var at: Vector2 = lip.lerp(toe, 0.2 + 0.6 * float(i) / float(stakes - 1))
+				draw_line(at, at + Vector2(f * 9.0, -7.0), Utils.UI_WORKS_CREST, 1.5)
+
+
+class SquareMark:
+	extends Node2D
+	# The ground mark of a corps formed in square, on its slab (the art's own
+	# units: the slab's top face runs y −30 … 12): its four faces, and the
+	# bayonets it shows at its two corners.
+
+	func _draw() -> void:
+		var c: Color = Utils.UI_SQUARE_MARK
+		var left := Vector2(-66.0, -9.0)
+		var right := Vector2(66.0, -9.0)
+		draw_polyline(PackedVector2Array([
+			left, Vector2(0.0, -27.0), right, Vector2(0.0, 9.0), left]), c, 2.0, true)
+		for k in [-1.0, 0.0, 1.0]:
+			draw_line(left, left + Vector2(-1.0, 0.5 * k).normalized() * 9.0, c, 1.5)
+			draw_line(right, right + Vector2(1.0, 0.5 * k).normalized() * 9.0, c, 1.5)
 
 
 # =============================================================================

@@ -32,6 +32,7 @@ from backend.commands.objection_v2 import (
 )
 from backend.display_names import action_display_name as _action_display_name, get_strategic_display, humanize_entity_name
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend.game_logic.siege_diorama import with_bombardment_tableau as _with_bombardment_tableau  # BA-2
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 from backend.commands.strategic import (  # S14G-2 / S14G-3: the order's terms, said at the order
     aggressive_interrupt_clause as _aggressive_interrupt_clause,
@@ -4166,9 +4167,9 @@ class StrategicExecutor:
                 if defiant_action == "bombardment":
                     nearest = world.find_nearest_enemy(marshal.location)
                     if nearest and nearest[1] <= 2:
-                        defiant_execution = self._executor._combat._execute_bombardment(
+                        defiant_execution = _with_bombardment_tableau(world, self._executor._combat._execute_bombardment(
                             marshal, nearest[0], world, game_state
-                        )
+                        ), marshal, nearest[0])  # BA-2: a standalone bombardment carries its tableau
                     else:
                         defiant_action = "wait"
                         defiant_execution = self._executor._execute_wait(marshal, world, game_state)

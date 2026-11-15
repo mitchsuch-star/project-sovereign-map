@@ -1,0 +1,2384 @@
+{
+ "date": "2026_11_15",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\92eb1c89-45e0-41b7-86ee-bb0ab7c2ef96\\scratchpad\\iq10final\\index.json",
+ "surfaces": {
+  "diorama_aadj": {
+   "surface": "Battle Diorama (attacker adjusted)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_dadj": {
+   "surface": "Battle Diorama (defender adjusted)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "red": 0,
+      "p1": 0,
+      "ok": 27,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_rout_conquest": {
+   "surface": "Battle Diorama (a rout and a conquest)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_four_contingents": {
+   "surface": "Battle Diorama (six corps against five (three seats a side, BA-2))",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_naval": {
+   "surface": "Battle Diorama (a fleet action)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "red": 0,
+      "p1": 0,
+      "ok": 28,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "red": 0,
+      "p1": 0,
+      "ok": 28,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "red": 0,
+      "p1": 0,
+      "ok": 28,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "red": 0,
+      "p1": 0,
+      "ok": 28,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "red": 0,
+      "p1": 0,
+      "ok": 28,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_verdict_worst": {
+   "surface": "Battle Diorama (the verdict's worst case)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_field_at_rest": {
+   "surface": "Battle Diorama — the acts (a great battle at rest)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_enemy_came_up": {
+   "surface": "Battle Diorama — the acts (an enemy corps that came up)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_the_guns": {
+   "surface": "Battle Diorama — the acts (a battle the guns opened)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "red": 0,
+      "p1": 0,
+      "ok": 34,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_defeat": {
+   "surface": "Battle Diorama — the acts (a defeat on the defence)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_watched": {
+   "surface": "Battle Diorama — the acts (another court's battle)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_act_approach": {
+   "surface": "Battle Diorama — the acts (mid-act: the approach)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba1_act_crisis": {
+   "surface": "Battle Diorama — the acts (mid-act: the crisis)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 31,
+      "red": 0,
+      "p1": 0,
+      "ok": 31,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_order_of_battle": {
+   "surface": "Battle Diorama — BA-2 (three corps a side, the reserve counted)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "red": 0,
+      "p1": 0,
+      "ok": 39,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "red": 0,
+      "p1": 0,
+      "ok": 39,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "red": 0,
+      "p1": 0,
+      "ok": 39,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "red": 0,
+      "p1": 0,
+      "ok": 39,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "red": 0,
+      "p1": 0,
+      "ok": 39,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_walls_carried": {
+   "surface": "Battle Diorama — BA-2 (a garrison's wall carried)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_our_walls_hold": {
+   "surface": "Battle Diorama — BA-2 (our own wall held)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_capitulated": {
+   "surface": "Battle Diorama — BA-2 (a garrison that yielded)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_works_levelled": {
+   "surface": "Battle Diorama — BA-2 (a cannonade that levelled the works)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "red": 0,
+      "p1": 0,
+      "ok": 19,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_our_own_under_the_guns": {
+   "surface": "Battle Diorama — BA-2 (our own corps under our guns)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "red": 0,
+      "p1": 0,
+      "ok": 21,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_square": {
+   "surface": "Battle Diorama — BA-2 (a square against horse)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_dispositions": {
+   "surface": "Battle Diorama — BA-2 (our own dispositions)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba2_act_storm": {
+   "surface": "Battle Diorama — BA-2 (mid-act: the storm)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "region_swabia_bring": {
+   "surface": "Region Action Panel — Swabia, the plan at the attack row (BA-2)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "region_swabia_bring_open": {
+   "surface": "Region Action Panel — Swabia, the plan's fold open (BA-2)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_bring": {
+   "surface": "Order card — an attack with the plan's chips (BA-2)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "74d9d139",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

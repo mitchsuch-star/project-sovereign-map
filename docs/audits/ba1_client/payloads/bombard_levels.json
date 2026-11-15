@@ -1,0 +1,105 @@
+{
+ "kind": "bombardment",
+ "battle_name": "Cannonade at Swabia",
+ "region": "Swabia",
+ "turn": 1,
+ "outcome": "bombardment",
+ "victor": null,
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "grim",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Marmont",
+    "nation": "France",
+    "arm": "artillery",
+    "committed": 3000,
+    "casualties": 49,
+    "remaining": 2951,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 49,
+  "committed_total": 3000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 52000,
+    "casualties": 3470,
+    "remaining": 48530,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3470,
+  "committed_total": 52000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Cracks spread through the enemy works under Marmont's bombardment. They weaken, Sire.",
+ "banner": "THE WORKS ARE LEVELLED",
+ "works_old": 10,
+ "works_new": 0,
+ "battery_at": "Rhineland",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "cannonade",
+    "beats": [
+     {
+      "kind": "battery",
+      "side": "attacker",
+      "actor": "Marmont",
+      "text": "Marmont's guns open from Rhineland on Mack: 3,470 fall. The answering fire costs the battery 49.",
+      "weight": "head",
+      "dealt": 3470,
+      "target": "Mack",
+      "taken": 49
+     },
+     {
+      "kind": "works",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack's works are levelled.",
+      "weight": "head",
+      "old": 10,
+      "new": 0
+     },
+     {
+      "kind": "shaken",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack's line stands under the fire at 97% morale.",
+      "weight": "detail",
+      "morale": 97
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Marmont": "steady",
+   "Mack": "steady"
+  }
+ }
+}

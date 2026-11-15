@@ -1,0 +1,198 @@
+{
+ "battle_name": "The Great Battle of Tyrol",
+ "region": "Tyrol",
+ "turn": 1,
+ "outcome": "defender_tactical_victory",
+ "victor": "Kutuzov",
+ "attacker_nation": "France",
+ "defender_nation": "Russia",
+ "player_side": "attacker",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": true,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 26000,
+    "casualties": 4320,
+    "remaining": 21680,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Lannes",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 18000,
+    "casualties": 1794,
+    "remaining": 16206,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 6114,
+  "committed_total": 44000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Kutuzov",
+    "nation": "Russia",
+    "arm": "infantry",
+    "committed": 38000,
+    "casualties": 2419,
+    "remaining": 35581,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Buxhowden",
+    "nation": "Russia",
+    "arm": "infantry",
+    "committed": 32000,
+    "casualties": 610,
+    "remaining": 31390,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3029,
+  "committed_total": 70000,
+  "reserve_casualties": 0,
+  "nation": "Russia"
+ },
+ "observation": "Lannes marched to Davout's guns as ordered. It was not enough.",
+ "enemy_voice": "Kutuzov: \"Russia is patient, Frenchman. You will learn what that costs.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout attacks Kutuzov at Tyrol.",
+      "weight": "detail"
+     },
+     {
+      "kind": "arrive",
+      "side": "attacker",
+      "actor": "Lannes",
+      "text": "Lannes marches from Munich to the sound of the guns.",
+      "weight": "detail",
+      "late": false,
+      "score": 74,
+      "bar": 55,
+      "margin": 19,
+      "origin": "Munich",
+      "ordered": false,
+      "concealed": false
+     },
+     {
+      "kind": "ground",
+      "side": "defender",
+      "actor": "Kutuzov",
+      "text": "Kutuzov stands in the mountains (+25%).",
+      "weight": "detail",
+      "terrain_pct": 25,
+      "works_pct": 0,
+      "walls_pct": 0,
+      "square": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout comes on by measured steps (−10%).",
+      "weight": "head",
+      "temper": "cautious",
+      "pct": 10,
+      "penalty": true
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Kutuzov",
+      "text": "Kutuzov holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "The fortune of the day: Davout rolls 5, +2 for his eye for ground: 7.",
+      "weight": "head",
+      "natural": 5,
+      "skill": 2,
+      "flank": 0,
+      "modified": 7,
+      "critical": "",
+      "swing": 2,
+      "fortune_attacker": -5,
+      "fortune_defender": 0
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "leave",
+      "side": "attacker",
+      "actor": "Lannes",
+      "text": "Lannes withdraws to Munich after the battle.",
+      "weight": "detail",
+      "how": "withdrew",
+      "to": "Munich"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Davout": "cautious",
+   "Lannes": "aggressive",
+   "Kutuzov": "cautious",
+   "Buxhowden": "literal"
+  }
+ }
+}

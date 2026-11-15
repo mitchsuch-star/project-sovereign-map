@@ -55,6 +55,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -87,6 +88,21 @@ SCENE_BEATS = {
     ],
     "the_day_hangs": [{"beat": "stand", "after": 0.8, "shot": "stand"}],
     "the_guns": [{"beat": "battery", "after": 0.8, "shot": "battery"}],
+    # Row BA, BA-2: the board, the walls, the guns
+    "the_reserve": [{"beat": "advance", "after": 0.45, "shot": "the_line_goes_in"}],
+    "two_a_side": [{"beat": "advance", "after": 0.45, "shot": "the_line_goes_in"}],
+    "our_dispositions": [{"beat": "plan", "after": 0.6, "shot": "plan"}],
+    "square_and_horse": [{"beat": "advance", "after": 0.3, "shot": "the_horse"}],
+    "assault_held": [{"beat": "storm", "after": 0.7, "shot": "storm"},
+                     {"beat": "wall_holds", "after": 0.9, "shot": "the_wall"}],
+    "assault_stormed": [{"beat": "storm", "after": 0.7, "shot": "storm"},
+                        {"beat": "wall_falls", "after": 0.9, "shot": "the_wall"}],
+    "assault_occupied": [{"beat": "wall_falls", "after": 0.9, "shot": "the_wall"}],
+    "assault_capitulated": [{"beat": "capitulates", "after": 0.9, "shot": "the_wall"}],
+    "assault_on_ours": [{"beat": "storm", "after": 0.7, "shot": "storm"}],
+    "bombard_link": [{"beat": "battery", "after": 0.8, "shot": "battery"}],
+    "bombard_levels": [{"beat": "works", "after": 0.9, "shot": "works"}],
+    "bombard_ours": [{"beat": "bystander", "after": 0.6, "shot": "bystander"}],
 }
 
 # The frames a whole walk keeps in the repo: (shot id, tag, file stem).
@@ -109,7 +125,22 @@ CURATED = [
     ("observed_full", "end", "16_another_courts_battle"),
     ("ordinary_brief", "end", "17_an_ordinary_battle_in_brief"),
     ("ulm_full__old_payload", "end", "18_a_battle_from_before_the_acts"),
-    ("four_a_side", "end", "19_four_corps_a_side_at_rest"),
+    ("the_reserve", "end", "19_three_seats_and_the_reserve"),
+    # Row BA, BA-2: the board, the walls, the guns
+    ("the_reserve", "the_line_goes_in", "20_the_order_of_battle_goes_in"),
+    ("two_a_side", "end", "21_two_corps_a_side"),
+    ("our_dispositions", "plan", "22_our_dispositions_named"),
+    ("square_and_horse", "the_horse", "23_the_horse_and_the_square"),
+    ("assault_held", "opening", "24_before_the_walls"),
+    ("assault_held", "storm", "25_the_storm"),
+    ("assault_held", "end", "26_the_walls_hold"),
+    ("assault_stormed", "end", "27_the_walls_are_carried"),
+    ("assault_capitulated", "end", "28_the_garrison_capitulates"),
+    ("assault_on_ours", "end", "29_our_own_walls"),
+    ("bombard_link", "battery", "30_the_cannonade_alone"),
+    ("bombard_levels", "end", "31_the_works_are_levelled"),
+    ("bombard_ours", "bystander", "32_our_own_corps_under_our_guns"),
+    ("old_four_seat", "end", "33_an_old_four_seat_battle_keeps_its_file"),
 ]
 
 SOURCES = [
@@ -117,8 +148,15 @@ SOURCES = [
     "godot-client/project-sovereign/scripts/diorama_plinth.gd",
     "godot-client/project-sovereign/scripts/battle_diorama.gd",
     "backend/game_logic/battle_script.py",
+    "backend/game_logic/siege_diorama.py",
     "tools/ba1_acts_walk.gd",
 ]
+
+# BA-2: a payload from BEFORE the three-seat cap (BA-1's own four-a-side
+# battle, kept as it was staged): four corps a side must still play, as the
+# host's file.
+OLD_FOUR_SEAT = OUT / "old_four_seat_payload.json"
+STAGE_MID_X = 474           # the stage's centre line (948 px wide)
 
 
 def scene_events(name: str) -> list[dict]:
@@ -139,6 +177,14 @@ def build_shots(payload_dir: Path, only: list[str], scale: float) -> list[dict]:
                       "cinematic": True, "scale": scale, "events": scene_events(name)})
         # the settled frame of the same battle (a second viewing)
         shots.append({"id": f"{name}__settled", "scene": name, "payload": payload,
+                      "mode": "acts", "cinematic": False, "scale": scale,
+                      "events": [{"t": 0.6, "frames": 4, "shot": "settled"}]})
+    if OLD_FOUR_SEAT.exists() and (not only or any(o in "old_four_seat" for o in only)):
+        old = str(OLD_FOUR_SEAT)
+        shots.append({"id": "old_four_seat", "scene": "old_four_seat", "payload": old,
+                      "mode": "acts", "cinematic": True, "scale": scale,
+                      "events": scene_events("old_four_seat")})
+        shots.append({"id": "old_four_seat__settled", "scene": "old_four_seat", "payload": old,
                       "mode": "acts", "cinematic": False, "scale": scale,
                       "events": [{"t": 0.6, "frames": 4, "shot": "settled"}]})
     if "ulm_full" in manifest and (not only or any(o in "ulm_full" for o in only)):
@@ -294,7 +340,218 @@ def _opening_strength_claims(rid: str, frame: dict, payload: dict) -> list[str]:
         wrong.append(f"{rid}: at the opening the laurels already flank the plate")
     wrong += [f"{rid}: at the opening the reserve's dead are already told ({m['text']!r})"
               for m in frame.get("marks") or []
-              if m["kind"] == "text" and "in reserve" in m["text"] and "lost" in m["text"]]
+              if m["kind"] == "text" and (("in reserve" in m["text"] and "lost" in m["text"])
+                                          or RESERVE_DEAD_LINE.fullmatch(m["text"]))]
+    return wrong
+
+
+# BA-2: on a wedge the reserve's dead is a line of its own ("1,127 lost").
+RESERVE_DEAD_LINE = re.compile(r"[\d,]+ lost")
+
+
+def _kind(payload: dict) -> str:
+    return str(payload.get("kind") or "battle")
+
+
+def _beats(payload: dict) -> list[dict]:
+    return [b for block in (payload.get("script") or {}).get("acts") or []
+            for b in block.get("beats") or []]
+
+
+def _overlap(a, b, slack: int = 2) -> bool:
+    if not a or not b:
+        return False
+    w = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
+    h = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
+    return w > slack and h > slack
+
+
+def _wall_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict) -> list[str]:
+    """BA-2. A garrison assault opens on a WHOLE wall and ends on the one the
+    assault left (held, stormed, capitulated) — as the settled frame has it;
+    the garrison shows no portrait and no standard; no stormer stands in the
+    wall. No other battle has a wall."""
+    wrong = []
+    opening = _frame(res, "opening")
+    if _kind(payload) != "assault":
+        wrong += [f"{rid} {name}: a wall ({frame.get('wall')!r}) on a table that is no assault"
+                  for name, frame in (("opening", opening), ("end", end), ("settled", settled))
+                  if frame.get("wall")]
+        return wrong
+    fate = payload.get("fate")
+    if opening and opening.get("wall") != "whole":
+        wrong.append(f"{rid}: at the opening the wall already reads {opening.get('wall')!r}")
+    for name, frame in (("end", end), ("settled", settled)):
+        if frame.get("wall") != fate:
+            wrong.append(f"{rid} {name}: the wall reads {frame.get('wall')!r}, "
+                         f"the assault's fate is {fate!r}")
+        if frame.get("wall_ladders_pct") and fate == "held":
+            wrong.append(f"{rid} {name}: ladders still stand against a wall that held")
+        for c in frame.get("corps") or []:
+            if not c.get("garrison") and _overlap(c.get("body"), frame.get("wall_rect")):
+                wrong.append(f"{rid} {name}: {c['name']} stands in the wall")
+    storm = _frame(res, "storm")
+    if storm:
+        # the storm itself: the ladders up against a wall still whole, and the
+        # stormers closed up into columns (their files narrower than their line)
+        line = {c["name"]: c.get("files_px", 0) for c in settled.get("corps") or []}
+        if storm.get("wall") != "whole" or not storm.get("wall_ladders_pct"):
+            wrong.append(f"{rid} storm: the wall reads {storm.get('wall')!r} with ladders at "
+                         f"{storm.get('wall_ladders_pct')} %")
+        for c in storm.get("corps") or []:
+            if not c.get("garrison") and not c.get("files_px", 0) < line.get(c["name"], 0):
+                wrong.append(f"{rid} storm: {c['name']} goes in standing in line "
+                             f"({c.get('files_px')} px of {line.get(c['name'])}), not in column")
+    for name, frame in (("opening", opening), ("end", end), ("settled", settled)):
+        keepers = [c for c in frame.get("corps") or [] if c.get("garrison")]
+        if frame and len(keepers) != 1:
+            wrong.append(f"{rid} {name}: {len(keepers)} garrison blocks on an assault's table")
+        for c in keepers:
+            if c.get("portrait_shown") or c.get("standard_shown"):
+                wrong.append(f"{rid} {name}: the garrison shows a portrait "
+                             f"({c.get('portrait_shown')}) or a standard ({c.get('standard_shown')})")
+    return wrong
+
+
+def _works_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict) -> list[str]:
+    """BA-2. Field works stand at the strength the battle met them with when
+    the acts open, and at what its report says they ended on when they end;
+    a rampart nobody is told of is not drawn (a watcher is told of none)."""
+    marks: dict = {}
+    for beat in _beats(payload):
+        who, kind = str(beat.get("actor", "")), beat.get("kind")
+        if kind in ("ground", "plan") and int(beat.get("works_pct", 0) or 0) > 0:
+            marks.setdefault(who, [int(beat["works_pct"]), int(beat["works_pct"])])
+        elif kind == "works":
+            marks[who] = [int(beat.get("old", 0) or 0), int(beat.get("new", 0) or 0)]
+    wrong = []
+    opening = _frame(res, "opening")
+    for name, frame, index in (("opening", opening, 0), ("end", end, 1), ("settled", settled, 1)):
+        if not frame:
+            continue
+        shown = frame.get("works") or {}
+        on_table = {c["name"] for c in frame.get("corps") or []}
+        want = {who: pair[index] for who, pair in marks.items() if who in on_table}
+        if shown != want:
+            wrong.append(f"{rid} {name}: the works stand at {shown}, the battle's report "
+                         f"gives {want}")
+    return wrong
+
+
+def _board_claims(rid: str, frame: dict) -> list[str]:
+    """BA-2, the order of battle. Two or three corps on a side lay the wedge:
+    the lead nearest the centre line, the near wing below and behind him, the
+    far wing above and behind, the two sides mirrored; no line of a corps
+    stands on another corps' slab or men. Anything else — a duel, an old
+    payload that seats four — keeps the host's file."""
+    corps = frame.get("corps") or []
+    if not corps:
+        return []
+    sides = {True: [c for c in corps if c["left"]], False: [c for c in corps if not c["left"]]}
+    most = max(len(sides[True]), len(sides[False]))
+    want = "wedge" if 2 <= most <= 3 else "file"
+    wrong = []
+    if frame.get("laid") != want:
+        wrong.append(f"{rid}: the table is laid as {frame.get('laid')!r}; "
+                     f"{len(sides[True])} against {len(sides[False])} corps lay the {want}")
+    if frame.get("laid") != "wedge":
+        return wrong
+    for side in sides.values():
+        leads = [c for c in side if c.get("role") == "lead"]
+        if len(leads) != 1 or not leads[0].get("lead"):
+            wrong.append(f"{rid}: a side's centre is not its lead ({[c['name'] for c in leads]})")
+            continue
+        lead = leads[0]
+        for c in side:
+            if c is lead:
+                continue
+            if abs(c["home_x"] - STAGE_MID_X) < abs(lead["home_x"] - STAGE_MID_X) + 100:
+                wrong.append(f"{rid}: {c['name']} stands as near the centre as the lead")
+            if c.get("role") == "near" and not c["home_y"] > lead["home_y"] + 20:
+                wrong.append(f"{rid}: the near wing {c['name']} is not below the lead")
+            if c.get("role") == "far" and not c["home_y"] < lead["home_y"] - 100:
+                wrong.append(f"{rid}: the far wing {c['name']} is not above the lead")
+    for role in ("lead", "near", "far"):
+        left = [c for c in sides[True] if c.get("role") == role]
+        right = [c for c in sides[False] if c.get("role") == role]
+        if left and right and (abs(left[0]["home_x"] + right[0]["home_x"] - 2 * STAGE_MID_X) > 1
+                               or left[0]["home_y"] != right[0]["home_y"]):
+            wrong.append(f"{rid}: the {role} stations are not mirrored "
+                         f"({left[0]['home_x']},{left[0]['home_y']} / "
+                         f"{right[0]['home_x']},{right[0]['home_y']})")
+    for a in corps:
+        for b in corps:
+            if a is b:
+                continue
+            for word in a.get("words") or []:
+                if _overlap(word, b.get("body")):
+                    wrong.append(f"{rid}: a line of {a['name']}'s {word} stands on "
+                                 f"{b['name']}'s men {b.get('body')}")
+    return wrong
+
+
+def _manoeuvre_claims(rid: str, opening: dict, end: dict, settled: dict) -> list[str]:
+    """BA-2. A corps comes on in COLUMN and ends in LINE: when the acts open
+    its files are closed up, and at the end every man stands where the
+    settled frame has him. A garrison and a corps in square do not manoeuvre."""
+    wrong = []
+    line = {c["name"]: c for c in settled.get("corps") or []}
+    for c in end.get("corps") or []:
+        if c["name"] in line and c.get("files_px") != line[c["name"]].get("files_px"):
+            wrong.append(f"{rid}: at the end {c['name']}'s files span {c.get('files_px')} px, "
+                         f"the settled frame's {line[c['name']].get('files_px')}")
+    for c in opening.get("corps") or []:
+        there = line.get(c["name"]) or {}
+        still = c.get("garrison") or c.get("in_square")
+        if there.get("files_px", 0) > 20 and not still \
+                and not c.get("files_px", 0) < there["files_px"]:
+            wrong.append(f"{rid}: at the opening {c['name']} already stands in line "
+                         f"({c.get('files_px')} px of {there['files_px']})")
+        if still and c.get("files_px") != there.get("files_px"):
+            wrong.append(f"{rid}: {c['name']} (a garrison, or in square) is not in its "
+                         f"own formation at the opening")
+    return wrong
+
+
+def _standard_claims(rid: str, end: dict, settled: dict) -> list[str]:
+    """BA2-X5. Every standard stands at the end of the acts where the settled
+    frame has it — the victor's, advanced onto the player's half on a defeat,
+    among them."""
+    there = {c["name"]: c.get("standard_x") for c in settled.get("corps") or []}
+    return [f"{rid}: {c['name']}'s standard stands at {c.get('standard_x')} when the acts end "
+            f"and at {there[c['name']]} on the settled frame"
+            for c in end.get("corps") or []
+            if c["name"] in there and c.get("standard_x") != there[c["name"]]]
+
+
+SQUARE_SPAN_PX = 74      # a square's stands close up (72 px); a line's span 84
+
+
+def _square_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict) -> list[str]:
+    """BA-2. A corps the script tells in square STANDS in square, from the
+    first frame to the last: marked, and its stands closed up on their slab
+    (a disposition, not a result). No other corps is formed so."""
+    told = set()
+    for beat in _beats(payload):
+        kind = beat.get("kind")
+        if kind in ("ground", "plan") and beat.get("square"):
+            told.add(str(beat.get("actor", "")))
+        elif kind == "square":
+            # the row is the horse's own: the square is the lead it rode at
+            side = "defender" if beat.get("side") == "attacker" else "attacker"
+            told |= {str(c.get("name", "")) for c in (payload.get(side) or {}).get("contingents") or []
+                     if c.get("lead")}
+    wrong = []
+    for name, frame in (("opening", _frame(res, "opening")), ("end", end), ("settled", settled)):
+        for c in frame.get("corps") or []:
+            if c["name"] in told:
+                if not c.get("in_square"):
+                    wrong.append(f"{rid} {name}: {c['name']} is told in square and is not marked so")
+                elif c.get("files_px", 0) > SQUARE_SPAN_PX:
+                    wrong.append(f"{rid} {name}: {c['name']} is in square and stands in line "
+                                 f"({c.get('files_px')} px)")
+            elif c.get("in_square"):
+                wrong.append(f"{rid} {name}: {c['name']} stands in square and no beat tells it")
     return wrong
 
 
@@ -321,12 +578,19 @@ def _the_end_claims(rid: str, end: dict, settled: dict, payload: dict) -> list[s
     if tails(end) != tails(settled):
         wrong.append(f"{rid}: the reserve's line is {tails(end)} at the end and "
                      f"{tails(settled)} on the settled frame")
+    # (on a wedge the reserve's dead is a line of its own beside the count)
+    said = [m["text"] for m in settled.get("marks") or [] if m["kind"] == "text"]
     for side in ("attacker", "defender"):
         dead = int((payload.get(side) or {}).get("reserve_casualties", 0) or 0)
         if dead > 0 and int((payload.get(side) or {}).get("reserve_count", 0) or 0) > 0 \
-                and not any(f"{dead:,} lost" in t for t in tails(settled)):
+                and not any(f"{dead:,} lost" in t for t in said):
             wrong.append(f"{rid}: the {side}'s reserve lost {dead:,} and the settled frame "
                          f"does not say so ({tails(settled)})")
+    for side in ("attacker", "defender"):
+        count = int((payload.get(side) or {}).get("reserve_count", 0) or 0)
+        if count > 0 and not any(t.startswith(f"+{count} ") for t in tails(settled)):
+            wrong.append(f"{rid}: the {side} keeps {count} corps in reserve and the settled "
+                         f"frame does not say so ({tails(settled)})")
     return wrong
 
 
@@ -495,8 +759,12 @@ def check(results: dict, shots: list[dict]) -> list[str]:
         problems += [f"{rid} settled: {w}" for w in _at_rest(settled)]
         if _table(end) != _table(settled):
             problems.append(f"{rid}: the acts end on another table than the settled frame")
-        if end.get("dice_shown") != settled.get("dice_shown") or not end.get("dice_shown"):
-            problems.append(f"{rid}: the dice are not on both the end and the settled frame")
+        if _kind(payload) == "battle":
+            if end.get("dice_shown") != settled.get("dice_shown") or not end.get("dice_shown"):
+                problems.append(f"{rid}: the dice are not on both the end and the settled frame")
+        elif end.get("dice_shown") or settled.get("dice_shown"):
+            # BA-2: a wall is not rolled for, and guns throw no dice
+            problems.append(f"{rid}: dice on a {_kind(payload)}'s table, which rolled none")
         if end.get("act"):
             problems.append(f"{rid}: an act is still named after the gavel ({end['act']!r})")
         if not end.get("banner") or end.get("banner") != settled.get("banner"):
@@ -514,11 +782,18 @@ def check(results: dict, shots: list[dict]) -> list[str]:
                 and not any(" → " in label for label in crisis.get("labels") or []):
             problems.append(f"{rid}: no strength line is running at the crisis")
         problems += _pip_claims(rid, end, payload)
+        # BA-2: the wall, the works, the order of battle, column into line
+        problems += _wall_claims(rid, res, end, settled, payload)
+        problems += _works_claims(rid, res, end, settled, payload)
+        problems += _manoeuvre_claims(rid, _frame(res, "opening"), end, settled)
+        problems += _square_claims(rid, res, end, settled, payload)
+        problems += _standard_claims(rid, end, settled)
         # at rest, no line of text stands on another or on a portrait, and
         # none leaves the baize (in motion they may cross: a lead surges)
         for name, frame in (("end", end), ("settled", settled)):
             problems += [f"{rid} {name}: ink over ink — {w}" for w in overlaps(frame)]
             problems += [f"{rid} {name}: off the baize — {w}" for w in off_the_baize(frame)]
+            problems += _board_claims(f"{rid} {name}", frame)
             if not frame.get("marks"):
                 problems.append(f"{rid} {name}: no marks recorded")
         # every act the script carries is told on the table, and only those
@@ -645,16 +920,19 @@ def main() -> int:
     ap.add_argument("--text-size", type=float, default=None,
                     help="Settings -> Text size for every shot (unsaid: the game's own default)")
     ap.add_argument("--godot", default=os.environ.get("IQ10_GODOT", GODOT_DEFAULT))
+    ap.add_argument("--payloads", default=str(PAYLOADS),
+                    help="another folder of staged payloads (never the walk of record)")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # a claim may quote "Ney ◆"
     only = [s.strip() for s in args.only.split(",") if s.strip()]
-    shots = build_shots(PAYLOADS, only, args.scale)
+    payload_dir = Path(args.payloads)
+    shots = build_shots(payload_dir, only, args.scale)
     if args.text_size is not None:
         for shot in shots:
             shot["text_size"] = args.text_size
     whole = not only and not args.tag and not args.headless and args.scale == 1.0 \
-        and args.time_scale == 1.0 and args.text_size is None
+        and args.time_scale == 1.0 and args.text_size is None and payload_dir == PAYLOADS
     work = RUN / (args.tag or ("whole" if whole else "part"))
     print(f"{len(shots)} shot(s) at scale {args.scale:g} -> {work}")
     results, errors = run(shots, args.godot, work, headless=args.headless,
@@ -668,7 +946,7 @@ def main() -> int:
         "time_scale": args.time_scale, "headless": bool(args.headless),
         "shots": len(shots), "script_errors": errors, "problems": problems,
         "sources": {name: _sha(ROOT / name) for name in SOURCES},
-        "payloads": {p.name: _sha(p) for p in sorted(PAYLOADS.glob("*.json"))},
+        "payloads": {p.name: _sha(p) for p in sorted(payload_dir.glob("*.json"))},
         "results": _slim(results),
     }
     if whole:

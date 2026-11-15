@@ -616,6 +616,7 @@ func _format_action(action: Dictionary) -> String:
 		elif event.get("type") == "bombardment":
 			print("[ENEMY_PHASE_DEBUG] Calling _format_bombardment for bombardment event")
 			result += _format_bombardment(event)
+			result += _field_link(event)   # row BA, BA-2: the cannonade's tableau
 		elif event.get("type") == "garrison_assault":
 			# FA-23 / FA-N21 (slice 11): the assault on a garrison has no
 			# marshal on the defending side, so no arm here matched it and
@@ -642,11 +643,13 @@ func _format_action(action: Dictionary) -> String:
 			if ga_att > 0:
 				result += "[color=#" + Utils.COLOR_INFO + "]      The assault cost them "
 				result += _format_number(ga_att) + ".[/color]\n"
+			result += _field_link(event)   # row BA, BA-2: the wall that held
 		elif event.get("type") == "garrison_destroyed":
 			AudioManager.play("cannon_distant")
 			var gd_region = str(event.get("region", "the works"))
 			result += "[color=#" + COLOR_ERROR + "]    The garrison of " + gd_region + " is destroyed.[/color]\n"
 			result += _place_link(str(event.get("region", "")))
+			result += _field_link(event)   # row BA, BA-2: the wall stormed, or yielded
 		elif event.get("type") == "conquest":
 			var region = event.get("region", "territory")
 			var capture_choice = event.get("capture_choice", "")
@@ -1215,6 +1218,20 @@ func _format_berthier_report(report: Dictionary) -> String:
 			+ Utils.humanize_nation_keys_in_text(cost_note) + "[/color]\n")
 
 	return result
+
+func _field_link(event: Dictionary) -> String:
+	"""Row BA, BA-2 (November 14, 2026): the tableau link for an event that is
+	not a field battle. A garrison assault (the wall held, stormed or yielded)
+	and a bombardment carry their tableau on the event as a battle does
+	(`siege_diorama._carry`), one click from the field. "" when the event
+	carries none (fog, or a payload from before the walls and the guns)."""
+	var diorama = event.get("diorama")
+	if not (diorama is Dictionary) or diorama.is_empty():
+		return ""
+	_diorama_payloads.append(diorama)
+	return "[color=#" + Utils.COLOR_GOLD + "]    [url=diorama:" \
+		+ str(_diorama_payloads.size() - 1) + "]⚔ View the field[/url][/color]\n"
+
 
 func _format_bombardment(event: Dictionary) -> String:
 	"""Format bombardment event details."""

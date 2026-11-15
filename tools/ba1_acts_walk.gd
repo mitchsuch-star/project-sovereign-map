@@ -312,6 +312,8 @@ func _play() -> void:
 	var item: Dictionary = _queue[_ei]
 	if _scene_t < float(item["at"]) or _frames < int(item.get("min_frame", 0)):
 		return
+	if (item["event"] as Dictionary).has("end") and _verdict_being_written():
+		return     # BA-2: the kept end frame shows Berthier's line whole, not half written
 	_ei += 1
 	var event: Dictionary = item["event"]
 	if event.has("shot") and not event.has("do"):
@@ -343,6 +345,17 @@ func _play() -> void:
 	_wait = 1
 	if event.has("shot"):
 		_capture(str(event["shot"]))
+
+
+func _verdict_being_written() -> bool:
+	"""The host writes the verdict out a character at a time once the battle is
+	told (`_type_verdict`): true while that is still going. A short showing (an
+	assault, a cannonade) reaches its end shot before a long line is done."""
+	if _node == null or not bool(_node._final):
+		return false
+	var v: RichTextLabel = _node._verdict
+	return v != null and v.visible_characters >= 0 \
+			and v.visible_characters < v.get_total_character_count()
 
 
 func _click(at: Vector2) -> void:
@@ -421,27 +434,63 @@ func _read_table() -> Dictionary:
 					"at_ms": int(float(item.get("at", 0.0)) * 1000.0),
 					"hold_ms": int(float(item["hold"]) * 1000.0)})
 		row["played"] = beats
+	# BA-2: which table is laid, the wall, the works.
+	row["kind"] = str(_node._data.get("kind", "battle"))
+	row["laid"] = str(acts._laid) if acts != null else "file"
+	row["wall"] = ""
+	var works := {}
+	if acts != null:
+		if acts._wall != null and is_instance_valid(acts._wall):
+			row["wall"] = str(acts._wall.state())
+			row["wall_ladders_pct"] = int(round(float(acts._wall._ladders) * 100.0))
+			row["wall_rect"] = _on_stage(acts._wall, acts._wall.stone())
+		for who in acts._works:
+			if is_instance_valid(acts._works[who]):
+				works[str(who)] = int(acts._works[who].shown_pct())
+	row["works"] = works
 	var corps: Array = []
 	var labels: Array = []
 	for b in _node._blocks_left + _node._blocks_right:
 		var node: Node2D = b["node"]
 		var plinth = b.get("plinth", null)
 		var art: Node2D = node.get_node_or_null("Art")
+		var words: Array = []
+		for child in node.get_children():
+			if child is Label:
+				labels.append(str((child as Label).text))
+				if (child as Label).text.strip_edges() != "" and _shown(child):
+					words.append(_ink(child))
+		var xs: Array = []
+		for f in b["figures"]:
+			xs.append(float((f as Node2D).position.x))
+		var locket: CanvasItem = b["locket"]
+		var standard = b["standard"]
 		corps.append({
 			"name": str((b["data"] as Dictionary).get("name", "")),
 			"left": bool(b["is_left"]),
 			"x": int(round(node.position.x)), "y": int(round(node.position.y)),
 			"home_x": int(round((b.get("home", node.position) as Vector2).x)),
+			"home_y": int(round((b.get("home", node.position) as Vector2).y)),
 			"rest_dx": int(round(float(b.get("rest_dx", 0.0)))),
 			"alpha_pct": int(round(node.modulate.a * 100.0)),
 			"dark": art != null and art.modulate != Color.WHITE,
 			"status": str(b["status"]),
 			"pips_lost": int(round(plinth.get_lost())) if plinth != null else -1,
 			"face_down": bool(plinth.is_face_down()) if plinth != null else false,
+			# BA-2: the order of battle and the manoeuvre
+			"role": str(b.get("role", "")),
+			"lead": bool((b["data"] as Dictionary).get("lead", false)),
+			"garrison": bool((b["data"] as Dictionary).get("garrison", false)),
+			"in_square": bool(b.get("in_square", false)),
+			# BA2-X5: where the corps' standard stands, in its art's own px
+			"standard_x": int(round((b["standard"] as Node2D).position.x)) \
+					if b["standard"] != null and is_instance_valid(b["standard"]) else 0,
+			"portrait_shown": locket != null and _shown(locket),
+			"standard_shown": standard != null and is_instance_valid(standard) and _shown(standard),
+			"body": _on_stage(art, Rect2(-78.0, -50.0, 156.0, 74.0)) if art != null else [],
+			"words": words,
+			"files_px": int(round(xs.max() - xs.min())) if xs.size() > 1 else 0,
 		})
-		for child in node.get_children():
-			if child is Label:
-				labels.append(str((child as Label).text))
 	row["corps"] = corps
 	row["labels"] = labels
 	var marks: Array = []
@@ -471,22 +520,26 @@ func _shown(item: CanvasItem) -> bool:
 	return alpha > 0.05
 
 
+func _ink(l: Label) -> Array:
+	"""A line's own extent on the stage (a label's box is wider than its words)."""
+	var need: Vector2 = l.get_minimum_size()
+	var wrapped: bool = l.autowrap_mode != TextServer.AUTOWRAP_OFF
+	var w: float = l.size.x if wrapped else minf(l.size.x, need.x)
+	var h: float = l.size.y if wrapped else minf(l.size.y, need.y)
+	var x := 0.0
+	if l.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT:
+		x = l.size.x - w
+	elif l.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER:
+		x = (l.size.x - w) / 2.0
+	return _on_stage(l, Rect2(x, 0.0, w, h))
+
+
 func _collect_marks(node: Node, out: Array) -> void:
 	for child in node.get_children():
 		if child is Label:
 			var l: Label = child
 			if l.text.strip_edges() != "" and _shown(l):
-				var need: Vector2 = l.get_minimum_size()
-				var wrapped: bool = l.autowrap_mode != TextServer.AUTOWRAP_OFF
-				var w: float = l.size.x if wrapped else minf(l.size.x, need.x)
-				var h: float = l.size.y if wrapped else minf(l.size.y, need.y)
-				var x := 0.0
-				if l.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT:
-					x = l.size.x - w
-				elif l.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER:
-					x = (l.size.x - w) / 2.0
-				out.append({"kind": "text", "text": l.text.substr(0, 48),
-						"rect": _on_stage(l, Rect2(x, 0.0, w, h))})
+				out.append({"kind": "text", "text": l.text.substr(0, 48), "rect": _ink(l)})
 		elif child is PortraitLocket:
 			var locket: Control = child
 			if _shown(locket):

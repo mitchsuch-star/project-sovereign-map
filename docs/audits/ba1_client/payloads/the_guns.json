@@ -29,36 +29,24 @@
     "after_advance": 21794
    },
    {
+    "name": "Napoleon",
+    "nation": "France",
+    "arm": "emperor",
+    "committed": 10000,
+    "casualties": 414,
+    "remaining": 9586,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": true
+   },
+   {
     "name": "Davout",
     "nation": "France",
     "arm": "infantry",
     "committed": 26000,
     "casualties": 1183,
     "remaining": 24817,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Murat",
-    "nation": "France",
-    "arm": "cavalry",
-    "committed": 22000,
-    "casualties": 500,
-    "remaining": 21500,
-    "status": "reinforced",
-    "lead": false,
-    "crowned": false,
-    "sovereign": false
-   },
-   {
-    "name": "Lannes",
-    "nation": "France",
-    "arm": "infantry",
-    "committed": 18000,
-    "casualties": 976,
-    "remaining": 17024,
     "status": "reinforced",
     "lead": false,
     "crowned": false,
@@ -78,10 +66,10 @@
     "absence_reason": "awaits explicit orders"
    }
   ],
-  "reserve_count": 3,
+  "reserve_count": 4,
   "casualties_total": 5032,
   "committed_total": 103000,
-  "reserve_casualties": 481,
+  "reserve_casualties": 1543,
   "nation": "France"
  },
  "defender": {
@@ -105,7 +93,7 @@
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "Reinforcements from Davout, Lannes, Murat, Napoleon and Marmont bolstered Ney's position — though Bernadotte never arrived, Sire.",
+ "observation": "The Emperor watched this field. Reinforcements from Davout, Lannes, Murat, Napoleon and Marmont bolstered Ney's position — though Bernadotte never arrived, Sire.",
  "enemy_voice": "Mack: \"This is not a rout. It is a revision of the plan.\"",
  "script": {
   "version": 1,
@@ -120,6 +108,27 @@
       "actor": "Ney",
       "text": "Ney attacks Mack at Swabia.",
       "weight": "detail"
+     },
+     {
+      "kind": "plan",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The plan: Ney leads; Marmont ordered in support; Marmont's guns in support.",
+      "weight": "head",
+      "supports": [
+       "Marmont"
+      ],
+      "came": 1,
+      "flank": 0,
+      "origins": [
+       "Rhineland"
+      ],
+      "drilled": 0,
+      "stance": "",
+      "stance_pct": 0,
+      "guns": [
+       "Marmont"
+      ]
      },
      {
       "kind": "arrive",
@@ -138,28 +147,14 @@
      {
       "kind": "arrive",
       "side": "attacker",
-      "actor": "Lannes",
-      "text": "Lannes marches from Franche-Comte to the sound of the guns.",
+      "actor": "Napoleon",
+      "text": "Napoleon marches from Lorraine to the sound of the guns.",
       "weight": "detail",
       "late": false,
-      "score": 93,
+      "score": 94,
       "bar": 55,
-      "margin": 38,
-      "origin": "Franche-Comte",
-      "ordered": false,
-      "concealed": false
-     },
-     {
-      "kind": "arrive",
-      "side": "attacker",
-      "actor": "Murat",
-      "text": "Murat marches from Franche-Comte to the sound of the guns.",
-      "weight": "detail",
-      "late": false,
-      "score": 68,
-      "bar": 55,
-      "margin": 13,
-      "origin": "Franche-Comte",
+      "margin": 39,
+      "origin": "Lorraine",
       "ordered": false,
       "concealed": false
      },
@@ -285,9 +280,8 @@
   ],
   "tempers": {
    "Ney": "aggressive",
+   "Napoleon": "sovereign",
    "Davout": "cautious",
-   "Murat": "aggressive",
-   "Lannes": "aggressive",
    "Soult": "literal",
    "Mack": "literal"
   }
