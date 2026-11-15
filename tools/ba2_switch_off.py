@@ -1,18 +1,28 @@
 """Row BA, BA-2: each new claim of the walk, watched FAILING with its fix
 switched off. One mutation of battle_acts.gd at a time, the walk run headless
 on the scenes it bears on — at the scene's own speed for the claims read in a
-showing's first instant — and the file put back whatever happens."""
+showing's first instant — and the file put back whatever happens.
+
+    python tools/ba2_switch_off.py [<repo root> [<case key> ...]]
+
+It CHANGES A SOURCE FILE IN THE WORKING TREE while it runs. So (the review of
+November 15, 2026 — BA2-X15):
+
+* never run it while a commit's hook is running (the hook tests the working
+  tree) or while another session edits battle_acts.gd;
+* it refuses to start while its lock or its kept copy exists — another copy is
+  running, or one was killed: the kept copy (`tools/.ba2_switch_off.kept`) is
+  then the file as it was, byte for byte;
+* every anchor is checked before anything is written; the file is read and put
+  back as BYTES, so its line endings are its own; the walk has a time limit.
+"""
 import hashlib
+import os
 import pathlib
 import subprocess
 import sys
 
-ROOT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[1]
-ONLY = set(sys.argv[2:])
-ACTS = ROOT / "godot-client/project-sovereign/scripts/battle_acts.gd"
-PY = ROOT / ".venv/Scripts/python.exe"
-clean = ACTS.read_text(encoding="utf-8")
-clean_sha = hashlib.sha256(clean.encode("utf-8")).hexdigest()
+WALK_TIMEOUT_S = 1200
 
 # key, name, [(old, new), ...], scenes, time scale, the words the failure must carry
 CASES = [
@@ -76,31 +86,86 @@ CASES = [
 """)], "assault_held", 8.0, "ladders still stand against a wall that held"),
 ]
 
-results = []
-try:
-    for key, name, swaps, scenes, speed, words in CASES:
-        if ONLY and key not in ONLY:
-            continue
-        text_now = clean
-        for old, new in swaps:
-            assert text_now.count(old) == 1, (name, text_now.count(old), old[:50])
-            text_now = text_now.replace(old, new)
-        ACTS.write_text(text_now, encoding="utf-8", newline="\n")
-        cmd = [str(PY), str(ROOT / "tools/ba1_acts_walk.py"), "--tag", "ba2_switch_off",
-               "--only", scenes, "--headless", "--time-scale", str(speed)]
-        out = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True,
-                             encoding="utf-8", errors="replace")
-        text = (out.stdout or "") + (out.stderr or "")
-        caught = words in text
-        tail = [line for line in text.splitlines() if "claim(s) failed" in line]
-        results.append((name, caught))
-        print(("CAUGHT  " if caught else "MISSED  ") + name + " :: "
-              + (tail[-1].strip().split(";")[0] if tail else "?"), flush=True)
-        if not caught:
-            print("   ...", "\n   ... ".join(text.splitlines()[-12:]))
-finally:
-    ACTS.write_text(clean, encoding="utf-8", newline="\n")
-    back = hashlib.sha256(ACTS.read_text(encoding="utf-8").encode("utf-8")).hexdigest()
-    print("battle_acts.gd put back:", back == clean_sha)
 
-print(sum(1 for _n, c in results if c), "of", len(results), "claims caught their fix switched off")
+def _the_walk(root: pathlib.Path, scenes: str, speed: float) -> str:
+    """The walk of one scene with the mutation in place -> everything it printed."""
+    cmd = [str(root / ".venv/Scripts/python.exe"), str(root / "tools/ba1_acts_walk.py"),
+           "--tag", "ba2_switch_off", "--only", scenes, "--headless", "--time-scale", str(speed)]
+    try:
+        out = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=WALK_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return f"the walk did not finish in {WALK_TIMEOUT_S} s"
+    return (out.stdout or "") + (out.stderr or "")
+
+
+def mutated(clean: bytes, swaps) -> bytes:
+    """`clean` with each (old, new) put in once — in the file's own line
+    endings. Raises ValueError when an anchor is not there exactly once."""
+    text = clean.decode("utf-8")
+    eol = "\r\n" if "\r\n" in text else "\n"
+    text = text.replace("\r\n", "\n")
+    for old, new in swaps:
+        found = text.count(old)
+        if found != 1:
+            raise ValueError(f"an anchor matches {found} times: {old[:60]!r}")
+        text = text.replace(old, new)
+    return text.replace("\n", eol).encode("utf-8")
+
+
+def switch_off(root: pathlib.Path, only=(), walk=_the_walk, cases=None, say=print):
+    """Run the cases -> [(name, caught)]. The file is put back, byte for byte,
+    whatever happens short of the process being killed — and then the kept
+    copy and the lock stay behind to say so."""
+    root = pathlib.Path(root)
+    acts = root / "godot-client/project-sovereign/scripts/battle_acts.gd"
+    lock = root / "tools/.ba2_switch_off.lock"
+    kept = root / "tools/.ba2_switch_off.kept"
+    chosen = [case for case in (CASES if cases is None else cases) if not only or case[0] in only]
+    if lock.exists() or kept.exists():
+        raise SystemExit(
+            f"refused: {lock.name} or {kept.name} exists in tools/ — another copy is running, or one "
+            f"was killed. If none is running: {kept.name} is battle_acts.gd as it was; put it back "
+            f"(or read `git diff` of battle_acts.gd), then delete both.")
+    clean = acts.read_bytes()
+    clean_sha = hashlib.sha256(clean).hexdigest()
+    for _key, name, swaps, *_rest in chosen:          # every anchor, before anything is written
+        try:
+            mutated(clean, swaps)
+        except ValueError as exc:
+            raise SystemExit(f"refused, nothing written — '{name}': {exc}")
+    with open(lock, "x", encoding="utf-8") as handle:  # "x": two copies cannot both pass here
+        handle.write(str(os.getpid()))
+    results = []
+    try:
+        kept.write_bytes(clean)
+        for _key, name, swaps, scenes, speed, words in chosen:
+            acts.write_bytes(mutated(clean, swaps))
+            text = walk(root, scenes, speed)
+            caught = words in text
+            tail = [line for line in text.splitlines() if "claim(s) failed" in line]
+            results.append((name, caught))
+            say(("CAUGHT  " if caught else "MISSED  ") + name + " :: "
+                + (tail[-1].strip().split(";")[0] if tail else "?"))
+            if not caught:
+                say("   ... " + "\n   ... ".join(text.splitlines()[-12:]))
+    finally:
+        acts.write_bytes(clean)
+        back = hashlib.sha256(acts.read_bytes()).hexdigest() == clean_sha
+        say(f"battle_acts.gd put back: {back}")
+        if back:
+            kept.unlink(missing_ok=True)
+            lock.unlink(missing_ok=True)
+    return results
+
+
+def main(argv) -> int:
+    root = pathlib.Path(argv[1]) if len(argv) > 1 else pathlib.Path(__file__).resolve().parents[1]
+    results = switch_off(root, set(argv[2:]), say=lambda line: print(line, flush=True))
+    print(sum(1 for _name, caught in results if caught), "of", len(results),
+          "claims caught their fix switched off")
+    return 0 if results and all(caught for _name, caught in results) else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

@@ -59,6 +59,17 @@ def _i(value, default: int = 0) -> int:
         return default
 
 
+def _men(count: int, one: str = "man", many: str = "men") -> str:
+    """"1 man" / "25,000 men": the count with its separator, the noun agreeing
+    with it (the review, November 15, 2026: BA2-X14)."""
+    return f"{count:,} {one if count == 1 else many}"
+
+
+def _fall(count: int) -> str:
+    """"1 falls" / "3,000 fall"."""
+    return f"{count:,} fall{'s' if count == 1 else ''}"
+
+
 def temper_of(marshal) -> str:
     """The movement signature a commander's corps carries on the table: his
     temperament, or `steady` for one the model gives no fighting character."""
@@ -241,10 +252,19 @@ def _plan(script: _Script, attacker, defender, battle_result: dict,
             if isinstance(r, dict) and r.get("marshal")
             and (r.get("has_explicit_order") or r.get("arrived_via_support"))]
     ordered = [str(r.get("marshal")) for r in mine]
+    # Each order in its own word: a SUPPORT of the lead, or a PURSUE whose
+    # quarry stands on this field — the resolver counts both as a written
+    # order (`order_type` on the reinforcement row), and the beat called the
+    # second "ordered in support" (the review, November 15, 2026: BA2-X13).
+    pursuing = [str(r.get("marshal")) for r in mine
+                if str(r.get("order_type") or "") == "PURSUE"]
+    supporting = [name for name in ordered if name not in pursuing]
     came = sum(1 for r in mine if r.get("arrived"))
     stance = _row(rows, "Aggressive stance") or _row(rows, "Defensive stance")
     posture = _posture(stance) if stance else ""
-    support = f"{_listed(ordered)} ordered in support" if ordered else ""
+    support = "; ".join(clause for clause in (
+        f"{_listed(supporting)} ordered in support" if supporting else "",
+        f"{_listed(pursuing)} ordered in pursuit" if pursuing else "") if clause)
 
     if player_side == "attacker":
         bonus = _i(facts.get("flanking_bonus"))
@@ -818,7 +838,7 @@ def build_assault_script(world, payload: dict, marshal,
     script.add("approach", _beat(
         "walls", "defender", walls,
         f"The garrison of {region} mans its walls"
-        f"{', under the fortress' if payload.get('fortified') else ''}: {men:,} men.",
+        f"{', under the fortress' if payload.get('fortified') else ''}: {_men(men)}.",
         weight="head" if player_side == "defender" else "detail",
         men=men, fortified=bool(payload.get("fortified"))))
 
@@ -844,7 +864,8 @@ def build_assault_script(world, payload: dict, marshal,
     if fate == "held":
         script.add("crisis", _beat(
             "wall_holds", "defender", walls,
-            f"The walls of {region} hold: {left:,} defenders remain.",
+            f"The walls of {region} hold: {_men(left, 'defender', 'defenders')} "
+            f"remain{'s' if left == 1 else ''}.",
             weight="head", remaining=left, lost=_i(garrison.get("casualties"))))
     elif fate == "capitulated":
         script.add("crisis", _beat(
@@ -872,7 +893,8 @@ def build_assault_script(world, payload: dict, marshal,
         lost = _i(attacker.get("casualties"))
         script.add("pursuit", _beat(
             "repulsed", "attacker", name,
-            f"{_n(name)} draws off from the walls, {lost:,} men the fewer.",
+            f"{_n(name)} draws off from the walls"
+            + (f", {_men(lost)} the fewer." if lost > 0 else "."),
             lost=lost))
 
     return _script_out(script, payload, {name: temper_of(marshal), walls: "steady"})
@@ -894,7 +916,7 @@ def build_bombardment_script(world, payload: dict, battery, target, br: dict) ->
 
     at = str(payload.get("battery_at", "") or "")
     whence = f" from {at}" if party and at and at != str(payload.get("region", "") or "") else ""
-    text = f"{_n(gunner)}'s guns open{whence} on {_n(struck)}: {dealt:,} fall."
+    text = f"{_n(gunner)}'s guns open{whence} on {_n(struck)}: {_fall(dealt)}."
     if party and taken > 0:
         text += f" The answering fire costs the battery {taken:,}."
     script.add("cannonade", _beat(
@@ -910,9 +932,9 @@ def build_bombardment_script(world, payload: dict, battery, target, br: dict) ->
             ours = bool(c.get("friendly_fire")) and player_side == "attacker"
             script.add("cannonade", _beat(
                 "bystander", "defender", other,
-                (f"Our own {_n(other)}, standing by, is caught under the guns: {lost:,} fall."
+                (f"Our own {_n(other)}, standing by, is caught under the guns: {_fall(lost)}."
                  if ours else
-                 f"{_n(other)}'s corps, standing by, is caught in the fire: {lost:,} fall."),
+                 f"{_n(other)}'s corps, standing by, is caught in the fire: {_fall(lost)}."),
                 weight="head" if ours else "detail", lost=lost, ours=ours))
         if br.get("fort_degraded"):
             old, new = _i(br.get("fort_old")), _i(br.get("fort_new"))

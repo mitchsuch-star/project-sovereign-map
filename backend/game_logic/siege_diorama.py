@@ -284,6 +284,14 @@ def build_bombardment_diorama(world, battery, target, result: dict) -> Optional[
     atk_lost, atk_left = max(0, _i(atk.get("casualties"))), max(0, _i(atk.get("remaining")))
     def_lost, def_left = max(0, _i(dfd.get("casualties"))), max(0, _i(dfd.get("remaining")))
     destroyed = def_left <= 0
+    # A battery standing in its target's own province is caught by its own
+    # stray shells: the collateral roll takes every corps there but the
+    # target (BA2-X12 owns that rule). The table seats him ONCE, as the
+    # battery, and counts those dead with his own — never a second block for
+    # the same man beside his target (the review, November 15, 2026).
+    gunner = str(getattr(battery, "name", "") or "")
+    atk_lost += sum(max(0, _i(row.get("casualties"))) for row in (br.get("collateral") or [])
+                    if isinstance(row, dict) and str(row.get("name", "") or "") == gunner)
 
     gunners = _bd._contingent(battery, atk_left + atk_lost, atk_lost, atk_left,
                               "destroyed" if atk_left <= 0 else "engaged", True, world)
@@ -293,6 +301,8 @@ def build_bombardment_diorama(world, battery, target, result: dict) -> Optional[
     for row in br.get("collateral") or []:
         if not isinstance(row, dict):
             continue
+        if str(row.get("name", "") or "") == gunner:
+            continue                  # the battery itself: counted with it, above
         bystander = (getattr(world, "marshals", None) or {}).get(str(row.get("name", "") or ""))
         lost = max(0, _i(row.get("casualties")))
         if bystander is None or lost <= 0:
@@ -316,12 +326,26 @@ def build_bombardment_diorama(world, battery, target, result: dict) -> Optional[
     # where it stood — beside the target — and COUNTED with its own side: the
     # loss counter and the bar are a side's, and the table showed Lannes's
     # dead as Austria's (the frames, November 14).
+    seated = defender_side.get("contingents") or []
     for entry in others:
         if entry["of_the_guns"]:
             for key in ("casualties_total", "committed_total"):
                 moved = _i(entry["casualties" if key == "casualties_total" else "committed"])
                 defender_side[key] = int(defender_side[key] - moved)
                 attacker_side[key] = int(attacker_side[key] + moved)
+            if not any(entry is shown for shown in seated):
+                # ...and one of them that found no seat is ITS side's reserve.
+                # The reserve line stands beside a side's loss counter, and it
+                # read "+2 corps in reserve — 700 lost" under Austria for two
+                # French corps (the review, November 15, 2026: BA2-X11).
+                lost = _i(entry["casualties"])
+                defender_side["reserve_count"] = int(_i(defender_side.get("reserve_count")) - 1)
+                attacker_side["reserve_count"] = int(_i(attacker_side.get("reserve_count")) + 1)
+                if "reserve_casualties" in defender_side:
+                    defender_side["reserve_casualties"] = int(
+                        _i(defender_side.get("reserve_casualties")) - lost)
+                    attacker_side["reserve_casualties"] = int(
+                        _i(attacker_side.get("reserve_casualties")) + lost)
 
     # What a WATCHER of another crown's cannonade is told is what its script
     # tells him (battle_script, the cannonade's fog cases): who fired on whom

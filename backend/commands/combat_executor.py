@@ -4835,6 +4835,10 @@ class CombatExecutor:
                 "near_miss": near_miss,
                 "near_miss_reason": near_miss_reason,
                 "has_explicit_order": has_explicit_order,
+                # which written order it was, in its own name ("SUPPORT" or
+                # "PURSUE"; "" for none): Act I's plan names it (BA2-X13)
+                "order_type": (str(getattr(order, "command_type", "") or "")
+                               if has_explicit_order else ""),
                 # SR-7d: the doctrine that moved his bar (RV-16 copy), the
                 # unshifted bar, and whether the strength decided his arrival
                 "doctrine": _doctrine_name,

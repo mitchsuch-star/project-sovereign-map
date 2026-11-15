@@ -116,7 +116,14 @@ def main() -> int:
         print("  ERROR", err)
     for line in result["script_errors"][:12]:
         print("  SCRIPT", line)
-    if args.export:
+    passed = bool(result.get("engine_exit") == 0 and not result["script_errors"]
+                  and result["engine_log_bytes"] > 0 and walk.get("results")
+                  and not walk.get("errors"))
+    if args.export and not passed:
+        # a run that did not pass never replaces the record of record
+        # (the review, November 15, 2026: BA2-X16); it stays in its run folder
+        print("NOT exported — the run did not pass; the record stands as it was. Run folder:", run)
+    elif args.export:
         dest = REPO / args.export if not pathlib.Path(args.export).is_absolute() else pathlib.Path(args.export)
         if (dest / "frames").is_dir():
             shutil.rmtree(dest / "frames")
@@ -127,9 +134,7 @@ def main() -> int:
             shutil.copyfile(walk_path, dest / "walk.json")
         shutil.copyfile(run / "run.json", dest / "run.json")
         print("exported ->", dest)
-    return 0 if (result.get("engine_exit") == 0 and not result["script_errors"]
-                 and result["engine_log_bytes"] > 0 and walk.get("results")
-                 and not walk.get("errors")) else 1
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":

@@ -18,13 +18,18 @@
 > corps is raised mid-phase — seed jena, Prussia, Yorck; and Berthier's muster naming a written order for
 > Bernadotte and for Murat on the opening battle, when the order marches the one out of reach and stops the
 > other on his question); **BA2-X6 open at Session H's head** (the province panel, scrolled, can rest on a cut line).
+> **The session's review (November 15, 2026 — the spec's §15.13, `tests/test_ba2_the_review.py`) added twelve
+> rows, BA2-X8 … BA2-X19:** seven fixed in its own commit; **BA2-X10, BA2-X12, BA2-X14 and BA2-X17 are THIS
+> session's** (scope 6a below); **BA2-X16 heads Session H** (the tools' siblings).
 
 **NOW — BA-3: THE ROUNDS** (`BATTLE_DIORAMA_SPEC.md` §15.11 "What BA-3 becomes", §15.5.6 as amended, §15.5.7,
-§15.7). Open in Plan Mode with a slice plan. Read first: `STATUS.md` ▶ NEXT UP, the spec's §15.11 and §15.12
+§15.7). First check `git log` — BA-2 is `567f3e85`, its review's fixes are the commit after it — and that the
+tree is clean. Open in Plan Mode with a slice plan. Read first: `STATUS.md` ▶ NEXT UP, the spec's §15.11 to §15.13
 (before the code), `SYSTEMS_REFERENCE.md` §219 and §220 (the rules and the traps).
 
-**Three questions go to the user at its head** (§15.7 — put content-first, co-equal, nothing pre-recommended in
-the question itself; the answers below are the ones §15.11 recommends when asked):
+**Three questions go to the user at its head, and a fourth decision rides scope 5** (§15.7 — put content-first,
+co-equal, nothing pre-recommended in the question itself; only the first has an answer on record to give when
+asked — §15.11 decision 4; the second and the third have none):
 
 1. **The round's price.** §15.11 decision 4: a round costs what an attack costs (priced rounds cannot be
    cheesed, so the hinge may be offered on any hanging day). The plan of record before it said no action; the
@@ -49,8 +54,9 @@ the question itself; the answers below are the ones §15.11 recommends when aske
 3. **NP-D1 closed** (the Guard's two numbers); **the two rules the user ticked** (§15.5.7: a pursuit ability
    fires for an arrived commander when the lead has none; an arrival won by 5 points or fewer brings three
    quarters of its weight) — each behind a FUNCTION seam (the ratchet caps module levers).
-4. **WS-16** — the reload's other dice (the objection's mood, the defiance roll, the diplomatic defiance, four
-   smaller sites): a round needs the defiance roll seeded.
+4. **WS-16** — the reload's other dice (the objection's mood, the defiance roll, the diplomatic defiance, five
+   smaller sites — one each in `diplomacy.py`, `jealousy.py` and `severity.py`, two in `vassal.py`): a round needs
+   the defiance roll seeded.
 5. **BA2-X7** — the muster's lever sentences (`combat_executor.muster_row_hint`, `_arrival_odds_row`) name an
    order only when sending it brings the corps: read from where the order's first march leaves him, as
    `order_quotes.bring_quotes` now is (`_stop_this_turn`, `_odds_under_the_order`). The Commit chips of
@@ -61,13 +67,32 @@ the question itself; the answers below are the ones §15.11 recommends when aske
    corps like Murat (road through Mack: today the order stops him on "Your orders?") can be committed at
    all. The strict-xfail pin
    `tests/test_ba2_the_walls_and_the_guns.py::TestBA2X7TheMusterPromisesWhatTheOrderDelivers` turns red then.
+   The rule's behaviour test is named now, whichever way it is ruled: `tests/test_ba3_the_rounds.py`, a class
+   `TestASupportOrderMeetsTheCorpsToBeAttacked`. Ruled IN: Murat, ordered to support Ney on the opening board,
+   halts beside Mack with no question raised and the muster counts him. Ruled OUT: the muster's sentence for
+   such a corps says that an order cannot bring him.
 6. **BA2-X2** — the AI turn's fairness tally takes a corps that was not on the phase's opening roster
    (`enemy_ai.py`, `actions_used[selected_marshal.name] += 1`), behind a seam, with the sweep of every other
    per-marshal dict built from that roster; the strict-xfail pin
    `tests/test_ba2_the_walls_and_the_guns.py::TestBA2X2ACourtsTurnIsNotLost` turns red the day it lands.
+6a. **The review's four rows** (`BUG_FIXES.md` §BA2; each a strict-xfail pin in `tests/test_ba2_the_review.py`
+   that turns red the day it lands). **BA2-X10** — a literal marshal's road ROUND a corps is plotted through a
+   province he may not enter (`_handle_first_step_blocked`'s literal arm, `strategic.plot_route`'s reroute
+   ladder, and its quote `order_quotes.literal_detour`): the order is taken, the first march is refused without
+   a word, the reply still promises an arrival ("Joins him in 6 turns"). The fix moves marches, the AI's too:
+   behind a seam, an arm of the measure. **BA2-X12** — a battery standing in its target's own province takes its
+   own collateral fire (`combat_executor._execute_bombardment`, `all_in_region`; reached by the post-objection
+   and the two defiance roads). The fix takes a roll out of the battle's stream on that road: behind a seam, an
+   arm of the measure. **BA2-X14, the half left** — a gunner ordered in support is named twice in one plan; the
+   fix changes the staged scene `the_guns`, so it lands with this session's walk of record. **BA2-X17** — add
+   `backend/game_logic/battle_diorama.py`, `tools/ba1_stage_battles.py`, `tools/ba1_acts_walk.py` and the
+   client's `utils.gd` to `WALK.SOURCES`; when the walk of record is run, the comparison of its hashes with the
+   tree becomes a plain green test (`TestTheWalksRecordAndItsSources`).
 7. **ONE measure with arms**, reported per seed: arm 0 = every seam at HEAD's answer, byte-identical on the
    standing series; then each rule; then BA2-X2's fix (the jena world-line moves from the turn Prussia's phase
-   is no longer lost); then the rounds answered each way. The "seeded dice" arm calls
+   is no longer lost); then BA2-X10's and BA2-X12's fixes, each behind its seam; then the rounds answered each
+   way. "Byte-identical" is read with `tools/keyed_world_probe.py` (`run` once a tree, then `compare`). The
+   "seeded dice" arm calls
    `campaign_variance.serve_campaign` on the harness's own world. The commanded band's arm 0 is BA-1's shipped
    record (`tools/_ba1_band_2026_11_14.json`, arm ALL: 26 / 27 / 28).
 
@@ -129,7 +154,9 @@ script with the Write tool.
 ## After row BA — Session H: S15 the deploy (the prompt as it stood on November 13–14, 2026)
 
 > Two things changed since it was written: **WS-11 is closed** (row BA's BA-1) and **WS-16 is BA-3's**, so the
-> weak-spot review brings SIX rows to Session H's head, not seven; and **BA1-X4** and **BA1-X8** join that head.
+> weak-spot review brings SIX rows to Session H's head, not seven; and **BA1-X4** and **BA1-X8** join that head,
+> with **BA2-X6** (row BA's BA-2: the province panel, scrolled, on a cut line) and **BA2-X16** (its review: the
+> four older live-client walk tools and the mutation sweep's missing lock).
 >
 > The hand-over before row BA: **November 13, 2026 — SESSION UI-6 ✅ LANDED: THE
 > LAST READING** (`UI_VISUAL_FOUNDATION_SPEC.md` §14; `SYSTEMS_REFERENCE.md` §217; `BUG_FIXES.md` §UI6;
@@ -262,7 +289,7 @@ parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until th
 certificate in either store; the day it arrives, `INK_IRON_SIGNTOOL_ARGS` / `SIGNTOOL` and the same script);
 **(3) the clean-environment run** (a fresh clone, the venv from `requirements`, the hook installed with `Copy-Item
 scripts/git-hooks/pre-commit .git/hooks/pre-commit`, the backend as `-m backend.main`, the client from the export, one
-forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`; the walk is also the user's first look at Session
+forty-turn Mode C walk by the user — `docs/PLAYTESTING.md`; the walk is also the user's first look at row BA's battle table in motion (the readers' blind marks were not taken for it: his look is the reading) and at Session
 UI's new skin — the gilt frame, the desk, the books as cards, End Turn gilt on a spent day — its before / after pairs
 in `docs/audits/ui_gilt/`, its reversals one line each, `UI_VISUAL_FOUNDATION_SPEC.md` §9); **(4) the release record** (the commit SHA, the gate's
 readings with their record files, the certificate's state, the user's walk's notes — `SYSTEMS_REFERENCE.md` §211,

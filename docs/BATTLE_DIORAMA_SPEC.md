@@ -649,7 +649,8 @@ function bodies some thirty test files pin.
 **15.5.4 The walls and the guns.** A garrison assault opens the table (a garrison block with no
 locket and no standard to take; held, stormed or capitulated) — this closes the garrison rider of
 §12.5 (CA8-25). A bombardment plays the cannonade alone; a link by default, opening by itself only
-when it breaks or destroys its target.
+when it breaks or destroys its target. *(As built, §15.12: when it destroys its target or levels his
+works — guns never break a corps. The reading is the user's to change.)*
 
 **15.5.5 The plan of battle, from the orders the game already has.** No new modifier and no new
 order. Act I names the plan the player's orders amount to (the lead, the corps ordered in support,
@@ -1263,3 +1264,88 @@ BA-3 "the rounds" (§15.11): the table's commands between rounds (Press, Commit,
 the enemy's phase), NP-D1, the two rules of §15.5.7, WS-16, BA2-X2 behind its seam, BA2-X7, ONE
 measure with arms. Nothing of those is in the client or the wire today, and no control promises them: the
 chips BA-2 added are the SUPPORT order the game already had.
+
+### 15.13 THE REVIEW — BA-2's one review (November 15, 2026, authoritative)
+
+The user's "Review now", after BA-2's commit `567f3e85`. Six readers on a frozen copy of the commit, each in
+a lane and none able to write to the checkout: the two tableaux and their wiring; the script and the fog; the
+chips played out on later boards and other seeds (about 1,700 chips sent, each on a copy of the world); the
+client (read, not run); the tests and the tools; the records. Every finding was reproduced, or read in the
+code, before anything was changed. **Nothing crashes, leaks or touches a save.** The rows are `BUG_FIXES.md`
+§BA2, BA2-X8 … BA2-X19; the tests are `tests/test_ba2_the_review.py`; the rules are `SYSTEMS_REFERENCE.md`
+§220.7.
+
+#### Fixed in the review's commit
+
+- **The chips promised more than their order delivers, three ways** (`order_quotes.bring_quotes`). BA2-X8: a
+  chip was lit when its price was the last action; pressed, the attack it was offered for was refused. It is
+  offered now only while the attack can still follow (`attack_ap`, the attack's own price). BA2-X9: a chip
+  was lit when its order first ASKS "support, or cancel?" — a road round a neutral's shut frontier, guarded
+  ground (the quote's `detour` and `guard`); such an order is not offered, as one that raises a marshal's
+  question already was not. BA2-X10: a literal marshal's odds were read from the first province of his road
+  round a corps — a march he is refused when that province is a neutral's; `_stop_this_turn` stops at a
+  frontier he may not cross (`can_enter_territory`, the move's own rule).
+- **The cannonade's two sides** (`siege_diorama.build_bombardment_diorama`). BA2-X11, BA2-X3's sibling: a
+  corps of the guns' own side that found no seat was counted, men and dead, in the target side's reserve
+  line; it is its own side's reserve. BA2-X12: a battery caught by its own stray shells was seated twice,
+  once on each side; it is seated once, and its dead are its own.
+- **The words** (`battle_script.py`). BA2-X13: the plan called a PURSUE order "ordered in support"; the
+  reinforcement row names its order (`order_type`) and the plan words each in its own way. BA2-X14: "1
+  defenders remain", "1 men", "0 men the fewer" (`_men`, `_fall`).
+- **The tools.** BA2-X15: `tools/ba2_switch_off.py` changes `battle_acts.gd` in the working tree while it
+  runs; it takes a lock, keeps a copy until the file is back byte for byte, checks every anchor before it
+  writes and limits the walk's time. BA2-X16: `tools/ba2_mode_c_walk.py` copied a run over the committed
+  record before judging it; a run that does not pass stays in its run folder. BA2-X18: the keyed world probe
+  behind "BA-2 moves no number" is kept as `tools/keyed_world_probe.py`.
+- **The records** (BA2-X19): `STATUS.md`'s head still named BA-2 as next; two stale pointers; the head
+  questions and Session H's head list in `NEXT_SESSION_PROMPT.md`; §15.5.4's words against §15.12's reading;
+  the pre-commit hook's stated time (9:51 measured at BA-2's commit; the banner and `CLAUDE.md` said 8:22).
+
+#### Filed, each with its owner and a strict-xfail pin
+
+| Row | Owner | What |
+|---|---|---|
+| BA2-X10, the cause | BA-3, behind a seam in its measure | A literal marshal's road round a corps is plotted through a neutral's shut frontier: the order is taken, the first march is refused without a word, the reply still promises an arrival. Older than row BA. The fix moves marches, the AI's too. |
+| BA2-X12, the cause | BA-3, behind a seam in its measure | A battery standing in its target's own province takes its own collateral fire (the post-objection and defiance roads allow the distance). Older than row BA. The fix takes a roll out of the battle's stream on that road. |
+| BA2-X14, the half left | BA-3, with its walk of record | A gunner ordered in support is named twice in one plan. The fix changes the staged scene `the_guns`, whose payload and frames are on record. |
+| BA2-X17 | BA-3, with its walk of record | The walk's record carries a hash of each source and no test compared them; four sources that shape the walk are not on its list. |
+| BA2-X16, the siblings | Session H | The four older live-client walk tools export before they judge; the mutation sweep takes no lock against a second copy. |
+
+#### Read and left as it is
+
+- **The fog gate of the two new tableaux is a backstop and cannot refuse on a real road.** Every battle,
+  another crown's included, lights its province at FULL before the tableau is built
+  (`WorldState.update_intel_from_battle`, Session 34A — older than row BA, not changed here), so
+  `siege_diorama._in_sight` always passes; what keeps an unseen fight from the player is the enemy phase's
+  own filter. No channel was found by which a tableau leaves the backend without passing that filter. The
+  gate's tests read the gate alone. Whether a battle between two other crowns should light its province for
+  the player is the fog doctrine's question, and the user's.
+- The assault's `walls` beat tells a watcher that the fortress stands (§220.2 rules it for all three fog
+  cases; a watcher sees the province whole).
+- An order's first march costs men by the ordinary march rule, and the chip does not say so; no march quote
+  does. Recommended to the user, not built: every order that marches quotes the march's cost in men.
+- The client: nothing found. It was read, not run.
+
+#### Verification
+
+- The reviewers' own cases, read again on the fixed tree, and `tests/test_ba2_the_review.py`: 32 passed and
+  7 strict xfails (the rows above).
+- **The chips played out again on the fixed tree** by the reader who found them wanting: 1,685 chips sent on
+  three seeds (the historical seed turns 1–8, seed 3 turns 2–11, seed 5 turns 1–10; natural play and staged
+  placements), each on a copy of the world. After every press the attack it was offered for could still be
+  sent. No chip that stood before is gone. Seventeen new ones stand where a shut frontier keeps a corps
+  within reach of the field (it was read as marching out of reach); each was sent and delivered, at the odds
+  it named. What still fails there fails on the commit before the fixes too, and none is a chip's promise:
+  corps the reader had placed by hand beside an enemy, a marshal who defied after "Insist" (the chip says he
+  may object), and a corps unseen on the road (a surprise no quote may name).
+- **The walk of record still shows what it showed.** All 22 staged engagements were staged again on the fixed
+  tree and every payload file is byte for byte the committed one; the client's four sources are untouched.
+  Two backend sources of the record's six changed (`battle_script.py`, `siege_diorama.py`: words and counts
+  on roads no staged scene takes). BA2-X17 owns making that comparison a plain test.
+- No `.gd` file is changed, so the parse harness's committed report stands.
+- Run in a private copy of the commit before the fixes were put into the checkout, the engine lanes left
+  out: the test modules that read the changed code (65) — 6,751 passed; those that read the records and the
+  ledgers (387) — 22,427 passed. The only failures there were tests that drive the engine or ask git what is
+  tracked, which a bare copy cannot answer (they pass in the checkout), and two of the review's own first
+  rows and pins, put right before the commit (an open row's tag names a scored pillar; a pin reads a ledger
+  through `tests/_ledgers.doc_text`). The pre-commit hook is the full run.

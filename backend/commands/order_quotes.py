@@ -806,7 +806,7 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
              objection=_tactical_objection(world, marshal, "attack", enemy.name),
              muster=_muster_line(world, marshal, enemy),
              alarm=_alarm_line(world, marshal, enemy),
-             bring=bring_quotes(world, marshal, enemy, memo=memo))
+             bring=bring_quotes(world, marshal, enemy, memo=memo, attack_ap=ap))
     force = _force_block(world, marshal, enemy)
     if force is not None:
         q["force"] = force
@@ -827,12 +827,22 @@ def _stop_this_turn(world, marshal, q: Dict[str, Any]) -> str:
     """Where a standing order's FIRST march leaves him this turn — the order
     is taken and he sets off at once (`_strategic_first_step`): as far along
     the quote's road as he ranges, short of a corps we see on it (one in the
-    road's first province meets the order where he stands). His own province
-    when the road is empty. An unseen corps is a surprise no quote may name."""
+    road's first province meets the order where he stands) and short of a
+    frontier he may not cross — the move's own rule, `can_enter_territory`: a
+    literal man's road ROUND a corps can be plotted through a neutral's shut
+    frontier, that march is refused and he stands where he was (BA2-X10).
+    His own province when the road is empty. An unseen corps is a surprise no
+    quote may name."""
+    from backend.game_logic.diplomacy import can_enter_territory
     walked = marshal.location
     reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
     for province in list(q.get("road") or [])[:reach]:
         if visible_foe_on_road(world, world.player_nation, [province]) is not None:
+            break
+        region = world.get_region(province)
+        holder = getattr(region, "controller", None) if region is not None else None
+        if holder and holder != marshal.nation and not can_enter_territory(
+                world, marshal.nation, holder, mover_location=walked):
             break
         walked = province
     return walked
@@ -863,7 +873,8 @@ def _odds_under_the_order(reader, lead, marshal, stop: str, battle_region: str, 
     return int(row.get("arrival_odds_with_support", 0))
 
 
-def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None) -> List[Dict[str, Any]]:
+def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None,
+                 attack_ap: Optional[int] = None) -> List[Dict[str, Any]]:
     """Row BA, BA-2 (BATTLE_DIORAMA_SPEC §15.5.5): the plan of battle,
     orderable at the attack row. For an attack by `lead` on `enemy`: every
     corps of ours standing by that the muster says will NOT come, or may not,
@@ -880,7 +891,13 @@ def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None) -> List[Dic
     who would come anyway, `BRING_ODDS_GAIN` better than he has now. Nor is a
     row offered when the order's first step meets a corps we see on his road
     (`_first_step_asks`): he would fight at once on his own, or ask — on the
-    opening board Murat, whose road to Ney runs through Mack.
+    opening board Murat, whose road to Ney runs through Mack. Nor when the
+    order would first ASK the Emperor — a road round a neutral's shut
+    frontier, guarded ground: the quote's `detour` and `guard`, the
+    executor's "support, or cancel?" (BA2-X9) — nor when its price is the
+    action the attack itself needs (`attack_ap`, the attack's own price: the
+    corps would be ordered to a battle that cannot then be fought this turn;
+    BA2-X8).
 
     PURE: it prices the plan, it does not stage it (never
     `_build_muster_preview`, which spends the one-time muster hint). Each row
@@ -898,6 +915,10 @@ def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None) -> List[Dic
             from backend.commands.executor import CommandExecutor
             reader = _MUSTER_READER["combat"] = CommandExecutor()._combat
         battle_region = answering_defender(world, enemy).location
+        if attack_ap is None:
+            attack_ap = 0 if getattr(lead, "has_counter_punch", lambda: False)() \
+                else int(world.get_action_cost("attack"))
+        actions_left = int(getattr(world, "actions_remaining", 0) or 0)
         region = world.get_region(battle_region)
         beside = set(region.adjacent_regions) if region is not None else set()
         for m in _field_marshals(world):
@@ -921,6 +942,10 @@ def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None) -> List[Dic
                     continue
                 if _first_step_asks(world, q, lead.location):
                     continue          # the order would raise his question, or his own fight
+                if q.get("detour") or q.get("guard"):
+                    continue          # the order would ask the Emperor first (BA2-X9)
+                if actions_left < int(attack_ap) + int(q.get("ap") or 0):
+                    continue          # its price is the action the attack needs (BA2-X8)
                 stop = _stop_this_turn(world, m, q)
                 if stop != battle_region and stop not in beside:
                     continue          # the order's first march takes him out of reach
