@@ -72,6 +72,12 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     "marshal_chip_row.gd",
     "marshal_roster_row.gd",
     "selection_card.gd",
+    # Row BA, BA-1 (November 14, 2026): the tableau's sequencer and the corps
+    # plinth, and the tableau that hooks them — extended in the slice that
+    # added them (§7).
+    "battle_acts.gd",
+    "diorama_plinth.gd",
+    "battle_diorama.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

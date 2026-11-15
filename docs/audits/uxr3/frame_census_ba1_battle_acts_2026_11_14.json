@@ -1,0 +1,371 @@
+{
+ "tool": "tools/uxr3_frame_census.py",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\index.json",
+ "client_commit": "4009b2d5",
+ "frames": 75,
+ "frames_without_record": [],
+ "cut_lines": [],
+ "grip_overlaps": [],
+ "tick_overlaps": [],
+ "verdict_gaps": [
+  {
+   "surface": "diorama_aadj",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_aadj",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_dadj",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_rout_conquest",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_four_contingents",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_naval",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_verdict_worst",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_field_at_rest",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_field_at_rest",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_field_at_rest",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_field_at_rest",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_field_at_rest",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_enemy_came_up",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_enemy_came_up",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_enemy_came_up",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_enemy_came_up",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_enemy_came_up",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_the_guns",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_the_guns",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_the_guns",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_the_guns",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_the_guns",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_defeat",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_defeat",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_defeat",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_defeat",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_defeat",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_watched",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_watched",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_watched",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_watched",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_watched",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_act_approach",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_act_approach",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_act_approach",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_act_approach",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_act_approach",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_act_crisis",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba1_act_crisis",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_act_crisis",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba1_act_crisis",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba1_act_crisis",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  }
+ ],
+ "map_frames": 75,
+ "map_overlaps": [],
+ "map_hidden": [
+  {
+   "surface": "war_room_pause_settings",
+   "res": "1920x1080",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_pause_settings",
+   "res": "1920x1080",
+   "what": "garrison:?"
+  },
+  {
+   "surface": "war_room_pause_settings",
+   "res": "2560x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_pause_settings",
+   "res": "3440x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_pause_settings",
+   "res": "5120x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_pause_settings",
+   "res": "3840x2160",
+   "what": "fog_chip:?"
+  }
+ ]
+}

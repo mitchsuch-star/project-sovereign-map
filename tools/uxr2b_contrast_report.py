@@ -83,10 +83,25 @@ def background(img: np.ndarray, rect, scale: float):
     return tuple(float(v) for v in np.median(crop, axis=0))
 
 
+def cut_to_a_sliver(row: dict) -> bool:
+    """A row a scroll's edge cuts to under a third of its own height shows no
+    line of its text, and the strip that IS on screen is its own top or
+    bottom border, not its ground. Row BA, BA-1 (November 14, 2026): a new
+    Settings row moved the fold one row down, and the toggle then cut to 2 px
+    read 3.49 : 1 at two resolutions — its border's colour. `background`'s
+    older rule (under 2 physical px is not measured) is this rule at one size."""
+    rect, raw = row.get("rect"), row.get("rect_raw")
+    if not rect or not raw or len(rect) != 4 or len(raw) != 4:
+        return False
+    return float(raw[3]) > 0.0 and float(rect[3]) < float(raw[3]) / 3.0
+
+
 def measure_row(row: dict, img: np.ndarray, scale: float):
     """(worst ratio, its colour, the background) for one census row, or None
     when it is not measured."""
     if row.get("tier") == "map" or row.get("disabled") or not row.get("rect"):
+        return None
+    if cut_to_a_sliver(row):
         return None
     bg = background(img, row["rect"], scale)
     if bg is None:

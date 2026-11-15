@@ -2792,9 +2792,14 @@ class StrategicOrderProcessor:
                         "message": msg}
             # attempt_breakout — the escape roll at −10%.
             import random
+            # WS-11 (row BA): the breakout's own dice, so a reload answers the
+            # same question with the same roll (None on the `historical` seed).
+            from backend.commands.combat_executor import battle_dice
+            _breakout_rng = battle_dice(world, marshal, pending.get("enemy", ""),
+                                        marshal.location, kind="breakout")
             escape_chance = (combat.MARSHAL_FATE_ESCAPE_CHANCE
                              - combat.LAST_STAND_BREAKOUT_PENALTY)
-            if random.random() < escape_chance:
+            if (_breakout_rng if _breakout_rng is not None else random).random() < escape_chance:
                 # NP-4 (NAPOLEON_SPEC §7.0): the Emperor's breakout is the
                 # Guard's — success still burns GUARD_ESCAPE_TOLL of the
                 # corps. The squares die so the berline gets out.

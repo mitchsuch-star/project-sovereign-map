@@ -155,6 +155,9 @@ ENGINE_LANES = {
         "test_ge2_the_client",
         "test_s14h_p2_driven",                 # S14G-19: the label-click harness
         "test_tutorial_unbreakable_2026_09_23",
+        # Row BA, BA-1: the real tableau playing the acts, headless, the scene
+        # run eight times faster (tools/ba1_acts_walk.gd)
+        "test_ba1_the_battle_in_acts",
     }),
     "engine_panels": frozenset({
         # the CN-3 region-panel harness and its kin (tests/_chip_census.render)

@@ -1,0 +1,158 @@
+{
+ "battle_name": "Battle of Franconia",
+ "region": "Franconia",
+ "turn": 1,
+ "outcome": "attacker_tactical_victory",
+ "victor": "Mack",
+ "attacker_nation": "Austria",
+ "defender_nation": "France",
+ "player_side": "defender",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 52000,
+    "casualties": 2738,
+    "remaining": 49262,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "advance_losses": 1477,
+    "after_advance": 47785
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 2738,
+  "committed_total": 52000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Bernadotte",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 17000,
+    "casualties": 4812,
+    "remaining": 12188,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 4812,
+  "committed_total": 17000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "observation": "The margin was slim. Training and preparation would serve Bernadotte well.",
+ "enemy_voice": "Mack: \"The system attacked. The system was correct.\"",
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack attacks Bernadotte at Franconia.",
+      "weight": "detail"
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack advances to his mark, as ordered, and no further.",
+      "weight": "head",
+      "temper": "literal",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "outnumbered",
+      "side": "defender",
+      "actor": "Bernadotte",
+      "text": "Bernadotte stands firm against numbers (+10%).",
+      "weight": "detail",
+      "pct": 10,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "The fortune of the day: Mack rolls 5: 5.",
+      "weight": "head",
+      "natural": 5,
+      "skill": 0,
+      "flank": 0,
+      "modified": 5,
+      "critical": "",
+      "swing": -2,
+      "fortune_attacker": -5,
+      "fortune_defender": 0
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "advance_to",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack advances into Franconia, where Bernadotte still stands.",
+      "weight": "detail",
+      "to": "Franconia",
+      "contested": true
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Mack": "literal",
+   "Bernadotte": "cautious"
+  }
+ }
+}

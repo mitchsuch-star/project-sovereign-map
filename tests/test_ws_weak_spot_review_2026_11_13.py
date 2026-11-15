@@ -23,6 +23,7 @@ Fixed here, each with its behaviour test:
 
 Filed OPEN, heading Session H (S15): WS-10 … WS-15 and WS-R — strict-xfail
 pins that turn red the day the behaviour lands, so the row closes with it.
+(WS-11 landed November 14, 2026 with row BA's first session; its pin passes.)
 """
 from __future__ import annotations
 
@@ -551,12 +552,19 @@ class TestWS10TwoSurfacesClaimTheBareDigits:
 
 
 class TestWS11ABattleIsRolledAgainByLoading:
-    """Every battle draw comes off the process-global `random`, which no save
-    carries: F5, attack, F9, attack again rolls fresh dice. The courts' own
-    decisions are already the campaign seed's (`enemy_ai`, `naval`, the
-    fortunes of war); the land battle is not."""
+    """Every battle draw came off the process-global `random`, which no save
+    carries: F5, attack, F9, attack again rolled fresh dice. The courts' own
+    decisions were already the campaign seed's (`enemy_ai`, `naval`, the
+    fortunes of war); the land battle was not.
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
+    FIXED November 14, 2026 (row BA, BA-1 — the user's "Seed them here,
+    first"): in a campaign the game server holds, on a rolled campaign seed,
+    the battle draws from its own stream (`campaign_variance.battle_rng`; a
+    world a measuring tool builds for itself keeps the stream it pins, and
+    `historical` is the fixed table). This pin, filed as a strict xfail,
+    turned red the day the dice left the global stream, as it said it would;
+    the behaviour tests are `tests/test_ws11_the_dice_are_the_campaigns.py`."""
+
     def test_the_dice_are_the_campaigns(self):
         from backend.game_logic.combat import CombatResolver
         assert "random.randint(" not in inspect.getsource(CombatResolver.roll_combat_dice)

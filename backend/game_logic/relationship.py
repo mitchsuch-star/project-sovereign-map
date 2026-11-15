@@ -34,7 +34,8 @@ def calculate_battle_severity(winner_casualties, loser_casualties):
         return "standard"
 
 
-def check_shared_battle_relationship(marshal_a, marshal_b, battle_result, won, world):
+def check_shared_battle_relationship(marshal_a, marshal_b, battle_result, won, world,
+                                     rng=None):
     """Check if shared battle changes A's relationship with B.
 
     Args:
@@ -43,6 +44,8 @@ def check_shared_battle_relationship(marshal_a, marshal_b, battle_result, won, w
         battle_result: Dict from resolve_battle().
         won: True if their side won the battle.
         world: WorldState (for current_turn / cooldown).
+        rng: WS-11 — the battle's own stream on a rolled campaign seed; None
+            draws the ±10 from the module `random`, as before.
 
     Returns:
         int: Change applied (-1, 0, or +1).
@@ -93,7 +96,7 @@ def check_shared_battle_relationship(marshal_a, marshal_b, battle_result, won, w
         sev_bonus = {"decisive": 10, "standard": 0, "narrow": -5}[severity]
         rel_mod = {-2: 15, -1: 5, 0: 0, 1: 0, 2: 0}[current_rel]
 
-    variance = random.randint(-10, 10)
+    variance = (rng if rng is not None else random).randint(-10, 10)
     score = base + sev_bonus + rel_mod + variance
 
     # Threshold: strict > 50 (NOT >= 50) — M2
@@ -151,7 +154,8 @@ def get_battle_participants(primary, battle_region, nation, world):
 
 def process_battle_relationships(attacker_marshal, defender_marshal, battle_result,
                                  battle_region, world,
-                                 attacker_artillery=None, defender_artillery=None):
+                                 attacker_artillery=None, defender_artillery=None,
+                                 rng=None):
     """Process relationship changes for all participants on both sides.
 
     Uses ordered pairs (permutations) per D4.
@@ -159,11 +163,13 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
     Args:
         attacker_artillery: List of artillery marshals that reinforced from adjacent regions
         defender_artillery: List of artillery marshals that reinforced from adjacent regions
+        rng: WS-11 — the battle's own stream (None = the module `random`)
 
     Returns:
         list of dicts with keys: marshal, toward, change, new_value, nation
     """
     changes = []
+    _rng_kw = {"rng": rng} if rng is not None else {}
 
     victor = battle_result.get("victor")
     attacker_won = (victor == attacker_marshal.name)
@@ -189,7 +195,7 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
             # battle where the grievance penalty applied.
             _stored_before = a.relationships.get(b.name, 0)
             change = check_shared_battle_relationship(
-                a, b, battle_result, attacker_won, world)
+                a, b, battle_result, attacker_won, world, **_rng_kw)
             if change != 0:
                 direction = "improved" if change > 0 else "degraded"
                 label = a.get_relationship_label(a.get_relationship(b.name))
@@ -229,7 +235,7 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
             # battle where the grievance penalty applied.
             _stored_before = a.relationships.get(b.name, 0)
             change = check_shared_battle_relationship(
-                a, b, battle_result, defender_won, world)
+                a, b, battle_result, defender_won, world, **_rng_kw)
             if change != 0:
                 direction = "improved" if change > 0 else "degraded"
                 label = a.get_relationship_label(a.get_relationship(b.name))

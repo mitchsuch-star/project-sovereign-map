@@ -39,6 +39,7 @@ roll, was absent from the tableau entirely (muster-promise parity below).
 
 from typing import Dict, List, Optional
 
+from backend import errors as _errors
 from backend.models.intel import FULL
 
 # Cap per the eval's §7 Q3 answer: fixed figure blocks, summarize the tail.
@@ -342,7 +343,8 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
                          total_engaged: int,
                          muster_rows: Optional[list] = None,
                          faith: Optional[Dict[str, str]] = None,
-                         liberated_to: str = ""
+                         liberated_to: str = "",
+                         script_facts: Optional[dict] = None,
                          ) -> Optional[dict]:
     """Assemble the Battle Diorama payload, or None when fog says the player
     may not see this field. Display-only; every figure is either already on
@@ -469,4 +471,18 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
             and "The Emperor himself" not in payload["observation"]):
         payload["observation"] = (
             "The Emperor watched this field. " + payload["observation"])
+    # Row BA (BA-1, BATTLE_DIORAMA_SPEC.md §15.5.2): the battle in acts. The
+    # script rides the payload it was built for — the same fog gate (a
+    # battle the player may not see returned None above), both transports.
+    # `script_facts` are the executor's extras; a caller with none still gets
+    # every beat the battle result itself can tell. A display layer never
+    # costs a battle its report: a failure is reported and the tableau plays
+    # as it did before the acts.
+    try:
+        from backend.game_logic.battle_script import build_battle_script
+        payload["script"] = build_battle_script(
+            world, payload, attacker, defender, battle_result,
+            attacker_reinforcements, defender_reinforcements, script_facts)
+    except Exception as exc:
+        _errors.report(exc, "battle_diorama.build_battle_diorama: the battle script")
     return payload

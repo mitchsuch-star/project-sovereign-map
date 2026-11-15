@@ -126,6 +126,9 @@ var _final := false            # sequence has settled (or was opened settled)
 var _seq: Tween = null         # master cinematic tween
 var _blocks_left: Array = []   # per-corps dicts (see _make_block)
 var _blocks_right: Array = []
+# Row BA (BA-1): the battle in acts — the plinths, the dice and the sequencer
+# that plays the payload's script (scripts/battle_acts.gd). Made per showing.
+var _acts: BattleActs = null
 # UX23-R6: cues this diorama started, silenced on close.
 var _own_cues_started: Array = []
 var _music_ducked := false
@@ -202,6 +205,10 @@ func show_diorama(data: Dictionary, cinematic := true) -> void:
 			_cue("ship_bell")
 		else:
 			AudioManager.start_loop("battle_bed")
+	# Row BA: Settings → Battle scenes → "Final frame only" opens the field as
+	# it ended (Replay still plays it).
+	if cinematic and BattleActs.opens_settled():
+		cinematic = false
 	_populate(not cinematic)
 	_fit_tray_to_viewport()
 	if cinematic:
@@ -297,6 +304,11 @@ func _build_chrome() -> void:
 	# re-entrant corners retire the four floral ones.
 	_tray.add_theme_stylebox_override("panel",
 		Utils.gilt_frame(WOOD_BG, Utils.UI_GOLD, Utils.FRAME_WINDOW, 0.0))
+	# BA1-X5 (row BA, BA-1): "click anywhere to skip" was true only of the dark
+	# margin round the tableau. A PanelContainer stops the mouse by default, so
+	# a click ON the tableau — where the hint is printed — never reached
+	# `_on_root_input`. The frame passes it up; the buttons still take theirs.
+	_tray.mouse_filter = Control.MOUSE_FILTER_PASS
 	_root.add_child(_tray)
 
 	_tray_inner = Control.new()
@@ -824,6 +836,11 @@ func _populate(final_frame: bool) -> void:
 	_btn_replay.visible = final_frame
 	_btn_close.visible = final_frame
 	_skip_hint.visible = not final_frame
+
+	# Row BA (BA-1): the Blend look and the acts — a plinth under every corps,
+	# the dice tray, and either the settled frame or the acts' opening places.
+	_acts = BattleActs.new(self)
+	_acts.dress(final_frame)
 
 
 func _build_side(side: Dictionary, is_left: bool) -> Array:
@@ -1433,6 +1450,12 @@ func _play_cinematic() -> void:
 	_final = false
 	_kill_sequence()
 
+	# Row BA (BA-1): a land battle that carries a script plays in acts; a
+	# fleet action, or a payload from before the acts, plays the sequence below.
+	if _acts != null and _acts.plays():
+		_acts.play()
+		return
+
 	# Reveal: the tray settles into view under one cannon thud.
 	_tray.modulate.a = 0.0
 	_cue("cannon")
@@ -1671,6 +1694,9 @@ func _apply_final_frame_instant() -> void:
 		_sub_banner.modulate.a = 1.0
 	_verdict.text = _verdict_bbcode()
 	_verdict.visible_characters = -1
+	# Row BA: the plinths' pips, a beaten corps driven back, the dice at rest.
+	if _acts != null:
+		_acts.settle()
 
 
 func _skip_to_final() -> void:

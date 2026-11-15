@@ -1,0 +1,1118 @@
+{
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\index.json",
+ "client_commit": "4009b2d5",
+ "physical_scale": "auto",
+ "high_contrast": false,
+ "surfaces": {
+  "diorama_aadj": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_dadj": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_rout_conquest": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_four_contingents": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_naval": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_verdict_worst": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 21,
+      "measured": 21,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_field_at_rest": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_enemy_came_up": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_the_guns": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_defeat": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_watched": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "measured": 23,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "measured": 23,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "measured": 23,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "measured": 23,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "measured": 23,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_act_approach": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 29,
+      "measured": 29,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 29,
+      "measured": 29,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 29,
+      "measured": 29,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 29,
+      "measured": 29,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 29,
+      "measured": 29,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba1_act_crisis": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "measured": 34,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "measured": 34,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "measured": 34,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "measured": 34,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 34,
+      "measured": 34,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "war_room_pause_settings": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 122,
+      "measured": 86,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 126,
+      "measured": 88,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 130,
+      "measured": 92,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 131,
+      "measured": 83,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 128,
+      "measured": 90,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "main_menu_settings": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 57,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 57,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 57,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 57,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 57,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  }
+ }
+}

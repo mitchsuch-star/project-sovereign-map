@@ -82,6 +82,12 @@ const _EXPLANATION_LABELS := {
 	"folded": "Folded (the default)",
 	"page": "On the page",
 }
+# Row BA (BA-1, November 14, 2026): how a battle plays on the tableau.
+const _BATTLE_SCENES_LABELS := {
+	"acts": "In acts (the default)",
+	"brief": "Brief always",
+	"final": "Final frame only",
+}
 
 # Session UI-6: FOLDED, a short choice is a segmented control (a row of gilt
 # toggle buttons, one pressed) beside its dropdown, which steps aside; On the
@@ -102,6 +108,7 @@ const _SEGMENT_LABELS := {
 	"play": "Play", "quiet": "Quieter", "mute": "Mute",
 	"standard": "Standard", "red_green": "Red-green safe",
 	"instant": "Instant", "short": "Short", "normal": "Normal", "long": "Long",
+	"acts": "In acts", "brief": "Brief", "final": "Final frame",
 }
 # Session UI-6: FOLDED, a card joins the one before it (fewer boxes); On the page
 # every card stands as it did. follower title -> leader title; the leader's
@@ -133,6 +140,7 @@ var _body_font: OptionButton
 var _hud_width: OptionButton
 var _wide_map: OptionButton = null
 var _explanations: OptionButton = null
+var _battle_scenes: OptionButton = null   # row BA: In acts / Brief always / Final frame only
 # Session UI-3: each explanation hint and the control it explains — folded, the
 # hint is that control's hover (and an ⓘ ends its row); On the page it prints.
 var _hints: Array = []
@@ -647,6 +655,8 @@ func _refresh_display_controls() -> void:
 		_wide_map.select(maxi(UiSettings.WIDE_MAPS.find(UiSettings.get_wide_map()), 0))
 	if _explanations != null:
 		_explanations.select(maxi(UiSettings.EXPLANATIONS.find(UiSettings.get_explanations()), 0))
+	if _battle_scenes != null:
+		_battle_scenes.select(maxi(UiSettings.BATTLE_SCENES.find(UiSettings.get_battle_scenes()), 0))
 	if _contrast_toggle != null:
 		_contrast_toggle.set_pressed_no_signal(UiSettings.get_high_contrast())
 	if _motion_toggle != null:
@@ -673,6 +683,13 @@ func _on_wide_map_selected(index: int) -> void:
 	var mode: String = UiSettings.WIDE_MAPS[clampi(index, 0, UiSettings.WIDE_MAPS.size() - 1)]
 	UiSettings.set_wide_map(mode)
 	wide_map_changed.emit(mode)
+
+
+func _on_battle_scenes_selected(index: int) -> void:
+	"""Row BA: In acts / Brief always / Final frame only — read by the tableau
+	each time a battle opens (`BattleActs.mode`)."""
+	UiSettings.set_battle_scenes(
+		str(UiSettings.BATTLE_SCENES[clampi(index, 0, UiSettings.BATTLE_SCENES.size() - 1)]))
 
 
 func _on_explanations_selected(index: int) -> void:
@@ -839,7 +856,8 @@ func _build_interface_section() -> void:
 	_motion_toggle.button_pressed = UiSettings.get_reduce_motion()
 	_motion_toggle.toggled.connect(func(on: bool): UiSettings.set_reduce_motion(on))
 	add_child(_motion_toggle)
-	_add_hint("Reduce motion opens every screen and letter at once, without its fade.")
+	_add_hint("Reduce motion opens every screen and letter at once, without its fade, "
+		+ "and every battle on its final frame.")
 
 	# Session UI-3 (November 12, 2026): Explanations — the user's ruling, "Fold,
 	# a switch restores": folded, the pages keep to their figures; On the page
@@ -865,6 +883,30 @@ func _build_interface_section() -> void:
 	_add_hint("Folded keeps every page to its figures: what a page is for stands behind "
 		+ "its ⓘ, what a button does is its hover, and long counsel opens from ▸ more. "
 		+ "On the page prints every explanation in full, where it always stood.")
+
+	# Row BA (BA-1, November 14, 2026): the battle in acts — the user's ruling,
+	# "Great ones in full"; this row is the player's own say over it.
+	var battle_row := HBoxContainer.new()
+	battle_row.add_theme_constant_override("separation", 10)
+	var battle_lbl := Label.new()
+	battle_lbl.text = "Battle scenes"
+	battle_lbl.theme_type_variation = &"Caption"
+	battle_lbl.custom_minimum_size.x = 72
+	battle_row.add_child(battle_lbl)
+	_battle_scenes = OptionButton.new()
+	_battle_scenes.name = "BattleScenesOption"
+	for i in range(UiSettings.BATTLE_SCENES.size()):
+		var scenes_key: String = UiSettings.BATTLE_SCENES[i]
+		_battle_scenes.add_item(str(_BATTLE_SCENES_LABELS.get(scenes_key, scenes_key)), i)
+	_battle_scenes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_battle_scenes.select(maxi(UiSettings.BATTLE_SCENES.find(UiSettings.get_battle_scenes()), 0))
+	_battle_scenes.item_selected.connect(_on_battle_scenes_selected)
+	battle_row.add_child(_battle_scenes)
+	_add_segments(battle_row, _battle_scenes, UiSettings.BATTLE_SCENES, UiSettings.DEFAULT_BATTLE_SCENES)
+	add_child(battle_row)
+	_add_hint("In acts plays a great or dramatic battle through its five acts and a "
+		+ "lesser one in brief. Brief always keeps every battle to what decided it. "
+		+ "Final frame only opens the field as it ended; Replay still plays it.")
 
 	# Session UI-5: colour vision, tooltip delay, and the first-open notes.
 	_colour_vision = _option_row("Colour vision", "ColourVisionOption", UiSettings.COLOUR_VISIONS,

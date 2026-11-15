@@ -236,6 +236,9 @@ def _set_active_world(new_world: WorldState) -> WorldState:
     world = new_world
     game_state["world"] = new_world
     _bump_state_epoch()   # UI-6: the readback's cache never outlives a swap
+    # WS-11: a campaign the server holds rolls its battles on its own seed.
+    from backend.game_logic.campaign_variance import serve_campaign
+    serve_campaign(new_world)
     return new_world
 
 

@@ -1,0 +1,153 @@
+{
+ "battle_name": "Battle of Tyrol",
+ "region": "Tyrol",
+ "turn": 1,
+ "outcome": "stalemate",
+ "victor": null,
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "grim",
+ "significant": true,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 26000,
+    "casualties": 3249,
+    "remaining": 22751,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3249,
+  "committed_total": 26000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "ArchdukeJohn",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 20000,
+    "casualties": 2245,
+    "remaining": 17755,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 2245,
+  "committed_total": 20000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "An inconclusive affair. Both sides bloodied but unbroken.",
+ "enemy_voice": "Archduke John: \"Neither yields. The Alps are patient, and so am I.\"",
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout attacks Archduke John at Tyrol.",
+      "weight": "detail"
+     },
+     {
+      "kind": "ground",
+      "side": "defender",
+      "actor": "ArchdukeJohn",
+      "text": "Archduke John stands in the mountains (+25%).",
+      "weight": "detail",
+      "terrain_pct": 25,
+      "works_pct": 0,
+      "walls_pct": 0,
+      "square": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout comes on by measured steps.",
+      "weight": "head",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "ArchdukeJohn",
+      "text": "Archduke John holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "outnumbered",
+      "side": "defender",
+      "actor": "ArchdukeJohn",
+      "text": "Archduke John stands firm against numbers (+10%).",
+      "weight": "detail",
+      "pct": 10,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "The fortune of the day: Davout rolls 8, +2 for his eye for ground: 10.",
+      "weight": "head",
+      "natural": 8,
+      "skill": 2,
+      "flank": 0,
+      "modified": 10,
+      "critical": "",
+      "swing": 10,
+      "fortune_attacker": -9,
+      "fortune_defender": 9
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Davout": "cautious",
+   "ArchdukeJohn": "cautious"
+  }
+ }
+}

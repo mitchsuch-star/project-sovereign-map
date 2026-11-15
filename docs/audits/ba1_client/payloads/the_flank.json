@@ -1,0 +1,241 @@
+{
+ "battle_name": "Second Battle of Swabia",
+ "region": "Swabia",
+ "turn": 1,
+ "outcome": "attacker_tactical_victory",
+ "victor": "Ney",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 24000,
+    "casualties": 1158,
+    "remaining": 22842,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "advance_losses": 358,
+    "after_advance": 22484
+   },
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 23998,
+    "casualties": 692,
+    "remaining": 23306,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Murat",
+    "nation": "France",
+    "arm": "cavalry",
+    "committed": 21153,
+    "casualties": 305,
+    "remaining": 20848,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Lannes",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 15531,
+    "casualties": 560,
+    "remaining": 14971,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Soult",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 30000,
+    "casualties": 0,
+    "remaining": 30000,
+    "status": "refused",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false,
+    "absence_reason": "awaits explicit orders"
+   }
+  ],
+  "reserve_count": 2,
+  "casualties_total": 2975,
+  "committed_total": 93720,
+  "reserve_casualties": 260,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 37940,
+    "casualties": 29087,
+    "remaining": 8853,
+    "status": "routed",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 29087,
+  "committed_total": 37940,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Ney fought without Bernadotte's support. The roads, or the will, proved insufficient. And Mack was taken on that field — France holds him.",
+ "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney attacks Mack at Swabia.",
+      "weight": "detail"
+     },
+     {
+      "kind": "absent",
+      "side": "attacker",
+      "actor": "Soult",
+      "text": "Soult does not come: awaits explicit orders.",
+      "weight": "head",
+      "status": "refused"
+     },
+     {
+      "kind": "flank",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The attack comes in from 2 provinces (Franche-Comte, Rhineland): +1 on the dice.",
+      "weight": "head",
+      "bonus": 1,
+      "origins": [
+       "Franche-Comte",
+       "Rhineland"
+      ]
+     },
+     {
+      "kind": "presence",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The Emperor commands in person: +10% along the line.",
+      "weight": "head",
+      "pct": 10,
+      "dimmed": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney goes in at the head of his men (+15%).",
+      "weight": "head",
+      "temper": "aggressive",
+      "pct": 15,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack stands where he was posted.",
+      "weight": "detail",
+      "temper": "literal",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "ability",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney's blow lands harder: Bravest of the Brave.",
+      "weight": "head",
+      "ability": "Bravest of the Brave"
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The fortune of the day: Ney rolls 9, +1 for his eye for ground, +1 for the flank: 11.",
+      "weight": "head",
+      "natural": 9,
+      "skill": 1,
+      "flank": 1,
+      "modified": 11,
+      "critical": "",
+      "swing": 12,
+      "fortune_attacker": 0,
+      "fortune_defender": -5
+     },
+     {
+      "kind": "break",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack is taken on the field.",
+      "weight": "head",
+      "how": "captured",
+      "morale": 0
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "advance_to",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney advances into Swabia.",
+      "weight": "detail",
+      "to": "Swabia",
+      "contested": false
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Ney": "aggressive",
+   "Davout": "cautious",
+   "Murat": "aggressive",
+   "Lannes": "aggressive",
+   "Soult": "literal",
+   "Mack": "literal"
+  }
+ }
+}

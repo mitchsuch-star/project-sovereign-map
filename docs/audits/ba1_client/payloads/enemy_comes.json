@@ -1,0 +1,166 @@
+{
+ "battle_name": "The Great Battle of Tyrol",
+ "region": "Tyrol",
+ "turn": 1,
+ "outcome": "defender_tactical_victory",
+ "victor": "Kutuzov",
+ "attacker_nation": "France",
+ "defender_nation": "Russia",
+ "player_side": "attacker",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": true,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 26000,
+    "casualties": 6192,
+    "remaining": 19808,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 6192,
+  "committed_total": 26000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Kutuzov",
+    "nation": "Russia",
+    "arm": "infantry",
+    "committed": 38000,
+    "casualties": 1675,
+    "remaining": 36325,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Buxhowden",
+    "nation": "Russia",
+    "arm": "infantry",
+    "committed": 32000,
+    "casualties": 423,
+    "remaining": 31577,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 2098,
+  "committed_total": 70000,
+  "reserve_casualties": 0,
+  "nation": "Russia"
+ },
+ "observation": "Geography was our enemy today, Sire. Kutuzov held the superior ground.",
+ "enemy_voice": "Kutuzov: \"Russia is patient, Frenchman. You will learn what that costs.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout attacks Kutuzov at Tyrol.",
+      "weight": "detail"
+     },
+     {
+      "kind": "arrive",
+      "side": "defender",
+      "actor": "Buxhowden",
+      "text": "Buxhowden comes up at the last hour.",
+      "weight": "head",
+      "late": true,
+      "concealed": true
+     },
+     {
+      "kind": "ground",
+      "side": "defender",
+      "actor": "Kutuzov",
+      "text": "Kutuzov stands in the mountains (+25%).",
+      "weight": "detail",
+      "terrain_pct": 25,
+      "works_pct": 0,
+      "walls_pct": 0,
+      "square": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout comes on by measured steps (−10%).",
+      "weight": "head",
+      "temper": "cautious",
+      "pct": 10,
+      "penalty": true
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Kutuzov",
+      "text": "Kutuzov holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "The fortune of the day: Davout rolls 8, +2 for his eye for ground: 10.",
+      "weight": "head",
+      "natural": 8,
+      "skill": 2,
+      "flank": 0,
+      "modified": 10,
+      "critical": "",
+      "swing": 10,
+      "fortune_attacker": -5,
+      "fortune_defender": -6
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Davout": "cautious",
+   "Kutuzov": "cautious",
+   "Buxhowden": "literal"
+  }
+ }
+}

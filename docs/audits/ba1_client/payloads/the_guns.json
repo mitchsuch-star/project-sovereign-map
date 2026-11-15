@@ -1,0 +1,295 @@
+{
+ "battle_name": "The Great Battle of Swabia",
+ "region": "Swabia",
+ "turn": 1,
+ "outcome": "attacker_tactical_victory",
+ "victor": "Ney",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": true,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 24000,
+    "casualties": 1892,
+    "remaining": 22108,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false,
+    "advance_losses": 314,
+    "after_advance": 21794
+   },
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 26000,
+    "casualties": 1183,
+    "remaining": 24817,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Murat",
+    "nation": "France",
+    "arm": "cavalry",
+    "committed": 22000,
+    "casualties": 500,
+    "remaining": 21500,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Lannes",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 18000,
+    "casualties": 976,
+    "remaining": 17024,
+    "status": "reinforced",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Soult",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 30000,
+    "casualties": 0,
+    "remaining": 30000,
+    "status": "refused",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false,
+    "absence_reason": "awaits explicit orders"
+   }
+  ],
+  "reserve_count": 3,
+  "casualties_total": 5032,
+  "committed_total": 103000,
+  "reserve_casualties": 481,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 52000,
+    "casualties": 20586,
+    "remaining": 28262,
+    "status": "routed",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 20586,
+  "committed_total": 52000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Reinforcements from Davout, Lannes, Murat, Napoleon and Marmont bolstered Ney's position — though Bernadotte never arrived, Sire.",
+ "enemy_voice": "Mack: \"This is not a rout. It is a revision of the plan.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney attacks Mack at Swabia.",
+      "weight": "detail"
+     },
+     {
+      "kind": "arrive",
+      "side": "attacker",
+      "actor": "Davout",
+      "text": "Davout marches from Rhineland to the sound of the guns.",
+      "weight": "detail",
+      "late": false,
+      "score": 84,
+      "bar": 55,
+      "margin": 29,
+      "origin": "Rhineland",
+      "ordered": false,
+      "concealed": false
+     },
+     {
+      "kind": "arrive",
+      "side": "attacker",
+      "actor": "Lannes",
+      "text": "Lannes marches from Franche-Comte to the sound of the guns.",
+      "weight": "detail",
+      "late": false,
+      "score": 93,
+      "bar": 55,
+      "margin": 38,
+      "origin": "Franche-Comte",
+      "ordered": false,
+      "concealed": false
+     },
+     {
+      "kind": "arrive",
+      "side": "attacker",
+      "actor": "Murat",
+      "text": "Murat marches from Franche-Comte to the sound of the guns.",
+      "weight": "detail",
+      "late": false,
+      "score": 68,
+      "bar": 55,
+      "margin": 13,
+      "origin": "Franche-Comte",
+      "ordered": false,
+      "concealed": false
+     },
+     {
+      "kind": "absent",
+      "side": "attacker",
+      "actor": "Soult",
+      "text": "Soult does not come: awaits explicit orders.",
+      "weight": "head",
+      "status": "refused"
+     },
+     {
+      "kind": "presence",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The Emperor commands in person: +10% along the line.",
+      "weight": "head",
+      "pct": 10,
+      "dimmed": false
+     }
+    ]
+   },
+   {
+    "act": "cannonade",
+    "beats": [
+     {
+      "kind": "battery",
+      "side": "attacker",
+      "actor": "Marmont",
+      "text": "Marmont's guns open on Mack's line: 3,152 fall before the assault.",
+      "weight": "head",
+      "dealt": 3152,
+      "taken": 52,
+      "target": "Mack"
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney goes in at the head of his men (+15%).",
+      "weight": "head",
+      "temper": "aggressive",
+      "pct": 15,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack stands where he was posted.",
+      "weight": "detail",
+      "temper": "literal",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "ability",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney's blow lands harder: Bravest of the Brave.",
+      "weight": "head",
+      "ability": "Bravest of the Brave"
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "The fortune of the day: Ney rolls 4, +1 for his eye for ground: 5.",
+      "weight": "head",
+      "natural": 4,
+      "skill": 1,
+      "flank": 0,
+      "modified": 5,
+      "critical": "",
+      "swing": -2,
+      "fortune_attacker": 5,
+      "fortune_defender": 8
+     },
+     {
+      "kind": "break",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack's line breaks at 21% morale.",
+      "weight": "head",
+      "how": "routed",
+      "morale": 21
+     }
+    ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "leave",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack leaves the field.",
+      "weight": "detail",
+      "how": "routed",
+      "to": ""
+     },
+     {
+      "kind": "advance_to",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Ney advances into Swabia.",
+      "weight": "detail",
+      "to": "Swabia",
+      "contested": false
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Ney": "aggressive",
+   "Davout": "cautious",
+   "Murat": "aggressive",
+   "Lannes": "aggressive",
+   "Soult": "literal",
+   "Mack": "literal"
+  }
+ }
+}

@@ -475,6 +475,63 @@ SHOTS: list[dict] = [
              "line of it above the nameplate"),
         ]
     ],
+    # ═══ Row BA, BA-1 (November 14, 2026) — the battle in acts ═══════════════
+    # Real 1805 battles through the real attack road (capture group
+    # `battle_acts`). The settled frames carry what the acts add to the table
+    # at rest — the plinths and their pips, the dice, the advance's toll under
+    # the lead's feet, a beaten corps driven back; the two `act_` shots are the
+    # table MID-ACT (Replay's own handler, then real time: the acts are tweens),
+    # where the act's name and the development's sentence stand.
+    *[
+        {
+            "id": f"diorama_ba1_{tag}",
+            "surface": f"Battle Diorama — the acts ({label})",
+            "payload": f"diorama_ba1_{payload}",
+            "scene": "res://scenes/battle_diorama.tscn",
+            "mode": "call", "method": "show_diorama",
+            "args": ["$payload", False],
+            "must_show": must,
+        }
+        for tag, payload, label, must in [
+            ("field_at_rest", "ulm", "a great battle at rest",
+             "four French ranks on their plinths, the pips ticked off; the dice with the roll's "
+             "parts, what it did and each side's luck; the beaten lead driven back, his plinth "
+             "turned down; the advance's toll under the lead's feet, not on his strength line"),
+            ("enemy_came_up", "enemy_comes", "an enemy corps that came up",
+             "the enemy's second corps in the line, made out; the dice; a repulsed attack"),
+            ("the_guns", "guns", "a battle the guns opened",
+             "the field at rest after a supporting battery fired: no gun left on the table"),
+            ("defeat", "defeat", "a defeat on the defence",
+             "the player's line on the left, beaten; the enemy lead's toll under his feet and "
+             "his figures clear of his portrait"),
+            ("watched", "watched", "another court's battle",
+             "the observer's register: both armies, the dice, no modifier of either"),
+        ]
+    ],
+    {
+        "id": "diorama_ba1_act_approach",
+        "surface": "Battle Diorama — the acts (mid-act: the approach)",
+        "payload": "diorama_ba1_ulm",
+        "scene": "res://scenes/battle_diorama.tscn",
+        "mode": "call", "method": "show_diorama",
+        "args": ["$payload", False],
+        "steps": [{"call": "_on_replay_pressed"}],
+        "settle_ms": 3500,
+        "must_show": "I · THE APPROACH named over the field; the development's sentence where "
+                     "the verdict will be written; a corps marching in; the skip hint",
+    },
+    {
+        "id": "diorama_ba1_act_crisis",
+        "surface": "Battle Diorama — the acts (mid-act: the crisis)",
+        "payload": "diorama_ba1_ulm",
+        "scene": "res://scenes/battle_diorama.tscn",
+        "mode": "call", "method": "show_diorama",
+        "args": ["$payload", False],
+        "steps": [{"call": "_on_replay_pressed"}],
+        "settle_ms": 13800,
+        "must_show": "IV · THE CRISIS named; the dice on the baize with the roll told beneath; "
+                     "the odometers running",
+    },
     {
         "id": "enemy_phase_iq5",
         "surface": "Enemy-phase dialog (IQ-5 scope board)",

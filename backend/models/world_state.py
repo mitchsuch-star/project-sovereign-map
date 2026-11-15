@@ -16848,13 +16848,21 @@ class WorldState:
                     if enemy_region and enemy_region.has_building("fortification")
                     else 0.0)
 
+                # WS-11 (row BA): the unordered charge's own dice — None on
+                # the `historical` seed, where every draw stays on the module
+                # `random` and the call keeps its shape.
+                from backend.commands.combat_executor import battle_dice
+                _ac_rng = battle_dice(self, marshal, enemy, enemy.location,
+                                      kind="auto_charge")
+
                 # Execute combat (glorious_charge=False if terrain blocks it)
                 combat_result = combat_resolver.resolve_battle(
                     attacker=marshal,
                     defender=enemy,
                     terrain=auto_charge_terrain,
                     glorious_charge=not charge_blocked,
-                    fortification_bonus=auto_charge_fort_bonus
+                    fortification_bonus=auto_charge_fort_bonus,
+                    **({"rng": _ac_rng} if _ac_rng is not None else {})
                 )
                 debug_print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
 
@@ -17004,7 +17012,7 @@ class WorldState:
                         # Surrounded — broken army, survivors flee to safe spawn (V2-44, V2-65)
                         import random as _rng
                         old_enemy_loc = enemy.location
-                        survival_rate = _rng.uniform(0.03, 0.10)
+                        survival_rate = (_ac_rng if _ac_rng is not None else _rng).uniform(0.03, 0.10)  # WS-11
                         spawn_loc = self.find_safe_spawn(enemy, exclude=old_enemy_loc)
                         enemy.move_to(spawn_loc)
                         # FA-N32: the clamped helper — never more men than he had.
@@ -17053,7 +17061,7 @@ class WorldState:
                         # V2-65: Safe spawn — capital may be enemy-occupied
                         import random as _rng2
                         old_atk_loc = marshal.location
-                        survival_rate = _rng2.uniform(0.03, 0.10)
+                        survival_rate = (_ac_rng if _ac_rng is not None else _rng2).uniform(0.03, 0.10)  # WS-11
                         spawn_loc = self.find_safe_spawn(marshal, exclude=old_atk_loc)
                         marshal.move_to(spawn_loc)
                         # FA-N32: the clamped helper — never more men than he had.
@@ -17113,7 +17121,8 @@ class WorldState:
                 # [4B-1] Process battle relationships (must run before destruction removes marshals)
                 from backend.game_logic.relationship import process_battle_relationships
                 ac_relationship_changes = process_battle_relationships(
-                    marshal, enemy, combat_result, auto_charge_battle_region, self)
+                    marshal, enemy, combat_result, auto_charge_battle_region, self,
+                    **({"rng": _ac_rng} if _ac_rng is not None else {}))  # WS-11
                 for rc in ac_relationship_changes:
                     self.log_event({
                         "type": "relationship_change", "marshal": rc["marshal"],

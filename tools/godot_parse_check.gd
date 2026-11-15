@@ -120,6 +120,11 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/marshal_chip_row.gd",
 	"res://scripts/marshal_roster_row.gd",
 	"res://scripts/selection_card.gd",
+	# Row BA, BA-1 (November 14, 2026) "the battle in acts": the tableau's
+	# sequencer and the corps plinth (both class_name — run a `--headless
+	# --import` pass first after a fresh clone).
+	"res://scripts/battle_acts.gd",
+	"res://scripts/diorama_plinth.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -252,6 +257,9 @@ const TOOL_SCRIPTS = [
 	# UXR-3 (Pre-Deploy S11): the action probe, R5 / R6's driven record
 	# (tools/uxr3_action_probe.py; its record is read by tests/test_uxr3_the_review.py)
 	"res://../../tools/uxr3_action_probe.gd",
+	# Row BA, BA-1: the camera for the battle's acts (tools/ba1_acts_walk.py;
+	# its record is read by tests/test_ba1_the_battle_in_acts.py)
+	"res://../../tools/ba1_acts_walk.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

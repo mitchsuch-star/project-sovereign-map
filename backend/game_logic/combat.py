@@ -232,9 +232,16 @@ class CombatResolver:
         self.defender_bonus = 0.2  # +20% for defender
         self.variance = 0.1  # ±10% random variance
 
-    def roll_combat_dice(self, marshal: Marshal, flanking_bonus: int = 0) -> Dict:
+    def roll_combat_dice(self, marshal: Marshal, flanking_bonus: int = 0,
+                         rng=None) -> Dict:
         """
         Roll 2d6 for combat with skill and flanking modifiers.
+
+        WS-11 (row BA, November 14, 2026 — the user's "Seed them here,
+        first"): `rng` is the battle's own stream
+        (`campaign_variance.battle_rng`) when the campaign's seed is rolled.
+        None — the `historical` seed, the seam down, a test — draws from this
+        module's `random` exactly as before.
 
         Formula:
         - Roll 2d6 (natural roll: 2-12)
@@ -258,8 +265,9 @@ class CombatResolver:
             - flanking_bonus: int (0-3)
         """
         # Roll 2d6
-        die1 = random.randint(1, 6)
-        die2 = random.randint(1, 6)
+        _dice = rng if rng is not None else random
+        die1 = _dice.randint(1, 6)
+        die2 = _dice.randint(1, 6)
         natural_roll = die1 + die2  # Range: 2-12
 
         # Calculate skill bonus from tactical skill (use skills dict if available)
@@ -305,9 +313,15 @@ class CombatResolver:
             committed_defender: float = 0.0,
             attacker_bodies: int = 0,
             defender_bodies: int = 0,
+            rng=None,
     ) -> Dict:
         """
         Resolve a battle between two marshals using 2d6 dice system.
+
+        WS-11: `rng` is the battle's own stream on a rolled campaign seed
+        (`campaign_variance.battle_rng`); None draws from this module's
+        `random` and passes nothing on, so every call below keeps the shape
+        it had (the test doubles of `roll_combat_dice` take no `rng`).
 
         Args:
             attacker: The attacking marshal
@@ -341,15 +355,26 @@ class CombatResolver:
             print(f"[WARNING] Same-nation combat: {attacker.name} ({attacker.nation}) vs "
                   f"{defender.name} ({defender.nation})")
 
+        # WS-11: the stream rides on only when there is one.
+        _rng_kw = {"rng": rng} if rng is not None else {}
+
         # Roll combat dice for attacker (flanking bonus adds to roll)
-        attacker_roll = self.roll_combat_dice(attacker, flanking_bonus=int(flanking_bonus))
+        attacker_roll = self.roll_combat_dice(
+            attacker, flanking_bonus=int(flanking_bonus), **_rng_kw)
 
         # Calculate effective strengths (CO-1: committed reinforcement strength
         # adds to the clash — additive, not a capped coordination %).
         attacker_effective = self._calculate_effective_strength(
-            attacker, is_attacker=True, committed=committed_attacker)
+            attacker, is_attacker=True, committed=committed_attacker, **_rng_kw)
         defender_effective = self._calculate_effective_strength(
-            defender, is_attacker=False, committed=committed_defender)
+            defender, is_attacker=False, committed=committed_defender, **_rng_kw)
+        # Row BA (the dice on the table): each side's fortune of the day —
+        # the ±10% the two draws above applied, read back off the figures
+        # they produced (no third draw, no state). Display only.
+        fortune = {
+            "attacker": self._fortune_pct(attacker_effective, attacker, True, committed_attacker),
+            "defender": self._fortune_pct(defender_effective, defender, False, committed_defender),
+        }
 
         #print(f"   Attacker effective: {attacker_effective:,.0f}")
         #print(f"   Defender effective: {defender_effective:,.0f}")
@@ -779,6 +804,7 @@ class CombatResolver:
                 square_cavalry_message, square_artillery_message,
                 iron_resolve_message=iron_resolve_message,
                 attacker_bodies=atk_bodies, defender_bodies=def_bodies,
+                rng=rng, fortune=fortune,
             )
 
         # Apply casualties FIRST (this was missing!)
@@ -897,7 +923,8 @@ class CombatResolver:
 
         # Build description with tactical state messages
         base_description = self._generate_description(
-            attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
+            attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll,
+            **_rng_kw
         )
 
         # Prepend tactical state messages (shared helper — P1-21 dedup)
@@ -1109,6 +1136,8 @@ class CombatResolver:
             },
             "terrain": terrain,
             "attacker_roll": attacker_roll,
+            # Row BA: each side's fortune of the day (whole percent, display only)
+            "fortune": dict(fortune),
             "ability_triggered": ability_message,  # Phase 2.3: Signature abilities
             "drill_bonus_triggered": drill_bonus_message,  # Phase 2.6: Drill bonus
             "iron_resolve_triggered": iron_resolve_message,  # MC-1c: Iron Resolve stacks fired
@@ -1228,8 +1257,24 @@ class CombatResolver:
         }
         return result_dict
 
+    def _fortune_pct(self, effective: float, marshal: Marshal, is_attacker: bool,
+                     committed: float = 0.0) -> int:
+        """Row BA: the strength variance `_calculate_effective_strength` drew
+        for this side, as a whole percent (−10 … +10), recovered from the
+        figure it returned. Pure arithmetic — display only (Golden Rule 6)."""
+        try:
+            own = (float(marshal.strength) * float(marshal.get_combat_effectiveness())
+                   * (1.0 if is_attacker else 1.0 + self.defender_bonus))
+            if own <= 0:
+                return 0
+            pct = ((float(effective) - max(0.0, float(committed))) / own - 1.0) * 100.0
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0
+        _cap = int(round(self.variance * 100))
+        return int(max(-_cap, min(_cap, round(pct))))
+
     def _calculate_effective_strength(self, marshal: Marshal, is_attacker: bool,
-                                      committed: float = 0.0) -> float:
+                                      committed: float = 0.0, rng=None) -> float:
         """Calculate effective combat strength considering morale.
 
         CO-1 (Combat Overhaul Phase 1): `committed` is the already-effective
@@ -1252,8 +1297,10 @@ class CombatResolver:
         if not is_attacker:
             defender_multiplier = 1.0 + self.defender_bonus
 
-        # Random variance (fog of war)
-        variance_multiplier = 1.0 + random.uniform(-self.variance, self.variance)
+        # Random variance (fog of war) — WS-11: off the battle's own stream
+        # when the campaign's seed is rolled.
+        _dice = rng if rng is not None else random
+        variance_multiplier = 1.0 + _dice.uniform(-self.variance, self.variance)
 
         effective = base_strength * morale_multiplier * defender_multiplier * variance_multiplier
 
@@ -1307,8 +1354,12 @@ class CombatResolver:
 
         return casualties
 
-    def _get_combat_narrative(self, attacker_name: str, roll_modified: int, is_critical_success: bool, is_critical_failure: bool) -> str:
-        """Generate narrative description based on roll quality."""
+    def _get_combat_narrative(self, attacker_name: str, roll_modified: int, is_critical_success: bool, is_critical_failure: bool,
+                              rng=None) -> str:
+        """Generate narrative description based on roll quality.
+
+        WS-11: `rng` (the battle's own stream) picks the line on a rolled
+        campaign seed, so the same battle reads the same sentence."""
         import random
 
         if is_critical_success:
@@ -1342,7 +1393,7 @@ class CombatResolver:
                 f"{attacker_name}'s attack meets fierce resistance."
             ]
 
-        return random.choice(narratives)
+        return (rng if rng is not None else random).choice(narratives)
 
     def _generate_description(
             self,
@@ -1351,7 +1402,8 @@ class CombatResolver:
             outcome: str,
             atk_casualties: int,
             def_casualties: int,
-            attacker_roll: Dict
+            attacker_roll: Dict,
+            rng=None,
     ) -> str:
         """Generate narrative description of battle without exposing dice mechanics."""
         # Get narrative based on roll quality (no numbers shown).
@@ -1375,7 +1427,8 @@ class CombatResolver:
             crit_success = False
             roll = min(roll, 8)
         narrative = self._get_combat_narrative(
-            attacker.name, roll, crit_success, crit_failure)
+            attacker.name, roll, crit_success, crit_failure,
+            **({"rng": rng} if rng is not None else {}))
 
         # Build outcome description with narrative
         descriptions = {
@@ -1436,8 +1489,13 @@ class CombatResolver:
             square_cavalry_message=None, square_artillery_message=None,
             iron_resolve_message=None,
             attacker_bodies: int = 0, defender_bodies: int = 0,
+            rng=None, fortune=None,
     ) -> Dict:
         """Build result dict for apply_casualties=False (Session 62).
+
+        WS-11 / row BA: `rng` picks the narrative line off the battle's own
+        stream; `fortune` is each side's strength variance as a whole percent
+        (display only).
 
         Computes projected outcome (C2), morale deltas (int per X3),
         and fortification degradation. Does NOT modify marshal state
@@ -1540,7 +1598,8 @@ class CombatResolver:
 
         # Build description (tactical prefix + base narrative, no retreat/recklessness)
         base_description = self._generate_description(
-            attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
+            attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll,
+            **({"rng": rng} if rng is not None else {})
         )
         tactical_prefix = _build_tactical_prefix(
             attacker, defender,
@@ -1629,6 +1688,8 @@ class CombatResolver:
             "attacker_morale_delta": int(atk_morale_delta),
             "defender_morale_delta": int(def_morale_delta),
             "raw_outcome": outcome,
+            # Row BA: each side's fortune of the day (whole percent, display only)
+            "fortune": dict(fortune or {"attacker": 0, "defender": 0}),
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
 

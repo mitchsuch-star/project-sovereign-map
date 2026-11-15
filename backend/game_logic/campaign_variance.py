@@ -25,6 +25,8 @@ reseeding them here would shift every pinned trial (§5 pin 2).
 
 import hashlib
 import os
+import weakref
+from random import Random as _PrivateStream  # WS-11: a private instance, never the ambient stream
 from typing import Any, Dict, List, Optional, Sequence
 
 SEED_ENV = "SOVEREIGN_SEED"
@@ -162,6 +164,76 @@ def seeded_permutation(seed: str, namespace: str,
         range(len(seq)),
         key=lambda i: _unit(seed, f"perm::{namespace}::{i}"))
     return [seq[i] for i in keyed]
+
+
+# ── The battle's own dice (WS-11; row BA, BATTLE_DIORAMA_SPEC.md §15.5.1) ──
+#
+# The user's ruling of November 14, 2026: "Seed them here, first". Every draw
+# on the land-battle road came off the module `random`, which no save
+# carries: save, attack, load, attack again rolled a new battle. A battle now
+# draws from a PRIVATE stream — a `random.Random` instance, never the ambient
+# module stream the contract above protects — keyed on the campaign seed and
+# the battle's own identity.
+
+
+def the_battle_dice_are_seeded() -> bool:
+    """WS-11's seam — a FUNCTION, not a module lever (the code-health ratchet
+    caps those). True: a land battle's draws come off its own stream, so the
+    same save fights the same battle. Down (False): every draw stays on the
+    module `random`, and a reload rolls the battle again."""
+    return True
+
+
+# The campaigns the game SERVER holds. The defect is a player's: save, fight,
+# load, fight again. So the dice are the campaign's where a campaign is
+# played — `backend.main._set_active_world` (the boot, New Campaign, a load)
+# serves every world it installs. A harness that builds its own world
+# (`WorldState.from_scenario` and a `TurnManager` loop under its own
+# `random.seed(...)`) is never served and keeps the stream it pins, so the
+# series measured on named seeds stand where they were recorded. Held weakly
+# and by identity: nothing is written on the world and nothing is saved, so
+# a load is served again at the door and a copy made off it is not.
+_SERVED_CAMPAIGNS: "weakref.WeakSet" = weakref.WeakSet()
+
+
+def serve_campaign(world) -> None:
+    """Mark a world as a campaign the game server holds (see above). A
+    harness arm that wants the seeded dice on its own board calls this."""
+    if world is not None:
+        _SERVED_CAMPAIGNS.add(world)
+
+
+def campaign_is_served(world) -> bool:
+    return world is not None and world in _SERVED_CAMPAIGNS
+
+
+def battle_rng(world, *identity):
+    """The battle's private dice, or None.
+
+    None on the `historical` seed, with the seam down, without a world, or
+    for a world the server does not hold (`serve_campaign`). The caller then
+    draws from its OWN module's `random` and passes no `rng` on, so every
+    call keeps today's shape byte for byte: the suite is pinned to
+    `historical`, the measuring tools build their own worlds, and the test
+    doubles of `roll_combat_dice` and `_execute_bombardment` take no `rng`.
+
+    Otherwise ONE `random.Random` seeded from a string (stable across
+    processes, as `enemy_ai.ai_rng` is): the campaign seed, the turn, the
+    caller's identity parts and the count of battles already fought this
+    turn (`world.battles_this_turn` — saved, cleared at the turn's start), so
+    a save and a load draw the same dice and two battles between one pair in
+    one turn draw different ones."""
+    if world is None or not the_battle_dice_are_seeded():
+        return None
+    if not campaign_is_served(world):
+        return None
+    seed = str(getattr(world, "campaign_seed", HISTORICAL_SEED) or HISTORICAL_SEED)
+    if is_historical(seed):
+        return None
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    fought = len(getattr(world, "battles_this_turn", None) or [])
+    parts = "|".join(str(part) for part in identity)
+    return _PrivateStream(f"{seed}|battle|{turn}|{parts}|{fought}")
 
 
 # ── Authored-band resolution (AI-0c) ──────────────────────────────────────

@@ -395,6 +395,27 @@ static func set_explanations(mode: String) -> void:
 	_save()
 
 
+# --- Battle scenes (row BA, BA-1, November 14, 2026: Settings → INTERFACE) ---
+# The user's ruling: "Great ones in full" — a great or dramatic battle plays
+# its acts in full and another significant battle plays a brief form; this
+# switch is the player's own say. "acts" follows the battle (the default),
+# "brief" plays every battle's brief form, "final" opens the settled frame at
+# once (Replay still plays it). A preference like Explanations: Reset layout
+# keeps it.
+const BATTLE_SCENES := ["acts", "brief", "final"]
+const DEFAULT_BATTLE_SCENES := "acts"
+
+
+static func get_battle_scenes() -> String:
+	var mode := str(_config().get_value("display", "battle_scenes", DEFAULT_BATTLE_SCENES))
+	return mode if mode in BATTLE_SCENES else DEFAULT_BATTLE_SCENES
+
+
+static func set_battle_scenes(mode: String) -> void:
+	_config().set_value("display", "battle_scenes", mode if mode in BATTLE_SCENES else DEFAULT_BATTLE_SCENES)
+	_save()
+
+
 # --- The very wide screen (Session UI-3, November 12, 2026: Settings → DISPLAY) ---
 # On a view SAFE_ZONE_ASPECT or wider (32:9, 32:10) the map's 16:10 sheet
 # covered 45 % of the width and the desk the rest — the blind readers' wasted

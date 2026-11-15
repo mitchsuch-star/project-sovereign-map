@@ -1,0 +1,865 @@
+{
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\index.json",
+ "client_commit": "4009b2d5",
+ "physical_scale": "auto",
+ "surfaces": {
+  "diorama_aadj": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_AADJ_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_AADJ_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_AADJ_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_dadj": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_DADJ_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_DADJ_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_DADJ_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_rout_conquest": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_ROUT_CONQUEST_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_ROUT_CONQUEST_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_ROUT_CONQUEST_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_four_contingents": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_FOUR_CONTINGENTS_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_FOUR_CONTINGENTS_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_FOUR_CONTINGENTS_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_naval": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_NAVAL_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_NAVAL_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_NAVAL_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_verdict_worst": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_VERDICT_WORST_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_VERDICT_WORST_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_VERDICT_WORST_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_field_at_rest": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_FIELD_AT_REST_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_FIELD_AT_REST_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_FIELD_AT_REST_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_enemy_came_up": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ENEMY_CAME_UP_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ENEMY_CAME_UP_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ENEMY_CAME_UP_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_the_guns": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_THE_GUNS_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_THE_GUNS_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_THE_GUNS_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_defeat": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_DEFEAT_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_DEFEAT_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_DEFEAT_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_watched": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_WATCHED_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_WATCHED_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_WATCHED_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_act_approach": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ACT_APPROACH_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ACT_APPROACH_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ACT_APPROACH_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "diorama_ba1_act_crisis": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ACT_CRISIS_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ACT_CRISIS_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      121
+     ],
+     "live_floor": 121,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_DIORAMA_BA1_ACT_CRISIS_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "war_room_pause_settings": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0,
+      120
+     ],
+     "live_floor": 120,
+     "suspended_rows": 49,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_WAR_ROOM_PAUSE_SETTINGS_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0,
+      120
+     ],
+     "live_floor": 120,
+     "suspended_rows": 56,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_WAR_ROOM_PAUSE_SETTINGS_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0,
+      120
+     ],
+     "live_floor": 120,
+     "suspended_rows": 53,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_WAR_ROOM_PAUSE_SETTINGS_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  },
+  "main_menu_settings": {
+   "readings": {
+    "1920x1080": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_MAIN_MENU_SETTINGS_1920x1080_S1.00_2026_11_14.png"
+    },
+    "5120x1440": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_MAIN_MENU_SETTINGS_5120x1440_S1.80_2026_11_14.png"
+    },
+    "3840x2160": {
+     "ok": true,
+     "errors": [],
+     "clipped_text": [],
+     "truncated_text": [],
+     "buttons_offscreen": [],
+     "text_offscreen": [],
+     "under_modal": [],
+     "under_modal_count": 0,
+     "modal_layers": [
+      0
+     ],
+     "live_floor": 0,
+     "suspended_rows": 0,
+     "stray_input": 0,
+     "png": "C:\\Users\\User\\AppData\\Local\\Temp\\ba1_iq10\\run_phys\\frames\\UXR0_MAIN_MENU_SETTINGS_3840x2160_S1.50_2026_11_14.png"
+    }
+   },
+   "pass": true,
+   "why": []
+  }
+ }
+}

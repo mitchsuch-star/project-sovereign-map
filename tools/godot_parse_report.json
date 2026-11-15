@@ -466,6 +466,18 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/battle_acts.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/diorama_plinth.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -671,7 +683,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/uxr3_action_probe.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ba1_acts_walk.gd"
     }
   ],
-  "timestamp": "2026-11-14T13:53:12Z"
+  "timestamp": "2026-11-14T19:54:26Z"
 }

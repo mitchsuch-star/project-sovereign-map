@@ -1658,6 +1658,13 @@ bought and with Switzerland bought — the fuzzer's invariants clean with the ra
 seam down; the declared-war road; the way out (France's peace with Britain carries the five pairs); the treaty
 fuzzer's two seeds; the full suite once (39,480 passed) before the first sweep.
 
+**After this record — row BA, BA-1 (November 14, 2026; `BATTLE_DIORAMA_SPEC.md` §15.10 "The measure").** The
+band's commanded arms run through the playtest driver, which plays through the game server; since WS-11 a
+campaign the server holds on a rolled seed draws each battle from the campaign's own dice. With that seam down the
+band is this section's 26 / 26 / 25 to the province; on the shipped tree it reads **26 / 27 / 28** (historical /
+austerlitz / marengo), inside 23–28 (`tools/_ba1_band_2026_11_14.json`). The ambient sweep, the harness and
+`BASELINE_SERIES` build their own worlds and do not move. The band's standing reading is row BA's from here.
+
 **For the user, none pre-recommended (§0):**
 (a) **Switzerland is bought on six of ten unattended seeds** (Austria, Russia or Britain, turns 9 to 19). The idle
 France answers no petition and pays no court; a commanded France keeps her on all three band arms. The rally makes

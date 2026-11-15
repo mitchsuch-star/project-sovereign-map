@@ -768,6 +768,9 @@ const UI_DIORAMA_BAIZE := Color(0.129, 0.208, 0.153, 1.0)   # the tableau's gree
 const UI_TOPPLE_TINT := Color(0.52, 0.47, 0.44, 1.0)        # a fallen figure
 const UI_FOUNDER_TINT := Color(0.42, 0.40, 0.42, 1.0)       # a foundering ship
 const UI_DEAD_RING := Color(0.45, 0.45, 0.48, 1.0)          # a fallen marshal's locket ring
+# Row BA (BA-1, November 14, 2026): the corps plinth and the battle's acts.
+const UI_PLINTH_FACE_DOWN := Color(0.62, 0.60, 0.58, 1.0)   # a beaten corps' slab, dulled
+const UI_CORPS_UNSEEN := Color(0.30, 0.27, 0.24, 1.0)       # an enemy corps coming up, not yet made out
 const UI_END_PLATE_BG := Color(0.17, 0.15, 0.11, 1.0)       # the end card's register plate
 const UI_HINT_GREY := Color(0.7, 0.7, 0.75, 1)              # a dialog's hint line (Load, Reward)
 # Session UI-6 (November 13, 2026): the title screen's drawn gilt faces and the

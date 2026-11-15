@@ -476,8 +476,13 @@ class TestTheFumbleRollIsFixed:
         src = (REPO / "tests" / "test_napoleon_npv_review.py").read_text(encoding="utf-8")
         assert 'monkeypatch.setattr(_random, "randint"' in src
         # The cause: the 5% fumble on a sure arrival is the one live draw.
+        # WS-11 (row BA, BA-1, November 14, 2026) draws it off the battle's
+        # own stream in a campaign the game server holds; a world nobody
+        # serves — every test's — is handed no stream, so `_dice` IS the
+        # module `random` and the fixture's patch still pins the die.
         ce = (REPO / "backend" / "commands" / "combat_executor.py").read_text(encoding="utf-8")
-        assert "if random.randint(1, 20) == 1:  # 5% chance" in ce
+        assert "if _dice.randint(1, 20) == 1:  # 5% chance" in ce
+        assert "_dice = rng if rng is not None else random" in ce
 
     def test_the_colocated_emperor_takes_no_die(self, monkeypatch):
         """The row's own recipe tested: with the fumble die forced to 1 AND

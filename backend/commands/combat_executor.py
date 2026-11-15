@@ -995,6 +995,44 @@ def shelled_morale(before, after):
     return max(after, min(before, FORCED_RETREAT_THRESHOLD))
 
 
+def battle_dice(world, attacker, defender, region, kind: str = "battle", salvo=None):
+    """WS-11 (row BA): the battle's own dice, or None.
+
+    ONE identity for every caller on the battle road — the kind of fight, the
+    two leads, the province and the province's battle count (`world.
+    battle_counts`, saved; bumped when a battle is named, after its dice), and
+    for a bombardment the battery's salvo of the turn, so a second salvo
+    draws different dice. `campaign_variance.battle_rng` adds the campaign
+    seed, the turn and the battles already fought this turn, and returns None
+    on the `historical` seed: the caller then draws from the module `random`
+    and passes no `rng` on (today's calls, byte for byte)."""
+    from backend.game_logic.campaign_variance import battle_rng
+    counts = getattr(world, "battle_counts", None) or {}
+    parts = [kind, getattr(attacker, "name", attacker),
+             getattr(defender, "name", defender), region,
+             int(counts.get(region, 0) or 0)]
+    if salvo is not None:
+        parts.append(int(salvo))
+    return battle_rng(world, *parts)
+
+
+def battle_script_facts(ctx) -> dict:
+    """Row BA (BA-1): what the attack knows that the tableau's builder is not
+    handed — for the battle in acts (`battle_script.build_battle_script`).
+    Plain data, display only: where each reinforcer marched from, the
+    provinces the attack came in from and their +N on the dice, the
+    supporting batteries' results, the guns on overwatch, the advance."""
+    info = getattr(ctx, "flanking_info", None) or {}
+    return {
+        "reinforcer_origin": dict(getattr(ctx, "reinforcer_origin", None) or {}),
+        "flanking_origins": sorted(str(o) for o in (info.get("unique_origins") or [])),
+        "flanking_bonus": int(getattr(ctx, "flanking_bonus", 0) or 0),
+        "auto_bombardment_results": list(getattr(ctx, "auto_bombardment_results", None) or []),
+        "overwatch_count": int(getattr(ctx, "overwatch_count", 0) or 0),
+        "advanced_to": getattr(ctx, "advanced_to", None),
+    }
+
+
 @dataclass(slots=True, repr=False, eq=False)
 class AttackContext:
     marshal: Any
@@ -1062,6 +1100,10 @@ class AttackContext:
     p: Any = field(init=False)
     is_coordinated_battle: Any = field(init=False)
     _bd_pre_strengths: Any = field(init=False)
+    # WS-11 (row BA): the battle's own dice — a private `random.Random` on a
+    # rolled campaign seed, None on `historical` (every draw then stays on the
+    # module `random`). Set at the head of stage 10, before the first draw.
+    battle_rng: Any = field(init=False)
     overwatch_count: Any = field(init=False)
     auto_bombardment_messages: Any = field(init=False)
     auto_bombardment_results: Any = field(init=False)
@@ -4589,28 +4631,40 @@ class CombatExecutor:
                 + personality_mod + support_bonus + ability_mod)
 
     def _calculate_arrival_score(self, reinforcing_marshal, primary_combatant,
-                                 world):
+                                 world, rng=None):
         """Deterministic base + components + random variance.
 
         Formula from MULTI_MARSHAL_SPEC §7:
         score = 50 + logistics*5 + relationship_mod + terrain_mod
                 + personality_mod + support_bonus + variance
+
+        WS-11: `rng` is the battle's own stream on a rolled campaign seed;
+        None draws from the module `random`, as before.
         """
         import random
 
+        _dice = rng if rng is not None else random
         return (self._arrival_deterministic(
                     reinforcing_marshal, primary_combatant, world)
-                + random.randint(-self._ARRIVAL_VARIANCE,
-                                 self._ARRIVAL_VARIANCE))
+                + _dice.randint(-self._ARRIVAL_VARIANCE,
+                                self._ARRIVAL_VARIANCE))
 
-    def _calculate_reinforcements(self, primary, defender, battle_region, nation, world):
+    def _calculate_reinforcements(self, primary, defender, battle_region, nation, world,
+                                  rng=None):
         """Check adjacent marshals for reinforcement arrival.
 
         Returns list of result dicts with arrival/failure info.
         Handles: Grouchy Rule, arrival score, variable threshold (A-I4),
         fumble roll (I3), near-miss tracking (N3).
+
+        WS-11: `rng` — the battle's own stream — feeds the arrival roll and
+        the fumble on a rolled campaign seed; None keeps both on the module
+        `random` and the calls below in their old shape.
         """
         import random
+
+        _dice = rng if rng is not None else random
+        _rng_kw = {"rng": rng} if rng is not None else {}
 
         reinforcement_results = []
         region = world.get_region(battle_region)
@@ -4659,7 +4713,7 @@ class CombatExecutor:
                     continue
 
             # ═══ ARRIVAL SCORE ═══
-            score = self._calculate_arrival_score(candidate, primary, world)
+            score = self._calculate_arrival_score(candidate, primary, world, **_rng_kw)
 
             # ═══ VARIABLE THRESHOLD (A-I4) ═══
             order = getattr(candidate, 'strategic_order', None)
@@ -4694,7 +4748,7 @@ class CombatExecutor:
             near_miss = False
             near_miss_reason = ""
             if arrived and score > 80:
-                if random.randint(1, 20) == 1:  # 5% chance
+                if _dice.randint(1, 20) == 1:  # 5% chance
                     arrived = False
                     near_miss = True
                     near_miss_reason = "Even the best-laid plans can go awry at the crucial moment."
@@ -5207,7 +5261,8 @@ class CombatExecutor:
         region_name: str,
         attacker_strength: int,
         defender_strength: int,
-        world: 'WorldState'
+        world: 'WorldState',
+        rng=None,
     ) -> None:
         """Apply war damage, stability hit, and building damage to a region after battle.
 
@@ -5215,8 +5270,12 @@ class CombatExecutor:
         Civilian buildings (markets, depots, training grounds) damaged by battle.
         Fortifications are immune — they're built to withstand combat and provide
         contested capture holdout value even after the defending army retreats.
+
+        WS-11: `rng` — the battle's own stream — decides the 25% building rolls
+        on a rolled campaign seed; None keeps them on the module `random`.
         """
         import random
+        _dice = rng if rng is not None else random
         region = world.get_region(region_name)
         if not region:
             return
@@ -5231,7 +5290,7 @@ class CombatExecutor:
         _wrecked = []
         for building in region.buildings:
             if building["type"] != "fortification" and not building.get("damaged", False):
-                if is_major or random.random() < 0.25:
+                if is_major or _dice.random() < 0.25:
                     building["damaged"] = True
                     _wrecked.append(building["type"])
                     world.log_event({
@@ -5245,7 +5304,7 @@ class CombatExecutor:
         # Active → damaged. Under construction → destroyed (none).
         wt = getattr(region, 'watchtower', 'none')
         if wt == "active":
-            if is_major or random.random() < 0.25:
+            if is_major or _dice.random() < 0.25:
                 region.watchtower = "damaged"
                 _wrecked.append("watchtower")
                 world.log_event({
@@ -5377,10 +5436,14 @@ class CombatExecutor:
         battle_result: Dict,
         attacker,
         defender,
-        world: 'WorldState'
+        world: 'WorldState',
+        rng=None,
     ) -> str:
         """
         Handle forced retreat for broken armies after combat.
+
+        WS-11: `rng` — the battle's own stream — rides on to the rout and the
+        fate rolls when the campaign's seed is rolled.
 
         When morale drops below 25%, the army is forced to retreat.
         - If safe retreat exists: normal retreat to that location
@@ -5398,17 +5461,19 @@ class CombatExecutor:
         _free_before = {m.name for m in (attacker, defender)
                         if m is not None and not getattr(m, "captured_by", "")}
 
+        _rng_kw = {"rng": rng} if rng is not None else {}
+
         # Check attacker forced retreat
         if battle_result.get("attacker", {}).get("forced_retreat"):
             if attacker and attacker.strength > 0:
-                msg = self._apply_forced_retreat_or_break(attacker, defender, world)
+                msg = self._apply_forced_retreat_or_break(attacker, defender, world, **_rng_kw)
                 if msg:
                     retreat_messages.append(msg)
 
         # Check defender forced retreat
         if battle_result.get("defender", {}).get("forced_retreat"):
             if defender and defender.strength > 0:
-                msg = self._apply_forced_retreat_or_break(defender, attacker, world)
+                msg = self._apply_forced_retreat_or_break(defender, attacker, world, **_rng_kw)
                 if msg:
                     retreat_messages.append(msg)
 
@@ -5550,7 +5615,9 @@ class CombatExecutor:
         # ── 5. War damage to region ──
         if not is_bombardment and not ctx.get('skip_war_damage'):
             self._apply_battle_effects_to_region(
-                battle_region, pre_atk, pre_def, world)
+                battle_region, pre_atk, pre_def, world,
+                # WS-11: the caller's battle stream, when it has one
+                **({"rng": ctx['rng']} if ctx.get('rng') is not None else {}))
 
         # ── 6. Idle reset ──
         if not ctx.get('skip_idle_reset'):
@@ -5752,6 +5819,8 @@ class CombatExecutor:
                 kwargs['attacker_artillery'] = ctx['attacker_artillery']
             if ctx.get('defender_artillery'):
                 kwargs['defender_artillery'] = ctx['defender_artillery']
+            if ctx.get('rng') is not None:
+                kwargs['rng'] = ctx['rng']  # WS-11
             relationship_changes = process_battle_relationships(
                 attacker, defender, battle_result, battle_region, world, **kwargs
             )
@@ -6370,6 +6439,9 @@ class CombatExecutor:
             garrison_pipeline_out = self._post_combat_pipeline({
                 'attacker': marshal,
                 'defender': None,
+                # WS-11: the assault's own dice (the building rolls)
+                'rng': battle_dice(world, marshal, "garrison", target_region.name,
+                                   kind="assault"),
                 'defender_nation': old_controller,
                 'battle_region': target_region.name,
                 'outcome': 'attacker_victory',
@@ -6531,6 +6603,9 @@ class CombatExecutor:
             hold_pipeline_out = self._post_combat_pipeline({
                 'attacker': marshal,
                 'defender': None,
+                # WS-11: the assault's own dice (the building rolls)
+                'rng': battle_dice(world, marshal, "garrison", target_region.name,
+                                   kind="assault"),
                 'defender_nation': target_region.controller,
                 'battle_region': target_region.name,
                 'outcome': 'defender_victory',
@@ -6752,9 +6827,12 @@ class CombatExecutor:
                 garrison_losses = int(garrison_strength)
         return attacker_losses, garrison_losses
 
-    def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
+    def _check_marshal_fate(self, marshal, enemy, world: 'WorldState', rng=None):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,
         the man himself is at stake.
+
+        WS-11: `rng` — the battle's own stream — rolls the escape on a rolled
+        campaign seed; None keeps the roll on the module `random`.
 
         Trigger: post-battle strength < MARSHAL_FATE_STRENGTH_FLOOR, OR the
         only retreat is encirclement (None) / at-war desperation soil
@@ -6834,7 +6912,8 @@ class CombatExecutor:
         # ══════════════════════════════════════════════════════════════
         if standing_ask is not None and self.LAST_STAND_UNANSWERED_RESOLVES:
             resolved = self._resolve_unanswered_last_stand(
-                marshal, enemy, world, encircled=encircled)
+                marshal, enemy, world, encircled=encircled,
+                **({"rng": rng} if rng is not None else {}))
             if resolved is not None:
                 return resolved
             # A sovereign who is no longer encircled: the question is
@@ -7025,7 +7104,7 @@ class CombatExecutor:
         else:
             escape_chance = self.MARSHAL_FATE_ESCAPE_CHANCE
 
-        if random.random() < escape_chance:
+        if (rng if rng is not None else random).random() < escape_chance:
             return None  # He slips the net — the normal retreat proceeds.
         return self._capture_marshal(marshal, captor_nation, world,
                                      context="overrun")
@@ -7118,12 +7197,15 @@ class CombatExecutor:
 
     def _resolve_unanswered_last_stand(self, marshal, enemy,
                                        world: 'WorldState', *,
-                                       encircled: bool):
+                                       encircled: bool, rng=None):
         """FA-1: a second defeat with the question standing.
 
         Returns the fate message, or None for the one case that falls back
         to the caller's own arm (a sovereign who is no longer encircled —
         the Guard's toll buys the road as it always has).
+
+        WS-11: `rng` (the battle's own stream) rolls the breakout on a rolled
+        campaign seed.
         """
         import random
 
@@ -7151,7 +7233,7 @@ class CombatExecutor:
             return no_word + self._resolve_last_stand_fight(marshal, enemy, world)
         escape_chance = (self.MARSHAL_FATE_ESCAPE_CHANCE
                          - self.LAST_STAND_BREAKOUT_PENALTY)
-        if random.random() < escape_chance:
+        if (rng if rng is not None else random).random() < escape_chance:
             return (no_word + f"{marshal.name} cuts his way out! "
                     + self.apply_successful_breakout(marshal, enemy, world))
         captor = getattr(enemy, "nation", "") or ""
@@ -7372,7 +7454,7 @@ class CombatExecutor:
             report["observation"] = clause
 
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
-                                       skip_fate: bool = False) -> str:
+                                       skip_fate: bool = False, rng=None) -> str:
         """
         Apply forced retreat or break the army if surrounded.
 
@@ -7383,9 +7465,14 @@ class CombatExecutor:
         (strength < 5,000 or desperation-only/encircled retreat) may be
         captured, offered a last stand, or slip away into the normal flow.
 
+        WS-11: `rng` — the battle's own stream — rolls the fate and a broken
+        army's survivors on a rolled campaign seed; None keeps both on the
+        module `random`.
+
         Returns message describing what happened.
         """
         import random
+        _dice = rng if rng is not None else random
 
         # DDB-38 (Pre-Deploy S13b part 2): a corps driven from the field has
         # no free strike to make — a forced retreat clears the counter-punch
@@ -7394,7 +7481,8 @@ class CombatExecutor:
         forced_retreat_clears_counter_punch(marshal, world)
 
         if not skip_fate:
-            fate_msg = self._check_marshal_fate(marshal, enemy, world)
+            fate_msg = self._check_marshal_fate(
+                marshal, enemy, world, **({"rng": rng} if rng is not None else {}))
             if fate_msg is not None:
                 return fate_msg
 
@@ -7501,7 +7589,7 @@ class CombatExecutor:
             old_strength = marshal.strength
 
             # Calculate survivors (3-10% of current strength)
-            survival_rate = random.uniform(0.03, 0.10)
+            survival_rate = _dice.uniform(0.03, 0.10)
             # Minimum 1000 survivors, but a rout can never leave MORE troops than
             # the army had when it broke: for a sub-1000 army the flat floor would
             # otherwise be a net gain (an 800-man corps "shatters" to 1000).
@@ -7577,7 +7665,8 @@ class CombatExecutor:
                 f"Army is BROKEN - can only recruit for {broken_turns} turns!"
             )
 
-    def _execute_bombardment(self, marshal, defender, world: WorldState, game_state) -> Dict:
+    def _execute_bombardment(self, marshal, defender, world: WorldState, game_state,
+                             rng=None) -> Dict:
         """
         Execute ranged bombardment: artillery fires from adjacent region.
 
@@ -7589,6 +7678,12 @@ class CombatExecutor:
         the normal resolve_battle() path.
 
         Spec reference: BOMBARDMENT_SPEC.md §4
+
+        WS-11: `rng` is the stream of the battle these guns support. A
+        bombardment ordered on its own makes its own (keyed on the battery's
+        salvo of the turn, so a second salvo draws different dice); on the
+        `historical` seed both are None and every draw stays on the module
+        `random`.
         """
         import random
         from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
@@ -7678,14 +7773,19 @@ class CombatExecutor:
             square_bombardment_bonus = 1.50
 
         raw_damage = defender.strength * base_rate * damage_multiplier * terrain_mod * square_bombardment_bonus
-        variance = random.uniform(0.80, 1.20)
+        if rng is None:
+            rng = battle_dice(world, marshal, defender, getattr(defender, "location", ""),
+                              kind="bombard",
+                              salvo=getattr(marshal, 'bombardments_this_turn', 0))
+        _dice = rng if rng is not None else random
+        variance = _dice.uniform(0.80, 1.20)
         defender_casualties = int(raw_damage * variance)
 
         # ════════════════════════════════════════════════════════════
         # RETURN CASUALTIES (§4.3) — counter-battery / wear
         # ════════════════════════════════════════════════════════════
         return_rate = 0.015  # 1.5% of own strength
-        return_variance = random.uniform(0.80, 1.20)
+        return_variance = _dice.uniform(0.80, 1.20)
         attacker_casualties = max(1, int(marshal.strength * return_rate * return_variance))
 
         # ════════════════════════════════════════════════════════════
@@ -7741,9 +7841,9 @@ class CombatExecutor:
         ]
 
         for force in all_in_region:
-            if random.random() < 0.40:
+            if _dice.random() < 0.40:
                 collateral_raw = raw_damage * 0.25  # 25% of primary raw damage
-                collateral_variance = random.uniform(0.80, 1.20)
+                collateral_variance = _dice.uniform(0.80, 1.20)
                 collateral_casualties = int(collateral_raw * collateral_variance)
 
                 if collateral_casualties > 0:
@@ -7801,7 +7901,9 @@ class CombatExecutor:
 
                     # Collateral target destroyed
                     if force.strength <= 0 and force.name in world.marshals:
-                        self._apply_forced_retreat_or_break(force, marshal, world)
+                        self._apply_forced_retreat_or_break(
+                            force, marshal, world,
+                            **({"rng": rng} if rng is not None else {}))  # WS-11
 
         # ════════════════════════════════════════════════════════════
         # INCREMENT COUNTERS
@@ -7853,7 +7955,8 @@ class CombatExecutor:
         if enemy_destroyed and defender.name in world.marshals:
             # Use the existing break system for proper state clearing
             break_msg = self._apply_forced_retreat_or_break(
-                defender, marshal, world)
+                defender, marshal, world,
+                **({"rng": rng} if rng is not None else {}))  # WS-11
             destroyed_msg = f"\n{break_msg}"
 
         # ════════════════════════════════════════════════════════════
@@ -9751,11 +9854,21 @@ class CombatExecutor:
         # physically relocate to battle region before combat.
         # Must run BEFORE coordination context (A-C2 ordering).
         # ════════════════════════════════════════════════════════════
+        # WS-11 (row BA; the user's "Seed them here, first", November 14,
+        # 2026): the battle's own dice, made here — before the first draw of
+        # the battle road (stages 1-9 draw nothing; a muster-gated attack
+        # returned at stage 8 and makes the same stream when it is re-issued).
+        # None on the `historical` seed: every call below keeps its old shape.
+        ctx.battle_rng = battle_dice(
+            ctx.world, ctx.marshal, ctx.enemy_marshal, ctx.battle_region_name)
+        _rng_kw = {"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}
         ctx.attacker_reinforcements = self._calculate_reinforcements(
-            ctx.marshal, ctx.enemy_marshal, ctx.battle_region_name, ctx.marshal.nation, ctx.world
+            ctx.marshal, ctx.enemy_marshal, ctx.battle_region_name, ctx.marshal.nation, ctx.world,
+            **_rng_kw
         )
         ctx.defender_reinforcements = self._calculate_reinforcements(
-            ctx.enemy_marshal, ctx.marshal, ctx.battle_region_name, ctx.enemy_marshal.nation, ctx.world
+            ctx.enemy_marshal, ctx.marshal, ctx.battle_region_name, ctx.enemy_marshal.nation, ctx.world,
+            **_rng_kw
         )
 
         # Process arrivals — BEFORE coordination context (A-C2)
@@ -10024,7 +10137,10 @@ class CombatExecutor:
 
             # Fire auto-bombardment against defender
             print(f"  [AUTO-BOMBARD] {ctx.m.name} (SUPPORT {ctx.marshal.name}) fires on {ctx.enemy_marshal.name}")
-            ctx.bombard_result = self._execute_bombardment(ctx.m, ctx.enemy_marshal, ctx.world, ctx.game_state)
+            # WS-11: the guns fire off the battle's own stream when it has one.
+            ctx.bombard_result = self._execute_bombardment(
+                ctx.m, ctx.enemy_marshal, ctx.world, ctx.game_state,
+                **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}))
 
             if ctx.bombard_result.get("success"):
                 ctx.auto_bombardment_results.append(ctx.bombard_result)
@@ -10183,6 +10299,7 @@ class CombatExecutor:
             ctx.pipeline_out = self._post_combat_pipeline({
                 'attacker': ctx.marshal,
                 'defender': ctx.enemy_marshal,
+                'rng': ctx.battle_rng,  # WS-11
                 'defender_nation': ctx.enemy_marshal.nation,
                 'battle_region': ctx.battle_region_name,
                 'outcome': 'attacker_victory',
@@ -10364,6 +10481,7 @@ class CombatExecutor:
                 # spreads the losses across.
                 attacker_bodies=self._committed_bodies(ctx.marshal, ctx.atk_participants),
                 defender_bodies=self._committed_bodies(ctx.enemy_marshal, ctx.def_participants),
+                **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}),  # WS-11
             )
 
             # Distribute raw casualties proportionally among participants —
@@ -10671,6 +10789,7 @@ class CombatExecutor:
                 flanking_bonus=ctx.flanking_bonus,
                 flanking_message=ctx.flanking_message,
                 fortification_bonus=ctx.fort_bonus,
+                **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}),  # WS-11
             )
             # IQ-5 review (F), the solo path: both sides fought alone, and a
             # corps the rubble rule (or the overkill cap) destroyed had its
@@ -10997,7 +11116,8 @@ class CombatExecutor:
         def_artillery = [a for a in ctx.artillery_reinforced_adjacent if a.nation == ctx.enemy_marshal.nation]
         relationship_changes = process_battle_relationships(
             ctx.marshal, ctx.enemy_marshal, ctx.battle_result, ctx.battle_region_name, ctx.world,
-            attacker_artillery=atk_artillery, defender_artillery=def_artillery
+            attacker_artillery=atk_artillery, defender_artillery=def_artillery,
+            **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {})  # WS-11
         )
         for rc in relationship_changes:
             ctx.world.log_event({
@@ -11116,7 +11236,8 @@ class CombatExecutor:
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
             ctx.battle_region_name, ctx.pre_battle_attacker_strength,
-            ctx.pre_battle_defender_strength, ctx.world
+            ctx.pre_battle_defender_strength, ctx.world,
+            **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {})  # WS-11
         )
 
         # V2a: Reset idle tracking on attack
@@ -11245,8 +11366,10 @@ class CombatExecutor:
         # MUST happen BEFORE movement/conquest check so retreating
         # defenders don't block territory capture!
         # ============================================================
+        # WS-11: the rout and the fate rolls come off the battle's own stream.
+        _rng_kw = {"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}
         ctx.forced_retreat_msg = self._handle_forced_retreat(
-            ctx.battle_result, ctx.marshal, ctx.enemy_marshal, ctx.world
+            ctx.battle_result, ctx.marshal, ctx.enemy_marshal, ctx.world, **_rng_kw
         )
 
         # [S62] Handle forced retreat for non-primary participants in coordinated battles
@@ -11262,7 +11385,8 @@ class CombatExecutor:
                     if ctx.p.name != ctx.marshal.name and ctx.p.strength > 0:
                         _p_threshold = ctx.p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                         if ctx.p.morale <= _p_threshold:
-                            msg = self._apply_forced_retreat_or_break(ctx.p, ctx.enemy_marshal, ctx.world)
+                            msg = self._apply_forced_retreat_or_break(
+                                ctx.p, ctx.enemy_marshal, ctx.world, **_rng_kw)
                             if msg:
                                 ctx.forced_retreat_msg += "\n" + msg
                         elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
@@ -11274,7 +11398,8 @@ class CombatExecutor:
                     if ctx.p.name != ctx.enemy_marshal.name and ctx.p.strength > 0:
                         _p_threshold = ctx.p.get_rout_threshold(FORCED_RETREAT_THRESHOLD)
                         if ctx.p.morale <= _p_threshold:
-                            msg = self._apply_forced_retreat_or_break(ctx.p, ctx.marshal, ctx.world)
+                            msg = self._apply_forced_retreat_or_break(
+                                ctx.p, ctx.marshal, ctx.world, **_rng_kw)
                             if msg:
                                 ctx.forced_retreat_msg += "\n" + msg
                         elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
@@ -11603,6 +11728,7 @@ class CombatExecutor:
         ctx.pipeline_out = self._post_combat_pipeline({
             'attacker': ctx.marshal,
             'defender': ctx.enemy_marshal,
+            'rng': ctx.battle_rng,  # WS-11
             'defender_nation': ctx.enemy_marshal.nation,
             'battle_region': ctx.target_location,
             'outcome': atk_pip_outcome,
@@ -11801,6 +11927,8 @@ class CombatExecutor:
             # read off the battle event (passed only for a liberation).
             **({"liberated_to": ctx.result["events"][0]["liberated_to"]}
                if ctx.result["events"][0].get("liberated_to") else {}),
+            # Row BA (BA-1): the executor's extras for the battle in acts.
+            script_facts=battle_script_facts(ctx),
         )
         if _bd_payload:
             # LV-11 (row EP F2): the lead card shows the advance's toll
@@ -12972,13 +13100,19 @@ class CombatExecutor:
         for _p in _charge_def_roster:
             _p.sovereign_presence = _chg_def_presence
 
+        # WS-11: the charge's own dice (None on the `historical` seed).
+        _charge_rng = battle_dice(world, marshal, target_marshal, charge_battle_region,
+                                  kind="charge")
+        _charge_rng_kw = {"rng": _charge_rng} if _charge_rng is not None else {}
+
         # Get combat result with glorious charge flag
         combat_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=target_marshal,
             terrain=charge_terrain,
             glorious_charge=True,  # 2x damage multiplier
-            fortification_bonus=charge_fort_bonus
+            fortification_bonus=charge_fort_bonus,
+            **_charge_rng_kw
         )
 
         # ALWAYS reset recklessness after Glorious Charge
@@ -12991,7 +13125,7 @@ class CombatExecutor:
         # the territory for capture.
         # ════════════════════════════════════════════════════════════
         forced_retreat_msg = self._handle_forced_retreat(
-            combat_result, marshal, target_marshal, world
+            combat_result, marshal, target_marshal, world, **_charge_rng_kw
         )
 
         # Move attacker if victorious and still alive
@@ -13148,6 +13282,7 @@ class CombatExecutor:
         pipeline_out = self._post_combat_pipeline({
             'attacker': marshal,
             'defender': target_marshal,
+            'rng': _charge_rng,  # WS-11
             'battle_region': charge_battle_region,
             'outcome': charge_outcome,
             'attacker_won': charge_atk_won,

@@ -1,0 +1,132 @@
+{
+ "battle_name": "Battle of Silesia",
+ "region": "Silesia",
+ "turn": 1,
+ "outcome": "stalemate",
+ "victor": null,
+ "attacker_nation": "Russia",
+ "defender_nation": "Prussia",
+ "player_side": null,
+ "register": "observer",
+ "significant": false,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Kutuzov",
+    "nation": "Russia",
+    "arm": "infantry",
+    "committed": 38000,
+    "casualties": 3942,
+    "remaining": 34058,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3942,
+  "committed_total": 38000,
+  "reserve_casualties": 0,
+  "nation": "Russia"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Hohenlohe",
+    "nation": "Prussia",
+    "arm": "infantry",
+    "committed": 28000,
+    "casualties": 3857,
+    "remaining": 24143,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3857,
+  "committed_total": 28000,
+  "reserve_casualties": 0,
+  "nation": "Prussia"
+ },
+ "observation": "Stalemate. Hohenlohe and Kutuzov glare at each other across the field.",
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Kutuzov",
+      "text": "Kutuzov attacks Hohenlohe at Silesia.",
+      "weight": "detail"
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Kutuzov",
+      "text": "Kutuzov comes on by measured steps.",
+      "weight": "head",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Hohenlohe",
+      "text": "Hohenlohe holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Kutuzov",
+      "text": "The fortune of the day: Kutuzov rolls 8, +2 for his eye for ground: 10.",
+      "weight": "head",
+      "natural": 8,
+      "skill": 2,
+      "flank": 0,
+      "modified": 10,
+      "critical": "",
+      "swing": 10,
+      "fortune_attacker": -9,
+      "fortune_defender": 9
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Kutuzov": "cautious",
+   "Hohenlohe": "cautious"
+  }
+ }
+}

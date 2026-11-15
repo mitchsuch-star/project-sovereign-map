@@ -1,6 +1,92 @@
-# NEXT SESSION PROMPT — Session H: S15 the deploy — the user's own walk (the gate reads MET)
+# NEXT SESSION PROMPT — Row BA, BA-2: the walls, the guns and the order of battle (before Session H, the deploy)
 
-> Overwritten each time a session hands off. Current hand-over: **November 13, 2026 — SESSION UI-6 ✅ LANDED: THE
+> Overwritten each time a session hands off. Current hand-over: **November 14, 2026 — ROW BA, BA-1 ✅ LANDED: THE
+> BATTLE IN ACTS — THE DICE AND THE ACTS** (`BATTLE_DIORAMA_SPEC.md` §15 the gate record — the user's ten rulings
+> §15.2, the contract §15.5, the sessions §15.7 — and §15.10 the landing record; `SYSTEMS_REFERENCE.md` §219;
+> `BUG_FIXES.md` §BA1 and §WS; `tests/test_ws11_the_dice_are_the_campaigns.py`, `tests/test_battle_script.py`,
+> `tests/test_ba1_the_battle_in_acts.py`). The user's "i also want to improve the battle screen …" and "yes for the
+> battle gate looks at game look blucher etc … a alyer of intrerwesting developments personalities and
+> visualizations with abstract player guidance", gated in Plan Mode: the look is the tabletop game's (plinths under
+> the carved figures), the dice are on the table and seeded, great battles play in full, sieges get a tableau, one
+> order at the crisis built from the objection system, all of it before the deploy. BA-1 built the dice (WS-11
+> closed: a battle's dice are the campaign's where the game server holds the campaign; a measuring tool's own world
+> keeps the stream it pins), the five-act script inside the tableau's payload (fog-true for the player's side, the
+> enemy's and a battle only watched), and the table (the plinths and their pips, the sequencer, the dice on the
+> baize, Settings → Battle scenes, Reduce motion). Eight finds: BA1-X1, X2, X3, X5, X6, X7 fixed; **BA1-X4 and BA1-X8 open, at
+> Session H's head** (the tableau at Text size 150 % and over; a triumph's laurels on the seal and under Replay).
+
+**NOW — BA-2 (`BATTLE_DIORAMA_SPEC.md` §15.5.4, §15.5.5, §15.7): THE WALLS, THE GUNS AND THE ORDER OF BATTLE.**
+Open in Plan Mode with a slice plan on the ruled design; nothing in §15.2 is re-opened. Read first: `STATUS.md`
+▶ NEXT UP, the spec's §15 (§15.10 before the code) and `SYSTEMS_REFERENCE.md` §219 (the rules and the traps).
+Scope, by the user's rulings 8 ("Both get a tableau") and 4 ("research how to best implement with existing
+systems"):
+
+1. **A garrison assault opens the table.** The attacking plinths, a drawn wall with a garrison block (no locket,
+   no standard to take), the storm, then held, stormed or capitulated — built from the numbers
+   `_resolve_garrison_combat` already returns. It closes the garrison rider (CA8-25, spec §12.5).
+2. **A bombardment plays the cannonade act alone:** the battery, the target, losses both ways, bystanders hit,
+   works knocked down. A link by default; it opens by itself only when it breaks or destroys its target.
+3. **The plan of battle, from the orders the game already has** — no new modifier and no new order. Act I names
+   the plan the player's orders amount to (the lead, the corps ordered in support, the provinces the attack comes
+   from and the flank's +N on the dice, a drilled assault, stance, guns in support), each with its number. The
+   province panel's attack row and the muster card carry, per nearby corps, a chip for the EXISTING order that
+   would bring him, priced on its face (the muster already computes `standing_order_hint` per corps;
+   `_build_muster_preview` stands at its 500-line ratchet, so the rows come from a new helper).
+
+**How.** Payload builders beside `battle_diorama.py`, on both transports, every number an int, fog tests at
+PARTIAL and FULL in the manner of `tests/test_battle_diorama.py`; new beats in `battle_script.py` — decide which
+of the three fog cases each is in before writing it (§219.2); client verbs in `battle_acts.gd` (the walls, the
+batteries) — `battle_diorama.gd`'s pinned bodies stay untouched; new scenes in `tools/ba1_stage_battles.py` and
+new claims in `tools/ba1_acts_walk.py` (a whole walk re-writes `docs/audits/ba1_client/`); the capture group
+`battle_acts` and the four instruments at the five sizes; the parse harness; ONE suite run before the commit;
+commit on master through the hook only when the user asks. Done when §15.7's row reads done: an assault and a
+bombardment each render a tableau on both roads; the plan is named in Act I and orderable at the attack row.
+
+**Then BA-3 — the crisis** (§15.5.6, §15.5.7): the Emperor's word at the hinge of a battle (Press, the Guard,
+Hold; the lead answers through the objection, insist, defiance and "By my word" systems as they stand), NP-D1
+closed, the two rules the user ticked (reinforcing pursuers count; the last hour bites), WS-16 (the reload's
+other dice — the crisis needs the defiance roll seeded), and ONE measure with arms (arm 0 byte-identical on the
+standing series; the "seeded dice" arm calls `campaign_variance.serve_campaign` on the harness's own world).
+The commanded band's arm 0 is BA-1's shipped record (`tools/_ba1_band_2026_11_14.json`, arm ALL:
+26 / 27 / 28): the driver plays through the server, so its named-seed arms already fight the campaign's dice.
+**Three questions go to the user at its head** (§15.7): the stroke's price (the plan says no action; the design
+review flags a near-free second attack after a narrow win), whether a pursuit by an arrived commander includes a
+corps already standing on the field, and one crisis a lead a turn.
+
+**Open with the user from BA-1** (none blocks BA-2): the France band moved with the seeded dice,
+26 / 26 / 25 → 26 / 27 / 28, inside the guard with marengo on its upper edge (reported to them; one
+world-line a seed); the plinth carries the nation's band and the pips, and the
+marshal's NAME stays above the men (a name on the slab reads 9 px at the fourth rank — one word puts it on the
+front rank's slab); a player who TYPES the seed `historical` keeps re-rollable dice (it is the fixed table of
+every seeded rule; the menu rolls a seed by default); at Text size 150 % and over the dice's luck line is left
+off rather than printed over a name (BA1-X4 owns the whole tableau at those sizes); left with them as before —
+Blücher's "Vorwärts!" in the 1805 game, a riposte council on defence, marshals settling a hanging day alone.
+
+**BA-1's own traps (fresh; §219.4 has them in full):** a Label is never narrower than its text — shorten the
+text and the box STAYS stretched; the walk's camera counts the scene's own frame deltas, never the wall clock;
+a grey literal fails the client-wide census (name it in `utils.gd`); a new `class_name` script needs
+`--headless --import` first and its `.gd.uid` is tracked; seeding every non-historical world moved a recorded
+series — a harness is served only when it asks; a new OPEN row must name a session the plan's table lists
+(`tests/test_the_plan_homes_every_row.py`: BA-1 … BA-3 are in it); a `PanelContainer` stops the mouse
+by default, and a harness that calls a handler proves the handler, not the click (BA1-X5); whatever the
+tableau lays from the battle's RESULT shows from the first frame — hold it back in `_set_opening`, bring
+it with the count or the gavel, and give the walk a claim on the opening (BA1-X6: every claim had passed
+on the frame that gave the day away — look at the kept frames, the opening first); the tray, the laurels
+and the baize's cast are CHROME shared by every showing — whatever the acts change on them is put back
+as each table is laid (`_put_the_chrome_back`), and a claim about the tableau's first instant bites
+only at the scene's own speed (BA1-X7); the IQ-10 capture run of the tableau and
+Settings at five sizes takes about ten minutes and the windowed walk about seven — run the headless walk
+(`--headless --time-scale 8`, seconds) until the claims hold, then each long run ONCE on the final tree; a Bash
+heredoc that holds an apostrophe fails here — write the script with the Write tool.
+
+---
+
+## After row BA — Session H: S15 the deploy (the prompt as it stood on November 13–14, 2026)
+
+> Two things changed since it was written: **WS-11 is closed** (row BA's BA-1) and **WS-16 is BA-3's**, so the
+> weak-spot review brings SIX rows to Session H's head, not seven; and **BA1-X4** and **BA1-X8** join that head.
+>
+> The hand-over before row BA: **November 13, 2026 — SESSION UI-6 ✅ LANDED: THE
 > LAST READING** (`UI_VISUAL_FOUNDATION_SPEC.md` §14; `SYSTEMS_REFERENCE.md` §217; `BUG_FIXES.md` §UI6;
 > `tests/test_ui6_*.py`, `tests/test_parse_preview*.py`). The user's "this is last scoring make all deicisons and fix
 > this, while at it please analyze if there are better ways to interact with gernals as well and to make typing
@@ -109,12 +195,12 @@
 > (d) **jena's Pope under Vienna's wing** — the deterrence working, or an understudy's ask-ladder one refusal short
 > (`REFUSAL_MEMORY_TURNS`); (e) session F's three, session E's four, session D's three and session C's five stand.
 
-**NOW — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(0) Session UI-6's
+**THEN — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(0) Session UI-6's
 four open rows** (`BUG_FIXES.md` §UI6 — UI6-X70, X73, X74, X75: a report subject naming a friend or a title, a third
 clause after an arrival, a friend-only report subject, a title-first list; nothing spent wrongly by any): each is a
 strict-xfail pin in `tests/test_ui6_fog_siblings.py` that turns red the day it lands — fix each at its cause, sweep
 the class on both roads (`/command` and `GET /parse_preview`; rule 10), re-point the pin to the landing's words, and
-the census reads 0 open defect rows before (1) — counting **the weak-spot review's seven** (`BUG_FIXES.md` §WS, November 14, 2026: WS-10, WS-11 and WS-12 are the user's rulings, put to them first; WS-13, WS-14 and WS-15 fixed at their cause; WS-R's twelve finds each confirmed or refuted; pins in `tests/test_ws_weak_spot_review_2026_11_13.py`); **(1) the gate
+the census reads 0 open defect rows before (1) — counting **the weak-spot review's six still open** (`BUG_FIXES.md` §WS, November 14, 2026: WS-10 and WS-12 are the user's rulings, put to them first — WS-11 was ruled and closed by row BA's BA-1, and WS-16 is BA-3's; WS-13, WS-14 and WS-15 fixed at their cause; WS-R's twelve finds each confirmed or refuted; pins in `tests/test_ws_weak_spot_review_2026_11_13.py`) and **BA1-X4** (`BUG_FIXES.md` §BA1: the tableau's lines at Text size 150 % and over; the strict-xfail pin `tests/test_ba1_the_battle_in_acts.py::TestBA1X4TheTableAtLargeType`); **(1) the gate
 checks, each against its record file** (`PRE_DEPLOY_PLAN.md` §2 S15; `DYNAMISM_SPEC.md` §2 the S15 row, §7):
 0 open GR rows (`.venv/Scripts/python.exe tools/defect_census.py --open`); story classes ≥ 6 — 10
 (`_dy_signature_g5_2026_11_11.json`, session G5's shipped arm); a minor at secondary rank by promotion on ≥ 1 seed —
@@ -123,7 +209,8 @@ readings: jena's and wagram's {Kingdom of Italy, Papal States}, {Kingdom of Ital
 `eliminations`); `annexations_outside_aim` 0 on the AMBIENT record (`_g5_census_2026_11_11.json` — by session G5's
 corrected read; the old read counts 2 on marengo, `_g5_rally_census_2026_11_11.json`) and 0 on the AI-France
 harness (`_g5_chain_d_2026_11_11.json` arm ALL), reported, never gated; the France band 23–28 — 26 / 26 / 25
-(`_g5_band_2026_11_11.json`);
+(`_g5_band_2026_11_11.json`), **26 / 27 / 28 since row BA's BA-1 seeded the battle's dice
+(`_ba1_band_2026_11_14.json`; read the band against the latest row-BA record — BA-3 will re-read it)**;
 the historian test green on every seed (the suite's pins); the ratchet (`tests/test_code_health_ratchet.py`); the
 parse harness green; **(2) the build** — `deploy\build.bat`, UNSIGNED until the certificate arrives
 (`SYSTEMS_REFERENCE.md` §153.3–§153.4, `UX_UI_REVIEW_PLAN.md` §UXR-4: nothing on this machine — no signtool, no

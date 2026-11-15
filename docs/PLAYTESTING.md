@@ -1060,6 +1060,30 @@ only the screen can verify.
   copy that pattern (deterministic payload in, PNG out under
   `docs/audits/`). Extend on demand — there is deliberately no
   all-surfaces harness; each visual pass adds the scene it needs.
+- **The battle in acts (row BA, BA-1, November 14, 2026):** the tableau's acts
+  are tweens on real time, so a still of the settled frame cannot show them.
+  `tools/ba1_stage_battles.py` fights eleven battles on the 1805 board through the
+  real attack road (each scene keeps the first ambient seed whose battle shows
+  what it is for; the seed is in the manifest) and
+  `tools/ba1_acts_walk.py` plays each on the real `battle_diorama.tscn`,
+  shooting frames AT developments (an act's first told beat, a named beat such
+  as the flank or the battery, the end) and reading the table into a record:
+  the walk's claims (`check`) are read off that record, never off a picture.
+  A whole walk writes `docs/audits/ba1_client/walk_record.json` and the curated
+  `BA1_*.jpg`; `--headless --time-scale 8` runs the record alone in seconds (the
+  suite's driven pin does). The camera counts the scene's own frame deltas, not
+  the wall clock (opening the first tableau costs a third of a second the
+  tweens never see).
+- **A driver run on a named seed fights the campaign's dice (WS-11, November
+  14, 2026).** The driver posts `/new_game`, so `--seed austerlitz` is a
+  campaign the game server holds: each battle draws from the campaign's own
+  stream — the same on every run, whatever else drew from the ambient one.
+  A reading taken on a named-seed arm before that date (the commanded arms,
+  the France band: 26 / 26 / 25 then, 26 / 27 / 28 now —
+  `tools/_ba1_band_2026_11_14.json`) is the game before it;
+  `--seam backend.game_logic.campaign_variance:the_battle_dice_are_seeded=False`
+  plays an older record's world-line again. `historical` (the default seed)
+  is unchanged.
 - **A whole campaign played by hand in the client (DD-B, Pre-Deploy S13):**
   `tools/dd_b_play.py start --road <conquest|diplomacy|sea> --out <run>`
   (run it in the background: it supervises a sandboxed backend from 8006 and

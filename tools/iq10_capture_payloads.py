@@ -856,6 +856,35 @@ def cap_diorama_states():
                facts={"register": sea.get("register")})
 
 
+def cap_battle_acts():
+    """Row BA, BA-1 (November 14, 2026) — the battle in acts. The tableau's
+    payloads that carry a full script: REAL battles on the 1805 board through
+    the real attack road, staged by `tools/ba1_stage_battles.py` (each scene's
+    ambient seed is the one its walk of record kept, read from
+    docs/audits/ba1_client/payloads/manifest.json). The five here are the
+    states the acts add to the table: four French ranks at rest with the dice
+    and a driven-back enemy; an enemy corps that came up; the guns; a defeat
+    on the defence; another court's battle."""
+    import ba1_stage_battles as stage
+    seeds = json.loads((REPO / "docs" / "audits" / "ba1_client" / "payloads" / "manifest.json")
+                       .read_text(encoding="utf-8"))
+    for scene, name in (("ulm_full", "ulm"), ("enemy_comes", "enemy_comes"),
+                        ("the_guns", "guns"), ("defeat_defending", "defeat"),
+                        ("observed_full", "watched")):
+        seed = int(seeds[scene]["ambient_seed"])
+        payload, reason, _result = stage.fight(scene, seed)
+        if not isinstance(payload, dict) or not reason:
+            raise RuntimeError(f"ba1 scene {scene} did not stage on seed {seed}")
+        script = payload.get("script") or {}
+        record(f"diorama_ba1_{name}", payload,
+               source="CommandExecutor._execute_attack -> battle_diorama (payload['script'])",
+               staging=f"tools/ba1_stage_battles.py scene `{scene}`, ambient seed {seed}: "
+                       + " ".join((stage.SCENES[scene][0].__doc__ or "").split()),
+               facts={"shows": reason, "form": script.get("form"),
+                      "register": payload.get("register"),
+                      "acts": [b["act"] for b in script.get("acts") or []]})
+
+
 def cap_petition():
     """IQ-7 — the client's petition popup, the vassal card, the remitted row."""
     iq7 = test_module("test_iq7_satellites_have_a_position")
@@ -2871,6 +2900,7 @@ CAPTURES = {
     "missions": cap_missions,
     "battles": cap_battles,
     "diorama_states": cap_diorama_states,
+    "battle_acts": cap_battle_acts,
     "petition": cap_petition,
     "moments": cap_moments,
     "prisoner": cap_prisoner,
