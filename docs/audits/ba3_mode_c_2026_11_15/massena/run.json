@@ -1,0 +1,640 @@
+{
+ "board": "massena",
+ "port": 8006,
+ "seed": {
+  "seed": "ba3-walk-10"
+ },
+ "started": "2026-11-16T06:01:48",
+ "lead_before": "Tyrol",
+ "engine_exit": 0,
+ "engine_s": 81.0,
+ "lead_after": "Tyrol",
+ "server_days": {
+  "success": true,
+  "days": []
+ },
+ "engine_log_bytes": 479,
+ "script_errors": [],
+ "engine_errors": 0,
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "ms": 79568,
+  "results": [
+   {
+    "did": "booted the real main.tscn against the sandboxed backend",
+    "ok": true,
+    "saw": "booted=true turn=1 actions=4",
+    "step": "boot"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena presses",
+       "marshal": "Massena",
+       "odds": "unfavorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Carniola",
+     "field_shown": "Carniola",
+     "his_road": true,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 6,413 of ours for 5,027 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "dig_in",
+      "line": "Archduke Charles digs in.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the card's Send (Massena, attack ArchdukeCharles)",
+    "ok": true,
+    "saw": "actions 4 -> 3; objected=false; the table up=true; the panel at rest=true; the day: ours 2.0 / his 2.0, awaits 'ours', open=true; chips: [\"Massena presses\", \"Massena digs in\", \"Massena stands\", \"Break off\", \"Leave it to Massena\"]",
+    "step": "day_opens"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena presses",
+       "marshal": "Massena",
+       "odds": "unfavorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Carniola",
+     "field_shown": "Carniola",
+     "his_road": true,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 6,413 of ours for 5,027 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "dig_in",
+      "line": "Archduke Charles digs in.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "read the panel at rest",
+    "ok": true,
+    "saw": "banner 'THE DAY HANGS' (the day's own: 'The day hangs'); purses 2.0 of 2.0 / 2.0 of 3.0; row C (1 row):   Massena presses · 1     Massena digs in · 1   ; the Guard is chip -1",
+    "step": "panel_at_rest"
+   },
+   {
+    "did": "closed the table (its Close button), clicked Carniola on the map",
+    "ok": true,
+    "saw": "table closed=true; the panel up=true; the day's block on it=true (above the ATTACK rows=true); the dig-in chip stands=true; panel: ARLES\n      Massena · attack · 1 AP       Murat · march & attack · 2 AP · 3 turns       Napoleon · march & attack · 1 AP · 6 turns       Soult · march & attack · 1 AP · 6 turns       Bernadotte · march & attack · 2 AP · 6 turns  \n  +3 more…",
+    "step": "panel_day"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena presses",
+       "marshal": "Massena",
+       "odds": "unfavorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Carniola",
+     "field_shown": "Carniola",
+     "his_road": true,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 6,413 of ours for 5,027 of his.",
+     "open": true,
+     "ours": 1.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "stand",
+      "line": "Archduke Charles stands his ground.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      },
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "stand",
+       "line": "Archduke Charles stands his ground.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the panel's chip 'Massena, defend' (a typed order)",
+    "ok": true,
+    "saw": "actions 3 -> 3 (action_info.cost=0); purses 2 -> ours 1.0 / his 2.0, awaits 'ours', open=true; the table is back=true with the new block, chips back=true; the panel open=true, its day line:  · 6 turns       Soult · march & attack · 1 AP · 6 turns       Bernadotte · march & attack · 2 AP · 6 turns  \n  +3 more…; word_given untouched=true",
+    "step": "panel_press"
+   },
+   {
+    "did": "read the province panel's day title with one point left",
+    "ok": true,
+    "reached": true,
+    "saw": "the panel's title: 'THE DAY AT CARNIOLA — 1 POINT\n  The last' (one point left; says '1 POINT', not '1 POINTS'=true)",
+    "step": "panel_points",
+    "title": "THE DAY AT CARNIOLA — 1 POINT\n  The last"
+   },
+   {
+    "did": "the muster's question answered: Commit the Attack",
+    "ok": true,
+    "saw": "[Cancel Order] [Commit the Attack] \"Berthier stays the order a moment, Sire: before Massena marches on Archduke Charles, read the muster.\n\nThe muster reads unfavorable. 'Commit the Attack' to send him",
+    "step": "press_muster"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena presses",
+       "marshal": "Massena",
+       "odds": "unfavorable",
+       "ok": false,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "The day's points are spent.",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": false,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "The day's points are spent.",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": true,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 4,004 of ours for 2,992 of his.",
+     "open": true,
+     "ours": 0.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "strike",
+      "line": "Archduke Charles strikes back.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 1.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      },
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "stand",
+       "line": "Archduke Charles stands his ground.",
+       "who": "theirs"
+      },
+      {
+       "kind": "press",
+       "line": "Massena presses the attack.",
+       "who": "ours"
+      },
+      {
+       "kind": "strike",
+       "line": "Archduke Charles strikes back.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the table chip 'Massena presses' (index 0)",
+    "log_tail": "rles 2,414. Both armies remain in the field.\n[Materiel] Guns, horses and stores lost with the fallen: France -344g, Austria -120g. Our treasury stands at 136 gold.\n   ⚔ View the field\n--- Berthier's Report ---\n  Massena: \"They took the ground. They will find it expensive to keep.\"\n  Attack: Massena (Defensive stance -10%, Personality (aggressive) +15%, Exhaustion -10%)\n  Defense: Archduke Charles (Defensive stance +15%, Personality (cautious) +5%, Terrain (Hills) +15%, Habsburg Resolve +3%)\n  Casualties: Massena 6,883 | Archduke Charles 2,414\n  Strength: Massena 35,587 → 28,704 | Archduke Charles 48,973 → 46,559\n  Berthier: \"The ground itself worked against Massena. Terrain matters, Sire.\"\n\n",
+    "ok": true,
+    "saw": "pressed=true; words given=[\"Massena, attack Archduke Charles\"]; actions 3 -> 3 (action_info.cost=0); muster asked=true; objected=false; the table up=true, the panel back=true; purses 1/2 -> ours 0.0 / his 1.0, awaits 'ours', open=true; the log: autious) +5%, Terrain (Hills) +15%, Habsburg Resolve +3%)\n  Casualties: Massena 6,883 | Archduke Charles 2,414\n  Strength: Massena 35,587 → 28,704 | Archduke Charles 48,973 → 46,559\n  Berthier: \"The ground itself worked against Massena. Terrain matters, Sire.\"",
+    "step": "press",
+    "words": [
+     "Massena, attack Archduke Charles"
+    ]
+   },
+   {
+    "did": "read our clash's table when his answer follows it",
+    "ok": true,
+    "saw": "his clash followed: the primary button read 'His answer ▸'; the table went on by itself after 11045 ms; his table's chips back=true",
+    "step": "follows"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "",
+     "banner": "The attack is broken off",
+     "chips": [],
+     "ended": "broke_off",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 4,004 of ours for 2,992 of his.",
+     "open": false,
+     "ours": 0.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "attack",
+     "theirs": 1.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      },
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "stand",
+       "line": "Archduke Charles stands his ground.",
+       "who": "theirs"
+      },
+      {
+       "kind": "press",
+       "line": "Massena presses the attack.",
+       "who": "ours"
+      },
+      {
+       "kind": "strike",
+       "line": "Archduke Charles strikes back.",
+       "who": "theirs"
+      },
+      {
+       "kind": "",
+       "line": "Massena breaks off the attack.",
+       "who": "end"
+      }
+     ]
+    },
+    "did": "pressed the word chip 'Leave it to Massena' (index 4)",
+    "ok": true,
+    "saw": "pressed=true; the word given=[\"@word:leave_it:ArchdukeCharles\"]; actions 3 -> 3; the table up=true; the day now: ours 0.0 / his 1.0, awaits '', open=false; ended='broke_off'; told: [{ \"who\": \"ours\", \"kind\": \"press\", \"line\": \"Massena presses the attack.\" }, { \"who\": \"theirs\", \"kind\": \"strike\", \"line\": \"Archduke Charles strikes back.\" }, { \"who\": \"end\", \"kind\": \"\", \"line\": \"Massena breaks off the attack.\" }]",
+    "step": "word",
+    "words": [
+     "Massena, attack Archduke Charles",
+     "@word:leave_it:ArchdukeCharles"
+    ]
+   }
+  ],
+  "steps": [
+   {
+    "frame": "BA3_WALK_01_day_panel_2026_11_15.jpg",
+    "ms": 33939,
+    "note": "the day's panel at rest: both purses, the last told, the chips",
+    "saved": true,
+    "step": "day_panel",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_02_panel_day_2026_11_15.jpg",
+    "ms": 34772,
+    "note": "the province panel: the day's chips above the ATTACK rows",
+    "saved": true,
+    "step": "panel_day",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_03_panel_press_2026_11_15.jpg",
+    "ms": 35683,
+    "note": "the table is back with the new block",
+    "saved": true,
+    "step": "panel_press",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_04_after_the_press_2026_11_15.jpg",
+    "ms": 70089,
+    "note": "his clash on the same table; the purses one point lower",
+    "saved": true,
+    "step": "after_the_press",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_05_after_the_word_2026_11_15.jpg",
+    "ms": 73467,
+    "note": "the day after the lead was left to it",
+    "saved": true,
+    "step": "after_the_word",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_06_the_field_at_rest_2026_11_15.jpg",
+    "ms": 79568,
+    "note": "the field at rest",
+    "saved": true,
+    "step": "the_field_at_rest",
+    "turn": 1
+   }
+  ],
+  "words": [
+   "Massena, attack Archduke Charles",
+   "@word:leave_it:ArchdukeCharles"
+  ]
+ },
+ "total_s": 84.3
+}

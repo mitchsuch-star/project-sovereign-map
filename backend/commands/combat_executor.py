@@ -1036,7 +1036,16 @@ def battle_script_facts(ctx) -> dict:
         "auto_bombardment_results": list(getattr(ctx, "auto_bombardment_results", None) or []),
         "overwatch_count": int(getattr(ctx, "overwatch_count", 0) or 0),
         "advanced_to": getattr(ctx, "advanced_to", None),
+        # Row BA (BA-3): the word this clash is, when it is a word of an open
+        # day of battle — absent for an opening clash and every ordinary one.
+        **_the_days_word_fact(ctx),
     }
+
+
+def _the_days_word_fact(ctx) -> dict:
+    from backend.game_logic import battle_day as _battle_day
+    said = _battle_day.word_line(ctx)
+    return {"day_word": said} if said else {}
 
 
 @dataclass(slots=True, repr=False, eq=False)
@@ -9837,12 +9846,17 @@ class CombatExecutor:
                     ]
                     if enemies_in_middle:
                         blocking_enemy = enemies_in_middle[0]
+                        # BA3-X1 (R7): the corps is named as the player reads
+                        # him ("Archduke John", never the roster key) — the
+                        # line reaches the reader whole through an autonomous
+                        # charge's report (`jealousy_attacks[].message`).
+                        _blocker = humanize_entity_name(blocking_enemy.name)
                         return {
                             "success": False,
-                            "message": f"Cannot charge through {middle} - {blocking_enemy.name} blocks the path! Engage them first.",
+                            "message": f"Cannot charge through {middle} - {_blocker} blocks the path! Engage them first.",
                             "blocked_by": blocking_enemy.name,
                             "blocking_region": middle,
-                            "suggestion": f"Attack {blocking_enemy.name} at {middle} first"
+                            "suggestion": f"Attack {_blocker} at {middle} first"
                         }
 
                 middle = middle_regions[0]
@@ -10428,6 +10442,11 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         ctx.atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
         ctx.def_distribution = {}  # BD: initialized both paths — the diorama builder reads it
+        # Row BA (BA-3) / NP-D1: the Guard going in as a word of an open day —
+        # his lead's morale falls before either side's dice (a no-op for every
+        # other attack: `battle_day.guard_shock` reads the day's own word).
+        from backend.game_logic import battle_day as _battle_day
+        _battle_day.guard_shock(ctx)
         # IQ-5 (display only, both paths): the co-located contributors each
         # side's mass line names (R3), every participant's resolve-time
         # strength for the log's field bound and the dispatch's per-man
@@ -10641,7 +10660,7 @@ class CombatExecutor:
                         and _personal < FORCED_RETREAT_THRESHOLD
                         and _personal < combatant.morale <= FORCED_RETREAT_THRESHOLD):
                     ctx.battle_result["description"] = ctx.battle_result.get("description", "") + (
-                        f"\n\n{combatant.name}'s regiments close ranks — they will not break. "
+                        f"\n\n{humanize_entity_name(combatant.name)}'s regiments close ranks — they will not break. "
                         f"(Habsburg Resolve: holds to {int(_personal)}% morale)"
                     )
 
@@ -11412,7 +11431,7 @@ class CombatExecutor:
                                 ctx.forced_retreat_msg += "\n" + msg
                         elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
                             ctx.forced_retreat_msg += (
-                                f"\n{ctx.p.name}'s regiments close ranks — they will not break. "
+                                f"\n{humanize_entity_name(ctx.p.name)}'s regiments close ranks — they will not break. "
                                 f"(Habsburg Resolve: holds to {int(_p_threshold)}% morale)")
             if not ctx.def_won:
                 for ctx.p in ctx.def_participants:
@@ -11425,7 +11444,7 @@ class CombatExecutor:
                                 ctx.forced_retreat_msg += "\n" + msg
                         elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
                             ctx.forced_retreat_msg += (
-                                f"\n{ctx.p.name}'s regiments close ranks — they will not break. "
+                                f"\n{humanize_entity_name(ctx.p.name)}'s regiments close ranks — they will not break. "
                                 f"(Habsburg Resolve: holds to {int(_p_threshold)}% morale)")
 
             # ── Gate 4: Reinforcer retreat on non-win ──
@@ -11895,7 +11914,12 @@ class CombatExecutor:
     def _attack_compose_result(self, ctx: AttackContext):
         """Stage 18 of `_execute_attack`: The battle diorama and the result's riders (muster, last stand, overwatch)."""
         from backend.game_logic import jealousy as _jealousy
+        from backend.game_logic import battle_day as _battle_day
         from backend.game_logic.battle_diorama import build_battle_diorama
+        # Row BA (BA-3): a great battle the player is party to that does not
+        # decide the day opens one (or carries an open one on, or closes it);
+        # None for every other battle — the tableau then carries no `day`.
+        _day_block = _battle_day.after_the_battle(ctx)
         # ════════════════════════════════════════════════════════════
         # BD (Battle Diorama): the self-contained tableau payload — one
         # builder for the solo and coordinated paths, fog-gated inside.
@@ -11972,6 +11996,8 @@ class CombatExecutor:
                         _stack.extend(_node.values())
                     elif isinstance(_node, list):
                         _stack.extend(_node)
+            if _day_block is not None:
+                _bd_payload["day"] = _day_block
             ctx.result["battle_diorama"] = _bd_payload
             ctx.result["events"][0]["diorama"] = _bd_payload
 

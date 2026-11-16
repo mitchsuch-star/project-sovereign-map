@@ -1,0 +1,827 @@
+{
+ "board": "defence",
+ "port": 8006,
+ "seed": {
+  "seed": "ba3-walk-00",
+  "tuning": {
+   "foe_strength": 64000
+  }
+ },
+ "started": "2026-11-16T06:03:13",
+ "lead_before": "Tyrol",
+ "engine_exit": 0,
+ "engine_s": 82.5,
+ "lead_after": "Milan",
+ "server_days": {
+  "success": true,
+  "days": []
+ },
+ "engine_log_bytes": 6764,
+ "script_errors": [],
+ "engine_errors": 1,
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 2,
+  "ms": 81068,
+  "results": [
+   {
+    "did": "booted the real main.tscn against the sandboxed backend",
+    "ok": true,
+    "saw": "booted=true turn=1 actions=4",
+    "step": "boot"
+   },
+   {
+    "did": "pressed the End Turn button (1 press(es))",
+    "ok": true,
+    "saw": "turn 1 -> 2; the lapse gate stood=false and spoke of a day=false; the enemy phase's dialog up=true; the log: ost is Massena at Tyrol. The Kingdom of Italy pays them; their dead will be its grief.\nSweden and Russia have signed an Open Borders Agreement.\nNaples and Russia have signed an Open Borders Agreement.",
+    "step": "end_turn"
+   },
+   {
+    "dialog_tail": "ties, 37,000 remaining\n    Result: Bloody stalemate\n    ⚔ View the field\n    — the day awaits your word\n    --- Berthier's Report ---\n    Defense: Massena (Terrain (Mountains) +25%, Child of Victory (outnumbered) +10%)\n    Archduke Charles: \"France pays full price for every Austrian mile now.\"\n    Massena: \"Nothing settled. I do not leave accounts open for long.\"\n    Berthier: \"An inconclusive affair. Both sides bloodied but unbroken.\"\n\n\n────────────────────────────\nBritain, Russia, Prussia and 8 other courts stirred as well, but their formations remain beyond our sight.\n\nENEMY PHASE - Turn 1\n",
+    "did": "read the enemy phase's dialog for the great battle's row",
+    "ok": true,
+    "saw": "row says the day awaits us (badge 'THE DAY HANGS'=true) ok=true ('— the day awaits your word')",
+    "step": "enemy_row"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena strikes back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "Massena, retreat",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Fall back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": null,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 5,000 of ours for 5,574 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "defence",
+     "theirs": 3.0,
+     "theirs_of": 3.0,
+     "told": []
+    },
+    "did": "pressed the enemy phase dialog's 'View the field' link before Continue",
+    "ok": true,
+    "saw": "the link stood=true; its table offers the words=true; the day: ours 2.0 / his 3.0, awaits 'ours', open=true; chips: [\"Massena strikes back\", \"Massena digs in\", \"Massena stands\", \"Fall back\", \"Leave it to Massena\"]",
+    "step": "view_field"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena strikes back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "Massena, retreat",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Fall back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": null,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 5,000 of ours for 5,574 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "defence",
+     "theirs": 3.0,
+     "theirs_of": 3.0,
+     "told": []
+    },
+    "did": "pressed the dialog's Continue button",
+    "ok": true,
+    "saw": "dialog still up=false; the morning table rose by itself=true; its panel offers the words=true (the dawn's block: ours 2.0 / his 3.0, awaits 'ours', open=true; chips: [\"Massena strikes back\", \"Massena digs in\", \"Massena stands\", \"Fall back\", \"Leave it to Massena\"])",
+    "step": "leave_dialog"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena strikes back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "Massena, retreat",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Fall back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": null,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 5,000 of ours for 5,574 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "defence",
+     "theirs": 3.0,
+     "theirs_of": 3.0,
+     "told": []
+    },
+    "did": "read the day's panel at rest",
+    "ok": true,
+    "saw": "banner 'THE DAY HANGS'; 2.0 of 2.0 / 3.0 of 3.0; row C:   Massena strikes back · 1     Massena digs in · 1   ; exits:   Massena stands     Fall back   |   Leave it to Massena   ; 'strikes back' lit=true; 'digs in' lit=true; 'Fall back' lit=true",
+    "step": "panel_at_rest"
+   },
+   {
+    "did": "the objection answered: Insist",
+    "ok": true,
+    "saw": "the modal stood and was answered",
+    "step": "dig_in_objection"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena strikes back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "Massena, retreat",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Fall back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": null,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 4,810 of ours for 4,758 of his.",
+     "open": true,
+     "ours": 1.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "strike",
+      "line": "Archduke Charles comes on again.",
+      "who": "theirs"
+     },
+     "side": "defence",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "strike",
+       "line": "Archduke Charles comes on again.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed 'Massena digs in' (row C)",
+    "ok": true,
+    "saw": "pressed=true; objected=true; words [\"Massena, defend\"]; actions 4 -> 4 (no cost read on the objection's road: the actions held); purses 2 -> ours 1.0 / his 2.0, awaits 'ours', open=true; his answer: 'Archduke Charles comes on again.'; the table up=true, chips back=true, follows=false",
+    "step": "dig_in"
+   },
+   {
+    "did": "closed the table and the modals the turn's tail raised ([\"mailbox_panel\"]), then pressed End Turn once with the day open",
+    "ok": true,
+    "saw": "modal stuck=''; the turn stopped=true (turn 2 -> 2); the gate's sentence in its message: ⚠ You have 2 unanswered envoys that will lapse if you end the turn now. The day at Tyrol still hangs — Massena holds 1 point. End the turn and Archduke Charles answers alone.\n     Take the field — Tyrol  \n  Click Open Envoys to review now, or press End Turn again, Enter, or type end turn again to confirm the lapse.; the day's sentence ok=true; a 'Take the field' chip (dayopen:ArchdukeCharles) in the log=true",
+    "step": "day_gate"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena strikes back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "Massena, retreat",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Fall back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": null,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 4,810 of ours for 4,758 of his.",
+     "open": true,
+     "ours": 1.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "defence",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "strike",
+       "line": "Archduke Charles comes on again.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the log's 'Take the field' chip",
+    "ok": true,
+    "saw": "the table is up=true with its chips=true; the day: ours 1.0 / his 2.0, awaits 'ours', open=true",
+    "step": "gate_chip"
+   },
+   {
+    "did": "closed the table (the day still open), found the 'battle_day_awaits' icon on the rail and opened it",
+    "ok": true,
+    "saw": "table closed=true; the icon on the rail=true; notices held: [\"naval_state_changed\", \"battle_day_awaits\", \"diplomatic_proposal\", \"diplomatic_proposal\"]; 'Take the field' reachable=true",
+    "step": "notice"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena strikes back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "Massena, retreat",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Fall back",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "his_road": null,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 4,810 of ours for 4,758 of his.",
+     "open": true,
+     "ours": 1.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "defence",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "strike",
+       "line": "Archduke Charles comes on again.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed 'Take the field'",
+    "ok": true,
+    "saw": "the table is back=true, final with its chips=true; the day: ours 1.0 / his 2.0, awaits 'ours', open=true; chips: [\"Massena strikes back\", \"Massena digs in\", \"Massena stands\", \"Fall back\", \"Leave it to Massena\"]",
+    "step": "take_the_field"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "",
+     "banner": "Massena falls back",
+     "chips": [],
+     "ended": "fell_back",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Tyrol",
+     "field_shown": "Tyrol",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 4,810 of ours for 4,758 of his.",
+     "open": false,
+     "ours": 1.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "side": "defence",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Massena digs in.",
+       "who": "ours"
+      },
+      {
+       "kind": "strike",
+       "line": "Archduke Charles comes on again.",
+       "who": "theirs"
+      },
+      {
+       "kind": "",
+       "line": "Massena falls back.",
+       "who": "end"
+      }
+     ]
+    },
+    "did": "pressed 'Fall back' (the exits row)",
+    "ok": true,
+    "saw": "pressed=true; words [\"Massena, retreat\"]; actions 4 -> 4 (cost 0); an envoy's popup interposed: 'Set aside — the Cabinet stays shut until it is answered or the turn ends.\nDIPLOMATIC ENVOY\nHardenberg (Hawk) of Prussia\n\nProposes: Open Borders Agreement (free '; modals set aside: [\"incoming_proposal\"] (stuck ''); the closing table came up final=true; ended 'fell_back'; banner 'MASSENA FALLS BACK'; chips left 0; the log: ensive stance enabled orderly withdrawal) Will recover over 3 turns.\n\nSetting aside Prussia's proposal — the Cabinet stays shut until it is answered or the turn ends. Click the envoy badge to revisit.",
+    "step": "fall_back"
+   },
+   {
+    "did": "pressed End Turn with no day open",
+    "ok": true,
+    "saw": "pending days held=0; the enemy phase's dialog came up=false (no gate); the gate's words: ⚠ You have 2 unanswered envoys that will lapse if you end the turn now.\n  Click Open Envoys to review now, or press End Turn again, Enter, or type end turn again to confirm the lapse.; spoke of a day=false",
+    "step": "no_day_gate"
+   }
+  ],
+  "steps": [
+   {
+    "frame": "BA3_WALK_01_enemy_phase_2026_11_15.jpg",
+    "ms": 13646,
+    "note": "the enemy phase's dialog",
+    "saved": true,
+    "step": "enemy_phase",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_02_view_the_field_2026_11_15.jpg",
+    "ms": 33251,
+    "note": "the dialog's View the field: the table over the dialog",
+    "saved": true,
+    "step": "view_the_field",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_03_the_dawn_table_2026_11_15.jpg",
+    "ms": 53263,
+    "note": "the morning battle's table, risen by itself after the dialog",
+    "saved": true,
+    "step": "the_dawn_table",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_04_day_panel_2026_11_15.jpg",
+    "ms": 53374,
+    "note": "the defended day's panel at rest",
+    "saved": true,
+    "step": "day_panel",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_05_dig_in_objection_2026_11_15.jpg",
+    "ms": 54120,
+    "note": "the marshal objects",
+    "saved": true,
+    "step": "dig_in_objection",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_06_after_dig_in_2026_11_15.jpg",
+    "ms": 75923,
+    "note": "his answer on the same table",
+    "saved": true,
+    "step": "after_dig_in",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_07_the_table_from_the_log_2026_11_15.jpg",
+    "ms": 77636,
+    "note": "the table opened from the gate's own chip",
+    "saved": true,
+    "step": "the_table_from_the_log",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_08_the_notice_2026_11_15.jpg",
+    "ms": 78301,
+    "note": "the rail's notice for the day",
+    "saved": true,
+    "step": "the_notice",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_09_the_table_again_2026_11_15.jpg",
+    "ms": 78683,
+    "note": "the table back from the notice: settled, with its chips",
+    "saved": true,
+    "step": "the_table_again",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_10_after_fall_back_popup_2026_11_15.jpg",
+    "ms": 79508,
+    "note": "an envoy's proposal interposes before the closing table",
+    "saved": true,
+    "step": "after_fall_back_popup",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_11_after_fall_back_2026_11_15.jpg",
+    "ms": 80211,
+    "note": "the day closed: the lead has fallen back",
+    "saved": true,
+    "step": "after_fall_back",
+    "turn": 2
+   }
+  ],
+  "words": [
+   "Massena, defend",
+   "Massena, retreat"
+  ]
+ },
+ "total_s": 85.8
+}

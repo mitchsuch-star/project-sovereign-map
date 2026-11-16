@@ -1,0 +1,513 @@
+{
+ "board": "ulm",
+ "port": 8006,
+ "seed": {
+  "seed": "ba3-walk-00"
+ },
+ "started": "2026-11-16T06:00:46",
+ "lead_before": "Rhineland",
+ "engine_exit": 0,
+ "engine_s": 58.6,
+ "lead_after": "Swabia",
+ "server_days": {
+  "success": true,
+  "days": []
+ },
+ "engine_log_bytes": 716,
+ "script_errors": [],
+ "engine_errors": 1,
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "ms": 57205,
+  "results": [
+   {
+    "did": "booted the real main.tscn against the sandboxed backend",
+    "ok": true,
+    "saw": "booted=true turn=1 actions=4",
+    "step": "boot"
+   },
+   {
+    "day": {
+     "ahead": "ours",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Ney, attack Mack",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Ney presses",
+       "marshal": "Ney",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Ney",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Napoleon, attack Mack",
+       "counsel": "none",
+       "kind": "guard",
+       "label": "The Guard",
+       "marshal": "Napoleon",
+       "odds": "favorable",
+       "ok": true,
+       "price": 2.0,
+       "shown": "Napoleon",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Ney, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Ney digs in",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Ney",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Bernadotte, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Bernadotte leads",
+       "marshal": "Bernadotte",
+       "odds": "even",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Bernadotte",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Davout, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Davout leads",
+       "marshal": "Davout",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Davout",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Lannes, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Lannes leads",
+       "marshal": "Lannes",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Lannes",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Murat, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Murat leads",
+       "marshal": "Murat",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Murat",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Soult, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Soult leads",
+       "marshal": "Soult",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Soult",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Bernadotte, support Ney",
+       "counsel": "possible",
+       "kind": "bring_up",
+       "label": "Bring up Bernadotte",
+       "marshal": "Bernadotte",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Bernadotte",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Murat, support Ney",
+       "counsel": "possible",
+       "kind": "bring_up",
+       "label": "Bring up Murat",
+       "marshal": "Murat",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Murat",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Soult, support Ney",
+       "counsel": "none",
+       "kind": "bring_up",
+       "label": "Bring up Soult",
+       "marshal": "Soult",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Soult",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Ney stands",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Ney",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Ney",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Ney",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Ney",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "Mack",
+     "enemy_shown": "Mack",
+     "field": "Swabia",
+     "field_shown": "Swabia",
+     "his_road": false,
+     "his_temper": "Literal",
+     "lead": "Ney",
+     "lead_shown": "Ney",
+     "morning": "The last clash: won on points — 5,938 of ours for 11,052 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "dig_in",
+      "line": "Mack digs in.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 1.0,
+     "theirs_of": 2.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Mack digs in.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the card's Send (Ney, attack Mack)",
+    "ok": true,
+    "saw": "actions 4 -> 3; objected=false; the table up=true; the panel at rest=true; the day: ours 2.0 / his 1.0, awaits 'ours', open=true; chips: [\"Ney presses\", \"The Guard\", \"Ney digs in\", \"Bernadotte leads\", \"Davout leads\", \"Lannes leads\", \"Murat leads\", \"Soult leads\", \"Bring up Bernadotte\", \"Bring up Murat\", \"Bring up Soult\", \"Ney stands\", \"Break off\", \"Leave it to Ney\"]",
+    "step": "day_opens"
+   },
+   {
+    "day": {
+     "ahead": "ours",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Ney, attack Mack",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Ney presses",
+       "marshal": "Ney",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Ney",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Napoleon, attack Mack",
+       "counsel": "none",
+       "kind": "guard",
+       "label": "The Guard",
+       "marshal": "Napoleon",
+       "odds": "favorable",
+       "ok": true,
+       "price": 2.0,
+       "shown": "Napoleon",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Ney, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Ney digs in",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Ney",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Bernadotte, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Bernadotte leads",
+       "marshal": "Bernadotte",
+       "odds": "even",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Bernadotte",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Davout, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Davout leads",
+       "marshal": "Davout",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Davout",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Lannes, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Lannes leads",
+       "marshal": "Lannes",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Lannes",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Murat, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Murat leads",
+       "marshal": "Murat",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Murat",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Soult, attack Mack",
+       "counsel": "none",
+       "kind": "lead",
+       "label": "Soult leads",
+       "marshal": "Soult",
+       "odds": "favorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Soult",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Bernadotte, support Ney",
+       "counsel": "possible",
+       "kind": "bring_up",
+       "label": "Bring up Bernadotte",
+       "marshal": "Bernadotte",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Bernadotte",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Murat, support Ney",
+       "counsel": "possible",
+       "kind": "bring_up",
+       "label": "Bring up Murat",
+       "marshal": "Murat",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Murat",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Soult, support Ney",
+       "counsel": "none",
+       "kind": "bring_up",
+       "label": "Bring up Soult",
+       "marshal": "Soult",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Soult",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Ney stands",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Ney",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Ney",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Ney",
+       "marshal": "Ney",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Ney",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "Mack",
+     "enemy_shown": "Mack",
+     "field": "Swabia",
+     "field_shown": "Swabia",
+     "his_road": false,
+     "his_temper": "Literal",
+     "lead": "Ney",
+     "lead_shown": "Ney",
+     "morning": "The last clash: won on points — 5,938 of ours for 11,052 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "dig_in",
+      "line": "Mack digs in.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 1.0,
+     "theirs_of": 2.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Mack digs in.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "read the panel at rest",
+    "ok": true,
+    "saw": "banner 'THE DAY HANGS' (the day's own: 'The day hangs'); purses 2.0 of 2.0 / 1.0 of 2.0; row C (1 row):   Ney presses · 1     The Guard · 2     Ney digs in · 1   ; the Guard is chip 1",
+    "step": "panel_at_rest"
+   },
+   {
+    "did": "pressed 'The Guard' (two points) on row C",
+    "ok": true,
+    "saw": "pressed=true; words [\"Napoleon, attack Mack\"]; actions 3 -> 3 (cost 0); purses 2 -> ours 0.0 / his 1.0, awaits '', open=false; banner 'A FIELD OF LEGEND IS WON'; ended 'decided'; the log: n improves with strong relationships between marshals.\n\n  When marshals coordinate, casualties are shared. All friendly marshals in a battle region take proportional damage — even those not directly targeted.\n└─────────────────────────────────────────────────┘",
+    "step": "guard",
+    "words": [
+     "Napoleon, attack Mack"
+    ]
+   }
+  ],
+  "steps": [
+   {
+    "frame": "BA3_WALK_01_day_panel_2026_11_15.jpg",
+    "ms": 35089,
+    "note": "the day's panel at rest: both purses, the last told, the chips",
+    "saved": true,
+    "step": "day_panel",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_02_after_the_guard_2026_11_15.jpg",
+    "ms": 57205,
+    "note": "the Guard has gone in: whatever the server answered",
+    "saved": true,
+    "step": "after_the_guard",
+    "turn": 1
+   }
+  ],
+  "words": [
+   "Napoleon, attack Mack"
+  ]
+ },
+ "total_s": 61.9
+}

@@ -257,6 +257,19 @@ func send_structured_command(command: String, data: Dictionary, callback: Callab
 	_send_post("/command", body, callback)
 
 
+func get_battle_day(callback: Callable):
+	"""Row BA, BA-3: every day of battle still open, as the table reads it
+	(`GET /battle_day`, read-only)."""
+	_send_get("/battle_day", callback)
+
+
+func post_battle_day_word(enemy: String, word: String, callback: Callable):
+	"""Row BA, BA-3: a day's word that is no order — stand / leave_it /
+	break_off (`POST /battle_day/word`). The words that ARE orders go through
+	send_command like every order."""
+	_send_post("/battle_day/word", {"enemy": enemy, "word": word}, callback)
+
+
 func send_objection_response(choice: String, callback: Callable):
 	_send_post("/respond_to_objection", {"choice": choice}, callback)
 

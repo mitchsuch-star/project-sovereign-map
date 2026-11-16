@@ -411,12 +411,11 @@ class TestTheRoutes:
 
     def test_save_attack_load_attack_again(self, monkeypatch):
         import backend.main as M
-        from backend.commands import objection_v2
         from fastapi.testclient import TestClient
-        # The objection's mood is WS-16's (still on the ambient stream): held
-        # level here so that this test reads the battle and nothing else.
-        monkeypatch.setattr(objection_v2, "apply_mood_variance",
-                            lambda value, *a, **k: value, raising=True)
+        # The objection's mood was held level here while it was still on the
+        # ambient stream. WS-16 (row BA, BA-3) seeded it: the same order from
+        # the same save draws the same mood, so nothing is held any more —
+        # `tests/test_ws16_the_same_order_draws_the_same_temper.py`.
         before = M.world
         try:
             with TestClient(M.app) as tc:

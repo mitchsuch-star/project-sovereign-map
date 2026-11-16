@@ -2109,9 +2109,13 @@ def check_defection_cascade(world) -> List[dict]:
             if cascade_key in cascade_triggered:
                 continue
 
-            # Roll for defection
+            # Roll for defection (WS-16: the turn's own draw where a campaign
+            # is played; None is the module `random`, as before)
             roll_chance = (50 - loyalty) / 100
-            if random.random() < roll_chance:
+            from backend.game_logic import campaign_variance as _cv
+            _defect = _cv.temper_rng(world, "defection_cascade", vassal_name, lord,
+                                     enemy_nation, saved=False)
+            if (_defect if _defect is not None else random).random() < roll_chance:
                 cascade_triggered.add(cascade_key)
 
                 # Vassal defects — immediate rebellion (set to 0, triggers rebellion check)
@@ -5570,7 +5574,13 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         # roll is drawn for the player's own satellites only, so a rival
         # lord's courting consumes no module-RNG draw (IQ7-X1).
         import random as _rng
-        if lord == player and _rng.random() < 0.60:
+        # WS-16: the detection is the turn's own draw where a campaign is
+        # played; built for the player's satellites alone, as the roll is.
+        _heard = None
+        if lord == player:
+            from backend.game_logic import campaign_variance as _cv
+            _heard = _cv.temper_rng(world, "courting_heard", nation, vassal_name, saved=False)
+        if lord == player and (_heard if _heard is not None else _rng).random() < 0.60:
             from backend.game_logic.dispatch import queue_dispatch_event
             vassal_capital = world.get_nation_capital(vassal_name) or vassal_name
             queue_dispatch_event(world, "diplomatic_vassal_courting",
@@ -5839,7 +5849,11 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
         pivot = BRIBE_SPIRAL_LOYALTY if in_spiral else BRIBE_CHANCE_PIVOT
         chance = max(0.0, (pivot - loyalty) / 100.0)
         chance *= courting_effectiveness_scale(lord_grip)
-        landed = random.random() < chance
+        # WS-16: the bribe's roll is the turn's own draw where a campaign is
+        # played. None: the module `random`, as before.
+        from backend.game_logic import campaign_variance as _cv
+        _bribe = _cv.temper_rng(world, "vassal_bribe", nation, vassal_name, saved=False)
+        landed = (_bribe if _bribe is not None else random).random() < chance
 
         if not landed:
             # The approach costs half the purse and the lord's court hears

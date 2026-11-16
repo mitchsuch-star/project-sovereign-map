@@ -1,0 +1,217 @@
+{
+ "battle_name": "Second Battle of Carniola",
+ "region": "Carniola",
+ "turn": 1,
+ "outcome": "defender_tactical_victory",
+ "victor": "ArchdukeCharles",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": false,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Massena",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 30601,
+    "casualties": 5921,
+    "remaining": 24680,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 5921,
+  "committed_total": 30601,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "ArchdukeCharles",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 44863,
+    "casualties": 2828,
+    "remaining": 42035,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 2828,
+  "committed_total": 44863,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "The terrain heavily favored Archduke Charles. Massena's men paid the price.",
+ "enemy_voice": "Archduke Charles: \"I do not leave my ground. You were warned.\"",
+ "script": {
+  "version": 1,
+  "form": "brief",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "word",
+      "side": "",
+      "actor": "",
+      "text": "Massena presses the attack.",
+      "weight": "head",
+      "who": "ours",
+      "word": "press"
+     },
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena attacks Archduke Charles at Carniola.",
+      "weight": "detail"
+     },
+     {
+      "kind": "ground",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles stands on the heights (+15%).",
+      "weight": "detail",
+      "terrain_pct": 15,
+      "works_pct": 0,
+      "walls_pct": 0,
+      "square": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena goes in at the head of his men (+15%).",
+      "weight": "head",
+      "temper": "aggressive",
+      "pct": 15,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "exhausted",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena's men have fought already today (−10%).",
+      "weight": "head",
+      "pct": 10,
+      "penalty": true
+     },
+     {
+      "kind": "ability",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles's regiments stand steady: Habsburg Resolve (+3%).",
+      "weight": "head",
+      "pct": 3,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "The fortune of the day: Massena rolls 5, +2 for his eye for ground: 7.",
+      "weight": "head",
+      "natural": 5,
+      "skill": 2,
+      "flank": 0,
+      "modified": 7,
+      "critical": "",
+      "swing": 2,
+      "fortune_attacker": 8,
+      "fortune_defender": -2
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Massena": "aggressive",
+   "ArchdukeCharles": "cautious"
+  }
+ },
+ "day": {
+  "open": true,
+  "enemy": "ArchdukeCharles",
+  "enemy_shown": "Archduke Charles",
+  "lead": "Massena",
+  "lead_shown": "Massena",
+  "field": "Tyrol",
+  "field_shown": "Tyrol",
+  "side": "attack",
+  "ours": 1,
+  "theirs": 1,
+  "ours_of": 2,
+  "theirs_of": 3,
+  "awaits": "ours",
+  "pending": false,
+  "morning": "The last clash: drawn — 4,001 of ours for 2,889 of his.",
+  "ahead": "even",
+  "told": [
+   {
+    "who": "theirs",
+    "kind": "strike",
+    "line": "Archduke Charles strikes back."
+   },
+   {
+    "who": "ours",
+    "kind": "press",
+    "line": "Massena presses the attack."
+   },
+   {
+    "who": "theirs",
+    "kind": "strike",
+    "line": "Archduke Charles comes on again."
+   }
+  ],
+  "ended": "",
+  "banner": "The day hangs",
+  "chips": [],
+  "his_temper": "Cautious",
+  "his_road": true,
+  "reply": {
+   "who": "theirs",
+   "kind": "strike",
+   "line": "Archduke Charles comes on again."
+  },
+  "follows": true
+ }
+}

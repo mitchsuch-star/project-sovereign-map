@@ -291,6 +291,7 @@ func dress(final_frame: bool) -> void:
 	_plan_rest()
 	_keep_the_end()
 	_dress_the_kind()
+	_build_the_day()       # BA-3: hidden; shown at rest, never while the acts play
 
 	var sw: float = host._stage.size.x
 	_act_label = host._mk_label(host._stage, "", &"Caption", BRASS, host._font_engraved)
@@ -711,6 +712,24 @@ func _put_the_chrome_back() -> void:
 	host._tray.modulate.a = 1.0
 	for laurel in _laurels():
 		(laurel as CanvasItem).modulate.a = _laurel_alpha(laurel)
+	# BA-3: a day's panel lent its room (the verdict, the plate, the seal);
+	# every table that is laid takes those three back (the laurels' visibility
+	# is the host's `_laurel_layout`, run at every populate before this).
+	host._verdict.visible = true
+	host._nameplate.visible = true
+	if host._seal != null:
+		host._seal.visible = true
+	# BA-3: the primary button and Replay stand as they were built ("His answer ▸"
+	# widened Close on a table whose clash is followed)
+	host._btn_close.text = "Close"
+	host._btn_close.reset_size()
+	host._btn_close.position = Vector2(host.TRAY_W - 154.0, host.TRAY_H - 46.0)
+	host._btn_replay.position = Vector2(host.TRAY_W - 274.0, host.TRAY_H - 46.0)
+	# BA-3: the headline a day's banner replaced comes back (the host's own words
+	# and colour for this payload's register — what its populate set)
+	var register := str(host._data.get("register", "observer"))
+	host._banner.text = host._banner_text(register)
+	host._banner.add_theme_color_override("font_color", host._banner_color(register))
 
 
 func _keep_the_end() -> void:
@@ -736,6 +755,572 @@ func _the_end_is_told() -> void:
 	for laurel in _laurels():
 		(laurel as CanvasItem).modulate.a = _laurel_alpha(laurel)
 	_tell_the_reserves_dead()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BA-3: the day's panel (a great battle that did not decide the day)
+# ─────────────────────────────────────────────────────────────────────────────
+# The payload's `day` block (backend/game_logic/battle_day.py): both purses,
+# the morning line, the last of what was told, and — when it is ours to speak —
+# the chips. It is a RESULT mark: built hidden, held back while the acts play,
+# shown at rest in the room of the verdict, the name plate and the seal (the
+# tray does not grow). A payload without `day` builds nothing at all.
+
+const DAY_X := 30.0
+const DAY_W := 940.0
+const DAY_BOTTOM := 738.0              # the tray's floor, less its edge
+const DAY_CHIPS_W := 680.0             # clear of Replay (x 726) and Close (x 846) at y 698
+const DAY_CHIP_BG := "233043"
+const DAY_EXIT_BG := Utils.COLOR_CHIP_BG_GREEN   # "Leave it to ..." ends our say: a different ground
+const DAY_PIP_ON := "d9c08c"
+const DAY_PIP_OFF := Utils.CHIP_DIM_INK   # a spent point (the locked chip's own grey)
+const DAY_OWN_KINDS := ["press", "guard", "dig_in"]            # the lead's own words (row C)
+const DAY_EXIT_KINDS := ["stand", "break_off"]                 # the exits (row E, with leave_it)
+const DAY_GROUP_LABEL := {"lead": "Another leads", "bring_up": "Bring up", "cannonade": "The guns"}
+
+var _day_panel: Control = null
+var _day_chips: RichTextLabel = null   # row C: the lead's own words, full chips
+var _day_groups: RichTextLabel = null  # rows D: one line per kind, a label then name-only chips
+var _day_exits: RichTextLabel = null   # row E: the exits, always on the table, never scrolled
+var _day_latched := false              # one press, one word: inert until new data
+var _day_asked := false                # a day awaiting HIS word asked the server once
+var _day_hide_shelves := false         # the panel took the shelves' room
+var _day_inline := false               # the groups flow in one paragraph (room was short)
+var _his_waiting := false              # a table whose clash is followed by his waits to go on
+const DAY_ADVANCE_S := 2.5             # at rest on such a table, then his clash by itself
+
+
+func _the_day() -> Dictionary:
+	var d = host._data.get("day", null) if host != null else null
+	return d if d is Dictionary else {}
+
+
+func _day_pips(left: int, slots: int) -> String:
+	var out := ""
+	for i in range(slots):
+		out += Utils.bb_icon(Utils.SWATCH, 10, DAY_PIP_ON if i < left else DAY_PIP_OFF)
+		out += " "
+	return out
+
+
+func _day_rtl(parent: Control, at: Vector2, size: Vector2) -> RichTextLabel:
+	var l := RichTextLabel.new()
+	l.bbcode_enabled = true
+	l.fit_content = false
+	l.scroll_active = false
+	l.selection_enabled = false
+	l.focus_mode = Control.FOCUS_NONE        # Esc / Enter / Space keep their meaning
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.theme_type_variation = &"BodyLargeRich"
+	l.position = at
+	l.size = size
+	parent.add_child(l)
+	return l
+
+
+func _day_line_h(l: RichTextLabel) -> float:
+	"""The font's own line (more at 115 % and 130 % text size)."""
+	var f: Font = l.get_theme_font(&"normal_font")
+	var sz: int = l.get_theme_font_size(&"normal_font_size")
+	return maxf(f.get_height(sz) if f != null else 27.0, 20.0)
+
+
+func _day_road(day: Dictionary) -> String:
+	var road = day.get("his_road", null)
+	if road is bool:
+		return "his road is open" if road else "no road behind him"
+	return ""
+
+
+func _day_head(day: Dictionary, level: int) -> String:
+	"""One line: the lead and his purse against the enemy and his; then — as
+	room allows — his temper (level 1) and whether a road lies open behind him
+	(level 2)."""
+	var ours: int = int(day.get("ours", 0))
+	var theirs: int = int(day.get("theirs", 0))
+	var ours_of: int = int(day.get("ours_of", 0))
+	var theirs_of: int = int(day.get("theirs_of", 0))
+	var lead := str(day.get("lead_shown", ""))
+	var foe := str(day.get("enemy_shown", ""))
+	var out := ""
+	if level >= 3:
+		out = "[color=#" + Utils.COLOR_INFO + "]The day's points —[/color] "
+	out += "[color=#" + Utils.COLOR_GOLD + "]" + lead + "[/color] " \
+		+ _day_pips(ours, ours_of if ours_of > 0 else maxi(ours, 2)) \
+		+ " [color=#" + Utils.COLOR_INFO + "]against[/color] [color=#" + Utils.COLOR_GOLD + "]" \
+		+ foe + "[/color] " + _day_pips(theirs, theirs_of if theirs_of > 0 else maxi(theirs, 2))
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	if level >= 1 and str(day.get("his_temper", "")) != "":
+		out += " " + info + "· " + str(day.get("his_temper", "")) + "[/color]"
+	if level >= 2 and _day_road(day) != "":
+		out += " " + info + "· " + _day_road(day) + "[/color]"
+	return out
+
+
+func _day_told_lines(day: Dictionary) -> Array:
+	var out: Array = []
+	var told = day.get("told", [])
+	if told is Array:
+		for t in told:
+			if t is Dictionary and str(t.get("line", "")) != "":
+				out.append(t)
+	return out
+
+
+func _day_told(lines: Array, keep: int) -> String:
+	var out := ""
+	var from: int = maxi(0, lines.size() - keep)
+	for i in range(from, lines.size()):
+		var t: Dictionary = lines[i]
+		var who := str(t.get("who", ""))
+		var hex := Utils.COLOR_GOLD if who == "ours" else (Utils.COLOR_INFO if who == "end" else Utils.COLOR_TEXT)
+		var line := str(t.get("line", ""))
+		line = "[i]" + line + "[/i]" if who == "end" else line
+		out += ("\n" if out != "" else "") + "[color=#" + hex + "]" + line + "[/color]"
+	return out
+
+
+func _day_chip_label(chip: Dictionary) -> String:
+	"""A word that costs nothing shows no price. (The server's label is shown
+	as it is: "Mack strikes back" is never rewritten here.)"""
+	var price := int(chip.get("price", 0))
+	var label := str(chip.get("label", ""))
+	return label if price <= 0 else "%s · %d" % [label, price]
+
+
+func _day_chip_tip(chip: Dictionary, with_label: bool = false) -> String:
+	var parts: Array = []
+	if with_label:
+		parts.append(_day_chip_label(chip) + ".")
+	if not bool(chip.get("ok", false)) and str(chip.get("why", "")) != "":
+		parts.append(str(chip.get("why", "")))
+	if str(chip.get("counsel", "none")) == "possible":
+		parts.append("The marshal may object to this word.")
+	if str(chip.get("odds", "")) != "":
+		parts.append("The odds read: " + str(chip.get("odds", "")) + ".")
+	return " ".join(PackedStringArray(parts))
+
+
+func _day_offering() -> bool:
+	var day := _the_day()
+	return bool(day.get("open", false)) and str(day.get("awaits", "")) == "ours" \
+		and not bool(day.get("pending", false)) and not bool(day.get("follows", false)) \
+		and day.get("chips", []) is Array and not (day.get("chips", []) as Array).is_empty()
+
+
+func _day_split() -> Array:
+	"""[own, groups, exits]: indices into `chips`, IN THE ARRAY'S ORDER (the
+	server orders them once for every surface; nothing is re-sorted here).
+	`own` are the lead's press / Guard / dig-in; `groups` is a list of
+	{kind, idx} for every other kind of word; `exits` are every "stands",
+	"Break off" / "Fall back" and "Leave it to <lead>"."""
+	var own: Array = []
+	var groups: Array = []
+	var exits: Array = []
+	var chips = _the_day().get("chips", [])
+	for i in range(chips.size()):
+		var chip = chips[i]
+		if not (chip is Dictionary):
+			continue
+		var kind := str(chip.get("kind", ""))
+		if str(chip.get("word", "")) != "" or kind in DAY_EXIT_KINDS:
+			exits.append(i)
+		elif kind in DAY_OWN_KINDS:
+			own.append(i)
+		else:
+			var found = null
+			for g in groups:
+				if g["kind"] == kind:
+					found = g
+			if found == null:
+				found = {"kind": kind, "idx": []}
+				groups.append(found)
+			(found["idx"] as Array).append(i)
+	return [own, groups, exits]
+
+
+func _day_chip_bb(i: int, chip: Dictionary, name_only: bool = false) -> String:
+	var leave: bool = str(chip.get("word", "")) == "leave_it"
+	var label := _day_chip_label(chip)
+	if name_only:
+		label = str(chip.get("shown", "")) if str(chip.get("shown", "")) != "" else str(chip.get("label", ""))
+	var tip := _day_chip_tip(chip, name_only)
+	if bool(chip.get("ok", false)) and not _day_latched:
+		return Utils.bb_button_chip("day:%d" % i, label,
+				Utils.COLOR_WARNING if leave else Utils.COLOR_GOLD,
+				DAY_EXIT_BG if leave else DAY_CHIP_BG, "", tip)
+	return Utils.bb_chip_disabled(label, "", tip)
+
+
+func _day_own_text() -> String:
+	if not _day_offering():
+		return ""
+	var chips = _the_day().get("chips", [])
+	var out := ""
+	for i in _day_split()[0]:
+		out += _day_chip_bb(int(i), chips[int(i)]) + " "
+	return out
+
+
+func _day_groups_text(inline: bool = false) -> String:
+	"""One line per kind: a plain label once (with the price), then name-only
+	chips. A kind with a single word is written whole. `inline`: every group
+	flows in ONE paragraph with a clear gap between groups."""
+	if not _day_offering():
+		return ""
+	var chips = _the_day().get("chips", [])
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var lines: Array = []
+	for g in _day_split()[1]:
+		var idx: Array = g["idx"]
+		if idx.size() == 1:
+			lines.append(_day_chip_bb(int(idx[0]), chips[int(idx[0])]) + " ")
+			continue
+		var first: Dictionary = chips[int(idx[0])]
+		var price := int(first.get("price", 0))
+		var label: String = str(DAY_GROUP_LABEL.get(g["kind"], first.get("label", "")))
+		var line := info + label + (" · %d" % price if price > 0 else "") + ":[/color] "
+		for i in idx:
+			line += _day_chip_bb(int(i), chips[int(i)], true) + " "
+		lines.append(line)
+	return ("      " if inline else "\n").join(PackedStringArray(lines))
+
+
+func _day_exits_text() -> String:
+	var day := _the_day()
+	if bool(day.get("open", false)) and str(day.get("awaits", "")) == "ours" \
+			and bool(day.get("pending", false)):
+		return "[color=#" + Utils.COLOR_INFO + "]A marshal's question waits on your answer, Sire.[/color]"
+	if not _day_offering():
+		return ""
+	var chips = day.get("chips", [])
+	var out := ""
+	for i in _day_split()[2]:
+		var chip: Dictionary = chips[int(i)]
+		if str(chip.get("word", "")) == "leave_it":
+			out += "[color=#" + Utils.COLOR_INFO + "]|[/color] "      # it ends our say: set apart
+		out += _day_chip_bb(int(i), chip) + " "
+	return out
+
+
+func _day_retext() -> void:
+	if _day_chips != null and is_instance_valid(_day_chips):
+		_day_chips.text = _day_own_text()
+	if _day_groups != null and is_instance_valid(_day_groups):
+		_day_groups.text = _day_groups_text(_day_inline)
+	if _day_exits != null and is_instance_valid(_day_exits):
+		_day_exits.text = _day_exits_text()
+
+
+func _shelf_up() -> bool:
+	return (host._shelf_left != null and host._shelf_left.visible) \
+		or (host._shelf_right != null and host._shelf_right.visible)
+
+
+func _day_groups_h(d_box: RichTextLabel, inline: bool, start_abs: float, btn_top: float) -> float:
+	"""What the groups' box measures laid stacked or inline: as wide as the
+	panel when it ends above the buttons' top edge, else held clear of Replay."""
+	d_box.text = _day_groups_text(inline)
+	d_box.size.x = DAY_W
+	var h: float = d_box.get_content_height()
+	if start_abs + h > btn_top - 2.0:
+		d_box.size.x = DAY_CHIPS_W
+		h = d_box.get_content_height()
+	return h
+
+
+func _day_banner() -> String:
+	return str(_the_day().get("banner", ""))
+
+
+func _build_the_day() -> void:
+	"""At the end of the dress: the panel, hidden. Nothing for a payload that
+	carries no `day` (a small battle, a fleet action, a harness world) or whose
+	day was decided by its clash (its own verdict stands).
+	Rows, top to bottom: A the head, B the last word told, C the lead's own
+	words, D the other kinds of word, E the exits (centred on the buttons'
+	row). Every row's height is what its text measures, so a row is whole or
+	not there. Room is made in this order: the shelves give theirs, the groups
+	flow inline, the told line rides the head's hover, the groups scroll."""
+	_day_panel = null
+	_day_chips = null
+	_day_groups = null
+	_day_exits = null
+	_day_latched = false
+	_day_asked = false
+	_day_hide_shelves = false
+	_day_inline = false
+	_his_waiting = false
+	var day := _the_day()
+	if day.is_empty() or host == null or host._verdict == null:
+		return
+	if _day_banner() == "" and not bool(day.get("open", false)):
+		return   # decided by its clash: that clash's verdict, plate and cues stand
+	var top_with: float = host._verdict.position.y
+	var shelf_up := _shelf_up()
+	var top_free: float = top_with - (host.SHELF_H + 8.0) if shelf_up else top_with
+	var panel := Control.new()
+	panel.name = "DayPanel"
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.visible = false
+	host._tray_inner.add_child(panel)
+	host._transients.append(panel)
+	_day_panel = panel
+
+	# the banner: a day that still hangs says so in the tableau's headline, in
+	# the neutral colour; hidden until the result, like the headline itself
+	var banner := _day_banner()
+	if banner != "":
+		host._banner.text = banner.to_upper()
+		host._banner.add_theme_color_override("font_color", host._banner_color(""))
+		# under it, the sub-banner tells how the last clash stood (won / lost /
+		# drawn on points) — unless the host's own line is there (a province that
+		# changed hands); the next populate sets its own text
+		var morning_said := str(day.get("morning", ""))
+		if morning_said != "" and host._sub_banner.text == "":
+			host._sub_banner.text = morning_said
+
+	var head := _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 31.0))
+	head.autowrap_mode = TextServer.AUTOWRAP_OFF
+	var lh: float = _day_line_h(head)
+	var head_h: float = lh + 4.0
+	head.size.y = head_h
+	var level := 3
+	head.text = _day_head(day, level)
+	while level > 0 and head.get_content_width() > DAY_W - 8.0:
+		level -= 1                            # one line at any text size: the prefix goes first
+		head.text = _day_head(day, level)
+
+	var hover: Array = []
+	if str(day.get("morning", "")) != "":
+		hover.append(str(day.get("morning", "")))
+	if level < 2 and _day_road(day) != "":
+		hover.append(str(day.get("his_temper", "")) + (" — " if str(day.get("his_temper", "")) != "" else "") + _day_road(day) + ".")
+	var lines := _day_told_lines(day)
+	var offering := _day_offering()
+	var pending: bool = bool(day.get("open", false)) and bool(day.get("pending", false)) \
+		and str(day.get("awaits", "")) == "ours"
+
+	# the buttons' row: the exits stand level with Replay / Close, centred on them
+	var btn_top: float = host._btn_close.position.y
+	var btn_h: float = maxf(host._btn_close.size.y, host._btn_close.custom_minimum_size.y)
+	var btn_mid: float = btn_top + btn_h / 2.0
+
+	var top: float = top_with
+	var total: float = DAY_BOTTOM - top
+	var y: float = head_h
+	if not offering and not pending:
+		# no chips (closed, his word, his clash follows): the told block, whole
+		# — and above the buttons' row
+		var avail: float = minf(DAY_BOTTOM, btn_top - 4.0) - top - head_h
+		var keep := clampi(int(avail / lh), 1, 5)
+		var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, lh * float(keep) + 2.0))
+		told.text = _day_told(lines, keep)
+	else:
+		var split := _day_split()
+		var c_box: RichTextLabel = null
+		var d_box: RichTextLabel = null
+		var e_box: RichTextLabel = null
+		if offering and not (split[0] as Array).is_empty():
+			c_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_CHIPS_W, 100.0))
+			c_box.mouse_filter = Control.MOUSE_FILTER_STOP
+			c_box.meta_underlined = false
+			c_box.autowrap_mode = TextServer.AUTOWRAP_OFF
+			c_box.meta_clicked.connect(_on_day_chip)
+		if offering and not (split[1] as Array).is_empty():
+			d_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 100.0))
+			d_box.mouse_filter = Control.MOUSE_FILTER_STOP
+			d_box.meta_underlined = false
+			d_box.meta_clicked.connect(_on_day_chip)
+		e_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_CHIPS_W, 100.0))
+		e_box.mouse_filter = Control.MOUSE_FILTER_STOP
+		e_box.meta_underlined = false
+		e_box.autowrap_mode = TextServer.AUTOWRAP_OFF
+		e_box.meta_clicked.connect(_on_day_chip)
+		_day_chips = c_box
+		_day_groups = d_box
+		_day_exits = e_box
+		_day_retext()
+		# what each row measures (a row is a whole number of text rows)
+		var c_h: float = c_box.get_content_height() if c_box != null else 0.0
+		var e_h: float = e_box.get_content_height()
+		var row_h: float = maxf(e_h, lh)
+		var b_h: float = lh + 2.0 if (offering and not lines.is_empty()) else 0.0
+		var e_top_abs: float = btn_mid - e_h / 2.0
+		var d_h := 0.0
+		var above: float = head_h + b_h + c_h
+		if d_box != null:
+			d_h = _day_groups_h(d_box, false, top + above, btn_top)
+		var room: float = e_top_abs - 2.0 - top
+		if above + d_h > room and shelf_up:
+			top = top_free                    # 1. the shelves give their room, at rest
+			total = DAY_BOTTOM - top
+			_day_hide_shelves = true
+			room = e_top_abs - 2.0 - top
+			if d_box != null:
+				d_h = _day_groups_h(d_box, false, top + above, btn_top)
+		if d_box != null and above + d_h > room:
+			_day_inline = true                # 2. the groups flow in one paragraph
+			d_h = _day_groups_h(d_box, true, top + above, btn_top)
+		if above + d_h > room and b_h > 0.0:
+			b_h = 0.0                         # 3. the told line rides the head's hover
+			above = head_h + c_h
+			if d_box != null:
+				d_h = _day_groups_h(d_box, _day_inline, top + above, btn_top)
+		if d_box != null and above + d_h > room:
+			# 4. whole text rows or nothing: the groups scroll by rows, never rows C or E
+			var left: float = room - above
+			var unit: float = maxf(row_h, 1.0)
+			d_h = maxf(unit, floorf(left / unit) * unit)
+			d_box.scroll_active = true
+		if b_h > 0.0:
+			var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, b_h))
+			told.text = _day_told(lines, 1)
+			y += b_h
+		elif not lines.is_empty():
+			hover.append(str((lines[lines.size() - 1] as Dictionary).get("line", "")))
+		if c_box != null:
+			c_box.position = Vector2(0.0, y)
+			c_box.size = Vector2(DAY_CHIPS_W, c_h)
+			y += c_h
+		if d_box != null:
+			d_box.position = Vector2(0.0, y)
+			d_box.size = Vector2(d_box.size.x, d_h)
+			y += d_h
+		e_box.position = Vector2(0.0, e_top_abs - top)    # level with, and centred on, the buttons
+		e_box.size = Vector2(DAY_CHIPS_W, e_h)
+	panel.position = Vector2(DAY_X, top)
+	panel.size = Vector2(DAY_W, total)
+	if not hover.is_empty():
+		head.mouse_filter = Control.MOUSE_FILTER_STOP
+		head.text = Utils.bb_hint(head.text, " ".join(PackedStringArray(hover)))
+	# a result mark: it comes in when the table is FINAL (the skip hint gone,
+	# Replay and Close there) — never together with the skip hint
+	if host._skip_hint != null and host._skip_hint.visible:
+		host._skip_hint.visibility_changed.connect(_on_skip_hint_changed, CONNECT_ONE_SHOT)
+
+
+func _on_skip_hint_changed() -> void:
+	if host == null or not is_instance_valid(host) or host._acts != self or host._skip_hint.visible:
+		return
+	if _day_panel == null or not is_instance_valid(_day_panel) or _day_panel.is_queued_for_deletion():
+		return
+	_show_the_day()
+
+
+func _on_day_chip(meta) -> void:
+	if _day_latched:
+		return
+	var s := str(meta)
+	if not s.begins_with("day:"):
+		return
+	var day := _the_day()
+	var chips = day.get("chips", [])
+	var i := int(s.substr(4))
+	if not (chips is Array) or i < 0 or i >= chips.size():
+		return
+	var chip = chips[i]
+	if not (chip is Dictionary) or not bool(chip.get("ok", false)):
+		return
+	var word := str(chip.get("word", ""))
+	var command := "@word:%s:%s" % [word, str(day.get("enemy", ""))] if word != "" \
+		else str(chip.get("command", ""))
+	if command == "":
+		return
+	_day_latched = true                       # one press, one word
+	_day_retext()
+	host.word_given.emit(command)
+
+
+func release_the_day() -> void:
+	"""Main refused the word (another order on the wire): the chips come back."""
+	_day_latched = false
+	_day_retext()
+
+
+func _hold_the_day_back() -> void:
+	"""A result mark: not on the table while the acts play."""
+	if _day_panel != null and is_instance_valid(_day_panel):
+		_day_panel.visible = false
+
+
+func _show_the_day() -> void:
+	"""At rest: the panel takes the room of the verdict, the name plate and the
+	seal (and the laurels that flank the plate). The next table laid gives them
+	back: `_put_the_chrome_back` restores the verdict, the plate and the seal,
+	and the host's own `_laurel_layout` sets the laurels' visibility afresh on
+	every populate. The tableau does not grow."""
+	if _day_panel == null or not is_instance_valid(_day_panel):
+		return
+	host._verdict.visible = false
+	host._nameplate.visible = false
+	if host._seal != null:
+		host._seal.visible = false
+	for laurel in _laurels():
+		(laurel as CanvasItem).visible = false
+	if _day_hide_shelves:
+		# the panel needs the shelves' room (the rows did not fit under the
+		# faction bars): they stand again at the next table laid (the host's
+		# populate sets their visibility afresh)
+		for shelf in [host._shelf_left, host._shelf_right]:
+			if shelf != null:
+				(shelf as CanvasItem).visible = false
+	_day_panel.visible = true
+	var day := _the_day()
+	var follows: bool = bool(day.get("follows", false))
+	# a day that opened on a road which did not carry his answer — or a table that
+	# awaits OUR word and carries none of its chips (a stale tableau from any
+	# road): ask once a showing; the answer (main.gd) refreshes the panel or
+	# shows his clash next
+	var open: bool = bool(day.get("open", false))
+	var chipless: bool = str(day.get("awaits", "")) == "ours" and not bool(day.get("pending", false)) \
+		and (day.get("chips", []) as Array).is_empty()
+	if not _day_asked and open and not follows \
+			and (str(day.get("awaits", "")) == "theirs" or chipless):
+		_day_asked = true
+		host.word_given.emit("@refresh:" + str(day.get("enemy", "")))
+	if follows:
+		# his clash is next: the primary button says so, and after a rest the
+		# table goes on by the same road as the button (not under Reduce Motion)
+		host._btn_close.text = "His answer ▸"
+		host._btn_close.reset_size()
+		host._btn_close.position.x = host.TRAY_W - 44.0 - host._btn_close.size.x
+		host._btn_replay.position.x = host._btn_close.position.x - 10.0 - host._btn_replay.size.x
+		if not _his_waiting and not UiSettings.get_reduce_motion() and host.is_inside_tree():
+			_his_waiting = true
+			host.get_tree().create_timer(DAY_ADVANCE_S).timeout.connect(_his_answer_comes)
+
+
+func _his_answer_comes() -> void:
+	"""The rest is over: on to his clash — the primary button's own road. A
+	Replay (a new showing), a close or a skip in the meantime cancels it."""
+	if host == null or not is_instance_valid(host) or host._acts != self or not host.visible \
+			or not host._final or not _his_waiting:
+		return
+	_his_waiting = false
+	host._btn_close.pressed.emit()
+
+
+func _clear_the_room() -> void:
+	"""At the gavel: the verdict, the plate, the seal and the laurels give their
+	room NOW (they would flash otherwise); the panel itself waits for the table
+	to be final."""
+	if _day_panel == null or not is_instance_valid(_day_panel):
+		return
+	host._verdict.visible = false
+	host._nameplate.visible = false
+	if host._seal != null:
+		host._seal.visible = false
+	for laurel in _laurels():
+		(laurel as CanvasItem).visible = false
+
+
+func _type_the_verdict() -> void:
+	"""The host writes the verdict (the quill, and the fanfare or the bell) —
+	not over a day's own banner. A day decided by its clash keeps both."""
+	if _day_panel != null and is_instance_valid(_day_panel):
+		return
+	host._type_verdict()
 
 
 func _tell_the_reserves_dead() -> void:
@@ -942,6 +1527,7 @@ func _set_opening() -> void:
 			# measured the transparent line as unreadable text)
 			toll.visible = false
 	host._vignette.modulate = Color.WHITE
+	_hold_the_day_back()
 	for laurel in _laurels():
 		(laurel as CanvasItem).modulate.a = 0.0
 	for tail in _reserve_tails:
@@ -1019,6 +1605,7 @@ func settle() -> void:
 	if _dice != null:
 		_dice.visible = true
 		_dice.settle()
+	_show_the_day()
 
 
 func _the_victors_standard_stands_forward() -> void:
@@ -1051,6 +1638,7 @@ func _come_to_rest() -> void:
 		_act_label.visible = false
 	_tell_the_reserves_dead()
 	_the_ground_is_as_it_ended()
+	_clear_the_room()
 	for name in _blocks:
 		var b: Dictionary = _blocks[name]
 		var node: Node2D = b["node"]
@@ -1148,7 +1736,7 @@ func play() -> void:
 		host._seq.parallel().tween_property(laurel, "modulate:a", _laurel_alpha(laurel), 0.5) \
 			.set_delay(t)
 	host._seq.parallel().tween_callback(host._show_banner).set_delay(t + 0.10)
-	host._seq.parallel().tween_callback(host._type_verdict).set_delay(t + 0.55)
+	host._seq.parallel().tween_callback(_type_the_verdict).set_delay(t + 0.55)
 	host._seq.parallel().tween_callback(func(): host._enter_final(true)).set_delay(t + 0.70)
 
 	# BA-2, the manoeuvre: every corps comes on in COLUMN and deploys into line

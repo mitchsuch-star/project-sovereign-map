@@ -130,7 +130,10 @@ class TestThePriceReadsTheMuster:
 
     def test_all_four_rungs_read_the_one_helper(self):
         src = (ROOT / "backend" / "ai" / "enemy_ai.py").read_text(encoding="utf-8")
-        assert src.count("self._muster_price(") == 4
+        # Five since row BA's BA-3 (November 15, 2026): a commander's word in a
+        # day of battle (`the_days_word`) prices the field by the same helper.
+        assert src.count("self._muster_price(") == 5
+        assert "defenders += self._muster_price(foe, nation, world)" in src
         for anchor in ("defenders += self._muster_price(weakest_enemy, nation, world)",   # P0
                        "_defenders += self._muster_price(enemy, nation, world)",          # P4
                        "field += self._muster_price(enemy, nation, world)",               # P3.25

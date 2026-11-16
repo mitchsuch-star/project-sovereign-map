@@ -1,0 +1,180 @@
+{
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 2,
+  "ms": 78600,
+  "results": [
+    {
+      "did": "booted the real main.tscn against the sandboxed backend",
+      "ok": true,
+      "saw": "booted=true turn=1 actions=4",
+      "step": "boot"
+    },
+    {
+      "did": "pressed End Turn (1 press(es))",
+      "ok": true,
+      "saw": "the enemy phase's dialog up=true",
+      "step": "end_turn"
+    },
+    {
+      "day": {
+        "ahead": "even",
+        "awaits": "ours",
+        "banner": "The day hangs",
+        "chips": [
+          {
+            "command": "Massena, attack Archduke Charles",
+            "counsel": "none",
+            "kind": "press",
+            "label": "Massena strikes back",
+            "marshal": "Massena",
+            "odds": "",
+            "ok": true,
+            "price": 1.0,
+            "shown": "Massena",
+            "why": "",
+            "word": ""
+          },
+          {
+            "command": "Massena, defend",
+            "counsel": "possible",
+            "kind": "dig_in",
+            "label": "Massena digs in",
+            "marshal": "Massena",
+            "odds": "",
+            "ok": true,
+            "price": 1.0,
+            "shown": "Massena",
+            "why": "",
+            "word": ""
+          },
+          {
+            "command": "",
+            "counsel": "none",
+            "kind": "stand",
+            "label": "Massena stands",
+            "marshal": "Massena",
+            "odds": "",
+            "ok": true,
+            "price": 0.0,
+            "shown": "Massena",
+            "why": "",
+            "word": "stand"
+          },
+          {
+            "command": "Massena, retreat",
+            "counsel": "none",
+            "kind": "break_off",
+            "label": "Fall back",
+            "marshal": "Massena",
+            "odds": "",
+            "ok": true,
+            "price": 0.0,
+            "shown": "Massena",
+            "why": "",
+            "word": ""
+          },
+          {
+            "command": "",
+            "counsel": "none",
+            "kind": "stand",
+            "label": "Leave it to Massena",
+            "marshal": "Massena",
+            "odds": "",
+            "ok": true,
+            "price": 0.0,
+            "shown": "Massena",
+            "why": "",
+            "word": "leave_it"
+          }
+        ],
+        "ended": "",
+        "enemy": "ArchdukeCharles",
+        "enemy_shown": "Archduke Charles",
+        "field": "Tyrol",
+        "field_shown": "Tyrol",
+        "his_road": null,
+        "his_temper": "Cautious",
+        "lead": "Massena",
+        "lead_shown": "Massena",
+        "morning": "The last clash: drawn — 5,000 of ours for 5,574 of his.",
+        "open": true,
+        "ours": 2.0,
+        "ours_of": 2.0,
+        "pending": false,
+        "side": "defence",
+        "theirs": 3.0,
+        "theirs_of": 3.0,
+        "told": []
+      },
+      "did": "pressed the list's 'View the field' on the day's row",
+      "ok": true,
+      "saw": "link stood=true; the table over the list is up with its chips=true; the day: ours 2.0 / his 3.0, awaits 'ours', open=true; the lead's clash chip lit=true",
+      "step": "r15_table"
+    },
+    {
+      "did": "the muster's question answered: Commit the Attack",
+      "ok": true,
+      "saw": "[Cancel Order] [Commit the Attack] \"Berthier stays the order a moment, Sire: before Massena marches on Archduke Charles, read the muster.\n\nThe muster reads unfavorable. 'Commit the Attack' to send him",
+      "step": "r15_muster"
+    },
+    {
+      "answer_raised_over_list_ms": 20114,
+      "did": "pressed the lead's clash chip from the table over the list, rode 'His answer ▸'",
+      "his_purses": "ours 1.0 / his 2.0, awaits 'ours', open=true",
+      "his_table_ms": 2280,
+      "holds": true,
+      "list_open": true,
+      "ok": true,
+      "our_button": "His answer ▸",
+      "reached": true,
+      "saw": "pressed=true; our table raised after 20114 ms: follows=true, primary button 'His answer ▸'; measured from its rest it went on by itself after 2280 ms; his clash's table came up 2280 ms after the rest; it rested with chips=true: ours 1.0 / his 2.0, awaits 'ours', open=true; the list still open=true  => HOLDS",
+      "step": "r15_his_clash",
+      "went_on_ms": 2280
+    },
+    {
+      "did": "closed the table and pressed the list's Continue",
+      "ok": true,
+      "saw": "Continue pressed=true; the list is gone=true",
+      "step": "r15_continue"
+    }
+  ],
+  "steps": [
+    {
+      "frame": "BA3_WALK_01_r15_table_over_the_list_2026_11_15.jpg",
+      "ms": 33256,
+      "note": "the table raised over the enemy phase's list",
+      "saved": true,
+      "step": "r15_table_over_the_list",
+      "turn": 2
+    },
+    {
+      "frame": "BA3_WALK_02_r15_after_the_word_2026_11_15.jpg",
+      "ms": 54719,
+      "note": "45 s after the word: what stands over the list",
+      "saved": true,
+      "step": "r15_after_the_word",
+      "turn": 2
+    },
+    {
+      "frame": "BA3_WALK_03_r15_our_clash_2026_11_15.jpg",
+      "ms": 54799,
+      "note": "our clash's table (the list still open behind it)",
+      "saved": true,
+      "step": "r15_our_clash",
+      "turn": 2
+    },
+    {
+      "frame": "BA3_WALK_04_r15_his_table_2026_11_15.jpg",
+      "ms": 77758,
+      "note": "his clash's table over the list, rested with the day's new purses and chips",
+      "saved": true,
+      "step": "r15_his_table",
+      "turn": 2
+    }
+  ],
+  "words": [
+    "Massena, attack Archduke Charles"
+  ]
+}

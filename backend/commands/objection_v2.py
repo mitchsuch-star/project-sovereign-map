@@ -241,9 +241,15 @@ def get_consequences(tier: TrustTier) -> Dict:
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def apply_mood_variance(concern: ConcernLevel) -> ConcernLevel:
+def apply_mood_variance(concern: ConcernLevel, rng=None) -> ConcernLevel:
     """
     Apply small random variance at ConcernLevel boundaries.
+
+    WS-16 (row BA, BA-3): `rng` is the temper's private stream
+    (`campaign_variance.temper_rng`) where a campaign is played on a rolled
+    seed, so the same order from the same save draws the same mood; None —
+    the `historical` seed, a world the server does not hold — keeps the draw
+    on the module `random`, as before.
 
     ~15-20% chance of shifting ±1 level.
     Represents day-to-day mood of a human commander.
@@ -267,7 +273,7 @@ def apply_mood_variance(concern: ConcernLevel) -> ConcernLevel:
     if concern == ConcernLevel.NONE:
         return concern  # Never promote NONE to MILD randomly
 
-    roll = random.random()
+    roll = (rng if rng is not None else random).random()
 
     if roll < 0.10:
         # 10% chance to go UP one level (cap at EXTREME)

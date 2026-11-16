@@ -2367,6 +2367,11 @@ class WorldState:
         # screens whose line has been shown once, {screen: turn}. Display-only;
         # read by `backend/game_logic/first_open.py` alone.
         self.first_opens: Dict[str, int] = {}
+        # Row BA (BA-3, `backend/game_logic/battle_day.py`): the days of
+        # battle still open — {"days": {<enemy lead>: day}, "barred": {...}}.
+        # Empty for every ordinary battle; written to a save ONLY when it
+        # holds something, so an ordinary save is byte for byte what it was.
+        self.battle_days: Dict[str, Any] = {}
         # S14E-35: the last battle each court fought, {nation: turn} — the
         # hegemon's armed-peace clock used to read it off the marshals still
         # standing, so a stand-down or a destroyed lone corps erased it (the
@@ -9781,7 +9786,7 @@ class WorldState:
             "reforms": copy.deepcopy(self.reforms),
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
-            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock)
+            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation), **({"battle_days": copy.deepcopy(self.battle_days)} if self.battle_days else {}),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock); BA-3: the open days of battle, only when there is one
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -10396,6 +10401,9 @@ class WorldState:
             except (TypeError, ValueError):
                 continue
         world.first_opens = _first_opens
+        # Row BA (BA-3): the open days of battle; an old save reads none.
+        _days = data.get("battle_days")
+        world.battle_days = copy.deepcopy(_days) if isinstance(_days, dict) else {}
         # S14E-35: the last battle each court fought; an old save without the
         # key reads as today (empty = the marshals' own stamps alone).
         _last_battles: Dict[str, int] = {}

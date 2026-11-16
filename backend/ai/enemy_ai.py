@@ -926,6 +926,91 @@ class EnemyAI:
         """
         return get_effective_ai_personality(marshal, world)
 
+    def the_days_word(self, marshal: Marshal, foe: Marshal, world: WorldState, *,
+                      purse: int, opened: bool, behind: bool, rng=None,
+                      strike_price: int = 1) -> Dict:
+        """Row BA (BA-3): a commander's word in a day of battle that hangs
+        (`battle_day._speak`) — the user's "all that you can", spent by the
+        rule this AI already follows when it is engaged (P0, with P3's stand
+        and P4's bar): no new number.
+
+        * He STRIKES when his odds meet his temper's bar — the whole field he
+          commands against the field he would meet and what its friends will
+          commit (`_get_combined_strength_in_region`, `_defending_strength_
+          in_region`, `_muster_price`), against `ATTACK_THRESHOLDS` moved by
+          `MOOD_VARIANCE`. The mood is drawn from the DAY's own stream
+          (`rng`; None is the module `random`) — never `ai_rng`, whose stream
+          is the phase's.
+        * Short of his bar, a corps beside him that would lift him over it is
+          BROUGHT UP first.
+        * Else, the day he OPENED he breaks off; the day he did not, he DRAWS
+          OFF when the last clash went against him and a road is open to
+          his rear (`_find_retreat_destination(desperate=False)`: friendly
+          or passable neutral soil, never the country he is at war with),
+          DIGS IN when he must stand and is not yet dug in, and otherwise
+          STANDS.
+
+        `purse` is what he has left (a strike, a corps brought up and digging
+        in ask one point; to stand and to leave ask none). `strike_price` is
+        what HIS strike asks — two for a sovereign, whose renewed assault is
+        the Guard. `opened`: he made the day's opening attack. `behind`: the
+        last clash went against him on points. Returns {kind, action | None,
+        to?}."""
+        nation = marshal.nation
+        personality = self._get_effective_personality(marshal, world)
+        base = self.ATTACK_THRESHOLDS.get(personality, 1.0)
+        spread = self.MOOD_VARIANCE.get(personality, 0.10)
+        bar = base * (rng if rng is not None else random).uniform(1.0 - spread, 1.0 + spread)
+
+        field = [m for m in world.marshals.values()
+                 if m.location == foe.location and m.nation == foe.nation]
+        defenders = self._defending_strength_in_region(field) or int(foe.strength)
+        defenders += self._muster_price(foe, nation, world)
+        combined = self._get_combined_strength_in_region(marshal, nation, world)
+        ratio = combined / defenders if defenders > 0 else 999.0
+
+        from backend.game_logic.fortunes_of_war import is_wounded as _is_wounded
+        fit = not (_is_wounded(marshal, world) or getattr(marshal, 'retreat_recovery', 0) > 0
+                   or _corps_is_drilling(marshal) or getattr(marshal, 'drilling_locked', False)
+                   or getattr(marshal, 'fortified', False))
+        if purse >= strike_price and fit and ratio >= bar:
+            return {"kind": "strike",
+                    "action": {"marshal": marshal.name, "action": "attack", "target": foe.name}}
+        if purse >= 1 and fit:
+            # A corps beside him that would lift him over his bar comes up first.
+            region = world.get_region(marshal.location)
+            beside = set(getattr(region, "adjacent_regions", None) or [])
+            for other in sorted(world.marshals.values(), key=lambda m: (-int(m.strength), m.name)):
+                if (other.nation != nation or other.name == marshal.name
+                        or other.location not in beside or other.location == foe.location
+                        or int(other.strength) <= 0 or getattr(other, 'broken', False)
+                        or getattr(other, 'retreating', False)
+                        or getattr(other, 'retreated_this_turn', False)
+                        or getattr(other, 'fortified', False) or _corps_is_drilling(other)):
+                    continue
+                if (combined + int(other.strength)) / max(1, defenders) >= bar:
+                    return {"kind": "bring_up", "who": other.name,
+                            "action": {"marshal": other.name, "action": "move",
+                                       "target": marshal.location}}
+                break                                   # the strongest would not do it: none will
+        if opened:
+            return {"kind": "break_off", "action": None}
+        if behind:
+            # A road to the REAR — his own soil, an ally's or a neutral's that
+            # lets him pass. Never the country he is at war with: with only
+            # that left he is surrounded, and he stands (Mack at Ulm).
+            road = self._find_retreat_destination(marshal, nation, world, desperate=False)
+            if road:
+                return {"kind": "draw_off", "to": road,
+                        "action": {"marshal": marshal.name, "action": "retreat", "target": road}}
+        if (purse >= 1 and not getattr(marshal, 'fortified', False)
+                and getattr(marshal, 'stance', None) != Stance.DEFENSIVE
+                and not _corps_is_drilling(marshal)):
+            return {"kind": "dig_in",
+                    "action": {"marshal": marshal.name, "action": "stance_change",
+                               "target": "defensive"}}
+        return {"kind": "stand", "action": None}
+
     def _get_mood_adjusted_threshold(self, marshal: Marshal, world: WorldState) -> float:
         """
         Get attack threshold with personality-based mood variance.
@@ -1533,6 +1618,11 @@ class EnemyAI:
 
         # Fix: Track (attacker, target) pairs attacked this turn to prevent repetitive attacks
         self._attacked_targets_this_turn: set = set()
+        # Row BA (BA-3): a day of battle that night closed — he played what he
+        # had left against our silence, and does not strike that corps again
+        # in the phase that follows (`battle_day.night_falls`).
+        from backend.game_logic import battle_day as _battle_day
+        self._attacked_targets_this_turn |= _battle_day.bars(world)
 
         # Fix: Track marshals force-unfortified by stagnation this turn (prevent immediate re-fortify)
         self._unfortified_this_turn: set = set()
@@ -6268,7 +6358,8 @@ class EnemyAI:
         return can_enter_territory(world, nation, controller,
                                    mover_location=origin)
 
-    def _find_retreat_destination(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[str]:
+    def _find_retreat_destination(self, marshal: Marshal, nation: str, world: WorldState,
+                                  desperate: bool = True) -> Optional[str]:
         """
         Find safe retreat destination using same logic as player retreat.
 
@@ -6277,6 +6368,12 @@ class EnemyAI:
            (`retreat_soil_is_friendly`: our own soil, or an ally's or a
            vassal's that feeds a guest army — AAR-D4; DDB-X3, Golden Rule 5)
         2. Nearest such region
+
+        `desperate=False` (row BA, BA-3 — a day of battle's "is a road open
+        behind him?"): the last tier, the flight onto the soil of a court he
+        is AT WAR with, is no road. A corps with only that left is surrounded
+        (Mack at Ulm), and in a day of battle it stands. The phase's own
+        callers keep the default.
         """
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
@@ -6340,7 +6437,7 @@ class EnemyAI:
                 continue
             return adj_name
 
-        if desperation_at_war:
+        if desperation_at_war and desperate:
             return desperation_at_war
 
         # Surrounded - no retreat possible

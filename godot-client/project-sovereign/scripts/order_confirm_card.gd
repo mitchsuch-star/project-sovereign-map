@@ -595,6 +595,17 @@ func _terms(q: Dictionary) -> String:
 	var muster := str(q.get("muster", ""))
 	if muster != "":
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + muster + "[/color]")
+	# Row BA, BA-3: a great battle opens a day — the card says so before the order is given
+	var day = q.get("day", null)
+	if day is Dictionary and bool(day.get("great", false)):
+		var commander := str(q.get("shown", ""))
+		var his_road_said := ""
+		if day.get("his_road", null) is bool:
+			his_road_said = " His road to the rear is open." if bool(day.get("his_road")) \
+				else " No road lies open behind him."
+		lines.append("[color=#" + Utils.COLOR_GOLD + "]A great battle — "
+			+ (commander if commander != "" else "your lead") + " commands the day: "
+			+ Utils.plural(int(day.get("points", 0)), "point") + "." + his_road_said + "[/color]")
 	# S14G-X165: what a win here adds to Europe's alarm (the muster preview's own sentence).
 	var alarm := str(q.get("alarm", ""))
 	if alarm != "":

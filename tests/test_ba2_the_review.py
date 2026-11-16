@@ -187,7 +187,7 @@ class TestTheFirstMarchStopsAtAShutFrontier:
         _send(world, executor, quote, "Ney")
         assert soult.location == stop
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X10 OPEN — owner row BA's session BA-3")
+    @pytest.mark.xfail(strict=True, reason="BA2-X10 OPEN — owner row BA's session BA-4")
     def test_a_road_round_never_runs_through_a_frontier_he_may_not_cross(self):
         world, _executor, ney, soult = self._case()
         quote = order_quotes.support_quote(world, soult, ney)
@@ -285,7 +285,7 @@ class TestABatteryUnderItsOwnShells:
         assert payload["attacker"]["committed_total"] == start
         assert not _beats(payload, "bystander")
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X12 OPEN — owner row BA's session BA-3")
+    @pytest.mark.xfail(strict=True, reason="BA2-X12 OPEN — owner row BA's session BA-4")
     def test_a_battery_is_never_caught_by_its_own_fire(self):
         world, executor = self._board()
         for seed in range(6):
@@ -383,12 +383,13 @@ class TestTheCountsAgreeWithTheirNouns:
         assert battle_script._fall(1) == "1 falls" and battle_script._fall(3000) == "3,000 fall"
         assert battle_script._men(1) == "1 man" and battle_script._men(25000) == "25,000 men"
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X14 OPEN (the half left) — owner row BA's session BA-3")
     def test_a_gunner_under_orders_is_named_once(self):
-        """Marmont ordered in support, and his guns firing in support, are
+        """Marmont ordered in support, and his guns firing in support, were
         told as two clauses of one plan ("Marmont ordered in support;
-        Marmont's guns in support"). Left for BA-3's walk of record: the fix
-        changes the staged scene `the_guns`, whose frames are on record."""
+        Marmont's guns in support"). BA2-X14's left half, FIXED November 15,
+        2026 (row BA, BA-3): `battle_script._plan` reads the guns first and a
+        gunner is told once, as his guns; the staged scene `the_guns` was
+        re-shot with BA-3's walk of record."""
         world, executor = STAGE._board()
         random.seed(3)
         who, target = STAGE._stage_guns(world, executor)
@@ -469,7 +470,12 @@ class TestTheSwitchOffToolPutsTheFileBack:
 
     def test_every_shipped_case_still_finds_its_anchor(self):
         clean = (REPO / ACTS).read_bytes()
-        assert len(SWITCH.CASES) == 10
+        # Ten until row BA's BA-3 (November 15, 2026): the day's panel added
+        # the rest — a case for every safeguard a walk claim on it relies on.
+        # The count itself is pinned beside the walk's record
+        # (`tests/test_ba3_the_days_panel.py`); here every case is read, and
+        # the floor guards against a list emptied by hand.
+        assert len(SWITCH.CASES) >= 44
         for _key, _name, swaps, *_rest in SWITCH.CASES:
             assert SWITCH.mutated(clean, swaps) != clean
 
@@ -525,20 +531,22 @@ class TestTheWalksRecordAndItsSources:
                      "tools/ba1_acts_walk.gd"):
             assert WALK._sha(REPO / name) == record["sources"][name], name
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X17 OPEN — owner row BA's session BA-3")
     def test_every_source_on_record_is_the_source_committed(self):
-        """Red since the review's own fixes to `battle_script.py` and
-        `siege_diorama.py` (words and counts on roads no staged scene takes:
-        the payloads above are unchanged). The next walk of record re-shoots
-        it, and this comparison then joins the green pins."""
+        """BA2-X17, FIXED November 16, 2026 (row BA, BA-3): it was red from
+        the review's own fixes to `battle_script.py` and `siege_diorama.py`
+        (words and counts on roads no staged scene takes) until BA-3's walk
+        of record re-shot every source — eleven now — and it joined the
+        green pins."""
         record = self._record()
         for name, sha in record["sources"].items():
             assert WALK._sha(REPO / name) == sha, name
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X17 OPEN — owner row BA's session BA-3")
     def test_the_list_names_every_source_that_shapes_the_walk(self):
+        """BA2-X17, FIXED November 16, 2026 (row BA, BA-3): the list is whole
+        — and the day's own module joined it with the session's panel."""
         for name in ("backend/game_logic/battle_diorama.py", "tools/ba1_stage_battles.py",
-                     "tools/ba1_acts_walk.py", "godot-client/project-sovereign/scripts/utils.gd"):
+                     "tools/ba1_acts_walk.py", "godot-client/project-sovereign/scripts/utils.gd",
+                     "backend/game_logic/battle_day.py"):
             assert name in WALK.SOURCES, name
 
 
@@ -591,7 +599,7 @@ class TestTheRecordsSayWhatIsNext:
 # ════════════════════════════════════════════════════════════════════════
 
 class TestABattleLightsItsFieldForThoseWhoFoughtIt:
-    """BA2-X20 (OPEN, owner row BA's session BA-3). The fog spec's rule —
+    """BA2-X20 (OPEN, owner row BA's session BA-4). The fog spec's rule —
     "Fighting in a region immediately grants FULL visibility of that region"
     — was written when every battle was the player's. The courts fight each
     other now, and `update_intel_from_battle` still lights the field for the
@@ -608,7 +616,7 @@ class TestABattleLightsItsFieldForThoseWhoFoughtIt:
                 world.marshals["Ney"], "Mack", world, {"world": world, "executor": executor})
         assert world.get_region_intel("Swabia").visibility == FULL
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X20 OPEN — owner row BA's session BA-3")
+    @pytest.mark.xfail(strict=True, reason="BA2-X20 OPEN — owner row BA's session BA-4")
     def test_a_battle_of_two_other_crowns_gives_the_player_no_sight(self):
         world, executor = STAGE._board()
         STAGE._war(world, "Prussia", "Austria")
@@ -624,7 +632,7 @@ class TestABattleLightsItsFieldForThoseWhoFoughtIt:
 
 
 class TestAQuoteNamesWhatItsFirstMarchCosts:
-    """BA2-X21 (OPEN, owner row BA's session BA-3). An order that marches at
+    """BA2-X21 (OPEN, owner row BA's session BA-4). An order that marches at
     once costs men by the ordinary march rule — an exact figure
     (`MovementExecutor._calculate_movement_attrition`) — and no quote names
     it: the player reads the loss in the order's reply, after the action is
@@ -643,7 +651,7 @@ class TestAQuoteNamesWhatItsFirstMarchCosts:
         _send(world, executor, quote, "Ney")
         assert soult.location == "Munich" and int(soult.strength) < before
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X21 OPEN — owner row BA's session BA-3")
+    @pytest.mark.xfail(strict=True, reason="BA2-X21 OPEN — owner row BA's session BA-4")
     def test_the_quote_names_the_men_the_march_costs(self):
         world, executor, ney, soult = self._case()
         quote = order_quotes.support_quote(world, soult, ney)

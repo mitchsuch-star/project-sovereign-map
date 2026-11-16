@@ -26,6 +26,7 @@ reseeding them here would shift every pinned trial (§5 pin 2).
 import hashlib
 import os
 import weakref
+from contextvars import ContextVar
 from random import Random as _PrivateStream  # WS-11: a private instance, never the ambient stream
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -234,6 +235,77 @@ def battle_rng(world, *identity):
     fought = len(getattr(world, "battles_this_turn", None) or [])
     parts = "|".join(str(part) for part in identity)
     return _PrivateStream(f"{seed}|battle|{turn}|{parts}|{fought}")
+
+
+# ── The temper's own dice (WS-16; row BA, session BA-3) ────────────────────
+#
+# WS-11's siblings: a marshal's mood at an order, the chance and the roll of
+# his defiance, Talleyrand's, and the few draws of the turn that decide
+# something the player sees. Each came off the module `random`, so the same
+# save, ordered the same way, could draw a different temper. They draw from a
+# private stream now, built as the battle's is and silent in the same cases.
+
+
+def the_temper_is_seeded() -> bool:
+    """WS-16's seam (a function, as WS-11's is). True: the same order from the
+    same save draws the same mood and the same defiance. Down (False): every
+    one of those draws stays on the module `random`."""
+    return True
+
+
+def temper_rng(world, kind: str, *identity, saved: bool = True):
+    """A temper's private dice, or None — on the `historical` seed, with the
+    seam down, without a world, and for a world the server does not hold; the
+    caller then draws from its own module's `random`, as it always did.
+
+    Keyed on the campaign seed, the turn, the `kind` of draw and its own
+    identity (the marshal, the order, the target). `saved` adds what the save
+    carries and an order changes — the battles fought this turn and the
+    actions left — so two orders in one turn draw apart and a reload draws
+    the same; the draws made INSIDE the turn's processing pass `saved=False`
+    (both figures move while the turn advances) and key on the turn and the
+    court alone."""
+    if world is None or not the_temper_is_seeded():
+        return None
+    if not campaign_is_served(world):
+        return None
+    seed = str(getattr(world, "campaign_seed", HISTORICAL_SEED) or HISTORICAL_SEED)
+    if is_historical(seed):
+        return None
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    parts = "|".join(str(part) for part in identity)
+    tail = ""
+    if saved:
+        fought = len(getattr(world, "battles_this_turn", None) or [])
+        # A word of a day of battle is lent its actions while it runs
+        # (`battle_day.lending`): the lend is no part of the turn's state.
+        left = int(getattr(world, "actions_remaining", 0) or 0) - lent_now()
+        tail = f"|{fought}|{left}"
+    return _PrivateStream(f"{seed}|temper|{turn}|{kind}|{parts}{tail}")
+
+
+_LENT: ContextVar = ContextVar("the_days_lend", default=0)
+
+
+def lent_now() -> int:
+    """The actions lent to a day's word while it is executed or quoted (row
+    BA, BA-3) — 0 everywhere else."""
+    return int(_LENT.get() or 0)
+
+
+def lend(amount: int):
+    return _LENT.set(lent_now() + int(amount))
+
+
+def unlend(token) -> None:
+    _LENT.reset(token)
+
+
+def the_narration_varies() -> bool:
+    """Row BA, session BA-3: the battle's telling chooses among a beat's
+    variant lines by the campaign's seed (`battle_script._Script.said`). Down
+    (False): the first line — the one every battle was told with — always."""
+    return True
 
 
 # ── Authored-band resolution (AI-0c) ──────────────────────────────────────

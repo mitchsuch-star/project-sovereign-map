@@ -846,6 +846,14 @@ SEAMS_DOWN = SEAMS_DOWN + list(_AU_SEAMS["AUF"])
 # (from turn 25 — the Claims of the Army's line on Lannes reads another morning); the seam AUC held down (the courts as AU-4 part 1 left them, AU-20's
 # purse inert with them) restores the Step 7 page.
 SEAMS_DOWN = SEAMS_DOWN + list(_AU_SEAMS["AUC"])
+# Row BA, BA-3 the day's points (November 15, 2026; `BATTLE_DIORAMA_SPEC.md`
+# §15.14–§15.15): a great battle that does not decide the day is fought in turns
+# in a campaign the server holds — the driver's is one — and CMD-H re-times from
+# turn 2 (the day at Milan: he plays what he has left as the turn closes; the
+# page's turn-2 headline is the Emperor's star dimming where it had none). The
+# day's seam held down restores the Step 7 page (the seeded temper and the varied
+# telling never move `historical`).
+SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.battle_day:the_day_has_points=False"]
 
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

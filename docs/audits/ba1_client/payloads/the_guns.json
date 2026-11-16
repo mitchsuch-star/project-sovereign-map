@@ -113,7 +113,7 @@
       "kind": "plan",
       "side": "attacker",
       "actor": "Ney",
-      "text": "The plan: Ney leads; Marmont ordered in support; Marmont's guns in support.",
+      "text": "The plan: Ney leads; Marmont's guns in support.",
       "weight": "head",
       "supports": [
        "Marmont"

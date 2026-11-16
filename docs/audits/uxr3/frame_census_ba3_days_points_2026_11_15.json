@@ -1,0 +1,71 @@
+{
+ "tool": "tools/uxr3_frame_census.py",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\f70937a5-55bd-45f2-85af-953297f78f99\\scratchpad\\ba3_caps\\run5b\\index.json",
+ "client_commit": "da68ad7f",
+ "frames": 95,
+ "frames_without_record": [],
+ "cut_lines": [],
+ "grip_overlaps": [],
+ "tick_overlaps": [],
+ "verdict_gaps": [
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  }
+ ],
+ "map_frames": 95,
+ "map_overlaps": [],
+ "map_hidden": [
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "1920x1080",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "1920x1080",
+   "what": "garrison:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "2560x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "3440x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "5120x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "3840x2160",
+   "what": "fog_chip:?"
+  }
+ ]
+}

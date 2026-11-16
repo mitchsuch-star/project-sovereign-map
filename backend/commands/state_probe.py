@@ -193,8 +193,25 @@ def _in_visible_danger(world, marshal) -> bool:
     except Exception as exc:
         report(exc, "state_probe._in_visible_danger: world.get_visible_enemies")
         return bool(world.is_in_danger(marshal.name))
+    visible |= _the_days_enemy_of(world, marshal)
     return any(getattr(t, "name", "") in visible
                for t in world.get_threatening_enemies(marshal.name))
+
+
+def _the_days_enemy_of(world, marshal) -> set:
+    """BA-3: the enemy of an open day this corps leads. He fought it in the
+    day's last clash and the day's block names him for as long as it is open,
+    so he is no hidden threat: counting him says nothing the open day has not
+    said. Without it a day a horseman opened from two marches off (or any
+    attacker the fog has closed over) read "Fall back — not in danger" under
+    the notice that he is about to strike again. {} off the served road."""
+    try:
+        from backend.game_logic import battle_day
+        return {str(key) for key, day in battle_day.open_days(world).items()
+                if isinstance(day, dict) and day.get("lead") == marshal.name}
+    except Exception as exc:
+        report(exc, "state_probe._the_days_enemy_of")
+        return set()
 
 
 def _own_reason(world, marshal, verb: str) -> str:

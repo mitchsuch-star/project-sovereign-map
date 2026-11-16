@@ -1187,6 +1187,22 @@ REVIEWED = {
         "the bring row's own command; sent and the muster read after it (BA-2)",
     ("order_confirm_card.gd", '"do:" + str(b.get("command", ""))'):
         "the same rows on the attack's card; the press is handed to main.gd's own send road (BA-2)",
+    # Row BA, BA-3 (November 15, 2026): the day's chips. Each carries the
+    # block's own `command` (an order the game already has, quoted by
+    # `battle_day.the_offer` from `order_quotes`) or its word; a dim chip has no
+    # url. The orders are sent and the purse read after them through the real
+    # server (`tests/test_ba3_the_rounds.py::TestAWordIsFreeOfActions`); the
+    # client's press is claimed by the walk (`tools/ba1_acts_walk.py`: one
+    # press, one word; a dim chip sends nothing) and pressed in the real client
+    # against a real server (`tools/ba3_mode_c_walk.py`, three boards).
+    ("battle_acts.gd", '"day:%d" % i'):
+        "the table's day chips: the index of the block's chip; the press emits its command or word on the host's word_given (BA-3)",
+    ("main.gd", '"day:" + command'):
+        "a day read from the notice with no tableau held: the block's chip as a log line; main.gd's own guarded send road (BA-3)",
+    ("main.gd", '"dayopen:" + enemy_key'):
+        "the end-turn gate's \"Take the field\" for a day that still awaits our word: opens that day's table by the notice's own road (`_open_battle_day`), sends no order (BA-3)",
+    ("region_panel.gd", '"do:" + command'):
+        "the same chips above the province panel's ATTACK rows; handed to main.gd's send road (BA-3)",
     ("region_panel.gd", '"order:unfortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:fortify:" + m_name'): "driven",
     ("region_panel.gd", '"order:drill:" + m_name'): "driven; dimmed with the executor's reason",

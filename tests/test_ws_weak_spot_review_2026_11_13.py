@@ -385,7 +385,9 @@ class TestWS5TheObjectionsNotesAreThisObjections:
 class TestWS6AQuoteHoldsTheLock:
 
     def test_the_two_readings_that_stamp_the_board_are_named(self):
-        assert M._LOCKED_READS == frozenset({"/parse_preview", "/march_quotes"})
+        # Row BA (BA-3) added `/battle_day`: its chips are quoted with the
+        # word's lend on the pool, stamped and put back — WS-6's own class.
+        assert M._LOCKED_READS == frozenset({"/parse_preview", "/march_quotes", "/battle_day"})
         src = inspect.getsource(M.serialize_state_mutations)
         assert "request.url.path in _LOCKED_READS" in src
         assert src.count("async with get_state_lock()") == 2

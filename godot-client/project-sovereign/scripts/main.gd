@@ -259,6 +259,17 @@ var pending_diorama_data = null   # stashed payload, raised when control returns
 var pending_capture_response = null
 var last_battle_diorama = null    # latest payload for the "⚔ View the field" link
 var _diorama_standalone := false  # dismissal owns the input chain only when true
+# Row BA, BA-3: the day's points.
+var _battle_word_in_flight := false   # one press, one word (the table's chips and the panel's)
+var _day_word_sent := false           # a word is out: its answer's tableau opens the table
+var _day_table_held = null            # the tableau the table showed when the word was given
+var _day_followup = null              # HIS clash's tableau, raised after ours
+var _day_settled_for = null           # the payload that is the settled frame (no replay of the acts)
+var _day_latest: Dictionary = {}      # enemy lead's name -> the latest block the client holds for his day
+var _day_tables: Dictionary = {}      # enemy lead's name -> the last tableau the client holds for his day
+var _day_say_later = null             # a typed word's day block, told AFTER the order's own reply
+var _day_answer_pending := false      # BA3-X22: the pending table is the ANSWER to a word given from a table
+var _day_parking := false             # BA3-X22: the table is being closed silently (a park, not a dismissal)
 
 # WO-D2/G1: the known-court name forms, built once for the Cabinet redirect.
 var _diplo_nation_forms: Array = []
@@ -432,6 +443,13 @@ var _army_warned: bool = false
 # the field (Belgium).", `end_turn_peril_warning` on every response, "" when
 # none). The dawn dispatch's IN PERIL, said again at the click.
 var end_turn_peril_warning: String = ""
+# Row BA, BA-3 (K12): the gate's third item — a day of battle that awaits OUR
+# word. `pending_battle_days` rides every base envelope (and the boot's), one
+# row a day with no question out: {enemy, enemy_shown, lead, lead_shown, field,
+# field_shown, side, ours}. A response without the key leaves the list alone
+# (the mailbox reads carry none). `_day_warned` is its own once-per-gate latch.
+var pending_battle_days: Array = []
+var _day_warned := false
 var infantry_pool = 80000
 var cavalry_pool = 15000
 var artillery_pool = 10000
@@ -516,6 +534,7 @@ func _ready():
 	battle_diorama = dialog_manager.register("battle_diorama", "res://scenes/battle_diorama.tscn")
 	if battle_diorama:
 		battle_diorama.dismissed.connect(_on_battle_diorama_dismissed)
+		battle_diorama.word_given.connect(_on_battle_word_given)   # row BA, BA-3: the day's chips
 	# BD: the terminal's own "⚔ View the field" replay link.
 	output_display.meta_clicked.connect(_on_output_meta_clicked)
 	# PC15-18 (NV-P1 family census): the July-25 R4 fix set
@@ -1084,6 +1103,7 @@ func _on_connection_test(response):
 			if _peril != end_turn_peril_warning:
 				_army_warned = false
 			end_turn_peril_warning = _peril
+		_take_pending_battle_days(response)
 
 		# Update status from server
 		if response.has("action_summary"):
@@ -3001,6 +3021,10 @@ func _execute_end_turn():
 	if _army_warning_stands():
 		_show_lapse_confirmation()
 		return
+	# Row BA, BA-3 (K12): a day of battle that still awaits our word.
+	if _day_warning_stands():
+		_show_lapse_confirmation()
+		return
 	# Session UI-5: corps with no orders yet, named once per gate.
 	if _ui5_idle_warning_stands():
 		_show_lapse_confirmation()
@@ -3040,6 +3064,7 @@ func _send_end_turn():
 	_army_warned = false   # S14E-7: a passed gate re-arms the army's line for the next day
 	_treasury_warned = false   # S14E-X (DDB-13's sweep): and the treasury's — a deficit that stands gates every turn it stands
 	_idle_warned = false   # Session UI-5: and the idle corps' line
+	_day_warned = false   # BA-3 (K12): and the day of battle's
 	_ui5_end_turn_out = true   # the busy chip says "the courts of Europe move"
 	_set_open_envoys_prompt_visible(false)
 	# Add to history
@@ -3067,6 +3092,74 @@ func _army_warning_stands() -> bool:
 	if end_turn_army_warning != "" and not _army_warned:
 		return true
 	return end_turn_peril_warning != "" and not _army_warned
+
+
+func _take_pending_battle_days(response: Dictionary) -> void:
+	"""K12: update the copy only from a response that carries the key; a
+	changed list is a new gate."""
+	if not response.has("pending_battle_days"):
+		return
+	var raw = response.get("pending_battle_days")
+	var rows: Array = []
+	if raw is Array:
+		for row in raw:
+			if row is Dictionary:
+				rows.append(row)
+	if JSON.stringify(rows) != JSON.stringify(pending_battle_days):
+		_day_warned = false
+	pending_battle_days = rows
+	_prune_the_days(response)
+
+
+func _prune_the_days(response: Dictionary) -> void:
+	"""BA3-X18: a response that carries `open_battle_days` (the enemy keys of every
+	day still open and alive on the server) retires every day the client holds that
+	is not among them — its latest block (so a chip in an OLD log line goes dim),
+	its remembered table, a held table, a say-later, and a follow-up (unless this
+	very response speaks of the day: his clash that closed it is still to be seen).
+	An older server has no key: nothing is pruned."""
+	if not response.has("open_battle_days"):
+		return
+	var raw = response.get("open_battle_days")
+	if not (raw is Array):
+		return
+	var open_keys := {}
+	for k in raw:
+		open_keys[str(k)] = true
+	for key in _day_latest.keys():
+		if not open_keys.has(str(key)):
+			_day_latest.erase(key)
+	for key in _day_tables.keys():
+		if not open_keys.has(str(key)):
+			_day_tables.erase(key)
+	var speaks: bool = response.get("battle_day") is Dictionary
+	if _day_table_held is Dictionary and (_day_table_held as Dictionary).get("day") is Dictionary \
+			and not open_keys.has(str(((_day_table_held as Dictionary)["day"] as Dictionary).get("enemy", ""))) \
+			and not speaks:
+		_day_table_held = null
+	if _day_say_later is Dictionary and not open_keys.has(str((_day_say_later as Dictionary).get("enemy", ""))) \
+			and not speaks:
+		_day_say_later = null
+	if _day_followup is Dictionary and (_day_followup as Dictionary).get("day") is Dictionary \
+			and not open_keys.has(str(((_day_followup as Dictionary)["day"] as Dictionary).get("enemy", ""))) \
+			and not speaks:
+		_day_followup = null
+
+
+func _day_warning_stands() -> bool:
+	"""K12: an open day awaits our word and has not yet stopped this gate."""
+	return not pending_battle_days.is_empty() and not _day_warned
+
+
+func _day_gate_sentence(row: Dictionary) -> String:
+	var left := int(row.get("ours", 0))
+	var lead := str(row.get("lead_shown", ""))
+	var field := str(row.get("field_shown", ""))
+	var foe := str(row.get("enemy_shown", ""))
+	var tail := "End the turn and %s answers alone." % foe
+	if left > 0:
+		return "The day at %s still hangs — %s holds %s. %s" % [field, lead, Utils.plural(left, "point"), tail]
+	return "The day at %s still hangs — %s may still stand, fall back or break off. %s" % [field, lead, tail]
 
 
 func _show_lapse_confirmation():
@@ -3121,6 +3214,13 @@ func _show_lapse_confirmation():
 	if end_turn_army_warning != "":
 		_army_warned = true
 		parts.append(end_turn_army_warning)
+	# Row BA, BA-3 (K12): the days of battle that await our word — one sentence each.
+	var day_rows: Array = []
+	if _day_warning_stands():
+		_day_warned = true
+		day_rows = pending_battle_days.duplicate()
+		for row in day_rows:
+			parts.append(_day_gate_sentence(row))
 	# Session UI-5: the idle corps — named last, on their own latch.
 	if _ui5_idle_warning_stands():
 		_idle_warned = true
@@ -3128,6 +3228,12 @@ func _show_lapse_confirmation():
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
+	# a warning is not a dead end: a chip opens each day's table (the notice's road)
+	for row in day_rows:
+		var enemy_key := str(row.get("enemy", ""))
+		if enemy_key != "":
+			add_output("   " + Utils.bb_button_chip("dayopen:" + enemy_key, "Take the field — " + str(row.get("field_shown", "")),
+				Utils.COLOR_GOLD, "233043"))
 	if _current_lapsing_count > 0:
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
 	elif not _current_decision_names.is_empty():
@@ -4439,21 +4545,515 @@ func _show_pending_capture_choice() -> bool:
 	return true
 
 
+# ── BA-3: the day's points ────────────────────────────────────────────────────
+# A great battle that does not decide the day opens a day: the table's panel
+# (battle_acts.gd) offers chips, each an order the game already has (or one of
+# three words: stand / leave it / break off). The table is closed while the
+# answer is read and raised again by the ONE raise chain: HIS clash after ours,
+# or the settled frame with the new `battle_day` block (the panel updates in
+# place). A question (the objection, the muster) parks the table until it is
+# answered; the answer carries `battle_day` again.
+
+func _day_plain(block: Dictionary) -> Dictionary:
+	"""A block without the tableaux it carried (`reply_diorama`, `reply.diorama`)."""
+	var out := block.duplicate(true)
+	out.erase("reply_diorama")
+	if out.get("reply") is Dictionary:
+		(out["reply"] as Dictionary).erase("diorama")
+	return out
+
+
+func _day_label(chip: Dictionary) -> String:
+	"""A word that costs nothing shows no price."""
+	var price := int(chip.get("price", 0))
+	var label := str(chip.get("label", ""))
+	return label if price <= 0 else "%s · %d" % [label, price]
+
+
+func _day_chip_command(chip: Dictionary, enemy: String) -> String:
+	var word := str(chip.get("word", ""))
+	return ("@word:%s:%s" % [word, enemy]) if word != "" else str(chip.get("command", ""))
+
+
+func _day_chip_live(command: String) -> bool:
+	"""A chip written into the log is pressable only while the latest block the
+	client holds for its day still offers that very word."""
+	for key in _day_latest:
+		var b = _day_latest[key]
+		if not (b is Dictionary) or not bool(b.get("open", false)) \
+				or str(b.get("awaits", "")) != "ours" or bool(b.get("pending", false)):
+			continue
+		for chip in b.get("chips", []):
+			if chip is Dictionary and bool(chip.get("ok", false)) \
+					and _day_chip_command(chip, str(b.get("enemy", ""))) == command:
+				return true
+	return false
+
+
+func _remember_day_block(b) -> void:
+	if b is Dictionary and str(b.get("enemy", "")) != "":
+		_day_latest[str(b["enemy"])] = _day_plain(b)
+
+
+func _remember_day_table(p, live: bool = false) -> void:
+	"""`live`: the tableau's `day` is the day AS IT STANDS (the enemy phase's
+	tableaux at dawn carry chips and all): its block is kept as the latest too."""
+	if p is Dictionary and p.get("day") is Dictionary:
+		var key := str((p["day"] as Dictionary).get("enemy", ""))
+		if key != "":
+			_day_tables[key] = p
+			# BA3-X17: a `follows` day is the day as OUR clash left it (chips gone, his
+			# clash next) — a snapshot; it never replaces the live block remembered from
+			# the response's own `battle_day` / his tableau
+			if live and not bool((p["day"] as Dictionary).get("follows", false)):
+				_remember_day_block(p["day"])
+
+
+func _remember_day_tables(response: Dictionary) -> void:
+	"""Every tableau of a response that carries a `day`, by the day's enemy: the
+	settled frame a later word re-shows, and the table the notice opens; and the
+	latest block of every day the response speaks of."""
+	_remember_day_table(response.get("battle_diorama"))
+	var reply = response.get("battle_day")
+	_remember_day_block(reply)
+	if reply is Dictionary and reply.get("reply") is Dictionary:
+		_remember_day_table((reply["reply"] as Dictionary).get("diorama"))
+	for report in response.get("strategic_reports", []):
+		if report is Dictionary:
+			_remember_day_table(report.get("battle_diorama"))
+	var phase = response.get("enemy_phase")
+	if phase is Dictionary and phase.get("nations") is Dictionary:
+		for nation in phase["nations"]:
+			var data = phase["nations"][nation]
+			if data is Dictionary:
+				for action in data.get("actions", []):
+					if action is Dictionary:
+						_remember_day_table(action.get("battle_diorama"), true)
+	for event in response.get("events", []):
+		if event is Dictionary:
+			_remember_day_table(event.get("diorama"), true)
+
+
+func _remember_days(days: Array) -> void:
+	"""`GET /battle_day` hands over every open day, and each day's `reply_diorama`
+	ONCE (it is popped on the server): all of them are kept here, so a table
+	closed meanwhile does not lose its tableau."""
+	for d in days:
+		if not (d is Dictionary):
+			continue
+		_remember_day_block(d)
+		var tab = d.get("reply_diorama")
+		if tab is Dictionary and not (tab as Dictionary).is_empty():
+			var copy: Dictionary = (tab as Dictionary).duplicate(true)
+			copy["day"] = _day_plain(d)
+			_day_tables[str(d.get("enemy", ""))] = copy
+
+
+func _day_fresh(payload):
+	"""A tableau replayed from a stored payload (the log's "View the field", the
+	enemy phase's list): its `day` is read again from the latest block the client
+	holds for that enemy; with none, its chips are stripped (the lines told
+	only). A lit chip on a stale purse is never shown."""
+	if not (payload is Dictionary) or not ((payload as Dictionary).get("day") is Dictionary):
+		return payload
+	var out: Dictionary = (payload as Dictionary).duplicate(true)
+	var key := str((out["day"] as Dictionary).get("enemy", ""))
+	if _day_latest.has(key):
+		out["day"] = (_day_latest[key] as Dictionary).duplicate(true)
+	else:
+		(out["day"] as Dictionary)["chips"] = []
+	return out
+
+
+func _stash_battle_day(response: Dictionary) -> void:
+	"""The day's own surfaces, through the stash chokepoint. Which battles open
+	the table stays `_stash_diorama`'s rule; only the answer to a word we gave
+	puts the table back up (a later clash, his clash, or the settled frame)."""
+	_remember_day_tables(response)
+	var bd = response.get("battle_day")
+	if not (bd is Dictionary) or bd.is_empty():
+		return
+	if bool(bd.get("pending", false)):
+		return   # a question is out: the table stays parked, its answer carries the day again
+	var asked := _day_word_sent
+	_day_word_sent = false
+	var held = _day_table_held
+	_day_table_held = null
+	var reply = bd.get("reply")
+	var his = reply.get("diorama") if reply is Dictionary else null
+	var mine = response.get("battle_diorama")
+	var has_mine: bool = mine is Dictionary and not (mine as Dictionary).is_empty()
+	var has_his: bool = his is Dictionary and not (his as Dictionary).is_empty()
+	if has_his:
+		_day_followup = his
+	if not asked:
+		# a word typed by hand is not silent: the day as it stands, in the log
+		# (a clash the word fought shows its own table by the ordinary rule)
+		var told = bd.get("told", [])
+		if told is Array and not (told as Array).is_empty() and not has_mine and not has_his:
+			_day_say_later = bd.duplicate(true)   # told by the control-return tail, after the reply
+		return
+	_day_answer_pending = true               # BA3-X22: raised by the chain, or over the list
+	if has_mine:
+		pending_diorama_data = mine          # a later clash of a day is always shown
+		last_battle_diorama = mine
+		_day_settled_for = null
+	elif has_his:
+		pending_diorama_data = _day_followup
+		_day_followup = null
+		_day_settled_for = null
+	else:
+		var base = held
+		if not (base is Dictionary):
+			base = _day_tables.get(str(bd.get("enemy", "")), null)
+		if base is Dictionary:
+			var again: Dictionary = (base as Dictionary).duplicate(true)
+			again["day"] = _day_plain(bd)
+			pending_diorama_data = again
+			_day_settled_for = again          # the settled frame: honoured for THIS payload only
+		else:
+			_say_the_day(bd)
+
+
+func _say_the_day_later() -> void:
+	"""The day as it stands, for a word typed by hand: said once, AFTER the
+	order's own reply (the stasher decided at the chokepoint; this is its print).
+	Cleared as it is said, and at the head of every command answer, so it is never
+	said twice nor under a later command."""
+	if _day_say_later == null:
+		return
+	var block = _day_say_later
+	_day_say_later = null
+	if block is Dictionary:
+		_say_the_day(block)
+
+
+func _release_the_day_panel() -> void:
+	"""The panel latched on its press and main refused the word: let the chips go."""
+	if battle_diorama != null and battle_diorama.visible and battle_diorama._acts != null:
+		battle_diorama._acts.release_the_day()
+
+
+func _on_battle_word_given(command: String) -> void:
+	"""A day's chip: an order string is sent down the typed road (the echo, the
+	history, the latch) WITH THE TABLE STILL UP; "@word:<word>:<enemy>" POSTs
+	/battle_day/word; "@refresh:<enemy>" asks where a day stands that awaits
+	his word. The table closes when the answer arrives."""
+	if command.begins_with("@refresh:"):
+		_refresh_the_day(command.substr("@refresh:".length()))
+		return
+	if command.is_empty() or _battle_word_in_flight or _chip_command_in_flight:
+		if not _battle_word_in_flight:
+			_release_the_day_panel()
+		return
+	var table_up: bool = battle_diorama != null and battle_diorama.visible
+	if not table_up and not command_input.editable:
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
+	_battle_word_in_flight = true
+	_chip_command_in_flight = true
+	_day_word_sent = true
+	_day_followup = null                   # a follow-up never outlives a newer table
+	_day_table_held = null
+	if table_up and battle_diorama._data is Dictionary:
+		_day_table_held = (battle_diorama._data as Dictionary).duplicate(true)
+	_retire_line_latches()
+	set_input_enabled(false)
+	if command.begins_with("@word:"):
+		var parts := command.split(":", true, 2)
+		var word: String = parts[1] if parts.size() > 1 else ""
+		var enemy: String = parts[2] if parts.size() > 2 else ""
+		add_output("")
+		add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(word.replace("_", " ")) + "[/color]")
+		api_client.post_battle_day_word(enemy, word, _on_battle_word_result)
+		return
+	_add_to_history(command)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	AudioManager.play("quill_flick")
+	if tutorial_overlay:
+		tutorial_overlay.note_sent(command)
+	AudioManager.start_scribble()
+	api_client.send_command(command, _on_battle_word_result)
+
+
+func _refresh_the_day(enemy: String) -> void:
+	"""A table shows a day that awaits HIS word (it opened on a road that did not
+	carry his answer): ask the server once; it has run his answer by now."""
+	if api_client == null or enemy == "":
+		return
+	api_client.get_battle_day(func(response): _on_day_refreshed(enemy, response))
+
+
+func _on_day_refreshed(enemy: String, response) -> void:
+	if not (response is Dictionary) or not bool(response.get("success", false)):
+		return
+	var days = response.get("days", [])
+	if days is Array:
+		_remember_days(days)
+	if battle_diorama == null or not battle_diorama.visible or _battle_word_in_flight:
+		return
+	# the table still on the screen must be this enemy's day
+	var shown = (battle_diorama._data as Dictionary).get("day") if battle_diorama._data is Dictionary else null
+	if not (shown is Dictionary) or str((shown as Dictionary).get("enemy", "")) != enemy:
+		return
+	var pick = null
+	for d in days:
+		if d is Dictionary and str(d.get("enemy", "")) == enemy:
+			pick = d
+			break
+	if pick == null:
+		return
+	var tab = pick.get("reply_diorama")
+	var has_tab: bool = tab is Dictionary and not (tab as Dictionary).is_empty()
+	if not has_tab and str(pick.get("awaits", "")) == "theirs" and bool(pick.get("open", false)):
+		return   # still his: no chips, nothing new to show (and no second ask)
+	if not has_tab and str(pick.get("awaits", "")) == "ours" and (pick.get("chips", []) as Array).is_empty() \
+			and not bool(pick.get("pending", false)):
+		return   # ours, and the server offers no chips either: nothing new
+	var block := _day_plain(pick)
+	var data = null
+	var settled := false
+	if has_tab:
+		data = (tab as Dictionary).duplicate(true)
+	else:
+		data = (battle_diorama._data as Dictionary).duplicate(true)
+		settled = true
+	data["day"] = block
+	_remember_day_table(data)
+	var standalone := _diorama_standalone
+	_park_the_day_table()
+	battle_diorama.show_diorama(data, not settled)
+	_diorama_standalone = standalone
+
+
+func _park_the_day_table() -> void:
+	"""Close the table WITHOUT handing control back (the dismissal handler
+	returns early when the table is not standalone): a question, or the next
+	table, comes up in its place."""
+	if battle_diorama != null and battle_diorama.visible:
+		_diorama_standalone = false
+		_day_parking = true      # BA3-X22: a park is not a dismissal (no follow-up raised by it)
+		battle_diorama._on_close_pressed()
+		_day_parking = false
+
+
+func _on_battle_word_result(response) -> void:
+	_battle_word_in_flight = false
+	_chip_command_in_flight = false
+	_park_the_day_table()
+	if typeof(response) != TYPE_DICTIONARY:
+		_day_word_sent = false
+		_on_command_result(response)
+		return
+	var refused: bool = not bool(response.get("success", false)) and response.get("battle_day") is Dictionary
+	_on_command_result(response)
+	if refused and str(response.get("message", "")) != "":
+		ToastLayer.say(str(response.get("message", "")), "command")   # a refused word is SEEN
+	var held = _day_table_held
+	var answered: bool = response.get("battle_day") is Dictionary
+	# BA3-X22: a question the word raised (the muster's "Commit the Attack?", an
+	# objection) is out whether or not its popup is up yet or the response carries the
+	# day: the claim on the table is KEPT until the question's own answer arrives
+	# (`pending_interrupt` is a Dictionary, and `bool(<Dictionary>)` is no constructor
+	# in GDScript: the first cut of this line stopped the handler the moment the
+	# muster's question arrived — found by the live walk; the parse check cannot see it)
+	var question_out: bool = (response.has("pending_interrupt") and response.pending_interrupt) \
+		or str(response.get("state", "")) == "awaiting_player_choice"
+	if not answered and not question_out and not _is_modal_dialog_open() and _day_word_sent:
+		# the word was not taken and nothing waits on the player: the table as it was
+		_day_word_sent = false
+		_day_table_held = null
+		if held is Dictionary and battle_diorama != null:
+			_diorama_standalone = false
+			battle_diorama.show_diorama(_day_fresh(held), false)
+		return
+	if _day_answer_pending and not question_out and pending_diorama_data != null \
+			and enemy_phase_dialog != null and enemy_phase_dialog.visible:
+		# opened over the enemy phase's list: the chain waits for that dialog's own
+		# dismissal, so the table is raised here — and the input held again under it.
+		# ONLY the word's own answer (BA3-X22): with the list open the pending table
+		# is otherwise the phase's own great battle, waiting for the list's Continue —
+		# a word that raised a question re-raised that stale dawn table, purses and
+		# chips as they were, and the answer then found a table already up
+		var data = pending_diorama_data
+		pending_diorama_data = null
+		var settled: bool = _day_settled_for != null and is_same(_day_settled_for, data)
+		_day_settled_for = null
+		_day_answer_pending = false
+		_diorama_standalone = false
+		battle_diorama.show_diorama(data, not settled)
+		set_input_enabled(false)
+	if region_panel and region_panel.has_method("refresh_if_open"):
+		region_panel.refresh_if_open()
+
+
+func _say_the_day(block: Dictionary) -> void:
+	"""The compact presentation (no tableau in hand for this day, or a word typed
+	by hand): the day as lines in the log, its chips pressable while the day still
+	offers them (a stale chip answers "that word has passed")."""
+	add_output("[color=#" + Utils.COLOR_GOLD + "]The day at " + str(block.get("field_shown", ""))
+		+ ": " + str(block.get("lead_shown", "")) + " against " + str(block.get("enemy_shown", ""))
+		+ " — " + Utils.plural(int(block.get("ours", 0)), "point") + " of ours, "
+		+ str(int(block.get("theirs", 0))) + " of his.[/color]")
+	if str(block.get("morning", "")) != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]" + str(block.get("morning", "")) + "[/color]")
+	var told = block.get("told", [])
+	if told is Array:
+		for t in told.slice(maxi(0, told.size() - 4)):
+			if t is Dictionary and str(t.get("line", "")) != "":
+				add_output("   " + str(t.get("line", "")))
+	var chips = block.get("chips", [])
+	if bool(block.get("open", false)) and chips is Array and not (chips as Array).is_empty() \
+			and not bool(block.get("pending", false)):
+		var row := "   "
+		for chip in chips:
+			if not (chip is Dictionary):
+				continue
+			var label := _day_label(chip)
+			var command := _day_chip_command(chip, str(block.get("enemy", "")))
+			if bool(chip.get("ok", false)) and command != "":
+				row += Utils.bb_button_chip("day:" + command, label, Utils.COLOR_GOLD, "233043") + " "
+			else:
+				row += Utils.bb_chip_disabled(label, "", str(chip.get("why", ""))) + " "
+		add_output(row)
+	add_output("")
+
+
+func _open_battle_day(enemy: String) -> void:
+	"""The notice's button: the day's table. GET /battle_day, then his last
+	clash's tableau (not yet shown) if the server holds one, else the last
+	tableau the client holds for this day, else the compact presentation."""
+	if api_client == null or _is_modal_dialog_open():
+		return
+	api_client.get_battle_day(func(response): _on_battle_day_fetched(enemy, response))
+
+
+func _dismiss_day_notice(enemy: String) -> void:
+	"""The day is over: its rail row does not invite again."""
+	if notification_bar == null:
+		return
+	for n in notification_bar.current_notifications:
+		if n is Dictionary and str(n.get("type", "")) == "battle_day_awaits":
+			var details = n.get("details", {})
+			if details is Dictionary and str(details.get("enemy", "")) == enemy:
+				notification_bar._on_dismiss_pressed(str(n.get("id", "")))
+				return
+
+
+func _on_battle_day_fetched(enemy: String, response) -> void:
+	if not (response is Dictionary) or not bool(response.get("success", false)):
+		return
+	var days = response.get("days", [])
+	if days is Array:
+		_remember_days(days)    # every popped tableau is kept, whichever day is picked
+	else:
+		days = []
+	if _is_modal_dialog_open():
+		return                  # something else took the screen while the GET was out
+	var pick = null
+	for d in days:
+		if d is Dictionary and str(d.get("enemy", "")) == enemy:
+			pick = d
+			break
+	if pick == null and enemy == "":
+		for d in days:
+			if d is Dictionary and str(d.get("awaits", "")) == "ours":
+				pick = d
+				break
+	if pick == null:
+		ToastLayer.say("That day is over, Sire.", "command")
+		_dismiss_day_notice(enemy)
+		return
+	if battle_diorama == null:
+		_say_the_day(pick)
+		return
+	var key := str(pick.get("enemy", ""))
+	var block := _day_plain(pick)
+	var tab = pick.get("reply_diorama")
+	var data = null
+	var settled := false
+	if tab is Dictionary and not (tab as Dictionary).is_empty():
+		data = (tab as Dictionary).duplicate(true)
+	else:
+		var base = _day_tables.get(key, null)
+		if base == null and last_battle_diorama is Dictionary \
+				and (last_battle_diorama as Dictionary).get("day") is Dictionary \
+				and str(((last_battle_diorama as Dictionary)["day"] as Dictionary).get("enemy", "")) == key:
+			base = last_battle_diorama
+		if base is Dictionary:
+			data = (base as Dictionary).duplicate(true)
+			settled = true
+	if data == null:
+		_say_the_day(block)
+		return
+	data["day"] = block
+	_diorama_standalone = false
+	battle_diorama.show_diorama(data, not settled)
+
+
 func _show_pending_diorama() -> bool:
 	"""Raise a stashed tableau. True when shown — the caller must then NOT
 	re-enable input; `_on_battle_diorama_dismissed` owns that."""
+	if pending_diorama_data == null and _day_followup != null:
+		# BA-3: his clash of the day, on the same table after ours
+		pending_diorama_data = _day_followup
+		_day_followup = null
+		_day_settled_for = null
 	if pending_diorama_data == null or battle_diorama == null:
 		return false
 	var data = pending_diorama_data
 	pending_diorama_data = null
+	var settled: bool = _day_settled_for != null and is_same(_day_settled_for, data)
+	_day_settled_for = null
+	_day_answer_pending = false
 	_diorama_standalone = true
-	battle_diorama.show_diorama(data, true)
+	battle_diorama.show_diorama(data, not settled)
+	return true
+
+
+func _day_raise_over_list() -> bool:
+	"""BA3-X22: the answer to a word given from a table raised OVER the enemy phase's
+	list (the question was answered on another road) is raised on that list at once —
+	the chain waits for the list's Continue, and the player is left on a stale table.
+	Only the list stands behind it (no other modal), the input stays held."""
+	if not _day_answer_pending or pending_diorama_data == null or battle_diorama == null \
+			or battle_diorama.visible or enemy_phase_dialog == null or not enemy_phase_dialog.visible:
+		return false
+	for entry in dialog_manager._dialogs.values():
+		if entry.modal and entry.node and entry.node.visible \
+				and entry.node != enemy_phase_dialog and entry.node != battle_diorama:
+			return false
+	var data = pending_diorama_data
+	pending_diorama_data = null
+	_day_answer_pending = false
+	var settled: bool = _day_settled_for != null and is_same(_day_settled_for, data)
+	_day_settled_for = null
+	_diorama_standalone = false
+	battle_diorama.show_diorama(data, not settled)
+	set_input_enabled(false)
 	return true
 
 
 func _on_battle_diorama_dismissed():
+	if _day_parking:
+		return  # BA3-X22: a silent park, not a dismissal
 	if not _diorama_standalone:
+		# BA3-X22: opened over another surface (the enemy phase's list, the log): his
+		# clash, when one follows ours, comes up on the same road — nothing else
+		# would raise it from here (the raise chain waits behind the surface below)
+		if _day_followup != null and battle_diorama != null and not battle_diorama.visible:
+			var next_tab = _day_followup
+			_day_followup = null
+			_day_answer_pending = false
+			_day_settled_for = null
+			battle_diorama.show_diorama(next_tab, true)
+			if enemy_phase_dialog != null and enemy_phase_dialog.visible:
+				set_input_enabled(false)
 		return  # opened over another surface (enemy dialog / terminal link)
+	if _battle_word_in_flight:
+		return  # BA-3: a day's word is on the wire; its answer owns the return of control
 	_diorama_standalone = false
 	# PC15-10 B4b (F9): the one tail — the ending, the capture question, the
 	# Proclamation, the letter-book, the redemption, a deferred hard stop, the
@@ -4468,7 +5068,7 @@ func _on_view_field_requested(payload: Dictionary) -> void:
 	if battle_diorama == null or not (payload is Dictionary):
 		return
 	_diorama_standalone = false
-	battle_diorama.show_diorama(payload, true)
+	battle_diorama.show_diorama(_day_fresh(payload), true)   # BA-3: a day's chips are read again
 
 
 func _on_output_meta_clicked(meta) -> void:
@@ -4482,7 +5082,7 @@ func _on_output_meta_clicked(meta) -> void:
 		_diorama_standalone = false
 		# A re-view renders the settled final frame instantly (eval §7 Q1 —
 		# the Replay button inside runs the sequence again on demand).
-		battle_diorama.show_diorama(last_battle_diorama, false)
+		battle_diorama.show_diorama(_day_fresh(last_battle_diorama), false)   # BA-3: no stale chips
 		return
 	# WO-D2/G1: Berthier's redirect line carries the door itself — the
 	# link opens the Cabinet exactly as F1 does, same modal guard.
@@ -4494,6 +5094,19 @@ func _on_output_meta_clicked(meta) -> void:
 	# the eighth book — the same door T then 8 opens, same modal guard.
 	if meta_str.begins_with("ledger:"):
 		_on_tutorial_open_ledger(int(meta_str.substr("ledger:".length())))
+		return
+	# Row BA, BA-3 (K12): the end-turn gate's "Take the field" for a day that awaits.
+	if meta_str.begins_with("dayopen:"):
+		if not _is_modal_dialog_open():
+			_open_battle_day(meta_str.substr("dayopen:".length()))
+		return
+	# Row BA, BA-3: a day's chip written into the log (the compact presentation).
+	if meta_str.begins_with("day:"):
+		var day_command := meta_str.substr("day:".length())
+		if not _day_chip_live(day_command):
+			ToastLayer.say("That word has passed, Sire.", "command")
+		elif not _is_modal_dialog_open():
+			_on_battle_word_given(day_command)
 		return
 	# SR-5r RF-4b: a terminal chip carries its full typed order (the
 	# forecast's "repeal X instead") — the ledger's chip road, same latch.
@@ -4543,6 +5156,9 @@ func _return_control_to_player() -> void:
 	# UXR-D4: the chain has settled (or waits on a surface it raised) — a
 	# pinned screen re-reads the new state.
 	_queue_pinned_refresh()
+	_say_the_day_later()   # BA-3: the day as a typed word left it, after the reply
+	if _day_raise_over_list():
+		return   # BA3-X22: the answer's table, over the enemy phase's list
 	if _raise_pending_surfaces():
 		return
 	_maybe_recover_dropped_redemption()
@@ -4890,6 +5506,7 @@ func _on_command_result(response):
 			ToastLayer.say("Autosaved · " + str(response.get("autosave_label", "")), "letter")
 		# PC15-10 B4b (F9): every deferred surface this response carries is
 		# stashed through ONE chokepoint, BEFORE any routing or early return.
+		_day_say_later = null   # BA-3: a day left unsaid by an earlier answer is not this one's
 		_stash_pending_surfaces(response)
 		# C1 (the release build): the once-per-session Smarter Parsing notice
 		# (the live parser failed; the offline parser read the order). Printed
@@ -5136,6 +5753,7 @@ func _stash_pending_surfaces(response) -> void:
 	_stash_envoy_digest(response)
 	_stash_diorama(response)  # BD
 	_stash_redemption(response)  # PT-B1
+	_stash_battle_day(response)  # BA-3: the day's points
 	_stash_deferred_dialogue(response)  # FA slice 3 review round
 	_stash_petition(response)  # FA slice 6 (FA-5)
 	_stash_relay(response)  # CR-7-3
@@ -5148,6 +5766,14 @@ func _clear_pending_surfaces() -> void:
 	arriving campaign, whose own response is stashed after this runs."""
 	pending_proclamation_data = null
 	pending_diorama_data = null
+	_day_word_sent = false
+	_day_table_held = null
+	_day_followup = null
+	_day_settled_for = null
+	_day_say_later = null
+	_day_answer_pending = false
+	_day_latest = {}
+	_day_tables = {}
 	pending_redemption_data = null
 	pending_deferred_dialogue = null
 	pending_petition_data = null
@@ -6871,6 +7497,7 @@ func _sync_response_hud(response: Dictionary):
 		if _peril != end_turn_peril_warning:
 			_army_warned = false
 		end_turn_peril_warning = _peril
+	_take_pending_battle_days(response)   # BA-3 (K12): the days that await our word
 	if response.get("success", false):
 		if response.has("action_summary"):
 			_update_status(response.action_summary)
@@ -8635,8 +9262,11 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 				add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal — %s Click the envoy badge to revisit.[/color]" % [setting_aside_court, Utils.cabinet_shut_line(lock_by_turn)])
 			else:
 				add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal — it waits in the mailbox until the turn ends, and the Cabinet stays open. Click the envoy badge to revisit.[/color]" % setting_aside_court)
-		set_input_enabled(true)
-		command_input.grab_focus()
+		# Row BA, BA-3 (found pressing the real client): "Not Now" is a control
+		# return like every other. The letter rides an order's answer and is
+		# routed first; a table that answer stashed (the battle just fought, a
+		# day's closing frame) then waited for the NEXT order to be shown.
+		_return_control_to_player()
 		return
 	# LV-3 (row EP F2): the court's printed form and the answer as a word —
 	# the backend owns both (`from_nation_display`, `choice_display`); the
@@ -8813,6 +9443,10 @@ func _on_dispatch_open_envoys_requested():
 
 
 func _on_notification_review_requested(review_target: String, route_id: String = "", war_id: String = ""):
+	# Row BA, BA-3: "The day at <field> hangs" — its rail row opens the table.
+	if review_target == "battle_day":
+		_open_battle_day(route_id)
+		return
 	if review_target == "diplomacy_wizard":
 		_open_diplomacy_wizard()
 		return
@@ -10840,6 +11474,13 @@ func _on_map_mode_changed(mode: String):
 func _on_region_panel_command(command: String):
 	"""A region-panel chip — the typed-command pipeline, then re-render the
 	panel from the refreshed map data."""
+	if command.begins_with("@word:"):
+		_on_battle_word_given(command)   # BA-3: a day's word that is no order
+		return
+	var day_order := false
+	if command.begins_with("@day:"):
+		command = command.substr("@day:".length())   # BA-3: a day's order from the panel
+		day_order = true
 	if command.is_empty() or _chip_command_in_flight:
 		return
 	if not command_input.editable:
@@ -10849,6 +11490,9 @@ func _on_region_panel_command(command: String):
 		add_output("[color=#" + Utils.COLOR_ERROR
 			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
 		return
+	if day_order:
+		_day_word_sent = true    # only when the order really goes out
+		_day_followup = null
 	_chip_command_in_flight = true
 	_add_to_history(command)
 	add_output("")
@@ -10876,6 +11520,8 @@ func _on_march_quotes(region: String, response) -> void:
 func _on_region_panel_command_result(response):
 	_chip_command_in_flight = false
 	_on_command_result(response)
+	if not _is_modal_dialog_open():
+		_day_word_sent = false   # BA-3: a day's order that took no answer leaves no claim on the next table
 	if region_panel and region_panel.has_method("refresh_if_open"):
 		region_panel.refresh_if_open()
 

@@ -10,6 +10,14 @@ backend/game_logic/battle_script.py; a garrison assault's and a standalone
 bombardment's are backend/game_logic/siege_diorama.py's, on the same key, with
 `payload["kind"]` saying which table to lay).
 
+BA-3 adds six scenes on a SERVED world (`day_opens`, `day_dim_chip`, `day_word`,
+`day_night`, `day_defence`, `day_crowded`): a great battle that does not decide
+the day carries a `day` block, and `battle_day.settle` writes the live block
+(chips, his reply) onto the payload as the server does. A payload's key ORDER
+inside a set-valued map can differ between processes (PYTHONHASHSEED), so a
+re-stage of one scene is run with `--only` and `PYTHONHASHSEED=0`; a whole run
+rewrites every payload and may reorder three bombardment files' morale maps.
+
     .venv/Scripts/python.exe tools/ba1_stage_battles.py
     .venv/Scripts/python.exe tools/ba1_stage_battles.py --out <dir> --only ulm_full
 
@@ -442,6 +450,297 @@ def _want_two_a_side(payload, result):
     return f"two corps a side: a lead and a wing each ({payload.get('outcome', '')})"
 
 
+# ── Row BA, BA-3: the day's points ──────────────────────────────────────────
+# A day exists only in a campaign the game server holds, so these scenes serve
+# their world (`campaign_variance.serve_campaign`) — on the `historical` seed,
+# where `battle_rng` is None and the dice stay the tool's own `random.seed`.
+# Each scene's third element is an `after(world, executor, result, ...)` that
+# runs the server's own road once the opening clash is fought
+# (`battle_day.settle`, and for a word `_execute_through_the_day`'s sequence)
+# and returns the tableau payload the scene keeps.
+
+def _game_state(world, executor):
+    return {"world": world, "executor": executor}
+
+
+def _settle(world, executor, result, **kw):
+    from backend.game_logic import battle_day
+    with _quiet():
+        battle_day.settle(world, _game_state(world, executor), executor, result, **kw)
+
+
+def _live_day(world, enemy):
+    from backend.game_logic import battle_day
+    return battle_day.day_against(world, enemy)
+
+
+def _give_the_word(world, executor, text_parsed):
+    """The lead's press through the road `main._execute_through_the_day` walks:
+    classify, lend, execute, settle. Returns the executor's result, or None
+    when the order is no word of the day."""
+    from backend.game_logic import battle_day
+    word = battle_day.classify_word(world, text_parsed)
+    if word is None:
+        return None
+    with _quiet():
+        with battle_day.lending(world, word) as meter:
+            result = executor.execute(text_parsed, _game_state(world, executor))
+    _settle(world, executor, result, word=word, spent=int(meter["spent"]))
+    return result
+
+
+def _press(marshal="Ney", foe="Mack"):
+    """The lead's press, the muster's question already answered 'Commit the
+    Attack' (`_muster_confirmed`, the flag the confirmation's own re-issue sets)."""
+    return {"command": {"marshal": marshal, "action": "attack", "target": foe, "type": "specific",
+                        "_muster_confirmed": True}}
+
+
+def _after_opens(world, executor, result, attacker, target):
+    _settle(world, executor, result)
+    return result.get("battle_diorama")
+
+
+def _day_of(payload):
+    day = (payload or {}).get("day")
+    return day if isinstance(day, dict) else {}
+
+
+def _chips(payload, **where):
+    return [c for c in _day_of(payload).get("chips") or []
+            if all(c.get(k) == v for k, v in where.items())]
+
+
+def _want_day_opens(payload, result):
+    day = _day_of(payload)
+    if not day.get("open") or day.get("awaits") != "ours" or day.get("pending") or day.get("follows"):
+        return ""
+    lit = [c for c in _chips(payload, ok=True) if c.get("command")]
+    words = {c.get("word") for c in _chips(payload) if c.get("word")}
+    if not lit or not {"stand", "leave_it", "break_off"} <= words:
+        return ""
+    return (f"a great battle whose day hangs, awaiting our word: {day['ours']} points to {day['theirs']}, "
+            f"{len(lit)} lit order chip(s) ({', '.join(c['label'] for c in lit)}), the stand, "
+            f"leave-it and break-off words")
+
+
+def _want_day_crowded(payload, result):
+    day = _day_of(payload)
+    if not day.get("open") or day.get("awaits") != "ours" or day.get("pending"):
+        return ""
+    if len(day.get("chips") or []) < 10 or day.get("follows"):
+        return ""
+    return (f"a crowded day: {len(day['chips'])} chips (every corps of ours in reach of the field "
+            f"offers a press and a bring-up)")
+
+
+def _after_dim(world, executor, result, attacker, target):
+    from backend.game_logic import battle_day
+    _settle(world, executor, result)
+    payload = result.get("battle_diorama")
+    day = _live_day(world, target)
+    if not isinstance(payload, dict) or day is None or day.get("awaits") != "ours":
+        return payload
+    day["ours"] = 0          # the purse is too short for every priced word
+    payload["day"] = dict(battle_day.block(world, day))
+    return payload
+
+
+def _want_day_dim(payload, result):
+    day = _day_of(payload)
+    if not day.get("open") or day.get("awaits") != "ours":
+        return ""
+    dim = [c for c in _chips(payload, ok=False) if c.get("why")]
+    lit = [c for c in _chips(payload, ok=True)]
+    if not dim or not lit:
+        return ""
+    return (f"a day with its purse spent: {len(dim)} chip(s) dim with a reason "
+            f"({dim[0]['label']!r}: {dim[0]['why']!r}), {len(lit)} word(s) still lit")
+
+
+def _after_word(world, executor, result, attacker, target):
+    _settle(world, executor, result)
+    day = _live_day(world, target)
+    if day is None or day.get("awaits") != "ours" or int(day.get("ours", 0)) < 1:
+        return None
+    again = _give_the_word(world, executor, _press(attacker, target))
+    return (again or {}).get("battle_diorama")
+
+
+def _want_day_word(payload, result):
+    word = _beats(payload, "word")
+    day = _day_of(payload)
+    if not word or not day.get("open") or day.get("awaits") != "ours":
+        return ""
+    return (f"the clash after our word ({word[0].get('text') or word[0].get('line')!r}): "
+            f"{day['ours']} of {day.get('ours_of')} points to {day['theirs']} and the day still hangs"
+            f"{', his clash following' if day.get('follows') else ''}")
+
+
+def _after_night(world, executor, result, attacker, target):
+    _settle(world, executor, result)
+    day = _live_day(world, target)
+    if day is None or day.get("awaits") != "ours":
+        return None
+    day["ours"], day["theirs"] = 1, 0     # our last point, and he has none: night follows our word
+    again = _give_the_word(world, executor, _press(attacker, target))
+    return (again or {}).get("battle_diorama")
+
+
+def _want_day_night(payload, result):
+    day = _day_of(payload)
+    if day.get("open") or day.get("ended") != "night" or day.get("chips"):
+        return ""
+    told = [t.get("line") for t in day.get("told") or []]
+    if "Night falls on an undecided field." not in told:
+        return ""
+    return "a day closed by night: the last clash told, 'Night falls on an undecided field.', no chips"
+
+
+def _clear_the_board(world, keep):
+    """Every corps but `keep` sent far from the field (the French to Paris, the
+    Austrians to Vienna, the Russians to Hungary): a day of two corps, whose
+    chips fit the panel's room."""
+    for name, marshal in world.marshals.items():
+        if name in keep:
+            continue
+        if marshal.nation == "France":
+            marshal.location = "Paris"
+        elif marshal.nation == "Austria":
+            marshal.location = "Vienna"
+        elif marshal.nation == "Russia":
+            marshal.location = "Hungary"
+
+
+def _stage_massena(world, executor):
+    """Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with
+    no other corps near: 96,000 men engaged — a great battle, two corps, and
+    a day whose chips fit the panel."""
+    _clear_the_board(world, {"Massena", "ArchdukeCharles"})
+    _place(world, Massena="Tyrol", ArchdukeCharles="Carniola")
+    return "Massena", "ArchdukeCharles"
+
+
+def _stage_crowded(world, executor):
+    """Ulm with the whole Austrian army and every French corps in reach
+    (`_stage_four`'s board): a day with thirteen chips, more than the panel's
+    room holds on two lines."""
+    return _stage_four(world, executor)
+
+
+def _stage_defence(world, executor):
+    """The enemy's turn: the Archduke Charles, from Carniola, falls on Masséna
+    in the Tyrol — a great battle the ENEMY opened, whose day awaits us."""
+    _clear_the_board(world, {"Massena", "ArchdukeCharles"})
+    _place(world, Massena="Tyrol", ArchdukeCharles="Carniola")
+    # The game offers a day he opened at DAWN, after the turn's fog is read
+    # again (a province beside our corps is in sight): a board placed by hand
+    # keeps the fog of the corps' old stations, and the scene then showed an
+    # attacker the player could not see.
+    world.calculate_visibility()
+    return "ArchdukeCharles", "Massena"
+
+
+def _after_defence(world, executor, result, attacker, target):
+    # the day's key is the ENEMY LEAD's name: the attacker
+    _settle(world, executor, result)
+    return result.get("battle_diorama")
+
+
+def _want_day_defence(payload, result):
+    day = _day_of(payload)
+    if day.get("side") != "defence" or not day.get("open") or day.get("awaits") != "ours":
+        return ""
+    fall = _chips(payload, kind="break_off", label="Fall back")
+    if not fall:
+        return ""
+    state = "lit" if fall[0].get("ok") else f"dim ({fall[0].get('why')!r})"
+    return (f"a day the enemy opened against us, awaiting our word: {day['ours']} points to "
+            f"{day['theirs']}, 'Fall back' among the chips, {state}")
+
+
+def _after_follows_his(world, executor, result, attacker, target):
+    """His clash's tableau — the one whose `day` carries the live chips."""
+    _settle(world, executor, result)
+    reply = ((result.get("battle_day") or {}).get("reply") or {})
+    return reply.get("diorama") if isinstance(reply.get("diorama"), dict) else None
+
+
+def _want_day_follows(payload, result):
+    day = _day_of(payload)
+    reply = ((result.get("battle_day") or {}).get("reply") or {})
+    if not day.get("follows") or day.get("chips") or not day.get("open") or not reply.get("diorama"):
+        return ""
+    return (f"OUR clash's tableau when he strikes back: follows=true and no chips "
+            f"({day['ours']} of {day.get('ours_of')} points to {day['theirs']}); his clash comes next")
+
+
+def _want_day_follows_his(payload, result):
+    day = _day_of(payload)
+    if day.get("follows") or not day.get("open") or day.get("awaits") != "ours":
+        return ""
+    if not [c for c in _chips(payload, ok=True) if c.get("command")]:
+        return ""
+    return (f"HIS clash's tableau after ours: the day's live chips ({len(day['chips'])}) ride it "
+            f"({day['ours']} to {day['theirs']}, his temper {day.get('his_temper')!r})")
+
+
+def _after_decided(world, executor, result, attacker, target):
+    """The Guard goes in on the real Ulm opening's day and the clash DECIDES it."""
+    _settle(world, executor, result)
+    day = _live_day(world, target)
+    if day is None or day.get("awaits") != "ours":
+        return None
+    again = _give_the_word(world, executor, _press("Napoleon", target))
+    return (again or {}).get("battle_diorama")
+
+
+def _want_day_decided(payload, result):
+    day = _day_of(payload)
+    if not day or day.get("open") or day.get("ended") != "decided" or day.get("banner"):
+        return ""
+    return ("a day decided by its clash (the Guard goes in at Ulm): the day is closed with no banner of its own "
+            "— the table builds no panel and stands as any battle's")
+
+
+def _stage_day_guns(world, executor):
+    """The real Ulm opening with TWO French batteries in reach of the field and
+    not in its province (Marmont and Sénarmont, commissioned from the pool and
+    set in the Rhineland beside Swabia): the day offers all three groups —
+    "Another leads", "Bring up" and "The guns"."""
+    from backend.game_logic.recruitment import commission_marshal, find_candidate
+    world.nation_gold["France"] = int(world.nation_gold.get("France", 0)) + 10000
+    with _quiet():
+        for name in ("Marmont", "Senarmont"):
+            commission_marshal(world, "France", find_candidate(world, "France", name))
+    _place(world, Marmont="Rhineland", Senarmont="Rhineland")
+    return "Ney", "Mack"
+
+
+def _want_day_guns(payload, result):
+    day = _day_of(payload)
+    if not day.get("open") or day.get("awaits") != "ours" or day.get("follows") or day.get("pending"):
+        return ""
+    by_kind: dict = {}
+    for chip in day.get("chips") or []:
+        by_kind[chip.get("kind")] = by_kind.get(chip.get("kind"), 0) + 1
+    if by_kind.get("lead", 0) < 2 or by_kind.get("bring_up", 0) < 2 or by_kind.get("cannonade", 0) < 2:
+        return ""
+    return (f"the day offers all three groups on the real Ulm opening: "
+            f"{by_kind['lead']} 'Another leads', {by_kind['bring_up']} 'Bring up', "
+            f"{by_kind['cannonade']} 'The guns' ({len(day['chips'])} chips in all)")
+
+
+def _want_day_ulm(payload, result):
+    day = _day_of(payload)
+    if not day.get("open") or day.get("awaits") != "ours" or day.get("follows") or day.get("his_road") is not False:
+        return ""
+    if not _chips(payload, kind="press", ok=True):
+        return ""
+    return (f"the real Ulm opening: Mack surrounded (his_road false, {day.get('his_temper')!r}), "
+            f"the day open, the lead's press lit among {len(day['chips'])} chips")
+
+
 SCENES = {
     "ulm_full": (_stage_ulm, _want_ulm),
     "the_capitulation": (_stage_ulm, _want_capitulation),
@@ -466,12 +765,29 @@ SCENES = {
     "bombard_link": (_stage_bombard, _want_bombard),
     "bombard_levels": (_stage_bombard_works, _want_bombard_works),
     "bombard_ours": (_stage_bombard_ours, _want_bombard_ours),
+    # BA-3: the day's points (a served world; the third element runs the day's road)
+    "day_opens": (_stage_massena, _want_day_opens, _after_opens),
+    "day_dim_chip": (_stage_massena, _want_day_dim, _after_dim),
+    "day_word": (_stage_massena, _want_day_word, _after_word),
+    "day_night": (_stage_massena, _want_day_night, _after_night),
+    "day_defence": (_stage_defence, _want_day_defence, _after_defence),
+    "day_follows": (_stage_massena, _want_day_follows, _after_opens),
+    "day_follows_his": (_stage_massena, _want_day_follows_his, _after_follows_his),
+    "day_ulm": (_stage_ulm, _want_day_ulm, _after_opens),
+    "day_guns": (_stage_day_guns, _want_day_guns, _after_opens),
+    "day_decided": (_stage_ulm, _want_day_decided, _after_decided),
+    # the known defect's scene (the walk's KNOWN_DEFECTS): a crowded day
+    "day_crowded": (_stage_crowded, _want_day_crowded, _after_follows_his),
 }
 
 
 def fight(name: str, ambient: int):
-    stage, wanted = SCENES[name]
+    stage, wanted, *rest = SCENES[name]
+    after = rest[0] if rest else None
     world, executor = _board()
+    if after is not None:
+        from backend.game_logic import campaign_variance
+        campaign_variance.serve_campaign(world)    # a day exists only on the served road
     random.seed(ambient)
     staged = stage(world, executor)
     if staged is None:
@@ -480,6 +796,11 @@ def fight(name: str, ambient: int):
     with _quiet():
         result = executor._execute_attack(
             world.marshals[attacker], target, world, {"world": world, "executor": executor})
+    if after is not None and isinstance(result, dict) and isinstance(result.get("battle_diorama"), dict):
+        kept = after(world, executor, result, attacker, target)
+        if not isinstance(kept, dict):
+            return None, "", {"message": "the day did not reach the state the scene needs"}
+        return kept, wanted(kept, result), result
     payload = result.get("battle_diorama") if isinstance(result, dict) else None
     if not isinstance(payload, dict):
         return None, "", result
@@ -491,6 +812,8 @@ def main() -> int:
     ap.add_argument("--out", default=str(DEFAULT_OUT))
     ap.add_argument("--only", nargs="*", default=[])
     args = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # a scene's line may quote "−10"
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     manifest_path = out / "manifest.json"

@@ -1,0 +1,254 @@
+{
+ "battle_name": "The Great Battle of Carniola",
+ "region": "Carniola",
+ "turn": 1,
+ "outcome": "defender_tactical_victory",
+ "victor": "ArchdukeCharles",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": true,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Massena",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 42000,
+    "casualties": 6805,
+    "remaining": 35195,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 6805,
+  "committed_total": 42000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "ArchdukeCharles",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 54000,
+    "casualties": 4296,
+    "remaining": 49704,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 4296,
+  "committed_total": 54000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Geography was our enemy today, Sire. Archduke Charles held the superior ground.",
+ "enemy_voice": "Archduke Charles: \"Austria has lost battles to France. Not this one.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena attacks Archduke Charles at Carniola.",
+      "weight": "detail"
+     },
+     {
+      "kind": "ground",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles stands on the heights (+15%).",
+      "weight": "detail",
+      "terrain_pct": 15,
+      "works_pct": 0,
+      "walls_pct": 0,
+      "square": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena goes in at the head of his men (+15%).",
+      "weight": "head",
+      "temper": "aggressive",
+      "pct": 15,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "ability",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles's regiments stand steady: Habsburg Resolve (+3%).",
+      "weight": "head",
+      "pct": 3,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "The fortune of the day: Massena rolls 3, +2 for his eye for ground: 5.",
+      "weight": "head",
+      "natural": 3,
+      "skill": 2,
+      "flank": 0,
+      "modified": 5,
+      "critical": "",
+      "swing": -2,
+      "fortune_attacker": 3,
+      "fortune_defender": -3
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Massena": "aggressive",
+   "ArchdukeCharles": "cautious"
+  }
+ },
+ "day": {
+  "open": true,
+  "enemy": "ArchdukeCharles",
+  "enemy_shown": "Archduke Charles",
+  "lead": "Massena",
+  "lead_shown": "Massena",
+  "field": "Carniola",
+  "field_shown": "Carniola",
+  "side": "attack",
+  "ours": 2,
+  "theirs": 2,
+  "ours_of": 2,
+  "theirs_of": 3,
+  "awaits": "ours",
+  "pending": false,
+  "morning": "The last clash: lost on points — 6,805 of ours for 4,296 of his.",
+  "ahead": "theirs",
+  "told": [
+   {
+    "who": "theirs",
+    "kind": "dig_in",
+    "line": "Archduke Charles digs in."
+   }
+  ],
+  "ended": "",
+  "banner": "The day hangs",
+  "chips": [
+   {
+    "kind": "press",
+    "label": "Massena presses",
+    "price": 1,
+    "command": "Massena, attack Archduke Charles",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "unfavorable",
+    "marshal": "Massena",
+    "shown": "Massena"
+   },
+   {
+    "kind": "dig_in",
+    "label": "Massena digs in",
+    "price": 1,
+    "command": "Massena, defend",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "possible",
+    "odds": "",
+    "marshal": "Massena",
+    "shown": "Massena"
+   },
+   {
+    "kind": "stand",
+    "label": "Massena stands",
+    "price": 0,
+    "command": "",
+    "word": "stand",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Massena",
+    "shown": "Massena"
+   },
+   {
+    "kind": "break_off",
+    "label": "Break off",
+    "price": 0,
+    "command": "",
+    "word": "break_off",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Massena",
+    "shown": "Massena"
+   },
+   {
+    "kind": "stand",
+    "label": "Leave it to Massena",
+    "price": 0,
+    "command": "",
+    "word": "leave_it",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Massena",
+    "shown": "Massena"
+   }
+  ],
+  "his_temper": "Cautious",
+  "his_road": true,
+  "reply": {
+   "who": "theirs",
+   "kind": "dig_in",
+   "line": "Archduke Charles digs in."
+  }
+ }
+}

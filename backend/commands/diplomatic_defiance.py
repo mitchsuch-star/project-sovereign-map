@@ -51,7 +51,7 @@ def _defiance_floor_for_authority(authority: int) -> float:
     return SCHEMER_FLOOR
 
 
-def calculate_diplomatic_defiance_chance(talleyrand, world) -> float:
+def calculate_diplomatic_defiance_chance(talleyrand, world, rng=None) -> float:
     """Calculate probability of Talleyrand defying the player's proposal.
 
     Mirrors V2b combat defiance curve with diplomat-specific parameters.
@@ -60,6 +60,8 @@ def calculate_diplomatic_defiance_chance(talleyrand, world) -> float:
     Args:
         talleyrand: DiplomaticRepresentative (France's diplomat)
         world: WorldState for authority/cooldown data
+        rng: WS-16 — the campaign's stream for this proposal
+            (`campaign_variance.temper_rng`); None is the module `random`.
 
     Returns:
         Float probability (0.02 to 0.30 for schemer, 0.0 for loyalist)
@@ -90,8 +92,8 @@ def calculate_diplomatic_defiance_chance(talleyrand, world) -> float:
 
     # PL-23: Trust removed — authority is sole driver of Talleyrand's independence
 
-    # Variance: random.uniform(-0.05, 0.05)
-    variance = random.uniform(-0.05, 0.05)
+    # Variance: uniform(-0.05, 0.05) — the campaign's where one is played (WS-16)
+    variance = (rng if rng is not None else random).uniform(-0.05, 0.05)
     final = base + variance
 
     # Hard cap and E7 authority-banded floor
@@ -388,8 +390,12 @@ def check_sabotage_discovery(sabotage: Dict, world) -> bool:
     cumulative = turns_hidden * 0.10
     total_chance = min(1.0, base_chance + cumulative)
 
-    # In mock/deterministic mode, use threshold check
-    roll = random.random()
+    # WS-16: the turn's own draw where a campaign is played — the same turn
+    # read again (a dispatch rebuilt, a save loaded) finds the same answer.
+    from backend.game_logic import campaign_variance as _cv
+    _rng = _cv.temper_rng(world, "sabotage_discovery", sabotage.get("sabotage_type"),
+                          int(turns_hidden or 0), saved=False)
+    roll = (_rng if _rng is not None else random).random()
     return roll < total_chance
 
 
@@ -924,15 +930,26 @@ def roll_drafting_pushback(terms: Dict, context: Dict, world) -> bool:
     elif authority < 50:
         base += 0.10
 
+    # WS-16: one stream for this draft's variance and its roll, the campaign's
+    # where one is played — the same draft from the same save is pushed back
+    # on, or is not, every time. None: the module `random`, as before.
+    from backend.game_logic import campaign_variance as _cv
+    _rng = _cv.temper_rng(
+        world, "drafting_pushback", context.get("proposal_type"),
+        context.get("target_nation") or terms.get("target_nation")
+        or context.get("nation") or context.get("target"),
+        int(context.get("modify_count", 0) or 0))
+    _dice = _rng if _rng is not None else random
+
     # Variance ±5%
-    variance = random.uniform(-0.05, 0.05)
+    variance = _dice.uniform(-0.05, 0.05)
     final = base + variance
 
     # Cap at 30%, schemer floor at 2% (when harshness > 0.4)
     final = min(0.30, final)
     final = max(0.02, final)
 
-    return random.random() < final
+    return _dice.random() < final
 
 
 def roll_drafting_pushback_deterministic(terms: Dict, context: Dict, world) -> float:

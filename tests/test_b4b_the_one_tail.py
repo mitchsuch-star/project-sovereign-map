@@ -119,6 +119,12 @@ CONVERTED_TAILS = [
     "_apply_world_swap_response",
     "_on_glorious_charge_response",
     "_on_capture_choice_response",
+    # Row BA, BA-3 (November 15, 2026): the envoy popup's "Not Now" — the spec's
+    # list missed it. An incoming letter rides an order's answer and is routed
+    # FIRST; set aside, it re-enabled the line by itself and the table that
+    # answer had stashed (a battle's tableau, a day's closing frame) was shown
+    # only after the next order. Found by the live walk of the defended day.
+    "_on_incoming_proposal_choice",
 ]
 
 
@@ -141,11 +147,17 @@ def _stashers(src):
 
 class TestTheStashIsOneChokepoint:
 
-    def test_there_are_nine_stashers(self, src):
-        """A census, so a tenth surface cannot be added beside the chokepoint.
+    def test_there_are_ten_stashers(self, src):
+        """A census, so an eleventh surface cannot be added beside the chokepoint.
         (Eight until CF-4, October 17, 2026, added the remedy's — the ↳
-        offer-slot stash that rides the chokepoint like the relay's.)"""
+        offer-slot stash that rides the chokepoint like the relay's. Nine until
+        row BA's BA-3, November 15, 2026, added the day's: `_stash_battle_day`
+        reads a response's `battle_day` — the day of battle's panel, his clash
+        to follow ours — and rides the chokepoint like every other. Its builder
+        first named it `_take_the_day` so that this census would not count it;
+        it was renamed back: a stasher is counted.)"""
         assert _stashers(src) == [
+            "_stash_battle_day",
             "_stash_deferred_dialogue", "_stash_diorama", "_stash_ending",
             "_stash_envoy_digest", "_stash_petition", "_stash_proclamation",
             "_stash_redemption", "_stash_relay", "_stash_remedy",
@@ -353,7 +365,9 @@ def _payloads(mp):
             m.location = "Vienna"
             m.strategic_order = None
     mp.setattr(executor_mod, "evaluate_situation", lambda *a, **k: ConcernLevel.STRONG)
-    mp.setattr(executor_mod, "apply_mood_variance", lambda concern: concern)
+    # WS-16 (row BA, BA-3): this board is a served campaign on a rolled seed,
+    # where the mood's own stream is handed in — the double takes it.
+    mp.setattr(executor_mod, "apply_mood_variance", lambda concern, **_: concern)
     random.seed(7)
     with _quiet():
         asked = _post(client, "/command", {"command": "Massena, attack Archduke John"})

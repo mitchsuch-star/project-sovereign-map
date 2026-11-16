@@ -1,0 +1,189 @@
+{
+ "battle_name": "The Great Battle of Carniola",
+ "region": "Carniola",
+ "turn": 1,
+ "outcome": "defender_tactical_victory",
+ "victor": "ArchdukeCharles",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "defeat",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": true,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Massena",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 42000,
+    "casualties": 8745,
+    "remaining": 33255,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 8745,
+  "committed_total": 42000,
+  "reserve_casualties": 0,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "ArchdukeCharles",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 54000,
+    "casualties": 3772,
+    "remaining": 50228,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 3772,
+  "committed_total": 54000,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "Geography was our enemy today, Sire. Archduke Charles held the superior ground.",
+ "enemy_voice": "Archduke Charles: \"Austria has lost battles to France. Not this one.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena attacks Archduke Charles at Carniola.",
+      "weight": "detail"
+     },
+     {
+      "kind": "ground",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles stands on the heights (+15%).",
+      "weight": "detail",
+      "terrain_pct": 15,
+      "works_pct": 0,
+      "walls_pct": 0,
+      "square": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "Massena goes in at the head of his men (+15%).",
+      "weight": "head",
+      "temper": "aggressive",
+      "pct": 15,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles holds his ground and lets them come.",
+      "weight": "detail",
+      "temper": "cautious",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "ability",
+      "side": "defender",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles's regiments stand steady: Habsburg Resolve (+3%).",
+      "weight": "head",
+      "pct": 3,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Massena",
+      "text": "The fortune of the day: Massena rolls 8, +2 for his eye for ground: 10.",
+      "weight": "head",
+      "natural": 8,
+      "skill": 2,
+      "flank": 0,
+      "modified": 10,
+      "critical": "",
+      "swing": 10,
+      "fortune_attacker": -9,
+      "fortune_defender": 9
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Massena": "aggressive",
+   "ArchdukeCharles": "cautious"
+  }
+ },
+ "day": {
+  "open": true,
+  "enemy": "ArchdukeCharles",
+  "enemy_shown": "Archduke Charles",
+  "lead": "Massena",
+  "lead_shown": "Massena",
+  "field": "Tyrol",
+  "field_shown": "Tyrol",
+  "side": "attack",
+  "ours": 2,
+  "theirs": 2,
+  "ours_of": 2,
+  "theirs_of": 3,
+  "awaits": "ours",
+  "pending": false,
+  "morning": "The last clash: drawn — 4,334 of ours for 4,294 of his.",
+  "ahead": "even",
+  "told": [
+   {
+    "who": "theirs",
+    "kind": "strike",
+    "line": "Archduke Charles strikes back."
+   }
+  ],
+  "ended": "",
+  "banner": "The day hangs",
+  "chips": [],
+  "his_temper": "Cautious",
+  "his_road": true,
+  "reply": {
+   "who": "theirs",
+   "kind": "strike",
+   "line": "Archduke Charles strikes back."
+  },
+  "follows": true
+ }
+}

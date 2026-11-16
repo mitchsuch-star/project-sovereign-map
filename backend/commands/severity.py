@@ -88,7 +88,8 @@ def calculate_objection_severity(
 
     # Step 3: Apply tiered variance
     if include_variance:
-        severity = apply_variance(severity)
+        severity = apply_variance(severity, **_seeded(
+            game_state, marshal, (order or {}).get("action"), (order or {}).get("target")))
 
     # Step 4: Cap at 0.95
     severity = min(0.95, max(0.0, severity))
@@ -216,7 +217,25 @@ def get_authority_modifier(game_state) -> float:
     return 1.0
 
 
-def apply_variance(severity: float) -> float:
+def _seeded(game_state, marshal, *identity) -> Dict:
+    """WS-16: the severity's variance comes off the campaign's seed where a
+    campaign is played — the same order from the same save reads the same
+    severity. Returns the keyword for `apply_variance`, or nothing at all (the
+    module `random`, exactly as before) on the `historical` seed, off the
+    served road and with the seam held down."""
+    world = game_state
+    if isinstance(game_state, dict):
+        world = game_state.get("world")
+    elif not hasattr(game_state, "authority_tracker"):
+        world = getattr(game_state, "world", None)
+    if world is None:
+        return {}
+    from backend.game_logic import campaign_variance as _cv
+    rng = _cv.temper_rng(world, "severity", getattr(marshal, "name", ""), *identity)
+    return {"rng": rng} if rng is not None else {}
+
+
+def apply_variance(severity: float, rng=None) -> float:
     """
     Apply tiered random variance to severity.
 
@@ -237,7 +256,7 @@ def apply_variance(severity: float) -> float:
     else:
         variance_range = 0.12
 
-    variance = random.uniform(-variance_range, variance_range)
+    variance = (rng if rng is not None else random).uniform(-variance_range, variance_range)
     return severity + variance
 
 
@@ -308,7 +327,8 @@ def calculate_strategic_severity(
 
     # Apply variance if enabled
     if include_variance:
-        severity = apply_variance(severity)
+        severity = apply_variance(severity, **_seeded(
+            game_state, marshal, strategic_type, round(float(base_severity), 3)))
 
     # Cap at 0.95
     return min(0.95, max(0.0, severity))

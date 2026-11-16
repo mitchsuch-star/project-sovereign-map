@@ -2040,7 +2040,12 @@ class StrategicExecutor:
                 elif v_score < 0 and base_concern != ConcernLevel.NONE:
                     new_val = max(base_concern.value - 1, ConcernLevel.MILD.value)
                     vindication_shifted = ConcernLevel(new_val)
-                strategic_concern = apply_mood_variance(vindication_shifted)
+                # WS-16: the mood is the campaign's where a campaign is played.
+                from backend.game_logic import campaign_variance as _cv
+                _mood = _cv.temper_rng(ctx.world, "mood", ctx.marshal.name,
+                                       ctx.strategic_type, ctx.target)
+                strategic_concern = apply_mood_variance(
+                    vindication_shifted, **({"rng": _mood} if _mood is not None else {}))
                 # Track last objection turn for vindication decay
                 if base_concern != ConcernLevel.NONE:
                     ctx.marshal.last_objection_turn = ctx.world.current_turn
@@ -4138,12 +4143,21 @@ class StrategicExecutor:
                 marshal.modify_trust(v2_insist_penalty)
                 _trust_penalty_applied = True
 
+            # WS-16: the chance's variance and the roll are the campaign's where
+            # a campaign is played (the tactical road's twin, `meta_executor`).
+            from backend.game_logic import campaign_variance as _cv
+            _ws16_who = (marshal_name, strategic_type, (original_command or {}).get("target"))
+            _chance_rng = _cv.temper_rng(world, "defiance_chance", *_ws16_who)
+            _roll_rng = _cv.temper_rng(world, "defiance_roll", *_ws16_who)
+
             # N7 fix: No defiance if marshal is broken/retreating (stale objection via save/load)
             if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
                 defiance_chance = 0.0
             else:
-                defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
-            defiance_roll = random.random()
+                defiance_chance = calculate_defiance_chance(
+                    marshal, concern_level_val, world,
+                    **({"rng": _chance_rng} if _chance_rng is not None else {}))
+            defiance_roll = (_roll_rng if _roll_rng is not None else random).random()
 
             if defiance_roll < defiance_chance:
                 # ═══ STRATEGIC DEFIANCE FIRES ═══

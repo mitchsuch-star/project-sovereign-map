@@ -15,7 +15,8 @@ class_name CodexTerms
 # (supply attrition), backend/game_logic/calendar.py, backend/game_logic/
 # vassal.py, backend/game_logic/diplomacy.py (OBJECTIVE_TYPE_DISPLAY),
 # backend/ai/validation.py (VALID_ACTIONS), backend/ai/question_desk.py and
-# the boot help in main.gd (_print_boot_help).
+# the boot help in main.gd (_print_boot_help); the day's points, great battles
+# and the Guard from backend/game_logic/battle_day.py (row BA, BA-3).
 # Terms are sorted A to Z.
 
 const TERMS: Array = [
@@ -33,6 +34,7 @@ const TERMS: Array = [
 	["Cavalry limits", "Horses cannot sit still. A cavalry corps held in a defensive stance for three turns is switched to aggressive, and one fortified for three turns is unfortified, each at a cost of 3 trust. Infantry has no such limit."],
 	["Coalition", "The price of winning. As your threat in Europe climbs, courts that dislike France (relations below -10, not your vassals) gather against you: at 60 a coalition begins to brew for three turns, at 80 it is declared at once. Its weakest member, the one most worn by war, may be approached for separate terms."],
 	["Crowns and recognition", "A new crown can be erected at the peace table, and a marshal may be crowned king, which costs you your best sword and leaves the marshals passed over with grievances. Legitimist courts may withhold recognition of a new crown."],
+	["The day's points", "When a great battle does not decide the day, the day stays open and each side holds points for the rest of it: two, or three under a commander of high command (8 or more). You and the enemy speak in turns, and the side that did not open the battle speaks first. A word is an order you already know, and it costs points, never an action: the lead presses, another corps leads, the guns open, a corps is brought up or the lead digs in for one point; the Guard for two. To stand, to break off, to fall back or to leave the rest of the day to your marshal costs nothing. The enemy answers by his own temper. Two silences in a row, both purses empty or a side leaving the field, and night falls. Say nothing and your corps has stood: he plays what he has left as your turn ends."],
 	["Declared goals (war purpose)", "The stated reason for a war: Conquest, Subjugation, Forced Alliance, Defense or Liberation. It costs no action, and it decides what the peace table may legitimately demand."],
 	["Defiance", "After you insist on an order against a marshal's moderate, strong or extreme objection, he may refuse and do what his nature prefers. The chance is capped at 40%. Aggressive men attack and cautious men fortify; a Literal marshal never defies."],
 	["Diplomatic points (DP)", "The Cabinet's currency. Proposals, missions and the other acts of diplomacy are priced in them, and they return each turn."],
@@ -45,6 +47,8 @@ const TERMS: Array = [
 	["Fortify", "A marshal digs in and gains a defensive bonus that grows 2% a turn to a ceiling of 12% (8% for an aggressive man). Enemy bombardment can strip it away."],
 	["Garrison", "Detach 3,000 men from a marshal to hold a province you control, for two actions. A court may keep at most three garrisons, the capital's included. A capital garrison replenishes itself; a detachment does not."],
 	["Glory and grievance", "Victories raise a marshal's glory, and the marshal at the head of the ladder is Crowned with Glory (+1 shock, +1 defense, +1 administration). The others grow jealous, bring petitions to you, and in the end may march on their own."],
+	["Great battle", "A battle with 80,000 men or more engaged, both sides together. A great battle that does not decide the day is fought on in turns (see The day's points); a smaller battle is one clash, as ever."],
+	["The Guard", "In a day of battle the Emperor's own attack is the Guard going in, for two points. As it goes in, the enemy's lead loses 10 morale. If it is thrown back, every corps of yours that fought loses 10."],
 	["Intelligence levels", "What you know of a province: Full (names, exact strength, morale), Partial (names and a strength band), Stale or Last known (an old snapshot, marked with its age) and Unknown (the province is there, nothing is known of its troops)."],
 	["Le Moniteur (the Gazette)", "The periodical of the capital: a printed issue every few turns, with a back-issue archive you can page through. It tells the war, the courts and the army as the paper saw them."],
 	["Marshal recruitment", "A court with a bench of candidates may commission a new marshal for his price in gold, one administrative action and a first corps of 5,000 men from the infantry pool. He arrives at the capital."],

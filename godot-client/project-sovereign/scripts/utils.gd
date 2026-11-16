@@ -745,6 +745,7 @@ const UI_PLAQUE_DIM_INK := Color(0.72, 0.72, 0.74, 1.0)       # a stale plaque's
 const UI_PLAQUE_FADED_RIM := Color(0.62, 0.62, 0.64, 0.55)    # a stale plaque's rim
 const UI_PLAQUE_FADE_TO := Color(0.5, 0.5, 0.5)               # a stale plaque's band fades toward it
 const COLOR_BADGE_QUIET := "6b6f80"                            # the region panel's kind-of-province badge
+const COLOR_BADGE_QUIET_SOLID := "5f6376"                      # a quiet badge drawn as a SOLID fill (the enemy phase's outcome badges): f4ead2 on it reads 4.97:1; COLOR_BADGE_QUIET stays for the translucent tags
 const UI_DISABLED_TEXT := Color(0.55, 0.55, 0.55, 0.8)      # the title screen's disabled button text
 const UI_FAINT_BORDER := Color(0.5, 0.48, 0.42, 0.2)        # the title screen's disabled button border
 # Session UI-4: a WAITING title-screen button's ink — no face, still read (4.5 : 1+ on the dark painting)

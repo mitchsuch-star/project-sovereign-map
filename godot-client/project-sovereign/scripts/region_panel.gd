@@ -298,6 +298,7 @@ func refresh_if_open() -> void:
 	"""Re-render from the map node's current data after a chip command lands
 	(the map itself refreshes from every response's game_state.map_data)."""
 	if visible and _region != "" and _map_node != null:
+		_quotes.erase("day")   # row BA, BA-3: the day's chips are stale once an order landed
 		_render()
 		quotes_requested.emit(_region)   # CC-2: an order landed — re-quote
 
@@ -1100,6 +1101,15 @@ func _render() -> void:
 		bbcode = bbcode.substr(0, actions_at) + actions + "\n" + bbcode.substr(actions_at)
 	if folded_facts != "":
 		bbcode = bbcode.substr(0, actions_at) + folded_facts + bbcode.substr(actions_at)
+	# Row BA, BA-3 (K14): an open day that awaits our word is the most pressing
+	# thing in its province — its block (heading, morning, chips) is the FIRST
+	# section: under the province's own header lines (and, Folded, the figures
+	# row) and above ACTIONS, not down among the ATTACK rows.
+	if _quotes_region == _region and not _quotes.is_empty():
+		var day_text := _day_block()
+		if day_text != "":
+			var day_at: int = actions_at + folded_facts.length()
+			bbcode = bbcode.substr(0, day_at) + day_text + bbcode.substr(day_at)
 
 	content_area.text = bbcode
 	# fit_content needs a layout pass before get_content_height() is real.
@@ -1909,6 +1919,58 @@ func _march_here_section() -> String:
 					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
 				out += _quote_rows(row.get("quotes", []))
 	return out
+
+
+func _day_chip_tip(chip: Dictionary) -> String:
+	var parts: Array = []
+	if not bool(chip.get("ok", false)) and str(chip.get("why", "")) != "":
+		parts.append(str(chip.get("why", "")))
+	if str(chip.get("counsel", "none")) == "possible":
+		parts.append("The marshal may object to this word.")
+	if str(chip.get("odds", "")) != "":
+		parts.append("The odds read: " + str(chip.get("odds", "")) + ".")
+	return " ".join(PackedStringArray(parts))
+
+
+func _day_block() -> String:
+	"""Row BA, BA-3: a day of battle open on this field and awaiting OUR word
+	(the quotes' `day` block): the chips the table offers, above the ATTACK
+	rows. An order chip carries `@day:` + its command, a word chip
+	`@word:<word>:<enemy>` — main.gd routes both; the table's own panel is the
+	same chips."""
+	var day = _quotes.get("day", null)
+	if not (day is Dictionary) or not bool(day.get("open", false)) \
+			or str(day.get("awaits", "")) != "ours" or bool(day.get("pending", false)):
+		return ""
+	var chips = day.get("chips", [])
+	if not (chips is Array) or (chips as Array).is_empty():
+		return ""
+	var title := "THE DAY AT " + str(day.get("field_shown", "")).to_upper() + " — " \
+		+ Utils.plural(int(day.get("ours", 0)), "point").to_upper()   # BA3-X19: "1 POINT"
+	var row := []
+	# the server orders the words once for every surface: array order, never re-sorted
+	for chip in chips:
+		if not (chip is Dictionary):
+			continue
+		# a word that costs nothing shows no price
+		var price := int(chip.get("price", 0))
+		var label := str(chip.get("label", "")) if price <= 0 \
+			else "%s · %d" % [str(chip.get("label", "")), price]
+		var tip := _day_chip_tip(chip)
+		var word := str(chip.get("word", ""))
+		var command := ("@word:%s:%s" % [word, str(day.get("enemy", ""))]) if word != "" \
+			else "@day:" + str(chip.get("command", ""))
+		if bool(chip.get("ok", false)) and command != "@day:":
+			row.append(Utils.bb_button_chip("do:" + command, label, Utils.COLOR_GOLD, _CHIP_BG, "", tip))
+		else:
+			row.append(Utils.bb_chip_disabled(label, "", tip))
+	if row.is_empty():
+		return ""
+	var out := "\n" + Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE + "\n"
+	var morning := str(day.get("morning", ""))
+	if morning != "":
+		out += "  [color=#" + Utils.COLOR_INFO + "]" + morning + "[/color]\n"
+	return out + _chip_row(row) + "\n"
 
 
 func _march_caption(title: String, sentence: String) -> String:

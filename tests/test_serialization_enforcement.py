@@ -472,6 +472,11 @@ class TestWorldStateSerializationEnforcement:
         world.pending_redemption = {"marshal": "Davout", "options": []}
         world.battles_this_turn = [{"attacker": "Ney", "defender": "Wellington"}]
         world.command_history = [{"turn": 1, "command": "attack"}]
+        # Row BA (BA-3): the open days of battle are written ONLY when there
+        # is one (an ordinary save stays byte for byte what it was), so the
+        # populated world carries one — `tests/test_ba3_the_rounds.py` pins
+        # both halves (written when open; absent when none).
+        world.battle_days = {"days": {"Wellington": {"lead": "Ney", "ours": 2, "theirs": 2}}}
 
         instance_attrs = get_instance_attributes(world)
         serialized_keys = get_serialized_keys(world)

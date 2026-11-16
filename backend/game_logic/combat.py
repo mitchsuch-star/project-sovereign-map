@@ -987,7 +987,7 @@ class CombatResolver:
                     and combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD) < FORCED_RETREAT_THRESHOLD
                     and combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD) < combatant.morale <= FORCED_RETREAT_THRESHOLD):
                 retreat_message += (
-                    f"\n\n{combatant.name}'s regiments close ranks — they will not break. "
+                    f"\n\n{humanize_entity_name(combatant.name)}'s regiments close ranks — they will not break. "
                     f"(Habsburg Resolve: holds to {int(combatant.get_rout_threshold(FORCED_RETREAT_THRESHOLD))}% morale)"
                 )
 

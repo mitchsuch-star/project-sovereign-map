@@ -31,9 +31,12 @@ from tools import defect_census as census  # noqa: E402
 # gate; AU-1's two courts' rows are homed to the AU-4 slice (the courts' flip).
 # Row BA (the battle in acts — BA-1 … BA-3, all before S15 by the user's ruling
 # of November 14, 2026, "Before the deploy") joined with its gate; WS-16 (the
-# reload's other dice) is homed to BA-3, the crisis that needs them seeded.
+# reload's other dice) was homed to BA-3 and closed there. BA-4 ("the roads
+# and the fog") joined November 15, 2026 with the user's approval of BA-3's
+# plan: every BA2 row that moves a measured world-line lands there, with one
+# re-read of the gate, still before S15.
 SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-i]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b|\bAU-[1-4][abc]?\b"
-                     r"|\bBA-[1-3]\b")
+                     r"|\bBA-[1-4]\b")
 
 
 def _open_rows():

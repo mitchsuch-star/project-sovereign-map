@@ -168,6 +168,8 @@ NAVAL_STATE_CHANGED = "naval_state_changed"          # HIGH: the sea changed
 # phase's own guard kept its moves and reported the trace (`errors.report`);
 # the player is told on the rail. Producer: `turn_manager.note_court_turn_failed`.
 COURT_TURN_FAILED = "court_turn_failed"              # HIGH: a court skipped its turn
+# Row BA (BA-3): a great battle's day hangs and awaits the player's word.
+BATTLE_DAY_AWAITS = "battle_day_awaits"              # HIGH: "The day at <field> hangs"
 
 
 # ── The rail-exempt set (REV-V3) ────────────────────────────────────────────
@@ -217,6 +219,7 @@ EVENT_NOTICE_TYPES = frozenset({
     BALANCE_OF_EUROPE_SHIFTED,        # commitments routing (a band crossed)
     NAVAL_STATE_CHANGED,              # DDB-X6: the sea changed (HIGH)
     COURT_TURN_FAILED,                # T0-A TURN-1: "<court> did not complete its turn" (HIGH)
+    BATTLE_DAY_AWAITS,                # row BA (BA-3): "The day at <field> hangs" (HIGH)
 })
 
 

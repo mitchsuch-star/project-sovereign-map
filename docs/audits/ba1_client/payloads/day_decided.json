@@ -1,0 +1,264 @@
+{
+ "battle_name": "Second Battle of Swabia",
+ "region": "Swabia",
+ "turn": 1,
+ "outcome": "attacker_tactical_victory",
+ "victor": "Napoleon",
+ "attacker_nation": "France",
+ "defender_nation": "Austria",
+ "player_side": "attacker",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": false,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Napoleon",
+    "nation": "France",
+    "arm": "emperor",
+    "committed": 9499,
+    "casualties": 187,
+    "remaining": 9312,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": true
+   },
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 24697,
+    "casualties": 368,
+    "remaining": 24329,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 21687,
+    "casualties": 257,
+    "remaining": 21430,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Soult",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 30000,
+    "casualties": 0,
+    "remaining": 30000,
+    "status": "refused",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false,
+    "absence_reason": "awaits explicit orders"
+   }
+  ],
+  "reserve_count": 2,
+  "casualties_total": 1379,
+  "committed_total": 94205,
+  "reserve_casualties": 567,
+  "nation": "France"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 30557,
+    "casualties": 28298,
+    "remaining": 2259,
+    "status": "routed",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 0,
+  "casualties_total": 28298,
+  "committed_total": 30557,
+  "reserve_casualties": 0,
+  "nation": "Austria"
+ },
+ "observation": "The Emperor watched this field. A costly day for Mack: the losses ran two to one in Napoleon's favour, and Mack is still in the field. And Mack was taken on that field — France holds him.",
+ "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "Napoleon attacks Mack at Swabia.",
+      "weight": "detail"
+     },
+     {
+      "kind": "plan",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "The plan: Napoleon leads; the attack from 2 provinces (+1 on the dice).",
+      "weight": "head",
+      "supports": [],
+      "came": 0,
+      "flank": 1,
+      "origins": [
+       "Rhineland",
+       "Swabia"
+      ],
+      "drilled": 0,
+      "stance": "",
+      "stance_pct": 0,
+      "guns": []
+     },
+     {
+      "kind": "absent",
+      "side": "attacker",
+      "actor": "Soult",
+      "text": "Soult does not come: awaits explicit orders.",
+      "weight": "head",
+      "status": "refused"
+     },
+     {
+      "kind": "flank",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "The attack comes in from 2 provinces (Rhineland, Swabia): +1 on the dice.",
+      "weight": "head",
+      "bonus": 1,
+      "origins": [
+       "Rhineland",
+       "Swabia"
+      ]
+     },
+     {
+      "kind": "presence",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "The Emperor commands in person: +10% along the line.",
+      "weight": "head",
+      "pct": 10,
+      "dimmed": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "The line dresses on the Emperor and goes forward.",
+      "weight": "head",
+      "temper": "sovereign",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack stands where he was posted.",
+      "weight": "detail",
+      "temper": "literal",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "stance",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack stands on the defensive (+15%).",
+      "weight": "detail",
+      "pct": 15,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "The fortune of the day: Napoleon rolls 7, +3 for his eye for ground, +1 for the flank: 11.",
+      "weight": "head",
+      "natural": 7,
+      "skill": 3,
+      "flank": 1,
+      "modified": 11,
+      "critical": "",
+      "swing": 12,
+      "fortune_attacker": 0,
+      "fortune_defender": 7
+     },
+     {
+      "kind": "break",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack is taken on the field.",
+      "weight": "head",
+      "how": "captured",
+      "morale": 0
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Napoleon": "sovereign",
+   "Davout": "cautious",
+   "Ney": "aggressive",
+   "Soult": "literal",
+   "Mack": "literal"
+  }
+ },
+ "day": {
+  "open": false,
+  "enemy": "Mack",
+  "enemy_shown": "Mack",
+  "lead": "Ney",
+  "lead_shown": "Ney",
+  "field": "Swabia",
+  "field_shown": "Swabia",
+  "side": "attack",
+  "ours": 0,
+  "theirs": 1,
+  "ours_of": 2,
+  "theirs_of": 2,
+  "awaits": "",
+  "pending": false,
+  "morning": "The last clash: won on points — 1,379 of ours for 28,298 of his.",
+  "ahead": "ours",
+  "told": [
+   {
+    "who": "theirs",
+    "kind": "dig_in",
+    "line": "Mack digs in."
+   },
+   {
+    "who": "ours",
+    "kind": "guard",
+    "line": "The Guard goes in."
+   }
+  ],
+  "ended": "decided",
+  "banner": "",
+  "chips": []
+ }
+}

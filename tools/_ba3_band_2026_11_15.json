@@ -1,0 +1,651 @@
+{
+ "_note": "Row BA, BA-3 (the day's points) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328) with the day's points: score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row, plus the run's day counters (meta.json `rounds`). Arm 0 holds every new seam down and is the recorded 26 / 27 / 28; ALL is the shipped tree with `--rounds sense`. Written by tools/_ba3_measure.py (run ALONE).",
+ "_note_at_the_stop": "Row BA, BA-3: the measure AT THE STOP (BATTLE_DIORAMA_SPEC.md 15.15), taken before the fixes of 15.16 (a word behind the muster's question, the Guard on either side, the table's read under the state lock). Superseded by tools/_ba3_sweep_2026_11_15.json (nine arms, eight seeds) and tools/_ba3_arms_2026_11_15.json (the exploratory arms); kept as the record of what the stop saw.",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "days_ended": {},
+    "days_opened": 0,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days_ended": {},
+    "days_opened": 0,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days_ended": {},
+    "days_opened": 0,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "rounds": "(absent)",
+   "seams": [
+    "backend.game_logic.battle_day:the_day_has_points=False",
+    "backend.game_logic.campaign_variance:the_temper_is_seeded=False",
+    "backend.game_logic.campaign_variance:the_narration_varies=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "days_ended": {
+     "fell_back": 2
+    },
+    "days_opened": 2,
+    "provinces": 22,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2,
+     "dig_in": 1
+    },
+    "words_given": 3
+   },
+   "CMD-H": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1,
+     "night": 1
+    },
+    "days_opened": 4,
+    "provinces": 23,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 2,
+     "stand": 1
+    },
+    "words_given": 4
+   },
+   "rounds": "sense",
+   "seams": []
+  },
+  "B": {
+   "CMD-A": {
+    "days_ended": {
+     "broke_off": 2,
+     "fell_back": 3
+    },
+    "days_opened": 5,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 5
+    },
+    "words_given": 5
+   },
+   "CMD-H": {
+    "days_ended": {
+     "broke_off": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2
+    },
+    "words_given": 2
+   },
+   "CMD-M": {
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2,
+     "fell_back": 1
+    },
+    "days_opened": 4,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2
+    },
+    "words_given": 2
+   },
+   "rounds": "break_off",
+   "seams": []
+  },
+  "D": {
+   "CMD-A": {
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1
+    },
+    "days_opened": 2,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "CMD-H": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "rounds": "dig_in",
+   "seams": []
+  },
+  "E0": {
+   "CMD-A": {
+    "days_ended": {
+     "broke_off": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 1
+    },
+    "words_given": 2
+   },
+   "CMD-H": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1,
+     "night": 1
+    },
+    "days_opened": 4,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 2,
+     "stand": 1
+    },
+    "words_given": 4
+   },
+   "rounds": "sense",
+   "seams": [
+    "backend.game_logic.battle_day:the_enemy_spends_his=False"
+   ]
+  },
+  "G": {
+   "CMD-A": {
+    "days_ended": {
+     "broke_off": 1,
+     "drew_off": 1,
+     "end_turn": 1
+    },
+    "days_opened": 3,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 2
+    },
+    "words_given": 2
+   },
+   "CMD-H": {
+    "days_ended": {
+     "over": 1
+    },
+    "days_opened": 1,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 1
+    },
+    "words_given": 1
+   },
+   "rounds": "guard",
+   "seams": []
+  },
+  "K50": {
+   "CMD-A": {
+    "days_ended": {
+     "fell_back": 3
+    },
+    "days_opened": 3,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 3,
+     "dig_in": 2,
+     "stand": 1
+    },
+    "words_given": 6
+   },
+   "CMD-H": {
+    "days_ended": {
+     "decided": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 1
+    },
+    "words_given": 2
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1,
+     "night": 1
+    },
+    "days_opened": 4,
+    "provinces": 23,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 2,
+     "stand": 1
+    },
+    "words_given": 4
+   },
+   "rounds": "sense",
+   "seams": [
+    "backend.game_logic.battle_day:key_bar=50000"
+   ]
+  },
+  "L": {
+   "CMD-A": {
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 2,
+     "drew_off": 1,
+     "end_turn": 1
+    },
+    "days_opened": 5,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 4
+    },
+    "words_given": 4
+   },
+   "CMD-H": {
+    "days_ended": {
+     "broke_off": 2
+    },
+    "days_opened": 2,
+    "provinces": 29,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 2
+    },
+    "words_given": 2
+   },
+   "CMD-M": {
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 1,
+     "drew_off": 1,
+     "end_turn": 1
+    },
+    "days_opened": 4,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 3
+    },
+    "words_given": 3
+   },
+   "rounds": "leave",
+   "seams": []
+  },
+  "N2": {
+   "CMD-A": {
+    "days_ended": {
+     "fell_back": 2
+    },
+    "days_opened": 2,
+    "provinces": 22,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2,
+     "dig_in": 1
+    },
+    "words_given": 3
+   },
+   "CMD-H": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1,
+     "night": 1
+    },
+    "days_opened": 4,
+    "provinces": 23,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 2,
+     "stand": 1
+    },
+    "words_given": 4
+   },
+   "rounds": "sense",
+   "seams": [
+    "backend.game_logic.battle_day:points_high=2"
+   ]
+  },
+  "N3": {
+   "CMD-A": {
+    "days_ended": {
+     "fell_back": 2
+    },
+    "days_opened": 2,
+    "provinces": 22,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2,
+     "dig_in": 1
+    },
+    "words_given": 3
+   },
+   "CMD-H": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1,
+     "night": 1
+    },
+    "days_opened": 4,
+    "provinces": 23,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 2,
+     "stand": 1
+    },
+    "words_given": 4
+   },
+   "rounds": "sense",
+   "seams": [
+    "backend.game_logic.battle_day:points_low=3"
+   ]
+  },
+  "NG": {
+   "CMD-A": {
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 1,
+     "night": 1,
+     "over": 1
+    },
+    "days_opened": 4,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 3,
+     "press": 1,
+     "stand": 1
+    },
+    "words_given": 5
+   },
+   "CMD-H": {
+    "days_ended": {
+     "over": 1
+    },
+    "days_opened": 1,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 1
+    },
+    "words_given": 1
+   },
+   "rounds": "guard",
+   "seams": [
+    "backend.game_logic.battle_day:the_guards_numbers_bite=False"
+   ]
+  },
+  "P": {
+   "CMD-A": {
+    "days_ended": {
+     "over": 2
+    },
+    "days_opened": 2,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 2
+    },
+    "words_given": 2
+   },
+   "CMD-H": {
+    "days_ended": {
+     "over": 1
+    },
+    "days_opened": 1,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 1
+    },
+    "words_given": 1
+   },
+   "CMD-M": {
+    "days_ended": {
+     "end_turn": 1,
+     "over": 3
+    },
+    "days_opened": 4,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 3
+    },
+    "words_given": 3
+   },
+   "rounds": "press",
+   "seams": []
+  },
+  "S": {
+   "CMD-A": {
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days_ended": {
+     "end_turn": 1
+    },
+    "days_opened": 1,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "rounds": "none",
+   "seams": []
+  },
+  "T": {
+   "CMD-A": {
+    "days_ended": {},
+    "days_opened": 0,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days_ended": {},
+    "days_opened": 0,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days_ended": {},
+    "days_opened": 0,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "rounds": "(absent)",
+   "seams": [
+    "backend.game_logic.battle_day:the_day_has_points=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

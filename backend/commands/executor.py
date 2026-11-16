@@ -2850,7 +2850,13 @@ class CommandExecutor:
                         new_val = max(base_concern.value - 1, ConcernLevel.MILD.value)
                         vindication_shifted = ConcernLevel(new_val)
 
-                    concern = apply_mood_variance(vindication_shifted)
+                    # WS-16: the mood is the campaign's where a campaign is
+                    # played — the same order from the same save, the same mood.
+                    from backend.game_logic import campaign_variance as _cv
+                    _mood = _cv.temper_rng(world, "mood", marshal.name, action,
+                                           (command or {}).get("target"))
+                    concern = apply_mood_variance(
+                        vindication_shifted, **({"rng": _mood} if _mood is not None else {}))
 
                     # V2b: Update last_objection_turn for any concern (including MILD)
                     if base_concern != ConcernLevel.NONE:

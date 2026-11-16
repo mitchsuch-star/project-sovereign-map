@@ -634,6 +634,192 @@ SHOTS: list[dict] = [
         "must_show": "the attack's price and Berthier's muster, then 'Bring up' and a chip per "
                      "corps with the reason beside it; Send / Put in line / Cancel whole",
     },
+    # ═══ Row BA, BA-3 (November 15, 2026) — the day's points (capture group
+    # `the_days_points`) ═════════════════════════════════════════════════════
+    # A great battle that does not decide the day is a DAY. The panel is a
+    # RESULT mark (hidden while the acts play, built at rest in the room of the
+    # verdict, the name plate, the seal and the laurels — the tray does not
+    # grow), so the settled frames are `show_diorama(payload, false)`; one
+    # mid-act frame proves it ABSENT while the acts play. Reduce motion is ON
+    # in this harness for every frame (iq10_surface_screenshot.gd), so a table
+    # whose clash is followed ("His answer ▸") never advances by itself (the 2.5 s
+    # rest is off under Reduce motion) and the frame is the table at rest.
+    # What a frame must show, from battle_acts.gd `_build_the_day`: the
+    # headline (the block's `banner`, upper-cased, neutral colour) with the
+    # SUB-BANNER under it reading the block's `morning`; A the head line, fullest
+    # "The day's points — <lead> pips against <enemy> pips · temper · road" (the
+    # prefix drops first, then road, then temper — one line at any size); B the
+    # last word told; C the lead's own chips (price after a dot); D the other
+    # kinds on one line each ('Another leads · 1:', 'Bring up · 1:', 'The guns ·
+    # 1:' then name-only chips) or, when the rows do not fit, all groups INLINE
+    # in a full-width box; E the exits, vertically CENTRED on Replay and Close,
+    # clear of the frame (the stand, Break off / Fall back, then '|' and 'Leave
+    # it to <lead>' on its own green ground). A dim chip is grey and its reason
+    # a hover (the instruments skip a disabled control; the frame is for the eye).
+    *[
+        {
+            "id": f"diorama_ba3_{scene}",
+            "surface": f"Battle Diorama — BA-3, the day's panel ({label})",
+            "payload": f"diorama_ba3_{scene}",
+            "scene": "res://scenes/battle_diorama.tscn",
+            "mode": "call", "method": "show_diorama",
+            "args": ["$payload", False],
+            "must_show": must,
+        }
+        for scene, label, must in [
+            ("day_opens", "a day that hangs, awaiting our word",
+             "the headline 'THE DAY HANGS' where the verdict would be, 'The last clash: …' (the "
+             "morning line) under it as the sub-banner; no verdict, name plate or seal on the "
+             "table; ONE head line \"The day's points — <lead> [pips] against <enemy> [pips]\" "
+             "(a pip per point: lit gold, spent grey, as many slots as each purse held) then his "
+             "temper and the road if they fit; the lead's chip(s) with their price, the group "
+             "lines, and level with Replay and Close the exits (a stand, Break off, '|', 'Leave "
+             "it to <lead>'); every chip clear of the buttons; nothing clipped at scale 2.0"),
+            ("day_dim_chip", "the purse spent: every priced word dim",
+             "the head line with our pips ALL grey (0 of 2) beside his (2 of 3); every priced "
+             "chip grey (dim, its reason a hover), the free words (a stand, Break off, Leave it "
+             "to) still lit; a dim chip no less whole than a lit one; the sub-banner's morning "
+             "line"),
+            ("day_word", "the clash after our word; his clash follows",
+             "the clash at rest with `follows`: the primary button reads 'His answer ▸' with "
+             "Replay moved left of it, no chips and no exits (the live chips ride HIS clash); the "
+             "head line (1 of 2 against 1 of 3) and the told block whole above the buttons' row "
+             "(our word and its clash told in it); the headline and its sub-banner"),
+            ("day_night", "a day closed by night",
+             "the headline 'NIGHT FALLS' (the closed block's own banner) with the morning line as "
+             "the sub-banner; the head line with its pips, then the told block whole above the "
+             "buttons' row (ours in gold, his plain, the end in italics: 'Night falls on an "
+             "undecided field.'); no chips, no exits; the primary button reads Close"),
+            ("day_defence", "a day the enemy opened against us",
+             "his day on our ground: the head line with no road clause (his_road is null on a day "
+             "he opened); the lead's chip worded as a riposte ('<lead> strikes back'), 'Fall "
+             "back' among the exits (a command chip, not a word), no 'Break off' word; the "
+             "morning line under 'THE DAY HANGS'"),
+            ("day_follows", "OUR clash when he strikes back (his clash follows)",
+             "our clash's tableau at rest with `follows`: the primary button reads 'His answer ▸', "
+             "Replay beside it, the head line and the told block whole, NO chips and no exits "
+             "(the live chips ride HIS clash, which comes next); the table does not move on by "
+             "itself in this harness (Reduce motion)"),
+            ("day_follows_his", "HIS clash, the live chips",
+             "the tableau of his strike carrying the day's live panel: the head line (his "
+             "temper), row B, the lead's chips, the groups and the exits level with Replay and "
+             "Close, as for a day that awaits us; the primary button reads Close; the figures of "
+             "this clash, not ours"),
+            ("day_ulm", "the real Ulm opening: Mack surrounded",
+             "the head line with 'no road behind him' if the width allows (else in the head's "
+             "hover); the lead's press lit among thirteen chips; the groups' labels ('Another "
+             "leads', 'Bring up') once each with their price, the groups laid stacked or inline "
+             "as the room allows; the exits centred on the buttons"),
+            ("day_crowded", "a crowded day: thirteen chips",
+             "the walk's crowded board (`_stage_four`: the whole Austrian army, every French corps in reach; thirteen chips): the rows' fit — rows C and E "
+             "whole, the groups inline or scrolled by whole rows, never a cut row, never over "
+             "the exits; the shelves give their room if the rows do not fit under the faction "
+             "bars; read what the instruments say"),
+            ("day_guns", "the real Ulm with two batteries in reach: sixteen chips",
+             "all THREE group lines — 'Another leads · 1:', 'Bring up · 1:', 'The guns · 1:' — "
+             "with their name-only chips (sixteen chips in all), laid stacked or INLINE in a "
+             "full-width box as the room allows; rows C and E whole; the groups never over the "
+             "exits row nor under Replay / Close"),
+            ("dawn_table", "the table that rises at dawn (a day he opened)",
+             "the enemy phase's own tableau for a day he opened, read at dawn: 'THE DAY HANGS' "
+             "and its morning line, the head line (his temper, no road), 'Ney strikes back' and "
+             "'Fall back' LIT with the other chips as the server quoted them — not a table with "
+             "both purses and no word to give"),
+            ("night_table", "his last night clash, night written on it",
+             "his clash's tableau with the night's close: 'NIGHT FALLS' and the morning line, the "
+             "head line with HIS purse spent (0 of 2), the told block ending 'Night falls on an "
+             "undecided field.' in italics; no chips, no exits; primary button Close"),
+        ]
+    ],
+    {
+        "id": "diorama_ba3_act_approach",
+        "surface": "Battle Diorama — BA-3 (mid-act: the day's panel is ABSENT)",
+        "payload": "diorama_ba3_day_opens",
+        "scene": "res://scenes/battle_diorama.tscn",
+        "mode": "call", "method": "show_diorama",
+        "args": ["$payload", False],
+        "steps": [{"call": "_on_replay_pressed"}],
+        "settle_ms": 3500,
+        "must_show": "the acts playing over a day's payload: I · THE APPROACH named, the "
+                     "development's sentence, a corps marching in — and NONE of the day's panel: "
+                     "no head line, no pips, no chip, no exit, no 'THE DAY HANGS' headline and no "
+                     "morning sub-banner (a result mark, held back until the table is final, the "
+                     "skip hint gone); the host's own name plate (THE GREAT BATTLE OF <field>) "
+                     "and seal stand at the foot beside the skip hint (they give their room to "
+                     "the panel only at rest)",
+    },
+    {
+        "id": "region_ba3_the_day",
+        "surface": "Region Action Panel — a province where a day is open (BA-3)",
+        "payload": "region_ba3_the_day",
+        "scene": "res://scenes/region_panel.tscn",
+        "mode": "map_stub", "method": "show_region",
+        "args": ["Carniola", "$map"],
+        "steps": [
+            {"call": "set_march_quotes", "args": ["Carniola", "$payload.quotes"]},
+            {"wait": 8},
+        ],
+        "must_show": "the open day's block is the FIRST section under the province's header rows and above "
+                     "ACTIONS: 'THE DAY AT CARNIOLA — 2 POINTS', the morning line, then ONE row of the "
+                     "chips the table offers (lit gold on the chip ground, a dim one grey, 'Leave it to "
+                     "<lead>' among them), visible on first view without a scroll at 1920x1080 AND at "
+                     "5120x1440; the chips wrap whole inside the 400 px panel",
+    },
+    {
+        "id": "order_card_ba3_great_battle",
+        "surface": "Order card — an attack that opens a great battle (BA-3)",
+        "payload": "order_ba3_great_battle",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS FOR NEY", "", []],
+        "must_show": "the attack's price and Berthier's muster, then ONE gold line 'A great battle "
+                     "— Ney commands the day: 2 points. No road lies open behind him.'; then the "
+                     "bring-up chips; Send / Put in line / Cancel whole; the card whole at scale "
+                     "2.0",
+    },
+    {
+        "id": "enemy_phase_ba3_day_awaits",
+        "surface": "Enemy-phase dialog — a battle whose day awaits us, from a real end turn (BA-3)",
+        "payload": "enemy_phase_ba3_day_awaits",
+        "scene": "res://scenes/enemy_phase_dialog.tscn",
+        "mode": "call", "method": "show_enemy_phase",
+        "args": ["$payload.enemy_phase", "$payload.turn"],
+        "must_show": "the Austrian action's battle row badged 'THE DAY HANGS' (the day's banner in capitals, "
+                     "bone on the solid quiet grey fill, not the clash's DEFEAT / VICTORY), the "
+                     "'⚔ View the field' link and, beneath it in the warning colour, '— the day awaits "
+                     "your word'; no raw key; nothing clipped at scale 2.0",
+    },
+    {
+        "id": "enemy_phase_ba3_night",
+        "surface": "Enemy-phase dialog — a battle on which night fell, from a real end turn (BA-3)",
+        "payload": "enemy_phase_ba3_night",
+        "scene": "res://scenes/enemy_phase_dialog.tscn",
+        "mode": "call", "method": "show_enemy_phase",
+        "args": ["$payload.enemy_phase", "$payload.turn"],
+        "must_show": "the action's battle row badged 'NIGHT FALLS' (the closed day's banner in capitals on "
+                     "the same solid quiet grey fill) with the '⚔ View the field' link and NO '— the "
+                     "day awaits your word' line (the day is closed: `open` false, ended night); a "
+                     "plain STALEMATE or BATTLE badge, where one stands, on the same fill; no raw key; "
+                     "nothing clipped at scale 2.0",
+    },
+    {
+        "id": "rail_ba3_day_awaits",
+        "surface": "Notice rail — 'The day at <field> hangs', opened, with its button (BA-3)",
+        "payload": "notifications_ba3_day_awaits",
+        "scene": "res://scenes/notification_bar.tscn",
+        "mode": "call", "method": "update_notifications",
+        "place": {"position": [0, 0], "height": 120},
+        "steps": [
+            {"call": "_on_fold_chip_pressed", "then_wait": 4},
+            {"press": {"meta_key": "notification_data", "meta_field": "type",
+                       "equals": "battle_day_awaits"}},
+            {"wait": 12},
+        ],
+        "must_show": "the rail row tagged 'DAY' (sword glyph) among the turn's other notices and, "
+                     "opened, the detail panel: the title 'The day at Rhineland hangs', the "
+                     "message naming both leads and the points to spend, and in the button row "
+                     "'Take the field' beside Keep / Acknowledge; nothing clipped at scale 2.0",
+    },
     {
         "id": "enemy_phase_iq5",
         "surface": "Enemy-phase dialog (IQ-5 scope board)",
@@ -2093,6 +2279,32 @@ SHOTS += [
         "settle_ms": 1800,
         "must_show": "the war card's tooltip — the peace table, court by court, the standing — on an "
                      "OPAQUE panel, wrapped, inside the window",
+    },
+]
+
+
+# Row BA, BA-3 (K12, November 15, 2026): the end-turn gate's warning for a day
+# that awaits our word — the war-room host (real main.tscn behind MainStub), the
+# real `/command` answer's `pending_battle_days` handed to main.gd's own
+# `_take_pending_battle_days` (what `_sync_response_hud` calls), then ONE press
+# of the End Turn button (its own `pressed` signal, the way `_press` does).
+SHOTS += [
+    {
+        "id": "war_room_ba3_day_gate",
+        "surface": "The war room — End Turn pressed once with a day of battle open (BA-3, K12)",
+        "payload": "war_room_ba3_day",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS + [
+            {"call": "_take_pending_battle_days", "args": ["$payload.day_response"], "then_wait": 6},
+            {"node": "@end_turn_button", "call": "emit_signal", "args": ["pressed"], "then_wait": 30},
+        ],
+        "settle": 40,
+        "must_show": "in the command window, in the warning colour, the WHOLE sentence 'The day at <field> "
+                     "still hangs — <lead> holds 2 points. End the turn and <enemy> answers alone.' "
+                     "above its chip (any other gate's sentence may stand before it), and under it a "
+                     "gold chip 'Take the field — <field>'; the 'press End Turn again' line; the turn "
+                     "NOT ended (the turn counter unchanged)",
     },
 ]
 

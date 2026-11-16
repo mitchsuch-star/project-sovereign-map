@@ -324,6 +324,63 @@ def note_court_turn_failed(world, nation: str) -> None:
         _errors.report(exc, "turn_manager.note_court_turn_failed: the rail row")
 
 
+def _the_days_night(manager, game_state) -> list:
+    """Row BA (BA-3): before the enemy's phase, every day of battle still open
+    is played out with our silence (`battle_day.night_falls`). Returns the
+    executor's own results of what he did, [] where no day is open — which is
+    every turn of a world the server does not hold."""
+    from backend.game_logic import battle_day as _day
+    world = manager.world
+    if not _day.open_days(world):
+        return []
+    try:
+        executor = getattr(manager, "executor", None)
+        if executor is None:
+            from backend.commands.executor import CommandExecutor
+            executor = CommandExecutor()
+        return _day.night_falls(world, game_state, executor)
+    except Exception as exc:
+        _errors.report(exc, "turn_manager._the_days_night: battle_day.night_falls")
+        return []
+
+
+def _join_the_night(world, enemy_phase_results, night) -> None:
+    """The night's strikes are his court's first actions of the phase's
+    telling: each result goes to the head of its court's own list."""
+    if not night or not isinstance(enemy_phase_results, dict):
+        return
+    nations = enemy_phase_results.setdefault("nations", {})
+    for result in reversed(night):
+        marshal = world.get_marshal(str((result.get("ai_action") or {}).get("marshal") or ""))
+        nation = getattr(marshal, "nation", None)
+        if not nation:
+            continue
+        row = nations.setdefault(nation, {"actions": [], "action_count": 0})
+        row.setdefault("actions", []).insert(0, result)
+        row["action_count"] = int(row.get("action_count", 0) or 0) + 1
+        enemy_phase_results["total_actions"] = int(
+            enemy_phase_results.get("total_actions", 0) or 0) + 1
+
+
+def _the_days_dawn(manager, game_state, phase=None) -> None:
+    """Row BA (BA-3): the new turn — the night's bars are lifted and the days
+    the phase opened against us are offered (`battle_day.at_dawn`); the
+    tableaux the phase's telling carries then read the day as it stands at
+    dawn (`battle_day.dawn_on_the_tableaux`)."""
+    from backend.game_logic import battle_day as _day
+    world = manager.world
+    try:
+        if getattr(world, "battle_days", None):
+            executor = getattr(manager, "executor", None)
+            if executor is None and game_state:
+                from backend.commands.executor import CommandExecutor
+                executor = CommandExecutor()
+            _day.at_dawn(world, game_state, executor)
+        _day.dawn_on_the_tableaux(world, phase)
+    except Exception as exc:
+        _errors.report(exc, "turn_manager._the_days_dawn: battle_day.at_dawn")
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -578,7 +635,9 @@ class TurnManager:
         # ════════════════════════════════════════════════════════════
         enemy_phase_results = None
         if game_state and not _resuming:
+            _night = _the_days_night(self, game_state)   # row BA (BA-3): night falls on the open days
             enemy_phase_results = self._process_enemy_turns(game_state)
+            _join_the_night(self.world, enemy_phase_results, _night)
 
             # BUG #2 FIX: Check if enemy achieved victory during their turn
             if enemy_phase_results and enemy_phase_results.get("enemy_victory"):
@@ -665,6 +724,7 @@ class TurnManager:
             _advanced = True
         else:
             debug_print(f"[WARNING] Double advance_turn prevented in end_turn! current_turn={self.world.current_turn}")
+        _the_days_dawn(self, game_state, enemy_phase_results)   # row BA (BA-3): the days the phase opened are offered
 
         # DD-1 S7 Slice B (the fuzzer's I6 on a live seed, DD1-7's class):
         # the standing marshal petition is read AGAIN after `advance_turn` —

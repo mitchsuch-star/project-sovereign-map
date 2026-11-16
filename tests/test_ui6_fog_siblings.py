@@ -1681,7 +1681,14 @@ class TestUI6X35ABattleNeverPlacesAManOutOfSight:
 
     @pytest.mark.parametrize("line", ["Murat, charge Archduke John", "Murat, charge Tyrol"])
     @pytest.mark.parametrize("blood", [80, 1])
-    def test_the_report_names_him_and_not_his_province(self, road, line, blood):
+    def test_the_report_names_him_and_not_his_province(self, road, line, blood, monkeypatch):
+        # Row BA, BA-3 (November 15, 2026): this charge opens a day of battle,
+        # and the Archduke John's first word brings the Archduke Charles UP
+        # again from the province he had just withdrawn to. The row reads the
+        # battle's own report and aftermath: the day's seam is held down (what
+        # the day then does is pinned in `tests/test_ba3_the_rounds.py`).
+        from backend.game_logic import battle_day as _battle_day
+        monkeypatch.setattr(_battle_day, "the_day_has_points", lambda: False)
         client, snap = road
         reply, moved, _s, w = _send(client, snap, line, tweak=_murat_blood_up(blood))
         message = reply["message"]

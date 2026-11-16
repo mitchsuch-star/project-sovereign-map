@@ -27,6 +27,7 @@ extends PopupBase
 # =============================================================================
 
 signal dismissed
+signal word_given(command: String)   # row BA, BA-3: a day's chip pressed
 
 # ── Geometry (design px; Utils.clamp_centered_panel shrinks on small screens)
 const TRAY_W := 1000.0

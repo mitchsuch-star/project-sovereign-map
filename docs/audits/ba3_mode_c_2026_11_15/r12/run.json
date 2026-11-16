@@ -1,0 +1,190 @@
+{
+ "board": "r12",
+ "port": 8006,
+ "seed": {
+  "seed": "ba3-walk-10"
+ },
+ "started": "2026-11-16T06:05:58",
+ "lead_before": "Tyrol",
+ "engine_exit": 0,
+ "engine_s": 59.6,
+ "lead_after": "Tyrol",
+ "server_days": {
+  "success": true,
+  "days": []
+ },
+ "engine_log_bytes": 12403,
+ "script_errors": [],
+ "engine_errors": 1,
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 2,
+  "ms": 58155,
+  "results": [
+   {
+    "did": "booted the real main.tscn against the sandboxed backend",
+    "ok": true,
+    "saw": "booted=true turn=1 actions=4",
+    "step": "boot"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "kind": "press",
+       "label": "Massena presses",
+       "marshal": "Massena",
+       "odds": "unfavorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Carniola",
+     "field_shown": "Carniola",
+     "his_road": true,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The last clash: drawn — 6,413 of ours for 5,027 of his.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reply": {
+      "kind": "dig_in",
+      "line": "Archduke Charles digs in.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the card's Send",
+    "ok": true,
+    "saw": "the table up=true; the day: ours 2.0 / his 2.0, awaits 'ours', open=true",
+    "step": "day_opens"
+   },
+   {
+    "did": "typed the lead's dig-in with the table closed",
+    "ok": true,
+    "saw": "the log's order chip for the lead's press stands='day:Massena, attack Archduke Charles'; the day's purse in the client's latest block: 1.0",
+    "step": "typed_word"
+   },
+   {
+    "actions_after": 4,
+    "actions_before": 4,
+    "did": "End Turn through the gate with the day open, the phase left, then the old log chip pressed on the new turn",
+    "holds": true,
+    "live_before": true,
+    "live_on_new_turn": false,
+    "ok": true,
+    "reached": true,
+    "saw": "turn 1 -> 2 (2 End Turn press(es), the phase's dialog came up=true; tail: [\"Continue\", \"table closed\"]); server days open now=0; _day_latest still holds ArchdukeCharles=false; chip 'Massena, attack Archduke Charles' live before=true, live on the new turn=false; HUD actions before the press 4, after 4 (spent=false); sent a typed order=false; the log since:   => HOLDS",
+    "sent": false,
+    "server_days": 0,
+    "spent": false,
+    "step": "r12_old_chip"
+   }
+  ],
+  "steps": [
+   {
+    "frame": "BA3_WALK_01_typed_word_2026_11_15.jpg",
+    "ms": 35071,
+    "note": "the day told in the log, its chips written there",
+    "saved": true,
+    "step": "typed_word",
+    "turn": 1
+   },
+   {
+    "frame": "BA3_WALK_02_r12_new_turn_2026_11_15.jpg",
+    "ms": 57312,
+    "note": "the new turn, the old day's chip in the log",
+    "saved": true,
+    "step": "r12_new_turn",
+    "turn": 2
+   },
+   {
+    "frame": "BA3_WALK_03_r12_after_the_press_2026_11_15.jpg",
+    "ms": 58155,
+    "note": "after pressing the old chip on the new turn",
+    "saved": true,
+    "step": "r12_after_the_press",
+    "turn": 2
+   }
+  ],
+  "words": []
+ },
+ "total_s": 62.9
+}

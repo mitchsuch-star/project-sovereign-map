@@ -293,5 +293,150 @@
   "beats": {
    "cannonade": 3
   }
+ },
+ "day_opens": {
+  "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
+  "ambient_seed": 18,
+  "shows": "a great battle whose day hangs, awaiting our word: 2 points to 2, 2 lit order chip(s) (Massena presses, Massena digs in), the stand, leave-it and break-off words",
+  "kind": "battle",
+  "form": "full",
+  "register": "defeat",
+  "beats": {
+   "approach": 2,
+   "assault": 3,
+   "crisis": 2
+  }
+ },
+ "day_dim_chip": {
+  "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
+  "ambient_seed": 0,
+  "shows": "a day with its purse spent: 2 chip(s) dim with a reason ('Massena presses': \"The day's points are spent.\"), 3 word(s) still lit",
+  "kind": "battle",
+  "form": "full",
+  "register": "defeat",
+  "beats": {
+   "approach": 2,
+   "assault": 3,
+   "crisis": 2
+  }
+ },
+ "day_word": {
+  "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
+  "ambient_seed": 1,
+  "shows": "the clash after our word ('Massena presses the attack.'): 1 of 2 points to 1 and the day still hangs, his clash following",
+  "kind": "battle",
+  "form": "brief",
+  "register": "defeat",
+  "beats": {
+   "approach": 3,
+   "assault": 4,
+   "crisis": 2
+  }
+ },
+ "day_night": {
+  "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
+  "ambient_seed": 1,
+  "shows": "a day closed by night: the last clash told, 'Night falls on an undecided field.', no chips",
+  "kind": "battle",
+  "form": "brief",
+  "register": "defeat",
+  "beats": {
+   "approach": 3,
+   "assault": 4,
+   "crisis": 2
+  }
+ },
+ "day_defence": {
+  "staging": "The enemy's turn: the Archduke Charles, from Carniola, falls on Masséna in the Tyrol — a great battle the ENEMY opened, whose day awaits us.",
+  "ambient_seed": 0,
+  "shows": "a day the enemy opened against us, awaiting our word: 2 points to 3, 'Fall back' among the chips, lit",
+  "kind": "battle",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 2,
+   "assault": 3,
+   "crisis": 2
+  }
+ },
+ "day_crowded": {
+  "staging": "Ulm with the whole Austrian army and every French corps in reach (`_stage_four`'s board): a day with thirteen chips, more than the panel's room holds on two lines.",
+  "ambient_seed": 5,
+  "shows": "a crowded day: 13 chips (every corps of ours in reach of the field offers a press and a bring-up)",
+  "kind": "battle",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 4,
+   "assault": 2,
+   "crisis": 2
+  }
+ },
+ "day_follows": {
+  "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
+  "ambient_seed": 0,
+  "shows": "OUR clash's tableau when he strikes back: follows=true and no chips (2 of 2 points to 2); his clash comes next",
+  "kind": "battle",
+  "form": "full",
+  "register": "defeat",
+  "beats": {
+   "approach": 2,
+   "assault": 3,
+   "crisis": 2
+  }
+ },
+ "day_follows_his": {
+  "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
+  "ambient_seed": 0,
+  "shows": "HIS clash's tableau after ours: the day's live chips (5) ride it (2 to 2, his temper 'Cautious')",
+  "kind": "battle",
+  "form": "full",
+  "register": "grim",
+  "beats": {
+   "approach": 3,
+   "assault": 3,
+   "crisis": 2
+  }
+ },
+ "day_ulm": {
+  "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
+  "ambient_seed": 0,
+  "shows": "the real Ulm opening: Mack surrounded (his_road false, 'Literal'), the day open, the lead's press lit among 13 chips",
+  "kind": "battle",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 5,
+   "assault": 3,
+   "crisis": 2,
+   "pursuit": 1
+  }
+ },
+ "day_guns": {
+  "staging": "The real Ulm opening with TWO French batteries in reach of the field and not in its province (Marmont and Sénarmont, commissioned from the pool and set in the Rhineland beside Swabia): the day offers all three groups — \"Another leads\", \"Bring up\" and \"The guns\".",
+  "ambient_seed": 1,
+  "shows": "the day offers all three groups on the real Ulm opening: 5 'Another leads', 3 'Bring up', 2 'The guns' (16 chips in all)",
+  "kind": "battle",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 5,
+   "assault": 3,
+   "crisis": 2,
+   "pursuit": 1
+  }
+ },
+ "day_decided": {
+  "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
+  "ambient_seed": 0,
+  "shows": "a day decided by its clash (the Guard goes in at Ulm): the day is closed with no banner of its own — the table builds no panel and stands as any battle's",
+  "kind": "battle",
+  "form": "full",
+  "register": "triumph",
+  "beats": {
+   "approach": 5,
+   "assault": 3,
+   "crisis": 2
+  }
  }
 }

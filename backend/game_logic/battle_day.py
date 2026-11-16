@@ -1,0 +1,1500 @@
+"""Row BA, session BA-3 — "the day's points": a great battle fought in turns.
+
+The user's frame (November 15, 2026; `docs/BATTLE_DIORAMA_SPEC.md` §15.14):
+"what if battles just have x amount of points in them and how you and enemy
+use them is at discretion?" — the points from **the commander**, the enemy to
+spend his on **all that you can**, and "small battles show the screen current
+state it just doesnt need all mechanics".
+
+WHAT IT IS. When a GREAT battle (80,000 men or more engaged — the game's own
+bar, `WorldState.GREAT_BATTLE_THRESHOLD`) the player is party to does not
+decide the day, the day stays open and each side holds POINTS for the rest of
+it: 2, or 3 under a commander of high command (`Marshal.RALLY_FAST_COMMAND`).
+The sides speak in turns — the one that did not open speaks first — and each
+word is resolved at once. A word is an order the game already has, FREE OF
+ACTIONS: the opening attack cost its action as it always did, nothing after
+it costs one. Two silences in a row, both purses empty, or a side leaving the
+field: night falls.
+
+WHAT IT IS NOT. A small battle is one clash, told as it is told today: this
+module opens nothing for it and its tableau carries no `day`. And nothing
+here exists outside a campaign the game SERVER holds
+(`campaign_variance.campaign_is_served`): a world a test or a measuring
+harness builds for itself keeps the game it pins.
+
+THE STORE. `world.battle_days = {"days": {<enemy lead>: day}, "barred": {...}}`
+— a day is our quarrel with one enemy corps. Saved only when it holds
+something (`WorldState.to_dict`), so an ordinary save is byte for byte what it
+was.
+
+THE SEAMS are zero-argument functions read through this module (the driver's
+`--seam backend.game_logic.battle_day:<name>=EXPR` replaces the attribute):
+`the_day_has_points`, `the_enemy_spends_his`, `the_guard_goes_in`,
+`the_guards_numbers_bite`, `a_marshal_may_be_left_to_it`; and the three
+numbers as functions too — `points_low`, `points_high`, `key_bar`.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import weakref
+from contextvars import ContextVar
+from typing import Any, Dict, List, Optional
+
+from backend.errors import report
+from backend.game_logic import campaign_variance as _cv
+
+# ════════════════════════════════════════════════════════
+# The numbers (the user's rulings 4 and 5; NP-D1's two are the user's own)
+# ════════════════════════════════════════════════════════
+
+POINTS = 2                  # a commander's points for the day
+POINTS_HIGH_COMMAND = 3     # ...under a commander of high command
+PRICES = {
+    "press": 1,        # the lead presses
+    "lead": 1,         # another corps leads
+    "cannonade": 1,    # a battery cannonades
+    "bring_up": 1,     # a corps is brought up
+    "dig_in": 1,       # the lead digs in
+    "guard": 2,        # the Guard goes in
+    "stand": 0,        # to stand
+    "break_off": 0,    # to break off / fall back
+    "strike": 1,       # his: he strikes back (a press, from his side)
+    "draw_off": 0,     # his: he leaves the field
+}
+GUARD_SHOCK = 10      # NP-D1: his lead's morale, as the Guard goes in
+GUARD_RECOIL = 10     # NP-D1: every corps of ours that fought, if it is thrown back
+LEND = 3              # the actions lent to a word while it is executed (never kept)
+TURNS_CAP = 12        # a day's words, at most — a guard against a loop, never reached
+HANGING = ("stalemate", "attacker_tactical_victory", "defender_tactical_victory")
+
+
+def the_day_has_points() -> bool:
+    """The seam of the whole: down, no day is ever opened (every battle is one
+    clash, as before BA-3)."""
+    return True
+
+
+def the_enemy_spends_his() -> bool:
+    """Down, his purse is shut: he stands at every turn of a day (the measure's
+    arm E0 — what his say is worth)."""
+    return True
+
+
+def the_guard_goes_in() -> bool:
+    """Down, the sovereign leading a renewed assault is another corps leading
+    (one point, no morale numbers)."""
+    return True
+
+
+def the_guards_numbers_bite() -> bool:
+    """NP-D1's two morale writes. Down, the Guard costs its two points and
+    moves no morale (the measure's arm NG)."""
+    return True
+
+
+def a_marshal_may_be_left_to_it() -> bool:
+    """Down, there is no "Leave it to him"."""
+    return True
+
+
+def points_low() -> int:
+    return POINTS
+
+
+def points_high() -> int:
+    return POINTS_HIGH_COMMAND
+
+
+def key_bar(world) -> int:
+    """A key battle is a great battle — the game's own bar."""
+    return int(getattr(world, "GREAT_BATTLE_THRESHOLD", 80000))
+
+
+# ════════════════════════════════════════════════════════
+# The store
+# ════════════════════════════════════════════════════════
+
+_WORD: ContextVar[Optional[dict]] = ContextVar("the_days_word", default=None)
+# A clash's tableau, kept beside the world until it is read (never saved).
+_TABLEAUX: "weakref.WeakKeyDictionary[Any, Dict[str, dict]]" = weakref.WeakKeyDictionary()
+# A day's closing block, kept until the response that closed it has read it.
+_CLOSED: "weakref.WeakKeyDictionary[Any, Dict[str, dict]]" = weakref.WeakKeyDictionary()
+
+
+def _on(world) -> bool:
+    return bool(world is not None and the_day_has_points() and _cv.campaign_is_served(world))
+
+
+def _store(world) -> dict:
+    store = getattr(world, "battle_days", None)
+    if not isinstance(store, dict):
+        store = {}
+        world.battle_days = store
+    store.setdefault("days", {})
+    return store
+
+
+def open_days(world) -> Dict[str, dict]:
+    """Every day still open, by its enemy lead. {} off the served road."""
+    if world is None or not isinstance(getattr(world, "battle_days", None), dict):
+        return {}
+    return world.battle_days.get("days") or {}
+
+
+def day_against(world, enemy_name) -> Optional[dict]:
+    return open_days(world).get(str(enemy_name or ""))
+
+
+def points_for(marshal) -> int:
+    """The commander's points (ruling 4): 2, or 3 at high command."""
+    from backend.models.marshal import Marshal
+    command = int((getattr(marshal, "skills", None) or {}).get("command", 5) or 5)
+    return int(points_high() if command >= Marshal.RALLY_FAST_COMMAND else points_low())
+
+
+def forecast(world, lead, total_engaged: int, foe=None) -> Optional[dict]:
+    """For the attack card: whether a battle of `total_engaged` men would be a
+    great one, the points its commander would bring, and — the lesson of Ulm —
+    whether a road is open behind the enemy (beaten on points with a road
+    open, he draws off: the field is taken and his army is not). None where
+    no day could be opened."""
+    if not _on(world) or lead is None:
+        return None
+    if int(total_engaged or 0) < key_bar(world):
+        return None
+    out = {"great": True, "points": points_for(lead), "bar": key_bar(world)}
+    if foe is not None:
+        road = _his_road(world, foe)
+        if road is not None:
+            out["his_road"] = road
+    return out
+
+
+def _his_road(world, foe) -> Optional[bool]:
+    """Is a road open behind him — to his own soil, an ally's or a neutral's
+    that lets him pass, with none of our corps on it? (Never the soil of a
+    court he is at war with: a corps with only that left is surrounded.) Read
+    from the map every player sees by the finder his AI itself uses; it draws
+    from no stream. None when it cannot be read."""
+    try:
+        from backend.ai.enemy_ai import EnemyAI
+        return bool(EnemyAI(None)._find_retreat_destination(
+            foe, foe.nation, world, desperate=False))
+    except Exception as exc:
+        report(exc, "battle_day._his_road")
+        return None
+
+
+def _shown(name) -> str:
+    from backend.display_names import humanize_entity_name
+    return humanize_entity_name(str(name or ""))
+
+
+def _place(world, name) -> str:
+    return _shown(name)
+
+
+def _under_arms(marshal) -> bool:
+    return bool(marshal is not None and int(getattr(marshal, "strength", 0) or 0) > 0
+                and not getattr(marshal, "broken", False)
+                and not getattr(marshal, "retreating", False))
+
+
+def _stands(marshal) -> bool:
+    """Under arms and asked nothing: a corps the battle left with a question
+    of its own (a last stand) has not fought to an open day."""
+    return _under_arms(marshal) and not getattr(marshal, "pending_interrupt", None)
+
+
+def _alive(world, day) -> bool:
+    """A day is still a day: both leads under arms, where the day found them,
+    and still at war."""
+    lead, foe = world.get_marshal(day.get("lead")), world.get_marshal(day.get("enemy"))
+    # A question a WORD raised (the muster's "Commit the Attack?") does not end
+    # the day: the corps is under arms and waits for the answer.
+    if not _under_arms(lead) or not _under_arms(foe):
+        return False
+    if lead.location != day.get("our_ground") or foe.location != day.get("his_ground"):
+        return False
+    return world.get_diplomatic_state(lead.nation, foe.nation) == "WAR"
+
+
+BANNER_OPEN = "The day hangs"
+BANNERS = {
+    "night": "Night falls",
+    "drew_off": "{enemy} draws off",
+    "he_broke_off": "{enemy} breaks off",
+    "broke_off": "The attack is broken off",
+    "fell_back": "{lead} falls back",
+}
+
+
+def _close(world, key: str, how: str, line: str = "", banner: str = "") -> dict:
+    """Close a day; the last block is returned (open False) for the response.
+    `banner` (default: `how`) picks the closing banner — the table's headline
+    for a day that ended otherwise than by a clash that decided it (that clash
+    keeps its own verdict)."""
+    days = _store(world)["days"]
+    day = days.pop(key, None) or {"enemy": key}
+    if line:
+        _tell(day, "end", line)
+    day["banner"] = BANNERS.get(banner or how, "").format(
+        enemy=_shown(day.get("enemy")), lead=_shown(day.get("lead")))
+    day.pop("pending", None)        # a closed day asks nothing (a defiant lead's own attack may close it)
+    day["open"] = False
+    day["ended"] = how
+    if not days and not world.battle_days.get("barred"):
+        world.battle_days = {}
+    closing = block(world, day)
+    _CLOSED.setdefault(world, {})[key] = closing
+    return closing
+
+
+def _tell(day: dict, who: str, line: str, kind: str = "") -> None:
+    told = day.setdefault("told", [])
+    told.append({"who": who, "kind": kind, "line": str(line)})
+    del told[:-8]
+
+
+def _tell_the_last(world, key: str, who: str, line: str, kind: str = "") -> None:
+    """The word that DECIDED a day: its line goes onto the closing block (the
+    day itself is gone by the time the word's order returns)."""
+    closing = (_CLOSED.get(world) or {}).get(key)
+    if closing is not None and closing.get("ended") == "decided":
+        closing.setdefault("told", []).append({"who": who, "kind": kind, "line": str(line)})
+
+
+def _take(day: dict, who: str, price: int) -> None:
+    day[who] = max(0, int(day.get(who, 0)) - int(price))
+    if int(price) > 0:
+        day["silences"] = 0
+
+
+# ════════════════════════════════════════════════════════
+# The battle's own hook (combat_executor, stage 18's head)
+# ════════════════════════════════════════════════════════
+
+def _hangs(ctx) -> bool:
+    result = getattr(ctx, "battle_result", None) or {}
+    if str(result.get("outcome") or "") not in HANGING:
+        return False
+    if getattr(ctx, "conquered", False) or getattr(ctx, "enemy_destroyed", False):
+        return False
+    for side in ("attacker", "defender"):
+        if (result.get(side) or {}).get("forced_retreat"):
+            return False
+    return _stands(ctx.marshal) and _stands(ctx.enemy_marshal)
+
+
+def _read(ctx, attacker_is_ours: bool) -> dict:
+    """The clash as the day keeps it: who is ahead on points, and the two
+    tolls (the battle's own report gives both to the player who fought it)."""
+    result = getattr(ctx, "battle_result", None) or {}
+    outcome = str(result.get("outcome") or "")
+    ahead = "even"
+    if outcome == "attacker_tactical_victory":
+        ahead = "ours" if attacker_is_ours else "theirs"
+    elif outcome == "defender_tactical_victory":
+        ahead = "theirs" if attacker_is_ours else "ours"
+    atk = int((result.get("attacker") or {}).get("casualties", 0) or 0)
+    dfd = int((result.get("defender") or {}).get("casualties", 0) or 0)
+    return {"ahead": ahead,
+            "our_loss": atk if attacker_is_ours else dfd,
+            "his_loss": dfd if attacker_is_ours else atk}
+
+
+def guard_shock(ctx) -> None:
+    """NP-D1's first write, at the head of the attack's resolution: as the
+    Guard goes in, the lead it falls on loses heart (before either side's
+    dice). The Guard is a SOVEREIGN's renewed assault in a day of battle —
+    ours or, by Golden Rule 5, an enemy's (the same kit, the same numbers)."""
+    word = _WORD.get()
+    if not (word and word.get("kind") == "guard" and the_guards_numbers_bite()):
+        return
+    foe = getattr(ctx, "enemy_marshal", None)
+    if foe is not None and not word.get("shocked"):
+        foe.adjust_morale(-GUARD_SHOCK)
+        word["shocked"] = True
+
+
+def _guard_recoil(ctx, word) -> bool:
+    """NP-D1's second write: the Guard thrown back — every corps of its own
+    side that fought, still under arms, loses heart."""
+    if not (word and word.get("kind") == "guard" and the_guards_numbers_bite()):
+        return False
+    result = getattr(ctx, "battle_result", None) or {}
+    beaten = (str(result.get("outcome") or "") in ("defender_victory", "defender_tactical_victory")
+              or bool((result.get("attacker") or {}).get("forced_retreat")))
+    if not beaten:
+        return False
+    seen = set()
+    for corps in [ctx.marshal] + list(getattr(ctx, "atk_participants", None) or []):
+        name = getattr(corps, "name", None)
+        if not name or name in seen or int(getattr(corps, "strength", 0) or 0) <= 0:
+            continue
+        seen.add(name)
+        corps.adjust_morale(-GUARD_RECOIL)
+    return True
+
+
+def word_line(ctx) -> Optional[dict]:
+    """For the tableau's script (`battle_script`): the WORD this clash is, in
+    the day's own line — {who, kind, line} — or None for an opening clash and
+    for every ordinary battle. Fog: the line says what the field showed (who
+    came on), never an odds figure or a purse."""
+    word = _WORD.get()
+    world = getattr(ctx, "world", None)
+    if not word or world is None or word.get("key") not in open_days(world):
+        return None
+    who, kind = str(word.get("who") or ""), str(word.get("kind") or "")
+    shown, foe = _shown(word.get("marshal")), _shown(word.get("key"))
+    day = open_days(world)[word["key"]]
+    if who == "ours":
+        line = _ours_said(day, kind, word.get("marshal"), word.get("key"))
+    else:
+        # The tableau's own line says what the day's telling says (BA3-X10).
+        again = int(day.get("strikes_theirs", 0)) > 0 or day.get("side") == "defence"
+        line = _HIS_LINES["guard" if kind == "guard" else (
+            "strike_again" if again else "strike")].format(who=shown)
+    return {"who": who, "kind": kind, "line": line}
+
+
+def after_the_battle(ctx) -> Optional[dict]:
+    """Open a day, carry one on, or close one — for the battle just fought.
+    Returns the day's block for the tableau's payload, or None (an ordinary
+    battle: no day, nothing added)."""
+    try:
+        return _after_the_battle(ctx)
+    except Exception as exc:
+        report(exc, "battle_day.after_the_battle")
+        return None
+
+
+def _after_the_battle(ctx) -> Optional[dict]:
+    world = getattr(ctx, "world", None)
+    if not _on(world):
+        return None
+    atk, dfd = getattr(ctx, "marshal", None), getattr(ctx, "enemy_marshal", None)
+    if atk is None or dfd is None:
+        return None
+    player = getattr(world, "player_nation", None)
+    if getattr(atk, "nation", None) == player:
+        attacker_is_ours, ours, his = True, atk, dfd
+    elif getattr(dfd, "nation", None) == player:
+        attacker_is_ours, ours, his = False, dfd, atk
+    else:
+        return None
+    word = _WORD.get()
+    days = _store(world)["days"]
+    key = str(word["key"]) if (word and word.get("key") in days) else his.name
+    day = days.get(key)
+    hanging = _hangs(ctx)
+
+    if day is None:
+        if not days and not world.battle_days.get("barred"):
+            world.battle_days = {}                      # nothing opened: leave no trace
+        if not hanging or int(getattr(ctx, "total_engaged_strength", 0) or 0) < key_bar(world):
+            return None
+        day = {
+            "enemy": his.name, "lead": ours.name,
+            "field": str(getattr(ctx, "battle_region_name", "") or his.location),
+            "our_ground": ours.location, "his_ground": his.location,
+            "side": "attack" if attacker_is_ours else "defence",
+            "ours": points_for(ours), "theirs": points_for(his),
+            "ours_of": points_for(ours), "theirs_of": points_for(his),
+            # The side that did not open speaks first.
+            "awaits": "theirs" if attacker_is_ours else "ours",
+            "silences": 0, "words": 0,
+            "turn": int(getattr(world, "current_turn", 0) or 0),
+            "offered": False,
+        }
+        _store(world)["days"][his.name] = day
+        day["read"] = _read(ctx, attacker_is_ours)
+        return block(world, day, chips=False)
+
+    # A later clash of an open day: the word's price, the Guard's recoil, the turn.
+    day["words"] = int(day.get("words", 0)) + 1
+    recoiled = _guard_recoil(ctx, word)
+    if word and not word.get("taken"):
+        _take(day, "ours" if word.get("who") == "ours" else "theirs", int(word.get("price", 0)))
+        word["taken"] = True
+    day["read"] = _read(ctx, attacker_is_ours)
+    if recoiled:
+        day["read"]["guard_thrown_back"] = True
+    if not hanging:
+        return _close(world, key, "decided")
+    # The ground moves with the corps: a clash won on points carries the
+    # attacker onto the field.
+    lead_now, foe_now = world.get_marshal(day.get("lead")), world.get_marshal(day.get("enemy"))
+    if lead_now is not None and foe_now is not None:
+        day["our_ground"], day["his_ground"] = lead_now.location, foe_now.location
+    day["field"] = str(getattr(ctx, "battle_region_name", "") or day.get("field"))
+    day["awaits"] = "theirs" if attacker_is_ours else "ours"
+    return block(world, day, chips=False)
+
+
+# ════════════════════════════════════════════════════════
+# A word: recognised, lent its price, taken from the purse
+# ════════════════════════════════════════════════════════
+
+def classify_word(world, parsed) -> Optional[dict]:
+    """Is this order a word of an open day that awaits us? → {key, kind, price,
+    who: "ours", marshal}, or None (an ordinary order, priced as ever).
+
+    A word is recognised by WHAT IT IS — an attack on the day's enemy lead, the
+    lead's `defend`, the lead's `retreat` on a defended day, a SUPPORT order for
+    the lead — never by a flag the client sends."""
+    if not _on(world) or not isinstance(parsed, dict):
+        return None
+    days = open_days(world)
+    if not days:
+        return None
+    command = parsed.get("command") if isinstance(parsed.get("command"), dict) else parsed
+    action = str(command.get("action") or "").lower()
+    who = world.get_marshal(command.get("marshal") or "") if command.get("marshal") else None
+    if who is None or getattr(who, "nation", None) != getattr(world, "player_nation", None):
+        return None
+    target = str(command.get("target") or "")
+    strategic = str(parsed.get("strategic_type") or command.get("strategic_type") or "").upper()
+
+    def found(key, kind):
+        day = days[key]
+        if day.get("awaits") != "ours" or day.get("pending") or not _alive(world, day):
+            return None
+        price = int(PRICES[kind])
+        if int(day.get("ours", 0)) < price:
+            return None
+        return {"key": key, "kind": kind, "price": price, "who": "ours", "marshal": who.name,
+                "side": day.get("side")}
+
+    # Two days may share a lead (two corps of his each fought ours to a
+    # hanging day): a word binds to the first day that can TAKE it — the first
+    # match alone turned the second day's lit chip into an ordinary order at an
+    # action's price (BA3-X11, the review).
+    if strategic == "SUPPORT" or action == "support":
+        for key, day in days.items():
+            if target and target.lower() in (str(day.get("lead", "")).lower(),
+                                             _shown(day.get("lead")).lower()) and who.name != day.get("lead"):
+                hit = found(key, "bring_up")
+                if hit:
+                    return hit
+        return None
+    if parsed.get("is_strategic") or strategic:
+        return None
+    if action in ("attack", "charge"):
+        foe = world.get_marshal(target) if target else None
+        for key, day in days.items():
+            if (foe is not None and foe.name == key) or target == day.get("his_ground"):
+                if getattr(who, "artillery", False) and who.location != day.get("his_ground"):
+                    hit = found(key, "cannonade")
+                elif getattr(who, "is_sovereign", False) and the_guard_goes_in():
+                    hit = found(key, "guard")
+                else:
+                    hit = found(key, "press" if who.name == day.get("lead") else "lead")
+                if hit:
+                    return hit
+        return None
+    if action == "defend":
+        for key, day in days.items():
+            if who.name == day.get("lead"):
+                hit = found(key, "dig_in")
+                if hit:
+                    return hit
+        return None
+    if action == "retreat":
+        for key, day in days.items():
+            if who.name == day.get("lead"):
+                hit = found(key, "break_off")
+                if hit:
+                    return hit
+    return None
+
+
+@contextlib.contextmanager
+def lending(world, word: Optional[dict] = None):
+    """Lend an order the actions its gates ask for, and take every one back:
+    a word of the day costs no action. `spent` on the yielded dict is what the
+    order took from the pool while it ran (0: it was refused, or it asked).
+    The temper's stream subtracts the lend (`campaign_variance.lent_now`), so
+    a marshal's counsel on a chip is the temper the word then meets."""
+    before = int(getattr(world, "actions_remaining", 0) or 0)
+    lend_token = _cv.lend(LEND)
+    word_token = _WORD.set(word) if word is not None else None
+    world.actions_remaining = before + LEND
+    meter = {"spent": 0, "before": before}
+    try:
+        yield meter
+    finally:
+        meter["spent"] = max(0, before + LEND - int(getattr(world, "actions_remaining", 0) or 0))
+        world.actions_remaining = before
+        _cv.unlend(lend_token)
+        if word_token is not None:
+            _WORD.reset(word_token)
+
+
+def _ours_said(day, kind: str, who, foe="") -> str:
+    """Our word's line. On a day HE opened, the lead's own attack is his
+    riposte ("strikes back"); on a day we opened it presses the attack."""
+    side = (day or {}).get("side") if isinstance(day, dict) else day
+    if kind in ("press", "strike") and side == "defence":
+        return "{who} strikes back.".format(who=_shown(who))
+    template = _OUR_LINES.get("press" if kind == "strike" else kind, "{who} answers.")
+    return template.format(who=_shown(who), foe=_shown(foe))
+
+
+_OUR_LINES = {
+    "press": "{who} presses the attack.",
+    "lead": "{who} takes the lead.",
+    "guard": "The Guard goes in.",
+    "cannonade": "{who}'s guns open on {foe}'s line.",
+    "bring_up": "{who} is ordered up.",
+    "dig_in": "{who} digs in.",
+    "break_off": "{who} falls back.",
+    "falls_back_to": "{who} falls back toward {to}.",
+    "own_way": "{who} goes his own way.",       # an objection answered his way, by no word of the day
+}
+
+
+def word_given(world, word: dict, result: dict, spent: int) -> None:
+    """After a word's order has run: an objection parks it; a refusal costs
+    nothing; an order that took is paid for in points."""
+    day = day_against(world, word.get("key"))
+    if day is None:
+        if word.get("taken"):
+            _tell_the_last(world, str(word.get("key")), "ours", _ours_said(
+                word.get("side"), word["kind"], word.get("marshal"), word.get("key")), word["kind"])
+        return
+    took = (spent > 0 or bool(word.get("taken"))
+            or (word["kind"] == "break_off" and bool(result.get("success"))))
+    if not took and _asked(world, word, result):
+        # An objection, or a question of the marshal's own (the muster's
+        # "Commit the Attack?"): the word waits, nothing is paid, and its
+        # answer runs on the day's account (`pending_word`, `answer_given`).
+        parked_by = "objection" if questioner(world) == str(word.get("marshal") or "") else "question"
+        day["pending"] = {"kind": word["kind"], "price": int(word["price"]),
+                          "marshal": word.get("marshal"), "by": parked_by,
+                          "order": _objected_order(world) if parked_by == "objection" else []}
+        return
+    day.pop("pending", None)
+    if not took:
+        return
+    if word["kind"] == "break_off":
+        _close(world, word["key"], "fell_back",
+               _OUR_LINES["break_off"].format(who=_shown(word.get("marshal"))))
+        return
+    if not word.get("taken"):
+        _take(day, "ours", int(word["price"]))
+        word["taken"] = True
+        day["words"] = int(day.get("words", 0)) + 1
+        day["awaits"] = "theirs"
+    _tell(day, "ours", _ours_said(day, word["kind"], word.get("marshal"), day.get("enemy")),
+          word["kind"])
+
+
+def questioner(world) -> Optional[str]:
+    """The marshal whose objection stands on the board (the tactical road's
+    `pending_objection` or the strategic road's `pending_strategic_objection`),
+    or None."""
+    tactical = getattr(world, "pending_objection", None)
+    if isinstance(tactical, dict) and tactical.get("marshal"):
+        return str(tactical["marshal"])
+    strategic = getattr(world, "pending_strategic_objection", None)
+    if isinstance(strategic, dict) and (strategic.get("marshal_name") or strategic.get("marshal")):
+        return str(strategic.get("marshal_name") or strategic.get("marshal"))
+    return None
+
+
+def _objected_order(world) -> list:
+    """The order the standing objection is about, as [action, target] — its
+    answer is the parked word's only when it is the objection the word raised."""
+    tactical = getattr(world, "pending_objection", None)
+    if isinstance(tactical, dict) and tactical.get("marshal"):
+        order = tactical.get("original_order") if isinstance(tactical.get("original_order"), dict) else {}
+        return [str(order.get("action") or "").lower(), str(order.get("target") or "").lower()]
+    strategic = getattr(world, "pending_strategic_objection", None)
+    if isinstance(strategic, dict):
+        return [str(strategic.get("strategic_type") or "").lower(),
+                str(strategic.get("target") or "").lower()]
+    return []
+
+
+def what_the_answer_runs(world, choice: str) -> Optional[dict]:
+    """The order an objection's answer runs when it is NOT the order as given:
+    the marshal's alternative ("trust") or the middle ground ("compromise"),
+    read from the standing objection BEFORE it is answered. None: the order as
+    given (insist, by my word), or nothing to read. PURE."""
+    choice = str(choice or "").lower()
+    if choice not in ("trust", "compromise"):
+        return None
+    tactical = getattr(world, "pending_objection", None)
+    if isinstance(tactical, dict) and tactical.get("marshal"):
+        arm = tactical.get("suggested_alternative" if choice == "trust" else "compromise")
+        return dict(arm) if isinstance(arm, dict) and arm.get("action") else None
+    if isinstance(getattr(world, "pending_strategic_objection", None), dict):
+        # The strategic road. Its middle ground is the SAME order with a term
+        # to it (a timed SUPPORT): the corps is still ordered up — the word as
+        # given. Trusting him is his own way: the order is not issued, or his
+        # own counsel is.
+        return {"action": "own_way"} if choice == "trust" else None
+    return None
+
+
+def the_word_that_runs(world, word: dict, ran: Optional[dict]) -> dict:
+    """The parked word AS ITS ANSWER RUNS IT (BA3-X6, the review). The day
+    bills the price the chip quoted; it TELLS — on the table and in the
+    clash's own script — what the marshal then did: his attack is a clash of
+    the day, a defensive stance is digging in, a retreat is falling back, and
+    anything else is "his own way". Before this, a compromise that changed his
+    stance was told "Ney presses the attack." and an alternative that fought a
+    battle "Ney digs in.". A sovereign's attack by this road is no Guard: the
+    Guard is the word that asks two points."""
+    if not ran:
+        return dict(word)
+    day = day_against(world, word.get("key")) or {}
+    who = world.get_marshal(word.get("marshal") or "")
+    action = str(ran.get("action") or "").lower()
+    target = str(ran.get("target") or "")
+    stance = str(ran.get("target_stance") or (target if action == "stance_change" else "")).lower()
+    kind = "own_way"
+    if action in ("attack", "charge"):
+        foe = world.get_marshal(target) if target else None
+        if (foe is not None and foe.name == day.get("enemy")) or (target and target == day.get("his_ground")):
+            if who is not None and getattr(who, "artillery", False) and who.location != day.get("his_ground"):
+                kind = "cannonade"
+            else:
+                kind = "press" if (who is not None and who.name == day.get("lead")) else "lead"
+    elif action == "defend" or (action == "stance_change" and stance == "defensive"):
+        kind = "dig_in"
+    elif action == "retreat":
+        kind = "break_off"
+    return dict(word, kind=kind)
+
+
+def _asked(world, word: dict, result: dict) -> bool:
+    """Has the WORD's own marshal raised a question instead of acting — his
+    objection (on either road), or his own interrupt (the muster's
+    confirmation)? A question some other marshal left standing is no part of
+    this word: the word was simply not taken."""
+    name = str(word.get("marshal") or "")
+    if not name:
+        return False
+    if questioner(world) == name:
+        return True
+    who = world.get_marshal(name)
+    return bool(who is not None and getattr(who, "pending_interrupt", None))
+
+
+def pending_word(world, marshal: Optional[str] = None, by: Optional[str] = None) -> Optional[dict]:
+    """The word a question parked, for the answer's own road. With `marshal`,
+    only the word that marshal's question holds (an interrupt is his own).
+    With `by` ("objection" | "question"), only a word THAT road parked, and
+    for an objection only while the objection standing is the one the word
+    raised: a word the muster's question parked is not answered by the answer
+    to some other order's objection — that order then rode free, on the
+    word's lend and at no point (BA3-X6, the review)."""
+    for key, day in open_days(world).items():
+        pending = day.get("pending")
+        if not pending or (marshal is not None and pending.get("marshal") != marshal):
+            continue
+        parked_by = pending.get("by")
+        if by is not None and parked_by is not None:
+            if parked_by != by:
+                continue
+            if by == "objection" and pending.get("order") and list(pending["order"]) != _objected_order(world):
+                continue
+        return {"key": key, "kind": pending["kind"], "price": int(pending["price"]),
+                "who": "ours", "marshal": pending.get("marshal"), "side": day.get("side")}
+    return None
+
+
+def answer_given(world, word: dict, result: dict, spent: int) -> None:
+    """The objection answered (obeyed, his own way, or defied): if an order
+    ran, the word is paid for; if it was withdrawn, nothing is."""
+    day = day_against(world, word.get("key"))
+    if day is None:
+        if word.get("taken"):
+            _tell_the_last(world, str(word.get("key")), "ours", _ours_said(
+                word.get("side"), word["kind"], word.get("marshal"), word.get("key")), word["kind"])
+        return
+    if _asked(world, word, {}):
+        return                                    # still asking
+    day.pop("pending", None)
+    left = word["kind"] == "break_off" and bool(result.get("success"))
+    if spent <= 0 and not word.get("taken") and not left:
+        return                                    # withdrawn: nothing is paid
+    if left:
+        # His answer was to leave the field (the objector's own alternative):
+        # the day closes as a fall-back, told — it closed "over" with no line
+        # and no banner (BA3-X6, the review).
+        _close(world, word["key"], "fell_back",
+               _OUR_LINES["break_off"].format(who=_shown(word.get("marshal"))))
+        return
+    if not word.get("taken"):
+        _take(day, "ours", int(word["price"]))
+        word["taken"] = True
+        day["words"] = int(day.get("words", 0)) + 1
+        day["awaits"] = "theirs"
+    _tell(day, "ours", _ours_said(day, word["kind"], word.get("marshal"), day.get("enemy")),
+          word["kind"])
+
+
+# ════════════════════════════════════════════════════════
+# His answer (and ours, when a marshal is left to it)
+# ════════════════════════════════════════════════════════
+
+_HIS_LINES = {
+    "strike": "{who} strikes back.",
+    "strike_again": "{who} comes on again.",
+    "guard": "{who} sends in his Guard.",
+    "draw_off": "{who} draws off toward {to}.",
+    "draws_off": "{who} draws off.",            # where he went is not ours to say (fog)
+    "break_off": "{who} breaks off the attack.",
+    "dig_in": "{who} digs in.",
+    "bring_up": "{who} is reinforced: a fresh corps comes up.",
+    "stand": "{who} stands his ground.",
+}
+NIGHT = "Night falls on an undecided field."
+
+
+def _day_rng(world, day, who: str):
+    """A day's own stream for a temper's mood: the campaign's where one is
+    played on a rolled seed, else None (the module `random`)."""
+    return _cv.temper_rng(world, "day", day.get("enemy"), day.get("lead"), who,
+                          int(day.get("words", 0)), int(day.get("silences", 0)), saved=False)
+
+
+def _speak(world, day, who: str, game_state, executor) -> Optional[dict]:
+    """One word from `who` ("theirs", or "ours" for a lead left to it), decided
+    by the engaged rule his AI already follows and run through the one
+    executor. Returns {kind, line, diorama?}; the day may be closed by it."""
+    from backend.ai.enemy_ai import EnemyAI
+    key = day["enemy"]
+    mine, yours = ("enemy", "lead") if who == "theirs" else ("lead", "enemy")
+    marshal, foe = world.get_marshal(day[mine]), world.get_marshal(day[yours])
+    opened = (day.get("side") == "defence") if who == "theirs" else (day.get("side") == "attack")
+    ahead = (day.get("read") or {}).get("ahead", "even")
+    behind = ahead == ("ours" if who == "theirs" else "theirs")
+    purse = int(day.get(who, 0))
+    if who == "theirs" and not the_enemy_spends_his():
+        purse = 0
+    ai = EnemyAI(executor)
+    # A sovereign's renewed assault is the Guard, at the Guard's price — the
+    # player's own chip, and the same for a lead left to it or an enemy's.
+    guard = bool(getattr(marshal, "is_sovereign", False)) and the_guard_goes_in()
+    choice = ai.the_days_word(marshal, foe, world, purse=purse, opened=opened, behind=behind,
+                              rng=_day_rng(world, day, who),
+                              strike_price=int(PRICES["guard" if guard else "strike"]))
+    kind = str(choice.get("kind") or "stand")
+    action = choice.get("action")
+    price = int(PRICES.get(kind, 0))
+    shown = _shown(marshal.name)
+    reply: Dict[str, Any] = {"who": who, "kind": kind}
+
+    if kind == "stand" or action is None:
+        if kind == "break_off":
+            reply["line"] = _HIS_LINES["break_off"].format(who=shown)
+            _close(world, key, "broke_off", reply["line"],
+                   banner="he_broke_off" if who == "theirs" else "broke_off")
+            return reply
+        day["silences"] = int(day.get("silences", 0)) + 1
+        day["awaits"] = "ours" if who == "theirs" else "theirs"
+        reply["kind"] = "stand"
+        reply["line"] = _HIS_LINES["stand"].format(who=shown)
+        _tell(day, who, reply["line"], "stand")
+        return reply
+
+    word = {"key": key, "kind": "guard" if (kind == "strike" and guard) else kind,
+            "price": price, "who": who, "marshal": marshal.name, "side": day.get("side")}
+    if word["kind"] == "guard":
+        word["price"] = price = int(PRICES["guard"])
+    token = _WORD.set(word)
+    try:
+        if who == "theirs":
+            result = ai._execute_action(dict(action), game_state)
+        else:
+            # Our lead, left to it: his own decision — no objection to raise
+            # against himself and no action to pay (the executor's own flag
+            # for an order a marshal carries out on his own account).
+            result = executor.execute({"command": {
+                "marshal": action["marshal"], "action": action["action"],
+                "target": action.get("target"), "type": "specific",
+                "_strategic_execution": True}}, game_state)
+    except Exception as exc:
+        report(exc, "battle_day._speak: the word's own order")
+        result = {"success": False}
+    finally:
+        _WORD.reset(token)
+    if not result.get("success"):
+        # The executor refused his order: he has stood.
+        day = day_against(world, key)
+        if day is not None:
+            day["silences"] = int(day.get("silences", 0)) + 1
+            day["awaits"] = "ours" if who == "theirs" else "theirs"
+            reply.update(kind="stand", line=_HIS_LINES["stand"].format(who=shown))
+            _tell(day, who, reply["line"], "stand")
+        return reply
+
+    day = day_against(world, key)
+    reply["_result"] = result
+    if kind == "strike":
+        # The day HE opened, his first word's strike is already his second
+        # assault: "comes on again", never a second "strikes back" under ours
+        # (BA3-X10, the review).
+        again = int((day or {}).get("strikes_" + who, 0)) > 0 or (who == "theirs" and opened)
+        if who == "theirs":
+            reply["line"] = _HIS_LINES["guard" if word["kind"] == "guard" else (
+                "strike_again" if again else "strike")].format(who=shown)
+        else:
+            reply["line"] = _ours_said(
+                (day or {}).get("side") or word.get("side"),
+                "guard" if word["kind"] == "guard" else "press", marshal.name, foe.name)
+        tableau = result.get("battle_diorama") or next(
+            (e.get("diorama") for e in (result.get("events") or [])
+             if isinstance(e, dict) and e.get("diorama")), None)
+        if tableau:
+            reply["diorama"] = tableau
+        told_as = "press" if (who == "ours" and word["kind"] == "strike") else word["kind"]
+        if day is not None:
+            day["strikes_" + who] = int(day.get("strikes_" + who, 0)) + 1
+            if not word.get("taken"):           # a clash that named no battle (never, by design)
+                _take(day, who, price)
+                day["awaits"] = "ours" if who == "theirs" else "theirs"
+            _tell(day, who, reply["line"], told_as)
+        else:
+            _tell_the_last(world, key, who, reply["line"], told_as)
+        return reply
+    if kind == "draw_off":
+        to = choice.get("to")
+        if who == "theirs":
+            # Fog (SYSTEMS_REFERENCE §219.2, case 2 — "never where to"): the
+            # province he went to is named only when the game's one sighting
+            # rule shows him there. Else the line would place an unseen corps
+            # on the map (BA3-X9, the review: a won cannonade, the lead not on
+            # the field, "Mack draws off toward Vienna").
+            seen = any(m.name == marshal.name
+                       for m in world.get_visible_enemies(getattr(world, "player_nation", "")))
+            reply["line"] = (_HIS_LINES["draw_off"].format(who=shown, to=_place(world, to))
+                             if (seen and to) else _HIS_LINES["draws_off"].format(who=shown))
+            _close(world, key, "drew_off", reply["line"])
+        else:
+            # OUR lead, left to it, leaves the field: he FALLS BACK — the
+            # day's own word for it and its own banner. The enemy's
+            # ("Mack draws off") stood over it (BA3-X8, the review).
+            reply["line"] = _OUR_LINES["falls_back_to"].format(who=shown, to=_place(world, to))
+            _close(world, key, "fell_back", reply["line"])
+        return reply
+    # dig in / bring up: a priced word that is no clash
+    if day is not None:
+        _take(day, who, price)
+        day["words"] = int(day.get("words", 0)) + 1
+        day["awaits"] = "ours" if who == "theirs" else "theirs"
+        reply["line"] = (_HIS_LINES if who == "theirs" else _OUR_LINES)[kind].format(
+            who=shown, foe=_shown(foe.name))
+        _tell(day, who, reply["line"], kind)
+    return reply
+
+
+def _spent(world, key) -> Optional[dict]:
+    """Night falls when both purses are empty or two silences have followed
+    one another. Returns the closing block, or None (the day goes on)."""
+    day = day_against(world, key)
+    if day is None:
+        return None
+    if not _alive(world, day):
+        return _close(world, key, "over")
+    if int(day.get("silences", 0)) >= 2 or (int(day.get("ours", 0)) <= 0
+                                             and int(day.get("theirs", 0)) <= 0):
+        return _close(world, key, "night", NIGHT)
+    return None
+
+
+def his_answer(world, game_state, executor, only: Optional[str] = None) -> Dict[str, dict]:
+    """Run every day that awaits HIM until it awaits us or night has fallen.
+    Returns {enemy: reply} — the last word he said in each (its tableau held
+    beside the world until the table reads it)."""
+    replies: Dict[str, dict] = {}
+    if not _on(world):
+        return replies
+    for key in list(open_days(world)):
+        if only is not None and key != only:
+            continue
+        for _ in range(TURNS_CAP):
+            day = day_against(world, key)
+            if day is None or day.get("awaits") != "theirs" or day.get("pending"):
+                break
+            if _spent(world, key) is not None:
+                break
+            reply = _public(_speak(world, day, "theirs", game_state, executor))
+            if reply:
+                replies[key] = reply
+                if reply.get("diorama"):
+                    _TABLEAUX.setdefault(world, {})[key] = reply["diorama"]
+            if _spent(world, key) is not None:
+                break
+    return replies
+
+
+def our_silence(world, key, game_state, executor) -> Optional[dict]:
+    """We stand: a silence. Then he speaks."""
+    day = day_against(world, key)
+    if day is None or day.get("awaits") != "ours" or day.get("pending"):
+        return None
+    day["silences"] = int(day.get("silences", 0)) + 1
+    day["awaits"] = "theirs"
+    _tell(day, "ours", f"{_shown(day.get('lead'))} stands.", "stand")
+    if _spent(world, key) is None:
+        his_answer(world, game_state, executor, only=key)
+    return None
+
+
+def we_break_off(world, key) -> Optional[dict]:
+    """We opened and we leave it: the day is over where it stands."""
+    day = day_against(world, key)
+    if day is None or day.get("awaits") != "ours" or day.get("side") != "attack":
+        return None
+    return _close(world, key, "broke_off", "You break off the attack.")
+
+
+def leave_it(world, key, game_state, executor, keep: bool = False) -> List[dict]:
+    """"Leave it to him": the lead spends what is left by his own temper, and
+    the enemy answers by his, until night. Returns every word said (`keep`:
+    with each word's own executor result under `_result`, for `say`)."""
+    said: List[dict] = []
+    if not a_marshal_may_be_left_to_it():
+        return said
+    for _ in range(TURNS_CAP):
+        day = day_against(world, key)
+        if day is None or day.get("pending"):
+            break
+        if _spent(world, key) is not None:
+            break
+        who = "ours" if day.get("awaits") == "ours" else "theirs"
+        raw = _speak(world, day, who, game_state, executor)
+        reply = raw if keep else _public(raw)
+        if reply:
+            said.append(reply)
+            if reply.get("diorama"):
+                _TABLEAUX.setdefault(world, {})[key] = reply["diorama"]
+    _spent(world, key)
+    return said
+
+
+def _public(reply: Optional[dict]) -> Optional[dict]:
+    return None if reply is None else {k: v for k, v in reply.items() if not k.startswith("_")}
+
+
+def settle(world, game_state, executor, result, *, word: Optional[dict] = None,
+           spent: int = 0, answered: bool = False) -> None:
+    """After an order has run on the served road: a word is paid for, he
+    answers where the day now awaits him, and the day as it stands is written
+    onto the result — `battle_day` (with his `reply`: kind, line, and the
+    tableau of his clash when he struck) and the tableau's own `day`."""
+    if not _on(world) or not isinstance(result, dict):
+        return
+    key = ""
+    if word is not None:
+        key = str(word["key"])
+        (answer_given if answered else word_given)(world, word, result, int(spent))
+        if isinstance(result.get("action_info"), dict):
+            result["action_info"] = world.get_action_info(0)   # a word costs no action
+        if "action_summary" in result:
+            # The executor wrote it with the lend still on the pool: the
+            # muster's question read 6 actions of 4 and its answer 5 (found in
+            # the real client, whose counter is this field). The pool as it is.
+            result["action_summary"] = world.get_action_summary()
+    payload = result.get("battle_diorama")
+    if not key and isinstance(payload, dict) and isinstance(payload.get("day"), dict):
+        key = str(payload["day"].get("enemy") or "")
+    if not key:
+        return
+    replies = his_answer(world, game_state, executor, only=key)
+    _spent(world, key)
+    day = day_against(world, key)
+    live = block(world, day) if day is not None else (_CLOSED.get(world) or {}).pop(key, None)
+    if live is None:
+        return
+    (_CLOSED.get(world) or {}).pop(key, None)
+    reply = _public(replies.get(key))
+    plain = dict(live)
+    if reply:
+        tableau_for(world, key)                      # delivered here, not held
+        plain["reply"] = {k: v for k, v in reply.items() if k != "diorama"}
+        if isinstance(reply.get("diorama"), dict):
+            reply["diorama"]["day"] = dict(plain)
+        live["reply"] = reply
+    result["battle_day"] = live
+    if isinstance(payload, dict):
+        if reply and isinstance(reply.get("diorama"), dict):
+            # HIS clash follows ours on the table: our tableau tells the day as
+            # it stood when our clash ended — no chips; the live ones ride his.
+            payload["day"] = dict(plain, chips=[], follows=True)
+        else:
+            payload["day"] = plain
+
+
+def say(world, key: str, what: str, game_state, executor) -> dict:
+    """A word that is no order — `stand`, `break_off` (a day we opened),
+    `leave_it` — for `POST /battle_day/word`. Returns {success, message,
+    battle_day, battle_diorama?}."""
+    day = day_against(world, key)
+    if not _on(world) or day is None:
+        return {"success": False, "message": "No day of battle is open there."}
+    if day.get("awaits") != "ours" or day.get("pending"):
+        return {"success": False, "message": "The day does not await your word."}
+    said: List[dict] = []
+    carried: Optional[dict] = None
+    if what == "stand":
+        our_silence(world, key, game_state, executor)
+    elif what == "break_off":
+        if we_break_off(world, key) is None:
+            return {"success": False, "message": "This day is not yours to break off."}
+    elif what == "leave_it":
+        if not a_marshal_may_be_left_to_it():
+            return {"success": False, "message": "The day's words are yours to give."}
+        said = leave_it(world, key, game_state, executor, keep=True)
+        # The last clash OUR lead fought: whatever it left to ask (a captured
+        # town's "plunder or secure") must reach the player with this answer.
+        carried = next((r.get("_result") for r in reversed(said)
+                        if r.get("who") == "ours" and isinstance(r.get("_result"), dict)
+                        and r.get("diorama")), None)
+        said = [_public(r) for r in said]
+    else:
+        return {"success": False, "message": f"Unknown word: {what}"}
+    _spent(world, key)
+    day = day_against(world, key)
+    live = block(world, day) if day is not None else (_CLOSED.get(world) or {}).pop(key, None)
+    (_CLOSED.get(world) or {}).pop(key, None)
+    out: Dict[str, Any] = {"success": True, "battle_day": live or {"open": False, "enemy": key}}
+    tableau = tableau_for(world, key)
+    if tableau is None:
+        tableau = next((r.get("diorama") for r in reversed(said) if r.get("diorama")), None)
+    if isinstance(tableau, dict) and live is not None:
+        tableau["day"] = dict(live)
+        out["battle_diorama"] = tableau
+    told = (live or {}).get("told") or []
+    out["message"] = " ".join(str(t.get("line") or "") for t in told[-3:]).strip() or "The day is over."
+    if carried is not None:
+        out["_carry"] = carried
+    return out
+
+
+# ════════════════════════════════════════════════════════
+# Night and dawn (turn_manager.end_turn)
+# ════════════════════════════════════════════════════════
+
+def night_falls(world, game_state, executor) -> List[dict]:
+    """The turn is closing: every day still open is played out with our
+    silence — he spends what he has left — and the pair is barred from a
+    second strike in the phase that follows. Returns the executor's own
+    results of what he did (each with its `ai_action`), for the phase's own
+    telling (`turn_manager.end_turn` puts them at the head of his court's)."""
+    said: List[dict] = []
+    if not _on(world) or not open_days(world):
+        return said
+    for key in list(open_days(world)):
+        day = day_against(world, key)
+        if day is None:
+            continue
+        lead = day.get("lead")
+        day.pop("pending", None)
+        first = len(said)
+        for _ in range(TURNS_CAP):
+            day = day_against(world, key)
+            if day is None:
+                break
+            if _spent(world, key) is not None:
+                break
+            if day.get("awaits") == "ours":
+                day["silences"] = int(day.get("silences", 0)) + 1
+                day["awaits"] = "theirs"
+                continue
+            reply = _speak(world, day, "theirs", game_state, executor)
+            if reply and isinstance(reply.get("_result"), dict) and reply.get("kind") != "stand":
+                said.append(reply["_result"])
+        if day_against(world, key) is not None:
+            _close(world, key, "night", NIGHT)
+        _the_end_on_the_last(world, key, said[first:])
+        _store(world).setdefault("barred", {})[key] = lead
+    (_CLOSED.get(world) or {}).clear()
+    (_TABLEAUX.get(world) or {}).clear()
+    return said
+
+
+def _tableaux_of(result) -> List[dict]:
+    """The tableaux one executor result carries: its own and its events'."""
+    if not isinstance(result, dict):
+        return []
+    found = [result.get("battle_diorama")]
+    found += [event.get("diorama") for event in result.get("events") or [] if isinstance(event, dict)]
+    return [t for t in found if isinstance(t, dict)]
+
+
+def _the_end_on_the_last(world, key: str, struck: List[dict]) -> None:
+    """A day closed in the night otherwise than by a clash that decided it
+    (night fell; his line gave way to no blow): the tableau of his LAST clash
+    of that night tells it — it carried the day as it stood after the clash,
+    still open. A deciding clash wrote its own closing block."""
+    closing = (_CLOSED.get(world) or {}).get(str(key))
+    if closing is None or closing.get("ended") == "decided":
+        return
+    last = next((r for r in reversed(struck) if any(
+        isinstance(t.get("day"), dict) for t in _tableaux_of(r))), None)
+    for tableau in _tableaux_of(last):
+        if isinstance(tableau.get("day"), dict):
+            tableau["day"] = {k: v for k, v in closing.items() if k != "reply"}
+
+
+def awaiting(world) -> List[dict]:
+    """Every open day that awaits OUR word with no question out — what ending
+    the turn now would settle by our silence (he then spends what he has left
+    and night falls). For the end-turn gate, beside the unanswered envoys and
+    the last stands. PURE; [] off the served road."""
+    out: List[dict] = []
+    if not _on(world):
+        return out
+    for key, day in open_days(world).items():
+        if not isinstance(day, dict) or day.get("awaits") != "ours" or day.get("pending"):
+            continue
+        if not _alive(world, day):
+            # The lead has marched off, a corps is gone, or peace is made: the
+            # end-turn gate named a day that was already over (BA3-X7).
+            continue
+        out.append({
+            "enemy": day.get("enemy") or key, "enemy_shown": _shown(day.get("enemy") or key),
+            "lead": day.get("lead"), "lead_shown": _shown(day.get("lead")),
+            "field": day.get("field"), "field_shown": _place(world, day.get("field")),
+            "side": day.get("side"), "ours": int(day.get("ours", 0)),
+        })
+    return out
+
+
+def living(world) -> List[str]:
+    """The enemy key of every day still open AND alive — for the client, which
+    keeps each day's last block (and its chips, in old log lines too) and has
+    no other way to learn that a day ended unseen: night fell at the turn's
+    end, or its lead marched off the field. A chip of such a day stayed lit
+    on the next turn; pressed, it sent its order, which with no day open ran
+    at an action's price (BA3-X18, the review — shown in the real client).
+    PURE; [] off the served road."""
+    if not _on(world):
+        return []
+    return [str(key) for key, day in open_days(world).items()
+            if isinstance(day, dict) and _alive(world, day)]
+
+
+def bars(world) -> set:
+    """The (striker, target) pairs a day's night barred for the phase that
+    follows — read into the AI's own pair brake (`enemy_ai`)."""
+    store = getattr(world, "battle_days", None)
+    if not isinstance(store, dict):
+        return set()
+    return {(str(striker), str(target)) for striker, target in (store.get("barred") or {}).items()}
+
+
+def at_dawn(world, game_state=None, executor=None) -> List[dict]:
+    """The new turn: the night's bars are lifted, dead days are dropped, days
+    the phase opened are offered (a notice each), and where he speaks first
+    he has spoken."""
+    offered: List[dict] = []
+    store = getattr(world, "battle_days", None)
+    if not isinstance(store, dict) or not store:
+        return offered
+    store.pop("barred", None)
+    if not _on(world):
+        world.battle_days = {}
+        return offered
+    for key in list(open_days(world)):
+        day = day_against(world, key)
+        if not _alive(world, day):
+            _close(world, key, "over")
+            continue
+        if day.get("awaits") == "theirs" and executor is not None:
+            his_answer(world, game_state, executor, only=key)
+            day = day_against(world, key)
+            if day is None:
+                continue
+        if not day.get("offered"):
+            day["offered"] = True
+            offered.append(block(world, day, chips=False))
+            _notice(world, day)
+    if not open_days(world):
+        world.battle_days = {}
+    return offered
+
+
+def dawn_on_the_tableaux(world, phase) -> None:
+    """The tableau the enemy phase's telling carries for a day is the table
+    that rises by itself when the phase's list is left — so at dawn it carries
+    the day AS IT STANDS AT DAWN, chips and all: on each action's
+    `battle_diorama` and on each event's `diorama`. A day that did not live to
+    the dawn leaves no block on its earlier clash, which is then told as the
+    battle it was. Found in the real client: the table rose with both purses
+    and no word to give (the block was the one written at the battle, before
+    the day was offered)."""
+    if not _on(world) or not isinstance(phase, dict):
+        return
+    live: Dict[str, Optional[dict]] = {}
+
+    def at_dawn_it_reads(payload) -> None:
+        if not isinstance(payload, dict) or not isinstance(payload.get("day"), dict):
+            return
+        if payload["day"].get("open") is False:
+            return                  # a closing block tells how the day ended: it stands
+        key = str(payload["day"].get("enemy") or "")
+        if key not in live:
+            day = day_against(world, key)
+            live[key] = block(world, day) if day is not None else None
+        if live[key] is None:
+            payload.pop("day", None)
+        else:
+            payload["day"] = dict(live[key])
+
+    for row in (phase.get("nations") or {}).values():
+        for action in (row.get("actions") if isinstance(row, dict) else None) or []:
+            for tableau in _tableaux_of(action):
+                at_dawn_it_reads(tableau)
+
+
+def _notice(world, day) -> None:
+    try:
+        from backend.notifications import (
+            BATTLE_DAY_AWAITS, NotificationPriority, create_notification,
+        )
+        lead, foe = _shown(day.get("lead")), _shown(day.get("enemy"))
+        left = int(day.get("ours", 0))
+        world.notifications.add(create_notification(
+            notification_type=BATTLE_DAY_AWAITS,
+            priority=NotificationPriority.HIGH,
+            title=f"The day at {_place(world, day.get('field'))} hangs",
+            message=(f"{foe} and {lead} fought to no decision. The day is yours to answer: "
+                     f"{left} point{'s' if left != 1 else ''} to spend."),
+            turn_created=int(getattr(world, "current_turn", 0) or 0),
+            details={"marshal": day.get("lead"), "enemy": day.get("enemy"),
+                     "field": day.get("field")}))
+    except Exception as exc:
+        report(exc, "battle_day._notice")
+
+
+# ════════════════════════════════════════════════════════
+# What the table is told
+# ════════════════════════════════════════════════════════
+
+def tableau_for(world, key) -> Optional[dict]:
+    """His last clash's tableau, if the table has not read it."""
+    return (_TABLEAUX.get(world) or {}).pop(str(key or ""), None)
+
+
+def _morning(day) -> str:
+    read = day.get("read") or {}
+    ahead = read.get("ahead", "even")
+    head = {"ours": "won on points", "theirs": "lost on points"}.get(ahead, "drawn")
+    return (f"The last clash: {head} — {int(read.get('our_loss', 0)):,} of ours for "
+            f"{int(read.get('his_loss', 0)):,} of his.")
+
+
+def block(world, day: dict, *, chips: bool = True) -> dict:
+    """The day as the table reads it. Fog: his purse is the commander's own
+    figure (a great battle names its commander), his odds and his bar are
+    never in it."""
+    is_open = day.get("open", True) is not False and day.get("enemy") in open_days(world)
+    out = {
+        "open": bool(is_open),
+        "enemy": day.get("enemy"), "enemy_shown": _shown(day.get("enemy")),
+        "lead": day.get("lead"), "lead_shown": _shown(day.get("lead")),
+        "field": day.get("field"), "field_shown": _place(world, day.get("field")),
+        "side": day.get("side"),
+        "ours": int(day.get("ours", 0)), "theirs": int(day.get("theirs", 0)),
+        # What each purse held when the day opened (the pips' slots).
+        "ours_of": int(day.get("ours_of", day.get("ours", 0))),
+        "theirs_of": int(day.get("theirs_of", day.get("theirs", 0))),
+        "awaits": day.get("awaits") if is_open else "",
+        "pending": bool(day.get("pending")),
+        "morning": _morning(day) if day.get("read") else "",
+        "ahead": (day.get("read") or {}).get("ahead", "even"),
+        "told": [dict(t) for t in (day.get("told") or [])],
+        "ended": day.get("ended", ""),
+        # The table's headline while the day is the story: an open day is not
+        # a field won. "" leaves the clash's own verdict standing.
+        "banner": BANNER_OPEN if is_open else str(day.get("banner", "") or ""),
+        "chips": [],
+    }
+    if is_open:
+        out.update(_what_the_field_shows_of_him(world, day))
+    if is_open and chips and day.get("awaits") == "ours" and not day.get("pending"):
+        try:
+            out["chips"] = the_offer(world, day)
+        except Exception as exc:
+            report(exc, "battle_day.block: the_offer")
+    return out
+
+
+def _what_the_field_shows_of_him(world, day) -> dict:
+    """His temper (the plinth already wears it: `battle_script.temper_of`) and
+    whether a road is open behind him — read from the map every player sees
+    (who holds the provinces beside him, where our own corps stand). Never his
+    odds, his bar or his mood: those are his."""
+    out: Dict[str, Any] = {"his_temper": "", "his_road": None}
+    foe = world.get_marshal(day.get("enemy"))
+    if foe is None:
+        return out
+    try:
+        from backend.ai.enemy_ai import get_effective_ai_personality
+        from backend.display_names import PERSONALITY_DISPLAY
+        temper = str(get_effective_ai_personality(foe, world) or "")
+        out["his_temper"] = str(PERSONALITY_DISPLAY.get(temper, temper.replace("_", " ").title()))
+        # The day he opened he does not leave by a road: he breaks off.
+        if day.get("side") == "attack":
+            out["his_road"] = _his_road(world, foe)
+    except Exception as exc:
+        report(exc, "battle_day._what_the_field_shows_of_him")
+    return out
+
+
+def blocks(world, *, take_tableaux: bool = False) -> List[dict]:
+    """Every open day's block, live. With `take_tableaux` (the table's own
+    read, `GET /battle_day`) a block carries `reply_diorama` — his last
+    clash's tableau, handed over once; the province panel's read leaves it."""
+    out = []
+    for key in list(open_days(world)):
+        day = day_against(world, key)
+        if day is None:
+            continue
+        if not _alive(world, day):
+            _close(world, key, "over")
+            (_CLOSED.get(world) or {}).pop(key, None)
+            continue
+        got = block(world, day)
+        tableau = tableau_for(world, key) if take_tableaux else None
+        if tableau:
+            tableau["day"] = dict(got)
+            got["reply_diorama"] = tableau
+        out.append(got)
+    return out
+
+
+def awaits_him(world) -> bool:
+    """Does any open day await HIS word with nothing pending? (The one case
+    in which the table's read changes the board: `caught_up`.)"""
+    return any(day.get("awaits") == "theirs" and not day.get("pending")
+               for day in open_days(world).values())
+
+
+def caught_up(world, game_state, executor) -> List[dict]:
+    """For `GET /battle_day`: where a day awaits HIM by a road that did not
+    carry his answer (a day opened by an interrupt's answer or a charge — the
+    command road and the objection's answer settle at once), he answers now;
+    then every open day, and the closing block of a day that answer closed."""
+    waiting = [key for key, day in open_days(world).items()
+               if day.get("awaits") == "theirs" and not day.get("pending")]
+    if waiting and executor is not None and _on(world):
+        his_answer(world, game_state, executor)
+        for key in waiting:
+            _spent(world, key)
+    out = blocks(world, take_tableaux=True)
+    for key in waiting:
+        if key not in open_days(world):
+            closing = (_CLOSED.get(world) or {}).pop(key, None)
+            if closing is not None:
+                tableau = tableau_for(world, key)
+                if tableau:
+                    tableau["day"] = dict(closing)
+                    closing["reply_diorama"] = tableau
+                out.append(closing)
+    return out
+
+
+def _chip(kind, label, *, command="", word="", ok=True, why="", counsel="none",
+          odds="", who="", price=None) -> dict:
+    return {"kind": kind, "label": label, "price": int(PRICES[kind] if price is None else price),
+            "command": command, "word": word, "ok": bool(ok), "why": str(why or ""),
+            "counsel": counsel, "odds": odds, "marshal": who, "shown": _shown(who) if who else ""}
+
+
+# One order for every surface (the table, the province panel, the log): the
+# lead's own words first, then the Guard, then the others by kind, the exits
+# last — "Leave it to him" last of all.
+_CHIP_ORDER = ("press", "guard", "dig_in", "lead", "cannonade", "bring_up")
+
+
+def _chip_rank(chip: dict) -> int:
+    if chip.get("word") == "leave_it":
+        return 99
+    if chip.get("word") or chip.get("kind") in ("stand", "break_off"):
+        return 50 if chip.get("kind") == "stand" else 51
+    kind = chip.get("kind")
+    return _CHIP_ORDER.index(kind) if kind in _CHIP_ORDER else 40
+
+
+def the_offer(world, day) -> List[dict]:
+    """The chips of a day that awaits us — built from the quotes the game
+    already makes (`order_quotes`), read with the lend the words will have, so
+    a chip is lit exactly when its order would be taken. PURE: the lend is
+    returned before this returns."""
+    from backend.commands import order_quotes as Q
+    from backend.commands.state_probe import order_state_refusal
+    chips: List[dict] = []
+    lead, foe = world.get_marshal(day.get("lead")), world.get_marshal(day.get("enemy"))
+    if lead is None or foe is None:
+        return chips
+    purse = int(day.get("ours", 0))
+    spent_all = "The day's points are spent."
+
+    def lit(price, refusal=""):
+        if refusal:
+            return False, refusal
+        if purse < price:
+            return False, (spent_all if purse <= 0 else f"That asks {price} points; {purse} is left.")
+        return True, ""
+
+    with lending(world):
+        ours = [m for m in world.get_player_marshals() if _stands(m)]
+        ours.sort(key=lambda m: (m.name != lead.name, m.name))
+        for corps in ours:
+            reach = world.get_distance(corps.location, foe.location)
+            if reach is None or reach < 0 or reach > int(getattr(corps, "movement_range", 1) or 1):
+                continue
+            quote = Q.attack_quote(world, corps, foe)
+            if quote.get("kind") != "attack":
+                continue
+            shown = quote.get("shown") or _shown(corps.name)
+            if getattr(corps, "artillery", False) and corps.location != foe.location:
+                kind, label = "cannonade", f"{shown}'s guns"
+            elif getattr(corps, "is_sovereign", False) and the_guard_goes_in():
+                kind, label = "guard", "The Guard"
+            elif corps.name == lead.name:
+                # On a day he opened, the lead's own attack is his riposte.
+                kind = "press"
+                label = f"{shown} strikes back" if day.get("side") == "defence" else f"{shown} presses"
+            else:
+                kind, label = "lead", f"{shown} leads"
+            ok, why = lit(PRICES[kind], "" if quote.get("ok") else str(quote.get("refusal") or "He cannot."))
+            chips.append(_chip(kind, label, command=str(quote.get("command") or ""), ok=ok, why=why,
+                               counsel=str(quote.get("objection") or "none"),
+                               odds=str((quote.get("force") or {}).get("odds") or ""), who=corps.name))
+            if corps.name == lead.name:
+                for row in quote.get("bring") or []:
+                    if not row.get("command"):
+                        continue
+                    ok, why = lit(PRICES["bring_up"], "" if row.get("ok", True) else str(row.get("refusal") or ""))
+                    chips.append(_chip("bring_up", f"Bring up {row.get('shown') or _shown(row.get('marshal'))}",
+                                       command=str(row["command"]), ok=ok, why=why,
+                                       counsel=str(row.get("objection") or "none"),
+                                       who=str(row.get("marshal") or "")))
+        refusal = order_state_refusal(world, lead, "defend")
+        ok, why = lit(PRICES["dig_in"], str(refusal or ""))
+        chips.append(_chip("dig_in", f"{_shown(lead.name)} digs in",
+                           command=f"{_shown(lead.name)}, defend", ok=ok, why=why,
+                           counsel=Q._tactical_objection(world, lead, "defend", ""), who=lead.name))
+        if day.get("side") == "defence":
+            refusal = order_state_refusal(world, lead, "retreat")
+            chips.append(_chip("break_off", "Fall back", command=f"{_shown(lead.name)}, retreat",
+                               ok=not refusal, why=str(refusal or ""), who=lead.name))
+    chips.append(_chip("stand", f"{_shown(lead.name)} stands", word="stand", who=lead.name))
+    if a_marshal_may_be_left_to_it():
+        chips.append(_chip("stand", f"Leave it to {_shown(lead.name)}", word="leave_it", who=lead.name))
+    if day.get("side") == "attack":
+        chips.append(_chip("break_off", "Break off", word="break_off", who=lead.name))
+    chips.sort(key=_chip_rank)            # stable: the order within a kind is kept
+    return chips
+

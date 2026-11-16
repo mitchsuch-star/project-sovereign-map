@@ -1,0 +1,42 @@
+You are extending the battle-tableau STAGING and WALK tooling of the repo `C:\Users\User\PycharmProjects\project-sovereign-map` (a Napoleonic strategy game: FastAPI backend, Godot 4.4 client in `godot-client/project-sovereign/`). Read `CLAUDE.md` (project law) first, then `docs/PLAYTESTING.md` "Mode C" (the battle in acts paragraph, ~lines 1063–1075), `docs/SYSTEMS_REFERENCE.md` §219–§220 (especially §220.5 traps and §220.6 tests and tools), then the tools themselves: `tools/ba1_stage_battles.py`, `tools/ba1_acts_walk.py`, `tools/ba1_acts_walk.gd`, `tools/ba2_switch_off.py`, `tools/ba2_mode_c_walk.py` (+ its `.gd`).
+
+## Context — what was just built (do NOT edit it)
+A feature called "the day's points" (row BA, session BA-3). A GREAT battle that does not decide the day opens a "day": the tableau payload then carries a `day` block and the client's acts helper (`scripts/battle_acts.gd`) draws a DAY'S PANEL — both purses as pips, the last lines told, and chips — in the room of the verdict, the name plate and the seal (the tableau must not grow). The full wire contract is in
+`C:\Users\User\AppData\Roaming\Claude\side-session-notes\local_bd963d32-5d03-43be-b80c-339dcad7cbe3\ba3_day_contract.md` (READ IT). Backend: `backend/game_logic/battle_day.py`. A day exists ONLY in a campaign the game server holds: `backend.game_logic.campaign_variance.serve_campaign(world)` marks a world as served. `tests/test_ba3_the_rounds.py` shows how a served board fights a great battle that hangs and how `battle_day.settle(world, game_state, executor, result)` writes the live block (with chips and his reply) onto `result["battle_diorama"]["day"]` and `result["battle_day"]`.
+The client panel was built by another agent; read `git diff -- godot-client/project-sovereign/scripts/battle_acts.gd` to learn the panel's node names, how it is held back and brought, and how a chip press is emitted (`word_given` on the host).
+
+## Task 1 — stage day scenes (`tools/ba1_stage_battles.py`)
+Add scenes that produce tableau payloads WITH a `day` block, staged on the 1805 board like the existing ones but on a SERVED world (serve it before staging; keep the campaign seed `historical` so the battle's dice stay the tool's own `random.seed(ambient)` — check `campaign_variance.battle_rng` returns None on `historical`), and call `battle_day.settle(...)` after the attack so the payload's `day` carries chips / his reply:
+- `day_opens` — a great battle whose day hangs, awaiting our word, with chips (at least one lit order chip, the stand / leave-it / break-off words).
+- `day_dim_chip` — the same kind of day where at least one chip is dim with a reason (e.g. the purse too short for it: set the store's `ours` so a priced chip is unaffordable, then rebuild the block with `battle_day.block(world, day)`).
+- `day_word` — the clash AFTER a word (give the lead's press through the same road the server uses: `battle_day.classify_word` + `battle_day.lending` + `executor.execute` + `battle_day.settle(..., word=word, spent=...)`; see `backend/main.py::_execute_through_the_day`); the payload is that later clash's tableau, whose script opens with the `word` beat.
+- `day_night` — a day that has closed with "Night falls on an undecided field." (`open: false`, `ended: "night"`), no chips.
+- `day_defence` — if you can stage it cheaply: a day the ENEMY opened (side `defence`) awaiting us, whose chips include "Fall back". If it is not cheap, skip it and say so.
+HARD CONSTRAINT: every EXISTING scene's payload must stay byte-for-byte what is committed, EXCEPT `the_guns` (a fix to `battle_script._plan` now names a gunner once — that one scene is expected to change). After your changes run the staging tool for all scenes (see the tool's `--out`, run it with `-X utf8`) into the committed payload folder and prove with `git status` / `git diff --stat` that only `the_guns` and the new scenes' files (and the manifest) changed. The existing unserved scenes must NOT be served.
+
+## Task 2 — walk claims (`tools/ba1_acts_walk.py` + `tools/ba1_acts_walk.gd`)
+Add the new scenes to the walk and add claims read off the walk's RECORD (never off a picture), in the manner of the existing `check`:
+1. No day's panel is visible while the acts play, nor at the opening frame; at rest (the settled frame) it is visible for a scene with a `day`.
+2. At rest the panel lies inside the tray, on no other line of text, and does not overlap the Close (x 846–956, y 698) or Replay (x 726–836, y 698) buttons.
+3. With a day the verdict, the name plate and the seal are hidden at rest; for a scene WITHOUT a day they are visible exactly as before (every existing scene's existing claims must still hold unchanged).
+4. A dim chip reads dim (it is rendered through the disabled-chip path and carries its reason); a lit chip is lit.
+5. One press, one word: pressing a lit chip emits `word_given` exactly once with the chip's command (or the `@word:` string for a word chip), and a second press before new data arrives emits nothing; pressing a dim chip emits nothing.
+6. Esc still closes the table with the panel up (the chips take no keyboard focus).
+7. The closed day (`day_night`) shows its last told line and no chips.
+The walk's `SOURCES` list was already extended by the lead session (do not shrink it). If the `.gd` walk script needs to read panel nodes, read them by the names the client agent used.
+Run the HEADLESS walk (`--headless --time-scale 8`) until every claim, old and new, holds. Do NOT run the windowed walk of record — the lead session runs it once on the final tree.
+
+## Task 3 — switch-off cases (`tools/ba2_switch_off.py`)
+For each NEW safeguard in `battle_acts.gd` that a claim above relies on (the panel held back at the opening; the chrome put back; the in-flight latch; the dim chip), add a case in the manner of the existing ones: the mutation switches the safeguard off, the walk's claim must then FAIL ("caught"). Run the tool for the new cases and report each as caught or not. NOTE: `tests/test_ba2_the_review.py` (~line 472) pins `len(SWITCH.CASES) == 10` — do not edit the test; report the new count and the lead session re-points the pin. The tool rewrites `battle_acts.gd` while it runs and restores it — make sure the file is byte-identical afterwards (`git diff --stat` must show the same numbers for it as before your run).
+
+## Task 4 — a live-client walk script (write it, do not run it windowed)
+In the manner of `tools/ba2_mode_c_walk.py` / `.gd`, write `tools/ba3_mode_c_walk.py` (+ `.gd` if that pattern needs one) that, against a real backend on `SOVEREIGN_PORT=8006` and the real client, opens a great battle whose day hangs, presses a table chip (the lead's press), then a word chip ("Leave it to …" or "stands"), and records what the client showed and what the server answered (the purses before/after, `action_info.cost == 0`, the table still up). Keep it as close to the existing pattern as possible; if the existing pattern needs a windowed Godot, write the script and its usage docstring and STOP — say plainly that it was written and not run.
+
+## Hard rules
+- Touch ONLY: `tools/ba1_stage_battles.py`, `tools/ba1_acts_walk.py`, `tools/ba1_acts_walk.gd`, `tools/ba2_switch_off.py`, the new `tools/ba3_mode_c_walk.*`, and the staged payload files / manifest under the committed payload folder. Do NOT edit anything under `backend/`, `tests/`, `docs/`, or `godot-client/` (if a client defect blocks a claim, REPORT it precisely — file, function, what is wrong, how to see it — and leave it for the lead session). No git state changes (no commit, stash, reset, checkout).
+- Headless only: do not open Godot windows or drive the desktop. The parse harness and the headless walk are run as `docs/PLAYTESTING.md` documents (PowerShell `Start-Process` for the Godot binary if the docs say so).
+- Write every Python / GDScript file with the file-writing tool, never via shell heredocs. Run Python from Git Bash with `unset PYTHONIOENCODING PYTHONUTF8`.
+- Never change a number of the game.
+
+## Report back (final message, concise)
+Scenes staged (name → the ambient seed kept → one line of what the payload shows) and any skipped; proof that existing payloads are unchanged except `the_guns`; each new claim and whether it holds; each switch-off case and whether it was caught; the new `len(SWITCH.CASES)`; the headless walk's final result line; the live-walk script's status; every client defect found (precise); every test pin you expect to move (name + why).

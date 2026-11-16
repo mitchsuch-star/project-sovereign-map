@@ -546,7 +546,9 @@ class TestTheWalkOfRecord:
 
     def test_the_frames_it_kept_are_in_the_repo(self, record):
         kept = record["frames_kept"]
-        assert len(kept) == len(WALK.CURATED) == 33
+        # 33 at BA-2; row BA's BA-3 keeps eight frames of the day's panel
+        # (BA1_34 … BA1_41, `tests/test_ba3_the_days_panel.py`).
+        assert len(kept) == len(WALK.CURATED) == 41
         for stem in ("19_three_seats_and_the_reserve", "24_before_the_walls", "25_the_storm",
                      "27_the_walls_are_carried", "28_the_garrison_capitulates", "29_our_own_walls",
                      "31_the_works_are_levelled", "32_our_own_corps_under_our_guns",
@@ -660,7 +662,7 @@ class TestTheSeams:
 # ════════════════════════════════════════════════════════════════════════
 
 class TestBA2X2ACourtsTurnIsNotLost:
-    """BA2-X2 (OPEN, owner row BA's session BA-3): a corps beaten to nothing
+    """BA2-X2 (OPEN, owner row BA's session BA-4): a corps beaten to nothing
     and raised again in the middle of its court's phase is not on the phase's
     opening roster, and the fairness tally built from that roster has no key
     for it — the court's whole turn is lost to a `KeyError` (seed jena,
@@ -674,7 +676,7 @@ class TestBA2X2ACourtsTurnIsNotLost:
         assert "actions_used = {m.name: 0 for m in marshals}" in source, \
             "the defect's own line: the tally knows only the corps the phase opened with"
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X2 OPEN — owner row BA's session BA-3")
+    @pytest.mark.xfail(strict=True, reason="BA2-X2 OPEN — owner row BA's session BA-4")
     def test_the_tally_takes_a_corps_raised_mid_phase(self):
         source = (REPO / "backend" / "ai" / "enemy_ai.py").read_text(encoding="utf-8")
         assert "actions_used[selected_marshal.name] += 1" not in source
@@ -769,7 +771,7 @@ class TestThePlanPressedInTheRealClient:
 
 
 class TestBA2X7TheMusterPromisesWhatTheOrderDelivers:
-    """BA2-X7 (OPEN, owner row BA's session BA-3): on the opening battle
+    """BA2-X7 (OPEN, owner row BA's session BA-4): on the opening battle
     Berthier's muster says a written order "would likely bring" Bernadotte;
     the order marches him at once to Munich, from whose mountains he cannot
     reach the field. It names the same order for Murat ("…and it rises to
@@ -797,7 +799,7 @@ class TestBA2X7TheMusterPromisesWhatTheOrderDelivers:
         named, offered = self._named_and_offered()
         assert named == {"Murat", "Soult", "Bernadotte"} and offered == {"Soult"}
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X7 OPEN — owner row BA's session BA-3")
+    @pytest.mark.xfail(strict=True, reason="BA2-X7 OPEN — owner row BA's session BA-4")
     def test_every_corps_the_muster_names_the_lever_for_is_one_the_order_brings(self):
         named, offered = self._named_and_offered()
         assert named <= offered

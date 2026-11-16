@@ -41,6 +41,16 @@ def shipped(monkeypatch):
     monkeypatch.setenv("LLM_MODE", "mock")
     M._reset_world_state()
     monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
+    # Row BA, BA-3 (November 16, 2026): these pins fight the 1805 opening on
+    # the `historical` seed, whose battle dice are the module's. Where Ulm's
+    # day hangs, "Soult, support Ney" is a word of that day — a point, never
+    # an action — and `test_the_relayed_order_pays_its_own_price_when_sent`
+    # read 3 actions where it expects 2 (green in one full run, red in the
+    # next). The relay's own price is what CRT-11 pins: the day's seam is held
+    # down here. What the relay's note should SAY of a word's price while a
+    # day is open is BA3-X5's (`tests/test_ba3_the_rounds.py`).
+    from backend.game_logic import battle_day as _battle_day
+    monkeypatch.setattr(_battle_day, "the_day_has_points", lambda: False)
     return TestClient(M.app), M.world
 
 

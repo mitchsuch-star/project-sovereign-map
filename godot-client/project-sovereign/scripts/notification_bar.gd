@@ -118,6 +118,7 @@ const TYPE_ICONS = {
 	"friendly_fire_trust": "FFR",
 	"reckless_cavalry_action": "CAV",
 	"counter_punch_earned": "CTR",
+	"battle_day_awaits": "DAY",
 	"drill_cancelled": "DRL",
 	"marshal_defied_order": "DFY",
 	"marshal_commissioned": "CMS",
@@ -233,6 +234,7 @@ const TYPE_ICON_SVGS = {
 	"friendly_fire_trust": "warning",
 	"reckless_cavalry_action": "horse",
 	"counter_punch_earned": "shield-check",
+	"battle_day_awaits": "sword",
 	"drill_cancelled": "hourglass",
 	"marshal_defied_order": "x-circle",
 	"marshal_commissioned": "medal-military",
@@ -857,6 +859,14 @@ func _show_expanded_panel(notif: Dictionary):
 	_expanded_body = body
 
 	var details = notif.get("details", {})
+	# Row BA, BA-3: "The day at <field> hangs" opens the day's table from its
+	# rail row (the notice itself carries no review target).
+	if str(notif.get("type", "")) == "battle_day_awaits" and details is Dictionary \
+			and str(details.get("review_target", "")) == "":
+		details = details.duplicate()
+		details["review_target"] = "battle_day"
+		details["review_label"] = "Take the field"
+		details["route_id"] = str(details.get("enemy", ""))
 
 	# ── UX23-A: the primary action, on its own full-width row ──
 	# (user: "no way to do it without menuing"). It sits ABOVE the button row

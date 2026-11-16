@@ -36,6 +36,7 @@ The laws of this module:
 from typing import Dict, List, Optional
 
 from backend.display_names import display_nation, humanize_entity_name
+from backend.game_logic import campaign_variance as _cv
 
 ACTS = ("approach", "cannonade", "assault", "crisis", "pursuit")
 
@@ -203,13 +204,72 @@ _RECEIVE = {
 }
 
 
+# Variant lines (BA-3, ruling 12). Where a beat's line has variants, the
+# FIRST template is the line every battle was told with; the rest say the
+# same thing with the same facts and the same fog exposure.
+
+_ADVANCE_ALT = {
+    "aggressive": ("{a} leads the charge himself{f}.",
+                   "{a} puts himself at the front of the column{f}."),
+    "cautious": ("{a} advances with deliberation{f}.",
+                 "{a} brings his line forward step by step{f}."),
+    "literal": ("{a} marches to the position given him, and halts there{f}.",
+                "{a} keeps strictly to his orders and goes no further{f}."),
+    "sovereign": ("The army moves forward under the Emperor's eye{f}.",
+                  "The Emperor's line steps off together{f}."),
+    "steady": ("{a} opens the attack{f}.",
+               "{a} takes the assault forward{f}."),
+}
+_RECEIVE_ALT = {
+    "aggressive": ("{a} falls on them as they come{f}.",
+                   "{a} advances to meet the blow{f}."),
+    "cautious": ("{a} stands his ground and waits for them{f}.",
+                 "{a} lets them come to him{f}."),
+    "literal": ("{a} keeps to the post he was given{f}.",
+                "{a} holds the position assigned him{f}."),
+    "sovereign": ("The Emperor's line stands to receive them{f}.",
+                  "The Emperor's troops wait steady for the attack{f}."),
+    "steady": ("{a} meets the attack{f}.",
+               "{a} stands to receive the blow{f}."),
+}
+
+
 class _Script:
     """The acts in order, and the one fog rule: a beat that names a corps
     names one the payload shows."""
 
-    def __init__(self, shown):
+    def __init__(self, shown, world=None, identity=()):
         self.shown = set(shown)
         self.acts: Dict[str, List[dict]] = {act: [] for act in ACTS}
+        self.world = world
+        self.identity = tuple(str(p) for p in identity)
+
+    def varies(self) -> bool:
+        """True only for a campaign the game server holds, on a rolled seed,
+        with the narration seam up: everything else is told in the first
+        words, byte for byte (the suite and the staging tools build
+        unserved or `historical` worlds)."""
+        world = self.world
+        if world is None or not _cv.the_narration_varies():
+            return False
+        if not _cv.campaign_is_served(world):
+            return False
+        return not _cv.is_historical(getattr(world, "campaign_seed", None))
+
+    def said(self, kind: str, *templates: str, **fields) -> str:
+        """One beat's line. `templates[0]` is today's text; the others are
+        variants. The choice is the campaign seed's, keyed on the battle's own
+        identity (the leads, the province, the turn), the beat's kind and the
+        optional `who` (a corps' name, so two beats of one kind in one battle
+        may differ): never the battle's dice, never the module `random`."""
+        who = str(fields.pop("who", "") or "")
+        chosen = templates[0]
+        if len(templates) > 1 and self.varies():
+            seed = str(getattr(self.world, "campaign_seed", "") or "")
+            namespace = "::".join(("battle_script", kind, who, *self.identity))
+            chosen = templates[_cv.seeded_tiebreak(
+                seed, namespace, list(range(len(templates))))]
+        return chosen.format(**fields)
 
     def add(self, act: str, beat: dict, *, named=()) -> None:
         for name in (beat.get("actor"), *named):
@@ -256,9 +316,19 @@ def _plan(script: _Script, attacker, defender, battle_result: dict,
     # quarry stands on this field — the resolver counts both as a written
     # order (`order_type` on the reinforcement row), and the beat called the
     # second "ordered in support" (the review, November 15, 2026: BA2-X13).
-    pursuing = [str(r.get("marshal")) for r in mine
-                if str(r.get("order_type") or "") == "PURSUE"]
-    supporting = [name for name in ordered if name not in pursuing]
+    # The guns first: a gunner already under orders is told once, as the
+    # guns, not twice (the review, November 15, 2026: BA2-X14).
+    guns: List[str] = []
+    if player_side == "attacker":
+        for result in facts.get("auto_bombardment_results") or []:
+            br = (result or {}).get("bombardment_result") if isinstance(result, dict) else None
+            gunner = str(((br or {}).get("attacker") or {}).get("name", "") or "")
+            if gunner and gunner not in guns:
+                guns.append(gunner)
+    chasing = [str(r.get("marshal")) for r in mine
+               if str(r.get("order_type") or "") == "PURSUE"]
+    pursuing = [name for name in chasing if name not in guns]
+    supporting = [name for name in ordered if name not in chasing and name not in guns]
     came = sum(1 for r in mine if r.get("arrived"))
     stance = _row(rows, "Aggressive stance") or _row(rows, "Defensive stance")
     posture = _posture(stance) if stance else ""
@@ -270,12 +340,6 @@ def _plan(script: _Script, attacker, defender, battle_result: dict,
         bonus = _i(facts.get("flanking_bonus"))
         origins = sorted(str(o) for o in (facts.get("flanking_origins") or []) if o)
         drilled = _row(rows, "Drill training")
-        guns: List[str] = []
-        for result in facts.get("auto_bombardment_results") or []:
-            br = (result or {}).get("bombardment_result") if isinstance(result, dict) else None
-            gunner = str(((br or {}).get("attacker") or {}).get("name", "") or "")
-            if gunner and gunner not in guns:
-                guns.append(gunner)
         clauses = [support] if support else []
         if bonus > 0:
             clauses.append(
@@ -342,7 +406,11 @@ def _approach(script: _Script, payload: dict, attacker, defender,
     region = str(payload.get("region", "") or "")
     script.add("approach", _beat(
         "open", "attacker", attacker.name,
-        f"{_n(attacker.name)} attacks {_n(defender.name)} at {region}."),
+        script.said("open",
+                    "{a} attacks {d} at {r}.",
+                    "{a} moves against {d} at {r}.",
+                    "{a} brings {d} to battle at {r}.",
+                    a=_n(attacker.name), d=_n(defender.name), r=region)),
         named=(defender.name,))
     # BA-2 (§15.5.5): the plan the player's orders amount to, named first.
     dispositions_told = _plan(script, attacker, defender, battle_result,
@@ -367,17 +435,32 @@ def _approach(script: _Script, payload: dict, attacker, defender,
             doctrine = (str(row.get("doctrine", "") or "")
                         if own and row.get("doctrine_arrived") else "")
             whence = f" from {origin}" if own and origin and origin != region else ""
+            f = {"n": _n(name), "w": whence, "s": score, "b": bar,
+                 "l": _n(lead.name), "k": doctrine, "who": name}
             if late and own:
-                text = (f"{_n(name)} comes up{whence} at the last hour "
-                        f"({score} against a bar of {bar}).")
+                text = script.said(
+                    "arrive_late_own",
+                    "{n} comes up{w} at the last hour ({s} against a bar of {b}).",
+                    "{n} reaches the field{w} at the last hour ({s} against a bar of {b}).",
+                    "{n} comes up late{w}, but in time ({s} against a bar of {b}).", **f)
             elif late:
-                text = f"{_n(name)} comes up at the last hour."
+                text = script.said(
+                    "arrive_late", "{n} comes up at the last hour.",
+                    "{n} reaches the field at the last hour.",
+                    "{n} comes up late, but in time.", **f)
             elif doctrine:
                 text = f"{_n(name)} arrives{whence}: {doctrine} brought him in time."
             elif ordered:
-                text = f"{_n(name)} marches{whence} to join {_n(lead.name)}, as ordered."
+                text = script.said(
+                    "arrive_ordered",
+                    "{n} marches{w} to join {l}, as ordered.",
+                    "{n} comes{w} to {l}'s side, as ordered.", **f)
             else:
-                text = f"{_n(name)} marches{whence} to the sound of the guns."
+                text = script.said(
+                    "arrive_guns",
+                    "{n} marches{w} to the sound of the guns.",
+                    "{n} comes{w} to the sound of the guns.",
+                    "{n} hurries{w} toward the firing.", **f)
             script.add("approach", _beat(
                 "arrive", side, name, text,
                 weight="head" if (late or doctrine) else "detail",
@@ -471,8 +554,12 @@ def _cannonade(script: _Script, attacker, defender, battle_result: dict,
         taken = _i((br.get("attacker") or {}).get("casualties"))
         if not gunner or dealt <= 0:
             continue
-        text = (f"{_n(gunner)}'s guns open on {_n(defender.name)}'s line: "
-                f"{dealt:,} fall before the assault.")
+        text = script.said(
+            "battery",
+            "{g}'s guns open on {d}'s line: {x:,} fall before the assault.",
+            "{g}'s battery plays on {d}'s line: {x:,} fall before the assault.",
+            "{g}'s guns speak against {d}'s line: {x:,} fall before the assault.",
+            who=gunner, g=_n(gunner), d=_n(defender.name), x=dealt)
         if br.get("fort_degraded"):
             text += (f" The works come down from {_i(br.get('fort_old'))}% "
                      f"to {_i(br.get('fort_new'))}%.")
@@ -503,9 +590,11 @@ def _assault(script: _Script, attacker, defender, battle_result: dict,
         temper = temper_of(lead)
         row = _row(rows, "Personality (")
         figure = f" ({_signed(row)})" if row else ""
+        alt = (_ADVANCE_ALT if lines is _ADVANCE else _RECEIVE_ALT)[temper]
         script.add("assault", _beat(
             "advance", side, lead.name,
-            lines[temper].format(a=_n(lead.name), f=figure),
+            script.said("advance_" + side, lines[temper], *alt,
+                        who=lead.name, a=_n(lead.name), f=figure),
             weight="head" if side == "attacker" else "detail",
             temper=temper, pct=_i((row or {}).get("value")),
             penalty=bool(row and row.get("type") == "penalty")))
@@ -575,7 +664,12 @@ def _crisis(script: _Script, world, payload: dict, attacker, defender,
             parts.append(f"+{skill} for his eye for ground")
         if flank:
             parts.append(f"+{flank} for the flank")
-        text = "The fortune of the day: " + ", ".join(parts) + f": {modified}."
+        text = script.said(
+            "dice",
+            "The fortune of the day: {p}: {m}.",
+            "The dice are thrown: {p}: {m}.",
+            "The day's fortune is cast: {p}: {m}.",
+            p=", ".join(parts), m=modified)
         if critical == "success":
             text += " Twelve on the dice: everything goes right."
         elif critical == "failure":
@@ -609,8 +703,15 @@ def _crisis(script: _Script, world, payload: dict, attacker, defender,
                 broke_any = True
                 morale = _i(side_result.get("morale")) if is_lead else -1
                 words = {
-                    "routed": (f"{_n(name)}'s line breaks at {morale}% morale."
-                               if morale >= 0 else f"{_n(name)}'s corps gives way."),
+                    "routed": (script.said(
+                        "break", "{n}'s line breaks at {m}% morale.",
+                        "{n}'s line gives way at {m}% morale.",
+                        "{n}'s regiments break at {m}% morale.",
+                        who=name, n=_n(name), m=morale)
+                               if morale >= 0 else script.said(
+                        "break_corps", "{n}'s corps gives way.",
+                        "{n}'s corps breaks and quits the ground.",
+                        who=name, n=_n(name))),
                     "shattered": f"{_n(name)}'s army is shattered, with no road left open.",
                     "destroyed": f"{_n(name)}'s corps is destroyed on the field.",
                     "captured": f"{_n(name)} is taken on the field.",
@@ -642,8 +743,107 @@ def _crisis(script: _Script, world, payload: dict, attacker, defender,
 
     if not broke_any:
         script.add("crisis", _beat(
-            "stand", "", "", "Neither line gives way: the day hangs.", weight="head"))
+            "stand", "", "",
+            script.said("stand",
+                        "Neither line gives way: the day hangs.",
+                        "Neither side yields: the day hangs.",
+                        "The lines hold, and the day hangs."),
+            weight="head"))
     return fates
+
+
+def _named_moments(script: _Script, attacker, defender, battle_result: dict,
+                   reinforcements: Dict[str, list], facts: dict) -> None:
+    """BA-3 (ruling 12): the few NAMED MOMENTS, each told only when its
+    condition holds and only where the narration varies (a served campaign on
+    a rolled seed) — read from the battle's own result and the muster rows the
+    script is already handed. None carries a figure, a province or a road the
+    ordinary beats do not already tell all three fog cases, so each stands in
+    all three (the dice and the late arrival are told to a watcher already;
+    the ground is the map's own)."""
+    if not script.varies():
+        return
+    outcome = str(battle_result.get("outcome") or "")
+    victor = str(battle_result.get("victor") or "")
+    winning = ("attacker" if victor == attacker.name else
+               "defender" if victor == defender.name else "")
+    an, dn = _n(attacker.name), _n(defender.name)
+    leads = {"attacker": attacker, "defender": defender}
+
+    if winning:
+        for row in reinforcements.get(winning) or []:
+            if not isinstance(row, dict) or not row.get("arrived"):
+                continue
+            margin = _i(row.get("score")) - _i(row.get("threshold"))
+            name = str(row.get("marshal", "") or "")
+            if name and 0 < margin <= LAST_HOUR_MARGIN:
+                lead = leads[winning]
+                # `victor` is set on a battle won ON POINTS too — the very
+                # outcome a great battle's day hangs on: "The day is won"
+                # stood over "THE DAY HANGS" (BA3-X12, the review). The
+                # siblings below say "on points"; so does this one.
+                late = (("{n}, come up at the last hour, carries the day for {l}.",
+                         "The day is won by {n}'s arrival at the last hour.")
+                        if outcome in ("attacker_victory", "defender_victory") else
+                        ("{n}, come up at the last hour, gives {l} the day on points.",
+                         "{n}'s arrival at the last hour tips the day to {l}, on points."))
+                script.add("crisis", _beat(
+                    "moment_late_arrival", winning, name,
+                    script.said("moment_late_arrival", *late,
+                                who=name, n=_n(name), l=_n(lead.name)),
+                    weight="detail"), named=(lead.name,))
+                break
+
+    roll = battle_result.get("attacker_roll") or {}
+    if isinstance(roll, dict):
+        attacker_won = outcome.startswith("attacker_")
+        if roll.get("is_critical_success") and not attacker_won:
+            script.add("crisis", _beat(
+                "moment_twelve", "attacker", attacker.name,
+                script.said("moment_twelve",
+                            "Twelve on the dice, and still the day is not {a}'s.",
+                            "{a} throws twelve, and it is not enough.", a=an),
+                weight="detail"))
+        elif roll.get("is_critical_failure") and attacker_won:
+            # The same sweep (BA3-X12): a two that won on points did not carry the day.
+            two = (("Two on the dice, and {a} carries the day nonetheless.",
+                    "{a} throws two, and wins all the same.")
+                   if outcome == "attacker_victory" else
+                   ("Two on the dice, and {a} still wins the day on points.",
+                    "{a} throws two, and has the better of the day all the same."))
+            script.add("crisis", _beat(
+                "moment_two", "attacker", attacker.name,
+                script.said("moment_two", *two, a=an),
+                weight="detail"))
+
+    flank = _i(battle_result.get("flanking_bonus")) or _i(facts.get("flanking_bonus"))
+    if flank > 0 and outcome == "attacker_tactical_victory":
+        script.add("crisis", _beat(
+            "moment_flank", "attacker", attacker.name,
+            script.said("moment_flank",
+                        "The turned flank tells: {a} wins the day on points.",
+                        "It is the flank that decides it: {a} wins the day on points.",
+                        a=an),
+            weight="detail"))
+
+    if outcome == "mutual_destruction":
+        script.add("crisis", _beat(
+            "moment_ruin", "", "",
+            script.said("moment_ruin",
+                        "Both armies are ruined on the field: there is no victor.",
+                        "Both armies are spent: no one holds the field."),
+            weight="detail"))
+
+    terrain = _row(_rows(battle_result, "defender"), "Terrain (")
+    if terrain and outcome == "defender_tactical_victory":
+        ground = str(terrain.get("label", ""))[len("Terrain ("):].rstrip(")").lower()
+        script.add("crisis", _beat(
+            "moment_ground", "defender", defender.name,
+            script.said("moment_ground",
+                        "The ground tells: {d} stands {g} and wins the day on points.",
+                        "It is the ground that decides it: {d} stands {g} and wins on points.",
+                        d=dn, g=_GROUND.get(ground, f"on {ground} ground")),
+            weight="detail"))
 
 
 def _pursuit(script: _Script, world, payload: dict, attacker, defender,
@@ -653,10 +853,12 @@ def _pursuit(script: _Script, world, payload: dict, attacker, defender,
     if damage > 0:
         ability = (getattr(attacker, "ability", None) or {}).get("name", "")
         screened = (getattr(defender, "ability", None) or {}).get("name", "") == "The Old Fox"
-        text = f"{_n(attacker.name)} rides them down"
-        if ability:
-            text += f" ({ability})"
-        text += f": {damage:,} more."
+        text = script.said(
+            "pursue",
+            "{a} rides them down{b}: {x:,} more.",
+            "{a} presses the pursuit{b}: {x:,} more.",
+            "{a} hangs on their rear{b}: {x:,} more.",
+            a=_n(attacker.name), b=f" ({ability})" if ability else "", x=damage)
         if screened:
             text += f" {_n(defender.name)}'s rearguard screened the retreat and halved the harvest."
         script.add("pursuit", _beat(
@@ -677,12 +879,21 @@ def _pursuit(script: _Script, world, payload: dict, attacker, defender,
             marshal = (getattr(world, "marshals", None) or {}).get(name)
             own = getattr(marshal, "nation", "") == player_nation
             to = where if (own and where and where != region) else ""
+            f = {"who": name, "n": _n(name), "to": to}
             if how == "withdrew":
-                text = (f"{_n(name)} withdraws to {to} after the battle." if to
-                        else f"{_n(name)} draws off after the battle.")
+                text = (script.said(
+                    "leave_withdrew_to", "{n} withdraws to {to} after the battle.",
+                    "{n} draws back to {to} once the battle is done.", **f) if to
+                        else script.said(
+                    "leave_withdrew", "{n} draws off after the battle.",
+                    "{n} quits the field once the battle is done.", **f))
             else:
-                text = (f"{_n(name)} falls back on {to}." if to
-                        else f"{_n(name)} leaves the field.")
+                text = (script.said(
+                    "leave_to", "{n} falls back on {to}.",
+                    "{n} retires on {to}.", **f) if to
+                        else script.said(
+                    "leave", "{n} leaves the field.",
+                    "{n} quits the field.", **f))
             script.add("pursuit", _beat("leave", side, name, text, how=how, to=to))
 
     advanced = str(facts.get("advanced_to") or "")
@@ -761,15 +972,25 @@ def build_battle_script(world, payload: dict, attacker, defender,
                     defender if name == defender.name else None)
             tempers[name] = temper_of(marshal) if marshal is not None else "steady"
 
-    script = _Script(shown)
-    _approach(script, payload, attacker, defender, battle_result,
-              {"attacker": attacker_reinforcements or [],
-               "defender": defender_reinforcements or []},
+    script = _Script(shown, world, (
+        attacker.name, defender.name, str(payload.get("region", "") or ""),
+        _i(getattr(world, "current_turn", 0))))
+    muster = {"attacker": attacker_reinforcements or [],
+              "defender": defender_reinforcements or []}
+    _approach(script, payload, attacker, defender, battle_result, muster,
               facts, player_side)
+    word = facts.get("day_word")
+    if isinstance(word, dict) and word.get("line"):
+        # The day's word (battle_day.word_line): a fact of the battle, not a
+        # variant; its line names only who came on, so it is fog-safe as given.
+        script.acts["approach"].insert(0, _beat(
+            "word", "", "", str(word["line"]), weight="head",
+            who=str(word.get("who", "") or ""), word=str(word.get("kind", "") or "")))
     _cannonade(script, attacker, defender, battle_result, facts, player_side)
     _assault(script, attacker, defender, battle_result, player_side)
     fates = _crisis(script, world, payload, attacker, defender, battle_result,
                     facts, player_nation, player_side)
+    _named_moments(script, attacker, defender, battle_result, muster, facts)
     _pursuit(script, world, payload, attacker, defender, battle_result, facts,
              fates, player_nation, player_side)
 

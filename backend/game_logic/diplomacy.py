@@ -14193,7 +14193,12 @@ def _process_mission_effects(world) -> List[Dict]:
     # DLF-4: COURT_NATION blowback — 20% chance of -3 relation (fixed, not skill-scaled)
     undermine_chance = effects.get("undermine_chance", 0)
     if undermine_chance > 0:
-        if random.random() < undermine_chance:
+        # WS-16: the turn's own draw where a campaign is played (a turn re-run
+        # from the same save finds the same blowback). None: module `random`.
+        from backend.game_logic import campaign_variance as _cv
+        _blow = _cv.temper_rng(world, "mission_blowback", mission.get("type"),
+                               mission.get("target"), saved=False)
+        if (_blow if _blow is not None else random).random() < undermine_chance:
             undermine_amount = effects.get("undermine_amount", 0)
             # S14E-X37: the blowback is a write the books do not earn — it is
             # booked as a shock (cause: "the blowback at Prussia's court").

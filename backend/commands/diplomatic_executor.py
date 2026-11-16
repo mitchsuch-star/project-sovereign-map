@@ -5572,8 +5572,15 @@ class DiplomaticExecutor:
                     calculate_diplomatic_defiance_chance, apply_diplomatic_sabotage,
                 )
                 import random
-                defiance_chance = calculate_diplomatic_defiance_chance(talleyrand, ctx.world)
-                if random.random() < defiance_chance:
+                # WS-16: the chance's variance and the roll are the campaign's
+                # where one is played — the same proposal sent from the same
+                # save is carried faithfully, or is not, every time.
+                from backend.game_logic import campaign_variance as _cv
+                _t_rng = _cv.temper_rng(ctx.world, "talleyrand_defiance",
+                                        proposal.get("type") or proposal_type, ctx.target_nation)
+                defiance_chance = calculate_diplomatic_defiance_chance(
+                    talleyrand, ctx.world, **({"rng": _t_rng} if _t_rng is not None else {}))
+                if (_t_rng if _t_rng is not None else random).random() < defiance_chance:
                     sabotage_result = apply_diplomatic_sabotage(proposal, talleyrand, ctx.world)
                     ctx.world.pending_talleyrand_sabotage = sabotage_result
                     proposal = sabotage_result.get("modified_proposal", proposal)

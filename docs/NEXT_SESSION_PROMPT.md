@@ -1,192 +1,171 @@
-# NEXT SESSION PROMPT — Row BA, BA-3: the rounds (before Session H, the deploy)
+# NEXT SESSION PROMPT — Row BA, BA-4: the roads and the fog (before Session H)
 
-> Overwritten each time a session hands off. Current hand-over: **November 15, 2026 — ROW BA, BA-2 ✅ LANDED: THE
-> BOARD, THE WALLS AND THE GUNS** (`BATTLE_DIORAMA_SPEC.md` §15.11 the session's gate — the user's words on battle
-> agency, the measure behind them and seven decisions taken under delegation — and §15.12 the landing record;
-> `SYSTEMS_REFERENCE.md` §220; `BUG_FIXES.md` §BA2; `tests/test_ba2_the_walls_and_the_guns.py`,
-> `tests/test_ba2_backend_walls_guns_plan.py`). The user asked for battles like "watching an inetretsing
-> strtagic battle with flanks and movements unfold but the player has abstrtact interactions think black and
-> white", said "Plan on it", then "we dont ened to use emperor framing the concept is to make battles an enaging
-> autobattler with abtract player feedback you are playing the emperor thew whole time" and "they should mvoe in
-> napolenic stile". The concept as ruled: **the player sets the board; the battle plays itself, moving as armies
-> of the period moved; between rounds the table offers abstract commands.** BA-2 built the first two: the order
-> of battle (three seats a side — a lead and two wings — and a reserve), the movement (column into line, the
-> charge and the recoil, the square, the flank's column, field works), a garrison assault's tableau (the wall
-> held, stormed or capitulated), a bombardment's (the cannonade alone), the plan named in Act I, and the "bring
-> him" chips at the attack row and on the attack card (the existing SUPPORT order at its own price). Seven finds:
-> BA2-X1, X3, X4, X5 fixed; **BA2-X2 and BA2-X7 open, THIS session's** (a court's turn lost to a `KeyError` when a
-> corps is raised mid-phase — seed jena, Prussia, Yorck; and Berthier's muster naming a written order for
-> Bernadotte and for Murat on the opening battle, when the order marches the one out of reach and stops the
-> other on his question); **BA2-X6 open at Session H's head** (the province panel, scrolled, can rest on a cut line).
-> **The session's review (November 15, 2026 — the spec's §15.13, `tests/test_ba2_the_review.py`) added twelve
-> rows, BA2-X8 … BA2-X19:** seven fixed in its own commit; **BA2-X10, BA2-X12, BA2-X14 and BA2-X17 are THIS
-> session's** (scope 6a below); **BA2-X16 heads Session H** (the tools' siblings).
-> **Then the user, on what the review left with him: "make allr eccomendations here … and hand them to ba 3 in
-> next session" (November 15, 2026).** BA-2's session made the recommendations and they are THIS session's to
-> build (scope 6b below): **BA2-X20** a battle lights its field for those who fought in it; **BA2-X21** a quote
-> names the men its first march costs; the support order's approach rule, IN; answers to the head's second
-> and third questions; and the order in which the review's rows are taken.
+> Overwritten each time a session hands off. Current hand-over: **November 16, 2026 — ROW BA, BA-3 "THE DAY'S
+> POINTS" ✅ LANDED** (`BATTLE_DIORAMA_SPEC.md` §15.14 the gate, §15.15 the stop of its first pass, §15.16 the
+> ruling on the measure and what its finish found, §15.17 the landing record, §15.18 its review; the rules
+> `SYSTEMS_REFERENCE.md` §221; the ledger `BUG_FIXES.md` §BA3; the pins `tests/test_ba3_the_rounds.py`,
+> `tests/test_ba3_the_days_panel.py`, `tests/test_ba3_the_review.py`,
+> `tests/test_ws16_the_same_order_draws_the_same_temper.py`).
+> **What landed:** a GREAT battle (80,000 men) the player is party to that does not decide the day is fought in
+> turns on points that are the battle's own — 2, or 3 under a commander of command 8 or more; a word is an
+> order the game already has and costs points, never an action; the enemy answers by the rule his AI already
+> follows; two silences, both purses spent or a side leaving, and night falls; a small battle is one clash,
+> told as before. With it: WS-16 (the same order from the same save draws the same temper), NP-D1 (the
+> Guard's two morale numbers), the varied telling, BA2-X14 and BA2-X17.
+> **The measure:** the plan's stop rule fired on the session's own `sense` bot (28 / 22 / 23); on the user's
+> "do whatever is best not easiest" it was re-read as eight seeds by nine arms against a rule written before
+> the data (§15.16). **The deploy gate reads the commanded arms as `score_run` runs them — silent on a day:
+> 28 / 27 / 27.** Arm 0 (every new seam down) is 26 / 27 / 28. No rule and no number was changed for it.
+> **The lesson of its finish, for every session after it:** the backend was whole and pinned at the stop, and
+> finishing still found thirty defects — by reading the code whole, playing the real board, looking at
+> the frames, and above all by pressing the REAL client against a real server (the table that rises at dawn
+> had no chips; the action counter read 5 of 4; a fanfare played under "the day hangs"). An in-process check
+> reads the pool; the client reads the response. A staged scene is fought through the executor; the game's own
+> road may carry another payload.
 
-**NOW — BA-3: THE ROUNDS** (`BATTLE_DIORAMA_SPEC.md` §15.11 "What BA-3 becomes", §15.5.6 as amended, §15.5.7,
-§15.7). First check `git log` — BA-2 is `567f3e85`, its review's fixes are the commit after it — and that the
-tree is clean. Open in Plan Mode with a slice plan. Read first: `STATUS.md` ▶ NEXT UP, the spec's §15.11 to §15.13
-(before the code), `SYSTEMS_REFERENCE.md` §219 and §220 (the rules and the traps).
+**FIRST — in this order:**
 
-**Three questions go to the user at its head, and a fourth decision rides scope 5** (§15.7 — put content-first,
-co-equal, nothing pre-recommended in the question itself). Each now has an answer on record, to give when
-asked: the first is §15.11 decision 4; the second, the third and the fourth are BA-2's session's, made at the
-user's "make allr eccomendations here" (scope 6b):
+0. `git log`: BA-3's commit is the one after `da68ad7f`; the tree should be clean. **BA-3's one review is
+   done** (§15.18: six readers on a frozen copy, before the commit; twenty-five findings; thirteen rows
+   fixed in it, four filed for this session — scope 7c to 7f; the pins are `tests/test_ba3_the_review.py`).
+1. Then **BA-4: THE ROADS AND THE FOG**, opening in Plan Mode with a slice plan. Read first: `STATUS.md`
+   ▶ NEXT UP, the spec's §15.13 to §15.18 (before the code), `SYSTEMS_REFERENCE.md` §219 to §221 (the rules
+   and the traps).
 
-1. **The round's price.** §15.11 decision 4: a round costs what an attack costs (priced rounds cannot be
-   cheesed, so the hinge may be offered on any hanging day). The plan of record before it said no action; the
-   design review flagged a near-free second attack after a narrow win.
-2. Whether a pursuit by a commander who ARRIVED includes a corps already standing on the field (§15.5.7).
-3. One round a lead a turn, or as many as the actions allow.
+**Scope** (every row is one seam or one line to reverse; the recommendations of §15.13 and of BA-2's hand-over
+stand, and this session's plan gate may still overrule any of them):
 
-**Scope.**
+1. **BA2-X2 (P1) — a court's turn lost to a corps raised again mid-phase.** `backend/ai/enemy_ai.py`: the
+   fairness tally (`actions_used[selected_marshal.name] += 1`) takes a corps that was not on the phase's
+   opening roster. Seed jena, Prussia, Yorck. Done when the keyed probe's jena arm runs its 40 turns with no
+   court's turn lost; the jena world-line moves from that turn — report it. The strict-xfail pin and the plain
+   pin on the literal are in `tests/test_ba2_the_walls_and_the_guns.py`.
+2. **BA2-X7 (P2) — the muster promises what a support order does not deliver**, WITH **the support order's
+   approach rule — IN** and **BA2-X10** (a road round keeps to provinces the corps may enter; where none goes
+   round, the order ends at the approach and says so): one change to the SUPPORT order's first step
+   (`_handle_first_step_blocked`, `_strategic_first_step`), two seams. BA-3's "a corps is brought up" chip is a
+   bring row — it inherits whatever this fixes.
+3. **BA2-X12 (P3)** — no bombardment's collateral names its own battery on any road.
+4. **BA2-X20 (P2) — a battle lights its field for those who fought in it**, with the Gazette's news of a great
+   foreign battle (who fought, where, who held the field, no figures). Behind a seam, an arm of the measure:
+   the commanded arms play France by what France sees, so the band may move — report it per seed.
+5. **BA2-X21 (P3)** — a quote names the men its first march costs (`march_cost` on the march, support, follow,
+   pursue and move-to quotes; the bring rows and BA-3's day chips inherit it). It moves no number.
+6. **§15.5.7's two rules**, each behind a function seam: a pursuit ability fires for any corps of the victor
+   that FOUGHT on the field (the head's second question — yes); the last hour's three quarters.
+7. **BA3-X2 (P3)** — at text size 1.3 BA-2's board lays three corps a side as the file where its claim asks
+   the wedge (`battle_acts.gd`'s seat layout; reproduce:
+   `tools/ba1_acts_walk.py --only ulm_full,the_reserve --headless --time-scale 8 --text-size 1.3`).
+7b. **BA3-X5 (P3) — a quote says a word's price.** While a day is open the surfaces outside the day's own
+   chips still price a word as "1 action" (the attack card, the plan's `bring` rows, the relay's note,
+   the province's ordinary attack row, the readback); the order then takes a point and no action. ONE
+   source: where `battle_day.classify_word` would take the quoted order, the quote says `ap: 0` and the
+   price in the day's points; the province panel drops the ordinary attack row for the day's enemy. It
+   sits with BA2-X7 and BA2-X21 (the other quote rows). Done when the chip census's oracle (send, then
+   read the pool) holds with a day open and CRT-11's relay pins run with the day's seam up again; the
+   strict-xfail pin is `tests/test_ba3_the_rounds.py::TestAQuoteSaysAWordsPrice`.
+7c. **BA3-X13 (P3) — a day that died before night bars no strike.** `battle_day.night_falls` writes the
+   pair's bar for every day open when the night began, also one already over because its lead marched off:
+   walking away buys a phase in which that corps cannot be struck by him. Bar only a day that was alive
+   when its night began. Behind a seam, an arm of the measure.
+7d. **BA3-X14 (P3) — his word leaves the phase's stream where it was.** `EnemyAI._execute_action` scores
+   every order it runs with a draw from the court's `ai_rng` — the phase's stream, which no save carries —
+   so a word of his shifts his phase, and a save and a load after it replay the phase otherwise. Score a
+   day's word from the day's own stream (or without a draw). Behind a seam, an arm of the measure: it
+   changes every campaign in which he speaks before his phase, so THE SWEEP OF §15.16 IS READ AGAIN WITH
+   IT (`tools/_ba3_measure.py`, the sweep's own command) and its rule checked again.
+7e. **BA3-X15 (P3) — a lead holds one day at a time: a rule for the plan gate.** Two corps of his can each
+   fight one lead of ours to a hanging great battle in one phase: two days, one lead, whose `digs in` is
+   one order (since BA3-X11 it binds to the first day that can take it — never an action, but perhaps not
+   the day whose chip was pressed). BA-3's recommendation: a second great battle against a lead whose day
+   is open opens no day of its own and is told as the one clash it is. The alternative: one word answers
+   every day of his at once. Put both to the user; build the one chosen behind a seam.
+7f. **BA3-X16 (P3) — two stance orders draw their own moods.** WS-16's stream is keyed on the order's
+   `target`; a stance order carries `target_stance` (`executor.py`'s mood, `severity.py`). Add the order's
+   own distinguishing field, and sweep for the class. Behind a seam, an arm of the measure.
+8. **ONE measure with arms**, reported per seed: arm 0 = every seam at HEAD's answer (the keyed probe
+   IDENTICAL on jena and marengo, the standing series unmoved, the commanded band = 28 / 27 / 27, BA-3's
+   record `tools/_ba3_sweep_2026_11_15.json` arm `S`); then BA2-X2's fix; then X12, X10 with the approach
+   rule, X20, each behind its seam; then the two ticked rules; then BA3-X13, BA3-X16 and — last, with the
+   whole sweep — BA3-X14. `tools/_ba3_measure.py` is the pattern; the day's arms are run again where a row
+   moves a day (BA3-X13, X14 and X15 do).
 
-1. **A battle the player fights is played in rounds.** When a day hangs (both leads standing, the enemy still
-   on the field — 180 of 350 field battles on five measured seeds) the table stays up and offers, on the pieces
-   themselves, the EXISTING orders at their ordinary prices: **Press** (the lead attacks again, with the penalty
-   his second attack already carries), **Commit** (a chip per corps an order would still bring — the very rows
-   BA-2's `order_quotes.bring_quotes` returns; the Guard when the Emperor's own corps is at hand, with the two
-   morale numbers ruled for NP-D1: the enemy lead −10 as it goes in, every French corps that fought −10 if it
-   is beaten), **Hold**. The lead answers through the objection road as it stands (the concern evaluators, the
-   insist penalty and trust gain, the defiance chance, roll and fallback, "By my word", vindication). **No rule
-   hangs on where the Napoleon piece stands** (§15.11 decision 1: the hand is in every battle the player fights).
-2. **On defence:** nothing new resolves inside the enemy's phase (it cannot stop to ask). Once it has ended, a
-   defended day that hung offers **Riposte** — the ordinary attack order at its ordinary price, free where the
-   lead already holds a counter-punch (`attack_quote` quotes 0 when `has_counter_punch()`).
-3. **NP-D1 closed** (the Guard's two numbers); **the two rules the user ticked** (§15.5.7: a pursuit ability
-   fires for an arrived commander when the lead has none; an arrival won by 5 points or fewer brings three
-   quarters of its weight) — each behind a FUNCTION seam (the ratchet caps module levers).
-4. **WS-16** — the reload's other dice (the objection's mood, the defiance roll, the diplomatic defiance, five
-   smaller sites — one each in `diplomacy.py`, `jealousy.py` and `severity.py`, two in `vassal.py`): a round needs
-   the defiance roll seeded.
-5. **BA2-X7** — the muster's lever sentences (`combat_executor.muster_row_hint`, `_arrival_odds_row`) name an
-   order only when sending it brings the corps: read from where the order's first march leaves him, as
-   `order_quotes.bring_quotes` now is (`_stop_this_turn`, `_odds_under_the_order`). The Commit chips of
-   scope 1 are these rows, so it lands with them (`_build_muster_preview` is 419 lines — a seam, not more
-   body). **One rule goes to the user with it** (recommended in §15.12, not built): a SUPPORT order whose
-   road's first province holds the very corps the friend is to attack halts at the approach and joins the
-   next attack there — the arm the order already has when the foe holds the friend's own province — so a
-   corps like Murat (road through Mack: today the order stops him on "Your orders?") can be committed at
-   all. The strict-xfail pin
-   `tests/test_ba2_the_walls_and_the_guns.py::TestBA2X7TheMusterPromisesWhatTheOrderDelivers` turns red then.
-   The rule's behaviour test is named now, whichever way it is ruled: `tests/test_ba3_the_rounds.py`, a class
-   `TestASupportOrderMeetsTheCorpsToBeAttacked`. Ruled IN: Murat, ordered to support Ney on the opening board,
-   halts beside Mack with no question raised and the muster counts him. Ruled OUT: the muster's sentence for
-   such a corps says that an order cannot bring him.
-6. **BA2-X2** — the AI turn's fairness tally takes a corps that was not on the phase's opening roster
-   (`enemy_ai.py`, `actions_used[selected_marshal.name] += 1`), behind a seam, with the sweep of every other
-   per-marshal dict built from that roster; the strict-xfail pin
-   `tests/test_ba2_the_walls_and_the_guns.py::TestBA2X2ACourtsTurnIsNotLost` turns red the day it lands.
-6a. **The review's four rows** (`BUG_FIXES.md` §BA2; each a strict-xfail pin in `tests/test_ba2_the_review.py`
-   that turns red the day it lands). **BA2-X10** — a literal marshal's road ROUND a corps is plotted through a
-   province he may not enter (`_handle_first_step_blocked`'s literal arm, `strategic.plot_route`'s reroute
-   ladder, and its quote `order_quotes.literal_detour`): the order is taken, the first march is refused without
-   a word, the reply still promises an arrival ("Joins him in 6 turns"). The fix moves marches, the AI's too:
-   behind a seam, an arm of the measure. **BA2-X12** — a battery standing in its target's own province takes its
-   own collateral fire (`combat_executor._execute_bombardment`, `all_in_region`; reached by the post-objection
-   and the two defiance roads). The fix takes a roll out of the battle's stream on that road: behind a seam, an
-   arm of the measure. **BA2-X14, the half left** — a gunner ordered in support is named twice in one plan; the
-   fix changes the staged scene `the_guns`, so it lands with this session's walk of record. **BA2-X17** — add
-   `backend/game_logic/battle_diorama.py`, `tools/ba1_stage_battles.py`, `tools/ba1_acts_walk.py` and the
-   client's `utils.gd` to `WALK.SOURCES`; when the walk of record is run, the comparison of its hashes with the
-   tree becomes a plain green test (`TestTheWalksRecordAndItsSources`).
-6b. **Handed over by the user's word (November 15, 2026: "make allr eccomendations here … and hand them to
-   ba 3 in next session").** Recommendations made by BA-2's session under that word. Each is one seam or one
-   line to reverse, and this session's plan gate may still overrule any of them.
-   - **BA2-X20 — a battle lights its field for those who fought in it.** `WorldState.update_intel_from_battle`
-     grants the player FULL sight only when he is a party to the battle (his nation attacks or defends, or a
-     marshal of his fought) or it is fought on his own soil; a battle between other crowns leaves the province
-     at the sight he had. Behind a seam, an arm of the measure: the commanded arms play France by what France
-     sees, so the band may move — report it per seed. With it, so that Europe does not go dark: the Gazette
-     prints another crown's battle as news the turn after (who fought, where, who held the field, no numbers)
-     when it is a great battle or an ally's in a war the player shares. Why: `FOG_OF_WAR_SPEC.md` §4.4 was
-     written when "every battle in the current game involves a player marshal".
-   - **BA2-X21 — a quote names the men its first march costs.** The march rule is exact
-     (`MovementExecutor._calculate_movement_attrition`): split the calculation from its application and put a
-     `march_cost` line on the march, support, follow, pursue and move-to quotes; the Commit chips are bring
-     rows and inherit it. It moves no number.
-   - **The support order's approach rule (scope 5): IN.** With it the muster and the chips agree (BA2-X7
-     closes), and a corps like Murat can be committed by an order at all.
-   - **BA2-X10's rule:** the road round keeps to provinces he may enter; where none goes round, the order ends
-     at the approach and says so. Build it WITH the approach rule — both rewrite the SUPPORT order's first step
-     (`_handle_first_step_blocked`, `_strategic_first_step`): one change, two seams.
-   - **The head's second question — yes:** a pursuit ability fires for any corps of the victor that FOUGHT on
-     the field, whether it marched in or stood there (never one that did not fight; highest only; the Old Fox
-     still halves it). A man who stood ready should not count for less than one who came late.
-   - **The head's third question — as many rounds as the actions allow:** Press is the attack order the
-     command line already takes, at its price and with the penalty a second attack already carries; a table
-     that offered less than the command line would be a new rule.
-   - **The order of the arms:** BA2-X2, BA2-X12, BA2-X10 with the approach rule, BA2-X20, then the two ticked
-     rules and the rounds. BA2-X14's left half and BA2-X17 ride the walk of record, after the last scene is
-     staged; BA2-X21 rides the Commit chips.
-   - **Size, as information:** this session now carries the rounds, NP-D1, the two ticked rules, WS-16 and
-     eight rows. If the plan finds that more than one session, the cut that keeps every seam with its measure
-     is the roads and the fog first (BA2-X2, X10, X12, X20, the approach rule), the rounds second (with BA2-X7,
-     X14, X17, X21, NP-D1, WS-16 and the ticked rules) — both before Session H. Nothing moves after the deploy.
-7. **ONE measure with arms**, reported per seed: arm 0 = every seam at HEAD's answer, byte-identical on the
-   standing series; then each rule; then BA2-X2's fix (the jena world-line moves from the turn Prussia's phase
-   is no longer lost); then BA2-X12's, BA2-X10's and BA2-X20's fixes, each behind its seam; then the rounds
-   answered each way. "Byte-identical" is read with `tools/keyed_world_probe.py` (`run` once a tree, then `compare`). The
-   "seeded dice" arm calls
-   `campaign_variance.serve_campaign` on the harness's own world. The commanded band's arm 0 is BA-1's shipped
-   record (`tools/_ba1_band_2026_11_14.json`, arm ALL: 26 / 27 / 28).
+**Named test** (Golden Rule 9): `tests/test_ba4_the_roads_and_the_fog.py` (the spec's §15.7 says what it
+holds). The strict-xfail pins of the six BA2 rows are in `tests/test_ba2_the_walls_and_the_guns.py` and
+`tests/test_ba2_the_review.py`: each turns red the day its row lands and is then made a plain test.
 
-**Named tests** (Golden Rule 9): `tests/test_ba3_the_rounds.py` (it supersedes §15.7's
-`test_ba3_the_crisis.py`: the table offers a round only where the day hangs, each answer goes through the
-objection road and the battle plays on, the pending slot round-trips and an old save reads empty, the Guard's
-two morale numbers, the pursuer among the arrived, the last hour's three quarters, a corps raised mid-phase
-takes its turn, the muster names the lever only for a corps the order brings) and
-`tests/test_ws16_the_same_order_draws_the_same_temper.py`.
+**Verification, as BA-3 learned it** (§15.17, `SYSTEMS_REFERENCE.md` §221.9): play each rule by hand through
+the server; then PRESS every new or changed control in the real client against a real server
+(`tools/ba3_mode_c_walk.py` is the pattern — three boards, `--export`) BEFORE the walk of record; read any
+new figure off the RESPONSE, not the world; look at the frames yourself; then, once, with every hashed source
+frozen: the parse harness, the staged payloads, the windowed walk of record, the live walks, the captures at
+the five sizes and the four instruments; then ONE full-suite run. **And from BA-3's review (§15.18):** a
+client fix is not verified by the parse check — its own first cut failed at run time on
+`bool(<Dictionary>)`, which parses — so every client fix gets a live step that FAILED before it; a "same
+save, same answer" pin needs ambient streams that disagree and a twin that proves it can fail; a review
+before the commit works on a frozen copy rebuilt from a bundle outside the repository (the readers never
+see the checkout), and a reader's finding in the client is pressed before it is believed — one read as a
+delay was a table that never came.
 
-**How.** The rounds are orders the game already has: quote them with `order_quotes` (the chips' rows are
-`bring_quotes`'), send them down the typed road, and let the next battle's tableau play — the table "stays up"
-by offering the chips on the settled frame and raising the next tableau when the order's answer lands. New
-beats in `battle_script.py` take one of the three fog cases before they are written (§219.2, and §220's table
-for BA-2's). Client verbs go in `battle_acts.gd`; `battle_diorama.gd`'s pinned bodies stay untouched and its
-four hooks stay four. New scenes in `tools/ba1_stage_battles.py`, new claims in `tools/ba1_acts_walk.py`, each
-watched failing with its fix switched off (`tools/ba2_switch_off.py` is the pattern). Run the headless walk
-(`--headless --time-scale 8`) until the claims hold; then, ONCE on the final tree, the windowed walk of record,
-the IQ-10 captures and the four instruments at the five sizes, and the parse harness. ONE suite run before the
-commit; commit on master through the hook only when the user asks; never `--no-verify`.
+**To put to the user at the plan gate — recommended by BA-3, not built, none blocks:**
 
-**Open with the user from BA-2** (none blocks BA-3; §15.12 "Left with the user"): three seats a side and a
-reserve in every battle, the great ones included (the fallback — the wedge to three, the old file at four — is
-one line); a garrison that yields is drawn fallen with CAPITULATED under it; a garrison under the collapse
-line that gives way without a fight is a march in and has no tableau; a bombardment opens by itself when it
-destroys its target or levels his works ("breaks" read as the works: guns never break a corps); the province
-panel says the order once on the line ("Bring up to support Ney:") with each chip the man and the price, behind
-one fold when several corps could lead, and the attack card prints the chip whole; a chip on the attack card
-sends the order and closes the card; a chip stands only where its order brings the man (Bernadotte has none on
-the opening battle); Berthier no longer speaks of an enemy battery's fire (BA2-X1). From BA-1,
-as before: the plinth's name, a typed `historical` seed's re-rollable dice, Blücher's "Vorwärts!" in 1805.
+- **A first-open line for the day's panel** — the game's own rule (S14d, `first_open.py`: an action screen
+  names its mechanic the first time it opens) has ten screens and the day's panel is not one. Drafted: "The
+  day hangs, Sire: each side holds points for the rest of it. A word costs points, never an action; he answers
+  each in turn. Two silences, or both purses spent, and night falls." The table's blank band above the stage
+  takes one line.
+- **Digits for the day's chips** (1–9, as the selection card has): the chips are mouse-only today, so Esc,
+  Enter and Space keep their meaning. Who owns the bare digits is WS-10's ruling (Session H's head).
+- **A line in the morning's telling for a night that fell with no clash** — the end-turn gate says it
+  beforehand; nothing says it afterwards. BA2-X20's Gazette news is its natural home.
+- **One name for a day of battle** in the record, its clashes told as its phases. Today each later clash is
+  a battle of its own on the plate and in the log ("The Great Second Battle of Swabia"), as any second
+  attack in a turn has always been named. Recommended: yes, with BA2-X20's news (both are how the record
+  tells a battle); a change to the telling, meant to move no number — the plan gate reads what else keys
+  on a battle's name first.
+- **The key bar** — at 50,000 men the three commanded campaigns open twelve days against seven
+  (`battle_day.key_bar`, one function). Recommended: it stands at 80,000 — the game's own bar for a great
+  battle, and the days stay rare as the user asked; the user's own play is the reading.
+- **Weighed and not built** (§15.14): ordinary battles settled by the marshals' own tempers; courts spending
+  points against each other; stopping the enemy's phase to ask; a standing instruction per corps.
 
-**BA-2's own traps (fresh; §220.5 has them in full):** the tableau payload's `kind` says which table to lay —
-a new kind needs its arm in the walk's kind-aware claims (a wall is not rolled for; guns throw no dice);
-`_execute_bombardment` logs the very dict it returns as `events[0]` — a tableau goes on a COPY of the event or
-every bombardment writes its picture into the campaign log and the save; four test files replace
-`_execute_bombardment` with fixed-arity doubles — wrap its STANDALONE call sites, never its body, and never the
-supporting salvo; `_resolve_garrison_combat` stands 16 lines under the 500-line ratchet (484) — wrap its returns; a
-garrison under the collapse line gives way without a fight (a conquest event, no assault): stage a stormed
-wall with 6,000 men, not 3,000; a bombardment's script is told WHOLE (the brief form keeps one head beat an
-act, which would drop the works and a bystander); Berthier's bombardment line is PICKED before it is blanked —
-skipping the pick moves the ambient stream and every measured series after it; the reserve's dead, the wall as
-it ended and the works as the battle left them are RESULT marks — held back in `_set_opening` (two safeguards:
-a claim's fix is switched off only when both are); the played end and the settled frame must agree on
-everything, standards included (BA2-X5); the walk's end shot waits for the verdict to finish being written; the
-host's recoil puts each man back where he stood when it was SCHEDULED, so a verb that moves men as the fight
-opens waits it out (`AFTER_THE_RECOIL`); an order's first march MOVES the corps — price any lever from where the
-order leaves him and hold the offer to the game (send it on a fresh board, read the muster after it — AND the game for a question the order raised: the muster counts a man
-whose order stands behind "Your orders?"); press every new control in the real client (`tools/ba2_mode_c_walk.py`
-is the pattern — its first run found what the tests and the walk had passed); a chip row
-in the narrow province panel wraps — say the order once on the line and keep the chip to the man and
-the price; a long province's panel scrolls on a short screen and the frame census reads its fold (set the
-window on a whole line); the IQ-10 runner's `--only region_` also matches captures whose payload groups you
-did not record (they are skipped with a note, not failed); a Bash heredoc eats backslashes — write every patch
+**Open with the user from BA-3** (none blocks BA-4; §15.17 "Left with the user", each one line to reverse):
+he draws off only when the last clash went against him on points, and only by a road to his rear (never onto
+the soil of a court he is at war with); a purse spent is not a wall (a further attack is an ordinary order
+again at its ordinary price); the field is where the last clash was fought; the Guard is any sovereign's
+renewed assault and nothing else, and with one point left the sovereign's attack is an ordinary order without
+the Guard's numbers; the table goes on to his clash by itself after 2.5 seconds; the end-turn gate stops once
+for a day that awaits your word; a day's later clashes are battles of their own in the record (the
+recommendation above would change it); the deploy gate's reading (the commanded arms as run, silent on a
+day).
+
+**BA-3's traps (fresh; `SYSTEMS_REFERENCE.md` §221.9 has them in full):** a day exists only in a campaign the
+game server holds — a `WorldState()` or a harness world has none, so a test must go through `TestClient`
+(`tests/test_ba3_the_rounds.py::Table`) or call `campaign_variance.serve_campaign(world)`; a served TestClient
+board is bare Europe (Rhineland beside Lorraine), a `WorldState()` the legacy map (Belgium beside Waterloo);
+every seam is a zero-argument function read through its module (`--seam
+backend.game_logic.battle_day:points_high=2`); a word is LENT its actions (`battle_day.lending`) and the
+temper's stream subtracts the lend, so a chip's counsel is the temper the word meets — never read
+`actions_remaining` inside a word's run without `campaign_variance.lent_now()`, and any figure the executor
+writes onto a result inside the lend must be rewritten in `battle_day.settle` (`action_summary` was not: the
+HUD read 5 of 4); a clash won on points carries the attacker INTO the field's province, so the day re-reads
+both grounds at every clash; a deciding clash closes the day before its word's order returns; the tableau the
+enemy phase carries is the table the client raises by itself, so it must read the day at DAWN
+(`dawn_on_the_tableaux`), and a night's close is written on his last clash's tableau; a pin that fights the 1805 opening through the server on the `historical` seed is flaky beside the day (unseeded battle dice: Ulm's day hangs on some runs) — seed it, or hold `the_day_has_points` down with the reason; a stage that places
+corps by hand must read the fog again (`world.calculate_visibility()`); `WorldState.to_dict` stands at 497 of
+500 lines, `turn_manager.end_turn` at 499, `meta_executor.handle_objection_response` at 500 — fold, do not add
+lines; `AttackContext` takes no new field; the host `battle_diorama.gd` keeps its pinned bodies and exactly
+five `_acts.` hooks; `CLAUDE.md` stands a few bytes under its cap; the driver's `rounds` policy key is ABSENT
+unless passed (`POLICY_DEFAULTS` is pinned); a tool that prints a scene's line must set its output's encoding
+(the stager died on "−" when redirected); foreground `sleep` is blocked in this harness — run long jobs in the
+background and wait for the notice; a Bash heredoc eats backslashes and chokes on `'''` — write every patch
 script with the Write tool.
+
+**The standing rules** (unchanged): commit on master through the pre-commit hook only when the user asks;
+never `--no-verify`; no branches, no worktrees, no stash; nothing pushed unless asked; no player-facing cut or
+deferral without the user's word; the model never moves a number; subagents run on Sonnet or Haiku; play
+every new rule out before the long measure; one commit and one review a session. If it will not fit, stop and
+say what is built and what is not.
 
 ---
 
@@ -307,7 +286,10 @@ script with the Write tool.
 > (`REFUSAL_MEMORY_TURNS`); (e) session F's three, session E's four, session D's three and session C's five stand.
 
 **THEN — SESSION H (`DYNAMISM_SPEC.md` §2b): S15 THE DEPLOY — the user's own walk.** The order: **(0) Session UI-6's
-four open rows** (`BUG_FIXES.md` §UI6 — UI6-X70, X73, X74, X75: a report subject naming a friend or a title, a third
+four open rows** (and one note from BA-3's review, not a row: the enemy phase's filter blanks the structured
+origin of a march seen to arrive (PT-E5) but leaves the action's `message` string — "… moves from Hungary
+to Bohemia" — on the wire; the client never prints it; decide whether the wire should carry it)
+(`BUG_FIXES.md` §UI6 — UI6-X70, X73, X74, X75: a report subject naming a friend or a title, a third
 clause after an arrival, a friend-only report subject, a title-first list; nothing spent wrongly by any): each is a
 strict-xfail pin in `tests/test_ui6_fog_siblings.py` that turns red the day it lands — fix each at its cause, sweep
 the class on both roads (`/command` and `GET /parse_preview`; rule 10), re-point the pin to the landing's words, and

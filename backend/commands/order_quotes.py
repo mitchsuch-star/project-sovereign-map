@@ -810,6 +810,19 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     force = _force_block(world, marshal, enemy)
     if force is not None:
         q["force"] = force
+        # Row BA (BA-3): the attack card says beforehand when the battle it
+        # opens would be a great one and the points its commander brings —
+        # read off the force bar's own figures (his LEAST strength under fog:
+        # "great" is never promised on men we cannot see).
+        from backend.game_logic import battle_day as _day
+        great = _day.forecast(world, marshal, int(force["ours"]) + int(force["theirs_low"]),
+                              foe=enemy)
+        # No forecast while the day against him is ALREADY open: the card said
+        # "A great battle — Ney commands the day: 2 points" over a day whose
+        # purse stood at one (the day's own block tells it, on the table and
+        # at the head of the province's panel).
+        if great is not None and _day.day_against(world, enemy.name) is None:
+            q["day"] = great
     return q
 
 

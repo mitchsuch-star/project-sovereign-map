@@ -749,6 +749,20 @@ func _format_action(action: Dictionary) -> String:
 var _badge_on_first_line := false
 
 
+func _day_badge(ev: Dictionary, action: Dictionary) -> Array:
+	"""Row BA, BA-3 (K13): a battle whose tableau carries a day with a banner
+	("The day hangs", "Night falls", "<Enemy> draws off") is badged by that
+	banner in capitals, in the stalemate badge's neutral colour, not by the
+	clash's result. No day, or a day decided by its clash (banner ""), is []."""
+	for tab in [ev.get("diorama"), ev.get("battle_diorama"), action.get("battle_diorama")]:
+		if tab is Dictionary and (tab as Dictionary).get("day") is Dictionary:
+			var banner := str(((tab as Dictionary)["day"] as Dictionary).get("banner", ""))
+			if banner != "":
+				return [banner.to_upper(), Utils.COLOR_BADGE_QUIET_SOLID]
+			return []
+	return []
+
+
 func _outcome_badge_for(action: Dictionary) -> Array:
 	var evs = action.get("events", [])
 	if not (evs is Array):
@@ -758,11 +772,14 @@ func _outcome_badge_for(action: Dictionary) -> Array:
 			continue
 		if str(ev.get("type", "")) != "battle":
 			continue
+		var day_badge := _day_badge(ev, action)
+		if not day_badge.is_empty():
+			return day_badge
 		var defender = ev.get("defender", {})
 		var defender_name = Utils.humanize_entity_name(str(defender.get("name", "Unknown")))
 		var victor = ev.get("victor", null)
 		if str(ev.get("outcome", "")) == "stalemate":
-			return ["STALEMATE", Utils.COLOR_BADGE_QUIET]
+			return ["STALEMATE", Utils.COLOR_BADGE_QUIET_SOLID]
 		if victor:
 			var victor_s := Utils.humanize_entity_name(str(victor))
 			var tone_c: String = Utils.COLOR_SUCCESS if _victor_is_player(ev, victor_s) else COLOR_ERROR
@@ -774,7 +791,7 @@ func _outcome_badge_for(action: Dictionary) -> Array:
 				return ["VICTORY", "2f6b3a"]
 			if tone_c == COLOR_ERROR:
 				return ["DEFEAT", "8b2a2a"]
-		return ["BATTLE", Utils.COLOR_BADGE_QUIET]
+		return ["BATTLE", Utils.COLOR_BADGE_QUIET_SOLID]
 	for ev in evs:
 		if typeof(ev) != TYPE_DICTIONARY:
 			continue
@@ -883,7 +900,7 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	# the line already carries (green good news, red bad), BATTLE where it is
 	# neither's, STALEMATE for a drawn field.
 	var result_badge := "BATTLE"
-	var result_tone := Utils.COLOR_BADGE_QUIET
+	var result_tone := Utils.COLOR_BADGE_QUIET_SOLID
 	if outcome == "stalemate":
 		result_badge = "STALEMATE"
 	elif outcome_color == Utils.COLOR_SUCCESS:
@@ -892,6 +909,10 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	elif outcome_color == COLOR_ERROR:
 		result_badge = "DEFEAT"
 		result_tone = "8b2a2a"
+	var day_badge := _day_badge(event, {})   # BA-3 (K13): a day that hangs is not a result
+	if not day_badge.is_empty():
+		result_badge = str(day_badge[0])
+		result_tone = str(day_badge[1])
 	# Session UI-5 interim fix (Nov 13): the badge now ends the action's first
 	# line (_outcome_badge_for); a battle with no action line keeps it here.
 	if not _badge_on_first_line:
@@ -1029,6 +1050,10 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 		_diorama_payloads.append(diorama)
 		result += "[color=#" + Utils.COLOR_GOLD + "]    [url=diorama:" \
 			+ str(_diorama_payloads.size() - 1) + "]⚔ View the field[/url][/color]\n"
+		# Row BA, BA-3: a great battle that did not decide the day says so on its row
+		var day = diorama.get("day")
+		if day is Dictionary and bool(day.get("open", false)) and str(day.get("awaits", "")) == "ours":
+			result += "[color=#" + Utils.COLOR_WARNING + "]    — the day awaits your word[/color]\n"
 
 	# Fort degradation
 	if event.get("fortification_degraded", false):

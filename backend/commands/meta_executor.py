@@ -2574,12 +2574,23 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 create_notification, NotificationPriority, MARSHAL_DEFIED_ORDER
             )
 
+            # WS-16: the chance's variance and the roll are the campaign's where
+            # a campaign is played — the same insisted order from the same save
+            # draws the same defiance. None: the module `random`, as before.
+            from backend.game_logic import campaign_variance as _cv
+            _ws16_order = objection.get("original_order") or {}
+            _ws16_who = (marshal_name, _ws16_order.get("action"), _ws16_order.get("target"))
+            _chance_rng = _cv.temper_rng(world, "defiance_chance", *_ws16_who)
+            _roll_rng = _cv.temper_rng(world, "defiance_roll", *_ws16_who)
+
             # N7 fix: No defiance if marshal is broken/retreating (stale objection via save/load)
             if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
                 defiance_chance = 0.0
             else:
-                defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
-            defiance_roll = random.random()
+                defiance_chance = calculate_defiance_chance(
+                    marshal, concern_level_val, world,
+                    **({"rng": _chance_rng} if _chance_rng is not None else {}))
+            defiance_roll = (_roll_rng if _roll_rng is not None else random).random()
 
             if defiance_roll < defiance_chance:
                 # ═══ DEFIANCE FIRES ═══

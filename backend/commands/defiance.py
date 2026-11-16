@@ -39,7 +39,7 @@ from backend.commands.objection_v2 import ConcernLevel
 RELUCTANT_OBEDIENCE_PENALTY = -3
 
 
-def calculate_defiance_chance(marshal, concern_level, world) -> float:
+def calculate_defiance_chance(marshal, concern_level, world, rng=None) -> float:
     """Calculate probability of marshal defying a direct order.
 
     Fires on MODERATE/STRONG/EXTREME concerns after player insists.
@@ -49,6 +49,8 @@ def calculate_defiance_chance(marshal, concern_level, world) -> float:
         marshal: The marshal who might defy
         concern_level: ConcernLevel enum value
         world: WorldState for authority/turn data
+        rng: WS-16 — the temper's private stream (`campaign_variance.
+            temper_rng`) or None (the module `random`, as before)
 
     Returns:
         Float probability (0.0 to 0.40)
@@ -103,7 +105,7 @@ def calculate_defiance_chance(marshal, concern_level, world) -> float:
         trust_mod = 0.0
 
     # Variance band: prevents memorized thresholds
-    variance = random.uniform(-0.08, 0.08)
+    variance = (rng if rng is not None else random).uniform(-0.08, 0.08)
 
     # Hard cap at 40%
     final = base + vindication_mod + authority_mod + trust_mod + variance

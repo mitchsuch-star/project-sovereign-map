@@ -4256,7 +4256,12 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
         return {"success": True, "message": "The moment has passed."}
     new_value = int(context.get("new_value", -1))
     authority = int(world.authority_tracker.authority)
-    roll = random.random()
+    # WS-16: the quarrel's one roll is the campaign's where one is played — the
+    # same answer to the same quarrel from the same save falls the same way,
+    # and a different answer draws its own. None: the module `random`.
+    from backend.game_logic import campaign_variance as _cv
+    _quarrel = _cv.temper_rng(world, "rivalry", marshal.name, other.name, choice)
+    roll = (_quarrel if _quarrel is not None else random).random()
 
     def _restore(to_value: int) -> None:
         """§6b mend. Q4(a) (CA9 row 3 ruling) makes two things explicit.

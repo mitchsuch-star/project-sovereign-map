@@ -940,6 +940,300 @@ def cap_walls_and_guns():
                             for b in lead.get("bring") or []]})
 
 
+def _ba3_day_facts(payload: dict, reason: str) -> dict:
+    """The day's own figures, read OFF the tableau payload's `day` block — what
+    the panel's frame must show (the pips, the headline, the chips, the road)."""
+    day = payload.get("day") or {}
+    chips = day.get("chips") or []
+    script = payload.get("script") or {}
+    return {"shows": reason, "side": day.get("side"), "open": day.get("open"),
+            "awaits": day.get("awaits"), "follows": day.get("follows"),
+            "ended": day.get("ended"), "pending": day.get("pending"),
+            "ours": day.get("ours"), "theirs": day.get("theirs"),
+            "ours_of": day.get("ours_of"), "theirs_of": day.get("theirs_of"),
+            "banner": day.get("banner"), "morning": day.get("morning"),
+            "lead": day.get("lead_shown"), "enemy": day.get("enemy_shown"),
+            "field": day.get("field_shown"),
+            "chips": len(chips), "chips_dim": sum(1 for c in chips if not c.get("ok")),
+            "chip_labels": [(c.get("kind"), c.get("label"), c.get("price"), bool(c.get("ok")))
+                            for c in chips if isinstance(c, dict)],
+            "told": [t.get("line") for t in day.get("told") or [] if isinstance(t, dict)],
+            "his_temper": day.get("his_temper"), "his_road": day.get("his_road"),
+            "acts": [b.get("act") for b in script.get("acts") or []]}
+
+
+@contextlib.contextmanager
+def _ba3_table():
+    """The game server with a campaign on it, as tests/test_ba3_the_rounds.py's
+    `Table` has it: a served bare-Europe board (`/new_game` under the suite's
+    `SOVEREIGN_SCENARIO=none` pin) driven through REAL orders and end turns.
+    Yields (the test module, its Table). The live world is put back after."""
+    from fastapi.testclient import TestClient
+    mod = test_module("test_ba3_the_rounds")
+    before = M.world
+    prior = os.environ.get("SOVEREIGN_SCENARIO", "")
+    os.environ["SOVEREIGN_SCENARIO"] = "none"
+    try:
+        with TestClient(M.app) as client:
+            seat = mod.Table(client)
+            seat.boot()
+            yield mod, seat
+    finally:
+        os.environ["SOVEREIGN_SCENARIO"] = prior
+        M._set_active_world(before)
+
+
+def _ba3_served(scene: str, seeds: dict):
+    """One of BA-3's staged day scenes fought again on the stager's own road
+    (`ba1_stage_battles.fight`'s `after` branch, line for line) — kept with its
+    WORLD, which `fight` throws away: the province panel, the enemy phase and
+    the dawn's notice are read off the board the day is open on."""
+    import ba1_stage_battles as stage
+    from backend.game_logic import campaign_variance
+    seed = int(seeds[scene]["ambient_seed"])
+    stager, wanted, after = stage.SCENES[scene]
+    world, executor = stage._board()
+    campaign_variance.serve_campaign(world)
+    random.seed(seed)
+    attacker, target = stager(world, executor)
+    with _quiet():
+        result = executor._execute_attack(
+            world.marshals[attacker], target, world, {"world": world, "executor": executor})
+    kept = after(world, executor, result, attacker, target)
+    reason = wanted(kept, result) if isinstance(kept, dict) else ""
+    if not reason:
+        raise RuntimeError(f"ba3 scene {scene} did not stage on seed {seed}")
+    return world, executor, result, kept, reason, seed
+
+
+def cap_the_days_points():
+    """Row BA, BA-3 (November 15, 2026) — the day's points: a great battle
+    that does not decide the day is a DAY, and every surface that shows one.
+
+    * The nine staged day scenes as the tableau at rest: REAL engagements on
+      the stager's SERVED 1805 board (a day exists only in a campaign the game
+      server holds — `campaign_variance.serve_campaign`), each on the ambient
+      seed its walk of record kept, the day's road run by `battle_day.settle`
+      as the server runs it.
+    * The province panel's chips above the ATTACK rows: `GET /march_quotes`
+      read off the board the `day_opens` day is open on.
+    * The attack card's great-battle line: the 1805 opening's own quote for
+      Ney on Mack, on a served boot (the forecast reads `_on(world)`).
+    * The enemy phase's row ("the day awaits your word") and the rail's
+      notice ("The day at <field> hangs", `at_dawn`'s own post), both off the
+      `day_defence` board — the day the ENEMY opened against us.
+    Each optional payload is checked against what its surface reads; one that
+    the harness cannot honestly reach is reported, never faked."""
+    import ba1_stage_battles as stage
+    from backend.game_logic import battle_day
+    from backend.game_logic import campaign_variance
+    seeds = json.loads((REPO / "docs" / "audits" / "ba1_client" / "payloads" / "manifest.json")
+                       .read_text(encoding="utf-8"))
+    problems: list = []
+
+    for scene in ("day_opens", "day_dim_chip", "day_word", "day_night", "day_defence",
+                  "day_follows", "day_follows_his", "day_ulm", "day_crowded", "day_guns"):
+        try:
+            seed = int(seeds[scene]["ambient_seed"])
+            payload, reason, _result = stage.fight(scene, seed)
+            if not isinstance(payload, dict) or not reason:
+                raise RuntimeError(f"ba3 scene {scene} did not stage on seed {seed}")
+            record(f"diorama_ba3_{scene}", payload,
+                   source="CommandExecutor._execute_attack -> battle_diorama (payload['day'], "
+                          "payload['script']) after battle_day.settle",
+                   staging=f"tools/ba1_stage_battles.py scene `{scene}` on a served world, ambient "
+                           f"seed {seed}: " + " ".join((stage.SCENES[scene][0].__doc__ or "").split()),
+                   facts=_ba3_day_facts(payload, reason))
+        except Exception as exc:
+            problems.append(f"{scene}: {exc!r}")
+
+    # ── the province panel: the day's chips above the ATTACK rows ──────────
+    try:
+        world, executor, _result, kept, reason, seed = _ba3_served("day_opens", seeds)
+        c = adopt(world)
+        field = (kept.get("day") or {}).get("field")
+        quotes = get(c, f"/march_quotes?region={field}")
+        day = quotes.get("day") or {}
+        if not (day.get("open") and day.get("awaits") == "ours" and day.get("chips")):
+            raise RuntimeError(f"the quotes for {field} carry no open day awaiting us: {sorted(quotes)}")
+        gs = (get(c, "/test").get("game_state") or {})
+        record("region_ba3_the_day", {"game_state": gs, "quotes": quotes},
+               source="GET /march_quotes?region=<field> (main.get_march_quotes_endpoint: "
+                      "order_quotes.march_quotes_for_region + battle_day.blocks -> `day`) + "
+                      "GET /test -> game_state",
+               staging=f"`day_opens` (seed {seed}): the stager's served board, adopted as the live "
+                       f"world, the day left open and awaiting our word; the quotes read through "
+                       f"the TestClient",
+               facts={"field": field, "ours": day.get("ours"), "theirs": day.get("theirs"),
+                      "morning": day.get("morning"),
+                      "chips": [(c_.get("kind"), c_.get("label"), c_.get("price"), bool(c_.get("ok")),
+                                 c_.get("command") or c_.get("word"))
+                                for c_ in day.get("chips") or []],
+                      "attack_rows": [r.get("enemy_shown") for r in quotes.get("attack") or []]})
+    except Exception as exc:
+        problems.append(f"region_ba3_the_day: {exc!r}")
+
+    # ── the attack card: "A great battle — …" before the order is given ───
+    try:
+        world, c = fresh()
+        campaign_variance.serve_campaign(world)
+        quotes = get(c, "/march_quotes?region=Swabia")
+        lead = next(q for row in quotes.get("attack") or [] for q in row.get("quotes") or []
+                    if q.get("marshal") == "Ney" and q.get("kind") == "attack")
+        if not (lead.get("day") or {}).get("great"):
+            raise RuntimeError(f"the boot's attack quote for Ney on Mack forecasts no great battle: "
+                               f"{lead.get('day')!r}")
+        record("order_ba3_great_battle", {"quotes": quotes, "order_quote": lead},
+               source="GET /march_quotes?region=Swabia (order_quotes.attack_quote -> "
+                      "battle_day.forecast -> `day`)",
+               staging="1805 boot, the world marked SERVED (`campaign_variance.serve_campaign` — "
+                       "the forecast answers only a campaign the game server holds); nothing else "
+                       "written",
+               facts={"lead": lead.get("marshal"), "shown": lead.get("shown"),
+                      "command": lead.get("command"), "day": lead.get("day"),
+                      "muster": lead.get("muster")})
+    except Exception as exc:
+        problems.append(f"order_ba3_great_battle: {exc!r}")
+
+    # ── the enemy phase's row, the dawn's table, the night's, the rail's notice:
+    #    REAL end-turn responses on a served board (the road the game takes) ──
+    try:
+        with _ba3_table() as (mod, seat):
+            body = {}
+            for _ in range(30):
+                mod._seat(seat.world, ours=55000, his=70000, his_personality="aggressive")
+                body = seat.order("end turn")
+                if seat.world.battle_days.get("days"):
+                    break
+            else:
+                raise RuntimeError("no day opened against us in thirty end turns")
+            phase = body.get("enemy_phase") or {}
+            tables = mod._tableaux_with_a_day(phase)
+            if len(tables) < 2:
+                raise RuntimeError("the end-turn phase carries fewer than two tableaux with a day")
+            for t in tables:
+                d = t["day"]
+                if not (d.get("open") and d.get("awaits") == "ours" and d.get("side") == "defence"
+                        and d.get("chips")):
+                    raise RuntimeError(f"a dawn tableau's day does not carry the live chips: {d}")
+            action = next(a for nation in (phase.get("nations") or {}).values()
+                          for a in nation.get("actions") or [] if (a.get("battle_diorama") or {}).get("day"))
+            event_day = ((action.get("events") or [{}])[0].get("diorama") or {}).get("day") or {}
+            if not event_day.get("chips"):
+                raise RuntimeError("the action's event carries no day with chips")
+            turn = int(seat.world.current_turn) - 1
+            record("enemy_phase_ba3_day_awaits", {"enemy_phase": phase, "turn": turn},
+                   source="POST /command 'end turn' -> enemy_phase (the visible phase the client reads)",
+                   staging="a served campaign (/new_game on the bare-Europe board), "
+                           "tests/test_ba3_the_rounds.py `_seat(ours=55000, his=70000, aggressive)` then "
+                           "REAL end turns until the enemy's phase opened a great battle and a day "
+                           "awaits us at dawn; nothing wrapped by hand",
+                   facts={"battle_diorama_day": _ba3_day_facts(action["battle_diorama"], "")["chips"],
+                          "event_day_chips": len(event_day.get("chips") or []),
+                          "side": event_day.get("side"), "open": event_day.get("open"),
+                          "awaits": event_day.get("awaits"), "banner": event_day.get("banner"),
+                          "pending_battle_days": body.get("pending_battle_days"), "turn": turn})
+            record("diorama_ba3_dawn_table", action["battle_diorama"],
+                   source="the enemy phase action's `battle_diorama` (the table the client raises "
+                          "by itself at dawn)",
+                   staging="the same real end-turn response: the day as it stands at dawn, chips "
+                           "and all",
+                   facts=_ba3_day_facts(action["battle_diorama"], "dawn table with live chips"))
+            notes = mod._quiet(seat.tc.get, "/notifications").json().get("notifications") or []
+            rows = [n for n in notes if n.get("type") == "battle_day_awaits"]
+            if not rows:
+                raise RuntimeError("the end turn posted no battle_day_awaits notice")
+            record("notifications_ba3_day_awaits", notes, source="GET /notifications",
+                   staging="the same real end turn (the dawn's own `at_dawn` posted the notice)",
+                   facts={"rows": [{"title": r.get("title"), "message": r.get("message"),
+                                    "details": r.get("details")} for r in rows]})
+    except Exception as exc:
+        problems.append(f"enemy phase / dawn / notice: {exc!r}")
+
+    try:
+        with _ba3_table() as (mod, seat):
+            night, body = [], {}
+            for _ in range(10):
+                seat.open_a_day(mod._awaits_us, his=66000, his_personality="aggressive")
+                body = seat.order("end turn")
+                phase = body.get("enemy_phase") or {}
+                night = [t for t in mod._tableaux_with_a_day(phase)
+                         if t["day"].get("ended") == "night"]
+                if night:
+                    break
+            if not night:
+                raise RuntimeError("no night fell after a strike of his in ten days")
+            for t in night:
+                d = t["day"]
+                if d.get("open") or d.get("banner") != "Night falls" or d.get("chips"):
+                    raise RuntimeError(f"the night tableau's day is not closed as written: {d}")
+            turn = int(seat.world.current_turn) - 1
+            action = next(a for nation in (phase.get("nations") or {}).values()
+                          for a in nation.get("actions") or []
+                          if (a.get("battle_diorama") or {}).get("day", {}).get("ended") == "night")
+            record("enemy_phase_ba3_night", {"enemy_phase": phase, "turn": turn},
+                   source="POST /command 'end turn' -> enemy_phase",
+                   staging="a served campaign, `_seat(his=66000, aggressive)`, a day opened by our "
+                           "attack, then a REAL end turn: he struck in the night and night fell on "
+                           "an undecided field (tests/test_ba3_the_rounds.py "
+                           "TestNightAndDawn::test_night_is_told_on_his_last_clash)",
+                   facts={"night_tableaux": len(night), "banner": night[0]["day"].get("banner"),
+                          "told": [t.get("line") for t in night[0]["day"].get("told") or []],
+                          "pending_battle_days": body.get("pending_battle_days"), "turn": turn})
+            record("diorama_ba3_night_table", action["battle_diorama"],
+                   source="the enemy phase action's `battle_diorama` carrying the night's close",
+                   staging="the same real end-turn response: his last night clash's tableau",
+                   facts=_ba3_day_facts(action["battle_diorama"], "his last clash, night written on it"))
+    except Exception as exc:
+        problems.append(f"night: {exc!r}")
+
+    # ── K12: the end-turn gate's warning, in the war room's log ──────────────
+    # The war-room host's own composite (`war_room_boot`'s three answers on a
+    # FRESH 1805 world), then the day opened through the REAL command road on
+    # the same world marked served: the opening's Ney on Mack (the muster's
+    # question answered as the player answers it), and the very response the
+    # client reads next — which carries `pending_battle_days`.
+    try:
+        from backend.game_logic import campaign_variance as _cv
+        world, c = fresh()
+        test = get(c, "/test")
+        topology = get(c, "/map_topology")
+        new_game = post(c, "/new_game", {})
+        rows, reply, ambient = [], {}, -1
+        for ambient in range(40):
+            # a served world on the `historical` seed keeps the ambient dice
+            # (WS-11): each try is the opening on another ambient seed, on a
+            # world begun the way the menu's Begin begins it
+            if ambient:
+                world, c = fresh()
+                post(c, "/new_game", {})
+            _cv.serve_campaign(live_world())
+            random.seed(ambient)
+            reply = cmd(c, "Ney, attack Mack")
+            rows = reply.get("pending_battle_days") or []
+            if rows:
+                break
+        rows = reply.get("pending_battle_days") or []
+        if not rows:
+            raise RuntimeError("the real /command answer carries no pending_battle_days "
+                               f"in 40 ambient seeds (last message {str(reply.get('message'))[:120]!r})")
+        record("war_room_ba3_day", {"test": test, "topology": topology, "new_game": new_game,
+                                    "day_response": {"pending_battle_days": rows}},
+               source="GET /test + GET /map_topology + POST /new_game {} (the war-room host's "
+                      "three answers), then POST /command 'Ney, attack Mack' on the same world "
+                      "marked served -> `pending_battle_days`",
+               staging=f"1805 boot, Begin; the world marked SERVED (`campaign_variance."
+                       f"serve_campaign`); Ney's attack on Mack through the real command road "
+                       f"on ambient seed {ambient} (a great battle that does not decide the day "
+                       f"opens a day); the list is copied unedited off that response",
+               facts={"rows": rows, "ambient_seed": ambient})
+    except Exception as exc:
+        problems.append(f"war_room_ba3_day: {exc!r}")
+
+    if problems:
+        raise RuntimeError("the_days_points: " + "; ".join(problems))
+
+
 def cap_petition():
     """IQ-7 — the client's petition popup, the vassal card, the remitted row."""
     iq7 = test_module("test_iq7_satellites_have_a_position")
@@ -2957,6 +3251,7 @@ CAPTURES = {
     "diorama_states": cap_diorama_states,
     "battle_acts": cap_battle_acts,
     "walls_and_guns": cap_walls_and_guns,
+    "the_days_points": cap_the_days_points,
     "petition": cap_petition,
     "moments": cap_moments,
     "prisoner": cap_prisoner,

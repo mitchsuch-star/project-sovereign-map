@@ -449,6 +449,14 @@ def _run_dl(tmp_path: Path, script: dict) -> dict:
     # board its script names (Mack within Davout's reach on turn 2).
     for seam in OCT27_SEAMS_DOWN:
         argv += ["--seam", seam]
+    # Row BA, BA-3 (November 16, 2026): the arm plays the 1805 opening through
+    # the server on the `historical` seed, whose battle dice are the module's.
+    # Where the great battle at Ulm does not decide the day, the script's next
+    # attack on Mack is a word of that day — free of actions — and its row
+    # "recruit … with Davout" then meets 1 action left where it stages 0 (it
+    # passed in one full run and failed in the next). The arm reads the SF
+    # rows, not the day: the day's seam is held down beside the others.
+    argv += ["--seam", "backend.game_logic.battle_day:the_day_has_points=False"]
     proc = subprocess.run(argv, cwd=REPO, env=env, capture_output=True, timeout=900)
     assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")[-2000:]
     arms = SR.load_arms(out)

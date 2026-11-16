@@ -661,7 +661,11 @@ class TestEGX5TheDrivenArm:
         popup in the digest) and the report's capture note leads with the
         liberation's own line instead of "Munich falls to Lannes." The works
         the win took are still named (EG-X5's clause, unchanged)."""
-        arm = _drive(tmp_path, "CMD-H", "historical", 6, *_sweep_down())
+        # Row BA, BA-3 (November 15, 2026): the day's points re-time CMD-H from
+        # turn 2 (the driver's campaign is one the server holds); the arm is
+        # held at its recording with the day's seam down beside the sweep's.
+        arm = _drive(tmp_path, "CMD-H", "historical", 6, *_sweep_down(),
+                     "--seam", "backend.game_logic.battle_day:the_day_has_points=False")
         block = _turn_block((arm / "digest.md").read_text(encoding="utf-8"), 6)
         assert "capture_choice[capture]: Munich" not in block
         assert "Munich falls to Lannes" not in block
@@ -673,6 +677,7 @@ class TestEGX5TheDrivenArm:
         works are not named); the liberation of S14G-1 is untouched by it -
         still no plunder question on the turn."""
         arm = _drive(tmp_path, "CMD-H", "historical", 6, *_sweep_down(),
+                     "--seam", "backend.game_logic.battle_day:the_day_has_points=False",
                      "--seam", 'backend.game_logic.garrison_report:capture_garrison_line=""')
         block = _turn_block((arm / "digest.md").read_text(encoding="utf-8"), 6)
         assert "capture_choice[capture]: Munich" not in block

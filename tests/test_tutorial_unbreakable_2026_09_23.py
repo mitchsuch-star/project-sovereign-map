@@ -590,7 +590,10 @@ class TestTheTableAndItsMirrors:
         # the School what it sent like the other three.
         # Re-seated October 18, 2026 (row CC, CC-5): the group card's
         # sequencer is a fifth (`_send_group_line`, one line at a time).
-        assert src.count("tutorial_overlay.note_sent(command)") == 5
+        # Re-seated November 15, 2026 (row BA, BA-3): a day of battle's chip
+        # is a sixth road an order is SENT by (`_on_battle_word_given`).
+        assert src.count("tutorial_overlay.note_sent(command)") == 6
+        assert "tutorial_overlay.note_sent(command)" in src[src.index("func _on_battle_word_given("):]
         assert "tutorial_overlay.note_sent(command)" in src[src.index("func _send_map_order("):]
         assert "tutorial_overlay.note_sent(command)" in src[src.index("func _send_group_line("):]
 

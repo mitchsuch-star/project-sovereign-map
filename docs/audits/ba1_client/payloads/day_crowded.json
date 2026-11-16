@@ -1,0 +1,430 @@
+{
+ "battle_name": "The Great Second Battle of Swabia",
+ "region": "Swabia",
+ "turn": 1,
+ "outcome": "defender_tactical_victory",
+ "victor": "Ney",
+ "attacker_nation": "Austria",
+ "defender_nation": "France",
+ "player_side": "defender",
+ "register": "triumph",
+ "significant": true,
+ "dramatic": true,
+ "great_battle": true,
+ "region_conquered": false,
+ "attacker": {
+  "contingents": [
+   {
+    "name": "Mack",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 42014,
+    "casualties": 8188,
+    "remaining": 33826,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "ArchdukeJohn",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 17697,
+    "casualties": 2068,
+    "remaining": 15629,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Schwarzenberg",
+    "nation": "Austria",
+    "arm": "infantry",
+    "committed": 4425,
+    "casualties": 517,
+    "remaining": 3908,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   }
+  ],
+  "reserve_count": 1,
+  "casualties_total": 11290,
+  "committed_total": 68561,
+  "reserve_casualties": 517,
+  "nation": "Austria"
+ },
+ "defender": {
+  "contingents": [
+   {
+    "name": "Ney",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 20618,
+    "casualties": 1414,
+    "remaining": 19204,
+    "status": "engaged",
+    "lead": true,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Napoleon",
+    "nation": "France",
+    "arm": "emperor",
+    "committed": 9216,
+    "casualties": 378,
+    "remaining": 8838,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": true
+   },
+   {
+    "name": "Davout",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 23961,
+    "casualties": 984,
+    "remaining": 22977,
+    "status": "engaged",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false
+   },
+   {
+    "name": "Soult",
+    "nation": "France",
+    "arm": "infantry",
+    "committed": 30000,
+    "casualties": 0,
+    "remaining": 30000,
+    "status": "refused",
+    "lead": false,
+    "crowned": false,
+    "sovereign": false,
+    "absence_reason": "awaits explicit orders"
+   }
+  ],
+  "reserve_count": 3,
+  "casualties_total": 4062,
+  "committed_total": 92031,
+  "reserve_casualties": 1286,
+  "nation": "France"
+ },
+ "observation": "The Emperor watched this field. Murat arrived to reinforce Ney, but Bernadotte failed to reach the field in time.",
+ "enemy_voice": "Mack: \"The map has erred, not I. The correction is being drafted.\"",
+ "script": {
+  "version": 1,
+  "form": "full",
+  "acts": [
+   {
+    "act": "approach",
+    "beats": [
+     {
+      "kind": "word",
+      "side": "",
+      "actor": "",
+      "text": "Mack strikes back.",
+      "weight": "head",
+      "who": "theirs",
+      "word": "strike"
+     },
+     {
+      "kind": "open",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack attacks Ney at Swabia.",
+      "weight": "detail"
+     },
+     {
+      "kind": "absent",
+      "side": "defender",
+      "actor": "Soult",
+      "text": "Soult does not come: awaits explicit orders.",
+      "weight": "head",
+      "status": "refused"
+     },
+     {
+      "kind": "presence",
+      "side": "defender",
+      "actor": "Ney",
+      "text": "The Emperor commands in person: +10% along the line.",
+      "weight": "head",
+      "pct": 10,
+      "dimmed": false
+     }
+    ]
+   },
+   {
+    "act": "assault",
+    "beats": [
+     {
+      "kind": "advance",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "Mack advances to his mark, as ordered, and no further.",
+      "weight": "head",
+      "temper": "literal",
+      "pct": 0,
+      "penalty": false
+     },
+     {
+      "kind": "advance",
+      "side": "defender",
+      "actor": "Ney",
+      "text": "Ney comes out to meet them.",
+      "weight": "detail",
+      "temper": "aggressive",
+      "pct": 0,
+      "penalty": false
+     }
+    ]
+   },
+   {
+    "act": "crisis",
+    "beats": [
+     {
+      "kind": "dice",
+      "side": "attacker",
+      "actor": "Mack",
+      "text": "The fortune of the day: Mack rolls 8: 8.",
+      "weight": "head",
+      "natural": 8,
+      "skill": 0,
+      "flank": 0,
+      "modified": 8,
+      "critical": "",
+      "swing": 5,
+      "fortune_attacker": -6,
+      "fortune_defender": 9
+     },
+     {
+      "kind": "stand",
+      "side": "",
+      "actor": "",
+      "text": "Neither line gives way: the day hangs.",
+      "weight": "head"
+     }
+    ]
+   }
+  ],
+  "tempers": {
+   "Mack": "literal",
+   "ArchdukeJohn": "cautious",
+   "Schwarzenberg": "cautious",
+   "Ney": "aggressive",
+   "Napoleon": "sovereign",
+   "Davout": "cautious",
+   "Soult": "literal"
+  }
+ },
+ "day": {
+  "open": true,
+  "enemy": "Mack",
+  "enemy_shown": "Mack",
+  "lead": "Ney",
+  "lead_shown": "Ney",
+  "field": "Swabia",
+  "field_shown": "Swabia",
+  "side": "attack",
+  "ours": 2,
+  "theirs": 1,
+  "ours_of": 2,
+  "theirs_of": 2,
+  "awaits": "ours",
+  "pending": false,
+  "morning": "The last clash: won on points — 4,062 of ours for 11,290 of his.",
+  "ahead": "ours",
+  "told": [
+   {
+    "who": "theirs",
+    "kind": "strike",
+    "line": "Mack strikes back."
+   }
+  ],
+  "ended": "",
+  "banner": "The day hangs",
+  "chips": [
+   {
+    "kind": "press",
+    "label": "Ney presses",
+    "price": 1,
+    "command": "Ney, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "favorable",
+    "marshal": "Ney",
+    "shown": "Ney"
+   },
+   {
+    "kind": "guard",
+    "label": "The Guard",
+    "price": 2,
+    "command": "Napoleon, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "favorable",
+    "marshal": "Napoleon",
+    "shown": "Napoleon"
+   },
+   {
+    "kind": "dig_in",
+    "label": "Ney digs in",
+    "price": 1,
+    "command": "Ney, defend",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "possible",
+    "odds": "",
+    "marshal": "Ney",
+    "shown": "Ney"
+   },
+   {
+    "kind": "lead",
+    "label": "Bernadotte leads",
+    "price": 1,
+    "command": "Bernadotte, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "even",
+    "marshal": "Bernadotte",
+    "shown": "Bernadotte"
+   },
+   {
+    "kind": "lead",
+    "label": "Davout leads",
+    "price": 1,
+    "command": "Davout, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "favorable",
+    "marshal": "Davout",
+    "shown": "Davout"
+   },
+   {
+    "kind": "lead",
+    "label": "Lannes leads",
+    "price": 1,
+    "command": "Lannes, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "favorable",
+    "marshal": "Lannes",
+    "shown": "Lannes"
+   },
+   {
+    "kind": "lead",
+    "label": "Murat leads",
+    "price": 1,
+    "command": "Murat, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "favorable",
+    "marshal": "Murat",
+    "shown": "Murat"
+   },
+   {
+    "kind": "lead",
+    "label": "Soult leads",
+    "price": 1,
+    "command": "Soult, attack Mack",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "favorable",
+    "marshal": "Soult",
+    "shown": "Soult"
+   },
+   {
+    "kind": "bring_up",
+    "label": "Bring up Bernadotte",
+    "price": 1,
+    "command": "Bernadotte, support Ney",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "possible",
+    "odds": "",
+    "marshal": "Bernadotte",
+    "shown": "Bernadotte"
+   },
+   {
+    "kind": "bring_up",
+    "label": "Bring up Soult",
+    "price": 1,
+    "command": "Soult, support Ney",
+    "word": "",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Soult",
+    "shown": "Soult"
+   },
+   {
+    "kind": "stand",
+    "label": "Ney stands",
+    "price": 0,
+    "command": "",
+    "word": "stand",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Ney",
+    "shown": "Ney"
+   },
+   {
+    "kind": "break_off",
+    "label": "Break off",
+    "price": 0,
+    "command": "",
+    "word": "break_off",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Ney",
+    "shown": "Ney"
+   },
+   {
+    "kind": "stand",
+    "label": "Leave it to Ney",
+    "price": 0,
+    "command": "",
+    "word": "leave_it",
+    "ok": true,
+    "why": "",
+    "counsel": "none",
+    "odds": "",
+    "marshal": "Ney",
+    "shown": "Ney"
+   }
+  ],
+  "his_temper": "Literal",
+  "his_road": false,
+  "reply": {
+   "who": "theirs",
+   "kind": "strike",
+   "line": "Mack strikes back."
+  }
+ }
+}

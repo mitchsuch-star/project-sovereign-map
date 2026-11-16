@@ -84,6 +84,10 @@ var _frames := 0
 var _current: Dictionary = {}
 var _time_scale := 1.0
 var _record_only := false
+var _emitted: Array = []       # BA-3: every `word_given` the table emitted this shot
+var _scribble_seen := false    # K10: the quill's loop was playing at any frame of this showing
+var _cues_seen: Array = []     # K10: every cue file the table started (fanfare, bell ...)
+var _dismissed := 0            # K4: how many times the table was dismissed this shot (Close, Esc, the automatic advance)
 
 
 func _init():
@@ -111,7 +115,23 @@ func _init():
 	process_frame.connect(_tick)
 
 
+func _watch_audio() -> void:
+	"""K10: what the table SOUNDS, read every frame — the quill's loop in the
+	AudioManager and every cue the table's own host started (by file)."""
+	if _node == null or not is_instance_valid(_node):
+		return
+	var am = AudioManager._inst()
+	if am != null and am._loop_players.has("scribble_verdict"):
+		_scribble_seen = true
+	for p in _node._own_cues_started:
+		if is_instance_valid(p) and p.stream != null:
+			var path := str(p.stream.resource_path)
+			if path != "" and not _cues_seen.has(path):
+				_cues_seen.append(path)
+
+
 func _tick() -> void:
+	_watch_audio()
 	_frames += 1
 	_scene_t += root.get_process_delta_time()
 	if _frames > HARD_FRAME_LIMIT:
@@ -179,6 +199,12 @@ func _open(shot: Dictionary) -> void:
 	var scene: PackedScene = load("res://scenes/battle_diorama.tscn")
 	_node = scene.instantiate()
 	root.add_child(_node)
+	_emitted = []
+	_dismissed = 0
+	_scribble_seen = false
+	_cues_seen = []
+	_node.word_given.connect(func(command: String): _emitted.append(command))
+	_node.dismissed.connect(func(): _dismissed += 1)
 	print("[BA1] shot %s" % _current["id"])
 	_node.show_diorama(payload, bool(shot.get("cinematic", true)))
 	_events = shot.get("events", [])
@@ -314,6 +340,10 @@ func _play() -> void:
 		return
 	if (item["event"] as Dictionary).has("end") and _verdict_being_written():
 		return     # BA-2: the kept end frame shows Berthier's line whole, not half written
+	if str((item["event"] as Dictionary).get("until", "")) == "gavel" 			and _scene_t < float(item["at"]) + float((item["event"] as Dictionary).get("limit", 6.0)) 			and not (not bool(_node._verdict.visible) and not bool(_node._final)):
+		return     # K1: the gavel's own frame — the room cleared (the verdict gone) and the table not yet final
+	if str((item["event"] as Dictionary).get("until", "")) == "column" 			and _scene_t < float(item["at"]) + float((item["event"] as Dictionary).get("limit", 1.2)) 			and not _stormers_in_column():
+		return     # the storm's shot waits for the scene's own state: the stormers closed up into column
 	_ei += 1
 	var event: Dictionary = item["event"]
 	if event.has("shot") and not event.has("do"):
@@ -324,6 +354,22 @@ func _play() -> void:
 			_click(Vector2(root.size) / 2.0)
 		"click_margin":
 			_click(Vector2(12.0, 12.0))
+		"press_chip":
+			# BA-3: a press on the day's chip — the rich line's own `meta_clicked`
+			# with the meta the chip's url carries (`day:<index>`), which is all a
+			# real click on the chip delivers. A dim chip has no url: its press is
+			# the same meta, which the handler must still refuse.
+			var acts_now = _node._acts
+			var chips = null
+			if acts_now != null:
+				var which := str(event.get("box", "own"))
+				chips = acts_now._day_exits if which == "exits" else (acts_now._day_groups if which == "groups" else acts_now._day_chips)
+			if chips != null and is_instance_valid(chips):
+				(chips as RichTextLabel).meta_clicked.emit("day:%d" % int(event.get("index", 0)))
+			else:
+				(_current["missed"] as Array).append("press_chip: no such box on the panel")
+		"esc":
+			_key(KEY_ESCAPE)
 		"skip":
 			_node._skip_to_final()
 		"replay":
@@ -338,6 +384,14 @@ func _play() -> void:
 			# on the chrome may be on it. What follows is timed from here.
 			_close_watches()
 			var again: Dictionary = _payload.duplicate(true)
+			if str(event.get("payload", "")) != "":
+				# BA-3: ANOTHER battle on the same tableau (a table with a day, then one without)
+				var other := FileAccess.open(str(event["payload"]), FileAccess.READ)
+				if other != null:
+					var parsed_other = JSON.parse_string(other.get_as_text())
+					other.close()
+					if parsed_other is Dictionary:
+						again = (parsed_other as Dictionary).duplicate(true)
 			if bool(event.get("strip_script", false)):
 				again.erase("script")
 			_node.show_diorama(again, bool(event.get("cinematic", false)))
@@ -345,6 +399,27 @@ func _play() -> void:
 	_wait = 1
 	if event.has("shot"):
 		_capture(str(event["shot"]))
+
+
+func _stormers_in_column() -> bool:
+	"""True when every figure of every stormer stands where a column puts it
+	(the files closed to BattleActs.COLUMN_SQUEEZE of their line). A figure the verb has
+	not touched has no line mark yet: not in column. The reading waits on THIS,
+	not on a clock: the close-up is a tween made inside the beat's callback, which
+	runs a frame behind the walk's own clock, and a frame at eight times the speed
+	under load is longer than the tween's margin."""
+	var seen := 0
+	for b in _node._blocks_left + _node._blocks_right:
+		if bool((b["data"] as Dictionary).get("garrison", false)):
+			continue
+		for f in b["figures"]:
+			var fig: Node2D = f
+			if not fig.has_meta(&"ba_line_x"):
+				return false
+			if absf(fig.position.x - float(fig.get_meta(&"ba_line_x")) * BattleActs.COLUMN_SQUEEZE) > 0.5:
+				return false
+			seen += 1
+	return seen > 0
 
 
 func _verdict_being_written() -> bool:
@@ -371,6 +446,18 @@ func _click(at: Vector2) -> void:
 	root.gui_disable_input = true
 
 
+func _key(code: Key) -> void:
+	"""A key press and release through the window's input, as the keyboard gives it."""
+	root.gui_disable_input = false
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = code
+		ev.physical_keycode = code
+		ev.pressed = pressed
+		root.push_input(ev)
+	root.gui_disable_input = true
+
+
 func _capture(tag: String) -> void:
 	var row := _read_table()
 	row["tag"] = tag
@@ -392,6 +479,10 @@ func _read_table() -> Dictionary:
 	row["told"] = str(_node._verdict.get_parsed_text())
 	row["replay_shown"] = bool(_node._btn_replay.visible)
 	row["close_shown"] = bool(_node._btn_close.visible)
+	row["close_text"] = str(_node._btn_close.text)          # K4: "Close", or "His answer ▸" on a table that follows
+	row["skip_hint_visible"] = _node._skip_hint != null and is_instance_valid(_node._skip_hint) \
+			and (_node._skip_hint as CanvasItem).is_visible_in_tree()    # K1: never up with the panel
+	row["dismissed"] = _dismissed
 	# BA1-X6: what the table holds back while the day is open.
 	row["vignette"] = str(_node._vignette.modulate.to_html())
 	var laurels := 0
@@ -496,7 +587,126 @@ func _read_table() -> Dictionary:
 	var marks: Array = []
 	_collect_marks(_node._stage, marks)
 	row["marks"] = marks
+	# BA-3: the day's panel, the chrome it lends its room from, the words given.
+	row["verdict_visible"] = _node._verdict.is_visible_in_tree()
+	row["plate_visible"] = _node._nameplate.is_visible_in_tree()
+	row["seal_exists"] = _node._seal != null and is_instance_valid(_node._seal)
+	row["seal_visible"] = bool(row["seal_exists"]) and (_node._seal as CanvasItem).is_visible_in_tree()
+	row["emitted"] = _emitted.duplicate()
+	# BA-3: the host's shelves (the faction bars' shelf), where the panel may have taken their room
+	var shelves: Array = []
+	for shelf in [_node._shelf_left, _node._shelf_right]:
+		if shelf != null and is_instance_valid(shelf) and (shelf as CanvasItem).is_visible_in_tree():
+			shelves.append(_on_tray(shelf, Rect2(Vector2.ZERO, (shelf as Control).size)))
+	row["shelf_visible"] = not shelves.is_empty()
+	row["shelf_rects"] = shelves
+	row["verdict_y"] = int(_node._verdict.position.y)
+	row["scribble_seen"] = _scribble_seen
+	row["cues"] = _cues_seen.duplicate()
+	# K11: the sub-banner (the day's morning), its ink on the stage, and the dice's room under it
+	var sub: Label = _node._sub_banner
+	row["sub_banner"] = {"text": str(sub.text), "visible": sub.is_visible_in_tree()}
+	row["sub_ink"] = _ink(sub) if sub.is_visible_in_tree() and sub.text.strip_edges() != "" else []
+	# K2 / K4: the primary buttons' places, in the tray's design pixels
+	var btns := {}
+	for pair in [["close", _node._btn_close], ["replay", _node._btn_replay]]:
+		var b: Control = pair[1]
+		btns[pair[0]] = [int(b.position.x), int(b.position.y),
+				int(maxf(b.size.x, b.custom_minimum_size.x)), int(maxf(b.size.y, b.custom_minimum_size.y))]
+	row["buttons"] = btns
+	row["day"] = _read_day()
 	return row
+
+
+func _on_tray(item: CanvasItem, local: Rect2) -> Array:
+	"""`local` (in the item's own space) as [x, y, w, h] in the tray's design
+	pixels (1000 x 744: where Close and Replay are authored)."""
+	var xf: Transform2D = _node._tray_inner.get_global_transform().affine_inverse() \
+			* item.get_global_transform()
+	var r := Rect2(xf * local.position, Vector2.ZERO).expand(xf * local.end)
+	return [int(floor(r.position.x)), int(floor(r.position.y)),
+			int(ceil(r.size.x)), int(ceil(r.size.y))]
+
+
+func _rtl_ink(l: RichTextLabel) -> Array:
+	"""A rich line's own extent in the tray's pixels, and how far its content
+	runs past its box (the box is clipped; the overflow is the defect)."""
+	var w: float = minf(l.size.x, float(l.get_content_width()))
+	var h: float = minf(l.size.y, float(l.get_content_height()))
+	return _on_tray(l, Rect2(0.0, 0.0, w, h))
+
+
+func _tray_texts(node: Node, skip: Node, out: Array) -> void:
+	"""Every line of text standing on the tray (a label, a rich line) that is
+	shown, outside `skip`'s subtree: where it stands, in the tray's pixels."""
+	for child in node.get_children():
+		if child == skip:
+			continue
+		if child is Label:
+			var l: Label = child
+			if l.text.strip_edges() != "" and _shown(l):
+				out.append({"text": l.text.substr(0, 40), "rect": _on_tray(l, Rect2(Vector2.ZERO, l.get_minimum_size().min(l.size)))})
+		elif child is RichTextLabel:
+			var r: RichTextLabel = child
+			if r.get_parsed_text().strip_edges() != "" and _shown(r):
+				out.append({"text": r.get_parsed_text().substr(0, 40), "rect": _rtl_ink(r)})
+		_tray_texts(child, skip, out)
+
+
+func _read_day() -> Dictionary:
+	"""BA-3's panel as plain data (the claims read this, never a picture)."""
+	var out := {"has": false, "data": _node._data.get("day", null) is Dictionary}
+	var acts = _node._acts
+	if acts == null:
+		return out
+	var panel = acts._day_panel
+	if panel == null or not is_instance_valid(panel):
+		return out
+	out["has"] = true
+	out["visible"] = (panel as CanvasItem).is_visible_in_tree()
+	out["rect"] = [int(panel.position.x), int(panel.position.y), int(panel.size.x), int(panel.size.y)]
+	var inner: Vector2 = _node._tray_inner.custom_minimum_size
+	out["tray"] = [0, 0, int(inner.x), int(inner.y)]
+	var buttons := {}
+	for pair in [["close", _node._btn_close], ["replay", _node._btn_replay]]:
+		var b: Control = pair[1]
+		buttons[pair[0]] = [int(b.position.x), int(b.position.y),
+				int(maxf(b.size.x, b.custom_minimum_size.x)), int(maxf(b.size.y, b.custom_minimum_size.y))]
+	out["buttons"] = buttons
+	var lines: Array = []
+	var focus_modes: Array = []
+	for child in panel.get_children():
+		if child is RichTextLabel:
+			var r: RichTextLabel = child
+			var rows: Array = []        # each text row's [top, bottom] in the box's own px
+			var lc: int = r.get_line_count()
+			for li in range(lc):
+				var row_top: int = int(r.get_line_offset(li))
+				var row_bottom: int = int(r.get_line_offset(li + 1)) if li + 1 < lc else int(r.get_content_height())
+				rows.append([row_top, row_bottom])
+			lines.append({"text": r.get_parsed_text(), "source": r.text, "rows": rows,
+					"scroll_at": int(r.get_v_scroll_bar().value),
+					"box": [int(r.position.x), int(r.position.y), int(r.size.x), int(r.size.y)],
+					"content_h": int(r.get_content_height()), "content_w": int(r.get_content_width()),
+					"ink": _rtl_ink(r), "chips": r == acts._day_chips, "groups": r == acts._day_groups,
+					"exits": r == acts._day_exits,
+					"scroll_active": bool(r.scroll_active),
+					"v_max": int(r.get_v_scroll_bar().max_value), "v_page": int(r.get_v_scroll_bar().page)})
+			focus_modes.append(int(r.focus_mode))
+	out["lines"] = lines
+	out["focus_modes"] = focus_modes
+	out["has_chips"] = acts._day_chips != null and is_instance_valid(acts._day_chips)
+	out["inline"] = bool(acts._day_inline)           # K5: the groups flow in one paragraph
+	out["his_waiting"] = bool(acts._his_waiting)     # K4: a table that follows waits to go on
+	out["has_groups"] = acts._day_groups != null and is_instance_valid(acts._day_groups)
+	out["has_exits"] = acts._day_exits != null and is_instance_valid(acts._day_exits)
+	out["latched"] = bool(acts._day_latched)
+	var focused: Control = _node.get_viewport().gui_get_focus_owner()
+	out["focus_in_panel"] = focused != null and (focused == panel or panel.is_ancestor_of(focused))
+	var others: Array = []
+	_tray_texts(_node._tray_inner, panel, others)
+	out["others"] = others
+	return out
 
 
 func _on_stage(item: CanvasItem, local: Rect2) -> Array:

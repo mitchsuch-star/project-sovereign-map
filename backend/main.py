@@ -828,6 +828,8 @@ def build_base_response(world, success: bool = True, message: str = "",
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
         "pending_marshal_decisions": _pending_marshal_decisions(world),
+        "pending_battle_days": _pending_battle_days(world),   # BA-3: the end-turn gate's days
+        "open_battle_days": _open_battle_days(world),         # BA3-X18: the days still open, by enemy
         # IGR-F: the letter-book. Derived fresh from the dialogue manager on
         # every response so it can never go stale against the queue it
         # describes; None when no small court is waiting. It rides the base
@@ -1191,6 +1193,9 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     # BD: the Battle Diorama tableau payload (display-only, fog-gated at
     # build time in battle_diorama.build_battle_diorama)
     "battle_diorama",
+    # Row BA (BA-3): the day of battle as it stands after this order — the
+    # purses, whose word it is, his reply, the chips (`battle_day.settle`).
+    "battle_day",
     # NV-7: the same tableau for a §4.4 fleet action. Built at the
     # resolver, so a naval battle can never reach the player without its
     # picture (the BD §14.1 lesson).
@@ -1239,6 +1244,32 @@ def _marshal_audience(world):
     except Exception as exc:
         _errors.report(exc, "main._marshal_audience: import backend.game_logic.jealousy")
         return None
+
+
+def _open_battle_days(world) -> list:
+    """Row BA (BA-3's review, BA3-X18): the enemy key of every day of battle
+    still open and alive, on every response beside `pending_battle_days` —
+    the client lets go of a day that is not in it (its chips in old log lines
+    stayed lit after night fell unseen, and one pressed spent an action)."""
+    from backend.game_logic import battle_day as _day
+    try:
+        return list(_day.living(world))
+    except Exception as exc:
+        _errors.report(exc, "main._open_battle_days: battle_day.living")
+        return []
+
+
+def _pending_battle_days(world) -> list:
+    """Row BA (BA-3): the days of battle that await our word, beside
+    `pending_marshal_decisions` on every response — ending the turn settles
+    each by our silence (he spends what he has left; night falls), so the
+    client's end-turn soft-stop names them as it names a last stand."""
+    from backend.game_logic import battle_day as _day
+    try:
+        return list(_day.awaiting(world))
+    except Exception as exc:
+        _errors.report(exc, "main._pending_battle_days: battle_day.awaiting")
+        return []
 
 
 def _pending_marshal_decisions(world) -> list:
@@ -3151,7 +3182,11 @@ def _foreign_caller(headers) -> bool:
 # could land over the battle's stamps, or wind the dice back over rolls the
 # order had just made. They hold the lock a POST holds; every other GET stays
 # lock-free.
-_LOCKED_READS = frozenset({"/parse_preview", "/march_quotes"})
+# Row BA (BA-3): `/battle_day` joins them — its chips are quoted with the
+# word's lend on the pool (`battle_day.lending`: stamped and put back), and
+# it lets the enemy answer a day that awaits him. Unlocked, it could cross a
+# command and leave the lend on the pool for good.
+_LOCKED_READS = frozenset({"/parse_preview", "/march_quotes", "/battle_day"})
 # The POSTs holding the state lock or waiting for it (`_posts_in_flight`).
 _POSTS_IN_FLIGHT = 0
 
@@ -3382,6 +3417,8 @@ def test_connection():
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
         "pending_marshal_decisions": _pending_marshal_decisions(world),
+        "pending_battle_days": _pending_battle_days(world),   # BA-3: a loaded save may hold an open day
+        "open_battle_days": _open_battle_days(world),         # BA3-X18: the days still open, by enemy
         # PC15-10 B1: the antechamber's badge from the first frame.
         "marshal_audience": _marshal_audience(world),
         # S14E-X146: the boot header and the End Turn gate from the first
@@ -3901,8 +3938,9 @@ def _command_interrupt_answer(ctx: CommandContext):
                                 "choice": choice})
                 from backend.commands.strategic import StrategicOrderProcessor
                 strategic_exec = StrategicOrderProcessor(executor)
-                ctx.result = strategic_exec.handle_response(
-                    m.name, interrupt_type, choice, world, game_state)
+                ctx.result = _interrupt_through_the_day(
+                    m.name, lambda: strategic_exec.handle_response(
+                        m.name, interrupt_type, choice, world, game_state))
                 # CR-7-9: the tail that waited behind THIS interrupt comes
                 # back re-judged on the typed answer too — the popup route
                 # always did; the typed road had let it go in silence.
@@ -5028,8 +5066,9 @@ def _command_ordinary_road(ctx: CommandContext):
                     "turn_advanced": False,
                     "new_turn": None,
                 })
-        # Execute command
-        ctx.result = executor.execute(ctx.parsed, game_state)
+        # Execute command (row BA, BA-3: through the day's door — an order
+        # that is a word of an open day of battle is lent its actions)
+        ctx.result = _execute_through_the_day(ctx.parsed)
         _ptrace.decide("executor", "result", _ptrace.result_summary(ctx.result))
     return _NEXT_STAGE
 
@@ -5615,6 +5654,138 @@ def marshal_petition_response(request: MarshalPetitionResponse):
             **_errors.debug_fields(e, "main.marshal_petition_response: the route", DEBUG_MODE))
 
 
+def _execute_through_the_day(parsed):
+    """Row BA (BA-3): the ONE door an order passes on its way to the executor.
+
+    An order that is a word of an open day of battle
+    (`battle_day.classify_word`: an attack on the day's enemy, the lead's
+    defend, a corps ordered up, the lead's retreat on a defended day) is LENT
+    the actions its gates ask for and every one is taken back — a word costs
+    points, never an action. Any other order runs as it always did. Either
+    way `battle_day.settle` lets the enemy answer where a day now awaits him
+    and writes the day onto the result. Off the served road, and with the
+    day's seam down, this is `executor.execute` and nothing else."""
+    from backend.game_logic import battle_day as _day
+    word = _day.classify_word(world, parsed)
+    if word is None:
+        result = executor.execute(parsed, game_state)
+        _day.settle(world, game_state, executor, result)
+        return result
+    with _day.lending(world, word) as meter:
+        result = executor.execute(parsed, game_state)
+    _day.settle(world, game_state, executor, result, word=word, spent=int(meter["spent"]))
+    return result
+
+
+def _answer_through_the_day(choice: str):
+    """Row BA (BA-3): an objection a day's word raised is answered on the
+    day's account — the same lend, the same points."""
+    from backend.game_logic import battle_day as _day
+    # The parked word is the QUESTIONER's own (the tactical or the strategic
+    # road's objection): another marshal's objection is no word of the day.
+    asker = _day.questioner(world)
+    # ...and only a word THIS objection parked (BA3-X6): one the muster's
+    # question parked is not answered here, and what the chosen answer runs —
+    # the order as given, his alternative, the middle ground — is what the
+    # day then tells.
+    word = _day.pending_word(world, marshal=asker, by="objection") if asker else None
+    if word is None:
+        result = executor.handle_objection_response(choice, game_state)
+        if isinstance(result, dict):
+            _day.settle(world, game_state, executor, result)
+        return result
+    word = _day.the_word_that_runs(world, word, _day.what_the_answer_runs(world, choice))
+    with _day.lending(world, word) as meter:
+        result = executor.handle_objection_response(choice, game_state)
+    if isinstance(result, dict):
+        _day.settle(world, game_state, executor, result, word=word,
+                    spent=int(meter["spent"]), answered=True)
+    return result
+
+
+def _interrupt_through_the_day(marshal_name: str, respond):
+    """Row BA (BA-3): a marshal's own question raised by a day's word (the
+    muster's "Commit the Attack?") is answered on the day's account — the
+    same lend, the same points. `respond` runs the interrupt's answer."""
+    from backend.game_logic import battle_day as _day
+    word = _day.pending_word(world, marshal=marshal_name, by="question")
+    if word is None:
+        result = respond()
+        if isinstance(result, dict):
+            _day.settle(world, game_state, executor, result)
+        return result
+    with _day.lending(world, word) as meter:
+        result = respond()
+    if isinstance(result, dict):
+        _day.settle(world, game_state, executor, result, word=word,
+                    spent=int(meter["spent"]), answered=True)
+    return result
+
+
+class BattleDayWord(BaseModel):
+    """Request model for a day's word that is no order."""
+    enemy: str
+    word: str  # 'stand', 'break_off' or 'leave_it'
+
+
+@app.get("/battle_day")
+def get_battle_day():
+    """Row BA (BA-3): every day of battle still open, as the table reads it —
+    the purses, whose word it is, the chips, and the tableau of his last
+    clash when the table has not shown it. A day that awaits HIM by a road
+    that did not carry his answer is answered here first
+    (`battle_day.caught_up`); otherwise it reads and changes nothing."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    try:
+        from backend.game_logic import battle_day as _day
+        owed = _day.awaits_him(world)
+        days = _day.caught_up(world, game_state, executor)
+        if owed:
+            _bump_state_epoch()      # he has answered: the board changed under a GET
+        return {"success": True, "days": days}
+    except Exception as e:
+        _errors.report(e, "main.get_battle_day", every=True)
+        return {"success": False, "error": str(e),
+                **_errors.debug_fields(e, "main.get_battle_day", DEBUG_MODE)}
+
+
+@app.post("/battle_day/word")
+def post_battle_day_word(request: BattleDayWord):
+    """Row BA (BA-3): a word of an open day that is no order — to stand, to
+    break off a day we opened, to leave the rest of it to the lead. The words
+    that ARE orders go through `/command`, as every order does."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    try:
+        from backend.game_logic import battle_day as _day
+        out = _day.say(world, str(request.enemy or ""), str(request.word or "").lower(),
+                       game_state, executor)
+        extra = {k: out[k] for k in ("battle_day", "battle_diorama") if out.get(k)}
+        # NON-draining (the PC15-10 census): the client routes this answer to
+        # the table, not through the popup queue — a popup popped here would
+        # die unread; it rides the next /command.
+        response = build_base_response(
+            world, success=bool(out.get("success")), message=str(out.get("message") or ""),
+            action_info=world.get_action_info(0), include_popup_passthroughs=False, **extra)
+        _fill_popup_keys_without_draining(response)
+        if isinstance(out.get("_carry"), dict):
+            # "Leave it to him": what the lead's own clash left to ask (a
+            # captured town's choice, a charge, the report) rides this answer —
+            # the allowlist the interrupt roads use; the day's own tableau wins.
+            from backend.commands.strategic import _carry_combat_fields
+            _carry_combat_fields(response, out["_carry"])
+            response["events"] = _events_for_wire(response.get("events"))
+            if extra.get("battle_diorama"):
+                response["battle_diorama"] = extra["battle_diorama"]
+        return response
+    except Exception as e:
+        _errors.report(e, "main.post_battle_day_word", every=True)
+        return build_base_response(
+            world, success=False, message=f"The word was not taken: {e}",
+            **_errors.debug_fields(e, "main.post_battle_day_word", DEBUG_MODE))
+
+
 @app.post("/respond_to_objection")
 def respond_to_objection(request: ObjectionResponse):
     """
@@ -5681,8 +5852,9 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
     if _pending_relay is not None and getattr(world, "_relay_let_go", None) is _pending_relay:
         world._relay_let_go = None   # CR-7-9: consumed here, not let go
     try:
-        # Handle the objection response through executor
-        result = executor.handle_objection_response(choice, game_state)
+        # Handle the objection response through executor (row BA, BA-3: an
+        # objection a day's word raised is answered on the day's account)
+        result = _answer_through_the_day(choice)
 
         # Non-draining (verify-fleet correction, Aug 2026): this response can
         # now carry pending_capture_choice via the combat allowlist below,
@@ -5717,6 +5889,8 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
         # reply dropped the keys, so a reader could not tell the refusal from
         # any other failed answer. Shown = offered: the two keys ride the reply.
         _copy_truthy_result_fields(response, result, ("objection_kept", "choices"))
+        # Row BA (BA-3): the day as the answer left it.
+        _copy_truthy_result_fields(response, result, ("battle_day",))
 
         # CA8-25 sibling (Aug 2026 health-check audit): the insist path
         # re-enters _execute_attack, which can produce a diorama and a
@@ -6314,10 +6488,10 @@ def handle_strategic_response(request: StrategicInterruptResponse):
                 diplomatic_dialogue=_dlg)
         from backend.commands.strategic import StrategicOrderProcessor
         strategic_exec = StrategicOrderProcessor(executor)
-        result = strategic_exec.handle_response(
-            request.marshal_name, request.response_type,
-            request.choice, world, game_state
-        )
+        result = _interrupt_through_the_day(
+            request.marshal_name, lambda: strategic_exec.handle_response(
+                request.marshal_name, request.response_type,
+                request.choice, world, game_state))
 
         # Forward the WHOLE executor result — same builder the typed interrupt
         # path uses (main.py /command interrupt route) — so a muster-confirmed
@@ -7684,7 +7858,15 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
         return {"success": False, "message": f"Unknown province: {region}", "region": region}
     try:
         from backend.commands.order_quotes import march_quotes_for_region
-        return march_quotes_for_region(world, region)
+        quoted = march_quotes_for_region(world, region)
+        # Row BA (BA-3): a day of battle open on this field rides the panel's
+        # one GET — the same block the table reads.
+        from backend.game_logic import battle_day as _day
+        for _block in _day.blocks(world):
+            if _block.get("field") == region or _block.get("field_shown") == region:
+                quoted["day"] = {k: v for k, v in _block.items() if k != "reply_diorama"}
+                break
+        return quoted
     except Exception as e:
         _errors.report(e, "main.get_march_quotes_endpoint: the quotes", every=True)
         return {"success": False, "region": region, "error": str(e),

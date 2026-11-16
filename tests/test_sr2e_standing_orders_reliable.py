@@ -49,6 +49,13 @@ def shipped(monkeypatch):
     # written (Massena reaches Vienna on the second turn).
     from tests._oct27_seams import hold_down as _hold_sweep_down
     _hold_sweep_down(monkeypatch)
+    # Row BA, BA-3 the day's points (November 15, 2026): a great battle that
+    # hangs is fought in turns in a campaign the server holds, and at the
+    # turn's end the enemy plays what he has left — on this board that moves
+    # Massena's march. The rows pin the player's standing orders on the board
+    # as it was played when they were written: the day's seam is held down.
+    from backend.game_logic import battle_day as _battle_day
+    monkeypatch.setattr(_battle_day, "the_day_has_points", lambda: False)
     M._reset_world_state()
     monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
     assert M.parser.llm.use_real_api is False, "a probe must never pay for a parse"

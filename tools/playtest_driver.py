@@ -4840,6 +4840,10 @@ def run(args):
         **provenance_meta,
     })
     answerer = Answerer(transport, digest, policy, args.strict)
+    # BA-3: the day's points — every POST response's `battle_day` is read.
+    rounds = RoundsPlayer(transport, digest, answerer, policy, args.strict)
+    if isinstance(getattr(transport, "observers", None), list):
+        transport.observers.append(rounds.observe)
     # IQ-8: every POST response feeds the action-point meter.
     meter = getattr(digest, "ap_meter", None)
     if meter is not None and isinstance(getattr(transport, "observers", None), list):
@@ -4995,6 +4999,9 @@ def run(args):
         for reply in answerer.answer_mailbox_items(mailbox, answered):
             drain(transport, digest, answerer, reply, args.strict)
 
+        # BA-3: the days the enemy opened in his phase await us now.
+        rounds.turn_head(current_turn)
+
         # SF-AGD-1: the turn's lines without the implicit end turn, read
         # ahead so the dialogue a line opens is HELD while the next line is
         # the script's own click on it.
@@ -5034,6 +5041,7 @@ def run(args):
                     (_seen_body or {}).get("economy")
                     if isinstance(_seen_body, dict) else None)
             drain(transport, digest, answerer, response, args.strict)
+            rounds.after_order(response)                 # BA-3
             for reply in answerer.reward_from_rail(response):   # FA-90 (ii)
                 drain(transport, digest, answerer, reply, args.strict)
         answerer.hold_dialogue = False   # SF-AGD-1: never past the script's lines
@@ -5066,6 +5074,7 @@ def run(args):
                 response = transport.post("/command", {"command": overture})
                 digest.command(overture, response)
                 drain(transport, digest, answerer, response, args.strict)
+                rounds.after_order(response)             # BA-3
 
         if turn_index in save_at:
             saved = transport.post("/save",
@@ -5314,6 +5323,8 @@ def run(args):
                                         "key_status", "error") if k in _cfg},
             "live_parses": int(digest.counters.get("live_parses", 0)),
         }
+    if rounds.mode != "none" or rounds.seen():
+        digest.meta["rounds"] = rounds.summary()        # BA-3
     digest.finish(status)
     print(f"[driver] {status}: {digest.md_path}")
 
@@ -5845,6 +5856,220 @@ class MissionAdvisor:
         return response
 
 
+# Row BA, BA-3 (the day's points): the `rounds` dial — what France says on a great
+# battle's day (docs/PLAYTESTING.md). ABSENT from POLICY_DEFAULTS (pinned by
+# tests/test_affairs_client.py); read with `policy.get("rounds", "none")`.
+ROUNDS_MODES = ("none", "press", "guard", "dig_in", "break_off", "leave", "sense")
+MAX_WORDS_PER_DAY = 8
+
+
+def rounds_mode(policy) -> str:
+    mode = str((policy or {}).get("rounds") or "none")
+    return mode if mode in ROUNDS_MODES else "none"
+
+
+class RoundsPlayer:
+    """BA-3: answers an open `battle_day` awaiting ours, by the `rounds` dial.
+
+    `observe` is a transport observer: every POST response's top-level
+    `battle_day` block is the day's state (never guessed), and the counters
+    (days opened, words by kind, days ended by kind) are kept in every mode.
+    `turn_head` (GET /battle_day: days the enemy opened in his phase) and
+    `after_order` (a driver order's own response) give the words."""
+
+    def __init__(self, transport, digest, answerer, policy, strict):
+        self.transport = transport
+        self.digest = digest
+        self.answerer = answerer
+        self.policy = policy
+        self.strict = strict
+        self.mode = rounds_mode(policy)
+        self.turn = 0
+        self.latest = {}            # enemy key -> latest block seen
+        self.live = set()           # enemy keys of days seen open and not yet closed
+        self.dug = set()            # days where dig_in was already given
+        self.days_opened = 0
+        self.words_by_kind = {}
+        self.days_ended = {}
+
+    # -- state ------------------------------------------------------------
+    def seen(self) -> bool:
+        return bool(self.days_opened or self.words_by_kind)
+
+    def summary(self) -> dict:
+        return {"mode": self.mode, "days_opened": self.days_opened,
+                "words_given": sum(self.words_by_kind.values()),
+                "words_by_kind": dict(sorted(self.words_by_kind.items())),
+                "days_ended": dict(sorted(self.days_ended.items()))}
+
+    def _take(self, block) -> None:
+        if not isinstance(block, dict) or not block.get("enemy"):
+            return
+        key = str(block["enemy"])
+        self.latest[key] = block
+        if block.get("open"):
+            if key not in self.live:
+                self.live.add(key)
+                self.days_opened += 1
+        elif key in self.live:
+            self.live.discard(key)
+            self.dug.discard(key)
+            ended = str(block.get("ended") or "over")
+            self.days_ended[ended] = self.days_ended.get(ended, 0) + 1
+
+    def observe(self, path, payload, body) -> None:
+        if isinstance(body, dict):
+            self._take(body.get("battle_day"))
+
+    # -- the words --------------------------------------------------------
+    @staticmethod
+    def _lit(block, kind=None, word=None):
+        for chip in block.get("chips") or []:
+            if not isinstance(chip, dict) or not chip.get("ok", True):
+                continue
+            if kind is not None and chip.get("kind") != kind:
+                continue
+            if word is not None and chip.get("word") != word:
+                continue
+            if word is None and kind == "stand" and chip.get("word") == "leave_it":
+                continue
+            if chip.get("command") or chip.get("word"):
+                return chip
+        return None
+
+    def _stand(self, block):
+        return self._lit(block, "stand", "stand") or {
+            "kind": "stand", "word": "stand", "command": "", "label": "Stand"}
+
+    def _chip_for(self, key, block):
+        """The chip (or a synthetic word) the dial gives next, or None."""
+        mode = self.mode
+        if mode == "sense":
+            ahead = str(block.get("ahead") or "even")
+            mode = {"ours": "press", "theirs": "break_off"}.get(ahead, "dig_in")
+        if mode == "press":
+            return self._lit(block, "press") or self._stand(block)
+        if mode == "guard":
+            return (self._lit(block, "guard") or self._lit(block, "press")
+                    or self._stand(block))
+        if mode == "dig_in":
+            if key not in self.dug:
+                chip = self._lit(block, "dig_in")
+                if chip:
+                    return chip
+            return self._stand(block)
+        if mode == "break_off":
+            return self._lit(block, "break_off") or self._stand(block)
+        if mode == "leave":
+            return self._lit(block, "stand", "leave_it") or self._stand(block)
+        return None
+
+    @staticmethod
+    def _snap(block):
+        return (block.get("ours"), block.get("theirs"), block.get("awaits"),
+                bool(block.get("open")), bool(block.get("pending")),
+                len(block.get("told") or []))
+
+    def _send(self, block, chip):
+        if chip.get("command"):
+            text = str(chip["command"])
+            response = self.transport.post("/command", {"command": text})
+            self.digest.command(text, response)
+            via = "command"
+        else:
+            text = str(chip.get("word") or "stand")
+            response = self.transport.post(
+                "/battle_day/word", {"enemy": str(block.get("enemy")), "word": text})
+            self.digest.command(f"[day word] {text}", response)
+            via = "word"
+        drain(self.transport, self.digest, self.answerer, response, self.strict)
+        return text, via, response
+
+    def answer(self, key) -> None:
+        """Words on ONE day until it stops awaiting ours (or the cap)."""
+        refused = set()
+        for _ in range(MAX_WORDS_PER_DAY):
+            block = self.latest.get(key) or {}
+            if not (block.get("open") and block.get("awaits") == "ours") or block.get("pending"):
+                return
+            chip = self._chip_for(key, block)
+            if chip is None:
+                return
+            sig = (chip.get("kind"), chip.get("word"), chip.get("command"))
+            if sig in refused:
+                chip = self._stand(block)
+                sig = (chip.get("kind"), chip.get("word"), chip.get("command"))
+                if sig in refused:
+                    return
+            before = self._snap(block)
+            kind = str(chip.get("kind") or "stand")
+            if kind == "dig_in":
+                self.dug.add(key)
+            text, via, response = self._send(block, chip)
+            after_block = self.latest.get(key) or block
+            if self._snap(after_block) == before:
+                refused.add(sig)
+            self.words_by_kind[kind] = self.words_by_kind.get(kind, 0) + 1
+            reply = after_block.get("reply") or {}
+            row = {
+                "turn": self.turn, "field": block.get("field"), "enemy": key,
+                "lead": block.get("lead"), "side": block.get("side"),
+                "rounds": self.mode, "word": text, "via": via, "word_kind": kind,
+                "success": response.get("success", True) is not False,
+                "ours_before": block.get("ours"), "ours_after": after_block.get("ours"),
+                "theirs_before": block.get("theirs"), "theirs_after": after_block.get("theirs"),
+                "ahead_before": block.get("ahead"), "ahead": after_block.get("ahead"),
+                "stood": "open" if after_block.get("open") else
+                         str(after_block.get("ended") or "over"),
+                "ended": str(after_block.get("ended") or ""),
+                "reply": str(reply.get("kind") or ""),
+                "pending": bool(after_block.get("pending")),
+            }
+            self.digest.record("round", **row)
+            self.digest._md(
+                f"  - ROUND {row['field']} vs {key}: {text} ({kind}) · points "
+                f"{row['ours_before']}/{row['theirs_before']} -> "
+                f"{row['ours_after']}/{row['theirs_after']} · ahead {row['ahead']} · "
+                f"{row['stood']}" + (f" · he: {row['reply']}" if row["reply"] else ""))
+
+    def answer_all(self) -> None:
+        if self.mode == "none":
+            return
+        for key in list(self.latest):
+            block = self.latest.get(key) or {}
+            if block.get("open") and block.get("awaits") == "ours":
+                self.answer(key)
+
+    def after_order(self, response) -> None:
+        """After one of the driver's own orders: its response's block first."""
+        if self.mode == "none" or not isinstance(response, dict):
+            return
+        block = response.get("battle_day")
+        if isinstance(block, dict) and block.get("open"):
+            self.answer_all()
+
+    def turn_head(self, turn) -> None:
+        """The days the enemy opened in his phase (and any left standing)."""
+        self.turn = int(turn) if isinstance(turn, int) else self.turn
+        try:
+            days = (self.transport.get("/battle_day") or {}).get("days") or []
+        except Exception:
+            return
+        listed = set()
+        for block in days:
+            if isinstance(block, dict) and block.get("enemy"):
+                if block.get("open"):
+                    listed.add(str(block["enemy"]))
+                self._take(block)
+        for key in list(self.live):             # the game closed it at end turn
+            if key not in listed:
+                self.live.discard(key)
+                self.dug.discard(key)
+                self.days_ended["end_turn"] = self.days_ended.get("end_turn", 0) + 1
+                (self.latest.get(key) or {})["open"] = False
+        self.answer_all()
+
+
 # Every decision dial a CLI flag may set, flag over script key over default.
 # IQ-3 (Sept 14, 2026): `declare_war` was missing. FA-S17-D6 added the
 # `--declare-war` flag and the policy key but never this row, so the flag
@@ -5858,7 +6083,7 @@ POLICY_FLAG_KEYS = ("redemption", "petition", "audience", "paradox", "rebellion"
                     "sabotage", "reward", "last_stand", "contact",
                     "declare_war", "missions", "client_petition",
                     "settlement", "decline_from", "decline_until_latch", "moment",
-                    "affair")
+                    "affair", "rounds")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -5973,6 +6198,11 @@ def main():
                          "--diplomacy); RE-3: lapse = the letter left standing to lapse on "
                          "its answer-by turn; AU-3a: decree = the Edicts' third answer where the "
                          "letter offers it open, else decline. Absent = every arm unchanged")
+    ap.add_argument("--rounds", dest="rounds", default="", choices=["", *ROUNDS_MODES],
+                    help="BA-3: what France says on a great battle's day (the day's points) — "
+                         "press / guard / dig_in / break_off / leave, or sense (read who is "
+                         "ahead: press, break off or dig in); none = silent, the game closes "
+                         "an unanswered day at end turn. Absent = every arm unchanged")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")
