@@ -153,12 +153,25 @@ class TestTheVolteFaceFiresOnItsArm:
         above it returns the beat inside the window; the reachability
         guard held down alone does not, and the other five T0-EFG seams
         add nothing. The arm keeps its purpose with the one brake down —
-        the braked repeats staged the war, they are not the rule."""
+        the braked repeats staged the war, they are not the rule.
+
+        RE-SEATED by row BA's BA-4, the key bar (November 16, 2026;
+        `BATTLE_DIORAMA_SPEC.md` §15.20): a battle of 50,000 men that hangs
+        is fought on as a day of battle now, where it took the great
+        battle's 80,000 (`battle_day.key_bar`). This arm's script gives no
+        word on a day, so its marshals play each one out, and it meets five
+        days where it met three: the historical board re-times from its
+        changed battles (31 on the drive against 22), six designs are
+        promoted where one was, and the beat never fires in forty turns.
+        Measured on this drive: the bar held at 80,000 ALONE beside the
+        seams above returns the beat on turn 25. The arm keeps its purpose
+        with the bar held — the days stage the war, they are not the rule."""
         rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
                       "--seam", "backend.models.world_state:deck_entry_stands="
                       "(a[1] or {}).get('id') != 'the_old_alliance'",
                       "--seam", "backend.game_logic.affairs:ai_decrees=False",
-                      "--seam", "backend.ai.enemy_ai:desperation_reads_the_brakes=False")
+                      "--seam", "backend.ai.enemy_ai:desperation_reads_the_brakes=False",
+                      "--seam", "backend.game_logic.battle_day:key_bar=80000")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

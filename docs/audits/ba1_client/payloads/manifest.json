@@ -24,7 +24,7 @@
    "approach": 5,
    "assault": 3,
    "crisis": 2,
-   "pursuit": 1
+   "pursuit": 2
   }
  },
  "last_hour": {
@@ -52,7 +52,7 @@
    "approach": 5,
    "assault": 3,
    "crisis": 2,
-   "pursuit": 1
+   "pursuit": 2
   }
  },
  "ordinary_brief": {
@@ -120,7 +120,7 @@
    "cannonade": 1,
    "assault": 3,
    "crisis": 2,
-   "pursuit": 2
+   "pursuit": 3
   }
  },
  "enemy_comes": {
@@ -436,7 +436,8 @@
   "beats": {
    "approach": 5,
    "assault": 3,
-   "crisis": 2
+   "crisis": 2,
+   "pursuit": 1
   }
  }
 }

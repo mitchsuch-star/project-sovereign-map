@@ -397,6 +397,9 @@ func show_group(quotes: Array, ap_left: int) -> void:
 		var departs_row := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
 		if departs_row != "":
 			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + departs_row + "[/color]")
+		var march_cost_row := str(q.get("march_cost", ""))   # BA2-X21: the men the order's first march costs
+		if march_cost_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + march_cost_row + "[/color]")
 		var detour_row := str(q.get("detour", ""))   # S14E-22: the detour round a road the diplomacy shuts
 		if detour_row != "":
 			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + detour_row + "[/color]")
@@ -582,7 +585,7 @@ func _terms(q: Dictionary) -> String:
 	if bool(q.get("already", false)):
 		lines.append("[b]No cost[/b] — " + str(q.get("note", "he is already carrying out that order.")))
 		return "\n".join(lines)
-	lines.append("[b]" + _price(int(q.get("ap", 0))) + "[/b] · " + _clock(q))
+	lines.append("[b]" + price_of(q) + "[/b] · " + _clock(q))
 	var road = q.get("road", [])
 	if road is Array and road.size() > 1:
 		lines.append("[color=#" + Utils.COLOR_INFO + "]Road: " + " → ".join(PackedStringArray(road)) + "[/color]")
@@ -603,7 +606,9 @@ func _terms(q: Dictionary) -> String:
 		if day.get("his_road", null) is bool:
 			his_road_said = " His road to the rear is open." if bool(day.get("his_road")) \
 				else " No road lies open behind him."
-		lines.append("[color=#" + Utils.COLOR_GOLD + "]A great battle — "
+		# BA-4: a key battle short of the game's great one (80,000 men) is a pitched battle
+		var battle_said := "A pitched battle" if bool(day.get("pitched", false)) else "A great battle"
+		lines.append("[color=#" + Utils.COLOR_GOLD + "]" + battle_said + " — "
 			+ (commander if commander != "" else "your lead") + " commands the day: "
 			+ Utils.plural(int(day.get("points", 0)), "point") + "." + his_road_said + "[/color]")
 	# S14G-X165: what a win here adds to Europe's alarm (the muster preview's own sentence).
@@ -625,6 +630,10 @@ func _terms(q: Dictionary) -> String:
 	var departs := str(q.get("departs", ""))
 	if departs != "":
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + departs + "[/color]")
+	# BA2-X21 (row BA, BA-4): the men the order's first march costs — it is taken the moment the order is given.
+	var march_cost := str(q.get("march_cost", ""))
+	if march_cost != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + march_cost + "[/color]")
 	# S14E-22: the detour round a road the diplomacy shuts (the typed order asks the same).
 	var detour := str(q.get("detour", ""))
 	if detour != "":
@@ -665,7 +674,7 @@ static func bring_label(b: Dictionary) -> String:
 	var command := str(b.get("command", ""))
 	var cut := command.find(", ")
 	return str(b.get("shown", "")) + " · " + (command.substr(cut + 2) if cut >= 0 else command) \
-		+ " · " + str(int(b.get("ap", 0))) + " AP"
+		+ " · " + Utils.quote_price_tail(b)
 
 
 func _bring_lines(q: Dictionary) -> PackedStringArray:
@@ -716,8 +725,21 @@ static func _price(ap: int) -> String:
 	return "free" if ap <= 0 else Utils.plural(ap, "action")
 
 
+static func price_of(q: Dictionary) -> String:
+	"""Row BA, BA-4 (BA3-X5): a quote's price in the player's words — a word
+	of an open day of battle costs the day's points, never an action
+	(`Utils.quote_price`); the card said "free" over it."""
+	var said := Utils.quote_price(q)
+	return said if said != "" else _price(int(q.get("ap", 0)))
+
+
 static func _clock(q: Dictionary) -> String:
 	var turns := int(q.get("turns", 0))
+	if bool(q.get("halts", false)):
+		# Row BA, BA-4: the order's first step meets a corps his friend can
+		# strike — he halts there and joins the friend's next attack (the
+		# approach rule); "joins him in 2 turns" said the road he will not walk.
+		return "halts at the approach"
 	match str(q.get("kind", "")):
 		"attack":
 			return "attacks at once"

@@ -203,11 +203,15 @@ class TestAnOrderInsistedOnAgainDrawsTheSameMood:
 
     def test_the_strategic_road_draws_from_the_same_seam(self):
         """`strategic_executor`'s copy of the draw reads the same stream kind,
-        keyed on the marshal, the order and its target."""
+        keyed on the marshal, the order and its target — and, since row BA's
+        BA-4 (BA3-X16), the order's own mark, read off the command and the
+        parse beside it (`campaign_variance.order_mark`: nothing for an order
+        that carries no mark, so such an order draws as it did)."""
         import inspect
         from backend.commands import strategic_executor as SE
         src = " ".join(inspect.getsource(SE).split())
-        assert '_cv.temper_rng(ctx.world, "mood", ctx.marshal.name, ctx.strategic_type, ctx.target)' in src
+        assert ('_cv.temper_rng(ctx.world, "mood", ctx.marshal.name, ctx.strategic_type, ctx.target, '
+                '*_cv.order_mark(ctx.command, ctx.parsed_command))') in src
 
 
 # ════════════════════════════════════════════════════════

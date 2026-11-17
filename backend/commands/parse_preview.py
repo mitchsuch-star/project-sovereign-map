@@ -807,6 +807,15 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
         ap = 0 if free else int(world.get_action_cost(action)) if action else 0
         if action in sp._BATTERY_ACTIONS:
             objection = _objection(world, marshal, verb, action, _objection_target)
+    # BA3-X5 (row BA, BA-4): where the order is a WORD of an open day — an attack
+    # on the day's enemy, a SUPPORT for its lead, the lead's defend or retreat —
+    # it costs the day's points and no action. ONE source with the quotes:
+    # `battle_day.classify_word`, the door's own test, asked of the same parse.
+    from backend.game_logic import battle_day as _day
+    day_word = None if asks_first else _day.word_of(world, parsed)
+    if day_word is not None:
+        ap = 0
+        out["points"], out["word"] = int(day_word.get("price", 0) or 0), str(day_word.get("kind") or "")
     ap_left = int(getattr(world, "admin_actions_remaining" if pool == "admin" else "actions_remaining", 0) or 0)
     out.update(ap=int(ap), ap_left=ap_left, pool=pool, free=bool(free or ap == 0), ok=True,
                turns=int(turns), objection=objection if objection in ("none", "possible") else "none",
@@ -845,6 +854,8 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
         parts.append(_part("cost", f"{_cost_text(ap, pool, False)} if confirmed"))
         if out["command"]:
             out["candidates"] = [{"label": out["command"], "line": out["command"]}]
+    elif day_word is not None:
+        parts.append(_part("cost", _day.price_line(day_word)))      # BA3-X5
     else:
         parts.append(_part("cost", _cost_text(ap, pool, free or ap == 0)))
     if turns >= 1:
@@ -1201,6 +1212,13 @@ def _reading_of(out, world, parsed: Dict, text: str, reading: str, unbound_addre
             out["candidates"] = [{"label": str(reorder.get("command") or ""),
                                   "line": str(reorder.get("command") or "")}]
             return out
+    # BA3-X5 (row BA, BA-4): a word of an open day costs no action, so its
+    # reading is built without the turn's action pool refusing it — the pool
+    # itself is not touched (`battle_day.quoting_a_word`).
+    from backend.game_logic import battle_day as _day
+    if _day.word_of(world, parsed) is not None:
+        with _day.quoting_a_word():
+            return _order_reading(out, world, view, parsed, reading if reading != text else text)
     return _order_reading(out, world, view, parsed, reading if reading != text else text)
 
 

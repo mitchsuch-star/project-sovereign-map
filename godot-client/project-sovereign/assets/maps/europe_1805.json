@@ -216,9 +216,9 @@
             "movement_range": 2,
             "ability": {
                 "name": "First Horseman of Europe",
-                "description": "When Murat personally breaks an enemy, his cavalry turns the rout into annihilation",
+                "description": "When Murat is in the fight, his cavalry turns the enemy's rout into annihilation",
                 "trigger": "on_pursuit",
-                "effect": "+5,000 pursuit casualties when an enemy he defeats is forced to retreat (cavalry, leading the attack)"
+                "effect": "+5,000 pursuit casualties when an enemy he helped defeat is forced to retreat (cavalry; leading the attack, or fighting beside a lead who has no pursuit of his own)"
             },
             "biography": "The Cavalry Reserve - screening the Black Forest feint while the army wheels north of the Danube.",
             "relationships": { "Ney": -1, "Davout": -1, "Lannes": -1, "Bernadotte": -2, "Napoleon": 1 }

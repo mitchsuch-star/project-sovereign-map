@@ -42,6 +42,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 SCREENS: Tuple[str, ...] = (
     "cabinet", "designs", "formables", "settlement", "separate_peace",
     "laws", "admiralty_camp", "moment_letter", "affair_letter", "correspondence",
+    "battle_day",
 )
 LINE_CAP = 220
 KEY = "first_open"
@@ -164,6 +165,16 @@ def _line_correspondence(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
             "that may yet write to you. Nothing here asks for an order.")
 
 
+def _line_battle_day(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
+    # Row BA, BA-4 (the user's tick at the plan gate — "First-open line"): the
+    # first day of battle names its own rules, in the table's words — points,
+    # a word, the enemy. The two silences are the day's own number
+    # (`battle_day._spent`).
+    return ("The day hangs, Sire. Each side holds points for the rest of it: a "
+            "word costs points, never an action, and the enemy answers each word "
+            "in turn. Two silences running, or every point spent, and night falls.")
+
+
 LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "cabinet": _line_cabinet,
     "designs": _line_designs,
@@ -175,6 +186,7 @@ LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "moment_letter": _line_moment_letter,
     "affair_letter": _line_affair_letter,
     "correspondence": _line_correspondence,
+    "battle_day": _line_battle_day,
 }
 
 

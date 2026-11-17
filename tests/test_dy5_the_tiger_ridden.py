@@ -208,7 +208,7 @@ class TestTheLevee:
         assert "stands down" in _events(world, "levee")[-1]["message"]
 
     def test_the_one_new_log_type_the_census_and_the_surfaces(self):
-        assert "levee" in CL.CAMPAIGN_LOG_TYPES and len(CL.CAMPAIGN_LOG_TYPES) == 186  # DY-7 adds `recognition`
+        assert "levee" in CL.CAMPAIGN_LOG_TYPES and len(CL.CAMPAIGN_LOG_TYPES) == 188  # 186->188 flipped consciously: row BA, BA-4 (Nov 16, 2026) adds `battle_day_closed` — a day of battle closed, its clashes and its toll in one line (the closing table told it; the night's close had no surface at all) — and `foreign_battle` — news of a battle between crowns the player is no party to, the crowns and who held the field, written since a battle lights its field only for those who fought (BA2-X20); no inert type retired in exchange  # DY-7 adds `recognition`
         assert "levee" in CL.LOG_TIER_LEAD and "levee" in GZ._COURT_TYPES
         from backend.game_logic.dispatch import (
             _DIPLOMATIC_EVENT_PRIORITY, _DIPLOMATIC_EVENT_TEMPLATES)

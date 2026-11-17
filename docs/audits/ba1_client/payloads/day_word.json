@@ -1,5 +1,5 @@
 {
- "battle_name": "Second Battle of Carniola",
+ "battle_name": "The Great Battle of Carniola",
  "region": "Carniola",
  "turn": 1,
  "outcome": "defender_tactical_victory",
@@ -207,6 +207,10 @@
   "chips": [],
   "his_temper": "Cautious",
   "his_road": true,
+  "first_open": {
+   "screen": "battle_day",
+   "line": "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and the enemy answers each word in turn. Two silences running, or every point spent, and night falls."
+  },
   "reply": {
    "who": "theirs",
    "kind": "strike",

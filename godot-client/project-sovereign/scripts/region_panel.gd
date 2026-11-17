@@ -1704,7 +1704,7 @@ func _bring_label(b: Dictionary, priced: bool = true, with_order: bool = true) -
 	if with_order:
 		label += " · " + _bring_order(b)
 	if priced:
-		label += " · " + str(int(b.get("ap", 0))) + " AP"
+		label += " · " + Utils.quote_price_tail(b)     # BA3-X5
 	return label
 
 
@@ -1915,9 +1915,18 @@ func _march_here_section() -> String:
 	if attack is Array:
 		for row in attack:
 			if row is Dictionary:
+				# Row BA, BA-4 (BA3-X5): an attack that is a WORD of an open day
+				# is offered by the day's own chips above (`_day_block`, priced
+				# in points) — not a second time here as an ordinary attack.
+				var ordinary: Array = []
+				for q in row.get("quotes", []):
+					if not (q is Dictionary) or str((q as Dictionary).get("word", "")) == "":
+						ordinary.append(q)
+				if ordinary.is_empty():
+					continue
 				out += "\n" + Utils.HEAD_OPEN + "ATTACK " \
 					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
-				out += _quote_rows(row.get("quotes", []))
+				out += _quote_rows(ordinary)
 	return out
 
 
@@ -2096,7 +2105,7 @@ func _army_corps_tip(army: Dictionary) -> String:
 	for c in corps:
 		if not (c is Dictionary):
 			continue
-		for rider in ["detour", "guard", "front", "terms"]:
+		for rider in ["march_cost", "detour", "guard", "front", "terms"]:   # BA2-X21: the march's cost in men first
 			var said := str(c.get(rider, ""))
 			if said != "":
 				said_all.append(str(c.get("shown", "")) + " — " + said)
@@ -2121,10 +2130,13 @@ func _quote_label(q: Dictionary) -> String:
 		var longest := int(q.get("turns", 0))
 		label += " · " + ("this turn" if longest == 0 else "longest " + Utils.plural(longest, "turn"))
 		return label
-	label += " · " + str(int(q.get("ap", 0))) + " AP"
+	label += " · " + Utils.quote_price_tail(q)     # BA3-X5: a word of the day is priced in points
 	if kind != "attack":
 		var turns := int(q.get("turns", 0))
-		label += " · " + ("this turn" if turns == 0 else Utils.plural(turns, "turn"))
+		if bool(q.get("halts", false)):
+			label += " · halts at the approach"           # BA-4: the approach rule
+		else:
+			label += " · " + ("this turn" if turns == 0 else Utils.plural(turns, "turn"))
 	return label
 
 
@@ -2142,6 +2154,9 @@ func _quote_notes(q: Dictionary) -> String:
 	var departs := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
 	if departs != "":
 		notes.append(departs)
+	var march_cost := str(q.get("march_cost", ""))   # BA2-X21: the men the order's first march costs
+	if march_cost != "":
+		notes.append(march_cost)
 	var detour := str(q.get("detour", ""))   # S14E-22: the detour round a road the diplomacy shuts
 	if detour != "":
 		notes.append(detour)

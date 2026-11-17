@@ -114,8 +114,15 @@ class TestTheMusterFollowsInLockstep:
         promised = {r["marshal"] for r in pv["rows"] if r["will_join"]}
         fought = set(ms["arrived"]) | set(ms["contributors"])
         assert ms["total"] <= pv["attacker"]["ceiling_strength"]
-        if promised <= fought:
+        # Row BA, BA-4 (§15.5.7): a corps that came up at the last hour brought
+        # three quarters of its weight, so the mass then sits under the ceiling
+        # though every promised corps fought (`massed_strength["last_hour"]`).
+        # This test rolls the session's own dice: it failed in the full suite
+        # on the day the rule landed, on a worker whose dice brought Davout up late.
+        if promised <= fought and not ms.get("last_hour"):
             assert ms["total"] == pv["attacker"]["ceiling_strength"]
+        elif promised <= fought:
+            assert ms["total"] < pv["attacker"]["ceiling_strength"]
 
     def test_the_field_read_prices_more_than_his_province(self, board, monkeypatch):
         client, world = board
@@ -151,7 +158,9 @@ class TestTheMusterFollowsInLockstep:
             pv, ms = reply["muster_preview"], reply["massed_strength"]
             promised = {r["marshal"] for r in pv["rows"] if r["will_join"]}
             fought = set(ms["arrived"]) | set(ms["contributors"])
-            if promised and promised <= fought:
+            # (BA-4: and none of them at the last hour — three quarters of a
+            # corps' weight is under the ceiling by design.)
+            if promised and promised <= fought and not ms.get("last_hour"):
                 found = (pv["attacker"]["ceiling_strength"], ms["total"])
                 break
         assert found is not None

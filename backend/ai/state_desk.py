@@ -1614,6 +1614,9 @@ def _quote_sentences(world, q: Dict, me) -> str:
     departs = str(q.get("departs") or "")   # S14E-13's sweep: what the march costs the corps as it stands
     if departs:
         tail.append(departs)
+    march_cost = str(q.get("march_cost") or "")   # BA2-X21: the men the first march costs
+    if march_cost:
+        tail.append(march_cost)
     detour = str(q.get("detour") or "")   # S14E-22: the detour round a road the diplomacy shuts
     if detour:
         tail.append(detour)

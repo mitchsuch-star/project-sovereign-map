@@ -19,22 +19,22 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 24000,
-    "casualties": 1158,
-    "remaining": 22842,
+    "casualties": 1216,
+    "remaining": 22784,
     "status": "engaged",
     "lead": true,
     "crowned": false,
     "sovereign": false,
-    "advance_losses": 358,
-    "after_advance": 22484
+    "advance_losses": 354,
+    "after_advance": 22430
    },
    {
     "name": "Napoleon",
     "nation": "France",
     "arm": "emperor",
-    "committed": 9038,
-    "casualties": 260,
-    "remaining": 8778,
+    "committed": 8995,
+    "casualties": 273,
+    "remaining": 8722,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -44,9 +44,9 @@
     "name": "Davout",
     "nation": "France",
     "arm": "infantry",
-    "committed": 23998,
-    "casualties": 692,
-    "remaining": 23306,
+    "committed": 23909,
+    "casualties": 726,
+    "remaining": 23183,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -67,9 +67,9 @@
    }
   ],
   "reserve_count": 3,
-  "casualties_total": 2975,
-  "committed_total": 93720,
-  "reserve_casualties": 865,
+  "casualties_total": 3124,
+  "committed_total": 93670,
+  "reserve_casualties": 909,
   "nation": "France"
  },
  "defender": {
@@ -78,9 +78,9 @@
     "name": "Mack",
     "nation": "Austria",
     "arm": "infantry",
-    "committed": 37940,
-    "casualties": 29087,
-    "remaining": 8853,
+    "committed": 38541,
+    "casualties": 33103,
+    "remaining": 5438,
     "status": "routed",
     "lead": true,
     "crowned": false,
@@ -88,8 +88,8 @@
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 29087,
-  "committed_total": 37940,
+  "casualties_total": 33103,
+  "committed_total": 38541,
   "reserve_casualties": 0,
   "nation": "Austria"
  },
@@ -223,6 +223,16 @@
    {
     "act": "pursuit",
     "beats": [
+     {
+      "kind": "pursue",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Murat, from the reserve, rides them down (First Horseman of Europe): 5,000 more.",
+      "weight": "head",
+      "damage": 5000,
+      "halved": false,
+      "target": "Mack"
+     },
      {
       "kind": "advance_to",
       "side": "attacker",

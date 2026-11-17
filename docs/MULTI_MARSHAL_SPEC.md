@@ -438,6 +438,8 @@ def calculate_reinforcement_score(reinforcing_marshal, primary_combatant, world)
 # Threshold: score > 60 → arrives
 ```
 
+**The last hour (row BA, session BA-4, November 16, 2026; the user's tick — `BATTLE_DIORAMA_SPEC.md` §15.5.7).** An arrival won by 5 points or fewer (`battle_script.LAST_HOUR_MARGIN` — the roll the table already tells as "comes up at the last hour") brings THREE QUARTERS of its weight (`CombatExecutor.LAST_HOUR_CONTRIBUTION`), on either side, through the one function that halves a faithless man's (`pair_contribution_breakdown(last_hour=True)`). The muster's forecast weighs the same roll the same way and keeps an arrival's CHANCE and its WEIGHT apart (`_arrival_chance`, `_expected_arrival_weight`): a corps sure to arrive but perhaps late is never dropped from the floor. Seam: `combat_executor.the_last_hour_brings_three_quarters`. Rules: `SYSTEMS_REFERENCE.md` §222.
+
 ### The Grouchy Rule (Most Important Mechanic in This Spec)
 
 **Check personality BEFORE calculating arrival score.** If the marshal is Literal AND has no active SUPPORT order targeting the combatant AND has no PURSUE order targeting the same battle: skip arrival score entirely. Log failure with personality message.
@@ -506,6 +508,8 @@ Building Blocks: AI adjacent allies reinforce into player-controlled regions on 
 - **Battle won:** Reinforcing marshal stays in the new region.
 - **Battle lost + forced retreat:** Reinforcing marshal retreats WITH the primary combatant. Same retreat logic, same region selection.
 - **Reinforcing marshal state:** `reinforced_this_turn = True` (prevents further orders this turn). Transient, cleared at turn start.
+
+**A pursuit is any corps that fought (row BA, session BA-4, November 16, 2026; the user's tick — `BATTLE_DIORAMA_SPEC.md` §15.5.7).** When the lead has no pursuit ability, the highest among the victor's corps that FOUGHT on the field fires it (the First Horseman and the Pursuit Master 5,000, "Vorwärts!" 3,000 — `combat_executor.pursuit_bonus`): a corps that marched in or stood there, never one that brought nothing to the fighting; the highest only; the Old Fox still halves it. This reverses MC-1's "he must lead the killing blow". Seam: `combat_executor.a_pursuit_is_any_corps_that_fought`.
 
 ### Chain Reinforcement — EXCLUDED
 

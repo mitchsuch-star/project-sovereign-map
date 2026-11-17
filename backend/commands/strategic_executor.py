@@ -2043,7 +2043,8 @@ class StrategicExecutor:
                 # WS-16: the mood is the campaign's where a campaign is played.
                 from backend.game_logic import campaign_variance as _cv
                 _mood = _cv.temper_rng(ctx.world, "mood", ctx.marshal.name,
-                                       ctx.strategic_type, ctx.target)
+                                       ctx.strategic_type, ctx.target,
+                                       *_cv.order_mark(ctx.command, ctx.parsed_command))
                 strategic_concern = apply_mood_variance(
                     vindication_shifted, **({"rng": _mood} if _mood is not None else {}))
                 # Track last objection turn for vindication decay
@@ -3485,8 +3486,13 @@ class StrategicExecutor:
         from backend.commands import strategic as _strategic_seams
         _ally = (world.get_marshal(order.target)
                  if order is not None and order.command_type == "SUPPORT" else None)
-        if _strategic_seams.support_stands_at_approach(order, _ally, blocked_region):
+        # Row BA, BA-4 (the approach rule): and where the corps that bars the
+        # step stands within the friend's own reach — the very corps he is to
+        # attack. No question is raised: before it, Murat's order to support
+        # Ney stopped on "Mack blocks the path at Swabia. Odds unfavorable."
+        if _strategic_seams.support_stands_at_approach(order, _ally, blocked_region, world):
             order.path = []
+            _strategic_seams.the_clock_starts_at_the_approach(order, world)
             return {
                 "success": True,
                 "message": (f"{marshal.name} stands at {marshal.location}, at the "
@@ -3555,10 +3561,19 @@ class StrategicExecutor:
                 clear_order_bound_interrupt(marshal)  # NPC-2
                 marshal.holding_position = False
                 marshal.hold_region = ""
+                # BA2-X10: the road round keeps to ground he may enter; where
+                # none goes round, the order ends at the approach and SAYS so
+                # (the first 40 characters stay the quote's own refusal).
+                if _road.a_road_round_keeps_to_open_frontiers():
+                    _no_road = (f"Path blocked at {blocked_region}, no alternate route: no road "
+                                f"round it lies over ground {marshal.name} may enter. He halts at "
+                                f"{marshal.location}, at the approach, and awaits new orders.")
+                else:
+                    _no_road = (f"Path blocked at {blocked_region}, no alternate route. "
+                                f"{marshal.name} awaits new orders.")
                 return {
                     "success": False,
-                    "message": f"Path blocked at {blocked_region}, no alternate route. "
-                               f"{marshal.name} awaits new orders.",
+                    "message": _no_road,
                     "order_cleared": True,
                     "first_step_blocked": True,
                     "variable_action_cost": 1,
@@ -4146,7 +4161,8 @@ class StrategicExecutor:
             # WS-16: the chance's variance and the roll are the campaign's where
             # a campaign is played (the tactical road's twin, `meta_executor`).
             from backend.game_logic import campaign_variance as _cv
-            _ws16_who = (marshal_name, strategic_type, (original_command or {}).get("target"))
+            _ws16_who = (marshal_name, strategic_type, (original_command or {}).get("target"),
+                         *_cv.order_mark(original_command, parsed_command))
             _chance_rng = _cv.temper_rng(world, "defiance_chance", *_ws16_who)
             _roll_rng = _cv.temper_rng(world, "defiance_roll", *_ws16_who)
 

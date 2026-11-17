@@ -565,6 +565,30 @@ static func turn_events_beside_lapses(data: Dictionary) -> Array:
 	return out
 
 
+static func quote_price(q: Dictionary) -> String:
+	"""Row BA, BA-4 (BA3-X5): the price a quote states in words, capitalised —
+	"A word of the day — 1 point" for an order that is a word of an open day
+	of battle (the backend's `price`), "" for every other order (the caller
+	prints its actions)."""
+	var said := str(q.get("price", "")).strip_edges()
+	return said.substr(0, 1).to_upper() + said.substr(1) if said != "" else ""
+
+
+static func quote_price_tail(q: Dictionary) -> String:
+	"""A quote's price as a chip's tail: `1 point` for a word of the day (`free`
+	for one that asks none), `2 AP` for every other order — and `free` for an
+	order that would be taken at no action (Davout's counter-punch), as the
+	card and the map's badge say it (the session's review, lane 5: the chip
+	said `0 AP` beside them). A refused quote keeps its bare figure."""
+	if str(q.get("word", "")) != "":
+		var points := int(q.get("points", 0))
+		return "free" if points <= 0 else plural(points, "point")
+	var ap := int(q.get("ap", 0))
+	if ap <= 0 and bool(q.get("ok", true)):
+		return "free"
+	return str(ap) + " AP"
+
+
 static func plural(n: int, noun: String) -> String:
 	if n == 1:
 		return str(n) + " " + noun

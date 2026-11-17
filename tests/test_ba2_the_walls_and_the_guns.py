@@ -335,13 +335,15 @@ class TestThePlanIsOrderable:
         world, _ex = served["seat"]()
         lead = self._ney(served["quotes"]("Swabia"))
         rows = {b["marshal"]: b for b in lead["bring"]}
-        # Bernadotte and Murat stand beside the field too, and the muster's own
-        # hint names the order for each — but it marches Bernadotte at once to
-        # Munich, from whose mountains he cannot come, and it stops Murat on his
-        # question (Mack stands on his road): no chip for either (BA2-X7 owns
-        # the hint; tests/test_ba2_backend_walls_guns_plan.py sends each order
-        # and reads the game after it)
-        assert set(rows) == {"Soult"}
+        # Bernadotte stands beside the field too, but the order marches him at
+        # once to Munich, from whose mountains he cannot come: no chip. Murat's
+        # road to Ney runs through Mack — the order stopped him on his question
+        # and he had no chip either; since row BA's BA-4 (the approach rule) it
+        # halts him at the approach and he joins the attack, so the chip stands
+        # (tests/test_ba2_backend_walls_guns_plan.py sends each order and reads
+        # the game after it; tests/test_ba4_the_roads_and_the_fog.py plays the
+        # rule with its seam up and down)
+        assert set(rows) == {"Soult", "Murat"}
         for name, row in rows.items():
             assert row["kind"] == "support" and row["ok"] is True
             assert row["command"] == f"{name}, support Ney"
@@ -359,12 +361,17 @@ class TestThePlanIsOrderable:
         assert murat["command"] == "Murat, support Lannes" and murat["ap"] == 1
         assert murat["odds_with"] >= murat["odds_now"] + 15
         assert f"about {murat['odds_now']}%" in murat["why"]
-        # what the order MEETS on the road rides the row: Soult, to the letter of
-        # an order to Bernadotte, goes round Mack
+        # what the order MEETS on the road rides the row: Soult, ordered to
+        # Bernadotte, meets Mack — within Bernadotte's reach, so the order halts
+        # at the approach (BA-4); ordered to Massena, far off at Milan, he goes
+        # round Mack to the letter of the order, as he did
         bernadotte = next(q for row in served["quotes"]("Swabia")["attack"] for q in row["quotes"]
                           if q["marshal"] == "Bernadotte" and q["kind"] == "attack")
         (soult,) = bernadotte["bring"]
-        assert soult["marshal"] == "Soult" and "goes round him" in soult["contact"]
+        assert soult["marshal"] == "Soult" and "halts at the approach" in soult["contact"]
+        from backend.commands import order_quotes
+        (round_him,) = order_quotes.bring_quotes(world, world.marshals["Massena"], world.marshals["Mack"])
+        assert round_him["marshal"] == "Soult" and "goes round him" in round_him["contact"]
 
     def test_the_chip_sends_that_order_and_the_muster_then_reads_him_as_ordered(self, served):
         world, _ex = served["seat"]()
@@ -379,7 +386,8 @@ class TestThePlanIsOrderable:
         assert order is not None and order.command_type == "SUPPORT" and order.target == "Ney", \
             "the order the game already has — no new order type"
         again = self._ney(served["quotes"]("Swabia"))
-        assert again["bring"] == []
+        # Soult's chip is spent; Murat's stands (BA-4: his order halts at the approach)
+        assert [b["marshal"] for b in again["bring"]] == ["Murat"]
         assert "Soult" in again["muster"].split(" would answer the guns")[0]
 
     def test_act_one_names_the_plan_from_the_orders_actually_given(self, served):
@@ -662,21 +670,20 @@ class TestTheSeams:
 # ════════════════════════════════════════════════════════════════════════
 
 class TestBA2X2ACourtsTurnIsNotLost:
-    """BA2-X2 (OPEN, owner row BA's session BA-4): a corps beaten to nothing
-    and raised again in the middle of its court's phase is not on the phase's
-    opening roster, and the fairness tally built from that roster has no key
-    for it — the court's whole turn is lost to a `KeyError` (seed jena,
-    Prussia, Yorck). Found in passing by the probe that measured how often the
-    day hangs; the one-line fix moves a measured world-line, so it lands
-    behind a seam in BA-3, whose measure reads what it moves. The pin turns
-    red the day the tally changes, so the row is closed with it."""
+    """BA2-X2 (FIXED November 16, 2026, row BA's session BA-4): a corps beaten
+    to nothing and raised again in the middle of its court's phase is not on
+    the phase's opening roster, and the fairness tally built from that roster
+    had no key for it — the court's whole turn was lost to a `KeyError` (seed
+    jena, Prussia, Yorck). Found in passing by the probe that measured how
+    often the day hangs. The tally now takes such a corps at nothing, behind
+    `enemy_ai.a_corps_raised_mid_phase_takes_its_turn`; the behaviour is
+    played in `tests/test_ba4_the_roads_and_the_fog.py::TestACourtsTurnIsNotLost`."""
 
     def test_the_tally_is_built_from_the_opening_roster(self):
         source = (REPO / "backend" / "ai" / "enemy_ai.py").read_text(encoding="utf-8")
         assert "actions_used = {m.name: 0 for m in marshals}" in source, \
-            "the defect's own line: the tally knows only the corps the phase opened with"
+            "the tally still opens with the corps the phase opened with"
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X2 OPEN — owner row BA's session BA-4")
     def test_the_tally_takes_a_corps_raised_mid_phase(self):
         source = (REPO / "backend" / "ai" / "enemy_ai.py").read_text(encoding="utf-8")
         assert "actions_used[selected_marshal.name] += 1" not in source
@@ -771,16 +778,19 @@ class TestThePlanPressedInTheRealClient:
 
 
 class TestBA2X7TheMusterPromisesWhatTheOrderDelivers:
-    """BA2-X7 (OPEN, owner row BA's session BA-4): on the opening battle
-    Berthier's muster says a written order "would likely bring" Bernadotte;
-    the order marches him at once to Munich, from whose mountains he cannot
-    reach the field. It names the same order for Murat ("…and it rises to
-    about 100%"), whose road to Ney runs through Mack: the order stops him on
-    his question, and two of its four answers abandon it. The chips offer only
-    what the order delivers (`bring_quotes`, held to the game by
-    `test_ba2_backend_walls_guns_plan.py::TestBringQuotes`); the muster's own
-    sentences still read each man from where he stands. The pin turns red the
-    day the two agree, so the row is closed with it."""
+    """BA2-X7 (FIXED November 16, 2026, row BA's session BA-4): on the opening
+    battle Berthier's muster said a written order "would likely bring"
+    Bernadotte; the order marched him at once to Munich, from whose mountains
+    he cannot reach the field. It named the same order for Murat ("…and it
+    rises to about 100%"), whose road to Ney runs through Mack: the order
+    stopped him on his question, and two of its four answers abandoned it.
+    The chips offered only what the order delivers (`bring_quotes`); the
+    muster's own sentences read each man from where he stood.
+
+    Now both read ONE source (`order_quotes.what_the_order_delivers`), and the
+    approach rule halts Murat before Mack: the muster names the order for the
+    two corps it brings, and of Bernadotte it says where the order would
+    march him."""
 
     @staticmethod
     def _named_and_offered():
@@ -793,13 +803,25 @@ class TestBA2X7TheMusterPromisesWhatTheOrderDelivers:
                  if ", support Ney'" in (str(row.get("standing_order_hint") or "")
                                          + str(row.get("arrival_note") or ""))}
         offered = {b["marshal"] for b in order_quotes.bring_quotes(world, ney, mack)}
-        return named, offered
+        return named, offered, {row["marshal"]: row for row in preview["rows"]}
 
-    def test_the_muster_names_the_lever_for_three_and_the_chips_offer_one(self):
-        named, offered = self._named_and_offered()
-        assert named == {"Murat", "Soult", "Bernadotte"} and offered == {"Soult"}
+    def test_the_muster_names_the_lever_for_the_two_the_order_brings(self):
+        named, offered, rows = self._named_and_offered()
+        assert named == offered == {"Murat", "Soult"}
+        assert rows["Bernadotte"]["standing_order_hint"] == (
+            "— an order to support Ney would march him to Munich, and from there he cannot "
+            "reach this field in time")
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X7 OPEN — owner row BA's session BA-4")
     def test_every_corps_the_muster_names_the_lever_for_is_one_the_order_brings(self):
-        named, offered = self._named_and_offered()
+        named, offered, _rows = self._named_and_offered()
         assert named <= offered
+
+    def test_the_game_before_ba4_named_three_and_offered_one(self, monkeypatch):
+        """The row as it was filed: with the muster's rule and the approach
+        rule both held down, the lever is named for three and offered for one."""
+        from backend.commands import combat_executor
+        from backend.commands import strategic as road_law
+        monkeypatch.setattr(combat_executor, "the_muster_names_only_an_order_that_brings", lambda: False)
+        monkeypatch.setattr(road_law, "a_support_order_halts_before_the_friends_foe", lambda: False)
+        named, offered, _rows = self._named_and_offered()
+        assert named == {"Murat", "Soult", "Bernadotte"} and offered == {"Soult"}

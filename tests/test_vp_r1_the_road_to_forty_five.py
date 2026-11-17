@@ -197,8 +197,17 @@ class TestATheMusterNamesItsOdds:
                 assert "arrival_odds" not in r
 
     def test_the_odds_are_the_resolvers_own(self):
-        """Drift pin: the row's percentage IS `_expected_arrival_weight` —
-        the term that prices him into `committed_strength`."""
+        """Drift pin: the row's percentage IS the chance the outcome sets
+        roll for him (`_arrival_chance`).
+
+        Row BA, BA-4 (§15.5.7) RE-POINTED: it was `_expected_arrival_weight`,
+        the term that prices him into `committed_strength`, while a corps
+        that arrived brought all his weight and the two were one number.
+        Since BA-4 an arrival won by five points or fewer brings three
+        quarters, so the WEIGHT sits at or under the chance; the row prints
+        the chance, and how much of it is a last-hour arrival rides beside
+        it (`last_hour_odds`). With the seam down the two are one again."""
+        import backend.commands.combat_executor as CE
         ce = M.executor._combat
         w = _fresh()
         lead, enemy = _opening_b_shape(w)
@@ -208,10 +217,26 @@ class TestATheMusterNamesItsOdds:
             if not r["will_join"] or r["location"] == enemy.location:
                 continue
             m = w.marshals[r["marshal"]]
-            expected = ce._expected_arrival_weight(lead, m, w, enemy.location)
-            assert r["arrival_odds"] == int(round(expected * 100)), r
+            chance = ce._arrival_chance(lead, m, w, enemy.location)
+            weight = ce._expected_arrival_weight(lead, m, w, enemy.location)
+            assert r["arrival_odds"] == int(round(chance * 100)), r
+            late = ce._last_hour_chance(lead, m, w, enemy.location)
+            assert weight == pytest.approx(
+                chance * (1.0 - late * (1.0 - ce.LAST_HOUR_CONTRIBUTION)))
+            assert r.get("last_hour_odds", 0) == int(round(chance * late * 100)), r
             checked += 1
         assert checked >= 2
+        real = CE.the_last_hour_brings_three_quarters
+        CE.the_last_hour_brings_three_quarters = lambda: False
+        try:
+            for r in pv["rows"]:
+                if not r["will_join"] or r["location"] == enemy.location:
+                    continue
+                m = w.marshals[r["marshal"]]
+                assert (ce._expected_arrival_weight(lead, m, w, enemy.location)
+                        == ce._arrival_chance(lead, m, w, enemy.location))
+        finally:
+            CE.the_last_hour_brings_three_quarters = real
 
     def test_a_corps_priced_at_nothing_says_so_and_names_the_lever(self):
         w = _fresh()

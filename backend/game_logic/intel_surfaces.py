@@ -65,6 +65,44 @@ A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING = True
 GARRISON_ROW_KIND = "garrison"
 
 
+def a_battle_lights_its_field_only_for_those_who_fought() -> bool:
+    """BA2-X20 (row BA, BA-4) seam: a battle grants the player FULL sight of
+    its province only when he is a party to it — his crown attacks or
+    defends, or a corps of his fought in it — or it is fought on his own
+    soil. The fog spec's rule ("fighting in a region immediately grants FULL
+    visibility of that region", `FOG_OF_WAR_SPEC.md` §4.4) was written when
+    every battle was the player's; the courts fight each other now, and each
+    of their battles lit its province for him for two turns — the commanders,
+    the exact men and the morale of two crowns he had no one near. Down
+    (False): every battle lights its field for the player, as before."""
+    return True
+
+
+def battle_lights_field(world, region_name, *fighters) -> bool:
+    """BA2-X20: does a battle at `region_name` light its field for the
+    player? `fighters` are the marshals (or crowns' names, or lists of
+    either) that fought in it: the two leads, the corps that joined them,
+    the crown whose walls or works were struck. True for a battle he is a
+    party to and for any battle on his own soil; with the seam down, always.
+    The caller then makes the one call that lights it
+    (`WorldState.update_intel_from_battle`, whose signature and whose meaning
+    for every other caller are untouched)."""
+    if not a_battle_lights_its_field_only_for_those_who_fought():
+        return True
+    player = getattr(world, "player_nation", None)
+    pending = list(fighters)
+    while pending:
+        fighter = pending.pop()
+        if isinstance(fighter, (list, tuple, set, frozenset)):
+            pending.extend(fighter)
+            continue
+        nation = fighter if isinstance(fighter, str) else getattr(fighter, "nation", None)
+        if nation and nation == player:
+            return True
+    region = world.get_region(region_name) if region_name else None
+    return bool(region is not None and getattr(region, "controller", None) == player)
+
+
 def _nation_at_war_with_viewer(world, nation: str, viewer: str) -> bool:
     if not nation or nation == viewer:
         return False

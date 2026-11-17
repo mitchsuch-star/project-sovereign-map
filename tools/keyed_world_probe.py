@@ -25,6 +25,12 @@ of what a campaign does. The turns are ambient — nobody commands France — an
 the ambient random stream is seeded each turn (`random.seed(10000 + turn)`),
 as the session's measures do. Display only: it plays a private campaign in
 this process and writes one file.
+
+Row BA, BA-4: `run` reads the measure's seam channel (`INK_IRON_SEAMS`,
+`tools/_seams_env.py` — `MODULE:NAME=EXPR` specs separated by ";") and applies
+it to the tree under test, so one tree can be read with a rule's seam held
+down and the rows compared with the commit before. The specs applied are
+written into the file (`seams`). Unset, nothing changes.
 """
 import hashlib
 import io
@@ -72,6 +78,13 @@ def run(root: str, seed: str, turns: int, out: str) -> int:
     tree = os.path.dirname(os.path.abspath(backend.__file__))
     if os.path.dirname(tree) != root:
         raise SystemExit(f"the backend imported is {tree}, not the one under {root}")
+    # BA-4: the seams the measure holds for this run, applied to THIS tree's
+    # modules (a tree older than the channel has no `tools/_seams_env.py` and
+    # is read as it stands — a spec asked of it is an error, never ignored).
+    seams = []
+    if os.environ.get("INK_IRON_SEAMS"):
+        from tools._seams_env import apply_from_env
+        seams = apply_from_env()
 
     rows, crashes = [], 0
     for turn in range(int(turns)):
@@ -86,7 +99,7 @@ def run(root: str, seed: str, turns: int, out: str) -> int:
 
     with open(out, "w", encoding="utf-8") as handle:
         json.dump({"tree": tree, "seed": seed, "turns": int(turns), "keys": len(rows[-1]) if rows else 0,
-                   "crashes": crashes, "rows": rows}, handle)
+                   "crashes": crashes, "seams": list(seams), "rows": rows}, handle)
     print(f"{seed}: {turns} turns, {len(rows[-1]) if rows else 0} keys a turn, "
           f"{crashes} lost AI turn line(s), tree {tree}")
     return 0

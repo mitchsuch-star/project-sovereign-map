@@ -378,8 +378,28 @@ class TestMuratFirstHorseman:
         assert enemy.strength < pre
         assert enemy.strength >= 1000  # survivor floor intact
 
-    def test_coordinated_reinforcer_murat_earns_nothing(self, fixed_rng):
-        # The killing blow must be HIS — Ney primary, Murat on the field.
+    def test_coordinated_reinforcer_murat_rides_them_down(self, fixed_rng):
+        """Row BA, BA-4 (BATTLE_DIORAMA_SPEC §15.5.7, the user's tick): MC-1
+        pinned "the killing blow must be HIS" — Ney primary, Murat on the
+        field, and Murat earned nothing. Reversed: when the lead has no
+        pursuit ability, the best among the corps that FOUGHT beside him
+        pursues (`combat_executor.a_pursuit_is_any_corps_that_fought`)."""
+        murat = _murat()
+        ney = make_marshal("Ney", location="Belgium", strength=30000)
+        enemy = _routing_enemy()
+        world = make_world(murat, ney, enemy)
+        pre = enemy.strength
+        result = execute_attack(world, "Ney", "Mack")
+        assert "Murat's 'First Horseman of Europe'" in result.get("message", "")
+        assert enemy.strength < pre and enemy.strength >= 1000
+
+    def test_coordinated_reinforcer_murat_earns_nothing_with_the_rule_off(
+            self, fixed_rng, monkeypatch):
+        # MC-1 as it stood: the killing blow must be HIS — Ney primary, Murat
+        # on the field. The seam down is the rule before BA-4.
+        from backend.commands import combat_executor
+        monkeypatch.setattr(combat_executor, "a_pursuit_is_any_corps_that_fought",
+                            lambda: False)
         murat = _murat()
         ney = make_marshal("Ney", location="Belgium", strength=30000)
         enemy = _routing_enemy()

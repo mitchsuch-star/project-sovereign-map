@@ -63,6 +63,10 @@ _WAR_TYPES = {
     "battle", "bombardment", "region_captured", "expedition_landed",
     "expedition_intercepted", "expedition_turned_back", "fleet_action",
     "trafalgar", "blockade_begins", "blockade_broken", "cs_tier_shift",
+    # Row BA, BA-4 (BA2-X20): news of a battle abroad — a battle no longer
+    # lights its field for a crown that did not fight in it, and the paper
+    # prints what Europe hears: the crowns and who held the field.
+    "foreign_battle",
 }
 _COURT_TYPES = {
     # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.6): the Moniteur's line for a Te Deum
@@ -269,6 +273,9 @@ _SPECIAL_WEIGHTS = {
     "a marshal of France lost": 50,
     # VP-M1 "The Fortunes of War": a wound is a setback, below a loss.
     "a marshal of France wounded": 40,
+    # Row BA, BA-4 (BA2-X20): a GREAT battle between other crowns — above a
+    # marshal lost, below a capital stormed (it is Europe's news, not ours).
+    "a great battle abroad": 55,
 }
 
 
@@ -310,6 +317,9 @@ def _special_candidates(world, turn_events: List[Dict]):
         if etype == "nation_eliminated":
             _add("a crown struck from the map",
                  str(event.get("nation") or event.get("eliminated") or ""))
+        if etype == "foreign_battle" and event.get("great"):
+            _add("a great battle abroad", "|".join(
+                [str(event.get("location") or "")] + sorted(str(c) for c in event.get("crowns") or [])))
         if etype == "nation_formed":
             _add("a nation proclaimed",
                  str(event.get("nation") or event.get("formed") or ""))

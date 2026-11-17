@@ -832,6 +832,7 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
 | `fixture_ge3_pressburg.json` | turn 28, seed `historical`, **STAGED**: after Pressburg and Tilsit — Austria and Russia at peace with France AND every satellite (both latched as beaten courts), Austria's cessions titled by treaty, Hanover/Naples/Portugal held fifteen quiet turns, Bavaria/Saxony/Hesse clients, Prussia allied at relation 30, Britain's ports closed; 55 titled, the Congress summonable | GE-3 (Sept 25, 2026), `tools/gen_ge3_congress_fixtures.py` |
 | `fixture_agd_tilsit.json` | turn 7, seed `historical`, **STAGED then DRIVEN** (PC-F85, S13e part 4: six passive end turns, so the war's stored score — 30 — and its age are the game's own, never planted): SF-M's TILSIT board with ONE difference — Posen is still Prussian and Davout stands beside it in Silesia; Prussia's field army destroyed, Berlin and Silesia French, France at war with Prussia and Britain only (every other war ended through the engine's own pair resolution, with the settlement's truce floor), the war six turns old. The `AGD` arm takes Posen on loop 1 and carves the Duchy of Warsaw through the table's own `@` clicks to the Proclamation | SF-AGD-1 (Oct 3, 2026), `tools/gen_agd_fixture.py` |
 | `fixture_ge3_premature.json` | turn 1, seed `historical`, **STAGED**: exactly 50 titled on the boot war (treaty titles written directly), three great powers at war, no preparation | GE-3 (Sept 25, 2026), same tool |
+| `fixture_ba3_open_day_aeae6967.json` | turn 1, seed `ba4-walk-00`, **PLAYED on the commit before row BA's BA-4** (`aeae6967`, saved through its own `/save`): the 1805 campaign on BA-3's Masséna board (Masséna in the Tyrol, the Archduke Charles in Carniola, every other corps at its capital), the Archduke attacked — a day of battle OPEN after two clashes and awaiting our word. An OLD save for the day's store: it holds none of the keys BA-4 added (`name`, `opened_at`, `clashes`, `toll`), no `battle_day` in `first_opens` and no later-clashes count | row BA, BA-4 (November 16, 2026). Never regenerate it from a newer commit — a save the current engine writes is no old save. Loaded by `tests/test_ba4_the_roads_and_the_fog.py::TestASaveMadeBeforeTheSession` and, in the real client, by `tools/ba4_mode_c_walk.py --board oldsave` |
 
 Not a measurement — a starting state. It is dated by the commit that
 generated it because a regeneration changes it: a fixture is the board of the
@@ -1085,6 +1086,21 @@ only the screen can verify.
   `--seam backend.game_logic.campaign_variance:the_battle_dice_are_seeded=False`
   plays an older record's world-line again. `historical` (the default seed)
   is unchanged.
+- **A day of battle pressed live (row BA, BA-3 and BA-4, November 15–16, 2026):**
+  `tools/ba3_mode_c_walk.py` (six boards) and `tools/ba4_mode_c_walk.py`
+  (three: `day`, `roads`, `oldsave`) drive the REAL `main.tscn` against a
+  sandboxed backend (never 8005; `<run>/<board>/saves` its save folder; the
+  mock parser). The `day` boards hunt their campaign seed in-process first (a
+  served campaign's battles are fought with the campaign's own dice, so a seed
+  names the battle). Each step records `{did, saw, ok}` read off the client's
+  own state — the table's day block, the card's and the panel's text, the log,
+  the badge at the head of the ghost road — never a picture; the run exits 0
+  only when the engine ended cleanly, no script error was logged and every
+  step held. `--export docs/audits/<folder>` keeps the record and its frames
+  (`run.json`, `walk.json`, `frames/`). The `oldsave` board loads
+  `fixture_ba3_open_day_aeae6967.json` by the client's own Load and plays
+  its open day on. Never two engines at once, and never while a measure or
+  a commit's hook runs.
 - **A whole campaign played by hand in the client (DD-B, Pre-Deploy S13):**
   `tools/dd_b_play.py start --road <conquest|diplomacy|sea> --out <run>`
   (run it in the background: it supervises a sandboxed backend from 8006 and

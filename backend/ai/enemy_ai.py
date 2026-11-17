@@ -48,7 +48,9 @@ IMPLEMENTED:
   - Tests use seeded random for determinism
 """
 
+import contextlib
 import random
+from contextvars import ContextVar
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import (
     WorldState,
@@ -415,6 +417,18 @@ def failed_order_key(action_type: str, target=None) -> str:
     return str(action_type)
 
 
+def a_corps_raised_mid_phase_takes_its_turn() -> bool:
+    """BA2-X2 (row BA, BA-4) seam: the phase's fairness tally takes a corps
+    that was not on its OPENING roster — one beaten to nothing and raised
+    again while its court's phase runs. The roster is re-read at every action
+    (`world.get_marshals_by_nation` lists a corps with men), so such a corps is
+    chosen like any other; the tally was built once, from the opening roster,
+    had no key for him, and its `+= 1` lost the court's whole turn to a
+    `KeyError` (seed jena, Prussia, Yorck: "Prussia did not complete its
+    turn"). Down (False): the tally as it was — the court's turn is lost."""
+    return True
+
+
 def front_means_hostile() -> bool:
     """OCT27-D13(b) seam (ruled as recommended, S14i): a neighbour is the
     FRONT when its controller is at war with the court or is the target of
@@ -423,6 +437,31 @@ def front_means_hostile() -> bool:
     counted: forts, depots, watchtowers and the guns' positions were laid
     against friends. Down (False): any foreign controller."""
     return True
+
+
+_A_STREAM_OF_ITS_OWN: ContextVar = ContextVar("ai_rng_of_its_own", default=None)
+
+
+@contextlib.contextmanager
+def a_stream_of_its_own(world, nation: str, *identity):
+    """BA3-X14 (row BA, BA-4): while the block runs, `ai_rng` answers with ONE
+    private stream — (campaign seed, turn, nation, *identity), by `ai_rng`'s
+    own seed rule — instead of the court's stream of the phase. For an order
+    a court runs OUTSIDE its phase (a word of a day of battle, given in the
+    player's turn or at nightfall): what scoring it draws must not shift what
+    the phase then draws. Derived from saved state alone, so a save and a
+    load draw the same."""
+    from backend.game_logic.campaign_variance import HISTORICAL_SEED, is_historical
+    seed = str(getattr(world, "campaign_seed", HISTORICAL_SEED) or HISTORICAL_SEED)
+    if is_historical(seed):
+        seed = HISTORICAL_SEED
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    parts = "|".join(str(part) for part in identity)
+    token = _A_STREAM_OF_ITS_OWN.set(random.Random(f"{seed}|{turn}|{nation}|{parts}"))
+    try:
+        yield
+    finally:
+        _A_STREAM_OF_ITS_OWN.reset(token)
 
 
 def ai_rng(world, nation: str):
@@ -435,7 +474,12 @@ def ai_rng(world, nation: str):
     stream through the variance layer's own gate (`campaign_variance.
     is_historical`): every effect of a seed flows through that layer (IQ-7's
     control — a seed with variance off plays as historical). Down: the
-    module-global `random` every caller shared."""
+    module-global `random` every caller shared.
+
+    BA3-X14: inside `a_stream_of_its_own` the answer is that stream."""
+    own = _A_STREAM_OF_ITS_OWN.get()
+    if own is not None:
+        return own
     if world is None:
         return random
     turn = int(getattr(world, "current_turn", 0) or 0)
@@ -1886,8 +1930,14 @@ class EnemyAI:
                     actual_cost = world.get_action_cost(selected_action["action"])
                 is_free_action = is_free_action_type or is_free_action_result
 
-            # Track actions used by this marshal (for fairness - only successful actions)
-            actions_used[selected_marshal.name] += 1
+            # Track actions used by this marshal (for fairness - only successful
+            # actions). BA2-X2: a corps raised again mid-phase is not on the
+            # opening roster the tally was built from — it starts at nothing.
+            _tallied = selected_marshal.name
+            if a_corps_raised_mid_phase_takes_its_turn():
+                actions_used[_tallied] = actions_used.get(_tallied, 0) + 1
+            else:
+                actions_used[_tallied] = actions_used[_tallied] + 1
 
             if is_free_action:
                 free_action_count += 1

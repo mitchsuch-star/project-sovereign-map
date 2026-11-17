@@ -34,8 +34,6 @@ from backend.models.world_state import WorldState
 from tests.test_ba3_the_rounds import (  # noqa: F401  (`table` is the fixture)
     FIELD, HOME, ROLLED, _awaits_us, _mk, _quiet, _seat, table)
 
-OPEN_BA4 = "OPEN — owner row BA's session BA-4"
-
 
 def _ours(day):
     return [t for t in day["told"] if t["who"] == "ours"]
@@ -103,7 +101,7 @@ class TestAnAnswerIsToldAsWhatHeDid:
         assert answered["success"], answered.get("message")
         said = answered["battle_day"]
         assert said["open"] is False and said["ended"] == "fell_back", said
-        assert said["banner"] == "Ney falls back" and said["told"][-1]["line"] == "Ney falls back."
+        assert said["banner"] == "Ney falls back" and _how(said)["line"] == "Ney falls back."
         assert said["ours"] == day["ours"], "he left the field: no point is taken"
         assert table.world.battle_days == {}
 
@@ -292,7 +290,7 @@ class TestOurLeadFallsBackUnderHisOwnBanner:
         said = body["battle_day"]
         assert said["open"] is False and said["ended"] == "fell_back", said
         assert said["banner"] == "Ney falls back"
-        assert said["told"][-1]["line"].startswith("Ney falls back toward ")
+        assert _how(said)["line"].startswith("Ney falls back toward ")
         assert world.marshals["Ney"].location != HOME and world.battle_days == {}
 
 
@@ -455,8 +453,19 @@ class TestADayWonOnPointsIsNotCarried:
 
 
 # ════════════════════════════════════════════════════════
-# FILED for BA-4 — each moves a measured world-line, or is a rule to gate
+# FILED for BA-4 — each moves a measured world-line, or is a rule to gate.
+# LANDED there (row BA, BA-4, November 16, 2026): each pin below was a strict
+# xfail and is a plain test now; the rule, its seam and its seam-down twin are
+# in tests/test_ba4_the_roads_and_the_fog.py.
 # ════════════════════════════════════════════════════════
+
+def _how(block):
+    """How a closed day ended, as its table tells it: the last line told that
+    is not the day's tally. (Row BA, BA-4: under the line that says HOW it
+    ended the closing table now tells what the day came to — "Two clashes:
+    13,540 of ours for 16,474 of the enemy's." — as the last line told.)"""
+    return next(t for t in reversed(block["told"]) if t.get("kind") != "tally")
+
 
 def _served(extra=()):
     world = WorldState()
@@ -477,7 +486,6 @@ def _a_day(ney, mack, **over):
 
 class TestFiledForTheRoadsAndTheFog:
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"BA3-X13 {OPEN_BA4}")
     def test_a_day_that_died_before_night_bars_no_strike(self):
         """`night_falls` bars the pair for EVERY day open when the night
         began — also one that is already over because its lead marched off the
@@ -494,7 +502,6 @@ class TestFiledForTheRoadsAndTheFog:
             raise RuntimeError("the dead day was not closed at night")
         assert BD.bars(world) == set()
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"BA3-X14 {OPEN_BA4}")
     def test_his_word_leaves_the_phases_stream_where_it_was(self, table):
         """His word is run through the AI's one executor door, which scores
         every order it runs with a draw from the court's own stream for the
@@ -510,7 +517,6 @@ class TestFiledForTheRoadsAndTheFog:
             raise RuntimeError(f"he gave no word that runs an order on this board: {said}")
         assert ai_rng(world, "Austria") is stream and stream.getstate() == before
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"BA3-X15 {OPEN_BA4}")
     def test_a_lead_holds_one_day_at_a_time(self):
         """Two corps of his may each fight one lead of ours to a hanging great
         battle in one phase, and each opens a day: two purses, two turns, one
@@ -529,7 +535,6 @@ class TestFiledForTheRoadsAndTheFog:
             raise RuntimeError("no day opened on this board")
         assert leads == ["Ney"]
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"BA3-X16 {OPEN_BA4}")
     def test_two_different_stance_orders_draw_their_own_moods(self, monkeypatch):
         """The mood's stream is keyed on the marshal, the action and the
         order's `target`; a stance order carries its stance in `target_stance`

@@ -695,7 +695,19 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/ba2_mode_c_walk.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ba3_mode_c_walk.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ba4_mode_c_walk.gd"
     }
   ],
-  "timestamp": "2026-11-16T10:53:47Z"
+  "timestamp": "2026-11-16T23:30:42Z"
 }

@@ -376,6 +376,7 @@ def _the_days_dawn(manager, game_state, phase=None) -> None:
                 from backend.commands.executor import CommandExecutor
                 executor = CommandExecutor()
             _day.at_dawn(world, game_state, executor)
+        _day.dawn_tells_the_night(world)        # BA-4: the days the night and the dawn closed, for the morning
         _day.dawn_on_the_tableaux(world, phase)
     except Exception as exc:
         _errors.report(exc, "turn_manager._the_days_dawn: battle_day.at_dawn")

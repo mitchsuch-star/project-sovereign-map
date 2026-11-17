@@ -370,6 +370,10 @@ func _play() -> void:
 				(_current["missed"] as Array).append("press_chip: no such box on the panel")
 		"esc":
 			_key(KEY_ESCAPE)
+		"digit":
+			# BA-4: a bare digit through the window's input, as the keyboard gives
+			# it (the day's own key node hears it; nothing is called by name)
+			_key((KEY_0 + int(event.get("n", 0))) as Key)
 		"skip":
 			_node._skip_to_final()
 		"replay":
@@ -528,6 +532,8 @@ func _read_table() -> Dictionary:
 	# BA-2: which table is laid, the wall, the works.
 	row["kind"] = str(_node._data.get("kind", "battle"))
 	row["laid"] = str(acts._laid) if acts != null else "file"
+	# BA3-X2 (row BA, BA-4): why the table kept the file, as the client measured it
+	row["laid_why"] = (acts._laid_why as Array).duplicate() if acts != null else []
 	row["wall"] = ""
 	var works := {}
 	if acts != null:
@@ -690,6 +696,8 @@ func _read_day() -> Dictionary:
 					"content_h": int(r.get_content_height()), "content_w": int(r.get_content_width()),
 					"ink": _rtl_ink(r), "chips": r == acts._day_chips, "groups": r == acts._day_groups,
 					"exits": r == acts._day_exits,
+					"first": str(r.name) == "FirstOpen",       # BA-4: the first day's own line
+					"shown": (r as CanvasItem).is_visible_in_tree(),
 					"scroll_active": bool(r.scroll_active),
 					"v_max": int(r.get_v_scroll_bar().max_value), "v_page": int(r.get_v_scroll_bar().page)})
 			focus_modes.append(int(r.focus_mode))
@@ -701,6 +709,13 @@ func _read_day() -> Dictionary:
 	out["has_groups"] = acts._day_groups != null and is_instance_valid(acts._day_groups)
 	out["has_exits"] = acts._day_exits != null and is_instance_valid(acts._day_exits)
 	out["latched"] = bool(acts._day_latched)
+	# BA-4: the chips' digits (index into `chips` -> digit) and the first day's line
+	var digits := {}
+	for index in acts._day_digit_of:
+		digits[str(index)] = int(acts._day_digit_of[index])
+	out["digits"] = digits
+	out["first_shown"] = str(acts._day_first_shown)
+	out["denied"] = int(acts._day_denied)
 	var focused: Control = _node.get_viewport().gui_get_focus_owner()
 	out["focus_in_panel"] = focused != null and (focused == panel or panel.is_ancestor_of(focused))
 	var others: Array = []

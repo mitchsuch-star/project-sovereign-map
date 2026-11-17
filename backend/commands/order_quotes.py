@@ -29,6 +29,7 @@ world, writes nothing — the route is a GET that touches no popup queue.
 
 from __future__ import annotations
 
+import types
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.display_names import humanize_entity_name
@@ -142,6 +143,11 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
         # S14E-13's sweep: what the march costs the corps as it stands — Iron
         # Resolve stacks, a formed square, a turn-1 drill ("" when nothing).
         "departs": "",
+        # BA2-X21 (row BA, BA-4): what the order's FIRST march costs in men —
+        # a standing order sets off at once, and the march rule is exact
+        # (`movement_executor.march_attrition_reading`). "" when it costs
+        # nothing or the first step is no march.
+        "march_cost": "",
         # S14E-X67: the campaign pay the destination draws ("" when none).
         "pay": "",
         # S14E-22: the detour round a shut direct road ("" when none).
@@ -226,7 +232,24 @@ def _alarm_line(world, marshal, enemy) -> str:
         return ""
 
 
-def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> str:
+_A_SUPPORT_ORDER = types.SimpleNamespace(command_type="SUPPORT")
+
+
+def _halts_at_the_approach(world, ally, region: str, dest: str) -> bool:
+    """The SUPPORT order's approach arm as the EXECUTOR reads it — the one
+    predicate, `strategic.support_stands_at_approach`: the foe on the friend's
+    own province (DDB-20), or within the friend's reach (row BA, BA-4 — the
+    approach rule). The order then stands, raises no question, and the corps
+    joins the friend's next attack from where he is. A follow is a SUPPORT
+    order too (it only stands longer), so its quote reads the same arm."""
+    if ally is None:
+        return region == dest
+    from backend.commands import strategic as road_law
+    return bool(road_law.support_stands_at_approach(_A_SUPPORT_ORDER, ally, region, world))
+
+
+def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str,
+                  world=None, ally=None) -> str:
     """What the march's FIRST step does on meeting a corps we can see —
     `_handle_first_step_blocked`'s arms, in its order (1 action is charged at
     once on every arm). S14E-D1 re-ruled (October 25, 2026): the aggressive
@@ -235,7 +258,7 @@ def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> st
     name = humanize_entity_name(foe.name)
     where = (f"{name} holds {region}" if region == dest
              else f"{name} blocks the road at {region}")
-    if q["kind"] == "support" and region == dest:
+    if q["kind"] in ("support", "follow") and _halts_at_the_approach(world, ally, region, dest):
         return f"{where} — {shown} halts at the approach and joins the next attack there (1 action now)."
     personality = str(getattr(marshal, "personality", "balanced") or "balanced")
     if personality == "literal":
@@ -293,18 +316,29 @@ def _road(world, marshal, dest: str, order_type: str, memo: Optional[dict]):
     return got
 
 
+def _state_refusal(world, marshal, verb: str, word) -> str:
+    """The order's state refusal. For a WORD of an open day (BA3-X5) it is
+    read without the turn's action pool — a word costs no action
+    (`battle_day.quoting_a_word`); every other test stands."""
+    from backend.commands.state_probe import order_state_refusal
+    if word is None:
+        return order_state_refusal(world, marshal, verb)
+    from backend.game_logic import battle_day as _day
+    with _day.quoting_a_word():
+        return order_state_refusal(world, marshal, verb)
+
+
 def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
                     probe_verb: str, q: Dict[str, Any], memo: Optional[dict],
                     standing_follow: Optional[bool] = None,
-                    arrival: Optional[dict] = None) -> Dict[str, Any]:
+                    arrival: Optional[dict] = None, word=None) -> Dict[str, Any]:
     """The standing-order arms common to a march and a support: the state,
     the identical order (a no-op the executor takes at 0 AP), the road, the
     price, the clock. `standing_follow` (AO) tells a follow from a support
     when the identical order is read."""
     from backend.commands import strategic as road_law
-    from backend.commands.state_probe import order_state_refusal
     from backend.game_logic.naval import camp_leave_line
-    state = order_state_refusal(world, marshal, probe_verb)
+    state = _state_refusal(world, marshal, probe_verb, word)
     if state:
         q["refusal"] = state
         return q
@@ -374,10 +408,17 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     # surprise the quote must not name (fog).
     contact = visible_foe_on_road(world, world.player_nation, road[:1])
     if contact is not None:
+        # Row BA, BA-4: the SUPPORT order's approach arm comes BEFORE every
+        # personality arm in the executor (`_handle_first_step_blocked`) — a
+        # literal man too halts at the approach where the foe stands within
+        # his friend's reach, and goes round nothing.
+        ally = world.get_marshal(target) if order_type == "SUPPORT" else None
+        halts = ally is not None and _halts_at_the_approach(world, ally, contact[1], dest)
         # CC-X14: a literal man does not halt there — he goes round (the
         # order keeps its own price, and the road and the clock are the
         # detour's).
-        detour = literal_detour(world, marshal, dest, order_type, contact[1], memo)
+        detour = (None if halts
+                  else literal_detour(world, marshal, dest, order_type, contact[1], memo))
         if detour is not None:
             if not detour:
                 q.update(ok=False, ap=0, turns=0, road=[], replaces="", objection="none",
@@ -396,9 +437,17 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
             q["camp"] = camp_leave_line(world, marshal, detour)   # S14E-13
             from backend.commands.movement_executor import departure_note
             q["departs"] = departure_note(marshal, quote=True)
+            # BA2-X21: the detour is the road walked — its first march's cost.
+            q["march_cost"] = march_cost_line(world, marshal, _first_march(world, marshal, q))
             return q
-        q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest)
+        q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest,
+                                     world=world, ally=ally)
         q["ap"] = 1
+        if halts:
+            # Row BA, BA-4: the order stands at the approach — the road and
+            # its clock are not walked this turn; the card's clock says so
+            # ("halts at the approach", where it said "joins him in N turns").
+            q["halts"] = True
         return q
     reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
     halt = visible_foe_on_road(world, world.player_nation, road[1:reach])
@@ -413,6 +462,8 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     q["camp"] = camp_leave_line(world, marshal, camp_road)
     from backend.commands.movement_executor import departure_note
     q["departs"] = departure_note(marshal, quote=True)
+    # BA2-X21: what the first march — taken the moment the order is — costs in men.
+    q["march_cost"] = march_cost_line(world, marshal, _first_march(world, marshal, q))
     return q
 
 
@@ -534,9 +585,14 @@ def _literal_detours(world, marshal, roads) -> Dict[str, List[str]]:
     pf = marshal.nation if marshal.nation == player else None
     # S14G-X159: `plot_route`'s mover on every rung (the same tie rule).
     mover = marshal.nation
-    rungs = [world.weighted_paths_from(here, avoid_regions=seen, passable_for=pf,
+    # BA2-X10: `plot_route`'s own gate — a road round keeps to open frontiers,
+    # so the lawful rung stands alone and no terrain-only rung follows it.
+    from backend.commands import strategic as road_law
+    lawful_only = road_law.a_road_round_keeps_to_open_frontiers()
+    rungs = [world.weighted_paths_from(here, avoid_regions=seen,
+                                       passable_for=mover if lawful_only else pf,
                                        mover_nation=mover)]
-    if pf:
+    if pf and not lawful_only:
         rungs.append(world.weighted_paths_from(here, avoid_regions=seen, mover_nation=mover))
     out: Dict[str, List[str]] = {}
     for dest, (road, refusal, _kind) in roads.items():
@@ -549,6 +605,42 @@ def _literal_detours(world, marshal, roads) -> Dict[str, List[str]]:
                 break
         out[dest] = [r for r in path if r != here] if path else []
     return out
+
+
+def _the_days_word(world, marshal_name: str, action: str, target: str,
+                   strategic_type: str = "") -> Optional[dict]:
+    """BA3-X5 (row BA, BA-4): the ONE source of a word's price for every
+    quote — `battle_day.quoted_word`, which is `classify_word`'s own verdict
+    for the order the quote names. None: an ordinary order."""
+    from backend.game_logic import battle_day as _day
+    try:
+        return _day.quoted_word(world, marshal_name, action, target, strategic_type)
+    except Exception as exc:
+        report(exc, "order_quotes._the_days_word: battle_day.quoted_word")
+        return None
+
+
+def _price_in_points(q: Dict[str, Any], word: dict) -> None:
+    """A quote that is a word of an open day: no action, its price in the
+    day's points — `points`, `word` (the kind) and `price` (the sentence) are
+    on the quote ONLY then, so every other quote is as it was."""
+    from backend.game_logic import battle_day as _day
+    q["ap"] = 0
+    q["points"] = int(word.get("price", 0) or 0)
+    q["word"] = str(word.get("kind") or "")
+    q["price"] = _day.price_line(word)
+    if q.get("contact"):
+        # "(1 action now)" was the contact arm's price; a word's is the day's.
+        q["contact"] = str(q["contact"]).replace("(1 action now)", f"({q['price']})")
+
+
+def _a_word_of_the_day(q: Dict[str, Any], word) -> Dict[str, Any]:
+    """BA3-X5: a SUPPORT order for the lead of an open day is the day's
+    "a corps is brought up" — a point, never an action. The quote (and the
+    plan's `bring` row, which is this quote) says so."""
+    if word is not None and q.get("ok") and not q.get("already"):
+        _price_in_points(q, word)
+    return q
 
 
 def support_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[str, Any]:
@@ -564,8 +656,10 @@ def support_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[
             or int(getattr(ally, "strength", 0) or 0) <= 0:
         q["refusal"] = f"{shown_ally} has no corps of ours in the field to support"
         return q
-    return _standing_quote(world, marshal, ally.location, "SUPPORT", ally.name,
-                           "support", q, memo, standing_follow=False)
+    word = _the_days_word(world, marshal.name, "support", ally.name, "SUPPORT")
+    return _a_word_of_the_day(_standing_quote(
+        world, marshal, ally.location, "SUPPORT", ally.name, "support", q, memo,
+        standing_follow=False, word=word), word)
 
 
 def follow_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[str, Any]:
@@ -582,8 +676,10 @@ def follow_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[s
             or int(getattr(ally, "strength", 0) or 0) <= 0:
         q["refusal"] = f"{shown_ally} has no corps of ours in the field to follow"
         return q
-    return _standing_quote(world, marshal, ally.location, "SUPPORT", ally.name,
-                           "follow", q, memo, standing_follow=True)
+    word = _the_days_word(world, marshal.name, "support", ally.name, "SUPPORT")
+    return _a_word_of_the_day(_standing_quote(
+        world, marshal, ally.location, "SUPPORT", ally.name, "follow", q, memo,
+        standing_follow=True, word=word), word)
 
 
 def detour_count_clause(detoured: int, total: int) -> str:
@@ -684,7 +780,9 @@ def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, 
                       "terms": mq["terms"],
                       # S14G-11 / S14G-7: the guarded ground its road crosses and
                       # the front it marches to, said on its row too.
-                      "guard": mq["guard"], "front": mq["front"]})
+                      "guard": mq["guard"], "front": mq["front"],
+                      # BA2-X21: the men its first march costs, on its row too.
+                      "march_cost": mq.get("march_cost", "")})
         q["turns"] = max(int(q["turns"]), int(mq["turns"]))
     q["corps"], q["beyond"] = corps, beyond
     if not corps:
@@ -782,14 +880,16 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     """An attack on a sighted enemy: `attack <enemy>` when he stands within
     the marshal's reach (the attack's own range rule — distance against
     `movement_range`), else the march that carries the attack there."""
-    from backend.commands.state_probe import order_state_refusal
     distance = world.get_distance(marshal.location, enemy.location)
     if distance is None or distance < 0 or distance > int(getattr(marshal, "movement_range", 1) or 1):
         return march_quote(world, marshal, enemy.location, then_attack=enemy.name, memo=memo)
     shown_enemy = humanize_entity_name(enemy.name)
     q = _blank("attack", marshal, enemy.location,
                f"{humanize_entity_name(marshal.name)}, attack {shown_enemy}")
-    state = order_state_refusal(world, marshal, "attack")
+    # BA3-X5: an attack on the enemy of an open day is a WORD of that day — it
+    # costs the day's points and no action, and the quote says so.
+    word = _the_days_word(world, marshal.name, "attack", enemy.name)
+    state = _state_refusal(world, marshal, "attack", word)
     if state:
         q["refusal"] = state
         return q
@@ -802,6 +902,9 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
         q["refusal"] = sheltered
         return q
     ap = 0 if getattr(marshal, "has_counter_punch", lambda: False)() else int(world.get_action_cost("attack"))
+    if word is not None:
+        ap = 0
+        _price_in_points(q, word)
     q.update(ok=True, ap=ap, turns=0, road=[enemy.location],
              objection=_tactical_objection(world, marshal, "attack", enemy.name),
              muster=_muster_line(world, marshal, enemy),
@@ -822,7 +925,16 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
         # purse stood at one (the day's own block tells it, on the table and
         # at the head of the province's panel).
         if great is not None and _day.day_against(world, enemy.name) is None:
-            q["day"] = great
+            held = _day.the_day_he_holds(world, marshal.name)
+            if held is None:
+                q["day"] = great
+            else:
+                # The session's review (lane 3): one day a lead — the card
+                # says what the rule will do with a second battle of his.
+                said = (f"{q['shown']}'s day against "
+                        f"{humanize_entity_name(str(held.get('enemy') or ''))} is still open — "
+                        f"a battle here would be a single clash, with no day of its own.")
+                q["note"] = " · ".join(part for part in (str(q.get("note") or ""), said) if part)
     return q
 
 
@@ -836,18 +948,17 @@ BROUGHT_BY_AN_ORDER = ("literal_awaits_orders", "eyes_on_a_crown", "holding_posi
 BRING_ODDS_GAIN = 15
 
 
-def _stop_this_turn(world, marshal, q: Dict[str, Any]) -> str:
-    """Where a standing order's FIRST march leaves him this turn — the order
-    is taken and he sets off at once (`_strategic_first_step`): as far along
-    the quote's road as he ranges, short of a corps we see on it (one in the
-    road's first province meets the order where he stands) and short of a
-    frontier he may not cross — the move's own rule, `can_enter_territory`: a
-    literal man's road ROUND a corps can be plotted through a neutral's shut
-    frontier, that march is refused and he stands where he was (BA2-X10).
-    His own province when the road is empty. An unseen corps is a surprise no
-    quote may name."""
+def _first_march(world, marshal, q: Dict[str, Any]) -> List[str]:
+    """The provinces a standing order's FIRST march walks this turn — the
+    order is taken and he sets off at once (`_strategic_first_step`): as far
+    along the quote's road as he ranges, short of a corps we see on it (one in
+    the road's first province meets the order where he stands) and short of a
+    frontier he may not cross — the move's own rule, `can_enter_territory`
+    (BA2-X10). [] when the first step is no march. An unseen corps is a
+    surprise no quote may name."""
     from backend.game_logic.diplomacy import can_enter_territory
-    walked = marshal.location
+    walked: List[str] = []
+    here = marshal.location
     reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
     for province in list(q.get("road") or [])[:reach]:
         if visible_foe_on_road(world, world.player_nation, [province]) is not None:
@@ -855,23 +966,79 @@ def _stop_this_turn(world, marshal, q: Dict[str, Any]) -> str:
         region = world.get_region(province)
         holder = getattr(region, "controller", None) if region is not None else None
         if holder and holder != marshal.nation and not can_enter_territory(
-                world, marshal.nation, holder, mover_location=walked):
+                world, marshal.nation, holder, mover_location=here):
             break
-        walked = province
+        walked.append(province)
+        here = province
     return walked
 
 
-def _first_step_asks(world, q: Dict[str, Any], dest: str) -> bool:
+def _stop_this_turn(world, marshal, q: Dict[str, Any]) -> str:
+    """Where a standing order's FIRST march leaves him this turn
+    (`_first_march`'s last province) — his own province when it walks none: a
+    literal man's road ROUND a corps could be plotted through a neutral's shut
+    frontier, that march is refused and he stands where he was (BA2-X10)."""
+    walked = _first_march(world, marshal, q)
+    return walked[-1] if walked else marshal.location
+
+
+def march_cost_line(world, marshal, walked: List[str]) -> str:
+    """BA2-X21 (row BA, BA-4): what the first march costs in MEN, said before
+    the order is given. A standing order's first march is taken the moment the
+    order is — Soult, 30,000 strong, ordered from Swabia over the mountain
+    road to Munich, lost 1,800 men and read it in the order's reply, after the
+    action was spent. The quote named the price in actions, the road, the
+    detour, the guard, the pay — and not the men.
+
+    The march rule is exact (`movement_executor.march_attrition_reading`, the
+    very function the mover applies), walked one province at a time on a copy
+    of the corps, as the first step walks them. Exact on our own, an ally's
+    and a neutral's ground. A stop held by a court AT WAR with the marcher is
+    told as "about N men, more if its works harass him": the march there may
+    take the province (the rule then reads our own new soil) and an enemy's
+    fort or detachment adds its toll — which the quote may not name without
+    showing works the fog hides. "" when the march costs nothing."""
+    if not walked:
+        return ""
+    import copy
+    from backend.commands.movement_executor import march_attrition_reading
+    ghost = copy.copy(marshal)
+    lost, unsure = 0, ""
+    for province in walked:
+        region = world.get_region(province)
+        holder = getattr(region, "controller", None) if region is not None else None
+        hostile = bool(holder and holder != marshal.nation
+                       and world.is_at_war(marshal.nation, holder))
+        reading = march_attrition_reading(world, ghost, province)
+        step = int(reading["march_losses"] if hostile else reading["total_losses"])
+        if hostile:
+            unsure = province
+        lost += step
+        ghost.strength = max(0, int(ghost.strength) - step)
+    if unsure:
+        return (f"The first march costs about {lost:,} men, more if {unsure}'s works harass him."
+                if lost > 0 else
+                f"The first march is onto {unsure}: its works may harass him.")
+    return f"The first march costs {lost:,} men." if lost > 0 else ""
+
+
+def _first_step_asks(world, q: Dict[str, Any], dest: str, ally=None) -> bool:
     """A corps we SEE in the road's first province, and that province not the
     friend's own: the order's first step is then no march — the aggressive man
     fights at once if the numbers favour him, every other asks the Emperor's
     orders (`_contact_line`'s personality arms; a literal man's quote already
     carries his road ROUND the foe). Of the question's four answers one keeps
     the order ("Go Around"), one sends him in alone and two abandon it, the
-    action spent: an order that asks is not an order that brings."""
+    action spent: an order that asks is not an order that brings.
+
+    Row BA, BA-4 (the approach rule): never where the SUPPORT order's approach
+    arm takes the step (`ally` in hand) — the corps the friend can strike bars
+    the road, the order halts before it and asks nothing: it BRINGS him."""
     first = list(q.get("road") or [])[:1]
-    return (bool(first) and first[0] != dest
-            and visible_foe_on_road(world, world.player_nation, first) is not None)
+    if not (first and first[0] != dest
+            and visible_foe_on_road(world, world.player_nation, first) is not None):
+        return False
+    return not (ally is not None and _halts_at_the_approach(world, ally, first[0], dest))
 
 
 def _odds_under_the_order(reader, lead, marshal, stop: str, battle_region: str, world) -> int:
@@ -884,6 +1051,53 @@ def _odds_under_the_order(reader, lead, marshal, stop: str, battle_region: str, 
     ghost.location = stop
     row = reader._arrival_odds_row(lead, ghost, battle_region, world, "x")
     return int(row.get("arrival_odds_with_support", 0))
+
+
+def what_the_order_delivers(world, lead, m, battle_region: str, beside, reader,
+                            will_join: bool, odds_now: int, *,
+                            memo: Optional[dict] = None) -> Dict[str, Any]:
+    """BA2-X7 (row BA, BA-4): what `'<m>, support <lead>'` DELIVERS to a battle
+    at `battle_region` — the ONE reading the plan's chips (`bring_quotes`) and
+    the muster's two lever sentences (`combat_executor.muster_row_hint`,
+    `_arrival_odds_row`) share, so Berthier never again names an order the
+    chips will not offer. Read from where the order's first march LEAVES the
+    corps, never from where he stands.
+
+    → ``{quote, brings, odds_with, stop, why_not}``: `brings` is True when the
+    order is taken without a question, leaves him on the field or beside it
+    with odds above nothing and — for a man who would come anyway — at least
+    `BRING_ODDS_GAIN` better than now; `why_not` says which test failed
+    (`refused`, `already`, `asks`, `asks_first`, `marches_away`, `no_odds`,
+    `no_gain`). The order's PRICE is not weighed here (the chips weigh it:
+    BA2-X8). PURE; it never builds the muster preview."""
+    q = support_quote(world, m, lead, memo=memo)
+    out: Dict[str, Any] = {"quote": q, "brings": False, "odds_with": -1,
+                           "stop": m.location, "why_not": ""}
+    if not q["ok"]:
+        out["why_not"] = "refused"
+        return out
+    if q["already"]:
+        out["why_not"] = "already"
+        return out
+    if _first_step_asks(world, q, lead.location, ally=lead):
+        out["why_not"] = "asks"           # the order would raise his question, or his own fight
+        return out
+    if q.get("detour") or q.get("guard"):
+        out["why_not"] = "asks_first"     # the order would ask the Emperor first (BA2-X9)
+        return out
+    stop = out["stop"] = _stop_this_turn(world, m, q)
+    if stop != battle_region and stop not in beside:
+        out["why_not"] = "marches_away"   # the order's first march takes him out of reach
+        return out
+    odds_with = out["odds_with"] = 100 if stop == battle_region else _odds_under_the_order(
+        reader, lead, m, stop, battle_region, world)
+    if odds_with <= 0:
+        out["why_not"] = "no_odds"
+    elif will_join and odds_with < odds_now + BRING_ODDS_GAIN:
+        out["why_not"] = "no_gain"
+    else:
+        out["brings"] = True
+    return out
 
 
 def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None,
@@ -922,62 +1136,95 @@ def bring_quotes(world, lead, enemy, *, memo: Optional[dict] = None,
         return out
     try:
         from backend.commands.combat_executor import answering_defender
-        from backend.display_names import MUSTER_REASON_DISPLAY
         reader = _MUSTER_READER.get("combat")
         if reader is None:
             from backend.commands.executor import CommandExecutor
             reader = _MUSTER_READER["combat"] = CommandExecutor()._combat
         battle_region = answering_defender(world, enemy).location
         if attack_ap is None:
-            attack_ap = 0 if getattr(lead, "has_counter_punch", lambda: False)() \
+            # the attack's own price: nothing for a counter-punch, and nothing
+            # where the attack is a word of an open day (BA3-X5)
+            attack_ap = 0 if (getattr(lead, "has_counter_punch", lambda: False)()
+                              or _the_days_word(world, lead.name, "attack", enemy.name) is not None) \
                 else int(world.get_action_cost("attack"))
         actions_left = int(getattr(world, "actions_remaining", 0) or 0)
         region = world.get_region(battle_region)
         beside = set(region.adjacent_regions) if region is not None else set()
         for m in _field_marshals(world):
-            if m.name == lead.name:
+            q = _bring_row(world, lead, m, battle_region, beside, reader, memo=memo)
+            if q is None:
                 continue
-            if m.location != battle_region and m.location not in beside:
-                continue
-            will_join, code = reader._muster_reason(m, lead, battle_region, lead.nation, world)
-            odds_now = -1
-            if will_join:
-                if code == "has_support_order" or m.location == battle_region:
-                    continue
-                odds_now = int(reader._arrival_odds_row(
-                    lead, m, battle_region, world, code).get("arrival_odds", 0))
-            elif code not in BROUGHT_BY_AN_ORDER:
-                continue
-            q = support_quote(world, m, lead, memo=memo)
-            odds_with = -1
-            if q["ok"]:
-                if q["already"]:
-                    continue
-                if _first_step_asks(world, q, lead.location):
-                    continue          # the order would raise his question, or his own fight
-                if q.get("detour") or q.get("guard"):
-                    continue          # the order would ask the Emperor first (BA2-X9)
-                if actions_left < int(attack_ap) + int(q.get("ap") or 0):
-                    continue          # its price is the action the attack needs (BA2-X8)
-                stop = _stop_this_turn(world, m, q)
-                if stop != battle_region and stop not in beside:
-                    continue          # the order's first march takes him out of reach
-                odds_with = 100 if stop == battle_region else _odds_under_the_order(
-                    reader, lead, m, stop, battle_region, world)
-                if odds_with <= 0 or (will_join and odds_with < odds_now + BRING_ODDS_GAIN):
-                    continue
-            if will_join:
-                why = f"about {odds_now}% to make it in time"
-            else:
-                why = str(MUSTER_REASON_DISPLAY.get(code, "") or "will not march unordered")
-            if odds_with >= 0:
-                why += f"; about {odds_with}% under a written order"
-            q.update(why=why, code=str(code), odds_now=odds_now, odds_with=odds_with)
+            if q["ok"] and actions_left < int(attack_ap) + int(q.get("ap") or 0):
+                continue          # its price is the action the attack needs (BA2-X8)
             out.append(q)
     except Exception as exc:
         report(exc, "order_quotes.bring_quotes: the muster ladder")
         return []
     return sorted(out, key=_sort_key)
+
+
+def _bring_row(world, lead, m, battle_region: str, beside, reader, *,
+               memo: Optional[dict] = None) -> Optional[Dict[str, Any]]:
+    """ONE corps' row of the plan (`bring_quotes`), or None: he stands on the
+    field or beside it, the muster says he will not come or may not, and the
+    order the game already has would bring him (`what_the_order_delivers`). A
+    row whose order would be REFUSED is still a row (`ok` False, its refusal
+    on it — the chip is shown dimmed). The order's price is the caller's to
+    weigh. The ONE reading the plan's chips and the day's taker share
+    (`the_order_brings`)."""
+    from backend.display_names import MUSTER_REASON_DISPLAY
+    if m.name == lead.name:
+        return None
+    if m.location != battle_region and m.location not in beside:
+        return None
+    will_join, code = reader._muster_reason(m, lead, battle_region, lead.nation, world)
+    odds_now = -1
+    if will_join:
+        if code == "has_support_order" or m.location == battle_region:
+            return None
+        odds_now = int(reader._arrival_odds_row(
+            lead, m, battle_region, world, code).get("arrival_odds", 0))
+    elif code not in BROUGHT_BY_AN_ORDER:
+        return None
+    # BA2-X7: the one reading the muster's lever sentences share.
+    delivered = what_the_order_delivers(world, lead, m, battle_region, beside, reader,
+                                        bool(will_join), odds_now, memo=memo)
+    q = delivered["quote"]
+    odds_with = -1
+    if q["ok"]:
+        if not delivered["brings"]:
+            return None           # asks, marches him out of reach, or gains nothing
+        odds_with = int(delivered["odds_with"])
+    if will_join:
+        why = f"about {odds_now}% to make it in time"
+    else:
+        why = str(MUSTER_REASON_DISPLAY.get(code, "") or "will not march unordered")
+    if odds_with >= 0:
+        why += f"; about {odds_with}% under a written order"
+    q.update(why=why, code=str(code), odds_now=odds_now, odds_with=odds_with)
+    return q
+
+
+def the_order_brings(world, lead, enemy, m) -> bool:
+    """Row BA, BA-4 (the sibling of BA2-X7 on the day's own door): would
+    `'<m>, support <lead>'` bring `m` to `lead`'s battle with `enemy` — is it
+    the order the plan's "Bring up" chip offers? `_bring_row`'s own verdict,
+    for the day's taker (`battle_day.classify_word`): the day takes as "a
+    corps is brought up" exactly the order its table offers. PURE."""
+    try:
+        from backend.commands.combat_executor import answering_defender
+        reader = _MUSTER_READER.get("combat")
+        if reader is None:
+            from backend.commands.executor import CommandExecutor
+            reader = _MUSTER_READER["combat"] = CommandExecutor()._combat
+        battle_region = answering_defender(world, enemy).location
+        region = world.get_region(battle_region)
+        beside = set(region.adjacent_regions) if region is not None else set()
+        row = _bring_row(world, lead, m, battle_region, beside, reader)
+        return bool(row is not None and row.get("ok") and row.get("command"))
+    except Exception as exc:
+        report(exc, "order_quotes.the_order_brings: the muster ladder")
+        return False
 
 
 def group_march_quotes(world, names: List[str], dest: str) -> Dict[str, Any]:

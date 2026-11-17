@@ -811,7 +811,7 @@
    "action": "propose_armistice",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Uncertain",
+   "likelihood": "Uncertain — a counter is likely",
    "verdict": "signed",
    "message": "Treaty signed: At War → Armistice with Austria.",
    "type_sent": "armistice_winning",
@@ -1082,7 +1082,7 @@
    "action": "propose_open_borders",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Uncertain",
+   "likelihood": "Uncertain — a counter is likely",
    "verdict": "signed",
    "message": "Treaty signed: Peace → Open Borders with Saxony.",
    "type_sent": "open_borders",
@@ -2628,7 +2628,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -2697,26 +2699,6 @@
    "type_sent": "peace",
    "state_moved": [
     "France|Russia"
-   ],
-   "arm": "OP",
-   "clause": ""
-  },
-  {
-   "turn": 4,
-   "surface": "congress",
-   "moment": "shown",
-   "court": "Austria",
-   "type": "peace",
-   "action": "sign a peace with Austria",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Austria.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Austria|Bavaria",
-    "Austria|France",
-    "Austria|KingdomOfItaly"
    ],
    "arm": "OP",
    "clause": ""
@@ -2886,7 +2868,7 @@
    "action": "propose_peace",
    "shown_signable": false,
    "disabled_reason": "Talleyrand in transit",
-   "likelihood": "Uncertain — a counter is likely",
+   "likelihood": "Doubtful — may counter",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -3296,7 +3278,7 @@
    "moment": "shown",
    "court": "Austria",
    "type": "peace",
-   "action": "sign a peace with Austria",
+   "action": "sign a peace with Austria — Britain's bond costs her 40 at the table (9 in a bilateral peace); 1,000 gold to her pays it (F1 → Austria → Outbid Britain's Bond)",
    "shown_signable": true,
    "stance": "REFUSES",
    "verdict": "signed",
@@ -3349,7 +3331,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (88 → 98); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
+   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (90 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
    "arm": "OP",
    "clause": ""
   },
@@ -3367,7 +3349,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (88 → 98); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
+   "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (90 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP.",
    "arm": "OP",
    "clause": ""
   },
@@ -3891,7 +3873,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -4459,7 +4443,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -4611,7 +4597,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "The Bavarian Match — Seal the match: 2 diplomatic points (you hold 5); 1,000 gold (the treasury holds 5,610); Bavaria's goodwill 46 → 66; Europe's alarm 76 → 79 (A Bonaparte match); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
+   "message": "The Bavarian Match — Seal the match: 2 diplomatic points (you hold 5); 1,000 gold (the treasury holds 4,749); Bavaria's goodwill 46 → 66; Europe's alarm 76 → 79 (A Bonaparte match); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
    "arm": "OP",
    "clause": ""
   },
@@ -4645,7 +4631,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "The Bavarian Match — Seal the match: 2 diplomatic points (you hold 5); 1,000 gold (the treasury holds 5,610); Bavaria's goodwill 46 → 66; Europe's alarm 76 → 79 (A Bonaparte match); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
+   "message": "The Bavarian Match — Seal the match: 2 diplomatic points (you hold 5); 1,000 gold (the treasury holds 4,749); Bavaria's goodwill 46 → 66; Europe's alarm 76 → 79 (A Bonaparte match); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
    "arm": "OP",
    "clause": ""
   },
@@ -5115,7 +5101,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -5679,7 +5667,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -6900,7 +6890,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -7426,7 +7418,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -7494,6 +7488,78 @@
    "state_moved": [],
    "verdict": "signed",
    "message": "The Arch-Chancellor's Letters — Dictate from the field: 1 administrative action (1 left today).\nCambacérès: the Council has registered the decrees Your Majesty dictated from the field.",
+   "arm": "OP",
+   "clause": ""
+  },
+  {
+   "turn": 13,
+   "surface": "letter",
+   "moment": "arrived",
+   "court": "Naples",
+   "type": "friendly_gift",
+   "letter_type": "incoming_proposal",
+   "dialogue_id": 32,
+   "action": "accept_ai_proposal",
+   "label": "Accept",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "state_moved": [
+    "France|Naples"
+   ],
+   "verdict": "signed",
+   "message": "You have accepted Naples's proposal. Treaty signed: Peace → Open Borders with Naples. Naples paid 150 gold into the treasury.",
+   "arm": "OP",
+   "clause": ""
+  },
+  {
+   "turn": 14,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Russia",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Russia",
+   "target": "Sweden",
+   "verdict": "signed",
+   "message": "Russia and Sweden have signed a Defensive Alliance.",
+   "arm": "OP",
+   "clause": ""
+  },
+  {
+   "turn": 14,
+   "surface": "letter",
+   "moment": "shown",
+   "court": "Naples",
+   "type": "friendly_gift",
+   "letter_type": "incoming_proposal",
+   "dialogue_id": 32,
+   "action": "accept_ai_proposal",
+   "label": "Accept",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "state_moved": [
+    "France|Naples"
+   ],
+   "verdict": "signed",
+   "message": "You have accepted Naples's proposal. Treaty signed: Peace → Open Borders with Naples. Naples paid 150 gold into the treasury.",
+   "arm": "OP",
+   "clause": ""
+  },
+  {
+   "turn": 14,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Naples",
+   "type": "open_borders",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": true,
+   "proposer": "Naples",
+   "target": "France",
+   "verdict": "signed",
+   "message": "Treaty signed: Peace → Open Borders with Naples.",
    "arm": "OP",
    "clause": ""
   },
@@ -7694,17 +7760,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Naples",
-   "type": "open_borders",
-   "action": "propose_open_borders",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Uncertain — a counter is likely",
-   "verdict": "signed",
-   "message": "Treaty signed: Peace → Open Borders with Naples.",
-   "type_sent": "open_borders",
-   "state_moved": [
-    "France|Naples"
-   ],
+   "type": "non_aggression",
+   "action": "propose_non_aggression",
+   "shown_signable": false,
+   "disabled_reason": "Relations too low",
+   "likelihood": "Doubtful",
+   "verdict": "not_shown",
+   "message": "",
    "arm": "OP",
    "clause": ""
   },
@@ -7715,11 +7777,17 @@
    "court": "Naples",
    "type": "vassalage",
    "action": "propose_vassal",
-   "shown_signable": false,
-   "disabled_reason": "Requires war (a dictated peace) or open borders and above",
-   "likelihood": "",
-   "verdict": "not_shown",
-   "message": "",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "likelihood": "Hopeless",
+   "verdict": "signed",
+   "message": "Treaty signed: Open Borders → Vassal with Naples.",
+   "type_sent": "vassalage",
+   "state_moved": [
+    "France|Naples",
+    "Naples|Ottoman",
+    "Naples|PapalStates"
+   ],
    "arm": "OP",
    "clause": ""
   },
@@ -7732,7 +7800,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -7836,7 +7904,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -7900,7 +7968,7 @@
    "action": "propose_defensive_alliance",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -7954,7 +8022,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -7996,7 +8066,7 @@
    "court": "Switzerland",
    "type": "client_petition",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 32,
+   "dialogue_id": 33,
    "action": "accept_ai_proposal",
    "label": "Grant the petition",
    "shown_signable": true,
@@ -8014,7 +8084,7 @@
    "court": "Switzerland",
    "type": "client_petition",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 32,
+   "dialogue_id": 33,
    "action": "accept_ai_proposal",
    "label": "Grant the petition",
    "shown_signable": true,
@@ -8022,6 +8092,22 @@
    "state_moved": [],
    "verdict": "signed",
    "message": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +5 (95 → 100); bond 20 → 40 (+2 a turn). Cost: 1 DP.",
+   "arm": "OP",
+   "clause": ""
+  },
+  {
+   "turn": 15,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Spain",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Spain",
+   "target": "Ottoman",
+   "verdict": "signed",
+   "message": "Spain and Ottoman have signed a Defensive Alliance.",
    "arm": "OP",
    "clause": ""
   },
@@ -8152,7 +8238,8 @@
    "message": "Treaty signed: Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|Spain"
+    "France|Spain",
+    "Ottoman|Spain"
    ],
    "arm": "OP",
    "clause": ""
@@ -8222,17 +8309,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Naples",
-   "type": "open_borders",
-   "action": "propose_open_borders",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Uncertain — a counter is likely",
-   "verdict": "signed",
-   "message": "Treaty signed: Peace → Open Borders with Naples.",
-   "type_sent": "open_borders",
-   "state_moved": [
-    "France|Naples"
-   ],
+   "type": "non_aggression",
+   "action": "propose_non_aggression",
+   "shown_signable": false,
+   "disabled_reason": "Relations too low",
+   "likelihood": "Doubtful",
+   "verdict": "not_shown",
+   "message": "",
    "arm": "OP",
    "clause": ""
   },
@@ -8243,11 +8326,17 @@
    "court": "Naples",
    "type": "vassalage",
    "action": "propose_vassal",
-   "shown_signable": false,
-   "disabled_reason": "Requires war (a dictated peace) or open borders and above",
-   "likelihood": "",
-   "verdict": "not_shown",
-   "message": "",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "likelihood": "Hopeless",
+   "verdict": "signed",
+   "message": "Treaty signed: Open Borders → Vassal with Naples.",
+   "type_sent": "vassalage",
+   "state_moved": [
+    "France|Naples",
+    "Naples|Ottoman",
+    "Naples|PapalStates"
+   ],
    "arm": "OP",
    "clause": ""
   },
@@ -8260,7 +8349,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -8347,7 +8436,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -8411,7 +8500,7 @@
    "action": "propose_defensive_alliance",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -8465,7 +8554,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -8524,7 +8615,7 @@
    "court": "KingdomOfItaly",
    "type": "client_petition",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 33,
+   "dialogue_id": 34,
    "action": "accept_ai_proposal",
    "label": "Grant the petition",
    "shown_signable": true,
@@ -8542,7 +8633,7 @@
    "court": "KingdomOfItaly",
    "type": "client_petition",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 33,
+   "dialogue_id": 34,
    "action": "accept_ai_proposal",
    "label": "Grant the petition",
    "shown_signable": true,
@@ -8691,7 +8782,8 @@
    "message": "Treaty signed: Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|Spain"
+    "France|Spain",
+    "Ottoman|Spain"
    ],
    "arm": "OP",
    "clause": ""
@@ -8761,17 +8853,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Naples",
-   "type": "open_borders",
-   "action": "propose_open_borders",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Uncertain — a counter is likely",
-   "verdict": "signed",
-   "message": "Treaty signed: Peace → Open Borders with Naples.",
-   "type_sent": "open_borders",
-   "state_moved": [
-    "France|Naples"
-   ],
+   "type": "non_aggression",
+   "action": "propose_non_aggression",
+   "shown_signable": false,
+   "disabled_reason": "Relations too low",
+   "likelihood": "Doubtful",
+   "verdict": "not_shown",
+   "message": "",
    "arm": "OP",
    "clause": ""
   },
@@ -8782,11 +8870,17 @@
    "court": "Naples",
    "type": "vassalage",
    "action": "propose_vassal",
-   "shown_signable": false,
-   "disabled_reason": "Requires war (a dictated peace) or open borders and above",
-   "likelihood": "",
-   "verdict": "not_shown",
-   "message": "",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "likelihood": "Hopeless",
+   "verdict": "signed",
+   "message": "Treaty signed: Open Borders → Vassal with Naples.",
+   "type_sent": "vassalage",
+   "state_moved": [
+    "France|Naples",
+    "Naples|Ottoman",
+    "Naples|PapalStates"
+   ],
    "arm": "OP",
    "clause": ""
   },
@@ -8799,7 +8893,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -8886,7 +8980,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -8950,7 +9044,7 @@
    "action": "propose_defensive_alliance",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -9004,7 +9098,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -9192,7 +9288,8 @@
    "message": "Treaty signed: Defensive Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|Spain"
+    "France|Spain",
+    "Ottoman|Spain"
    ],
    "arm": "OP",
    "clause": ""
@@ -9262,17 +9359,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Naples",
-   "type": "open_borders",
-   "action": "propose_open_borders",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Uncertain — a counter is likely",
-   "verdict": "signed",
-   "message": "Treaty signed: Peace → Open Borders with Naples.",
-   "type_sent": "open_borders",
-   "state_moved": [
-    "France|Naples"
-   ],
+   "type": "non_aggression",
+   "action": "propose_non_aggression",
+   "shown_signable": false,
+   "disabled_reason": "Relations too low",
+   "likelihood": "Doubtful",
+   "verdict": "not_shown",
+   "message": "",
    "arm": "OP",
    "clause": ""
   },
@@ -9283,11 +9376,17 @@
    "court": "Naples",
    "type": "vassalage",
    "action": "propose_vassal",
-   "shown_signable": false,
-   "disabled_reason": "Requires war (a dictated peace) or open borders and above",
-   "likelihood": "",
-   "verdict": "not_shown",
-   "message": "",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "likelihood": "Hopeless",
+   "verdict": "signed",
+   "message": "Treaty signed: Open Borders → Vassal with Naples.",
+   "type_sent": "vassalage",
+   "state_moved": [
+    "France|Naples",
+    "Naples|Ottoman",
+    "Naples|PapalStates"
+   ],
    "arm": "OP",
    "clause": ""
   },
@@ -9300,7 +9399,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -9387,7 +9486,7 @@
    "action": "propose_non_aggression",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -9451,7 +9550,7 @@
    "action": "propose_defensive_alliance",
    "shown_signable": false,
    "disabled_reason": "Relations too low",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain",
    "verdict": "not_shown",
    "message": "",
    "arm": "OP",
@@ -9505,7 +9604,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -9547,7 +9648,7 @@
    "court": "",
    "type": "moment_letter",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 35,
+   "dialogue_id": 36,
    "action": "accept_ai_proposal",
    "label": "Crown Louis",
    "shown_signable": true,
@@ -9565,7 +9666,7 @@
    "court": "",
    "type": "moment_letter",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 35,
+   "dialogue_id": 36,
    "action": "accept_ai_proposal",
    "label": "Crown Louis",
    "shown_signable": true,
@@ -9729,7 +9830,8 @@
    "message": "Treaty signed: Defensive Alliance → Vassal with Spain.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|Spain"
+    "France|Spain",
+    "Ottoman|Spain"
    ],
    "arm": "OP",
    "clause": ""
@@ -9799,17 +9901,13 @@
    "surface": "chip",
    "moment": "shown",
    "court": "Naples",
-   "type": "open_borders",
-   "action": "propose_open_borders",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Uncertain — a counter is likely",
-   "verdict": "signed",
-   "message": "Treaty signed: Peace → Open Borders with Naples.",
-   "type_sent": "open_borders",
-   "state_moved": [
-    "France|Naples"
-   ],
+   "type": "non_aggression",
+   "action": "propose_non_aggression",
+   "shown_signable": false,
+   "disabled_reason": "Relations too low",
+   "likelihood": "Uncertain",
+   "verdict": "not_shown",
+   "message": "",
    "arm": "OP",
    "clause": ""
   },
@@ -9820,11 +9918,17 @@
    "court": "Naples",
    "type": "vassalage",
    "action": "propose_vassal",
-   "shown_signable": false,
-   "disabled_reason": "Requires war (a dictated peace) or open borders and above",
-   "likelihood": "",
-   "verdict": "not_shown",
-   "message": "",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "likelihood": "Hopeless",
+   "verdict": "signed",
+   "message": "Treaty signed: Open Borders → Vassal with Naples.",
+   "type_sent": "vassalage",
+   "state_moved": [
+    "France|Naples",
+    "Naples|Ottoman",
+    "Naples|PapalStates"
+   ],
    "arm": "OP",
    "clause": ""
   },
@@ -10042,7 +10146,9 @@
    "message": "Treaty signed: Open Borders → Vassal with the Papal States.",
    "type_sent": "vassalage",
    "state_moved": [
-    "France|PapalStates"
+    "France|PapalStates",
+    "Naples|PapalStates",
+    "PapalStates|Sardinia"
    ],
    "arm": "OP",
    "clause": ""
@@ -10079,9 +10185,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 10.31,
- "clones": 230,
- "seconds": 26.7,
+ "clone_ms_mean": 12.14,
+ "clones": 231,
+ "seconds": 29.6,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,
@@ -10089,18 +10195,18 @@
   "A_by_surface": {},
   "B_refused_unnamed": 0,
   "B_messages": [],
-  "shown": 220,
-  "letters": 38,
-  "real_signs": 17,
+  "shown": 221,
+  "letters": 40,
+  "real_signs": 20,
   "real_refused_player": 0,
   "asked": 2,
   "errors": 0,
   "verdicts": {
    "chip:not_shown": 356,
-   "congress:signed": 23,
+   "congress:signed": 22,
    "settlement:not_shown": 9,
-   "letter:signed": 36,
-   "real:signed": 17,
+   "letter:signed": 38,
+   "real:signed": 20,
    "chip:signed": 159,
    "letter:asked": 2,
    "settlement:refused": 1

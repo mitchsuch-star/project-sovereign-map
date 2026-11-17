@@ -67,6 +67,17 @@ const RANK_GAP_MIN := 106.0     # two ranks never stand closer than this (118 at
 # `_relay` keeps the host's file when the table cannot take them — an old
 # payload that seats four, a duel of one corps a side, Text size 120 % and
 # over (`_wedge_is_clear` measures the live boxes). One constant reverses it.
+#
+# Row BA, BA-4 (BA3-X2, November 16, 2026) — the file at 120 % and over is the
+# RULED layout, and the table says why it kept it (`_laid_why`, `wedge_faults`).
+# Measured at 130 % on the two wedge scenes: the near wing's captions run 19 px
+# below the baize and the far wing's stand 18 px on the near wing. Moving the
+# stations does not clear it: no pair of heights clears both (raised enough,
+# the far wing stands on its side's loss counter: 10 to 25 px), and stepped in
+# beside the counter (near 128,356 / far 190,136 — which passes this file's own
+# test) the far wing stands, at rest, on the reserve's note, on the losses'
+# caption and on the banner. Two stacked corps with their captions need about
+# 40 px more than the baize has at that size.
 const ORDER_OF_BATTLE := true
 const WEDGE_LEAD := Vector2(330.0, 342.0)
 const WEDGE_NEAR := Vector2(128.0, 380.0)
@@ -103,6 +114,7 @@ var _reserve_tails: Array = []         # [{label, full}] "+3 corps in reserve �
 const RESERVE_DEAD := " — "            # what follows it on the tail is what the reserve lost
 # BA-2: the board and the two new tables.
 var _laid := "file"                    # "wedge" when the order of battle is laid
+var _laid_why: Array = []              # BA3-X2: what the wedge would have stood on (the walk reads it)
 var _reserve_dead: Array = []          # the reserve's dead, a line of its own on a wedge
 var _wall: SiegeWall = null            # a garrison's wall (kind "assault")
 var _works: Dictionary = {}            # corps name -> its Rampart (field works)
@@ -255,6 +267,7 @@ func dress(final_frame: bool) -> void:
 	if host._is_naval():
 		return
 	_laid = "file"
+	_laid_why = []
 	_reserve_dead = []
 	_wall = null
 	_works = {}
@@ -373,6 +386,7 @@ func _unrelay(saved: Array) -> void:
 	than SAFE_GAP: Text size 120 % and over, a name longer than any the
 	stations were laid for): every corps back on the host's file, its words
 	as the host cut them, and the acts' own fitting run again from there."""
+	_laid_why = wedge_faults()             # BA3-X2: measured while the wedge still stands
 	for row in saved:
 		var b: Dictionary = row["block"]
 		var node: Node2D = b["node"]
@@ -502,6 +516,55 @@ func _wedge_is_clear() -> bool:
 						if (r as Rect2).grow(SAFE_GAP).intersects(o):
 							return false
 	return true
+
+
+func _corps_named(b: Dictionary) -> String:
+	return str((b["data"] as Dictionary).get("name", ""))
+
+
+func wedge_faults() -> Array:
+	"""BA3-X2 (row BA, BA-4): every reason `_wedge_is_clear` would refuse the
+	order of battle as it stands now — which corps' line leaves the baize,
+	stands on the chrome, or comes within SAFE_GAP of a neighbour's line, slab
+	or portrait, and by how many pixels the two overlap. For the walk and the
+	record only: the table's own test is `_wedge_is_clear`, unchanged."""
+	var out: Array = []
+	var sw: float = host._stage.size.x
+	var sh: float = host._stage.size.y
+	var pad: float = host.BAIZE_PAD
+	var chrome: Array = _chrome_rects()
+	for side in [host._blocks_left, host._blocks_right]:
+		for a in side:
+			var words: Array = _words(a)
+			for r in words:
+				var rect: Rect2 = r
+				if rect.position.x < pad - 1.0 or rect.end.x > sw - pad + 1.0 \
+						or rect.position.y < 0.0 or rect.end.y > sh:
+					out.append("%s: a line leaves the baize (x %d to %d, y %d to %d)" % [
+						_corps_named(a), int(rect.position.x), int(rect.end.x),
+						int(rect.position.y), int(rect.end.y)])
+				for c in chrome:
+					var met: Rect2 = rect.grow(SAFE_GAP).intersection(c)
+					if met.has_area():
+						out.append("%s: a line stands on the chrome by %d x %d px" % [
+							_corps_named(a), int(met.size.x), int(met.size.y)])
+			for other in side:
+				if other == a:
+					continue
+				var theirs_words: Array = _words(other)
+				var theirs_body: Array = _body(other)
+				for r in words:
+					for o in theirs_words:
+						var w: Rect2 = (r as Rect2).grow(SAFE_GAP).intersection(o)
+						if w.has_area():
+							out.append("%s: a line meets a line of %s by %d x %d px" % [
+								_corps_named(a), _corps_named(other), int(w.size.x), int(w.size.y)])
+					for o in theirs_body:
+						var bd: Rect2 = (r as Rect2).grow(SAFE_GAP).intersection(o)
+						if bd.has_area():
+							out.append("%s: a line meets the slab or portrait of %s by %d x %d px" % [
+								_corps_named(a), _corps_named(other), int(bd.size.x), int(bd.size.y)])
+	return out
 
 
 func _room_fwd(b: Dictionary) -> float:
@@ -789,6 +852,32 @@ var _day_inline := false               # the groups flow in one paragraph (room 
 var _his_waiting := false              # a table whose clash is followed by his waits to go on
 const DAY_ADVANCE_S := 2.5             # at rest on such a table, then his clash by itself
 
+# Row BA, BA-4 (the user's ruling at the plan gate, November 16, 2026 — "Yes, on
+# the table"): while the table awaits our word the bare digits press the day's
+# chips, in FIXED slots as the selection card's are (a slot never moves): 1 the
+# lead presses / strikes back, 2 the Guard, 3 he digs in, 4-6 the first three
+# chips of the other kinds (another corps leads, the guns, a corps brought up)
+# in the server's own order, 7 he stands, 8 break off / fall back, 9 leave it
+# to him. A chip past the sixth of its kind is the mouse's and shows no digit.
+# Who owns the bare digits OFF the table stays WS-10's ruling (Session H).
+const DAY_DIGIT_OWN := {"press": 1, "guard": 2, "dig_in": 3}
+const DAY_DIGIT_GROUP_FROM := 4
+const DAY_DIGIT_GROUP_TO := 6
+const DAY_DIGIT_STAND := 7
+const DAY_DIGIT_BREAK := 8
+const DAY_DIGIT_LEAVE := 9
+const DAY_DENY_CUE := "error"          # the selection card's cue for a slot that cannot fire
+var _day_digit_of: Dictionary = {}     # index into `chips` -> its digit
+var _day_denied := 0                   # digits this table refused with the deny cue (the walk reads it)
+# Row BA, BA-4 (the user's tick — "First-open line"): the first day of battle of
+# a campaign names its own rules, once (the block's `first_open`) — on a row of
+# its own above the head where the table has the room for it whole, else on the
+# head's hover (a hover is not a showing: it is then not acknowledged and comes
+# again on the next day's table). The showing is acknowledged to the scene that
+# holds the API client (main.gd `_on_first_open_seen`) — never as a word.
+var _day_first_screen := ""            # the screen to acknowledge when the panel is shown
+var _day_first_shown := ""             # the screen whose line this table has shown (the walk reads it)
+
 
 func _the_day() -> Dictionary:
 	var d = host._data.get("day", null) if host != null else null
@@ -944,6 +1033,9 @@ func _day_chip_bb(i: int, chip: Dictionary, name_only: bool = false) -> String:
 	var label := _day_chip_label(chip)
 	if name_only:
 		label = str(chip.get("shown", "")) if str(chip.get("shown", "")) != "" else str(chip.get("label", ""))
+	var digit: int = int(_day_digit_of.get(i, 0))
+	if digit > 0:
+		label = "%d %s" % [digit, label]          # the selection card's form: "<digit> Label"
 	var tip := _day_chip_tip(chip, name_only)
 	if bool(chip.get("ok", false)) and not _day_latched:
 		return Utils.bb_button_chip("day:%d" % i, label,
@@ -1003,7 +1095,102 @@ func _day_exits_text() -> String:
 	return out
 
 
+func _day_digit_map() -> Dictionary:
+	"""index into `chips` -> digit, for the day as it is offered (empty when it
+	offers nothing). The slots are fixed; a kind that is not on the table
+	leaves its digit unused."""
+	var out := {}
+	if not _day_offering():
+		return out
+	var chips = _the_day().get("chips", [])
+	var split := _day_split()
+	var taken := {}
+	for i in split[0]:
+		var kind := str((chips[int(i)] as Dictionary).get("kind", ""))
+		if DAY_DIGIT_OWN.has(kind) and not taken.has(DAY_DIGIT_OWN[kind]):
+			out[int(i)] = int(DAY_DIGIT_OWN[kind])
+			taken[DAY_DIGIT_OWN[kind]] = true
+	var next := DAY_DIGIT_GROUP_FROM
+	for g in split[1]:
+		for i in g["idx"]:
+			if next > DAY_DIGIT_GROUP_TO:
+				break
+			out[int(i)] = next
+			next += 1
+	for i in split[2]:
+		var chip: Dictionary = chips[int(i)]
+		var d := DAY_DIGIT_BREAK
+		if str(chip.get("word", "")) == "leave_it":
+			d = DAY_DIGIT_LEAVE
+		elif str(chip.get("kind", "")) == "stand":
+			d = DAY_DIGIT_STAND
+		if not taken.has(d):
+			out[int(i)] = d
+			taken[d] = true
+	return out
+
+
+static func day_digit(event: InputEvent) -> int:
+	"""The bare digit 1-9 a key press is (the keypad's too; the physical key on
+	a layout whose top row needs Shift), else 0. A press with a modifier is
+	never the day's."""
+	if not (event is InputEventKey):
+		return 0
+	var key: InputEventKey = event
+	if not key.pressed or key.echo or key.ctrl_pressed or key.alt_pressed \
+			or key.meta_pressed or key.shift_pressed:
+		return 0
+	for code in [key.keycode, key.physical_keycode]:
+		if code >= KEY_1 and code <= KEY_9:
+			return int(code) - int(KEY_0)
+		if code >= KEY_KP_1 and code <= KEY_KP_9:
+			return int(code) - int(KEY_KP_0)
+	return 0
+
+
+func day_keys_live() -> bool:
+	"""The digits are the day's only on a table at rest that offers its chips."""
+	return host != null and is_instance_valid(host) and host.visible and host._acts == self \
+		and bool(host._final) and _day_panel != null and is_instance_valid(_day_panel) \
+		and _day_panel.visible and _day_offering()
+
+
+func day_key(event: InputEvent) -> bool:
+	"""A bare digit on a table that awaits our word presses its slot's chip — a
+	slot with no chip, a locked chip or a table already latched answers with
+	the deny cue. True when the key was the day's: it goes no further (not to
+	the command line, not to the selection card under the table)."""
+	var n := day_digit(event)
+	if n <= 0 or not day_keys_live():
+		return false
+	var index := -1
+	for i in _day_digit_of:
+		if int(_day_digit_of[i]) == n:
+			index = int(i)
+	var chips = _the_day().get("chips", [])
+	if _day_latched or index < 0 or index >= chips.size() \
+			or not bool((chips[index] as Dictionary).get("ok", false)):
+		_day_denied += 1
+		AudioManager.play(DAY_DENY_CUE)
+		return true
+	_on_day_chip("day:%d" % index)
+	return true
+
+
+class DayKeys:
+	extends Node
+	# The acts are a RefCounted and hear no key: this node, a child of the day's
+	# panel (and freed with it), hears them for it — before the command line and
+	# before main's own digits.
+	var acts = null
+
+	func _input(event: InputEvent) -> void:
+		if acts != null and acts.day_key(event):
+			get_viewport().set_input_as_handled()
+
+
 func _day_retext() -> void:
+	_day_digit_of = _day_digit_map()
 	if _day_chips != null and is_instance_valid(_day_chips):
 		_day_chips.text = _day_own_text()
 	if _day_groups != null and is_instance_valid(_day_groups):
@@ -1029,6 +1216,34 @@ func _day_groups_h(d_box: RichTextLabel, inline: bool, start_abs: float, btn_top
 	return h
 
 
+func _day_first_fits(above: float, d_box: RichTextLabel, e_top_abs: float, top: float,
+		btn_top: float) -> bool:
+	"""BA-4: with the first day's line on a row of its own, do the head, the
+	lead's chips and the groups (stacked, or flowing inline) all stand whole
+	above the exits, the shelves' room given and the told line sent to the
+	hover if it must be? Those are the ladder's first three steps; the line
+	never costs the fourth (a chip scrolled out of sight)."""
+	var d_h := 0.0
+	if d_box != null:
+		d_h = minf(_day_groups_h(d_box, false, top + above, btn_top),
+				_day_groups_h(d_box, true, top + above, btn_top))
+	return above + d_h <= e_top_abs - 2.0 - top
+
+
+func _note_first_open(screen: String) -> void:
+	"""BA-4: the first day's line is on the table — the scene that holds the
+	API client acknowledges it, once a world (main.gd `_on_first_open_seen`):
+	the first ancestor of the tableau that can. A staged table (the acts' walk,
+	the captures) stands under none: nothing is sent."""
+	_day_first_shown = screen
+	var node: Node = host if host != null and is_instance_valid(host) else null
+	while node != null:
+		if node.has_method("_on_first_open_seen"):
+			node.call("_on_first_open_seen", screen)
+			return
+		node = node.get_parent()
+
+
 func _day_banner() -> String:
 	return str(_the_day().get("banner", ""))
 
@@ -1051,6 +1266,10 @@ func _build_the_day() -> void:
 	_day_hide_shelves = false
 	_day_inline = false
 	_his_waiting = false
+	_day_digit_of = {}
+	_day_denied = 0
+	_day_first_screen = ""
+	_day_first_shown = ""
 	var day := _the_day()
 	if day.is_empty() or host == null or host._verdict == null:
 		return
@@ -1085,6 +1304,23 @@ func _build_the_day() -> void:
 	var lh: float = _day_line_h(head)
 	var head_h: float = lh + 4.0
 	head.size.y = head_h
+	# BA-4: the first day's own line (`first_open`), measured now and given its
+	# row below only where the table has the room for it whole
+	var first_said := ""
+	var first_screen := ""
+	var first_box: RichTextLabel = null
+	var first_h := 0.0
+	var fo = day.get("first_open", null)
+	if fo is Dictionary and bool(day.get("open", false)):
+		first_said = str(fo.get("line", ""))
+		first_screen = str(fo.get("screen", ""))
+	if first_said != "" and first_screen != "":
+		first_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 100.0))
+		first_box.name = "FirstOpen"
+		first_box.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		first_box.text = "[color=#" + Utils.COLOR_INFO + "]" + first_said.replace("[", "[lb]") + "[/color]"
+		first_h = first_box.get_content_height() + 2.0
+		first_box.visible = false
 	var level := 3
 	head.text = _day_head(day, level)
 	while level > 0 and head.get_content_width() > DAY_W - 8.0:
@@ -1112,6 +1348,17 @@ func _build_the_day() -> void:
 	if not offering and not pending:
 		# no chips (closed, his word, his clash follows): the told block, whole
 		# — and above the buttons' row
+		if first_box != null and minf(DAY_BOTTOM, btn_top - 4.0) - top - head_h - first_h >= lh:
+			first_box.visible = true          # the first day's line, above the head
+			first_box.size.y = first_h
+			head.position.y = first_h
+			head_h += first_h
+			y = head_h
+			_day_first_screen = first_screen
+		elif first_box != null:
+			panel.remove_child(first_box)
+			first_box.queue_free()
+			hover.append(first_said)
 		var avail: float = minf(DAY_BOTTOM, btn_top - 4.0) - top - head_h
 		var keep := clampi(int(avail / lh), 1, 5)
 		var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, lh * float(keep) + 2.0))
@@ -1147,6 +1394,26 @@ func _build_the_day() -> void:
 		var row_h: float = maxf(e_h, lh)
 		var b_h: float = lh + 2.0 if (offering and not lines.is_empty()) else 0.0
 		var e_top_abs: float = btn_mid - e_h / 2.0
+		# BA-4: the first day's line takes its row wherever no chip has to
+		# scroll for it (`_day_first_fits`). On a crowded table — Ulm, the
+		# first great battle of a campaign — it may take the told line's row
+		# for this one showing (the ladder's third step: the last word told
+		# rides the head's hover, where the morning already is). Where even
+		# that is not room enough it rides the hover itself and is NOT
+		# acknowledged — a hover is not a showing.
+		if first_box != null:
+			if _day_first_fits(first_h + head_h + c_h, d_box, e_top_abs,
+					top_free if shelf_up else top, btn_top):
+				first_box.visible = true
+				first_box.size.y = first_h
+				head.position.y = first_h
+				head_h += first_h
+				y = head_h
+				_day_first_screen = first_screen
+			else:
+				panel.remove_child(first_box)
+				first_box.queue_free()
+				hover.append(first_said)
 		var d_h := 0.0
 		var above: float = head_h + b_h + c_h
 		if d_box != null:
@@ -1189,6 +1456,11 @@ func _build_the_day() -> void:
 			y += d_h
 		e_box.position = Vector2(0.0, e_top_abs - top)    # level with, and centred on, the buttons
 		e_box.size = Vector2(DAY_CHIPS_W, e_h)
+		if offering:
+			var keys := DayKeys.new()             # BA-4: the bare digits press the chips
+			keys.name = "DayKeys"
+			keys.acts = self
+			panel.add_child(keys)
 	panel.position = Vector2(DAY_X, top)
 	panel.size = Vector2(DAY_W, total)
 	if not hover.is_empty():
@@ -1266,6 +1538,11 @@ func _show_the_day() -> void:
 			if shelf != null:
 				(shelf as CanvasItem).visible = false
 	_day_panel.visible = true
+	if _day_first_screen != "":
+		# BA-4: the first day's line is on the table now — the showing is the
+		# acknowledgement (the scene sends it once a world: `_on_first_open_seen`)
+		_note_first_open(_day_first_screen)
+		_day_first_screen = ""
 	var day := _the_day()
 	var follows: bool = bool(day.get("follows", false))
 	# a day that opened on a road which did not carry his answer — or a table that

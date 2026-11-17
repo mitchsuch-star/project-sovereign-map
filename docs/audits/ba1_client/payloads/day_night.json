@@ -1,5 +1,5 @@
 {
- "battle_name": "Second Battle of Carniola",
+ "battle_name": "The Great Battle of Carniola",
  "region": "Carniola",
  "turn": 1,
  "outcome": "defender_tactical_victory",
@@ -200,10 +200,16 @@
     "who": "end",
     "kind": "",
     "line": "Night falls on an undecided field."
+   },
+   {
+    "who": "end",
+    "kind": "tally",
+    "line": "Three clashes: 17,320 of ours for 11,965 of the enemy's."
    }
   ],
   "ended": "night",
   "banner": "Night falls",
-  "chips": []
+  "chips": [],
+  "close": "Night fell on the field at Carniola: three clashes and no decision — 17,320 of ours for 11,965 of the enemy's."
  }
 }

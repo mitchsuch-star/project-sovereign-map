@@ -444,7 +444,10 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
 
     report = battle_result.get("battle_report") or {}
     payload = {
-        "battle_name": str(battle_result.get("battle_name", "")
+        # Row BA, BA-4: a later clash of a day is engraved with the DAY's name
+        # (`battle_plate`); its own name, with its clash, is the record's.
+        "battle_name": str(battle_result.get("battle_plate")
+                           or battle_result.get("battle_name", "")
                            or f"Battle of {battle_region}"),
         "region": battle_region,
         "turn": int(getattr(world, "current_turn", 0)),

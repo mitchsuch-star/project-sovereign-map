@@ -1,0 +1,113 @@
+{
+ "board": "roads",
+ "port": 8006,
+ "seed": {
+  "seed": "ba4-walk-roads",
+  "friend_at": "Rhineland",
+  "pitched_who": "Bernadotte",
+  "pitched_foe": "ArchdukeJohn",
+  "pitched_at": "Tyrol",
+  "pitched_said": "A pitched battle — Bernadotte commands the day: 2 points.",
+  "who": "Davout",
+  "to": "Gelderland",
+  "cost": "The first march costs 572 men."
+ },
+ "started": "2026-11-16T18:33:23",
+ "engine_exit": 0,
+ "engine_s": 18.6,
+ "server_days": {
+  "success": true,
+  "days": []
+ },
+ "engine_log_bytes": 715,
+ "script_errors": [],
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "ms": 17236,
+  "results": [
+   {
+    "did": "booted the real main.tscn against the sandboxed backend",
+    "ok": true,
+    "saw": "booted=true turn=1 actions=4",
+    "step": "boot"
+   },
+   {
+    "did": "selected Murat, right-clicked Ney at Rhineland",
+    "ok": true,
+    "saw": "the card up=true; the road's badge on the map: 'halts at the approach · 1 AP'; its terms:  action now).\nHe goes to Ney now and stays only while Ney is in danger — the order lapses of itself once Ney is out of danger; 'Murat, follow Ney' keeps him at Ney's side. Name a duration to hold him to it. He will drop this order for any battle within two provinces in a war of ours.\nMurat, support Ney\nORDERS FOR MURAT",
+    "step": "approach_card"
+   },
+   {
+    "did": "pressed the card's Send",
+    "ok": true,
+    "saw": "actions 4 -> 3; a question stands: ''; the log: ► Murat, support Ney\nMurat stands at Franche-Comte, at the approach to Swabia — he joins Ney's next attack there.\n   [3/4 actions remaining]",
+    "step": "approach_sent"
+   },
+   {
+    "did": "selected Davout, right-clicked Gelderland",
+    "ok": true,
+    "saw": "the card up=true; the server's own line: 'The first march costs 572 men.'; on the card=true; terms: 2 actions · arrives this turn\nThe first march costs 572 men.\nDavout, march to Gelderland\nORDERS FOR DAVOUT",
+    "step": "march_cost_card"
+   },
+   {
+    "did": "selected Bernadotte, right-clicked ArchdukeJohn at Tyrol",
+    "ok": true,
+    "saw": "the card up=true; the server's own line: 'A pitched battle — Bernadotte commands the day: 2 points.'; on the card=true; 'A great battle' on the card=false; terms:  view alone the odds read 'favorable' (about 59,535 against a substantial force).\nA pitched battle — Bernadotte commands the day: 2 points. His road to the rear is open.\nA win here adds +3 to Europe's alarm (+5 more if decisive; none on your own soil) — now 67/100.\nBernadotte, attack Archduke John\nORDERS FOR BERNADOTTE",
+    "step": "pitched_card"
+   },
+   {
+    "did": "opened Help on its Terms page",
+    "ok": true,
+    "saw": "terms found: [\"The last hour\", \"News of a battle\", \"Pursuit\"]; 'three-quarters of its weight' there=true; 'digits 1 to 9' there=true",
+    "step": "help_terms"
+   }
+  ],
+  "steps": [
+   {
+    "frame": "BA4_WALK_01_approach_card_2026_11_16.jpg",
+    "ms": 13406,
+    "note": "the support order's card: it halts at the approach",
+    "saved": true,
+    "step": "approach_card",
+    "turn": 1
+   },
+   {
+    "frame": "BA4_WALK_02_approach_sent_2026_11_16.jpg",
+    "ms": 14405,
+    "note": "Murat stands at the approach: no question asked",
+    "saved": true,
+    "step": "approach_sent",
+    "turn": 1
+   },
+   {
+    "frame": "BA4_WALK_03_march_cost_card_2026_11_16.jpg",
+    "ms": 15184,
+    "note": "a march's card names the men its first march costs",
+    "saved": true,
+    "step": "march_cost_card",
+    "turn": 1
+   },
+   {
+    "frame": "BA4_WALK_04_pitched_card_2026_11_16.jpg",
+    "ms": 16266,
+    "note": "an attack's card: a pitched battle, short of a great one",
+    "saved": true,
+    "step": "pitched_card",
+    "turn": 1
+   },
+   {
+    "frame": "BA4_WALK_05_help_terms_2026_11_16.jpg",
+    "ms": 17090,
+    "note": "Help: the session's terms",
+    "saved": true,
+    "step": "help_terms",
+    "turn": 1
+   }
+  ],
+  "words": []
+ },
+ "total_s": 22.2
+}

@@ -123,6 +123,14 @@ class Table:
         raise AssertionError("no day of battle opened as asked")
 
 
+def _how(block):
+    """How a closed day ended, as its table tells it: the last line told that
+    is not the day's tally. (Row BA, BA-4: under the line that says HOW it
+    ended the closing table now tells what the day came to — "Two clashes:
+    13,540 of ours for 16,474 of the enemy's." — as the last line told.)"""
+    return next(t for t in reversed(block["told"]) if t.get("kind") != "tally")
+
+
 def _awaits_us(day):
     return bool(day.get("open")) and day.get("awaits") == "ours"
 
@@ -193,7 +201,9 @@ class TestASmallBattleIsOneClash:
     need all mechanics"."""
 
     def test_a_small_battle_opens_no_day_and_costs_its_action(self, table):
-        _seat(table.world, ours=30000, his=30000)
+        # (row BA, BA-4: the key bar is 50,000 men since its measure — a small
+        # battle is one under it; this board stood at 60,000 when the bar was 80,000)
+        _seat(table.world, ours=20000, his=20000)
         body = table.order("Ney, attack Mack")
         assert body["success"], body.get("message")
         assert "battle_day" not in body
@@ -209,7 +219,7 @@ class TestASmallBattleIsOneClash:
         assert "battle_day" not in body and table.world.battle_days == {}
 
     def test_nothing_is_written_to_an_ordinary_save(self, table):
-        _seat(table.world, ours=30000, his=30000)
+        _seat(table.world, ours=20000, his=20000)        # under the key bar (50,000 since BA-4)
         table.order("Ney, attack Mack")
         assert "battle_days" not in table.world.to_dict()
 
@@ -244,8 +254,13 @@ class TestAGreatBattleOpensADay:
         assert day["ours"] == 2
 
     def test_the_bar_is_the_games_own(self):
+        """BA-3's bar was the game's GREAT battle (80,000). Row BA's BA-4
+        moved it by its measure (`BATTLE_DIORAMA_SPEC.md` §15.20 M6): a key
+        battle is a pitched battle of 50,000 — never above the great bar,
+        which keeps its name and its news."""
         world = WorldState()
-        assert BD.key_bar(world) == world.GREAT_BATTLE_THRESHOLD == 80000
+        assert world.GREAT_BATTLE_THRESHOLD == 80000
+        assert BD.key_bar(world) == BD.KEY_BATTLE_MEN == 50000 <= world.GREAT_BATTLE_THRESHOLD
         low, high = _mk("A", HOME, 1, command=7), _mk("B", HOME, 1, command=8)
         assert Marshal.RALLY_FAST_COMMAND == 8
         assert (BD.points_for(low), BD.points_for(high)) == (2, 3)
@@ -288,10 +303,16 @@ class TestAGreatBattleOpensADay:
         quote = _quiet(table.tc.get, "/march_quotes", params={"marshal": "Ney", "enemy": "Mack"}).json()
         told = quote["quote"]["day"]
         assert quote["success"] and {k: told[k] for k in ("great", "points", "bar")} == {
-            "great": True, "points": 2, "bar": 80000}
+            "great": True, "points": 2, "bar": 50000}
+        assert "pitched" not in told, "120,000 men: the game's GREAT battle"
         # The lesson of Ulm, before the order: is a road open behind him?
         assert told["his_road"] in (True, False)
+        # (row BA, BA-4: 60,000 men is a key battle now — a pitched one — and
+        # 40,000 is the small battle the card says nothing of)
         _seat(table.world, ours=30000, his=30000)
+        quote = _quiet(table.tc.get, "/march_quotes", params={"marshal": "Ney", "enemy": "Mack"}).json()
+        assert quote["quote"]["day"]["pitched"] is True and quote["quote"]["day"]["great"] is True
+        _seat(table.world, ours=20000, his=20000)
         quote = _quiet(table.tc.get, "/march_quotes", params={"marshal": "Ney", "enemy": "Mack"}).json()
         assert "day" not in quote["quote"]
 
@@ -551,7 +572,7 @@ class TestHisAnswerIsHisAIsOwnRule:
         else:
             raise AssertionError("he never drew off")
         assert day["open"] is False and day["ahead"] == "ours"
-        assert day["told"][-1]["line"].startswith("Mack draws off toward ")
+        assert _how(day)["line"].startswith("Mack draws off toward ")
         assert day["banner"] == "Mack draws off"
         assert table.world.battle_days == {}
         assert table.world.marshals["Mack"].location in rear
@@ -585,7 +606,8 @@ class TestSilenceIsStanding:
         body = table.word("stand")
         assert body["success"] and body["battle_day"]["open"] is False
         assert body["battle_day"]["ended"] == "night" and body["battle_day"]["banner"] == "Night falls"
-        assert body["battle_day"]["told"][-1]["line"] == BD.NIGHT
+        assert _how(body["battle_day"])["line"] == BD.NIGHT
+        assert body["battle_day"]["told"][-1]["kind"] == "tally"      # BA-4: then what the day came to
         assert table.world.battle_days == {} and table.world.actions_remaining == 3
 
     def test_a_priced_word_breaks_the_silence(self, table):
@@ -873,7 +895,7 @@ class TestNightAndDawn:
                 break
         assert night, "no night fell after a strike of his in six days"
         for day in night:
-            assert day["banner"] == "Night falls" and day["told"][-1]["line"] == BD.NIGHT
+            assert day["banner"] == "Night falls" and _how(day)["line"] == BD.NIGHT
 
     def test_the_end_is_written_on_the_last_clash_only_when_no_clash_decided_it(self):
         world = WorldState()
@@ -892,7 +914,7 @@ class TestNightAndDawn:
         BD._the_end_on_the_last(world, "Mack", [first, last, no_table])
         for tableau in (last["battle_diorama"], last["events"][0]["diorama"]):
             assert tableau["day"]["open"] is False and tableau["day"]["banner"] == "Night falls"
-            assert tableau["day"]["told"][-1]["line"] == BD.NIGHT and "reply" not in tableau["day"]
+            assert _how(tableau["day"])["line"] == BD.NIGHT and "reply" not in tableau["day"]
         assert first["battle_diorama"]["day"] == stale, "only his LAST clash tells the end"
         # dawn: the closing block stands; the earlier clash's stale block goes
         phase = {"nations": {"Austria": {"actions": [first, last, no_table]}}}
@@ -1021,7 +1043,7 @@ class TestNightAndDawn:
         assert body["success"], body.get("message")
         said = body["battle_day"]
         assert said["open"] is False and said["ended"] == "fell_back"
-        assert said["told"][-1]["line"] == "Ney falls back." and said["banner"] == "Ney falls back"
+        assert _how(said)["line"] == "Ney falls back." and said["banner"] == "Ney falls back"
         assert table.world.marshals["Ney"].location != was
         assert table.world.battle_days == {} and table.world.actions_remaining == left
 
@@ -1287,7 +1309,7 @@ class TestTheGatesMeasurementIsOnRecord:
 
 
 class TestAQuoteSaysAWordsPrice:
-    """BA3-X5 (OPEN, owner row BA's session BA-4). While a day is open the
+    """BA3-X5 (FIXED by row BA's session BA-4, November 16, 2026). While a day was open the
     day's own chips — the table, the head of the province's panel, the log —
     price a word in points. The surfaces that quote the SAME order outside
     them (the attack card, the plan's "Bring up" rows, the relay's note, the
@@ -1308,8 +1330,9 @@ class TestAQuoteSaysAWordsPrice:
         during = Q.attack_quote(world, world.marshals["Ney"], world.marshals["Mack"])
         assert "day" not in during
 
-    @pytest.mark.xfail(strict=True, reason="BA3-X5 OPEN — owner row BA's session BA-4")
     def test_the_attack_quote_prices_a_word_in_points(self, table):
+        """FIXED November 16, 2026 (row BA's session BA-4): one source for a
+        word's price on every surface — `tests/test_ba4_the_roads_and_the_fog.py`."""
         from backend.commands import order_quotes as Q
         table.open_a_day(_awaits_us)
         world = table.world
@@ -1337,17 +1360,10 @@ class TestTheRecordsSayWhatLanded:
         from tests._ledgers import doc_text
         rows = re.findall(r"^\| \*\*(BA3-X\d+)\*\* \| P\d \| (✅ FIXED|OPEN) ",
                           doc_text("BUG_FIXES.md"), flags=re.M)
-        fixed, still_open = "✅ FIXED", "OPEN"
-        assert rows == [
-            ("BA3-X1", fixed), ("BA3-X2", still_open), ("BA3-X3", fixed), ("BA3-X4", fixed),
-            ("BA3-X5", still_open),
-            # the review (§15.18): X6 to X12 and X17 to X22 fixed in it, X13 to X16 filed for BA-4
-            ("BA3-X6", fixed), ("BA3-X7", fixed), ("BA3-X8", fixed), ("BA3-X9", fixed),
-            ("BA3-X10", fixed), ("BA3-X11", fixed), ("BA3-X12", fixed),
-            ("BA3-X13", still_open), ("BA3-X14", still_open), ("BA3-X15", still_open),
-            ("BA3-X16", still_open),
-            ("BA3-X17", fixed), ("BA3-X18", fixed), ("BA3-X19", fixed), ("BA3-X20", fixed),
-            ("BA3-X21", fixed), ("BA3-X22", fixed)]
+        fixed = "✅ FIXED"
+        # Every row is closed since row BA's session BA-4 (November 16, 2026):
+        # X2, X5 and the four its review filed for BA-4 (X13 to X16) landed there.
+        assert rows == [(f"BA3-X{n}", fixed) for n in range(1, 23)]
 
     def test_the_sweep_of_record_reads_the_gate(self):
         """The eight-seed sweep (`BATTLE_DIORAMA_SPEC.md` §15.16): every new

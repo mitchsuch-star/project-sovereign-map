@@ -5891,6 +5891,7 @@ class RoundsPlayer:
         self.days_opened = 0
         self.words_by_kind = {}
         self.days_ended = {}
+        self.day_rows = {}          # BA-4: enemy key -> a day's row until its first offer is seen
 
     # -- state ------------------------------------------------------------
     def seen(self) -> bool:
@@ -5911,11 +5912,34 @@ class RoundsPlayer:
             if key not in self.live:
                 self.live.add(key)
                 self.days_opened += 1
+                self.day_rows[key] = {
+                    "turn": self.turn, "field": block.get("field"), "enemy": key,
+                    "lead": block.get("lead"), "side": block.get("side"),
+                    "ours": block.get("ours"), "theirs": block.get("theirs")}
+            self._day_row(key, block)
         elif key in self.live:
+            self._day_row(key, block, closing=True)
             self.live.discard(key)
             self.dug.discard(key)
             ended = str(block.get("ended") or "over")
             self.days_ended[ended] = self.days_ended.get(ended, 0) + 1
+
+    def _day_row(self, key, block, closing=False) -> None:
+        """BA-4 (the key bar's measure, `tools/_ba4_measure.py`): ONE `day` row a
+        day of battle met — written when its first offer is seen (how many words
+        were lit for us, how many of them priced), or at its close if it never
+        awaited our word. Read only; it sends nothing."""
+        row = self.day_rows.get(key)
+        if row is None:
+            return
+        chips = [c for c in (block or {}).get("chips") or [] if isinstance(c, dict)]
+        if not chips and not closing:
+            return
+        lit = [c for c in chips if c.get("ok", True)]
+        row["chips"] = len(lit)
+        row["priced"] = sum(1 for c in lit if int(c.get("price") or 0) > 0)
+        self.digest.record("day", **row)
+        del self.day_rows[key]
 
     def observe(self, path, payload, body) -> None:
         if isinstance(body, dict):
@@ -6063,6 +6087,7 @@ class RoundsPlayer:
                 self._take(block)
         for key in list(self.live):             # the game closed it at end turn
             if key not in listed:
+                self._day_row(key, self.latest.get(key) or {}, closing=True)
                 self.live.discard(key)
                 self.dug.discard(key)
                 self.days_ended["end_turn"] = self.days_ended.get("end_turn", 0) + 1

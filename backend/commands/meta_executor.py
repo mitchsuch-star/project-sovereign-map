@@ -2579,7 +2579,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             # draws the same defiance. None: the module `random`, as before.
             from backend.game_logic import campaign_variance as _cv
             _ws16_order = objection.get("original_order") or {}
-            _ws16_who = (marshal_name, _ws16_order.get("action"), _ws16_order.get("target"))
+            _ws16_who = (marshal_name, _ws16_order.get("action"), _ws16_order.get("target"), *_cv.order_mark(_ws16_order))
             _chance_rng = _cv.temper_rng(world, "defiance_chance", *_ws16_who)
             _roll_rng = _cv.temper_rng(world, "defiance_roll", *_ws16_who)
 

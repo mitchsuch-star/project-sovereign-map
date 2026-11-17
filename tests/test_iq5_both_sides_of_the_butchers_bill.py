@@ -995,12 +995,27 @@ class TestTheTrustNoteOnBothSides:
             "Archduke John fought for Austria without conviction — he brought a "
             "quarter of what he otherwise would.")
 
-    def test_a_battle_the_player_did_not_fight_says_nothing(self):
+    def test_a_battle_the_player_did_not_fight_says_nothing(self, monkeypatch):
+        # Row BA, BA-4 (BA2-X20): a battle lights its field only for those who
+        # fought in it, so a battle of two other crowns out of the player's
+        # sight builds no tableau at all — there is nothing to read `faith`
+        # off. The row pins what a WATCHED battle's tableau says, so the field
+        # is lit as it was when the row was written (the seam down).
+        from backend.game_logic import intel_surfaces
+        monkeypatch.setattr(intel_surfaces, "a_battle_lights_its_field_only_for_those_who_fought",
+                            lambda: False)
         _w, res, _logs, _ = _battle(AI_V_AI, "Castanos", "Mack", trusts={"ArchdukeJohn": 5})
         assert "trust_note" not in res["battle_report"]
         for side in ("attacker", "defender"):
             for c in res["battle_diorama"][side]["contingents"]:
                 assert "faith" not in c
+
+    def test_a_battle_out_of_his_sight_builds_no_tableau(self):
+        """Row BA, BA-4 (BA2-X20): the same battle with the rule up — out of the
+        player's sight, it says nothing because it shows nothing."""
+        _w, res, _logs, _ = _battle(AI_V_AI, "Castanos", "Mack", trusts={"ArchdukeJohn": 5})
+        assert "trust_note" not in res["battle_report"]
+        assert "battle_diorama" not in res
 
     def test_no_halving_no_note(self, monkeypatch):
         monkeypatch.setattr(CE, "TRUST_REACHES_THE_FIELD", False)
@@ -1478,6 +1493,21 @@ JOHN_ARRIVES_ATK = {"Mack": ("Swabia", 40000), "Ney": ("Franconia", 20000),
                     "ArchdukeJohn": ("Bohemia", 30000)}
 
 
+@pytest.fixture
+def _before_the_last_hour(monkeypatch):
+    """Row BA, BA-4 (§15.5.7, November 16, 2026) — held DOWN for the rows that
+    pin a reinforced side's prose by its recorded figures. On their fixed roll
+    the Archduke John comes up at the last hour, and since BA-4 such an arrival
+    brings three quarters of his weight (16,875 committed where the rows
+    recorded 22,500). The rows pin whose NAME is prose; the last hour's weight
+    is pinned in tests/test_ba4_the_roads_and_the_fog.py
+    (`TestTheLastHourBringsThreeQuarters`)."""
+    from tests._ba4_seams import BA4_SEAMS_BY_ROW
+    from tests._oct27_seams import hold_down
+    hold_down(monkeypatch, BA4_SEAMS_BY_ROW["QUARTERS"])
+
+
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestEveryReinforcementNameIsProse:
     """Ruling C (#1 #6 #9 #13 #15 #17). The first cut humanised the arrival
     line alone; the massed parenthesis, every no-show arm and a multi-word

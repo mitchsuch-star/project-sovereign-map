@@ -189,6 +189,12 @@ CAMPAIGN_LOG_TYPES = {
     # live family AND red a pin anyway, so the count moves instead. That
     # is what the ten `len(CAMPAIGN_LOG_TYPES) == 161` pins are for.
     "garrison_assault",
+    # Row BA, BA-4 (186→188 flipped consciously): a day of battle closed —
+    # its clashes and its toll in one line (`battle_day._tell_the_close`) —
+    # and the news of a battle abroad, the crowns and who held the field
+    # (BA2-X20, `battle_news.of_a_battle`).
+    "battle_day_closed",
+    "foreign_battle",
     "retreat",
     "marshal_broken",
     "marshal_recovered",
@@ -530,6 +536,8 @@ CATEGORY_MAP = {
     "battle": "combat",
     "bombardment": "combat",
     "garrison_assault": "combat",   # FA-R5 (slice 14)
+    "battle_day_closed": "combat",  # row BA, BA-4: a day of battle closed
+    "foreign_battle": "combat",     # row BA, BA-4: news of a battle abroad (BA2-X20)
     "retreat": "combat",
     "marshal_broken": "combat",
     "marshal_recovered": "combat",
@@ -791,7 +799,7 @@ LOG_TIER_LEAD = frozenset({
 
 LOG_TIER_NOTABLE = frozenset({
     "agenda_shift", "agenda_violation", "balance_of_europe_shifted",
-    "bargain_breached", "bargain_reneged", "battle", "blockade_begins",
+    "bargain_breached", "bargain_reneged", "battle", "battle_day_closed", "blockade_begins",
     "blockade_broken", "bombardment", "boulogne_camp",
     "call_to_arms_honored_costly", "call_to_arms_refused_defensive",
     "call_to_arms_refused_offensive", "coalition_brewing_started",
@@ -800,7 +808,7 @@ LOG_TIER_NOTABLE = frozenset({
     "crisis_passed", "defensive_cascade", "design_bought_off",
     "design_promoted", "desertion", "diplomatic_alliance_cascade",
     "estate_confiscated", "estate_lost", "expedition_intercepted",
-    "fleet_action", "fontainebleau_petition", "forced_alliance_imposed",
+    "fleet_action", "fontainebleau_petition", "forced_alliance_imposed", "foreign_battle",
     "garrison_assault", "glory_crowned", "jealousy_autonomous",
     "jealousy_confrontation", "jealousy_escalation", "jealousy_fired",
     "law_enacted", "marshal_broken", "marshal_commissioned",
@@ -1235,7 +1243,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
                           "third_party_peace", "rank_promotion", "question_turns", "awakening",   # T4-3: a crown; DY-2: a Question turns; DY-4: a people stirs
-                          "levee", "recognition",   # DY-5: a nation in arms is court knowledge; DY-7: a crown recognized or refused is too
+                          "levee", "recognition", "foreign_battle",   # DY-5: a nation in arms is court knowledge; DY-7: a crown recognized or refused is too; BA2-X20: news of a battle abroad is written only where it is news to the player
                           "coalition_dissolved_for_france",
                           "design_promoted", "volte_face",
                           # SR-5r RF-1: a court's laws are court knowledge
@@ -2160,6 +2168,13 @@ def _oneliner_the_field(ctx: OnelinerContext):
     # structured fields the producer stamps and the client's slice-11 arm
     # reads, so the log and the enemy-phase dialog cannot tell different
     # stories about one assault.
+    if ctx.event_type == "foreign_battle":
+        # Row BA, BA-4 (BA2-X20): the news' own sentence — crowns, never a
+        # commander or a figure (`battle_news.line_of`).
+        return str(ctx.event.get("line") or "News of a battle abroad.")
+    if ctx.event_type == "battle_day_closed":
+        # Row BA, BA-4: the day's own closing line (`battle_day.close_line`).
+        return str(ctx.event.get("line") or "A day of battle closed.")
     if ctx.event_type == "garrison_assault":
         marshal = ctx.event.get("marshal", "Unknown")
         atk_nation = ctx.event.get("attacker_nation", "")

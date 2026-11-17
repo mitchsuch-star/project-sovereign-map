@@ -392,15 +392,32 @@ def second_name_relay_note(world, second: str, order: str, *,
     stands before it — the head went out. Otherwise (the head was refused and
     the parser's sentence was not printed) the note names him itself."""
     price = ""
-    if re.search(r",\s*support\s+", order or "", flags=re.IGNORECASE):
+    supported = re.search(r",\s*support\s+(.+?)\s*$", order or "", flags=re.IGNORECASE)
+    if supported:
         marshal = world.get_marshal(second) if world is not None else None
         if marshal is not None:
+            # BA3-X5 (row BA, BA-4): where his SUPPORT is a word of an open day
+            # it costs a point of the day and no action — the note said
+            # "(1 action when sent)" over an order that then took none. ONE
+            # source with every quote: `battle_day.quoted_word`.
+            word = None
+            try:
+                from backend.game_logic import battle_day as _day
+                word = _day.quoted_word(world, marshal.name, "support",
+                                        supported.group(1).strip(), "SUPPORT")
+                said = _day.price_line(word) if word is not None else ""
+            except Exception as exc:
+                report(exc, "relay.second_name_relay_note: battle_day.quoted_word")
+                word, said = None, ""
             try:
                 ap = int(marshal.strategic_order_ap(order_type="SUPPORT"))
             except Exception as exc:
                 report(exc, "relay.second_name_relay_note: int / marshal.strategic_order_ap")
                 ap = 0
-            if ap > 0:
+            if word is not None:
+                price = (f" ({said} when sent)" if count <= 1
+                         else f" ({said} each, as each is sent)")
+            elif ap > 0:
                 price = (f" ({_plural(ap, 'action')} when sent)" if count <= 1
                          else f" ({_plural(ap, 'action')} each, as each is sent)")
     if count > 1:

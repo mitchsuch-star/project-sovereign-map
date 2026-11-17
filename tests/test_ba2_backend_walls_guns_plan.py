@@ -666,7 +666,9 @@ class TestBringQuotes:
         assert set(offered) <= set(could) and all(offered[n] == could[n] for n in offered)
         assert offered["Soult"] == "literal_awaits_orders"
 
-    def test_it_offers_exactly_the_orders_that_deliver(self):
+    @pytest.mark.parametrize("approach_rule, brought", [(True, {"Soult", "Murat"}),
+                                                        (False, {"Soult"})])
+    def test_it_offers_exactly_the_orders_that_deliver(self, monkeypatch, approach_rule, brought):
         """The oracle is the game. Each corps the ladder says an order could
         bring is SENT that order on a fresh board; it is offered if and only if
         the order is taken without a question and the muster then counts him
@@ -674,8 +676,14 @@ class TestBringQuotes:
         man who would have come anyway, fifteen points better). On the opening
         board the order marches Bernadotte to Munich, from whose mountains he
         cannot reach the field — the ladder, read from Franconia, gives him
-        47 % — and it stops Murat on "Mack blocks the path at Swabia … Your
-        orders?" (his road to Ney runs through Mack). Neither is offered."""
+        47 %: he is not offered. Murat's road to Ney runs through Mack: before
+        row BA's BA-4 the order stopped him on "Mack blocks the path at Swabia
+        … Your orders?" and he was not offered either (the approach rule held
+        down); with it the order halts him at the approach, asks nothing, and
+        the muster counts him — so his chip stands."""
+        from backend.commands import strategic as road_law
+        monkeypatch.setattr(road_law, "a_support_order_halts_before_the_friends_foe",
+                            lambda: approach_rule)
         world, executor = _board()
         ney, mack = world.marshals["Ney"], world.marshals["Mack"]
         offered = {r["marshal"] for r in order_quotes.bring_quotes(world, ney, mack)}
@@ -692,7 +700,8 @@ class TestBringQuotes:
             order = m.strategic_order
             assert order is not None and order.command_type == "SUPPORT" and order.target == "Ney"
             asks = _asks(m, result)
-            assert asks == (name == "Murat"), f"{name}: the order raised a question = {asks}"
+            assert asks == (name == "Murat" and not approach_rule), \
+                f"{name}: the order raised a question = {asks}"
             note = ex._combat._bad_odds_muster_note(lead, foe, w)
             named = name in note.split(" would answer the guns")[0]
             after = (100 if m.location == "Swabia" else int(ex._combat._arrival_odds_row(
@@ -700,7 +709,7 @@ class TestBringQuotes:
             if (not asks and named and after > 0
                     and (before < 0 or after >= before + order_quotes.BRING_ODDS_GAIN)):
                 delivered.add(name)
-        assert offered == delivered == {"Soult"}
+        assert offered == delivered == brought
 
     def test_every_leads_chips_deliver_on_the_opening_board(self):
         """The same oracle for EVERY corps that could lead on Mack, not Ney
@@ -721,8 +730,9 @@ class TestBringQuotes:
         assert len(offers) >= 7
         assert {lead for lead, *_ in offers} >= {"Ney", "Davout", "Lannes", "Murat", "Napoleon"}
         # Murat is brought to Lannes, who stands beside him (no road to walk) —
-        # never to Ney or Davout, whose roads from him run through Mack
-        assert {lead for lead, name, *_ in offers if name == "Murat"} == {"Lannes"}
+        # and, since row BA's BA-4, to Ney and Davout too: his roads to them
+        # run through Mack, and the order now halts him at the approach
+        assert {lead for lead, name, *_ in offers if name == "Murat"} == {"Lannes", "Ney", "Davout"}
         for lead_name, name, command, objection in offers:
             w, ex = _board()
             lead, foe, m = w.marshals[lead_name], w.marshals["Mack"], w.marshals[name]
@@ -738,7 +748,7 @@ class TestBringQuotes:
             assert came and code == "has_support_order", (command, came, code)
             assert int(ex._combat._arrival_odds_row(lead, m, "Swabia", w, code)["arrival_odds"]) > 0, command
 
-    def test_an_order_that_would_raise_his_question_is_not_offered(self):
+    def test_an_order_that_would_raise_his_question_is_not_offered(self, monkeypatch):
         """Mack stands on Murat's road to Ney. The order's first step is then
         no march: Murat asks ("Mack blocks the path at Swabia … Your orders?"),
         and of the four answers ONE keeps the order (Go Around), one sends him
@@ -746,7 +756,14 @@ class TestBringQuotes:
         (Hold Position, Cancel Order). An order that asks is not an order that
         brings: no row — found by pressing the chip in the real client
         (`tools/ba2_mode_c_walk.py`), where the first oracle, which read the
-        muster with the question still standing, had passed it."""
+        muster with the question still standing, had passed it.
+
+        The guard stands; this board no longer reaches it. Since row BA's BA-4
+        the approach rule halts Murat before Mack and no question is raised
+        (`tests/test_ba4_the_roads_and_the_fog.py`), so the board is played
+        here with that rule held down — the question as it was asked."""
+        from backend.commands import strategic as road_law
+        monkeypatch.setattr(road_law, "a_support_order_halts_before_the_friends_foe", lambda: False)
         from backend.commands.strategic import StrategicOrderProcessor
         world, _executor = _board()
         ney, mack, murat = (world.marshals[n] for n in ("Ney", "Mack", "Murat"))

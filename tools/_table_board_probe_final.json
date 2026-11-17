@@ -1,6 +1,6 @@
 {
  "board": "godot-client\\project-sovereign\\assets\\maps\\tutorial_table_1805.json",
- "board_sha256": "cbbe8ab5198231ca820dc9a3427a7f066154ff53bf5ee0416adfd30b7711f81b",
+ "board_sha256": "f38db7543d9640657d525e97ee6901697a221f5c44f11393561983e82499e6d5",
  "turn_1": {
   "dp": 5,
   "gold": 2500,
@@ -261,7 +261,7 @@
     "dp_after": 2,
     "dialogue": null,
     "options": [],
-    "message": "Talleyrand departs for the Austrian court with your Peace Treaty proposal. Expect a response by next turn. (3 DP spent)"
+    "message": "Talleyrand departs for the Austrian court with your Peace Treaty proposal. Expect a response by next turn. (3 DP spent) Talleyrand carries this letter; his Reassure Ally at Bavaria pauses until he is "
    },
    {
     "turn": 2,
@@ -290,7 +290,7 @@
      "Less generous",
      "Reconsider"
     ],
-    "message": "A magnanimous approach, Sire. More generous terms for Bavaria."
+    "message": "A magnanimous approach, Sire. More generous terms for Bavaria. Your demands were set aside: 95 gold a turn for as long as the treaty stands."
    },
    {
     "turn": 2,
@@ -299,7 +299,7 @@
     "dp_after": 4,
     "dialogue": null,
     "options": [],
-    "message": "Talleyrand departs for the Bavarian court with your Vassalage proposal. Expect a response by next turn. (3 DP spent)"
+    "message": "Talleyrand departs for the Bavarian court with your Vassalage proposal. Expect a response by next turn. (3 DP spent) Talleyrand carries this letter; his Reassure Ally at Bavaria pauses until he is hom"
    }
   ],
   "mornings": [
@@ -550,8 +550,49 @@
   },
   "in_transit_after_turn_1": {
    "acceptance_snapshot": 68,
+   "components_at_send": [
+    "agenda_mod",
+    "anti_renewal_block",
+    "anti_renewal_turns_remaining",
+    "bargain_conflict_penalty",
+    "bargain_value_mod",
+    "base_disposition",
+    "battlefield_diplomacy",
+    "bilateral_betrayal_mod",
+    "coalition_bond",
+    "coalition_loyalty",
+    "composite_floor",
+    "composite_floor_adjustment",
+    "court_favour_mod",
+    "crown_recognition",
+    "deal_balance",
+    "diplomat_skill_bonus",
+    "grievance_flag_count_raw",
+    "grievance_modifier",
+    "hard_reject_posture",
+    "harshness_bonus",
+    "harshness_penalty",
+    "hegemony_target_mod",
+    "military_pressure",
+    "military_supremacy",
+    "oathbreaker_posture",
+    "oathbreaker_turns_remaining",
+    "personality_modifier",
+    "relation_modifier",
+    "reliability_modifier",
+    "respected_estate_mod",
+    "settlement_gratitude_mod",
+    "special_desire_bonus",
+    "stalemate_duration",
+    "territory_escalation",
+    "ultimatum_bonus",
+    "war_age_penalty",
+    "war_score_modifier",
+    "war_weariness"
+   ],
    "diplomatic_state_at_send": "WAR",
    "dp_cost": 3,
+   "outcome_at_send": "ACCEPT",
    "payer_gold_at_send": 2500,
    "proposal": [
     "clauses",

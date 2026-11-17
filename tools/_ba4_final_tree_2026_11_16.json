@@ -1,0 +1,40 @@
+{
+ "_note": "Row BA, BA-4 \u2014 the final tree against the measured shipped arm (the chain's X14) on the keyed world probe, forty ambient turns: as it is; with Murat's OLD ability sentence put back on the booted world; and with the review's news rows left untold as well (an assault's, a cannonade's, a charge's \u2014 \u00a715.21), which must be identical. Written by tools/_ba4_sentence_proof.py.",
+ "seeds": {
+  "jena": {
+   "and_the_reviews_news_untold": [],
+   "as_it_is": [
+    "event_log",
+    "gazette_issues",
+    "marshals",
+    "pending_dispatch_events"
+   ],
+   "with_the_old_sentence": [
+    "event_log",
+    "gazette_issues",
+    "pending_dispatch_events"
+   ]
+  },
+  "marengo": {
+   "and_the_reviews_news_untold": [],
+   "as_it_is": [
+    "event_log",
+    "gazette_issues",
+    "marshals",
+    "pending_dispatch_events"
+   ],
+   "with_the_old_sentence": [
+    "event_log",
+    "gazette_issues",
+    "pending_dispatch_events"
+   ]
+  }
+ },
+ "told": [
+  "event_log",
+  "gazette_issues",
+  "notifications",
+  "pending_dispatch_events"
+ ],
+ "turns": 40
+}

@@ -118,7 +118,9 @@ class TestBuildAndTheMarchCaptions:
             fn = _func(name)
             assert "if Utils.explanations_folded():" in fn and "return out" in fn
         tip = _func("_army_corps_tip")
-        assert '["detour", "guard", "front", "terms"]' in tip
+        # Row BA, BA-4 (BA2-X21): the men a corps' first march costs ride the
+        # ARMY chip's hover too, first of the per-corps lines.
+        assert '["march_cost", "detour", "guard", "front", "terms"]' in tip
         rows = _func("_quote_rows")
         assert '== "army"' in rows and "_army_corps_tip(q)" in rows
 

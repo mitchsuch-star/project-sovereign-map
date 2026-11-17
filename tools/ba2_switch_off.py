@@ -20,6 +20,7 @@ import hashlib
 import os
 import pathlib
 import subprocess
+import time
 import sys
 
 WALK_TIMEOUT_S = 1200
@@ -270,6 +271,36 @@ func _type_the_verdict""")], "day_opens", 8.0, "stands in the panel's room"),
 		return   # decided by its clash: that clash's verdict, plate and cues stand
 """, """	pass
 """)], "day_decided", 8.0, "built a panel"),
+    # Row BA, BA-4 (November 16, 2026): the digits on the table and the first day's row.
+    ("ba4_digit_face", "a chip does not show the digit that fires it (BA4-d)",
+     [("""		label = "%d %s" % [digit, label]          # the selection card's form: "<digit> Label"
+""", """		pass
+""")], "day_opens", 8.0, "(BA4-d)"),
+    ("ba4_digit_press", "a digit does not press its slot's chip (BA4-k)",
+     [("""	_on_day_chip("day:%d" % index)
+	return true
+""", """	return true
+""")], "day_opens", 8.0, "(BA4-k)"),
+    ("ba4_digit_denial", "a digit whose slot holds no lit chip is not denied (BA4-k)",
+     [("""		_day_denied += 1
+		AudioManager.play(DAY_DENY_CUE)
+		return true
+""", """		return true
+""")], "day_opens,day_dim_chip", 8.0, "was not denied"),
+    ("ba4_digit_at_rest", "a digit is the day's while the acts still play (BA4-k)",
+     [("""		and bool(host._final) and _day_panel != null and is_instance_valid(_day_panel) \\
+		and _day_panel.visible and _day_offering()
+""", """		and _day_panel != null and is_instance_valid(_day_panel) and _day_offering()
+""")], "day_opens", 8.0, "a digit while the acts play"),
+    ("ba4_first_row_ack", "the first day's line is shown and never acknowledged (BA4-f)",
+     [("""		_note_first_open(_day_first_screen)
+		_day_first_screen = ""
+""", """		_day_first_screen = ""
+""")], "day_opens", 8.0, "(BA4-f)"),
+    ("ba4_first_row_fit", "the first day's line takes a row on a table that has no room for it (BA4-f)",
+     [("""	return above + d_h <= e_top_abs - 2.0 - top
+""", """	return true
+""")], "day_crowded,day_guns", 8.0, "(BA4-f)"),
 ]
 
 
@@ -300,6 +331,28 @@ def mutated(clean: bytes, swaps) -> bytes:
     return text.replace("\n", eol).encode("utf-8")
 
 
+def _write(path: pathlib.Path, data: bytes, tries: int = 12, pause: float = 0.5) -> None:
+    """Write `data`, trying again when Windows refuses the open for an instant.
+
+    Row BA, BA-4 (November 16, 2026): a run started a minute after a windowed
+    walk had closed died on its FIRST case — `OSError: [Errno 22] Invalid
+    argument` opening `battle_acts.gd` to write, and again on the restore. The
+    file had never been written (it equalled the kept copy) and took a write
+    without complaint moments later: something held it for an instant. A
+    restore that still fails after these tries raises, and the kept copy and
+    the lock stay behind to say so, as after a killed run."""
+    last: OSError | None = None
+    for _ in range(max(1, tries)):
+        try:
+            path.write_bytes(data)
+            return
+        except OSError as exc:
+            last = exc
+            time.sleep(pause)
+    assert last is not None
+    raise last
+
+
 def switch_off(root: pathlib.Path, only=(), walk=_the_walk, cases=None, say=print):
     """Run the cases -> [(name, caught)]. The file is put back, byte for byte,
     whatever happens short of the process being killed — and then the kept
@@ -327,7 +380,7 @@ def switch_off(root: pathlib.Path, only=(), walk=_the_walk, cases=None, say=prin
     try:
         kept.write_bytes(clean)
         for _key, name, swaps, scenes, speed, words in chosen:
-            acts.write_bytes(mutated(clean, swaps))
+            _write(acts, mutated(clean, swaps))
             text = walk(root, scenes, speed)
             caught = words in text
             tail = [line for line in text.splitlines() if "claim(s) failed" in line]
@@ -337,7 +390,7 @@ def switch_off(root: pathlib.Path, only=(), walk=_the_walk, cases=None, say=prin
             if not caught:
                 say("   ... " + "\n   ... ".join(text.splitlines()[-12:]))
     finally:
-        acts.write_bytes(clean)
+        _write(acts, clean)
         back = hashlib.sha256(acts.read_bytes()).hexdigest() == clean_sha
         say(f"battle_acts.gd put back: {back}")
         if back:

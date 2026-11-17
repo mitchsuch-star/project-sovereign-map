@@ -221,6 +221,80 @@ def harassment_losses(world, marshal, region) -> int:
     return losses
 
 
+def depot_supply_bonus(world, region_name, nation) -> bool:
+    """Depot forward logistics: a friendly, undamaged supply depot in the
+    destination or beside it projects its supply — march attrition halved."""
+    region = world.get_region(region_name)
+    if not region:
+        return False
+    if region.controller == nation and region.has_building("supply_depot"):
+        return True
+    for adj_name in region.adjacent_regions:
+        adj = world.get_region(adj_name)
+        if adj and adj.controller == nation and adj.has_building("supply_depot"):
+            return True
+    return False
+
+
+def march_attrition_reading(world, marshal, destination_region, is_retreat=False,
+                            depot=None) -> dict:
+    """BA2-X21 (row BA, BA-4): the march rule READ — what one step into
+    `destination_region` costs the corps as it stands — and nothing applied.
+    The mover applies exactly what this returns
+    (`MovementExecutor._calculate_movement_attrition`), so a quote that reads
+    it beforehand and the march that follows cannot drift.
+
+    The rule: 1 % of the corps (0.5 % on a retreat), up to 2 % more for a
+    corps over 20,000, times the destination's ground; halved for the Old Fox
+    on a retreat and beside a friendly depot on a march; nothing on the
+    nation's own settled soil; an ENEMY's works harass on top
+    (`harassment_losses`). `depot` is the depot test (the mover passes its
+    own method, which tests replace). PURE: no dice, nothing written."""
+    base = 0.005 if is_retreat else 0.01
+    size_penalty = min(0.02, max(0, (marshal.strength - 20000) / 500000))
+    rate = base + size_penalty
+
+    # Terrain multiplier from destination
+    region = world.get_region(destination_region)
+    terrain_mult = region.movement_cost if region else 1.0
+    rate *= terrain_mult
+
+    # MC-1: Kutuzov's "The Old Fox" — retreat-path attrition halved (the
+    # fighting retreat is his art). Retreats ONLY; normal marches pay
+    # full price. If logistics-based attrition resistance is ever wired,
+    # his combined reduction caps at x0.5 (gate stacking rule — ability
+    # supersedes, no multiplicative stacking).
+    if (is_retreat and hasattr(marshal, 'ability')
+            and marshal.ability.get("name") == "The Old Fox"):
+        rate *= 0.5
+
+    # Friendly stable territory: no march attrition (good roads, supply lines)
+    is_friendly_stable = (
+        region and region.controller == marshal.nation and region.stability >= 76
+    )
+
+    # Depot forward logistics: halve march attrition if friendly depot nearby
+    # Only for normal moves, not retreats (retreats already have their own 0.5x)
+    depot_bonus = False
+    if not is_friendly_stable and not is_retreat:
+        if (depot or depot_supply_bonus)(world, destination_region, marshal.nation):
+            rate *= 0.5
+            depot_bonus = True
+
+    losses = 0 if is_friendly_stable else int(marshal.strength * rate)
+    # Harassment from an enemy's fortification and garrison detachment
+    # (SFR-D31: an enemy's — `harassment_losses`).
+    harassment = harassment_losses(world, marshal, region)
+
+    return {
+        "march_losses": int(losses),
+        "harassment_losses": int(harassment),
+        "total_losses": int(losses + harassment),
+        "destination": destination_region,
+        "depot_bonus": depot_bonus,
+    }
+
+
 def attack_preview_hint_for(who: str, foe: str, after: str = "") -> str:
     """S14E-X144: the free preview, named beside the attack a REFUSAL quotes
     ("Try: 'Ney, attack Mack'") - the very sentence the TODAY list and the
@@ -627,25 +701,13 @@ class MovementExecutor:
         Used for depot forward logistics: depots project supply benefits
         to the region they're in AND adjacent regions, halving movement attrition.
         """
-        region = world.get_region(region_name)
-        if not region:
-            return False
-
-        # Check destination region itself
-        if region.controller == nation:
-            if region.has_building("supply_depot"):
-                return True
-
-        # Check adjacent regions
-        for adj_name in region.adjacent_regions:
-            adj = world.get_region(adj_name)
-            if adj and adj.controller == nation:
-                if adj.has_building("supply_depot"):
-                    return True
-        return False
+        return depot_supply_bonus(world, region_name, nation)
 
     def _calculate_movement_attrition(self, marshal, destination_region, world, is_retreat=False) -> dict:
         """Calculate and apply movement attrition. Returns info dict.
+
+        BA2-X21: the calculation is `march_attrition_reading` (pure — a quote
+        reads the same rule before the order is given); this applies it.
 
         Args:
             marshal: Marshal moving
@@ -656,53 +718,12 @@ class MovementExecutor:
         Returns:
             Dict with march_losses, harassment_losses, total_losses, destination
         """
-        base = 0.005 if is_retreat else 0.01
-        size_penalty = min(0.02, max(0, (marshal.strength - 20000) / 500000))
-        rate = base + size_penalty
-
-        # Terrain multiplier from destination
-        region = world.get_region(destination_region)
-        terrain_mult = region.movement_cost if region else 1.0
-        rate *= terrain_mult
-
-        # MC-1: Kutuzov's "The Old Fox" — retreat-path attrition halved (the
-        # fighting retreat is his art). Retreats ONLY; normal marches pay
-        # full price. If logistics-based attrition resistance is ever wired,
-        # his combined reduction caps at x0.5 (gate stacking rule — ability
-        # supersedes, no multiplicative stacking).
-        if (is_retreat and hasattr(marshal, 'ability')
-                and marshal.ability.get("name") == "The Old Fox"):
-            rate *= 0.5
-
-        # Friendly stable territory: no march attrition (good roads, supply lines)
-        is_friendly_stable = (
-            region and region.controller == marshal.nation and region.stability >= 76
-        )
-
-        # Depot forward logistics: halve march attrition if friendly depot nearby
-        # Only for normal moves, not retreats (retreats already have their own 0.5x)
-        depot_bonus = False
-        if not is_friendly_stable and not is_retreat:
-            if self._has_depot_supply_bonus(world, destination_region, marshal.nation):
-                rate *= 0.5
-                depot_bonus = True
-
-        losses = 0 if is_friendly_stable else int(marshal.strength * rate)
-        # Harassment from an enemy's fortification and garrison detachment
-        # (SFR-D31: an enemy's — `harassment_losses`).
-        harassment = harassment_losses(world, marshal, region)
-
-        total_losses = losses + harassment
-        if total_losses > 0:
-            marshal.strength = max(0, marshal.strength - total_losses)
-
-        return {
-            "march_losses": int(losses),
-            "harassment_losses": int(harassment),
-            "total_losses": int(total_losses),
-            "destination": destination_region,
-            "depot_bonus": depot_bonus,
-        }
+        reading = march_attrition_reading(
+            world, marshal, destination_region, is_retreat,
+            depot=self._has_depot_supply_bonus)
+        if reading["total_losses"] > 0:
+            marshal.strength = max(0, marshal.strength - reading["total_losses"])
+        return reading
 
     # ════════════════════════════════════════════════════════════════════
     # TUT-F6 (Aug 8, 2026 live report: "the general objects even if the

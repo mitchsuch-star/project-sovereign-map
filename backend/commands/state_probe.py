@@ -106,6 +106,11 @@ def _pool_reason(world, marshal, action: str, strategic_type: Optional[str]) -> 
     if (action == "attack" and not strategic_type
             and getattr(marshal, "has_counter_punch", lambda: False)()):
         return ""  # the counter-punch waiver: the free strike stands at 0
+    # BA3-X5 (row BA, BA-4): a word of an open day costs no action — while its
+    # QUOTE is built the pool refuses nothing (`battle_day.quoting_a_word`).
+    from backend.game_logic import battle_day as _day
+    if _day.a_word_is_being_quoted():
+        return ""
     need = _cost(world, marshal, action, strategic_type)
     have = int(getattr(world, "actions_remaining", 0) or 0)
     if have >= need:

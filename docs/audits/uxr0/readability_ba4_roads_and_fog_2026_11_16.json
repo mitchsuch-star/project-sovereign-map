@@ -1,0 +1,2289 @@
+{
+ "date": "2026_11_16",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\1bd395101ae53e89\\dfffda9b-3896-4188-accb-7534c4531d56\\scratchpad\\cap_final2\\run\\index.json",
+ "surfaces": {
+  "diorama_ba3_day_opens": {
+   "surface": "Battle Diorama — BA-3, the day's panel (a day that hangs, awaiting our word)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_dim_chip": {
+   "surface": "Battle Diorama — BA-3, the day's panel (the purse spent: every priced word dim)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_word": {
+   "surface": "Battle Diorama — BA-3, the day's panel (the clash after our word; his clash follows)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_night": {
+   "surface": "Battle Diorama — BA-3, the day's panel (a day closed by night)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_defence": {
+   "surface": "Battle Diorama — BA-3, the day's panel (a day the enemy opened against us)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "red": 0,
+      "p1": 0,
+      "ok": 25,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "red": 0,
+      "p1": 0,
+      "ok": 25,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "red": 0,
+      "p1": 0,
+      "ok": 25,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "red": 0,
+      "p1": 0,
+      "ok": 25,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "red": 0,
+      "p1": 0,
+      "ok": 25,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_follows": {
+   "surface": "Battle Diorama — BA-3, the day's panel (OUR clash when he strikes back (his clash follows))",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "red": 0,
+      "p1": 0,
+      "ok": 24,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_follows_his": {
+   "surface": "Battle Diorama — BA-3, the day's panel (HIS clash, the live chips)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_ulm": {
+   "surface": "Battle Diorama — BA-3, the day's panel (the real Ulm opening: Mack surrounded)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_crowded": {
+   "surface": "Battle Diorama — BA-3, the day's panel (a crowded day: thirteen chips)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 38,
+      "red": 0,
+      "p1": 0,
+      "ok": 38,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 38,
+      "red": 0,
+      "p1": 0,
+      "ok": 38,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 38,
+      "red": 0,
+      "p1": 0,
+      "ok": 38,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 38,
+      "red": 0,
+      "p1": 0,
+      "ok": 38,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 38,
+      "red": 0,
+      "p1": 0,
+      "ok": 38,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_day_guns": {
+   "surface": "Battle Diorama — BA-3, the day's panel (the real Ulm with two batteries in reach: sixteen chips)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "red": 0,
+      "p1": 0,
+      "ok": 35,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_dawn_table": {
+   "surface": "Battle Diorama — BA-3, the day's panel (the table that rises at dawn (a day he opened))",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "red": 0,
+      "p1": 0,
+      "ok": 26,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_night_table": {
+   "surface": "Battle Diorama — BA-3, the day's panel (his last night clash, night written on it)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 23,
+      "red": 0,
+      "p1": 0,
+      "ok": 23,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "diorama_ba3_act_approach": {
+   "surface": "Battle Diorama — BA-3 (mid-act: the day's panel is ABSENT)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 18,
+      "red": 0,
+      "p1": 0,
+      "ok": 18,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "region_ba3_the_day": {
+   "surface": "Region Action Panel — a province where a day is open (BA-3)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "red": 0,
+      "p1": 0,
+      "ok": 2,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_ba3_great_battle": {
+   "surface": "Order card — an attack that opens a great battle (BA-3)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "enemy_phase_ba3_day_awaits": {
+   "surface": "Enemy-phase dialog — a battle whose day awaits us, from a real end turn (BA-3)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "enemy_phase_ba3_night": {
+   "surface": "Enemy-phase dialog — a battle on which night fell, from a real end turn (BA-3)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "red": 0,
+      "p1": 0,
+      "ok": 3,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_ba4_halts": {
+   "surface": "Order card — a support order that halts at the approach (BA-4)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_ba4_march_cost": {
+   "surface": "Order card — a march that names the men its first step costs (BA-4)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_ba4_word": {
+   "surface": "Order card — an attack that is a word of an open day (BA-4)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_ba4_pitched": {
+   "surface": "Order card — an attack whose battle is a key one short of a great one (BA-4)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "red": 0,
+      "p1": 0,
+      "ok": 10,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "order_card_ba4_one_day": {
+   "surface": "Order card — the attack of a lead who already holds a day (BA-4's review)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "rail_ba3_day_awaits": {
+   "surface": "Notice rail — 'The day at <field> hangs', opened, with its button (BA-3)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "red": 0,
+      "p1": 0,
+      "ok": 14,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "war_room_ba3_day_gate": {
+   "surface": "The war room — End Turn pressed once with a day of battle open (BA-3, K12)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 49,
+      "red": 0,
+      "p1": 0,
+      "ok": 49,
+      "map": 30,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 51,
+      "red": 0,
+      "p1": 0,
+      "ok": 51,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 55,
+      "red": 0,
+      "p1": 0,
+      "ok": 55,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 56,
+      "red": 0,
+      "p1": 0,
+      "ok": 56,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 53,
+      "red": 0,
+      "p1": 0,
+      "ok": 53,
+      "map": 32,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "aeae6967",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

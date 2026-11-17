@@ -410,3 +410,28 @@ The Mode C walk of both lessons and the campaign's eight lines on BEGIN; the rel
 
 ### 17.6 Hand-off
 ▶ NEXT = **S14e, DD-B's re-measure** (`PRE_DEPLOY_PLAN.md` §2: three fresh players, the same brief and roads, 20 turns each in the client on the DD-B instrument, reading the game Round 0 will meet; done when under 5 rows per 10 turns and 0 P1 — otherwise every new row is homed to S14f). `docs/NEXT_SESSION_PROMPT.md` is overwritten for it.
+
+## §18 The eleventh screen — the day of battle (row BA, session BA-4, November 16, 2026)
+
+The user's tick at BA-4's plan gate ("First-open line"; `BATTLE_DIORAMA_SPEC.md` §15.19). The day's panel is
+an action screen like the ten before it, and the first day of battle of a campaign now says what a day is,
+once, in the table's own words:
+
+> "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and
+> the enemy answers each word in turn. Two silences running, or every point spent, and night falls."
+
+- **The id** is `battle_day`, the eleventh of `first_open.SCREENS`; the line is 203 characters (`LINE_CAP`
+  220) and reads no constant that could drift (the purse's size is on the table beside it).
+- **Where it rides.** `battle_day.block` attaches it (`first_open.attach`) to an OPEN day's block — the
+  tableau's `day`, `GET /battle_day`, the province panel's quotes — never to a closing block. A read is not a
+  showing: the store is written by `POST /first_open` alone, as for every screen.
+- **Where it is shown.** `battle_acts.gd` gives it a row of its own above the day's head, in the quiet
+  ink of a note (`Utils.COLOR_INFO`). It may take the told line's row; it never scrolls a chip (`_day_first_fits`) — where the table has
+  no room (the fullest boards) it is the head's hover and is NOT acknowledged, so the next day's table shows
+  it. The acts hold no API client: the showing calls `_on_first_open_seen` on the first ancestor of the
+  tableau that has it (main.gd), which sends the acknowledgement once a world. A staged table (the acts'
+  walk, the captures) stands under none and sends nothing.
+- **Pins.** `tests/test_ba4_the_roads_and_the_fog.py::TestTheFirstDayNamesItsRules` and
+  `::TestTheFirstDaysLineInTheClient`; the days-panel walk's first-day claims
+  (`tests/test_ba3_the_days_panel.py`); the live walk's step `first_day_line`
+  (`tools/ba4_mode_c_walk.py --board day`), which reads the acknowledgement off the client.

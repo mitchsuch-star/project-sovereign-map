@@ -6571,6 +6571,9 @@ class WorldState:
     # Blessed default (band 60k-100k): total engaged at or above this reads
     # as a Great battle.
     GREAT_BATTLE_THRESHOLD = 80000
+    # Row BA, BA-4: beside a province's own key in `battle_counts`, the later
+    # clashes of a day of battle fought there (a key no province carries).
+    DAY_CLASHES_SUFFIX = " (later clashes of a day)"
 
     def compose_battle_name(self, region_name: str, total_engaged: int = 0) -> str:
         """W6-2: name a field battle and record it in battle_counts.
@@ -6597,6 +6600,12 @@ class WorldState:
         count = int(self.battle_counts.get(region_name, 0)) + 1
         self.battle_counts[region_name] = count
         great = int(total_engaged) >= self.GREAT_BATTLE_THRESHOLD
+        # Row BA, BA-4 ("one name for a day"): a day of battle is ONE battle of
+        # the province's series. Its later clashes advance the count above (the
+        # battle's dice and the voice rotation read it) and are counted beside
+        # it (`battle_day.the_clashs_name`); the ordinal leaves them out.
+        count = max(1, count - int(self.battle_counts.get(
+            region_name + self.DAY_CLASHES_SUFFIX, 0) or 0))
         if count == 1:
             return (f"The Great Battle of {region_name}" if great
                     else f"Battle of {region_name}")
@@ -16885,7 +16894,17 @@ class WorldState:
                     self.log_event(log_event_data)
 
                 # Fog of War (Session 34A): Battle grants FULL visibility on battle region
-                self.update_intel_from_battle(auto_charge_battle_region, self.current_turn)
+                # — BA2-X20: for those who fought in it.
+                from backend.game_logic import intel_surfaces as _surf
+                if _surf.battle_lights_field(self, auto_charge_battle_region, marshal, enemy):
+                    self.update_intel_from_battle(auto_charge_battle_region, self.current_turn)
+                else:
+                    # The review, lane 4: the charge the cavalry makes of
+                    # itself is a battle like another — news where it is news.
+                    from backend.game_logic import battle_news as _news
+                    _news.of_a_battle(self, auto_charge_battle_region, marshal, enemy,
+                                      combat_result, int(pre_battle_atk) + int(pre_battle_def),
+                                      road="auto_charge")
 
                 # Apply war damage + stability hit to battle region (Phase 6.2.C)
                 battle_region = self.get_region(auto_charge_battle_region)

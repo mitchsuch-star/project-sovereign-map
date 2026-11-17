@@ -802,6 +802,66 @@ SHOTS: list[dict] = [
                      "plain STALEMATE or BATTLE badge, where one stands, on the same fill; no raw key; "
                      "nothing clipped at scale 2.0",
     },
+    # Row BA, BA-4 (November 16, 2026) — the order card where the session
+    # changed its words (the payloads: `iq10_capture_payloads.py --only
+    # the_roads_and_the_fog`, with `the_days_points` in the same run).
+    {
+        "id": "order_card_ba4_halts",
+        "surface": "Order card — a support order that halts at the approach (BA-4)",
+        "payload": "order_ba4_halts",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS FOR MURAT", "", []],
+        "must_show": "the price and the clock on one line — '1 action · halts at the approach', "
+                     "never 'joins him in N turns'; the road; the gold line 'Mack blocks the road "
+                     "at Swabia — Murat halts at the approach and joins the next attack there'; "
+                     "Send / Put in line / Cancel whole; the card whole at scale 2.0",
+    },
+    {
+        "id": "order_card_ba4_march_cost",
+        "surface": "Order card — a march that names the men its first step costs (BA-4)",
+        "payload": "order_ba4_march_cost",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS", "", []],
+        "must_show": "under the price and the clock, the line 'The first march costs N men.' whole "
+                     "on the card; Send / Put in line / Cancel whole; the card whole at scale 2.0",
+    },
+    {
+        "id": "order_card_ba4_word",
+        "surface": "Order card — an attack that is a word of an open day (BA-4)",
+        "payload": "order_ba4_word",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS", "", []],
+        "must_show": "the first line reads 'A word of the day — 1 point · attacks at once' — no "
+                     "'1 action' and no 'Free' anywhere on the card; Berthier's muster under it; "
+                     "Send / Put in line / Cancel whole; the card whole at scale 2.0",
+    },
+    {
+        "id": "order_card_ba4_pitched",
+        "surface": "Order card — an attack whose battle is a key one short of a great one (BA-4)",
+        "payload": "order_ba4_pitched",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS", "", []],
+        "must_show": "in gold, 'A pitched battle — <lead> commands the day: N points.' and what road "
+                     "lies behind the enemy — never 'A great battle' (under 80,000 men engaged); "
+                     "Berthier's muster above it; Send / Put in line / Cancel whole; the card whole "
+                     "at scale 2.0",
+    },
+    {
+        "id": "order_card_ba4_one_day",
+        "surface": "Order card — the attack of a lead who already holds a day (BA-4's review)",
+        "payload": "order_ba4_one_day",
+        "scene": "res://scenes/order_confirm_card.tscn",
+        "mode": "call", "method": "open_card",
+        "args": ["$payload.order_quote", "ORDERS", "", []],
+        "must_show": "NO gold line '… commands the day'; in the warning colour, '<lead>'s day against "
+                     "<enemy> is still open — a battle here would be a single clash, with no day of its "
+                     "own.' whole on the card; Send / Put in line / Cancel whole; the card whole at "
+                     "scale 2.0",
+    },
     {
         "id": "rail_ba3_day_awaits",
         "surface": "Notice rail — 'The day at <field> hangs', opened, with its button (BA-3)",

@@ -267,7 +267,9 @@ class TestTheMusterPricesTheCoordination:
         promised = {r["marshal"] for r in pv["rows"] if r["will_join"]}
         fought = set(ms["arrived"]) | set(ms["contributors"])
         assert ms["total"] <= pv["attacker"]["ceiling_strength"]
-        if promised <= fought:
+        # Row BA, BA-4 (§15.5.7): a corps that came up at the last hour brings
+        # three quarters of its weight — under the ceiling though it fought.
+        if promised <= fought and not ms.get("last_hour"):
             assert ms["total"] == pv["attacker"]["ceiling_strength"]
         else:
             assert ms["total"] < pv["attacker"]["ceiling_strength"]

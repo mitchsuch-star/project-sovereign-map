@@ -41,9 +41,25 @@ from backend.game_logic import campaign_variance as _cv
 ACTS = ("approach", "cannonade", "assault", "crisis", "pursuit")
 
 # An arrival won by this many points or fewer reads "at the last hour". In
-# BA-1 it is a reading of the two numbers the arrival roll produced; BA-3
-# gives it its weight (BATTLE_DIORAMA_SPEC.md §15.5.7).
+# BA-1 it is a reading of the two numbers the arrival roll produced; BA-4
+# gives it its weight (BATTLE_DIORAMA_SPEC.md §15.5.7: three quarters —
+# `combat_executor.the_last_hour_brings_three_quarters`).
 LAST_HOUR_MARGIN = 5
+
+
+LAST_HOUR_WEIGHT_LINE = " He brings three-quarters of his weight."
+
+
+def arrived_at_the_last_hour(row) -> bool:
+    """ONE definition for the telling and the weight: a reinforcement row that
+    ARRIVED on a roll won by `LAST_HOUR_MARGIN` points or fewer."""
+    if not isinstance(row, dict) or not row.get("arrived"):
+        return False
+    try:
+        margin = int(row.get("score")) - int(row.get("threshold"))
+    except (TypeError, ValueError):
+        return False
+    return 0 < margin <= LAST_HOUR_MARGIN
 
 _ABSENT = ("failed_arrive", "refused", "out_of_reach")
 _TEMPERS = ("aggressive", "cautious", "literal", "sovereign")
@@ -416,6 +432,7 @@ def _approach(script: _Script, payload: dict, attacker, defender,
     dispositions_told = _plan(script, attacker, defender, battle_result,
                               reinforcements, facts, player_side)
 
+    cut_names = set(battle_result.get("last_hour") or ())
     for side in ("attacker", "defender"):
         lead = attacker if side == "attacker" else defender
         for row in reinforcements.get(side) or []:
@@ -425,7 +442,7 @@ def _approach(script: _Script, payload: dict, attacker, defender,
             origin = str(row.get("origin", "") or "")
             score, bar = _i(row.get("score")), _i(row.get("threshold"))
             margin = score - bar
-            late = 0 < margin <= LAST_HOUR_MARGIN
+            late = arrived_at_the_last_hour(row)
             # The roll's own figures, the province he marched from, his
             # orders and his court's doctrine are the marching side's to
             # read; the other side's corps is seen to come, and to come
@@ -437,17 +454,22 @@ def _approach(script: _Script, payload: dict, attacker, defender,
             whence = f" from {origin}" if own and origin and origin != region else ""
             f = {"n": _n(name), "w": whence, "s": score, "b": bar,
                  "l": _n(lead.name), "k": doctrine, "who": name}
+            # Row BA, BA-4 (§15.5.7): what the last hour cost him, where the
+            # resolver cut it (`battle_result["last_hour"]`) — told to a party
+            # to the battle of either side's corps: that he came late is told
+            # already, and the three quarters are the game's rule, not his roll.
+            cut = (LAST_HOUR_WEIGHT_LINE if player_side and name in cut_names else "")
             if late and own:
                 text = script.said(
                     "arrive_late_own",
                     "{n} comes up{w} at the last hour ({s} against a bar of {b}).",
                     "{n} reaches the field{w} at the last hour ({s} against a bar of {b}).",
-                    "{n} comes up late{w}, but in time ({s} against a bar of {b}).", **f)
+                    "{n} comes up late{w}, but in time ({s} against a bar of {b}).", **f) + cut
             elif late:
                 text = script.said(
                     "arrive_late", "{n} comes up at the last hour.",
                     "{n} reaches the field at the last hour.",
-                    "{n} comes up late, but in time.", **f)
+                    "{n} comes up late, but in time.", **f) + cut
             elif doctrine:
                 text = f"{_n(name)} arrives{whence}: {doctrine} brought him in time."
             elif ordered:
@@ -852,17 +874,35 @@ def _pursuit(script: _Script, world, payload: dict, attacker, defender,
     damage = _i(battle_result.get("pursuit_damage"))
     if damage > 0:
         ability = (getattr(attacker, "ability", None) or {}).get("name", "")
+        # Row BA, BA-4 (§15.5.7): the corps that pursued when it is not the
+        # lead — one that fought beside him. Named where the table seats him;
+        # a corps of the reserve has no plinth to move, so the lead's line
+        # tells it and names no man the table does not show.
+        pursuer = str(battle_result.get("pursuer") or "")
+        actor, who = attacker.name, _n(attacker.name)
+        if pursuer:
+            ability = str(battle_result.get("pursuer_ability") or "")
+            if pursuer in script.shown:
+                actor, who = pursuer, _n(pursuer)
+            elif player_side == "attacker":
+                # the player's own corps: his name is the player's to read,
+                # seated or not (the lead's plinth still makes the move)
+                who = f"{_n(pursuer)}, from the reserve,"
+            else:
+                # another crown's corps the table does not show: not his
+                # name, and not the ability only he holds
+                who, ability = f"{_n(attacker.name)}'s reserve", ""
         screened = (getattr(defender, "ability", None) or {}).get("name", "") == "The Old Fox"
         text = script.said(
             "pursue",
             "{a} rides them down{b}: {x:,} more.",
             "{a} presses the pursuit{b}: {x:,} more.",
             "{a} hangs on their rear{b}: {x:,} more.",
-            a=_n(attacker.name), b=f" ({ability})" if ability else "", x=damage)
+            a=who, b=f" ({ability})" if ability else "", x=damage)
         if screened:
             text += f" {_n(defender.name)}'s rearguard screened the retreat and halved the harvest."
         script.add("pursuit", _beat(
-            "pursue", "attacker", attacker.name, text, weight="head",
+            "pursue", "attacker", actor, text, weight="head",
             damage=damage, halved=screened, target=defender.name),
             named=(defender.name,))
 

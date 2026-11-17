@@ -4402,6 +4402,24 @@ def _r12_applied(arrivals, **board) -> int:
     return int(lead.strength + ex._committed_reinforcement_strength(lead, team, w))
 
 
+@pytest.fixture
+def _before_the_last_hour(monkeypatch):
+    """Row BA, BA-4 (§15.5.7, November 16, 2026) — held DOWN for the rows that
+    pin S14's forecast by hand. Those rows count an arrival as ONE coin (he
+    comes with all his weight or he does not) and read the per-corps odds off
+    `_expected_arrival_weight`, which was the chance and the weight at once.
+    Since BA-4 an arrival won by five points or fewer brings three quarters:
+    the chance (`_arrival_chance`) and the weight are two numbers, and a
+    marching corps has three outcomes. With the seam down the arithmetic is
+    the one these rows recorded, to the last bit; the last hour's own forecast
+    is pinned against a walk over every roll in
+    tests/test_ba4_the_roads_and_the_fog.py (`TestTheForecastCountsTheLastHour`)."""
+    from tests._ba4_seams import BA4_SEAMS_BY_ROW
+    from tests._oct27_seams import hold_down
+    hold_down(monkeypatch, BA4_SEAMS_BY_ROW["QUARTERS"])
+
+
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14E12:
     def test_the_odds_are_the_resolvers_own(self):
         ex = _r12_combat()
@@ -11125,6 +11143,7 @@ class TestS14E17:
             "band", "ratio", "committed_attacker", "committed_defender", "joining"}
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14EX74:
     """Sweep sibling (class: a verdict printed beside figures that leave out
     the ground truth it folded): the staff's bad-odds addendum
@@ -11255,6 +11274,7 @@ def _rd11_exact_by_hand(w, lead_name, foe_name, ex) -> float:
     return mean
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14ED11:
     """Reproduced (the shipped 1805 board, Davout on Mack at 52,000, before the
     fix): the header printed "expect about 109,122 with the corps likely to
@@ -11410,6 +11430,7 @@ def _rd11_alpha(w, ex=None) -> dict:
     return _rd11_muster(w, "Alpha", "Foe", ex)
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14ED11Applied:
     """Shown == applied: the printed mean is the probability-weighted mean of
     what the resolver would mass in each outcome."""
@@ -11562,6 +11583,7 @@ class TestS14ED11TheAIsReads:
         assert ex._defender_muster(w.marshals["Foe"], w) == before
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14EX68:
     """The defect half of D11. Reproduced: the boot's Davout-on-Mack header
     printed 109,122 beside an exact 107,570 (1.4% above) - the one-stamp mean
@@ -28391,6 +28413,7 @@ def _d12_state(w) -> dict:
             for n, m in w.marshals.items()}
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14ED12:
     """The ruling: the DEFENDER's committed term on the exact per-outcome
     expectation, each arrival outcome under its own coordination - the one
@@ -28578,6 +28601,7 @@ class TestS14ED12:
         assert term == pytest.approx(expect, rel=1e-9)
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14EX76:
     """The defect half: `_defender_muster` priced every defender joiner under
     ONE coordination stamp (the player's screen: the stamp of them all
@@ -28716,6 +28740,7 @@ def _d12_joint(w, lead_name, foe_name, attackers, defenders):
     return n_sum / d_sum, mor
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14EX77:
     """The defect half: inside the band the lead's own `get_attack_modifier`
     (and the defender's `get_defense_modifier`) was read under the coordination
@@ -29006,6 +29031,7 @@ def _d12_mirror(attackers=True, defenders=True):
     return w
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14EX215:
     """The sweep sibling of D12 (class: one arithmetic for both sides of the
     band). D11 gave the exact attacker mean to the PLAYER's lead only (a
@@ -29207,6 +29233,7 @@ class TestS14EX216:
         assert up == down > 0
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14EX217:
     """The sweep sibling of D12 (class: a private copy of the defender's summer).
     The player's DEFENCE desk (`state_desk._defence_lines`, "Were Mack to attack,

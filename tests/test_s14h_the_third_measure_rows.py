@@ -9684,6 +9684,24 @@ def _p2r14_set_visibility(w, region: str, level: str) -> None:
     w.get_region_intel(region).visibility = level
 
 
+@pytest.fixture
+def _before_the_last_hour(monkeypatch):
+    """Row BA, BA-4 (§15.5.7, November 16, 2026) — held DOWN for the rows that
+    pin S14's forecast by hand. Those rows count an arrival as ONE coin (he
+    comes with all his weight or he does not) and read the per-corps odds off
+    `_expected_arrival_weight`, which was the chance and the weight at once.
+    Since BA-4 an arrival won by five points or fewer brings three quarters:
+    the chance (`_arrival_chance`) and the weight are two numbers, and a
+    marching corps has three outcomes. With the seam down the arithmetic is
+    the one these rows recorded, to the last bit; the last hour's own forecast
+    is pinned against a walk over every roll in
+    tests/test_ba4_the_roads_and_the_fog.py (`TestTheForecastCountsTheLastHour`)."""
+    from tests._ba4_seams import BA4_SEAMS_BY_ROW
+    from tests._oct27_seams import hold_down
+    hold_down(monkeypatch, BA4_SEAMS_BY_ROW["QUARTERS"])
+
+
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14G14:
     """Reproduced (the boot board, before the fix): "what if Massena attacks
     Archduke John" printed "Massena (42,000) vs Archduke John (substantial force)
@@ -9893,6 +9911,7 @@ class TestS14GD4:
             "band", "ratio", "committed_attacker", "committed_defender", "joining"}
 
 
+@pytest.mark.usefixtures("_before_the_last_hour")
 class TestS14GX57:
     """Sibling (class: a verdict printed beside figures that leave out the
     ground truth it folded) - the staff's bad-odds addendum, the contact ask and
@@ -12274,6 +12293,22 @@ def _r20_no_refresh(monkeypatch):
                         lambda self, ctx: None)
 
 
+@pytest.fixture
+def _before_the_pursuit_by_a_corps(monkeypatch):
+    """Row BA, BA-4 (§15.5.7, November 16, 2026) — held DOWN for the rows
+    that read `_r20_battle`'s aftermath by its recorded figures. On that board
+    Murat marches to Ney's guns; since BA-4 a corps that FOUGHT pursues when
+    the lead has no pursuit of his own, so Murat's horse takes 5,000 more of
+    Mack's men and the beaten Mack reads a band lower. The rows pin where the
+    fog follows him, on the battle as it was recorded; the pursuit itself is
+    pinned in tests/test_ba4_the_roads_and_the_fog.py
+    (`TestAPursuitIsAnyCorpsThatFought`)."""
+    from tests._ba4_seams import BA4_SEAMS_BY_ROW
+    from tests._oct27_seams import hold_down
+    hold_down(monkeypatch, BA4_SEAMS_BY_ROW["PURSUIT"])
+
+
+@pytest.mark.usefixtures("_before_the_pursuit_by_a_corps")
 class TestS14G20:
     """The defect on the shipped board. The old reading: the gate named Mack
     at Swabia (~19,075) after he retreated to Munich."""
@@ -12417,6 +12452,7 @@ class TestS14G20TheLiveReader:
         assert _known_enemy_force_at(world, "France", "Rhineland") == 0
 
 
+@pytest.mark.usefixtures("_before_the_pursuit_by_a_corps")
 class TestS14GX94:
     """S14G-X94 - the desk's and the dawn's strength estimator
     (`dispatch._enemy_strength_estimate_detail`) counted a man ONCE at the first
@@ -17565,12 +17601,20 @@ class TestS14GX159:
         """For every province, weighted and breadth-first, with and without an
         avoid-set (a cautious man's, and a reroute's `avoid_is_law`): the road
         `plot_route` returns with the seam down is the pathfinder's own with
-        NO mover - what the AI walked before this slice."""
+        NO mover - what the AI walked before this slice.
+
+        Row BA, BA-4 (BA2-X10) changed the reroute rung afterwards: a road
+        ROUND a corps now keeps to open frontiers, for a court too. That rule
+        is held down here with this slice's own seam, so the reading stays
+        "the AI's road before this slice"; BA-4's rule is played in
+        `tests/test_ba4_the_roads_and_the_fog.py`."""
+        from backend.commands import strategic as _road_law
         from backend.commands.strategic import plot_route
         w = _r33_ai_board(_r33_boot)
         nap = w.get_marshal("Napoleon")
         here = nap.location
-        with _r33_seam_down():
+        with _r33_seam_down(), pytest.MonkeyPatch.context() as _ba4:
+            _ba4.setattr(_road_law, "a_road_round_keeps_to_open_frontiers", lambda: False)
             for dest in w.regions:
                 if dest == here:
                     continue
@@ -17587,7 +17631,9 @@ class TestS14GX159:
         root = _R33_ROOT / "backend" / "commands"
         strategic = (root / "strategic.py").read_text(encoding="utf-8")
         plot = strategic[strategic.index("def plot_route("):strategic.index("def road_verdict(")]
-        assert plot.count("mover_nation=_mover") == 4
+        # four rungs, and since row BA's BA-4 (BA2-X10) the lawful road ROUND a
+        # corps, which names the mover as the others do
+        assert plot.count("mover_nation=_mover") == 5
         assert "_mover = marshal.nation" in plot
         roads = strategic[strategic.index("def march_roads("):]
         roads = roads[:roads.index("\ndef ", 10)]

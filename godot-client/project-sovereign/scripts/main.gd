@@ -10871,13 +10871,20 @@ func _show_ghost_for(key: String) -> void:
 
 
 func _order_ghost_label(q: Dictionary) -> String:
-	"""The badge at the ghost road's head: its clock and its price."""
+	"""The badge at the ghost road's head: its clock and its price. A word of
+	an open day of battle is priced in the day's points, never as "free"; an
+	order that halts at the approach says so in place of a road's clock (row
+	BA, BA-4 - the card's own two rules, `OrderConfirmCard.price_of` / `_clock`)."""
 	if bool(q.get("already", false)):
 		return "already ordered"
 	var ap := int(q.get("ap", 0))
 	var price := "free" if ap <= 0 else "%d AP" % ap
+	if str(q.get("word", "")) != "":
+		price = Utils.quote_price_tail(q)
 	if str(q.get("kind", "")) == "attack":
 		return "attack · " + price
+	if bool(q.get("halts", false)):
+		return "halts at the approach · " + price
 	var turns := int(q.get("turns", 0))
 	return ("this turn" if turns <= 0 else Utils.plural(turns, "turn")) + " · " + price
 

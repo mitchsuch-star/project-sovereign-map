@@ -264,6 +264,12 @@ const TOOL_SCRIPTS = [
 	# (tools/ba2_mode_c_walk.py; its record is read by
 	# tests/test_ba2_the_walls_and_the_guns.py)
 	"res://../../tools/ba2_mode_c_walk.gd",
+	# Row BA, BA-3 and BA-4: the day of battle and the roads, pressed in the
+	# real client (tools/ba3_mode_c_walk.py, tools/ba4_mode_c_walk.py; BA-4's
+	# record is read by tests/test_ba4_the_roads_and_the_fog.py). BA-3's walk
+	# was not named here until BA-4 named both (November 16, 2026).
+	"res://../../tools/ba3_mode_c_walk.gd",
+	"res://../../tools/ba4_mode_c_walk.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

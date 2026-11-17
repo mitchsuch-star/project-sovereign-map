@@ -6929,6 +6929,8 @@ _DISPATCH_EVENT_TYPES = {
     # rather than chose. It died silently; the player learned of it by
     # giving him an order two turns later.
     "order_voided_by_battle",
+    # Row BA, BA-4: a day of battle the night closed (no table told it).
+    "battle_day_closed",
     "garrison_regen", "broken_recovered",
     # FA-N58 (slice 17): the retreat family's completion, beside the broken
     # family's.
@@ -8352,6 +8354,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_treaty_signed": "Sire — {nation_a_display} and {nation_b_display} have signed the {treaty_type}.",
     "diplomatic_treaty_broken": "{nation} has broken the {treaty_type}.",
     "diplomatic_war_declared": "{nation} has declared war on {target}.",
+    # Row BA, BA-4 (BA2-X20): news of a battle abroad — the sentence is the
+    # campaign log's own (`battle_news.line_of`).
+    "battle_news": "{line}",
     # FA-65: and what to DO about it — rendered by the per-type arm in
     # `_format_dispatch_event_text`, because the hint is optional and a
     # `.format()` with an unsupplied key emits the raw template.

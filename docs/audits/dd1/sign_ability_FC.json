@@ -89,7 +89,7 @@
    "action": "propose_armistice",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Unlikely",
+   "likelihood": "Doubtful",
    "verdict": "signed",
    "message": "Treaty signed: At War → Armistice with Austria.",
    "type_sent": "armistice_winning",
@@ -1445,9 +1445,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 8.9,
+ "clone_ms_mean": 9.81,
  "clones": 47,
- "seconds": 5.6,
+ "seconds": 6.0,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

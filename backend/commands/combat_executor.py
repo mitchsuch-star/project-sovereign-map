@@ -62,8 +62,59 @@ def _war_purpose_prompt(world, target: str) -> str:
     return _diplomacy.war_purpose_prompt(world, target)
 
 
+def a_pursuit_is_any_corps_that_fought() -> bool:
+    """§15.5.7 (row BA, BA-4; the user's tick — widened to every corps that
+    FOUGHT by the answer recorded at BA-2's hand-over, spec §15.13) seam: when
+    the lead has no pursuit ability, the
+    highest among the victor's corps that FOUGHT on the field fires it —
+    whether the corps marched in or stood there, never one that brought
+    nothing to the fighting; the highest only; the Old Fox still halves it.
+    This reverses MC-1's "he must LEAD the killing blow": a reinforcing Murat
+    earned nothing. Down (False): the lead's ability alone."""
+    return True
+
+
+def pursuit_bonus(marshal) -> int:
+    """The pursuit casualties a corps commander's ability adds on a rout he
+    helped win: the First Horseman and the Pursuit Master 5,000 (a cavalry
+    corps), "Vorwärts!" 3,000; 0 for every other man. ONE table for the lead
+    and, since BA-4, for a corps that fought beside him."""
+    name = (getattr(marshal, "ability", None) or {}).get("name", "")
+    if name in ("First Horseman of Europe", "Pursuit Master"):
+        return 5000 if getattr(marshal, "cavalry", False) else 0
+    if name == "Vorwärts!":
+        return 3000
+    return 0
+
+
+def the_last_hour_brings_three_quarters() -> bool:
+    """§15.5.7 (row BA, BA-4; the user's tick) seam: an arrival won by 5
+    points or fewer (`battle_script.LAST_HOUR_MARGIN` — the roll the table
+    already tells as "comes up at the last hour") brings THREE QUARTERS of its
+    weight, on either side, through the one function that halves a faithless
+    man's (`pair_contribution_breakdown`); the muster's forecast counts the
+    same roll the same way (`CombatExecutor._expected_arrival_weight`). Down
+    (False): a corps that arrives brings all the weight it has."""
+    return True
+
+
+LAST_HOUR_MUSTER_LINE = ("At the last hour a corps brings three-quarters of "
+                         "its weight — counted in the figures above.")
+
+
+def last_hour_names(rows) -> frozenset:
+    """The corps of one side that arrived at the last hour — read off the
+    arrival rolls the attack already holds (`ctx.attacker_reinforcements`,
+    `ctx.defender_reinforcements`). Empty with the seam down."""
+    if not the_last_hour_brings_three_quarters():
+        return frozenset()
+    from backend.game_logic.battle_script import arrived_at_the_last_hour
+    return frozenset(str(row.get("marshal") or "") for row in (rows or [])
+                     if arrived_at_the_last_hour(row))
+
+
 def pair_contribution_breakdown(lead, ally, owner=None, *,
-                                without_grievance=False) -> dict:
+                                without_grievance=False, last_hour=False) -> dict:
     """How much of `ally`'s weight reaches a battle `lead` leads, and why.
 
     Returns ``{scale, relationship_scale, trust_factor, grievance,
@@ -91,6 +142,12 @@ def pair_contribution_breakdown(lead, ally, owner=None, *,
     jealousy card prices the grievance's INCREMENT as the difference.
     Keyword-only, default False: the default path is byte-identical and
     no mechanical reader passes it (pinned by census).
+
+    Row BA, BA-4 (§15.5.7): `last_hour=True` — the RESOLVER's word for a
+    corps whose arrival roll was won by 5 points or fewer — multiplies the
+    product by `LAST_HOUR_CONTRIBUTION` (three quarters) and adds
+    ``last_hour_factor`` to the dict. Keyword-only, default False: every
+    other reader's dict and product are as they were.
     """
     if owner is None:
         owner = CombatExecutor
@@ -123,9 +180,16 @@ def pair_contribution_breakdown(lead, ally, owner=None, *,
         if _trust is not None and get_trust_tier(int(_trust)) == TrustTier.HOSTILE:
             trust_factor = owner.BROKEN_TRUST_CONTRIBUTION
             scale *= owner.BROKEN_TRUST_CONTRIBUTION
-    return {"scale": scale, "relationship_scale": relationship_scale,
-            "trust_factor": trust_factor, "grievance": grievance,
-            "relationship": relationship, "trust": trust}
+    out = {"scale": scale, "relationship_scale": relationship_scale,
+           "trust_factor": trust_factor, "grievance": grievance,
+           "relationship": relationship, "trust": trust}
+    if last_hour:
+        # §15.5.7: he came up at the last hour — three quarters of his weight.
+        factor = (float(owner.LAST_HOUR_CONTRIBUTION)
+                  if the_last_hour_brings_three_quarters() and scale > 0.0 else 1.0)
+        out["scale"] = scale * factor
+        out["last_hour_factor"] = factor
+    return out
 
 
 def weight_phrase(fraction: float) -> str:
@@ -1171,6 +1235,20 @@ class AttackContext:
 #    `tools/_ddb_s13b_series_arms.py`; the code-health ratchet forbids a
 #    module lever). ──
 
+def a_battery_is_spared_its_own_shells() -> bool:
+    """BA2-X12 (row BA, BA-4) seam: a battery is no victim of its own
+    collateral roll. `_execute_bombardment` rolls stray shells for every corps
+    in the target's province but the target — the firing battery included when
+    it stands there (a marshal's objection or defiance turns an order into a
+    bombardment of the nearest enemy within two provinces, and a gun ordered
+    in support fires from inside the battle's own province): "FRIENDLY FIRE:
+    Marmont — 636 casualties from stray shells!", a trust penalty and a
+    relationship penalty against himself. Up: the battery is left out of the
+    roll, on every road. Down (False): it is rolled for like any other corps
+    there — the draw it took is part of the battle's stream on that road."""
+    return True
+
+
 def no_guns_from_a_sanctuary() -> bool:
     """Session G4 (DYNAMISM_SPEC.md §7d, November 11, 2026): no battery
     bombards OUT of a province whose owner is a third court not at war with
@@ -1423,12 +1501,52 @@ def holds_a_post(marshal) -> bool:
                 and getattr(order, 'target', None) == getattr(marshal, 'location', None))
 
 
-def muster_row_hint(m, lead, code: str, will_join: bool, battle_region) -> str:
+def the_muster_names_only_an_order_that_brings() -> bool:
+    """BA2-X7 (row BA, BA-4): Berthier's two lever sentences — the muster
+    row's hint and the arrival note's "order '…' and it rises to about N%" —
+    name the order only where sending it BRINGS the corps, read from where
+    the order's first march leaves him (`order_quotes.what_the_order_delivers`,
+    the chips' own reading). They read every corps from where he STOOD: on
+    the opening battle "a written order ('Bernadotte, support Ney') would
+    likely bring him" — and the order marched him at once to Munich, from
+    whose mountains he cannot reach the field. Display only: it moves no
+    number. Down (False): the sentences as they were."""
+    return True
+
+
+def _order_would_not_bring(m, lead, lever) -> str:
+    """BA2-X7: what the muster says where the order would NOT bring him —
+    where it would march him instead, or nothing. Never the order's own
+    words in quotes: a sentence that names the order is a promise."""
+    why = str((lever or {}).get("why_not") or "")
+    if why == "marches_away":
+        return (f"— an order to support {lead.name} would march him to "
+                f"{lever.get('stop')}, out of reach of this field")
+    if why == "no_odds" and lever.get("stop") and lever.get("stop") != m.location:
+        return (f"— an order to support {lead.name} would march him to "
+                f"{lever.get('stop')}, and from there he cannot reach this field in time")
+    if why == "asks":
+        return (f"— an order to support {lead.name} would stop him on his own "
+                f"question: a corps stands on his road")
+    if why == "asks_first":
+        return f"— an order to support {lead.name} would first ask you about his road"
+    return ""
+
+
+def muster_row_hint(m, lead, code: str, will_join: bool, battle_region, lever=None) -> str:
     """The muster row's road for the player, or "": the standing order that
     would bring a man who will not come (§6.3, MC-1), the HOLD he keeps
     (SFR-D5 — and the order that moves him off it), and the march a joiner
     sets aside for the day (RR4-X11: said at the muster, not only at the
-    next tick's "answered the guns … resumes next turn")."""
+    next tick's "answered the guns … resumes next turn").
+
+    BA2-X7: `lever` is what the order would DELIVER
+    (`CombatExecutor._order_lever`); with it in hand the order is named only
+    where it brings him — else the hint says where it would march him
+    instead, or nothing. None: the sentences as they were."""
+    if (lever is not None and not lever.get("brings")
+            and code in ("literal_awaits_orders", "eyes_on_a_crown", "holding_position")):
+        return _order_would_not_bring(m, lead, lever)
     if code == "literal_awaits_orders":
         return f"— order '{m.name}, support {lead.name}' and he will march"
     if code == "eyes_on_a_crown":
@@ -1753,6 +1871,10 @@ class CombatExecutor:
     # side. Blessed, in-band tunable. False = trust reaches no field.
     TRUST_REACHES_THE_FIELD = True
     BROKEN_TRUST_CONTRIBUTION = 0.5
+    # §15.5.7 (row BA, BA-4; the user's tick): the fraction of his weight a
+    # corps brings when its arrival roll was won by 5 points or fewer — the
+    # last hour. The seam is `the_last_hour_brings_three_quarters`.
+    LAST_HOUR_CONTRIBUTION = 0.75
     # IQ-5 "Both Sides of the Butcher's Bill" (PR-X2): every surface that
     # shows a REINFORCED side's losses says whose losses they are — the
     # defender's report scope, the event side's `casualties_scope` /
@@ -1773,6 +1895,57 @@ class CombatExecutor:
         copy that names its cause — see module `pair_contribution_breakdown`.
         `self` is the lever owner, so an instance-level flip still reaches."""
         return pair_contribution_breakdown(lead, ally, owner=self)
+
+    def _pursuer(self, ctx):
+        """§15.5.7 (row BA, BA-4): who pursues, and with what — `(corps,
+        bonus)`. The lead, when his own ability pursues (as it always did).
+        Else the highest bonus among the victor's corps that FOUGHT: the
+        attack's participants (the corps that marched in and those that stood
+        on the field) who committed something to it — a man who withheld
+        everything pursues nothing. The first in the field's order on a tie."""
+        lead = ctx.marshal
+        bonus = pursuit_bonus(lead)
+        if bonus > 0 or not a_pursuit_is_any_corps_that_fought():
+            return lead, bonus
+        best, most = lead, 0
+        for corps in getattr(ctx, "atk_participants", None) or []:
+            if corps is lead or corps.name == lead.name:
+                continue
+            if int(getattr(corps, "strength", 0) or 0) <= 0:
+                continue
+            if self._pair_contribution_scale(lead, corps) <= 0.0:
+                continue
+            got = pursuit_bonus(corps)
+            if got > most:
+                best, most = corps, got
+        return best, most
+
+    def _cut_by_the_last_hour(self, ctx, late_atk, late_def) -> list:
+        """§15.5.7 (row BA, BA-4): the corps whose weight the last hour
+        actually CUT — named late by their arrival rolls and bringing
+        something to cut (a man who withholds everything brings three
+        quarters of nothing, and his row says so already). In the field's
+        order, the attacker's side first; for `battle_result["last_hour"]`,
+        which the battle in acts tells from."""
+        cut = []
+        for lead, corps, late in (
+                (ctx.marshal, ctx.atk_participants, late_atk),
+                (ctx.enemy_marshal, ctx.def_participants, late_def)):
+            for p in corps if late else ():
+                if p.name in late and self._pair_contribution_scale(lead, p) > 0.0:
+                    cut.append(str(p.name))
+        return cut
+
+    def _weight_scale(self, lead, ally, late=()) -> float:
+        """§15.5.7 (row BA, BA-4): `_pair_contribution_scale` for the
+        RESOLVER, which knows who arrived at the last hour (`late`: the names
+        `last_hour_names` read off the arrival rolls). A corps not among them —
+        every corps, for the forecast and with the seam down — reads the
+        scale every other reader does, through the very same call."""
+        if late and ally.name in late:
+            return float(pair_contribution_breakdown(
+                lead, ally, owner=self, last_hour=True)["scale"])
+        return self._pair_contribution_scale(lead, ally)
 
     def _pair_contribution_scale(self, lead, ally) -> float:
         """How much of `ally`'s weight actually reaches a battle `lead` leads.
@@ -1846,7 +2019,7 @@ class CombatExecutor:
                 f"{weight_phrase(bd['scale'])} his weight")
 
     def _faith_records(self, attacker, defender, atk_participants,
-                       def_participants) -> list:
+                       def_participants, late=()) -> list:
         """IQ-5 R9: every non-lead participant whose trust factor APPLIED,
         with what he committed and what he would have brought — read BEFORE
         resolve_battle, off the same `_committed_share` the resolver sums
@@ -1865,14 +2038,18 @@ class CombatExecutor:
                 bd = self._pair_contribution_breakdown(lead, p)
                 if bd["scale"] <= 0.0 or bd["trust_factor"] >= 1.0:
                     continue
+                # §15.5.7: a faithless man who also came up at the last hour —
+                # both figures carry the hour, so the note prices trust alone.
+                _hour = (float(self.LAST_HOUR_CONTRIBUTION)
+                         if late and p.name in late else 1.0)
                 records.append({
                     "marshal": p,
                     "side": side,
                     "trust": bd["trust"],
                     "trust_factor": float(bd["trust_factor"]),
-                    "committed": int(self._committed_share(lead, p, bd["scale"])),
+                    "committed": int(self._committed_share(lead, p, bd["scale"] * _hour)),
                     "full": int(self._committed_share(
-                        lead, p, bd["relationship_scale"])),
+                        lead, p, bd["relationship_scale"] * _hour)),
                 })
         return records
 
@@ -2002,7 +2179,7 @@ class CombatExecutor:
             return name
         return humanize_entity_name(name)
 
-    def _committed_bodies(self, lead, participants) -> int:
+    def _committed_bodies(self, lead, participants, late=()) -> int:
         """FA-D29 (slice 17, Phase 2): the men actually ENGAGED on a side —
         the lead's whole corps plus each reinforcer's committed share
         (COMMITTED_ALPHA × strength × the same relationship/personality scale
@@ -2018,14 +2195,14 @@ class CombatExecutor:
                 continue
             if getattr(r, "strength", 0) <= 0:
                 continue
-            scale = self._pair_contribution_scale(lead, r)
+            scale = self._weight_scale(lead, r, late)
             if scale <= 0.0:
                 continue
             total += self.COMMITTED_ALPHA * float(r.strength) * scale
         return int(total)
 
     def _committed_reinforcement_strength(self, lead, participants, world,
-                                          expected_at=None) -> float:
+                                          expected_at=None, late=()) -> float:
         """CO-1/CO-1b: additive committed strength a lead's reinforcers bring
         to the clash (everyone in `participants` except the lead).
 
@@ -2073,7 +2250,9 @@ class CombatExecutor:
             if getattr(r, "strength", 0) <= 0:
                 continue
 
-            scale = self._pair_contribution_scale(lead, r)
+            # §15.5.7: the resolver names who came up at the last hour
+            # (`late`); the forecast weighs that roll in `expected_at`'s term.
+            scale = self._weight_scale(lead, r, late)
 
             if scale <= 0.0:
                 continue
@@ -3083,7 +3262,9 @@ class CombatExecutor:
                     if THE_MUSTER_NAMES_THE_LEAD
                     else MUSTER_REASON_DISPLAY.get(code, code)),
             }
-            _hint = muster_row_hint(m, marshal, code, will_join, battle_region)
+            # BA2-X7: what the order the hint would name actually DELIVERS.
+            _lever = self._order_lever(marshal, m, battle_region, adjacent, world, will_join, code)
+            _hint = muster_row_hint(m, marshal, code, will_join, battle_region, lever=_lever)
             if _hint:
                 row["standing_order_hint"] = _hint
             if code == "shares_the_field":
@@ -3160,7 +3341,7 @@ class CombatExecutor:
             if (will_join and m.location != battle_region and (not getattr(m, "artillery", False)
                          or AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):
                 row.update(self._arrival_odds_row(marshal, m, battle_region,
-                                                  world, code))
+                                                  world, code, lever=_lever))
             # S14E-12: odds of exactly nothing - the row is labelled apart
             # from WILL JOIN (`will_join` itself is untouched: it feeds the
             # band, the relay and the diorama's promise parity).
@@ -3220,7 +3401,10 @@ class CombatExecutor:
         # for its mean, but its floor and bad day are never printed).
         _spread = None
         if with_spread and nation == getattr(world, "player_nation", None):
-            _spread = self._spread_of_outcome_set(_outcome_set)
+            _spread = (self._spread_of_outcome_set(_outcome_set)
+                       or self._spread_of_the_certain(
+                           marshal, will_join_marshals, enemy_marshal,
+                           defender_joining, world, battle_region))
 
         preview = {
             "attacker": {"name": marshal.name,
@@ -3547,20 +3731,23 @@ class CombatExecutor:
         withheld = len(uncertain) > len(enumerated)
         enemy_team = self._reachable_joiners(
             enemy_marshal, enemy_joiners, world, battle_region, active=True)
-        outcomes, lead_mods = [], []
+        last_hour = self._last_hour_chances(
+            marshal, certain + [m for _p, m in enumerated], world, battle_region)
+        outcomes, lead_mods, hours = [], [], []
         for team, probability in self._arrival_subsets(certain, enumerated):
             with self._priced_coordination(marshal, team, enemy_marshal,
                                            enemy_team, world, battle_region):
-                committed = self._committed_reinforcement_strength(
-                    marshal, team, world)
+                committed, hour = self._outcome_committed(
+                    marshal, team, world, last_hour)
                 # S14E-X77: and the lead's own attack modifier under THIS
                 # outcome's stamp (the ratio's other nonlinear term).
                 from backend.commands.objection_v2 import lead_modifiers
                 lead_mod = lead_modifiers(marshal, enemy_marshal)[0]
             outcomes.append((probability, committed))
             lead_mods.append(lead_mod)
-        return {"outcomes": outcomes, "withheld": withheld,
-                "lead_mods": lead_mods}
+            hours.append(hour)
+        return self._with_the_hours({"outcomes": outcomes, "withheld": withheld,
+                                     "lead_mods": lead_mods}, hours)
 
     def _arrival_roster(self, lead, joiners, world, battle_region) -> tuple:
         """S14E-12 / S14E-D12: ([certain corps], [(odds, corps)] uncertain,
@@ -3568,13 +3755,16 @@ class CombatExecutor:
         split by the arrival roll each makes. A corps on the field makes no
         roll (certain); one that cannot arrive is in neither list
         (`_reachable_joiners`); the rest are Bernoulli trials at
-        `_expected_arrival_weight`. The ONE split the attacker's
+        `_arrival_chance` — the chance he ARRIVES, which until row BA's BA-4
+        was also the weight the forecast gave him (`_expected_arrival_weight`;
+        §15.5.7 parted the two: what an arrival is WORTH is the outcome's
+        own term, `_outcome_committed`). The ONE split the attacker's
         (`_muster_outcome_set`) and the defender's (`_defender_outcome_set`)
         outcome sets enumerate."""
         certain, uncertain = [], []
         for m in self._reachable_joiners(lead, joiners, world, battle_region,
                                          active=True):
-            p = self._expected_arrival_weight(lead, m, world, battle_region)
+            p = self._arrival_chance(lead, m, world, battle_region)
             if p >= 1.0:
                 certain.append(m)
             elif p > 0.0:
@@ -3598,6 +3788,88 @@ class CombatExecutor:
                     probability *= 1.0 - p
             if probability > 0.0:
                 yield team, probability
+
+    def _last_hour_chances(self, lead, corps, world, battle_region) -> dict:
+        """§15.5.7 (row BA, BA-4): {name: the chance that corps' arrival is a
+        last-hour one}, for the corps of an outcome set that can come late at
+        all — read ONCE a set (the roll reads no coordination stamp). Empty
+        with the seam down and where nobody can: the set is then built by the
+        arithmetic it always was."""
+        if not the_last_hour_brings_three_quarters():
+            return {}
+        chances = {}
+        for m in corps:
+            chance = self._last_hour_chance(lead, m, world, battle_region)
+            if chance > 0.0:
+                chances[m.name] = chance
+        return chances
+
+    def _outcome_committed(self, lead, team, world, last_hour) -> tuple:
+        """§15.5.7 (row BA, BA-4): one arrival outcome's committed strength,
+        read under that outcome's own stamp — `(committed, hour)`.
+
+        Where no corps of the team can come up at the last hour (`last_hour`,
+        `_last_hour_chances`), `committed` is `_committed_reinforcement_
+        strength(lead, team, world)` itself and `hour` is None. Otherwise a
+        corps that MARCHED to this outcome is worth all his weight or three
+        quarters of it, by the roll that brought him: `committed` is the mean
+        over that (exact for the mean the header prints and for the band's
+        ratio, both linear in each corps' term) and `hour` is the per-corps
+        `(all his weight, his weight at the last hour, the chance his arrival
+        is a last-hour one)` the floor and the bad day are read from
+        (`_hour_states`) — each term the resolver's own (`_weight_scale` with
+        him named late), summed in the resolver's order."""
+        if not last_hour or not any(r.name in last_hour for r in team):
+            return self._committed_reinforcement_strength(lead, team, world), None
+        total, hour = 0.0, []
+        for r in team:
+            if r is lead or r.name == lead.name:
+                continue
+            if getattr(r, "strength", 0) <= 0:
+                continue
+            scale = self._pair_contribution_scale(lead, r)
+            if scale <= 0.0:
+                continue
+            full = self._committed_share(lead, r, scale)
+            chance = float(last_hour.get(r.name, 0.0))
+            if chance <= 0.0:
+                hour.append((full, full, 0.0))
+                total += full
+                continue
+            late = self._committed_share(
+                lead, r, self._weight_scale(lead, r, (r.name,)))
+            hour.append((full, late, chance))
+            total += (1.0 - chance) * full + chance * late
+        return total, hour
+
+    @staticmethod
+    def _with_the_hours(outcome_set: dict, hours: list) -> dict:
+        """§15.5.7: the outcome set with its last-hour terms beside it
+        (`hours`, parallel to `outcomes`) — only where some outcome has one,
+        so a set nobody can be late in is the set as it always was."""
+        if any(hour is not None for hour in hours):
+            outcome_set["hours"] = hours
+        return outcome_set
+
+    @staticmethod
+    def _hour_states(probability: float, committed: float, hour) -> list:
+        """§15.5.7: one arrival outcome opened into its last-hour states —
+        [(probability, committed strength)], every corps that may come late
+        taken both ways. Summed in the team's order from zero, as the
+        resolver sums the corps that came (`_committed_reinforcement_
+        strength(..., late=)`), so a state IS the figure the battle masses."""
+        if hour is None:
+            return [(probability, committed)]
+        states = [(probability, 0.0)]
+        for full, late, chance in hour:
+            if chance <= 0.0:
+                states = [(p, v + full) for p, v in states]
+            elif chance >= 1.0:
+                states = [(p, v + late) for p, v in states]
+            else:
+                states = ([(p * (1.0 - chance), v + full) for p, v in states]
+                          + [(p * chance, v + late) for p, v in states])
+        return states
 
     def _muster_mean_exact(self, outcome_set) -> Optional[float]:
         """S14E-D11 / S14E-X68 - THE SEAM. The header's "expect about N" (and
@@ -3668,20 +3940,24 @@ class CombatExecutor:
             # a truncation is never read (the seam answers None): no 2^N
             # stamps spent on it - the AI prices this on every rung.
             return {"outcomes": [], "withheld": True, "lead_mods": []}
-        outcomes, lead_mods = [], []
+        last_hour = self._last_hour_chances(
+            enemy_marshal, certain + [m for _p, m in enumerated], world,
+            battle_region)
+        outcomes, lead_mods, hours = [], [], []
         for team, probability in self._arrival_subsets(certain, enumerated):
             with self._priced_coordination(enemy_marshal, team, None, None,
                                            world, battle_region):
                 counted = ([m for m in team if m.location != battle_region]
                            if marchers_only else team)
-                committed = self._committed_reinforcement_strength(
-                    enemy_marshal, counted, world)
+                committed, hour = self._outcome_committed(
+                    enemy_marshal, counted, world, last_hour)
                 if attacker is not None:
                     from backend.commands.objection_v2 import lead_modifiers
                     lead_mods.append(lead_modifiers(attacker, enemy_marshal)[1])
             outcomes.append((probability, committed))
-        return {"outcomes": outcomes, "withheld": withheld,
-                "lead_mods": lead_mods}
+            hours.append(hour)
+        return self._with_the_hours({"outcomes": outcomes, "withheld": withheld,
+                                     "lead_mods": lead_mods}, hours)
 
     def _defender_mean_exact(self, outcome_set) -> Optional[float]:
         """S14E-D12 / S14E-X76 - THE SEAM (the defender's twin of
@@ -3949,10 +4225,50 @@ class CombatExecutor:
         or None when there is none."""
         if outcome_set is None:
             return None
-        floor, bad_day = self._outcome_spread(outcome_set["outcomes"],
+        outcomes = outcome_set["outcomes"]
+        if outcome_set.get("hours"):
+            # §15.5.7: the least and the bad day are days, not means — each
+            # arrival outcome opened into its last-hour states.
+            outcomes = [state for (p, v), hour in zip(outcomes,
+                                                      outcome_set["hours"])
+                        for state in self._hour_states(p, v, hour)]
+        floor, bad_day = self._outcome_spread(outcomes,
                                               MUSTER_BAD_DAY_CHANCE)
         return {"floor": floor,
                 "bad_day": None if outcome_set["withheld"] else bad_day}
+
+    def _spread_of_the_certain(self, marshal, joiners, enemy_marshal, enemy_joiners,
+                               world, battle_region) -> Optional[Dict]:
+        """§15.5.7, the review (lane 2): the least and the bad day of a
+        muster in which nobody's ARRIVAL is in doubt. Such a muster has no
+        outcome set (`_muster_outcome_set` is None: the one stamp is its exact
+        mean, for a court's lead as for the player's) — and yet a corps sure
+        to come may come at the last hour with three quarters of his weight,
+        so the header's "expect about N" stood over no least. Read off the
+        hour states of the ONE outcome there is, under its own stamp. A
+        player surface only (the caller's gate): no price a court reads
+        passes through here. None with the seam down, where nobody can be
+        late, or where a corps' arrival IS in doubt (the outcome set's own
+        spread tells that muster)."""
+        if not (THE_MUSTER_STATES_ITS_SPREAD and joiners
+                and the_last_hour_brings_three_quarters()):
+            return None
+        certain, uncertain = self._arrival_roster(marshal, joiners, world, battle_region)
+        if uncertain or not certain:
+            return None
+        last_hour = self._last_hour_chances(marshal, certain, world, battle_region)
+        if not last_hour:
+            return None
+        enemy_team = self._reachable_joiners(
+            enemy_marshal, enemy_joiners, world, battle_region, active=True)
+        with self._priced_coordination(marshal, certain, enemy_marshal, enemy_team,
+                                       world, battle_region):
+            committed, hour = self._outcome_committed(marshal, certain, world, last_hour)
+        if hour is None:
+            return None
+        floor, bad_day = self._outcome_spread(
+            self._hour_states(1.0, committed, hour), MUSTER_BAD_DAY_CHANCE)
+        return {"floor": floor, "bad_day": bad_day}
 
     def _muster_spread(self, marshal, joiners, enemy_marshal, enemy_joiners,
                        world, battle_region) -> Optional[Dict]:
@@ -4389,6 +4705,12 @@ class CombatExecutor:
             if row.get("stands_after"):
                 line += f" {row['stands_after']}"
             lines.append(line)
+        # §15.5.7 (row BA, BA-4): the last hour, said once where a corps of
+        # the muster may come up at it (the player's own rows only — the
+        # line's presence says nothing of the enemy's).
+        if any(row.get("will_join") and int(row.get("last_hour_odds", 0) or 0) > 0
+               for row in preview["rows"]):
+            lines.append(f"  {LAST_HOUR_MUSTER_LINE}")
         if preview["target"].get("reinforcement_note"):
             lines.append(f"  {preview['target']['reinforcement_note']}")
         # S14E-17: and where the band weighs a force the player has not
@@ -4491,9 +4813,41 @@ class CombatExecutor:
         shift, _name = arrival_bar_shift(world, reinforcing_marshal, primary_combatant)
         return int(base + shift)
 
-    def _arrival_odds_row(self, lead, m, battle_region, world, code) -> dict:
+    def _order_lever(self, lead, m, battle_region, beside, world, will_join, code):
+        """BA2-X7: what `'<m>, support <lead>'` would DELIVER to this battle —
+        `order_quotes.what_the_order_delivers`, the reading the plan's chips
+        are held to — for the two sentences that name that order. None where
+        no such sentence is said (a corps on the field, one already ordered,
+        a reason no order answers), for a court's own muster, and with the
+        rule off: the sentences then read as they did. PURE."""
+        if not the_muster_names_only_an_order_that_brings():
+            return None
+        if lead.nation != getattr(world, "player_nation", None):
+            return None
+        if code == "has_support_order" or m.location == battle_region:
+            return None
+        from backend.commands import order_quotes as _quotes
+        if not will_join and code not in _quotes.BROUGHT_BY_AN_ORDER:
+            return None
+        try:
+            odds_now = (int(self._arrival_odds_row(lead, m, battle_region, world, code)
+                            .get("arrival_odds", 0)) if will_join else -1)
+            return _quotes.what_the_order_delivers(
+                world, lead, m, battle_region, set(beside or ()), self,
+                bool(will_join), odds_now)
+        except Exception as exc:
+            _errors.report(exc, "combat_executor._order_lever: order_quotes.what_the_order_delivers")
+            return None
+
+    def _arrival_odds_row(self, lead, m, battle_region, world, code, lever=None) -> dict:
         """VP-R1 (a): one WILL JOIN row's arrival odds, in the words the
         player reads and the numbers the resolver rolls.
+
+        BA2-X7: `lever` (`_order_lever`) is what the order the note would name
+        actually delivers; with it in hand "order '…' and it rises to about
+        N%" is said only where the order brings him, and N is his odds from
+        where its first march leaves him. None: the note as it was. The
+        NUMBERS returned never read it.
 
         `arrival_odds` is P(arrive) × 100 off the SAME deterministic sum,
         threshold and jitter as `_calculate_reinforcements` (shown = applied by
@@ -4527,7 +4881,16 @@ class CombatExecutor:
             note = f"— may make it{cause} in time (about {pct}%)"
         else:
             note = f"— likely to make it in time (about {pct}%)"
-        if (code != "has_support_order" and pct_support >= pct + 15):
+        if lever is not None:
+            # BA2-X7: only an order that BRINGS him is named, at the odds its
+            # first march leaves him with; else where it would march him.
+            if lever.get("brings") and int(lever.get("odds_with", 0)) >= pct + 15:
+                note += (f"; order '{m.name}, support {lead.name}' and it "
+                         f"rises to about {int(lever['odds_with'])}%")
+            elif not lever.get("brings") and pct_support >= pct + 15:
+                _instead = _order_would_not_bring(m, lead, lever)
+                note += ("; " + _instead[2:]) if _instead else ""
+        elif (code != "has_support_order" and pct_support >= pct + 15):
             note += (f"; order '{m.name}, support {lead.name}' and it "
                      f"rises to about {pct_support}%")
         # SR-7d DC-3b (DOCTRINES_SPEC §4): the muster row names the doctrine
@@ -4538,9 +4901,20 @@ class CombatExecutor:
             note += f" ({_dname} lowers the bar by {-_shift})"
         elif _shift > 0:
             note += f" ({_dname} raises the bar by {_shift})"
-        return {"arrival_odds": pct,
-                "arrival_odds_with_support": pct_support,
-                "arrival_note": note}
+        row = {"arrival_odds": pct,
+               "arrival_odds_with_support": pct_support,
+               "arrival_note": note}
+        # §15.5.7 (row BA, BA-4): how much of that chance is an arrival at
+        # the last hour, when he brings three quarters of his weight — the
+        # formatter says the rule once, under the rows it bears on.
+        late = int(round(p * self._last_hour_chance(lead, m, world,
+                                                    battle_region) * 100))
+        # The review, lane 2: not for a corps that brings NOTHING (a grievance,
+        # a hostile pair) — three-quarters of no weight is in no figure, and
+        # the resolver's own telling skips him (`_cut_by_the_last_hour`).
+        if late > 0 and self._pair_contribution_scale(lead, m) > 0:
+            row["last_hour_odds"] = late
+        return row
 
     def _arrival_probability(self, deterministic: int, threshold: int) -> float:
         """P(this reinforcer actually arrives), over the jitter alone.
@@ -4581,7 +4955,45 @@ class CombatExecutor:
           artillery marshal is authored on the 1805 board, but six sit in
           `marshal_pool`, so this is reachable in a real campaign. Lever
           `AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL` down: 0.0, as before.
+
+        §15.5.7 (row BA, BA-4): the WEIGHT, which is no longer the chance. A
+        roll won by five points or fewer brings three quarters of his weight,
+        so the one-stamp mean (`_committed_reinforcement_strength(...,
+        expected_at=)`) reads `_arrival_weight` here; the CHANCE he arrives —
+        what the row prints and the outcome sets roll — is `_arrival_chance`.
+        With the seam down the two are one number.
         """
+        return self._arrival_term(lead, reinforcer, world, battle_region,
+                                  self._arrival_weight)
+
+    def _arrival_chance(self, lead, reinforcer, world, battle_region) -> float:
+        """§15.5.7 (row BA, BA-4): the chance this corps is on the field —
+        `_expected_arrival_weight`'s three cases with the roll read as a
+        CHANCE (`_arrival_probability`), not weighed by the hour he comes at.
+        What the muster's row prints and what the outcome sets roll; with the
+        seam down the two are one number, as they were."""
+        return self._arrival_term(lead, reinforcer, world, battle_region,
+                                  self._arrival_probability)
+
+    def _last_hour_chance(self, lead, reinforcer, world, battle_region) -> float:
+        """§15.5.7: GIVEN that he arrives, the chance it is at the last hour
+        (his roll won by `LAST_HOUR_MARGIN` points or fewer). 0.0 for a corps
+        on the field (he makes no roll), a gun the lever leaves out, a corps
+        that cannot arrive, and with the seam down; exactly 1.0 where every
+        roll that brings him is a last-hour one."""
+        if (not the_last_hour_brings_three_quarters()
+                or getattr(reinforcer, "location", None) == battle_region
+                or (getattr(reinforcer, "artillery", False)
+                    and not AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):
+            return 0.0
+        arrives, late = self._arrival_walk(
+            self._arrival_deterministic(reinforcer, lead, world),
+            self._arrival_threshold(reinforcer, lead, battle_region, world))
+        return late / arrives if arrives > 0.0 else 0.0
+
+    def _arrival_term(self, lead, reinforcer, world, battle_region, of) -> float:
+        """The three cases of `_expected_arrival_weight`, the roll itself
+        read by `of(deterministic, threshold)`."""
         if getattr(reinforcer, "location", None) == battle_region:
             return 1.0
         if (getattr(reinforcer, "artillery", False)
@@ -4590,7 +5002,40 @@ class CombatExecutor:
         deterministic = self._arrival_deterministic(reinforcer, lead, world)
         threshold = self._arrival_threshold(reinforcer, lead, battle_region,
                                             world)
-        return self._arrival_probability(deterministic, threshold)
+        return of(deterministic, threshold)
+
+    def _arrival_walk(self, deterministic: int, threshold: int) -> tuple:
+        """§15.5.7 (row BA, BA-4): `_arrival_probability`'s walk over the
+        jitter, keeping the last hour apart — `(P(he arrives), P(he arrives
+        at the last hour))`, the second a part of the first: the rolls won by
+        `battle_script.LAST_HOUR_MARGIN` points or fewer."""
+        from backend.game_logic.battle_script import LAST_HOUR_MARGIN
+        v = self._ARRIVAL_VARIANCE
+        outcomes = 2 * v + 1
+        arrives = late = 0.0
+        for jitter in range(-v, v + 1):
+            score = deterministic + jitter
+            if score <= threshold:
+                continue
+            p = (1.0 - self._ARRIVAL_FUMBLE_CHANCE
+                 if score > self._ARRIVAL_FUMBLE_ABOVE else 1.0)
+            arrives += p
+            if score - threshold <= LAST_HOUR_MARGIN:
+                late += p
+        return arrives / outcomes, late / outcomes
+
+    def _arrival_weight(self, deterministic: int, threshold: int) -> float:
+        """§15.5.7 (row BA, BA-4): the WEIGHT the forecast promises of a
+        corps that must march — his chance of arriving, less the quarter a
+        last-hour arrival leaves behind (`_arrival_walk`): each arriving roll
+        weighed as the resolver weighs it. With the seam down every arriving
+        roll weighs 1 and this IS `_arrival_probability`."""
+        if not the_last_hour_brings_three_quarters():
+            return self._arrival_probability(deterministic, threshold)
+        arrives, late = self._arrival_walk(deterministic, threshold)
+        if late <= 0.0:
+            return self._arrival_probability(deterministic, threshold)
+        return arrives - (1.0 - float(self.LAST_HOUR_CONTRIBUTION)) * late
 
     def _arrival_deterministic(self, reinforcing_marshal, primary_combatant,
                                world) -> int:
@@ -4987,20 +5432,20 @@ class CombatExecutor:
     # alongside non-artillery units (positioned behind front lines).
     ARTILLERY_CASUALTY_FACTOR = 0.5
 
-    def _committed_weight(self, lead, p) -> float:
+    def _committed_weight(self, lead, p, late=()) -> float:
         """IQ5-R1: the men `p` actually ENGAGED on `lead`'s side — the lead's
         whole corps, a reinforcer's COMMITTED_ALPHA × strength × pair scale
         (the per-man term of `_committed_bodies`, so the split and the pool
         read ONE arithmetic). A participant who committed nothing weighs 0."""
         if lead is None or p is lead or p.name == lead.name:
             return float(p.strength)
-        scale = self._pair_contribution_scale(lead, p)
+        scale = self._weight_scale(lead, p, late)
         if scale <= 0.0:
             return 0.0
         return self.COMMITTED_ALPHA * float(p.strength) * scale
 
     def _distribute_casualties(self, raw_casualties: int, participants: list,
-                               lead=None) -> dict:
+                               lead=None, late=()) -> dict:
         """Distribute casualties proportionally among participating marshals.
 
         Returns: dict of marshal_name -> int(casualties)
@@ -5027,7 +5472,7 @@ class CombatExecutor:
 
         by_committed = bool(BLEED_BY_THE_MEN_COMMITTED and lead is not None)
         if by_committed:
-            weights = {p.name: self._committed_weight(lead, p) for p in active}
+            weights = {p.name: self._committed_weight(lead, p, late) for p in active}
             total_strength = sum(weights.values())
             if total_strength <= 0:
                 # Nobody committed a man (a lone lead at 0 cannot be here);
@@ -5628,8 +6073,20 @@ class CombatExecutor:
                 self._process_combat_notifications(battle_result, attacker, defender, world)
 
         # ── 4. Fog of War intel update ──
+        # BA2-X20: for those who fought in it (`intel_surfaces.battle_lights_field`);
+        # for the rest of Europe a great battle, or an ally's in a shared war,
+        # is news (`battle_news` — the review, lane 4: this road told nobody).
+        from backend.game_logic import intel_surfaces as _surf
         if not ctx.get('skip_intel_update'):
-            world.update_intel_from_battle(battle_region, world.current_turn)
+            if _surf.battle_lights_field(world, battle_region, attacker, defender):
+                world.update_intel_from_battle(battle_region, world.current_turn)
+            elif (battle_result and defender is not None
+                  and not is_bombardment and not is_garrison):
+                from backend.game_logic import battle_news as _news
+                _news.of_a_battle(world, battle_region, attacker, defender,
+                                  {"outcome": outcome},
+                                  int(pre_atk or 0) + int(pre_def or 0),
+                                  road="guns" if is_auto_kill else "charge")
 
         # ── 5. War damage to region ──
         if not is_bombardment and not ctx.get('skip_war_damage'):
@@ -6408,8 +6865,13 @@ class CombatExecutor:
         self._apply_battle_effects_to_region(
             target_region.name, pre_battle_atk_strength, old_garrison, world)
 
-        # [5C-6] Fog/intel update after garrison battle
-        world.update_intel_from_battle(target_region.name, world.current_turn)
+        # [5C-6] Fog/intel update after garrison battle — BA2-X20: for the
+        # crown that stormed and the crown whose walls they are.
+        from backend.game_logic import intel_surfaces as _surf
+        _walls_crown = str(getattr(target_region, "controller", "") or "")
+        _assault_lit = _surf.battle_lights_field(world, target_region.name, marshal, _walls_crown)
+        if _assault_lit:
+            world.update_intel_from_battle(target_region.name, world.current_turn)
         # BA-2: what the assault's tableau is built from (`siege_diorama`) —
         # the walls' owner read BEFORE any capture below flips it.
         _tableau = dict(
@@ -6423,6 +6885,10 @@ class CombatExecutor:
         # The collapse rule is ONE predicate the desk's forecast reads too.
         garrison_collapsed = _garrison_report.garrison_breaks(
             target_region, target_region.garrison_strength)
+        if not _assault_lit:     # the review, lane 4: the dark side of this road is news too
+            from backend.game_logic import battle_news as _news
+            _news.of_an_assault(world, target_region.name, marshal, _walls_crown, bool(garrison_collapsed),
+                                int(pre_battle_atk_strength) + int(old_garrison))
 
         # ── FA-R5 (slice 14): the assault goes ON THE RECORD ───────────────
         # Until now this resolver contained ZERO `log_event` calls, so two of
@@ -7864,6 +8330,8 @@ class CombatExecutor:
             if m.name != defender.name and m.strength > 0
             and not getattr(m, 'broken', False)
             and not getattr(m, 'retreating', False)
+            # BA2-X12: never the battery itself (it took its own stray shells)
+            and (m.name != marshal.name or not a_battery_is_spared_its_own_shells())
         ]
 
         for force in all_in_region:
@@ -8065,8 +8533,16 @@ class CombatExecutor:
         }
         world.log_event(bombardment_event)
 
-        # Fog of War: Bombardment grants visibility on target region
-        world.update_intel_from_battle(target_location, world.current_turn)
+        # Fog of War: Bombardment grants visibility on target region — BA2-X20:
+        # to the crown whose guns fired, the crowns of the corps they struck
+        # and the crown on whose soil it was.
+        from backend.game_logic import intel_surfaces as _surf
+        if _surf.battle_lights_field(world, target_location, marshal, defender, all_in_region):
+            world.update_intel_from_battle(target_location, world.current_turn)
+        else:
+            # The review, lane 4: an ally's guns in a shared war are news.
+            from backend.game_logic import battle_news as _news
+            _news.of_a_cannonade(world, target_location, marshal, defender)
 
         # ════════════════════════════════════════════════════════════
         # BERTHIER OBSERVATION (§11)
@@ -10468,10 +10944,19 @@ class CombatExecutor:
             # CO-1/CO-1b: committed reinforcement strength adds to the clash,
             # personality- & relationship-scaled (single source, GR1-safe read).
             # Symmetric for a reinforced defender (GR5).
+            # §15.5.7 (row BA, BA-4): who came up at the last hour, read off
+            # the arrival rolls the attack holds — three quarters of his weight
+            # in the committed sum, the men engaged and the split of the losses.
+            # Passed only where there is one (fixed-arity doubles stand).
+            _late_atk = last_hour_names(ctx.attacker_reinforcements)
+            _late_def = last_hour_names(ctx.defender_reinforcements)
+            _hour_atk = {"late": _late_atk} if _late_atk else {}
+            _hour_def = {"late": _late_def} if _late_def else {}
+            _hour_cut = self._cut_by_the_last_hour(ctx, _late_atk, _late_def)
             committed_attacker = self._committed_reinforcement_strength(
-                ctx.marshal, ctx.atk_participants, ctx.world)
+                ctx.marshal, ctx.atk_participants, ctx.world, **_hour_atk)
             committed_defender = self._committed_reinforcement_strength(
-                ctx.enemy_marshal, ctx.def_participants, ctx.world)
+                ctx.enemy_marshal, ctx.def_participants, ctx.world, **_hour_def)
             # IQ-5: snapshots taken with the same reads the committed sums
             # just made, BEFORE resolve_battle mutates anyone. Pure reads —
             # no RNG, no state (the BASELINE_SERIES board runs this path).
@@ -10489,7 +10974,8 @@ class CombatExecutor:
                         if self._pair_contribution_scale(_lead, ctx._p) > 0.0:
                             _contrib.append(ctx._p.name)
             ctx._iq5_faith = self._faith_records(
-                ctx.marshal, ctx.enemy_marshal, ctx.atk_participants, ctx.def_participants)
+                ctx.marshal, ctx.enemy_marshal, ctx.atk_participants, ctx.def_participants,
+                **({"late": _late_atk | _late_def} if (_late_atk or _late_def) else {}))
             # CO-6 (Combat Overhaul Phase 2): capture the pre-battle lead
             # strength and the committed sum for the reinforcement legibility
             # line (built with reinforcement_messages below). marshal.strength
@@ -10519,17 +11005,23 @@ class CombatExecutor:
                 # lead's whole corps plus each reinforcer's committed share —
                 # over the same two participant lists the distribution below
                 # spreads the losses across.
-                attacker_bodies=self._committed_bodies(ctx.marshal, ctx.atk_participants),
-                defender_bodies=self._committed_bodies(ctx.enemy_marshal, ctx.def_participants),
+                attacker_bodies=self._committed_bodies(
+                    ctx.marshal, ctx.atk_participants, **_hour_atk),
+                defender_bodies=self._committed_bodies(
+                    ctx.enemy_marshal, ctx.def_participants, **_hour_def),
                 **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}),  # WS-11
             )
+            if _hour_cut:
+                ctx.battle_result["last_hour"] = _hour_cut      # §15.5.7: told as applied
 
             # Distribute raw casualties proportionally among participants —
             # IQ5-R1: by the men each committed (the pool's own sizing).
             ctx.atk_distribution = self._distribute_casualties(
-                ctx.battle_result["attacker_raw_casualties"], ctx.atk_participants, lead=ctx.marshal)
+                ctx.battle_result["attacker_raw_casualties"], ctx.atk_participants,
+                lead=ctx.marshal, **_hour_atk)
             ctx.def_distribution = self._distribute_casualties(
-                ctx.battle_result["defender_raw_casualties"], ctx.def_participants, lead=ctx.enemy_marshal)
+                ctx.battle_result["defender_raw_casualties"], ctx.def_participants,
+                lead=ctx.enemy_marshal, **_hour_def)
 
             # F1a fix: resolve_battle builds the outcome description BEFORE the
             # caller distributes casualties, so it bakes the WHOLE-CORPS raw total
@@ -10676,22 +11168,19 @@ class CombatExecutor:
                 and ctx.enemy_marshal.ability.get("name") == "Counter-Punch Mastery"
             )
 
-            # Pursuit damage: primary attacker vs primary defender only —
-            # a reinforcing Murat earns nothing; he must LEAD the killing
-            # blow (MC-1, pinned). MUST mirror resolve_battle's pursuit block.
+            # Pursuit damage, on the primary defender only. The pursuer is the
+            # lead when his own ability pursues (MUST mirror resolve_battle's
+            # pursuit block, which is the solo copy) — and, since row BA's
+            # BA-4 (§15.5.7, the user's tick), the best among the corps that
+            # FOUGHT beside him when he has none: MC-1's "a reinforcing Murat
+            # earns nothing; he must LEAD the killing blow" is reversed
+            # (`a_pursuit_is_any_corps_that_fought`).
             if ctx.battle_result["defender"]["forced_retreat"] and ctx.atk_won:
+                _pursuer, pursuit_damage = self._pursuer(ctx)
                 attacker_ability_name = ""
-                if hasattr(ctx.marshal, 'ability'):
-                    attacker_ability_name = ctx.marshal.ability.get("name", "")
-
-                pursuit_damage = 0
+                if hasattr(_pursuer, 'ability'):
+                    attacker_ability_name = _pursuer.ability.get("name", "")
                 pursuit_message = None
-                if attacker_ability_name == "First Horseman of Europe" and getattr(ctx.marshal, 'cavalry', False):
-                    pursuit_damage = 5000
-                elif attacker_ability_name == "Pursuit Master" and getattr(ctx.marshal, 'cavalry', False):
-                    pursuit_damage = 5000
-                elif attacker_ability_name == "Vorwärts!":
-                    pursuit_damage = 3000
 
                 # The Old Fox: halve AFTER the attacker's bonus (5,000 -> 2,500)
                 old_fox_screens = (pursuit_damage > 0 and hasattr(ctx.enemy_marshal, 'ability')
@@ -10709,17 +11198,17 @@ class CombatExecutor:
                     ctx.enemy_marshal.strength -= pursuit_damage
                     if attacker_ability_name == "First Horseman of Europe":
                         pursuit_message = (
-                            f"[Cavalry] {ctx.marshal.name}'s '{ctx.marshal.ability['name']}' — "
+                            f"[Cavalry] {_pursuer.name}'s '{_pursuer.ability['name']}' — "
                             f"the cavalry turns the rout into annihilation! (+{pursuit_damage:,} pursuit casualties)"
                         )
                     elif attacker_ability_name == "Pursuit Master":
                         pursuit_message = (
-                            f"[Cavalry] {ctx.marshal.name}'s '{ctx.marshal.ability['name']}' — "
+                            f"[Cavalry] {_pursuer.name}'s '{_pursuer.ability['name']}' — "
                             f"cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
                         )
                     else:  # Vorwärts!
                         pursuit_message = (
-                            f"[Combat] {ctx.marshal.name}'s '{ctx.marshal.ability['name']}' — "
+                            f"[Combat] {_pursuer.name}'s '{_pursuer.ability['name']}' — "
                             f"relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
                         )
                     if old_fox_screens:
@@ -10729,6 +11218,11 @@ class CombatExecutor:
                         )
                     ctx.battle_result["pursuit_damage"] = int(pursuit_damage)
                     ctx.battle_result["pursuit_message"] = pursuit_message
+                    if _pursuer is not ctx.marshal:
+                        # the corps that pursued when it is not the lead — for
+                        # the battle in acts (`battle_script._pursuit`)
+                        ctx.battle_result["pursuer"] = str(_pursuer.name)
+                        ctx.battle_result["pursuer_ability"] = str(attacker_ability_name)
                     # MC-1 legibility fix: this message was stored but
                     # never surfaced (resolve_battle folds its copy into
                     # the description; the coordinated copy must too).
@@ -11011,6 +11505,9 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════
         ctx.battle_name = ctx.world.compose_battle_name(
             ctx.target_location, ctx.total_engaged_strength)
+        # Row BA, BA-4: a further clash of an open day keeps the day's name.
+        from backend.game_logic import battle_day as _battle_day
+        ctx.battle_name = _battle_day.the_clashs_name(ctx, ctx.battle_name)
         ctx.battle_result["battle_name"] = ctx.battle_name
         if isinstance(ctx.battle_result.get("log_battle_event"), dict):
             ctx.battle_result["log_battle_event"]["battle_name"] = ctx.battle_name
@@ -11270,8 +11767,18 @@ class CombatExecutor:
                                     f"awaits fresh orders."),
                             })
 
-        # Fog of War (Session 34A): Battle grants FULL visibility on battle region
-        ctx.world.update_intel_from_battle(ctx.battle_region_name, ctx.world.current_turn)
+        # Fog of War (Session 34A): Battle grants FULL visibility on battle region —
+        # BA2-X20: for those who fought in it; for the rest of Europe a great
+        # battle, or an ally's in a shared war, is news (`battle_news`).
+        from backend.game_logic import battle_news as _news
+        from backend.game_logic import intel_surfaces as _surf
+        if _surf.battle_lights_field(
+                ctx.world, ctx.battle_region_name, ctx.marshal, ctx.enemy_marshal,
+                list(ctx.atk_participants or ()), list(ctx.def_participants or ())):
+            ctx.world.update_intel_from_battle(ctx.battle_region_name, ctx.world.current_turn)
+        else:
+            _news.of_a_battle(ctx.world, ctx.battle_region_name, ctx.marshal, ctx.enemy_marshal,
+                              ctx.battle_result, ctx.total_engaged_strength)
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
@@ -12462,6 +12969,13 @@ class CombatExecutor:
                            for _r in (getattr(ctx, "attacker_reinforcements", None) or [])
                            if isinstance(_r, dict) and not _r.get("arrived")],
             }
+            # §15.5.7 (row BA, BA-4): the attacker's corps whose weight the last
+            # hour cut — with one of them in it the mass sits UNDER the muster's
+            # ceiling though every promised corps fought. Only where there is one.
+            _ms_late = [str(_n) for _n in (ctx.battle_result.get("last_hour") or [])
+                        if _n in ctx.result["massed_strength"]["arrived"]]
+            if _ms_late:
+                ctx.result["massed_strength"]["last_hour"] = _ms_late
 
         # Mark as free action for Davout's Counter-Punch
         if ctx.is_counter_punch:

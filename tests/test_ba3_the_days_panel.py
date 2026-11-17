@@ -105,6 +105,42 @@ class TestThePanelDriven:
                 "awaits_him", "awaits_him_acts", "awaits_him_skip", "no_script", "no_chips",
                 "follows_awaits_him", "goes_on", "stays_reduced", "replays", "no_day"} <= kinds
 
+    def test_the_digits_press_the_days_chips(self, driven):
+        """Row BA, BA-4 (the user's ruling at the plan gate — "Yes, on the
+        table"): a real key each, through the window's input. The walk's own
+        claims ((BA4-k), (BA4-d), checked above) hold that a digit gives its
+        fixed slot's word once, that an empty slot, a locked chip and a
+        latched table deny, and that a key while the acts play does nothing;
+        here: every one of those roads was driven, and on Ulm."""
+        kinds = {sid.rsplit("__", 1)[-1] for sid in driven["by_id"] if "__digit_" in sid}
+        assert kinds == {"digit_own", "digit_group", "digit_exit", "digit_empty",
+                         "digit_locked", "digit_playing"}
+        own = WALK._frame(driven["by_id"]["day_ulm__digit_own"], "pressed")
+        assert own["emitted"] == ["Ney, attack Mack"] and own["day"]["latched"]
+        again = WALK._frame(driven["by_id"]["day_ulm__digit_own"], "pressed_again")
+        assert again["emitted"] == ["Ney, attack Mack"] and again["day"]["denied"] == 1
+        stand = WALK._frame(driven["by_id"]["day_ulm__digit_exit"], "pressed")
+        assert stand["emitted"] == ["@word:stand:Mack"]
+        playing = WALK._frame(driven["by_id"]["day_ulm__digit_playing"], "pressed")
+        assert playing["emitted"] == [] and not playing["final"]
+
+    def test_the_first_days_line_has_its_row_on_ulm(self, driven):
+        """Row BA, BA-4 (the user's tick — "First-open line"): on the first
+        great battle of a campaign the line stands on a row of its own above
+        the head, no chip scrolls for it, and the table says it showed it; on
+        the day with three groups of chips there is no room without a scroll,
+        and it rides the head's hover unacknowledged."""
+        ulm = WALK._frame(driven["by_id"]["day_ulm__settled"], "settled")["day"]
+        row = [ln for ln in ulm["lines"] if ln.get("first")]
+        assert len(row) == 1 and row[0]["shown"] and row[0]["box"][1] == 0
+        assert row[0]["text"].startswith("The day hangs, Sire.")
+        assert ulm["first_shown"] == "battle_day"
+        assert not any(ln.get("scroll_active") for ln in ulm["lines"])
+        guns = WALK._frame(driven["by_id"]["day_guns__settled"], "settled")["day"]
+        assert not [ln for ln in guns["lines"] if ln.get("first")] and guns["first_shown"] == ""
+        night = WALK._frame(driven["by_id"]["day_night__settled"], "settled")["day"]
+        assert not [ln for ln in night["lines"] if ln.get("first")], "a closed day names no rules"
+
     def test_a_day_decided_by_its_clash_builds_no_panel(self, driven):
         for tag in ("end",):
             frame = WALK._frame(driven["by_id"]["day_decided"], tag)
@@ -150,7 +186,12 @@ class TestTheWalkOfRecord:
 class TestTheSwitchOffTable:
     def test_every_day_case_is_there_and_finds_its_anchor(self):
         keys = [case[0] for case in SWITCH.CASES]
-        assert len(keys) == len(set(keys)) == 44
+        # 44 at BA-3's close; row BA's BA-4 added six (the digits on the table,
+        # the first day's row — `ba4_*`)
+        assert len(keys) == len(set(keys)) == 50
+        assert [k for k in keys if k.startswith("ba4_")] == [
+            "ba4_digit_face", "ba4_digit_press", "ba4_digit_denial", "ba4_digit_at_rest",
+            "ba4_first_row_ack", "ba4_first_row_fit"]
         assert set(DAY_CASES) <= set(keys)
         clean = (SCRIPTS / "battle_acts.gd").read_bytes()
         for _key, _name, swaps, *_rest in SWITCH.CASES:
@@ -287,23 +328,29 @@ class TestTheInstruments:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 7. BA3-X2 — an OPEN row of BA-2's board, pinned as the defect it is
-# ════════════════════════════════════════════════════════════════════════
+# 7. BA3-X2 — BA-2's board at Text size 130 %: the file is the ruled layout,
+#    and the table says why (CLOSED by row BA's session BA-4, November 16, 2026)
+# ════════════════════════════════════════════════════════
 
 class TestTheOpenBoardRow:
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="BA3-X2 OPEN — owner row BA's session BA-4")
-    def test_ba3_x2_three_corps_a_side_lay_the_wedge_at_text_size_1_3(self, tmp_path):
-        """BA3-X2: at text size 1.3 BA-2's board lays three corps a side as the
-        FILE where its claim asks the WEDGE (`ba1_acts_walk._board_claims`:
-        "the table is laid as 'file'; 3 against 1 corps lay the wedge").
-        Reproduce: `tools/ba1_acts_walk.py --only ulm_full,the_reserve
-        --headless --time-scale 8 --text-size 1.3`. This test runs exactly that
-        walk and asserts the board's claim holds on those scenes; it FAILS today
-        on that claim and on nothing else (a walk that did not run, a script
-        error, or a result missing from the output raises RuntimeError, so a
-        broken walk can never pass for the defect). It turns red (XPASS, strict)
-        the day row BA3-X2 lands, and is then made a plain test."""
+    def test_ba3_x2_at_text_size_1_3_the_file_is_kept_with_its_measured_reason(self, tmp_path):
+        """BA3-X2 (CLOSED, row BA's session BA-4). At text size 1.3 BA-2's board
+        laid three corps a side as the FILE where the walk's claim asked the
+        WEDGE (`ba1_acts_walk._board_claims`: "the table is laid as 'file'; 3
+        against 1 corps lay the wedge"). MEASURED first, as the plan ruled
+        (`BattleActs.wedge_faults`): the near wing's captions run 19 px below
+        the baize and the far wing's stand 18 px on the near wing; two more
+        station sets were tried and refused (raised, the far wing stands on
+        its loss counter; stepped in beside it, it stands at rest on the
+        reserve's note, the losses' caption and the banner). So the file is
+        the ruled layout from 120 % up; the table records why it kept it
+        (`_laid_why`) and the walk's claim reads that. This test — the row's
+        strict xfail until this session, a plain test now — runs exactly the
+        walk that reproduced the row (`tools/ba1_acts_walk.py --only
+        ulm_full,the_reserve --headless --time-scale 8 --text-size 1.3`) and
+        asserts no claim fails AND that the walk noted the measured reason on
+        both scenes (a walk that did not run, a script error or a lost shot
+        raises RuntimeError: a broken walk can never pass for the fix)."""
         if not Path(WALK.GODOT_DEFAULT).exists():
             pytest.skip("the Godot engine is not on this machine")
         out = subprocess.run(
@@ -320,13 +367,27 @@ class TestTheOpenBoardRow:
         shots_done, shots_all = summary.split(" shots complete")[0].split("/")
         if shots_done.strip() != shots_all.strip() or ", 0 script error(s)" not in summary:
             raise RuntimeError(f"the walk logged a script error or lost a shot: {summary}")
-        claims = [ln[len("CLAIM: "):] for ln in text.splitlines() if ln.startswith("CLAIM: ")]
-        board = [c for c in claims if "the table is laid as" in c]
-        other = [c for c in claims if "the table is laid as" not in c]
-        if other:
-            raise RuntimeError(f"a claim other than the board's failed: {other}")
-        scenes_seen = {c.split()[0].rstrip(":") for c in board}
-        assert not board, f"BA3-X2 reproduced on {sorted(scenes_seen)}: {board}"
         if "claim(s) failed" not in summary:
             raise RuntimeError(f"the walk's claim count is not in its output: {summary}")
+        claims = [ln[len("CLAIM: "):] for ln in text.splitlines() if ln.startswith("CLAIM: ")]
+        assert not claims, claims
+        notes = [ln[len("NOTE: "):] for ln in text.splitlines()
+                 if ln.startswith("NOTE: ") and "the file is kept at text 1.3" in ln]
+        for scene in ("ulm_full", "the_reserve"):
+            mine = [n for n in notes if n.startswith(scene + " ")]
+            assert mine, f"{scene}: the walk noted no measured reason for the file ({notes})"
+            assert all(" — " in n and ("leaves the baize" in n or "meets" in n or "stands on" in n)
+                       for n in mine), mine
+
+    def test_at_the_shipped_sizes_a_wedge_not_laid_is_still_a_claim(self):
+        """The claim is size-aware, never lenient: up to 115 % the wedge must
+        be laid, measured reason or none."""
+        frame = {"corps": [{"left": True, "x": 0, "y": 0, "role": ""}] * 3
+                 + [{"left": False, "x": 0, "y": 0, "role": ""}],
+                 "laid": "file", "laid_why": ["Napoleon: a line leaves the baize (x 14 to 145, y 406 to 459)"]}
+        for size in (1.0, 1.15):
+            wrong = WALK._board_claims("scene end", frame, size)
+            assert wrong and "the table is laid as 'file'" in wrong[0] and "the table's own measure" in wrong[0]
+        assert WALK._board_claims("scene end", frame, 1.3) == []
+        assert WALK._board_claims("scene end", dict(frame, laid_why=[]), 1.3),             "past 115 % the file needs its measured reason"
 

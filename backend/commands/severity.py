@@ -89,7 +89,8 @@ def calculate_objection_severity(
     # Step 3: Apply tiered variance
     if include_variance:
         severity = apply_variance(severity, **_seeded(
-            game_state, marshal, (order or {}).get("action"), (order or {}).get("target")))
+            game_state, marshal, (order or {}).get("action"), (order or {}).get("target"),
+            *_order_mark(order)))
 
     # Step 4: Cap at 0.95
     severity = min(0.95, max(0.0, severity))
@@ -215,6 +216,13 @@ def get_authority_modifier(game_state) -> float:
         return game_state.world.authority_tracker.get_severity_modifier()
 
     return 1.0
+
+
+def _order_mark(order) -> tuple:
+    """BA3-X16 (row BA, BA-4): the order's own mark for the seeded variance
+    (`campaign_variance.order_mark` — its stance, its recruit type, its count)."""
+    from backend.game_logic import campaign_variance as _cv
+    return _cv.order_mark(order)
 
 
 def _seeded(game_state, marshal, *identity) -> Dict:

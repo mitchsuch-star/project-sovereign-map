@@ -79,8 +79,8 @@
     "nation": "Austria",
     "arm": "infantry",
     "committed": 52000,
-    "casualties": 20586,
-    "remaining": 28262,
+    "casualties": 25586,
+    "remaining": 23262,
     "status": "routed",
     "lead": true,
     "crowned": false,
@@ -88,7 +88,7 @@
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 20586,
+  "casualties_total": 25586,
   "committed_total": 52000,
   "reserve_casualties": 0,
   "nation": "Austria"
@@ -257,6 +257,16 @@
    {
     "act": "pursuit",
     "beats": [
+     {
+      "kind": "pursue",
+      "side": "attacker",
+      "actor": "Ney",
+      "text": "Murat, from the reserve, rides them down (First Horseman of Europe): 5,000 more.",
+      "weight": "head",
+      "damage": 5000,
+      "halved": false,
+      "target": "Mack"
+     },
      {
       "kind": "leave",
       "side": "defender",

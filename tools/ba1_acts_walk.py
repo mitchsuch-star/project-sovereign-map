@@ -302,6 +302,20 @@ def day_shots(name: str, payload_path: str, scale: float) -> list[dict]:
         shots.append({**common, "id": f"{name}__{kind}", "events": events})
     shots.append({**common, "id": f"{name}__esc", "events": [
         before, {"t": 0.7, "do": "esc", "shot": "after"}]})
+    # BA-4: the bare digits press the day's chips in fixed slots — a real key
+    # each: the lead's own word, a corps of a group, a free word, a slot no
+    # chip holds, a locked chip's slot, and a key while the acts still play
+    for kind, d in day_digit_shots(chips).items():
+        if kind == "digit_playing":
+            shots.append({**common, "id": f"{name}__{kind}", "cinematic": True,
+                          "events": [{"t": 0.5, "do": "digit", "n": d, "shot": "pressed"}]})
+        elif kind in ("digit_empty", "digit_locked"):
+            shots.append({**common, "id": f"{name}__{kind}", "events": [
+                before, {"t": 0.7, "do": "digit", "n": d, "shot": "pressed"}]})
+        else:
+            shots.append({**common, "id": f"{name}__{kind}", "events": [
+                before, {"t": 0.7, "do": "digit", "n": d, "shot": "pressed"},
+                {"t": 0.8, "do": "digit", "n": d, "shot": "pressed_again"}]})
     # the chrome the panel borrowed comes back for the next battle on the same
     # tableau: an ordinary battle (no day) is shown after the day's table
     ordinary = Path(payload_path).parent / "ordinary_brief.json"
@@ -604,7 +618,10 @@ def _works_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict) 
     return wrong
 
 
-def _board_claims(rid: str, frame: dict) -> list[str]:
+WEDGE_TEXT_MAX = 1.15       # BA3-X2: the stations are laid for Text size 100 % and the shipped 115 %
+
+
+def _board_claims(rid: str, frame: dict, text_size: float = 1.15) -> list[str]:
     """BA-2, the order of battle. Two or three corps on a side lay the wedge:
     the lead nearest the centre line, the near wing below and behind him, the
     far wing above and behind, the two sides mirrored; no line of a corps
@@ -618,8 +635,20 @@ def _board_claims(rid: str, frame: dict) -> list[str]:
     want = "wedge" if 2 <= most <= 3 else "file"
     wrong = []
     if frame.get("laid") != want:
-        wrong.append(f"{rid}: the table is laid as {frame.get('laid')!r}; "
-                     f"{len(sides[True])} against {len(sides[False])} corps lay the {want}")
+        # BA3-X2 (row BA, BA-4): past the text size the stations are laid for
+        # the file is the RULED layout (`battle_acts.gd`'s header: measured at
+        # 130 %, and two more station sets tried and refused) — the table keeps
+        # it with ITS OWN measured reason on record (`laid_why`: which line
+        # would stand on what, and by how much), and the walk reads that. Up
+        # to that size a wedge that is not laid is a claim, and says the reason.
+        why = frame.get("laid_why") or []
+        if want == "wedge" and frame.get("laid") == "file" and text_size > WEDGE_TEXT_MAX + 0.001 and why:
+            NOTES_SEEN.append(f"{rid}: the file is kept at text {text_size:g} — {why[0]}"
+                              + (f" (and {len(why) - 1} more)" if len(why) > 1 else ""))
+        else:
+            wrong.append(f"{rid}: the table is laid as {frame.get('laid')!r}; "
+                         f"{len(sides[True])} against {len(sides[False])} corps lay the {want}"
+                         + (f" — the table's own measure: {why[0]}" if why else ""))
     if frame.get("laid") != "wedge":
         return wrong
     for side in sides.values():
@@ -930,13 +959,73 @@ def _rect_inside(inner, outer, slack: int = 1) -> bool:
             and inner[1] + inner[3] <= outer[1] + outer[3] + slack)
 
 
-def _one_chip_claims(where: str, i: int, chip: dict, seg: str, *, name_only: bool) -> list[str]:
+def day_digits(chips: list) -> dict:
+    """BA-4, the rule of the fixed slots, worked here from the block alone:
+    {index into `chips`: digit}. 1 the lead presses (or strikes back), 2 the
+    Guard, 3 he digs in; 4 to 6 the first three chips of every other kind, in
+    the block's own order; 7 he stands, 8 break off / fall back, 9 leave it
+    to him. A slot is one chip's; a kind that is not offered leaves its digit
+    unused, and a chip past the sixth has none."""
+    own, groups, exits = day_split(chips)
+    out, taken = {}, set()
+    for i in own:
+        digit = {"press": 1, "guard": 2, "dig_in": 3}.get(chips[i].get("kind"))
+        if digit and digit not in taken:
+            out[i] = digit
+            taken.add(digit)
+    nxt = 4
+    for _kind, idx in groups:
+        for i in idx:
+            if nxt <= 6:
+                out[i] = nxt
+                nxt += 1
+    for i in exits:
+        digit = 9 if chips[i].get("word") == "leave_it" else (7 if chips[i].get("kind") == "stand" else 8)
+        if digit not in taken:
+            out[i] = digit
+            taken.add(digit)
+    return out
+
+
+def day_digit_shots(chips: list) -> dict:
+    """BA-4: the digits the walk presses on a day that offers `chips` —
+    {shot kind: digit}: the first lit slot of the lead's own words, of the
+    groups and of the exits; a slot no chip holds; a locked chip's slot; and
+    the lowest lit slot again while the acts still play."""
+    by_digit = {d: i for i, d in day_digits(chips).items()}
+    lit = sorted(d for d, i in by_digit.items() if chips[i].get("ok"))
+    out = {}
+    for kind, want in (("digit_own", lambda d: d <= 3), ("digit_group", lambda d: 4 <= d <= 6),
+                       ("digit_exit", lambda d: d >= 7)):
+        d = next((d for d in lit if want(d)), None)
+        if d is not None:
+            out[kind] = d
+    empty = next((d for d in range(1, 10) if d not in by_digit), None)
+    if empty is not None:
+        out["digit_empty"] = empty
+    locked = next((d for d, i in sorted(by_digit.items()) if not chips[i].get("ok")), None)
+    if locked is not None:
+        out["digit_locked"] = locked
+    if lit:
+        out["digit_playing"] = lit[0]
+    return out
+
+
+def _one_chip_claims(where: str, i: int, chip: dict, seg: str, *, name_only: bool,
+                     digit: int = 0) -> list[str]:
     """A lit chip is a link (`[url=day:<i>]`) with no lock; a dim chip is the
     disabled pill (the lock, NO link) and carries its reason as its hover. A
     chip written whole carries its label and, when it costs, its price; a name
-    chip carries the marshal's name and its hover the full label."""
+    chip carries the marshal's name and its hover the full label. BA-4: a chip
+    with a digit shows it first ("1 Ney presses · 1", "4 Davout"), and no
+    other chip opens with a digit."""
     wrong = []
     price = int(chip.get("price", 0))
+    opens = _shown_text(seg)
+    if digit and not opens.startswith(f"{digit} "):
+        wrong.append(f"{where}: (BA4-d) chip {i} {chip.get('label')!r} holds digit {digit} and reads {opens!r}")
+    if not digit and re.match(r"^\d ", opens):
+        wrong.append(f"{where}: (BA4-d) chip {i} {chip.get('label')!r} holds no digit and reads {opens!r}")
     if name_only:
         want = str(chip.get("shown") or chip.get("label", "")).replace(" ", " ")
     else:
@@ -961,13 +1050,14 @@ def _one_chip_claims(where: str, i: int, chip: dict, seg: str, *, name_only: boo
         if chip.get("why") and not any(_plain(chip["why"]) in h for h in hints):
             wrong.append(f"{where}: dim chip {i} {chip.get('label')!r} does not carry its "
                          f"reason {chip.get('why')!r} (hovers: {hints})")
-    if linked and name_only and not _shown_text(seg).startswith(str(chip.get("shown") or chip.get("label", ""))):
-        wrong.append(f"{where}: (q) the name chip under day:{i} reads {_shown_text(seg)!r}, the chip "
+    named = opens[len(f"{digit} "):] if digit and opens.startswith(f"{digit} ") else opens
+    if linked and name_only and not named.startswith(str(chip.get("shown") or chip.get("label", ""))):
+        wrong.append(f"{where}: (q) the name chip under day:{i} reads {opens!r}, the chip "
                      f"at that index is {chip.get('shown')!r}")
     return wrong
 
 
-def _day_chip_claims(rid: str, day: dict, src: dict) -> list[str]:
+def _day_chip_claims(rid: str, day: dict, src: dict, digits: dict | None = None) -> list[str]:
     """Claims 4, (d), (m) and (q) over the three boxes: row C (the lead's own
     words, full chips), rows D (one line per kind: a plain label once with the
     price, then name-only chips; a kind with ONE chip is written whole), row E
@@ -975,11 +1065,18 @@ def _day_chip_claims(rid: str, day: dict, src: dict) -> list[str]:
     wrong = []
     chips = day.get("chips") or []
     own, groups, exits = day_split(chips)
+    # BA-4: the digits the table gave are the fixed slots' (worked here from
+    # the block), and each chip opens with its own
+    want_digits = day_digits(chips)
+    if digits is not None and {int(k): int(v) for k, v in digits.items()} != want_digits:
+        wrong.append(f"{rid}: (BA4-d) the table's digits {dict(sorted((int(k), int(v)) for k, v in digits.items()))} "
+                     f"are not the fixed slots' {dict(sorted(want_digits.items()))}")
     seg_own = src["own"].split(CHIP_HEAD)[1:]
     if len(seg_own) != len(own):
         return [f"{rid}: row C draws {len(seg_own)} chip(s), the day offers {len(own)} of its own"]
     for i, seg in zip(own, seg_own):
-        wrong += _one_chip_claims(f"{rid} row C", i, chips[i], seg, name_only=False)
+        wrong += _one_chip_claims(f"{rid} row C", i, chips[i], seg, name_only=False,
+                                  digit=want_digits.get(i, 0))
     segs = src["groups"].split(CHIP_HEAD)[1:]       # one run of chips, whether the groups flow inline or by line
     if len(segs) != sum(len(idx) for _kind, idx in groups):
         return wrong + [f"{rid}: rows D draw {len(segs)} chip(s), the day's groups hold "
@@ -991,7 +1088,8 @@ def _day_chip_claims(rid: str, day: dict, src: dict) -> list[str]:
         mine = segs[taken: taken + len(idx)]
         taken += len(idx)
         if len(idx) == 1:
-            wrong += _one_chip_claims(f"{rid} rows D", idx[0], chips[idx[0]], mine[0], name_only=False)
+            wrong += _one_chip_claims(f"{rid} rows D", idx[0], chips[idx[0]], mine[0], name_only=False,
+                                      digit=want_digits.get(idx[0], 0))
             continue
         price = int(chips[idx[0]].get("price", 0))
         want = GROUP_LABEL.get(kind, chips[idx[0]].get("label", "")) + (f" · {price}" if price > 0 else "") + ":"
@@ -1001,12 +1099,14 @@ def _day_chip_claims(rid: str, day: dict, src: dict) -> list[str]:
         else:
             cursor = found + len(want)
         for i, seg in zip(idx, mine):
-            wrong += _one_chip_claims(f"{rid} rows D", i, chips[i], seg, name_only=True)
+            wrong += _one_chip_claims(f"{rid} rows D", i, chips[i], seg, name_only=True,
+                                      digit=want_digits.get(i, 0))
     seg_exit = src["exits"].split(CHIP_HEAD)[1:]
     if len(seg_exit) != len(exits):
         return wrong + [f"{rid}: row E draws {len(seg_exit)} exit(s), the day offers {len(exits)}"]
     for i, seg in zip(exits, seg_exit):
-        wrong += _one_chip_claims(f"{rid} row E", i, chips[i], seg, name_only=False)
+        wrong += _one_chip_claims(f"{rid} row E", i, chips[i], seg, name_only=False,
+                                  digit=want_digits.get(i, 0))
     # (m) the chips stand in the block's array order: C, then D, then E
     metas = [int(m) for m in URL_RX.findall(src["own"] + "\n" + src["groups"] + "\n" + src["exits"])]
     if metas != sorted(metas) or len(set(metas)) != len(metas):
@@ -1186,6 +1286,12 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
         if took_room and not was_up:
             wrong.append(f"{where}: (o) the panel rose above the verdict where there was no shelf to give room")
         lines = [ln for ln in built.get("lines") or [] if ln.get("text", "").strip()]
+        # BA-4: the first day's own line (`first_open`) — on a row of its own
+        # above the head where the table has room for it whole, else nowhere
+        # on the panel (it rides the head's hover); read apart from the rows
+        first_rows = [ln for ln in lines if ln.get("first")]
+        lines = [ln for ln in lines if not ln.get("first")]
+        wrong += _day_first_claims(where, day, built, first_rows, lines, tray)
         kinds = {k: [ln for ln in lines if ln.get(k)] for k in ("chips", "groups", "exits")}
         for ln in lines:
             what = ("row C (the lead's own words)" if ln.get("chips") else "rows D (the groups)"
@@ -1226,9 +1332,12 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
             if built.get("inline") is not None:
                 NOTES_SEEN.append(f"{where}: groups inline={built.get('inline')} at text {text_size:g}")
             told_last = [t.get("line", "") for t in day.get("told") or [] if t.get("line")]
-            if told_last and text_size <= 1.15:
+            # (BA-4: on the first day of a campaign the first day's own line may
+            # take that row for its one showing — the told line is then on the hover)
+            if told_last and text_size <= 1.15 and not first_rows:
                 under = [ln for ln in lines if not (ln.get("chips") or ln.get("groups") or ln.get("exits"))
-                         and ln is not lines[0] and abs(ln["box"][1] - lines[0]["box"][3]) <= 6]
+                         and ln is not lines[0]
+                         and abs(ln["box"][1] - (lines[0]["box"][1] + lines[0]["box"][3])) <= 6]
                 if not any(told_last[-1] in ln["text"].replace("\u00a0", " ") for ln in under):
                     wrong.append(f"{where}: (K5) the last told line is not on a line just under the head "
                                  f"(text {text_size:g})")
@@ -1242,7 +1351,7 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
         if offered and built.get("has_exits"):
             src = {k: (kinds[key][0]["source"] if kinds[key] else "")
                    for k, key in (("own", "chips"), ("groups", "groups"), ("exits", "exits"))}
-            wrong += _day_chip_claims(where, day, src)
+            wrong += _day_chip_claims(where, day, src, built.get("digits"))
             e_ln = kinds["exits"][0] if kinds["exits"] else None
             # (k) the Guard, when offered, is the second chip of the array, on row C beside the press
             guard = [i for i in own_chips if chips[i].get("kind") == "guard"]
@@ -1315,6 +1424,50 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
     return wrong
 
 
+def _day_first_claims(where: str, day: dict, built: dict, first_rows: list, lines: list,
+                      tray: list) -> list[str]:
+    """BA-4, the first day's line (the block's `first_open`). Where it has a
+    row: ONE row, shown, at the panel's top, whole and inside the tray, the
+    head right under it — and no chip scrolls for it (it may take the told
+    line's row for its one showing: the last word told is then on the head's
+    hover, where the claim on the day's last told line still finds it). Where
+    it has none it is on the head's hover, and the table says it showed
+    nothing (`first_shown`). A day whose block carries no line shows none."""
+    wrong = []
+    fo = day.get("first_open") if isinstance(day.get("first_open"), dict) else None
+    said = str((fo or {}).get("line") or "")
+    shown = str(built.get("first_shown") or "")
+    if not said or not day.get("open"):
+        if first_rows or shown:
+            wrong.append(f"{where}: (BA4-f) a first-open line stands on a table whose block carries none")
+        return wrong
+    if not first_rows:
+        if shown:
+            wrong.append(f"{where}: (BA4-f) the table acknowledged {shown!r} and drew no row for it")
+        head = lines[0] if lines else {}
+        if _plain(said) not in _plain(" ".join(HINT_RX.findall(head.get("source", "")))):
+            wrong.append(f"{where}: (BA4-f) the first day's line has no row and is not on the head's hover")
+        return wrong
+    row = first_rows[0]
+    if len(first_rows) != 1 or not row.get("shown"):
+        wrong.append(f"{where}: (BA4-f) the first day's line is drawn {len(first_rows)} time(s), "
+                     f"shown={row.get('shown')}")
+    if _plain(said) != _plain(row.get("text", "")):
+        wrong.append(f"{where}: (BA4-f) the row reads {row.get('text')!r}, the block's line is {said!r}")
+    if row["box"][1] != 0 or not _rect_inside(row["ink"], tray):
+        wrong.append(f"{where}: (BA4-f) the first day's line is not the panel's top row inside the tray "
+                     f"(box {row['box']}, ink {row['ink']})")
+    wrong += _sliced(where, row, "the first day's line")
+    if lines and abs(lines[0]["box"][1] - (row["box"][1] + row["box"][3])) > 4:
+        wrong.append(f"{where}: (BA4-f) the head does not stand right under the first day's line "
+                     f"(head y {lines[0]['box'][1]}, the line ends at {row['box'][1] + row['box'][3]})")
+    if shown != str((fo or {}).get("screen") or ""):
+        wrong.append(f"{where}: (BA4-f) the line is on the table and the table acknowledged {shown!r}")
+    if any(ln.get("scroll_active") for ln in lines):
+        wrong.append(f"{where}: (BA4-f) a box scrolls on a table that gave the first day's line a row")
+    return wrong
+
+
 def _day_press_claims(rid: str, res: dict, day: dict, by_id: dict | None = None) -> list[str]:
     """BA-3 claims 5 and 6, and (h), (i), (n), (o), (q): one press, one word; a dim
     chip sends nothing; a compact group's name chip sends ITS corps' order; Esc
@@ -1354,6 +1507,44 @@ def _day_press_claims(rid: str, res: dict, day: dict, by_id: dict | None = None)
             wrong.append(f"{rid}: pressing a dim chip gave {pressed.get('emitted')}")
         if (pressed.get("day") or {}).get("latched"):
             wrong.append(f"{rid}: pressing a dim chip set the latch")
+    elif kind in ("digit_own", "digit_group", "digit_exit"):
+        # BA-4: a bare digit gives its slot's word, once — the chip the fixed
+        # slots put under it, never another
+        digit = int(day_digit_shots(chips).get(kind) or 0)
+        index = {d: i for i, d in day_digits(chips).items()}.get(digit)
+        chip = chips[index] if index is not None else None
+        word = chip_word(chip, day) if chip else ""
+        pressed = frame("pressed")
+        if (pressed.get("emitted") or []) != [word] or not word:
+            wrong.append(f"{rid}: (BA4-k) digit {digit} gave {pressed.get('emitted')}, its slot holds "
+                         f"{chip.get('label') if chip else None!r}: wanted exactly [{word!r}]")
+        if not (pressed.get("day") or {}).get("latched"):
+            wrong.append(f"{rid}: (BA4-k) the latch is not set after digit {digit}")
+        again = frame("pressed_again")
+        if again and (again.get("emitted") or []) != [word]:
+            wrong.append(f"{rid}: (BA4-k) the same digit a second time gave {again.get('emitted')}, "
+                         f"wanted still exactly [{word!r}]")
+        if again and int((again.get("day") or {}).get("denied") or 0) < 1:
+            wrong.append(f"{rid}: (BA4-k) a digit on a latched table was not denied (the deny cue)")
+    elif kind in ("digit_empty", "digit_locked"):
+        digit = int(day_digit_shots(chips).get(kind) or 0)
+        pressed = frame("pressed")
+        if (pressed.get("emitted") or []) != []:
+            wrong.append(f"{rid}: (BA4-k) digit {digit} — "
+                         f"{'no chip in its slot' if kind == 'digit_empty' else 'a locked chip'} — "
+                         f"gave {pressed.get('emitted')}")
+        if (pressed.get("day") or {}).get("latched"):
+            wrong.append(f"{rid}: (BA4-k) digit {digit} set the latch and gave no word")
+        if int((pressed.get("day") or {}).get("denied") or 0) < 1:
+            wrong.append(f"{rid}: (BA4-k) digit {digit} was not denied (the deny cue)")
+        if pressed.get("visible") is False:
+            wrong.append(f"{rid}: (BA4-k) digit {digit} closed the table")
+    elif kind == "digit_playing":
+        pressed = frame("pressed")
+        if (pressed.get("emitted") or []) != []:
+            wrong.append(f"{rid}: (BA4-k) a digit while the acts play gave {pressed.get('emitted')}")
+        if pressed.get("final"):
+            wrong.append(f"{rid}: (BA4-k) a digit while the acts play ended them (it is no skip)")
     elif kind == "then_ordinary":
         after = frame("after")
         built = after.get("day") or {}
@@ -1522,7 +1713,8 @@ def check(results: dict, shots: list[dict]) -> list[str]:
         for name, frame in (("end", end), ("settled", settled)):
             problems += [f"{rid} {name}: ink over ink — {w}" for w in overlaps(frame)]
             problems += [f"{rid} {name}: off the baize — {w}" for w in off_the_baize(frame)]
-            problems += _board_claims(f"{rid} {name}", frame)
+            problems += _board_claims(f"{rid} {name}", frame,
+                                      float(res.get("text_size") or DEFAULT_TEXT_SIZE))
             if not frame.get("marks"):
                 problems.append(f"{rid} {name}: no marks recorded")
         # every act the script carries is told on the table, and only those
@@ -1553,7 +1745,12 @@ def check(results: dict, shots: list[dict]) -> list[str]:
         if res and res.get("ok") and rid.rsplit("__", 1)[-1] in (
                 "press_lit", "press_word", "press_group", "press_dim", "esc", "then_ordinary",
                 "awaits_him", "awaits_him_acts", "awaits_him_skip", "no_script", "follows_awaits_him",
-                "no_chips", "goes_on", "stays_reduced", "replays"):
+                "no_chips", "goes_on", "stays_reduced", "replays",
+                # BA-4: the digits' own shots. They were built and shot and their
+                # claims never read — this list did not name them, and the switch-off
+                # table said so (three digit cases walked green with the fix off)
+                "digit_own", "digit_group", "digit_exit", "digit_empty", "digit_locked",
+                "digit_playing"):
             problems += _day_press_claims(rid, res, payloads[shot["payload"]].get("day") or {}, by_id)
 
     if "enemy_comes" in spec:

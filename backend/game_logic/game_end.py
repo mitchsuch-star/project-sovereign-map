@@ -3335,7 +3335,10 @@ def _battle_subject(name: str) -> str:
     Swabia" / "Second Battle of X" bare, so "Battle of Munich was the worst
     day." sat beside "The Great Battle of Swabia … was the high-water
     mark.")."""
-    text = _cap(name)
+    # Row BA, BA-4: a clash of a day is named for its battle here ("… — the
+    # second clash was the high-water mark" names a clash, not a battle).
+    from backend.game_logic.battle_day import the_battle_of
+    text = _cap(the_battle_of(name))
     low = text.lower()
     if not low.startswith("the ") and "battle of " in low:
         return "The " + text

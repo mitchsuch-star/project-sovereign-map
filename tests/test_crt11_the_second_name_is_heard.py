@@ -47,11 +47,37 @@ def shipped(monkeypatch):
     # an action — and `test_the_relayed_order_pays_its_own_price_when_sent`
     # read 3 actions where it expects 2 (green in one full run, red in the
     # next). The relay's own price is what CRT-11 pins: the day's seam is held
-    # down here. What the relay's note should SAY of a word's price while a
-    # day is open is BA3-X5's (`tests/test_ba3_the_rounds.py`).
+    # down here. What the relay's note SAYS of a word's price while a day is
+    # open was BA3-X5's — fixed in row BA's BA-4, and pinned with the day's
+    # seam UP by the two relay tests below (the `opening` fixture).
     from backend.game_logic import battle_day as _battle_day
     monkeypatch.setattr(_battle_day, "the_day_has_points", lambda: False)
     return TestClient(M.app), M.world
+
+
+@pytest.fixture
+def opening(monkeypatch):
+    """The 1805 opening with the DAY'S SEAM UP (row BA, BA-4; BA3-X5's
+    done-when: "CRT-11's relay pins run with the day's seam up again"). A
+    factory: each call is a fresh campaign whose opening battle is fought on
+    the module's dice under the seed given, so that both a morning that hangs
+    (Soult's support is then a word of the day) and one that does not are met."""
+    for key in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "SOVEREIGN_SMOKE_START"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("LLM_MODE", "mock")
+
+    def fresh(seed):
+        M._reset_world_state()
+        monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
+        import random
+        random.seed(seed)
+        return TestClient(M.app), M.world
+
+    return fresh
+
+
+def _a_day_hangs(world):
+    return bool((getattr(world, "battle_days", None) or {}).get("days"))
 
 
 def post(client, command):
@@ -280,35 +306,59 @@ def _unmet(world, *names):
 
 class TestTheSecondNameIsRelayed:
 
-    def test_the_attack_runs_and_soults_support_is_relayed(self, shipped):
-        """CQ-8's done-when, first arm, at `POST /command`."""
-        client, world = shipped
-        reply = post(client, "Ney and Soult, attack Mack")
-        message = str(reply.get("message") or "")
-        assert world.actions_remaining == 3, "the attack runs, AP 4 -> 3"
-        assert reply.get("relay_kind") == "ready"
-        assert reply.get("relay_command") == "Soult, support Ney"
-        price = world.get_marshal("Soult").strategic_order_ap(order_type="SUPPORT")
-        assert f'"Soult, support Ney" ({price} action' in message, message[-400:]
-        assert "You named Soult beside Ney, Sire" in message
-        # relayed, never spent: Soult holds no order the game wrote for him
-        assert getattr(world.get_marshal("Soult"), "strategic_order", None) is None
+    def test_the_attack_runs_and_soults_support_is_relayed(self, opening):
+        """CQ-8's done-when, first arm, at `POST /command` — with the day's
+        seam up (BA3-X5): where Ulm's day hangs, his support is a word of it
+        and the note prices it in the day's points; else in actions."""
+        mornings = set()
+        for seed in range(8):
+            client, world = opening(seed)
+            reply = post(client, "Ney and Soult, attack Mack")
+            message = str(reply.get("message") or "")
+            assert world.actions_remaining == 3, "the attack runs, AP 4 -> 3"
+            assert reply.get("relay_kind") == "ready"
+            assert reply.get("relay_command") == "Soult, support Ney"
+            price = world.get_marshal("Soult").strategic_order_ap(order_type="SUPPORT")
+            if _a_day_hangs(world):
+                assert '"Soult, support Ney" (a word of the day — 1 point when sent)' in message, \
+                    message[-400:]
+            else:
+                assert f'"Soult, support Ney" ({price} action' in message, message[-400:]
+            assert "You named Soult beside Ney, Sire" in message
+            # relayed, never spent: Soult holds no order the game wrote for him
+            assert getattr(world.get_marshal("Soult"), "strategic_order", None) is None
+            mornings.add(_a_day_hangs(world))
+        assert mornings == {True, False}, "eight openings meet a morning that hangs and one that does not"
 
-    def test_the_relayed_order_pays_its_own_price_when_sent(self, shipped):
-        """Sent, it is Soult's own SUPPORT of Ney at its own price. Where he
-        ends depends on the battle's roll — if Mack still holds Swabia the
-        support stops at the approach (the board's rule) — so the pin reads
-        the price and the march, not the province."""
-        client, world = shipped
-        reply = post(client, "Ney and Soult, attack Mack")
-        before = world.actions_remaining
-        sent = post(client, reply["relay_command"])
-        price = world.get_marshal("Soult").strategic_order_ap(order_type="SUPPORT")
-        assert world.actions_remaining == before - price
-        # (Lorraine is itself Swabia's approach: when Mack holds Swabia the
-        # support completes where Soult already stands)
-        message = str(sent.get("message") or "")
-        assert "support Ney" in message or "approach to Swabia" in message, message[:200]
+    def test_the_relayed_order_pays_its_own_price_when_sent(self, opening):
+        """Sent, it is Soult's own SUPPORT of Ney at the price the note named:
+        a point of the day and no action where Ulm's day hangs (BA3-X5), its
+        own price in actions where it does not. Where he ends depends on the
+        battle's roll — if Mack still holds Swabia the support stops at the
+        approach (the board's rule) — so the pin reads the price and the
+        march, not the province."""
+        mornings = set()
+        for seed in range(8):
+            client, world = opening(seed)
+            reply = post(client, "Ney and Soult, attack Mack")
+            hangs = _a_day_hangs(world)
+            before = world.actions_remaining
+            purse = int(world.battle_days["days"]["Mack"]["ours"]) if hangs else None
+            sent = post(client, reply["relay_command"])
+            price = world.get_marshal("Soult").strategic_order_ap(order_type="SUPPORT")
+            if hangs:
+                assert world.actions_remaining == before, "a word of the day takes no action"
+                days = (world.battle_days or {}).get("days") or {}
+                assert "Mack" not in days or int(days["Mack"]["ours"]) == purse - 1, \
+                    "and one point of the day"
+            else:
+                assert world.actions_remaining == before - price
+            # (Lorraine is itself Swabia's approach: when Mack holds Swabia the
+            # support completes where Soult already stands)
+            message = str(sent.get("message") or "")
+            assert "support Ney" in message or "approach to Swabia" in message, message[:200]
+            mornings.add(hangs)
+        assert mornings == {True, False}
 
     def test_a_man_the_muster_counts_is_acknowledged_not_relayed(self, shipped):
         """CQ-8's done-when, second arm."""

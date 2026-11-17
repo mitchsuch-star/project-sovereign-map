@@ -1,0 +1,33 @@
+{
+ "_note": "Row BA, BA-4 \u2014 the keyed world probe per arm (jena and marengo, 40 ambient turns, one hash per top-level key of to_dict a turn): `vs_head` compares the arm with a `git archive HEAD` copy's rows, `vs_before` with the arm before it in this run. `crashes` counts a court's lost turn (BA2-X2). Written by tools/_ba4_measure.py.",
+ "arms": {
+  "X14": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false,
+     "keys": [
+      "marshals"
+     ]
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false,
+     "keys": [
+      "marshals"
+     ]
+    }
+   },
+   "seams_down": []
+  }
+ },
+ "turns": 40
+}

@@ -1,0 +1,655 @@
+{
+ "_note": "Row BA, BA-4 \u2014 the keyed world probe per arm (jena and marengo, 40 ambient turns, one hash per top-level key of to_dict a turn): `vs_head` compares the arm with a `git archive HEAD` copy's rows, `vs_before` with the arm before it in this run. `crashes` counts a court's lost turn (BA2-X2). Written by tools/_ba4_measure.py.",
+ "arms": {
+  "0": {
+   "jena": {
+    "crashes": 1,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_down": [
+    "backend.ai.enemy_ai:a_corps_raised_mid_phase_takes_its_turn=False",
+    "backend.commands.combat_executor:a_battery_is_spared_its_own_shells=False",
+    "backend.commands.strategic:a_road_round_keeps_to_open_frontiers=False",
+    "backend.commands.strategic:a_support_order_halts_before_the_friends_foe=False",
+    "backend.game_logic.intel_surfaces:a_battle_lights_its_field_only_for_those_who_fought=False",
+    "backend.commands.combat_executor:a_pursuit_is_any_corps_that_fought=False",
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "APPROACH": {
+   "jena": {
+    "before": "X10",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 30,
+     "identical": false,
+     "keys": [
+      "ai_stagnation_turns",
+      "notifications"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X10",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_down": [
+    "backend.game_logic.intel_surfaces:a_battle_lights_its_field_only_for_those_who_fought=False",
+    "backend.commands.combat_executor:a_pursuit_is_any_corps_that_fought=False",
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "OFFER": {
+   "jena": {
+    "before": "TELL",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "TELL",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "PURSUIT": {
+   "jena": {
+    "before": "X20",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X20",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "QUARTERS": {
+   "jena": {
+    "before": "PURSUIT",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "first_turn": 26,
+     "identical": false,
+     "keys": [
+      "_prev_war_exhaustion",
+      "battle_records",
+      "campaign_ledgers",
+      "event_log",
+      "manpower_pools",
+      "marshals",
+      "materiel_spent_this_turn",
+      "nation_authority",
+      "nation_dp",
+      "nation_gold",
+      "previous_war_scores",
+      "war_exhaustion",
+      "war_score_history",
+      "war_scores"
+     ]
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "PURSUIT",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "first_turn": 32,
+     "identical": false,
+     "keys": [
+      "battle_records",
+      "campaign_ledgers",
+      "event_log",
+      "marshals",
+      "materiel_spent_this_turn",
+      "nation_gold"
+     ]
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "TELL": {
+   "jena": {
+    "before": "QUARTERS",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "QUARTERS",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X10": {
+   "jena": {
+    "before": "X12",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 30,
+     "identical": false,
+     "keys": [
+      "ai_stagnation_turns",
+      "notifications"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X12",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_down": [
+    "backend.commands.strategic:a_support_order_halts_before_the_friends_foe=False",
+    "backend.game_logic.intel_surfaces:a_battle_lights_its_field_only_for_those_who_fought=False",
+    "backend.commands.combat_executor:a_pursuit_is_any_corps_that_fought=False",
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X12": {
+   "jena": {
+    "before": "X2",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 30,
+     "identical": false,
+     "keys": [
+      "ai_stagnation_turns",
+      "notifications"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X2",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_down": [
+    "backend.commands.strategic:a_road_round_keeps_to_open_frontiers=False",
+    "backend.commands.strategic:a_support_order_halts_before_the_friends_foe=False",
+    "backend.game_logic.intel_surfaces:a_battle_lights_its_field_only_for_those_who_fought=False",
+    "backend.commands.combat_executor:a_pursuit_is_any_corps_that_fought=False",
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X13": {
+   "jena": {
+    "before": "OFFER",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "OFFER",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X14": {
+   "jena": {
+    "before": "X15",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X15",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": []
+  },
+  "X15": {
+   "jena": {
+    "before": "X16",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X16",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X16": {
+   "jena": {
+    "before": "X13",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "X13",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X2": {
+   "jena": {
+    "before": "0",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "first_turn": 30,
+     "identical": false,
+     "keys": [
+      "ai_stagnation_turns",
+      "notifications"
+     ]
+    },
+    "vs_head": {
+     "first_turn": 30,
+     "identical": false,
+     "keys": [
+      "ai_stagnation_turns",
+      "notifications"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "0",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "identical": true
+    },
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_down": [
+    "backend.commands.combat_executor:a_battery_is_spared_its_own_shells=False",
+    "backend.commands.strategic:a_road_round_keeps_to_open_frontiers=False",
+    "backend.commands.strategic:a_support_order_halts_before_the_friends_foe=False",
+    "backend.game_logic.intel_surfaces:a_battle_lights_its_field_only_for_those_who_fought=False",
+    "backend.commands.combat_executor:a_pursuit_is_any_corps_that_fought=False",
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  },
+  "X20": {
+   "jena": {
+    "before": "APPROACH",
+    "crashes": 0,
+    "head_crashes": 1,
+    "keys": 212,
+    "vs_before": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    },
+    "vs_head": {
+     "first_turn": 3,
+     "identical": false,
+     "keys": [
+      "event_log",
+      "intel",
+      "pending_dispatch_events"
+     ]
+    }
+   },
+   "marengo": {
+    "before": "APPROACH",
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": 212,
+    "vs_before": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    },
+    "vs_head": {
+     "first_turn": 2,
+     "identical": false,
+     "keys": [
+      "intel"
+     ]
+    }
+   },
+   "seams_down": [
+    "backend.commands.combat_executor:a_pursuit_is_any_corps_that_fought=False",
+    "backend.commands.combat_executor:the_last_hour_brings_three_quarters=False",
+    "backend.commands.combat_executor:the_muster_names_only_an_order_that_brings=False",
+    "backend.game_logic.battle_day:a_day_is_one_battle=False",
+    "backend.game_logic.battle_day:a_days_close_is_told=False",
+    "backend.game_logic.battle_day:a_word_is_quoted_in_points=False",
+    "backend.game_logic.battle_day:a_brought_up_corps_is_one_the_table_offers=False",
+    "backend.game_logic.battle_day:a_dead_day_bars_nothing=False",
+    "backend.game_logic.campaign_variance:an_order_draws_its_own_temper=False",
+    "backend.game_logic.battle_day:a_lead_holds_one_day=False",
+    "backend.game_logic.battle_day:his_word_is_scored_from_the_day=False"
+   ]
+  }
+ },
+ "turns": 40
+}

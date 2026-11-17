@@ -141,9 +141,13 @@ class TestTheLines:
         # its own first line (RECURRING_EVENTS_SPEC §12b.1). Ten since RE-C
         # (November 2, 2026): the Correspondence page of the Dispatch has its
         # own line (§12b.1), attached to the page's dict on `GET /dispatch`.
+        # Eleven since row BA's BA-4 (November 16, 2026): the first day of
+        # battle names its own rules — points, a word, the enemy's answer, the
+        # two silences (the user's tick at the plan gate; attached to the open
+        # day's block, `battle_day.block`).
         assert FO.SCREENS == ("cabinet", "designs", "formables", "settlement", "separate_peace",
                               "laws", "admiralty_camp", "moment_letter", "affair_letter",
-                              "correspondence")
+                              "correspondence", "battle_day")
         for screen, line in _every_line(world):
             assert line, screen
             assert len(line) <= FO.LINE_CAP, (screen, len(line), line)

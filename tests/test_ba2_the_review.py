@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from backend.commands import order_quotes
+from backend.commands import strategic as road_law
 from backend.game_logic import battle_script, siege_diorama
 from backend.game_logic.diplomacy import can_enter_territory
 from backend.models.intel import FULL, PARTIAL
@@ -155,19 +156,26 @@ class TestAnOrderThatWouldAskIsNotOffered:
 
 class TestTheFirstMarchStopsAtAShutFrontier:
     """Soult (a literal man) at Bohemia, Mack on his road at Franconia: his
-    road ROUND Mack is plotted through Saxony, whose frontier is shut. The
-    order is taken, the march is refused, and he stands where he was. The chip
-    read his odds from Dresden — a step he does not take."""
+    road ROUND Mack was plotted through Saxony, whose frontier is shut. The
+    order was taken, the march refused, and he stood where he was. The chip
+    read his odds from Dresden — a step he does not take.
+
+    Since row BA's BA-4 two rules meet on this board. The approach rule: Mack
+    stands within Ney's reach, so Soult's order halts before him and asks
+    nothing (`strategic.a_support_order_halts_before_the_friends_foe`). And
+    BA2-X10's cause: a road round keeps to ground he may enter
+    (`strategic.a_road_round_keeps_to_open_frontiers`). The review's own case
+    is kept with both held down."""
 
     @staticmethod
     def _case():
         world, executor = _staged("Franconia", "Ney", "Swabia", "Soult", "Bohemia")
         return world, executor, world.marshals["Ney"], world.marshals["Soult"]
 
-    def test_the_chip_reads_the_ground_he_really_stands_on(self):
+    def _the_chip_is_the_order(self, first_province):
         world, executor, ney, soult = self._case()
         quote = order_quotes.support_quote(world, soult, ney)
-        assert quote["road"][0] == "Dresden", "the road round Mack, as the order plots it"
+        assert quote["road"][0] == first_province
         assert order_quotes._stop_this_turn(world, soult, quote) == "Bohemia"
         row = _lit(world, "Ney")["Soult"]
         _send(world, executor, row, "Ney")
@@ -176,6 +184,22 @@ class TestTheFirstMarchStopsAtAShutFrontier:
         real = executor._combat._arrival_odds_row(ney, soult, "Franconia", world, "has_support_order")
         assert row["odds_with"] == int(real["arrival_odds"])
         assert f"about {row['odds_with']}% under a written order" in row["why"]
+        return quote, soult
+
+    def test_the_chip_reads_the_ground_he_really_stands_on(self):
+        """As the game stands: he halts at the approach to Franconia, with no
+        question and no road round, and the chip's odds are his odds there."""
+        quote, soult = self._the_chip_is_the_order("Franconia")
+        assert "halts at the approach and joins the next attack there" in quote["contact"]
+        assert soult.pending_interrupt is None and soult.strategic_order.path == []
+
+    def test_the_reviews_own_case_with_ba4s_two_rules_held_down(self, monkeypatch):
+        """The board as the review met it: the road round Mack, as the order
+        then plotted it, began at Dresden — and the chip already read the
+        ground he really stood on."""
+        monkeypatch.setattr(road_law, "a_support_order_halts_before_the_friends_foe", lambda: False)
+        monkeypatch.setattr(road_law, "a_road_round_keeps_to_open_frontiers", lambda: False)
+        self._the_chip_is_the_order("Dresden")
 
     def test_an_open_road_is_still_walked(self):
         """The opening board: Soult's order to Ney marches him at once, and
@@ -187,13 +211,30 @@ class TestTheFirstMarchStopsAtAShutFrontier:
         _send(world, executor, quote, "Ney")
         assert soult.location == stop
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X10 OPEN — owner row BA's session BA-4")
-    def test_a_road_round_never_runs_through_a_frontier_he_may_not_cross(self):
-        world, _executor, ney, soult = self._case()
+    def test_a_road_round_never_runs_through_a_frontier_he_may_not_cross(self, monkeypatch):
+        """BA2-X10's cause, FIXED November 16, 2026 (row BA's session BA-4).
+        The approach rule is held down so that the literal road ROUND Mack is
+        asked for at all: it keeps to ground he may enter, and where none goes
+        round the order is refused before an action is spent — it never again
+        begins at Saxony's shut frontier."""
+        monkeypatch.setattr(road_law, "a_support_order_halts_before_the_friends_foe", lambda: False)
+        world, executor, ney, soult = self._case()
         quote = order_quotes.support_quote(world, soult, ney)
-        first = world.get_region(quote["road"][0])
-        assert can_enter_territory(world, soult.nation, first.controller,
-                                   mover_location=soult.location)
+        here = soult.location
+        for province in quote["road"][:-1]:
+            holder = world.get_region(province).controller
+            assert not holder or holder == soult.nation or can_enter_territory(
+                world, soult.nation, holder, mover_location=here), province
+            here = province
+        assert quote["road"][:1] != ["Dresden"]
+        if not quote["road"]:
+            assert not quote["ok"] and "no alternate route" in quote["refusal"]
+            before = world.actions_remaining
+            result = _send(world, executor, quote, "Ney")
+            assert not result.get("success") and world.actions_remaining == before
+            assert soult.strategic_order is None and soult.location == "Bohemia"
+            assert "no road round it lies over ground Soult may enter" in result["message"]
+            assert result["message"][:40] == quote["refusal"][:40]
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -285,8 +326,10 @@ class TestABatteryUnderItsOwnShells:
         assert payload["attacker"]["committed_total"] == start
         assert not _beats(payload, "bystander")
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X12 OPEN — owner row BA's session BA-4")
     def test_a_battery_is_never_caught_by_its_own_fire(self):
+        """FIXED November 16, 2026 (row BA's session BA-4) behind
+        `combat_executor.a_battery_is_spared_its_own_shells`; its seam-down
+        twin is `tests/test_ba4_the_roads_and_the_fog.py`."""
         world, executor = self._board()
         for seed in range(6):
             board = copy.deepcopy(world)
@@ -599,7 +642,7 @@ class TestTheRecordsSayWhatIsNext:
 # ════════════════════════════════════════════════════════════════════════
 
 class TestABattleLightsItsFieldForThoseWhoFoughtIt:
-    """BA2-X20 (OPEN, owner row BA's session BA-4). The fog spec's rule —
+    """BA2-X20 (FIXED by row BA's session BA-4, November 16, 2026). The fog spec's rule —
     "Fighting in a region immediately grants FULL visibility of that region"
     — was written when every battle was the player's. The courts fight each
     other now, and `update_intel_from_battle` still lights the field for the
@@ -616,8 +659,10 @@ class TestABattleLightsItsFieldForThoseWhoFoughtIt:
                 world.marshals["Ney"], "Mack", world, {"world": world, "executor": executor})
         assert world.get_region_intel("Swabia").visibility == FULL
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X20 OPEN — owner row BA's session BA-4")
     def test_a_battle_of_two_other_crowns_gives_the_player_no_sight(self):
+        """FIXED November 16, 2026 (row BA's session BA-4): the pin was a
+        strict xfail and is a plain test; the rule, its seam and its
+        seam-down twin are in tests/test_ba4_the_roads_and_the_fog.py."""
         world, executor = STAGE._board()
         STAGE._war(world, "Prussia", "Austria")
         hohenlohe, john = world.marshals["Hohenlohe"], world.marshals["ArchdukeJohn"]
@@ -632,7 +677,7 @@ class TestABattleLightsItsFieldForThoseWhoFoughtIt:
 
 
 class TestAQuoteNamesWhatItsFirstMarchCosts:
-    """BA2-X21 (OPEN, owner row BA's session BA-4). An order that marches at
+    """BA2-X21 (FIXED by row BA's session BA-4, November 16, 2026). An order that marches at
     once costs men by the ordinary march rule — an exact figure
     (`MovementExecutor._calculate_movement_attrition`) — and no quote names
     it: the player reads the loss in the order's reply, after the action is
@@ -651,8 +696,9 @@ class TestAQuoteNamesWhatItsFirstMarchCosts:
         _send(world, executor, quote, "Ney")
         assert soult.location == "Munich" and int(soult.strength) < before
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X21 OPEN — owner row BA's session BA-4")
     def test_the_quote_names_the_men_the_march_costs(self):
+        """FIXED November 16, 2026 (row BA's session BA-4): `march_cost`, read
+        off the march rule the mover itself applies."""
         world, executor, ney, soult = self._case()
         quote = order_quotes.support_quote(world, soult, ney)
         before = int(soult.strength)

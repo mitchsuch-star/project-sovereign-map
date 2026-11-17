@@ -253,6 +253,43 @@ def the_temper_is_seeded() -> bool:
     return True
 
 
+def an_order_draws_its_own_temper() -> bool:
+    """BA3-X16 (row BA, BA-4) seam: the seeded temper's identity carries the
+    order's OWN mark (`order_mark`). It was the marshal, the action and the
+    target — and two orders that differ only in a field BESIDE the target drew
+    one temper: "Davout, go aggressive" and "Davout, go defensive" (the stance
+    rides `target_stance`; the target is empty) met the same mood, the same
+    severity and the same defiance. Down (False): the identity as WS-16 had
+    it."""
+    return True
+
+
+# The fields of a parsed order that tell two orders with one action and one
+# target apart — the parser's own keys. A field is marked only where it holds
+# something, so an order that carries none of them draws as it always did.
+ORDER_MARKS = ("target_stance", "requested_type", "count", "standing_follow",
+               "attack_on_arrival", "arrival_target", "arrival_verb",
+               "until_marshal_arrives")
+
+
+def order_mark(*orders) -> tuple:
+    """BA3-X16: what tells this order from another with its action and its
+    target, as identity parts for `temper_rng` — () for an order that carries
+    none of the marks, for anything that is no order, and with the seam down.
+    Several dicts may be given (the strategic road keeps an order's marks on
+    the parse beside the command): each mark is read from the first that
+    holds it."""
+    if not an_order_draws_its_own_temper():
+        return ()
+    marks = []
+    for key in ORDER_MARKS:
+        for order in orders:
+            if isinstance(order, dict) and order.get(key) not in (None, "", False, 0):
+                marks.append(f"{key}={order[key]}")
+                break
+    return tuple(marks)
+
+
 def temper_rng(world, kind: str, *identity, saved: bool = True):
     """A temper's private dice, or None — on the `historical` seed, with the
     seam down, without a world, and for a world the server does not hold; the

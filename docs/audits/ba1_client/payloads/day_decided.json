@@ -1,5 +1,5 @@
 {
- "battle_name": "Second Battle of Swabia",
+ "battle_name": "The Great Battle of Swabia",
  "region": "Swabia",
  "turn": 1,
  "outcome": "attacker_tactical_victory",
@@ -77,8 +77,8 @@
     "nation": "Austria",
     "arm": "infantry",
     "committed": 30557,
-    "casualties": 28298,
-    "remaining": 2259,
+    "casualties": 29557,
+    "remaining": 1000,
     "status": "routed",
     "lead": true,
     "crowned": false,
@@ -86,7 +86,7 @@
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 28298,
+  "casualties_total": 29557,
   "committed_total": 30557,
   "reserve_casualties": 0,
   "nation": "Austria"
@@ -218,6 +218,21 @@
       "morale": 0
      }
     ]
+   },
+   {
+    "act": "pursuit",
+    "beats": [
+     {
+      "kind": "pursue",
+      "side": "attacker",
+      "actor": "Napoleon",
+      "text": "Murat, from the reserve, rides them down (First Horseman of Europe): 1,259 more.",
+      "weight": "head",
+      "damage": 1259,
+      "halved": false,
+      "target": "Mack"
+     }
+    ]
    }
   ],
   "tempers": {
@@ -243,7 +258,7 @@
   "theirs_of": 2,
   "awaits": "",
   "pending": false,
-  "morning": "The last clash: won on points — 1,379 of ours for 28,298 of his.",
+  "morning": "The last clash: won on points — 1,379 of ours for 29,557 of his.",
   "ahead": "ours",
   "told": [
    {
@@ -259,6 +274,7 @@
   ],
   "ended": "decided",
   "banner": "",
-  "chips": []
+  "chips": [],
+  "close": "The day at Swabia was decided at the second clash — 6,867 of ours for 51,000 of the enemy's."
  }
 }

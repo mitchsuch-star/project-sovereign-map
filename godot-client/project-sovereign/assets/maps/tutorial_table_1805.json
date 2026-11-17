@@ -370,9 +370,9 @@
       "movement_range": 2,
       "ability": {
         "name": "First Horseman of Europe",
-        "description": "When Murat personally breaks an enemy, his cavalry turns the rout into annihilation",
+        "description": "When Murat is in the fight, his cavalry turns the enemy's rout into annihilation",
         "trigger": "on_pursuit",
-        "effect": "+5,000 pursuit casualties when an enemy he defeats is forced to retreat (cavalry, leading the attack)"
+        "effect": "+5,000 pursuit casualties when an enemy he helped defeat is forced to retreat (cavalry; leading the attack, or fighting beside a lead who has no pursuit of his own)"
       },
       "biography": "The Cavalry Reserve, quartered in Vienna since the 13th of November - the first French horse through the Danube bridges, taken by a bluff.",
       "relationships": {

@@ -4654,8 +4654,8 @@ def _grid_distance(world, a: str, b: str) -> int:
 # (`region_panel.gd` `_quote_notes`): the contact, the camp, what the march
 # costs the corps as it stands, the detour, the campaign pay, the guarded
 # ground, the front, the standing order's terms.
-_MARCH_QUOTE_LINES = ("note", "camp", "departs", "detour", "pay", "guard",
-                      "front", "terms")
+_MARCH_QUOTE_LINES = ("note", "camp", "departs", "march_cost", "detour", "pay", "guard",
+                      "front", "terms")   # BA2-X21: the men the first march costs
 
 
 def march_quote_notes(quote: Dict) -> List[str]:

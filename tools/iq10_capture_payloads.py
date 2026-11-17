@@ -1234,6 +1234,187 @@ def cap_the_days_points():
         raise RuntimeError("the_days_points: " + "; ".join(problems))
 
 
+def cap_the_roads_and_the_fog():
+    """Row BA, BA-4 (November 16, 2026) — the order card where the session
+    changed its words, each quote read off `GET /march_quotes` (the road the
+    province panel and the card take):
+
+    * a support order that HALTS AT THE APPROACH — Murat for Ney on the 1805
+      boot (his road runs through Mack's Swabia): the card's clock says so,
+      where it said "joins him in N turns";
+    * a march whose first step COSTS MEN — the first corps of the boot whose
+      march quote carries `march_cost`: "The first march costs N men.";
+    * an attack that is a WORD of an open day — the lead's own attack on the
+      day's enemy, quoted on the `day_opens` board while the day awaits us:
+      "A word of the day — 1 point", never "1 action" or "free";
+    * an attack whose battle would be a KEY one short of a great one (the key
+      bar: 50,000 men or more engaged, under 80,000) — the first such pairing
+      of the boot: "A pitched battle — <lead> commands the day: N points";
+    * the attack card of a lead who already HOLDS a day (the session's review,
+      BA4-X8): on the `day_opens` board, the day's lead quoted against a
+      second corps staged beside him — no "… commands the day", and the line
+      "…'s day against … is still open — a battle here would be a single
+      clash, with no day of its own."."""
+    from backend.commands import order_quotes
+    from backend.game_logic import campaign_variance
+    seeds = json.loads((REPO / "docs" / "audits" / "ba1_client" / "payloads" / "manifest.json")
+                       .read_text(encoding="utf-8"))
+    problems: list = []
+
+    # ── a support order that halts at the approach ────────────────────────
+    try:
+        world, c = fresh()
+        campaign_variance.serve_campaign(world)
+        at = world.marshals["Ney"].location
+        quotes = get(c, f"/march_quotes?region={at}")
+        quote = next(q for row in quotes.get("support") or [] for q in row.get("quotes") or []
+                     if q.get("marshal") == "Murat")
+        if not quote.get("halts"):
+            raise RuntimeError(f"Murat's support quote for Ney does not halt: {quote.get('contact')!r}")
+        record("order_ba4_halts", {"quotes": quotes, "order_quote": quote},
+               source="GET /march_quotes?region=<Ney's province> (order_quotes.support_quote -> "
+                      "`halts`, `contact`)",
+               staging="1805 boot, the world marked SERVED; nothing else written — Murat's road to "
+                       "Ney runs through Mack's Swabia, the corps Ney is to attack",
+               facts={"marshal": quote.get("marshal"), "command": quote.get("command"),
+                      "halts": quote.get("halts"), "ap": quote.get("ap"), "turns": quote.get("turns"),
+                      "contact": quote.get("contact")})
+    except Exception as exc:
+        problems.append(f"order_ba4_halts: {exc!r}")
+
+    # ── a march whose first step costs men ────────────────────────────────
+    try:
+        world, c = fresh()
+        campaign_variance.serve_campaign(world)
+        found = None
+        for name in ("Davout", "Soult", "Lannes", "Ney"):
+            marshal = world.marshals[name]
+            for dest in world.get_region(marshal.location).adjacent_regions:
+                q = order_quotes.march_quote(world, marshal, dest)
+                if q.get("ok") and q.get("march_cost"):
+                    found = (name, dest)
+                    break
+            if found:
+                break
+        if not found:
+            raise RuntimeError("no march on the boot names a cost in men")
+        quotes = get(c, f"/march_quotes?region={found[1]}")
+        quote = next(q for q in quotes.get("march") or [] if q.get("marshal") == found[0])
+        if not quote.get("march_cost"):
+            raise RuntimeError(f"the route's quote for {found} carries no march_cost")
+        record("order_ba4_march_cost", {"quotes": quotes, "order_quote": quote},
+               source="GET /march_quotes?region=<destination> (order_quotes.march_quote -> "
+                      "`march_cost`, order_quotes.march_cost_line)",
+               staging=f"1805 boot, the world marked SERVED; nothing else written — {found[0]} "
+                       f"ordered to {found[1]}",
+               facts={"marshal": quote.get("marshal"), "command": quote.get("command"),
+                      "march_cost": quote.get("march_cost"), "ap": quote.get("ap")})
+    except Exception as exc:
+        problems.append(f"order_ba4_march_cost: {exc!r}")
+
+    # ── an attack that is a word of an open day ───────────────────────────
+    try:
+        world, _executor, _result, kept, _reason, seed = _ba3_served("day_opens", seeds)
+        c = adopt(world)
+        day = kept.get("day") or {}
+        lead, enemy = day.get("lead"), day.get("enemy")
+        at = world.marshals[enemy].location
+        quotes = get(c, f"/march_quotes?region={at}")
+        quote = next(q for row in quotes.get("attack") or [] for q in row.get("quotes") or []
+                     if q.get("marshal") == lead and q.get("kind") == "attack")
+        if not (quote.get("word") and int(quote.get("ap") or 0) == 0 and quote.get("price")):
+            raise RuntimeError(f"the lead's attack on the day's enemy is not quoted as a word: "
+                               f"{ {k: quote.get(k) for k in ('ap', 'points', 'word', 'price')} }")
+        record("order_ba4_word", {"quotes": quotes, "order_quote": quote},
+               source="GET /march_quotes?region=<the enemy's province> (order_quotes.attack_quote -> "
+                      "battle_day.quoted_word -> `ap` 0, `points`, `word`, `price`)",
+               staging=f"`day_opens` (seed {seed}): the stager's served board, adopted as the live "
+                       f"world, the day left open and awaiting our word",
+               facts={"marshal": quote.get("marshal"), "command": quote.get("command"),
+                      "ap": quote.get("ap"), "points": quote.get("points"), "word": quote.get("word"),
+                      "price": quote.get("price")})
+    except Exception as exc:
+        problems.append(f"order_ba4_word: {exc!r}")
+
+    # ── an attack whose battle is a key one short of a great one ──────────
+    try:
+        world, c = fresh()
+        campaign_variance.serve_campaign(world)
+        player, found = world.player_nation, None
+        for name in sorted(world.marshals):
+            marshal = world.marshals[name]
+            if marshal.nation != player or int(getattr(marshal, "strength", 0) or 0) <= 0:
+                continue
+            for foe_name in sorted(world.marshals):
+                foe = world.marshals[foe_name]
+                if (foe.nation == player or int(getattr(foe, "strength", 0) or 0) <= 0
+                        or not world.is_at_war(player, foe.nation)):
+                    continue
+                if not any((row.get("name") if isinstance(row, dict) else getattr(row, "name", "")) == foe.name
+                           for row in world.get_visible_enemies_in_region(foe.location, player)):
+                    continue
+                q = order_quotes.attack_quote(world, marshal, foe)
+                if q.get("ok") and (q.get("day") or {}).get("pitched") and int(q.get("ap") or 0) == 1:
+                    found = (name, foe.name, foe.location)
+                    break
+            if found:
+                break
+        if not found:
+            raise RuntimeError("no attack on the boot forecasts a pitched battle")
+        quotes = get(c, f"/march_quotes?region={found[2]}")
+        quote = next(q for row in quotes.get("attack") or [] for q in row.get("quotes") or []
+                     if q.get("marshal") == found[0] and q.get("kind") == "attack")
+        day = quote.get("day") or {}
+        if not (day.get("great") and day.get("pitched")):
+            raise RuntimeError(f"the panel's quote for {found} forecasts no pitched battle: {day}")
+        record("order_ba4_pitched", {"quotes": quotes, "order_quote": quote},
+               source="GET /march_quotes?region=<the enemy's province> (order_quotes.attack_quote -> "
+                      "battle_day.forecast -> `day.pitched`, `day.points`, `day.bar`)",
+               staging=f"1805 boot, the world marked SERVED; nothing else written — {found[0]} "
+                       f"against {found[1]} at {found[2]}",
+               facts={"marshal": quote.get("marshal"), "command": quote.get("command"),
+                      "ap": quote.get("ap"), "day": day,
+                      "engaged": int((quote.get("force") or {}).get("ours") or 0)
+                      + int((quote.get("force") or {}).get("theirs_low") or 0)})
+    except Exception as exc:
+        problems.append(f"order_ba4_pitched: {exc!r}")
+
+    # ── the attack card of a lead who already holds a day ─────────────────
+    try:
+        world, _executor, _result, kept, _reason, seed = _ba3_served("day_opens", seeds)
+        day = kept.get("day") or {}
+        lead = world.marshals[day.get("lead")]
+        first = world.marshals[day.get("enemy")]
+        taken = {m.location for m in world.marshals.values()}
+        ground = next(r for r in world.get_region(lead.location).adjacent_regions
+                      if r not in taken and world.get_region(r).controller == first.nation)
+        second = next(m for m in sorted(world.marshals.values(), key=lambda m: m.name)
+                      if m.nation == first.nation and m.name != first.name
+                      and int(getattr(m, "strength", 0) or 0) > 0)
+        second.location, second.strength = ground, 40000
+        world.update_intel_from_battle(ground, int(world.current_turn))
+        c = adopt(world)
+        quotes = get(c, f"/march_quotes?region={ground}")
+        quote = next(q for row in quotes.get("attack") or [] for q in row.get("quotes") or []
+                     if q.get("marshal") == lead.name and q.get("kind") == "attack")
+        if quote.get("day") or "is still open" not in str(quote.get("note") or ""):
+            raise RuntimeError(f"the card of a lead who holds a day: day={quote.get('day')} "
+                               f"note={quote.get('note')!r}")
+        record("order_ba4_one_day", {"quotes": quotes, "order_quote": quote},
+               source="GET /march_quotes?region=<the second corps' province> (order_quotes.attack_quote -> "
+                      "battle_day.the_day_he_holds -> no `day`, `note`)",
+               staging=f"`day_opens` (seed {seed}): the stager's served board with the day left open; "
+                       f"{second.name} staged at {ground} with 40,000 men, the province seen whole",
+               facts={"marshal": quote.get("marshal"), "command": quote.get("command"),
+                      "ap": quote.get("ap"), "note": quote.get("note"),
+                      "day_held_against": first.name})
+    except Exception as exc:
+        problems.append(f"order_ba4_one_day: {exc!r}")
+
+    if problems:
+        raise RuntimeError("the_roads_and_the_fog: " + "; ".join(problems))
+
+
 def cap_petition():
     """IQ-7 — the client's petition popup, the vassal card, the remitted row."""
     iq7 = test_module("test_iq7_satellites_have_a_position")
@@ -3252,6 +3433,7 @@ CAPTURES = {
     "battle_acts": cap_battle_acts,
     "walls_and_guns": cap_walls_and_guns,
     "the_days_points": cap_the_days_points,
+    "the_roads_and_the_fog": cap_the_roads_and_the_fog,
     "petition": cap_petition,
     "moments": cap_moments,
     "prisoner": cap_prisoner,

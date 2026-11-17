@@ -41,14 +41,84 @@ def _supply_warning(world, marshal) -> str:
     return supply_warning_line(world, marshal)
 
 
-def support_stands_at_approach(order, ally, blocked_region) -> bool:
+def a_support_order_halts_before_the_friends_foe() -> bool:
+    """The approach rule (row BA, BA-4; ruled IN — BATTLE_DIORAMA_SPEC.md
+    §15.14 ruling 14) seam: a SUPPORT order whose next step is barred by a
+    corps the FRIEND can strike halts at the approach and joins the friend's
+    next attack there — the arm the order already had when the foe held the
+    friend's own province (DDB-20). On the opening board Murat's road to Ney
+    runs through Mack: the order stopped him on "Odds unfavorable. Your
+    orders?", and of that question's four answers one kept the order — a
+    corps like Murat could not be committed by an order at all. Down (False):
+    DDB-20's arm alone (the foe on the friend's own province)."""
+    return True
+
+
+def a_road_round_keeps_to_open_frontiers() -> bool:
+    """BA2-X10 (row BA, BA-4) seam: a road plotted ROUND a corps (a literal
+    man's reroute, "Go Around", the compromise's safe road —
+    `plot_route(avoid_is_law=True)`) keeps to provinces the corps may enter,
+    for a court as for the player, and has no terrain-only fallback: where no
+    such road goes round there is none, and the order ends at the approach
+    and says so. The reroute's last rung dropped the frontier law: Soult's
+    road round Mack began at Dresden (Saxony, at peace, its frontier shut) —
+    the order was taken, the first march refused without a word, and the
+    reply still promised an arrival. Down (False): the ladder as it was."""
+    return True
+
+
+def support_stands_at_approach(order, ally, blocked_region, world=None) -> bool:
     """DDB-20 (Pre-Deploy S13b part 2): a SUPPORT whose next step is the
     supported marshal's own contested field stays standing at the approach
     and joins his next attack as a reinforcement — never "reached the
-    approach" and cleared. The series attribution holds it down here."""
-    return bool(order is not None and ally is not None
-                and getattr(order, "command_type", "") == "SUPPORT"
-                and ally.location == blocked_region)
+    approach" and cleared. The series attribution holds it down here.
+
+    Row BA, BA-4 (the approach rule): with `world` in hand the same holds
+    where the corps that bars the step stands within the FRIEND's own attack
+    reach (`movement_range` provinces — the attack's range rule): the very
+    corps the friend is to attack. ONE predicate for the order's first step,
+    its per-turn tick and its quote; without `world`, or with
+    `a_support_order_halts_before_the_friends_foe` down, DDB-20's alone."""
+    if not (order is not None and ally is not None
+            and getattr(order, "command_type", "") == "SUPPORT"):
+        return False
+    if ally.location == blocked_region:
+        return True
+    if world is None or not a_support_order_halts_before_the_friends_foe():
+        return False
+    if not _the_corps_there_is_seen(world, ally, blocked_region):
+        return False
+    distance = world.get_distance(ally.location, blocked_region)
+    reach = max(1, int(getattr(ally, "movement_range", 1) or 1))
+    return distance is not None and 0 < int(distance) <= reach
+
+
+def _the_corps_there_is_seen(world, ally, region) -> bool:
+    """The session's review (lane 1): the approach rule is the player's
+    reading of his friend's field, and its quote names a corps on the road
+    only where the player SEES him (`order_quotes.visible_foe_on_road`). The
+    order halted for any corps there: where he stood unseen the card said
+    nothing, the order then halted, and its reply named the province of a
+    corps no surface showed. The rule now asks what the quote asks. Unseen,
+    the step meets him as it always did — the question is the discovery. A
+    court reads the board whole, as it does everywhere (and issues no support
+    order)."""
+    nation = getattr(ally, "nation", None)
+    if nation != getattr(world, "player_nation", None):
+        return True
+    return bool(world.get_visible_enemies_in_region(region, nation))
+
+
+def the_clock_starts_at_the_approach(order, world) -> None:
+    """The session's review (lane 1): a TIMED support order counts from the
+    turn the corps reaches his friend (`count_order_turns`) — and a corps
+    halted at the approach never does: "support Ney for 3 turns" held him
+    for as long as Ney sat still. Standing at the approach IS the support (he
+    joins the next attack from there), so the clock starts at his first stand
+    there. With the approach rule down, DDB-20's arm as it was: no clock."""
+    if (a_support_order_halts_before_the_friends_foe()
+            and getattr(order, "arrived_turn", None) is None):
+        order.arrived_turn = int(world.current_turn)
 
 
 def _strategic_command_flavor(cmd_type: str) -> str:
@@ -724,6 +794,18 @@ def plot_route(world, marshal, destination: str, *, use_weighted: bool,
     _mover = marshal.nation
     avoid = list(avoid_regions or [])
     path = None
+    if avoid_is_law and a_road_round_keeps_to_open_frontiers():
+        # BA2-X10: a road ROUND a corps is lawful or it is no road — for a
+        # court too (`_region_passable_for` is the move's own rule, asked of
+        # any nation), and with no terrain-only rung behind it.
+        path = pathfinder(marshal.location, destination, avoid_regions=avoid,
+                          passable_for=_mover, mover_nation=_mover)
+        if not path:
+            return None, None
+        road = [r for r in path if r != marshal.location]
+        if not want_verdict or not player:
+            return road, None
+        return road, road_verdict(world, marshal, destination, road)
     if avoid:
         path = pathfinder(marshal.location, destination,
                           avoid_regions=avoid, passable_for=_pf, mover_nation=_mover)
@@ -5068,8 +5150,9 @@ class StrategicOrderProcessor:
                 # field — the supporter stands at its approach, his order
                 # standing, and joins the ally's next attack as a
                 # reinforcement (never "reached the approach" and cleared).
-                if support_stands_at_approach(order, ally, next_region):
+                if support_stands_at_approach(order, ally, next_region, world):
                     order.path = []
+                    the_clock_starts_at_the_approach(order, world)
                     return {
                         "marshal": marshal.name,
                         "command": "SUPPORT",
@@ -5077,8 +5160,10 @@ class StrategicOrderProcessor:
                         "ally": ally.name,
                         "location": marshal.location,
                         "order_status": "continues",
+                        # BA-4: the approach is to the province the foe holds —
+                        # the friend's own (DDB-20) or one within his reach.
                         "message": (f"{marshal.name} stands at {marshal.location}, "
-                                    f"at the approach to {ally.location} — he joins "
+                                    f"at the approach to {next_region} — he joins "
                                     f"{ally.name}'s next attack there."),
                     }
                 if not moves_made:

@@ -176,6 +176,17 @@ from tests._t3_seams import T3_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in T3_SEAMS_BY_ROW for spec in T3_SEAMS_BY_ROW[row]]
 
+# Row BA, BA-4 "the roads and the fog" (November 16, 2026): the session's
+# rules move world-lines nobody serves (the AI's tally, the battery's own
+# roll, the roads, the pursuit, the last hour), so every recorded board holds
+# them down with the rest. The seams' own rows: `tests/_ba4_seams.py`.
+from tests._ba4_seams import BA4_SEAMS_BY_ROW, BA4_THE_KEY_BAR  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in BA4_SEAMS_BY_ROW for spec in BA4_SEAMS_BY_ROW[row]]
+# ... and the key bar the same session moved (a number, not a switch): held at
+# the great battle's 80,000, the bar every board before it was recorded under.
+OCT27_SEAMS_DOWN += BA4_THE_KEY_BAR
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

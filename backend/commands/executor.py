@@ -2854,7 +2854,7 @@ class CommandExecutor:
                     # played — the same order from the same save, the same mood.
                     from backend.game_logic import campaign_variance as _cv
                     _mood = _cv.temper_rng(world, "mood", marshal.name, action,
-                                           (command or {}).get("target"))
+                                           (command or {}).get("target"), *_cv.order_mark(command))
                     concern = apply_mood_variance(
                         vindication_shifted, **({"rng": _mood} if _mood is not None else {}))
 
