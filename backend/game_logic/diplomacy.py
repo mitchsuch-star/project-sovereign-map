@@ -5695,6 +5695,16 @@ def truce_reach_words(exit_: Dict[str, Any]) -> str:
             f"thaw alone; Talleyrand's courtship adds {gain:+d})")
 
 
+def a_truce_names_the_ground_it_would_title() -> bool:
+    """Row BA, BA-5 (ruling 1) seam: a truce heading for a signed peace names
+    the provinces that peace would title to each side (`truce_words`). The
+    AI-France harness read two retentions on one seed, and the first was the
+    player's own signature: Britain's truce ran out into a peace that titled
+    Carniola to Britain, under a card that said only "what each side holds is
+    titled by the signature". Down (False): the heading as it was."""
+    return True
+
+
 def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
     """PC-F44 — the ONE wording of the truce, read by `armistice_mechanics`'
     display lines (the armistice popup, the incoming letter), the wizard's
@@ -5808,6 +5818,21 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
             f"{int(exit_['relation'])} and {reach}, short of "
             f"{line}; the ledger and the war's age come back with it."
         )
+    if exit_["exit"] in ("dictated", "peace") and a_truce_names_the_ground_it_would_title():
+        # Row BA, BA-5 (ruling 1; SF7-X7's sibling): a truce whose forecast
+        # ends in a signed peace names the ground that signature would title —
+        # the ratifier's own sentences, as the peace card has said them since
+        # SF7-X7 ("a truce titles nothing, so only a peace carries it": true of
+        # the truce, and not of the peace this one runs out into).
+        try:
+            from backend.game_logic.game_end import status_quo_forecast_lines
+            _sq = status_quo_forecast_lines(world, nation_a, nation_b, player)
+            _named = [str(s).replace("Status quo: ", "", 1)
+                      for s in list(_sq.get("lines") or []) + list(_sq.get("warnings") or [])]
+            if _named:
+                heading_line += " As things stand: " + " ".join(_named)
+        except Exception as exc:
+            report(exc, "diplomacy.truce_words: status_quo_forecast_lines")
     cure = None
     cure_line = ""
     if exit_["exit"] == "war" and not exit_.get("bond"):

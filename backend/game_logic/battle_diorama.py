@@ -344,6 +344,35 @@ def derive_register(player_side: Optional[str], outcome: str,
     return "grim"
 
 
+def the_table_shows_its_ground() -> bool:
+    """Row BA, BA-5 seam (the user's tick at the plan gate — "The ground on the
+    table"): a tableau's payload carries `ground` — the terrain of the province
+    it was fought in (`Region.terrain`) — and the table draws it on the felt
+    under the men. Geography is no secret (the map and the province's panel
+    show it for every province). Down (False): no such key, a bare felt."""
+    return True
+
+
+def ground_of(world, region_name) -> str:
+    """The terrain key of a province for the table's ground, "" when the seam
+    is down or the province is not one (a fleet action's waters)."""
+    if not the_table_shows_its_ground():
+        return ""
+    try:
+        region = world.get_region(str(region_name or ""))
+    except Exception as exc:
+        _errors.report(exc, "battle_diorama.ground_of")
+        region = None
+    return str(getattr(region, "terrain", "") or "") if region is not None else ""
+
+
+def ground_key(world, region_name) -> dict:
+    """{"ground": <terrain>} for a tableau's payload, or {} (the seam down, or
+    no province) — spread into the three builders' payloads."""
+    ground = ground_of(world, region_name)
+    return {"ground": ground} if ground else {}
+
+
 def build_battle_diorama(world, attacker, defender, battle_result: dict,
                          battle_region: str,
                          atk_participants: list, def_participants: list,
@@ -465,6 +494,7 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
         "defender": defender_side,
         "observation": str(report.get("observation", "") or ""),
     }
+    payload.update(ground_key(world, battle_region))    # BA-5: the province's terrain, for the table's felt
     enemy_voice = battle_result.get("enemy_voice")
     if enemy_voice:
         payload["enemy_voice"] = str(enemy_voice)

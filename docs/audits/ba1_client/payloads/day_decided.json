@@ -91,7 +91,8 @@
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "The Emperor watched this field. A costly day for Mack: the losses ran two to one in Napoleon's favour, and Mack is still in the field. And Mack was taken on that field — France holds him.",
+ "observation": "The Emperor watched this field. A costly day for Mack: the losses ran two to one in Napoleon's favour, and the field is Napoleon's. And Mack was taken on that field — France holds him.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
  "script": {
   "version": 1,
@@ -258,9 +259,14 @@
   "theirs_of": 2,
   "awaits": "",
   "pending": false,
-  "morning": "The last clash: won on points — 1,379 of ours for 29,557 of his.",
+  "morning": "The day: 6,867 of ours for 51,000 of his — the better of the toll was ours.",
   "ahead": "ours",
   "told": [
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "The opening: we won on points — 5,488 of ours for 21,443 of his; our weight of numbers told."
+   },
    {
     "who": "theirs",
     "kind": "dig_in",
@@ -275,6 +281,8 @@
   "ended": "decided",
   "banner": "",
   "chips": [],
-  "close": "The day at Swabia was decided at the second clash — 6,867 of ours for 51,000 of the enemy's."
- }
+  "close": "The day at Swabia was decided at the second clash — 6,867 of ours for 51,000 of the enemy's. Our weight of numbers told. The Guard decided it.",
+  "verdict_told": "Decided at the second clash, when Mack's line broke: our weight of numbers told."
+ },
+ "verdict_told": "Decided at the second clash, when Mack's line broke: our weight of numbers told."
 }

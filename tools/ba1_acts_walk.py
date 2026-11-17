@@ -100,7 +100,9 @@ SCENE_BEATS = {
     "assault_occupied": [{"beat": "wall_falls", "after": 0.9, "shot": "the_wall"}],
     "assault_capitulated": [{"beat": "capitulates", "after": 0.9, "shot": "the_wall"}],
     "assault_on_ours": [{"beat": "storm", "after": 0.7, "until": "column", "limit": 1.2, "shot": "storm"}],
-    "bombard_link": [{"beat": "battery", "after": 0.8, "shot": "battery"}],
+    # (the second reading: this frame was read mid-count) a cannonade counts its toll as
+    # the battery fires, over 1.6 s: the shot is taken when the count has ended
+    "bombard_link": [{"beat": "battery", "after": 1.9, "shot": "battery"}],
     "bombard_levels": [{"beat": "works", "after": 0.9, "shot": "works"}],
     "bombard_ours": [{"beat": "bystander", "after": 0.6, "shot": "bystander"}],
 }
@@ -164,6 +166,7 @@ SOURCES = [
     # the client's shared helpers.
     "backend/game_logic/battle_diorama.py",
     "backend/game_logic/battle_day.py",
+    "backend/game_logic/battle_telling.py",
     "tools/ba1_stage_battles.py",
     "tools/ba1_acts_walk.py",
     "godot-client/project-sovereign/scripts/utils.gd",
@@ -173,6 +176,9 @@ SOURCES = [
 # battle, kept as it was staged): four corps a side must still play, as the
 # host's file.
 OLD_FOUR_SEAT = OUT / "old_four_seat_payload.json"
+# (the session's review) the longest line a province gives under the headline — a liberation's
+LONG_LINE = ("Naples, the Kingdom of the Two Sicilies' capital, retaken — handed back to "
+             "the Kingdom of the Two Sicilies.")
 STAGE_MID_X = 474           # the stage's centre line (948 px wide)
 
 
@@ -197,7 +203,12 @@ def chip_word(chip: dict, day: dict) -> str:
 
 EXIT_KINDS = ("stand", "break_off")
 OWN_KINDS = ("press", "guard", "dig_in")
-GROUP_LABEL = {"lead": "Another leads", "bring_up": "Bring up", "cannonade": "The guns"}
+# battle_acts.gd DAY_GROUP_LABEL / DAY_RULE / DAY_CLASH_SCOPE (the second reading)
+GROUP_LABEL = {"lead": "Another leads the attack", "bring_up": "Bring up", "cannonade": "The guns, no clash"}
+DAY_LIFT = 8                # battle_acts.gd DAY_LIFT: what the panel may take of the gap under the bars
+DAY_RULE = ("A word costs points, and he answers it. A line that breaks decides the day; "
+            "two silences running, or no point left, and night falls: nothing decided.")
+DAY_CLASH_SCOPE = " LOST THIS CLASH"
 
 
 def chip_box(chip: dict) -> str:
@@ -345,6 +356,18 @@ def day_shots(name: str, payload_path: str, scale: float) -> list[dict]:
     return shots
 
 
+def _long_line_payload(payload_dir: Path) -> str:
+    """(The session's review) Ulm's tableau as a liberation would carry it — the
+    province's own line the longest the game writes (`LONG_LINE`), then what
+    told. Derived beside the run from the payload of record, never kept."""
+    src = json.loads((payload_dir / "ulm_full.json").read_text(encoding="utf-8"))
+    src.update(region_conquered=True, liberated_to="TwoSicilies", liberation_line=LONG_LINE)
+    out = RUN / "_derived" / "ulm_full__long_line.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(src, ensure_ascii=False, indent=1), encoding="utf-8")
+    return str(out)
+
+
 def build_shots(payload_dir: Path, only: list[str], scale: float) -> list[dict]:
     manifest = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))
     shots = []
@@ -370,6 +393,16 @@ def build_shots(payload_dir: Path, only: list[str], scale: float) -> list[dict]:
     if "ulm_full" in manifest and (not only or any(o in "ulm_full" for o in only)):
         ulm = str(payload_dir / "ulm_full.json")
         common = {"scene": "ulm_full", "payload": ulm, "scale": scale}
+        # (the session's review) Ulm as a liberation carries it: the line under the headline
+        # must fit the baize — whole, short, or with what told on its hover — at every size
+        long_line = _long_line_payload(payload_dir)
+        for tag, size in (("", None), ("_130", 1.3)):
+            shot = {"id": f"ulm_full__long_line{tag}", "scene": "ulm_full", "payload": long_line,
+                    "mode": "acts", "cinematic": False, "scale": scale,
+                    "events": [{"t": 0.6, "frames": 4, "shot": "settled"}]}
+            if size is not None:
+                shot["text_size"] = size
+            shots.append(shot)
         shots += [
             # the player's click ON the tableau, mid-act (BA1-X5), then one more
             # on the settled table
@@ -412,6 +445,20 @@ def build_shots(payload_dir: Path, only: list[str], scale: float) -> list[dict]:
              "events": [{"t": 0.06, "shot": "fading_in"}, {"t": 0.08, "do": "close"},
                         {"t": 0.3, "do": "reopen", "cinematic": False},
                         {"t": 0.6, "shot": "seen_again"}]},
+            # BA-5 — the acts' speed. Settings -> Battle speed -> twice as fast: the engine's
+            # clock is the acts' while they play and is given back at the gavel
+            {**common, "id": "ulm_full__speed_x2", "mode": "acts", "cinematic": True, "speed": "x2",
+             "events": [{"t": 2.6, "shot": "playing"}, {"end": True, "after": 2.8, "shot": "end"}]},
+            # … the table's own switch, pressed mid-act with a REAL click: the acts go on,
+            # the clock doubles at once and the setting is kept; a second press gives it back
+            {**common, "id": "ulm_full__speed_switch", "mode": "acts", "cinematic": True,
+             "events": [{"t": 2.6, "shot": "before"}, {"t": 2.7, "do": "click_speed"},
+                        {"t": 3.3, "shot": "faster"}, {"t": 3.4, "do": "click_speed"},
+                        {"t": 4.0, "shot": "back"}, {"end": True, "after": 2.8, "shot": "end"}]},
+            # … closed mid-act at twice the speed (Esc): the clock is given back with the table
+            {**common, "id": "ulm_full__speed_closed", "mode": "acts", "cinematic": True, "speed": "x2",
+             "events": [{"t": 2.6, "shot": "playing"}, {"t": 2.7, "do": "close"},
+                        {"t": 3.2, "shot": "closed"}]},
         ]
     return shots
 
@@ -480,8 +527,21 @@ def _toll_claims(rid: str, frame: dict, payload: dict) -> list[str]:
         for c in (payload.get(side) or {}).get("contingents") or []:
             if "after_advance" in c and int(c.get("advance_losses", 0) or 0) > 0:
                 want = f"→ {int(c['after_advance']):,} after the advance"
-                if want not in labels:
+                lost = f"({int(c['advance_losses']):,} lost on the march)"
+                told = [label for label in labels if label.startswith(want)]
+                if not told:
                     wrong.append(f"{rid}: {c.get('name')}'s toll {want!r} is not on the table")
+                elif not any(lost in label for label in told):
+                    # (the review) at the baize's foot, where the second line has no room, the
+                    # cost rides the toll's own line: "→ 21,687 after the advance (−307)" —
+                    # the toll alone only where even that would leave the baize sideways
+                    one = f"{want} (−{int(c['advance_losses']):,})"
+                    rects = [m["rect"] for m in frame.get("marks") or []
+                             if m.get("kind") == "text" and m.get("text") in (want, one)]
+                    room_below = not rects or rects[0][1] + 2 * rects[0][3] <= 441
+                    if room_below or not any(label == one for label in told):
+                        wrong.append(f"{rid}: (BA5-m) {c.get('name')}'s toll does not say what the march cost "
+                                     f"({lost!r}, or on one line {one!r}): {told!r}")
     return wrong
 
 
@@ -842,6 +902,252 @@ def _chrome_claims(by_id: dict) -> list[str]:
     return wrong
 
 
+def _laurel_claims(where: str, frame: dict) -> list[str]:
+    """BA1-X8 (closed in BA-5): on a triumph the two laurels flank the BANNER, on the
+    baize — one on each side of its words, level with them, clear of every other word
+    and portrait there, and of the dice."""
+    laurels = frame.get("laurel_ink") or []
+    if len(laurels) != 2:
+        return []
+    problems = []
+    banner = frame.get("banner_ink") or []
+    left, right = sorted(laurels, key=lambda r: r[0])
+    if len(banner) != 4:
+        problems.append(f"{where}: (BA1-X8) laurels on a table whose banner is not shown")
+    else:
+        if not (left[0] + left[2] <= banner[0] and right[0] >= banner[0] + banner[2]):
+            problems.append(f"{where}: (BA1-X8) the laurels do not flank the banner's words "
+                            f"({left} / {banner} / {right})")
+        mid = banner[1] + banner[3] / 2.0
+        for rect in (left, right):
+            if abs(rect[1] + rect[3] / 2.0 - mid) > 6:
+                problems.append(f"{where}: (BA1-X8) a laurel is not level with the banner ({rect} / {banner})")
+    for rect in (left, right):
+        if rect[0] < 0 or rect[1] < 0 or rect[0] + rect[2] > 948 or rect[1] + rect[3] > 440:
+            problems.append(f"{where}: (BA1-X8) a laurel leaves the baize ({rect})")
+        for mark in frame.get("marks") or []:
+            if mark.get("rect") == banner:
+                continue
+            if _overlap(rect, mark["rect"], slack=0):
+                problems.append(f"{where}: (BA1-X8) a laurel {rect} stands on {mark['text']!r} {mark['rect']}")
+        dice = frame.get("dice_rect") or []
+        if frame.get("dice_shown") and len(dice) == 4 and _overlap(rect, dice, slack=0):
+            problems.append(f"{where}: (BA1-X8) a laurel {rect} stands on the dice {dice}")
+    return problems
+
+
+def _letters(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(text or "").lower())
+
+
+def _verdict_claims(where: str, frame: dict, payload: dict, *, at_rest: bool) -> list[str]:
+    """BA5-D3 — what stands in the verdict's room stands whole. At rest: Berthier's line
+    and the enemy's answer fit the room, or the room holds whole paragraphs and an (i)
+    whose hover carries EVERY word; only a single paragraph too tall for the room alone
+    may scroll. While the acts play: a beat's line too tall for the room is set a step
+    smaller before it may scroll."""
+    if not frame.get("verdict_visible") or "verdict_h" not in frame:
+        return []
+    bb = str(frame.get("verdict_bb") or "")
+    if not bb:
+        return []
+    problems = []
+    over = int(frame["verdict_h"]) > int(frame["verdict_room"]) + 1
+    kept = bb.split("[/hint]")[0] if "[hint=" in bb else bb
+    if over and "\n" in kept:
+        problems.append(f"{where}: (BA5-d3) the verdict stands behind a scrollbar with more than one "
+                        f"paragraph in its room ({frame['verdict_h']} px in {frame['verdict_room']})")
+    # a step smaller: the verdict label's own Caption step (the house rule: never a BBCode size; a
+    # record from before it carried the size in the text)
+    stepped = bb.startswith("[font_size=") or str(frame.get("verdict_step") or "") == "CaptionRich"
+    if over and not stepped:
+        problems.append(f"{where}: (BA5-d3) a line too tall for the verdict's room was not set a step "
+                        f"smaller ({frame['verdict_h']} px in {frame['verdict_room']})")
+    if at_rest:
+        said = _letters(HINT_RX.search(bb).group(1)) if "[hint=" in bb else _letters(frame.get("told"))
+        for key in ("observation", "enemy_voice"):
+            words = _letters(payload.get(key))
+            if words and words not in said:
+                problems.append(f"{where}: (BA5-d3) the verdict "
+                                f"{'and its hover drop' if '[hint=' in bb else 'drops'} the {key}")
+        if "[hint=" in bb and "[img " not in bb:
+            problems.append(f"{where}: (BA5-d3) the verdict folds words into a hover and shows no (i)")
+    return problems
+
+
+GROUND_KINDS = ("plains", "forest", "hills", "mountains", "urban", "river_crossing")
+
+
+def _ground_claims(where: str, frame: dict, payload: dict) -> list[str]:
+    """BA-5 — the ground on the table (the user's tick). The payload's `ground` (the
+    province's terrain) is drawn on the felt: the terrain it names, in the stage's own
+    order right over the felt (under the lamp, the men and every label), on the
+    DEFENDER's half. A payload without one — an old save's, a fleet action's — is a
+    bare felt."""
+    if "ground" not in frame:
+        return []
+    want = str(payload.get("ground") or "")
+    if want not in GROUND_KINDS or payload.get("naval"):
+        want = ""
+    got = frame.get("ground") or {}
+    if str(got.get("kind") or "") != want:
+        return [f"{where}: (BA5-g) the table draws the ground {got.get('kind')!r}; "
+                f"the payload's is {want!r}"]
+    problems = []
+    if want:
+        if int(got.get("index", -1)) != 1:
+            problems.append(f"{where}: (BA5-g) the ground stands at {got.get('index')} in the stage's "
+                            f"order — over the felt and under everything else is 1")
+        his_side = 1 if payload.get("player_side") != "defender" else -1
+        if int(got.get("dir", 0)) != his_side:
+            problems.append(f"{where}: (BA5-g) the ground lies on the attacker's half of the table")
+    return problems
+
+
+def _told_claims(where: str, frame: dict, payload: dict) -> list[str]:
+    """BA-5 — a verdict names what told. A payload's `verdict_told` (the server's own
+    sentence) stands in the line under the headline at rest, shown: alone, or after the
+    table's own line where the province changed hands. A payload without one says no
+    such sentence there. (Its place on the baize is every label's: `overlaps`,
+    `off_the_baize`.)"""
+    told = str(payload.get("verdict_told") or "")
+    sub = frame.get("sub_banner") or {}
+    if not isinstance(sub, dict):
+        return []
+    text = str(sub.get("text") or "")
+    if told:
+        # (the review) where the whole line would leave the baize, what told is said
+        # short or rides the line's hover whole — never lost
+        cut = told.find(": ")
+        short = (told[cut + 2:cut + 3].upper() + told[cut + 3:]) if (told.startswith("Decided") and cut > 0) else ""
+        # (the walk of record) where even the province's own line is too wide, its first clause
+        # stands and the hover carries the whole line, then what told
+        tip = str(sub.get("tip") or "")
+        hovered = tip == told or tip.endswith(" " + told)
+        said = text == told or text.endswith(" " + told) or (
+            hovered and (bool(short) and (text == short or text.endswith(" " + short)) or told not in text))
+        if not sub.get("visible") or not said:
+            return [f"{where}: (BA5-v) the line under the headline reads {text!r} "
+                    f"({'shown' if sub.get('visible') else 'hidden'}); what told is {told!r}"]
+        return []
+    if re.search(r"\btold\b|\ban even fight\b", text, flags=re.I):
+        return [f"{where}: (BA5-v) the line under the headline says what told ({text!r}) on a "
+                f"payload that carries none"]
+    return []
+
+
+SPEED_WORDS = {"x1": "Speed ×1", "x2": "Speed ×2"}
+SPEED_ROOM = [846, 696, 110, 42]     # Close's room in the tray's design pixels (to the tray's floor)
+
+
+def _long_line_claims(by_id: dict, payloads: dict, spec: dict) -> list[str]:
+    """(BA5-w, the session's review) A liberation's line and what told under the headline:
+    on the baize and on no other line at the shipped size and at 130 % — what told said
+    whole, short, or whole on the line's hover (`_told_claims`), the province's own line
+    always."""
+    wrong = []
+    for rid in ("ulm_full__long_line", "ulm_full__long_line_130"):
+        if rid not in spec:
+            continue
+        frame = _frame(by_id.get(rid), "settled")
+        if not frame:
+            wrong.append(f"{rid}: (BA5-w) no settled frame")
+            continue
+        wrong += [f"{rid}: (BA5-w) off the baize — {w}" for w in off_the_baize(frame)]
+        wrong += [f"{rid}: (BA5-w) ink over ink — {w}" for w in overlaps(frame)]
+        wrong += _told_claims(rid, frame, payloads[spec[rid]["payload"]])
+        sub = frame.get("sub_banner") or {}
+        text, tip = str(sub.get("text") or ""), str(sub.get("tip") or "")
+        head = LONG_LINE.split(" — ", 1)[0] + "."
+        if LONG_LINE not in text and not (text.startswith(head) and tip.startswith(LONG_LINE)):
+            wrong.append(f"{rid}: (BA5-w) the province's own line is neither under the headline whole nor "
+                         f"its first clause there with the whole on the line's hover: {text!r} / {tip!r}")
+    return wrong
+
+
+def _speed_claims(by_id: dict) -> list[str]:
+    """BA-5 — the acts' speed (the user's tick, "Speed for the acts"). `clock_pct` is the
+    engine's clock against the walk's own (100 = the walk's pace): the acts take it only
+    at twice the speed and only while something plays, and give it back at the gavel, at
+    a skip and at a close. The table's own switch stands beside the skip hint and nowhere
+    else; a press on it is not a click on the table (the acts go on)."""
+    problems = []
+    for rid, res in by_id.items():
+        fast = rid.startswith("ulm_full__speed")
+        for row in res.get("frames") or []:
+            if "clock_pct" not in row:
+                continue
+            where = f"{rid}/{row.get('tag')}"
+            sw = row.get("speed_switch") or {}
+            if bool(sw.get("shown")) != bool(row.get("skip_hint_visible")):
+                problems.append(f"{where}: (BA5-s1) the speed switch is "
+                                f"{'up' if sw.get('shown') else 'gone'} while the skip hint is "
+                                f"{'up' if row.get('skip_hint_visible') else 'gone'}")
+            if sw.get("shown"):
+                if sw.get("text") != SPEED_WORDS.get(row.get("speed_setting")):
+                    problems.append(f"{where}: (BA5-s1) the switch reads {sw.get('text')!r} at "
+                                    f"the setting {row.get('speed_setting')!r}")
+                # it stands in Close's own room (x 846..956, y 698..738 of the tray), which
+                # the table keeps clear of the plate, the seal and the laurels
+                rect = sw.get("rect") or []
+                if len(rect) != 4 or not _rect_inside(rect, SPEED_ROOM):
+                    problems.append(f"{where}: (BA5-s1) the switch stands outside Close's room "
+                                    f"({rect}, the room {SPEED_ROOM})")
+                mine = sw.get("window_rect") or []
+                for piece, at in (row.get("chrome") or {}).items():
+                    if piece in ("close", "replay") or len(mine) != 4:
+                        continue
+                    if _overlap(mine, at, slack=0):
+                        problems.append(f"{where}: (BA5-s1) the switch stands on the {piece} "
+                                        f"({mine} against {at})")
+            if not fast and int(row.get("clock_pct", 100)) != 100:
+                problems.append(f"{where}: (BA5-s1) the clock reads {row.get('clock_pct')}% on a "
+                                f"table at its own pace")
+            want = 200 if (row.get("speed_setting") == "x2" and sw.get("shown")) else 100
+            if fast and int(row.get("clock_pct", 100)) != want:
+                problems.append(f"{where}: (BA5-s2) the clock reads {row.get('clock_pct')}%, the "
+                                f"table wants {want}% (setting {row.get('speed_setting')!r}, "
+                                f"{'playing' if sw.get('shown') else 'at rest'})")
+    settled = _frame(by_id.get("ulm_full__settled"), "settled")
+    x2 = by_id.get("ulm_full__speed_x2")
+    if x2:
+        playing, end = _frame(x2, "playing"), _frame(x2, "end")
+        if playing.get("final") or int(playing.get("clock_pct", 0)) != 200:
+            problems.append("twice as fast: (BA5-s2) the acts are not playing on a doubled clock "
+                            f"(final {playing.get('final')}, clock {playing.get('clock_pct')}%)")
+        if not end.get("final") or int(end.get("clock_pct", 0)) != 100:
+            problems.append("twice as fast: (BA5-s2) the clock was not given back at the gavel "
+                            f"(final {end.get('final')}, clock {end.get('clock_pct')}%)")
+        if settled and _table(end) != _table(settled):
+            problems.append("twice as fast: (BA5-s2) the acts end on another table than the settled frame")
+    pressed = by_id.get("ulm_full__speed_switch")
+    if pressed:
+        before, faster, back, end = (_frame(pressed, t) for t in ("before", "faster", "back", "end"))
+        if before.get("speed_setting") != "x1" or int(before.get("clock_pct", 0)) != 100:
+            problems.append("the speed switch: (BA5-s3) the table did not open at its own pace")
+        if faster.get("final"):
+            problems.append("the speed switch: (BA5-s3) a press on it skipped the acts")
+        if faster.get("speed_setting") != "x2" or int(faster.get("clock_pct", 0)) != 200:
+            problems.append("the speed switch: (BA5-s3) a press did not double the clock and keep "
+                            f"the setting ({faster.get('speed_setting')!r}, {faster.get('clock_pct')}%)")
+        if back.get("final") or back.get("speed_setting") != "x1" or int(back.get("clock_pct", 0)) != 100:
+            problems.append("the speed switch: (BA5-s3) a second press did not give the clock back "
+                            f"({back.get('speed_setting')!r}, {back.get('clock_pct')}%, final {back.get('final')})")
+        if not end.get("final") or (settled and _table(end) != _table(settled)):
+            problems.append("the speed switch: (BA5-s3) the acts did not end on the settled frame")
+        if pressed.get("missed"):
+            problems.append(f"the speed switch: (BA5-s3) missed {pressed.get('missed')}")
+    closed = by_id.get("ulm_full__speed_closed")
+    if closed:
+        playing, after = _frame(closed, "playing"), _frame(closed, "closed")
+        if int(playing.get("clock_pct", 0)) != 200:
+            problems.append("closed at twice the speed: (BA5-s4) the acts were not on a doubled clock")
+        if after.get("visible") or int(after.get("clock_pct", 0)) != 100:
+            problems.append("closed at twice the speed: (BA5-s4) the clock was not given back with "
+                            f"the table (visible {after.get('visible')}, clock {after.get('clock_pct')}%)")
+    return problems
+
+
 def chrome_overlaps(frame: dict, slack: int = 2) -> list[str]:
     """The plate's furniture — the wax seal, the two laurels of a triumph, Replay and
     Close — standing on one another (the nameplate itself is not counted: the seal
@@ -937,6 +1243,10 @@ PIP_RX = re.compile(r"\[img width=\d+ height=\d+ color=#([0-9a-f]{6})\][^\[]*swa
 PIP_ON = "d9c08c"
 URL_RX = re.compile(r"\[url=day:(\d+)\]")
 EXITS_RIGHT_EDGE = 716      # the exits row stands left of Replay (x 726)
+EXIT_CARDS_FLOOR = 735      # battle_acts.gd DAY_BOTTOM (738) less DAY_EXIT_FLOOR (3): where the exits' cards end
+STAGE_TOP = 52              # the baize begins here: the band above it is the day's head's (BA-5)
+# the line under a day's headline: BA-3's, and BA-5's two (an open day, a closed one)
+DAY_LINE_HEADS = ("The last clash", "The day so far", "The day:")
 DEFAULT_TEXT_SIZE = 1.15
 
 
@@ -1081,18 +1391,22 @@ def _day_chip_claims(rid: str, day: dict, src: dict, digits: dict | None = None)
     if len(segs) != sum(len(idx) for _kind, idx in groups):
         return wrong + [f"{rid}: rows D draw {len(segs)} chip(s), the day's groups hold "
                         f"{sum(len(idx) for _kind, idx in groups)}"]
-    said = _shown_text(src["groups"])
+    said = _shown_text(src["groups"]).replace("\u00a0", " ")     # (a label never breaks inside itself)
     cursor = 0
     taken = 0
     for kind, idx in groups:
         mine = segs[taken: taken + len(idx)]
         taken += len(idx)
-        if len(idx) == 1:
-            wrong += _one_chip_claims(f"{rid} rows D", idx[0], chips[idx[0]], mine[0], name_only=False,
-                                      digit=want_digits.get(idx[0], 0))
+        if kind not in GROUP_LABEL:
+            # a kind the table has no label for is written whole, chip by chip
+            for i, seg in zip(idx, mine):
+                wrong += _one_chip_claims(f"{rid} rows D", i, chips[i], seg, name_only=False,
+                                          digit=want_digits.get(i, 0))
             continue
+        # (the second reading) every kind stands under a label that says what it DOES and
+        # its price in points - a kind of one word as a kind of five
         price = int(chips[idx[0]].get("price", 0))
-        want = GROUP_LABEL.get(kind, chips[idx[0]].get("label", "")) + (f" · {price}" if price > 0 else "") + ":"
+        want = GROUP_LABEL[kind] + (f" · {price} point{'' if price == 1 else 's'}" if price > 0 else "") + ":"
         found = said.find(want, cursor)
         if found < 0:
             wrong.append(f"{rid} rows D: the {kind} group's label {want!r} is not drawn (in order)")
@@ -1119,7 +1433,7 @@ def _pip_counts(text: str) -> tuple[int, int]:
     return len(cols), sum(1 for c in cols if c == PIP_ON)
 
 
-def _day_head_claims(where: str, day: dict, head: dict) -> list[str]:
+def _day_head_claims(where: str, day: dict, head: dict, text_size: float = 1.15) -> list[str]:
     """(c) and (e): the pips are drawn from `ours_of` / `theirs_of` (slots) and
     the points left (lit); the head names his temper and his road when the block
     gives them — in the line or in its hover."""
@@ -1132,9 +1446,20 @@ def _day_head_claims(where: str, day: dict, head: dict) -> list[str]:
         if slots != want_slots or lit != int(day.get(left_key, 0)):
             wrong.append(f"{where}: {label} purse is drawn {lit} lit of {slots} slots, the day gives "
                          f"{day.get(left_key)} of {want_slots}")
-    # K3 the head begins "The day's points —" at every text size on a 940-wide table
-    if not str(head.get("text", "")).replace("\u00a0", " ").startswith("The day's points —"):
-        wrong.append(f"{where}: (K3) the head does not begin \"The day's points —\": {str(head.get('text', ''))[:50]!r}")
+    # K3 (the second reading: the prefix gave its room to the purses' own words) the head
+    # begins with the lead's name and says each purse in words - at the shipped size and
+    # under it always; over it the words are the last thing the line gives up
+    said = re.sub(r"[\s\ufffc]+", " ", str(head.get("text", "")).replace("\u00a0", " ")).strip()
+    lead = str(day.get("lead_shown") or "")
+    if lead and not said.startswith(lead):
+        wrong.append(f"{where}: (K3) the head does not begin with the lead's name {lead!r}: {said[:50]!r}")
+    ours_of = int(day.get("ours_of") or 0) or max(int(day.get("ours", 0)), 2)
+    his_of = int(day.get("theirs_of") or 0) or max(int(day.get("theirs", 0)), 2)
+    in_words = (f"{int(day.get('ours', 0))} of {ours_of} points", f"{int(day.get('theirs', 0))} of {his_of}")
+    if " points" in said and not all(w in said for w in in_words):
+        wrong.append(f"{where}: (K3) the head's words are not the day's purses {in_words}: {said[:90]!r}")
+    if " points" not in said and text_size <= 1.15:
+        wrong.append(f"{where}: (K3) the head does not say the purses in words at text {text_size:g}: {said[:90]!r}")
     temper = str(day.get("his_temper") or "")
     if temper and temper not in src:
         wrong.append(f"{where}: the head (or its hover) does not name his temper {temper!r}")
@@ -1210,7 +1535,7 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
             if built.get("has"):
                 wrong.append(f"{rid} {name}: a day's panel on a table that has no day")
             wrong += _button_places(f"{rid} {name}", frame, False)
-            if str((frame.get("sub_banner") or {}).get("text", "")).startswith("The last clash"):
+            if str((frame.get("sub_banner") or {}).get("text", "")).startswith(DAY_LINE_HEADS):
                 wrong.append(f"{rid} {name}: (K11) a table with no day carries a day's morning in the sub-banner")
             if frame.get("close_text") not in (None, "Close"):
                 wrong.append(f"{rid} {name}: (K4) a table that does not follow reads {frame.get('close_text')!r} on its primary button")
@@ -1231,7 +1556,7 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
             if not frame.get("verdict_visible") or not frame.get("plate_visible"):
                 wrong.append(f"{rid} {name}: a day decided by its clash lost the verdict or the plate")
             sub = frame.get("sub_banner") or {}
-            if str(sub.get("text", "")).startswith("The last clash"):
+            if str(sub.get("text", "")).startswith(DAY_LINE_HEADS):
                 wrong.append(f"{rid} {name}: (K11) a decided day carries the day's morning in the sub-banner")
             wrong += _button_places(f"{rid} {name}", frame, False)
         if not end.get("scribble_seen"):
@@ -1276,7 +1601,9 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
         if not _rect_inside(prect, tray):
             wrong.append(f"{where}: the panel {prect} leaves the tray {tray}")
         # (o) the shelf is hidden at rest only when the panel took its room
-        took_room = prect[1] < int(frame.get("verdict_y", prect[1]))
+        # (the second reading: before a word loses what it does the panel may take
+        # DAY_LIFT px of the gap under the bars - that is not the shelf's room)
+        took_room = prect[1] < int(frame.get("verdict_y", prect[1])) - (DAY_LIFT if built.get("lifted") else 0)
         was_up = bool(own.get("shelf_visible"))
         if own and bool(frame.get("shelf_visible")) != (was_up and not took_room):
             wrong.append(f"{where}: (o) the shelf is {'up' if frame.get('shelf_visible') else 'hidden'} "
@@ -1285,6 +1612,10 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
                          f"(panel y {prect[1]}, verdict y {frame.get('verdict_y')})")
         if took_room and not was_up:
             wrong.append(f"{where}: (o) the panel rose above the verdict where there was no shelf to give room")
+        # (BA5-t) the lift is said: the panel's top is its plain top, less DAY_LIFT exactly when it lifted
+        if "top_plain" in built and prect[1] != int(built["top_plain"]) - (DAY_LIFT if built.get("lifted") else 0):
+            wrong.append(f"{where}: (BA5-t) the panel's top is {prect[1]}, its plain top {built['top_plain']}, "
+                         f"and the table says lifted={built.get('lifted')}")
         lines = [ln for ln in built.get("lines") or [] if ln.get("text", "").strip()]
         # BA-4: the first day's own line (`first_open`) — on a row of its own
         # above the head where the table has room for it whole, else nowhere
@@ -1292,6 +1623,18 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
         first_rows = [ln for ln in lines if ln.get("first")]
         lines = [ln for ln in lines if not ln.get("first")]
         wrong += _day_first_claims(where, day, built, first_rows, lines, tray)
+        # BA-5: the head (the purses, his temper and road, Berthier's reading) stands in the
+        # band above the baize - the tray's own empty 52 px - whatever the panel holds below
+        heads = [ln for ln in lines if ln.get("head")]
+        if len(heads) != 1 or heads[0] is not lines[0]:
+            wrong.append(f"{where}: (BA5-h) the panel draws {len(heads)} head(s), or not first")
+        elif heads[0]["box"][1] != 0 or not _rect_inside(heads[0]["ink"], tray) \
+                or heads[0]["ink"][1] < prect[1]:
+            # (the second reading) the stakes head the decision block: the panel's own first row
+            wrong.append(f"{where}: (BA5-h) the head is not the panel's first row "
+                         f"(box {heads[0]['box']}, ink {heads[0]['ink']}, panel {prect})")
+        wrong += _day_band_claims(where, built, frame, payload, offered)
+        wrong += _day_finish_claims(where, day, built, frame, offered)
         kinds = {k: [ln for ln in lines if ln.get(k)] for k in ("chips", "groups", "exits")}
         for ln in lines:
             what = ("row C (the lead's own words)" if ln.get("chips") else "rows D (the groups)"
@@ -1319,10 +1662,27 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
         # day that awaits us and whose clash no other follows
         told = [t.get("line", "") for t in day.get("told") or [] if t.get("line")]
         said = " ".join(ln["text"] + " " + ln.get("source", "") for ln in lines).replace(" ", " ")
-        if told and told[-1] not in said:
+        # (BA-5: on the head's hover the line is the hover's cleaned text - a typographic
+        # apostrophe for a straight one - so it is read there by its words)
+        hovered = _plain(" ".join(HINT_RX.findall(" ".join(ln.get("source", "") for ln in lines))))
+        if told and told[-1] not in said and _plain(told[-1]) not in hovered:
             wrong.append(f"{where}: the day's last told line {told[-1]!r} is not on the panel")
+        # (BA5-o, the session's review) a closed day keeps the line that says HOW it ended: on
+        # the table, or on the head's hover with the rest of a close the table had no row for
+        ends = [t.get("line", "") for t in day.get("told") or [] if t.get("who") == "end" and t.get("line")]
+        if not day.get("open") and ends:
+            for end_line in ends:
+                if end_line not in said and _plain(end_line) not in hovered:
+                    wrong.append(f"{where}: (BA5-o) the closing table drops a line of the close "
+                                 f"({end_line!r}): on neither the table nor the head's hover")
+            # (the re-review) ON the table: the rows' own text, never a hover's — `said` holds
+            # each label's source, and the head's hover rides in its [hint=…]
+            on_table = " ".join(ln["text"] for ln in lines).replace(" ", " ")
+            if ends[0] not in on_table:
+                wrong.append(f"{where}: (BA5-o) the line that says how the day ended ({ends[0]!r}) "
+                             f"is not on the closing table")
         if lines:
-            wrong += _day_head_claims(where, day, lines[0])
+            wrong += _day_head_claims(where, day, lines[0], text_size)
         # K5 on the guns' day: the last told line stands just under the head while the room allows,
         # the groups never scroll
         if rid == "day_guns":
@@ -1335,12 +1695,20 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
             # (BA-4: on the first day of a campaign the first day's own line may
             # take that row for its one showing — the told line is then on the hover)
             if told_last and text_size <= 1.15 and not first_rows:
-                under = [ln for ln in lines if not (ln.get("chips") or ln.get("groups") or ln.get("exits"))
-                         and ln is not lines[0]
-                         and abs(ln["box"][1] - (lines[0]["box"][1] + lines[0]["box"][3])) <= 6]
-                if not any(told_last[-1] in ln["text"].replace("\u00a0", " ") for ln in under):
-                    wrong.append(f"{where}: (K5) the last told line is not on a line just under the head "
+                # (BA-5: the head stands in the band above the baize - the told line is the
+                # panel's own first row)
+                # (the second reading: the told line gives way before a word loses what it
+                # does - where it HAS a row, the row stands above the words)
+                told_rows = [ln for ln in lines if not (ln.get("chips") or ln.get("groups") or ln.get("exits")
+                                                        or ln.get("head") or ln.get("rule"))
+                             and told_last[-1] in ln["text"].replace("\u00a0", " ")]
+                words_top = min([ln["box"][1] for ln in lines
+                                 if ln.get("chips") or ln.get("groups") or ln.get("exits")] or [10 ** 6])
+                if told_rows and told_rows[0]["box"][1] > words_top:
+                    wrong.append(f"{where}: (K5) the last told line stands under the words "
                                  f"(text {text_size:g})")
+                NOTES_SEEN.append(f"{where}: the last told line has {'a row' if told_rows else 'the hover'} "
+                                  f"at text {text_size:g}")
         if bool(built.get("has_chips")) != (offered and bool(own_chips)) \
                 or bool(built.get("has_groups")) != (offered and bool(groups)) \
                 or bool(built.get("has_exits")) != offered:
@@ -1369,7 +1737,15 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
             if e_ln:
                 # K2 the exits row stands on the buttons' mid-line (within 1 px) and above the frame's inner line (738)
                 btns = built.get("buttons") or {}
-                if btns:
+                exits_up = bool(built.get("exits_up"))
+                if btns and exits_up:
+                    # (the second reading) two-line cards beside the buttons, whole, above the
+                    # frame's inner line (738)
+                    e_bottom = prect[1] + e_ln["box"][1] + e_ln["box"][3]
+                    if abs(e_bottom - EXIT_CARDS_FLOOR) > 2:
+                        wrong.append(f"{where}: (BA5-e) the exits' cards end at y {e_bottom}: they stand on "
+                                     f"the tray's floor ({EXIT_CARDS_FLOOR}), beside the buttons")
+                elif btns:
                     centre_b = btns["close"][1] + btns["close"][3] / 2.0
                     centre_e = prect[1] + e_ln["box"][1] + e_ln["box"][3] / 2.0
                     if abs(centre_e - centre_b) > 1.0:
@@ -1424,6 +1800,203 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
     return wrong
 
 
+def _hovers(seg: str) -> str:
+    return " ".join(_plain(h) for h in HINT_RX.findall(seg))
+
+
+EXIT_TAG_ORDER = ("leave_it", "break_off", "stand")     # battle_acts.gd DAY_TAG_ORDER
+
+
+def _exit_rank(chip: dict) -> int:
+    """An exit's turn to keep its tag beside the buttons (-1: none)."""
+    if str(chip.get("word") or "") == "leave_it":
+        return 0
+    kind = str(chip.get("kind") or "")
+    return EXIT_TAG_ORDER.index(kind) if kind in EXIT_TAG_ORDER else -1
+
+
+def _day_band_claims(where: str, built: dict, frame: dict, payload: dict, offered: bool) -> list[str]:
+    """Row BA, BA-5, the second reading. (BA5-n) the band above the baize names the battle —
+    the plate's own words, whose room the panel takes. (BA5-u) the day's rule stands on a
+    table that offers its words: on its own caption line, or in the first day's line (which
+    says it in full), or on the head's hover; a table that offers none says none. (BA5-k)
+    at rest the two counters say they count this clash."""
+    wrong = []
+    named = built.get("name") if isinstance(built.get("name"), dict) else None
+    battle = str(payload.get("battle_name") or "").strip()
+    if battle:
+        want = f"{battle.upper()}  ·  TURN {int(payload.get('turn') or 0)}"
+        if named is None or not named.get("shown") or named.get("text") != want:
+            wrong.append(f"{where}: (BA5-n) the band above the baize reads "
+                         f"{(named or {}).get('text')!r} ({'shown' if (named or {}).get('shown') else 'hidden'}), "
+                         f"the battle is {want!r}")
+        elif named["rect"][1] < 0 or named["rect"][1] + named["rect"][3] > STAGE_TOP:
+            wrong.append(f"{where}: (BA5-n) the battle's name does not stand in the band above the baize "
+                         f"(rect {named['rect']}, the baize begins at y {STAGE_TOP})")
+    elif named is not None:
+        wrong.append(f"{where}: (BA5-n) the band names a battle ({named.get('text')!r}) the payload does not")
+    lines = [ln for ln in built.get("lines") or [] if ln.get("text", "").strip()]
+    rule_rows = [ln for ln in lines if ln.get("rule")]
+    first_rows = [ln for ln in lines if ln.get("first")]
+    head = next((ln for ln in lines if ln.get("head")), None)
+    hover = _plain(" ".join(HINT_RX.findall((head or {}).get("source", ""))))
+    if bool(built.get("rule_row")) != bool(rule_rows):
+        wrong.append(f"{where}: (BA5-u) the table says its rule has a row ({built.get('rule_row')}) and "
+                     f"draws {len(rule_rows)}")
+    if offered:
+        if rule_rows and _plain(rule_rows[0].get("text", "")) != _plain(DAY_RULE):
+            wrong.append(f"{where}: (BA5-u) the rule's line reads {rule_rows[0].get('text')!r}")
+        if rule_rows and first_rows:
+            wrong.append(f"{where}: (BA5-u) the day's rule and the first day's line both stand (one says the other)")
+        if not rule_rows and not first_rows and _plain(DAY_RULE) not in hover:
+            wrong.append(f"{where}: (BA5-u) the day's rule is nowhere on a table that offers its words")
+    elif rule_rows:
+        wrong.append(f"{where}: (BA5-u) a table that offers no word says the day's rule")
+    if frame.get("final"):
+        caps = [str(pair[0]) for pair in frame.get("counters") or []]
+        if len(caps) != 2 or not any(cap.endswith(DAY_CLASH_SCOPE) for cap in caps):
+            wrong.append(f"{where}: (BA5-k) neither counter says it counts this clash ({caps})")
+    return wrong
+
+
+def _guns_claims(rid: str, res: dict, settled: dict, payload: dict) -> list[str]:
+    """Row BA, BA-5, the second reading — figures that agree. (BA5-q) Before an assault the
+    guns' toll is counted as the battery fires: on the frame shot at the battery the two
+    counters read what the beat says the guns took and cost, and the band's figure of the
+    side they fired on reads its muster less that. A cannonade's own table counts its whole
+    toll as its battery fires: the frame shot at the battery reads every strength line, both
+    counters and the band as the table at rest does. And no table without a day says a
+    counter counts "this clash"."""
+    wrong = []
+    for name, frame in (("end", _frame(res, "end")), ("settled", settled)):
+        caps = [str(pair[0]) for pair in (frame or {}).get("counters") or []]
+        if not isinstance(payload.get("day"), dict) and any(cap.endswith(DAY_CLASH_SCOPE) for cap in caps):
+            wrong.append(f"{rid} {name}: (BA5-k) a table with no day says a counter counts this clash ({caps})")
+    frame = _frame(res, "battery")
+    battery = [b for act in ((payload.get("script") or {}).get("acts") or [])
+               for b in (act.get("beats") or []) if b.get("kind") == "battery"]
+    if not frame or frame.get("final") or not battery:
+        return wrong
+    figures = [str(pair[1]) for pair in frame.get("counters") or []]
+    band = [str(fig) for fig in frame.get("band") or []]
+    if _kind(payload) == "battle":
+        first = battery[0]
+        dealt, taken = int(first.get("dealt", 0) or 0), int(first.get("taken", 0) or 0)
+        for what, n in (("took", dealt), ("cost", taken)):
+            if n > 0 and f"{n:,}" not in figures:
+                wrong.append(f"{rid}/battery: (BA5-q) no counter reads what the guns {what} ({n:,}): {figures}")
+        target = "defender" if first.get("side") == "attacker" else "attacker"
+        before = int((payload.get(target) or {}).get("committed_total", 0) or 0)
+        if dealt > 0 and before > 0 and f"{before:,} → {before - dealt:,}" not in band:
+            wrong.append(f"{rid}/battery: (BA5-q) the band does not read the guns' toll "
+                         f"({before:,} → {before - dealt:,}): {band}")
+    else:
+        def running(row):
+            return sorted(label for label in row.get("labels") or [] if " → " in label)
+        rest_figures = [str(pair[1]) for pair in settled.get("counters") or []]
+        if running(frame) != running(settled) or figures != rest_figures \
+                or band != [str(fig) for fig in settled.get("band") or []]:
+            wrong.append(f"{rid}/battery: (BA5-q) a cannonade's count has not ended as its battery fired: "
+                         f"{running(frame)} {figures} {band}, at rest {running(settled)} {rest_figures}")
+    return wrong
+
+
+def _day_finish_claims(where: str, day: dict, built: dict, frame: dict, offered: bool) -> list[str]:
+    """Row BA, BA-5 - what the table says of a word and of him.
+    (BA5-r) the head ends on Berthier's reading where the block carries one, and on none
+    where it does not. (BA5-c) the lead's own words are two-line CARDS while the ladder
+    left them their second lines: each carries what it does (a locked one, why it is
+    locked) on its face; without them the chip's hover says it. (BA5-e) the exits on a
+    row of their own say what they do after a dash; level with the buttons they say it
+    as far as the row fits left of Replay, in a fixed order (leave it, leave the field,
+    stand), and the rest keep it for their hovers. (BA5-l) the ladder's order: the exits give up their row before the
+    last word told gives up its own, and the cards keep their second lines longer than
+    either. (BA5-p) Close wears the primary look except while the words are offered."""
+    wrong = []
+    lines = [ln for ln in built.get("lines") or [] if ln.get("text", "").strip()]
+    head = next((ln for ln in lines if ln.get("head")), None)
+    reading = str((day.get("reading") or {}).get("line") or "") if isinstance(day.get("reading"), dict) else ""
+    if head is not None:
+        said = str(head.get("text", "")).replace("\u00a0", " ").strip()
+        if reading and not said.endswith(reading):
+            wrong.append(f"{where}: (BA5-r) the head does not end on Berthier's reading {reading!r}: {said[-60:]!r}")
+        if not reading and any(w in said for w in ("he will strike", "he may strike", "he will not strike")):
+            wrong.append(f"{where}: (BA5-r) the head carries a reading the block does not: {said[-60:]!r}")
+    if frame.get("final") and "close_primary" in frame:
+        if bool(frame.get("close_primary")) == bool(offered):
+            wrong.append(f"{where}: (BA5-p) Close is {'primary' if frame.get('close_primary') else 'plain'} "
+                         f"on a table that {'offers its words' if offered else 'offers none'}")
+    if not offered:
+        return wrong
+    chips = day.get("chips") or []
+    own, _groups, exits = day_split(chips)
+    box = {key: next((ln for ln in lines if ln.get(key)), None) for key in ("chips", "exits")}
+    cards, exits_up, tags = bool(built.get("cards")), bool(built.get("exits_up")), bool(built.get("exit_tags"))
+    kept = int(built.get("tags_kept") or 0)
+    if box["chips"] is not None:
+        segs = box["chips"]["source"].split(CHIP_HEAD)[1:]
+        for i, seg in zip(own, segs):
+            chip = chips[i]
+            does = str(chip.get("does") or "")
+            face = _shown_text(seg).replace("\u00a0", " ")
+            want = does if (chip.get("ok") or not chip.get("why")) else str(chip.get("why"))
+            if cards and want and want not in face:
+                wrong.append(f"{where}: (BA5-c) the card of {chip.get('label')!r} does not carry {want!r} on its face: {face!r}")
+            if cards and int(chip.get("price", 0)) > 0 and " point" not in face:
+                wrong.append(f"{where}: (BA5-c) the card of {chip.get('label')!r} does not say its price in points: {face!r}")
+            if not cards and does and does in face:
+                wrong.append(f"{where}: (BA5-c) with no cards the chip {chip.get('label')!r} still carries its second line")
+            if cards and does and not chip.get("ok") and chip.get("why") and _plain(does) not in _hovers(seg):
+                wrong.append(f"{where}: (BA5-c) the locked card of {chip.get('label')!r} says what it would do "
+                             f"nowhere (its face says why it is locked; hovers: {_hovers(seg)!r})")
+            if not cards and does and _plain(does) not in _hovers(seg):
+                wrong.append(f"{where}: (BA5-c) the chip {chip.get('label')!r} says what it does nowhere (hovers: {_hovers(seg)!r})")
+    if box["exits"] is not None:
+        segs = box["exits"]["source"].split(CHIP_HEAD)[1:]
+        for i, seg in zip(exits, segs):
+            chip = chips[i]
+            does = str(chip.get("does") or "")
+            face = _shown_text(seg).replace("\u00a0", " ")
+            if not does:
+                continue
+            on_face = tags or 0 <= _exit_rank(chip) < kept
+            # as a card an exit says its price and what it does on its second line (a locked
+            # one, why it is locked); as a one-line chip, what it does after a dash
+            lit = bool(chip.get("ok")) or not chip.get("why")
+            said_as = (("free · " if int(chip.get("price", 0)) <= 0 else "") + does) if tags else f"— {does}"
+            if tags and not lit:
+                said_as = str(chip.get("why"))
+            if on_face and said_as not in face:
+                wrong.append(f"{where}: (BA5-e) the exit {chip.get('label')!r} does not say {said_as!r} on its face: {face!r}")
+            if not on_face and (does in face or _plain(does) not in _hovers(seg)):
+                wrong.append(f"{where}: (BA5-e) the exit {chip.get('label')!r} carries a tag out of its turn, "
+                             f"or says what it does nowhere (face {face!r}, kept {kept})")
+    if tags and kept:
+        wrong.append(f"{where}: (BA5-e) the exits are cards and count {kept} tag(s) kept as one-line chips")
+    if tags != exits_up:
+        wrong.append(f"{where}: (BA5-e) the exits say what they do ({tags}) and are cards ({exits_up}): one without the other")
+    # (BA5-l) the ladder's order
+    told = [t.get("line", "") for t in day.get("told") or [] if t.get("line")]
+    told_row = any(told and told[-1] in ln["text"].replace("\u00a0", " ") for ln in lines
+                   if not (ln.get("chips") or ln.get("groups") or ln.get("exits") or ln.get("head")
+                           or ln.get("first") or ln.get("rule")))
+    can_card = any(str(chips[i].get("does") or "") for i in own)
+    can_tag = any(str(chips[i].get("does") or "") for i in exits)
+    # (BA5-l, the second reading) a word keeps what it does longer than the table keeps its
+    # own lines: the exits' cards give way for their width, or after the day's rule, the last
+    # word told and the first day's line have; the cards' second lines after the exits' cards
+    stood = [name for name, up in (("the day's rule", bool(built.get("rule_row"))),
+                                   ("the last word told", told_row),
+                                   ("the first day's line", any(ln.get("first") for ln in built.get("lines") or [])))
+             if up]
+    if can_tag and not exits_up and not built.get("exits_wide") and stood:
+        wrong.append(f"{where}: (BA5-l) the exits lost their cards while {', '.join(stood)} still stood")
+    if can_card and not cards and (exits_up or stood):
+        wrong.append(f"{where}: (BA5-l) the cards lost their second lines while the exits' cards ({exits_up}) "
+                     f"or {', '.join(stood) or 'no line'} still stood")
+    return wrong
+
+
 def _day_first_claims(where: str, day: dict, built: dict, first_rows: list, lines: list,
                       tray: list) -> list[str]:
     """BA-4, the first day's line (the block's `first_open`). Where it has a
@@ -1454,13 +2027,14 @@ def _day_first_claims(where: str, day: dict, built: dict, first_rows: list, line
                      f"shown={row.get('shown')}")
     if _plain(said) != _plain(row.get("text", "")):
         wrong.append(f"{where}: (BA4-f) the row reads {row.get('text')!r}, the block's line is {said!r}")
-    if row["box"][1] != 0 or not _rect_inside(row["ink"], tray):
-        wrong.append(f"{where}: (BA4-f) the first day's line is not the panel's top row inside the tray "
-                     f"(box {row['box']}, ink {row['ink']})")
+    head = next((ln for ln in lines if ln.get("head")), None)
+    under_head = int(head["box"][3]) if head else 0
+    if abs(row["box"][1] - under_head) > 1 or not _rect_inside(row["ink"], tray):
+        wrong.append(f"{where}: (BA4-f) the first day's line does not stand right under the head inside the "
+                     f"tray (box {row['box']}, the head is {under_head} px tall, ink {row['ink']})")
     wrong += _sliced(where, row, "the first day's line")
-    if lines and abs(lines[0]["box"][1] - (row["box"][1] + row["box"][3])) > 4:
-        wrong.append(f"{where}: (BA4-f) the head does not stand right under the first day's line "
-                     f"(head y {lines[0]['box'][1]}, the line ends at {row['box'][1] + row['box'][3]})")
+    # (BA-5: the head stands in the band above the baize - `(BA5-h)`; the line is the
+    # panel's first row and the words follow it)
     if shown != str((fo or {}).get("screen") or ""):
         wrong.append(f"{where}: (BA4-f) the line is on the table and the table acknowledged {shown!r}")
     if any(ln.get("scroll_active") for ln in lines):
@@ -1677,6 +2251,19 @@ def check(results: dict, shots: list[dict]) -> list[str]:
         if _kind(payload) == "battle":
             if end.get("dice_shown") != settled.get("dice_shown") or not end.get("dice_shown"):
                 problems.append(f"{rid}: the dice are not on both the end and the settled frame")
+            # BA5-D6: the throw is read when the dice have landed - mid-tumble the tray shows the
+            # dice alone, and the sentence that names the roll has not been read
+            for row in res.get("frames") or []:
+                if row.get("tag") == "dice_tumbling" and row.get("dice_shown"):
+                    if int(row.get("dice_rows_shown", 0)) > 0:
+                        problems.append(f"{rid}: (BA5-d6) the tray reads {row.get('dice_rows_shown')} "
+                                        f"line(s) while the dice still tumble")
+                    if int(row.get("caption_chars", 0)) != 0:
+                        problems.append(f"{rid}: (BA5-d6) the throw's sentence is read while the dice tumble")
+            for name, frame in (("end", end), ("settled", settled)):
+                if frame.get("dice_shown") and int(frame.get("dice_rows_shown", 0)) < 2:
+                    problems.append(f"{rid} {name}: (BA5-d6) at rest the tray reads "
+                                    f"{frame.get('dice_rows_shown')} line(s) of the throw")
         elif end.get("dice_shown") or settled.get("dice_shown"):
             # BA-2: a wall is not rolled for, and guns throw no dice
             problems.append(f"{rid}: dice on a {_kind(payload)}'s table, which rolled none")
@@ -1705,6 +2292,21 @@ def check(results: dict, shots: list[dict]) -> list[str]:
         problems += _manoeuvre_claims(rid, _frame(res, "opening"), end, settled)
         problems += _square_claims(rid, res, end, settled, payload)
         problems += _standard_claims(rid, end, settled)
+        # BA-5: the ground on the table
+        problems += _ground_claims(f"{rid} end", end, payload)
+        problems += _ground_claims(f"{rid} settled", settled, payload)
+        problems += _told_claims(f"{rid} end", end, payload)
+        problems += _told_claims(f"{rid} settled", settled, payload)
+        problems += _guns_claims(rid, res, settled, payload)
+        # BA1-X8: a triumph's laurels flank its banner
+        problems += _laurel_claims(f"{rid} end", end)
+        problems += _laurel_claims(f"{rid} settled", settled)
+        # BA5-D3: the verdict in its room — at rest, and each act's line as it was shot
+        problems += _verdict_claims(f"{rid} end", end, payload, at_rest=True)
+        problems += _verdict_claims(f"{rid} settled", settled, payload, at_rest=True)
+        for row in res.get("frames") or []:
+            if row.get("act") and not row.get("final"):
+                problems += _verdict_claims(f"{rid}/{row.get('tag')}", row, payload, at_rest=False)
         # BA-3: the day's panel and the room it lends from
         own_frame = _frame(by_id.get(f"{rid}__no_day"), "settled")
         problems += _day_claims(rid, res, end, settled, payload, own_frame)
@@ -1780,6 +2382,8 @@ def check(results: dict, shots: list[dict]) -> list[str]:
                       or _table(again) != _table(settled)):
             problems.append("a click on the settled tableau changed it")
     problems += _chrome_claims(by_id)
+    problems += _speed_claims(by_id)
+    problems += _long_line_claims(by_id, payloads, spec)
     brief, full = by_id.get("ulm_full__brief_always"), by_id.get("ulm_full")
     if brief and full:
         nb = len(_frame(brief, "opening").get("played") or [])

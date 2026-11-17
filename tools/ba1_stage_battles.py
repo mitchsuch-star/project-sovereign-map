@@ -135,7 +135,7 @@ def _want_last_hour(payload, result):
     if not late:
         return ""
     return (f"{late[0]['actor']} comes up at the last hour "
-            f"({late[0]['score']} against a bar of {late[0]['bar']})")
+            f"(his march: {late[0]['score']}, where {late[0]['bar']} was needed)")
 
 
 def _stage_flank(world, executor):
@@ -535,9 +535,22 @@ def _want_day_crowded(payload, result):
 
 
 def _after_dim(world, executor, result, attacker, target):
+    """A day whose purse is spent, awaiting our word — on the table the game
+    shows its chips on: his answering clash's where he answered with one
+    (BA5-D1: our own clash's table then reads the day as our clash left it and
+    offers nothing), else our own. The purse is WRITTEN to nothing by the
+    stager — a played road that spends it and leaves the day open is rare on
+    this board (a press of the weaker side decides the day; Masséna objects to
+    digging in); the rest is the game's own. (Row BA, BA-5: the scene laid the
+    live day over the OPENING's table though he had struck since — counters
+    and dice of one clash under a told line of another, the frame the first
+    reading's critic named for figures that do not agree.)"""
     from backend.game_logic import battle_day
     _settle(world, executor, result)
     payload = result.get("battle_diorama")
+    reply = ((result.get("battle_day") or {}).get("reply") or {})
+    if isinstance(reply.get("diorama"), dict):
+        payload = reply["diorama"]
     day = _live_day(world, target)
     if not isinstance(payload, dict) or day is None or day.get("awaits") != "ours":
         return payload
@@ -570,7 +583,9 @@ def _after_word(world, executor, result, attacker, target):
 def _want_day_word(payload, result):
     word = _beats(payload, "word")
     day = _day_of(payload)
-    if not word or not day.get("open") or day.get("awaits") != "ours":
+    # BA5-D1: a table whose clash HIS follows reads the day as our clash left
+    # it — it awaits him (it read "ours": the day after his answer).
+    if not word or not day.get("open") or not (day.get("awaits") == "ours" or day.get("follows")):
         return ""
     return (f"the clash after our word ({word[0].get('text') or word[0].get('line')!r}): "
             f"{day['ours']} of {day.get('ours_of')} points to {day['theirs']} and the day still hangs"
@@ -781,6 +796,11 @@ SCENES = {
 }
 
 
+# The scenes whose day is the campaign's FIRST (its own line on the table):
+# the day that opens, and the two crowded tables the line must give way on.
+FIRST_DAY_SCENES = ("day_opens", "day_crowded", "day_guns")
+
+
 def fight(name: str, ambient: int):
     stage, wanted, *rest = SCENES[name]
     after = rest[0] if rest else None
@@ -788,6 +808,15 @@ def fight(name: str, ambient: int):
     if after is not None:
         from backend.game_logic import campaign_variance
         campaign_variance.serve_campaign(world)    # a day exists only on the served road
+        if name not in FIRST_DAY_SCENES:
+            # BA-5: a campaign says the first day's own line ONCE. Every staged
+            # world is a fresh campaign, so every day scene carried it (and gave
+            # its room to it): only the scenes that are about that line keep it,
+            # and every other is a day as play shows it.
+            # (stamped on an earlier turn: a line first shown THIS turn is
+            # still on every payload of the turn — `first_open.line_for`)
+            from backend.game_logic import first_open
+            first_open.seen(world)["battle_day"] = int(getattr(world, "current_turn", 0) or 0) - 1
     random.seed(ambient)
     staged = stage(world, executor)
     if staged is None:

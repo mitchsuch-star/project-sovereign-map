@@ -127,8 +127,12 @@ def _how(block):
     """How a closed day ended, as its table tells it: the last line told that
     is not the day's tally. (Row BA, BA-4: under the line that says HOW it
     ended the closing table now tells what the day came to — "Two clashes:
-    13,540 of ours for 16,474 of the enemy's." — as the last line told.)"""
-    return next(t for t in reversed(block["told"]) if t.get("kind") != "tally")
+    13,540 of ours for 16,474 of the enemy's." — as the last line told. Row
+    BA, BA-5: and under the tally whom the toll favoured and what kind of day
+    it was (kind "shape"); a clash's own line is kind "clash"; and, since the
+    second reading, what follows a day no clash decided (kind "after").)"""
+    return next(t for t in reversed(block["told"])
+                if t.get("kind") not in ("tally", "shape", "clash", "after"))
 
 
 def _awaits_us(day):
@@ -240,7 +244,10 @@ class TestAGreatBattleOpensADay:
         # The opening attack cost its action, as it always did.
         assert body["action_info"]["cost"] == 1 and table.world.actions_remaining == 3
         # The side that did not open speaks first: he has spoken (or stood).
-        assert day["told"] and day["told"][0]["who"] == "theirs"
+        # (Row BA, BA-5: the opening's own line stands before his word.)
+        words = [t for t in day["told"] if t["kind"] != "clash"]
+        assert words and words[0]["who"] == "theirs"
+        assert day["told"][0]["kind"] == "clash" and day["told"][0]["line"].startswith("The opening: ")
         assert day["ours"] == 2, "Ney's two points are untouched by the opening"
         assert 0 <= day["theirs"] <= 2
         assert body["battle_diorama"]["day"]["enemy"] == "Mack", "the tableau carries the day"
@@ -364,7 +371,8 @@ class TestAWordIsFreeOfActions:
         spoke = [t["who"] for t in said["told"]]
         ours_at = max(at for at, who in enumerate(spoke) if who == "ours")
         assert spoke[ours_at + 1:], f"nothing was said after our word: {said['told']}"
-        assert set(spoke[ours_at + 1:]) <= {"theirs", "end"}
+        # (Row BA, BA-5: a clash's own line is told after the word that fought it.)
+        assert set(spoke[ours_at + 1:]) <= {"theirs", "end", "clash"}
 
     def test_the_counter_a_word_answers_with_is_the_pool(self, table):
         """Every `actions_remaining` the word's answer carries is the pool as
@@ -607,7 +615,9 @@ class TestSilenceIsStanding:
         assert body["success"] and body["battle_day"]["open"] is False
         assert body["battle_day"]["ended"] == "night" and body["battle_day"]["banner"] == "Night falls"
         assert _how(body["battle_day"])["line"] == BD.NIGHT
-        assert body["battle_day"]["told"][-1]["kind"] == "tally"      # BA-4: then what the day came to
+        # BA-4: then what the day came to; BA-5: then whom the toll favoured and its shape,
+        # and (the second reading) what follows a day no clash decided
+        assert [t["kind"] for t in body["battle_day"]["told"][-3:]] == ["tally", "shape", "after"]
         assert table.world.battle_days == {} and table.world.actions_remaining == 3
 
     def test_a_priced_word_breaks_the_silence(self, table):
@@ -627,7 +637,8 @@ class TestSilenceIsStanding:
         else:
             raise AssertionError("every press decided the day")
         assert day["open"] is True and day["awaits"] == "ours", day
-        assert [t["kind"] for t in day["told"][-2:]] == ["press", "stand"]
+        # (Row BA, BA-5: the press's own clash is told between the two.)
+        assert [t["kind"] for t in day["told"] if t["kind"] != "clash"][-2:] == ["press", "stand"]
         assert table.world.battle_days["days"]["Mack"]["silences"] == 1
 
     def test_both_purses_empty_and_night_falls(self, table):
@@ -1400,7 +1411,9 @@ class TestADayOpenedByAnotherRoad:
 
     def test_it_awaits_him_until_the_table_asks(self, table):
         day = self._opened_past_the_door(table)
-        assert day["awaits"] == "theirs" and not day.get("told")
+        # (Row BA, BA-5: the opening's own line is told; no word has been.)
+        assert day["awaits"] == "theirs"
+        assert [t["kind"] for t in day.get("told") or []] == ["clash"]
         listed = table.days()["days"]
         assert [d["enemy"] for d in listed] == ["Mack"]
         assert listed[0]["open"] is False or listed[0]["awaits"] == "ours"

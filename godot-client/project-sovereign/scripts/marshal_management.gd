@@ -1089,6 +1089,9 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 			rel_parts.append(rname + ": " + _relationship_colored(rval, rlabel))
 		bbcode += "  Relationships: " + ", ".join(rel_parts) + "\n"
 
+	# Row BA, BA-5: his days (the pitched battles he led), above the lore.
+	bbcode += _days_lines(m)
+
 	# Session UI-2 (K): the lore, under the figures, as notes.
 	if notes != "":
 		bbcode += "\n" + _caption("Character") + notes
@@ -1840,6 +1843,7 @@ func _detail_body(m: Dictionary, index: int) -> String:
 	bbcode += _reward_lines(m, index)
 	bbcode += _grievance_lines(m)
 	bbcode += _status_lines(m)
+	bbcode += _days_lines(m)
 	bbcode += _character_fold(m)
 	return bbcode
 
@@ -2052,6 +2056,30 @@ func _status_lines(m: Dictionary) -> String:
 		# alone at the foot. One wrapped paragraph, as the card prints it On the page: the
 		# heading never stands without its first names.
 		bbcode += "  Relationships: " + ", ".join(rel_parts) + "\n"
+	return bbcode
+
+
+func _days_lines(m: Dictionary) -> String:
+	"""Row BA, BA-5 ("A marshal's days", the user's tick): the last pitched battles
+	he led for you, newest first - when, the battle, how it went for him (in its
+	colour) and the rest in the table's own sentences: the toll, what told, what kind
+	of day it was (`marshal_overview._build_days`). Nothing for a marshal with none."""
+	var days = m.get("days", [])
+	if not (days is Array) or (days as Array).is_empty():
+		return ""
+	var bbcode := _caption("His days")
+	for d in days:
+		if not (d is Dictionary):
+			continue
+		var tone: String = Utils.COLOR_INFO
+		match str(d.get("tone", "")):
+			"good":
+				tone = Utils.COLOR_SUCCESS
+			"bad":
+				tone = Utils.COLOR_ERROR
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(d.get("when", "")) + "[/color]  " \
+			+ str(d.get("name", "")) + " — [color=#" + tone + "]" + str(d.get("verdict", "")) + "[/color]" \
+			+ str(d.get("rest", "")) + "\n"
 	return bbcode
 
 

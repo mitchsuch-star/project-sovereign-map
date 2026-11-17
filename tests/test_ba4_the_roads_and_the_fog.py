@@ -1635,7 +1635,9 @@ class TestADaysCloseIsTold:
         assert closing["open"] is False and closing["ended"] == "broke_off"
         # the field the day OPENED on, though he struck back on our ground since
         assert closing["close"].startswith("The attack at Lorraine was broken off after ")
-        assert closing["close"].endswith(" of the enemy's.")
+        # (Row BA, BA-5: BA-4's line stands whole, and the close goes on after it
+        # — whom the toll favoured, what kind of day it was.)
+        assert " of the enemy's. " in closing["close"]
         rows = [e for e in table.world.event_log if e.get("type") == "battle_day_closed"]
         assert len(rows) == 1 and rows[0]["line"] == closing["close"]
         assert rows[0]["nation"] == "France" and rows[0]["how"] == "broke_off"
@@ -1999,9 +2001,15 @@ class TestNewsOfABattleAbroad:
         assert news["great"] is True and news["crowns"] == ["Prussia", "Austria"]
         assert news["location"] == "Lithuania"
         line = news["line"]
-        assert line.startswith("News from Lithuania: Prussia and Austria have fought a great battle — ")
+        # Row BA, BA-5 (the user's tick at its plan gate — "Name the commanders"):
+        # a GREAT battle's news names its two commanders (the table's own law: a
+        # great battle names its commander). It read "Prussia and Austria have
+        # fought a great battle" and named no man; the seam's down twin is
+        # `tests/test_ba5_the_finish.py`. Still never a figure.
+        assert line.startswith("News from Lithuania: a great battle — ")
+        assert "Hohenlohe of Prussia" in line and "Archduke John of Austria" in line
+        assert news["commanders"] == ["Hohenlohe", "ArchdukeJohn"]
         assert not any(ch.isdigit() for ch in line), "no figure"
-        assert "Hohenlohe" not in line and "John" not in line, "no commander"
         # the player's log carries the news and not the battle's own row
         from backend.campaign_log import filter_campaign_log, format_event_oneliner
         shown = filter_campaign_log(world.event_log, world)
@@ -2450,11 +2458,16 @@ class TestTheFirstDaysLineInTheClient:
         assert "func _on_first_open_seen(screen: String) -> void:" in _gd("main.gd")
 
     def test_it_never_scrolls_a_chip_for_its_row(self):
+        """(Row BA, BA-5: the panel's rows are ONE ladder now — the line gives up
+        its row at the fifth step, before a card loses its second line and
+        before the groups scroll; `_day_first_fits` is gone. The second reading
+        put two steps between them: the panel's lift and the exits' cards.)"""
         acts = _gd("battle_acts.gd")
-        fits = _gd_func(acts, "_day_first_fits")
-        assert "return above + d_h <= e_top_abs - 2.0 - top" in fits
+        assert "func _day_first_fits(" not in acts
         build = _gd_func(acts, "_build_the_day")
-        assert "if _day_first_fits(first_h + head_h + c_h, d_box, e_top_abs," in build
+        line_goes = build.index("first_row = false                     # 5")
+        cards_go = build.index("cards = false                         # 7")
+        assert line_goes < cards_go < build.index("d_box.scroll_active = true")
         assert build.count("hover.append(first_said)") == 2, "no room: the head's hover, in both branches"
 
 
@@ -2483,7 +2496,10 @@ class TestTheHelpNamesTheSessionsRules:
         said = {row[0]: row[1] for row in self._terms()}
         assert "five points or fewer" in said["The last hour"] and "three-quarters" in said["The last hour"]
         assert "5,000" in said["Pursuit"] and "fought beside him" in said["Pursuit"]
-        assert "never a commander or a figure" in said["News of a battle"]
+        # (Row BA, BA-5: a great battle's news names its two commanders — the
+        # user's tick; the page said "never a commander or a figure".)
+        assert "a great battle's two commanders by name" in said["News of a battle"]
+        assert "never a figure" in said["News of a battle"]
         assert "digits 1 to 9" in said["The day's points"]
         assert "A lead holds one day at a time" in said["The day's points"]
         assert "one you fought in" in said["Fog of war"]
@@ -2831,7 +2847,9 @@ class TestTheRecordsSayWhatLanded:
         ledger = doc_text("BUG_FIXES.md")
         rows = dict(re.findall(r"^\| \*\*(BA\d-X\d+)\*\* \| P\d \| (✅ FIXED|OPEN) ", ledger, flags=re.M))
         still_open = sorted(name for name, state in rows.items() if state == "OPEN")
-        assert still_open == ["BA1-X4", "BA1-X8", "BA2-X16", "BA2-X6"], "Session H's, none of BA-4's"
+        assert not [name for name in still_open if name.startswith("BA4-")], "none of BA-4's"
+        # (row BA, BA-5 closed BA1-X8 and filed three older rows for Session H's head)
+        assert still_open == ["BA1-X4", "BA2-X16", "BA2-X6", "BA5-X15", "BA5-X16", "BA5-X17"], "Session H's"
         assert rows["BA4-X1"] == rows["BA4-X2"] == "✅ FIXED"
         for name in ("BA2-X2", "BA2-X7", "BA2-X10", "BA2-X12", "BA2-X20", "BA2-X21",
                      "BA3-X2", "BA3-X5", "BA3-X13", "BA3-X14", "BA3-X15", "BA3-X16"):
@@ -2840,6 +2858,11 @@ class TestTheRecordsSayWhatLanded:
     def test_the_brief_for_the_deploy_reads_the_gate_against_this_sessions_records(self):
         brief = (REPO / "docs" / "NEXT_SESSION_PROMPT.md").read_text(encoding="utf-8")
         assert brief.startswith("# NEXT SESSION PROMPT — Session H")
+        # (row BA, BA-5 re-took every one of these surfaces on its final tree, and the brief now
+        # reads the gate against those records: BA-4's stand as the game before the finish)
+        for name in ("_ba5_band_2026_11_17.json", "_dy_signature_ba5_all_2026_11_17.json",
+                     "_ba5_all_census_2026_11_17.json", "_ba5_chain_d_2026_11_17.json"):
+            assert name in brief, name
         for name in (f"_ba4_band_{STAMP}.json", f"_dy_signature_ba4_x14_{STAMP}.json",
                      f"_ba4_x14_census_{STAMP}.json", f"_ba4_chain_d_{STAMP}.json"):
-            assert name in brief, name
+            assert (REPO / "tools" / name).is_file(), name

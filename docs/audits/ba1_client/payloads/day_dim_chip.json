@@ -1,13 +1,13 @@
 {
  "battle_name": "The Great Battle of Carniola",
- "region": "Carniola",
+ "region": "Tyrol",
  "turn": 1,
- "outcome": "defender_tactical_victory",
- "victor": "ArchdukeCharles",
- "attacker_nation": "France",
- "defender_nation": "Austria",
- "player_side": "attacker",
- "register": "defeat",
+ "outcome": "stalemate",
+ "victor": null,
+ "attacker_nation": "Austria",
+ "defender_nation": "France",
+ "player_side": "defender",
+ "register": "grim",
  "significant": true,
  "dramatic": true,
  "great_battle": true,
@@ -15,12 +15,12 @@
  "attacker": {
   "contingents": [
    {
-    "name": "Massena",
-    "nation": "France",
+    "name": "ArchdukeCharles",
+    "nation": "Austria",
     "arm": "infantry",
-    "committed": 42000,
-    "casualties": 8745,
-    "remaining": 33255,
+    "committed": 50228,
+    "casualties": 4294,
+    "remaining": 45934,
     "status": "engaged",
     "lead": true,
     "crowned": false,
@@ -28,20 +28,20 @@
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 8745,
-  "committed_total": 42000,
+  "casualties_total": 4294,
+  "committed_total": 50228,
   "reserve_casualties": 0,
-  "nation": "France"
+  "nation": "Austria"
  },
  "defender": {
   "contingents": [
    {
-    "name": "ArchdukeCharles",
-    "nation": "Austria",
+    "name": "Massena",
+    "nation": "France",
     "arm": "infantry",
-    "committed": 54000,
-    "casualties": 3772,
-    "remaining": 50228,
+    "committed": 33255,
+    "casualties": 4334,
+    "remaining": 28921,
     "status": "engaged",
     "lead": true,
     "crowned": false,
@@ -49,13 +49,14 @@
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 3772,
-  "committed_total": 54000,
+  "casualties_total": 4334,
+  "committed_total": 33255,
   "reserve_casualties": 0,
-  "nation": "Austria"
+  "nation": "France"
  },
- "observation": "Geography was our enemy today, Sire. Archduke Charles held the superior ground.",
- "enemy_voice": "Archduke Charles: \"Austria has lost battles to France. Not this one.\"",
+ "observation": "Stalemate. Massena and Archduke Charles glare at each other across the field.",
+ "ground": "mountains",
+ "enemy_voice": "Archduke Charles: \"Your Emperor needs quick victories. I need only deny them.\"",
  "script": {
   "version": 1,
   "form": "full",
@@ -64,19 +65,28 @@
     "act": "approach",
     "beats": [
      {
+      "kind": "word",
+      "side": "",
+      "actor": "",
+      "text": "Archduke Charles strikes back.",
+      "weight": "head",
+      "who": "theirs",
+      "word": "strike"
+     },
+     {
       "kind": "open",
       "side": "attacker",
-      "actor": "Massena",
-      "text": "Massena attacks Archduke Charles at Carniola.",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles attacks Massena at Tyrol.",
       "weight": "detail"
      },
      {
       "kind": "ground",
       "side": "defender",
-      "actor": "ArchdukeCharles",
-      "text": "Archduke Charles stands on the heights (+15%).",
+      "actor": "Massena",
+      "text": "Massena stands in the mountains (+25%).",
       "weight": "detail",
-      "terrain_pct": 15,
+      "terrain_pct": 25,
       "works_pct": 0,
       "walls_pct": 0,
       "square": false
@@ -89,30 +99,30 @@
      {
       "kind": "advance",
       "side": "attacker",
-      "actor": "Massena",
-      "text": "Massena goes in at the head of his men (+15%).",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles comes on by measured steps.",
       "weight": "head",
-      "temper": "aggressive",
-      "pct": 15,
+      "temper": "cautious",
+      "pct": 0,
       "penalty": false
      },
      {
       "kind": "advance",
       "side": "defender",
-      "actor": "ArchdukeCharles",
-      "text": "Archduke Charles holds his ground and lets them come.",
+      "actor": "Massena",
+      "text": "Massena comes out to meet them.",
       "weight": "detail",
-      "temper": "cautious",
+      "temper": "aggressive",
       "pct": 0,
       "penalty": false
      },
      {
       "kind": "ability",
       "side": "defender",
-      "actor": "ArchdukeCharles",
-      "text": "Archduke Charles's regiments stand steady: Habsburg Resolve (+3%).",
+      "actor": "Massena",
+      "text": "Massena is at his best outnumbered: Child of Victory (+10%).",
       "weight": "head",
-      "pct": 3,
+      "pct": 10,
       "penalty": false
      }
     ]
@@ -123,17 +133,17 @@
      {
       "kind": "dice",
       "side": "attacker",
-      "actor": "Massena",
-      "text": "The fortune of the day: Massena rolls 8, +2 for his eye for ground: 10.",
+      "actor": "ArchdukeCharles",
+      "text": "The fortune of the day: Archduke Charles rolls 7, +2 for his eye for ground: 9.",
       "weight": "head",
-      "natural": 8,
+      "natural": 7,
       "skill": 2,
       "flank": 0,
-      "modified": 10,
+      "modified": 9,
       "critical": "",
-      "swing": 10,
-      "fortune_attacker": -9,
-      "fortune_defender": 9
+      "swing": 8,
+      "fortune_attacker": -3,
+      "fortune_defender": 8
      },
      {
       "kind": "stand",
@@ -146,8 +156,8 @@
    }
   ],
   "tempers": {
-   "Massena": "aggressive",
-   "ArchdukeCharles": "cautious"
+   "ArchdukeCharles": "cautious",
+   "Massena": "aggressive"
   }
  },
  "day": {
@@ -165,13 +175,23 @@
   "theirs_of": 3,
   "awaits": "ours",
   "pending": false,
-  "morning": "The last clash: drawn — 4,334 of ours for 4,294 of his.",
+  "morning": "The day so far: 13,079 of ours for 8,066 of his — Archduke Charles has the better of the toll.",
   "ahead": "even",
   "told": [
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "The opening: we lost on points — 8,745 of ours for 3,772 of his; his weight of numbers told."
+   },
    {
     "who": "theirs",
     "kind": "strike",
     "line": "Archduke Charles strikes back."
+   },
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "Archduke Charles's attack: drawn — 4,334 of ours for 4,294 of his; an even fight."
    }
   ],
   "ended": "",
@@ -188,7 +208,9 @@
     "counsel": "none",
     "odds": "unfavorable",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "odds: unfavorable — 28,921 on 45,934",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "dig_in",
@@ -201,7 +223,9 @@
     "counsel": "possible",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "defensive stance: +9% if he strikes",
+    "more": "A dug-in line stands firmer when it is attacked. He speaks next."
    },
    {
     "kind": "stand",
@@ -214,7 +238,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "he speaks next",
+    "more": "A silence costs no point. Two silences running, and night falls."
    },
    {
     "kind": "break_off",
@@ -227,7 +253,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "the day ends; he keeps the field",
+    "more": "The attack is given up and the day ends where it stands."
    },
    {
     "kind": "stand",
@@ -240,14 +268,17 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "he would break off",
+    "more": "He spends what is left by his own temper, and the enemy answers, until night."
    }
   ],
   "his_temper": "Cautious",
   "his_road": true,
-  "first_open": {
-   "screen": "battle_day",
-   "line": "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and the enemy answers each word in turn. Two silences running, or every point spent, and night falls."
+  "reading": {
+   "strike": "will",
+   "line": "he will strike",
+   "hover": "Berthier's reading of his next word, as things stand: a clash changes it. \"May\" is said of anything that turns on his mood, or on what is out of your sight."
   }
  }
 }

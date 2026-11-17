@@ -264,8 +264,10 @@ func dress(final_frame: bool) -> void:
 	if host == null:
 		return
 	_put_the_chrome_back()
+	_build_the_speed()     # BA-5: every table that plays — a fleet action's and an old payload's too
 	if host._is_naval():
 		return
+	_build_the_ground()    # BA-5: the province's terrain, on the felt under the men
 	_laid = "file"
 	_laid_why = []
 	_reserve_dead = []
@@ -302,9 +304,12 @@ func dress(final_frame: bool) -> void:
 	if _kind() == "assault":
 		_build_the_wall()      # before the rest is planned: the stormers stop at its foot
 	_plan_rest()
+	_the_tolls_keep_the_baize()
 	_keep_the_end()
 	_dress_the_kind()
 	_build_the_day()       # BA-3: hidden; shown at rest, never while the acts play
+	_lift_the_verdict()    # BA5-D3: after the day's panel has read the verdict's own top
+	_fit_the_line_under_the_headline()    # ...and after every word of that line is written
 
 	var sw: float = host._stage.size.x
 	_act_label = host._mk_label(host._stage, "", &"Caption", BRASS, host._font_engraved)
@@ -632,6 +637,14 @@ func _dress_the_kind() -> void:
 	var sub: String = str(host._data.get("sub_banner", ""))
 	if sub != "" and sub != "<null>" and host._sub_banner.text == "":
 		host._sub_banner.text = sub
+	# BA-5: what told in the battle, under its headline — after the host's own
+	# line where the province changed hands ("Swabia falls to France. Our numbers told.")
+	var told: String = str(host._data.get("verdict_told", ""))
+	_sub_host = host._sub_banner.text          # (the review) the line's two parts, for its fit
+	_sub_told = ""
+	if told != "" and told != "<null>":
+		_sub_told = told
+		host._sub_banner.text = told if host._sub_banner.text == "" else host._sub_banner.text + " " + told
 	if _laid == "wedge":
 		_rehome_the_reserve()
 	_build_the_works()
@@ -717,8 +730,24 @@ func _advance_toll_under_the_feet(b: Dictionary) -> void:
 
 	var art: Node2D = node.get_node_or_null("Art")
 	var s: float = art.scale.x if art != null else 1.0
+	# (the second reading: "24,000 → 21,994" above and "→ 21,687" below read as two
+	# figures for one corps) what the march cost stands under it, on a line of its own
+	var kept: int = strength.text.substr(strength.text.rfind(" → ") + 3).to_int()
+	var marched: int = toll.to_int()
+	var plain: String = toll
+	if kept > marched and marched > 0:
+		toll += "\n(%s lost on the march)" % Utils.format_number(kept - marched)
+		b["march_cost"] = kept - marched
 	var caption: Label = host._mk_label(node, toll, &"Caption", Color(host.BONE_HEX))
 	var need: Vector2 = caption.get_minimum_size()
+	var art_now: Node2D = node.get_node_or_null("Art")
+	var under: float = maxf(host.FAITH_CAPTION_Y * (art_now.scale.x if art_now != null else 1.0), floor_y + 1.0)
+	if toll != plain and node.position.y + under + need.y > host._stage.size.y:
+		# a lead at the baize's foot has no room under him for the second line: one line
+		# (the review: the toll alone left two figures for one corps unexplained there)
+		caption.text = _toll_on_one_line(b, plain, node.position.x, left,
+				DioramaPlinth.HALF_W * (art_now.scale.x if art_now != null else 1.0))
+		need = caption.get_minimum_size()
 	caption.size = need
 	# Under the slab, from its OUTER end toward the clash line: the reserve
 	# note stands in the baize's outboard corner and the fate captions hang
@@ -729,6 +758,122 @@ func _advance_toll_under_the_feet(b: Dictionary) -> void:
 	caption.z_index = host.TEXT_Z
 	host._outline_over_colours(caption)
 	b["toll"] = caption
+
+
+func _the_tolls_keep_the_baize() -> void:
+	"""The march's cost stands on a second line under the advance's toll — where the
+	lead's FINAL station leaves it the room. The toll is written while the order of
+	battle is laid, and the wedge may be taken back to the file after that (it is, from
+	Text size 120 % up: the lead then stands at the baize's foot, and the second line
+	ran off it — the walk at that size caught it). A toll with no room for its second
+	line keeps its first, the words every surface has always had."""
+	for name in _blocks:
+		var b: Dictionary = _blocks[name]
+		var toll: Label = b.get("toll", null)
+		if toll == null or not is_instance_valid(toll) or not toll.text.contains("\n"):
+			continue
+		var station_y: float = maxf((b["node"] as Node2D).position.y, _rest_pos(b).y)
+		if station_y + toll.position.y + toll.size.y <= host._stage.size.y:
+			continue
+		var was_w: float = toll.size.x
+		var left: bool = bool(b["is_left"])
+		var slab_end: float = toll.position.x if left else toll.position.x + was_w
+		toll.text = _toll_on_one_line(b, toll.text.get_slice("\n", 0), _rest_pos(b).x,
+				left, absf(slab_end))
+		toll.size = toll.get_minimum_size()
+		if not left:
+			toll.position.x += was_w - toll.size.x      # a right-hand toll ends at its slab's outer end
+
+
+func _toll_on_one_line(b: Dictionary, first: String, node_x: float, left: bool, slab: float) -> String:
+	"""(The review) The toll and what the march cost on ONE line — "→ 21,687 after
+	the advance (−307)" — where the second line has no room; the toll alone only
+	where even that line would leave the baize sideways. A left toll runs inboard
+	from its slab's outer end, a right one ends there."""
+	var cost: int = int(b.get("march_cost", 0))
+	if cost <= 0:
+		return first
+	var one: String = first + " (−%s)" % Utils.format_number(cost)
+	var probe: Label = host._mk_label(host._stage, one, &"Caption", Color(host.BONE_HEX))
+	var w: float = probe.get_minimum_size().x
+	probe.queue_free()
+	var x0: float = (node_x - slab) if left else (node_x + slab - w)
+	if x0 < host.BAIZE_PAD or x0 + w > host._stage.size.x - host.BAIZE_PAD:
+		return first
+	return one
+
+
+func _fit_the_line_under_the_headline() -> void:
+	"""The line under the headline is centred on the stage, and on an order of battle the
+	reserve's dead stand beside each counter at its height. A line that would reach them
+	is set in the theme's Caption size (the second reading's longer lines did at Text size
+	130 %: "The day so far: … — the better of the toll is ours." over "1,211 lost"). The
+	next table laid has the line's own size back (`_put_the_chrome_back`).
+	(The review) The line must fit the baize itself too: a province's own line
+	followed by what told ran wider than the stage at Text size 130 % even in the
+	Caption size. Then what told is said short (the moment a line broke rides the
+	line's hover), and where even that is too wide the line keeps the host's own
+	words and what told rides its hover whole."""
+	var sub: Label = host._sub_banner
+	if sub == null or sub.text == "":
+		return
+	var mid: float = host._stage.size.x / 2.0
+	var half: float = mid - host.BAIZE_PAD
+	var line_h: float = sub.get_minimum_size().y
+	for dead in _reserve_dead:
+		if not is_instance_valid(dead):
+			continue
+		var l: Label = dead
+		if l.position.y >= sub.position.y + line_h or l.position.y + l.size.y <= sub.position.y:
+			continue          # not at the line's height
+		half = minf(half, (mid - (l.position.x + l.size.x)) if l.position.x < mid else (l.position.x - mid))
+	if _sub_fits(sub, half):
+		return
+	sub.theme_type_variation = &"Caption"
+	if _sub_fits(sub, half):
+		return
+	if _sub_told != "":
+		var short := _told_short(_sub_told)
+		if short != "":
+			sub.text = (_sub_host + " " + short) if _sub_host != "" else short
+			if _sub_fits(sub, half) or _sub_host == "":
+				_hint_the_line(_sub_told)
+				return
+		if _sub_host == "":
+			return
+		sub.text = _sub_host
+		_hint_the_line(_sub_told)
+		if _sub_fits(sub, half):
+			return
+	# (the walk of record, at the shipped Text size) a province's own line can be too wide beside
+	# the reserve's dead even alone, what told or none: the clause before its dash stands ("Naples,
+	# the Kingdom of the Two Sicilies' capital, retaken."), the whole line on its hover
+	var dash := _sub_host.find(" — ")
+	if dash > 0:
+		sub.text = _sub_host.substr(0, dash) + "."
+		_hint_the_line((_sub_host + " " + _sub_told).strip_edges())
+
+
+func _sub_fits(sub: Label, half: float) -> bool:
+	return sub.get_minimum_size().x / 2.0 + SUB_CLEAR <= half
+
+
+static func _told_short(told: String) -> String:
+	"""What told without its moment: "Decided when Mack's line broke: our weight
+	of numbers told." -> "Our weight of numbers told." ("" for a line that names
+	no moment, or one that names no cause after it)."""
+	var cut := told.find(": ")
+	if not told.begins_with("Decided") or cut < 0:
+		return ""
+	var rest := told.substr(cut + 2)
+	return rest.substr(0, 1).to_upper() + rest.substr(1)
+
+
+func _hint_the_line(text: String) -> void:
+	"""The whole of what told, as the line's hover (a Label takes a hover only
+	where it takes the mouse: PASS, so a click still reaches the table)."""
+	host._sub_banner.tooltip_text = text
+	host._sub_banner.mouse_filter = Control.MOUSE_FILTER_PASS
 
 
 func _find_strength_line(b: Dictionary) -> void:
@@ -785,6 +930,17 @@ func _put_the_chrome_back() -> void:
 	# BA-3: the primary button and Replay stand as they were built ("His answer ▸"
 	# widened Close on a table whose clash is followed)
 	host._btn_close.text = "Close"
+	# BA-5: ...the line under the headline its own size (`_fit_the_line_under_the_headline`)
+	host._sub_banner.theme_type_variation = &""
+	host._verdict.theme_type_variation = VERDICT_STEP          # ...and the verdict its own step (`_fit_the_verdict`)
+	host._sub_banner.tooltip_text = ""                     # (the review) ...and no hover of its last fit
+	host._sub_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# BA-5: ...and Close its primary look (a day that offered its words made it plain)
+	host._btn_close.theme_type_variation = &"PrimaryButton"
+	for face in [&"normal", &"hover"]:
+		host._btn_close.remove_theme_stylebox_override(face)
+	for ink in [&"font_color", &"font_hover_color"]:
+		host._btn_close.remove_theme_color_override(ink)
 	host._btn_close.reset_size()
 	host._btn_close.position = Vector2(host.TRAY_W - 154.0, host.TRAY_H - 46.0)
 	host._btn_replay.position = Vector2(host.TRAY_W - 274.0, host.TRAY_H - 46.0)
@@ -821,6 +977,446 @@ func _the_end_is_told() -> void:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# BA-5: the ground on the table (the user's tick — "The ground on the table")
+# ─────────────────────────────────────────────────────────────────────────────
+# The province's terrain, DRAWN on the felt (no new art) as a campaign map is
+# printed under its counters: dark, low, and under the men and every label. It
+# lies on the DEFENDER's half — it is his ground, and the bonus it gives is his
+# — except a river, which runs between the two lines, and open country, which is
+# everywhere. A payload without `ground` (an old save's, a fleet action's) is a
+# bare felt, as before.
+
+var _ground: Ground = null
+
+
+func _build_the_ground() -> void:
+	_ground = null
+	var kind := str(host._data.get("ground", ""))
+	if not Ground.KINDS.has(kind):
+		return
+	var g := Ground.new()
+	g.name = "Ground"
+	g.kind = kind
+	g.dir = 1.0 if _attacker_left() else -1.0
+	g.felt = host._stage.size
+	g.seed_text = str(host._data.get("region", ""))
+	host._stage.add_child(g)
+	host._stage.move_child(g, 1)          # over the felt; under the lamp, the men and every label
+	host._transients.append(g)
+	_ground = g
+
+
+class Ground:
+	extends Node2D
+	# `kind` is the payload's `ground` (the backend's terrain key); `dir` is +1
+	# when the defender holds the right half of the table and -1 the left. The
+	# scatter is the province's own (seeded by its name): a field looks the same
+	# every time it is fought on. Everything is drawn in the felt's own shades —
+	# a little darker, a little lit where the lamp (upper right) would catch it.
+	const KINDS := ["plains", "forest", "hills", "mountains", "urban", "river_crossing"]
+	const INK := Color(0.03, 0.07, 0.05)          # darker than the felt
+	const LIGHT := Color(0.66, 0.74, 0.58)        # an edge the lamp catches
+	const LEAF := Color(0.06, 0.19, 0.10)         # a wood's canopy
+	const LEAF_LIT := Color(0.36, 0.54, 0.30)
+	const ROOF := Color(0.47, 0.28, 0.19)         # tile, the slope the lamp is on
+	const ROOF_SHADE := Color(0.16, 0.09, 0.07)
+	const STONE := Utils.UI_GROUND_STONE
+	const SNOW := Color(0.84, 0.88, 0.86)
+	const WATER := Color(0.36, 0.50, 0.60)
+	const TIMBER := Color(0.45, 0.33, 0.21)
+	const EDGE := 12.0                             # the felt's border band
+	const TOP := 28.0                              # under the loss counters' line
+	const FOOT := 20.0
+	var kind := ""
+	var dir := 1.0
+	var felt := Vector2(948.0, 440.0)
+	var seed_text := ""
+
+	func _rng() -> RandomNumberGenerator:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = (kind + "|" + seed_text).hash()
+		return rng
+
+	func _x(u: float) -> float:
+		# 0 = the table's centre line, 1 = the defender's edge of the felt
+		return felt.x / 2.0 + dir * u * (felt.x / 2.0 - EDGE)
+
+	func _on_his_half(p: Vector2, r: float) -> Vector2:
+		# kept on the defender's half of the felt, a body's width inside its edges
+		var mid := felt.x / 2.0
+		var lo := (mid + 18.0 + r) if dir > 0.0 else (EDGE + r)
+		var hi := (felt.x - EDGE - r) if dir > 0.0 else (mid - 18.0 - r)
+		return Vector2(clampf(p.x, lo, hi), clampf(p.y, TOP + r, felt.y - FOOT - r))
+
+	static func _by_y(a: Dictionary, b: Dictionary) -> bool:
+		return float(a["p"].y) < float(b["p"].y)
+
+	func _draw() -> void:
+		match kind:
+			"forest":
+				_wood()
+			"hills":
+				_hills()
+			"mountains":
+				_heights()
+			"urban":
+				_town()
+			"river_crossing":
+				_river()
+			"plains":
+				_open_field()
+
+	# ── a wood: clumps of canopies ──────────────────────────────────────────
+	func _tree(p: Vector2, r: float) -> void:
+		draw_circle(p + Vector2(-r * 0.4, r * 0.5), r * 1.05, Color(INK, 0.22))            # its shade
+		for lobe in [Vector2(-0.46, 0.16), Vector2(0.46, 0.16), Vector2(0.0, -0.42)]:
+			draw_circle(p + (lobe as Vector2) * r, r * 0.72, Color(LEAF, 0.64))
+		draw_circle(p + Vector2(r * 0.24, -r * 0.44), r * 0.40, Color(LEAF_LIT, 0.17))       # where the lamp catches it
+
+	func _wood() -> void:
+		var rng := _rng()
+		var trees: Array = []
+		for clump in range(7):
+			var heart := Vector2(_x(0.16 + rng.randf() * 0.78), 56.0 + rng.randf() * (felt.y - 120.0))
+			for i in range(9):
+				var a: float = rng.randf() * TAU
+				var d: float = sqrt(rng.randf()) * 58.0
+				var r: float = 7.0 + rng.randf() * 5.0
+				trees.append({"p": _on_his_half(heart + Vector2(cos(a) * d * 1.5, sin(a) * d * 0.8), r), "r": r})
+		trees.sort_custom(_by_y)
+		for t in trees:
+			_tree(t["p"], float(t["r"]))
+
+	# ── hills: mounds as an engraver cuts them ──────────────────────────────
+	func _mound(c: Vector2, w: float, h: float) -> void:
+		var crest := PackedVector2Array()
+		var steps := 12
+		for s in range(steps + 1):
+			var f: float = float(s) / steps
+			crest.append(c + Vector2((f - 0.5) * w, -sin(f * PI) * h))
+		var body := crest.duplicate()
+		body.append(c + Vector2(w * 0.5, h * 0.28))
+		body.append(c + Vector2(-w * 0.5, h * 0.28))
+		draw_colored_polygon(body, Color(INK, 0.17))
+		# the slope, hachured: the strokes fall away from the crest
+		for s in range(1, steps):
+			var f: float = float(s) / steps
+			var p: Vector2 = crest[s] + Vector2(0.0, 3.0)
+			var fall := Vector2((f - 0.5) * 10.0, 6.0 + sin(f * PI) * h * 0.42)
+			draw_line(p, p + fall, Color(INK, 0.30 if f < 0.55 else 0.18), 1.0)       # the side away from the lamp is darker
+		draw_polyline(crest, Color(INK, 0.44), 1.8)
+		# the lamp on the crest's right shoulder
+		var lit := PackedVector2Array()
+		for s in range(int(steps * 0.45), steps):
+			lit.append(crest[s] + Vector2(0.0, -2.0))
+		draw_polyline(lit, Color(LIGHT, 0.18), 1.2)
+
+	func _hills() -> void:
+		var rng := _rng()
+		var mounds: Array = []
+		for k in range(6):
+			var w: float = 120.0 + rng.randf() * 80.0
+			var h: float = 18.0 + rng.randf() * 14.0
+			var c := Vector2(_x(0.14 + 0.78 * (float(k % 3) + rng.randf() * 0.7) / 3.0),
+					(92.0 if k < 3 else 250.0) + rng.randf() * 96.0)
+			mounds.append({"p": _on_his_half(c, w * 0.5), "w": w, "h": h})
+		mounds.sort_custom(_by_y)
+		for m in mounds:
+			_mound(m["p"], float(m["w"]), float(m["h"]))
+
+	# ── mountains: peaks, a shaded face, snow ───────────────────────────────
+	func _peak(foot: Vector2, h: float) -> void:
+		var half: float = h * 0.66
+		var top := foot + Vector2(h * 0.06, -h)
+		var left := foot + Vector2(-half, 0.0)
+		var right := foot + Vector2(half, 0.0)
+		var seam := foot + Vector2(half * 0.10, 0.0)
+		draw_colored_polygon(PackedVector2Array([top, left, right]), Color(STONE, 0.20))
+		draw_colored_polygon(PackedVector2Array([top, left, seam]), Color(INK, 0.40))          # the face away from the lamp
+		draw_colored_polygon(PackedVector2Array([top, top.lerp(left, 0.26), top.lerp(seam, 0.20),
+				top.lerp(right, 0.26)]), Color(SNOW, 0.20))
+		draw_polyline(PackedVector2Array([left, top, right]), Color(INK, 0.46), 1.6)
+		draw_line(top, seam, Color(INK, 0.30), 1.0)
+		draw_line(top + Vector2(1.5, 1.5), right + Vector2(-3.0, -1.0), Color(LIGHT, 0.20), 1.2)
+
+	func _heights() -> void:
+		var rng := _rng()
+		var peaks: Array = []
+		for k in range(8):
+			var h: float = 48.0 + rng.randf() * 34.0
+			var foot := Vector2(_x(0.12 + 0.82 * (float(k % 4) + rng.randf() * 0.7) / 4.0),
+					(112.0 if k < 4 else 288.0) + rng.randf() * 78.0)
+			foot = _on_his_half(foot, h * 0.66)
+			foot.y = maxf(foot.y, TOP + h + 4.0)           # its head under the counters' line
+			peaks.append({"p": foot, "h": h})
+		peaks.sort_custom(_by_y)
+		for k in peaks:
+			# a range, not a row of pyramids: each peak has a lower shoulder behind it
+			var h: float = float(k["h"])
+			var side: float = 1.0 if int(h) % 2 == 0 else -1.0
+			_peak((k["p"] as Vector2) + Vector2(side * h * 0.52, -3.0), h * 0.62)
+			_peak(k["p"], h)
+
+	# ── a town: tiled roofs about a church, two roads ───────────────────────
+	func _house(p: Vector2, w: float, h: float, upright: bool) -> void:
+		var box := Rect2(p - Vector2(w, h) / 2.0, Vector2(w, h))
+		draw_rect(Rect2(box.position + Vector2(-3.0, 3.0), box.size), Color(INK, 0.24))            # its shade
+		if upright:      # the ridge runs up the table: the right slope is the lamp's
+			draw_rect(Rect2(box.position, Vector2(w / 2.0, h)), Color(ROOF_SHADE, 0.58))
+			draw_rect(Rect2(box.position + Vector2(w / 2.0, 0.0), Vector2(w / 2.0, h)), Color(ROOF, 0.52))
+			draw_line(Vector2(p.x, box.position.y), Vector2(p.x, box.end.y), Color(LIGHT, 0.16), 1.0)
+		else:            # the ridge runs across: the upper slope is the lamp's
+			draw_rect(Rect2(box.position, Vector2(w, h / 2.0)), Color(ROOF, 0.52))
+			draw_rect(Rect2(box.position + Vector2(0.0, h / 2.0), Vector2(w, h / 2.0)), Color(ROOF_SHADE, 0.58))
+			draw_line(Vector2(box.position.x, p.y), Vector2(box.end.x, p.y), Color(LIGHT, 0.16), 1.0)
+
+	func _town() -> void:
+		var rng := _rng()
+		var heart := _on_his_half(Vector2(_x(0.58), 138.0), 40.0)
+		# two roads: one toward the attacker, one down the table
+		for road in [[Vector2(_x(0.30), 214.0), Vector2(_x(0.03), 240.0)],
+				[Vector2(_x(0.66), 292.0), Vector2(_x(0.74), felt.y - FOOT)]]:
+			var way := PackedVector2Array([heart])
+			for point in road:
+				way.append(point)
+			draw_polyline(way, Color(INK, 0.26), 5.0)
+			draw_polyline(way, Color(LIGHT, 0.07), 2.0)
+		var placed: Array = []
+		var houses: Array = []
+		for i in range(140):
+			if houses.size() >= 24:
+				break
+			var a: float = rng.randf() * TAU
+			var d: float = 0.22 + sqrt(rng.randf()) * 0.78
+			var upright: bool = rng.randf() < 0.4
+			var w: float = 20.0 + rng.randf() * 12.0
+			var h: float = 13.0 + rng.randf() * 6.0
+			if upright:
+				var swap := w
+				w = h
+				h = swap
+			var p := _on_his_half(heart + Vector2(cos(a) * d * 158.0, sin(a) * d * 86.0), maxf(w, h) * 0.5)
+			var box := Rect2(p - Vector2(w, h) / 2.0, Vector2(w, h)).grow(4.0)
+			var clear := true
+			for other in placed:
+				if box.intersects(other):
+					clear = false
+					break
+			if not clear:
+				continue
+			placed.append(box)
+			houses.append({"p": p, "w": w, "h": h, "up": upright})
+		houses.sort_custom(_by_y)
+		for hs in houses:
+			_house(hs["p"], float(hs["w"]), float(hs["h"]), bool(hs["up"]))
+		# the church on its square: nave, transept, tower
+		draw_rect(Rect2(heart + Vector2(-21.0, -5.0), Vector2(42.0, 16.0)), Color(INK, 0.26))
+		draw_rect(Rect2(heart + Vector2(-18.0, -8.0), Vector2(36.0, 14.0)), Color(STONE, 0.56))
+		draw_rect(Rect2(heart + Vector2(-5.0, -15.0), Vector2(12.0, 28.0)), Color(STONE, 0.56))
+		draw_rect(Rect2(heart + Vector2(15.0, -8.0), Vector2(11.0, 14.0)), Color(STONE, 0.74))
+		draw_line(heart + Vector2(-17.0, -1.0), heart + Vector2(15.0, -1.0), Color(LIGHT, 0.24), 1.0)
+
+	# ── a river between the lines, and its crossing ─────────────────────────
+	func _river() -> void:
+		var rng := _rng()
+		var phase: float = rng.randf() * TAU
+		var near := PackedVector2Array()
+		var far := PackedVector2Array()
+		var steps := 24
+		for s in range(steps + 1):
+			var f: float = float(s) / steps
+			var y: float = 5.0 + (felt.y - 10.0) * f
+			var x: float = felt.x / 2.0 + dir * (44.0 + sin(f * 5.2 + phase) * 15.0)
+			var half: float = 12.0 + sin(f * 3.1 + phase * 0.5) * 2.5
+			near.append(Vector2(x - half, y))
+			far.append(Vector2(x + half, y))
+		var water := near.duplicate()
+		for s in range(far.size() - 1, -1, -1):
+			water.append(far[s])
+		draw_colored_polygon(water, Color(WATER, 0.30))
+		draw_polyline(near, Color(INK, 0.40), 1.8)
+		draw_polyline(far, Color(INK, 0.40), 1.8)
+		for s in range(2, steps - 1, 3):          # the current, in a few light strokes
+			var mid: Vector2 = (near[s] + far[s]) / 2.0
+			var on: Vector2 = (near[s + 1] + far[s + 1]) / 2.0
+			draw_line(mid, mid.lerp(on, 0.7), Color(SNOW, 0.13), 1.0)
+		# the crossing, on the leads' own line: a planked bridge and its rails
+		var at: int = int(steps * 0.70)
+		var a: Vector2 = near[at] + Vector2(-10.0, 0.0)
+		var b: Vector2 = far[at] + Vector2(10.0, 0.0)
+		draw_rect(Rect2(Vector2(a.x - 2.0, a.y - 4.0), Vector2(b.x - a.x, 14.0)), Color(INK, 0.26))     # its shade
+		draw_rect(Rect2(Vector2(a.x, a.y - 7.0), Vector2(b.x - a.x, 14.0)), Color(TIMBER, 0.62))
+		var plank: float = a.x + 4.0
+		while plank < b.x - 1.0:
+			draw_line(Vector2(plank, a.y - 6.0), Vector2(plank, a.y + 6.0), Color(INK, 0.30), 1.0)
+			plank += 5.0
+		for rail in [-7.0, 7.0]:
+			draw_line(a + Vector2(0.0, rail), b + Vector2(0.0, rail), Color(LIGHT, 0.34), 1.4)
+
+	# ── open country: strips of field ───────────────────────────────────────
+	func _open_field() -> void:
+		var rng := _rng()
+		var x := EDGE + 8.0
+		var lane := 0
+		while x < felt.x - EDGE - 60.0:
+			var w: float = 90.0 + rng.randf() * 110.0
+			w = minf(w, felt.x - EDGE - 8.0 - x)
+			var y := TOP + 6.0
+			while y < felt.y - FOOT - 40.0:
+				var h: float = 70.0 + rng.randf() * 90.0
+				h = minf(h, felt.y - FOOT - 4.0 - y)
+				var plot := Rect2(Vector2(x, y), Vector2(w - 5.0, h - 5.0))
+				var tilled: bool = (lane + int(y)) % 3 == 0
+				draw_rect(plot, Color(INK, 0.10) if tilled else Color(LIGHT, 0.035))
+				draw_rect(plot, Color(INK, 0.16), false, 1.0)                    # its hedge
+				if tilled:                                                     # the furrows of a ploughed strip
+					var fy: float = plot.position.y + 6.0
+					while fy < plot.end.y - 3.0:
+						draw_line(Vector2(plot.position.x + 4.0, fy), Vector2(plot.end.x - 4.0, fy),
+								Color(INK, 0.10), 1.0)
+						fy += 7.0
+				y += h
+			x += w
+			lane += 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BA-5: the acts' speed (the user's tick at the gate — "Speed for the acts")
+# ─────────────────────────────────────────────────────────────────────────────
+# A small switch in Close's room, on the table only while something plays (it
+# comes and goes with the skip hint). It runs the ENGINE's clock for the acts — every tween, timer and count of the
+# table together (the walk of record plays the scene eight times faster the same
+# way) — and gives the clock back the moment the table is final, hidden or gone.
+# At the table's own pace it never touches the clock. The setting is written by
+# the tableau (`keep_battle_speed`): this helper writes none.
+
+const SPEED_WORDS := {"x1": "Speed ×1", "x2": "Speed ×2"}
+const SPEED_TIPS := {
+	"x1": "The acts play at their own pace. Press for twice as fast.",
+	"x2": "The acts play twice as fast. Press for their own pace.",
+}
+const SPEED_RIGHT := 44.0             # its right edge is Close's (TRAY_W - 44)
+const SPEED_MID_UP := 29.0            # ...and its middle is Close's (TRAY_H - 46 + 34 / 2)
+static var _clock_held := false       # the engine's clock is the acts' for now
+static var _clock_base := 1.0         # ...and this is what it read before they took it
+static var _clock_keeper := 0         # the switch that holds it (an instance id)
+var _speed_switch: SpeedSwitch = null
+
+
+static func speed() -> String:
+	"""Settings → Interface → Battle speed: x1 / x2."""
+	return UiSettings.get_battle_speed()
+
+
+static func _run_the_clock(factor: float, keeper: int) -> void:
+	"""The engine's clock, for the acts. A factor of 1 gives it back — only the
+	switch that holds it may (a table laid again builds its own switch before
+	the last one is freed); any other takes it, remembering what it read."""
+	if is_equal_approx(factor, 1.0):
+		if _clock_held and _clock_keeper == keeper:
+			Engine.time_scale = _clock_base
+			_clock_held = false
+		return
+	if not _clock_held:
+		_clock_base = Engine.time_scale
+		_clock_held = true
+	_clock_keeper = keeper
+	Engine.time_scale = _clock_base * factor
+
+
+func _build_the_speed() -> void:
+	"""The switch, per showing (a transient of the table: freed when the next is
+	laid). It follows the skip hint — there while something plays, gone at rest,
+	when Replay and Close take the corner it stood in."""
+	_speed_switch = null
+	var hint: Label = host._skip_hint
+	if hint == null or not is_instance_valid(hint):
+		return
+	var sw := SpeedSwitch.new()
+	sw.name = "SpeedSwitch"
+	sw.acts = self
+	sw.hint = hint
+	sw.focus_mode = Control.FOCUS_NONE       # Space and Enter stay the table's (skip, then close)
+	for face in [&"normal", &"hover", &"pressed"]:
+		# Replay's own face (a dark ground, a gilt rim), drawn closer: a quieter
+		# control than the two buttons the table ends on
+		var st: StyleBoxFlat = host._replay_face(face != &"normal")
+		st.content_margin_left = 9.0
+		st.content_margin_right = 9.0
+		st.content_margin_top = 2.0
+		st.content_margin_bottom = 2.0
+		sw.add_theme_stylebox_override(face, st)
+	for ink in [&"font_color", &"font_hover_color", &"font_pressed_color"]:
+		sw.add_theme_color_override(ink, Utils.UI_GOLD)
+	sw.visible = hint.visible
+	host._tray_inner.add_child(sw)
+	host._transients.append(sw)
+	_speed_switch = sw
+	_speed_retext()
+	# In Close's own room — the bottom right, empty while something plays (Replay
+	# and Close come with the gavel, and the switch goes with the skip hint). Not
+	# beside the hint's words: the seal stands LEFT of the plate and reaches that
+	# side whenever the plate runs wide, while Close's room is kept clear of the
+	# plate, the seal and the laurels by the table's own laws.
+	var sw_size: Vector2 = sw.get_combined_minimum_size()
+	sw.position = Vector2(host.TRAY_W - SPEED_RIGHT - sw_size.x,
+			host.TRAY_H - SPEED_MID_UP - sw_size.y / 2.0)
+	sw.pressed.connect(_on_speed_pressed)
+	hint.visibility_changed.connect(sw.follow)
+	_speed_sync(sw)
+
+
+func _speed_retext() -> void:
+	if _speed_switch == null or not is_instance_valid(_speed_switch):
+		return
+	var now := speed()
+	_speed_switch.text = str(SPEED_WORDS.get(now, now))
+	_speed_switch.tooltip_text = str(SPEED_TIPS.get(now, ""))
+	_speed_switch.reset_size()
+
+
+func _speed_sync(sw: Node, gone: bool = false) -> void:
+	"""The clock follows the switch: the acts' pace while it stands on a table
+	that is playing, the engine's own the moment it is hidden, off the tree or
+	freed."""
+	var playing: bool = not gone and sw.is_inside_tree() and (sw as CanvasItem).is_visible_in_tree()
+	var factor: float = float(UiSettings.BATTLE_SPEED_FACTORS.get(speed(), 1.0)) if playing else 1.0
+	_run_the_clock(factor, sw.get_instance_id())
+
+
+func _on_speed_pressed() -> void:
+	var speeds: Array = UiSettings.BATTLE_SPEEDS
+	var next := str(speeds[(speeds.find(speed()) + 1) % speeds.size()])
+	host.keep_battle_speed(next)      # the tableau writes the setting; this helper writes none
+	_speed_retext()
+	if _speed_switch != null and is_instance_valid(_speed_switch):
+		_speed_sync(_speed_switch)
+	host._cue("tick")
+
+
+class SpeedSwitch:
+	extends Button
+	# The acts are a RefCounted and keep no clock: this button, a child of the
+	# tray (freed when the next table is laid), keeps the engine's for them.
+	var acts = null
+	var hint: CanvasItem = null
+
+	func follow() -> void:
+		if hint != null and is_instance_valid(hint):
+			visible = hint.visible
+		if acts != null:
+			acts._speed_sync(self)
+
+	func _notification(what: int) -> void:
+		if acts == null:
+			return
+		if what == NOTIFICATION_VISIBILITY_CHANGED:
+			acts._speed_sync(self)
+		elif what == NOTIFICATION_EXIT_TREE:
+			acts._speed_sync(self, true)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # BA-3: the day's panel (a great battle that did not decide the day)
 # ─────────────────────────────────────────────────────────────────────────────
 # The payload's `day` block (backend/game_logic/battle_day.py): both purses,
@@ -834,12 +1430,36 @@ const DAY_W := 940.0
 const DAY_BOTTOM := 738.0              # the tray's floor, less its edge
 const DAY_CHIPS_W := 680.0             # clear of Replay (x 726) and Close (x 846) at y 698
 const DAY_CHIP_BG := "233043"
-const DAY_EXIT_BG := Utils.COLOR_CHIP_BG_GREEN   # "Leave it to ..." ends our say: a different ground
+const DAY_CARD_BG := "2e3d57"          # BA-5: a word's card: a lighter ground than a chip's, under a gilt rim
+const DAY_CAPTION_INK := "dcd8cc"      # ...in an ink that reads 7.7 to 1 on the card's ground (the info grey read 4.2, under the floor;
+                                       # the second reading still called the line dim at 5.8)
+const DAY_HEAD_Y := 9.0                # BA-5: the band above the baize (the tray's y) — the day's own NAME stands there
+const DAY_EXIT_INK := "c9c2b2"         # BA-5, the second reading: an exit costs nothing — bone on a quiet ground,
+const DAY_EXIT_RIM := Utils.CHIP_EXIT_RIM   # ...a dim rim: the words that cost points are the loudest things on the table
+const DAY_EXIT_CARD_BG := "1c222c"
+const DAY_EXIT_FLOOR := 3.0            # ...and as cards they stand beside the buttons, this far above the tray's floor
+const DAY_LIFT := 8.0                  # ...and before a word loses what it does the panel takes this much of the gap under the bars
 const DAY_PIP_ON := "d9c08c"
 const DAY_PIP_OFF := Utils.CHIP_DIM_INK   # a spent point (the locked chip's own grey)
 const DAY_OWN_KINDS := ["press", "guard", "dig_in"]            # the lead's own words (row C)
 const DAY_EXIT_KINDS := ["stand", "break_off"]                 # the exits (row E, with leave_it)
-const DAY_GROUP_LABEL := {"lead": "Another leads", "bring_up": "Bring up", "cannonade": "The guns"}
+# BA-5: level with the buttons the exits' row is short of room. What an exit
+# does stays on its face in this order, as far as the row fits left of Replay:
+# to leave the day to the marshal (what he would do), to leave the field, to stand.
+const DAY_TAG_ORDER := ["leave_it", "break_off", "stand"]
+# BA-5, the second reading: a group's label says what its kind of word DOES ("Another
+# leads · 1" read as a riddle); its price follows in points.
+const DAY_GROUP_LABEL := {"lead": "Another leads the attack", "bring_up": "Bring up",
+	"cannonade": "The guns, no clash"}
+# ...and the day's rule stands on every table that offers its words, in one caption line
+# ("keep this explainer visible on every turn"): what a word costs, what decides, what ends it.
+const DAY_RULE := "A word costs points, and he answers it. A line that breaks decides the day; two silences running, or no point left, and night falls: nothing decided."
+const DAY_CLASH_SCOPE := " LOST THIS CLASH"   # the two counters' scope on a day's table, in the room of " LOSSES" (the line under the title counts the day)
+const DAY_LOSSES := " LOSSES"                 # ...the host's own word (a fleet action counts sail and hangs no day)
+const DAY_SCOPE_ROOM := 300.0              # ...as wide as a caption may run before it nears the headline (a long crown's name keeps " LOSSES")
+const SUB_CLEAR := 8.0                     # the line under the headline stands this clear of the reserve's dead
+var _sub_host := ""                        # (the review) the line's host part (a province's own line), for its fit
+var _sub_told := ""                        # ...and what told, as the server said it
 
 var _day_panel: Control = null
 var _day_chips: RichTextLabel = null   # row C: the lead's own words, full chips
@@ -849,6 +1469,14 @@ var _day_latched := false              # one press, one word: inert until new da
 var _day_asked := false                # a day awaiting HIS word asked the server once
 var _day_hide_shelves := false         # the panel took the shelves' room
 var _day_inline := false               # the groups flow in one paragraph (room was short)
+var _day_cards := false                # BA-5: row C is two-line cards (the word, and what it does)
+var _day_exit_tags := false            # BA-5: the exits say what they do on their faces
+var _day_tags_kept := 0                # BA-5: level with the buttons, how many (in DAY_TAG_ORDER) still say it
+var _day_exits_up := false             # BA-5: the exits are two-line cards beside the buttons (the walk reads it)
+var _day_rule_row := false             # BA-5: the day's rule has its caption line (the walk reads it)
+var _day_exits_wide := false           # BA-5: the exits' cards were wider than their room (the walk reads it)
+var _day_lifted := false               # BA-5: the panel took DAY_LIFT of the gap under the bars (the walk reads it)
+var _day_top_plain := 0.0              # ...and where its top stands without that (the walk reads it)
 var _his_waiting := false              # a table whose clash is followed by his waits to go on
 const DAY_ADVANCE_S := 2.5             # at rest on such a table, then his clash by itself
 
@@ -867,6 +1495,17 @@ const DAY_DIGIT_STAND := 7
 const DAY_DIGIT_BREAK := 8
 const DAY_DIGIT_LEAVE := 9
 const DAY_DENY_CUE := "error"          # the selection card's cue for a slot that cannot fire
+# BA-5 (the user's tick - "Sounds for the day"): the day's own beats, in cues the game
+# already has. A word given, by its kind; his word that was no clash; how a day closed.
+const DAY_WORD_CUES := {
+	"press": "bugle_to_arms", "lead": "bugle_to_arms", "guard": "drum_cadence",
+	"cannonade": "cannon_distant", "bring_up": "order_march", "dig_in": "spade",
+	"stand": "tick", "break_off": "boots", "leave_it": "select",
+}
+const DAY_HIS_CUES := {"dig_in": "spade", "bring_up": "order_march"}
+const DAY_END_CUES := {"night": "bugle_retreat", "drew_off": "boots", "broke_off": "boots", "fell_back": "boots"}
+const DAY_SILENT_KINDS := ["clash", "tally", "shape", "after"]     # lines told that are no word
+static var _day_sounded: Dictionary = {}     # enemy -> what the table last sounded of his day
 var _day_digit_of: Dictionary = {}     # index into `chips` -> its digit
 var _day_denied := 0                   # digits this table refused with the deny cue (the walk reads it)
 # Row BA, BA-4 (the user's tick — "First-open line"): the first day of battle of
@@ -899,6 +1538,7 @@ func _day_rtl(parent: Control, at: Vector2, size: Vector2) -> RichTextLabel:
 	l.scroll_active = false
 	l.selection_enabled = false
 	l.focus_mode = Control.FOCUS_NONE        # Esc / Enter / Space keep their meaning
+	l.hint_underlined = false                # BA-5: a hover is not a link (the readers took the dotted rule for one)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.theme_type_variation = &"BodyLargeRich"
 	l.position = at
@@ -921,29 +1561,77 @@ func _day_road(day: Dictionary) -> String:
 	return ""
 
 
+func _day_reading(day: Dictionary) -> String:
+	"""BA-5: Berthier's reading of his next word — "he will strike", "he may
+	strike", "he will not strike" (`battle_telling.reading_of`: the rule he
+	follows, shown only as far as the player can see). "" when the table
+	carries none."""
+	var r = day.get("reading", null)
+	return str((r as Dictionary).get("line", "")) if r is Dictionary else ""
+
+
 func _day_head(day: Dictionary, level: int) -> String:
-	"""One line: the lead and his purse against the enemy and his; then — as
-	room allows — his temper (level 1) and whether a road lies open behind him
-	(level 2)."""
+	"""One line, the day's STAKES: the lead and his purse against the enemy and
+	his, in pips and — as room allows (level 1) — in words ("2 of 2 points");
+	then his temper (level 2) and whether a road lies open behind him (level 3);
+	and last, at every level, Berthier's reading of him (BA-5). The words give
+	way in this order: his road, his temper, the purses' words."""
 	var ours: int = int(day.get("ours", 0))
 	var theirs: int = int(day.get("theirs", 0))
 	var ours_of: int = int(day.get("ours_of", 0))
 	var theirs_of: int = int(day.get("theirs_of", 0))
+	var slots_ours: int = ours_of if ours_of > 0 else maxi(ours, 2)
+	var slots_his: int = theirs_of if theirs_of > 0 else maxi(theirs, 2)
 	var lead := str(day.get("lead_shown", ""))
 	var foe := str(day.get("enemy_shown", ""))
-	var out := ""
-	if level >= 3:
-		out = "[color=#" + Utils.COLOR_INFO + "]The day's points —[/color] "
-	out += "[color=#" + Utils.COLOR_GOLD + "]" + lead + "[/color] " \
-		+ _day_pips(ours, ours_of if ours_of > 0 else maxi(ours, 2)) \
-		+ " [color=#" + Utils.COLOR_INFO + "]against[/color] [color=#" + Utils.COLOR_GOLD + "]" \
-		+ foe + "[/color] " + _day_pips(theirs, theirs_of if theirs_of > 0 else maxi(theirs, 2))
 	var info := "[color=#" + Utils.COLOR_INFO + "]"
-	if level >= 1 and str(day.get("his_temper", "")) != "":
+	var out := "[color=#" + Utils.COLOR_GOLD + "]" + lead + "[/color] " + _day_pips(ours, slots_ours)
+	if level >= 1:
+		out += info + "%d of %d points[/color] " % [ours, slots_ours]
+	out += info + "against[/color] [color=#" + Utils.COLOR_GOLD + "]" + foe + "[/color] " \
+		+ _day_pips(theirs, slots_his)
+	if level >= 1:
+		out += info + "%d of %d[/color]" % [theirs, slots_his]
+	if level >= 2 and str(day.get("his_temper", "")) != "":
 		out += " " + info + "· " + str(day.get("his_temper", "")) + "[/color]"
-	if level >= 2 and _day_road(day) != "":
+	if level >= 3 and _day_road(day) != "":
 		out += " " + info + "· " + _day_road(day) + "[/color]"
+	if _day_reading(day) != "":
+		out += " " + info + "·[/color] [color=#" + Utils.COLOR_WARNING + "]" + _day_reading(day) + "[/color]"
 	return out
+
+
+func _day_name() -> String:
+	"""The battle's name and its turn, as the plate engraves them — for the band
+	above the baize (the panel stands in the plate's room; the second reading:
+	"battle name and footer are gone in the day frames")."""
+	var named := str(host._data.get("battle_name", "")).strip_edges()
+	if named == "" or named == "<null>":
+		return ""
+	return "%s  ·  TURN %d" % [named.to_upper(), int(host._data.get("turn", 0))]
+
+
+func _scope_the_counters() -> void:
+	"""The second reading: on a day's table the two counters count the CLASH the
+	table shows while the line under the title counts the day — two "losses" on
+	one screen. Each counter's caption says its scope, where the words fit the
+	caption's own box (the host writes the captions afresh at every populate)."""
+	for cap in [host._odo_left_cap, host._odo_right_cap]:
+		if cap == null or not is_instance_valid(cap):
+			continue
+		var plain: String = str(cap.text)
+		if not plain.ends_with(DAY_LOSSES):
+			continue
+		cap.text = plain.substr(0, plain.length() - DAY_LOSSES.length()) + DAY_CLASH_SCOPE
+		var need: float = cap.get_minimum_size().x
+		if need > DAY_SCOPE_ROOM:
+			cap.text = plain
+		elif cap == host._odo_right_cap and need > cap.size.x:
+			# (at Text size 130 % the words outgrow the right-hand caption's own box, and a label
+			# grows to its right — off the baize: it keeps its right edge instead)
+			var right_edge: float = cap.position.x + cap.size.x
+			cap.size.x = need
+			cap.position.x = right_edge - need
 
 
 func _day_told_lines(day: Dictionary) -> Array:
@@ -956,14 +1644,44 @@ func _day_told_lines(day: Dictionary) -> Array:
 	return out
 
 
+func _day_told_kept(lines: Array, keep: int) -> Array:
+	"""(The review) The told lines a table keeps, `keep` of them, by index in
+	their order. A closed day keeps first the line that says HOW it ended (its
+	first "end" line), then the rest of its close in order (the tally, whom the
+	toll favoured and its shape, what follows), then its words and clashes,
+	newest first; a day still open keeps its last `keep`, as before."""
+	var n := lines.size()
+	var first_end := -1
+	for i in range(n):
+		if str((lines[i] as Dictionary).get("who", "")) == "end":
+			first_end = i
+			break
+	var pick: Array = []
+	if first_end < 0 or keep >= n:
+		for i in range(maxi(0, n - keep), n):
+			pick.append(i)
+		return pick
+	for i in range(first_end, n):
+		if pick.size() < keep:
+			pick.append(i)
+	var j := first_end - 1
+	while pick.size() < keep and j >= 0:
+		pick.append(j)
+		j -= 1
+	pick.sort()
+	return pick
+
+
 func _day_told(lines: Array, keep: int) -> String:
 	var out := ""
-	var from: int = maxi(0, lines.size() - keep)
-	for i in range(from, lines.size()):
+	for i in _day_told_kept(lines, keep):
 		var t: Dictionary = lines[i]
 		var who := str(t.get("who", ""))
-		var hex := Utils.COLOR_GOLD if who == "ours" else (Utils.COLOR_INFO if who == "end" else Utils.COLOR_TEXT)
-		var line := str(t.get("line", ""))
+		# BA-5: a clash's own line (who "clash") is set apart from the words
+		# that fought it — the neutral ink, upright; the day's end is italic.
+		var hex := Utils.COLOR_GOLD if who == "ours" else (
+			Utils.COLOR_INFO if who in ["end", "clash"] else Utils.COLOR_TEXT)
+		var line := str(t.get("line", "")).replace("[", "[lb]")
 		line = "[i]" + line + "[/i]" if who == "end" else line
 		out += ("\n" if out != "" else "") + "[color=#" + hex + "]" + line + "[/color]"
 	return out
@@ -977,15 +1695,33 @@ func _day_chip_label(chip: Dictionary) -> String:
 	return label if price <= 0 else "%s · %d" % [label, price]
 
 
-func _day_chip_tip(chip: Dictionary, with_label: bool = false) -> String:
+static func _sentence(words: String) -> String:
+	""""he keeps the field" -> "He keeps the field." (a hover's own sentence)."""
+	var s := words.strip_edges()
+	if s == "":
+		return ""
+	s = s.substr(0, 1).to_upper() + s.substr(1)
+	return s if s.ends_with(".") else s + "."
+
+
+func _day_chip_tip(chip: Dictionary, with_label: bool = false, with_does: bool = true) -> String:
+	"""A chip's hover: why it is locked (always — a dim chip carries its reason
+	as its hover, wherever else it stands); what the word does, where its face
+	does not say it (BA-5: `does`), and the rest of it (`more`); whether the
+	marshal may object."""
 	var parts: Array = []
 	if with_label:
 		parts.append(_day_chip_label(chip) + ".")
 	if not bool(chip.get("ok", false)) and str(chip.get("why", "")) != "":
 		parts.append(str(chip.get("why", "")))
+	var does := str(chip.get("does", ""))
+	if with_does and does != "":
+		parts.append(_sentence(does))
+	if str(chip.get("more", "")) != "":
+		parts.append(str(chip.get("more", "")))
 	if str(chip.get("counsel", "none")) == "possible":
 		parts.append("The marshal may object to this word.")
-	if str(chip.get("odds", "")) != "":
+	if does == "" and str(chip.get("odds", "")) != "":
 		parts.append("The odds read: " + str(chip.get("odds", "")) + ".")
 	return " ".join(PackedStringArray(parts))
 
@@ -1028,20 +1764,62 @@ func _day_split() -> Array:
 	return [own, groups, exits]
 
 
-func _day_chip_bb(i: int, chip: Dictionary, name_only: bool = false) -> String:
-	var leave: bool = str(chip.get("word", "")) == "leave_it"
+func _day_chip_bb(i: int, chip: Dictionary, name_only: bool = false, tagged: bool = false) -> String:
+	"""A word as a one-line chip. `tagged` (BA-5, the exits): what the word
+	does stands on its face after a dash, and is then left out of its hover."""
+	var is_exit: bool = str(chip.get("word", "")) != "" or str(chip.get("kind", "")) in DAY_EXIT_KINDS
 	var label := _day_chip_label(chip)
 	if name_only:
 		label = str(chip.get("shown", "")) if str(chip.get("shown", "")) != "" else str(chip.get("label", ""))
+	var does := str(chip.get("does", ""))
+	var on_face: bool = tagged and not name_only and does != ""
+	if on_face:
+		label += " — " + does
 	var digit: int = int(_day_digit_of.get(i, 0))
 	if digit > 0:
 		label = "%d %s" % [digit, label]          # the selection card's form: "<digit> Label"
-	var tip := _day_chip_tip(chip, name_only)
+	var tip := _day_chip_tip(chip, name_only, not on_face)
 	if bool(chip.get("ok", false)) and not _day_latched:
+		# (the second reading: an exit costs nothing and reads quieter than a word that costs points)
 		return Utils.bb_button_chip("day:%d" % i, label,
-				Utils.COLOR_WARNING if leave else Utils.COLOR_GOLD,
-				DAY_EXIT_BG if leave else DAY_CHIP_BG, "", tip)
+				DAY_EXIT_INK if is_exit else Utils.COLOR_GOLD,
+				DAY_EXIT_CARD_BG if is_exit else DAY_CHIP_BG, "", tip)
 	return Utils.bb_chip_disabled(label, "", tip)
+
+
+func _day_card_bb(i: int, chip: Dictionary) -> String:
+	"""BA-5: a word of the lead's own as a two-line CARD — the chip's own cell
+	(one rich-text system: the same link, hover and digit) with a second line:
+	the digit, the word and its price in points; under it what the word does.
+	A locked card says on its face why it is locked."""
+	var lit: bool = bool(chip.get("ok", false)) and not _day_latched
+	var price := int(chip.get("price", 0))
+	var head := str(chip.get("label", ""))
+	if price > 0:
+		head += " · %d %s" % [price, "point" if price == 1 else "points"]
+	var digit: int = int(_day_digit_of.get(i, 0))
+	if digit > 0:
+		head = "%d %s" % [digit, head]
+	var why := str(chip.get("why", ""))
+	var caption := str(chip.get("does", "")) if (lit or why == "") else why
+	var ink := Utils.COLOR_GOLD if lit else Utils.CHIP_DIM_INK
+	var sub := DAY_CAPTION_INK if lit else Utils.CHIP_DIM_INK
+	var inner := "[color=#" + ink + "]" + Utils.CHIP_PAD + head.replace(" ", " ") + Utils.CHIP_PAD + "[/color]"
+	if caption != "":
+		var second: String = "[color=#%s]%s%s%s[/color]" % [
+			sub, Utils.CHIP_PAD,
+			caption.replace("[", "[lb]").replace(" ", " "), Utils.CHIP_PAD]
+		inner += "\n" + Utils.bb_step(second, &"Caption")   # the ladder's Caption step
+	# the hover: the rest of what the word does (its face says the first of it)
+	# (the review) a locked card's face says why: its hover says it too, and what the word would do
+	var tip := _day_chip_tip(chip, false, not lit and why != "")
+	if tip != "":
+		inner = Utils.bb_hint(inner, tip)
+	if lit:
+		return Utils.CHIP_OPEN_HEAD + Utils.COLOR_GOLD + Utils.CHIP_RIM_ALPHA + " bg=#" + DAY_CARD_BG \
+			+ "][url=day:%d]" % i + inner + "[/url]" + Utils.CHIP_CLOSE
+	return Utils.CHIP_OPEN_HEAD + Utils.CHIP_DIM_RIM + " bg=#" + Utils.CHIP_DIM_BG + "]" \
+		+ Utils.bb_icon(Utils.LOCK_GLYPH, 16, Utils.CHIP_DIM_INK) + " " + inner + Utils.CHIP_CLOSE
 
 
 func _day_own_text() -> String:
@@ -1050,14 +1828,18 @@ func _day_own_text() -> String:
 	var chips = _the_day().get("chips", [])
 	var out := ""
 	for i in _day_split()[0]:
-		out += _day_chip_bb(int(i), chips[int(i)]) + " "
+		out += (_day_card_bb(int(i), chips[int(i)]) if _day_cards
+				else _day_chip_bb(int(i), chips[int(i)])) + " "
 	return out
 
 
 func _day_groups_text(inline: bool = false) -> String:
-	"""One line per kind: a plain label once (with the price), then name-only
-	chips. A kind with a single word is written whole. `inline`: every group
-	flows in ONE paragraph with a clear gap between groups."""
+	"""One line per kind: a plain label once — what that kind of word DOES, and
+	its price in points (the second reading: "Another leads · 1" and "Bring up
+	· 1" read as riddles) — then name-only chips, for a kind of one word as for
+	a kind of five. A kind this table has no label for is written whole, as
+	before. `inline`: every group flows in ONE paragraph with a clear gap
+	between groups."""
 	if not _day_offering():
 		return ""
 	var chips = _the_day().get("chips", [])
@@ -1065,17 +1847,71 @@ func _day_groups_text(inline: bool = false) -> String:
 	var lines: Array = []
 	for g in _day_split()[1]:
 		var idx: Array = g["idx"]
-		if idx.size() == 1:
-			lines.append(_day_chip_bb(int(idx[0]), chips[int(idx[0])]) + " ")
+		if not DAY_GROUP_LABEL.has(g["kind"]):
+			for i in idx:
+				lines.append(_day_chip_bb(int(i), chips[int(i)]) + " ")
 			continue
 		var first: Dictionary = chips[int(idx[0])]
 		var price := int(first.get("price", 0))
-		var label: String = str(DAY_GROUP_LABEL.get(g["kind"], first.get("label", "")))
-		var line := info + label + (" · %d" % price if price > 0 else "") + ":[/color] "
+		var label: String = str(DAY_GROUP_LABEL[g["kind"]])
+		var paid := (" · %d %s" % [price, "point" if price == 1 else "points"]) if price > 0 else ""
+		# (a label never breaks inside itself, nor from its first chip)
+		var line := info + (label + paid).replace(" ", "\u00A0") + ":[/color]\u00A0"
 		for i in idx:
 			line += _day_chip_bb(int(i), chips[int(i)], true) + " "
 		lines.append(line)
 	return ("      " if inline else "\n").join(PackedStringArray(lines))
+
+
+func _day_exit_rank(chip: Dictionary) -> int:
+	"""An exit's place in DAY_TAG_ORDER (-1: none)."""
+	if str(chip.get("word", "")) == "leave_it":
+		return 0
+	return DAY_TAG_ORDER.find(str(chip.get("kind", "")))
+
+
+func _day_exit_tagged(chip: Dictionary) -> bool:
+	"""Whether this exit says what it does on its face as a one-line chip: level
+	with the buttons, the first `_day_tags_kept` of the order. (As cards every
+	exit says it: `_day_exit_card_bb`.)"""
+	if _day_exit_tags:
+		return true
+	var rank := _day_exit_rank(chip)
+	return rank >= 0 and rank < _day_tags_kept
+
+
+func _day_exit_card_bb(i: int, chip: Dictionary) -> String:
+	"""BA-5, the second reading ("put a one-line consequence on EVERY button"):
+	an exit as a two-line card, quieter than a word that costs points — the
+	digit and the word; under it its price ("free") and what it does. A locked
+	exit says on its face why it is locked."""
+	var lit: bool = bool(chip.get("ok", false)) and not _day_latched
+	var head := str(chip.get("label", ""))
+	var digit: int = int(_day_digit_of.get(i, 0))
+	if digit > 0:
+		head = "%d %s" % [digit, head]
+	var price := int(chip.get("price", 0))
+	var paid := "free" if price <= 0 else "%d %s" % [price, "point" if price == 1 else "points"]
+	var why := str(chip.get("why", ""))
+	var does := str(chip.get("does", ""))
+	var caption := (paid + (" · " + does if does != "" else "")) if (lit or why == "") else why
+	var ink := DAY_EXIT_INK if lit else Utils.CHIP_DIM_INK
+	var sub := DAY_CAPTION_INK if lit else Utils.CHIP_DIM_INK
+	var inner := "[color=#" + ink + "]" + Utils.CHIP_PAD + head.replace(" ", " ") + Utils.CHIP_PAD + "[/color]"
+	var second: String = "[color=#%s]%s%s%s[/color]" % [
+		sub, Utils.CHIP_PAD,
+		caption.replace("[", "[lb]").replace(" ", " "), Utils.CHIP_PAD]
+	inner += "\n" + Utils.bb_step(second, &"Caption")   # the ladder's Caption step
+	# the hover: the rest of what the word does (its face says the first of it)
+	# (the review) a locked card's face says why: its hover says it too, and what the word would do
+	var tip := _day_chip_tip(chip, false, not lit and why != "")
+	if tip != "":
+		inner = Utils.bb_hint(inner, tip)
+	if lit:
+		return Utils.CHIP_OPEN_HEAD + DAY_EXIT_RIM + Utils.CHIP_RIM_ALPHA + " bg=#" + DAY_EXIT_CARD_BG \
+			+ "][url=day:%d]" % i + inner + "[/url]" + Utils.CHIP_CLOSE
+	return Utils.CHIP_OPEN_HEAD + Utils.CHIP_DIM_RIM + " bg=#" + Utils.CHIP_DIM_BG + "]" \
+		+ Utils.bb_icon(Utils.LOCK_GLYPH, 16, Utils.CHIP_DIM_INK) + " " + inner + Utils.CHIP_CLOSE
 
 
 func _day_exits_text() -> String:
@@ -1089,9 +1925,12 @@ func _day_exits_text() -> String:
 	var out := ""
 	for i in _day_split()[2]:
 		var chip: Dictionary = chips[int(i)]
+		if _day_exit_tags:
+			out += _day_exit_card_bb(int(i), chip) + " "      # a card says its price and what it does
+			continue
 		if str(chip.get("word", "")) == "leave_it":
 			out += "[color=#" + Utils.COLOR_INFO + "]|[/color] "      # it ends our say: set apart
-		out += _day_chip_bb(int(i), chip) + " "
+		out += _day_chip_bb(int(i), chip, false, _day_exit_tagged(chip)) + " "
 	return out
 
 
@@ -1216,20 +2055,6 @@ func _day_groups_h(d_box: RichTextLabel, inline: bool, start_abs: float, btn_top
 	return h
 
 
-func _day_first_fits(above: float, d_box: RichTextLabel, e_top_abs: float, top: float,
-		btn_top: float) -> bool:
-	"""BA-4: with the first day's line on a row of its own, do the head, the
-	lead's chips and the groups (stacked, or flowing inline) all stand whole
-	above the exits, the shelves' room given and the told line sent to the
-	hover if it must be? Those are the ladder's first three steps; the line
-	never costs the fourth (a chip scrolled out of sight)."""
-	var d_h := 0.0
-	if d_box != null:
-		d_h = minf(_day_groups_h(d_box, false, top + above, btn_top),
-				_day_groups_h(d_box, true, top + above, btn_top))
-	return above + d_h <= e_top_abs - 2.0 - top
-
-
 func _note_first_open(screen: String) -> void:
 	"""BA-4: the first day's line is on the table — the scene that holds the
 	API client acknowledges it, once a world (main.gd `_on_first_open_seen`):
@@ -1252,11 +2077,24 @@ func _build_the_day() -> void:
 	"""At the end of the dress: the panel, hidden. Nothing for a payload that
 	carries no `day` (a small battle, a fleet action, a harness world) or whose
 	day was decided by its clash (its own verdict stands).
-	Rows, top to bottom: A the head, B the last word told, C the lead's own
-	words, D the other kinds of word, E the exits (centred on the buttons'
-	row). Every row's height is what its text measures, so a row is whole or
-	not there. Room is made in this order: the shelves give theirs, the groups
-	flow inline, the told line rides the head's hover, the groups scroll."""
+	BA-5, the second reading: the panel is ONE decision block, read top to
+	bottom. H, the STAKES (each purse in pips and in words, his temper and road,
+	Berthier's reading), heads it — right above the words it governs; the band
+	above the baize carries the battle's NAME (the plate's, whose room the panel
+	takes). Under the head: F the first day's line, or R the day's rule in one
+	caption line; B the last word told; C the lead's own words (two-line cards:
+	the word and its price, and what it does); D the other kinds of word, each
+	under a label that says what the kind does; E the exits — two-line cards
+	beside the buttons (the word, and "free · what it does") or, where those do
+	not fit, one-line chips level with the buttons that keep in DAY_TAG_ORDER
+	what fits left of Replay of what they do (the rest rides their hovers).
+	Every row's height is what its text measures, so a row is whole or not
+	there. Room is made in this order: the shelves give theirs, the groups flow
+	inline, the rule rides the head's hover, the told line rides it, the first
+	day's line rides it too (unacknowledged — and the told line then has its
+	row back if it fits), the panel takes DAY_LIFT of the gap under the bars,
+	the exits' cards give way to the one-line chips, the cards' second lines
+	ride their hovers, the groups scroll."""
 	_day_panel = null
 	_day_chips = null
 	_day_groups = null
@@ -1265,6 +2103,13 @@ func _build_the_day() -> void:
 	_day_asked = false
 	_day_hide_shelves = false
 	_day_inline = false
+	_day_cards = false
+	_day_exit_tags = false
+	_day_tags_kept = 0
+	_day_exits_up = false
+	_day_rule_row = false
+	_day_exits_wide = false
+	_day_lifted = false
 	_his_waiting = false
 	_day_digit_of = {}
 	_day_denied = 0
@@ -1292,18 +2137,28 @@ func _build_the_day() -> void:
 	if banner != "":
 		host._banner.text = banner.to_upper()
 		host._banner.add_theme_color_override("font_color", host._banner_color(""))
-		# under it, the sub-banner tells how the last clash stood (won / lost /
-		# drawn on points) — unless the host's own line is there (a province that
-		# changed hands); the next populate sets its own text
+		# under it, the sub-banner tells the day so far (BA-5: its own toll and
+		# who has the better of it) — unless the host's own line is there (a
+		# province that changed hands); the next populate sets its own text
 		var morning_said := str(day.get("morning", ""))
 		if morning_said != "" and host._sub_banner.text == "":
 			host._sub_banner.text = morning_said
+	# ...and the two counters say they count this clash (the line under the title counts the day)
+	_scope_the_counters()
 
 	var head := _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 31.0))
+	head.name = "DayHead"
 	head.autowrap_mode = TextServer.AUTOWRAP_OFF
 	var lh: float = _day_line_h(head)
-	var head_h: float = lh + 4.0
+	var head_h: float = lh + 2.0
 	head.size.y = head_h
+	# the band above the baize: the battle's own name (the plate stands under the panel)
+	var name_label: Label = null
+	if _day_name() != "":
+		name_label = host._mk_label(panel, _day_name(), &"Caption", BRASS, host._font_engraved)
+		name_label.name = "DayName"
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.size = Vector2(DAY_W, name_label.get_minimum_size().y)
 	# BA-4: the first day's own line (`first_open`), measured now and given its
 	# row below only where the table has the room for it whole
 	var first_said := ""
@@ -1324,52 +2179,66 @@ func _build_the_day() -> void:
 	var level := 3
 	head.text = _day_head(day, level)
 	while level > 0 and head.get_content_width() > DAY_W - 8.0:
-		level -= 1                            # one line at any text size: the prefix goes first
+		level -= 1                            # one line at any text size: his road goes first
 		head.text = _day_head(day, level)
 
 	var hover: Array = []
 	if str(day.get("morning", "")) != "":
 		hover.append(str(day.get("morning", "")))
-	if level < 2 and _day_road(day) != "":
-		hover.append(str(day.get("his_temper", "")) + (" — " if str(day.get("his_temper", "")) != "" else "") + _day_road(day) + ".")
+	var aside: Array = []
+	if level < 2 and str(day.get("his_temper", "")) != "":
+		aside.append(str(day.get("his_temper", "")))
+	if level < 3 and _day_road(day) != "":
+		aside.append(_day_road(day))
+	if not aside.is_empty():
+		hover.append(" — ".join(PackedStringArray(aside)) + ".")
+	var reading = day.get("reading", null)
+	if reading is Dictionary and str((reading as Dictionary).get("hover", "")) != "":
+		hover.append(str((reading as Dictionary).get("hover", "")))
 	var lines := _day_told_lines(day)
 	var offering := _day_offering()
 	var pending: bool = bool(day.get("open", false)) and bool(day.get("pending", false)) \
 		and str(day.get("awaits", "")) == "ours"
 
-	# the buttons' row: the exits stand level with Replay / Close, centred on them
+	# the buttons' row: the exits stand beside Replay / Close
 	var btn_top: float = host._btn_close.position.y
 	var btn_h: float = maxf(host._btn_close.size.y, host._btn_close.custom_minimum_size.y)
 	var btn_mid: float = btn_top + btn_h / 2.0
 
 	var top: float = top_with
-	var total: float = DAY_BOTTOM - top
-	var y: float = head_h
+	_day_top_plain = top_with
+	var y: float = head_h                     # the head is the panel's first row
 	if not offering and not pending:
 		# no chips (closed, his word, his clash follows): the told block, whole
 		# — and above the buttons' row
-		if first_box != null and minf(DAY_BOTTOM, btn_top - 4.0) - top - head_h - first_h >= lh:
-			first_box.visible = true          # the first day's line, above the head
+		var floor_y: float = minf(DAY_BOTTOM, btn_top - 4.0)
+		if first_box != null and floor_y - top - y - first_h >= lh:
+			first_box.visible = true          # the first day's line, right under the head
+			first_box.position = Vector2(0.0, y)
 			first_box.size.y = first_h
-			head.position.y = first_h
-			head_h += first_h
-			y = head_h
+			y += first_h
 			_day_first_screen = first_screen
 		elif first_box != null:
 			panel.remove_child(first_box)
 			first_box.queue_free()
 			hover.append(first_said)
-		var avail: float = minf(DAY_BOTTOM, btn_top - 4.0) - top - head_h
+		var avail: float = floor_y - top - y
 		var keep := clampi(int(avail / lh), 1, 5)
 		var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, lh * float(keep) + 2.0))
 		told.text = _day_told(lines, keep)
+		# (the review) a line of the close the table had no row for rides the head's hover
+		var kept_idx := _day_told_kept(lines, keep)
+		for i in range(lines.size()):
+			if not (i in kept_idx) and str((lines[i] as Dictionary).get("who", "")) == "end":
+				hover.append(str((lines[i] as Dictionary).get("line", "")))
 	else:
 		var split := _day_split()
+		var chips_now = day.get("chips", [])
 		var c_box: RichTextLabel = null
 		var d_box: RichTextLabel = null
 		var e_box: RichTextLabel = null
 		if offering and not (split[0] as Array).is_empty():
-			c_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_CHIPS_W, 100.0))
+			c_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 100.0))
 			c_box.mouse_filter = Control.MOUSE_FILTER_STOP
 			c_box.meta_underlined = false
 			c_box.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -1379,7 +2248,7 @@ func _build_the_day() -> void:
 			d_box.mouse_filter = Control.MOUSE_FILTER_STOP
 			d_box.meta_underlined = false
 			d_box.meta_clicked.connect(_on_day_chip)
-		e_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_CHIPS_W, 100.0))
+		e_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 100.0))
 		e_box.mouse_filter = Control.MOUSE_FILTER_STOP
 		e_box.meta_underlined = false
 		e_box.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -1387,60 +2256,150 @@ func _build_the_day() -> void:
 		_day_chips = c_box
 		_day_groups = d_box
 		_day_exits = e_box
-		_day_retext()
-		# what each row measures (a row is a whole number of text rows)
-		var c_h: float = c_box.get_content_height() if c_box != null else 0.0
-		var e_h: float = e_box.get_content_height()
-		var row_h: float = maxf(e_h, lh)
-		var b_h: float = lh + 2.0 if (offering and not lines.is_empty()) else 0.0
-		var e_top_abs: float = btn_mid - e_h / 2.0
-		# BA-4: the first day's line takes its row wherever no chip has to
-		# scroll for it (`_day_first_fits`). On a crowded table — Ulm, the
-		# first great battle of a campaign — it may take the told line's row
-		# for this one showing (the ladder's third step: the last word told
-		# rides the head's hover, where the morning already is). Where even
-		# that is not room enough it rides the hover itself and is NOT
-		# acknowledged — a hover is not a showing.
+		# R: the day's rule, in one caption line (the second reading: "keep this
+		# explainer visible on every turn") — one whole line or not on the table
+		var rule_box: RichTextLabel = null
+		var rule_h := 0.0
+		if offering:
+			rule_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 40.0))
+			rule_box.name = "DayRule"
+			rule_box.autowrap_mode = TextServer.AUTOWRAP_OFF
+			rule_box.theme_type_variation = &"CaptionRich"     # the ladder's Caption step (no BBCode size)
+			rule_box.text = "[color=#%s]%s[/color]" % [Utils.COLOR_INFO, DAY_RULE]
+			rule_h = rule_box.get_content_height() + 2.0
+			rule_box.visible = false
+			if rule_box.get_content_width() > DAY_W - 8.0:
+				panel.remove_child(rule_box)      # no room for it whole at this text size
+				rule_box.queue_free()
+				rule_box = null
+				hover.append(DAY_RULE)
+		# BA-5: what the table CAN say on a word's face (a payload from before
+		# the finish carries no `does`: its chips are BA-4's)
+		var can_card := false
+		for i in split[0]:
+			if str((chips_now[int(i)] as Dictionary).get("does", "")) != "":
+				can_card = true
+		var can_tag := false
+		for i in split[2]:
+			if str((chips_now[int(i)] as Dictionary).get("does", "")) != "":
+				can_tag = true
+		# the ladder's state: what still stands on the table
+		var give_shelves := false                                   # 1 the shelves give their room
+		var inline := false                                         # 2 the groups flow in one paragraph
+		var first_row: bool = first_box != null                     # 5 the first day's line
+		var rule_row: bool = rule_box != null and not first_row     # 3 the day's rule (the first day's line says it in full)
+		var told_row: bool = offering and not lines.is_empty()      # 4 the last word told
+		var exit_cards: bool = offering and can_tag                 # 6 the exits as cards, each with what it does
+		var lifted := false                                         # 5b the panel takes DAY_LIFT of the gap under the bars
+		var cards: bool = offering and can_card                     # 7 the cards' second lines
+		var b_h: float = lh + 2.0
+		var c_h := 0.0
+		var d_h := 0.0
+		var e_h := 0.0
+		var e_top_abs := 0.0
+		var above := 0.0
+		var room := 0.0
+		var fits := false
+		for _step in range(14):
+			_day_cards = cards
+			_day_exit_tags = exit_cards
+			_day_inline = inline
+			_day_retext()
+			top = (top_free if give_shelves else top_with) - (DAY_LIFT if lifted else 0.0)
+			c_h = c_box.get_content_height() if c_box != null else 0.0
+			e_h = e_box.get_content_height()
+			# a row wider than its room is no row: its second lines go first
+			if cards and c_box != null and c_box.get_content_width() > DAY_W + 1.0:
+				cards = false
+				continue
+			if exit_cards and e_box.get_content_width() > DAY_CHIPS_W:
+				exit_cards = false
+				_day_exits_wide = true
+				continue
+			above = head_h + (first_h if first_row else 0.0) + (rule_h if rule_row else 0.0) \
+				+ (b_h if told_row else 0.0) + c_h
+			if exit_cards:
+				e_top_abs = DAY_BOTTOM - DAY_EXIT_FLOOR - e_h    # beside the buttons, down to the tray's floor
+			else:
+				e_top_abs = btn_mid - e_h / 2.0                  # level with, and centred on, the buttons
+			room = e_top_abs - 2.0 - top
+			d_h = 0.0
+			if d_box != null:
+				d_h = _day_groups_h(d_box, inline, top + above, e_top_abs if exit_cards else btn_top)
+			fits = above + d_h <= room
+			if fits:
+				break
+			if shelf_up and not give_shelves:
+				give_shelves = true                   # 1
+			elif d_box != null and not inline:
+				inline = true                         # 2
+			elif rule_row:
+				rule_row = false                      # 3
+			elif told_row:
+				told_row = false                      # 4
+			elif first_row:
+				first_row = false                     # 5
+				# ...and the last word told may have its row back: it gave it up for a line
+				# that is not on the table after all (one row for two)
+				told_row = offering and not lines.is_empty()
+			elif not lifted:
+				lifted = true                         # 5b
+			elif exit_cards:
+				exit_cards = false                    # 6
+			elif cards:
+				cards = false                         # 7
+			else:
+				break
+		if not fits and d_box != null:
+			# 8. whole text rows or nothing: the groups scroll by rows, never rows C or E
+			# (the exits are one-line chips by now: a chip's row is the groups' own)
+			var row_h: float = maxf(e_h, lh)
+			var left: float = room - above
+			var unit: float = maxf(row_h, 1.0)
+			d_h = maxf(unit, floorf(left / unit) * unit)
+			d_box.scroll_active = true
+		_day_hide_shelves = give_shelves
+		_day_exits_up = exit_cards
+		_day_rule_row = rule_row
+		_day_lifted = lifted
+		_day_top_plain = top_free if give_shelves else top_with
+		if not exit_cards and can_tag:
+			# BA-5: as one-line chips — what an exit does stays on its face as far as
+			# the row fits left of Replay, in DAY_TAG_ORDER (the rest ride their hovers)
+			for kept in range(DAY_TAG_ORDER.size(), 0, -1):
+				_day_tags_kept = kept
+				_day_retext()
+				if e_box.get_content_width() <= DAY_CHIPS_W:
+					break
+				_day_tags_kept = 0
+			if _day_tags_kept == 0:
+				_day_retext()
 		if first_box != null:
-			if _day_first_fits(first_h + head_h + c_h, d_box, e_top_abs,
-					top_free if shelf_up else top, btn_top):
+			# BA-4: the first day's line takes its row wherever the ladder left
+			# it one; else it rides the head's hover and is NOT acknowledged — a
+			# hover is not a showing (the next table with the room shows it)
+			if first_row:
 				first_box.visible = true
+				first_box.position = Vector2(0.0, y)
 				first_box.size.y = first_h
-				head.position.y = first_h
-				head_h += first_h
-				y = head_h
+				y += first_h
 				_day_first_screen = first_screen
 			else:
 				panel.remove_child(first_box)
 				first_box.queue_free()
 				hover.append(first_said)
-		var d_h := 0.0
-		var above: float = head_h + b_h + c_h
-		if d_box != null:
-			d_h = _day_groups_h(d_box, false, top + above, btn_top)
-		var room: float = e_top_abs - 2.0 - top
-		if above + d_h > room and shelf_up:
-			top = top_free                    # 1. the shelves give their room, at rest
-			total = DAY_BOTTOM - top
-			_day_hide_shelves = true
-			room = e_top_abs - 2.0 - top
-			if d_box != null:
-				d_h = _day_groups_h(d_box, false, top + above, btn_top)
-		if d_box != null and above + d_h > room:
-			_day_inline = true                # 2. the groups flow in one paragraph
-			d_h = _day_groups_h(d_box, true, top + above, btn_top)
-		if above + d_h > room and b_h > 0.0:
-			b_h = 0.0                         # 3. the told line rides the head's hover
-			above = head_h + c_h
-			if d_box != null:
-				d_h = _day_groups_h(d_box, _day_inline, top + above, btn_top)
-		if d_box != null and above + d_h > room:
-			# 4. whole text rows or nothing: the groups scroll by rows, never rows C or E
-			var left: float = room - above
-			var unit: float = maxf(row_h, 1.0)
-			d_h = maxf(unit, floorf(left / unit) * unit)
-			d_box.scroll_active = true
-		if b_h > 0.0:
+		if rule_box != null:
+			if rule_row:
+				rule_box.visible = true
+				rule_box.position = Vector2(0.0, y)
+				rule_box.size.y = rule_h
+				y += rule_h
+			else:
+				panel.remove_child(rule_box)
+				rule_box.queue_free()
+				if not first_row:
+					hover.append(DAY_RULE)        # (the first day's line says the rule in full)
+		if told_row:
 			var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, b_h))
 			told.text = _day_told(lines, 1)
 			y += b_h
@@ -1448,21 +2407,24 @@ func _build_the_day() -> void:
 			hover.append(str((lines[lines.size() - 1] as Dictionary).get("line", "")))
 		if c_box != null:
 			c_box.position = Vector2(0.0, y)
-			c_box.size = Vector2(DAY_CHIPS_W, c_h)
+			c_box.size = Vector2(DAY_W, c_h)
 			y += c_h
 		if d_box != null:
 			d_box.position = Vector2(0.0, y)
 			d_box.size = Vector2(d_box.size.x, d_h)
 			y += d_h
-		e_box.position = Vector2(0.0, e_top_abs - top)    # level with, and centred on, the buttons
-		e_box.size = Vector2(DAY_CHIPS_W, e_h)
+		e_box.position = Vector2(0.0, e_top_abs - top)
+		e_box.size = Vector2(DAY_CHIPS_W, maxf(e_h, 1.0))
 		if offering:
 			var keys := DayKeys.new()             # BA-4: the bare digits press the chips
 			keys.name = "DayKeys"
 			keys.acts = self
 			panel.add_child(keys)
 	panel.position = Vector2(DAY_X, top)
-	panel.size = Vector2(DAY_W, total)
+	panel.size = Vector2(DAY_W, DAY_BOTTOM - top)
+	if name_label != null:
+		# in the band above the baize (its place is the tray's, whatever room the panel took)
+		name_label.position = Vector2(0.0, DAY_HEAD_Y - top)
 	if not hover.is_empty():
 		head.mouse_filter = Control.MOUSE_FILTER_STOP
 		head.text = Utils.bb_hint(head.text, " ".join(PackedStringArray(hover)))
@@ -1501,7 +2463,36 @@ func _on_day_chip(meta) -> void:
 		return
 	_day_latched = true                       # one press, one word
 	_day_retext()
+	# BA-5: the word goes out with its own sound (the bugle, the Guard's drums, the spade)
+	host._cue(str(DAY_WORD_CUES.get(word if word != "" else str(chip.get("kind", "")), "select")))
 	host.word_given.emit(command)
+
+
+func _sound_the_day() -> void:
+	"""BA-5: what the day just told, sounded ONCE - his word that was no clash (the
+	spade as he digs in, the march as a corps comes up), the tattoo as night falls,
+	the boots of a side leaving the field. A table shown again says nothing twice
+	(`_day_sounded` remembers, by enemy, the last thing it sounded)."""
+	var day := _the_day()
+	var enemy := str(day.get("enemy", ""))
+	var told: Array = day.get("told", []) if day.get("told", []) is Array else []
+	var last_line := str((told[told.size() - 1] as Dictionary).get("line", "")) if not told.is_empty() else ""
+	var mark := "%s|%d|%s" % [str(day.get("ended", "")), told.size(), last_line]
+	if enemy == "" or str(_day_sounded.get(enemy, "")) == mark:
+		return
+	_day_sounded[enemy] = mark
+	var ended := str(day.get("ended", ""))
+	if ended != "":
+		if DAY_END_CUES.has(ended):
+			host._cue(str(DAY_END_CUES[ended]))
+		return
+	for i in range(told.size() - 1, -1, -1):
+		var t: Dictionary = told[i]
+		if str(t.get("kind", "")) in DAY_SILENT_KINDS:
+			continue
+		if str(t.get("who", "")) == "theirs" and DAY_HIS_CUES.has(str(t.get("kind", ""))):
+			host._cue(str(DAY_HIS_CUES[str(t.get("kind", ""))]))
+		return
 
 
 func release_the_day() -> void:
@@ -1538,6 +2529,15 @@ func _show_the_day() -> void:
 			if shelf != null:
 				(shelf as CanvasItem).visible = false
 	_day_panel.visible = true
+	_sound_the_day()
+	if _day_offering():
+		# BA-5: the words are the table's business - Close gives up the primary look
+		# while they are offered (`_put_the_chrome_back` gives it back at the next table)
+		host._btn_close.theme_type_variation = &""
+		host._btn_close.add_theme_stylebox_override("normal", host._replay_face(false))
+		host._btn_close.add_theme_stylebox_override("hover", host._replay_face(true))
+		host._btn_close.add_theme_color_override("font_color", Utils.UI_GOLD)
+		host._btn_close.add_theme_color_override("font_hover_color", Utils.UI_GOLD)
 	if _day_first_screen != "":
 		# BA-4: the first day's line is on the table now — the showing is the
 		# acknowledgement (the scene sends it once a world: `_on_first_open_seen`)
@@ -1598,6 +2598,93 @@ func _type_the_verdict() -> void:
 	if _day_panel != null and is_instance_valid(_day_panel):
 		return
 	host._type_verdict()
+	_fit_the_verdict()
+
+
+const VERDICT_LIFT := 4.0      # BA5-D3: of the 8 px between a shelf and the verdict, four are the verdict's
+const VERDICT_STEP := &"BodyLargeRich"       # the verdict's own ladder step (the host builds it so)
+const VERDICT_STEP_SMALL := &"CaptionRich"   # ...and a step smaller, where it would not stand whole
+var _verdict_source := ""      # BA5-D3: the verdict as the table (or a beat) set it: whole, unsized
+var _verdict_written := ""     # ...and as `_fit_the_verdict` last wrote it
+var _verdict_refits := 0
+
+
+func _fit_the_verdict() -> void:
+	"""BA5-D3: what stands in the verdict's room stands WHOLE. A beat's line read
+	"...He brings three-" behind a scrollbar, and at rest Berthier's own two lines
+	hid the enemy's answer under them (a shelf is up: the room is two lines). In
+	order: as it is; a step smaller; then as many whole paragraphs as the room
+	holds - as it is, else a step smaller - with an (i) at their end and every word
+	in its hover. One paragraph too long for the room alone scrolls on whole lines,
+	as it always did.
+	It is measured with every character shaped (the quill has not written them
+	yet, and what is not written is not laid out), and from the text it was GIVEN,
+	so it can be fitted again when the room is known (`settle`)."""
+	var v: RichTextLabel = host._verdict
+	if v == null or v.text == "":
+		return
+	if v.text != _verdict_written:
+		_verdict_source = v.text           # set afresh since this last wrote it
+	var shown: int = v.visible_characters
+	v.visible_characters = -1
+	var room: float = v.size.y + 1.0
+	v.theme_type_variation = VERDICT_STEP
+	v.text = _verdict_source
+	var every_word: String = v.get_parsed_text()
+	# what is tried, in order — [the label's ladder step, the text]; the last stands if nothing fits
+	# (and scrolls). A step smaller is the theme's Caption step of the label, never a BBCode size.
+	var tries: Array = [[VERDICT_STEP, _verdict_source], [VERDICT_STEP_SMALL, _verdict_source]]
+	var parts: PackedStringArray = _verdict_source.split("\n")
+	for step in [VERDICT_STEP, VERDICT_STEP_SMALL]:
+		for keep in range(parts.size() - 1, 0, -1):
+			var kept: String = "\n".join(parts.slice(0, keep))
+			tries.append([step, Utils.bb_hint(_with_more(kept), every_word)])
+	var pick: Array = tries[tries.size() - 1]
+	for candidate in tries:
+		v.theme_type_variation = candidate[0]
+		v.text = candidate[1]
+		if v.get_content_height() <= room:
+			pick = candidate
+			break
+	v.theme_type_variation = pick[0]
+	v.text = pick[1]
+	v.hint_underlined = false         # the (i) says there is more; no dotted line under Berthier
+	_verdict_written = pick[1]
+	v.visible_characters = shown
+
+
+func _lift_the_verdict() -> void:
+	"""BA5-D3: under a shelf the verdict's room is 51 px, and two lines of Berthier
+	are 54: every two-line verdict of a table with a reserve stood behind a
+	scrollbar. Four of the eight pixels between the shelf and the verdict are lent
+	to it (the host sets the verdict's top afresh at every populate, and measures
+	its room from that top once the plate is placed)."""
+	if _shelf_up():
+		host._verdict.position.y -= VERDICT_LIFT
+		host._verdict.size.y += VERDICT_LIFT
+
+
+func _with_more(bb: String) -> String:
+	"""`bb` with the (i) that says there is more, inside its own closing tags (so it
+	stands at the end of the last line kept, not on a line of its own)."""
+	var mark: String = " " + Utils.bb_info_glyph(16)
+	var closers := RegEx.create_from_string("(\\[/[a-z_]+\\])+$")
+	var found := closers.search(bb)
+	if found == null:
+		return bb + mark
+	return bb.substr(0, found.get_start()) + mark + bb.substr(found.get_start())
+
+
+func _refit_the_verdict() -> void:
+	"""The plate is measured a frame after the table is laid, and the verdict's room
+	ends above the plate: a settled table fits its verdict again once the room is
+	known (two frames: the host's own measure waits one)."""
+	if host == null or not is_instance_valid(host) or host._acts != self or not host.is_inside_tree():
+		return
+	_fit_the_verdict()
+	_verdict_refits -= 1
+	if _verdict_refits > 0:
+		host.get_tree().process_frame.connect(_refit_the_verdict, CONNECT_ONE_SHOT)
 
 
 func _tell_the_reserves_dead() -> void:
@@ -1662,11 +2749,14 @@ func _attacker_left() -> bool:
 
 
 func _luck_line(roll: Dictionary) -> String:
-	"""Each side's luck of the day, by the side it stands on the table."""
+	"""Each side's fortune of the day, by the side it stands on the table — said
+	for what it is (the second reading took it for the luck of the THROW and found
+	its sign against the dice): the chance each line's strength drew, apart from
+	the throw (`combat._fortune_pct`)."""
 	var sides: Array = host._side_payloads()
 	var left_key: String = "fortune_attacker" if _attacker_left() else "fortune_defender"
 	var right_key: String = "fortune_defender" if _attacker_left() else "fortune_attacker"
-	return "luck   %s %s   ·   %s %s" % [
+	return "the day's fortune in strength:  %s %s  ·  %s %s" % [
 		Utils.display_nation_name(str(sides[0].get("nation", ""))), _signed(int(roll.get(left_key, 0))),
 		Utils.display_nation_name(str(sides[1].get("nation", ""))), _signed(int(roll.get(right_key, 0)))]
 
@@ -1882,6 +2972,10 @@ func settle() -> void:
 	if _dice != null:
 		_dice.visible = true
 		_dice.settle()
+	_fit_the_verdict()
+	if host.is_inside_tree() and _verdict_refits <= 0:      # BA5-D3: again, when the room is known
+		_verdict_refits = 2
+		host.get_tree().process_frame.connect(_refit_the_verdict, CONNECT_ONE_SHOT)
 	_show_the_day()
 
 
@@ -1994,8 +3088,13 @@ func play() -> void:
 		fight_to = t + 1.6
 		t = fight_to
 	var span: float = maxf(fight_to - fight_from, 1.2)
+	if _kind() == "bombardment":
+		# (the second reading: "3,470 fall" stood over a counter at 876 — the count ran
+		# the whole act) a cannonade's toll is counted as its battery fires
+		span = 1.2
 	host._schedule_topples(fight_from, span)
 	host._animate_odometers(fight_from, span + 0.4)
+	_count_the_guns(fight_from, span + 0.4)
 	_tick_pips(fight_from, span + 0.4)
 	_run_strengths(fight_from, span + 0.4)
 	host._schedule_standards(first_break + 0.5 if first_break >= 0.0 else fight_from + span * 0.75)
@@ -2032,6 +3131,95 @@ func _at(t: float, what: Callable) -> void:
 	host._seq.parallel().tween_callback(what).set_delay(t)
 
 
+const GUNS_COUNT_AFTER := 0.15     # the battery fires, then its toll is counted
+const GUNS_COUNT_S := 0.6
+
+
+func _count_the_guns(start: float, span: float) -> void:
+	"""The second reading: "3,152 fall before the assault" stood under two counters at
+	0 — the host's count runs 0 to the day's total over the FIGHT — and a cannonade's
+	own table read "3,470 fall" over a counter at 876. What a battery takes (the
+	beat's `dealt`) and what it costs (`taken`) are counted as it fires; the fight's
+	count then goes on from there and never under it (a second writer on the master
+	sequence, added after the host's: it holds the guns' toll until the count passes
+	it, and ends on the same total)."""
+	if _kind() == "bombardment":
+		return                                  # its own count runs with its battery (`play`)
+	var sides: Array = host._side_payloads()
+	var banded: bool = host._band != null and host._band.visible \
+			and host._band_rows.size() >= 2 and host._band_figs.size() >= 2
+	var held := {true: 0, false: 0}          # by "the LEFT counter": what the guns have counted
+	var last_at := -1.0
+	for row in _played:
+		var beat: Dictionary = row["beat"]
+		if str(row["act"]) != "cannonade" or str(beat.get("kind", "")) != "battery":
+			continue
+		var at: float = float(row.get("at", -1.0))
+		if at < 0.0:
+			continue
+		# the battery's target stands across the table from the side that fires
+		var target_left: bool = (str(beat.get("side", "")) == "attacker") != _attacker_left()
+		for item in [[target_left, int(beat.get("dealt", 0))], [not target_left, int(beat.get("taken", 0))]]:
+			var is_left: bool = item[0]
+			var total: int = int((sides[0 if is_left else 1] as Dictionary).get("casualties_total", 0))
+			var counted: int = int(held[is_left])
+			var to: int = mini(counted + int(item[1]), total)
+			if to <= counted:
+				continue
+			held[is_left] = to
+			host._seq.parallel().tween_method(
+					_odo_at.bind(host._odo_left if is_left else host._odo_right, 0),
+					float(counted), float(to), GUNS_COUNT_S).set_delay(at + GUNS_COUNT_AFTER)
+			if banded:
+				# ...and the band's own figure of that side, with it
+				var i: int = 0 if is_left else 1
+				host._seq.parallel().tween_method(
+						_band_at.bind(i, int((host._band_rows[i] as Dictionary).get("before", 0))),
+						float(counted), float(to), GUNS_COUNT_S).set_delay(at + GUNS_COUNT_AFTER)
+		last_at = maxf(last_at, at)
+	if last_at < 0.0:
+		return
+	for is_left in [true, false]:
+		if int(held[is_left]) <= 0:
+			continue
+		var total: int = int((sides[0 if is_left else 1] as Dictionary).get("casualties_total", 0))
+		host._seq.parallel().tween_method(
+				_odo_at.bind(host._odo_left if is_left else host._odo_right, int(held[is_left])),
+				0.0, float(total), span) \
+			.set_delay(maxf(start, last_at + GUNS_COUNT_AFTER + GUNS_COUNT_S)) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if banded:
+		# the host's band runs both figures on ONE progress, from the muster: after it has
+		# written them, each frame of the fight's count, neither reads more men than the guns left
+		var caps: Array = [
+			int((host._band_rows[0] as Dictionary).get("before", 0)) - int(held[true]),
+			int((host._band_rows[1] as Dictionary).get("before", 0)) - int(held[false])]
+		host._seq.parallel().tween_method(_band_never_above.bind(caps), 0.0, 1.0, span).set_delay(start)
+
+
+func _odo_at(v: float, odo: Label, never_under: int) -> void:
+	if is_instance_valid(odo):
+		odo.text = Utils.format_number(maxi(int(v), never_under))
+
+
+func _band_at(v: float, i: int, before: int) -> void:
+	"""The band's figure of one side while the guns' toll is counted: what it mustered,
+	and that less `v` (the host's own words: `_band_fig_text`)."""
+	if i < host._band_figs.size() and is_instance_valid(host._band_figs[i]):
+		(host._band_figs[i] as Label).text = "%s → %s" % [
+				Utils.format_number(before), Utils.format_number(before - int(v))]
+
+
+func _band_never_above(_v: float, caps: Array) -> void:
+	for i in range(mini(2, host._band_figs.size())):
+		var fig: Label = host._band_figs[i]
+		if not is_instance_valid(fig):
+			continue
+		var cut: int = fig.text.rfind(" → ")
+		if cut >= 0 and fig.text.substr(cut + 3).to_int() > int(caps[i]):
+			fig.text = fig.text.substr(0, cut + 3) + Utils.format_number(int(caps[i]))
+
+
 func _tick_pips(start: float, span: float) -> void:
 	for name in _blocks:
 		var b: Dictionary = _blocks[name]
@@ -2055,8 +3243,11 @@ func _run_strengths(start: float, span: float) -> void:
 		var c: Dictionary = b["data"]
 		var tw: Tween = line.create_tween()
 		tw.tween_interval(start)
+		# (the second reading: mid-count a corps' line and the band beside it read two
+		# figures — "2,993" and "2,988") the line runs on the band's own curve
 		tw.tween_method(_strength_at.bind(line, str(b.get("strength_brought", "")),
-				maxi(int(c.get("committed", 0)), 1), int(c.get("remaining", 0))), 0.0, 1.0, span)
+				maxi(int(c.get("committed", 0)), 1), int(c.get("remaining", 0))), 0.0, 1.0, span) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tw.tween_callback(_strength_settled.bind(b))
 
 
@@ -2096,6 +3287,7 @@ func _show_beat(act: String, beat: Dictionary, captioned: bool) -> void:
 		host._verdict.text = "[center][i]%s[/i][/center]" % Utils.bbcode_color(
 				line, Utils.COLOR_OBSERVATION)
 		host._verdict.visible_characters = -1
+		_fit_the_verdict()                 # BA5-D3: whole, a step smaller, before it is cut
 
 	var b = _blocks.get(str(beat.get("actor", "")), null)
 	var attacker_side: bool = str(beat.get("side", "")) == "attacker"
@@ -2154,6 +3346,11 @@ func _show_beat(act: String, beat: Dictionary, captioned: bool) -> void:
 			if _dice != null and is_instance_valid(_dice):
 				_dice.visible = true
 				_dice.roll()
+				if captioned:
+					# BA5-D6: the throw is read when the dice have landed - its sentence
+					# ("Ney rolls 10 ...: 11") named the roll while they still tumbled
+					host._verdict.visible_characters = 0
+					_dice.landed.connect(_read_the_throw.bind(host._verdict.text), CONNECT_ONE_SHOT)
 		"break":
 			if b != null:
 				_waver(b)
@@ -2182,6 +3379,13 @@ func _show_beat(act: String, beat: Dictionary, captioned: bool) -> void:
 			# every other development is about one corps: its commander answers
 			if b != null:
 				_pulse(b["locket"])
+
+
+func _read_the_throw(said: String) -> void:
+	"""BA5-D6: the dice have landed - the sentence that names the throw is read
+	(if the table still holds it: a skip or the gavel may have moved on)."""
+	if host != null and is_instance_valid(host) and host._verdict.text == said:
+		host._verdict.visible_characters = -1
 
 
 func _leads() -> Array:
@@ -3096,6 +4300,12 @@ class DiceTray:
 	var _sum: Label = null
 	var _sum_text := ""
 	var _dice_x := 0.0
+	var _rows: Array = []          # BA5-D6: the tray's lines, read when the dice have landed
+	var _plate := Rect2()          # ...and the dark plate they are read on (the tray's own space)
+	var _plate_on := false
+	const PLATE := Color(0.05, 0.08, 0.06, 0.80)
+	signal landed
+	const AVERAGE_LANDS := 102     # what an average throw (7) gives: 85 % + 2.5 a pip
 
 	func build(diorama, roll: Dictionary, luck_line: String) -> void:
 		"""Call AFTER the tray is in the tree: the rows are placed by the
@@ -3107,7 +4317,10 @@ class DiceTray:
 		_b = clampi(natural - _a, 1, 6)
 		_shown_a = _a
 		_shown_b = _b
-		_sum_text = "= %d" % modified
+		# (the second reading: "= 10" stood beside dice that show eight pips) what was
+		# added to the throw stands with the sum: "+2 = 10"
+		_sum_text = ("%+d = %d" % [modified - natural, modified]) if modified != natural \
+				else ("= %d" % modified)
 		_sum = diorama._mk_label(self, _sum_text, &"Lead", BattleActs.GOLD, diorama._font_engraved)
 		diorama._outline_over_colours(_sum)
 		var sum_size: Vector2 = _sum.get_minimum_size()
@@ -3115,19 +4328,28 @@ class DiceTray:
 		_dice_x = (TRAY_W - row_w) / 2.0
 		_sum.position = Vector2(_dice_x + DIE * 2.0 + 18.0, (DIE - sum_size.y) / 2.0)
 
-		var bits: Array = ["%d on the dice" % natural]
+		# BA-5: one vocabulary - what was thrown and what was added make the
+		# figure beside the dice; the blow it gives stands against an average throw's
+		# ...and whose throw it is (the attacker's: the server names him on the beat)
+		var thrower: String = Utils.display_marshal_name(str(roll.get("actor", "")))
+		var bits: Array = [("%s throws %d" % [thrower, natural]) if thrower != "" else ("thrown %d" % natural)]
 		if int(roll.get("skill", 0)) != 0:
-			bits.append("+%d skill" % int(roll.get("skill", 0)))
+			bits.append("%+d skill" % int(roll.get("skill", 0)))
 		if int(roll.get("flank", 0)) != 0:
-			bits.append("+%d flank" % int(roll.get("flank", 0)))
+			bits.append("%+d flank" % int(roll.get("flank", 0)))
+		var thrown: String = ", ".join(PackedStringArray(bits))
+		if modified != natural:
+			thrown += " = %d" % modified
 		var crit: String = str(roll.get("critical", ""))
-		var lands := "the attack lands at %d%%" % (100 + int(roll.get("swing", 0)))
+		var lands := "the blow lands at %d%% of its weight · an average throw: %d%%" % [
+				100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
 		if crit == "success":
 			lands = "a twelve: " + lands
 		elif crit == "failure":
 			lands = "a two: " + lands
 		var y: float = DIE + 5.0
-		for text in ["   ".join(bits), lands, luck_line]:
+		_rows = []
+		for text in [thrown, lands, luck_line]:
 			var row: Label = diorama._mk_label(self, str(text), &"Caption", BattleActs.BONE)
 			diorama._outline_over_colours(row)
 			var row_size: Vector2 = row.get_minimum_size()
@@ -3136,7 +4358,17 @@ class DiceTray:
 				break
 			row.size = row_size
 			row.position = Vector2((TRAY_W - row_size.x) / 2.0, y)
+			_rows.append(row)
 			y += row_size.y + 1.0
+		# (the second reading: the table's dashed centre line ran through these lines)
+		# a dark plate behind the rows, as wide as the widest of them
+		_plate = Rect2()
+		for row in _rows:
+			var r := Rect2((row as Label).position, (row as Label).size)
+			_plate = r if _plate.size == Vector2.ZERO else _plate.merge(r)
+		if _plate.size != Vector2.ZERO:
+			_plate = _plate.grow_individual(8.0, 1.0, 8.0, 2.0)
+		_plate_on = true
 		size = Vector2(TRAY_W, y)
 		custom_minimum_size = size
 		queue_redraw()
@@ -3146,12 +4378,21 @@ class DiceTray:
 		_shown_b = _b
 		if _sum != null:
 			_sum.text = _sum_text
+		for row in _rows:                # BA5-D6: the lines are read now
+			if is_instance_valid(row):
+				(row as CanvasItem).visible = true
+		_plate_on = true
 		queue_redraw()
+		landed.emit()
 
 	func roll() -> void:
 		"""The dice tumble and come to rest on what was rolled."""
 		if _sum != null:
 			_sum.text = ""
+		for row in _rows:                # BA5-D6: nothing of the throw is told while it tumbles
+			if is_instance_valid(row):
+				(row as CanvasItem).visible = false
+		_plate_on = false
 		var tw: Tween = create_tween()
 		tw.tween_method(_tumble, 0.0, 9.0, 0.6)
 		tw.tween_callback(settle)
@@ -3163,6 +4404,8 @@ class DiceTray:
 		queue_redraw()
 
 	func _draw() -> void:
+		if _plate_on and _plate.size != Vector2.ZERO:
+			draw_rect(_plate, PLATE)
 		_draw_die(Vector2(_dice_x, 0.0), _shown_a)
 		_draw_die(Vector2(_dice_x + DIE + 8.0, 0.0), _shown_b)
 

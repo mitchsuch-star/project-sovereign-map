@@ -1050,6 +1050,35 @@ class CombatResolver:
                 pursuit_damage = 0
                 pursuit_message = None
 
+        # ═════════════════════════════════════════════════════════════
+        # Row BA, BA-5 — THE RESERVE PURSUES A BEATEN ENEMY (a day of battle).
+        # When a clash drives a side from the field, the victor's unspent
+        # points — less the loser's — each cost the beaten lead men more
+        # (`battle_day.reserve_pursuit_men`: 0 outside a day's word and with
+        # its seam down). Either side: an attacker who breaks the defender, or
+        # a defender who throws the attack back. AFTER the ability's own
+        # pursuit, under the same floor; folded into the casualties before the
+        # result is built (shown = applied).
+        # The coordinated copy in combat_executor MUST mirror this block.
+        # ═════════════════════════════════════════════════════════════
+        reserve_pursuit = None
+        _broke_him = defender_forced_retreat and attacker_won
+        _thrown_back = attacker_forced_retreat and _def_is_victor
+        if _broke_him or _thrown_back:
+            from backend.game_logic import battle_day as _battle_day
+            _beaten = defender if _broke_him else attacker
+            _men, _points = _battle_day.reserve_pursuit_men(attacker_wins=_broke_him, loser=_beaten)
+            if _men > 0:
+                _beaten.strength -= _men
+                if _broke_him:
+                    defender_casualties += _men
+                else:
+                    attacker_casualties += _men
+                reserve_pursuit = {"side": "defender" if _broke_him else "attacker",
+                                   "men": int(_men), "points": int(_points)}
+                retreat_message += (f"\n\n[Combat] The reserve pursues {_beaten.name}: "
+                                    f"+{_men:,} casualties.")
+
         # ════════════════════════════════════════════════════════════
         # CAVALRY RECKLESSNESS (Phase 3): Update attacker's recklessness
         # - Increment on attack WIN (not glorious_charge, which resets)
@@ -1174,6 +1203,8 @@ class CombatResolver:
             # Pursuit damage (Phase 6.5: Blucher/Uxbridge abilities)
             "pursuit_damage": int(pursuit_damage),
             "pursuit_message": pursuit_message,
+            # Row BA, BA-5: the reserve's pursuit (only where it fired)
+            **({"reserve_pursuit": reserve_pursuit} if reserve_pursuit else {}),
             # Notification flags for executor.py to create notifications
             "counter_punch_earned": bool(getattr(defender, 'counter_punch_available', False)
                                          and getattr(defender, 'personality', '') == 'cautious'

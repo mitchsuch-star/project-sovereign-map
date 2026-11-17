@@ -55,6 +55,7 @@
   "nation": "Austria"
  },
  "observation": "The ground itself worked against Lannes. Terrain matters, Sire.",
+ "ground": "mountains",
  "enemy_voice": "Archduke John: \"The Tyrol holds its passes. So do I.\"",
  "script": {
   "version": 1,
@@ -140,5 +141,6 @@
    "Lannes": "aggressive",
    "ArchdukeJohn": "cautious"
   }
- }
+ },
+ "verdict_told": "The ground told for him."
 }

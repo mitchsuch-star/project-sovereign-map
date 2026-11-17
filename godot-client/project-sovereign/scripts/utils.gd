@@ -800,6 +800,8 @@ const UI_CORPS_UNSEEN := Color(0.30, 0.27, 0.24, 1.0)       # an enemy corps com
 const UI_WALL_STONE := Color(0.58, 0.55, 0.50, 1.0)         # a garrison's curtain wall
 const UI_WALL_SHADE := Color(0.36, 0.33, 0.30, 1.0)         # its shaded face and its gate
 const UI_WALL_SCAR := Color(0.20, 0.17, 0.15, 1.0)          # shot holes, and the breach's dark
+# Row BA (BA-5, November 17, 2026): the ground on the table and the exits' cards.
+const UI_GROUND_STONE := Color(0.40, 0.42, 0.38)             # a town's walls and roofs drawn on the felt
 const UI_WORKS_EARTH := Color(0.42, 0.33, 0.22, 1.0)        # field works: thrown-up earth
 const UI_WORKS_CREST := Color(0.56, 0.46, 0.32, 1.0)        # the rampart's lit crest
 const UI_WHITE_FLAG := Color(0.93, 0.91, 0.86, 1.0)         # a garrison's white flag
@@ -1402,6 +1404,8 @@ const CHIP_RIM_ALPHA := "ff"
 const CHIP_DIM_BG := "00000000"
 const CHIP_DIM_RIM := "00000000"
 const CHIP_DIM_INK := "6f7480"
+# Row BA (BA-5): an exit's card rim — dim: the words that cost points are the loudest things on the table.
+const CHIP_EXIT_RIM := "7d7461"
 # Phosphor's lock-simple (MIT, shipped beside info.svg): a locked action.
 const LOCK_GLYPH := "res://assets/ui/icons/phosphor/lock-simple.svg"
 const METER_TRACK := "232838"
@@ -1838,6 +1842,23 @@ static func apply_text_size(preview := -1.0) -> void:
 static func text_size_factor() -> float:
 	"""The Text size factor the theme carries now (1.0 at the shipped theme)."""
 	return _text_size_applied
+
+
+# Row BA (BA-5, November 17, 2026 — the user's "make best call" on the house rule): ONE named step in
+# rich text. A day's two-line card draws its second line a ladder step smaller inside the same cell,
+# and a cell holds one step of its label's own; this is the one sanctioned way. The size is the
+# theme's NAMED step, read live (Text size has already scaled it), never a number of the caller's —
+# so a step's size stays a visible decision. The BBCode-size ratchet counts this helper and nothing
+# else (`tests/test_uxr2_override_diet.py`).
+const RICH_STEPS := [&"Caption"]
+
+
+static func bb_step(text: String, step: StringName) -> String:
+	"""`text` at the ladder step `step` (one of RICH_STEPS) inside rich text."""
+	var theme: Theme = ThemeDB.get_project_theme()
+	if not (step in RICH_STEPS) or theme == null or not theme.has_font_size(&"font_size", step):
+		return text
+	return "[font_size=%d]%s[/font_size]" % [theme.get_font_size(&"font_size", step), text]
 
 
 static func text_px(authored: int, factor := -1.0) -> int:

@@ -94,6 +94,7 @@
   "nation": "Austria"
  },
  "observation": "The Emperor watched this field. Reinforcements from Davout, Lannes, Murat, Napoleon and Marmont bolstered Ney's position — though Bernadotte never arrived, Sire.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"This is not a rout. It is a revision of the plan.\"",
  "script": {
   "version": 1,
@@ -295,5 +296,6 @@
    "Soult": "literal",
    "Mack": "literal"
   }
- }
+ },
+ "verdict_told": "Decided when Mack's line broke: our weight of numbers told."
 }

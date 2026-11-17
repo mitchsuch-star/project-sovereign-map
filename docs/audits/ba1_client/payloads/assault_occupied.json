@@ -3,6 +3,7 @@
  "fate": "stormed",
  "battle_name": "Storming of Vienna",
  "region": "Vienna",
+ "ground": "plains",
  "turn": 1,
  "outcome": "attacker_victory",
  "victor": "Ney",

@@ -1,0 +1,202 @@
+{
+ "board": "oneday",
+ "port": 8006,
+ "seed": {
+  "seed": "ba5-oneday-02",
+  "other": "ArchdukeJohn",
+  "other_at": "Milan"
+ },
+ "started": "2026-11-17T13:43:34",
+ "engine_exit": 0,
+ "engine_s": 72.6,
+ "server_days": {
+  "success": true,
+  "days": []
+ },
+ "engine_log_bytes": 479,
+ "script_errors": [],
+ "walk": {
+  "backend": "http://127.0.0.1:8006",
+  "booted": true,
+  "errors": [],
+  "final_turn": 1,
+  "ms": 70951,
+  "results": [
+   {
+    "did": "booted the real main.tscn against the sandboxed backend",
+    "ok": true,
+    "saw": "booted=true turn=1 actions=4",
+    "step": "boot"
+   },
+   {
+    "day": {
+     "ahead": "even",
+     "awaits": "ours",
+     "banner": "The day hangs",
+     "chips": [
+      {
+       "command": "Massena, attack Archduke Charles",
+       "counsel": "none",
+       "does": "odds: unfavorable — 35,161 on 49,286",
+       "kind": "press",
+       "label": "Massena presses",
+       "marshal": "Massena",
+       "more": "A clash that decides ends the day at once.",
+       "odds": "unfavorable",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "Massena, defend",
+       "counsel": "possible",
+       "does": "defensive stance: +9% if he strikes",
+       "kind": "dig_in",
+       "label": "Massena digs in",
+       "marshal": "Massena",
+       "more": "A dug-in line stands firmer when it is attacked. He speaks next.",
+       "odds": "",
+       "ok": true,
+       "price": 1.0,
+       "shown": "Massena",
+       "why": "",
+       "word": ""
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "does": "he speaks next",
+       "kind": "stand",
+       "label": "Massena stands",
+       "marshal": "Massena",
+       "more": "A silence costs no point. Two silences running, and night falls.",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "stand"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "does": "the day ends; he keeps the field",
+       "kind": "break_off",
+       "label": "Break off",
+       "marshal": "Massena",
+       "more": "The attack is given up and the day ends where it stands.",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "break_off"
+      },
+      {
+       "command": "",
+       "counsel": "none",
+       "does": "he may press",
+       "kind": "stand",
+       "label": "Leave it to Massena",
+       "marshal": "Massena",
+       "more": "He spends what is left by his own temper, and the enemy answers, until night.",
+       "odds": "",
+       "ok": true,
+       "price": 0.0,
+       "shown": "Massena",
+       "why": "",
+       "word": "leave_it"
+      }
+     ],
+     "ended": "",
+     "enemy": "ArchdukeCharles",
+     "enemy_shown": "Archduke Charles",
+     "field": "Carniola",
+     "field_shown": "Carniola",
+     "first_open": {
+      "line": "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and the enemy answers each word in turn. Two silences running, or every point spent, and night falls.",
+      "screen": "battle_day"
+     },
+     "his_road": true,
+     "his_temper": "Cautious",
+     "lead": "Massena",
+     "lead_shown": "Massena",
+     "morning": "The day so far: 6,839 of ours for 4,714 of his — Archduke Charles has the better of the toll.",
+     "open": true,
+     "ours": 2.0,
+     "ours_of": 2.0,
+     "pending": false,
+     "reading": {
+      "hover": "Berthier's reading of his next word, as things stand: a clash changes it. \"May\" is said of anything that turns on his mood, or on what is out of your sight.",
+      "line": "he may strike",
+      "strike": "may"
+     },
+     "reply": {
+      "kind": "dig_in",
+      "line": "Archduke Charles digs in.",
+      "who": "theirs"
+     },
+     "side": "attack",
+     "theirs": 2.0,
+     "theirs_of": 3.0,
+     "told": [
+      {
+       "kind": "clash",
+       "line": "The opening: drawn — 6,839 of ours for 4,714 of his; an even fight.",
+       "who": "clash"
+      },
+      {
+       "kind": "dig_in",
+       "line": "Archduke Charles digs in.",
+       "who": "theirs"
+      }
+     ]
+    },
+    "did": "pressed the card's Send (Massena, attack ArchdukeCharles)",
+    "ok": true,
+    "saw": "the table up=true; the panel offers=true; the day: ours 2.0 / his 2.0, awaits 'ours', open=true",
+    "step": "one_day_opens"
+   },
+   {
+    "did": "closed the table (true), selected Massena, right-clicked ArchdukeJohn at Milan",
+    "ok": true,
+    "saw": "the card up=true; its terms: in here adds +3 to Europe's alarm (+5 more if decisive; none on your own soil) — now 75/100.\nMassena's day against Archduke Charles is still open — a battle here would be a single clash, with no day of its own. Should he win it and advance, that day ends where it stands.\nMassena, attack Archduke John\nORDERS FOR MASSENA",
+    "step": "one_day_card"
+   },
+   {
+    "did": "pressed the card's Send (Massena, attack ArchdukeJohn)",
+    "ok": true,
+    "saw": "the table up=true on 'Battle of Milan' (attacker_tactical_victory); actions 3 -> 2; words of a day given 0; a day's block on this table=false; the days the client holds: []; the script's own line: 'Massena has marched from his day against Archduke Charles, which ends where it stands — this clash opens none of its own.'; the log says he marched from the first field=true (he advanced=true)",
+    "step": "one_day_pressed"
+   },
+   {
+    "did": "clicked Carniola on the map (the first day's field)",
+    "ok": true,
+    "saw": "the panel up=true; a day's block on it=false; the days the client holds: []",
+    "step": "one_day_first_is_over"
+   }
+  ],
+  "steps": [
+   {
+    "frame": "BA4_WALK_01_one_day_card_2026_11_17.jpg",
+    "ms": 36058,
+    "note": "the attack card for a lead who already holds a day",
+    "saved": true,
+    "step": "one_day_card",
+    "turn": 1
+   },
+   {
+    "frame": "BA4_WALK_02_one_day_pressed_2026_11_17.jpg",
+    "ms": 45439,
+    "note": "the second battle: a single clash, no day of its own",
+    "saved": true,
+    "step": "one_day_pressed",
+    "turn": 1
+   }
+  ],
+  "words": []
+ },
+ "total_s": 76.5
+}

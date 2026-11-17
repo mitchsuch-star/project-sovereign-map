@@ -42,7 +42,10 @@ EXEMPT = {
 RAW_RATCHET = 1                  # 72 at S9's start → 18 → 11 (UXR-X4, S9b) → 1 (S12); it may fall, never rise
 # Sizes passed as an expression, not a literal — each named, nowhere else.
 NON_LITERAL: dict = {}           # the menu button's 26 / 23 is two named steps since S12
-BBCODE_SIZE_RATCHET = 0          # S12: the proclamation's name is a Label on a step; the log's end heading is bold
+# S12: the proclamation's name is a Label on a step; the log's end heading is bold. Row BA, BA-5 (November
+# 17, 2026, the user's "make best call"): the ONE named step in rich text, `Utils.bb_step` — a day's
+# two-line card's second line at the theme's Caption step, read live; raw BBCode sizes stay at none.
+BBCODE_SIZE_RATCHET = 1
 # The named ladder, exactly (a step's size is a visible decision).
 LADDER = {
     "Caption": {"font_size": 14},
@@ -175,6 +178,8 @@ class TestTheRatchet:
         hits = [(n, m) for n, t in files.items() if n.endswith(".gd")
                 for m in re.findall(r"\[font_size=", G.code_lines(t))]
         assert len(hits) <= BBCODE_SIZE_RATCHET, hits
+        assert all(name == "utils.gd" for name, _ in hits), ("a size in rich text is `Utils.bb_step`'s "
+                                                             "named step, never a caller's own", hits)
 
     def test_text_size_leaves_the_fixed_display_steps_alone(self, theme):
         """S12: the steps that replaced the raw display sizes keep the raw

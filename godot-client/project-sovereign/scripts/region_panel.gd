@@ -1931,12 +1931,21 @@ func _march_here_section() -> String:
 
 
 func _day_chip_tip(chip: Dictionary) -> String:
+	"""A day's chip, hovered: why it is locked; what the word does and the rest of
+	it (row BA, BA-5: the chip's `does` and `more`, the table's own words); whether
+	the marshal may object. A chip from before BA-5 carries its odds alone."""
 	var parts: Array = []
 	if not bool(chip.get("ok", false)) and str(chip.get("why", "")) != "":
 		parts.append(str(chip.get("why", "")))
+	var does := str(chip.get("does", "")).strip_edges()
+	if does != "":
+		does = does.substr(0, 1).to_upper() + does.substr(1)
+		parts.append(does if does.ends_with(".") else does + ".")
+	if str(chip.get("more", "")) != "":
+		parts.append(str(chip.get("more", "")))
 	if str(chip.get("counsel", "none")) == "possible":
 		parts.append("The marshal may object to this word.")
-	if str(chip.get("odds", "")) != "":
+	if does == "" and str(chip.get("odds", "")) != "":
 		parts.append("The odds read: " + str(chip.get("odds", "")) + ".")
 	return " ".join(PackedStringArray(parts))
 
@@ -1979,6 +1988,11 @@ func _day_block() -> String:
 	var morning := str(day.get("morning", ""))
 	if morning != "":
 		out += "  [color=#" + Utils.COLOR_INFO + "]" + morning + "[/color]\n"
+	# Row BA, BA-5: Berthier's reading of his next word, as the table's head says it
+	var reading = day.get("reading", null)
+	if reading is Dictionary and str((reading as Dictionary).get("line", "")) != "":
+		out += "  " + Utils.bb_hint("[color=#" + Utils.COLOR_WARNING + "]Berthier's reading: " \
+			+ str(reading.get("line", "")) + ".[/color]", str(reading.get("hover", ""))) + "\n"
 	return out + _chip_row(row) + "\n"
 
 

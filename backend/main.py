@@ -8639,6 +8639,11 @@ async def first_open_endpoint(request: FirstOpenRequest):
         return {"success": False, "screen": screen, "turn": 0}
     from backend.game_logic import first_open
     ok = first_open.mark_seen(active_world, screen)
+    if ok and screen == "battle_day":
+        # Row BA, BA-5: the first day's line stands on the table that showed
+        # it, and not on the day's next (`battle_day.the_days_line_was_shown`).
+        from backend.game_logic import battle_day as _battle_day
+        _battle_day.the_days_line_was_shown(active_world)
     return {"success": bool(ok), "screen": screen,
             "turn": int(getattr(active_world, "current_turn", 0) or 0)}
 

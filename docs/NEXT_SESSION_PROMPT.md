@@ -1,74 +1,110 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk)
 
-> **BEFORE SESSION H — the user's word of November 16, 2026, given after BA-4's record was written:** "AFTER COMMITTING PUSHING MAKE THESE RULLINGS AND MAKE SURE THIS FEATURE ROCKS DONT FEAR DEEPR ESERWARCH ETC". BA-4's open readings (STATUS, its entry; §15.20–§15.21) are to be ruled under that delegation, with research, and the battle feature given a finishing pass. That pass writes its own entry in `STATUS.md` and rewrites this brief when it lands; until it has, read this brief as Session H's and do the pass first.
-
-> Overwritten each time a session hands off. Current hand-over: **November 16, 2026 — ROW BA, BA-4 "THE ROADS
-> AND THE FOG" ✅ LANDED — ROW BA ✅ COMPLETE** (`BATTLE_DIORAMA_SPEC.md` §15.19 the gate, §15.20 the landing
-> record, §15.21 its review; the rules `SYSTEMS_REFERENCE.md` §222; the ledger `BUG_FIXES.md` §BA2, §BA3,
-> §BA4; the pins `tests/test_ba4_the_roads_and_the_fog.py` and the rows' former strict xfails, plain tests
-> now).
-> **What landed:** every row that moved a measured world-line — a court's turn lost to a corps raised
-> mid-phase (BA2-X2), the battery's own shells (X12), the road round and the support order's approach rule
-> (X10, X7), a battle's light for those who fought with the news of a battle abroad (X20), the men a first
-> march costs (X21), a word's price on every quote (BA3-X5), one day a lead (X15, the user's ruling), the dead
-> day, his word's stream and the order's own temper (X13, X14, X16), BA3-X2 measured and closed as the ruled
-> layout — the two combat rules the user ticked (a pursuit is any corps that fought; the last hour's three
-> quarters), and the telling the user ticked at the gate (one name for a day, every close told, the first
-> day's line, digits on the table). One defect of what had landed was found by loading an old save in the
-> real client and fixed: the day took every support order for its lead as a word (BA4-X1).
-> **The measure — ONE, sixteen seams, fourteen arms, three surfaces:** with every new seam down the tree is the commit before on every reading (the keyed probe, the band 28 / 27 / 27, the ambient sweep, the AI-France harness, BA-3's day sweep in 72 cells of 72). **The gate is MET on the final tree — band 28 / 28 / 27, story classes 10, promotions on lodi (33) and marengo (39), the roster in two readings, annexations 0 on the ambient record** — and the hand is healthy (the silent script's mean shift −0.12 provinces; no way of playing a day beyond 0.75; none best on six seeds of eight). No number was tuned.
-> **The key bar:** **50,000 men** — the user's "research what's the most FUN", settled by a rule written before the data (the lowest of 50 / 60 / 70 / 80 thousand whose days are rich, varied and rested with the band and the hand in place; all four pass). "The Great Battle of …" keeps its 80,000; between the two the card says "A pitched battle — <lead> commands the day". One function to reverse (`battle_day.key_bar`). The bar re-times a served campaign: the session OFF holds it at 80,000 (`tests/_ba4_seams.py` `BA4_THE_KEY_BAR`, folded into the recorded boards' hold-list), the measure's served surfaces take `--key-bar`, and RS-27's scripted volte-face arm holds it with its measured reason (five days of battle at 50,000 where it met three; the beat on turn 25 with the bar held).
-> **THE DEPLOY GATE NOW READS AGAINST BA-4'S RECORDS** (the files are in (1) below). Session G5's records
-> are the game before row BA.
+> Overwritten each time a session hands off. Current hand-over: **November 17, 2026 — ROW BA, BA-5 "THE
+> FINISH" ✅ LANDED (committed at the user's word, not pushed) — BA-4'S OPEN READINGS RULED, THE DAY OF BATTLE MADE TO
+> TELL ITSELF** (`BATTLE_DIORAMA_SPEC.md` §15.22 the gate and the twelve rulings, §15.23 the landing record,
+> §15.24 its review; the rules `SYSTEMS_REFERENCE.md` §223; the ledger `BUG_FIXES.md` §BA5; the pins
+> `tests/test_ba5_the_finish.py`).
+> **What landed:** the day's table as ONE decision block — the stakes head it (each purse in pips and in
+> words, his temper and road, Berthier's reading in three states), the day's rule in one line, every word
+> with its price and what it does on its face (two-line cards; the groups under labels that say what they
+> do; the exits as quieter cards, "free · …"); the day's toll under the title, one line a clash with what
+> told, a close that names what told, the day's shape and what follows; the verdict of every battle our marshal
+> leads names what told (where the fight had a cause) and
+> the moment a line broke; the dice in one vocabulary on a plate of their own; figures on one screen that
+> agree (the counters' scope, the guns' count); the user's ticked extras (a ×1 / ×2 switch for the acts, the
+> day's sounds, a marshal's last six battles on his card, the ground drawn on the felt) and a great
+> battle's news naming its two commanders. Six defects of what had landed (BA5-D1 … D6, found by two blind
+> readers), nine of the finish's own finds (BA5-X1 … X9) and the second reading's five (BA5-X10 … X14) are
+> fixed, and so are its review's sixteen rows (BA5-X18 … X33, §15.24); BA1-X8 is closed; **BA5-X15, BA5-X16
+> and BA5-X17 are open and head Session H** (below).
+> **THE RESERVE IS NOT IN THE GAME.** The user ticked "Build it; the rule picks"; it was built and measured,
+> and the rule written before its data picked none of 2,000 / 3,000 / 5,000 (about nine in ten of the men it
+> took were ours; at 2,000 and 3,000 pressing stopped being best on any seed). By the plan's own words it is
+> switched off (`battle_day.the_reserve_pursues` returns False; `tests/_ba5_seams.py` `BA5_PARKED`), no
+> surface promises it, and its code, tests and measured arm stay. **It is the user's to arm, or to ask for
+> in another form** — recommended and NOT built: only the side that ATTACKED in the deciding clash pursues,
+> with its own unspent points (its own rule and measure first: the five clauses of §15.22, the ladder, one
+> chain of about two hours with `tools/_ba5_measure.py`). Do not build it unasked.
+> **The measure — ONE, with arms, every chain alone** (`tools/_ba5_measure.py`): with every BA-5 seam down the keyed probe is `1b5bc533` on every key (jena and marengo, 40 turns, 212 keys a turn), and with the telling up, and on the tree as shipped, it still is — what moves is what is told; the commanded band reads **28 / 28 / 27 on all seven arms**; the day's sweep equals BA-4's on 72 cells of 72 at each of three arms (every seam down, ONEDAY, the tree as shipped); the reserve's three arms give the rule's table (pick: none); the ambient ten seeds (signature and census) and the AI-France harness equal BA-4's final tree entry for entry; **the deploy gate is MET on the final tree** (band 28 / 28 / 27, story classes 10, Hesse promoted on lodi 33 and marengo 39, the roster in two readings, no annexation outside aim on the ambient record). The chain was run whole after the last backend line changed — six times in all, the last after the session's review and the second review of its fixes, every record re-taken, the reserve's three sweeps among them (92 minutes, run alone against backend and measure-tool edits); the records are that last run's (`tools/_ba5_*_2026_11_17.json`)
+> **The bar the pass was held to** (the blind reading taken again): **NOT MET.** Three takes, the same briefs and frame list, two fresh readers each time — before the work / on the finished table / after the one round of fixes the plan allowed: the player's agency 4 / 5 / **5** and the critic's decision clarity 4 / 5 / **5**, against a bar of 7. Every other score stands at or above its first reading on the last take (the player: clarity 5 → 6, drama 7 → 8, flavour 8 → 9, visual 6 → 7, desire 6 → 7; the critic: hierarchy 4 → 5, readability 5, drama 7, polish 6). Of the four checks: the verdict names a cause — yes, both; a named decisive moment — yes where a line broke; price AND consequence before a command — "partly", both (the price on every control, the consequence in words and not in stakes); the figures on a screen agree — "partly" / no (one real find, filed: BA5-X17). By the plan's words the pass stops here and the scores are reported. **What stands between 5 and 7 is the user's to rule** (§15.23, six levers in the readers' own words): a larger decision panel (the miniature cut to about half while a day awaits a word; three-line cards at body size), a chance in place of an odds word ("about 8 in 10" — a new figure, and a question for the fog), the stakes of the free words, fewer chips on a crowded day, luck against margin in one phrase, a legend and one footer. Recommended: the first, the fifth and the sixth as the head of the next battle session, held to this same reading.
+> **THE DEPLOY GATE NOW READS AGAINST BA-5'S RECORDS** (the files are in the list below). BA-4's records are
+> the game before the finish; off the served road the two are the same game (the keyed probe is identical
+> on every key).
 
 **FIRST — in this order:**
 
-0. `git log`: BA-4's commit is the one after `aeae6967` (if the tree is still uncommitted, the user has not
-   yet asked for the commit — ask before anything else is built on it). **BA-4's one review is done**
-   (§15.21: six readers of a frozen copy — fifteen findings, one a player would have met (the news of a
-   battle abroad was told on one road only), twelve fixed in nine rows BA4-X3 to BA4-X11, one reproduced and
-   not upheld; the gate's records read again after the fixes and the same).
+0. `git log`: BA-5 is ONE commit for the slice and its review, made at the user's word ("Commit it")
+   through the hook; it is NOT pushed — push only at the user's word. **BA-5's one review is done** (§15.24: 34 findings on a frozen copy, sixteen rows fixed (BA5-X18 … X33), four not upheld with their reasons; a second review of the fixes found seven — four fixed, one kept by the law as ruled (Berthier's "may" where his unseen fitness forbids the strike), two the records'; the final pass found BA5-X34 and two faults of the fixes, each fixed; the full suite's census found BA5-X35 —
+   the house rule against BBCode sizes: a card's second line at the one named step, the user's "make best call").
 1. Then **SESSION H — S15 THE DEPLOY**, the section below. Read first: `STATUS.md` ▶ NEXT UP,
    `PRE_DEPLOY_PLAN.md` §2 S15, `DYNAMISM_SPEC.md` §7.
 
-**What BA-4 changes in Session H's brief below** (the brief is kept as it stood; these lines overrule it
+**What BA-5 changes in Session H's brief below** (the brief is kept as it stood; these lines overrule it
 where they differ):
 
-- **The head's open rows are the same four families**, none of them BA-4's: UI6-X70, X73, X74, X75; the
-  weak-spot review's six (WS-10 and WS-12 the user's rulings, WS-13, WS-14, WS-15, WS-R); BA1-X4 and BA1-X8;
-  BA2-X6 and BA2-X16. Row BA's other rows are all closed (`tools/defect_census.py --open`).
-- **WS-10 (who owns the bare digits) now has a neighbour**: the day's table takes the digits 1–9 while it
-  awaits a word (the user's "Yes, on the table"). Under the table the selection card's digits are not live.
-  Put WS-10's ruling to the user with that in hand.
-- **The gate's record files** — read each clause against these, not Session G5's:
-  - story classes ≥ 6 — **10** (`tools/_dy_signature_ba4_x14_2026_11_16.json`);
-  - a minor at secondary rank by promotion on ≥ 1 seed — **two: lodi 33, marengo 39** (the same file's `rank_promotions`);
-  - the roster varying — **two readings**: {Kingdom of Italy, Papal States} on jena and wagram, {Kingdom of Italy} on eight (its `eliminations`);
-  - `annexations_outside_aim` 0 on the AMBIENT record — **0** (`tools/_ba4_x14_census_2026_11_16.json`); the AI-France harness, reported and never gated, reads **2 on jena** (`tools/_ba4_chain_d_2026_11_16.json` arm `X14`: two truces' retentions — §15.20; a reading for the user, with a recommended cure);
-  - the France band 23–28 — **28 / 28 / 27** (`tools/_ba4_band_2026_11_16_k50.json`, the final tree; every arm at the old bar in `tools/_ba4_band_2026_11_16.json`);
-  - the ambient and harness records are the final tree's (`tools/_ba4_final_tree_2026_11_16.json`: off the served road the final tree differs from the measured arm in Murat's reworded sentence alone).
-- **The user's walk** is also the first look at the day of battle as BA-4 left it: the first day's line, the
-  digits, the close's line, "halts at the approach", the news of a battle abroad in Le Moniteur.
+- **The head's open rows:** UI6-X70, X73, X74, X75; the weak-spot review's six (WS-10 and WS-12 the user's
+  rulings, WS-13, WS-14, WS-15, WS-R); **BA1-X4** (BA1-X8 is closed by BA-5: the laurels flank the banner);
+  BA2-X6 and BA2-X16; and BA-5's three, each older than its own work (X15 and X16 found by its second blind reading, X17 by
+  the third),
+  each with a strict-xfail pin in `tests/test_ba5_the_finish.py::TestTheSecondReadingsOpenRows` —
+  **BA5-X15** (while an enemy corps is still unseen on the table the strength band already counts its men:
+  hold its share back until the acts make it out) and **BA5-X16** (Berthier's "narrow defeat" family is
+  said of a defeat that cost a fifth of the corps or more (28 % in the staged case): `battle_report._OBSERVATIONS["lost_narrow_no_drill"]`
+  reads the fight's margin and not its toll) and **BA5-X17** (a press card's men of ours — and the attack
+  card's force bar — are the muster's effective weight, 105,039 against 94,512 on the field: say men in
+  reach, as men). Row BA's other rows are all closed
+  (`tools/defect_census.py --open`).
+- **WS-10 (who owns the bare digits)** has the day's table as its neighbour, as before: the table takes the
+  digits 1–9 while it awaits a word.
+- **The gate's record files** — read each clause against these:
+  - the probe `tools/_ba5_probe_2026_11_17.json`; the band `tools/_ba5_band_2026_11_17.json`; the day's
+    sweeps `tools/_ba5_sweep_0_2026_11_17.json`, `_sweep_oneday_`, `_sweep_all_` (and the reserve's
+    `_sweep_r2000_`, `_r3000_`, `_r5000_` with `tools/_ba5_reserve_rule_2026_11_17.json`) — every one
+    re-taken on the final tree after the session's review;
+  - the ambient ten: `tools/_dy_signature_ba5_all_2026_11_17.json`, `tools/_ba5_all_census_2026_11_17.json`;
+  - the harness and the gate: `tools/_ba5_chain_d_2026_11_17.json`;
+  - the client: `docs/audits/ba1_client/walk_record.json` (the walk of record),
+    `docs/audits/ba5_mode_c_2026_11_17/` (five live boards), `docs/audits/uxr0/` and `docs/audits/uxr3/`
+    `*_ba5_the_finish_2026_11_17.json` (the four instruments).
+- **The user's walk** is also the first look at the finished table: the stakes above the cards, the exits'
+  cards, Berthier's reading, "Decided when Mack's line broke: our weight of numbers told." under a headline,
+  the speed switch, "His days" on the Generals screen, the ground on the felt.
 
-**Open with the user from BA-4** (none blocks the deploy; §15.20 "Decisions taken under the delegation",
-each one line to reverse): the key bar at 50,000 (the rule's pick; the expectation written beside the rule was 60,000); **the AI-France harness's annexation line, 2 on jena** — a corps cut off by a truce keeps the ground it stands on (recommended, not built: it re-embarks and the ground returns to its last holder); the five improvements added under "make any other improvements" (every close told; the second battle says why it has no day; fixed digits; a great battle abroad forces a Gazette special; "halts at the approach" on the quote); news names crowns only; BA3-X2 closed as the ruled layout (the file from Text size 120 % up, measured); a far corps' support order is an ordinary order (BA4-X1); the first day's line never scrolls a chip; a day that kept no count tells no close; Murat's sentence on his card. **BA-3's open list stands** (§15.17 "Left with the user": he draws off only by a road to his rear when the last clash went against him; a purse spent is not a wall; the field is where the last clash was fought; the Guard is any sovereign's renewed assault; the table goes on to his clash by itself; the end-turn gate stops once) less the one item the user's tick changed — a day's later clashes now take the day's name; of its "recommended, not built" list the first four are built and the key bar is ruled. BA-2's (§15.12) and BA-1's (the plinth's name) stand as they were.
+**Open with the user from BA-5** (none blocks the deploy; §15.23 "Decisions taken under the delegation",
+each one line to reverse): **the reserve** (parked; the recommended form above); the verdict's line on every
+road, naming the lead whose line broke, and "An even fight." where nothing stood out; a card's second line
+at the one named step rich text may take (`Utils.bb_step`; the user's "make best call" on the house rule); the stakes at the
+panel's head and the battle's name in the band; the exits as quiet cards ("Leave it to him" lost its green
+ground); the panel may take eight pixels of the gap under the bars; to dig in says the stance's worth to
+that marshal; the staged scenes say the first day's line once; the card says the table's count of him on a
+band, with no odds word; Replay and Close keep their corner and the speed switch stands in Close's room
+(departures from the plan's words); **three suggestions of the second reading that are not built and not
+promised anywhere** — a legend for the table's marks (the lead's diamond, the pips under a plinth), the
+reserve's men beside its note (no room beside the counter under a triumph's laurel: tried), a larger
+miniature; ruling 1 — the law of peace is not extended to a third court's
+ground (build T3-6's extension before the gate is read if the ambient annexation line ever reads above 0).
+**BA-4's and BA-3's open lists stand** (§15.20, §15.17) less the items the twelve rulings closed (§15.22).
 
-**BA-4's traps (fresh; `SYSTEMS_REFERENCE.md` §222.13 has them in full):** a quote and the door must be ONE
-reading — when a price is made honest, press the surface in the real client and read what it now says
-(BA3-X5 showed BA4-X1); a plan row is a support quote whose price asks the day, which asks the plan — a new
-reader on that loop needs `battle_day._WEIGHING`'s kind of guard; a campaign continues between a test's
-cases (a corps that marched to the guns has spent his march: `table.boot()` a case); an OLD save is made by
-the OLD commit (`git archive <sha>` into a scratch folder, that commit's own server, `POST /save`) — the
-fixture is `tests/fixtures/playtest_saves/fixture_ba3_open_day_aeae6967.json`; a count added to a stored
-object begins at the object's creation or not at all; BA-1's display-only pin reads `battle_acts.gd`'s TEXT
-— a comment naming the API client fails it; under a `SceneTree` script `get_tree().current_scene` is null;
-a walk's own claim can be wrong — read what the client shows before changing the client; a station set that
-passes the table's own test can still stand on its neighbours at rest — look at the settled frame; a
-last-hour arrival changes every hand-computed expectation of a battle (hold the seam down with the reason,
-or stage `arrival={}`); the measure's chain is `tools/_ba4_measure.py` — probe, band, ambient, the harness,
-the day's sweep, the key bar, the gate, about seventy-five (and seventeen more for the band and the day's sweep at a new bar) minutes alone; `tools/ba2_switch_off.py`
-takes the repository's root as its FIRST argument (`--help` is read as a path); `CAMPAIGN_LOG_TYPES` is 188
-and pinned in eighteen places; `CLAUDE.md` stands a few bytes under its cap — trim first.
+**BA-5's traps (fresh; `SYSTEMS_REFERENCE.md` §223.8 has them in full):** a rule that reads "what is left
+unspent" pays the side that does nothing — measure which side a rule pays before believing it; stopping a
+background chain mid-arm still writes that arm's record, with every cell flagged failed — stop between arms
+and read a record's `ok` flags; every staged world is a fresh campaign, so a line the game says once stood
+on every staged scene (`ba1_stage_battles.FIRST_DAY_SCENES`) — and a latch stamped THIS turn still shows
+this turn; read the walk's own record at EVERY Text size before the frozen pass (at the shipped 115 % no
+staged day's exits said what they do, and the walk was green); a row of the attacker's modifier list may be
+named for the defender's asset; a walk claim that reads a list which never held the thing cannot fail —
+every new claim gets its switch-off case in the same change, and the case is RUN; a figure in a telling is
+read from the model, never kept beside it (the dig-in card's "+15%" was false of Ney); a longer line is a
+wider line — run the WHOLE walk after a wording change; `RichTextLabel.get_content_height()` measures nothing while
+`visible_characters == 0`; `AttackContext` is a slots dataclass (a new attribute is a declared field); a
+Bash heredoc eats backslashes (write a patch with the Write tool, and dry-run it:
+every swap must match exactly once); the switch-off table mutates `battle_acts.gd` in the working tree while
+it runs — nothing else reads or edits that file meanwhile; never stop a Godot engine by name (the user may
+have one of their own open) — stop the one process the walk started, by its id; a run of the playtest driver is about
+a minute, not four — the whole final-tree chain (probe, band on seven arms, the day's sweep, the ambient ten,
+the harness, the gate) is about forty minutes alone, and with every sweep re-taken (the reserve's three among
+them) about ninety; `CLAUDE.md` stands a few bytes under its cap — trim first.
 
 **The standing rules** (unchanged): commit on master through the pre-commit hook only when the user asks;
 never `--no-verify`; no branches, no worktrees, no stash; nothing pushed unless asked; no player-facing cut or

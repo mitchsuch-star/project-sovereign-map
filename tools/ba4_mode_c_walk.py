@@ -65,7 +65,15 @@ import ba3_mode_c_walk as B3  # noqa: E402
 PROJECT = B3.PROJECT
 WALK = REPO / "tools" / "ba4_mode_c_walk.gd"
 BOARDS = {"day": ("Massena", "ArchdukeCharles", "Carniola"), "roads": ("Ney", "Mack", "Swabia"),
-          "oldsave": ("Massena", "ArchdukeCharles", "Carniola")}
+          "oldsave": ("Massena", "ArchdukeCharles", "Carniola"),
+          # Row BA, BA-5 "the finish" (November 17, 2026): the Masséna board again, for the
+          # table that tells itself (`finish`), and with a second enemy corps beside the lead
+          # for ruling 9's card (`oneday`: a lead who already holds a day)
+          "finish": ("Massena", "ArchdukeCharles", "Carniola"),
+          "oneday": ("Massena", "ArchdukeCharles", "Carniola")}
+# the `oneday` board's second enemy corps and its ground: beside the lead's Tyrol, and NOT
+# beside the day's field (Carniola) — he marches to no guns of the first battle
+ONE_DAY_OTHER = ("ArchdukeJohn", "Milan")
 OLD_SAVE = REPO / "tests" / "fixtures" / "playtest_saves" / "fixture_ba3_open_day_aeae6967.json"
 HUNT_TRIES = 80
 
@@ -114,6 +122,70 @@ def hunt(limit: int = HUNT_TRIES) -> dict | None:
                         "day": {k: day.get(k) for k in ("ours", "theirs", "awaits", "side", "banner")},
                         "press": {k: after.get(k) for k in ("ours", "theirs", "awaits")},
                         "close": closing.get("close")}
+    finally:
+        M._set_active_world(before)
+    return None
+
+
+def write_one_day_scenario(path: pathlib.Path) -> pathlib.Path:
+    """The Masséna board with the second corps on its ground (`ONE_DAY_OTHER`)."""
+    B3.BOARD = "massena"
+    B3.LEAD, B3.FOE, B3.FIELD = B3.BOARDS["massena"]
+    B3.write_scenario(path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["marshals"][ONE_DAY_OTHER[0]]["location"] = ONE_DAY_OTHER[1]
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def hunt_one_day(limit: int = HUNT_TRIES) -> dict | None:
+    """The first seed of `ba5-oneday-NN` on which ruling 9's road can be walked: the
+    opening against the Archduke Charles hangs and awaits us; from where the lead then
+    stands the second corps is within his reach and its attack card carries the
+    one-day line; and that attack is then fought as ONE clash, an action spent, which
+    the lead wins on points and ADVANCES from — the branch that opened a second day
+    before BA5-X1: no day opens, and the first, which he has left, ends at once."""
+    os.environ["INK_IRON_SAVE_DIR"] = tempfile.mkdtemp(prefix="ba5_hunt_saves_")
+    os.environ.setdefault("LLM_MODE", "mock")
+    tempdir = pathlib.Path(tempfile.mkdtemp(prefix="ba5_hunt_"))
+    scenario = write_one_day_scenario(tempdir / "ba5_scenario.json")
+    other = ONE_DAY_OTHER[0]
+    from fastapi.testclient import TestClient
+    import backend.main as M
+    from backend.commands import order_quotes
+    before = M.world
+    try:
+        with TestClient(M.app) as client:
+            for n in range(limit):
+                seed = f"ba5-oneday-{n:02d}"
+                B3._quiet(M._reset_world_state, player_nation="France",
+                          scenario_override=str(scenario), seed=seed)
+                opening = B3._go(client, M, f"{B3.LEAD}, attack {B3.FOE}")
+                day = B3._day(opening)
+                if not (day.get("open") and day.get("awaits") == "ours"):
+                    continue
+                quote = B3._quiet(order_quotes.attack_quote, M.world,
+                                  M.world.get_marshal(B3.LEAD), M.world.get_marshal(other))
+                note = str(quote.get("note") or "")
+                if not (quote.get("ok") and int(quote.get("ap") or 0) == 1 and "is still open" in note
+                        and "no day of its own" in note and quote.get("command")):
+                    continue
+                left = int(M.world.actions_remaining)
+                stood = M.world.get_marshal(B3.LEAD).location
+                second = B3._go(client, M, str(quote["command"]))
+                days = (M.world.battle_days or {}).get("days") or {}
+                tableau = second.get("battle_diorama") or {}
+                told = [str(e.get("line") or "") for e in M.world.event_log
+                        if e.get("type") == "battle_day_closed"]
+                # BA5-X1's own road: he wins the second clash on points and ADVANCES — the
+                # clash opens no day, and the first day, which he has left, ends at once
+                if not second.get("success") or int(M.world.actions_remaining) != left - 1 \
+                        or M.world.get_marshal(B3.LEAD).location == stood or days \
+                        or "day" in tableau or not any("marched from the field at" in t for t in told):
+                    continue
+                return {"seed": seed, "other": other, "other_at": ONE_DAY_OTHER[1], "note": note,
+                        "day": {k: day.get(k) for k in ("ours", "theirs", "awaits", "side")},
+                        "second": tableau.get("outcome"), "first_day": told[-1]}
     finally:
         M._set_active_world(before)
     return None
@@ -176,11 +248,18 @@ def run_board(board: str, args, root: pathlib.Path) -> int:
     lead, foe, field = BOARDS[board]
     print(f"== board {board}: {lead} against {foe} at {field}")
     extra_env = {}
-    if board == "day":
+    if board in ("day", "finish"):
         found = {"seed": args.seed} if args.seed else hunt()
         if found is None:
             print(f"no campaign seed of ba4-walk-00..{HUNT_TRIES - 1} plays the day's road")
             return 1
+    elif board == "oneday":
+        found = ({"seed": args.seed, "other": ONE_DAY_OTHER[0], "other_at": ONE_DAY_OTHER[1]}
+                 if args.seed else hunt_one_day())
+        if found is None:
+            print(f"no campaign seed of ba5-oneday-00..{HUNT_TRIES - 1} walks ruling 9's road")
+            return 1
+        extra_env = {"BA5_OTHER": found["other"], "BA5_OTHER_AT": found["other_at"]}
     elif board == "oldsave":
         saved = json.loads(OLD_SAVE.read_text(encoding="utf-8"))
         old_day = next(iter(saved["world_state"]["battle_days"]["days"].values()))
@@ -208,17 +287,19 @@ def run_board(board: str, args, root: pathlib.Path) -> int:
         # the sandbox's save folder holds the old save before the server starts
         (run / "saves").mkdir(parents=True, exist_ok=True)
         shutil.copyfile(OLD_SAVE, run / "saves" / OLD_SAVE.name)
-    if board in ("day", "oldsave"):
+    if board in ("day", "oldsave", "finish"):
         B3.BOARD = "massena"
         B3.LEAD, B3.FOE, B3.FIELD = B3.BOARDS["massena"]
         scenario = B3.write_scenario(run / "ba4_scenario.json")
+    elif board == "oneday":
+        scenario = write_one_day_scenario(run / "ba5_scenario.json")
     backend, port = B3.start_backend(run, args.port, found["seed"], scenario)
     result = {"board": board, "port": port, "seed": found, "started": time.strftime("%Y-%m-%dT%H:%M:%S")}
     try:
         env = dict(os.environ)
         env.pop("PYTHONIOENCODING", None)
         env.update({"SOVEREIGN_PORT": str(port), "BA4_WALK_OUT": str(frames),
-                    "BA4_PLAN": board,
+                    "BA4_PLAN": board, "BA4_WALK_STAMP": str(args.stamp),
                     "BA4_LEAD": lead, "BA4_FOE": foe, "BA4_FIELD": field, **extra_env})
         argv = [args.godot, "--audio-driver", "Dummy", "--windowed", "--resolution", "1920x1080",
                 "--log-file", str(run / "engine.log"), "--path", str(PROJECT), "--script", str(WALK)]
@@ -290,6 +371,8 @@ def main() -> int:
     ap.add_argument("--hunt-only", action="store_true")
     ap.add_argument("--board", choices=sorted(BOARDS) + ["all"], default="all")
     ap.add_argument("--timeout", type=int, default=1200)
+    ap.add_argument("--stamp", default="2026_11_16",
+                    help="the date the frames are named with (BA-4's record: 2026_11_16)")
     args = ap.parse_args()
     boards = sorted(BOARDS) if args.board == "all" else [args.board]
     if not args.hunt_only:

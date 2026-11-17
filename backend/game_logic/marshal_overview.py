@@ -217,6 +217,9 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         # ═══════ JEALOUSY v3.2 — GLORY & GRIEVANCES (shown = applied) ═══════
         **_build_glory(marshal, world),
 
+        # ═══════ ROW BA, BA-5 — HIS DAYS (the pitched battles he led) ═══════
+        **_build_days(marshal, world),
+
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
         # VP-M1 "The Fortunes of War": the wound and the turn it heals
@@ -259,6 +262,48 @@ def _build_glory(marshal: Marshal, world) -> Dict[str, Any]:
     is the single source; shown = applied)."""
     from backend.game_logic.jealousy import build_glory_card_fields
     return build_glory_card_fields(marshal, world)
+
+
+def _build_days(marshal: Marshal, world) -> Dict[str, Any]:
+    """Row BA, BA-5 ("A marshal's days" — the user's tick at the plan gate):
+    the last pitched battles he led for the player, NEWEST FIRST — when, the
+    battle's name, how it went for him, and the rest in the table's own
+    sentences (the toll, what told, what kind of day it was). Everything in
+    it stood on the player's own battle table (`battle_day._keep_his_battle`
+    / `_keep_his_day` write it; `Marshal.days` keeps the last six).
+    {} for a marshal with none: his card then carries no such key."""
+    kept = [day for day in (getattr(marshal, "days", None) or []) if isinstance(day, dict)]
+    if not kept:
+        return {}
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.calendar import calendar_label
+    rows: List[Dict[str, Any]] = []
+    # (the review) newest first BY TURN: a day is kept when it closes and carries
+    # the turn it opened on, so the order of keeping is not the order of the days
+    order = sorted(range(len(kept)), key=lambda i: (int(kept[i].get("turn", 0) or 0), i), reverse=True)
+    for day in (kept[i] for i in order):
+        turn = int(day.get("turn", 0) or 0)
+        when = calendar_label(getattr(world, "start_date", ""), turn) or f"Turn {turn}"
+        place = humanize_entity_name(str(day.get("place") or ""))
+        name = str(day.get("name") or "") or (
+            f"The day at {place}" if int(day.get("clashes", 0) or 0) > 0 else f"A battle at {place}")
+        verdict = str(day.get("verdict") or "drawn")
+        against = humanize_entity_name(str(day.get("against") or ""))
+        rest = f" against {against}" if against else ""
+        ours, his = int(day.get("our_loss", 0) or 0), int(day.get("his_loss", 0) or 0)
+        if ours or his:
+            rest += f": {ours:,} of ours for {his:,} of his"
+        rest += "."
+        for more in (day.get("told"), day.get("shape")):
+            more = str(more or "").strip()
+            if more:
+                rest += " " + more[:1].upper() + more[1:] + ("" if more.endswith(".") else ".")
+        tone = "good" if verdict.startswith("won") else ("bad" if verdict.startswith("lost") else "even")
+        rows.append({
+            "turn": turn, "when": when, "name": name, "verdict": verdict, "tone": tone,
+            "rest": rest, "line": f"{when}: {name} — {verdict}{rest}",
+        })
+    return {"days": rows}
 
 
 def _build_identity(marshal: Marshal) -> Dict[str, Any]:

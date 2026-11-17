@@ -116,6 +116,7 @@
   "nation": "France"
  },
  "observation": "The Emperor watched this field. Murat arrived to reinforce Ney, but Bernadotte failed to reach the field in time.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"The map has erred, not I. The correction is being drafted.\"",
  "script": {
   "version": 1,
@@ -237,13 +238,23 @@
   "theirs_of": 2,
   "awaits": "ours",
   "pending": false,
-  "morning": "The last clash: won on points — 4,078 of ours for 10,932 of his.",
+  "morning": "The day so far: 11,803 of ours for 24,371 of his — the better of the toll is ours.",
   "ahead": "ours",
   "told": [
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "The opening: we won on points — 7,725 of ours for 13,439 of his; our aggressive temper told."
+   },
    {
     "who": "theirs",
     "kind": "strike",
     "line": "Mack strikes back."
+   },
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "Mack's attack: we won on points — 4,078 of ours for 10,932 of his; our weight of numbers told."
    }
   ],
   "ended": "",
@@ -260,7 +271,9 @@
     "counsel": "none",
     "odds": "favorable",
     "marshal": "Ney",
-    "shown": "Ney"
+    "shown": "Ney",
+    "does": "odds: favorable — 94,851 on 34,085",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "guard",
@@ -273,7 +286,9 @@
     "counsel": "none",
     "odds": "favorable",
     "marshal": "Napoleon",
-    "shown": "Napoleon"
+    "shown": "Napoleon",
+    "does": "odds: favorable — 126,791 on 34,085 · his morale −10",
+    "more": "As the Guard goes in his lead loses 10 morale. Thrown back, every corps of yours that fought loses 10."
    },
    {
     "kind": "dig_in",
@@ -286,7 +301,9 @@
     "counsel": "possible",
     "odds": "",
     "marshal": "Ney",
-    "shown": "Ney"
+    "shown": "Ney",
+    "does": "defensive stance: +9% if he strikes",
+    "more": "A dug-in line stands firmer when it is attacked. He speaks next."
    },
    {
     "kind": "lead",
@@ -299,7 +316,9 @@
     "counsel": "none",
     "odds": "even",
     "marshal": "Bernadotte",
-    "shown": "Bernadotte"
+    "shown": "Bernadotte",
+    "does": "odds: even — 48,849 on 34,085",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "lead",
@@ -312,7 +331,9 @@
     "counsel": "none",
     "odds": "favorable",
     "marshal": "Davout",
-    "shown": "Davout"
+    "shown": "Davout",
+    "does": "odds: favorable — 92,208 on 34,085",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "lead",
@@ -325,7 +346,9 @@
     "counsel": "none",
     "odds": "favorable",
     "marshal": "Lannes",
-    "shown": "Lannes"
+    "shown": "Lannes",
+    "does": "odds: favorable — 96,444 on 34,085",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "lead",
@@ -338,7 +361,9 @@
     "counsel": "none",
     "odds": "favorable",
     "marshal": "Murat",
-    "shown": "Murat"
+    "shown": "Murat",
+    "does": "odds: favorable — 67,938 on 34,085",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "lead",
@@ -351,7 +376,9 @@
     "counsel": "none",
     "odds": "favorable",
     "marshal": "Soult",
-    "shown": "Soult"
+    "shown": "Soult",
+    "does": "odds: favorable — 126,818 on 34,085",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "bring_up",
@@ -364,7 +391,8 @@
     "counsel": "possible",
     "odds": "",
     "marshal": "Bernadotte",
-    "shown": "Bernadotte"
+    "shown": "Bernadotte",
+    "does": "comes up beside the lead"
    },
    {
     "kind": "bring_up",
@@ -377,7 +405,8 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Soult",
-    "shown": "Soult"
+    "shown": "Soult",
+    "does": "comes up beside the lead"
    },
    {
     "kind": "stand",
@@ -390,7 +419,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Ney",
-    "shown": "Ney"
+    "shown": "Ney",
+    "does": "he speaks next",
+    "more": "A silence costs no point. Two silences running, and night falls."
    },
    {
     "kind": "break_off",
@@ -403,7 +434,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Ney",
-    "shown": "Ney"
+    "shown": "Ney",
+    "does": "the day ends; he keeps the field",
+    "more": "The attack is given up and the day ends where it stands."
    },
    {
     "kind": "stand",
@@ -416,7 +449,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Ney",
-    "shown": "Ney"
+    "shown": "Ney",
+    "does": "he may press",
+    "more": "He spends what is left by his own temper, and the enemy answers, until night."
    }
   ],
   "his_temper": "Literal",
@@ -424,6 +459,11 @@
   "first_open": {
    "screen": "battle_day",
    "line": "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and the enemy answers each word in turn. Two silences running, or every point spent, and night falls."
+  },
+  "reading": {
+   "strike": "will",
+   "line": "he will strike",
+   "hover": "Berthier's reading of his next word, as things stand: a clash changes it. \"May\" is said of anything that turns on his mood, or on what is out of your sight."
   },
   "reply": {
    "who": "theirs",

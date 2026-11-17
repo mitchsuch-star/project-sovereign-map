@@ -1,0 +1,1589 @@
+{
+ "_note": "Row BA, BA-5 \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (forty turns, the mock parser, silent on a day) per arm of the BA-5 ladder at the game's own key bar \u2014 France's provinces on the last ledger row, and each run's reserve tally. Arm 0 (every BA-5 seam down) must read 28 / 28 / 27, BA-4's shipped reading. Written by tools/_ba5_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.battle_day:our_table_reads_the_day_as_our_clash_left_it=False",
+    "backend.game_logic.battle_telling:the_day_tells_its_clashes=False",
+    "backend.game_logic.battle_telling:a_word_says_what_it_does=False",
+    "backend.game_logic.battle_telling:the_table_reads_him=False",
+    "backend.game_logic.battle_telling:the_close_names_what_told=False",
+    "backend.game_logic.battle_telling:a_verdict_names_what_told=False",
+    "backend.game_logic.battle_report:a_rout_won_on_points_has_left_the_field=False",
+    "backend.game_logic.diplomacy:a_truce_names_the_ground_it_would_title=False",
+    "backend.game_logic.battle_news:a_great_battle_names_its_commanders=False",
+    "backend.game_logic.battle_day:a_marshal_keeps_his_days=False",
+    "backend.game_logic.battle_day:the_first_days_line_stands_on_its_first_table=False",
+    "backend.game_logic.battle_diorama:the_table_shows_its_ground=False",
+    "backend.game_logic.battle_script:a_rout_is_one_this_battle_made=False",
+    "backend.game_logic.battle_day:a_lead_holds_his_day_as_the_battle_began=False",
+    "backend.game_logic.battle_day:a_words_battle_is_its_own_clash=False",
+    "backend.game_logic.battle_day:the_reserve_pursues=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": []
+  },
+  "ONEDAY": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.battle_day:a_words_battle_is_its_own_clash=False",
+    "backend.game_logic.battle_day:the_reserve_pursues=False"
+   ]
+  },
+  "R2000": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.battle_day:the_reserve_pursues=True",
+    "backend.game_logic.battle_day:reserve_pursuit=2000"
+   ]
+  },
+  "R3000": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.battle_day:the_reserve_pursues=True",
+    "backend.game_logic.battle_day:reserve_pursuit=3000"
+   ]
+  },
+  "R5000": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.battle_day:the_reserve_pursues=True",
+    "backend.game_logic.battle_day:reserve_pursuit=5000"
+   ]
+  },
+  "TELL": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 24
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 3,
+      "enemy": "Buxhowden",
+      "field": "Carniola",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 0,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 12
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 25
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 28
+     }
+    ],
+    "days_ended": {
+     "end_turn": 6
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "reserve": {},
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.battle_day:a_lead_holds_his_day_as_the_battle_began=False",
+    "backend.game_logic.battle_day:a_words_battle_is_its_own_clash=False",
+    "backend.game_logic.battle_day:the_reserve_pursues=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

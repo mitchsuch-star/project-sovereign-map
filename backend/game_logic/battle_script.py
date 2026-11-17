@@ -462,9 +462,10 @@ def _approach(script: _Script, payload: dict, attacker, defender,
             if late and own:
                 text = script.said(
                     "arrive_late_own",
-                    "{n} comes up{w} at the last hour ({s} against a bar of {b}).",
-                    "{n} reaches the field{w} at the last hour ({s} against a bar of {b}).",
-                    "{n} comes up late{w}, but in time ({s} against a bar of {b}).", **f) + cut
+                    # (BA-5, the second reading: "58 against a bar of 55" read as jargon)
+                    "{n} comes up{w} at the last hour (his march: {s}, where {b} was needed).",
+                    "{n} reaches the field{w} at the last hour (his march: {s}, where {b} was needed).",
+                    "{n} comes up late{w}, but in time (his march: {s}, where {b} was needed).", **f) + cut
             elif late:
                 text = script.said(
                     "arrive_late", "{n} comes up at the last hour.",
@@ -651,7 +652,21 @@ def _assault(script: _Script, attacker, defender, battle_result: dict,
                     pct=_i(row.get("value"))))
 
 
-def _fate_of(world, name: str, lead_broke: bool, origins: dict, region: str):
+def a_rout_is_one_this_battle_made() -> bool:
+    """Row BA, BA-5 seam (the session's review, a defect older than the row):
+    a corps is told as breaking only where THIS battle drove it off. The turn's
+    retreat flag (`retreated_this_turn`) is set by any earlier retreat and
+    survives the enemy phase: a corps thrown back in the player's phase and
+    then attacked, holding, was told "Ney's line breaks at 70% morale" and
+    "Ney falls back on …" over a table whose verdict named no broken line. The
+    corps that had retreated before the battle (`facts["retreated_before"]`,
+    noted at its muster) are read by this battle's own result. Down (False):
+    the flag alone, as before."""
+    return True
+
+
+def _fate_of(world, name: str, lead_broke: bool, origins: dict, region: str,
+             retreated_before=()):
     """What became of one corps, read off the marshal after the retreat and
     the advance have run (stage 18): (how, where he stands now)."""
     marshal = (getattr(world, "marshals", None) or {}).get(name)
@@ -664,7 +679,13 @@ def _fate_of(world, name: str, lead_broke: bool, origins: dict, region: str):
     here = str(getattr(marshal, "location", "") or "")
     if getattr(marshal, "broken", False):
         return "shattered", here
-    if getattr(marshal, "retreated_this_turn", False) or lead_broke:
+    retreated = bool(getattr(marshal, "retreated_this_turn", False))
+    if (retreated and a_rout_is_one_this_battle_made() and name in retreated_before
+            and here == region):
+        # (the review) driven off BEFORE this battle and still on its ground: it
+        # held. One that is no longer where the battle was fought was moved by it.
+        retreated = False
+    if retreated or lead_broke:
         return "routed", here
     if name in origins and here != region and here == origins.get(name):
         return "withdrew", here
@@ -717,7 +738,8 @@ def _crisis(script: _Script, world, payload: dict, attacker, defender,
             if c.get("status") in _ABSENT or not name:
                 continue
             is_lead = name == lead.name
-            how, _where = _fate_of(world, name, is_lead and lead_broke, origins, region)
+            how, _where = _fate_of(world, name, is_lead and lead_broke, origins, region,
+                                   set(facts.get("retreated_before") or ()))
             if is_lead and c.get("status") == "destroyed":
                 how = how or "destroyed"
             fates[name] = how
@@ -906,6 +928,22 @@ def _pursuit(script: _Script, world, payload: dict, attacker, defender,
             damage=damage, halved=screened, target=defender.name),
             named=(defender.name,))
 
+    # Row BA, BA-5: the reserve pursues a beaten enemy (a day of battle) — the
+    # victor's lead makes the move; the figure is the beaten lead's own loss,
+    # which the battle's report gives to the player who fought it.
+    reserve = battle_result.get("reserve_pursuit")
+    if isinstance(reserve, dict) and _i(reserve.get("men")) > 0:
+        beaten_is_defender = reserve.get("side") == "defender"
+        victor, beaten = (attacker, defender) if beaten_is_defender else (defender, attacker)
+        points = _i(reserve.get("points"))
+        held = "one point" if points == 1 else f"{points} points"
+        text = (f"{_n(victor.name)}'s reserve pursues — {held} in hand more than "
+                f"{_n(beaten.name)} kept: {_i(reserve.get('men')):,} more of his.")
+        script.add("pursuit", _beat(
+            "pursue", "attacker" if beaten_is_defender else "defender", victor.name, text,
+            weight="head", damage=_i(reserve.get("men")), reserve=True, target=beaten.name),
+            named=(beaten.name,))
+
     region = str(payload.get("region", "") or "")
     origins = facts.get("reinforcer_origin") or {}
     for side in ("attacker", "defender"):
@@ -914,7 +952,8 @@ def _pursuit(script: _Script, world, payload: dict, attacker, defender,
             how = fates.get(name, "")
             if not how or how in ("destroyed", "captured"):
                 continue
-            _how, where = _fate_of(world, name, how == "routed", origins, region)
+            _how, where = _fate_of(world, name, how == "routed", origins, region,
+                                   set(facts.get("retreated_before") or ()))
             # An enemy's road off the field is his own intelligence; ours is ours.
             marshal = (getattr(world, "marshals", None) or {}).get(name)
             own = getattr(marshal, "nation", "") == player_nation
@@ -942,10 +981,11 @@ def _pursuit(script: _Script, world, payload: dict, attacker, defender,
         # remain in the field" is the battle's own line): say so, or "the
         # day hangs" followed by an advance reads as a contradiction.
         foe = (getattr(world, "marshals", None) or {}).get(defender.name)
+        before = set(facts.get("retreated_before") or ()) if a_rout_is_one_this_battle_made() else set()
         stands = bool(
             foe is not None and _i(getattr(foe, "strength", 0)) > 0
             and not getattr(foe, "captured_by", "")
-            and not getattr(foe, "retreated_this_turn", False)
+            and not (getattr(foe, "retreated_this_turn", False) and defender.name not in before)
             and str(getattr(foe, "location", "") or "") == advanced)
         tail = f", where {_n(defender.name)} still stands." if stands else "."
         script.add("pursuit", _beat(

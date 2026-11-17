@@ -178,6 +178,8 @@ func _open(shot: Dictionary) -> void:
 	Utils.apply_text_size()
 	UiSettings._cfg.set_value("display", "battle_scenes", str(shot.get("mode", "acts")))
 	UiSettings._cfg.set_value("display", "reduce_motion", bool(shot.get("reduce_motion", false)))
+	# BA-5: Settings -> Battle speed (the table's own switch writes the same key)
+	UiSettings._cfg.set_value("display", "battle_speed", str(shot.get("speed", "x1")))
 	_current["mode"] = str(shot.get("mode", "acts"))
 	_current["scale"] = scale
 	_current["text_size"] = text_size
@@ -368,6 +370,15 @@ func _play() -> void:
 				(chips as RichTextLabel).meta_clicked.emit("day:%d" % int(event.get("index", 0)))
 			else:
 				(_current["missed"] as Array).append("press_chip: no such box on the panel")
+		"click_speed":
+			# BA-5: a REAL left click on the table's own speed switch, at its centre in the
+			# window (the acts must go on playing: the click is the switch's, not the table's)
+			var acts_sp = _node._acts
+			var sw = acts_sp._speed_switch if acts_sp != null else null
+			if sw != null and is_instance_valid(sw) and (sw as CanvasItem).is_visible_in_tree():
+				_click(root.get_final_transform() * (sw as Control).get_global_rect().get_center())
+			else:
+				(_current["missed"] as Array).append("click_speed: no switch on the table")
 		"esc":
 			_key(KEY_ESCAPE)
 		"digit":
@@ -484,9 +495,26 @@ func _read_table() -> Dictionary:
 	row["replay_shown"] = bool(_node._btn_replay.visible)
 	row["close_shown"] = bool(_node._btn_close.visible)
 	row["close_text"] = str(_node._btn_close.text)          # K4: "Close", or "His answer ▸" on a table that follows
+	# BA-5: Close wears the primary look except while a day offers its words
+	row["close_primary"] = str(_node._btn_close.theme_type_variation) == "PrimaryButton"
 	row["skip_hint_visible"] = _node._skip_hint != null and is_instance_valid(_node._skip_hint) \
 			and (_node._skip_hint as CanvasItem).is_visible_in_tree()    # K1: never up with the panel
 	row["dismissed"] = _dismissed
+	# BA-5: the acts' speed - the engine's clock against the walk's own (100 = the walk's
+	# pace), the setting, and the table's own switch beside the skip hint
+	row["clock_pct"] = int(round(Engine.time_scale / _time_scale * 100.0))
+	row["speed_setting"] = str(UiSettings.get_battle_speed())
+	var speed_sw = _node._acts._speed_switch if _node._acts != null else null
+	var speed_row := {"shown": false, "text": "", "rect": []}
+	if speed_sw != null and is_instance_valid(speed_sw):
+		speed_row["shown"] = (speed_sw as CanvasItem).is_visible_in_tree()
+		speed_row["text"] = str((speed_sw as Button).text)
+		speed_row["rect"] = _on_tray(speed_sw, Rect2(Vector2.ZERO, (speed_sw as Control).size))
+		# ...and in the window's pixels, as the plate's furniture is recorded (`chrome`)
+		var sp_rect: Rect2 = (speed_sw as Control).get_global_rect()
+		speed_row["window_rect"] = [int(round(sp_rect.position.x)), int(round(sp_rect.position.y)),
+				int(round(sp_rect.size.x)), int(round(sp_rect.size.y))]
+	row["speed_switch"] = speed_row
 	# BA1-X6: what the table holds back while the day is open.
 	row["vignette"] = str(_node._vignette.modulate.to_html())
 	var laurels := 0
@@ -494,6 +522,14 @@ func _read_table() -> Dictionary:
 		if laurel != null and laurel.visible and laurel.modulate.a > 0.05:
 			laurels += 1
 	row["laurels"] = laurels
+	# BA1-X8: where the laurels stand on the BAIZE (they flank the triumph's banner), in the
+	# stage's own pixels, and the banner's own ink beside them
+	var laurel_ink: Array = []
+	for laurel in [_node._laurel_l, _node._laurel_r]:
+		if laurel != null and laurel.visible and laurel.modulate.a > 0.05:
+			laurel_ink.append(_on_stage(laurel, Rect2(Vector2.ZERO, (laurel as Control).size)))
+	row["laurel_ink"] = laurel_ink
+	row["banner_ink"] = _ink(_node._banner) if _node._banner.visible and _node._banner.text != "" else []
 	row["tray_alpha_pct"] = int(round(_node._tray.modulate.a * 100.0))
 	# The plate's furniture, where it is SHOWN, in window pixels (BA1-X8: the
 	# laurels against the seal and the buttons).
@@ -519,6 +555,14 @@ func _read_table() -> Dictionary:
 			row["act"] = str(acts._act_label.text)
 		if acts._dice != null and is_instance_valid(acts._dice):
 			row["dice_shown"] = bool(acts._dice.visible)
+			# BA5-D6: the tray's lines are read when the dice have landed
+			var read := 0
+			for dice_row in acts._dice._rows:
+				if is_instance_valid(dice_row) and (dice_row as CanvasItem).visible:
+					read += 1
+			row["dice_rows_shown"] = read
+			row["dice_sum"] = str(acts._dice._sum.text) if acts._dice._sum != null else ""
+			row["caption_chars"] = int(_node._verdict.visible_characters)
 			var d: Control = acts._dice
 			row["dice_rect"] = [int(d.position.x), int(d.position.y), int(d.size.x), int(d.size.y)]
 		row["plays"] = bool(acts.plays())
@@ -534,6 +578,14 @@ func _read_table() -> Dictionary:
 	row["laid"] = str(acts._laid) if acts != null else "file"
 	# BA3-X2 (row BA, BA-4): why the table kept the file, as the client measured it
 	row["laid_why"] = (acts._laid_why as Array).duplicate() if acts != null else []
+	# BA-5: the ground on the table - which terrain is drawn, where in the stage's own
+	# order (1 = over the felt, under the lamp, the men and every label), whose half
+	var ground_row := {"kind": "", "index": -1, "dir": 0}
+	if acts != null and acts._ground != null and is_instance_valid(acts._ground):
+		ground_row["kind"] = str(acts._ground.kind)
+		ground_row["index"] = int(acts._ground.get_index())
+		ground_row["dir"] = int(acts._ground.dir)
+	row["ground"] = ground_row
 	row["wall"] = ""
 	var works := {}
 	if acts != null:
@@ -590,6 +642,13 @@ func _read_table() -> Dictionary:
 		})
 	row["corps"] = corps
 	row["labels"] = labels
+	# BA-5 (the second reading): the two counters (caption, figure) and the band's two figures
+	row["counters"] = [[str(_node._odo_left_cap.text), str(_node._odo_left.text)],
+			[str(_node._odo_right_cap.text), str(_node._odo_right.text)]]
+	var band_figs: Array = []
+	for fig in _node._band_figs:
+		band_figs.append(str((fig as Label).text) if is_instance_valid(fig) else "")
+	row["band"] = band_figs
 	var marks: Array = []
 	_collect_marks(_node._stage, marks)
 	row["marks"] = marks
@@ -607,11 +666,19 @@ func _read_table() -> Dictionary:
 	row["shelf_visible"] = not shelves.is_empty()
 	row["shelf_rects"] = shelves
 	row["verdict_y"] = int(_node._verdict.position.y)
+	# BA5-D3: the verdict in its room - what it holds, how tall that is, how tall the room
+	row["verdict_bb"] = str(_node._verdict.text)
+	# (the house rule) a step smaller is the label's own ladder step, never a BBCode size
+	row["verdict_step"] = str(_node._verdict.theme_type_variation)
+	row["verdict_h"] = int(_node._verdict.get_content_height())
+	row["verdict_room"] = int(_node._verdict.size.y)
+	row["verdict_lines"] = int(_node._verdict.get_line_count())
 	row["scribble_seen"] = _scribble_seen
 	row["cues"] = _cues_seen.duplicate()
 	# K11: the sub-banner (the day's morning), its ink on the stage, and the dice's room under it
 	var sub: Label = _node._sub_banner
-	row["sub_banner"] = {"text": str(sub.text), "visible": sub.is_visible_in_tree()}
+	row["sub_banner"] = {"text": str(sub.text), "visible": sub.is_visible_in_tree(),
+			"tip": str(sub.tooltip_text)}
 	row["sub_ink"] = _ink(sub) if sub.is_visible_in_tree() and sub.text.strip_edges() != "" else []
 	# K2 / K4: the primary buttons' places, in the tray's design pixels
 	var btns := {}
@@ -697,6 +764,8 @@ func _read_day() -> Dictionary:
 					"ink": _rtl_ink(r), "chips": r == acts._day_chips, "groups": r == acts._day_groups,
 					"exits": r == acts._day_exits,
 					"first": str(r.name) == "FirstOpen",       # BA-4: the first day's own line
+					"head": str(r.name) == "DayHead",          # BA-5: the head (the stakes: the panel's first row)
+					"rule": str(r.name) == "DayRule",          # ...and the day's rule, on its caption line
 					"shown": (r as CanvasItem).is_visible_in_tree(),
 					"scroll_active": bool(r.scroll_active),
 					"v_max": int(r.get_v_scroll_bar().max_value), "v_page": int(r.get_v_scroll_bar().page)})
@@ -705,6 +774,21 @@ func _read_day() -> Dictionary:
 	out["focus_modes"] = focus_modes
 	out["has_chips"] = acts._day_chips != null and is_instance_valid(acts._day_chips)
 	out["inline"] = bool(acts._day_inline)           # K5: the groups flow in one paragraph
+	# BA-5: what the ladder left on the words' faces
+	out["cards"] = bool(acts._day_cards)             # row C is two-line cards
+	out["exit_tags"] = bool(acts._day_exit_tags)     # the exits say what they do
+	out["tags_kept"] = int(acts._day_tags_kept)      # ...level with the buttons, how many still do
+	out["exits_up"] = bool(acts._day_exits_up)       # ...as two-line cards beside the buttons
+	out["rule_row"] = bool(acts._day_rule_row)       # the day's rule has its caption line
+	out["exits_wide"] = bool(acts._day_exits_wide)   # the exits' cards were wider than their room
+	out["lifted"] = bool(acts._day_lifted)           # the panel took 8 px of the gap under the bars
+	out["top_plain"] = int(acts._day_top_plain)      # ...and where its top stands without that
+	var named = panel.get_node_or_null("DayName")    # the battle's name, in the band above the baize
+	if named != null and named is Label:
+		var nl: Label = named
+		out["name"] = {"text": nl.text, "shown": nl.is_visible_in_tree(),
+				"rect": [int(panel.position.x + nl.position.x), int(panel.position.y + nl.position.y),
+						int(nl.size.x), int(nl.size.y)]}
 	out["his_waiting"] = bool(acts._his_waiting)     # K4: a table that follows waits to go on
 	out["has_groups"] = acts._day_groups != null and is_instance_valid(acts._day_groups)
 	out["has_exits"] = acts._day_exits != null and is_instance_valid(acts._day_exits)

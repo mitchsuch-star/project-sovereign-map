@@ -731,6 +731,39 @@ SHOTS: list[dict] = [
              "undecided field.' in italics; no chips, no exits; primary button Close"),
         ]
     ],
+    # ── Row BA, BA-5 "the finish": a verdict names what told ──────────────────
+    # battle_acts.gd `_dress_the_kind` writes the payload's `verdict_told` in the
+    # line under the headline (after the host's own line where the province
+    # changed hands); the dice tray's first row names who threw; the province's
+    # ground is drawn on the defender's half of the felt.
+    *[
+        {
+            "id": f"diorama_ba5_{scene}",
+            "surface": f"Battle Diorama — BA-5, a verdict names what told ({label})",
+            "payload": f"diorama_ba5_{scene}",
+            "scene": "res://scenes/battle_diorama.tscn",
+            "mode": "call", "method": "show_diorama",
+            "args": ["$payload", False],
+            "must_show": must,
+        }
+        for scene, label, must in [
+            ("ulm_full", "a great battle won",
+             "the headline of a triumph with a laurel either side of its words; under it, on its "
+             "own line, what told (the payload's `verdict_told`: 'Our weight of numbers told.', with the moment a line broke where one did), clear of "
+             "the two loss blocks and above the dice; the tray's first row names who threw "
+             "('Ney throws …'); Berthier's verdict whole in its room; the name plate and the seal"),
+            ("defeat_defending", "a defeat on the defence",
+             "the headline of a defeat and under it what told for HIM ('His weight of numbers told.'); the "
+             "tray names the enemy as the thrower; the verdict and the enemy's line whole"),
+            ("square_and_horse", "the horse against his squares",
+             "what told is HIS asset ('His squares told.'), never 'our squares'; the mountains "
+             "drawn on the defender's half of the felt, under the men and every label"),
+            ("day_decided", "the clash that decides a day",
+             "the deciding clash's own headline (no day's panel) and under it 'Decided at the "
+             "<n>th clash: …'; Berthier's line speaks of an enemy who has left the field, never "
+             "of one 'still in the field'; the ⓘ on the verdict where a paragraph rides its hover"),
+        ]
+    ],
     {
         "id": "diorama_ba3_act_approach",
         "surface": "Battle Diorama — BA-3 (mid-act: the day's panel is ABSENT)",

@@ -118,6 +118,7 @@
   "nation": "Austria"
  },
  "observation": "The Emperor watched this field. Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position — though Bernadotte never arrived, Sire.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"A temporary derangement of the arithmetic. Vienna will understand.\"",
  "script": {
   "version": 1,
@@ -264,5 +265,6 @@
    "ArchdukeJohn": "cautious",
    "Schwarzenberg": "cautious"
   }
- }
+ },
+ "verdict_told": "Our aggressive temper told."
 }

@@ -1100,6 +1100,10 @@ def battle_script_facts(ctx) -> dict:
         "auto_bombardment_results": list(getattr(ctx, "auto_bombardment_results", None) or []),
         "overwatch_count": int(getattr(ctx, "overwatch_count", 0) or 0),
         "advanced_to": getattr(ctx, "advanced_to", None),
+        # Row BA, BA-5 (the review): the corps that had retreated earlier in the
+        # turn, noted at the muster — the script tells a rout only where this
+        # battle made it (`battle_script.a_rout_is_one_this_battle_made`)
+        "retreated_before": sorted(getattr(ctx, "_bd_pre_retreated", None) or ()),
         # Row BA (BA-3): the word this clash is, when it is a word of an open
         # day of battle — absent for an opening clash and every ordinary one.
         **_the_days_word_fact(ctx),
@@ -1179,10 +1183,17 @@ class AttackContext:
     p: Any = field(init=False)
     is_coordinated_battle: Any = field(init=False)
     _bd_pre_strengths: Any = field(init=False)
+    # Row BA, BA-5 (the review): the participants already flagged as retreated
+    # this turn when the battle mustered (display only: the script's rout)
+    _bd_pre_retreated: Any = field(init=False)
     # WS-11 (row BA): the battle's own dice — a private `random.Random` on a
     # rolled campaign seed, None on `historical` (every draw then stays on the
     # module `random`). Set at the head of stage 10, before the first draw.
     battle_rng: Any = field(init=False)
+    # Row BA, BA-5 (BA5-X1): the enemy lead of the day OUR lead of this battle
+    # held when it began ("" = none) - `battle_day.note_the_day_he_holds`, set
+    # at the head of stage 10 on a served campaign, before anyone advances.
+    _bd_day_held: Any = field(init=False)
     overwatch_count: Any = field(init=False)
     auto_bombardment_messages: Any = field(init=False)
     auto_bombardment_results: Any = field(init=False)
@@ -6878,7 +6889,9 @@ class CombatExecutor:
             attacker_before=pre_battle_atk_strength, attacker_losses=attacker_losses,
             garrison_before=old_garrison, garrison_losses=garrison_losses, capitulated=capitulated,
             defender_nation=target_region.controller, drilled=_drill_spent, iron=iron_stacks_fired,
-            fortified=target_region.has_building("fortification"))
+            fortified=target_region.has_building("fortification"),
+            # BA-5 (the review): the strengths the fight was FOUGHT on, for what told at the wall
+            attacker_effective=int(attacker_effective), garrison_effective=int(garrison_effective))
 
         # Check if garrison collapsed
         # Capital garrisons collapse below 5k threshold; detachment garrisons fight to destruction
@@ -10578,6 +10591,10 @@ class CombatExecutor:
         )
         ctx._bd_pre_strengths = snapshot_pre_battle_strengths(
             ctx.atk_participants, ctx.def_participants)
+        ctx._bd_pre_retreated = sorted(
+            {str(m.name) for m in [ctx.marshal, ctx.enemy_marshal]
+             + list(ctx.atk_participants or []) + list(ctx.def_participants or [])
+             if m is not None and getattr(m, "retreated_this_turn", False)})
 
         # Jealousy v3.2 (spec §3): the grievance as fuel — a jealous marshal
         # attacking ALONE (no same-side participants) fights at +15%.
@@ -10923,6 +10940,12 @@ class CombatExecutor:
         # other attack: `battle_day.guard_shock` reads the day's own word).
         from backend.game_logic import battle_day as _battle_day
         _battle_day.guard_shock(ctx)
+        # Row BA, BA-5: ...and what each side would still hold with this word
+        # paid for — the reserve that pursues if the clash decides the day
+        _battle_day.count_the_reserve(ctx)
+        # BA5-X1: ...and the day our lead holds NOW, before anyone advances
+        # ("one day a lead" is read as he stood when the battle began)
+        _battle_day.note_the_day_he_holds(ctx)
         # IQ-5 (display only, both paths): the co-located contributors each
         # side's mass line names (R3), every participant's resolve-time
         # strength for the log's field bound and the dispatch's per-man
@@ -11251,6 +11274,41 @@ class CombatExecutor:
                         cs["defender_casualties"] = int(cs.get("defender_casualties", 0)) + int(pursuit_damage)
                         cs["defender_remaining"] = max(
                             0, int(cs.get("defender_remaining", 0)) - int(pursuit_damage))
+
+            # Row BA, BA-5 — the reserve pursues a beaten enemy: the mirror of
+            # `resolve_battle`'s block (the solo copy), with the coordinated
+            # road's frozen surfaces patched as the pursuit block above patches
+            # them. Either side; after the ability's own pursuit.
+            _broke_him = bool(ctx.battle_result["defender"]["forced_retreat"] and ctx.atk_won)
+            _thrown_back = bool(ctx.battle_result["attacker"]["forced_retreat"]
+                                and ctx.outcome in ("defender_victory", "defender_tactical_victory"))
+            if _broke_him or _thrown_back:
+                from backend.game_logic import battle_day as _battle_day
+                _side = "defender" if _broke_him else "attacker"
+                _beaten = ctx.enemy_marshal if _broke_him else ctx.marshal
+                _men, _points = _battle_day.reserve_pursuit_men(attacker_wins=_broke_him, loser=_beaten)
+                if _men > 0:
+                    _beaten.strength -= _men
+                    ctx.battle_result["reserve_pursuit"] = {
+                        "side": _side, "men": int(_men), "points": int(_points)}
+                    ctx.battle_result["description"] = (
+                        ctx.battle_result.get("description", "")
+                        + f"\n\n[Combat] The reserve pursues {_beaten.name}: +{_men:,} casualties.")
+                    ctx.battle_result[_side]["remaining"] = int(_beaten.strength)
+                    ctx.battle_result[_side]["casualties"] = (
+                        int(ctx.battle_result[_side].get("casualties", 0)) + int(_men))
+                    _shares = ctx.def_distribution if _broke_him else ctx.atk_distribution
+                    _shares[_beaten.name] = _shares.get(_beaten.name, 0) + int(_men)
+                    log_event = ctx.battle_result.get("log_battle_event")
+                    if isinstance(log_event, dict):
+                        log_event[f"{_side}_casualties"] = (
+                            int(log_event.get(f"{_side}_casualties", 0)) + int(_men))
+                    report = ctx.battle_result.get("battle_report")
+                    if isinstance(report, dict) and isinstance(report.get("casualty_summary"), dict):
+                        cs = report["casualty_summary"]
+                        cs[f"{_side}_casualties"] = int(cs.get(f"{_side}_casualties", 0)) + int(_men)
+                        cs[f"{_side}_remaining"] = max(
+                            0, int(cs.get(f"{_side}_remaining", 0)) - int(_men))
 
             # ════════════════════════════════════════════════════════════
             # IQ-5 (PR-X2) R1 + R4 + R5 — display-only keys, added AFTER the
@@ -12427,6 +12485,11 @@ class CombatExecutor:
         # decide the day opens one (or carries an open one on, or closes it);
         # None for every other battle — the tableau then carries no `day`.
         _day_block = _battle_day.after_the_battle(ctx)
+        # BA5-X1: our lead held a day when this battle began and has advanced
+        # off its ground — that day ends now, and this battle's message says so.
+        _left_day = _battle_day.his_first_day_ends(ctx)
+        if _left_day and isinstance(ctx.result, dict):
+            ctx.result["message"] = f"{ctx.result.get('message', '')}\n{_left_day}"
         # ════════════════════════════════════════════════════════════
         # BD (Battle Diorama): the self-contained tableau payload — one
         # builder for the solo and coordinated paths, fog-gated inside.
@@ -12505,6 +12568,12 @@ class CombatExecutor:
                         _stack.extend(_node)
             if _day_block is not None:
                 _bd_payload["day"] = _day_block
+            # BA-5: what told, under the battle's own headline ("" for a
+            # battle we led no side of, and on a day's own table, whose lines
+            # say it clash by clash)
+            _told_line = _battle_day.the_verdicts_line(ctx, _day_block)
+            if _told_line:
+                _bd_payload["verdict_told"] = _told_line
             ctx.result["battle_diorama"] = _bd_payload
             ctx.result["events"][0]["diorama"] = _bd_payload
 

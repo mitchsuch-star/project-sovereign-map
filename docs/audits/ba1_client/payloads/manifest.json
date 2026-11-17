@@ -30,7 +30,7 @@
  "last_hour": {
   "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
   "ambient_seed": 154,
-  "shows": "Murat comes up at the last hour (58 against a bar of 55)",
+  "shows": "Murat comes up at the last hour (his march: 58, where 55 was needed)",
   "kind": "battle",
   "form": "full",
   "register": "triumph",
@@ -313,9 +313,9 @@
   "shows": "a day with its purse spent: 2 chip(s) dim with a reason ('Massena presses': \"The day's points are spent.\"), 3 word(s) still lit",
   "kind": "battle",
   "form": "full",
-  "register": "defeat",
+  "register": "grim",
   "beats": {
-   "approach": 2,
+   "approach": 3,
    "assault": 3,
    "crisis": 2
   }
@@ -323,7 +323,7 @@
  "day_word": {
   "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
   "ambient_seed": 1,
-  "shows": "the clash after our word ('Massena presses the attack.'): 1 of 2 points to 1 and the day still hangs, his clash following",
+  "shows": "the clash after our word ('Massena presses the attack.'): 1 of 2 points to 2 and the day still hangs, his clash following",
   "kind": "battle",
   "form": "brief",
   "register": "defeat",
@@ -375,7 +375,7 @@
  "day_follows": {
   "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
   "ambient_seed": 0,
-  "shows": "OUR clash's tableau when he strikes back: follows=true and no chips (2 of 2 points to 2); his clash comes next",
+  "shows": "OUR clash's tableau when he strikes back: follows=true and no chips (2 of 2 points to 3); his clash comes next",
   "kind": "battle",
   "form": "full",
   "register": "defeat",

@@ -129,8 +129,11 @@ class TestEveryRoadTellsItsDarkSide:
         world = _assault(men=60000, ally=False)
         [news] = _news(world)
         assert news["great"] is True and news["ally"] == ""
+        # (Row BA, BA-5 — the user's tick "Name the commanders": a great
+        # assault's news names the man who led it. It read "Prussia has thrown".)
         assert news["line"].startswith(
-            "News from Vienna: Prussia has thrown a great assault on the works of Austria — ")
+            "News from Vienna: Hohenlohe of Prussia has thrown a great assault on the works of Austria — ")
+        assert not any(ch.isdigit() for ch in news["line"]), "still no figure"
         from backend.game_logic import gazette
         assert gazette._special_reason(world, [news]) == "a great battle abroad"
 
@@ -422,8 +425,11 @@ class TestTheCardPromisesNoDayTheRuleWillNotOpen:
         quote = order_quotes.attack_quote(world, ney, kienmayer)
         assert quote["ok"], quote.get("refusal")
         assert "day" not in quote
+        # (row BA, BA-5 — BA5-X1, ruling 9's card pressed in the real client: the card
+        # also says what winning the clash does to the day he holds)
         assert quote["note"] == ("Ney's day against Mack is still open — a battle here would be "
-                                 "a single clash, with no day of its own.")
+                                 "a single clash, with no day of its own. Should he win it and "
+                                 "advance, that day ends where it stands.")
 
     def test_with_no_day_open_the_same_card_forecasts_one(self, table):
         _seat(table.world, ours=30000, his=30000)

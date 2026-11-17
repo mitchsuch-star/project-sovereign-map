@@ -3,6 +3,7 @@
  "fate": "stormed",
  "battle_name": "Storming of Vienna",
  "region": "Vienna",
+ "ground": "plains",
  "turn": 1,
  "outcome": "attacker_victory",
  "victor": "Ney",
@@ -60,6 +61,7 @@
  "observation": "Vienna is carried by storm.",
  "banner": "THE WALLS ARE CARRIED",
  "fortified": false,
+ "verdict_told": "Our weight of numbers told.",
  "script": {
   "version": 1,
   "form": "full",

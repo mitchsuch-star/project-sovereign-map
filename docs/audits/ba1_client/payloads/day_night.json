@@ -55,6 +55,7 @@
   "nation": "Austria"
  },
  "observation": "The terrain heavily favored Archduke Charles. Massena's men paid the price.",
+ "ground": "hills",
  "enemy_voice": "Archduke Charles: \"I do not leave my ground. You were warned.\"",
  "script": {
   "version": 1,
@@ -183,7 +184,7 @@
   "theirs_of": 3,
   "awaits": "",
   "pending": false,
-  "morning": "The last clash: lost on points — 5,921 of ours for 2,828 of his.",
+  "morning": "The day: 17,320 of ours for 11,965 of his — Archduke Charles had the better of the toll.",
   "ahead": "theirs",
   "told": [
    {
@@ -192,9 +193,19 @@
     "line": "Archduke Charles strikes back."
    },
    {
+    "who": "clash",
+    "kind": "clash",
+    "line": "Archduke Charles's attack: drawn — 4,248 of ours for 4,629 of his; an even fight."
+   },
+   {
     "who": "ours",
     "kind": "press",
     "line": "Massena presses the attack."
+   },
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "Massena's attack: we lost on points — 5,921 of ours for 2,828 of his; his weight of numbers told."
    },
    {
     "who": "end",
@@ -205,11 +216,21 @@
     "who": "end",
     "kind": "tally",
     "line": "Three clashes: 17,320 of ours for 11,965 of the enemy's."
+   },
+   {
+    "who": "end",
+    "kind": "shape",
+    "line": "Archduke Charles had the better of the toll. It was fought to a standstill."
+   },
+   {
+    "who": "end",
+    "kind": "after",
+    "line": "Neither army is driven off; the fight may be renewed tomorrow."
    }
   ],
   "ended": "night",
   "banner": "Night falls",
   "chips": [],
-  "close": "Night fell on the field at Carniola: three clashes and no decision — 17,320 of ours for 11,965 of the enemy's."
+  "close": "Night fell on the field at Carniola: three clashes and no decision — 17,320 of ours for 11,965 of the enemy's. Archduke Charles had the better of the toll. It was fought to a standstill."
  }
 }

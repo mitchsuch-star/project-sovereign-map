@@ -4595,6 +4595,34 @@ func _remember_day_block(b) -> void:
 		_day_latest[str(b["enemy"])] = _day_plain(b)
 
 
+const DAY_SHOWS_ITS_LATEST_CLASH := true   # BA5-D2: one constant reverses it
+
+
+func _the_days_latest_table(enemy: String, fallback):
+	"""BA5-D2: the last tableau the client holds for the day against `enemy`
+	(ours, then his over it - `_remember_day_tables`), else `fallback`."""
+	var latest = _day_tables.get(enemy, null) if DAY_SHOWS_ITS_LATEST_CLASH else null
+	return latest if latest is Dictionary else fallback
+
+
+func _the_day_raises(data) -> void:
+	"""BA5-D2: a day's tableau that is RAISED - a later clash of ours, his answering
+	clash, the settled frame - is the day's latest table, whatever road brought it:
+	the log's "View the field" opens it, and a word given with no clash (break off,
+	stand, night) closes on it. (His clash after a word that raised the muster's
+	question came by a road `_remember_day_tables` does not read: it was shown, and
+	the day then closed on OUR clash before it - found by pressing it in the real
+	client, tools/ba4_mode_c_walk.py `finish`.) A replay from the log or from the
+	enemy phase's list is shown directly and never comes here."""
+	if not DAY_SHOWS_ITS_LATEST_CLASH or not (data is Dictionary) \
+			or not ((data as Dictionary).get("day") is Dictionary):
+		return
+	last_battle_diorama = data
+	var key := str(((data as Dictionary)["day"] as Dictionary).get("enemy", ""))
+	if key != "":
+		_day_tables[key] = data
+
+
 func _remember_day_table(p, live: bool = false) -> void:
 	"""`live`: the tableau's `day` is the day AS IT STANDS (the enemy phase's
 	tableaux at dawn carry chips and all): its block is kept as the latest too."""
@@ -4703,7 +4731,12 @@ func _stash_battle_day(response: Dictionary) -> void:
 		_day_followup = null
 		_day_settled_for = null
 	else:
-		var base = held
+		# BA5-D2: the settled frame is the day's LATEST clash (`_day_tables`: ours,
+		# then his over it) - not the table that was up when the word was given. A
+		# table re-opened from the log's "View the field" was an earlier clash, and
+		# the day's closing lines stood under its men and its dice (two blind readers
+		# of the frames: two clashes on one screen).
+		var base = _the_days_latest_table(str(bd.get("enemy", "")), held)
 		if not (base is Dictionary):
 			base = _day_tables.get(str(bd.get("enemy", "")), null)
 		if base is Dictionary:
@@ -4818,7 +4851,7 @@ func _on_day_refreshed(enemy: String, response) -> void:
 	if has_tab:
 		data = (tab as Dictionary).duplicate(true)
 	else:
-		data = (battle_diorama._data as Dictionary).duplicate(true)
+		data = (_the_days_latest_table(enemy, battle_diorama._data) as Dictionary).duplicate(true)   # BA5-D2
 		settled = true
 	data["day"] = block
 	_remember_day_table(data)
@@ -5005,6 +5038,7 @@ func _show_pending_diorama() -> bool:
 		return false
 	var data = pending_diorama_data
 	pending_diorama_data = null
+	_the_day_raises(data)     # BA5-D2: the table raised is the day's latest
 	var settled: bool = _day_settled_for != null and is_same(_day_settled_for, data)
 	_day_settled_for = null
 	_day_answer_pending = false
@@ -5031,6 +5065,7 @@ func _day_raise_over_list() -> bool:
 	var settled: bool = _day_settled_for != null and is_same(_day_settled_for, data)
 	_day_settled_for = null
 	_diorama_standalone = false
+	_the_day_raises(data)     # BA5-D2
 	battle_diorama.show_diorama(data, not settled)
 	set_input_enabled(false)
 	return true
@@ -5048,6 +5083,7 @@ func _on_battle_diorama_dismissed():
 			_day_followup = null
 			_day_answer_pending = false
 			_day_settled_for = null
+			_the_day_raises(next_tab)     # BA5-D2
 			battle_diorama.show_diorama(next_tab, true)
 			if enemy_phase_dialog != null and enemy_phase_dialog.visible:
 				set_input_enabled(false)

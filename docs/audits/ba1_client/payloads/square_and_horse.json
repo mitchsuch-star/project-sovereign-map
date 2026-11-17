@@ -55,6 +55,7 @@
   "nation": "Austria"
  },
  "observation": "The terrain heavily favored Archduke John. Murat's men paid the price.",
+ "ground": "mountains",
  "enemy_voice": "Archduke John: \"The Tyrol holds its passes. So do I.\"",
  "script": {
   "version": 1,
@@ -158,5 +159,6 @@
    "Murat": "aggressive",
    "ArchdukeJohn": "cautious"
   }
- }
+ },
+ "verdict_told": "His squares told."
 }

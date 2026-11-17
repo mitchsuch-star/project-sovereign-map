@@ -37,12 +37,34 @@ how many stood and how many fell are the field's own, and the field is not
 the player's to see. Where the field IS in his sight (he scouted it, or a
 corps of his stands beside it at FULL), the ordinary battle row tells him all
 of it and no news is written.
+
+Row BA, BA-5 (the user's tick at the plan gate, November 16, 2026 — "Name the
+commanders"): a GREAT battle's news names its two commanders — the table's own
+law is that a great battle names its commander (`battle_day.block`), and news
+of Austerlitz named everyone. It says where two commanders stood on one day;
+never how many, never a figure. An ally's ordinary battle stays crowns only, as
+does a cannonade (`a_great_battle_names_its_commanders`).
 """
 from __future__ import annotations
 
 from typing import Optional
 
 from backend.errors import report
+
+
+def a_great_battle_names_its_commanders() -> bool:
+    """Row BA, BA-5 seam (the user's tick — "Name the commanders"): the news of
+    a GREAT battle names the two men who commanded it ("Kutuzov of Russia held
+    the field against Archduke Charles of Austria"); a great assault names the
+    man who led it. Never a figure. Down (False): crowns only, as BA-4 had it
+    (the wording of the plan approved then)."""
+    return True
+
+
+def _commander(marshal) -> str:
+    from backend.display_names import humanize_entity_name
+    name = str(getattr(marshal, "name", "") or "")
+    return humanize_entity_name(name) if name else ""
 
 
 def _crown(nation) -> str:
@@ -95,9 +117,25 @@ def the_days_verdict(battle_result: dict, attacker_nation: str, defender_nation:
 
 
 def line_of(region_name: str, attacker_nation: str, defender_nation: str,
-            verdict: tuple, *, great: bool, ally: str = "") -> str:
-    """The news, in one sentence — crowns only, no figure."""
+            verdict: tuple, *, great: bool, ally: str = "", commanders: tuple = ()) -> str:
+    """The news, in one sentence — no figure. A great battle names its two
+    commanders where they are given (`commanders`: the attacker's, the
+    defender's); every other battle is crowns only."""
     first, second = _crown(attacker_nation), _crown(defender_nation)
+    if great and len(commanders) == 2 and all(commanders):
+        # BA-5: "<the man> of <his crown>", the victor first
+        men = {str(attacker_nation): f"{commanders[0]} of {first}",
+               str(defender_nation): f"{commanders[1]} of {second}"}
+        kind, crown = verdict
+        head = f"News from {region_name}: a great battle"
+        if kind in ("held", "better") and str(crown) in men:
+            loser = next(man for nation, man in men.items() if nation != str(crown))
+            did = "held the field against" if kind == "held" else "had the better of the day against"
+            return f"{head} — {men[str(crown)]} {did} {loser}."
+        both = f"{men[str(attacker_nation)]} and {men[str(defender_nation)]}"
+        if kind == "ruin":
+            return f"{head} — the armies of {both} were both ruined on it."
+        return f"{head} — {both} fought the day to a draw."
     if great:
         head = f"News from {region_name}: {first} and {second} have fought a great battle"
     else:
@@ -114,11 +152,15 @@ def line_of(region_name: str, attacker_nation: str, defender_nation: str,
 
 
 def assault_line(region_name: str, attacker_nation: str, defender_nation: str,
-                 fell: bool, *, great: bool, ally: str = "") -> str:
+                 fell: bool, *, great: bool, ally: str = "", commander: str = "") -> str:
     """An assault on a garrison, in one sentence — who stormed whose works and
-    whether the place fell; crowns only, no figure."""
+    whether the place fell; no figure. A great one names the man who led it
+    where he is given (a garrison has no named commander)."""
     first, second = _crown(attacker_nation), _crown(defender_nation)
-    if great:
+    if great and commander:
+        head = (f"News from {region_name}: {commander} of {first} has thrown a great assault "
+                f"on the works of {second}")
+    elif great:
         head = f"News from {region_name}: {first} has thrown a great assault on the works of {second}"
     elif ally == attacker_nation:
         head = f"News from {region_name}: our ally {first} has assaulted the works of {second}"
@@ -177,12 +219,16 @@ def of_a_battle(world, region_name: str, attacker, defender, battle_result: dict
             return None
         great, ally = news
         verdict = the_days_verdict(battle_result, a, d)
-        line = line_of(str(region_name), a, d, verdict, great=great, ally=ally)
+        named = ((_commander(attacker), _commander(defender))
+                 if (great and a_great_battle_names_its_commanders()) else ())
+        line = line_of(str(region_name), a, d, verdict, great=great, ally=ally, commanders=named)
         event = {
             "type": "foreign_battle", "location": str(region_name),
             "crowns": [a, d], "verdict": verdict[0], "crown": verdict[1],
             "great": bool(great), "ally": ally, "line": line,
         }
+        if len(named) == 2 and all(named):
+            event["commanders"] = [str(getattr(attacker, "name", "")), str(getattr(defender, "name", ""))]
         if road:
             event["road"] = str(road)
         return _tell(world, event)
@@ -202,12 +248,16 @@ def of_an_assault(world, region_name: str, attacker, defender_nation: str, fell:
         if news is None:
             return None
         great, ally = news
-        line = assault_line(str(region_name), a, d, bool(fell), great=great, ally=ally)
-        return _tell(world, {
+        leader = _commander(attacker) if (great and a_great_battle_names_its_commanders()) else ""
+        line = assault_line(str(region_name), a, d, bool(fell), great=great, ally=ally, commander=leader)
+        event = {
             "type": "foreign_battle", "kind": "assault", "location": str(region_name),
             "crowns": [a, d], "verdict": "fell" if fell else "walls_held",
             "crown": a if fell else d, "great": bool(great), "ally": ally, "line": line,
-        })
+        }
+        if leader:
+            event["commanders"] = [str(getattr(attacker, "name", ""))]
+        return _tell(world, event)
     except Exception as exc:
         report(exc, "battle_news.of_an_assault")
         return None

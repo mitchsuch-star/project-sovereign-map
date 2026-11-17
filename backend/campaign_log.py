@@ -2169,8 +2169,9 @@ def _oneliner_the_field(ctx: OnelinerContext):
     # reads, so the log and the enemy-phase dialog cannot tell different
     # stories about one assault.
     if ctx.event_type == "foreign_battle":
-        # Row BA, BA-4 (BA2-X20): the news' own sentence — crowns, never a
-        # commander or a figure (`battle_news.line_of`).
+        # Row BA, BA-4 (BA2-X20): the news' own sentence — crowns and, for a
+        # GREAT battle, its two commanders (row BA, BA-5); never a figure
+        # (`battle_news.line_of`).
         return str(ctx.event.get("line") or "News of a battle abroad.")
     if ctx.event_type == "battle_day_closed":
         # Row BA, BA-4: the day's own closing line (`battle_day.close_line`).

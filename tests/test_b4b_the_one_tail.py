@@ -59,6 +59,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.main as M
+from backend.commands import defiance as defiance_mod
 from backend.commands import executor as executor_mod
 from backend.commands.disobedience import DisobedienceSystem
 from backend.commands.objection_v2 import ConcernLevel
@@ -368,6 +369,11 @@ def _payloads(mp):
     # WS-16 (row BA, BA-3): this board is a served campaign on a rolled seed,
     # where the mood's own stream is handed in — the double takes it.
     mp.setattr(executor_mod, "apply_mood_variance", lambda concern, **_: concern)
+    # Row BA, BA-5 (the pre-commit hook caught it): the insisted order is OBEYED. The board's campaign
+    # seed is rolled fresh (`secrets`), and on some campaigns WS-16's own seeded defiance roll defied
+    # the order — no attack, so no capture question. The subject here is the client's capture
+    # question, not V2b's roll: it is pinned like the concern and the mood above.
+    mp.setattr(defiance_mod, "calculate_defiance_chance", lambda *a, **k: 0.0)
     random.seed(7)
     with _quiet():
         asked = _post(client, "/command", {"command": "Massena, attack Archduke John"})

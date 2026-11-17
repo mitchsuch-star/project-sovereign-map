@@ -55,6 +55,7 @@
   "nation": "France"
  },
  "observation": "Our fortifications have sustained damage in the fighting. The walls will not hold forever, Your Majesty.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"You see? The position was sound. It is always sound.\"",
  "script": {
   "version": 1,
@@ -184,5 +185,6 @@
    "Mack": "literal",
    "Bernadotte": "cautious"
   }
- }
+ },
+ "verdict_told": "An even fight."
 }

@@ -88,6 +88,11 @@ const _BATTLE_SCENES_LABELS := {
 	"brief": "Brief always",
 	"final": "Final frame only",
 }
+# Row BA (BA-5, November 17, 2026): how fast a battle's acts play.
+const _BATTLE_SPEED_LABELS := {
+	"x1": "At their own pace (the default)",
+	"x2": "Twice as fast",
+}
 
 # Session UI-6: FOLDED, a short choice is a segmented control (a row of gilt
 # toggle buttons, one pressed) beside its dropdown, which steps aside; On the
@@ -109,6 +114,7 @@ const _SEGMENT_LABELS := {
 	"standard": "Standard", "red_green": "Red-green safe",
 	"instant": "Instant", "short": "Short", "normal": "Normal", "long": "Long",
 	"acts": "In acts", "brief": "Brief", "final": "Final frame",
+	"x1": "×1", "x2": "×2",
 }
 # Session UI-6: FOLDED, a card joins the one before it (fewer boxes); On the page
 # every card stands as it did. follower title -> leader title; the leader's
@@ -141,6 +147,7 @@ var _hud_width: OptionButton
 var _wide_map: OptionButton = null
 var _explanations: OptionButton = null
 var _battle_scenes: OptionButton = null   # row BA: In acts / Brief always / Final frame only
+var _battle_speed: OptionButton = null    # row BA, BA-5: the acts at their own pace / twice as fast
 # Session UI-3: each explanation hint and the control it explains — folded, the
 # hint is that control's hover (and an ⓘ ends its row); On the page it prints.
 var _hints: Array = []
@@ -657,6 +664,8 @@ func _refresh_display_controls() -> void:
 		_explanations.select(maxi(UiSettings.EXPLANATIONS.find(UiSettings.get_explanations()), 0))
 	if _battle_scenes != null:
 		_battle_scenes.select(maxi(UiSettings.BATTLE_SCENES.find(UiSettings.get_battle_scenes()), 0))
+	if _battle_speed != null:      # BA-5: the table's own switch may have written it since
+		_battle_speed.select(maxi(UiSettings.BATTLE_SPEEDS.find(UiSettings.get_battle_speed()), 0))
 	if _contrast_toggle != null:
 		_contrast_toggle.set_pressed_no_signal(UiSettings.get_high_contrast())
 	if _motion_toggle != null:
@@ -690,6 +699,13 @@ func _on_battle_scenes_selected(index: int) -> void:
 	each time a battle opens (`BattleActs.mode`)."""
 	UiSettings.set_battle_scenes(
 		str(UiSettings.BATTLE_SCENES[clampi(index, 0, UiSettings.BATTLE_SCENES.size() - 1)]))
+
+
+func _on_battle_speed_selected(index: int) -> void:
+	"""Row BA, BA-5: the acts at their own pace or twice as fast — read by the
+	tableau each time a battle's acts begin (`BattleActs.speed`)."""
+	UiSettings.set_battle_speed(
+		str(UiSettings.BATTLE_SPEEDS[clampi(index, 0, UiSettings.BATTLE_SPEEDS.size() - 1)]))
 
 
 func _on_explanations_selected(index: int) -> void:
@@ -907,6 +923,30 @@ func _build_interface_section() -> void:
 	_add_hint("In acts plays a great or dramatic battle through its five acts and a "
 		+ "lesser one in brief. Brief always keeps every battle to what decided it. "
 		+ "Final frame only opens the field as it ended; Replay still plays it.")
+
+	# Row BA (BA-5, November 17, 2026): how fast the acts play — the user's tick
+	# "Speed for the acts". The same switch stands on the battle's table, beside
+	# the skip hint, while the acts play.
+	var speed_row := HBoxContainer.new()
+	speed_row.add_theme_constant_override("separation", 10)
+	var speed_lbl := Label.new()
+	speed_lbl.text = "Battle speed"
+	speed_lbl.theme_type_variation = &"Caption"
+	speed_lbl.custom_minimum_size.x = 72
+	speed_row.add_child(speed_lbl)
+	_battle_speed = OptionButton.new()
+	_battle_speed.name = "BattleSpeedOption"
+	for i in range(UiSettings.BATTLE_SPEEDS.size()):
+		var speed_key: String = UiSettings.BATTLE_SPEEDS[i]
+		_battle_speed.add_item(str(_BATTLE_SPEED_LABELS.get(speed_key, speed_key)), i)
+	_battle_speed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_battle_speed.select(maxi(UiSettings.BATTLE_SPEEDS.find(UiSettings.get_battle_speed()), 0))
+	_battle_speed.item_selected.connect(_on_battle_speed_selected)
+	speed_row.add_child(_battle_speed)
+	_add_segments(speed_row, _battle_speed, UiSettings.BATTLE_SPEEDS, UiSettings.DEFAULT_BATTLE_SPEED)
+	add_child(speed_row)
+	_add_hint("How fast the acts of a battle play. The ×1 / ×2 switch on the battle table, "
+		+ "beside the skip hint while the acts play, sets the same thing.")
 
 	# Session UI-5: colour vision, tooltip delay, and the first-open notes.
 	_colour_vision = _option_row("Colour vision", "ColourVisionOption", UiSettings.COLOUR_VISIONS,

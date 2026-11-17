@@ -187,6 +187,14 @@ OCT27_SEAMS_DOWN += [spec for row in BA4_SEAMS_BY_ROW for spec in BA4_SEAMS_BY_R
 # the great battle's 80,000, the bar every board before it was recorded under.
 OCT27_SEAMS_DOWN += BA4_THE_KEY_BAR
 
+# Row BA, BA-5 "the finish" (November 16–17, 2026): what the day's table tells
+# (a recorded board's payloads and told lines are the ones it was recorded
+# with) and the reserve that pursues a beaten enemy. The seams' own rows:
+# `tests/_ba5_seams.py`.
+from tests._ba5_seams import BA5_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in BA5_SEAMS_BY_ROW for spec in BA5_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

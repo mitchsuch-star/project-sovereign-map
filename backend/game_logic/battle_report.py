@@ -495,6 +495,15 @@ _OBSERVATIONS = {
         "A costly day for {enemy}: the losses ran two to one in {marshal}'s "
         "favour, and {enemy} is still in the field.",
     ],
+    # Row BA, BA-5: the same exchange on a tactical result that DROVE THE
+    # ENEMY FROM THE FIELD — he is not "still in the field", and the day did
+    # decide something (`a_rout_won_on_points_has_left_the_field`).
+    "won_the_exchange_and_the_field": [
+        "{enemy} paid twice what {marshal} did, Sire, and has left him the field.",
+        "{enemy} bled two men for each of {marshal}'s, and was driven from the field.",
+        "A costly day for {enemy}: the losses ran two to one in {marshal}'s "
+        "favour, and the field is {marshal}'s.",
+    ],
     "stalemate": [
         "Neither {marshal} nor {enemy} could claim the field. The armies remain locked.",
         "An inconclusive affair. Both sides bloodied but unbroken.",
@@ -685,6 +694,26 @@ def _join_names(names) -> str:
     if len(clean) == 2:
         return f"{clean[0]} and {clean[1]}"
     return ", ".join(clean[:-1]) + f" and {clean[-1]}"
+
+
+def a_rout_won_on_points_has_left_the_field() -> bool:
+    """Row BA, session BA-5 seam. A two-to-one exchange won ON POINTS speaks
+    of the exchange and of an enemy who still stands (SF7-X32's family: "the
+    day decided nothing yet", "… is still in the field"). Where the same clash
+    DROVE HIM FROM THE FIELD that is false — seen on the table of the clash
+    that decides a day of battle: "THE FIELD IS OURS … ROUTED" over "… and
+    Mack is still in the field." — and the case has its own three lines
+    (`won_the_exchange_and_the_field`). Down (False): SF7-X32's family for
+    every tactical result, as before."""
+    return True
+
+
+def _their_side(battle_result: Dict, player_nation: str = "France") -> Dict:
+    """The other side of the battle payload from `_our_side`'s."""
+    attacker_nation = battle_result.get("attacker_nation", "")
+    side = "defender" if attacker_nation == player_nation else "attacker"
+    data = battle_result.get(side, {})
+    return data if isinstance(data, dict) else {}
 
 
 def _our_side(battle_result: Dict, player_nation: str = "France") -> Dict:
@@ -1144,6 +1173,10 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
             if (THE_DECISIVE_WORD_IS_THE_RESULTS
                     and str(outcome).endswith("_tactical_victory")):
                 # SF7-X32: a tactical result is not called decisive.
+                if (a_rout_won_on_points_has_left_the_field()
+                        and _their_side(battle_result, player_nation).get("forced_retreat")):
+                    # BA-5: ...nor an enemy it drove from the field "still in the field".
+                    return _fill(_rng.choice(_OBSERVATIONS["won_the_exchange_and_the_field"]))
                 return _fill(_rng.choice(_OBSERVATIONS["won_the_exchange"]))
             return _fill(_rng.choice(_OBSERVATIONS["won_decisively"]))
 

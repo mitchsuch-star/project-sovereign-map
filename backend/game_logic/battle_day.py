@@ -48,6 +48,7 @@ from contextvars import ContextVar
 from typing import Any, Dict, List, Optional
 
 from backend.errors import report
+from backend.game_logic import battle_telling as _telling
 from backend.game_logic import campaign_variance as _cv
 
 # ════════════════════════════════════════════════════════
@@ -68,6 +69,7 @@ PRICES = {
     "strike": 1,       # his: he strikes back (a press, from his side)
     "draw_off": 0,     # his: he leaves the field
 }
+RESERVE_PURSUIT = 3_000   # BA-5: the PARKED reserve's number, the middle of its ladder (2,000 / 3,000 / 5,000 — none passed)
 GUARD_SHOCK = 10      # NP-D1: his lead's morale, as the Guard goes in
 GUARD_RECOIL = 10     # NP-D1: every corps of ours that fought, if it is thrown back
 LEND = 3              # the actions lent to a word while it is executed (never kept)
@@ -102,6 +104,323 @@ def the_guards_numbers_bite() -> bool:
 def a_marshal_may_be_left_to_it() -> bool:
     """Down, there is no "Leave it to him"."""
     return True
+
+
+def our_table_reads_the_day_as_our_clash_left_it() -> bool:
+    """BA5-D1 (row BA, BA-5 "the finish") seam: when his clash follows ours on
+    the table, OUR clash's tableau carries the day as it stood when our clash
+    ended — read before he answers. `settle` wrote the day as it stood AFTER
+    his answer onto it: his purse already a point short, his word already
+    told, and under the title the result of a clash the table had not yet
+    shown (two blind readers of the frames found the figures of two clashes
+    on one screen). Down (False): the day after his answer, as BA-3 had it."""
+    return True
+
+
+def the_reserve_pursues() -> bool:
+    """Row BA, BA-5 (the user's tick at the plan gate — "Build it; the rule
+    picks") seam: THE RESERVE PURSUES A BEATEN ENEMY. When a clash decides a
+    day — a side is driven from the field — the victor counts the points he
+    still holds and the beaten side counts its own; for each point the victor
+    holds over the loser, the beaten lead loses `reserve_pursuit()` men more.
+    A point the loser kept covers him. It is added to a cavalry leader's own
+    pursuit, under the game's pursuit laws (never below 1,000 men; halved
+    against the Old Fox). Nothing is paid when a side breaks off or draws off,
+    or at night. Either side, the same rule (GR5); his rule for spending is
+    untouched. Clausewitz's reading of these battles: the fresh reserves left
+    at the end decide what a victory is worth (On War, book 4, chapters 9 and
+    12) — Borodino closed with the Guard unspent and no pursuit, Jena with
+    fresh cavalry and an army destroyed. Down (False): a point kept is worth
+    nothing at the close, as BA-3 had it.
+
+    PARKED — DOWN IN THE GAME (November 17, 2026). The rule was built and
+    measured, and it failed the rule written for it before its data
+    (`BATTLE_DIORAMA_SPEC.md` §15.22; the readings §15.23,
+    `tools/_ba5_reserve_rule_2026_11_17.json`): at every value of its ladder
+    about nine in ten of the men it took were OURS, where the rule allowed
+    neither side more than three quarters. The side that presses spends its
+    points; the side that stands keeps his, and harvests when the attack is
+    thrown back; a victor who spent to win holds nothing over the loser. It
+    would have taught standing still. By the plan's own words it is not
+    built: no surface of the game promises it, and this function returning
+    True again is the measured arm (`tools/_ba5_measure.py`, arms R<n>). The
+    user's word arms it or asks for another form."""
+    return False
+
+
+def reserve_pursuit() -> int:
+    """The men a point of reserve costs a beaten lead (a function, so that the
+    measure's ladder can read 2,000 / 3,000 / 5,000 through it)."""
+    return RESERVE_PURSUIT
+
+
+def a_words_battle_is_its_own_clash() -> bool:
+    """Row BA, BA-5 seam (the session's review): the running word is THIS
+    battle only where the battle is fought against the day's enemy (our word)
+    or against the day's lead (his). An objection answered "his own way" whose
+    attack falls on another corps fights a battle of its own: it is no clash of
+    the day (not counted, named or told as one), the Guard's shock does not
+    fall on that corps, and the reserve counts no purse for it. The word is
+    still paid for and told as the marshal's own way (`answer_given`). Down
+    (False): every battle fought while a word runs is the word's (BA-3)."""
+    return True
+
+
+def _word_for(ctx) -> Optional[dict]:
+    """The running word, where this battle is its clash (`a_words_battle_is_
+    its_own_clash`); else None."""
+    word = _WORD.get()
+    if not word or not a_words_battle_is_its_own_clash():
+        return word
+    foe = getattr(getattr(ctx, "enemy_marshal", None), "name", None)
+    if word.get("who") == "ours":
+        return word if foe == word.get("key") else None
+    day = day_against(getattr(ctx, "world", None), word.get("key"))
+    if day is None:
+        return word        # the day cannot be read here: BA-3's reading stands
+    return word if foe == day.get("lead") else None
+
+
+def count_the_reserve(ctx) -> None:
+    """At the head of a word's clash (beside `guard_shock`): what each side
+    would hold with this word paid for — kept on the word, where the engine's
+    pursuit step reads it (`reserve_pursuit_men`). A no-op for every attack
+    that is no word of an open day."""
+    word = _word_for(ctx)
+    world = getattr(ctx, "world", None)
+    if not (word and the_reserve_pursues() and _on(world)):
+        return
+    day = day_against(world, word.get("key"))
+    if day is None:
+        return
+    mine, yours = ("ours", "theirs") if word.get("who") == "ours" else ("theirs", "ours")
+    paid = 0 if word.get("taken") else int(word.get("price", 0) or 0)
+    word["reserve"] = {"attacker": max(0, int(day.get(mine, 0) or 0) - paid),
+                       "defender": int(day.get(yours, 0) or 0)}
+
+
+def reserve_pursuit_men(*, attacker_wins: bool, loser):
+    """(men, points): what the reserve costs the lead this clash drove from
+    the field — `points` the victor holds over him, `men` after the Old Fox's
+    halving and the 1,000-man floor. (0, 0) outside a day's word, with the
+    seam down, when the victor holds no more than the loser, or when the
+    beaten corps stands at 1,000 men or under."""
+    counted = (_WORD.get() or {}).get("reserve")
+    if not (the_reserve_pursues() and isinstance(counted, dict)):
+        return 0, 0
+    victor, beaten = ("attacker", "defender") if attacker_wins else ("defender", "attacker")
+    points = int(counted.get(victor, 0)) - int(counted.get(beaten, 0))
+    if points <= 0:
+        return 0, 0
+    men = int(reserve_pursuit()) * points
+    if (getattr(loser, "ability", None) or {}).get("name") == "The Old Fox":
+        men = int(men * 0.5)
+    strength = int(getattr(loser, "strength", 0) or 0)
+    if strength <= 1000:
+        return 0, 0
+    return max(0, min(men, strength - 1000)), points
+
+
+def a_lead_holds_his_day_as_the_battle_began() -> bool:
+    """Row BA, BA-5 seam (BA5-X1 — ruling 9's card pressed in the real client,
+    November 17, 2026). "One day a lead" (BA3-X15) was read AFTER the battle:
+    a lead whose day was open, sent against another corps, won that clash on
+    points and ADVANCED — so by the time the rule asked, he stood off his first
+    day's ground, that day read dead, and the second battle opened a day of
+    its own under a card that had said "a single clash, with no day of its
+    own" (measured: seed ba5-oneday-02, Masséna against the Archduke John
+    while his day against the Archduke Charles stood open). The day he holds
+    is noted at the head of the attack's resolution, before anyone moves
+    (`note_the_day_he_holds`), and `_after_the_battle` reads that. His advance
+    then ends the first day, and its close says he marched from it. Down
+    (False): BA-4's reading."""
+    return True
+
+
+def note_the_day_he_holds(ctx) -> None:
+    """At the head of an attack's resolution, before a victor's advance moves
+    anyone: the open, living day the player's lead of this battle holds, kept
+    on the context for `_after_the_battle` (BA5-X1)."""
+    try:
+        world = getattr(ctx, "world", None)
+        if not _on(world) or not a_lead_holds_his_day_as_the_battle_began():
+            return
+        player = getattr(world, "player_nation", None)
+        for corps in (getattr(ctx, "marshal", None), getattr(ctx, "enemy_marshal", None)):
+            if corps is not None and getattr(corps, "nation", None) == player:
+                held = the_day_he_holds(world, corps.name)
+                setattr(ctx, "_bd_day_held", str(held.get("enemy") or "") if held else "")
+                return
+    except Exception as exc:
+        report(exc, "battle_day.note_the_day_he_holds")
+
+
+def his_first_day_ends(ctx) -> str:
+    """BA5-X1: our lead of this battle held a day when it began, and has left
+    that day's ground by his own advance — the day ends NOW (not at the next
+    read of the table), and its close line is returned for the battle's own
+    message. "" where nothing ended."""
+    try:
+        world = getattr(ctx, "world", None)
+        kept = str(getattr(ctx, "_bd_day_held", "") or "")
+        if not kept or not _on(world) or not a_lead_holds_his_day_as_the_battle_began():
+            return ""
+        day = open_days(world).get(kept)
+        if day is None or _alive(world, day) or not _he_marched_from_it(world, day):
+            return ""
+        closing = _close(world, kept, "over")
+        (_CLOSED.get(world) or {}).pop(kept, None)      # told here: no table waits for it
+        return str((closing or {}).get("close") or "")
+    except Exception as exc:
+        report(exc, "battle_day.his_first_day_ends")
+        return ""
+
+
+def _he_marched_from_it(world, day) -> bool:
+    """BA5-X1: a day that is over because its own lead left its ground — both
+    leads still under arms and at war, his still where the day found him."""
+    if world is None or not day.get("our_ground") or not a_lead_holds_his_day_as_the_battle_began():
+        return False
+    lead, foe = world.get_marshal(day.get("lead")), world.get_marshal(day.get("enemy"))
+    return bool(_under_arms(lead) and _under_arms(foe)
+                and lead.location != day.get("our_ground")
+                and foe.location == day.get("his_ground")
+                and world.get_diplomatic_state(lead.nation, foe.nation) == "WAR")
+
+
+def a_marshal_keeps_his_days() -> bool:
+    """Row BA, BA-5 seam (the user's tick at the plan gate — "A marshal's
+    days"): a pitched battle our marshal LED is kept on his own record when it
+    is over — its name, its turn, how it went for him, what told and, for a
+    great battle fought in turns, what kind of day it was (`Marshal.days`, the
+    last six; his card on the Generals screen reads them). No rule of the game
+    reads the record. Down (False): nothing is kept, and a save is as it was."""
+    return True
+
+
+# How a battle went for the marshal who led it, in his card's words: by a
+# clash that decided it, else on points (the toll at 5 to 4 — `better_of`).
+_VERDICTS = {
+    (True, "ours"): "won", (True, "theirs"): "lost",
+    (False, "ours"): "won on points", (False, "theirs"): "lost on points",
+}
+
+
+def _verdict(decided: bool, better: str) -> str:
+    return _VERDICTS.get((bool(decided), str(better or "")), "drawn")
+
+
+def _keep_his_battle(world, ctx, ours, his, attacker_is_ours: bool, hanging: bool) -> None:
+    """BA-5: a pitched battle that opened no day, on the record of the marshal
+    who led it for us. (A battle that opens a day is kept when the day closes:
+    `_keep_his_day`; a further clash of an open day is that day's.) A battle
+    that `hanging` left undecided - too small for a day, or its lead's day
+    already open - went on points; any other was decided for one side."""
+    if not a_marshal_keeps_his_days():
+        return
+    try:
+        read = _read(ctx, attacker_is_ours)
+        decided = "" if hanging else _telling.decided_for(ctx, attacker_is_ours)
+        ahead = str(read.get("ahead") or "")
+        better = decided or (ahead if ahead in ("ours", "theirs") else "")
+        told = _telling.what_told(ctx, attacker_is_ours, better) if better else ""
+        ours.keep_day({
+            "name": the_battle_of(getattr(ctx, "battle_name", "")),
+            "turn": int(getattr(world, "current_turn", 0) or 0),
+            "place": str(getattr(ctx, "battle_region_name", "") or his.location or ""),
+            "against": str(his.name),
+            "verdict": _verdict(bool(decided), better),
+            "told": "" if told == "an even fight" else str(told),
+            "shape": "",
+            "our_loss": int(read.get("our_loss", 0) or 0),
+            "his_loss": int(read.get("his_loss", 0) or 0),
+        })
+    except Exception as exc:
+        report(exc, "battle_day._keep_his_battle")
+
+
+def _keep_his_day(world, day: dict, how: str) -> None:
+    """BA-5: a day of battle that has closed, on the record of the marshal who
+    led it for us — once (a day closes once). Its verdict is the deciding
+    clash's, or the toll's for a day no clash decided; its shape is the
+    close's own (`battle_telling.shape_of`)."""
+    if not a_marshal_keeps_his_days():
+        return
+    try:
+        lead = world.get_marshal(day.get("lead"))
+        fought = int(day.get("clashes", 0) or 0)
+        if lead is None or fought <= 0:
+            return
+        toll = day.get("toll") or {}
+        ours_lost, his_lost = int(toll.get("ours", 0) or 0), int(toll.get("his", 0) or 0)
+        decided = str(day.get("decided_for") or "") if how == "decided" else ""
+        better = decided or _telling.better_of(ours_lost, his_lost)
+        told = str(day.get("decided_by") or "") if how == "decided" else ""
+        lead.keep_day({
+            "name": str(day.get("name") or ""),
+            "turn": int(day.get("turn", 0) or getattr(world, "current_turn", 0) or 0),
+            "place": str(day.get("opened_at") or day.get("field") or ""),
+            "against": str(day.get("enemy") or ""),
+            "verdict": _verdict(bool(decided), better if better in ("ours", "theirs") else ""),
+            "told": "" if told == "an even fight" else told,
+            "shape": _telling.shape_of(day, how, _shown(day.get("enemy")), _shown(day.get("lead"))),
+            "our_loss": ours_lost, "his_loss": his_lost, "clashes": fought,
+        })
+    except Exception as exc:
+        report(exc, "battle_day._keep_his_day")
+
+
+def the_first_days_line_stands_on_its_first_table() -> bool:
+    """Row BA, session BA-5 seam. The first day of a campaign says what a day
+    is (BA-4, `first_open` "battle_day") — on the FIRST TABLE THE PLAYER SEES,
+    and not on the day's next. A screen's first-open line stays on every
+    payload of the turn it was first shown (`first_open.line_for`: a screen
+    that re-reads itself must not lose it mid-read), and a day of battle is
+    fought inside one turn — so the line stood on EVERY table of a campaign's
+    first day and took the room of the exits' own words while the player was
+    learning them (seen in the real client). While the line is unacknowledged
+    every block carries it, as before (a table with no room for it leaves it
+    to the next; a first word given from the province's panel leaves it to
+    the table that follows). When the client says it has drawn it
+    (`POST /first_open` → `the_days_line_was_shown`) each open day is marked
+    as it stood, and from then on the line rides only a block of a day that
+    still stands so: a re-read of the table that showed it. Down (False): on
+    every table of the turn, as BA-4 had it."""
+    return True
+
+
+def _as_it_stands(day: dict) -> list:
+    """A day's standing, for `the_days_line_was_shown`: a figure that every
+    word of either side moves (a word given, a silence, a point spent, a
+    clash fought)."""
+    return [int(day.get("words", 0) or 0), int(day.get("silences", 0) or 0),
+            int(day.get("ours", 0) or 0), int(day.get("theirs", 0) or 0),
+            int(day.get("clashes", 0) or 0), str(day.get("awaits") or "")]
+
+
+def the_days_line_was_shown(world) -> None:
+    """BA-5: the client has drawn the first day's line (`POST /first_open`,
+    screen "battle_day"). Every day open now is marked as it stands
+    (`first_shown_at`): its table is the one that showed the line."""
+    if not the_first_days_line_stands_on_its_first_table():
+        return
+    try:
+        for day in open_days(world).values():
+            day["first_shown_at"] = _as_it_stands(day)
+    except Exception as exc:
+        report(exc, "battle_day.the_days_line_was_shown")
+
+
+def _says_its_first_line(world, day: dict) -> bool:
+    """Whether this block carries the first day's line: always while it is
+    unacknowledged; once acknowledged, only for a day that stands as it stood
+    when its table showed the line."""
+    if not the_first_days_line_stands_on_its_first_table():
+        return True
+    from backend.game_logic import first_open as _first_open
+    if not _first_open.is_seen(world, "battle_day"):
+        return True
+    return day.get("first_shown_at") == _as_it_stands(day)
 
 
 def a_dead_day_bars_nothing() -> bool:
@@ -348,6 +667,7 @@ def _close(world, key: str, how: str, line: str = "", banner: str = "") -> dict:
     day["open"] = False
     day["ended"] = how
     _tell_the_close(world, day, how, banner or how)
+    _keep_his_day(world, day, banner or how)       # BA-5: on the lead's own record
     if not days and not world.battle_days.get("barred"):
         world.battle_days = {}
     closing = block(world, day)
@@ -414,6 +734,9 @@ def close_line(world, day: dict, how: str) -> str:
         "broke_off": f"The attack at {field} was broken off {after}",
         "fell_back": f"{lead} fell back from {field} {after}",
     }.get(how, f"The day at {field} ended where it stood {after}")
+    if how == "over" and _he_marched_from_it(world, day):
+        # BA5-X1: he left the field for another — said, not "ended where it stood"
+        head = f"{lead} marched from the field at {field} {after}"
     toll = day.get("toll") or {}
     return (f"{head} — {int(toll.get('ours', 0) or 0):,} of ours for "
             f"{int(toll.get('his', 0) or 0):,} of the enemy's.")
@@ -428,6 +751,13 @@ def _tell_the_close(world, day: dict, how: str, banner: str) -> None:
         line = close_line(world, day, banner)
         if not line:
             return
+        # BA-5: what told (a day a clash decided), whom the toll favoured (any
+        # other), and what kind of day it was — after BA-4's line, whose words
+        # stay as they were.
+        more = (_telling.close_more(day, banner, _shown(day.get("enemy")), _shown(day.get("lead")))
+                if _telling.the_close_names_what_told() else [])
+        if more:
+            line = f"{line} {' '.join(more)}"
         day["close"] = line
         if how != "decided":
             # On the closing table, under the line that says HOW it ended (night
@@ -438,6 +768,12 @@ def _tell_the_close(world, day: dict, how: str, banner: str) -> None:
             _tell(day, "end", (f"{fought[:1].upper()}{fought[1:]}: "
                                f"{int(toll.get('ours', 0) or 0):,} of ours for "
                                f"{int(toll.get('his', 0) or 0):,} of the enemy's."), "tally")
+            if more:
+                _tell(day, "end", " ".join(more), "shape")
+            follows = (_telling.what_follows(banner)
+                       if _telling.the_close_names_what_told() else "")
+            if follows:
+                _tell(day, "end", follows, "after")
         toll = day.get("toll") or {}
         world.log_event({
             "type": "battle_day_closed",
@@ -472,6 +808,20 @@ def _tell(day: dict, who: str, line: str, kind: str = "") -> None:
     told = day.setdefault("told", [])
     told.append({"who": who, "kind": kind, "line": str(line)})
     del told[:-8]
+    if kind and who in ("ours", "theirs") and _telling.the_close_names_what_told():
+        # BA-5: the day's words in their order, for its close (`shape_of`) —
+        # the told lines keep only the last eight, and a clash's own line is
+        # among them now.
+        day.setdefault("said", []).append([who, kind])
+
+
+def _tell_the_clash(day) -> None:
+    """BA-5: the clash a word fought, told AFTER the word's own line ("Ney
+    presses the attack." and then how it stood) — `_after_the_battle` keeps
+    the line until the word that fought it has been told."""
+    line = day.pop("clash_line", "") if isinstance(day, dict) else ""
+    if line:
+        _tell(day, "clash", line, "clash")
 
 
 def _tell_the_last(world, key: str, who: str, line: str, kind: str = "") -> None:
@@ -526,7 +876,7 @@ def guard_shock(ctx) -> None:
     Guard goes in, the lead it falls on loses heart (before either side's
     dice). The Guard is a SOVEREIGN's renewed assault in a day of battle —
     ours or, by Golden Rule 5, an enemy's (the same kit, the same numbers)."""
-    word = _WORD.get()
+    word = _word_for(ctx)
     if not (word and word.get("kind") == "guard" and the_guards_numbers_bite()):
         return
     foe = getattr(ctx, "enemy_marshal", None)
@@ -559,8 +909,10 @@ def word_line(ctx) -> Optional[dict]:
     """For the tableau's script (`battle_script`): the WORD this clash is, in
     the day's own line — {who, kind, line} — or None for an opening clash and
     for every ordinary battle. Fog: the line says what the field showed (who
-    came on), never an odds figure or a purse."""
-    word = _WORD.get()
+    came on), never an odds figure or a purse. (The re-review) The word is
+    this battle's only where it is fought as the word's own clash
+    (`_word_for`): a battle on another corps tells no line of the day."""
+    word = _word_for(ctx)
     world = getattr(ctx, "world", None)
     alone = _ALONE.get()
     if alone is not None:
@@ -596,6 +948,65 @@ def after_the_battle(ctx) -> Optional[dict]:
         return None
 
 
+def _what_told_in_it(ctx, attacker_is_ours: bool) -> str:
+    """What told in a battle that is no day's clash: for the side a decision
+    left on the field — else, on points, for the side ahead; "an even fight"
+    where neither is."""
+    read = _read(ctx, attacker_is_ours)
+    decided = "" if _hangs(ctx) else _telling.decided_for(ctx, attacker_is_ours)
+    ahead = str(read.get("ahead") or "")
+    better = decided or (ahead if ahead in ("ours", "theirs") else "")
+    return _telling.what_told(ctx, attacker_is_ours, better) if better else "an even fight"
+
+
+def _whose_line_broke(ctx) -> str:
+    """The lead a clash drove from the field, as the table shows his name — ""
+    where neither line broke, or both (the script's own "break" beat reads the
+    same key: `battle_script._crisis`)."""
+    result = getattr(ctx, "battle_result", None) or {}
+    attacker = bool((result.get("attacker") or {}).get("forced_retreat"))
+    defender = bool((result.get("defender") or {}).get("forced_retreat"))
+    if attacker == defender:
+        return ""
+    lead = getattr(ctx, "marshal" if attacker else "enemy_marshal", None)
+    return _shown(getattr(lead, "name", "")) if lead is not None else ""
+
+
+def the_verdicts_line(ctx, day_block=None) -> str:
+    """BA-5: WHAT TOLD, for the line under the headline of a battle's own
+    table (`battle_telling.verdict_line`) — said to the player whose marshal
+    LED a side of it, on any road (a campaign the server holds or not): it is
+    a telling read from the battle's own report, which that player is given
+    whole, and no rule reads it. "" for a battle we led no side of, and for a
+    table that is a day's own (`day_block` open, or closed under a banner of
+    its own: its lines say what told in each clash). The clash that decided a
+    day names itself (`_after_the_battle` wrote the line on the closing
+    block)."""
+    if not _telling.a_verdict_names_what_told():
+        return ""
+    try:
+        if isinstance(day_block, dict):
+            if day_block.get("open") or day_block.get("banner"):
+                return ""
+            return str(day_block.get("verdict_told") or "")
+        world = getattr(ctx, "world", None)
+        atk, dfd = getattr(ctx, "marshal", None), getattr(ctx, "enemy_marshal", None)
+        if world is None or atk is None or dfd is None:
+            return ""
+        player = getattr(world, "player_nation", None)
+        if getattr(atk, "nation", None) == player:
+            attacker_is_ours = True
+        elif getattr(dfd, "nation", None) == player:
+            attacker_is_ours = False
+        else:
+            return ""
+        return _telling.verdict_line(_what_told_in_it(ctx, attacker_is_ours),
+                                     broke=_whose_line_broke(ctx))
+    except Exception as exc:
+        report(exc, "battle_day.the_verdicts_line")
+        return ""
+
+
 def _after_the_battle(ctx) -> Optional[dict]:
     world = getattr(ctx, "world", None)
     if not _on(world):
@@ -610,7 +1021,7 @@ def _after_the_battle(ctx) -> Optional[dict]:
         attacker_is_ours, ours, his = False, dfd, atk
     else:
         return None
-    word = _WORD.get()
+    word = _word_for(ctx)
     days = _store(world)["days"]
     key = str(word["key"]) if (word and word.get("key") in days) else his.name
     day = days.get(key)
@@ -628,12 +1039,27 @@ def _after_the_battle(ctx) -> Optional[dict]:
             # (`the_clashs_name`), so it is counted with it.
             _count_the_clash(held, _read(ctx, attacker_is_ours))
         if not hanging or int(getattr(ctx, "total_engaged_strength", 0) or 0) < key_bar(world):
+            if held is None:
+                _keep_his_battle(world, ctx, ours, his, attacker_is_ours, hanging)     # BA-5
             return None
         mine = the_day_he_holds(world, ours.name)
+        marched = False
+        if mine is None:
+            # BA5-X1: the day he held when this battle BEGAN — his own advance
+            # from it has since moved him off that day's ground
+            kept = str(getattr(ctx, "_bd_day_held", "") or "")
+            if kept and kept != his.name:
+                mine = days.get(kept)
+                # (the review) ...and the same response ends it (`his_first_day_ends`)
+                marched = mine is not None and _he_marched_from_it(world, mine)
         if mine is not None:
+            if held is None:
+                _keep_his_battle(world, ctx, ours, his, attacker_is_ours, hanging)     # BA-5
             # BA3-X15: one day a lead. The clash is told as a battle is
             # told, and its script says why it opens no day.
             _ALONE.set({"pair": (atk.name, dfd.name), "line": (
+                f"{_shown(ours.name)} has marched from his day against {_shown(mine.get('enemy'))}, "
+                f"which ends where it stands — this clash opens none of its own." if marched else
                 f"{_shown(ours.name)}'s day against {_shown(mine.get('enemy'))} is still "
                 f"open — this clash opens none of its own.")})
             return None
@@ -652,12 +1078,19 @@ def _after_the_battle(ctx) -> Optional[dict]:
         }
         _store(world)["days"][his.name] = day
         day["read"] = _read(ctx, attacker_is_ours)
+        _count_him(day, his)
         if a_day_is_one_battle():
             # The BATTLE's name: a day opened by a clash that was itself told
             # as a further clash of another day (two days a lead, BA3-X15's
             # seam down) is not named for that clash.
             day["name"] = the_battle_of(getattr(ctx, "battle_name", ""))
         _count_the_clash(day, day["read"], opening=True)
+        if _telling.the_day_tells_its_clashes():
+            # BA-5: the opening, in one line — how it stood and what told.
+            _tell(day, "clash", _telling.clash_line(
+                day["read"], _shown(atk.name),
+                _telling.what_told(ctx, attacker_is_ours, day["read"].get("ahead", "even")),
+                opening=True), "clash")
         return block(world, day, chips=False)
 
     # A later clash of an open day: the word's price, the Guard's recoil, the turn.
@@ -668,10 +1101,51 @@ def _after_the_battle(ctx) -> Optional[dict]:
         word["taken"] = True
     day["read"] = _read(ctx, attacker_is_ours)
     _count_the_clash(day, day["read"])
+    _count_him(day, his)
     if recoiled:
         day["read"]["guard_thrown_back"] = True
     if not hanging:
+        if _telling.the_close_names_what_told() or a_marshal_keeps_his_days():
+            # BA-5: whom the clash decided it for, and what told in it (the
+            # close says it; the lead's own record keeps it).
+            day["decided_for"] = _telling.decided_for(ctx, attacker_is_ours)
+            day["decided_by"] = _telling.what_told(ctx, attacker_is_ours, day["decided_for"])
+        if _telling.the_close_names_what_told():
+            pursued = (getattr(ctx, "battle_result", None) or {}).get("reserve_pursuit")
+            if isinstance(pursued, dict) and int(pursued.get("men", 0) or 0) > 0:
+                # the reserve pursued the lead this clash drove off (the engine's
+                # own pursuit step applied it): whose, by the side that attacked
+                day["reserve_pursued"] = {
+                    "men": int(pursued["men"]), "points": int(pursued.get("points", 0) or 0),
+                    "by": ("ours" if (pursued.get("side") == "defender") == attacker_is_ours
+                           else "theirs")}
+            if word:
+                # The deciding word is told on the closing block, after the
+                # day is gone: its place in the day's words is kept here.
+                day.setdefault("said", []).append(
+                    ["ours" if word.get("who") == "ours" else "theirs", str(word.get("kind") or "")])
+        if _telling.a_verdict_names_what_told():
+            # BA-5: the deciding clash's own table names the clash, and what
+            # told in it (the day builds no panel there: that clash's verdict stands)
+            told_by = str(day.get("decided_by") or "") or _telling.what_told(
+                ctx, attacker_is_ours, _telling.decided_for(ctx, attacker_is_ours))
+            fought = int(day.get("clashes", 0) or 0)
+            day["verdict_told"] = _telling.verdict_line(
+                told_by, _ordinal(fought) if fought > 1 else "", _whose_line_broke(ctx))
         return _close(world, key, "decided")
+    if _telling.the_day_tells_its_clashes():
+        # BA-5: this clash's own line, told after the word that fought it.
+        line = _telling.clash_line(
+            day["read"], _shown(atk.name),
+            _telling.what_told(ctx, attacker_is_ours, day["read"].get("ahead", "even")))
+        if word:
+            day["clash_line"] = line
+        else:
+            # (the review) an attack that is no word of the day (no purse for it,
+            # the day not ours to speak, a question waiting) is counted in the
+            # day's toll: its line is told now — nothing else would tell it, and
+            # the next word's clash would have taken its place
+            _tell(day, "clash", line, "clash")
     # The ground moves with the corps: a clash won on points carries the
     # attacker onto the field.
     lead_now, foe_now = world.get_marshal(day.get("lead")), world.get_marshal(day.get("enemy"))
@@ -680,6 +1154,28 @@ def _after_the_battle(ctx) -> Optional[dict]:
     day["field"] = str(getattr(ctx, "battle_region_name", "") or day.get("field"))
     day["awaits"] = "theirs" if attacker_is_ours else "ours"
     return block(world, day, chips=False)
+
+
+def _our_guns_told(world, day: dict, word: dict) -> None:
+    """BA-5: our guns have told on him and the cannonade's own table shows it —
+    the day's count of him (`_count_him`) follows it DOWN, never up (a corps
+    that joined him out of sight is not read back)."""
+    if word.get("kind") != "cannonade" or int(day.get("his_men", 0) or 0) <= 0:
+        return
+    foe = world.get_marshal(day.get("enemy"))
+    if foe is not None:
+        day["his_men"] = min(int(day["his_men"]), int(getattr(foe, "strength", 0) or 0))
+
+
+def _count_him(day: dict, his) -> None:
+    """BA-5: his lead's men as this clash's table counts them (the battle's own
+    report gives the player who fought it both sides to the man) — kept for
+    the cards of the day (`the_offer`), where the map's own sighting of his
+    province may be only a band. Kept only where a word says what it does."""
+    if not _telling.a_word_says_what_it_does():
+        return
+    if getattr(his, "name", None) == day.get("enemy"):
+        day["his_men"] = int(getattr(his, "strength", 0) or 0)
 
 
 def _held_on_this_ground(world, lead_name, region) -> Optional[dict]:
@@ -708,7 +1204,7 @@ def _the_day_of_this_clash(world, ctx) -> Optional[dict]:
     else:
         return None
     days = open_days(world)
-    word = _WORD.get()
+    word = _word_for(ctx)
     key = str(word["key"]) if (word and word.get("key") in days) else his.name
     if key in days:
         return days[key]
@@ -1040,6 +1536,8 @@ def word_given(world, word: dict, result: dict, spent: int) -> None:
         day["awaits"] = "theirs"
     _tell(day, "ours", _ours_said(day, word["kind"], word.get("marshal"), day.get("enemy")),
           word["kind"])
+    _tell_the_clash(day)
+    _our_guns_told(world, day, word)
 
 
 def questioner(world) -> Optional[str]:
@@ -1187,6 +1685,8 @@ def answer_given(world, word: dict, result: dict, spent: int) -> None:
         day["awaits"] = "theirs"
     _tell(day, "ours", _ours_said(day, word["kind"], word.get("marshal"), day.get("enemy")),
           word["kind"])
+    _tell_the_clash(day)
+    _our_guns_told(world, day, word)
 
 
 # ════════════════════════════════════════════════════════
@@ -1329,6 +1829,7 @@ def _speak(world, day, who: str, game_state, executor) -> Optional[dict]:
                 _take(day, who, price)
                 day["awaits"] = "ours" if who == "theirs" else "theirs"
             _tell(day, who, reply["line"], told_as)
+            _tell_the_clash(day)
         else:
             _tell_the_last(world, key, who, reply["line"], told_as)
         return reply
@@ -1476,6 +1977,13 @@ def settle(world, game_state, executor, result, *, word: Optional[dict] = None,
         key = str(payload["day"].get("enemy") or "")
     if not key:
         return
+    # BA5-D1: the day as it stood when OUR clash ended, read before he answers
+    # (a day our own clash closed has no such reading: he says nothing more).
+    before = None
+    if our_table_reads_the_day_as_our_clash_left_it():
+        standing = day_against(world, key)
+        if standing is not None:
+            before = block(world, standing, chips=False)
     replies = his_answer(world, game_state, executor, only=key)
     _spent(world, key)
     day = day_against(world, key)
@@ -1496,7 +2004,10 @@ def settle(world, game_state, executor, result, *, word: Optional[dict] = None,
         if reply and isinstance(reply.get("diorama"), dict):
             # HIS clash follows ours on the table: our tableau tells the day as
             # it stood when our clash ended — no chips; the live ones ride his.
-            payload["day"] = dict(plain, chips=[], follows=True)
+            # (BA5-D1: `plain` is the day AFTER his answer — his purse a point
+            # short, his word told, the line under the title his clash's — and
+            # it stood on our clash's table before "His answer" was pressed.)
+            payload["day"] = dict(before if before is not None else plain, chips=[], follows=True)
         else:
             payload["day"] = plain
 
@@ -1768,6 +2279,19 @@ def tableau_for(world, key) -> Optional[dict]:
     return (_TABLEAUX.get(world) or {}).pop(str(key or ""), None)
 
 
+def _the_morning(day) -> str:
+    """The line under the title. BA-5: the day's own toll so far and who has
+    the better of it (`battle_telling.day_so_far`); with that seam down, or
+    for a day that kept no count, how the last clash stood (`_morning`)."""
+    if not day.get("read"):
+        return ""
+    if _telling.the_day_tells_its_clashes():
+        said = _telling.day_so_far(day, _shown(day.get("enemy")))
+        if said:
+            return said
+    return _morning(day)
+
+
 def _morning(day) -> str:
     read = day.get("read") or {}
     ahead = read.get("ahead", "even")
@@ -1793,7 +2317,7 @@ def block(world, day: dict, *, chips: bool = True) -> dict:
         "theirs_of": int(day.get("theirs_of", day.get("theirs", 0))),
         "awaits": day.get("awaits") if is_open else "",
         "pending": bool(day.get("pending")),
-        "morning": _morning(day) if day.get("read") else "",
+        "morning": _the_morning(day),
         "ahead": (day.get("read") or {}).get("ahead", "even"),
         "told": [dict(t) for t in (day.get("told") or [])],
         "ended": day.get("ended", ""),
@@ -1804,18 +2328,27 @@ def block(world, day: dict, *, chips: bool = True) -> dict:
     }
     if day.get("close"):
         out["close"] = str(day["close"])        # BA-4: how the day ended, in one line
+    if day.get("verdict_told"):
+        out["verdict_told"] = str(day["verdict_told"])    # BA-5: under the deciding clash's headline
     if is_open:
         out.update(_what_the_field_shows_of_him(world, day))
         # BA-4: the first day of a campaign names its own rules, once
         # (`first_open`, the eleventh screen): attached while unlatched, on
         # this fresh dict — a day is not stored with it.
         from backend.game_logic import first_open as _first_open
-        _first_open.attach(out, world, "battle_day")
+        if _says_its_first_line(world, day):
+            _first_open.attach(out, world, "battle_day")
     if is_open and chips and day.get("awaits") == "ours" and not day.get("pending"):
         try:
             out["chips"] = the_offer(world, day)
         except Exception as exc:
             report(exc, "battle_day.block: the_offer")
+        if _telling.the_table_reads_him():
+            # BA-5: Berthier's reading of his next word — only where a word is
+            # ours to give, and only as far as the player can see.
+            reading = _telling.reading_of(world, day)
+            if reading:
+                out["reading"] = reading
     return out
 
 
@@ -1901,6 +2434,15 @@ def _chip(kind, label, *, command="", word="", ok=True, why="", counsel="none",
             "counsel": counsel, "odds": odds, "marshal": who, "shown": _shown(who) if who else ""}
 
 
+def _does(chip: dict, does: str, more: str = "") -> None:
+    """BA-5: what the chip's word does — `does` for its face, `more` for its
+    hover. With the seam down a chip carries neither key (BA-4's chip)."""
+    if _telling.a_word_says_what_it_does():
+        chip["does"] = str(does or "")
+        if more:
+            chip["more"] = str(more)
+
+
 # One order for every surface (the table, the province panel, the log): the
 # lead's own words first, then the Guard, then the others by kind, the exits
 # last — "Leave it to him" last of all.
@@ -1947,6 +2489,16 @@ def the_offer(world, day) -> List[dict]:
             quote = Q.attack_quote(world, corps, foe)
             if quote.get("kind") != "attack":
                 continue
+            force = quote.get("force") or {}
+            counted = int(day.get("his_men", 0) or 0)
+            if counted > 0 and force and not (
+                    int(force.get("theirs_low", 0) or 0) > 0
+                    and force.get("theirs_low") == force.get("theirs_high")):
+                # BA-5: the map's sighting of him is a band, but this day's own
+                # table has counted him clash by clash — the card says the
+                # figure the table shows. No odds word comes with it: the
+                # muster's would read back what may stand beside him unseen.
+                quote = dict(quote, force=dict(force, theirs_low=counted, theirs_high=counted))
             shown = quote.get("shown") or _shown(corps.name)
             if getattr(corps, "artillery", False) and corps.location != foe.location:
                 kind, label = "cannonade", f"{shown}'s guns"
@@ -1962,6 +2514,9 @@ def the_offer(world, day) -> List[dict]:
             chips.append(_chip(kind, label, command=str(quote.get("command") or ""), ok=ok, why=why,
                                counsel=str(quote.get("objection") or "none"),
                                odds=str((quote.get("force") or {}).get("odds") or ""), who=corps.name))
+            _does(chips[-1],
+                  _telling.DOES["cannonade"] if kind == "cannonade" else _telling.does_attack(kind, quote),
+                  _telling.more_of("guard" if kind == "guard" else "press") if kind != "cannonade" else "")
             if corps.name == lead.name:
                 for row in quote.get("bring") or []:
                     if not row.get("command"):
@@ -1971,20 +2526,28 @@ def the_offer(world, day) -> List[dict]:
                                        command=str(row["command"]), ok=ok, why=why,
                                        counsel=str(row.get("objection") or "none"),
                                        who=str(row.get("marshal") or "")))
+                    _does(chips[-1], _telling.DOES["bring_up"])
         refusal = order_state_refusal(world, lead, "defend")
         ok, why = lit(PRICES["dig_in"], str(refusal or ""))
         chips.append(_chip("dig_in", f"{_shown(lead.name)} digs in",
                            command=f"{_shown(lead.name)}, defend", ok=ok, why=why,
                            counsel=Q._tactical_objection(world, lead, "defend", ""), who=lead.name))
+        _does(chips[-1], _telling.does_dig_in(lead) if not refusal else _telling.DOES["dig_in"],
+              _telling.more_of("dig_in"))
         if day.get("side") == "defence":
             refusal = order_state_refusal(world, lead, "retreat")
             chips.append(_chip("break_off", "Fall back", command=f"{_shown(lead.name)}, retreat",
                                ok=not refusal, why=str(refusal or ""), who=lead.name))
+            _does(chips[-1], _telling.DOES["fall_back"], _telling.more_of("fall_back"))
     chips.append(_chip("stand", f"{_shown(lead.name)} stands", word="stand", who=lead.name))
+    _does(chips[-1], _telling.does_stand(day), _telling.more_of("stand"))
     if a_marshal_may_be_left_to_it():
         chips.append(_chip("stand", f"Leave it to {_shown(lead.name)}", word="leave_it", who=lead.name))
+        if _telling.a_word_says_what_it_does():
+            _does(chips[-1], _telling.would_of(world, day), _telling.more_of("leave_it"))
     if day.get("side") == "attack":
         chips.append(_chip("break_off", "Break off", word="break_off", who=lead.name))
+        _does(chips[-1], _telling.DOES["break_off"], _telling.more_of("break_off"))
     chips.sort(key=_chip_rank)            # stable: the order within a kind is kept
     return chips
 

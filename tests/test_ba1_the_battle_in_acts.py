@@ -87,9 +87,11 @@ def driven(tmp_path_factory):
 class TestTheActsDriven:
     def test_the_engine_ran_clean(self, driven):
         assert driven["errors"] == []
-        # three battles and their settled frames, Ulm's nine settings shots, and
-        # (BA-2) the old four-seat payload's pair, which every walk carries
-        assert len(driven["by_id"]) == len(driven["shots"]) == 17
+        # three battles and their settled frames, Ulm's nine settings shots, (BA-2)
+        # the old four-seat payload's pair, which every walk carries, (BA-5) Ulm's
+        # three shots of the acts' speed and (BA-5's review) Ulm as a liberation's
+        # longest line, at the shipped size and at 130 %
+        assert len(driven["by_id"]) == len(driven["shots"]) == 22
         assert all(r.get("ok") for r in driven["by_id"].values())
         assert set(driven["slow_by_id"]) == set(FIRST_INSTANT_SHOTS)
         assert all(r.get("ok") for r in driven["slow_by_id"].values())
@@ -244,29 +246,24 @@ class TestTheWalkOfRecord:
             assert after["tray_alpha_pct"] == 100 and after["final"] and after["laurels"] == 2, rid
 
     def test_the_record_measures_the_laurels_of_a_triumph(self, record):
-        """BA1-X8's measure, on every staged triumph: the left laurel on the
-        seal, the right one under Replay; nothing on a plate without laurels."""
+        """BA1-X8's measure, on every staged triumph of the walk of record. It
+        read the left laurel on the seal and the right one under Replay until
+        row BA's BA-5 closed BA1-X8 (November 17, 2026: the laurels flank the
+        banner); since, no piece of the plate's furniture stands on another,
+        on a triumph as on a plate without laurels. (The pin kept the defect's
+        reading after the fix: the final pass's full suite caught it.)"""
         by = {r["id"]: r for r in record["results"]}
-        triumphs = plain = wide = 0
+        triumphs = plain = 0
         for rid, res in by.items():
             if not rid.endswith("__settled"):
                 continue
             frame = WALK._frame(res, "settled")
-            found = WALK.chrome_overlaps(frame)
             if frame["laurels"] == 2:
                 triumphs += 1
-                assert found and found[0].startswith("laurel_l ") and " over seal " in found[0], (rid, found)
-                # the right laurel goes under Replay where the plate is wide
-                # enough to reach it; BA-2's assault plates ("STORMING OF
-                # VIENNA") are narrower, and on them only the left one is over
-                assert len(found) in (1, 2), (rid, found)
-                if len(found) == 2:
-                    wide += 1
-                    assert found[1].startswith("laurel_r ") and " over replay " in found[1], (rid, found)
             else:
                 plain += 1
-                assert found == [], (rid, found)
-        assert triumphs >= 3 and plain >= 3 and wide >= 3
+            assert WALK.chrome_overlaps(frame) == [], (rid, WALK.chrome_overlaps(frame))
+        assert triumphs >= 3 and plain >= 3
 
     def test_the_staged_battles_show_what_they_were_staged_for(self):
         manifest = json.loads((AUDIT / "payloads" / "manifest.json").read_text(encoding="utf-8"))
@@ -357,14 +354,15 @@ class TestBA1X4TheTableAtLargeType:
 
 
 class TestBA1X8TheLaurelsOfATriumph:
-    """BA1-X8 (OPEN, owner Session H): on a triumph the left laurel stands on
-    the wax seal and the right one under Replay. Session UI-2 moved the seal
-    to the plate's left, clear of the buttons, and the laurels stayed where
-    they had flanked a plate without it (`battle_diorama.gd` `_laurel_layout`;
-    its own comment still clears a seal on the plate's right). Older than the
-    acts, which only made it plainer — the laurels now arrive with the gavel.
-    The xfail turns red the day the furniture stands clear, so the row is
-    closed with it."""
+    """BA1-X8 (CLOSED in row BA, BA-5, November 17, 2026 — it was open for
+    Session H): on a triumph the left laurel stood on the wax seal and the
+    right one under Replay. Session UI-2 had moved the seal to the plate's
+    left, clear of the buttons, and the laurels stayed where they had flanked
+    a plate without it. No place on the plate's row clears the seal and two
+    buttons at every plate width: the laurels now flank the BANNER that
+    announces the triumph, on the baize (`battle_diorama.gd` `_laurel_layout`;
+    the walk's claim `_laurel_claims`). The xfail went red the day they stood
+    clear, and is a plain test since."""
 
     PIECES = {"seal", "laurel_l", "laurel_r", "replay", "close"}
 
@@ -380,10 +378,27 @@ class TestBA1X8TheLaurelsOfATriumph:
         assert WALK.chrome_overlaps({"chrome": {"seal": [570, 759, 44, 44], "laurel_l": [582, 776, 34, 34]}})
         assert WALK.chrome_overlaps({"chrome": {"seal": [570, 759, 44, 44], "laurel_l": [520, 776, 34, 34]}}) == []
 
-    @pytest.mark.xfail(strict=True, reason="BA1-X8 OPEN — owner Session H (S15, the deploy)")
     def test_the_laurels_stand_clear_of_the_seal_and_the_buttons(self, driven):
         triumph = WALK._frame(driven["by_id"]["ulm_full__settled"], "settled")
         assert WALK.chrome_overlaps(triumph) == []
+
+    def test_they_flank_the_banner_on_the_baize(self, driven):
+        triumph = WALK._frame(driven["by_id"]["ulm_full__settled"], "settled")
+        left, right = sorted(triumph["laurel_ink"], key=lambda r: r[0])
+        banner = triumph["banner_ink"]
+        assert left[0] + left[2] <= banner[0] and right[0] >= banner[0] + banner[2]
+        assert abs((banner[0] - (left[0] + left[2])) - (right[0] - (banner[0] + banner[2]))) <= 2, "the same gap"
+        assert WALK._laurel_claims("ulm", triumph) == []
+        # ...and the claim sees a laurel that stands on a word
+        on_a_word = dict(triumph, laurel_ink=[list(triumph["marks"][0]["rect"]), right])
+        assert any("(BA1-X8)" in line for line in WALK._laurel_claims("ulm", on_a_word))
+
+    def test_the_host_lays_them_by_the_banners_words(self):
+        host = _gd("battle_diorama.gd")
+        layout = host.split("func _laurel_layout(register: String) -> void:", 1)[1].split("\nfunc ", 1)[0]
+        assert "_banner.get_minimum_size().x" in layout and "_nameplate" not in layout
+        assert "mid - words / 2.0 - LAUREL_GAP - LAUREL_PX" in layout
+        assert "mid + words / 2.0 + LAUREL_GAP" in layout
 
 
 class TestTheInstruments:
@@ -643,7 +658,12 @@ class TestTheSeams:
         land battle that was cut short is laid on whole chrome too."""
         acts = _gd("battle_acts.gd")
         dress = _func(acts, "dress")
-        assert "_put_the_chrome_back()\n\tif host._is_naval():\n\t\treturn" in dress
+        # (row BA, BA-5: the acts' speed switch is built between the two — a fleet
+        # action plays too — so the pin reads the ORDER it always meant)
+        assert "\t_put_the_chrome_back()\n" in dress and "\tif host._is_naval():\n\t\treturn" in dress
+        assert dress.index("_put_the_chrome_back()") < dress.index("if host._is_naval():")
+        assert dress.index("_build_the_speed()") < dress.index("if host._is_naval():"), "a sea battle has its speed"
+        assert dress.index("if host._is_naval():") < dress.index("_build_the_ground()"), "and no ground"
         back = _func(acts, "_put_the_chrome_back")
         assert "host._tray.modulate.a = 1.0" in back
         assert "(laurel as CanvasItem).modulate.a = _laurel_alpha(laurel)" in back

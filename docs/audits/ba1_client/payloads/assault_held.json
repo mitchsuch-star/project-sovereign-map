@@ -3,6 +3,7 @@
  "fate": "held",
  "battle_name": "Assault on Vienna",
  "region": "Vienna",
+ "ground": "plains",
  "turn": 1,
  "outcome": "defender_victory",
  "victor": "Vienna garrison",

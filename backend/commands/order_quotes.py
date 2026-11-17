@@ -934,6 +934,10 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
                 said = (f"{q['shown']}'s day against "
                         f"{humanize_entity_name(str(held.get('enemy') or ''))} is still open — "
                         f"a battle here would be a single clash, with no day of its own.")
+                if _day.a_lead_holds_his_day_as_the_battle_began():
+                    # BA5-X1 (ruling 9's card, pressed): and what winning it
+                    # does to the day he holds — he advances, and has left it
+                    said += " Should he win it and advance, that day ends where it stands."
                 q["note"] = " · ".join(part for part in (str(q.get("note") or ""), said) if part)
     return q
 

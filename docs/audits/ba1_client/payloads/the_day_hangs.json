@@ -55,6 +55,7 @@
   "nation": "Austria"
  },
  "observation": "An inconclusive affair. Both sides bloodied but unbroken.",
+ "ground": "mountains",
  "enemy_voice": "Archduke John: \"Neither yields. The Alps are patient, and so am I.\"",
  "script": {
   "version": 1,
@@ -149,5 +150,6 @@
    "Davout": "cautious",
    "ArchdukeJohn": "cautious"
   }
- }
+ },
+ "verdict_told": "An even fight."
 }

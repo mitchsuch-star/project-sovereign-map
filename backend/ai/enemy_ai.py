@@ -1000,12 +1000,29 @@ class EnemyAI:
         the Guard. `opened`: he made the day's opening attack. `behind`: the
         last clash went against him on points. Returns {kind, action | None,
         to?}."""
-        nation = marshal.nation
-        personality = self._get_effective_personality(marshal, world)
-        base = self.ATTACK_THRESHOLDS.get(personality, 1.0)
-        spread = self.MOOD_VARIANCE.get(personality, 0.10)
+        # Row BA, BA-5: the rule in three parts — his temper, the terms he weighs
+        # and the decision at a bar — so that Berthier's reading of him
+        # (`the_days_reading`) IS this rule, read at the two ends of his mood.
+        # The one roll is drawn exactly where it always was: after the temper,
+        # before anything of the field is read.
+        base, spread = self._the_days_temper(marshal, world)
         bar = base * (rng if rng is not None else random).uniform(1.0 - spread, 1.0 + spread)
+        terms = self._the_days_terms(marshal, foe, world, purse=purse, opened=opened,
+                                     behind=behind, strike_price=strike_price)
+        return self._the_days_decision(terms, bar)
 
+    def _the_days_temper(self, marshal: Marshal, world: WorldState):
+        """(base, spread): his temper's bar and how far his mood moves it."""
+        personality = self._get_effective_personality(marshal, world)
+        return (self.ATTACK_THRESHOLDS.get(personality, 1.0),
+                self.MOOD_VARIANCE.get(personality, 0.10))
+
+    def _the_days_terms(self, marshal: Marshal, foe: Marshal, world: WorldState, *,
+                        purse: int, opened: bool, behind: bool, strike_price: int = 1) -> Dict:
+        """What `the_days_word` weighs, read from the field — no dice, nothing
+        written. `ratio` is the whole field he commands against the field he
+        would meet and what its friends will commit."""
+        nation = marshal.nation
         field = [m for m in world.marshals.values()
                  if m.location == foe.location and m.nation == foe.nation]
         defenders = self._defending_strength_in_region(field) or int(foe.strength)
@@ -1017,6 +1034,41 @@ class EnemyAI:
         fit = not (_is_wounded(marshal, world) or getattr(marshal, 'retreat_recovery', 0) > 0
                    or _corps_is_drilling(marshal) or getattr(marshal, 'drilling_locked', False)
                    or getattr(marshal, 'fortified', False))
+        return {"marshal": marshal, "foe": foe, "world": world, "nation": nation,
+                "purse": int(purse), "opened": bool(opened), "behind": bool(behind),
+                "strike_price": int(strike_price), "defenders": defenders,
+                "combined": combined, "ratio": ratio, "fit": fit}
+
+    def the_days_reading(self, marshal: Marshal, foe: Marshal, world: WorldState, *,
+                         purse: int, opened: bool, behind: bool, strike_price: int = 1) -> Dict:
+        """Row BA, BA-5 — what his next word would be at the two ends of his
+        mood: {"low": the word at his boldest, "high": at his most wary,
+        "strike": "will" | "may" | "will_not", "ratio", "bar_low", "bar_high"}.
+        The decision falls from a strike to a corps brought up to the rest as
+        the bar rises, so the two ends bound every roll he could make: "will"
+        when even his wariest mood strikes, "will_not" when even his boldest
+        does not. PURE — no dice are drawn and nothing is written; what may be
+        SHOWN of it is the table's to decide (`battle_day.reading_of`: only
+        what the player can see)."""
+        base, spread = self._the_days_temper(marshal, world)
+        low, high = base * (1.0 - spread), base * (1.0 + spread)
+        terms = self._the_days_terms(marshal, foe, world, purse=purse, opened=opened,
+                                     behind=behind, strike_price=strike_price)
+        at_low = self._the_days_decision(terms, low)
+        at_high = self._the_days_decision(terms, high)
+        strike = ("will" if at_high.get("kind") == "strike"
+                  else "may" if at_low.get("kind") == "strike" else "will_not")
+        return {"low": at_low, "high": at_high, "strike": strike,
+                "ratio": float(terms["ratio"]), "bar_low": low, "bar_high": high,
+                "defenders": float(terms["defenders"]), "combined": float(terms["combined"]),
+                "fit": bool(terms["fit"]), "base": base, "spread": spread}
+
+    def _the_days_decision(self, terms: Dict, bar: float) -> Dict:
+        """The word at a given bar (the body of `the_days_word`, unchanged)."""
+        marshal, foe, world = terms["marshal"], terms["foe"], terms["world"]
+        nation, purse, opened, behind = terms["nation"], terms["purse"], terms["opened"], terms["behind"]
+        strike_price, defenders = terms["strike_price"], terms["defenders"]
+        combined, ratio, fit = terms["combined"], terms["ratio"], terms["fit"]
         if purse >= strike_price and fit and ratio >= bar:
             return {"kind": "strike",
                     "action": {"marshal": marshal.name, "action": "attack", "target": foe.name}}

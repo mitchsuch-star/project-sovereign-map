@@ -62,6 +62,15 @@ def get_instance_attributes(obj: Any, *, private_exempt=None,
     if is_dataclass(obj):
         return {f.name for f in fields(obj)}
     names = set(vars(obj).keys())
+    # Row BA, BA-5 (November 17, 2026): a field its class DECLARES kept only
+    # when held (`Marshal.KEPT_ONLY_WHEN_HELD_FIELDS` — `days`) is written by
+    # `to_dict()` only while it holds something, so that a campaign which
+    # never wrote one saves byte for byte what it saved before the field
+    # existed. Narrowly: while it is EMPTY it is owed no key; holding
+    # something it is owed one like any other field
+    # (`TestAMarshalsDays` in tests/test_ba5_the_finish.py pins both halves).
+    names -= {k for k in getattr(type(obj), "KEPT_ONLY_WHEN_HELD_FIELDS", ())
+              if not getattr(obj, k, None)}
     if private_exempt is None:
         return {k for k in names if not k.startswith('_')}
 
@@ -224,6 +233,13 @@ def create_fully_populated_marshal() -> Marshal:
 
     # Reinforcement (Phase 7, S61a)
     marshal.reinforced_this_turn = True
+
+    # Row BA, BA-5: a marshal's days (kept only while held — so held here)
+    marshal.days = [{
+        "name": "The Great Battle of Swabia", "turn": 3, "place": "Swabia",
+        "against": "Mack", "verdict": "won", "told": "our numbers told",
+        "shape": "The Guard decided it.", "our_loss": 6805, "his_loss": 14296, "clashes": 2,
+    }]
 
     return marshal
 

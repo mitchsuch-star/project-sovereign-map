@@ -1415,6 +1415,46 @@ def cap_the_roads_and_the_fog():
         raise RuntimeError("the_roads_and_the_fog: " + "; ".join(problems))
 
 
+def cap_the_finish():
+    """Row BA, BA-5 (November 17, 2026) — the finished table: a battle's own
+    table names WHAT TOLD under its headline, and the clash that decides a day
+    names itself. Four staged scenes as the tableau at rest, each on the
+    ambient seed its walk of record kept: a great battle won (the laurels
+    beside the banner, the line under it), a defeat on the defence, the horse
+    against his squares on the mountains' ground, and the Guard's clash that
+    decides the day at Ulm."""
+    import ba1_stage_battles as stage
+    seeds = json.loads((REPO / "docs" / "audits" / "ba1_client" / "payloads" / "manifest.json")
+                       .read_text(encoding="utf-8"))
+    problems: list = []
+    for scene in ("ulm_full", "defeat_defending", "square_and_horse", "day_decided"):
+        try:
+            seed = int(seeds[scene]["ambient_seed"])
+            payload, reason, _result = stage.fight(scene, seed)
+            if not isinstance(payload, dict) or not reason:
+                raise RuntimeError(f"ba5 scene {scene} did not stage on seed {seed}")
+            told = str(payload.get("verdict_told") or "")
+            if not told:
+                raise RuntimeError(f"ba5 scene {scene} carries no `verdict_told`")
+            dice = next((b for act in (payload.get("script") or {}).get("acts") or []
+                         for b in act.get("beats") or [] if b.get("kind") == "dice"), {})
+            record(f"diorama_ba5_{scene}", payload,
+                   source="CommandExecutor._execute_attack -> battle_diorama (payload['verdict_told'] "
+                          "from battle_day.the_verdicts_line; payload['ground'])",
+                   staging=f"tools/ba1_stage_battles.py scene `{scene}`, ambient seed {seed}: "
+                           + " ".join((stage.SCENES[scene][0].__doc__ or "").split()),
+                   facts={"shows": reason, "verdict_told": told, "ground": payload.get("ground"),
+                          "outcome": payload.get("outcome"), "register": payload.get("register"),
+                          "player_side": payload.get("player_side"),
+                          "thrower": dice.get("actor"), "thrown": dice.get("natural"),
+                          "total": dice.get("modified"),
+                          "day_banner": (payload.get("day") or {}).get("banner")})
+        except Exception as exc:
+            problems.append(f"{scene}: {exc!r}")
+    if problems:
+        raise RuntimeError("the_finish: " + "; ".join(problems))
+
+
 def cap_petition():
     """IQ-7 — the client's petition popup, the vassal card, the remitted row."""
     iq7 = test_module("test_iq7_satellites_have_a_position")
@@ -3434,6 +3474,7 @@ CAPTURES = {
     "walls_and_guns": cap_walls_and_guns,
     "the_days_points": cap_the_days_points,
     "the_roads_and_the_fog": cap_the_roads_and_the_fog,
+    "the_finish": cap_the_finish,
     "petition": cap_petition,
     "moments": cap_moments,
     "prisoner": cap_prisoner,

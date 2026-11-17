@@ -186,6 +186,7 @@ def build_assault_diorama(world, marshal, region, result: dict, facts: dict,
         "fate": fate,
         "battle_name": name,
         "region": region_name,
+        **_bd.ground_key(world, region_name),      # BA-5: the province's terrain, for the table's felt
         "turn": _i(getattr(world, "current_turn", 0)),
         "outcome": outcome,
         "victor": walls if held else marshal.name,
@@ -206,6 +207,22 @@ def build_assault_diorama(world, marshal, region, result: dict, facts: dict,
         "banner": _ASSAULT_BANNERS[(player_side, fate)],
         "fortified": bool(facts.get("fortified")),
     }
+    if player_side is not None:
+        # BA-5 (the second reading): what told at the wall, under the headline
+        # of an assault the player's court made or stood — as a field battle's
+        # own table says it (`battle_day.the_verdicts_line`).
+        try:
+            from backend.game_logic import battle_telling as _telling
+            if _telling.a_verdict_names_what_told():
+                told = _telling.assault_told(
+                    held, player_side == "attacker",
+                    _i(facts.get("attacker_effective")) or atk_before,
+                    _i(facts.get("garrison_effective")) or gar_before,
+                    bool(facts.get("fortified")), men=(atk_before, gar_before))
+                if told:
+                    payload["verdict_told"] = told
+        except Exception as exc:
+            _errors.report(exc, "siege_diorama.build_assault_diorama: what told")
     if siege is not None:
         turns = _i(siege.get("turns_required"))
         payload["sub_banner"] = (
@@ -366,6 +383,7 @@ def build_bombardment_diorama(world, battery, target, result: dict) -> Optional[
         "kind": BOMBARDMENT,
         "battle_name": f"Cannonade at {shown_region}",
         "region": region_name,
+        **_bd.ground_key(world, region_name),      # BA-5: the province's terrain, for the table's felt
         "turn": _i(getattr(world, "current_turn", 0)),
         # no field is won by guns alone: the register reads "grim" for a
         # party to it and "observer" for a watcher

@@ -124,18 +124,35 @@ class TestThePanelDriven:
         playing = WALK._frame(driven["by_id"]["day_ulm__digit_playing"], "pressed")
         assert playing["emitted"] == [] and not playing["final"]
 
-    def test_the_first_days_line_has_its_row_on_ulm(self, driven):
+    def test_the_first_days_line_has_its_row_on_a_crowded_first_day(self, driven):
         """Row BA, BA-4 (the user's tick — "First-open line"): on the first
-        great battle of a campaign the line stands on a row of its own above
-        the head, no chip scrolls for it, and the table says it showed it; on
-        the day with three groups of chips there is no room without a scroll,
-        and it rides the head's hover unacknowledged."""
-        ulm = WALK._frame(driven["by_id"]["day_ulm__settled"], "settled")["day"]
-        row = [ln for ln in ulm["lines"] if ln.get("first")]
-        assert len(row) == 1 and row[0]["shown"] and row[0]["box"][1] == 0
+        great battle of a campaign the line stands on a row of its own, no chip
+        scrolls for it, and the table says it showed it; where the table has no
+        room it rides the head's hover unacknowledged, and a later table that
+        has the room shows it. (Row BA, BA-5: the staged scenes say the line
+        ONCE, as a campaign does; the head now stands at the panel's top, so the
+        row stands right under it; and the second reading's order of giving room
+        — recorded in §15.23, "a word keeps what it does longer than the table
+        keeps its own lines" — gives the line up before the exits' cards and the
+        cards' second lines, so on the crowded first days it rides the hover.
+        The pin had kept the earlier order: the final pass's full suite caught it.)"""
+        assert STAGE.FIRST_DAY_SCENES == ("day_opens", "day_crowded", "day_guns")
+        opens = WALK._frame(driven["by_id"]["day_opens__settled"], "settled")["day"]
+        head = [ln for ln in opens["lines"] if ln.get("head")][0]
+        row = [ln for ln in opens["lines"] if ln.get("first")]
+        assert len(row) == 1 and row[0]["shown"] and row[0]["box"][1] == head["box"][1] + head["box"][3]
         assert row[0]["text"].startswith("The day hangs, Sire.")
-        assert ulm["first_shown"] == "battle_day"
-        assert not any(ln.get("scroll_active") for ln in ulm["lines"])
+        assert opens["first_shown"] == "battle_day"
+        assert not any(ln.get("scroll_active") for ln in opens["lines"])
+        crowded = WALK._frame(driven["by_id"]["day_crowded__settled"], "settled")["day"]
+        assert not [ln for ln in crowded["lines"] if ln.get("first")] and crowded["first_shown"] == ""
+        crowded_head = [ln for ln in crowded["lines"] if ln.get("head")][0]
+        assert "The day hangs, Sire." in crowded_head.get("source", ""), "it rides the head's hover"
+        assert not any(ln.get("scroll_active") for ln in crowded["lines"])
+        ulm = WALK._frame(driven["by_id"]["day_ulm__settled"], "settled")["day"]
+        assert not [ln for ln in ulm["lines"] if ln.get("first")] and ulm["first_shown"] == "", (
+            "a day that is not the campaign's first says no such line")
+        assert ulm["exits_up"] and ulm["exit_tags"], "and its exits say what they do, on a row of their own"
         guns = WALK._frame(driven["by_id"]["day_guns__settled"], "settled")["day"]
         assert not [ln for ln in guns["lines"] if ln.get("first")] and guns["first_shown"] == ""
         night = WALK._frame(driven["by_id"]["day_night__settled"], "settled")["day"]
@@ -187,8 +204,14 @@ class TestTheSwitchOffTable:
     def test_every_day_case_is_there_and_finds_its_anchor(self):
         keys = [case[0] for case in SWITCH.CASES]
         # 44 at BA-3's close; row BA's BA-4 added six (the digits on the table,
-        # the first day's row — `ba4_*`)
-        assert len(keys) == len(set(keys)) == 50
+        # the first day's row — `ba4_*`); BA-5 fourteen (`ba5_*`: the table that
+        # tells itself, the dice, the verdict's room, the speed, the ground)
+        # ...its second reading thirteen more (the decision block, figures that agree, the
+        # sizes), its review four (the closing table, a locked card, the toll's one line,
+        # a liberation's long line), and its final pass one (the verdict's step smaller, read
+        # off the label under the house rule)
+        assert len(keys) == len(set(keys)) == 84
+        assert len([k for k in keys if k.startswith("ba5_")]) == 34
         assert [k for k in keys if k.startswith("ba4_")] == [
             "ba4_digit_face", "ba4_digit_press", "ba4_digit_denial", "ba4_digit_at_rest",
             "ba4_first_row_ack", "ba4_first_row_fit"]

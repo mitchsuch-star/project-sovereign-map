@@ -204,7 +204,7 @@ class TestTheApproach:
                          atk_participants=[ney, davout, lannes], atk_reinf=rows)
         late, ordered = _beats(payload["script"], "approach", "arrive")
         assert late["late"] is True and late["margin"] == 2 and late["weight"] == "head"
-        assert "at the last hour (67 against a bar of 65)" in late["text"]
+        assert "at the last hour (his march: 67, where 65 was needed)" in late["text"]
         assert ordered["late"] is False and ordered["ordered"] is True
         assert ordered["weight"] == "detail" and "as ordered" in ordered["text"]
 

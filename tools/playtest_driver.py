@@ -5892,16 +5892,67 @@ class RoundsPlayer:
         self.words_by_kind = {}
         self.days_ended = {}
         self.day_rows = {}          # BA-4: enemy key -> a day's row until its first offer is seen
+        # BA-5 (the reserve's rule, `tools/_ba5_measure.py`): every pursuit the
+        # reserve paid in this run - [{turn, men, points, from}], "from" being
+        # "him" (our reserve pursued his beaten lead) or "us"
+        self.reserve = []
+        self._watch_the_reserve()
 
     # -- state ------------------------------------------------------------
     def seen(self) -> bool:
         return bool(self.days_opened or self.words_by_kind)
 
     def summary(self) -> dict:
-        return {"mode": self.mode, "days_opened": self.days_opened,
-                "words_given": sum(self.words_by_kind.values()),
-                "words_by_kind": dict(sorted(self.words_by_kind.items())),
-                "days_ended": dict(sorted(self.days_ended.items()))}
+        out = {"mode": self.mode, "days_opened": self.days_opened,
+               "words_given": sum(self.words_by_kind.values()),
+               "words_by_kind": dict(sorted(self.words_by_kind.items())),
+               "days_ended": dict(sorted(self.days_ended.items()))}
+        if self.reserve:
+            # BA-5: only where the reserve pursued (a run without one reads as before)
+            out["reserve"] = {
+                "days": len(self.reserve),
+                "men_from_him": sum(r["men"] for r in self.reserve if r["from"] == "him"),
+                "men_from_us": sum(r["men"] for r in self.reserve if r["from"] == "us"),
+                "largest": max(r["men"] for r in self.reserve),
+                "rows": list(self.reserve)}
+        return out
+
+    def _watch_the_reserve(self) -> None:
+        """BA-5: a read-only watch on `battle_day.reserve_pursuit_men` (the ONE
+        function both combat roads ask how many men the reserve takes) for the
+        in-process server: what it returns is returned unchanged; a pursuit that
+        took men is noted. Over HTTP the server is another process and nothing is
+        watched (the tally stays empty)."""
+        try:
+            from backend.game_logic import battle_day as _bd
+        except Exception:
+            return
+        inner = getattr(_bd, "reserve_pursuit_men", None)
+        if inner is None:
+            return
+        holder = getattr(inner, "_ba5_watch", None)
+        if holder is not None:
+            holder["player"] = self          # one watch a process; the newest run reads it
+            return
+        holder = {"player": self}
+
+        def watched(*, attacker_wins, loser):
+            men, points = inner(attacker_wins=attacker_wins, loser=loser)
+            player = holder.get("player")
+            if men and player is not None:
+                try:
+                    import backend.main as _main
+                    ours = getattr(loser, "nation", "") == getattr(_main.world, "player_nation", None)
+                    turn = int(getattr(_main.world, "current_turn", 0) or 0)
+                except Exception:
+                    ours, turn = False, int(player.turn)
+                player.reserve.append({"turn": turn, "men": int(men), "points": int(points),
+                                       "from": "us" if ours else "him",
+                                       "loser": str(getattr(loser, "name", ""))})
+            return men, points
+
+        watched._ba5_watch = holder
+        _bd.reserve_pursuit_men = watched
 
     def _take(self, block) -> None:
         if not isinstance(block, dict) or not block.get("enemy"):

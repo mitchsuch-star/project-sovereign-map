@@ -2,6 +2,7 @@
  "kind": "bombardment",
  "battle_name": "Cannonade at Swabia",
  "region": "Swabia",
+ "ground": "plains",
  "turn": 1,
  "outcome": "bombardment",
  "victor": null,
@@ -89,8 +90,8 @@
    }
   ],
   "tempers": {
-   "Marmont": "steady",
-   "Mack": "steady"
+   "Mack": "steady",
+   "Marmont": "steady"
   }
  }
 }

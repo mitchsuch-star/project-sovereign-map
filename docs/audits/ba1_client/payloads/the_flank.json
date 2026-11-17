@@ -94,6 +94,7 @@
   "nation": "Austria"
  },
  "observation": "The Emperor watched this field. Ney fought without Bernadotte's support. The roads, or the will, proved insufficient. And Mack was taken on that field — France holds him.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
  "script": {
   "version": 1,
@@ -252,5 +253,6 @@
    "Soult": "literal",
    "Mack": "literal"
   }
- }
+ },
+ "verdict_told": "Decided when Mack's line broke: our weight of numbers told."
 }

@@ -3,6 +3,7 @@
  "fate": "held",
  "battle_name": "Assault on Paris",
  "region": "Paris",
+ "ground": "plains",
  "turn": 1,
  "outcome": "defender_victory",
  "victor": "Paris garrison",

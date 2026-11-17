@@ -463,8 +463,10 @@ def _how(block):
     """How a closed day ended, as its table tells it: the last line told that
     is not the day's tally. (Row BA, BA-4: under the line that says HOW it
     ended the closing table now tells what the day came to — "Two clashes:
-    13,540 of ours for 16,474 of the enemy's." — as the last line told.)"""
-    return next(t for t in reversed(block["told"]) if t.get("kind") != "tally")
+    13,540 of ours for 16,474 of the enemy's." — as the last line told. Row
+    BA, BA-5: and under it whom the toll favoured and the day's shape.)"""
+    return next(t for t in reversed(block["told"])
+                if t.get("kind") not in ("tally", "shape", "clash"))
 
 
 def _served(extra=()):

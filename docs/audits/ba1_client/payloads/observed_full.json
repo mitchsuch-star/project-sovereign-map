@@ -55,6 +55,7 @@
   "nation": "Prussia"
  },
  "observation": "Stalemate. Hohenlohe and Kutuzov glare at each other across the field.",
+ "ground": "plains",
  "script": {
   "version": 1,
   "form": "brief",

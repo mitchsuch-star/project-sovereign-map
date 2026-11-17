@@ -3,6 +3,7 @@
  "fate": "capitulated",
  "battle_name": "Capitulation of Vienna",
  "region": "Vienna",
+ "ground": "plains",
  "turn": 1,
  "outcome": "attacker_victory",
  "victor": "Ney",
@@ -60,6 +61,7 @@
  "observation": "The garrison of Vienna laid down its arms before the assault went home.",
  "banner": "THE GARRISON CAPITULATES",
  "fortified": false,
+ "verdict_told": "Our weight of numbers told.",
  "script": {
   "version": 1,
   "form": "full",

@@ -55,6 +55,7 @@
   "nation": "Austria"
  },
  "observation": "The terrain heavily favored Archduke Charles. Massena's men paid the price.",
+ "ground": "hills",
  "enemy_voice": "Archduke Charles: \"I do not leave my ground. You were warned.\"",
  "script": {
   "version": 1,
@@ -174,22 +175,32 @@
   "enemy_shown": "Archduke Charles",
   "lead": "Massena",
   "lead_shown": "Massena",
-  "field": "Tyrol",
-  "field_shown": "Tyrol",
+  "field": "Carniola",
+  "field_shown": "Carniola",
   "side": "attack",
   "ours": 1,
-  "theirs": 1,
+  "theirs": 2,
   "ours_of": 2,
   "theirs_of": 3,
-  "awaits": "ours",
+  "awaits": "theirs",
   "pending": false,
-  "morning": "The last clash: drawn — 4,001 of ours for 2,889 of his.",
-  "ahead": "even",
+  "morning": "The day so far: 17,320 of ours for 11,965 of his — Archduke Charles has the better of the toll.",
+  "ahead": "theirs",
   "told": [
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "The opening: we lost on points — 7,151 of ours for 4,508 of his; his weight of numbers told."
+   },
    {
     "who": "theirs",
     "kind": "strike",
     "line": "Archduke Charles strikes back."
+   },
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "Archduke Charles's attack: drawn — 4,248 of ours for 4,629 of his; an even fight."
    },
    {
     "who": "ours",
@@ -197,9 +208,9 @@
     "line": "Massena presses the attack."
    },
    {
-    "who": "theirs",
-    "kind": "strike",
-    "line": "Archduke Charles comes on again."
+    "who": "clash",
+    "kind": "clash",
+    "line": "Massena's attack: we lost on points — 5,921 of ours for 2,828 of his; his weight of numbers told."
    }
   ],
   "ended": "",
@@ -207,15 +218,6 @@
   "chips": [],
   "his_temper": "Cautious",
   "his_road": true,
-  "first_open": {
-   "screen": "battle_day",
-   "line": "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and the enemy answers each word in turn. Two silences running, or every point spent, and night falls."
-  },
-  "reply": {
-   "who": "theirs",
-   "kind": "strike",
-   "line": "Archduke Charles comes on again."
-  },
   "follows": true
  }
 }

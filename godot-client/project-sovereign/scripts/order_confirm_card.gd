@@ -147,6 +147,11 @@ func _set_force(q: Dictionary) -> void:
 	if has_band:
 		var band_text: String = Utils.format_number(low) if low == high else Utils.format_number(low) + " – " + Utils.format_number(high)
 		theirs_text = band_text if label == "" else label + " · " + band_text
+		# BA5-D4: an exact sighting's label IS the figure ("39,718 men") — the
+		# row read "39,718 men · 39,718". A banded sighting keeps both: its
+		# label is words ("a large force") and the band is its range.
+		if low == high and label == band_text + " men":
+			theirs_text = label
 	box.add_child(_force_row("Theirs", theirs_text,
 			float(low) / float(scale_max), float(high) / float(scale_max),
 			Utils.cv(Utils.UI_SCORE_NEGATIVE), not has_band))

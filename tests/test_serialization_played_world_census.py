@@ -215,6 +215,8 @@ def _misses(obj):
     for k in vars(obj):
         if k in ser or k in _exempt_for(obj):
             continue
+        if k in getattr(type(obj), "KEPT_ONLY_WHEN_HELD_FIELDS", ()) and not getattr(obj, k):
+            continue                       # BA-5: owed a key only while it holds something
         if k.startswith("_") and k.lstrip("_") in ser:
             continue                       # R1: property-backed
         out.add(k)

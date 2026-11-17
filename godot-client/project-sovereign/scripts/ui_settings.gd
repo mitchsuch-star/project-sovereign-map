@@ -416,6 +416,27 @@ static func set_battle_scenes(mode: String) -> void:
 	_save()
 
 
+# --- Battle speed (row BA, BA-5, November 17, 2026: Settings → INTERFACE) ---
+# The user's tick at BA-5's gate — "Speed for the acts": a battle's acts play at
+# their own pace ("x1", the default) or twice as fast ("x2"). The same switch
+# stands on the battle's table beside the skip hint while the acts play, and a
+# press there writes this (through the tableau: the acts' helper writes no
+# setting). A preference like Battle scenes: Reset layout keeps it.
+const BATTLE_SPEEDS := ["x1", "x2"]
+const DEFAULT_BATTLE_SPEED := "x1"
+const BATTLE_SPEED_FACTORS := {"x1": 1.0, "x2": 2.0}
+
+
+static func get_battle_speed() -> String:
+	var speed := str(_config().get_value("display", "battle_speed", DEFAULT_BATTLE_SPEED))
+	return speed if speed in BATTLE_SPEEDS else DEFAULT_BATTLE_SPEED
+
+
+static func set_battle_speed(speed: String) -> void:
+	_config().set_value("display", "battle_speed", speed if speed in BATTLE_SPEEDS else DEFAULT_BATTLE_SPEED)
+	_save()
+
+
 # --- The very wide screen (Session UI-3, November 12, 2026: Settings → DISPLAY) ---
 # On a view SAFE_ZONE_ASPECT or wider (32:9, 32:10) the map's 16:10 sheet
 # covered 45 % of the width and the desk the rest — the blind readers' wasted

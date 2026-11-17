@@ -165,7 +165,10 @@ func _shot(name: String, note: String) -> void:
 	await _frames(4)
 	_n += 1
 	var img := root.get_texture().get_image()
-	var file := "BA4_WALK_%02d_%s_2026_11_16.jpg" % [_n, name]
+	# (row BA, BA-5: the frame's date is the run's own - BA4_WALK_STAMP, the runner's
+	# `--stamp`; unset it is the day BA-4's record was shot)
+	var stamp := OS.get_environment("BA4_WALK_STAMP")
+	var file := "BA4_WALK_%02d_%s_%s.jpg" % [_n, name, stamp if stamp != "" else "2026_11_16"]
 	var err := img.save_jpg(_dir.path_join(file), 0.88)
 	_out["steps"].append({"step": name, "note": note, "frame": file, "saved": err == OK,
 		"turn": _turn(), "ms": Time.get_ticks_msec() - _t0})
@@ -847,6 +850,16 @@ func _walk_day() -> void:
 			_last_words(_log_tail(), 200)],
 		_words.size() == words0 + 1 and str(_words[_words.size() - 1]) == command and _ap() == ap_before
 			and (not back or int(day.get("ours", -1)) == ours_before - 1), {"day": day})
+	# Row BA, BA-5 (BA5-X8): the first day's line stood on the day's FIRST table (the step
+	# `first_day_line` saw it drawn and acknowledged) — this table, the day's next, does not
+	# say it again, and its exits have their room back: each says what it does
+	var rows_after := _day_rows()
+	_rec("first_line_once", "the table after the first word",
+		"the first day's line on this table='%s'; the exits: '%s'" % [
+			str(rows_after["first"]).strip_edges().substr(0, 40),
+			str(rows_after["exits"]).strip_edges().substr(0, 170)],
+		(not back) or (str(rows_after["first"]).strip_edges() == ""
+			and (str(rows_after["exits"]).find("free ·") >= 0 or str(rows_after["exits"]).find("—") >= 0)))
 	await _shot("after_digit_press", "the lead pressed by the digit 1")
 	if not back:
 		_rec("day_decided_early", "the press closed the day on this seed", _purses(day), false)
@@ -1098,14 +1111,389 @@ func _walk_oldsave() -> void:
 			tallies += 1
 	var on_table := str(_day_rows()["all"])
 	_rec("old_day_closes", "pressed 8 on the table (Break off)",
-		"the day open=%s, ended '%s', banner '%s'; tally lines told: %d; 'of ours for' on the table=%s; close: '%s'" % [
+		# (row BA, BA-5: a clash's OWN line now carries that clash's toll - "... of ours for ... of
+		# his" - which is no tally of the day; the day's tally and its close say "of the enemy's")
+		"the day open=%s, ended '%s', banner '%s'; tally lines told: %d; a day's tally ('of the enemy's') on the table=%s; close: '%s'" % [
 			str(closing.get("open", "?")), str(closing.get("ended", "")), str(closing.get("banner", "")),
-			tallies, str(on_table.find("of ours for") >= 0), str(closing.get("close", ""))],
-		str(closing.get("ended", "")) == "broke_off" and tallies == 0 and on_table.find("of ours for") < 0
+			tallies, str(on_table.find("of the enemy") >= 0), str(closing.get("close", ""))],
+		str(closing.get("ended", "")) == "broke_off" and tallies == 0 and on_table.find("of the enemy") < 0
 			and str(closing.get("close", "")) == "", {"day": closing})
 	await _shot("old_day_closes", "the old day closed: how it ended, and no count it never kept")
 	if _table_up():
 		await _close_the_table()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Row BA, BA-5 "the finish", pressed in the real client (November 17, 2026)
+# ─────────────────────────────────────────────────────────────────────────────
+# Two more plans (BA4_PLAN):
+#   finish  the Masséna board again (the `day` board's hunted campaign): the acts'
+#          SPEED switch pressed while the opening plays (the clock doubles and is
+#          given back); the day's head carries Berthier's READING and the lead's
+#          cards say what their words DO; the word given sounds its own cue; the
+#          log's "View the field" opens the day's LATEST clash (BA5-D2); the
+#          province's panel says the reading too; "Break off" closes the day on
+#          the latest clash's own table, and the close says whom the toll favoured
+#          and what kind of day it was; the lead's card on the Generals screen
+#          lists the day among HIS DAYS.
+#   oneday  the same board with a second enemy corps beside the lead (ruling 9):
+#          with his day open, the attack card on the second corps says that a
+#          battle there would be a single clash with no day of its own; its Send
+#          fights that battle as an ordinary order and the open day stands.
+
+func _table_sig(data) -> String:
+	"""A tableau by what stands on it: its name, both sides' losses, its beats."""
+	if not (data is Dictionary):
+		return ""
+	var d: Dictionary = data
+	var beats := 0
+	var script = d.get("script", null)
+	if script is Dictionary:
+		for act in (script as Dictionary).get("acts", []):
+			if act is Dictionary and (act as Dictionary).get("beats", null) is Array:
+				beats += ((act as Dictionary)["beats"] as Array).size()
+	var atk = d.get("attacker", {})
+	var dfd = d.get("defender", {})
+	return "%s|%d|%d|%d" % [str(d.get("battle_name", "")),
+		int((atk as Dictionary).get("casualties_total", 0)) if atk is Dictionary else 0,
+		int((dfd as Dictionary).get("casualties_total", 0)) if dfd is Dictionary else 0, beats]
+
+
+func _head_text() -> String:
+	var acts = _acts()
+	var panel = acts.get("_day_panel") if acts != null else null
+	if panel == null or not is_instance_valid(panel):
+		return ""
+	var head = (panel as Node).get_node_or_null("DayHead")
+	return _plain((head as RichTextLabel).get_parsed_text()) if head != null else ""
+
+
+func _cues_started() -> Array:
+	"""The sound files the table's own cue road has started, by file name."""
+	var out: Array = []
+	var dio = _dio()
+	if dio == null:
+		return out
+	for p in dio.get("_own_cues_started"):
+		if is_instance_valid(p) and p.stream != null:
+			out.append(str(p.stream.resource_path).get_file())
+	return out
+
+
+func _cue_file(cue: String) -> String:
+	var row = AudioManager.CUES.get(cue, {})
+	var files = (row as Dictionary).get("files", []) if row is Dictionary else []
+	return str(files[0]).get_file() if files is Array and not (files as Array).is_empty() else ""
+
+
+func _ba5_speed() -> void:
+	"""While the acts play: the table's own speed switch, pressed and pressed again."""
+	var start := Time.get_ticks_msec()
+	var sw = null
+	while Time.get_ticks_msec() - start < 90000:
+		await process_frame
+		var acts = _acts()
+		if _table_up() and acts != null and not bool(_dio().get("_final")):
+			var found = acts.get("_speed_switch")
+			if found != null and is_instance_valid(found) and (found as CanvasItem).is_visible_in_tree():
+				sw = found
+				break
+		elif _table_up() and bool(_dio().get("_final")):
+			break
+	if sw == null:
+		_rec("ba5_speed", "looked for the speed switch while the acts played", "no table was playing its acts", false)
+		return
+	await _frames(20)          # well into the acts
+	var clock0: float = Engine.time_scale
+	var text0 := str(sw.text)
+	(sw as Button).emit_signal("pressed")
+	await _frames(3)
+	var clock1: float = Engine.time_scale
+	var setting1 := str(UiSettings.get_battle_speed())
+	var playing1: bool = not bool(_dio().get("_final"))
+	var text1 := str(sw.text) if is_instance_valid(sw) else "?"
+	var pressed_again := false
+	if is_instance_valid(sw) and (sw as CanvasItem).is_visible_in_tree():
+		(sw as Button).emit_signal("pressed")
+		pressed_again = true
+	await _frames(3)
+	var clock2: float = Engine.time_scale
+	_rec("ba5_speed", "pressed the table's speed switch while the acts played, then again",
+		"the switch read '%s' -> '%s'; the engine's clock %.1f -> %.1f -> %.1f; the setting after the first press '%s' and now '%s'; the acts still played=%s; pressed again=%s" % [
+			text0, text1, clock0, clock1, clock2, setting1, str(UiSettings.get_battle_speed()), str(playing1), str(pressed_again)],
+		is_equal_approx(clock0, 1.0) and is_equal_approx(clock1, 2.0) and is_equal_approx(clock2, 1.0)
+			and setting1 == "x2" and playing1 and pressed_again and str(UiSettings.get_battle_speed()) == "x1"
+			and text0 == "Speed ×1" and text1 == "Speed ×2")
+	await _shot("ba5_speed", "the acts play; the speed switch stands in Close's room")
+
+
+func _walk_finish() -> void:
+	"""BA-5's own rules of the day, pressed on the Masséna board."""
+	await _select(LEAD)
+	var opened := await _open_attack_card()
+	if opened:
+		var sendb = _card().get("send_button")
+		if sendb != null and sendb.visible and not sendb.disabled:
+			sendb.emit_signal("pressed")
+	await _frames(6)
+	await _settle(90000)
+	await _frames(12)
+	await _answer_objection("attack")
+	await _commit_if_asked("attack")
+	# 1 - the acts' speed, while the opening plays
+	await _ba5_speed()
+	var up := await _wait_chips_through_his_answer(150000)
+	var day := _day()
+	_rec("ba5_day_opens", "pressed the card's Send (%s, attack %s)" % [LEAD, FOE],
+		"the table up=%s; the panel offers=%s; the clock at rest %.1f; the day: %s" % [
+			str(_table_up()), str(up), Engine.time_scale, _purses(day)],
+		up and bool(day.get("open", false)) and is_equal_approx(Engine.time_scale, 1.0), {"day": day})
+	if not up:
+		await _shot("ba5_no_day", "the day did not open as hunted")
+		return
+	var plate := str(_dio().get("_data").get("battle_name", ""))
+
+	# 2 - Berthier's reading, at the end of the stakes that head the panel (the second reading:
+	# each purse in words, right above the words they govern)
+	var head := _head_text()
+	var reading = day.get("reading", null)
+	var line := str((reading as Dictionary).get("line", "")) if reading is Dictionary else ""
+	var purse := "%d of %d points" % [int(day.get("ours", 0)), int(day.get("ours_of", 0))]
+	_rec("ba5_reading", "read the day's head: the stakes, at the panel's top",
+		"the head: '%s'; the server's reading: '%s'; our purse in words: '%s'" % [head.strip_edges(), line, purse],
+		line in ["he will strike", "he may strike", "he will not strike"] and head.strip_edges().ends_with(line)
+			and head.find(purse) >= 0)
+
+	# 3 - a card says what its word does
+	var press_i := _chip_index(day, "press", "")
+	var press_chip: Dictionary = day.get("chips", [])[press_i] if press_i >= 0 else {}
+	var does := str(press_chip.get("does", ""))
+	var rows := _day_rows()
+	var own := str(rows["own"])
+	var exits := str(rows["exits"])
+	_rec("ba5_cards", "read the lead's own cards (row C) and the exits (row E)",
+		"row C: %s | the server's `does` for the press: '%s' | row E: %s" % [own.strip_edges(), does, exits.strip_edges()],
+		does != "" and own.to_lower().find(does.to_lower()) >= 0 and own.find("1 point") >= 0
+			and (exits.find("he keeps the field") >= 0 or exits.find("8 Break off") >= 0))
+	await _shot("ba5_the_table_tells", "the head reads him; the cards say what their words do")
+
+	# 4 - the word given sounds its own cue (the bugle), once
+	var bugle := _cue_file("bugle_to_arms")
+	var had_bugle: bool = _cues_started().has(bugle)
+	var words0 := _words.size()
+	await _key_press(KEY_1)
+	await _frames(2)
+	var sounded: Array = _cues_started()
+	await _settle(60000)
+	await _frames(12)
+	await _commit_if_asked("press")
+	await _answer_objection("press")
+	var back := await _wait_chips_through_his_answer(150000)
+	day = _day()
+	_rec("ba5_word_sounds", "pressed 1 on the table (the lead presses)",
+		"words given %s; the cues the table is sounding right after the press: %s (the word's own: %s; sounding before it=%s); the chips back=%s" % [
+			str(_words.slice(words0)), str(sounded), bugle, str(had_bugle), str(back)],
+		_words.size() == words0 + 1 and sounded.has(bugle) and not had_bugle)
+	if not back:
+		_rec("ba5_decided_early", "the press closed the day on this seed", _purses(day), false)
+		return
+
+	# 5 - BA5-D2: the log's "View the field" opens the day's LATEST clash
+	# (the day's latest clash is the table that STANDS now, with the chips back: his
+	# answering clash where he struck, else our own)
+	var tables = _main.get("_day_tables")
+	var stored_sig := _table_sig((tables as Dictionary).get(FOE, null)) if tables is Dictionary else ""
+	var latest_sig := _table_sig(_dio().get("_data"))
+	var closed := await _close_the_table()
+	var viewed := _press_log_chip("View the field")
+	await _frames(12)
+	await _settle(20000)
+	await _wait_final(30000)
+	var viewed_sig := _table_sig(_dio().get("_data")) if _table_up() else ""
+	_rec("ba5_d2_view_the_field", "closed the table, pressed the log's 'View the field'",
+		"closed=%s; the link pressed=%s; the table up=%s; the day's latest clash (the table that stood): %s; the client's own store of it: %s; the table the link opened: %s" % [
+			str(closed), str(viewed), str(_table_up()), latest_sig, stored_sig, viewed_sig],
+		closed and viewed and _table_up() and latest_sig != "" and viewed_sig == latest_sig and stored_sig == latest_sig)
+	await _shot("ba5_d2_view_the_field", "the log's link opens the day's latest clash")
+	await _close_the_table()
+
+	# 6 - the province's panel says the reading too
+	var day_field := str(day.get("field", FIELD))
+	var panel_up := await _open_province_panel(day_field)
+	var ptext := _panel_text()
+	_rec("ba5_panel_reading", "clicked %s on the map (the day's field)" % day_field,
+		"the panel up=%s; the day's block=%s; Berthier's reading on it=%s; panel: %s" % [
+			str(panel_up), str(ptext.find("THE DAY AT") >= 0), str(ptext.find("Berthier's reading: he ") >= 0),
+			_last_words(ptext, 240)],
+		panel_up and ptext.find("THE DAY AT") >= 0 and ptext.find("Berthier's reading: he ") >= 0)
+
+	# 7 - "Break off" from the panel: the closing table is the latest clash's own, and the
+	# close says whom the toll favoured and what kind of day it was
+	var source := _panel_source()
+	var meta := ""
+	for m in _metas_in_text(source):
+		if str((m as Dictionary).get("meta", "")).find("@word:break_off:") >= 0:
+			meta = str((m as Dictionary).get("meta", ""))
+	var boots := _cue_file("boots")
+	var had_boots: bool = _cues_started().has(boots)
+	if meta != "":
+		_panel().get("content_area").emit_signal("meta_clicked", meta)
+	# the close's own cue is short (it is cut at 1.6 s and its player freed): listened
+	# for on every frame until the closing table stands
+	var heard_boots := false
+	var listen := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - listen < 45000:
+		await process_frame
+		if _cues_started().has(boots):
+			heard_boots = true
+		if heard_boots or (_table_up() and bool(_dio().get("_final")) and not bool(_day().get("open", true))):
+			break
+	await _frames(6)
+	await _settle(60000)
+	await _frames(24)
+	await _wait_final(30000)
+	var closing := _day()
+	var closing_sig := _table_sig(_dio().get("_data")) if _table_up() else ""
+	var told: Array = closing.get("told", []) if closing.get("told", null) is Array else []
+	var shape := ""
+	for t in told:
+		if t is Dictionary and str((t as Dictionary).get("kind", "")) == "shape":
+			shape = str((t as Dictionary).get("line", ""))
+	_rec("ba5_d2_the_close", "pressed the panel's 'Break off' (meta '%s')" % meta,
+		"the table up=%s; ended '%s'; the closing table: %s (the day's latest clash: %s); the close's own line: '%s'; the close: '%s'; cues at the close: %s" % [
+			str(_table_up()), str(closing.get("ended", "")), closing_sig, latest_sig, shape,
+			str(closing.get("close", "")), "heard=%s (the close's own: %s; sounding before it=%s)" % [str(heard_boots), boots, str(had_boots)]],
+		meta != "" and str(closing.get("ended", "")) == "broke_off" and closing_sig == latest_sig
+			and shape.find("The attack was given up") >= 0 and str(closing.get("close", "")).ends_with(shape)
+			and (shape.to_lower().find("better of the toll") >= 0 or shape.find("The toll stood even") >= 0)
+			and heard_boots and not had_boots,
+		{"day": closing})
+	await _shot("ba5_d2_the_close", "the day closed on its latest clash; the close says what kind of day it was")
+	await _close_the_table()
+
+	# 8 - a marshal's days: the lead's card on the Generals screen
+	var top = _main.get("top_bar")
+	var words := ""
+	if top != null:
+		top.toggle_screen("generals")
+		await _frames(10)
+		await _settle(30000)
+		var screen = top.screens.get("generals", null)
+		if screen != null:
+			screen.select_marshal(LEAD)
+			await _frames(12)
+			await _settle(15000)
+			for n in _all_nodes(screen):
+				if n is RichTextLabel and (n as CanvasItem).is_visible_in_tree():
+					words += _plain((n as RichTextLabel).get_parsed_text()) + "\n"
+	var at := words.find("His days")
+	var days_text := words.substr(at, 420) if at >= 0 else ""
+	_rec("ba5_his_days", "opened the Generals screen and selected %s" % LEAD,
+		"the card's block: %s" % days_text.strip_edges().replace("\n", " / "),
+		at >= 0 and plate != "" and days_text.find(plate) >= 0 and days_text.find("against") >= 0
+			and days_text.find("The attack was given up") >= 0)
+	await _shot("ba5_his_days", "the lead's card: his days")
+	if top != null:
+		top.toggle_screen("generals")
+		await _frames(8)
+
+
+func _walk_one_day() -> void:
+	"""Ruling 9: the card's line for a lead who already holds a day, pressed."""
+	var other := OS.get_environment("BA5_OTHER")
+	var other_at := OS.get_environment("BA5_OTHER_AT")
+	await _select(LEAD)
+	var opened := await _open_attack_card()
+	if opened:
+		var sendb = _card().get("send_button")
+		if sendb != null and sendb.visible and not sendb.disabled:
+			sendb.emit_signal("pressed")
+	await _frames(6)
+	await _settle(90000)
+	await _frames(12)
+	await _answer_objection("attack")
+	await _commit_if_asked("attack")
+	var up := await _wait_chips_through_his_answer(150000)
+	var day := _day()
+	_rec("one_day_opens", "pressed the card's Send (%s, attack %s)" % [LEAD, FOE],
+		"the table up=%s; the panel offers=%s; the day: %s" % [str(_table_up()), str(up), _purses(day)],
+		up and bool(day.get("open", false)), {"day": day})
+	if not up:
+		await _shot("one_day_no_day", "the day did not open as hunted")
+		return
+	var closed := await _close_the_table()
+
+	# the card on the SECOND corps, the lead's day still open
+	await _select(LEAD)
+	var card_up := await _open_card_on(other_at, other)
+	var card := _card_text()
+	_rec("one_day_card", "closed the table (%s), selected %s, right-clicked %s at %s" % [str(closed), LEAD, other, other_at],
+		"the card up=%s; its terms: %s" % [str(card_up), _last_words(card, 320)],
+		card_up and card.find("is still open") >= 0
+			and card.find("a battle here would be a single clash, with no day of its own") >= 0
+			and card.find("Should he win it and advance, that day ends where it stands.") >= 0
+			and card.find("1 action") >= 0 and card.find("word of the day") < 0)
+	await _shot("one_day_card", "the attack card for a lead who already holds a day")
+
+	# its Send: an ordinary battle - a single clash that opens no day (BA5-X1: though the
+	# lead wins it on points and advances), and the first day, which he has left, ends
+	# at once and is told with the battle
+	var ap0 := _ap()
+	var log0 := _log_len()
+	var lead_at0 := ""
+	var words0 := _words.size()
+	if card_up:
+		var send2 = _card().get("send_button")
+		if send2 != null and send2.visible and not send2.disabled:
+			send2.emit_signal("pressed")
+	await _frames(6)
+	await _settle(90000)
+	await _frames(12)
+	await _answer_objection("second")
+	await _commit_if_asked("second")
+	await _wait_final(120000)
+	var second: Dictionary = _dio().get("_data") if _table_up() and _dio().get("_data") is Dictionary else {}
+	var second_day = second.get("day", null)
+	var tables = _main.get("_day_tables")
+	var keys: Array = (tables as Dictionary).keys() if tables is Dictionary else []
+	var alone := ""
+	var script = second.get("script", null)
+	if script is Dictionary:
+		for act in (script as Dictionary).get("acts", []):
+			if act is Dictionary:
+				for beat in (act as Dictionary).get("beats", []):
+					if beat is Dictionary and str((beat as Dictionary).get("text", "")).find("opens none of its own") >= 0:
+						alone = str((beat as Dictionary).get("text", ""))
+	var told_since := _log_since(log0)
+	var advanced := false          # the script says so: "advances into ..."
+	if script is Dictionary:
+		for act in (script as Dictionary).get("acts", []):
+			if act is Dictionary:
+				for beat in (act as Dictionary).get("beats", []):
+					if beat is Dictionary and str((beat as Dictionary).get("kind", "")) == "advance_to":
+						advanced = true
+	_rec("one_day_pressed", "pressed the card's Send (%s, attack %s)" % [LEAD, other],
+		"the table up=%s on '%s' (%s); actions %d -> %d; words of a day given %d; a day's block on this table=%s; the days the client holds: %s; the script's own line: '%s'; the log says he marched from the first field=%s" % [
+			str(_table_up()), str(second.get("battle_name", "")), str(second.get("outcome", "")), ap0, _ap(), _words.size() - words0,
+			str(second_day is Dictionary), str(keys), alone,
+			"%s (he advanced=%s)" % [str(told_since.find("marched from the field at") >= 0), str(advanced)]],
+		_table_up() and str(second.get("battle_name", "")) != "" and _ap() == ap0 - 1 and _words.size() == words0
+			and not (second_day is Dictionary) and not keys.has(other)
+			# (the review, BA5-X20) a lead whose advance ends his first day: the battle says he marched from it
+			and alone.find("has marched from his day" if advanced else "is still open") >= 0
+			and alone.find("this clash opens none of its own") >= 0
+			and (told_since.find("marched from the field at") >= 0) == advanced)
+	await _shot("one_day_pressed", "the second battle: a single clash, no day of its own")
+	await _close_the_table()
+
+	# the first day is over (he left its ground): its province's panel offers no word of it
+	var day_field := str(day.get("field", FIELD))
+	var panel_up := await _open_province_panel(day_field)
+	var ptext := _panel_text()
+	_rec("one_day_first_is_over", "clicked %s on the map (the first day's field)" % day_field,
+		"the panel up=%s; a day's block on it=%s; the days the client holds: %s" % [
+			str(panel_up), str(ptext.find("THE DAY AT") >= 0), str((_main.get("_day_tables") as Dictionary).keys())],
+		panel_up and (ptext.find("THE DAY AT") < 0) == advanced)
 
 
 func _walk() -> void:
@@ -1142,6 +1530,10 @@ func _walk() -> void:
 		await _walk_roads()
 	elif PLAN == "oldsave":
 		await _walk_oldsave()
+	elif PLAN == "finish":       # row BA, BA-5
+		await _walk_finish()
+	elif PLAN == "oneday":       # row BA, BA-5 (ruling 9)
+		await _walk_one_day()
 	else:
 		await _walk_day()
 	_finish()

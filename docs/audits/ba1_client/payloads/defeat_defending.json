@@ -57,6 +57,7 @@
   "nation": "France"
  },
  "observation": "The margin was slim. Training and preparation would serve Bernadotte well.",
+ "ground": "plains",
  "enemy_voice": "Mack: \"The system attacked. The system was correct.\"",
  "script": {
   "version": 1,
@@ -154,5 +155,6 @@
    "Mack": "literal",
    "Bernadotte": "cautious"
   }
- }
+ },
+ "verdict_told": "His weight of numbers told."
 }

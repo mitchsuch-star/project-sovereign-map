@@ -27,7 +27,7 @@ Implemented fields:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Dict, List, Mapping, Sequence
+from typing import Any, Optional, Dict, List, Mapping, Sequence
 from backend.models.trust import SovereignTrust, Trust
 
 
@@ -378,6 +378,14 @@ class Marshal:
         self.orders_overridden: int = 0
         self.battles_won: int = 0
         self.battles_lost: int = 0
+        # Row BA, BA-5 ("A marshal's days" - the user's tick at the plan gate):
+        # the last pitched battles he LED for the player - name, turn, how it
+        # went for him, what told and, for a great battle fought in turns, what
+        # kind of day it was. ONE writer (`keep_day`, called from
+        # `battle_day._keep_his_battle` / `_keep_his_day` on a served campaign);
+        # read by his card on the Generals screen and by NO rule of the game.
+        # Serialized only while it holds something (KEPT_ONLY_WHEN_HELD_FIELDS).
+        self.days: List[Dict[str, Any]] = []
 
 
         # Disobedience System (Phase 2)
@@ -864,6 +872,24 @@ class Marshal:
     DERIVED_STANDING_FIELDS = (
         '_doctrine_terms',        # SR-7d: the court's combat clauses, cure applied
     )
+
+    # Row BA, BA-5: fields `to_dict()` writes ONLY WHILE THEY HOLD SOMETHING
+    # (the precedent is `WorldState.battle_days`). A campaign that never wrote
+    # one saves byte for byte what it saved before the field existed - which
+    # is what the keyed world probe compares, key by key, against the commit
+    # before. Both field censuses read this tuple, and narrowly: such a field
+    # may be absent from `to_dict()` only while it is EMPTY; one that holds
+    # something and is not serialized is still a defect they report.
+    KEPT_ONLY_WHEN_HELD_FIELDS = (
+        'days',                   # BA-5: a marshal's days
+    )
+    DAYS_KEPT = 6                 # BA-5: the last six pitched battles he led
+
+    def keep_day(self, day: Dict[str, Any]) -> None:
+        """BA-5: one pitched battle on his record - the ONE writer of `days`.
+        The last DAYS_KEPT stand; an older one drops off the end."""
+        self.days.append(dict(day))
+        del self.days[:-self.DAYS_KEPT]
 
     def clear_coordination_transients(self) -> None:
         """Drop the transient coordination stamp. Single source of truth."""
@@ -2051,6 +2077,10 @@ class Marshal:
             "last_objection_turn": int(self.last_objection_turn),
             "defiance_cooldown_until": int(self.defiance_cooldown_until),
         }
+        # BA-5: a marshal's days - written only while he has one
+        # (KEPT_ONLY_WHEN_HELD_FIELDS: a save without one is as it always was)
+        if self.days:
+            data["days"] = [dict(day) for day in self.days]
         return data
 
     @classmethod
@@ -2082,6 +2112,10 @@ class Marshal:
         marshal.orders_overridden = data.get("orders_overridden", 0)
         marshal.battles_won = data.get("battles_won", 0)
         marshal.battles_lost = data.get("battles_lost", 0)
+        # BA-5: his days (absent from every save made before them, and from any
+        # save of a marshal who has led no pitched battle on a served campaign)
+        marshal.days = [dict(day) for day in (data.get("days") or [])
+                        if isinstance(day, dict)][-cls.DAYS_KEPT:]
 
         # ═══════ DISOBEDIENCE SYSTEM ═══════
         if data.get("trust"):

@@ -109,6 +109,8 @@ const FONT_VOICE := "res://assets/fonts/IMFeENit28P.ttf"       # period italic
 const FILIGREE := "res://assets/ui/ornaments/corner_floral_01.svg"
 const WAX_SEAL := "res://assets/ui/ornaments/wax_seal.png"
 const LAUREL := "res://assets/ui/ornaments/laurel_golden.svg"
+const LAUREL_PX := 34.0         # a laurel's side (BA1-X8: they flank the triumph's banner)
+const LAUREL_GAP := 16.0        # ...this far from its words
 
 # Figures per corps by arm — a line of foot, a squadron, a battery.
 # NV-7 adds "ship": a squadron is three sail on the table, the same count
@@ -1298,12 +1300,24 @@ func _laurel_layout(register: String) -> void:
 			laurel.visible = is_triumph
 	if is_triumph and _laurel_l != null:
 		await get_tree().process_frame
-		var y := TRAY_H - 46.0
-		_laurel_l.position = Vector2(_nameplate.position.x - 44.0, y)
-		# Right laurel clears the wax seal (which overhangs the plate's
-		# right edge by design — a seal ON the document).
-		_laurel_r.position = Vector2(
-			_nameplate.position.x + _nameplate.size.x + 44.0, y)
+		# BA1-X8 (closed in row BA, BA-5, November 17, 2026): the laurels flank
+		# the BANNER that announces the triumph, on the baize. They flanked the
+		# plate — but Session UI-2 had since stood the wax seal at the plate's
+		# left (the left laurel lay on it) and Replay comes up at its right (the
+		# right laurel lay under the button); no place on that row clears the
+		# seal and two buttons at every plate width. The banner's row has the
+		# two loss counters at its ends and nothing between them but its words.
+		var words: float = _banner.get_minimum_size().x
+		var mid: float = _stage.position.x + _stage.size.x / 2.0
+		var y: float = _stage.position.y + _banner.position.y \
+			+ (_banner.size.y - LAUREL_PX) / 2.0
+		# (row BA, BA-5, the second reading: the line under the headline names the
+		# moment a line broke, and runs wider than a short headline with its laurels)
+		# the laurels end where that line begins
+		if _sub_banner.text != "":
+			y = minf(y, _stage.position.y + _sub_banner.position.y - LAUREL_PX)
+		_laurel_l.position = Vector2(mid - words / 2.0 - LAUREL_GAP - LAUREL_PX, y)
+		_laurel_r.position = Vector2(mid + words / 2.0 + LAUREL_GAP, y)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1738,6 +1752,13 @@ func _cue(cue: String) -> void:
 	# and an un-deduped list asks the manager to stop one player twice.
 	if p != null and not _own_cues_started.has(p):
 		_own_cues_started.append(p)
+
+
+func keep_battle_speed(speed: String) -> void:
+	"""Row BA, BA-5: the table's own ×1 / ×2 switch was pressed. The acts' helper
+	is display-only and writes no setting; the tableau does, in the same key
+	Settings → Interface → Battle speed writes."""
+	UiSettings.set_battle_speed(speed)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

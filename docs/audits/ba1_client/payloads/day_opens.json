@@ -55,6 +55,7 @@
   "nation": "Austria"
  },
  "observation": "Geography was our enemy today, Sire. Archduke Charles held the superior ground.",
+ "ground": "hills",
  "enemy_voice": "Archduke Charles: \"Austria has lost battles to France. Not this one.\"",
  "script": {
   "version": 1,
@@ -165,9 +166,14 @@
   "theirs_of": 3,
   "awaits": "ours",
   "pending": false,
-  "morning": "The last clash: lost on points — 6,805 of ours for 4,296 of his.",
+  "morning": "The day so far: 6,805 of ours for 4,296 of his — Archduke Charles has the better of the toll.",
   "ahead": "theirs",
   "told": [
+   {
+    "who": "clash",
+    "kind": "clash",
+    "line": "The opening: we lost on points — 6,805 of ours for 4,296 of his; his weight of numbers told."
+   },
    {
     "who": "theirs",
     "kind": "dig_in",
@@ -188,7 +194,9 @@
     "counsel": "none",
     "odds": "unfavorable",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "odds: unfavorable — 35,195 on 49,704",
+    "more": "A clash that decides ends the day at once."
    },
    {
     "kind": "dig_in",
@@ -201,7 +209,9 @@
     "counsel": "possible",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "defensive stance: +9% if he strikes",
+    "more": "A dug-in line stands firmer when it is attacked. He speaks next."
    },
    {
     "kind": "stand",
@@ -214,7 +224,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "he speaks next",
+    "more": "A silence costs no point. Two silences running, and night falls."
    },
    {
     "kind": "break_off",
@@ -227,7 +239,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "the day ends; he keeps the field",
+    "more": "The attack is given up and the day ends where it stands."
    },
    {
     "kind": "stand",
@@ -240,7 +254,9 @@
     "counsel": "none",
     "odds": "",
     "marshal": "Massena",
-    "shown": "Massena"
+    "shown": "Massena",
+    "does": "he may press",
+    "more": "He spends what is left by his own temper, and the enemy answers, until night."
    }
   ],
   "his_temper": "Cautious",
@@ -248,6 +264,11 @@
   "first_open": {
    "screen": "battle_day",
    "line": "The day hangs, Sire. Each side holds points for the rest of it: a word costs points, never an action, and the enemy answers each word in turn. Two silences running, or every point spent, and night falls."
+  },
+  "reading": {
+   "strike": "may",
+   "line": "he may strike",
+   "hover": "Berthier's reading of his next word, as things stand: a clash changes it. \"May\" is said of anything that turns on his mood, or on what is out of your sight."
   },
   "reply": {
    "who": "theirs",

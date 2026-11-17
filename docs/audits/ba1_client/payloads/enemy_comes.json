@@ -67,6 +67,7 @@
   "nation": "Russia"
  },
  "observation": "Geography was our enemy today, Sire. Kutuzov held the superior ground.",
+ "ground": "mountains",
  "enemy_voice": "Kutuzov: \"Russia is patient, Frenchman. You will learn what that costs.\"",
  "script": {
   "version": 1,
@@ -162,5 +163,6 @@
    "Kutuzov": "cautious",
    "Buxhowden": "literal"
   }
- }
+ },
+ "verdict_told": "His weight of numbers told."
 }
