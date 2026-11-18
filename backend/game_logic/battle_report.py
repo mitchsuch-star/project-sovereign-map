@@ -13,7 +13,7 @@ import random
 from backend.display_names import humanize_entity_name
 from typing import Dict, List
 
-from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
+from backend.models.region import TERRAIN_DEFENSE_BONUS
 # FA-S16-D3: a MODULE import, never `from ... import` — the floor must be
 # resolved at call time so one home moves this reader and the war score.
 from backend.game_logic import battle_scale
@@ -136,7 +136,7 @@ def snapshot_attacker_modifiers(
     if getattr(attacker, "cavalry", False) and getattr(attacker, "is_reckless_cavalry", False):
         reck_bonus_raw = attacker._get_recklessness_attack_bonus()
         if reck_bonus_raw > 0:
-            terrain_cav_mult = TERRAIN_CAVALRY_EFFECTIVENESS.get(terrain, 1.0)
+            terrain_cav_mult = attacker.recklessness_terrain_scale(terrain)   # GRD-34: the one read
             if terrain_cav_mult != 1.0:
                 eff_pct = int(terrain_cav_mult * 100)
                 if terrain_cav_mult > 1.0:

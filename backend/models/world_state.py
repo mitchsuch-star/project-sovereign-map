@@ -517,13 +517,34 @@ A_MARKET_PAYS_ITS_OWN_KEEP = True
 # (`nation_bankruptcy_turns`, the consecutive deficit) is unchanged; the army
 # now also keeps ARREARS — two marks for every turn ended in deficit, one wiped
 # by every turn ended solvent — and deserts on a deficit turn once the marks
-# reach ARREARS_DESERT_AT. Three deficits in a row desert at the third, as they
-# always did; a deficit every other turn deserts at the fourth instead of
-# never; a single deficit is forgotten after two solvent turns. The mercy is
-# the one it always was. False = the shipped desertion rule.
+# reach ARREARS_DESERT_AT. As EA-8 built it (row OC's ARREARS seam down): three
+# deficits in a row desert at the third, as they always did; a deficit every
+# other turn at the fourth instead of never; a single deficit forgotten after
+# two solvent turns. Row OC (OC-2, GRD-20, November 18, 2026 —
+# `a_deficit_every_third_turn_is_remembered`): the mercy's turn (the solvent
+# turn right after a deficit, its bill halved) pays no mark down — three in a
+# row still desert at the third, every other turn at the third, one in three
+# at the fourth (turn 11), a single deficit forgotten after the mercy's turn
+# and two full-pay turns. The mercy itself is the one it always was. False =
+# the shipped desertion rule.
 ARREARS_ARE_REMEMBERED = True
 ARREARS_PER_DEFICIT = 2
 ARREARS_DESERT_AT = 5
+
+
+def a_deficit_every_third_turn_is_remembered() -> bool:
+    """Row OC, OC-2 — GRD-20 (ruled November 17, 2026, BA-6; built November
+    18): EA-8's residue. A deficit every third turn was never remembered: the
+    marks ran 2, 1, 0 for ever, the army never deserted, and the halved-upkeep
+    mercy was taken indefinitely (Hanover on jena: bankrupt on turns 29, 31,
+    34, 37, 40, no desertion). The mercy's turn pays nothing down: a solvent
+    turn that follows a deficit was bought by the halved bill, so it wipes no
+    mark; only a solvent turn on full pay does. D-S-S now runs 2, 2, 1 | 3, 3,
+    2 | 4, 4, 3 | 5 and deserts at turn 11; a deficit every other turn deserts
+    at the third (EA-8's fourth); three in a row at the third, as always; a
+    single deficit is forgotten after the mercy's turn and two full-pay turns.
+    Down: every solvent turn wipes a mark (EA-8 as built)."""
+    return True
 
 
 def severe_band_threshold(force_limit: int) -> int:
@@ -720,6 +741,35 @@ CHARGES_GRIP_THRESHOLD = 70   # grip threshold for the GRIP term
 CHARGES_UNREST_STABILITY = 50  # a held province at/below this stability is restless
 # FA-D1 (slice 17, Phase 2): the restless-interior term carries the
 # provinces that trip it (the `regions` key).
+# OC-2 — GRD-19 (row OC, November 18, 2026): the restless interior is priced
+# by the province — CHARGES_UNREST_RATE each, never more than the crown
+# term's level (CHARGES_CROWN_BASE, the S14j calibration: a constant, so a
+# test that holds the crown seam low never caps the interior under one
+# province's price).
+CHARGES_UNREST_CAP = CHARGES_CROWN_BASE
+
+
+def restlessness_is_priced_by_the_province() -> bool:
+    """Row OC, OC-2 — GRD-19 (ruled November 17, 2026, BA-6; built November
+    18): the Charges' restless-interior term was binary — one restless
+    province and thirty-two cost the same 75, so at scale (126 provinces) the
+    term was nearly always on and said nothing. Priced by the province: 75
+    each (one province — the commanded arms' measured norm, 0-1 on BA-5's band
+    saves — costs exactly what the binary term cost, so S14j's calibration
+    stands), capped at the crown term (250: the interior never costs more than
+    the household itself). Down: a flat 75 for any count."""
+    return True
+
+
+def restless_interior_rate(count: int) -> int:
+    """The restless-interior term's amount for `count` restless provinces —
+    the ONE price (GRD-19): `min(CHARGES_UNREST_CAP, CHARGES_UNREST_RATE ×
+    count)`; with the seam down, the binary `CHARGES_UNREST_RATE`."""
+    if not restlessness_is_priced_by_the_province():
+        return CHARGES_UNREST_RATE
+    return min(CHARGES_UNREST_CAP, CHARGES_UNREST_RATE * max(0, int(count)))
+
+
 # FA-D4 (slice 17, Phase 2): every belligerent of a scenario's starting wars
 # boots with the objective a LIVE declaration would have given it — the
 # defender's `defense` (which `set war purpose` may replace, as the rule for
@@ -6533,6 +6583,9 @@ class WorldState:
         trained = bool(region and region.has_building("training_ground"))
         gain = self.drill_morale_gain(getattr(marshal, "nation", None), trained)
         before = int(marshal.morale)
+        if before < 100:   # OC-1 (GRD-15): a drill with room for morale is the drill law's use
+            from backend.game_logic.reforms import note_law_used
+            note_law_used(self, getattr(marshal, "nation", None), "drill")
         marshal.adjust_morale(gain)
         return int(marshal.morale) - before
 
@@ -7780,7 +7833,7 @@ class WorldState:
             label += " — " + ", ".join(shown) + (f" (+{more} more)" if more > 0 else "")
             terms.append({"key": "restless_interior",
                           "label": label,
-                          "amount": CHARGES_UNREST_RATE,
+                          "amount": restless_interior_rate(len(restless_regions)),
                           "regions": sorted(restless_regions)})
         # NOTE: no try/except here — this slice's first cut imported the
         # wrong module path inside one and shipped a silently-DEAD term
@@ -9507,14 +9560,19 @@ class WorldState:
         treaty clauses, and tribute — NOT inside process_income_phase.
 
         EA-8: the army's arrears move beside the count — +2 a deficit turn,
-        −1 a solvent one (floor 0)."""
+        −1 a solvent one (floor 0); OC-2 (GRD-20): none wiped on the mercy's
+        turn (a solvent turn right after a deficit — its upkeep was halved)."""
         arrears = int(self.nation_pay_arrears.get(nation, 0))
         if self.nation_gold.get(nation, 0) < 0:
             self.nation_bankruptcy_turns[nation] = self.nation_bankruptcy_turns.get(nation, 0) + 1
             arrears += ARREARS_PER_DEFICIT
         else:
+            # OC-2 (GRD-20): a solvent turn that follows a deficit is the
+            # mercy's — its upkeep was halved — and pays no mark down
+            mercy = int(self.nation_bankruptcy_turns.get(nation, 0) or 0) >= 1
             self.nation_bankruptcy_turns[nation] = 0
-            arrears = max(0, arrears - 1)
+            if not (mercy and a_deficit_every_third_turn_is_remembered()):
+                arrears = max(0, arrears - 1)
         if arrears:
             self.nation_pay_arrears[nation] = arrears
         else:
@@ -9524,7 +9582,8 @@ class WorldState:
         """EA-8: does `nation`'s army desert this turn? Only on a turn that
         follows a deficit; with the arrears remembered, once they reach
         ARREARS_DESERT_AT (three deficits in a row reach it at the third, as
-        the shipped rule did; alternating deficits at the fourth)."""
+        the shipped rule did; alternating deficits at the third since OC-2 —
+        the fourth with its seam down — and one in three at the fourth)."""
         bt = int(self.nation_bankruptcy_turns.get(nation, 0))
         if bt < 1:
             return False

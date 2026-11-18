@@ -1,0 +1,347 @@
+{
+ "pass_rule": "no rival cured before turn 10; >= 2 of 4 cured by turn 30 on historical",
+ "arms": {
+  "saves|historical": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": 27,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 25,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 26
+   }
+  },
+  "saves|ulm": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   }
+  },
+  "saves|austerlitz": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   }
+  },
+  "saves|eylau": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": 28,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 26,
+    "held_by_net": 1,
+    "held_by_authority": 0,
+    "turns_waiting": 27
+   }
+  },
+  "rung_as_rf3|historical": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": 29,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 27,
+    "held_by_net": 1,
+    "held_by_authority": 0,
+    "turns_waiting": 28
+   }
+  },
+  "rung_as_rf3|ulm": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   }
+  },
+  "rung_as_rf3|austerlitz": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   }
+  },
+  "rung_as_rf3|eylau": {
+   "Austria": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Prussia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": 6,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Russia": {
+    "cured_turn": null,
+    "staff_turn": null,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 40,
+    "held_by_net": 0,
+    "held_by_authority": 0,
+    "turns_waiting": 40
+   },
+   "Britain": {
+    "cured_turn": null,
+    "staff_turn": 29,
+    "cure_law_turn": null,
+    "lapses": 0,
+    "held_by_chest": 27,
+    "held_by_net": 1,
+    "held_by_authority": 0,
+    "turns_waiting": 28
+   }
+  }
+ },
+ "t8": {
+  "cured_by_30_on_historical": 0,
+  "cured_before_10": [],
+  "pass": false
+ },
+ "seams": "backend.game_logic.ai_diplomacy:a_strangled_britain_writes_without_contact=False;backend.models.world_state:a_deficit_every_third_turn_is_remembered=False;backend.models.world_state:restlessness_is_priced_by_the_province=False;backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False;backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False;backend.ai.enemy_ai:a_saving_court_holds_its_gold=False;backend.game_logic.reforms:a_law_buys_what_is_used=False;backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+}

@@ -2081,6 +2081,45 @@ def edicts_respect_the_save() -> bool:
     return True
 
 
+def a_cure_is_never_stranded_by_an_edict() -> bool:
+    """Row OC, OC-1 — GRD-29 (ruled November 17, 2026, BA-6; built November
+    18): Britain boots at 60 authority, enacts the Orders in Council at turn 1
+    (60 -> 45) and the courts' rung decrees the Remounts in authority the same
+    turn (45 -> 42): the Militia Transfer — her doctrine's cure, 15 authority
+    — then stood under the floor (42 - 15 < 30) until a victory regrew the
+    grip, and a court's standing only falls. While a court's cure law is
+    authority-priced and unbought, the courts' one floor keeps its price in
+    hand (`cure_reserve`, read by `standing.ai_refusal` for every AI
+    authority purchase — an edict, a lesser law, a title); the cure itself
+    pays the plain floor. Down: the floor alone."""
+    return True
+
+
+def cure_reserve(world, nation: str) -> int:
+    """OC-1 (GRD-29): the authority an AI court keeps for its doctrine's cure
+    — the cure law's own price (`reforms.restoration_price`, so a lapsed cure
+    asks its half) while it is authority-priced, not in force and one the law
+    rung would buy (`reforms.law_is_used`, under GRD-15's seam — the session's
+    review: no hoard for a cure with no use yet); 0 for the player, a
+    gold-priced cure, a cure in force, no cure, or the seam down."""
+    if not a_cure_is_never_stranded_by_an_edict() or not nation:
+        return 0
+    if nation == getattr(world, "player_nation", None):
+        return 0
+    from backend.game_logic.doctrines import cure_law
+    from backend.game_logic.reforms import (a_law_buys_what_is_used, is_in_force,
+                                            law_is_used, restoration_price)
+    row = cure_law(world, nation)
+    if row is None or is_in_force(row):
+        return 0
+    if a_law_buys_what_is_used() and not law_is_used(world, nation, row):
+        return 0   # the review: never hoard for a cure the law rung will not buy
+    quote = restoration_price(world, nation, row)
+    if quote.get("currency") != "authority":
+        return 0
+    return max(0, int(quote.get("price", 0) or 0))
+
+
 def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[Dict[str, Any]]:
     """The courts' rung (priority 1.79, beside the laws): the first offer in
     deck order whose premise holds this morning for the court and whose

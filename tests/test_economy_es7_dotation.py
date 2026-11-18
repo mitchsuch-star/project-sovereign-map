@@ -546,7 +546,12 @@ class TestReconciliation:
 
 
 class TestAIGrant:
-    def test_ai_picks_grant_for_shortfalling_marshal(self, world):
+    def test_ai_picks_grant_for_shortfalling_marshal(self, world, monkeypatch):
+        # Row OC (OC-1, GRD-21, November 18, 2026): ES-7's choice at 1,000
+        # gold, read with the keep-a-turn seam DOWN (a court must now keep a
+        # turn of upkeep after the fee — row OC's own pin).
+        import backend.ai.enemy_ai as _EA
+        monkeypatch.setattr(_EA, "a_cheap_rung_keeps_a_turn_of_upkeep", lambda: False)
         mack = next(m for m in world.marshals.values()
                     if m.nation == "Austria" and m.strength > 0)
         mack.expectation_steps = 5  # shortfall 200 >= threshold 80

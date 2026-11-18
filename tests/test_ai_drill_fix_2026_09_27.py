@@ -719,12 +719,24 @@ class TestTheMeasuredArms:
         # arm 0 (every row of `tests/_ba6_seams.py` down) reproduces T4-2's
         # series byte for byte; the shipped tree IS the live BASELINE_SERIES;
         # the movers are MCSEEDS ([12]), MCBONDS ([16]) and WS ([17]).
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_OC
         ba6 = json.loads((ROOT / "tools" / "_ba6_series_arms_final.json").read_text(encoding="utf-8"))
         assert ba6["prior"] == ba6["arms"]["0"]["series"] == SERIES_BEFORE_BA6
-        assert ba6["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert ba6["arms"]["ALL"]["series"] == SERIES_BEFORE_OC
         assert ba6["arms"]["ALL"]["first_divergence_vs_prior"] == 12
         assert {arm: ba6["arms"][arm]["first_divergence_vs_prior"] for arm in ba6["arms"]
                 if arm.startswith("+")} == {"+TELL": None, "+MC0": None, "+MCBOOK": None,
                                             "+MCSEEDS": 12, "+MCBONDS": 16, "+GRD": None,
                                             "+WS": 17, "+MCRANK": None, "+PEACE": None,
                                             "+SILENCE": None}
+        # Re-pinned by row OC (November 18, 2026; `tools/_oc_series_arms.py` →
+        # `tools/_oc_series_arms_final.json`): arm 0 (every row of `tests/_oc_seams.py`
+        # down) reproduces BA-6's series byte for byte; the shipped tree IS the live
+        # BASELINE_SERIES; the movers are CURE, CHEAP, STAFF and SAVE.
+        oc = json.loads((ROOT / "tools" / "_oc_series_arms_final.json").read_text(encoding="utf-8"))
+        assert oc["prior"] == oc["arms"]["0"]["series"] == SERIES_BEFORE_OC
+        assert oc["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert oc["arms"]["ALL"]["first_divergence_vs_prior"] == 10
+        assert {arm: oc["arms"][arm]["first_divergence_vs_prior"] for arm in oc["arms"]
+                if arm.startswith("+")} == {"+LETTER": None, "+ARREARS": None, "+RESTLESS": None, "+CURE": 9, "+STAFF": 17, "+SAVE": 22, "+USED": None, "+CHEAP": 10}
+        assert all(n > 0 for n in oc["arms"]["0"]["reach"].values()), "every seam is read on the loop"

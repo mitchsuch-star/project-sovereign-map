@@ -1,0 +1,5417 @@
+{
+ "_note": "Row OC, OC-1 \u2014 the purse probe (tools/_oc_purse_probe.py): forty ambient turns per seed, per court the laws enacted with their prior uses, the Staff and cure turns, the closing chest against one turn of upkeep, the lowest chest, Britain's opening authority.",
+ "seams": "",
+ "seeds": {
+  "austerlitz": {
+   "Austria": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "Prussia"
+    ],
+    "authority": [
+     61,
+     58,
+     58,
+     63,
+     48
+    ],
+    "chest_final": 3634,
+    "cure_turn": null,
+    "keep_final": 830,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 5,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 9,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 3
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 19,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 11
+      }
+     }
+    ],
+    "min_chest": 1187,
+    "min_turn": 2,
+    "provinces_final": 12,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 34
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 2481,
+    "cure_turn": null,
+    "keep_final": 536,
+    "laws": [],
+    "min_chest": 261,
+    "min_turn": 3,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 6
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Holland",
+     "Prussia"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 11051,
+    "cure_turn": 12,
+    "keep_final": 1998,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 21,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 4,
+       "recruit:infantry:void": 1
+      }
+     }
+    ],
+    "min_chest": 3171,
+    "min_turn": 14,
+    "provinces_final": 11,
+    "staff_turn": 7,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 5,
+     "recruit:infantry:void": 2
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9857,
+    "cure_turn": null,
+    "keep_final": 456,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 16
+    }
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5896,
+    "cure_turn": null,
+    "keep_final": 40,
+    "laws": [],
+    "min_chest": 1086,
+    "min_turn": 17,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6171,
+    "cure_turn": null,
+    "keep_final": 80,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2165,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 1015,
+    "cure_turn": null,
+    "keep_final": 40,
+    "laws": [],
+    "min_chest": 869,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7464,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 606,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 25796,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2058,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [
+     "Bavaria",
+     "Prussia"
+    ],
+    "authority": [],
+    "chest_final": 6457,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates",
+     "Russia",
+     "Switzerland"
+    ],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 4517,
+    "cure_turn": null,
+    "keep_final": 1130,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 14,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "emancipation_edict",
+      "turn": 17,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 6
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Prussia"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     37,
+     37
+    ],
+    "chest_final": 3635,
+    "cure_turn": null,
+    "keep_final": 594,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 12,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2404,
+    "min_turn": 6,
+    "provinces_final": 10,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6410,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4533,
+    "cure_turn": null,
+    "keep_final": 208,
+    "laws": [],
+    "min_chest": 805,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 19116,
+    "cure_turn": null,
+    "keep_final": 208,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9567,
+    "cure_turn": null,
+    "keep_final": 744,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 15
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "Prussia"
+    ],
+    "authority": [],
+    "chest_final": 2335,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "eylau": {
+   "Austria": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Hesse",
+     "Holland",
+     "Saxony",
+     "Switzerland"
+    ],
+    "authority": [
+     57,
+     61,
+     58,
+     53,
+     66
+    ],
+    "chest_final": 4444,
+    "cure_turn": 28,
+    "keep_final": 1178,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 6,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 12,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 2
+      }
+     },
+     {
+      "effects": [
+       "actions",
+       "cures"
+      ],
+      "id": "corps_d_armee",
+      "turn": 27,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 18
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 36,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 21
+      }
+     }
+    ],
+    "min_chest": 957,
+    "min_turn": 2,
+    "provinces_final": 17,
+    "staff_turn": 27,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 23
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates"
+    ],
+    "authority": [],
+    "chest_final": 3042,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 363,
+    "min_turn": 6,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 4
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Hesse",
+     "Holland",
+     "Saxony",
+     "Switzerland"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 12675,
+    "cure_turn": 14,
+    "keep_final": 2390,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 8,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 18,
+      "used_before": true,
+      "uses_before": {
+       "recruit:cavalry": 1,
+       "recruit:infantry": 1,
+       "recruit:infantry:void": 1
+      }
+     }
+    ],
+    "min_chest": 3353,
+    "min_turn": 9,
+    "provinces_final": 21,
+    "staff_turn": 8,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:cavalry": 13,
+     "recruit:infantry": 1,
+     "recruit:infantry:void": 6
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10631,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5350,
+    "cure_turn": null,
+    "keep_final": 88,
+    "laws": [],
+    "min_chest": 131,
+    "min_turn": 17,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 2
+    }
+   },
+   "Hesse": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 2597,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 3
+    }
+   },
+   "Holland": {
+    "at_war_final": [
+     "Austria",
+     "Britain"
+    ],
+    "authority": [],
+    "chest_final": 1840,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 677,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 677,
+    "min_turn": 6,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7469,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 756,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 23409,
+    "cure_turn": null,
+    "keep_final": 432,
+    "laws": [
+     {
+      "effects": [
+       "force_limit",
+       "recruit_morale"
+      ],
+      "id": "nizam_i_cedid",
+      "turn": 15,
+      "used_before": true,
+      "uses_before": {}
+     }
+    ],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [
+     "Bavaria",
+     "Hesse",
+     "Saxony",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 6798,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 7128,
+    "cure_turn": null,
+    "keep_final": 1070,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 15,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France",
+     "Hesse",
+     "Saxony",
+     "Switzerland"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     37,
+     37
+    ],
+    "chest_final": 6216,
+    "cure_turn": null,
+    "keep_final": 838,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 9,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2498,
+    "min_turn": 5,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 22
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6413,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 340,
+    "cure_turn": null,
+    "keep_final": 112,
+    "laws": [],
+    "min_chest": 256,
+    "min_turn": 37,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 20307,
+    "cure_turn": null,
+    "keep_final": 120,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 8814,
+    "cure_turn": null,
+    "keep_final": 732,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 9
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 2867,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "friedland": {
+   "Austria": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     57,
+     61,
+     61,
+     43
+    ],
+    "chest_final": 6731,
+    "cure_turn": 21,
+    "keep_final": 1346,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 5,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions",
+       "cures"
+      ],
+      "id": "corps_d_armee",
+      "turn": 20,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 7
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 24,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 8
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 27,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 8
+      }
+     }
+    ],
+    "min_chest": 957,
+    "min_turn": 2,
+    "provinces_final": 21,
+    "staff_turn": 20,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 18
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [
+     "Holland"
+    ],
+    "authority": [],
+    "chest_final": 2964,
+    "cure_turn": null,
+    "keep_final": 412,
+    "laws": [],
+    "min_chest": 633,
+    "min_turn": 9,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 12988,
+    "cure_turn": 15,
+    "keep_final": 2540,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 8,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 14,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 24,
+      "used_before": true,
+      "uses_before": {
+       "recruit:cavalry": 7,
+       "recruit:infantry": 1,
+       "recruit:infantry:void": 2
+      }
+     }
+    ],
+    "min_chest": 2675,
+    "min_turn": 9,
+    "provinces_final": 21,
+    "staff_turn": 8,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:cavalry": 11,
+     "recruit:infantry": 1,
+     "recruit:infantry:void": 6
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10470,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9675,
+    "cure_turn": null,
+    "keep_final": 80,
+    "laws": [],
+    "min_chest": 1500,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5770,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Spain"
+    ],
+    "authority": [],
+    "chest_final": 3069,
+    "cure_turn": null,
+    "keep_final": 24,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 794,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 794,
+    "min_turn": 8,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7348,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 756,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 25277,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7418,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10018,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [
+     "Switzerland"
+    ],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 3320,
+    "cure_turn": null,
+    "keep_final": 1074,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 2
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 5
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     42,
+     42
+    ],
+    "chest_final": 5962,
+    "cure_turn": 33,
+    "keep_final": 966,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "actions",
+       "cures"
+      ],
+      "id": "divisional_system",
+      "turn": 32,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2850,
+    "min_turn": 2,
+    "provinces_final": 11,
+    "staff_turn": 32,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6332,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4030,
+    "cure_turn": null,
+    "keep_final": 268,
+    "laws": [],
+    "min_chest": 655,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   },
+   "Spain": {
+    "at_war_final": [
+     "Holland"
+    ],
+    "authority": [],
+    "chest_final": 15925,
+    "cure_turn": null,
+    "keep_final": 524,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 11598,
+    "cure_turn": null,
+    "keep_final": 584,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 7
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Prussia"
+    ],
+    "authority": [],
+    "chest_final": 2391,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "historical": {
+   "Austria": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     57,
+     61,
+     48,
+     47
+    ],
+    "chest_final": 8581,
+    "cure_turn": null,
+    "keep_final": 1110,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 4,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 2
+      }
+     }
+    ],
+    "min_chest": 957,
+    "min_turn": 2,
+    "provinces_final": 15,
+    "staff_turn": null,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 20
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 3633,
+    "cure_turn": null,
+    "keep_final": 268,
+    "laws": [],
+    "min_chest": 362,
+    "min_turn": 6,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 7
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 7981,
+    "cure_turn": 14,
+    "keep_final": 2130,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 8,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 18,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     }
+    ],
+    "min_chest": 3095,
+    "min_turn": 12,
+    "provinces_final": 11,
+    "staff_turn": 8,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:cavalry": 4,
+     "recruit:infantry:void": 7
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10518,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5848,
+    "cure_turn": null,
+    "keep_final": 40,
+    "laws": [],
+    "min_chest": 243,
+    "min_turn": 13,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6061,
+    "cure_turn": null,
+    "keep_final": 80,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2170,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 672,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 672,
+    "min_turn": 7,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7373,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 756,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 22290,
+    "cure_turn": null,
+    "keep_final": 432,
+    "laws": [
+     {
+      "effects": [
+       "force_limit",
+       "recruit_morale"
+      ],
+      "id": "nizam_i_cedid",
+      "turn": 18,
+      "used_before": true,
+      "uses_before": {}
+     }
+    ],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7515,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10059,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 4403,
+    "cure_turn": null,
+    "keep_final": 1330,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 15,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "emancipation_edict",
+      "turn": 32,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 7
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 7
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     42,
+     37
+    ],
+    "chest_final": 6571,
+    "cure_turn": null,
+    "keep_final": 914,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 12,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1941,
+    "min_turn": 7,
+    "provinces_final": 13,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 10
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6379,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 581,
+    "cure_turn": null,
+    "keep_final": 208,
+    "laws": [],
+    "min_chest": 124,
+    "min_turn": 32,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 19618,
+    "cure_turn": null,
+    "keep_final": 248,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9363,
+    "cure_turn": null,
+    "keep_final": 732,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 9
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [],
+    "chest_final": 3476,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "jena": {
+   "Austria": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     61,
+     58,
+     53,
+     51
+    ],
+    "chest_final": 8310,
+    "cure_turn": 18,
+    "keep_final": 1482,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 5,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions",
+       "cures"
+      ],
+      "id": "corps_d_armee",
+      "turn": 17,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 5
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 20,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 5
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 23,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 9
+      }
+     }
+    ],
+    "min_chest": 957,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": 17,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 20
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 3529,
+    "cure_turn": null,
+    "keep_final": 348,
+    "laws": [],
+    "min_chest": 350,
+    "min_turn": 6,
+    "provinces_final": 3,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 18
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 10680,
+    "cure_turn": 14,
+    "keep_final": 2482,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 8,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 18,
+      "used_before": true,
+      "uses_before": {
+       "recruit:cavalry": 2,
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "congreve_rockets",
+      "turn": 29,
+      "used_before": true,
+      "uses_before": {
+       "recruit:artillery": 1,
+       "recruit:cavalry": 2,
+       "recruit:infantry:void": 6
+      }
+     }
+    ],
+    "min_chest": 3203,
+    "min_turn": 9,
+    "provinces_final": 17,
+    "staff_turn": 8,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 2,
+     "recruit:artillery": 7,
+     "recruit:cavalry": 2,
+     "recruit:infantry:void": 8
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10631,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5917,
+    "cure_turn": null,
+    "keep_final": 48,
+    "laws": [],
+    "min_chest": 162,
+    "min_turn": 13,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6220,
+    "cure_turn": null,
+    "keep_final": 80,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2188,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 677,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 677,
+    "min_turn": 6,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7740,
+    "cure_turn": null,
+    "keep_final": 344,
+    "laws": [],
+    "min_chest": 737,
+    "min_turn": 3,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 23510,
+    "cure_turn": null,
+    "keep_final": 432,
+    "laws": [
+     {
+      "effects": [
+       "force_limit",
+       "recruit_morale"
+      ],
+      "id": "nizam_i_cedid",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {}
+     }
+    ],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [
+     "Naples"
+    ],
+    "authority": [],
+    "chest_final": 3877,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [
+     "Switzerland"
+    ],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 5884,
+    "cure_turn": null,
+    "keep_final": 1250,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 4
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     37,
+     37
+    ],
+    "chest_final": 5082,
+    "cure_turn": null,
+    "keep_final": 1042,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 30,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2446,
+    "min_turn": 6,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 18
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4947,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4871,
+    "cure_turn": null,
+    "keep_final": 208,
+    "laws": [],
+    "min_chest": 655,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 20624,
+    "cure_turn": null,
+    "keep_final": 120,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9142,
+    "cure_turn": null,
+    "keep_final": 708,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 8
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "Prussia"
+    ],
+    "authority": [],
+    "chest_final": 2233,
+    "cure_turn": null,
+    "keep_final": 160,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   }
+  },
+  "lodi": {
+   "Austria": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [
+     61,
+     58,
+     58,
+     58,
+     43
+    ],
+    "chest_final": 6784,
+    "cure_turn": null,
+    "keep_final": 1660,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 5,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 16,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 5
+      }
+     }
+    ],
+    "min_chest": 1187,
+    "min_turn": 2,
+    "provinces_final": 12,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 14
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7420,
+    "cure_turn": null,
+    "keep_final": 492,
+    "laws": [],
+    "min_chest": 261,
+    "min_turn": 3,
+    "provinces_final": 3,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 4
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 15290,
+    "cure_turn": 12,
+    "keep_final": 1938,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 18,
+      "used_before": true,
+      "uses_before": {
+       "drill": 1,
+       "recruit:cavalry": 2,
+       "recruit:infantry": 3,
+       "recruit:infantry:void": 1
+      }
+     }
+    ],
+    "min_chest": 3273,
+    "min_turn": 10,
+    "provinces_final": 19,
+    "staff_turn": 7,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:cavalry": 2,
+     "recruit:infantry": 5,
+     "recruit:infantry:void": 2
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9909,
+    "cure_turn": null,
+    "keep_final": 468,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 16
+    }
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4911,
+    "cure_turn": null,
+    "keep_final": 96,
+    "laws": [],
+    "min_chest": 115,
+    "min_turn": 21,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4507,
+    "cure_turn": null,
+    "keep_final": 260,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 2
+    }
+   },
+   "Holland": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2165,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 1107,
+    "cure_turn": null,
+    "keep_final": 120,
+    "laws": [],
+    "min_chest": 869,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7464,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 606,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 25753,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2058,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 8058,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 6038,
+    "cure_turn": null,
+    "keep_final": 1158,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 15,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "emancipation_edict",
+      "turn": 20,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 3
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 4
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     37,
+     37
+    ],
+    "chest_final": 5976,
+    "cure_turn": null,
+    "keep_final": 922,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2375,
+    "min_turn": 25,
+    "provinces_final": 15,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 6
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6273,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4534,
+    "cure_turn": null,
+    "keep_final": 268,
+    "laws": [],
+    "min_chest": 805,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 15479,
+    "cure_turn": null,
+    "keep_final": 360,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 10
+    }
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 12326,
+    "cure_turn": null,
+    "keep_final": 500,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 14
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [],
+    "chest_final": 2393,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "marengo": {
+   "Austria": {
+    "at_war_final": [
+     "France",
+     "Prussia"
+    ],
+    "authority": [
+     61,
+     58,
+     53,
+     57,
+     62
+    ],
+    "chest_final": 5749,
+    "cure_turn": null,
+    "keep_final": 1414,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 3
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 16,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 16
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 19,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 16
+      }
+     }
+    ],
+    "min_chest": 576,
+    "min_turn": 4,
+    "provinces_final": 24,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 23
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 2687,
+    "cure_turn": null,
+    "keep_final": 296,
+    "laws": [],
+    "min_chest": 220,
+    "min_turn": 5,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 14
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "Prussia"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 13641,
+    "cure_turn": 13,
+    "keep_final": 1894,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 12,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 19,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 4
+      }
+     }
+    ],
+    "min_chest": 3049,
+    "min_turn": 8,
+    "provinces_final": 12,
+    "staff_turn": 7,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry:void": 7
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10631,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5816,
+    "cure_turn": null,
+    "keep_final": 48,
+    "laws": [],
+    "min_chest": 162,
+    "min_turn": 15,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4524,
+    "cure_turn": null,
+    "keep_final": 260,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Holland": {
+    "at_war_final": [
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2165,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 648,
+    "cure_turn": null,
+    "keep_final": 100,
+    "laws": [],
+    "min_chest": 648,
+    "min_turn": 5,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7464,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 606,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 25816,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2058,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7512,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "Russia"
+    ],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 4458,
+    "cure_turn": null,
+    "keep_final": 986,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "emancipation_edict",
+      "turn": 30,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 3
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 4
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France",
+     "Prussia"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     42,
+     42
+    ],
+    "chest_final": 4519,
+    "cure_turn": null,
+    "keep_final": 898,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 12,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2296,
+    "min_turn": 33,
+    "provinces_final": 10,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 11
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6410,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": -78,
+    "cure_turn": null,
+    "keep_final": 84,
+    "laws": [],
+    "min_chest": -307,
+    "min_turn": 37,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 6,
+    "under_keep_final": true,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 19468,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 14097,
+    "cure_turn": null,
+    "keep_final": 208,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [],
+    "chest_final": 2389,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "rivoli": {
+   "Austria": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Prussia"
+    ],
+    "authority": [
+     57,
+     61,
+     58,
+     53,
+     66
+    ],
+    "chest_final": 4856,
+    "cure_turn": 28,
+    "keep_final": 1162,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 6,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 16,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 5
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 19,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 5
+      }
+     },
+     {
+      "effects": [
+       "actions",
+       "cures"
+      ],
+      "id": "corps_d_armee",
+      "turn": 27,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 10
+      }
+     }
+    ],
+    "min_chest": 957,
+    "min_turn": 2,
+    "provinces_final": 19,
+    "staff_turn": 27,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 20
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 971,
+    "cure_turn": null,
+    "keep_final": 580,
+    "laws": [],
+    "min_chest": 363,
+    "min_turn": 6,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 13
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Holland",
+     "Prussia",
+     "Saxony"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 11114,
+    "cure_turn": 14,
+    "keep_final": 2462,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 8,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 18,
+      "used_before": true,
+      "uses_before": {
+       "recruit:cavalry": 2,
+       "recruit:infantry:void": 2
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "congreve_rockets",
+      "turn": 30,
+      "used_before": true,
+      "uses_before": {
+       "recruit:artillery": 1,
+       "recruit:cavalry": 2,
+       "recruit:infantry:void": 7
+      }
+     }
+    ],
+    "min_chest": 3203,
+    "min_turn": 9,
+    "provinces_final": 18,
+    "staff_turn": 8,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:artillery": 7,
+     "recruit:cavalry": 2,
+     "recruit:infantry:void": 8
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10631,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4911,
+    "cure_turn": null,
+    "keep_final": 96,
+    "laws": [],
+    "min_chest": 115,
+    "min_turn": 21,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5429,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2188,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 677,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 677,
+    "min_turn": 6,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7469,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 756,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 25756,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [
+     "Bavaria",
+     "Prussia",
+     "Saxony"
+    ],
+    "authority": [],
+    "chest_final": 6781,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 1960,
+    "cure_turn": null,
+    "keep_final": 1202,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 15,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "emancipation_edict",
+      "turn": 20,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 3
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 7
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Prussia",
+     "Saxony"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     37,
+     37
+    ],
+    "chest_final": 3916,
+    "cure_turn": null,
+    "keep_final": 594,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 39,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2251,
+    "min_turn": 6,
+    "provinces_final": 8,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7494,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [
+     "Britain",
+     "PapalStates",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 199,
+    "cure_turn": null,
+    "keep_final": 256,
+    "laws": [],
+    "min_chest": -170,
+    "min_turn": 39,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 3,
+    "under_keep_final": true,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 19367,
+    "cure_turn": null,
+    "keep_final": 216,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 8867,
+    "cure_turn": null,
+    "keep_final": 740,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 9
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [],
+    "chest_final": 2728,
+    "cure_turn": null,
+    "keep_final": 152,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   }
+  },
+  "ulm": {
+   "Austria": {
+    "at_war_final": [
+     "France"
+    ],
+    "authority": [
+     61,
+     58,
+     58,
+     63,
+     67
+    ],
+    "chest_final": 4441,
+    "cure_turn": null,
+    "keep_final": 642,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 6,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 7
+      }
+     }
+    ],
+    "min_chest": 1112,
+    "min_turn": 2,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 17
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7785,
+    "cure_turn": null,
+    "keep_final": 312,
+    "laws": [],
+    "min_chest": 261,
+    "min_turn": 3,
+    "provinces_final": 3,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:infantry": 3
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "France",
+     "Holland"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 7426,
+    "cure_turn": 12,
+    "keep_final": 1950,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 23,
+      "used_before": true,
+      "uses_before": {
+       "drill": 1,
+       "recruit:cavalry": 1,
+       "recruit:infantry": 4,
+       "recruit:infantry:void": 1
+      }
+     }
+    ],
+    "min_chest": 3030,
+    "min_turn": 14,
+    "provinces_final": 12,
+    "staff_turn": 7,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "drill": 1,
+     "recruit:cavalry": 4,
+     "recruit:infantry": 4,
+     "recruit:infantry:void": 2
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10387,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4713,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 138,
+    "min_turn": 17,
+    "provinces_final": 5,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5613,
+    "cure_turn": null,
+    "keep_final": 80,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Britain",
+     "Russia",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2116,
+    "cure_turn": null,
+    "keep_final": 72,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Russia",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2488,
+    "cure_turn": null,
+    "keep_final": 48,
+    "laws": [],
+    "min_chest": 869,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7275,
+    "cure_turn": null,
+    "keep_final": 184,
+    "laws": [],
+    "min_chest": 756,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 26149,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7395,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9938,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 7169,
+    "cure_turn": null,
+    "keep_final": 1070,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 14,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 7,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "KingdomOfItaly"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     37,
+     37
+    ],
+    "chest_final": 8737,
+    "cure_turn": null,
+    "keep_final": 1214,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 16,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 2404,
+    "min_turn": 6,
+    "provinces_final": 10,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 9
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 6313,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5147,
+    "cure_turn": null,
+    "keep_final": 160,
+    "laws": [],
+    "min_chest": 655,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 18998,
+    "cure_turn": null,
+    "keep_final": 248,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 14043,
+    "cure_turn": null,
+    "keep_final": 708,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 22
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "KingdomOfItaly"
+    ],
+    "authority": [],
+    "chest_final": 2287,
+    "cure_turn": null,
+    "keep_final": 24,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  },
+  "wagram": {
+   "Austria": {
+    "at_war_final": [
+     "France",
+     "Saxony"
+    ],
+    "authority": [
+     57,
+     57,
+     61,
+     48,
+     47
+    ],
+    "chest_final": 4123,
+    "cure_turn": null,
+    "keep_final": 806,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "landwehr",
+      "turn": 4,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price"
+      ],
+      "id": "generalissimus",
+      "turn": 7,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     },
+     {
+      "effects": [
+       "recruit_morale"
+      ],
+      "id": "jager_battalions",
+      "turn": 11,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 2
+      }
+     }
+    ],
+    "min_chest": 957,
+    "min_turn": 2,
+    "provinces_final": 16,
+    "staff_turn": null,
+    "turns_under_keep": 1,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 18
+    }
+   },
+   "Bavaria": {
+    "at_war_final": [
+     "Britain",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 476,
+    "cure_turn": null,
+    "keep_final": 240,
+    "laws": [],
+    "min_chest": 354,
+    "min_turn": 6,
+    "provinces_final": 3,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 8
+    }
+   },
+   "Britain": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Holland",
+     "Saxony"
+    ],
+    "authority": [
+     45,
+     45,
+     45,
+     45,
+     45
+    ],
+    "chest_final": 8970,
+    "cure_turn": 14,
+    "keep_final": 1910,
+    "laws": [
+     {
+      "effects": [
+       "blockade_denial"
+      ],
+      "id": "orders_in_council",
+      "turn": 1,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "actions"
+      ],
+      "id": "horse_guards_reforms",
+      "turn": 8,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "manpower_regen",
+       "cures"
+      ],
+      "id": "militia_transfer",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 1
+      }
+     },
+     {
+      "effects": [
+       "supply_capacity"
+      ],
+      "id": "commissariat",
+      "turn": 21,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry:void": 6
+      }
+     }
+    ],
+    "min_chest": 3095,
+    "min_turn": 12,
+    "provinces_final": 12,
+    "staff_turn": 8,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry:void": 8
+    }
+   },
+   "Denmark": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10631,
+    "cure_turn": null,
+    "keep_final": 188,
+    "laws": [],
+    "min_chest": 822,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hanover": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10110,
+    "cure_turn": null,
+    "keep_final": 80,
+    "laws": [],
+    "min_chest": 1500,
+    "min_turn": 2,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Hesse": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 5429,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1150,
+    "min_turn": 2,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Holland": {
+    "at_war_final": [
+     "Britain",
+     "Switzerland"
+    ],
+    "authority": [],
+    "chest_final": 2315,
+    "cure_turn": null,
+    "keep_final": 64,
+    "laws": [],
+    "min_chest": 841,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "KingdomOfItaly": {
+    "at_war_final": [
+     "Austria"
+    ],
+    "authority": [],
+    "chest_final": 672,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 672,
+    "min_turn": 7,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Naples": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 7875,
+    "cure_turn": null,
+    "keep_final": 344,
+    "laws": [],
+    "min_chest": 737,
+    "min_turn": 3,
+    "provinces_final": 2,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Ottoman": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 24760,
+    "cure_turn": null,
+    "keep_final": 232,
+    "laws": [],
+    "min_chest": 2208,
+    "min_turn": 2,
+    "provinces_final": 14,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "PapalStates": {
+    "at_war_final": [
+     "Naples"
+    ],
+    "authority": [],
+    "chest_final": 3693,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Portugal": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 10167,
+    "cure_turn": null,
+    "keep_final": 136,
+    "laws": [],
+    "min_chest": 754,
+    "min_turn": 2,
+    "provinces_final": 4,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Prussia": {
+    "at_war_final": [
+     "Switzerland"
+    ],
+    "authority": [
+     57,
+     57,
+     57,
+     53,
+     53
+    ],
+    "chest_final": 3598,
+    "cure_turn": null,
+    "keep_final": 994,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "krumper_system",
+      "turn": 10,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_morale",
+       "cures"
+      ],
+      "id": "articles_of_war",
+      "turn": 13,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1167,
+    "min_turn": 4,
+    "provinces_final": 6,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 5
+    }
+   },
+   "Russia": {
+    "at_war_final": [
+     "Bavaria",
+     "France",
+     "Saxony"
+    ],
+    "authority": [
+     57,
+     42,
+     42,
+     42,
+     37
+    ],
+    "chest_final": 8162,
+    "cure_turn": null,
+    "keep_final": 458,
+    "laws": [
+     {
+      "effects": [
+       "manpower_regen"
+      ],
+      "id": "opolchenie",
+      "turn": 2,
+      "used_before": true,
+      "uses_before": {}
+     },
+     {
+      "effects": [
+       "recruit_price",
+       "recruit_morale"
+      ],
+      "id": "extraordinary_levy",
+      "turn": 12,
+      "used_before": true,
+      "uses_before": {
+       "recruit:infantry": 1
+      }
+     }
+    ],
+    "min_chest": 1941,
+    "min_turn": 7,
+    "provinces_final": 13,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 2
+    }
+   },
+   "Sardinia": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 4943,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 1100,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   },
+   "Saxony": {
+    "at_war_final": [
+     "Austria",
+     "Britain",
+     "Russia"
+    ],
+    "authority": [],
+    "chest_final": 1958,
+    "cure_turn": null,
+    "keep_final": 176,
+    "laws": [],
+    "min_chest": 655,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 1
+    }
+   },
+   "Spain": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 19165,
+    "cure_turn": null,
+    "keep_final": 248,
+    "laws": [],
+    "min_chest": 1620,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 3
+    }
+   },
+   "Sweden": {
+    "at_war_final": [],
+    "authority": [],
+    "chest_final": 9584,
+    "cure_turn": null,
+    "keep_final": 732,
+    "laws": [],
+    "min_chest": 1229,
+    "min_turn": 2,
+    "provinces_final": 9,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {
+     "recruit:infantry": 9
+    }
+   },
+   "Switzerland": {
+    "at_war_final": [
+     "France",
+     "Holland",
+     "Prussia"
+    ],
+    "authority": [],
+    "chest_final": 3483,
+    "cure_turn": null,
+    "keep_final": 0,
+    "laws": [],
+    "min_chest": 875,
+    "min_turn": 2,
+    "provinces_final": 1,
+    "staff_turn": null,
+    "turns_under_keep": 0,
+    "under_keep_final": false,
+    "unused_laws": [],
+    "uses": {}
+   }
+  }
+ },
+ "summary": {
+  "britain_authority_t1_t6": {
+   "austerlitz": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "eylau": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "friedland": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "historical": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "jena": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "lodi": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "marengo": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "rivoli": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "ulm": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ],
+   "wagram": [
+    45,
+    45,
+    45,
+    45,
+    45
+   ]
+  },
+  "courts_ever_under_a_turn": {
+   "austerlitz": [],
+   "eylau": [
+    "Austria"
+   ],
+   "friedland": [
+    "Austria"
+   ],
+   "historical": [
+    "Austria"
+   ],
+   "jena": [
+    "Austria"
+   ],
+   "lodi": [],
+   "marengo": [
+    "Bavaria",
+    "Saxony"
+   ],
+   "rivoli": [
+    "Austria",
+    "Saxony"
+   ],
+   "ulm": [
+    "Austria"
+   ],
+   "wagram": [
+    "Austria"
+   ]
+  },
+  "courts_under_a_turn_at_the_close": {
+   "austerlitz": [],
+   "eylau": [],
+   "friedland": [],
+   "historical": [],
+   "jena": [],
+   "lodi": [],
+   "marengo": [
+    "Saxony"
+   ],
+   "rivoli": [
+    "Saxony"
+   ],
+   "ulm": [],
+   "wagram": []
+  },
+  "doctrine_courts_reaching_their_staff": [
+   [
+    "austerlitz",
+    "Britain"
+   ],
+   [
+    "eylau",
+    "Austria"
+   ],
+   [
+    "eylau",
+    "Britain"
+   ],
+   [
+    "friedland",
+    "Austria"
+   ],
+   [
+    "friedland",
+    "Britain"
+   ],
+   [
+    "friedland",
+    "Russia"
+   ],
+   [
+    "historical",
+    "Britain"
+   ],
+   [
+    "jena",
+    "Austria"
+   ],
+   [
+    "jena",
+    "Britain"
+   ],
+   [
+    "lodi",
+    "Britain"
+   ],
+   [
+    "marengo",
+    "Britain"
+   ],
+   [
+    "rivoli",
+    "Austria"
+   ],
+   [
+    "rivoli",
+    "Britain"
+   ],
+   [
+    "ulm",
+    "Britain"
+   ],
+   [
+    "wagram",
+    "Britain"
+   ]
+  ],
+  "grd15_met": true,
+  "grd21_met": false,
+  "grd37_met_as_written": true,
+  "grd37_met_for_the_stuck_courts": true,
+  "prussia_unused_laws": {
+   "austerlitz": [],
+   "eylau": [],
+   "friedland": [],
+   "historical": [],
+   "jena": [],
+   "lodi": [],
+   "marengo": [],
+   "rivoli": [],
+   "ulm": [],
+   "wagram": []
+  },
+  "staff_turns": {
+   "austerlitz": {
+    "Austria": null,
+    "Britain": 7,
+    "Prussia": null,
+    "Russia": null
+   },
+   "eylau": {
+    "Austria": 27,
+    "Britain": 8,
+    "Prussia": null,
+    "Russia": null
+   },
+   "friedland": {
+    "Austria": 20,
+    "Britain": 8,
+    "Prussia": null,
+    "Russia": 32
+   },
+   "historical": {
+    "Austria": null,
+    "Britain": 8,
+    "Prussia": null,
+    "Russia": null
+   },
+   "jena": {
+    "Austria": 17,
+    "Britain": 8,
+    "Prussia": null,
+    "Russia": null
+   },
+   "lodi": {
+    "Austria": null,
+    "Britain": 7,
+    "Prussia": null,
+    "Russia": null
+   },
+   "marengo": {
+    "Austria": null,
+    "Britain": 7,
+    "Prussia": null,
+    "Russia": null
+   },
+   "rivoli": {
+    "Austria": 27,
+    "Britain": 8,
+    "Prussia": null,
+    "Russia": null
+   },
+   "ulm": {
+    "Austria": null,
+    "Britain": 7,
+    "Prussia": null,
+    "Russia": null
+   },
+   "wagram": {
+    "Austria": null,
+    "Britain": 8,
+    "Prussia": null,
+    "Russia": null
+   }
+  },
+  "stuck_courts_reaching_their_staff": [
+   [
+    "eylau",
+    "Austria"
+   ],
+   [
+    "friedland",
+    "Austria"
+   ],
+   [
+    "friedland",
+    "Russia"
+   ],
+   [
+    "jena",
+    "Austria"
+   ],
+   [
+    "rivoli",
+    "Austria"
+   ]
+  ],
+  "unused_laws_by_court": {
+   "austerlitz": {},
+   "eylau": {},
+   "friedland": {},
+   "historical": {},
+   "jena": {},
+   "lodi": {},
+   "marengo": {},
+   "rivoli": {},
+   "ulm": {},
+   "wagram": {}
+  }
+ },
+ "turns": 40
+}

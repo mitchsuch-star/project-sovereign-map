@@ -225,6 +225,8 @@ class TestT7TheArrears:
 
     def test_the_ai_rung_prices_the_same_restoration(self, world, monkeypatch):
         import backend.game_logic.ledger as L
+        # Row OC (OC-1, GRD-37): RF-4c's restoration bar with the at-war Staff seam down
+        monkeypatch.setattr(R, "the_staff_is_saved_for_without_the_upkeep_reserve", lambda: False)
         monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None, **k: {"net": 5000})
         staff = R.find_law(world, "Austria", "corps_d_armee")
         staff["lapsed_turn"] = int(world.current_turn) - 2      # three turns dead

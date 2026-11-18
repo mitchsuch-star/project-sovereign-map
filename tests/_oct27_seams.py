@@ -203,6 +203,13 @@ from tests._ba6_seams import BA6_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in BA6_SEAMS_BY_ROW for spec in BA6_SEAMS_BY_ROW[row]]
 
+# Row OC "the rulings built" (November 18, 2026): the courts' purse, the
+# Emperor's purse and the Strangulation's letter (OC-4 carries no seam — its
+# rule is that nothing moves). The seams' own rows: `tests/_oc_seams.py`.
+from tests._oc_seams import OC_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in OC_SEAMS_BY_ROW for spec in OC_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

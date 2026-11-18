@@ -2860,13 +2860,18 @@ class TestTheRecordsSayWhatLanded:
 
     def test_the_brief_for_the_deploy_reads_the_gate_against_this_sessions_records(self):
         brief = (REPO / "docs" / "NEXT_SESSION_PROMPT.md").read_text(encoding="utf-8")
-        # (row BA, BA-6 hands over to row OC — the rulings built — and then Session H; the brief
-        # reads the gate against BA-6's records, and BA-5's and BA-4's stay as the games before)
-        assert brief.startswith("# NEXT SESSION PROMPT — Row OC")
+        # (row BA, BA-6 handed over to row OC — the rulings built — and row OC to Session H; the
+        # brief reads the gate against row OC's records, and BA-6's, BA-5's and BA-4's stay as the
+        # games before)
+        assert brief.startswith("# NEXT SESSION PROMPT — Session H")
         assert "## Session H: S15 the deploy" in brief
+        for name in ("_oc_band_2026_11_18.json", "_dy_signature_oc_all_2026_11_18.json",
+                     "_oc_all_census_2026_11_18.json", "_oc_chain_d_2026_11_18.json",
+                     "_oc_gate_2026_11_18.json"):
+            assert name in brief, name
         for name in ("_ba6_band_2026_11_17.json", "_dy_signature_ba6_all_2026_11_17.json",
                      "_ba6_all_census_2026_11_17.json", "_ba6_chain_d_2026_11_17.json"):
-            assert name in brief, name
+            assert (REPO / "tools" / name).is_file(), name
         for name in ("_ba5_band_2026_11_17.json", "_dy_signature_ba5_all_2026_11_17.json",
                      "_ba5_all_census_2026_11_17.json", "_ba5_chain_d_2026_11_17.json"):
             assert (REPO / "tools" / name).is_file(), name

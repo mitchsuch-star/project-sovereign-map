@@ -1,0 +1,103 @@
+{
+ "_note": "Row OC \u2014 the deploy gate per arm: story classes >= 6, the roster in >= 2 readings and no annexation outside aim on the ten ambient seeds; clause 2 (a minor promoted on >= 1 seed) on thirty \u2014 the ten and the twenty of _oc_promotions_wide (the user's ruling of November 18, 2026). `met` is the reading on the ten alone, `met_on_thirty` the gate's. Written by tools/_oc_measure.py --surfaces gate.",
+ "arms": {
+  "0": {
+   "annexations_outside_aim": 0,
+   "captures_outside_aim": 252,
+   "clause_2_on_thirty": true,
+   "met": true,
+   "met_on_thirty": true,
+   "promotions": {
+    "marengo": [
+     [
+      34,
+      "Hesse"
+     ]
+    ]
+   },
+   "promotions_on_the_twenty": [
+    "borodino"
+   ],
+   "roster_readings": 3,
+   "rosters": {
+    "austerlitz": [
+     "KingdomOfItaly"
+    ],
+    "eylau": [
+     "KingdomOfItaly"
+    ],
+    "friedland": [
+     "KingdomOfItaly"
+    ],
+    "historical": [
+     "KingdomOfItaly"
+    ],
+    "jena": [
+     "KingdomOfItaly",
+     "PapalStates"
+    ],
+    "lodi": [
+     "KingdomOfItaly"
+    ],
+    "marengo": [
+     "KingdomOfItaly"
+    ],
+    "rivoli": [
+     "KingdomOfItaly"
+    ],
+    "ulm": [],
+    "wagram": [
+     "KingdomOfItaly",
+     "PapalStates"
+    ]
+   },
+   "story_classes": 10
+  },
+  "ALL": {
+   "annexations_outside_aim": 0,
+   "captures_outside_aim": 255,
+   "clause_2_on_thirty": true,
+   "met": false,
+   "met_on_thirty": true,
+   "promotions": {},
+   "promotions_on_the_twenty": [
+    "aspern",
+    "borodino"
+   ],
+   "roster_readings": 3,
+   "rosters": {
+    "austerlitz": [
+     "KingdomOfItaly"
+    ],
+    "eylau": [
+     "KingdomOfItaly"
+    ],
+    "friedland": [
+     "KingdomOfItaly"
+    ],
+    "historical": [
+     "KingdomOfItaly"
+    ],
+    "jena": [
+     "KingdomOfItaly",
+     "PapalStates"
+    ],
+    "lodi": [
+     "KingdomOfItaly"
+    ],
+    "marengo": [
+     "KingdomOfItaly"
+    ],
+    "rivoli": [
+     "KingdomOfItaly"
+    ],
+    "ulm": [],
+    "wagram": [
+     "KingdomOfItaly",
+     "PapalStates"
+    ]
+   },
+   "story_classes": 10
+  }
+ }
+}

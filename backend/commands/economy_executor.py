@@ -1987,7 +1987,7 @@ class EconomyExecutor:
         # the green conscripts' BASE — before the training ground's rung and
         # Moore's floor, which replace it (so it is void where they apply).
         # The draft only: the substitute market mirrors the unreformed rung.
-        from backend.game_logic.reforms import recruit_morale_terms
+        from backend.game_logic.reforms import note_law_used, recruit_morale_terms
         morale_laws = recruit_morale_terms(world, acting_nation, recruit_type)
         if morale_laws:
             RECRUIT_MORALE = max(0, min(100, RECRUIT_MORALE
@@ -2022,6 +2022,7 @@ class EconomyExecutor:
 
         # --- Draw from manpower pool ---
         world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
+        note_law_used(world, acting_nation, "recruit", recruit_type, not (region.has_building("training_ground") or shorncliffe_note))
         pool_after = world.manpower_pools[acting_nation][recruit_type]
 
         # Trigger 6: Manpower pool depleted notification

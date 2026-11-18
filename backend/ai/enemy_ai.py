@@ -821,6 +821,81 @@ def orders_carry_their_purse() -> bool:
     return True
 
 
+def a_cheap_rung_keeps_a_turn_of_upkeep() -> bool:
+    """Row OC, OC-1 — GRD-21 (ruled November 17, 2026, BA-6; built November
+    18): the admin chain's cheap rungs (the urgent and rebuild recruits, the
+    market, the depot, the fortification, the stables, the repairs, the
+    watchtower) and their siblings (the substitute levy, the vassal's
+    investment, the dotation, the pension) tested the chest against the price
+    alone, while the laws, edicts, arms, fleet and commission keep reserves:
+    passive courts ended at a few gold (Hanover 10-60, Bavaria 18), deepened
+    their own deficits and cycled through bankruptcy. Every price-only
+    purchase rung now keeps ONE TURN OF UPKEEP in hand after the price
+    (`keeps_a_turn`, `ledger.one_turn_of_upkeep`). Down: the price alone."""
+    return True
+
+
+def a_saving_court_holds_its_gold() -> bool:
+    """Row OC, OC-1 — the save's reach (rule 10's sibling of T0-G's GR-15,
+    found by the slice's own trace, November 18, 2026): the save-for-the-Staff
+    predicate (`reforms.ai_is_saving_for_the_staff`) bound only the laws rung
+    and the gold edicts, so a court that began to save spent its chest
+    elsewhere — Russia at war, its Staff reachable at the new bar, saving from
+    turn 4, commissioned Bennigsen (3,500) on turn 6, then built markets and
+    depots and paid a rebuild recruit every turn, and never stood at 10,000.
+    While a court saves for its Staff AND the Staff is within the purse's own
+    horizon — its chest would stand at the bar within AI_PURSE_UPKEEP_TURNS
+    turns at this turn's forecast Net (the session's review: a ceiling just
+    above the bar is approached only geometrically, and an unbounded hold
+    would stall the very markets that raise it) — it holds its DISCRETIONARY
+    gold: the dotation and the pension, the commission, the fleet and the
+    yard, the buildings and repairs, the rebuild recruit and the arms. The
+    urgent recruit and the substitutes (men for a corps genuinely weak at
+    war) still buy, and so does the vassal shore-up (a lord's duty to a
+    spiralling client, latent on the 1805 board). Down: the save binds the
+    laws and the edicts alone."""
+    return True
+
+
+def holds_for_the_staff(world, nation: str, treasury: int) -> bool:
+    """OC-1 (the save's reach): does `nation` hold its discretionary gold for
+    its Staff? The laws rung's own saving predicate, AND the bar within the
+    purse's horizon: `bar − chest ≤ AI_PURSE_UPKEEP_TURNS × forecast Net`
+    with the Net positive (the ledger's own projection, the Charges in it —
+    first order, and it shrinks as the chest nears its ceiling, so a court
+    crawling toward a ceiling just above the bar does not hold)."""
+    if not a_saving_court_holds_its_gold():
+        return False
+    from backend.game_logic import reforms as RF
+    staff = RF.ai_is_saving_for_the_staff(world, nation, int(treasury))
+    if staff is None:
+        return False
+    from backend.game_logic.ledger import _build_economy
+    net = int(_build_economy(world, nation, rows=False).get("net", 0) or 0)
+    gap = int(RF._purse_bar(world, nation, staff)) - int(treasury)
+    return net > 0 and gap <= int(RF.AI_PURSE_UPKEEP_TURNS) * net
+
+
+def keeps_a_turn(world, nation: str, treasury: int, price: int,
+                 memo: Optional[list] = None) -> bool:
+    """OC-1 (GRD-21): may a court pay `price` from `treasury`? The price
+    alone with the seam down; up, the chest must still hold one turn of its
+    upkeep afterwards (`ledger.one_turn_of_upkeep` — read once per admin pick
+    through `memo`, only when a priced rung is reached)."""
+    if int(treasury) < int(price):
+        return False
+    if not a_cheap_rung_keeps_a_turn_of_upkeep():
+        return True
+    if memo:
+        kept = memo[0]
+    else:
+        from backend.game_logic.ledger import one_turn_of_upkeep
+        kept = one_turn_of_upkeep(world, nation)
+        if memo is not None:
+            memo.append(kept)
+    return int(treasury) - int(price) >= int(kept)
+
+
 def p39_reads_the_brakes() -> bool:
     """T0-E (GR-35, the November 6, 2026 review; FA-N72's sibling): the P3.9
     jealousy glory hunt routes its one candidate through
@@ -7249,6 +7324,8 @@ class EnemyAI:
             nation=nation, marshal=weakest, draft=False)
         if price <= 0 or treasury < price * 3:
             return None
+        if not keeps_a_turn(world, nation, treasury, price):   # OC-1 (GRD-21)
+            return None
         return {"action": "purchase_levy", "marshal": weakest.name,
                 "target": weakest.name, "batches": 1}
 
@@ -7273,6 +7350,7 @@ class EnemyAI:
         """
         skip_actions = skip_actions or set()
         treasury = world.nation_gold.get(nation, 0)
+        _kept: list = []    # OC-1 (GRD-21): one turn of upkeep, read once, lazily
 
         # Priority 0.5: SAVE THE SLATE (SFR-B14, GR5). A law that would lapse
         # at this turn's end: repeal the one the player's own lever names
@@ -7314,7 +7392,7 @@ class EnemyAI:
                     marshal=weakest)
                 if region else base_cost)
 
-            if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
+            if keeps_a_turn(world, nation, treasury, recruit_cost, _kept) and region and getattr(region, 'stability', 100) > 50:
                 # CO-4: the field-regen cap is applied symmetrically in the
                 # shared recruit executor keyed on the recruit region's supply
                 # (GR5) — the enemy rung needs no special wiring; a forward
@@ -7346,6 +7424,16 @@ class EnemyAI:
             if substitutes:
                 return substitutes
 
+        # OC-1 (the save's reach): below the urgent rungs, a court saving for
+        # its Staff holds its discretionary gold (`holds_for_the_staff`) —
+        # read once, lazily, at the first discretionary rung reached.
+        _held: list = []
+
+        def _saving_now() -> bool:
+            if not _held:
+                _held.append(holds_for_the_staff(world, nation, treasury))
+            return _held[0]
+
         # Priority 1.5: ES-7 estate endowment / rente (Economy Revisit S7 +
         # §0.6.8 second pass, GR5) — below urgent recruit, above generic
         # build. Endow the nation's most-shortfalling marshal with a spare
@@ -7355,8 +7443,8 @@ class EnemyAI:
         # the leftover-AP gold bonus is applied directly in
         # execute_admin_phase, so a fee modeled as a negative bonus would
         # double-count).
-        if ("grant_dotation" not in skip_actions
-                or "grant_pension" not in skip_actions):
+        if not _saving_now() and ("grant_dotation" not in skip_actions
+                                or "grant_pension" not in skip_actions):
             grant = self._find_dotation_grant(nation, world, treasury,
                                               skip_actions)
             if grant:
@@ -7384,7 +7472,7 @@ class EnemyAI:
         # authored candidate pool — Austria replaces a lost Mack with
         # Schwarzenberg; Russia calls up Bagration. Same executor, same
         # gold price, same manpower draw as the player.
-        if "recruit_marshal" not in skip_actions:
+        if not _saving_now() and "recruit_marshal" not in skip_actions:
             from backend.game_logic.recruitment import find_ai_commission
             commission = find_ai_commission(world, nation, treasury)
             if commission:
@@ -7422,7 +7510,7 @@ class EnemyAI:
         # At war + treasury > 2× cost + a live naval want (blockaded, or its
         # own blockade outmatched) — the SAME priced verb the player types;
         # the gate is naval.check_build_fleet, shown = applied.
-        if "build_fleet" not in skip_actions and getattr(world, "fleets", None):
+        if not _saving_now() and "build_fleet" not in skip_actions and getattr(world, "fleets", None):
             from backend.game_logic.naval import find_ai_build_fleet
             fleet_order = find_ai_build_fleet(world, nation, treasury)
             if fleet_order:
@@ -7433,7 +7521,7 @@ class EnemyAI:
         # its best lawful site — the player's verb, price and gate
         # (`region.can_build` via `naval.naval_yard_sites`). Dormant while a
         # court holds any yard, so the shipped boot never reaches it.
-        if "build" not in skip_actions and getattr(world, "fleets", None):
+        if not _saving_now() and "build" not in skip_actions and getattr(world, "fleets", None):
             from backend.game_logic.naval import find_ai_naval_yard
             yard_order = find_ai_naval_yard(world, nation, treasury)
             if yard_order:
@@ -7468,7 +7556,7 @@ class EnemyAI:
                 return diversion
 
         # Priority 2: Build market at highest-income region (Phase 6.2 Audit Fix #8)
-        if "build" not in skip_actions and treasury >= 350:
+        if not _saving_now() and "build" not in skip_actions and keeps_a_turn(world, nation, treasury, 350, _kept):
             best_market = self._find_best_market_region(nation, world)
             if best_market:
                 return {
@@ -7478,7 +7566,7 @@ class EnemyAI:
                 }
 
         # Priority 3: Build supply depot at capital/major_city (Phase 6.2 Audit Fix #8)
-        if "build" not in skip_actions and treasury >= 300:
+        if not _saving_now() and "build" not in skip_actions and keeps_a_turn(world, nation, treasury, 300, _kept):
             best_depot = self._find_best_depot_region(nation, world)
             if best_depot:
                 return {
@@ -7488,9 +7576,9 @@ class EnemyAI:
                 }
 
         # Priority 4: Build fortification at border region
-        if "build" not in skip_actions:
+        if not _saving_now() and "build" not in skip_actions:
             border_region = self._find_unfortified_border_region(nation, world)
-            if border_region and treasury >= 400:
+            if border_region and keeps_a_turn(world, nation, treasury, 400, _kept):
                 region = world.get_region(border_region)
                 if region and getattr(region, 'stability', 100) > 50:
                     return {
@@ -7500,16 +7588,16 @@ class EnemyAI:
                     }
 
         # Priority 4.5: Build stables if cavalry pool low and nation has cavalry marshals
-        if "build" not in skip_actions and treasury >= 300:
+        if not _saving_now() and "build" not in skip_actions and keeps_a_turn(world, nation, treasury, 300, _kept):
             if self._should_build_stables(nation, world):
                 stables_region = self._find_best_stables_region(nation, world)
                 if stables_region:
                     return {"action": "build", "target": stables_region, "building_type": "stables"}
 
         # Priority 5: Repair damaged building
-        if "repair" not in skip_actions:
+        if not _saving_now() and "repair" not in skip_actions:
             damaged_building = self._find_damaged_building_region(nation, world)
-            if damaged_building and treasury >= 150:
+            if damaged_building and keeps_a_turn(world, nation, treasury, 150, _kept):
                 return {
                     "action": "repair",
                     "target": damaged_building["region"],
@@ -7517,9 +7605,9 @@ class EnemyAI:
                 }
 
         # Priority 6: Repair war damage in high-income region
-        if "repair" not in skip_actions:
+        if not _saving_now() and "repair" not in skip_actions:
             damaged_region = self._find_war_damaged_region(nation, world)
-            if damaged_region and treasury >= 150:
+            if damaged_region and keeps_a_turn(world, nation, treasury, 150, _kept):
                 return {
                     "action": "repair",
                     "target": damaged_region
@@ -7527,7 +7615,8 @@ class EnemyAI:
 
         # Priority 6.5: Build watchtower at border region (Phase 6 Fog - Session 35)
         # Below repair priorities — fix infrastructure before building new watchtowers
-        if ("build" not in skip_actions and treasury >= 250
+        if (not _saving_now() and "build" not in skip_actions
+                and keeps_a_turn(world, nation, treasury, 250, _kept)
                 and not THE_AI_BUILDS_NO_WATCHTOWERS):
             watchtower_region = self._find_best_watchtower_region(nation, world)
             if watchtower_region:
@@ -7541,7 +7630,7 @@ class EnemyAI:
         # Enemies can eventually rebuild to full strength if left alone.
         # This fires after all building/repair priorities, so AI invests
         # in infrastructure first, then tops off troops when idle.
-        if "recruit" not in skip_actions:
+        if not _saving_now() and "recruit" not in skip_actions:
             rebuild_target = self._find_weakest_marshal_for_admin(
                 nation, world, threshold=self.AI_RECRUITMENT_REBUILD_CAP
             )
@@ -7566,7 +7655,7 @@ class EnemyAI:
                     region, world, base_cost=base_cost, nation=nation,
                     marshal=rebuild_target)
                 if region else base_cost)
-            if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
+            if keeps_a_turn(world, nation, treasury, recruit_cost, _kept) and region and getattr(region, 'stability', 100) > 50:
                 # CO-4: the field-regen cap is applied symmetrically in the
                 # shared recruit executor (see the P1 urgent-recruit rung).
                 return {
@@ -7576,7 +7665,7 @@ class EnemyAI:
                 }
 
         # Priority 7.5 (EA-11): the court arms with its purse.
-        if THE_COURT_ARMS_WITH_ITS_PURSE and "recruit" not in skip_actions:
+        if not _saving_now() and THE_COURT_ARMS_WITH_ITS_PURSE and "recruit" not in skip_actions:
             arming = self._court_arms_with_its_purse(nation, world)
             if arming is not None:
                 return arming
@@ -7731,7 +7820,7 @@ class EnemyAI:
         invest_cd = getattr(world, 'vassal_investment_cooldowns', {}).get(
             vassal_name, 0)
         if ("invest_vassal" not in skip_actions and invest_cd <= 0
-                and treasury >= INVEST_GOLD_COST):
+                and keeps_a_turn(world, nation, treasury, INVEST_GOLD_COST)):
             return {"action": "invest_vassal", "target": vassal_name}
 
         if ("grant_region_to_vassal" not in skip_actions and loyalty < 30
@@ -7795,7 +7884,7 @@ class EnemyAI:
 
         # Arm 1 — land (better rate; appreciates).
         if ("grant_dotation" not in skip_actions
-                and treasury >= compute_investiture_fee(neediest)):
+                and keeps_a_turn(world, nation, treasury, compute_investiture_fee(neediest))):
             # CA8-20: filter, do not re-sort. The list is ALREADY sorted
             # descending on effective income; on fresh conquest every
             # candidate is 0, so no ordering of [0,0,0,0] picks a payer.
@@ -7828,7 +7917,8 @@ class EnemyAI:
             if (rente_would_change(neediest, world)
                     and face > 0
                     and treasury >= max(RENTE_AI_TREASURY_FLOOR,
-                                        RENTE_AI_TREASURY_MULT * cost)):
+                                        RENTE_AI_TREASURY_MULT * cost)
+                    and keeps_a_turn(world, nation, treasury, cost)):
                 return {
                     "action": "grant_pension",
                     "marshal": neediest.name,

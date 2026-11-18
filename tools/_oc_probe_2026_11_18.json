@@ -1,0 +1,4631 @@
+{
+ "_note": "Row OC \u2014 the keyed world probe per arm (jena and marengo, 40 ambient turns, one hash per top-level key of to_dict a turn) against the commit before's own rows (`git archive 9c5228a5`): `vs_head` says identical or the first turn that differs, `keys` every key that differs on any turn with [first turn, turns]. Written by tools/_oc_measure.py.",
+ "arms": {
+  "0": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {},
+    "keys_a_turn": 213,
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {},
+    "keys_a_turn": 213,
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_held": [
+    "backend.game_logic.ai_diplomacy:a_strangled_britain_writes_without_contact=False",
+    "backend.models.world_state:a_deficit_every_third_turn_is_remembered=False",
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "ALL": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      8,
+      33
+     ],
+     "_prev_war_exhaustion": [
+      2,
+      39
+     ],
+     "_relation_deltas_this_turn": [
+      9,
+      23
+     ],
+     "active_coalition": [
+      14,
+      3
+     ],
+     "active_treaties": [
+      1,
+      40
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      12,
+      29
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      2
+     ],
+     "ai_proposal_cooldowns": [
+      1,
+      40
+     ],
+     "ai_proposal_metadata": [
+      3,
+      38
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_settlement_cooldowns": [
+      15,
+      26
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      12,
+      29
+     ],
+     "allegiance_auctions": [
+      8,
+      5
+     ],
+     "archived_war_contribution_scores": [
+      23,
+      18
+     ],
+     "archived_war_instances": [
+      23,
+      18
+     ],
+     "armistice_cooldowns": [
+      12,
+      23
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      3,
+      38
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      4,
+      37
+     ],
+     "cascade_triggered": [
+      12,
+      29
+     ],
+     "coalition_brewing": [
+      19,
+      12
+     ],
+     "coalition_cooldown": [
+      14,
+      24
+     ],
+     "coordination_tutorial_shown": [
+      14,
+      27
+     ],
+     "corridor_windows": [
+      15,
+      13
+     ],
+     "decisive_battles": [
+      3,
+      38
+     ],
+     "design_ask_first_stood": [
+      12,
+      29
+     ],
+     "dialogue_manager": [
+      2,
+      38
+     ],
+     "diplomatic_history": [
+      9,
+      32
+     ],
+     "diplomatic_refusals": [
+      1,
+      40
+     ],
+     "diplomatic_reliability": [
+      11,
+      30
+     ],
+     "diplomatic_states": [
+      1,
+      40
+     ],
+     "directed_sponsorships": [
+      2,
+      39
+     ],
+     "evacuation_grants": [
+      12,
+      7
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fleets": [
+      2,
+      39
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      4,
+      37
+     ],
+     "hegemony_signal_hegemon": [
+      35,
+      5
+     ],
+     "incoming_proposal_popup": [
+      4,
+      3
+     ],
+     "incoming_settlement_offer_popup": [
+      10,
+      31
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "jealousy_confrontations_seen": [
+      12,
+      29
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      38
+     ],
+     "last_morning_dispatch": [
+      13,
+      28
+     ],
+     "manpower_pools": [
+      1,
+      40
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      35
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      8,
+      33
+     ],
+     "nation_agenda_seen": [
+      9,
+      30
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      28,
+      1
+     ],
+     "nation_dp": [
+      2,
+      23
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      1,
+      36
+     ],
+     "nation_pay_arrears": [
+      28,
+      2
+     ],
+     "nation_relations": [
+      1,
+      40
+     ],
+     "next_episode_id": [
+      9,
+      22
+     ],
+     "next_war_instance_id": [
+      9,
+      22
+     ],
+     "notifications": [
+      2,
+      38
+     ],
+     "pending_dialogue_queue": [
+      2,
+      37
+     ],
+     "pending_diplomatic_dialogue": [
+      3,
+      36
+     ],
+     "pending_dispatch_events": [
+      1,
+      40
+     ],
+     "pending_marshal_petition": [
+      12,
+      4
+     ],
+     "previous_nation_relations": [
+      1,
+      40
+     ],
+     "previous_treaties": [
+      1,
+      40
+     ],
+     "previous_war_scores": [
+      3,
+      38
+     ],
+     "province_title": [
+      10,
+      30
+     ],
+     "reforms": [
+      6,
+      35
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      2,
+      39
+     ],
+     "settlement_memories": [
+      12,
+      29
+     ],
+     "threat_by_target": [
+      3,
+      38
+     ],
+     "threat_level": [
+      12,
+      13
+     ],
+     "threat_sources_this_turn": [
+      3,
+      35
+     ],
+     "turns_below_threshold": [
+      21,
+      15
+     ],
+     "vassal_contingents": [
+      4,
+      1
+     ],
+     "vassal_investment_cooldowns": [
+      15,
+      14
+     ],
+     "vassals": [
+      5,
+      30
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      1,
+      40
+     ],
+     "war_instances": [
+      9,
+      32
+     ],
+     "war_intents": [
+      7,
+      4
+     ],
+     "war_objectives": [
+      9,
+      32
+     ],
+     "war_score_history": [
+      3,
+      38
+     ],
+     "war_scores": [
+      3,
+      38
+     ],
+     "war_start_turns": [
+      9,
+      32
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      38
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      13,
+      28
+     ],
+     "_prev_war_exhaustion": [
+      2,
+      39
+     ],
+     "_relation_deltas_this_turn": [
+      19,
+      6
+     ],
+     "active_coalition": [
+      27,
+      10
+     ],
+     "active_treaties": [
+      1,
+      40
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      26,
+      15
+     ],
+     "ai_attack_futility": [
+      29,
+      5
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      10
+     ],
+     "ai_proposal_cooldowns": [
+      1,
+      38
+     ],
+     "ai_proposal_metadata": [
+      9,
+      26
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      15,
+      26
+     ],
+     "allegiance_auctions": [
+      23,
+      5
+     ],
+     "archived_war_contribution_scores": [
+      25,
+      16
+     ],
+     "archived_war_instances": [
+      37,
+      4
+     ],
+     "armistice_cooldowns": [
+      24,
+      17
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      4,
+      32
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      8,
+      33
+     ],
+     "coalition_brewing": [
+      22,
+      3
+     ],
+     "corridor_windows": [
+      32,
+      8
+     ],
+     "decisive_battles": [
+      4,
+      29
+     ],
+     "design_ask_first_stood": [
+      22,
+      19
+     ],
+     "dialogue_manager": [
+      1,
+      35
+     ],
+     "diplomatic_history": [
+      19,
+      22
+     ],
+     "diplomatic_refusals": [
+      1,
+      40
+     ],
+     "diplomatic_reliability": [
+      11,
+      30
+     ],
+     "diplomatic_states": [
+      1,
+      40
+     ],
+     "directed_sponsorships": [
+      2,
+      22
+     ],
+     "eliminated_nations_notified": [
+      37,
+      4
+     ],
+     "evacuation_grants": [
+      24,
+      5
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fallen_marshals": [
+      25,
+      16
+     ],
+     "fleets": [
+      2,
+      39
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      8,
+      33
+     ],
+     "hegemony_relaxation_bands_fired": [
+      26,
+      7
+     ],
+     "hegemony_signal_hegemon": [
+      33,
+      8
+     ],
+     "hegemony_signal_high_water": [
+      24,
+      17
+     ],
+     "incoming_proposal_popup": [
+      1,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      8,
+      33
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      32
+     ],
+     "manpower_pools": [
+      1,
+      40
+     ],
+     "marshal_accounts": [
+      33,
+      4
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      39
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      7,
+      19
+     ],
+     "nation_agenda_seen": [
+      8,
+      26
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      3,
+      8
+     ],
+     "nation_dp": [
+      2,
+      29
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      31
+     ],
+     "nation_pay_arrears": [
+      3,
+      12
+     ],
+     "nation_relations": [
+      1,
+      40
+     ],
+     "next_episode_id": [
+      19,
+      22
+     ],
+     "next_war_instance_id": [
+      19,
+      22
+     ],
+     "notifications": [
+      8,
+      33
+     ],
+     "pending_dialogue_queue": [
+      4,
+      33
+     ],
+     "pending_diplomatic_dialogue": [
+      1,
+      33
+     ],
+     "pending_dispatch_events": [
+      1,
+      40
+     ],
+     "pending_marshal_petition": [
+      35,
+      6
+     ],
+     "previous_nation_relations": [
+      1,
+      40
+     ],
+     "previous_treaties": [
+      1,
+      40
+     ],
+     "previous_war_scores": [
+      4,
+      37
+     ],
+     "province_title": [
+      8,
+      31
+     ],
+     "reforms": [
+      5,
+      36
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      2,
+      39
+     ],
+     "respected_estates": [
+      24,
+      2
+     ],
+     "settlement_memories": [
+      24,
+      17
+     ],
+     "threat_by_target": [
+      4,
+      37
+     ],
+     "threat_sources_this_turn": [
+      4,
+      33
+     ],
+     "turns_below_threshold": [
+      16,
+      7
+     ],
+     "vassal_investment_cooldowns": [
+      39,
+      2
+     ],
+     "vassals": [
+      29,
+      12
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      1,
+      40
+     ],
+     "war_instances": [
+      19,
+      22
+     ],
+     "war_intents": [
+      13,
+      4
+     ],
+     "war_objectives": [
+      8,
+      33
+     ],
+     "war_score_history": [
+      4,
+      37
+     ],
+     "war_scores": [
+      4,
+      37
+     ],
+     "war_start_turns": [
+      19,
+      18
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      35
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "seams_held": []
+  },
+  "ARREARS": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "nation_pay_arrears": [
+      29,
+      2
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 29,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "nation_pay_arrears": [
+      4,
+      5
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 4,
+     "identical": false
+    }
+   },
+   "seams_held": [
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "CURE": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      7,
+      34
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      14,
+      11
+     ],
+     "active_coalition": [
+      12,
+      3
+     ],
+     "active_treaties": [
+      13,
+      28
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      23,
+      18
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      3
+     ],
+     "ai_proposal_cooldowns": [
+      13,
+      28
+     ],
+     "ai_proposal_metadata": [
+      7,
+      34
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_settlement_cooldowns": [
+      14,
+      27
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      8,
+      33
+     ],
+     "allegiance_auctions": [
+      32,
+      3
+     ],
+     "archived_war_contribution_scores": [
+      24,
+      17
+     ],
+     "archived_war_instances": [
+      36,
+      5
+     ],
+     "armistice_cooldowns": [
+      15,
+      23
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      3,
+      38
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      7,
+      34
+     ],
+     "coalition_brewing": [
+      19,
+      10
+     ],
+     "coalition_cooldown": [
+      14,
+      17
+     ],
+     "coordination_tutorial_shown": [
+      10,
+      31
+     ],
+     "corridor_windows": [
+      15,
+      11
+     ],
+     "decisive_battles": [
+      3,
+      38
+     ],
+     "design_ask_first_stood": [
+      13,
+      28
+     ],
+     "dialogue_manager": [
+      7,
+      32
+     ],
+     "diplomatic_guarantees": [
+      12,
+      29
+     ],
+     "diplomatic_history": [
+      14,
+      27
+     ],
+     "diplomatic_refusals": [
+      14,
+      27
+     ],
+     "diplomatic_reliability": [
+      31,
+      10
+     ],
+     "diplomatic_states": [
+      12,
+      29
+     ],
+     "directed_sponsorships": [
+      2,
+      38
+     ],
+     "eliminated_nations_notified": [
+      37,
+      4
+     ],
+     "evacuation_grants": [
+      26,
+      5
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fallen_marshals": [
+      36,
+      5
+     ],
+     "fleets": [
+      10,
+      1
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      6,
+      35
+     ],
+     "hegemony_signal_hegemon": [
+      12,
+      29
+     ],
+     "incoming_proposal_popup": [
+      7,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      10,
+      31
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "jealousy_confrontations_seen": [
+      9,
+      32
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      38
+     ],
+     "last_morning_dispatch": [
+      11,
+      30
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_accounts": [
+      20,
+      1
+     ],
+     "marshal_ledger": [
+      9,
+      32
+     ],
+     "marshal_pool": [
+      2,
+      36
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      28,
+      9
+     ],
+     "nation_agenda_seen": [
+      8,
+      31
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      29,
+      2
+     ],
+     "nation_dp": [
+      2,
+      26
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      33
+     ],
+     "nation_pay_arrears": [
+      29,
+      8
+     ],
+     "nation_relations": [
+      2,
+      38
+     ],
+     "next_episode_id": [
+      12,
+      21
+     ],
+     "next_war_instance_id": [
+      12,
+      19
+     ],
+     "notifications": [
+      9,
+      32
+     ],
+     "pending_dialogue_queue": [
+      10,
+      29
+     ],
+     "pending_diplomatic_dialogue": [
+      7,
+      32
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      9,
+      8
+     ],
+     "previous_nation_relations": [
+      2,
+      38
+     ],
+     "previous_treaties": [
+      13,
+      28
+     ],
+     "previous_war_scores": [
+      3,
+      38
+     ],
+     "province_title": [
+      6,
+      34
+     ],
+     "reforms": [
+      4,
+      37
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "rivalry_transitions_seen": [
+      18,
+      23
+     ],
+     "threat_by_target": [
+      3,
+      38
+     ],
+     "threat_level": [
+      11,
+      17
+     ],
+     "threat_sources_this_turn": [
+      3,
+      37
+     ],
+     "turns_below_threshold": [
+      25,
+      7
+     ],
+     "vassal_hint_spent": [
+      21,
+      1
+     ],
+     "vassal_investment_cooldowns": [
+      13,
+      25
+     ],
+     "vassals": [
+      9,
+      31
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      10,
+      31
+     ],
+     "war_objectives": [
+      6,
+      34
+     ],
+     "war_score_history": [
+      3,
+      38
+     ],
+     "war_scores": [
+      3,
+      38
+     ],
+     "war_start_turns": [
+      12,
+      29
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      33
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      7,
+      34
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      25,
+      15
+     ],
+     "active_coalition": [
+      25,
+      14
+     ],
+     "active_treaties": [
+      26,
+      15
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      33,
+      8
+     ],
+     "ai_attack_futility": [
+      29,
+      3
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      9
+     ],
+     "ai_proposal_cooldowns": [
+      19,
+      22
+     ],
+     "ai_proposal_metadata": [
+      26,
+      15
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      8,
+      23
+     ],
+     "allegiance_auctions": [
+      24,
+      4
+     ],
+     "archived_war_contribution_scores": [
+      37,
+      4
+     ],
+     "archived_war_instances": [
+      37,
+      4
+     ],
+     "armistice_cooldowns": [
+      24,
+      17
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      4,
+      28
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      8,
+      33
+     ],
+     "coalition_brewing": [
+      22,
+      4
+     ],
+     "corridor_windows": [
+      30,
+      8
+     ],
+     "decisive_battles": [
+      4,
+      21
+     ],
+     "design_ask_first_stood": [
+      29,
+      12
+     ],
+     "dialogue_manager": [
+      7,
+      34
+     ],
+     "diplomatic_history": [
+      25,
+      16
+     ],
+     "diplomatic_refusals": [
+      19,
+      22
+     ],
+     "diplomatic_reliability": [
+      36,
+      4
+     ],
+     "diplomatic_states": [
+      24,
+      17
+     ],
+     "directed_sponsorships": [
+      2,
+      21
+     ],
+     "eliminated_nations_notified": [
+      28,
+      13
+     ],
+     "evacuation_grants": [
+      24,
+      8
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fallen_marshals": [
+      25,
+      16
+     ],
+     "fleets": [
+      10,
+      17
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      6,
+      35
+     ],
+     "hegemony_relaxation_bands_fired": [
+      26,
+      10
+     ],
+     "hegemony_signal_hegemon": [
+      33,
+      8
+     ],
+     "hegemony_signal_high_water": [
+      24,
+      4
+     ],
+     "incoming_proposal_popup": [
+      7,
+      2
+     ],
+     "incoming_settlement_offer_popup": [
+      8,
+      11
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      35
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_accounts": [
+      34,
+      2
+     ],
+     "marshal_ledger": [
+      6,
+      35
+     ],
+     "marshal_pool": [
+      2,
+      36
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      26,
+      15
+     ],
+     "nation_agenda_seen": [
+      8,
+      20
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      29,
+      1
+     ],
+     "nation_dp": [
+      2,
+      6
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      19
+     ],
+     "nation_pay_arrears": [
+      4,
+      5
+     ],
+     "nation_relations": [
+      2,
+      38
+     ],
+     "next_war_instance_id": [
+      25,
+      16
+     ],
+     "notifications": [
+      6,
+      35
+     ],
+     "pending_dialogue_queue": [
+      8,
+      21
+     ],
+     "pending_diplomatic_dialogue": [
+      7,
+      34
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      35,
+      6
+     ],
+     "previous_nation_relations": [
+      2,
+      38
+     ],
+     "previous_treaties": [
+      26,
+      15
+     ],
+     "previous_war_scores": [
+      4,
+      36
+     ],
+     "province_title": [
+      6,
+      30
+     ],
+     "reforms": [
+      4,
+      37
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "respected_estates": [
+      24,
+      4
+     ],
+     "settlement_memories": [
+      24,
+      17
+     ],
+     "threat_by_target": [
+      4,
+      32
+     ],
+     "threat_sources_this_turn": [
+      4,
+      26
+     ],
+     "vassal_investment_cooldowns": [
+      39,
+      2
+     ],
+     "vassals": [
+      29,
+      12
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      24,
+      17
+     ],
+     "war_objectives": [
+      6,
+      34
+     ],
+     "war_score_history": [
+      4,
+      37
+     ],
+     "war_scores": [
+      4,
+      36
+     ],
+     "war_start_turns": [
+      24,
+      17
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      15
+     ]
+    },
+    "keys_a_turn": 214,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "seams_held": [
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "LETTER": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {},
+    "keys_a_turn": 213,
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {},
+    "keys_a_turn": 213,
+    "vs_head": {
+     "identical": true
+    }
+   },
+   "seams_held": [
+    "backend.models.world_state:a_deficit_every_third_turn_is_remembered=False",
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "RESTLESS": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_prev_war_exhaustion": [
+      17,
+      22
+     ],
+     "_relation_deltas_this_turn": [
+      30,
+      9
+     ],
+     "active_coalition": [
+      30,
+      3
+     ],
+     "active_treaties": [
+      30,
+      11
+     ],
+     "agendas": [
+      30,
+      11
+     ],
+     "ai_attack_futility": [
+      24,
+      1
+     ],
+     "ai_proposal_cooldowns": [
+      23,
+      17
+     ],
+     "ai_proposal_metadata": [
+      28,
+      13
+     ],
+     "ai_refortify_cooldown": [
+      22,
+      17
+     ],
+     "ai_stagnation_turns": [
+      18,
+      23
+     ],
+     "ai_stalemate_counters": [
+      30,
+      4
+     ],
+     "allegiance_auctions": [
+      32,
+      3
+     ],
+     "armistice_cooldowns": [
+      28,
+      12
+     ],
+     "authority_tracker": [
+      17,
+      24
+     ],
+     "battle_counts": [
+      19,
+      22
+     ],
+     "battle_records": [
+      17,
+      24
+     ],
+     "campaign_ledgers": [
+      17,
+      24
+     ],
+     "campaign_totals": [
+      17,
+      24
+     ],
+     "coalition_brewing": [
+      19,
+      9
+     ],
+     "coalition_cooldown": [
+      30,
+      8
+     ],
+     "coalition_count": [
+      30,
+      11
+     ],
+     "corridor_windows": [
+      28,
+      12
+     ],
+     "decisive_battles": [
+      20,
+      21
+     ],
+     "dialogue_manager": [
+      22,
+      14
+     ],
+     "diplomatic_history": [
+      30,
+      11
+     ],
+     "diplomatic_refusals": [
+      35,
+      6
+     ],
+     "diplomatic_reliability": [
+      31,
+      10
+     ],
+     "diplomatic_states": [
+      28,
+      13
+     ],
+     "eliminated_nations_notified": [
+      40,
+      1
+     ],
+     "evacuation_grants": [
+      28,
+      6
+     ],
+     "event_log": [
+      12,
+      29
+     ],
+     "fallen_marshals": [
+      33,
+      8
+     ],
+     "gazette_issues": [
+      18,
+      23
+     ],
+     "gold": [
+      17,
+      24
+     ],
+     "intel": [
+      16,
+      25
+     ],
+     "jealousy_confrontations_seen": [
+      20,
+      21
+     ],
+     "last_battle_turn_by_nation": [
+      19,
+      16
+     ],
+     "last_morning_dispatch": [
+      20,
+      21
+     ],
+     "manpower_pools": [
+      16,
+      25
+     ],
+     "marshal_ledger": [
+      17,
+      24
+     ],
+     "marshal_pool": [
+      32,
+      9
+     ],
+     "marshals": [
+      16,
+      25
+     ],
+     "materiel_spent_this_turn": [
+      17,
+      24
+     ],
+     "moments": [
+      18,
+      14
+     ],
+     "nation_agenda_seen": [
+      30,
+      11
+     ],
+     "nation_authority": [
+      17,
+      24
+     ],
+     "nation_bankruptcy_turns": [
+      28,
+      11
+     ],
+     "nation_dp": [
+      17,
+      24
+     ],
+     "nation_gold": [
+      6,
+      35
+     ],
+     "nation_intent_seen": [
+      23,
+      14
+     ],
+     "nation_pay_arrears": [
+      28,
+      12
+     ],
+     "nation_relations": [
+      28,
+      13
+     ],
+     "next_episode_id": [
+      30,
+      11
+     ],
+     "notifications": [
+      17,
+      24
+     ],
+     "pending_dialogue_queue": [
+      22,
+      14
+     ],
+     "pending_dispatch_events": [
+      12,
+      18
+     ],
+     "pending_marshal_petition": [
+      20,
+      21
+     ],
+     "previous_nation_relations": [
+      28,
+      13
+     ],
+     "previous_war_scores": [
+      18,
+      23
+     ],
+     "province_title": [
+      18,
+      12
+     ],
+     "reforms": [
+      12,
+      29
+     ],
+     "regions": [
+      12,
+      28
+     ],
+     "relation_history": [
+      29,
+      12
+     ],
+     "settlement_memories": [
+      36,
+      5
+     ],
+     "threat_by_target": [
+      18,
+      23
+     ],
+     "threat_level": [
+      20,
+      4
+     ],
+     "threat_sources_this_turn": [
+      18,
+      20
+     ],
+     "turns_below_threshold": [
+      31,
+      7
+     ],
+     "vassal_investment_cooldowns": [
+      28,
+      9
+     ],
+     "vassals": [
+      17,
+      24
+     ],
+     "war_contribution_scores": [
+      18,
+      23
+     ],
+     "war_exhaustion": [
+      17,
+      21
+     ],
+     "war_instances": [
+      27,
+      14
+     ],
+     "war_objectives": [
+      28,
+      13
+     ],
+     "war_score_history": [
+      18,
+      23
+     ],
+     "war_scores": [
+      18,
+      23
+     ],
+     "war_start_turns": [
+      28,
+      13
+     ],
+     "we_dispatched_thresholds": [
+      28,
+      13
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 6,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      30,
+      11
+     ],
+     "_prev_war_exhaustion": [
+      24,
+      17
+     ],
+     "_relation_deltas_this_turn": [
+      25,
+      15
+     ],
+     "active_coalition": [
+      25,
+      14
+     ],
+     "active_treaties": [
+      26,
+      15
+     ],
+     "agendas": [
+      33,
+      8
+     ],
+     "ai_attack_futility": [
+      30,
+      4
+     ],
+     "ai_failed_action_cooldowns": [
+      24,
+      6
+     ],
+     "ai_proposal_cooldowns": [
+      24,
+      17
+     ],
+     "ai_proposal_metadata": [
+      26,
+      15
+     ],
+     "ai_refortify_cooldown": [
+      26,
+      15
+     ],
+     "ai_stagnation_turns": [
+      24,
+      17
+     ],
+     "ai_stalemate_counters": [
+      31,
+      5
+     ],
+     "allegiance_auctions": [
+      24,
+      4
+     ],
+     "archived_war_contribution_scores": [
+      37,
+      4
+     ],
+     "archived_war_instances": [
+      37,
+      4
+     ],
+     "armistice_cooldowns": [
+      24,
+      17
+     ],
+     "authority_tracker": [
+      24,
+      17
+     ],
+     "battle_counts": [
+      24,
+      16
+     ],
+     "battle_records": [
+      24,
+      17
+     ],
+     "campaign_ledgers": [
+      24,
+      17
+     ],
+     "campaign_totals": [
+      34,
+      7
+     ],
+     "corridor_windows": [
+      37,
+      4
+     ],
+     "decisive_battles": [
+      24,
+      17
+     ],
+     "design_ask_first_stood": [
+      29,
+      12
+     ],
+     "dialogue_manager": [
+      15,
+      19
+     ],
+     "diplomatic_history": [
+      25,
+      16
+     ],
+     "diplomatic_refusals": [
+      24,
+      17
+     ],
+     "diplomatic_reliability": [
+      36,
+      4
+     ],
+     "diplomatic_states": [
+      24,
+      17
+     ],
+     "directed_sponsorships": [
+      25,
+      10
+     ],
+     "eliminated_nations_notified": [
+      36,
+      5
+     ],
+     "evacuation_grants": [
+      24,
+      10
+     ],
+     "event_log": [
+      23,
+      18
+     ],
+     "fallen_marshals": [
+      25,
+      16
+     ],
+     "fleets": [
+      25,
+      16
+     ],
+     "gazette_issues": [
+      15,
+      26
+     ],
+     "gold": [
+      13,
+      28
+     ],
+     "hegemony_relaxation_bands_fired": [
+      26,
+      10
+     ],
+     "hegemony_signal_hegemon": [
+      33,
+      8
+     ],
+     "hegemony_signal_high_water": [
+      24,
+      4
+     ],
+     "intel": [
+      26,
+      15
+     ],
+     "last_battle_turn_by_nation": [
+      24,
+      17
+     ],
+     "manpower_pools": [
+      23,
+      18
+     ],
+     "marshal_accounts": [
+      34,
+      1
+     ],
+     "marshal_ledger": [
+      31,
+      10
+     ],
+     "marshal_pool": [
+      23,
+      15
+     ],
+     "marshals": [
+      23,
+      18
+     ],
+     "materiel_spent_this_turn": [
+      24,
+      17
+     ],
+     "moments": [
+      13,
+      28
+     ],
+     "nation_agenda_seen": [
+      24,
+      17
+     ],
+     "nation_authority": [
+      24,
+      17
+     ],
+     "nation_bankruptcy_turns": [
+      29,
+      6
+     ],
+     "nation_dp": [
+      24,
+      4
+     ],
+     "nation_gold": [
+      8,
+      33
+     ],
+     "nation_intent_seen": [
+      24,
+      17
+     ],
+     "nation_pay_arrears": [
+      4,
+      10
+     ],
+     "nation_relations": [
+      24,
+      17
+     ],
+     "next_war_instance_id": [
+      25,
+      16
+     ],
+     "notifications": [
+      24,
+      17
+     ],
+     "pending_dialogue_queue": [
+      15,
+      19
+     ],
+     "pending_dispatch_events": [
+      23,
+      18
+     ],
+     "pending_marshal_petition": [
+      35,
+      6
+     ],
+     "previous_nation_relations": [
+      24,
+      17
+     ],
+     "previous_treaties": [
+      26,
+      15
+     ],
+     "previous_war_scores": [
+      24,
+      17
+     ],
+     "province_title": [
+      24,
+      17
+     ],
+     "reforms": [
+      33,
+      8
+     ],
+     "regions": [
+      24,
+      17
+     ],
+     "relation_history": [
+      25,
+      16
+     ],
+     "respected_estates": [
+      24,
+      4
+     ],
+     "settlement_memories": [
+      24,
+      17
+     ],
+     "threat_by_target": [
+      24,
+      17
+     ],
+     "threat_sources_this_turn": [
+      24,
+      16
+     ],
+     "vassal_investment_cooldowns": [
+      36,
+      4
+     ],
+     "vassals": [
+      29,
+      12
+     ],
+     "war_contribution_scores": [
+      24,
+      17
+     ],
+     "war_exhaustion": [
+      24,
+      17
+     ],
+     "war_instances": [
+      24,
+      17
+     ],
+     "war_objectives": [
+      24,
+      17
+     ],
+     "war_score_history": [
+      24,
+      17
+     ],
+     "war_scores": [
+      24,
+      17
+     ],
+     "war_start_turns": [
+      24,
+      17
+     ],
+     "we_dispatched_thresholds": [
+      30,
+      10
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 4,
+     "identical": false
+    }
+   },
+   "seams_held": [
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "SAVE": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      8,
+      33
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      12,
+      11
+     ],
+     "active_coalition": [
+      22,
+      8
+     ],
+     "active_treaties": [
+      13,
+      28
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      23,
+      18
+     ],
+     "ai_attack_futility": [
+      27,
+      1
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      2
+     ],
+     "ai_proposal_cooldowns": [
+      13,
+      28
+     ],
+     "ai_proposal_metadata": [
+      16,
+      25
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_settlement_cooldowns": [
+      15,
+      26
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      12,
+      29
+     ],
+     "allegiance_auctions": [
+      22,
+      4
+     ],
+     "archived_war_contribution_scores": [
+      24,
+      17
+     ],
+     "armistice_cooldowns": [
+      26,
+      11
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      3,
+      38
+     ],
+     "betrayal_history": [
+      22,
+      19
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      11,
+      30
+     ],
+     "cascade_triggered": [
+      12,
+      29
+     ],
+     "coalition_brewing": [
+      27,
+      6
+     ],
+     "coalition_cooldown": [
+      22,
+      13
+     ],
+     "coalition_count": [
+      22,
+      19
+     ],
+     "corridor_windows": [
+      15,
+      11
+     ],
+     "decisive_battles": [
+      3,
+      38
+     ],
+     "dialogue_manager": [
+      7,
+      32
+     ],
+     "diplomatic_guarantees": [
+      12,
+      29
+     ],
+     "diplomatic_history": [
+      14,
+      27
+     ],
+     "diplomatic_refusals": [
+      14,
+      27
+     ],
+     "diplomatic_states": [
+      12,
+      29
+     ],
+     "directed_sponsorships": [
+      2,
+      36
+     ],
+     "evacuation_grants": [
+      15,
+      4
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fleets": [
+      9,
+      20
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      8,
+      33
+     ],
+     "hegemony_relaxation_bands_fired": [
+      30,
+      11
+     ],
+     "hegemony_signal_high_water": [
+      30,
+      11
+     ],
+     "incoming_proposal_popup": [
+      7,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      10,
+      31
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "jealousy_confrontations_seen": [
+      18,
+      23
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      38
+     ],
+     "last_morning_dispatch": [
+      13,
+      28
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_accounts": [
+      18,
+      23
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      32
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      8,
+      33
+     ],
+     "nation_agenda_seen": [
+      14,
+      27
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      28,
+      1
+     ],
+     "nation_dp": [
+      2,
+      20
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      14,
+      27
+     ],
+     "nation_pay_arrears": [
+      28,
+      2
+     ],
+     "nation_relations": [
+      2,
+      39
+     ],
+     "next_episode_id": [
+      12,
+      21
+     ],
+     "next_war_instance_id": [
+      12,
+      29
+     ],
+     "notifications": [
+      8,
+      33
+     ],
+     "pending_dialogue_queue": [
+      10,
+      30
+     ],
+     "pending_diplomatic_dialogue": [
+      7,
+      32
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      18,
+      23
+     ],
+     "previous_nation_relations": [
+      2,
+      39
+     ],
+     "previous_treaties": [
+      13,
+      28
+     ],
+     "previous_war_scores": [
+      3,
+      38
+     ],
+     "province_title": [
+      12,
+      29
+     ],
+     "reforms": [
+      5,
+      36
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "threat_by_target": [
+      3,
+      38
+     ],
+     "threat_level": [
+      12,
+      8
+     ],
+     "threat_sources_this_turn": [
+      3,
+      30
+     ],
+     "turns_below_threshold": [
+      39,
+      2
+     ],
+     "vassal_contingents": [
+      39,
+      2
+     ],
+     "vassal_hint_spent": [
+      39,
+      1
+     ],
+     "vassal_investment_cooldowns": [
+      15,
+      14
+     ],
+     "vassals": [
+      12,
+      29
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      12,
+      29
+     ],
+     "war_intents": [
+      13,
+      1
+     ],
+     "war_objectives": [
+      12,
+      29
+     ],
+     "war_score_history": [
+      3,
+      38
+     ],
+     "war_scores": [
+      3,
+      38
+     ],
+     "war_start_turns": [
+      12,
+      29
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      35
+     ]
+    },
+    "keys_a_turn": 214,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      13,
+      28
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      19,
+      6
+     ],
+     "active_coalition": [
+      35,
+      2
+     ],
+     "active_treaties": [
+      14,
+      27
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      28,
+      13
+     ],
+     "ai_attack_futility": [
+      30,
+      4
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      6
+     ],
+     "ai_proposal_cooldowns": [
+      15,
+      26
+     ],
+     "ai_proposal_metadata": [
+      23,
+      13
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      15,
+      22
+     ],
+     "allegiance_auctions": [
+      23,
+      5
+     ],
+     "archived_war_contribution_scores": [
+      25,
+      16
+     ],
+     "archived_war_instances": [
+      37,
+      4
+     ],
+     "armistice_cooldowns": [
+      24,
+      17
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      4,
+      32
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      8,
+      33
+     ],
+     "coalition_brewing": [
+      22,
+      4
+     ],
+     "corridor_windows": [
+      36,
+      5
+     ],
+     "decisive_battles": [
+      4,
+      29
+     ],
+     "design_ask_first_stood": [
+      22,
+      19
+     ],
+     "dialogue_manager": [
+      8,
+      33
+     ],
+     "diplomatic_history": [
+      19,
+      22
+     ],
+     "diplomatic_refusals": [
+      14,
+      27
+     ],
+     "diplomatic_reliability": [
+      24,
+      17
+     ],
+     "diplomatic_states": [
+      19,
+      22
+     ],
+     "directed_sponsorships": [
+      2,
+      22
+     ],
+     "eliminated_nations_notified": [
+      37,
+      4
+     ],
+     "evacuation_grants": [
+      24,
+      7
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fallen_marshals": [
+      25,
+      16
+     ],
+     "fleets": [
+      9,
+      1
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      8,
+      33
+     ],
+     "hegemony_relaxation_bands_fired": [
+      33,
+      8
+     ],
+     "hegemony_signal_hegemon": [
+      33,
+      8
+     ],
+     "hegemony_signal_high_water": [
+      23,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      8,
+      11
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      32
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_accounts": [
+      34,
+      5
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      39
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      7,
+      19
+     ],
+     "nation_agenda_seen": [
+      8,
+      26
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      3,
+      10
+     ],
+     "nation_dp": [
+      2,
+      29
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      31
+     ],
+     "nation_pay_arrears": [
+      3,
+      16
+     ],
+     "nation_relations": [
+      2,
+      39
+     ],
+     "next_episode_id": [
+      19,
+      22
+     ],
+     "next_war_instance_id": [
+      19,
+      22
+     ],
+     "notifications": [
+      8,
+      33
+     ],
+     "pending_dialogue_queue": [
+      8,
+      26
+     ],
+     "pending_diplomatic_dialogue": [
+      9,
+      32
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      35,
+      6
+     ],
+     "previous_nation_relations": [
+      2,
+      39
+     ],
+     "previous_treaties": [
+      14,
+      27
+     ],
+     "previous_war_scores": [
+      4,
+      37
+     ],
+     "province_title": [
+      8,
+      31
+     ],
+     "reforms": [
+      7,
+      34
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "respected_estates": [
+      24,
+      2
+     ],
+     "settlement_memories": [
+      24,
+      17
+     ],
+     "threat_by_target": [
+      4,
+      37
+     ],
+     "threat_sources_this_turn": [
+      4,
+      32
+     ],
+     "turns_below_threshold": [
+      16,
+      7
+     ],
+     "vassal_investment_cooldowns": [
+      39,
+      2
+     ],
+     "vassals": [
+      29,
+      12
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      19,
+      22
+     ],
+     "war_intents": [
+      13,
+      4
+     ],
+     "war_objectives": [
+      8,
+      33
+     ],
+     "war_score_history": [
+      4,
+      37
+     ],
+     "war_scores": [
+      4,
+      37
+     ],
+     "war_start_turns": [
+      19,
+      16
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      32
+     ]
+    },
+    "keys_a_turn": 214,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "seams_held": [
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "STAFF": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      7,
+      34
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      30,
+      9
+     ],
+     "active_coalition": [
+      13,
+      8
+     ],
+     "active_treaties": [
+      6,
+      30
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      23,
+      18
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      6
+     ],
+     "ai_proposal_cooldowns": [
+      6,
+      34
+     ],
+     "ai_proposal_metadata": [
+      7,
+      34
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      8,
+      33
+     ],
+     "archived_war_contribution_scores": [
+      24,
+      17
+     ],
+     "armistice_cooldowns": [
+      28,
+      13
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      3,
+      38
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      7,
+      34
+     ],
+     "coalition_brewing": [
+      19,
+      9
+     ],
+     "coalition_cooldown": [
+      30,
+      8
+     ],
+     "coalition_count": [
+      30,
+      11
+     ],
+     "coordination_tutorial_shown": [
+      10,
+      31
+     ],
+     "corridor_windows": [
+      28,
+      9
+     ],
+     "decisive_battles": [
+      3,
+      38
+     ],
+     "design_ask_first_stood": [
+      13,
+      28
+     ],
+     "dialogue_manager": [
+      7,
+      32
+     ],
+     "diplomatic_history": [
+      30,
+      11
+     ],
+     "diplomatic_refusals": [
+      14,
+      27
+     ],
+     "diplomatic_states": [
+      6,
+      15
+     ],
+     "directed_sponsorships": [
+      2,
+      39
+     ],
+     "eliminated_nations_notified": [
+      36,
+      5
+     ],
+     "endings": [
+      40,
+      1
+     ],
+     "evacuation_grants": [
+      28,
+      8
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fall_clock": [
+      31,
+      10
+     ],
+     "fleets": [
+      10,
+      1
+     ],
+     "game_over": [
+      40,
+      1
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      6,
+      35
+     ],
+     "incoming_proposal_popup": [
+      7,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      10,
+      7
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "jealousy_confrontations_seen": [
+      9,
+      32
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      38
+     ],
+     "last_morning_dispatch": [
+      15,
+      26
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      37
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      17,
+      24
+     ],
+     "nation_agenda_seen": [
+      8,
+      19
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      28,
+      2
+     ],
+     "nation_dp": [
+      2,
+      22
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      33
+     ],
+     "nation_pay_arrears": [
+      28,
+      5
+     ],
+     "nation_relations": [
+      2,
+      39
+     ],
+     "next_episode_id": [
+      30,
+      11
+     ],
+     "notifications": [
+      9,
+      32
+     ],
+     "pending_dialogue_queue": [
+      10,
+      21
+     ],
+     "pending_diplomatic_dialogue": [
+      7,
+      32
+     ],
+     "pending_dispatch_events": [
+      2,
+      37
+     ],
+     "pending_marshal_petition": [
+      9,
+      16
+     ],
+     "previous_nation_relations": [
+      2,
+      39
+     ],
+     "previous_treaties": [
+      13,
+      28
+     ],
+     "previous_war_scores": [
+      3,
+      38
+     ],
+     "province_title": [
+      6,
+      34
+     ],
+     "reforms": [
+      4,
+      37
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "rivalry_transitions_seen": [
+      17,
+      24
+     ],
+     "settlement_memories": [
+      38,
+      3
+     ],
+     "threat_by_target": [
+      3,
+      38
+     ],
+     "threat_level": [
+      15,
+      6
+     ],
+     "threat_sources_this_turn": [
+      3,
+      31
+     ],
+     "turns_below_threshold": [
+      31,
+      7
+     ],
+     "vassal_contingents": [
+      32,
+      9
+     ],
+     "vassal_hint_spent": [
+      11,
+      5
+     ],
+     "vassal_investment_cooldowns": [
+      15,
+      20
+     ],
+     "vassals": [
+      9,
+      31
+     ],
+     "victory": [
+      40,
+      1
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      10,
+      31
+     ],
+     "war_objectives": [
+      6,
+      34
+     ],
+     "war_score_history": [
+      3,
+      38
+     ],
+     "war_scores": [
+      3,
+      38
+     ],
+     "war_start_turns": [
+      28,
+      13
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      27
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      7,
+      34
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      31
+     ],
+     "_relation_deltas_this_turn": [
+      25,
+      15
+     ],
+     "active_coalition": [
+      25,
+      14
+     ],
+     "active_treaties": [
+      26,
+      15
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      28,
+      13
+     ],
+     "ai_attack_futility": [
+      29,
+      5
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      10
+     ],
+     "ai_proposal_cooldowns": [
+      19,
+      22
+     ],
+     "ai_proposal_metadata": [
+      26,
+      15
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      8,
+      19
+     ],
+     "allegiance_auctions": [
+      24,
+      4
+     ],
+     "archived_war_contribution_scores": [
+      37,
+      4
+     ],
+     "archived_war_instances": [
+      37,
+      4
+     ],
+     "armistice_cooldowns": [
+      24,
+      17
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      4,
+      28
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      8,
+      33
+     ],
+     "coalition_brewing": [
+      22,
+      3
+     ],
+     "corridor_windows": [
+      30,
+      10
+     ],
+     "decisive_battles": [
+      4,
+      21
+     ],
+     "design_ask_first_stood": [
+      29,
+      12
+     ],
+     "dialogue_manager": [
+      7,
+      34
+     ],
+     "diplomatic_history": [
+      25,
+      16
+     ],
+     "diplomatic_refusals": [
+      19,
+      22
+     ],
+     "diplomatic_reliability": [
+      36,
+      4
+     ],
+     "diplomatic_states": [
+      24,
+      17
+     ],
+     "directed_sponsorships": [
+      2,
+      21
+     ],
+     "eliminated_nations_notified": [
+      29,
+      12
+     ],
+     "evacuation_grants": [
+      24,
+      9
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fallen_marshals": [
+      25,
+      16
+     ],
+     "fleets": [
+      10,
+      17
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      6,
+      35
+     ],
+     "hegemony_relaxation_bands_fired": [
+      26,
+      10
+     ],
+     "hegemony_signal_hegemon": [
+      33,
+      8
+     ],
+     "hegemony_signal_high_water": [
+      24,
+      4
+     ],
+     "incoming_proposal_popup": [
+      7,
+      2
+     ],
+     "incoming_settlement_offer_popup": [
+      8,
+      11
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      35
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_accounts": [
+      32,
+      4
+     ],
+     "marshal_ledger": [
+      6,
+      35
+     ],
+     "marshal_pool": [
+      2,
+      36
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      16,
+      10
+     ],
+     "nation_agenda_seen": [
+      8,
+      21
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      30,
+      5
+     ],
+     "nation_dp": [
+      2,
+      12
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      20
+     ],
+     "nation_pay_arrears": [
+      4,
+      14
+     ],
+     "nation_relations": [
+      2,
+      38
+     ],
+     "next_war_instance_id": [
+      25,
+      16
+     ],
+     "notifications": [
+      6,
+      35
+     ],
+     "pending_dialogue_queue": [
+      8,
+      21
+     ],
+     "pending_diplomatic_dialogue": [
+      7,
+      34
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      35,
+      6
+     ],
+     "previous_nation_relations": [
+      2,
+      38
+     ],
+     "previous_treaties": [
+      26,
+      15
+     ],
+     "previous_war_scores": [
+      4,
+      36
+     ],
+     "province_title": [
+      6,
+      30
+     ],
+     "reforms": [
+      4,
+      37
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "respected_estates": [
+      24,
+      4
+     ],
+     "settlement_memories": [
+      24,
+      17
+     ],
+     "threat_by_target": [
+      4,
+      32
+     ],
+     "threat_sources_this_turn": [
+      4,
+      26
+     ],
+     "vassal_investment_cooldowns": [
+      39,
+      2
+     ],
+     "vassals": [
+      29,
+      12
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      31
+     ],
+     "war_instances": [
+      24,
+      17
+     ],
+     "war_objectives": [
+      6,
+      34
+     ],
+     "war_score_history": [
+      4,
+      37
+     ],
+     "war_scores": [
+      4,
+      36
+     ],
+     "war_start_turns": [
+      24,
+      17
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      17
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "seams_held": [
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "USED": {
+   "jena": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      8,
+      33
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      12,
+      21
+     ],
+     "active_coalition": [
+      14,
+      3
+     ],
+     "active_treaties": [
+      13,
+      28
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      14,
+      27
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      2
+     ],
+     "ai_proposal_cooldowns": [
+      13,
+      28
+     ],
+     "ai_proposal_metadata": [
+      16,
+      25
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_settlement_cooldowns": [
+      15,
+      26
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      12,
+      29
+     ],
+     "allegiance_auctions": [
+      32,
+      3
+     ],
+     "archived_war_contribution_scores": [
+      24,
+      17
+     ],
+     "armistice_cooldowns": [
+      22,
+      15
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      3,
+      38
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      11,
+      30
+     ],
+     "cascade_triggered": [
+      12,
+      29
+     ],
+     "coalition_brewing": [
+      19,
+      12
+     ],
+     "coalition_cooldown": [
+      14,
+      24
+     ],
+     "coordination_tutorial_shown": [
+      14,
+      27
+     ],
+     "corridor_windows": [
+      15,
+      11
+     ],
+     "decisive_battles": [
+      3,
+      38
+     ],
+     "design_ask_first_stood": [
+      14,
+      27
+     ],
+     "dialogue_manager": [
+      7,
+      32
+     ],
+     "diplomatic_guarantees": [
+      12,
+      29
+     ],
+     "diplomatic_history": [
+      14,
+      27
+     ],
+     "diplomatic_refusals": [
+      14,
+      27
+     ],
+     "diplomatic_states": [
+      12,
+      29
+     ],
+     "directed_sponsorships": [
+      2,
+      32
+     ],
+     "evacuation_grants": [
+      15,
+      4
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fleets": [
+      9,
+      1
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      8,
+      33
+     ],
+     "incoming_proposal_popup": [
+      7,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      10,
+      31
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "jealousy_confrontations_seen": [
+      13,
+      28
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      38
+     ],
+     "last_morning_dispatch": [
+      13,
+      28
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      34
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      8,
+      33
+     ],
+     "nation_agenda_seen": [
+      14,
+      27
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      28,
+      1
+     ],
+     "nation_dp": [
+      2,
+      19
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      14,
+      27
+     ],
+     "nation_pay_arrears": [
+      28,
+      2
+     ],
+     "nation_relations": [
+      2,
+      39
+     ],
+     "next_episode_id": [
+      12,
+      21
+     ],
+     "next_war_instance_id": [
+      12,
+      29
+     ],
+     "notifications": [
+      8,
+      33
+     ],
+     "pending_dialogue_queue": [
+      10,
+      30
+     ],
+     "pending_diplomatic_dialogue": [
+      7,
+      32
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      13,
+      3
+     ],
+     "previous_nation_relations": [
+      2,
+      39
+     ],
+     "previous_treaties": [
+      13,
+      28
+     ],
+     "previous_war_scores": [
+      3,
+      38
+     ],
+     "province_title": [
+      12,
+      29
+     ],
+     "reforms": [
+      5,
+      36
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "threat_by_target": [
+      3,
+      38
+     ],
+     "threat_level": [
+      12,
+      12
+     ],
+     "threat_sources_this_turn": [
+      3,
+      31
+     ],
+     "turns_below_threshold": [
+      21,
+      12
+     ],
+     "vassal_investment_cooldowns": [
+      15,
+      14
+     ],
+     "vassals": [
+      12,
+      29
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      12,
+      29
+     ],
+     "war_intents": [
+      13,
+      1
+     ],
+     "war_objectives": [
+      12,
+      29
+     ],
+     "war_score_history": [
+      3,
+      38
+     ],
+     "war_scores": [
+      3,
+      38
+     ],
+     "war_start_turns": [
+      12,
+      29
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      38
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "marengo": {
+    "crashes": 0,
+    "head_crashes": 0,
+    "keys": {
+     "_capital_proximity_last_alert": [
+      13,
+      28
+     ],
+     "_prev_war_exhaustion": [
+      3,
+      38
+     ],
+     "_relation_deltas_this_turn": [
+      19,
+      6
+     ],
+     "active_coalition": [
+      36,
+      4
+     ],
+     "active_treaties": [
+      14,
+      27
+     ],
+     "agenda_violation_turns": [
+      3,
+      38
+     ],
+     "agendas": [
+      28,
+      13
+     ],
+     "ai_attack_futility": [
+      30,
+      5
+     ],
+     "ai_failed_action_cooldowns": [
+      4,
+      6
+     ],
+     "ai_proposal_cooldowns": [
+      15,
+      26
+     ],
+     "ai_proposal_metadata": [
+      23,
+      15
+     ],
+     "ai_refortify_cooldown": [
+      5,
+      36
+     ],
+     "ai_stagnation_turns": [
+      3,
+      38
+     ],
+     "ai_stalemate_counters": [
+      15,
+      22
+     ],
+     "allegiance_auctions": [
+      23,
+      5
+     ],
+     "archived_war_contribution_scores": [
+      25,
+      16
+     ],
+     "archived_war_instances": [
+      37,
+      4
+     ],
+     "armistice_cooldowns": [
+      24,
+      17
+     ],
+     "authority_tracker": [
+      4,
+      37
+     ],
+     "battle_counts": [
+      3,
+      38
+     ],
+     "battle_records": [
+      4,
+      32
+     ],
+     "campaign_ledgers": [
+      3,
+      38
+     ],
+     "campaign_totals": [
+      8,
+      33
+     ],
+     "coalition_brewing": [
+      22,
+      3
+     ],
+     "corridor_windows": [
+      37,
+      4
+     ],
+     "decisive_battles": [
+      4,
+      29
+     ],
+     "design_ask_first_stood": [
+      22,
+      19
+     ],
+     "dialogue_manager": [
+      8,
+      33
+     ],
+     "diplomatic_history": [
+      19,
+      22
+     ],
+     "diplomatic_refusals": [
+      14,
+      27
+     ],
+     "diplomatic_reliability": [
+      24,
+      17
+     ],
+     "diplomatic_states": [
+      19,
+      22
+     ],
+     "directed_sponsorships": [
+      2,
+      22
+     ],
+     "eliminated_nations_notified": [
+      37,
+      4
+     ],
+     "evacuation_grants": [
+      24,
+      6
+     ],
+     "event_log": [
+      1,
+      40
+     ],
+     "fallen_marshals": [
+      25,
+      16
+     ],
+     "fleets": [
+      9,
+      1
+     ],
+     "gazette_issues": [
+      4,
+      37
+     ],
+     "gold": [
+      8,
+      33
+     ],
+     "hegemony_relaxation_bands_fired": [
+      33,
+      8
+     ],
+     "hegemony_signal_hegemon": [
+      33,
+      8
+     ],
+     "hegemony_signal_high_water": [
+      23,
+      1
+     ],
+     "incoming_settlement_offer_popup": [
+      8,
+      11
+     ],
+     "intel": [
+      3,
+      38
+     ],
+     "last_battle_turn_by_nation": [
+      3,
+      32
+     ],
+     "manpower_pools": [
+      2,
+      39
+     ],
+     "marshal_accounts": [
+      34,
+      1
+     ],
+     "marshal_ledger": [
+      5,
+      36
+     ],
+     "marshal_pool": [
+      2,
+      39
+     ],
+     "marshals": [
+      2,
+      39
+     ],
+     "materiel_spent_this_turn": [
+      3,
+      38
+     ],
+     "moments": [
+      1,
+      40
+     ],
+     "nation_actions": [
+      7,
+      19
+     ],
+     "nation_agenda_seen": [
+      8,
+      26
+     ],
+     "nation_authority": [
+      1,
+      40
+     ],
+     "nation_bankruptcy_turns": [
+      3,
+      8
+     ],
+     "nation_dp": [
+      2,
+      29
+     ],
+     "nation_gold": [
+      1,
+      40
+     ],
+     "nation_intent_seen": [
+      8,
+      31
+     ],
+     "nation_pay_arrears": [
+      3,
+      15
+     ],
+     "nation_relations": [
+      2,
+      39
+     ],
+     "next_episode_id": [
+      19,
+      22
+     ],
+     "next_war_instance_id": [
+      19,
+      22
+     ],
+     "notifications": [
+      8,
+      33
+     ],
+     "pending_dialogue_queue": [
+      8,
+      27
+     ],
+     "pending_diplomatic_dialogue": [
+      9,
+      32
+     ],
+     "pending_dispatch_events": [
+      2,
+      39
+     ],
+     "pending_marshal_petition": [
+      35,
+      6
+     ],
+     "previous_nation_relations": [
+      2,
+      39
+     ],
+     "previous_treaties": [
+      14,
+      27
+     ],
+     "previous_war_scores": [
+      4,
+      37
+     ],
+     "province_title": [
+      8,
+      31
+     ],
+     "reforms": [
+      6,
+      35
+     ],
+     "regions": [
+      1,
+      40
+     ],
+     "relation_history": [
+      3,
+      38
+     ],
+     "respected_estates": [
+      24,
+      2
+     ],
+     "settlement_memories": [
+      24,
+      17
+     ],
+     "threat_by_target": [
+      4,
+      37
+     ],
+     "threat_sources_this_turn": [
+      4,
+      32
+     ],
+     "turns_below_threshold": [
+      16,
+      7
+     ],
+     "vassal_investment_cooldowns": [
+      39,
+      2
+     ],
+     "vassals": [
+      29,
+      12
+     ],
+     "war_contribution_scores": [
+      2,
+      39
+     ],
+     "war_exhaustion": [
+      2,
+      39
+     ],
+     "war_instances": [
+      19,
+      22
+     ],
+     "war_intents": [
+      13,
+      4
+     ],
+     "war_objectives": [
+      8,
+      33
+     ],
+     "war_score_history": [
+      4,
+      37
+     ],
+     "war_scores": [
+      4,
+      37
+     ],
+     "war_start_turns": [
+      19,
+      19
+     ],
+     "we_dispatched_thresholds": [
+      3,
+      33
+     ]
+    },
+    "keys_a_turn": 213,
+    "vs_head": {
+     "first_turn": 1,
+     "identical": false
+    }
+   },
+   "seams_held": [
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  }
+ },
+ "turns": 40
+}

@@ -1,0 +1,3851 @@
+{
+ "_note": "Row OC, OC-3 (BRIT-1) \u2014 the benchmark's shut-out arm (SHUT-H/A/M, sr5b_shut_out.json, naval C4) and the strangulation arm (NAV1-H/A/M, reported) per arm, a save every turn: per turn the closure against the trade power, her exhaustion and break-ranks line, contact with France and the stalemate count; her letters off the digest; the first armistice and whether contact had come by then. Written by tools/_oc_measure.py --surfaces sea.",
+ "arms": {
+  "0": {
+   "NAV1-A": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 10,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 10
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 16
+     },
+     {
+      "kind": "armistice",
+      "turn": 16
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 21
+     },
+     {
+      "kind": "armistice",
+      "turn": 24
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 26
+     },
+     {
+      "kind": "armistice",
+      "turn": 30
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 21,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 33,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 45,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 56,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 66,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 78,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 89,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 100,
+      "fought": true,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 111,
+      "fought": true,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 122,
+      "fought": true,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 133,
+      "fought": true,
+      "line": 80,
+      "stalemate": 12,
+      "turn": 13
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 144,
+      "fought": true,
+      "line": 80,
+      "stalemate": 13,
+      "turn": 14
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 152,
+      "fought": true,
+      "line": 80,
+      "stalemate": 14,
+      "turn": 15
+     },
+     {
+      "at_war": true,
+      "closure": 0.346,
+      "exhaustion": 160,
+      "fought": true,
+      "line": 80,
+      "stalemate": 15,
+      "turn": 16
+     },
+     {
+      "at_war": true,
+      "closure": 0.346,
+      "exhaustion": 168,
+      "fought": true,
+      "line": 80,
+      "stalemate": 16,
+      "turn": 17
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 176,
+      "fought": true,
+      "line": 80,
+      "stalemate": 17,
+      "turn": 18
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 184,
+      "fought": false,
+      "line": 80,
+      "stalemate": 18,
+      "turn": 19
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 194,
+      "fought": false,
+      "line": 80,
+      "stalemate": 19,
+      "turn": 20
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 20,
+      "turn": 21
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 21,
+      "turn": 22
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 22,
+      "turn": 23
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 23,
+      "turn": 24
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 24,
+      "turn": 25
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 25,
+      "turn": 26
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 26,
+      "turn": 27
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 27,
+      "turn": 28
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 28,
+      "turn": 29
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 29,
+      "turn": 30
+     }
+    ]
+   },
+   "NAV1-H": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 12
+     },
+     {
+      "kind": "armistice",
+      "turn": 16
+     },
+     {
+      "kind": "armistice",
+      "turn": 22
+     },
+     {
+      "kind": "armistice",
+      "turn": 30
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 18,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 38,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 50,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 61,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 71,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 82,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 93,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 104,
+      "fought": true,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 113,
+      "fought": true,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 122,
+      "fought": true,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 133,
+      "fought": true,
+      "line": 80,
+      "stalemate": 12,
+      "turn": 13
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 144,
+      "fought": true,
+      "line": 80,
+      "stalemate": 13,
+      "turn": 14
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 155,
+      "fought": true,
+      "line": 80,
+      "stalemate": 14,
+      "turn": 15
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 165,
+      "fought": true,
+      "line": 80,
+      "stalemate": 15,
+      "turn": 16
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 175,
+      "fought": true,
+      "line": 80,
+      "stalemate": 16,
+      "turn": 17
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 185,
+      "fought": true,
+      "line": 80,
+      "stalemate": 17,
+      "turn": 18
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 195,
+      "fought": false,
+      "line": 80,
+      "stalemate": 18,
+      "turn": 19
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 19,
+      "turn": 20
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 20,
+      "turn": 21
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 21,
+      "turn": 22
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 22,
+      "turn": 23
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 23,
+      "turn": 24
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 24,
+      "turn": 25
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 25,
+      "turn": 26
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 26,
+      "turn": 27
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 27,
+      "turn": 28
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 28,
+      "turn": 29
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 29,
+      "turn": 30
+     }
+    ]
+   },
+   "NAV1-M": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 12
+     },
+     {
+      "kind": "armistice",
+      "turn": 16
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 17
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 22
+     },
+     {
+      "kind": "armistice",
+      "turn": 23
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 27
+     },
+     {
+      "kind": "peace",
+      "turn": 28
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 18,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 38,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 50,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 61,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 71,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 82,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 92,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 102,
+      "fought": true,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 113,
+      "fought": true,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 122,
+      "fought": true,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 131,
+      "fought": true,
+      "line": 80,
+      "stalemate": 12,
+      "turn": 13
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 140,
+      "fought": true,
+      "line": 80,
+      "stalemate": 13,
+      "turn": 14
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 149,
+      "fought": true,
+      "line": 80,
+      "stalemate": 14,
+      "turn": 15
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 157,
+      "fought": true,
+      "line": 80,
+      "stalemate": 15,
+      "turn": 16
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 165,
+      "fought": true,
+      "line": 80,
+      "stalemate": 16,
+      "turn": 17
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 173,
+      "fought": true,
+      "line": 80,
+      "stalemate": 17,
+      "turn": 18
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 181,
+      "fought": false,
+      "line": 80,
+      "stalemate": 18,
+      "turn": 19
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 191,
+      "fought": false,
+      "line": 80,
+      "stalemate": 19,
+      "turn": 20
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 20,
+      "turn": 21
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 21,
+      "turn": 22
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 22,
+      "turn": 23
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 23,
+      "turn": 24
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 24,
+      "turn": 25
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 25,
+      "turn": 26
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 27
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 28
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 29
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 30
+     }
+    ]
+   },
+   "SHUT-A": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 8,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 8
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 31,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 47,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 58,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 69,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 79,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 91,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 102,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 112,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 120,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 128,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "SHUT-H": {
+    "contact_by_the_first_armistice": null,
+    "exit": 0,
+    "first_armistice": null,
+    "letters": [],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8,
+     9,
+     10,
+     11,
+     12
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 37,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 59,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 71,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 82,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 93,
+      "fought": false,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 102,
+      "fought": false,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 111,
+      "fought": false,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 120,
+      "fought": false,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     }
+    ]
+   },
+   "SHUT-M": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 10,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 10
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 37,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 59,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 68,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 80,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 91,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 102,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 112,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 120,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "seams_held": [
+    "backend.game_logic.ai_diplomacy:a_strangled_britain_writes_without_contact=False",
+    "backend.models.world_state:a_deficit_every_third_turn_is_remembered=False",
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "ALL": {
+   "NAV1-A": {
+    "contact_by_the_first_armistice": false,
+    "exit": 0,
+    "first_armistice": 10,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 10
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     9,
+     10
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 23,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 34,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 45,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 56,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 67,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 78,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 89,
+      "fought": false,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 100,
+      "fought": false,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 13
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 14
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 15
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 16
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 17
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 18
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 8,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 19
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 16,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 20
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 24,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 21
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 32,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 22
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 40,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 23
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 24
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 56,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 25
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 64,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 26
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 72,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 27
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 80,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 28
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 88,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 29
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 96,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 30
+     }
+    ]
+   },
+   "NAV1-H": {
+    "contact_by_the_first_armistice": false,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8,
+     9
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 18,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 28,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 39,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 50,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 61,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 72,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 83,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 94,
+      "fought": false,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 13
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 14
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 15
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 16
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 17
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 18
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 19
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 20
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 21
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 22
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 23
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 24
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 25
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 26
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 27
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 28
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 29
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 30
+     }
+    ]
+   },
+   "NAV1-M": {
+    "contact_by_the_first_armistice": null,
+    "exit": 0,
+    "first_armistice": null,
+    "letters": [],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 18,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 28,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 39,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 50,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 61,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 72,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 83,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 13
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 14
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 15
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 16
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 17
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 18
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 19
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 20
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 21
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 22
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 23
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 24
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 25
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 26
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 27
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 28
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 29
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 30
+     }
+    ]
+   },
+   "SHUT-A": {
+    "contact_by_the_first_armistice": false,
+    "exit": 0,
+    "first_armistice": 8,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 8
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 33,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 58,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 69,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 80,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 91,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 100,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "SHUT-H": {
+    "contact_by_the_first_armistice": false,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 28,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 38,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 59,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 70,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 81,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 92,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "SHUT-M": {
+    "contact_by_the_first_armistice": false,
+    "exit": 0,
+    "first_armistice": 8,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 8
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 28,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 38,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 59,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 70,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 81,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 90,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.0,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "seams_held": []
+  },
+  "LETTER": {
+   "NAV1-A": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 10,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 10
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 16
+     },
+     {
+      "kind": "armistice",
+      "turn": 16
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 21
+     },
+     {
+      "kind": "armistice",
+      "turn": 24
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 26
+     },
+     {
+      "kind": "armistice",
+      "turn": 30
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 21,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 33,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 45,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 56,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 66,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 78,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 89,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 100,
+      "fought": true,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 111,
+      "fought": true,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 122,
+      "fought": true,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 133,
+      "fought": true,
+      "line": 80,
+      "stalemate": 12,
+      "turn": 13
+     },
+     {
+      "at_war": true,
+      "closure": 0.462,
+      "exhaustion": 144,
+      "fought": true,
+      "line": 80,
+      "stalemate": 13,
+      "turn": 14
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 152,
+      "fought": true,
+      "line": 80,
+      "stalemate": 14,
+      "turn": 15
+     },
+     {
+      "at_war": true,
+      "closure": 0.346,
+      "exhaustion": 160,
+      "fought": true,
+      "line": 80,
+      "stalemate": 15,
+      "turn": 16
+     },
+     {
+      "at_war": true,
+      "closure": 0.346,
+      "exhaustion": 168,
+      "fought": true,
+      "line": 80,
+      "stalemate": 16,
+      "turn": 17
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 176,
+      "fought": true,
+      "line": 80,
+      "stalemate": 17,
+      "turn": 18
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 184,
+      "fought": false,
+      "line": 80,
+      "stalemate": 18,
+      "turn": 19
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 194,
+      "fought": false,
+      "line": 80,
+      "stalemate": 19,
+      "turn": 20
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 20,
+      "turn": 21
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 21,
+      "turn": 22
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 22,
+      "turn": 23
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 23,
+      "turn": 24
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 24,
+      "turn": 25
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 25,
+      "turn": 26
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 26,
+      "turn": 27
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 27,
+      "turn": 28
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 28,
+      "turn": 29
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 29,
+      "turn": 30
+     }
+    ]
+   },
+   "NAV1-H": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 12
+     },
+     {
+      "kind": "armistice",
+      "turn": 16
+     },
+     {
+      "kind": "armistice",
+      "turn": 22
+     },
+     {
+      "kind": "armistice",
+      "turn": 30
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 18,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 38,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 50,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 61,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 71,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 82,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 93,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 104,
+      "fought": true,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 113,
+      "fought": true,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 122,
+      "fought": true,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 133,
+      "fought": true,
+      "line": 80,
+      "stalemate": 12,
+      "turn": 13
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 144,
+      "fought": true,
+      "line": 80,
+      "stalemate": 13,
+      "turn": 14
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 155,
+      "fought": true,
+      "line": 80,
+      "stalemate": 14,
+      "turn": 15
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 165,
+      "fought": true,
+      "line": 80,
+      "stalemate": 15,
+      "turn": 16
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 175,
+      "fought": true,
+      "line": 80,
+      "stalemate": 16,
+      "turn": 17
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 185,
+      "fought": true,
+      "line": 80,
+      "stalemate": 17,
+      "turn": 18
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 195,
+      "fought": false,
+      "line": 80,
+      "stalemate": 18,
+      "turn": 19
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 19,
+      "turn": 20
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 20,
+      "turn": 21
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 21,
+      "turn": 22
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 22,
+      "turn": 23
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 23,
+      "turn": 24
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 24,
+      "turn": 25
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 25,
+      "turn": 26
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 26,
+      "turn": 27
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 27,
+      "turn": 28
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 28,
+      "turn": 29
+     },
+     {
+      "at_war": true,
+      "closure": 0.269,
+      "exhaustion": 200,
+      "fought": true,
+      "line": 80,
+      "stalemate": 29,
+      "turn": 30
+     }
+    ]
+   },
+   "NAV1-M": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 12
+     },
+     {
+      "kind": "armistice",
+      "turn": 16
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 17
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 22
+     },
+     {
+      "kind": "armistice",
+      "turn": 23
+     },
+     {
+      "kind": "settlement offer",
+      "turn": 27
+     },
+     {
+      "kind": "peace",
+      "turn": 28
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 5,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 18,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 38,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 50,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 61,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 71,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 82,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 92,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 102,
+      "fought": true,
+      "line": 80,
+      "stalemate": 9,
+      "turn": 10
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 113,
+      "fought": true,
+      "line": 80,
+      "stalemate": 10,
+      "turn": 11
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 122,
+      "fought": true,
+      "line": 80,
+      "stalemate": 11,
+      "turn": 12
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 131,
+      "fought": true,
+      "line": 80,
+      "stalemate": 12,
+      "turn": 13
+     },
+     {
+      "at_war": true,
+      "closure": 0.5,
+      "exhaustion": 140,
+      "fought": true,
+      "line": 80,
+      "stalemate": 13,
+      "turn": 14
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 149,
+      "fought": true,
+      "line": 80,
+      "stalemate": 14,
+      "turn": 15
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 157,
+      "fought": true,
+      "line": 80,
+      "stalemate": 15,
+      "turn": 16
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 165,
+      "fought": true,
+      "line": 80,
+      "stalemate": 16,
+      "turn": 17
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 173,
+      "fought": true,
+      "line": 80,
+      "stalemate": 17,
+      "turn": 18
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 181,
+      "fought": false,
+      "line": 80,
+      "stalemate": 18,
+      "turn": 19
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 191,
+      "fought": false,
+      "line": 80,
+      "stalemate": 19,
+      "turn": 20
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 20,
+      "turn": 21
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 21,
+      "turn": 22
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 22,
+      "turn": 23
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 23,
+      "turn": 24
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 24,
+      "turn": 25
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 25,
+      "turn": 26
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 27
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 28
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 29
+     },
+     {
+      "at_war": true,
+      "closure": 0.308,
+      "exhaustion": 200,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 30
+     }
+    ]
+   },
+   "SHUT-A": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 8,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 8
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 31,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 47,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 58,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 69,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 79,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 91,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 102,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 112,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 120,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 128,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "SHUT-H": {
+    "contact_by_the_first_armistice": false,
+    "exit": 0,
+    "first_armistice": 9,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 9
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [
+     8
+    ],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 37,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 59,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 71,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 82,
+      "fought": false,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 93,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 103,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 111,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 119,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "SHUT-M": {
+    "contact_by_the_first_armistice": true,
+    "exit": 0,
+    "first_armistice": 10,
+    "letters": [
+     {
+      "kind": "armistice",
+      "turn": 10
+     }
+    ],
+    "status": "completed",
+    "strangled_without_contact_turns": [],
+    "turns": [
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 0,
+      "fought": false,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 1
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 13,
+      "fought": false,
+      "line": 80,
+      "stalemate": 1,
+      "turn": 2
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 26,
+      "fought": false,
+      "line": 80,
+      "stalemate": 2,
+      "turn": 3
+     },
+     {
+      "at_war": true,
+      "closure": 0.385,
+      "exhaustion": 37,
+      "fought": false,
+      "line": 80,
+      "stalemate": 3,
+      "turn": 4
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 48,
+      "fought": false,
+      "line": 80,
+      "stalemate": 4,
+      "turn": 5
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 59,
+      "fought": false,
+      "line": 80,
+      "stalemate": 5,
+      "turn": 6
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 68,
+      "fought": false,
+      "line": 80,
+      "stalemate": 6,
+      "turn": 7
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 80,
+      "fought": true,
+      "line": 80,
+      "stalemate": 7,
+      "turn": 8
+     },
+     {
+      "at_war": true,
+      "closure": 0.423,
+      "exhaustion": 91,
+      "fought": true,
+      "line": 80,
+      "stalemate": 8,
+      "turn": 9
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 102,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 10
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 112,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 11
+     },
+     {
+      "at_war": false,
+      "closure": 0.115,
+      "exhaustion": 120,
+      "fought": true,
+      "line": 80,
+      "stalemate": 0,
+      "turn": 12
+     }
+    ]
+   },
+   "seams_held": [
+    "backend.models.world_state:a_deficit_every_third_turn_is_remembered=False",
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  }
+ }
+}

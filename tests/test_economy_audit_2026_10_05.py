@@ -240,6 +240,14 @@ class TestTheSatellitesOwnBooks:
 
 # ═════════════════════════ EA-8 the army remembers its arrears ═════════════════════════
 class TestTheArmyRemembersItsArrears:
+    # Row OC (OC-2, GRD-20, November 18, 2026): EA-8's own rule, tested with
+    # the mercy's-turn seam DOWN — the shipped law (D-S at the third, D-S-S at
+    # turn 11) is `tests/test_oc_the_rulings_to_build.py`'s.
+    @pytest.fixture(autouse=True)
+    def _ea8_as_built(self, monkeypatch):
+        from backend.models import world_state as _WS
+        monkeypatch.setattr(_WS, "a_deficit_every_third_turn_is_remembered", lambda: False)
+
     def _turn(self, w, nation, gold):
         w.nation_gold[nation] = gold
         w._update_bankruptcy(nation)

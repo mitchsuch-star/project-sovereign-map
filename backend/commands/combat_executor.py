@@ -2015,16 +2015,18 @@ class CombatExecutor:
         Get combined arms attack/defense bonus from unit type diversity.
 
         Returns (attack_bonus, defense_bonus) as floats.
-        1 type = (0.0, 0.0), 2 types = (0.10, 0.05), 3 types = (0.20, 0.10).
+        1 type = (0.0, 0.0), 2 types = (0.10, 0.05), 3 types = (0.20, 0.10)
+        — `Marshal.COMBINED_ARMS_BONUS` (GRD-34: the magnitudes' one home).
         """
         if type_count >= 3:
-            return (0.20, 0.10)
+            return Marshal.COMBINED_ARMS_BONUS[3]
         elif type_count >= 2:
-            return (0.10, 0.05)
+            return Marshal.COMBINED_ARMS_BONUS[2]
         return (0.0, 0.0)
 
     # Relationship → coordination scaling factors (§3 of MULTI_MARSHAL_SPEC)
-    _RELATIONSHIP_SCALING = {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}
+    # — GRD-34: the same dict as `Marshal.RELATIONSHIP_SCALING` (one home).
+    _RELATIONSHIP_SCALING = Marshal.RELATIONSHIP_SCALING
 
     # CO-1 (Combat Overhaul Phase 1, spec §0.3 G-1): committed reinforcing
     # corps add STRENGTH to the clash, not just a capped coordination %.
@@ -2481,10 +2483,10 @@ class CombatExecutor:
             )
             # Attack coordination: skip fortified non-artillery
             if not is_fortified_non_artillery:
-                total_atk += 0.03 * scale
+                total_atk += Marshal.COORDINATION_ALLY_ATTACK * scale
 
             # Defense coordination: all eligible allies contribute
-            total_def += 0.05 * scale
+            total_def += Marshal.COORDINATION_ALLY_DEFENSE * scale
 
         return (total_atk, total_def)
 
@@ -2593,7 +2595,7 @@ class CombatExecutor:
         # Adjacent support (S60) — ATTACK ONLY per A-M2, calculated ONCE (shared value)
         adj_count, adj_names = self._count_adjacent_allies(
             region, nation, world, exclude_names=exclude_from_adjacent)
-        adjacent_atk = adj_count * 0.02  # +2% per adjacent ally, no defense component
+        adjacent_atk = adj_count * Marshal.COORDINATION_ADJACENT_ATTACK  # +2% per adjacent ally, no defense component
 
         # Find all eligible same-nation marshals in region
         eligible = [m for m in world.marshals.values()
@@ -2650,16 +2652,16 @@ class CombatExecutor:
             dedicated_atk = 0.0
             dedicated_def = 0.0
             if allies_for_m and self._has_dedicated_support(m, allies_for_m, world, reinforcement_results):
-                dedicated_atk = 0.05
-                dedicated_def = 0.05
+                dedicated_atk = Marshal.COORDINATION_DEDICATED_ATTACK
+                dedicated_def = Marshal.COORDINATION_DEDICATED_DEFENSE
 
             # Sum all coordination sources — adjacent is attack-only (A-M2)
             raw_atk = combined_arms_atk + coord_atk + dedicated_atk + adjacent_atk
             raw_def = combined_arms_def + coord_def + dedicated_def  # NO adjacent_def
 
             # Hard cap
-            capped_atk = min(raw_atk, 0.25)
-            capped_def = min(raw_def, 0.20)
+            capped_atk = min(raw_atk, Marshal.COORDINATION_ATTACK_CAP)
+            capped_def = min(raw_def, Marshal.COORDINATION_DEFENSE_CAP)
 
             m.total_coordination_attack_bonus = capped_atk
             m.total_coordination_defense_bonus = capped_def
@@ -2678,8 +2680,8 @@ class CombatExecutor:
             "adjacent_count": adj_count,
             "adjacent_names": adj_names,
             "adjacent_atk": adjacent_atk,
-            "capped_atk": min(combined_arms_atk, 0.25) if not eligible else getattr(primary, 'total_coordination_attack_bonus', 0.0),
-            "capped_def": min(combined_arms_def, 0.20) if not eligible else getattr(primary, 'total_coordination_defense_bonus', 0.0),
+            "capped_atk": min(combined_arms_atk, Marshal.COORDINATION_ATTACK_CAP) if not eligible else getattr(primary, 'total_coordination_attack_bonus', 0.0),
+            "capped_def": min(combined_arms_def, Marshal.COORDINATION_DEFENSE_CAP) if not eligible else getattr(primary, 'total_coordination_defense_bonus', 0.0),
             "eligible_marshals": [m.name for m in eligible],
         }
 
@@ -3008,11 +3010,14 @@ class CombatExecutor:
                 and not int(getattr(marshal, "iron_resolve_stacks", 0) or 0)):
             cost = int(round((1.0 - Marshal.STANCE_ATTACK_FACTOR["defensive"]) * 100))
             parts.append(f"{name} attacks from a defensive stance (−{cost}%)")
-        attack_mod = float(marshal.get_attack_modifier(lead_a / lead_d, consume=False))
+        region = world.get_region(enemy_marshal.location)
+        # GRD-34 (row OC, the review's sibling): the lead's own modifier on the
+        # field's ground — what the resolver applies (shown = applied).
+        attack_mod = float(marshal.get_attack_modifier(
+            lead_a / lead_d, consume=False, terrain=getattr(region, "terrain", None)))
         if attack_mod < 0.995:
             parts.append(f"all told, {name}'s own modifiers weigh "
                          f"{int(round((1.0 - attack_mod) * 100))}% against the attack")
-        region = world.get_region(enemy_marshal.location)
         terrain = (TERRAIN_DEFENSE_BONUS.get(getattr(region, "terrain", None), 0.0)
                    if region is not None else 0.0)
         if terrain > 0:

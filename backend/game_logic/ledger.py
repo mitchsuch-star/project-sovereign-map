@@ -1093,6 +1093,24 @@ def why_the_bills_moved(world, nation: str, upkeep_data: dict,
     return out
 
 
+def one_turn_of_upkeep(world, nation: str) -> int:
+    """OC-1 (GRD-21, row OC, November 18, 2026): what a court pays every turn
+    to keep what it has — the army's upkeep UNHALVED (the mercy halves it the
+    turn after a deficit, exactly when a reserve matters most), the laws'
+    upkeep, the buildings', the fleet's and the pensions' — the ledger's own
+    recurring bills (`_build_economy`, the purse read). The ONE figure the AI's
+    price-only purchase rungs keep in hand after a price
+    (`enemy_ai.keeps_a_turn`) and the purse probe reads."""
+    econ = _build_economy(world, nation, rows=False)
+    army = int(econ.get("upkeep", 0) or 0)
+    if int(econ.get("bankruptcy_turns", 0) or 0) >= 1:
+        army *= 2
+    return int(army + int(econ.get("laws", 0) or 0)
+               + int(econ.get("infrastructure", 0) or 0)
+               + int(econ.get("admiralty", 0) or 0)
+               + int(econ.get("rente_cost", 0) or 0))
+
+
 def chest_forecast(world, nation: str) -> dict:
     """THE ONE projection of where a court's chest stands when this turn
     ends: the live chest plus the ledger's own forecast Net

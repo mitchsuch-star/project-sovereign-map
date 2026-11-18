@@ -1128,7 +1128,13 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # stops being a VASSAL, which covers both). With the T4-2 seam
         # held down in the child it reads 13 verbatim. The contract — the
         # cap DELAYS, it does not save — stands.
-        assert capped == 12, capped
+        # Re-measured by row OC "the rulings built" (November 18, 2026;
+        # SYSTEMS_REFERENCE §226): capped 11 — the courts' purses re-time the
+        # ambient board from turn 1 and Switzerland leaves France's web a turn
+        # sooner. With every OC seam held down in the child it reads 12
+        # verbatim (`tests/_oc_seams.py`; measured). The contract — the cap
+        # DELAYS, it does not save — stands.
+        assert capped == 11, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

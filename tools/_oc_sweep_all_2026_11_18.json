@@ -1,0 +1,4024 @@
+{
+ "_note": "Row OC \u2014 BA-3's eight-seed sweep of the day (its arms, its seeds, its reading) at arm ALL of the OC ladder (0 seam(s) held), the game's own key bar. Arm 0 must equal the day's sweep on the commit before (tools/_ba6_sweep_all_2026_11_17.json) cell for cell. Written by tools/_oc_measure.py --surfaces sweep (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-eylau": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-friedland": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-jena": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-lodi": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-wagram": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "rounds": "(absent)",
+   "seams": [
+    "backend.game_logic.battle_day:the_day_has_points=False",
+    "backend.game_logic.campaign_variance:the_temper_is_seeded=False",
+    "backend.game_logic.campaign_variance:the_narration_varies=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 33
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Soult",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 1,
+     "fell_back": 2
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 23,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2,
+     "dig_in": 2,
+     "stand": 2
+    },
+    "words_given": 6
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "Kutuzov",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 1
+    },
+    "words_given": 2
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "press": 1
+    },
+    "words_given": 2
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 38
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2,
+     "fell_back": 1
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 1,
+     "stand": 3
+    },
+    "words_given": 5
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 2,
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 2
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 3,
+     "dig_in": 2,
+     "press": 1,
+     "stand": 1
+    },
+    "words_given": 7
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 1,
+     "end_turn": 2,
+     "night": 1
+    },
+    "days_opened": 5,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 2,
+     "press": 2,
+     "stand": 1
+    },
+    "words_given": 5
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1
+    },
+    "words_given": 1
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 35
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1,
+     "dig_in": 2,
+     "stand": 2
+    },
+    "words_given": 5
+   },
+   "rounds": "sense",
+   "seams": []
+  },
+  "B": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 9,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 36
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2,
+     "fell_back": 3
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 4
+    },
+    "words_given": 4
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Bohemia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2
+    },
+    "words_given": 2
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 6
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2,
+     "fell_back": 2
+    },
+    "days_opened": 5,
+    "exit": 0,
+    "ok": true,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 3
+    },
+    "words_given": 3
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 37
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 1,
+     "fell_back": 2
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 3
+    },
+    "words_given": 3
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 6
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 1,
+     "fell_back": 2
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 3
+    },
+    "words_given": 3
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 2
+    },
+    "words_given": 2
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 1
+    },
+    "words_given": 1
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 35
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "fell_back": 2
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "break_off": 3
+    },
+    "words_given": 3
+   },
+   "rounds": "break_off",
+   "seams": []
+  },
+  "D": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1,
+     "stand": 1
+    },
+    "words_given": 2
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "Kutuzov",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 2
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 2
+    },
+    "words_given": 2
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 35
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 2,
+     "end_turn": 1
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 3
+    },
+    "words_given": 3
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 38
+     }
+    ],
+    "days_ended": {
+     "broke_off": 2,
+     "end_turn": 2
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 2,
+     "stand": 4
+    },
+    "words_given": 6
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 35
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Swabia",
+      "lead": "Soult",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 2,
+     "decided": 2
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 4,
+     "stand": 7
+    },
+    "words_given": 11
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 1,
+     "end_turn": 2,
+     "night": 1
+    },
+    "days_opened": 5,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 4,
+     "stand": 1
+    },
+    "words_given": 5
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 36
+     },
+     {
+      "chips": 4,
+      "enemy": "ArchdukeCharles",
+      "field": "Swabia",
+      "lead": "Soult",
+      "men": null,
+      "ours": 2,
+      "priced": 1,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 39
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2,
+     "night": 1
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1,
+     "stand": 2
+    },
+    "words_given": 3
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "dig_in": 1,
+     "stand": 1
+    },
+    "words_given": 2
+   },
+   "rounds": "dig_in",
+   "seams": []
+  },
+  "G": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 24
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 3,
+     "press": 2
+    },
+    "words_given": 5
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 35
+     }
+    ],
+    "days_ended": {
+     "decided": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 1,
+     "press": 2
+    },
+    "words_given": 3
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 3,
+     "press": 2
+    },
+    "words_given": 5
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 37
+     }
+    ],
+    "days_ended": {
+     "decided": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 3
+    },
+    "words_given": 3
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     }
+    ],
+    "days_ended": {
+     "decided": 2,
+     "fell_back": 1
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 1,
+     "press": 3
+    },
+    "words_given": 4
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 2,
+     "end_turn": 3
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 1,
+     "press": 2,
+     "stand": 1
+    },
+    "words_given": 4
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeJohn",
+      "field": "Bohemia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 36
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "guard": 1
+    },
+    "words_given": 1
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "exit": 0,
+    "ok": true,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 2
+    },
+    "words_given": 2
+   },
+   "rounds": "guard",
+   "seams": []
+  },
+  "L": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 2,
+     "decided": 1,
+     "fell_back": 1
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 4
+    },
+    "words_given": 4
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 35
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     },
+     {
+      "chips": 14,
+      "enemy": "Brunswick",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 36
+     },
+     {
+      "chips": 12,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 9,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 39
+     }
+    ],
+    "days_ended": {
+     "broke_off": 5,
+     "end_turn": 1
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 5
+    },
+    "words_given": 5
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 2
+    },
+    "words_given": 2
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 38
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2,
+     "fell_back": 1
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 2
+    },
+    "words_given": 2
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 12,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 9,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 2,
+     "decided": 2,
+     "fell_back": 1
+    },
+    "days_opened": 5,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 5
+    },
+    "words_given": 5
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 3
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "decided": 2,
+     "end_turn": 3
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 3
+    },
+    "words_given": 3
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "end_turn": 1,
+     "fell_back": 1
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 1
+    },
+    "words_given": 1
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     },
+     {
+      "chips": 10,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 38
+     }
+    ],
+    "days_ended": {
+     "broke_off": 2,
+     "fell_back": 1
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "stand": 3
+    },
+    "words_given": 3
+   },
+   "rounds": "leave",
+   "seams": []
+  },
+  "P": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     },
+     {
+      "chips": 8,
+      "enemy": "Mack",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 30
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 32
+     }
+    ],
+    "days_ended": {
+     "decided": 4
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 20,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 5,
+     "stand": 1
+    },
+    "words_given": 6
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 35
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 37
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "fell_back": 2
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 4
+    },
+    "words_given": 4
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 11,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 8,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "decided": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 3
+    },
+    "words_given": 3
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 37
+     }
+    ],
+    "days_ended": {
+     "decided": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 3
+    },
+    "words_given": 3
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 3
+     }
+    ],
+    "days_ended": {
+     "decided": 2,
+     "fell_back": 1
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 4
+    },
+    "words_given": 4
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 6
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Swabia",
+      "lead": "Soult",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "decided": 4,
+     "end_turn": 2
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 5
+    },
+    "words_given": 5
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "Mack",
+      "field": "Bohemia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 35
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 37
+     }
+    ],
+    "days_ended": {
+     "decided": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 3
+    },
+    "words_given": 3
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "decided": 1
+    },
+    "days_opened": 1,
+    "exit": 0,
+    "ok": true,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {
+     "press": 2
+    },
+    "words_given": 2
+   },
+   "rounds": "press",
+   "seams": []
+  },
+  "S": {
+   "CMD-A": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 33
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 40
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 7,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-eylau": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     }
+    ],
+    "days_ended": {
+     "end_turn": 1
+    },
+    "days_opened": 1,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-friedland": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 2
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-jena": {
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Carniola",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Teulie",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 37
+     }
+    ],
+    "days_ended": {
+     "broke_off": 1,
+     "end_turn": 3
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-lodi": {
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 1
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-wagram": {
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "decided": 2,
+     "end_turn": 2
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "rounds": "none",
+   "seams": []
+  },
+  "T": {
+   "CMD-A": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-eylau": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-friedland": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-jena": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-lodi": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "SEED-wagram": {
+    "days": [],
+    "days_ended": {},
+    "days_opened": 0,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "rounds": "(absent)",
+   "seams": [
+    "backend.game_logic.battle_day:the_day_has_points=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ],
+ "cells_moved_vs_commit_before": [
+  [
+   "0",
+   "CMD-H",
+   28,
+   27
+  ],
+  [
+   "0",
+   "CMD-A",
+   24,
+   27
+  ],
+  [
+   "0",
+   "CMD-M",
+   27,
+   28
+  ],
+  [
+   "T",
+   "CMD-H",
+   28,
+   27
+  ],
+  [
+   "T",
+   "CMD-A",
+   26,
+   28
+  ],
+  [
+   "T",
+   "SEED-lodi",
+   26,
+   28
+  ],
+  [
+   "T",
+   "SEED-eylau",
+   27,
+   28
+  ],
+  [
+   "S",
+   "CMD-H",
+   28,
+   26
+  ],
+  [
+   "S",
+   "SEED-jena",
+   26,
+   28
+  ],
+  [
+   "S",
+   "SEED-wagram",
+   26,
+   28
+  ],
+  [
+   "S",
+   "SEED-lodi",
+   26,
+   28
+  ],
+  [
+   "S",
+   "SEED-friedland",
+   28,
+   27
+  ],
+  [
+   "L",
+   "CMD-A",
+   25,
+   28
+  ],
+  [
+   "L",
+   "SEED-lodi",
+   26,
+   28
+  ],
+  [
+   "L",
+   "SEED-eylau",
+   21,
+   26
+  ],
+  [
+   "P",
+   "CMD-A",
+   22,
+   20
+  ],
+  [
+   "P",
+   "CMD-M",
+   26,
+   25
+  ],
+  [
+   "P",
+   "SEED-jena",
+   28,
+   26
+  ],
+  [
+   "P",
+   "SEED-wagram",
+   28,
+   25
+  ],
+  [
+   "P",
+   "SEED-lodi",
+   27,
+   28
+  ],
+  [
+   "P",
+   "SEED-eylau",
+   22,
+   26
+  ],
+  [
+   "D",
+   "CMD-H",
+   27,
+   28
+  ],
+  [
+   "D",
+   "CMD-A",
+   24,
+   27
+  ],
+  [
+   "D",
+   "CMD-M",
+   24,
+   26
+  ],
+  [
+   "D",
+   "SEED-jena",
+   25,
+   26
+  ],
+  [
+   "D",
+   "SEED-wagram",
+   27,
+   26
+  ],
+  [
+   "D",
+   "SEED-eylau",
+   25,
+   28
+  ],
+  [
+   "D",
+   "SEED-friedland",
+   22,
+   25
+  ],
+  [
+   "B",
+   "CMD-M",
+   23,
+   25
+  ],
+  [
+   "B",
+   "SEED-wagram",
+   28,
+   26
+  ],
+  [
+   "B",
+   "SEED-lodi",
+   26,
+   28
+  ],
+  [
+   "B",
+   "SEED-eylau",
+   27,
+   28
+  ],
+  [
+   "B",
+   "SEED-friedland",
+   23,
+   24
+  ],
+  [
+   "G",
+   "SEED-wagram",
+   26,
+   25
+  ],
+  [
+   "G",
+   "SEED-eylau",
+   22,
+   26
+  ],
+  [
+   "G",
+   "SEED-friedland",
+   23,
+   26
+  ],
+  [
+   "ALL",
+   "CMD-H",
+   26,
+   28
+  ],
+  [
+   "ALL",
+   "SEED-jena",
+   25,
+   26
+  ],
+  [
+   "ALL",
+   "SEED-wagram",
+   28,
+   27
+  ],
+  [
+   "ALL",
+   "SEED-lodi",
+   26,
+   28
+  ],
+  [
+   "ALL",
+   "SEED-eylau",
+   21,
+   26
+  ],
+  [
+   "ALL",
+   "SEED-friedland",
+   27,
+   28
+  ]
+ ],
+ "deltas_vs_T": {
+  "0": {
+   "max": 2,
+   "mean": 0.12,
+   "min": -1,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": -1,
+    "CMD-H": 0,
+    "CMD-M": 0,
+    "SEED-eylau": 0,
+    "SEED-friedland": 0,
+    "SEED-jena": 2,
+    "SEED-lodi": 0,
+    "SEED-wagram": 0
+   }
+  },
+  "ALL": {
+   "max": 1,
+   "mean": -0.88,
+   "min": -5,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": -5,
+    "CMD-H": 1,
+    "CMD-M": 0,
+    "SEED-eylau": -2,
+    "SEED-friedland": 0,
+    "SEED-jena": 0,
+    "SEED-lodi": 0,
+    "SEED-wagram": -1
+   }
+  },
+  "B": {
+   "max": 2,
+   "mean": -0.88,
+   "min": -4,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": -1,
+    "CMD-H": 1,
+    "CMD-M": -3,
+    "SEED-eylau": 0,
+    "SEED-friedland": -4,
+    "SEED-jena": 2,
+    "SEED-lodi": 0,
+    "SEED-wagram": -2
+   }
+  },
+  "D": {
+   "max": 1,
+   "mean": -0.88,
+   "min": -3,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": -1,
+    "CMD-H": 1,
+    "CMD-M": -2,
+    "SEED-eylau": 0,
+    "SEED-friedland": -3,
+    "SEED-jena": 0,
+    "SEED-lodi": 0,
+    "SEED-wagram": -2
+   }
+  },
+  "G": {
+   "max": 2,
+   "mean": -0.5,
+   "min": -3,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": 0,
+    "CMD-H": 1,
+    "CMD-M": 0,
+    "SEED-eylau": -2,
+    "SEED-friedland": -2,
+    "SEED-jena": 2,
+    "SEED-lodi": 0,
+    "SEED-wagram": -3
+   }
+  },
+  "L": {
+   "max": 2,
+   "mean": 0.0,
+   "min": -2,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": 0,
+    "CMD-H": 1,
+    "CMD-M": 0,
+    "SEED-eylau": -2,
+    "SEED-friedland": 0,
+    "SEED-jena": 2,
+    "SEED-lodi": 0,
+    "SEED-wagram": -1
+   }
+  },
+  "P": {
+   "max": 1,
+   "mean": -2.12,
+   "min": -8,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": -8,
+    "CMD-H": 1,
+    "CMD-M": -3,
+    "SEED-eylau": -2,
+    "SEED-friedland": -2,
+    "SEED-jena": 0,
+    "SEED-lodi": 0,
+    "SEED-wagram": -3
+   }
+  },
+  "S": {
+   "max": 2,
+   "mean": -0.12,
+   "min": -1,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": -1,
+    "CMD-H": -1,
+    "CMD-M": 0,
+    "SEED-eylau": 0,
+    "SEED-friedland": -1,
+    "SEED-jena": 2,
+    "SEED-lodi": 0,
+    "SEED-wagram": 0
+   }
+  },
+  "T": {
+   "max": 0,
+   "mean": 0.0,
+   "min": 0,
+   "n": 8,
+   "per_seed": {
+    "CMD-A": 0,
+    "CMD-H": 0,
+    "CMD-M": 0,
+    "SEED-eylau": 0,
+    "SEED-friedland": 0,
+    "SEED-jena": 0,
+    "SEED-lodi": 0,
+    "SEED-wagram": 0
+   }
+  }
+ },
+ "held": [],
+ "ladder_arm": "ALL",
+ "seeds": [
+  "CMD-H",
+  "CMD-A",
+  "CMD-M",
+  "SEED-jena",
+  "SEED-wagram",
+  "SEED-lodi",
+  "SEED-eylau",
+  "SEED-friedland"
+ ]
+}

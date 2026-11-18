@@ -1481,6 +1481,14 @@ def _purse_bar(world, nation: str, row: Dict, quote: Optional[Dict] = None) -> i
     need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
     if a_crown_is_bought_with_the_whole_chest() and is_promotion(row):
         return need    # session G: a crown is bought with the whole chest
+    if (is_staff(row) and the_staff_is_saved_for_without_the_upkeep_reserve()
+            and nation != getattr(world, "player_nation", None)
+            and world.get_nations_at_war_with(nation)):
+        # OC-1 (GRD-37): no five turns' upkeep at war — the flat reserve, or one
+        # turn of upkeep where an army makes that more (GRD-21: every purchase
+        # keeps a turn in hand; the review found Austria's Staff leaving less)
+        from backend.game_logic.ledger import one_turn_of_upkeep
+        return need + max(AI_PURSE_RESERVE, one_turn_of_upkeep(world, nation))
     upkeep = int(row.get("upkeep", 0) or 0)
     return need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (
         law_upkeep_bill(world, nation) + upkeep)
@@ -1496,6 +1504,114 @@ def the_staff_must_be_reachable() -> bool:
     this slice's head read 0 of 4 cured by T30). Down (False): the band —
     saving unconditional, the pre-fix rule."""
     return True
+
+
+def the_staff_is_saved_for_without_the_upkeep_reserve() -> bool:
+    """Row OC, OC-1 — GRD-37 / GRD-14 / GRD-28 (ruled November 17, 2026,
+    BA-6; built November 18): after S14j no rival's chest reached its Staff's
+    bar in forty ambient turns (T8 missed, 0 of 4 by turn 30 on historical,
+    every rival held by the CHEST): the bar asked the price, the 1,000
+    reserve AND five turns of the whole slate's upkeep. An AI court AT WAR now
+    saves for its Staff at the price and the flat reserve alone (or one turn
+    of its upkeep, where its army makes that the larger — GRD-21) — the
+    doctrines' cure rides the Staff (Russia's IS its Staff) — and the Net test
+    still refuses a Staff the court cannot carry. At peace the bar stands;
+    the player's counsel and letter keep theirs. Down: five turns at war too."""
+    return True
+
+
+def a_law_buys_what_is_used() -> bool:
+    """Row OC, OC-1 — GRD-15 (ruled November 17, 2026, BA-6; built November
+    18): the law rung bought in deck order with no read of demand — Prussia
+    enacted the Military Reorganisation Commission (+5 drill morale, 100 a
+    turn) at T9-11 in every run and never drilled (~3,100 gold of upkeep by
+    turn 40 for nothing); Russia bought the Extraordinary Levy and never
+    recruited. A law is bought only if one of its effects is one the court
+    USES (`law_is_used`). Down: deck order alone."""
+    return True
+
+
+# GRD-15: the effects an ORDER serves — a law carrying them is used once its
+# court has given that order (recorded on the row by `note_law_used`).
+_ORDER_EFFECTS = {"drill_morale": "drill", "recruit_price": "recruit",
+                  "recruit_morale": "recruit"}
+
+
+def law_is_used(world, nation: str, row: Dict) -> bool:
+    """GRD-15's ONE demand read: does `nation` use any effect of `row`?
+      * an order's effect (drill morale, a recruit's price or morale) — the
+        court has given the order this effect serves (`used_from` on the row,
+        written by `note_law_used` from the shared executor): what the court
+        has done is the honest forecast of what it will do, since its drill
+        and recruit choices never read the law;
+      * `manpower_regen` — that pool stands under its cap (regen past the
+        cap buys nothing);
+      * `cures` — the court's Staff is in force (a cure is cosmetic without
+        the institution that carries it, `doctrines.cure_status`);
+      * every other effect (the Staff's action, a crown, the force limit,
+        supply, the blockade, the System, the satellites) — always used.
+    A row with no effects buys nothing and is never bought."""
+    if not isinstance(row, dict):
+        return False
+    if row.get("used_from") is not None:
+        return True
+    for clause in row.get("effects") or []:
+        if not isinstance(clause, dict):
+            continue
+        kind = str(clause.get("type") or "")
+        if kind in _ORDER_EFFECTS:
+            continue
+        if kind == "manpower_regen":
+            pool = str(clause.get("pool") or "infantry")
+            from backend.models.world_state import (MAX_ARTILLERY_POOL,
+                                                    MAX_CAVALRY_POOL,
+                                                    MAX_INFANTRY_POOL)
+            cap = {"infantry": MAX_INFANTRY_POOL, "cavalry": MAX_CAVALRY_POOL,
+                   "artillery": MAX_ARTILLERY_POOL}.get(pool, MAX_INFANTRY_POOL)
+            pools = (getattr(world, "manpower_pools", {}) or {}).get(nation) or {}
+            if int(pools.get(pool, 0) or 0) < cap:
+                return True
+            continue
+        if kind == "cures":
+            staff = next((r for r in deck(world, nation)
+                          if isinstance(r, dict) and is_staff(r)), None)
+            if staff is not None and is_in_force(staff):
+                return True
+            continue
+        return True
+    return False
+
+
+def note_law_used(world, nation: str, verb: str, arm: Optional[str] = None,
+                  morale_applied: bool = True) -> None:
+    """GRD-15: the shared executor records that `nation` gave `verb` ("drill"
+    — a drill completed with room for morale; "recruit" of `arm`, with
+    `morale_applied` False where a training ground or Moore's floor voided a
+    morale law's term): every deck row whose order-effect it serves gains
+    `used_from` (the first turn). Inert with the seam down and for the
+    player's court (nothing reads it there); rows round-trip whole."""
+    if not a_law_buys_what_is_used() or not nation:
+        return
+    if nation == getattr(world, "player_nation", None):
+        return
+    now = int(getattr(world, "current_turn", 0) or 0)
+    for row in deck(world, nation):
+        if not isinstance(row, dict) or row.get("used_from") is not None:
+            continue
+        for clause in row.get("effects") or []:
+            if not isinstance(clause, dict):
+                continue
+            kind = str(clause.get("type") or "")
+            if _ORDER_EFFECTS.get(kind) != verb:
+                continue
+            if verb == "recruit":
+                wanted = str(clause.get("arm") or "all")
+                if wanted not in ("all", str(arm or "")):
+                    continue
+                if kind == "recruit_morale" and not morale_applied:
+                    continue
+            row["used_from"] = now
+            break
 
 
 def staff_is_reachable(world, nation: str, staff: Dict) -> bool:
@@ -1583,7 +1699,10 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     if quote["currency"] == "authority":
         # AU-1: the courts' floors read through ONE gate (`standing.ai_refusal`)
         from backend.game_logic import standing
-        reason = standing.ai_refusal(world, nation, int(quote["price"]))
+        from backend.game_logic.doctrines import cure_law
+        cure = cure_law(world, nation)       # OC-1 (GRD-29): the cure pays the plain floor
+        own = cure is not None and str(cure.get("id") or "") == str(row.get("id") or "")
+        reason = standing.ai_refusal(world, nation, int(quote["price"]), buying_the_cure=own)
         if reason:
             return reason
     return ""
@@ -1652,6 +1771,8 @@ def find_ai_enactment(world, nation: str, treasury: int,
             continue
         if row.get("under_threat") and not threat_moves_the_court(world, nation):
             continue
+        if a_law_buys_what_is_used() and not law_is_used(world, nation, row):
+            continue    # OC-1 (GRD-15): a law buys what the court uses
         law_id = str(row.get("id") or "")
         if law_refusal(world, nation, law_id, admin_actions=admin_ap):
             continue

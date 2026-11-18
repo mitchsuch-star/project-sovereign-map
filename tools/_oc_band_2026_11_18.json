@@ -1,0 +1,1975 @@
+{
+ "_note": "Row OC \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M per arm of the OC ladder, France's provinces on the last ledger row, and S14j's chests re-read at the last save (France; the courts' total and the largest court). Arm 0 must read 28 / 27 / 28, BA-6's final reading. Written by tools/_oc_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23818,
+     "court_max_name": "Ottoman",
+     "courts_total": 131891,
+     "france": 18789,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26092,
+     "court_max_name": "Ottoman",
+     "courts_total": 183613,
+     "france": 26785,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "Buxhowden",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 141017,
+     "france": 18411,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 33
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.ai_diplomacy:a_strangled_britain_writes_without_contact=False",
+    "backend.models.world_state:a_deficit_every_third_turn_is_remembered=False",
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23759,
+     "court_max_name": "Ottoman",
+     "courts_total": 140254,
+     "france": 21596,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26335,
+     "court_max_name": "Ottoman",
+     "courts_total": 157735,
+     "france": 18198,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 139497,
+     "france": 17972,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 33
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 40
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 7,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": []
+  },
+  "ARREARS": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23818,
+     "court_max_name": "Ottoman",
+     "courts_total": 131891,
+     "france": 18789,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26092,
+     "court_max_name": "Ottoman",
+     "courts_total": 183613,
+     "france": 26785,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "Buxhowden",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 141017,
+     "france": 18411,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 33
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "CURE": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23818,
+     "court_max_name": "Ottoman",
+     "courts_total": 136091,
+     "france": 21564,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 38
+     }
+    ],
+    "days_ended": {
+     "end_turn": 4
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26195,
+     "court_max_name": "Ottoman",
+     "courts_total": 177460,
+     "france": 28990,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 7,
+      "enemy": "Buxhowden",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 25,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 144747,
+     "france": 18290,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 33
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "LETTER": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23818,
+     "court_max_name": "Ottoman",
+     "courts_total": 131891,
+     "france": 18789,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26092,
+     "court_max_name": "Ottoman",
+     "courts_total": 183613,
+     "france": 26785,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "Buxhowden",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 141017,
+     "france": 18411,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 33
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.models.world_state:a_deficit_every_third_turn_is_remembered=False",
+    "backend.models.world_state:restlessness_is_priced_by_the_province=False",
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "RESTLESS": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23818,
+     "court_max_name": "Ottoman",
+     "courts_total": 131865,
+     "france": 18431,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26092,
+     "court_max_name": "Ottoman",
+     "courts_total": 183612,
+     "france": 26785,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 6,
+      "enemy": "Buxhowden",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 3,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 140803,
+     "france": 18411,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 33
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 5
+    },
+    "days_opened": 6,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.affairs:a_cure_is_never_stranded_by_an_edict=False",
+    "backend.game_logic.reforms:the_staff_is_saved_for_without_the_upkeep_reserve=False",
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "SAVE": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23789,
+     "court_max_name": "Ottoman",
+     "courts_total": 139719,
+     "france": 20853,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 19416,
+     "court_max_name": "Ottoman",
+     "courts_total": 141323,
+     "france": 18891,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 24,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 141375,
+     "france": 15825,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 33
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 6
+    },
+    "days_opened": 7,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "STAFF": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23818,
+     "court_max_name": "Ottoman",
+     "courts_total": 136181,
+     "france": 21564,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 38
+     }
+    ],
+    "days_ended": {
+     "end_turn": 4
+    },
+    "days_opened": 4,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 26092,
+     "court_max_name": "Ottoman",
+     "courts_total": 183469,
+     "france": 31178,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 143793,
+     "france": 10856,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 33
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeJohn",
+      "field": "Tyrol",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 36
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 6
+    },
+    "days_opened": 7,
+    "exit": 0,
+    "ok": true,
+    "provinces": 20,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.ai.enemy_ai:a_saving_court_holds_its_gold=False",
+    "backend.game_logic.reforms:a_law_buys_what_is_used=False",
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  },
+  "USED": {
+   "CMD-A": {
+    "chests": {
+     "court_max": 23789,
+     "court_max_name": "Ottoman",
+     "courts_total": 138561,
+     "france": 22795,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 5,
+      "enemy": "ArchdukeCharles",
+      "field": "Bohemia",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 2,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Davout",
+      "men": null,
+      "ours": 3,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 8
+     }
+    ],
+    "days_ended": {
+     "end_turn": 3
+    },
+    "days_opened": 3,
+    "exit": 0,
+    "ok": true,
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-H": {
+    "chests": {
+     "court_max": 19416,
+     "court_max_name": "Ottoman",
+     "courts_total": 144593,
+     "france": 20987,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Milan",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 10,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Murat",
+      "men": null,
+      "ours": 2,
+      "priced": 7,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 7
+     }
+    ],
+    "days_ended": {
+     "end_turn": 2
+    },
+    "days_opened": 2,
+    "exit": 0,
+    "ok": true,
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "CMD-M": {
+    "chests": {
+     "court_max": 23595,
+     "court_max_name": "Ottoman",
+     "courts_total": 141343,
+     "france": 19196,
+     "turn": 40
+    },
+    "days": [
+     {
+      "chips": 14,
+      "enemy": "Mack",
+      "field": "Swabia",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 11,
+      "side": "attack",
+      "theirs": 1,
+      "turn": 1
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Franconia",
+      "lead": "Bernadotte",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "defence",
+      "theirs": 3,
+      "turn": 2
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 4
+     },
+     {
+      "chips": 8,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 5,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 5
+     },
+     {
+      "chips": 6,
+      "enemy": "ArchdukeCharles",
+      "field": "Vienna",
+      "lead": "Ney",
+      "men": null,
+      "ours": 2,
+      "priced": 3,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 31
+     },
+     {
+      "chips": 7,
+      "enemy": "ArchdukeCharles",
+      "field": "Tyrol",
+      "lead": "Lannes",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "attack",
+      "theirs": 2,
+      "turn": 33
+     },
+     {
+      "chips": 9,
+      "enemy": "ArchdukeCharles",
+      "field": "Munich",
+      "lead": "Massena",
+      "men": null,
+      "ours": 2,
+      "priced": 6,
+      "side": "attack",
+      "theirs": 3,
+      "turn": 36
+     },
+     {
+      "chips": 7,
+      "enemy": "Buxhowden",
+      "field": "Swabia",
+      "lead": "Soult",
+      "men": null,
+      "ours": 2,
+      "priced": 4,
+      "side": "defence",
+      "theirs": 2,
+      "turn": 40
+     }
+    ],
+    "days_ended": {
+     "decided": 1,
+     "end_turn": 6
+    },
+    "days_opened": 8,
+    "exit": 0,
+    "ok": true,
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40,
+    "words_by_kind": {},
+    "words_given": 0
+   },
+   "seams_held": [
+    "backend.ai.enemy_ai:a_cheap_rung_keeps_a_turn_of_upkeep=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ],
+ "s14j_bands": {
+  "court_max": 35000,
+  "courts_total": 200000,
+  "france": [
+   16000,
+   40000
+  ]
+ }
+}

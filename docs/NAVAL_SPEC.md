@@ -323,6 +323,8 @@ Ratio ≥ 1.5 → **decisive**: loser an extra −20%, the **"trafalgar"** dispa
 
 **RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** BRIT-1 (a strangled Britain cannot write without contact for fifteen turns) — HOMED: row OC, slice OC-3 (the Strangulation's letter); the arc's whole design is Britain suing without invasion, and Amiens (1802) was signed by a Britain no French corps had touched, so a closed-port Britain past exhaustion 80 may write for an armistice with no contact, on the benchmark's NAV1 arm; its pin is a strict xfail in `tests/test_oc_the_rulings_to_build.py` — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §5.
 
+**BUILT November 18, 2026 (row OC, OC-3):** `ai_diplomacy.a_strangled_britain_writes_without_contact` — `strangled_without_contact`: the trade power (`trade_dominance_nation`) whose ports the System closes at its first tier (`CS_WE_TIERS`, 0.40) and whose exhaustion is past her break-ranks line (80) reads P2's ordinary stalemate window, not the fifteen-turn no-contact one; Talleyrand reads her letter as the System's work. The arm it was found on is the shut-out arm (`SHUT-H`, the contactless seed — naval C4's historical row), not NAV1, whose scripted hunt meets a British corps the same turn her exhaustion passes 80 (both read per seed in `tools/_oc_sea_2026_11_18.json`); history: Britain opened talks uninvaded in 1796, 1797 and 1801, never after a lost land battle, and closure alone never brought her to the table (1808, 1810–12) — `SYSTEMS_REFERENCE.md` §226.
+
 Today's Continental System is a 200g pinch (`apply_continental_system`: −75g/member trade
 cap). It becomes the H5 siege while keeping every existing seam:
 

@@ -185,6 +185,17 @@ def cmd_start(args) -> int:
     if (run / "state").is_dir() and any((run / "state").glob("*.json")):
         raise SystemExit(f"{run} already holds a run — choose a fresh --out")
     n = _godot_running(windowed_only=bool(getattr(args, "beside_headless", False)))
+    # Row OC's hook (November 18, 2026; BUG_FIXES OC-X3): a sibling lane's
+    # headless engine that is starting or exiting shows Windows a blank
+    # command line for an instant, and the rail fails CLOSED on it (two setup
+    # errors in a loaded run, no second window open) — so a count is re-read
+    # three times, two seconds apart, before it refuses; a second engine that
+    # stays is refused as before.
+    for _ in range(3):
+        if not n:
+            break
+        time.sleep(2)
+        n = _godot_running(windowed_only=bool(getattr(args, "beside_headless", False)))
     if n:
         raise SystemExit(f"refused: {n} Godot process(es) already running — never two engines at once")
     run.mkdir(parents=True, exist_ok=True)

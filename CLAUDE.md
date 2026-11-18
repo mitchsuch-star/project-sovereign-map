@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; ROW AU ✅ COMPLETE Nov 3–6 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC, H**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; ROW AU ✅ COMPLETE Nov 3–6 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); H**.
 
-**▶ LIVE STATE (Nov 17, 2026).** The three most recent rows:
+**▶ LIVE STATE (Nov 18, 2026).** The three most recent rows:
+- **Row OC (Nov 18) — the rulings built: the purses, the letter, golden rule 1** (§226).
 - **Row BA, BA-6 + row MC (Nov 17) — the last word; the Order of the Marshalate** (§224–§225).
 - **Row BA, BA-5 (Nov 17) — the finish** (§223).
-- **Row BA, BA-4 (Nov 16) — the roads and the fog** (§222).
 
-**Open with the user:** none — every open call RULED Nov 17 (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`; its builds are row OC, before H); the certificate is a purchase.
+**Open with the user:** none — every open call RULED Nov 17 (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`; row OC built them Nov 18); the certificate is a purchase.
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

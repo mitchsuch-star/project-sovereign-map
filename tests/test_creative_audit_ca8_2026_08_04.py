@@ -2550,8 +2550,13 @@ class TestCA820EstateWorth:
         assert _dotation.get_shortfall(marshal, world) >= 80
         assert _dotation.list_eligible_estates(world, "France"), "premise: land IS listed"
         assert _dotation.list_paying_estates(world, "France") == []
+        # Row OC (OC-1, GRD-21, November 18, 2026): the land arm keeps a turn
+        # of upkeep after the fee, so the chest stands a turn of upkeep above
+        # the old 500 — the CA8-20 filter alone refuses here, as the mutation
+        # this pin was found by needs.
+        from backend.game_logic.ledger import one_turn_of_upkeep
         action = EnemyAI(CommandExecutor())._find_dotation_grant(
-            "France", world, treasury=500)
+            "France", world, treasury=500 + one_turn_of_upkeep(world, "France"))
         assert (action or {}).get("action") != "grant_dotation", action
 
     def test_the_ai_grant_rung_still_takes_a_province_that_pays(self):
@@ -2564,8 +2569,10 @@ class TestCA820EstateWorth:
         marshal.expectation_steps = 8
         paying = _dotation.list_paying_estates(world, "France")
         assert paying
+        # Row OC (OC-1, GRD-21): a turn of upkeep kept after the fee (above).
+        from backend.game_logic.ledger import one_turn_of_upkeep
         action = EnemyAI(CommandExecutor())._find_dotation_grant(
-            "France", world, treasury=500)
+            "France", world, treasury=500 + one_turn_of_upkeep(world, "France"))
         assert (action or {}).get("action") == "grant_dotation", action
         assert action["target"] == paying[0], (action, paying[:3])
 

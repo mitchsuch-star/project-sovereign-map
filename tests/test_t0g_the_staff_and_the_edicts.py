@@ -82,6 +82,15 @@ def _russia_in_the_band(world):
 class TestTheStaffMustBeReachable:
     """GR-47."""
 
+    # Row OC (OC-1, November 18, 2026): T0-G's reachability band is tested
+    # on the board its row reproduced — the at-war bar (GRD-37) would reach
+    # Russia's Staff and the demand read (GRD-15) would skip Arakcheev's
+    # artillery, so both seams stand DOWN here; their laws are row OC's pins.
+    @pytest.fixture(autouse=True)
+    def _t0g_band_as_built(self, monkeypatch):
+        monkeypatch.setattr(RF, "the_staff_is_saved_for_without_the_upkeep_reserve", lambda: False)
+        monkeypatch.setattr(RF, "a_law_buys_what_is_used", lambda: False)
+
     def test_the_band_is_opened(self, world):
         """Russia buys what it can afford at every chest of the row's
         repro, where the pre-fix rung returned None forever."""

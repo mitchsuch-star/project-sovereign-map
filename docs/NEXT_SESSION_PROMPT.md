@@ -1,42 +1,30 @@
-# NEXT SESSION PROMPT — Row OC (the rulings built), then Session H: S15 the deploy (the user's own walk)
+# NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk)
 
-> Overwritten each time a session hands off. Current hand-over: **November 17, 2026 — ROW BA, BA-6 "THE
-> LAST WORD" AND ROW MC "THE ORDER OF THE MARSHALATE" ✅ LANDED (committed and pushed at the user's word,
-> "commit and push when done") — ROW BA CLOSED WITH NO OPEN ROW; EVERY OPEN CALL OF THE PROJECT RULED**
-> (`BATTLE_DIORAMA_SPEC.md` §15.25 the record, §15.26 its review; `MARSHALATE_SPEC.md` row MC;
-> `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` every call ruled; the rules `SYSTEMS_REFERENCE.md` §224 (the
-> court) and §225 (the battle's last word); the ledger `BUG_FIXES.md` §BA6; the pins `tests/test_ba6_*.py`,
-> `tests/test_mc_the_order_of_the_marshalate.py`, `tests/test_oc_the_rulings_to_build.py`).
-> **What landed:** row BA's last open rows fixed (BA1-X4 the table at 150 % and 175 %, BA2-X6, BA2-X16, BA5-X15, X16, X17; the weak-spot review's WS-13 and WS-15) and the session's own finds (BA6-X1 … X13); the battle table's ground cut from period surveys (Ferraris 1771–78, Anich and Hueber 1774; public domain, graded by lamplight; the felt a photographed CC0 baize — nothing generated); BA-5's readers' levers past 5 (a taller decision panel while a day awaits a word, three-line cards that say what a word RISKS, the free words' stakes, "+N more" on a crowded day, luck against margin in one phrase, a legend — the chance figure built as words); the reserve's attacker-only form built, measured and CLOSED by BA-5's own rule; **row MC, the Order of the Marshalate** (`docs/MARSHALATE_SPEC.md`: the order of precedence, the book of incidents with a cause on every surface, renown, titles of victory and their price, the two-way bonds, the account, the claim, the AI courts by the same code, the attack card naming the court) with the court count that measured it; every open call of the project ruled (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`). The deploy gate is MET on the final tree.
-> **Open with the user: NONE.** Every call an earlier session left "for the user" is ruled in
-> `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` (KEEP / BUILT / HOMED / CLOSED, each with its reason). What
-> stays the user's is not a call but an act: **the certificate is a purchase** (a payment the user makes),
-> and the walk is the user's own.
+> Overwritten each time a session hands off. Current hand-over: **November 18, 2026 — ROW OC "THE RULINGS
+> BUILT" ✅ LANDED (committed and pushed at the user's word, "commit and push")** (the rules and the measure
+> `SYSTEMS_REFERENCE.md` §226; the ledger `BUG_FIXES.md` §OC; the rulings
+> `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §5; the seams `tests/_oc_seams.py`; the pins
+> `tests/test_oc_the_rulings_to_build.py`).
+> **What landed:** the four slices the November 17 rulings homed before the deploy — **the courts' purse**
+> (an AI court buys a law only once it uses what the law gives; a court at war saves for its General Staff
+> against the price and one turn of upkeep, and holds its discretionary gold while the Staff is within reach;
+> every cheap purchase keeps a turn of upkeep; a court keeps its doctrine cure's authority in hand), **the
+> Emperor's purse** (the mercy turn after a deficit pays no arrears down — deficit, solvent, solvent deserts
+> at turn 11; a restless interior costs 75 a province, capped at 250), **the Strangulation's letter** (a
+> Britain whose ports the System closes and whose war-weariness has passed 80 writes for an armistice with no
+> contact) and **golden rule 1** (the ground's scaling of a reckless cavalryman's dash read in
+> `Marshal.get_attack_modifier` alone; the coordination magnitudes named on the marshal). The deploy gate is
+> MET on the final tree (band 26 / 27 / 28, story classes 10, the roster in three readings, no annexation
+> outside aim), its clause 2 — a minor raised by promotion — read on thirty ambient seeds by the user's ruling
+> (`DYNAMISM_SPEC.md` §7): two campaigns in thirty raise one, with row OC as without it.
+> **Open with the user: NONE.** What stays the user's is an act, not a call: **the certificate is a purchase**
+> (a payment the user makes), and the walk is the user's own.
 
 **FIRST — in this order:**
 
-0. `git log`: BA-6 + row MC is ONE commit, made through the hook and PUSHED at the user's word. Its one
-   review ran before the commit on frozen copies (§15.26). Read `STATUS.md` ▶ NEXT UP first.
-1. **ROW OC — "the rulings built"** (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §5): four slices, each ONE
-   seam row and one measure, combined into one session by the user's standing preference (fewer, larger
-   sessions; one suite run, one commit, one review). Each item's pin is a strict xfail in
-   `tests/test_oc_the_rulings_to_build.py` that turns red the day it lands — flip it to a real test.
-   - **OC-1 the courts' purse** — GRD-15 (a law buys what is used), GRD-37 / GRD-14 / GRD-28 (the Staff saved
-     for without the upkeep reserve), GRD-21 (a cheap rung keeps a turn of upkeep), GRD-29 (a cure law is never
-     stranded by an edict). Done when Prussia buys no law it never uses; at least one doctrine-cure court
-     reaches its Staff inside forty turns on some seed; no court's chest ends a passive run under one turn of
-     upkeep; BASELINE_SERIES re-pinned with its attribution (`tools/_ba6_series_arms.py` is the rig's idiom).
-   - **OC-2 the Emperor's purse** — GRD-20 (a deficit one turn in three accrues), GRD-19 (restlessness priced
-     by the province, capped). Done when the D-S-S pattern deserts inside twelve turns; 1 and 32 restless
-     provinces cost differently; S14j's chest bands re-read on the commanded arms.
-   - **OC-3 the Strangulation's letter** — BRIT-1. Done when a closed-port Britain past exhaustion 80 writes
-     for an armistice with no contact, on the benchmark's NAV1 arm.
-   - **OC-4 golden rule 1** — GRD-34. Done when terrain-scaled recklessness is read in
-     `marshal.get_attack_modifier` and the keyed probe is identical on every key.
-   - **The measure:** one chain with arms on the deploy gate's surfaces (the keyed probe, the commanded band
-     23–28, the ambient ten, the AI-France harness, the gate) against BA-6's records (below); a rule written
-     before any data where a number may move; arm 0 must equal `master` at BA-6's commit on every surface.
-2. **SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
+0. `git log`: row OC is ONE commit, made through the hook and PUSHED at the user's word. Its one review ran
+   before the commit (`BUG_FIXES.md` §OC). Read `STATUS.md` ▶ NEXT UP first.
+1. **SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
    `DYNAMISM_SPEC.md` §7). Its head's open rows — each a defect with a strict-xfail pin, none a call:
    **WS-10** (the war room keeps the bare digits; a docked ledger's tabs move to Alt+1–8 and its lead line says
    so — `TestWS10TwoSurfacesClaimTheBareDigits`), **WS-12 with GRD-33** (the live model's number moves
@@ -46,16 +34,33 @@
    order road's compound subjects; "Did you mean Ney?" offers the nearest of the player's own marshals, never a
    fogged name). `tools/defect_census.py --open` lists them; the release waits for 0 open defect rows.
 
-**What BA-6 changes in Session H's brief below** (the brief is kept as it stood; these lines overrule it
-where they differ):
+**What rows BA and OC change in Session H's brief below** (the brief is kept as it stood; these lines overrule
+it where they differ):
 
 - **Row BA has no open row.** BA1-X4, BA1-X8, BA2-X6, BA2-X16, BA5-X15, BA5-X16 and BA5-X17 are closed, and
-  so are WS-13 and WS-15 (the weak-spot review's two battle-pipeline rows). The head is the list in step 2.
-- **The gate's record files — read each clause against BA-6's** (`tools/_ba6_*_2026_11_17.json`):
-  the probe `tools/_ba6_probe_2026_11_17.json` (arm 0 identical to `fdd4756f` on every key); the band `tools/_ba6_band_2026_11_17.json` (every arm inside 23–28; ALL 28 / 27 / 28); the day's sweeps `_ba6_sweep_0_` (72 of 72 equal the commit before) and `_ba6_sweep_all_`; the ambient ten `tools/_dy_signature_ba6_all_2026_11_17.json` and `tools/_ba6_all_census_2026_11_17.json`; the harness `tools/_ba6_chain_d_2026_11_17.json`; the series `tools/_ba6_series_arms_final.json`; the reserve's rule `tools/_ba6_reserve_rule_2026_11_17.json`; the court count `tools/_ba6_court_rule_2026_11_17.json`; the DD-1 sign-ability records `docs/audits/dd1/sign_ability_*.json` (re-taken on the final tree); the client: `docs/audits/ba1_client/walk_record.json` (the walk of record) and `docs/audits/ba6_mode_c_2026_11_17/` (the live boards). BA-5's records stand as the game before BA-6.
-- **The user's walk** is also the first look at BA-6 and the court: the survey plates under every table (plains, forest, hills, mountains, a town, a river crossing — never mirrored); the day's taller panel and its three-line cards, the free words' stakes, "+N more", the dice's luck line, the legend; and the Generals screen's court — the order of precedence, each marshal's bonds with their causes, a title in the Emperor's gift and its price, a claim, an account after a joint defeat.
+  so are WS-13 and WS-15 (the weak-spot review's two battle-pipeline rows). The head is the list in step 1.
+- **The gate's record files — read each clause against row OC's** (`tools/_oc_*_2026_11_18.json`; the tool
+  `tools/_oc_measure.py`): the probe `tools/_oc_probe_2026_11_18.json` (arm 0 identical to `9c5228a5` on every
+  key); the band `tools/_oc_band_2026_11_18.json` (ALL 26 / 27 / 28; the STAFF arm's CMD-M 20 is the ladder's
+  one breach, reported in §226.2); the day's sweeps `_oc_sweep_0_` (72 of 72 equal the commit before) and
+  `_oc_sweep_all_`; the ambient ten `tools/_dy_signature_oc_all_2026_11_18.json` and
+  `tools/_oc_all_census_2026_11_18.json`; the harness `tools/_oc_chain_d_2026_11_18.json`; the series
+  `tools/_oc_series_arms_final.json`; the purse `_oc_purse_0_` / `_oc_purse_all_`, T8 `_oc_t8_0_` / `_oc_t8_all_`
+  and the sea arms `_oc_sea_`; **the gate `tools/_oc_gate_2026_11_18.json`**, its clause 2 read on thirty ambient
+  seeds (`tools/_oc_promotions_wide_2026_11_18.json`; the user's ruling, `DYNAMISM_SPEC.md` §7). BA-6's records
+  (`tools/_ba6_*_2026_11_17.json`) stand as the game before row OC. Row OC changed no `.gd`: the client's
+  records are BA-6's — `docs/audits/ba1_client/walk_record.json` (the walk of record) and
+  `docs/audits/ba6_mode_c_2026_11_17/` (the live boards); the DD-1 sign-ability records
+  `docs/audits/dd1/sign_ability_*.json` are re-taken on row OC's final tree.
+- **The user's walk** is also the first look at BA-6 and the court: the survey plates under every table (plains, forest, hills, mountains, a town, a river crossing — never mirrored); the day's taller panel and its three-line cards, the free words' stakes, "+N more", the dice's luck line, the legend; and the Generals screen's court — the order of precedence, each marshal's bonds with their causes, a title in the Emperor's gift and its price, a claim, an account after a joint defeat. Row OC adds no screen: what the walk may meet is the courts' purses (an AI court buying fewer laws and reaching its Staff) and, in a war with a strangled Britain, an armistice letter with Talleyrand's line on the System.
 
-**BA-6's traps (fresh; `SYSTEMS_REFERENCE.md` §225 has them in full):** a probe must hold its seams before the world is built (BA6-X7); count what a played court does before believing a rule lives — `tools/_ba6_court_count.py` found the Auerstedt rule deaf for France; a row built after the final chain goes LAST on the ladder, so only its arm and ALL are re-taken; when the world-line moves, run the full suite before the frozen pass (the treaty fuzzer's seed re-timed onto two latent defects, BA6-X5 and X6) and re-take the DD-1 sign-ability records (its pin compares a live run with them); a decorator keeps a CODE-2a driver a driver; a review row not upheld reads "REFUTED — not upheld" or the census counts it open; a frozen copy leaves `docs/audits/` out; never chain two heredocs with `||` (the shell ran the second script's lines as commands and hung — write patches with the Write tool); commit with `env -u PYTHONDONTWRITEBYTECODE`.
+**Row OC's traps (fresh; `SYSTEMS_REFERENCE.md` §226.3 has them in full):** a purchase rung's sibling is the
+rung that saves for it (the save's reach was found on Russia's trace, not by a grep); a done-when about the
+close is read to its cause (GRD-21's two misses are wars, not purchases); a wider sample is not a lower bar,
+but it is an easier one — say both in the record; never edit a chain script while its chain runs (bash reads
+it as it goes) — queue a second short chain.
+
+**BA-6's traps (`SYSTEMS_REFERENCE.md` §225 has them in full):** a probe must hold its seams before the world is built (BA6-X7); count what a played court does before believing a rule lives — `tools/_ba6_court_count.py` found the Auerstedt rule deaf for France; a row built after the final chain goes LAST on the ladder, so only its arm and ALL are re-taken; when the world-line moves, run the full suite before the frozen pass (the treaty fuzzer's seed re-timed onto two latent defects, BA6-X5 and X6) and re-take the DD-1 sign-ability records (its pin compares a live run with them); a decorator keeps a CODE-2a driver a driver; a review row not upheld reads "REFUTED — not upheld" or the census counts it open; a frozen copy leaves `docs/audits/` out; never chain two heredocs with `||` (the shell ran the second script's lines as commands and hung — write patches with the Write tool); commit with `env -u PYTHONDONTWRITEBYTECODE`.
 
 **The standing rules** (unchanged): commit on master through the pre-commit hook only when the user asks;
 never `--no-verify`; no branches, no worktrees, no stash; nothing pushed unless asked; no player-facing cut or
@@ -65,7 +70,7 @@ say what is built and what is not.
 
 ---
 
-## Session H: S15 the deploy (the prompt as it stood on November 13–14, 2026 — read it with the lines above; BA-6's lines overrule it where they differ)
+## Session H: S15 the deploy (the prompt as it stood on November 13–14, 2026 — read it with the lines above; rows BA's and OC's lines overrule it where they differ)
 
 > Two things changed since it was written: **WS-11 is closed** (row BA's BA-1) and **WS-16 is BA-3's**, so the
 > weak-spot review brings SIX rows to Session H's head, not seven; and **BA1-X4** and **BA1-X8** join that head,

@@ -1867,7 +1867,26 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # the voices and the morning's rows are told, not threat); this pin re-reads
 # the final tree. The prior's series: SERIES_BEFORE_BA6.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 23, 20, 17, 14, 11, 13, 10, 7, 4, 1, 3, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by row OC "the rulings built" (November 18, 2026 —
+# `SYSTEMS_REFERENCE.md` §226). The attribution: `tools/_oc_series_arms.py`
+# → `tools/_oc_series_arms_final.json` — every seam of `tests/_oc_seams.py`
+# wrapped in the child and its reads counted; arm 0 (every row down, OC-4's
+# golden-rule fold standing in it) reproduces the prior BYTE FOR BYTE. Four rows
+# move the loop, each alone: CURE from [9] (Britain keeps her turn-1 authority for
+# her cure), CHEAP from [10] (the cheap rungs keep a turn of upkeep), STAFF from
+# [17] (the at-war Staff's bar) and SAVE from [22] (a saving court holds its gold);
+# LETTER, ARREARS, RESTLESS and USED alone are byte-identical (every seam read
+# on the loop). ALL diverges at [10]. The prior's series: SERIES_BEFORE_OC.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 29, 26, 23, 20, 25, 22, 19, 21, 18, 15, 17, 17, 14, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The seven-seed probe record (`docs/audits/probes/sf_lb2/`) re-recorded with
+# the tree: Prussia→Hanover opens on 8 / 12 / 11 / 8 / 12 / 10 / 12
+# (historical / austerlitz / friedland / jena / ulm / marengo / eylau) — four
+# distinct turns; on friedland Prussia is at war from turn 10 and never
+# marches on Hanover; the standing rule holds.
+# BA-6's series (row OC's prior; the OC rig's arm 0):
+SERIES_BEFORE_OC = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 23, 20, 17, 14, 11, 13, 10, 7, 4, 1, 3, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T4-2's series (BA-6's prior; the BA-6 rig's arm 0):
 SERIES_BEFORE_BA6 = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 28, 25, 22, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T4-1's series (T4-2's prior; the T4-2 rig's arm 0):

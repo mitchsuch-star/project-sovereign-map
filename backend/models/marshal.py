@@ -28,6 +28,7 @@ Implemented fields:
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional, Dict, List, Mapping, Sequence
+from backend.models.region import TERRAIN_CAVALRY_EFFECTIVENESS
 from backend.models.trust import SovereignTrust, Trust
 
 
@@ -1199,6 +1200,19 @@ class Marshal:
         else:  # 4+
             return 0.20  # +20%
 
+    def recklessness_terrain_scale(self, terrain: Optional[str] = None) -> float:
+        """GRD-34 (row OC, OC-4 — golden rule 1's residue, November 18,
+        2026): the ONE read of how the ground scales a reckless cavalryman's
+        dash (`TERRAIN_CAVALRY_EFFECTIVENESS`: plains 1.2 … mountains 0.3).
+        `get_attack_modifier(terrain=…)` multiplies his recklessness share
+        by it; the resolver's "thrives / hampered" line and the battle
+        report's row read the same figure (shown = applied). 1.0 for anyone
+        but reckless cavalry, and with no terrain."""
+        if terrain is None or not (getattr(self, "cavalry", False)
+                                   and self.is_reckless_cavalry):
+            return 1.0
+        return float(TERRAIN_CAVALRY_EFFECTIVENESS.get(terrain, 1.0))
+
     def _get_recklessness_defense_penalty(self) -> float:
         """
         Get defense penalty from recklessness level.
@@ -1368,7 +1382,8 @@ class Marshal:
     # ════════════════════════════════════════════════════════════
 
     def get_attack_modifier(self, strength_ratio: float = None,
-                            consume: bool = True) -> float:
+                            consume: bool = True,
+                            terrain: Optional[str] = None) -> float:
         """
         Get attack modifier from stance, personality, and other sources.
 
@@ -1427,10 +1442,12 @@ class Marshal:
         )
         modifier *= personality_mod
 
-        # Recklessness attack bonus (cavalry recklessness system)
+        # Recklessness attack bonus (cavalry recklessness system), its share
+        # scaled by the ground when the resolver names it (GRD-34: golden
+        # rule 1 — the resolver no longer re-derives it; ×1.0 is exact).
         recklessness_bonus = self._get_recklessness_attack_bonus()
         if recklessness_bonus > 0:
-            modifier *= (1.0 + recklessness_bonus)
+            modifier *= (1.0 + recklessness_bonus * self.recklessness_terrain_scale(terrain))
 
         # Counter-Punch Mastery: Davout's +20% attack after being attacked
         # See docs/ADDING_CONTENT.md "Wiring a Special Ability" checklist.
@@ -1666,6 +1683,21 @@ class Marshal:
     # constants — shown = applied.
     SOVEREIGN_PRESENCE_ATTACK = 0.10
     SOVEREIGN_PRESENCE_DEFENSE = 0.10
+
+    # GRD-34 (row OC, OC-4 — golden rule 1's residue, November 18, 2026): the
+    # coordination magnitudes (MULTI_MARSHAL_SPEC §3) beside the other
+    # tunables — they were literals in the executor. `CombatExecutor` reads
+    # them and stamps the totals this class's `get_attack_modifier` /
+    # `get_defense_modifier` read (`total_coordination_*_bonus`).
+    COMBINED_ARMS_BONUS = {3: (0.20, 0.10), 2: (0.10, 0.05)}   # (attack, defense) by arm types
+    COORDINATION_ALLY_ATTACK = 0.03       # a co-located ally's attack share, before the bond
+    COORDINATION_ALLY_DEFENSE = 0.05      # … and his defense share
+    COORDINATION_ADJACENT_ATTACK = 0.02   # an adjacent ally (attack only)
+    COORDINATION_DEDICATED_ATTACK = 0.05  # a dedicated SUPPORT order
+    COORDINATION_DEDICATED_DEFENSE = 0.05
+    COORDINATION_ATTACK_CAP = 0.25
+    COORDINATION_DEFENSE_CAP = 0.20
+    RELATIONSHIP_SCALING = {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}   # the bond scales the share
 
     # SR-4a (Score Mandate Chunk 4, AAR-32): the stance's own ATTACK factor —
     # ONE home, read by `get_attack_modifier` and by the muster's posture note

@@ -594,6 +594,11 @@ class TestSFRB14TheRepealBeforeTheLapse:
 
     def test_seam_down_the_court_spends_over_the_edge(self, world, monkeypatch):
         monkeypatch.setattr(RF, "ai_holds_the_purse", lambda *a, **k: False)
+        # Row OC (OC-1, GRD-21, November 18, 2026): every price-only rung now
+        # keeps a turn of upkeep after its price — the same class's broader
+        # rule, which holds this court on the edge too; RR4-X9's negative
+        # control holds it down beside its own seam.
+        monkeypatch.setattr(EA, "a_cheap_rung_keeps_a_turn_of_upkeep", lambda: False)
         _austria_on_the_edge(world, 277)
         assert _admin_phase(world) != []
 

@@ -118,7 +118,7 @@ class TestPresenceReachesTheMarchingArmy:
         seen = {}
         real = Marshal.get_attack_modifier
 
-        def spy(self, strength_ratio=None, consume=True):
+        def spy(self, strength_ratio=None, consume=True, **k):   # GRD-34: the resolver passes terrain=
             # SR-4a (Sept 26, 2026) — CONSCIOUS RE-SEAT: the muster band now
             # takes a PURE read of the modifier (consume=False) before the
             # battle stamps the Presence; the battle's own read is the
@@ -126,7 +126,7 @@ class TestPresenceReachesTheMarchingArmy:
             if consume:
                 seen.setdefault(self.name,
                                 getattr(self, "sovereign_presence", "ABSENT"))
-            return real(self, strength_ratio, consume)
+            return real(self, strength_ratio, consume, **k)
 
         monkeypatch.setattr(Marshal, "get_attack_modifier", spy)
         return seen
@@ -235,7 +235,7 @@ class TestShadowFollowsTheAura:
         seen = {}
         real = Marshal.get_attack_modifier
 
-        def spy(self, strength_ratio=None, consume=True):
+        def spy(self, strength_ratio=None, consume=True, **k):   # GRD-34: the resolver passes terrain=
             # SR-4a (Sept 26, 2026) — CONSCIOUS RE-SEAT: the muster band now
             # takes a PURE read of the modifier (consume=False) before the
             # battle stamps the Presence; the battle's own read is the
@@ -243,7 +243,7 @@ class TestShadowFollowsTheAura:
             if consume:
                 seen.setdefault(self.name,
                                 getattr(self, "sovereign_presence", "ABSENT"))
-            return real(self, strength_ratio, consume)
+            return real(self, strength_ratio, consume, **k)
 
         monkeypatch.setattr(Marshal, "get_attack_modifier", spy)
 

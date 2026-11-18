@@ -12,7 +12,7 @@ Features:
 from typing import Dict
 from backend.display_names import humanize_entity_name
 from backend.models.marshal import Marshal
-from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
+from backend.models.region import TERRAIN_DEFENSE_BONUS
 from backend.utils import ordinal
 
 # RS-26 / NPC-12 (SR-6b "The copy pass", Score Finish Step 2, Oct 2 2026):
@@ -525,7 +525,9 @@ class CombatResolver:
         strength_ratio = attacker.strength / defender.strength if defender.strength > 0 else float('inf')
 
         if hasattr(attacker, 'get_attack_modifier'):
-            attacker_stance_modifier = attacker.get_attack_modifier(strength_ratio)
+            # GRD-34 (row OC, OC-4): the ground's scaling of a reckless
+            # cavalryman's dash is read IN the marshal (golden rule 1).
+            attacker_stance_modifier = attacker.get_attack_modifier(strength_ratio, terrain=terrain)
             if attacker_stance_modifier != 1.0:
                 from backend.models.marshal import Stance
                 current_stance = getattr(attacker, 'stance', Stance.NEUTRAL)
@@ -594,25 +596,19 @@ class CombatResolver:
         shock_multiplier *= attacker_stance_modifier
 
         # ════════════════════════════════════════════════════════════
-        # CAVALRY TERRAIN EFFECTIVENESS (Phase 6.1): Scale recklessness bonus by terrain
-        # Plains boost cavalry (+20%), mountains gut it (-70%).
-        # Only affects cavalry marshals with recklessness > 0.
-        # Non-cavalry marshals are completely unaffected.
+        # CAVALRY TERRAIN EFFECTIVENESS (Phase 6.1): the recklessness bonus
+        # scaled by terrain — plains boost cavalry (+20%), mountains gut it
+        # (-70%); only reckless cavalry, everyone else untouched. GRD-34 (row
+        # OC, OC-4 — golden rule 1): the scaled share is IN the attack
+        # modifier above (`get_attack_modifier(terrain=…)`); the resolver
+        # re-derives nothing and only says it, off the marshal's own read.
         # ════════════════════════════════════════════════════════════
         cavalry_terrain_message = None
         if getattr(attacker, 'cavalry', False) and getattr(attacker, 'is_reckless_cavalry', False):
             recklessness_bonus = attacker._get_recklessness_attack_bonus()
             if recklessness_bonus > 0:
-                terrain_cav_mult = TERRAIN_CAVALRY_EFFECTIVENESS.get(terrain, 1.0)
+                terrain_cav_mult = attacker.recklessness_terrain_scale(terrain)
                 if terrain_cav_mult != 1.0:
-                    # Scale the recklessness portion of the attack modifier
-                    # recklessness_bonus was applied as (1.0 + bonus) inside get_attack_modifier
-                    # We adjust by removing the original bonus and adding the terrain-scaled version
-                    original_contribution = 1.0 + recklessness_bonus
-                    scaled_contribution = 1.0 + (recklessness_bonus * terrain_cav_mult)
-                    terrain_cavalry_adjustment = scaled_contribution / original_contribution
-                    shock_multiplier *= terrain_cavalry_adjustment
-
                     terrain_name = terrain.replace("_", " ").title()
                     effectiveness_pct = int(terrain_cav_mult * 100)
                     if terrain_cav_mult > 1.0:

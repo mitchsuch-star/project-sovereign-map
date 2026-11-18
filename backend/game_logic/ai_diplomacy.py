@@ -231,6 +231,10 @@ TALLEYRAND_ASSESSMENTS = {
         "They are desperate, Sire. We could demand far more.",
     ("armistice", "stalemate"):
         "Neither side gains from continued bloodshed. A pragmatic choice.",
+    # OC-3 (BRIT-1): the stalemate letter of a court the System strangles
+    ("armistice", "strangled"):
+        "The System is strangling her trade, Sire. Britain asks for a truce "
+        "before her credit fails.",
     ("peace", "winning"):
         "They sue for peace from a position of weakness. We hold the cards.",
     ("peace", "losing"):
@@ -2422,6 +2426,42 @@ def honest_peace_never_silent(proposal: Dict) -> None:
     proposal["honest_peace_fallback"] = True
 
 
+def a_strangled_britain_writes_without_contact() -> bool:
+    """Row OC, OC-3 — BRIT-1 (ruled November 17, 2026, BA-6; built November
+    18): the Strangulation arc's whole design is Britain brought to the table
+    without a soldier crossing water (NAVAL_SPEC §5.1), yet P2's no-contact
+    window (`P2_NO_CONTACT_ESCAPE_TURNS`, fifteen deadlocked turns) held a
+    Britain whose ports the System had closed and whose exhaustion had passed
+    the break-ranks line: on the benchmark's shut-out arm (SHUT-H) she sat
+    strangled, untouched and past 80 for six turns and could not write.
+    History agrees with the rule: Britain opened talks uninvaded — Malmesbury
+    1796, Lille 1797, the London preliminaries 1801 / Amiens 1802 — never after
+    a lost land battle, and France could refuse. Down: the window binds her."""
+    return True
+
+
+def strangled_without_contact(world, nation: str) -> bool:
+    """OC-3 (BRIT-1): True while `nation` is the trade power
+    (`naval.trade_dominance_nation` — data, never a literal), the
+    Continental System closes at least its first tier of her ports
+    (`naval.CS_WE_TIERS`' lowest step, 0.40 — the tier at which the System
+    starts to raise her exhaustion), and her war exhaustion is past her
+    break-ranks line (`break_ranks_lines` — 80, the same line that frees a
+    league member to treat on its own account). P2 then reads the ordinary
+    stalemate window, as if she had fought: a strangled court may ASK for an
+    armistice; France decides. Closure alone is not enough — it never
+    brought Britain to the table in 1808 or 1810–12 (the System leaked)."""
+    if not a_strangled_britain_writes_without_contact():
+        return False
+    from backend.game_logic import naval
+    if naval.trade_dominance_nation(world) != nation:
+        return False
+    if naval.closure_against(world, nation) < naval.CS_WE_TIERS[-1][0]:
+        return False
+    we = int((getattr(world, "war_exhaustion", {}) or {}).get(nation, 0) or 0)
+    return we > int(break_ranks_lines(world, nation)["exhaustion"])
+
+
 def p2_league_gate(world, nation: str, *, war_score: int, diplo_key: str) -> bool:
     """PC-F20 (S13e part 3): P1's coalition gate, read by P2 — True while the
     court is a league member with NO reason of its own to break ranks
@@ -2914,7 +2954,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         has_fought = _dip.pair_has_fought(world, diplo_key)
         p2_threshold = (
             effective_stalemate_turns
-            if has_fought
+            if has_fought or strangled_without_contact(world, nation)   # OC-3, BRIT-1
             else max(effective_stalemate_turns, P2_NO_CONTACT_ESCAPE_TURNS)
         )
         # PC-F20 (S13e part 3): P1's gates ride P2 too — a league member with
@@ -3391,6 +3431,9 @@ def _make_proposal(
         # Get game bucket from France's perspective (Talleyrand's assessment)
         game_bucket = get_game_bucket(nation, world)
         assessment = _get_talleyrand_assessment(proposal_type, game_bucket)
+        if (str(proposal_type) == "armistice" and game_bucket == "stalemate"
+                and strangled_without_contact(world, nation)):
+            assessment = TALLEYRAND_ASSESSMENTS[("armistice", "strangled")]   # OC-3
         decision_reason = determine_ai_offer_decision_reason(
             nation, proposal_type, world)
     else:

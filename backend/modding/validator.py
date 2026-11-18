@@ -1414,6 +1414,11 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                 result.add_error(
                     rp, "A scenario may not put a law in force: nothing is "
                         "in force at boot (REFORMS_SPEC §1)")
+            if "used_from" in row:
+                # row OC (GRD-15): a court's use of a law is its history, never authored
+                result.add_error(
+                    rp, "A scenario may not author `used_from`: a court's use "
+                        "of a law is recorded in play (row OC, GRD-15)")
             if "under_threat" in row and not isinstance(row.get("under_threat"), bool):
                 result.add_error(rp, "under_threat must be true or false")
             if "requires_design" in row:

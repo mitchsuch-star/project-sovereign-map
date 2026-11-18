@@ -349,10 +349,20 @@ class TestTheStanding:
         w.nation_authority["Prussia"] = 44
         assert standing.ai_refusal(w, "Prussia", 15) == "authority 44 → 29 is under 30"
         assert standing.ai_refusal(w, "Prussia", 14) in ("", "authority 30 would leave fewer than 3 diplomatic points a turn")
+        # Row OC (OC-1, GRD-29, November 18, 2026): the one gate also keeps an
+        # authority cure's price while the law rung would buy it (Prussia's
+        # Articles of War, 15, once Prussia recruits infantry whose morale the
+        # law would carry) — a lesser spend is then refused; the cure itself
+        # pays the plain floors.
+        reforms.note_law_used(w, "Prussia", "recruit", "infantry", True)
+        assert standing.ai_refusal(w, "Prussia", 14) == (
+            "authority 44 → 30 would strand the cure (15 kept for it above 30)")
+        assert standing.ai_refusal(w, "Prussia", 14, buying_the_cure=True) in (
+            "", "authority 30 would leave fewer than 3 diplomatic points a turn")
         # the reforms' purse test reads the one gate (its chest and Net tests come first)
         src = (BACKEND / "game_logic" / "reforms.py").read_text(encoding="utf-8")
         body = src[src.index("def ai_purse_refusal"):src.index("def ai_repeal_before_lapse")]
-        assert "standing.ai_refusal(world, nation, int(quote[\"price\"]))" in body
+        assert "standing.ai_refusal(world, nation, int(quote[\"price\"]), buying_the_cure=own)" in body
         assert "AI_AUTHORITY_FLOOR" not in body.split("standing.ai_refusal")[1]
 
     def test_the_payload_is_the_chips_key(self, world):

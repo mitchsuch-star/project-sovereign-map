@@ -508,10 +508,10 @@ class TestTheFumbleRollIsFixed:
             w = make_world(nap, ney, mack)
             seen = {}
 
-            def spy(self, strength_ratio=None, consume=True, _seen=seen):
+            def spy(self, strength_ratio=None, consume=True, _seen=seen, **k):   # GRD-34: terrain=
                 if consume:
                     _seen.setdefault(self.name, getattr(self, "sovereign_presence", "ABSENT"))
-                return real(self, strength_ratio, consume)
+                return real(self, strength_ratio, consume, **k)
             monkeypatch.setattr(Marshal, "get_attack_modifier", spy)
             with _quiet():
                 attack(w, "Ney", "Mack")

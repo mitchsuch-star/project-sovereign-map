@@ -1627,7 +1627,13 @@ class TestTheAiIsNotFrozenInstead:
         # rises 20–36 %) re-times the gated board; `tools/_s14f_p3_series_arms_
         # final.json`: D12 alone moves the ambient series, every other ruling's
         # seam is byte-identical with D12's held down.
-        assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 -> 9 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto; the October 27 enemy-AI sweep: the refused orders no longer placed)
+        # Row OC "the rulings built" (November 18, 2026; SYSTEMS_REFERENCE
+        # §226): 1 -> 0 — the courts' purses (a law bought only when used, the
+        # Staff saved for, a turn of upkeep kept) re-time the gated board (the
+        # re-pinned standing series board) and the one refusal it wrote is not
+        # placed. With every OC seam down in the child the prior figure
+        # returns (measured: 0 shipped / 1 with `tests/_oc_seams.py` down).
+        assert cooldowns["gated"] == 0, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 -> 9 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto; the October 27 enemy-AI sweep: the refused orders no longer placed)
 
 
 _COOLDOWN_PROBE = r'''

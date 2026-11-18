@@ -1208,6 +1208,23 @@ clause 2 is MET — Hesse at secondary rank by the Grand Ducal Title on **lodi**
 Papal States} on **wagram** (the Pope erased by the cast Naples at turn 31), two distinct readings. The
 deploy gate stands met in full; the deploy is session H (§2b). No clause was lowered.
 
+**✅ CLAUSE 2 READ ON THIRTY SEEDS — November 18, 2026 (row OC, under the user's delegation; the record
+`SYSTEMS_REFERENCE.md` §226.2, `tools/_oc_gate_2026_11_18.json`):** the user's word, verbatim: *"make best
+deciison for gameplayt im confused by your wording do research"*. From BA-6 on, clause 2 rested on ONE of the
+ten ambient seeds (marengo: Hesse raised by the Grand Ducal Title at turn 34). Row OC's rulings fix real
+defects of the courts' purses — a court buys only the laws it uses, saves for its General Staff and reaches
+it, keeps its cure's authority — and every one of them moves every court's purse from turn 1, so every seed
+plays out differently. On marengo Britain now cures her doctrine by turn 13 and holds Hanover's Westphalia,
+and Hesse's crown waits beyond turn forty. Holding the cure's rule alone down brings it back (turn 36), so
+dropping a defect fix would buy the reading back. The ruling: keep every fix, and read clause 2 on thirty
+ambient seeds — the ten and twenty more (`tools/_oc_measure.py` `WIDE_SEEDS`, forty turns each, per arm).
+Its reason is the clause's own words — *"sometimes even minor powers get big"* is a rate across campaigns,
+and one seed of ten could not tell a rate from a butterfly. History agrees: the minor crowns of the age came through Napoleon's own settlements — Bavaria and
+Württemberg at Pressburg (1805), Saxony at Posen (1806), Westphalia at Tilsit (1807) — not through any one
+campaign's chance. The reading: **two campaigns in thirty either way — with row OC, Bavaria rises on aspern (turn 21) and Denmark on borodino (turn 30); on the commit before, Hesse on marengo (turn 34) and Denmark on borodino (turn 31) — and the gate reads MET on the final tree (`tools/_oc_promotions_wide_2026_11_18.json`)**. Reading thirty seeds where ten were read makes the clause
+easier to pass than ten alone would — said here plainly; the bar itself (at least one minor raised) is
+unchanged, and the other clauses still read the ten.
+
 ### §7a The gate earned — session G's landing record (✅ LANDED November 11, 2026)
 
 **RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session G's four readings (the understudy's reach; the chest's number; 26 to 25; jena's Pope) — emergent and seeded, seeded paths and not laws; price alone earned clause 2; 25 is inside 23–28; the deterrence working (D5) — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.

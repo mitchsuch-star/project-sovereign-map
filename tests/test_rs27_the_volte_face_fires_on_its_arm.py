@@ -21,6 +21,10 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
+
+from tests._oc_seams import OC_SEAMS_DOWN  # noqa: E402
+
 SCRIPT = REPO / "tools" / "playtest_scripts" / "volte_court_austria.json"
 
 
@@ -255,5 +259,11 @@ class TestTheVolteFaceFiresOnItsArm:
             # Measured by bisect: this seam alone down -> 0 beats; D21 / X248 /
             # X249 alone down -> unchanged (2 beats).
             "--seam", 'backend.game_logic.coalition:add_war_exhaustion_from_draw={}',
+            # Row OC "the rulings built" (November 18, 2026; `SYSTEMS_REFERENCE.md`
+            # §226): the courts' and the Emperor's purses re-time this arm too (the
+            # beat fires at turn 21 twice with them up); the attribution this pin
+            # keeps is Step 3's, so row OC's seams ride down with the rest
+            # (`tests/_oc_seams.py`).
+            *[arg for spec in OC_SEAMS_DOWN for arg in ("--seam", spec)],
         )
         assert not _volte_turns(rows)

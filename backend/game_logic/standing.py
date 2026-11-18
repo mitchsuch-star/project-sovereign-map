@@ -313,15 +313,25 @@ def _cooldown_key(world, lord: str, key: str) -> str:
     return f"last:{lord}|{key}"
 
 
-def ai_refusal(world, lord: str, price: int) -> str:
+def ai_refusal(world, lord: str, price: int, *, buying_the_cure: bool = False) -> str:
     """The courts' floors (`reforms.ai_purse_refusal`'s own rule, extracted):
     a price never takes a court under AI_AUTHORITY_FLOOR, nor leaves it fewer
-    than AI_DIPLOMACY_FLOOR diplomatic points a turn. "" when it may pay."""
+    than AI_DIPLOMACY_FLOOR diplomatic points a turn. "" when it may pay.
+    OC-1 (GRD-29): while the court's cure law is authority-priced and unbought
+    the floor also keeps its price in hand (`affairs.cure_reserve`) — an
+    edict, a lesser law or a title never strands the cure; the cure's own
+    purchase (`buying_the_cure`) pays the plain floor."""
     from backend.game_logic.reforms import AI_AUTHORITY_FLOOR, AI_DIPLOMACY_FLOOR, _court_dp_after
     authority = standing_of(world, lord)
     after = authority - int(price)
     if after < AI_AUTHORITY_FLOOR:
         return f"authority {authority} → {after} is under {AI_AUTHORITY_FLOOR}"
+    if not buying_the_cure and int(price) > 0:
+        from backend.game_logic.affairs import cure_reserve
+        kept = cure_reserve(world, lord)
+        if kept and after < AI_AUTHORITY_FLOOR + kept:
+            return (f"authority {authority} → {after} would strand the cure "
+                    f"({kept} kept for it above {AI_AUTHORITY_FLOOR})")
     if _court_dp_after(world, lord, after) < AI_DIPLOMACY_FLOOR:
         return (f"authority {after} would leave fewer than "
                 f"{AI_DIPLOMACY_FLOOR} diplomatic points a turn")

@@ -130,6 +130,12 @@ class TestTheRung:
 
 
 class TestThePurseTest:
+    # Row OC (OC-1, GRD-37, November 18, 2026): RF-3's bar — price, reserve
+    # and five turns of the slate — tested with the at-war Staff seam DOWN
+    # (Austria boots at war; the shipped at-war bar is row OC's own pin).
+    @pytest.fixture(autouse=True)
+    def _rf3_bar_as_built(self, monkeypatch):
+        monkeypatch.setattr(R, "the_staff_is_saved_for_without_the_upkeep_reserve", lambda: False)
 
     def test_the_chest_keeps_a_reserve_and_five_turns_of_upkeep(self, world, carried):
         row = R.find_law(world, "Austria", "corps_d_armee")
