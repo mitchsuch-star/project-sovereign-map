@@ -317,6 +317,11 @@ class TestTheAnswersSayTheirPrice:
             # RE-STAGED by SF-RR4 (RR4-X1), consciously: the pursuit's objection
             # weighs the muster; a Mack it cannot carry keeps the objection.
             M.world.get_marshal("Mack").strength = 400000
+        if "support Bernadotte" in line:
+            # Row MC (November 17, 2026): the 1805 reading opens the pair as
+            # Rivals (-1); the support objection's premise is a HOSTILE pair
+            for a, b in (("Davout", "Bernadotte"), ("Bernadotte", "Davout")):
+                M.world.get_marshal(a).set_relationship(b, -2)
         asked, spent, _ = _order(client, line)
         assert M.world.pending_objection or M.world.pending_strategic_objection, \
             (line, asked.get("message"))

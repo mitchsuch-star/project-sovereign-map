@@ -1,0 +1,171 @@
+{
+ "tool": "tools/uxr3_frame_census.py",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\c069ad832af6e1f2\\ab261fff-bdf3-46a2-92ae-f2182bc54265\\scratchpad\\cap_ba6\\index.json",
+ "client_commit": "fdd4756f",
+ "frames": 145,
+ "frames_without_record": [],
+ "cut_lines": [],
+ "grip_overlaps": [],
+ "tick_overlaps": [],
+ "verdict_gaps": [
+  {
+   "surface": "diorama_ba5_ulm_full",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba5_ulm_full",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_ulm_full",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_ulm_full",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba5_ulm_full",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_defeat_defending",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba5_defeat_defending",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_defeat_defending",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_defeat_defending",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba5_defeat_defending",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_square_and_horse",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba5_square_and_horse",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_square_and_horse",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_square_and_horse",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba5_square_and_horse",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_day_decided",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba5_day_decided",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_day_decided",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba5_day_decided",
+   "res": "5120x1440",
+   "gap_px": 9.6
+  },
+  {
+   "surface": "diorama_ba5_day_decided",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "1920x1080",
+   "gap_px": 11.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "2560x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "3440x1440",
+   "gap_px": 10.0
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "5120x1440",
+   "gap_px": 8.3
+  },
+  {
+   "surface": "diorama_ba3_act_approach",
+   "res": "3840x2160",
+   "gap_px": 10.0
+  }
+ ],
+ "map_frames": 145,
+ "map_overlaps": [],
+ "map_hidden": [
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "1920x1080",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "1920x1080",
+   "what": "garrison:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "2560x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "3440x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "5120x1440",
+   "what": "fog_chip:?"
+  },
+  {
+   "surface": "war_room_ba3_day_gate",
+   "res": "3840x2160",
+   "what": "fog_chip:?"
+  }
+ ]
+}

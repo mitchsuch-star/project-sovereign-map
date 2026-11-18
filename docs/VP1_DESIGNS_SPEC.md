@@ -405,6 +405,8 @@ A2 (`GAME_END_SPEC.md` R2: the decisive peace, a +2 score term, never a floor), 
 
 ### 14.6 The road record re-recorded at S15's head (RE3-7, November 6, 2026 — the user's "Teeth: re-record, re-pin")
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** the road record's three readings — KEEP: each the user's "the teeth are the point" applied — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 *The row `BUG_FIXES.md` §RE3 RE3-7 FIXED; the rules `SYSTEMS_REFERENCE.md` §177.3; the record `tools/_vp1_road_arms_final.json` (the recorder's `note` and `driver_flags` name the tree and the flags), October 22's kept as `tools/_vp1_road_arms_2026_10_22.json`; pins `tests/test_vp1_the_decisive_peace.py::TestTheRoadArms`.*
 
 The three scripts have not changed since October 22; the board under them has — S14j's economy, S14k's courts in arms, RE-6's Edicts, AU's standing and the courts' flip. The question put to the user at S15's head: make the scripts reach their peaces again on every seed, or let the courts' teeth stand and re-record. The word: the teeth are the point. The record is re-recorded on the final tree (after RE3-6's commit), from the same armed run the reach record's `road_control` reads (`--affair lapse --standing-trace`, the dated letters' default), beside its unarmed control and the letters-only arm; each arm re-pinned with its cause.

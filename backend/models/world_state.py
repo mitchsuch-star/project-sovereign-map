@@ -2372,6 +2372,11 @@ class WorldState:
         # Empty for every ordinary battle; written to a save ONLY when it
         # holds something, so an ordinary save is byte for byte what it was.
         self.battle_days: Dict[str, Any] = {}
+        # Row MC (`backend/game_logic/precedence.py`): the book of incidents
+        # between marshals ({"A|B": {incidents, won, lost}}) and the accounts
+        # waiting for the Emperor's word. Written to a save only when held.
+        self.marshal_ledger: Dict[str, Any] = {}
+        self.marshal_accounts: List[Dict[str, Any]] = []
         # S14E-35: the last battle each court fought, {nation: turn} — the
         # hegemon's armed-peace clock used to read it off the marshals still
         # standing, so a stand-down or a destroyed lone corps erased it (the
@@ -9795,7 +9800,7 @@ class WorldState:
             "reforms": copy.deepcopy(self.reforms),
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
-            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation), **({"battle_days": copy.deepcopy(self.battle_days)} if self.battle_days else {}),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock); BA-3: the open days of battle, only when there is one
+            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation), **({"battle_days": copy.deepcopy(self.battle_days)} if self.battle_days else {}), **({"marshal_ledger": copy.deepcopy(self.marshal_ledger)} if self.marshal_ledger else {}), **({"marshal_accounts": copy.deepcopy(self.marshal_accounts)} if self.marshal_accounts else {}),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock); BA-3: the open days of battle, only when there is one
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -10413,6 +10418,11 @@ class WorldState:
         # Row BA (BA-3): the open days of battle; an old save reads none.
         _days = data.get("battle_days")
         world.battle_days = copy.deepcopy(_days) if isinstance(_days, dict) else {}
+        # Row MC: the book and the accounts; an old save reads none.
+        _book = data.get("marshal_ledger")
+        world.marshal_ledger = copy.deepcopy(_book) if isinstance(_book, dict) else {}
+        _accounts = data.get("marshal_accounts")
+        world.marshal_accounts = copy.deepcopy(_accounts) if isinstance(_accounts, list) else []
         # S14E-35: the last battle each court fought; an old save without the
         # key reads as today (empty = the marshals' own stamps alone).
         _last_battles: Dict[str, int] = {}
@@ -11807,6 +11817,11 @@ class WorldState:
         if world.campaign_end:
             from backend.game_logic.game_end import seed_opening
             seed_opening(world)
+
+        # Row MC: the opening's seats, the 1805 reading of three enmities and
+        # the founding incident of every authored pair (its authored cause).
+        from backend.game_logic.precedence import seed_the_book
+        seed_the_book(world, scenario_data)
 
         # SR-7d RV-6: the last statement of from_scenario, as of from_dict.
         from backend.game_logic.doctrines import refresh_doctrine_terms
@@ -17190,7 +17205,8 @@ class WorldState:
                     pre_attacker_strength=int(pre_battle_atk),
                     pre_defender_strength=int(pre_battle_def),
                     attacker_participants=_ac_atk_parts,
-                    defender_participants=_ac_def_parts)
+                    defender_participants=_ac_def_parts,
+                    place=str(auto_charge_battle_region or ""))   # row MC: the field
                 _jealousy.check_rivalry_transitions(self, ac_relationship_changes)
 
                 # [4B-3] Exhaustion tracking

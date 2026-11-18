@@ -321,13 +321,63 @@ class TestTheTableAtRest:
 
 
 class TestBA1X4TheTableAtLargeType:
-    """BA1-X4 (OPEN, owner Session H): at Text size 150 % and over the
-    tableau's lines outgrow its fixed layout — the standing parts first (a
-    name over its own figures, the losses caption over its count), on a
-    battle of one corps a side. The pin turns red the day the layout holds,
-    so the row is closed with it."""
+    """BA1-X4 (FIXED, row BA, session BA-6): at Text size 150 % and over the
+    tableau's lines outgrew its fixed layout — a name over its own figures, the
+    losses caption over its count. The stack's pitches now follow the live
+    Caption line (`_line_extra`: 0 at 100 % and 115 %, so those are what they
+    were), the dice tray's room and the swords below it follow too."""
 
-    @pytest.mark.xfail(strict=True, reason="BA1-X4 OPEN — owner Session H (S15, the deploy)")
+    def test_the_pitches_follow_the_line_and_never_fall_below_todays(self):
+        src = _gd("battle_diorama.gd")
+        assert "const TEXT_PITCH := 18.0" in src and "const FATE_PITCH := 18.0" in src
+        extra = _func(src, "_line_extra")
+        assert "maxf(h - LINE_H_SHIPPED, 0.0)" in extra
+        assert "text_y + TEXT_PITCH + line_extra" in src and "fate_y += FATE_PITCH + line_extra" in src
+        assert "_odo_left.position = Vector2(14.0, 22.0 + cap_extra)" in src
+        assert "return 106.0" in _func(src, "dice_room_h")
+        acts = _gd("battle_acts.gd")
+        assert "return diorama.dice_room_h()" in acts and "if y + row_size.y > room_h(diorama):" in acts
+        assert "toll.position.y -= station_y" in _func(acts, "_the_tolls_keep_the_baize")
+
+    def test_the_baizes_small_type_takes_a_fixed_step_above_130(self):
+        """BA1-X4: above Text size 130 % the stage's own lines are held at the 130 % step
+        (the walk holds every claim there), through the labels' own Theme - they stand
+        under Node2D blocks, which pass no theme down - and at or under it nothing is
+        set, so 100 % and 115 % are the project theme."""
+        src = _gd("battle_diorama.gd")
+        assert "const TABLEAU_TEXT_CAP := 1.3" in src
+        fit = _func(src, "_fit_tableau_type")
+        assert "if factor <= TABLEAU_TEXT_CAP + 0.001:" in fit and "_tableau_theme = null" in fit
+        assert "Utils.text_px(int(TABLEAU_TEXT_STEPS[step]), TABLEAU_TEXT_CAP)" in fit
+        assert "else _tableau_theme" in _func(src, "_mk_label")
+        assert "probe.theme = _tableau_theme" in _func(src, "_line_extra")
+        # the luck's row stays printed at every size the cap leaves (its short form is no longer reached)
+        assert "LUCK_ROW_MAX_EXTRA" in _gd("battle_acts.gd")
+
+    def test_the_table_holds_its_lines_at_text_size_175(self, tmp_path_factory):
+        if not Path(WALK.GODOT_DEFAULT).exists():
+            pytest.skip("the Godot engine is not on this machine")
+        committed = json.loads((AUDIT / "payloads" / "manifest.json").read_text(encoding="utf-8"))
+        payload, reason, _result = STAGE.fight(
+            "ordinary_brief", int(committed["ordinary_brief"]["ambient_seed"]))
+        assert payload is not None and reason
+        payload_dir = tmp_path_factory.mktemp("ba1_x4_payloads_175")
+        (payload_dir / "ordinary_brief.json").write_text(
+            json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        (payload_dir / "manifest.json").write_text(
+            json.dumps({"ordinary_brief": {"form": "brief"}}), encoding="utf-8")
+        shots = WALK.build_shots(payload_dir, [], 1.0)
+        for shot in shots:
+            shot["text_size"] = 1.75
+        results, errors = WALK.run(shots, WALK.GODOT_DEFAULT,
+                                   tmp_path_factory.mktemp("ba1_x4_run_175"),
+                                   headless=True, time_scale=8.0)
+        assert errors == []
+        frame = WALK._frame({r["id"]: r for r in results["results"]}["ordinary_brief__settled"],
+                            "settled")
+        assert frame["marks"]
+        assert WALK.overlaps(frame) == [] and WALK.off_the_baize(frame) == []
+
     def test_the_table_holds_its_lines_at_text_size_150(self, tmp_path_factory):
         if not Path(WALK.GODOT_DEFAULT).exists():
             pytest.skip("the Godot engine is not on this machine")

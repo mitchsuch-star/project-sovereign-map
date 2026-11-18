@@ -208,7 +208,7 @@ class TestTheLevee:
         assert "stands down" in _events(world, "levee")[-1]["message"]
 
     def test_the_one_new_log_type_the_census_and_the_surfaces(self):
-        assert "levee" in CL.CAMPAIGN_LOG_TYPES and len(CL.CAMPAIGN_LOG_TYPES) == 188  # 186->188 flipped consciously: row BA, BA-4 (Nov 16, 2026) adds `battle_day_closed` — a day of battle closed, its clashes and its toll in one line (the closing table told it; the night's close had no surface at all) — and `foreign_battle` — news of a battle between crowns the player is no party to, the crowns and who held the field, written since a battle lights its field only for those who fought (BA2-X20); no inert type retired in exchange  # DY-7 adds `recognition`
+        assert "levee" in CL.CAMPAIGN_LOG_TYPES and len(CL.CAMPAIGN_LOG_TYPES) == 191  # 188->191 flipped consciously: row MC (Nov 17, 2026) adds `marshal_bond` - a move of one marshal's view of another, written in the book of incidents with its cause (precedence.note), `title_in_the_gift` - a title of victory in the Emperor's gift after a decisive victory, and `title_conferred` - a title conferred and the seniors it passed over; no inert type retired in exchange  # 186->188 flipped consciously: row BA, BA-4 (Nov 16, 2026) adds `battle_day_closed` — a day of battle closed, its clashes and its toll in one line (the closing table told it; the night's close had no surface at all) — and `foreign_battle` — news of a battle between crowns the player is no party to, the crowns and who held the field, written since a battle lights its field only for those who fought (BA2-X20); no inert type retired in exchange  # DY-7 adds `recognition`
         assert "levee" in CL.LOG_TIER_LEAD and "levee" in GZ._COURT_TYPES
         from backend.game_logic.dispatch import (
             _DIPLOMATIC_EVENT_PRIORITY, _DIPLOMATIC_EVENT_TEMPLATES)
@@ -729,7 +729,9 @@ class TestTheSessionDMeasure:
             assert all(lo <= v <= hi for v in figures.values()), arm
 
     def test_the_standing_series_does_not_move(self):
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES
+        # (row BA, BA-6 / row MC re-pinned the live series; this record was
+        # taken before it, so it reads the series of its day)
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_BA6 as BASELINE_SERIES
         rec = _record("_t6b_series_arms_final.json")
         assert rec["prior"] == BASELINE_SERIES
         assert list(rec["arms"]) == list(ARM_NAMES)

@@ -381,9 +381,12 @@ class TestA8ThePetitionNamesTheSulker:
 
 
 class TestA8NoFalseThaw:
-    def test_a_change_that_did_not_land_is_marked(self, field):
-        """`modify_relationship` reads derived and writes stored, so on a
-        jealous pair a `+1` returns +1 and moves nothing."""
+    def test_a_change_that_did_not_land_is_marked(self, field, monkeypatch):
+        """With row MC's seam DOWN, `modify_relationship` reads derived and
+        writes stored, so on a jealous pair a `+1` returns +1 and moves
+        nothing — the case A8's display guard (`stored_moved`) answers."""
+        from backend.models import marshal as M
+        monkeypatch.setattr(M, "the_bond_writes_the_stored_view", lambda: False)
         world, ex, ney, murat, _ = field
         murat.set_relationship("Ney", -1)
         murat.jealous_of = "Ney"
@@ -391,8 +394,20 @@ class TestA8NoFalseThaw:
         returned = murat.modify_relationship("Ney", +1)
         assert returned == 1, "precondition: the writer still reports +1"
         assert murat.relationships.get("Ney") == stored_before, (
-            "precondition: stored did not move — if this fails the writer "
-            "was fixed and A8's display guard can be retired (Q5 option b)")
+            "precondition: stored did not move with the seam down")
+
+    def test_row_mc_writes_the_stored_view(self, field):
+        """Row MC (R0, Q5(c) re-opened): the writer reads and writes the
+        STORED view — on a jealous pair a `+1` lands (stored -1 -> 0), and a
+        `-1` drops one rung, never two (the derived -1 is not baked in)."""
+        world, ex, ney, murat, _ = field
+        murat.set_relationship("Ney", -1)
+        murat.jealous_of = "Ney"
+        assert murat.modify_relationship("Ney", +1) == 1
+        assert murat.relationships.get("Ney") == 0
+        murat.set_relationship("Ney", 0)
+        assert murat.modify_relationship("Ney", -1) == -1
+        assert murat.relationships.get("Ney") == -1
 
     def test_berthier_does_not_narrate_it(self):
         from backend.game_logic.battle_report import _pick_observation

@@ -220,6 +220,10 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         # ═══════ ROW BA, BA-5 — HIS DAYS (the pitched battles he led) ═══════
         **_build_days(marshal, world),
 
+        # ═══════ ROW MC — HIS PLACE IN THE ORDER, HIS TITLES, HIS BONDS ═══════
+        # (precedence.card_fields is the single source; empty for the sovereign)
+        "court": _build_court(marshal, world),
+
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
         # VP-M1 "The Fortunes of War": the wound and the turn it heals
@@ -254,6 +258,14 @@ def _derive_unit_type(marshal: Marshal) -> str:
     if marshal.cavalry:
         return "Cavalry"
     return "Infantry"
+
+
+def _build_court(marshal: Marshal, world) -> Dict[str, Any]:
+    """Row MC: his place in the order of precedence, his title and renown, the
+    title standing in the Emperor's gift (its price and whom it passes over),
+    and his bonds and quarrels with their causes — both directions."""
+    from backend.game_logic import precedence
+    return precedence.card_fields(world, marshal)
 
 
 def _build_glory(marshal: Marshal, world) -> Dict[str, Any]:

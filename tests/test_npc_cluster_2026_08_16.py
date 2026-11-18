@@ -384,6 +384,10 @@ class TestNPC2TheStaleQuestion:
         # had raised — the opposite of ending an order's life.
         allowed_functions = {
             ("backend/commands/executor.py", "_restore_if_refused"),
+            # WS-15 (row BA, session BA-6): an attack that struck no blow puts
+            # back the standing order its broken square had cleared, WITH the
+            # question that order had raised — `_restore_if_refused`'s kind.
+            ("backend/commands/combat_executor.py", "_give_back_what_no_blow_spent"),
         }
 
         def _enclosing_function(path_str, lineno):

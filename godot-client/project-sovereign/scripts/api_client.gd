@@ -274,6 +274,11 @@ func send_objection_response(choice: String, callback: Callable):
 	_send_post("/respond_to_objection", {"choice": choice}, callback)
 
 
+func confer_title(marshal_name: String, callback: Callable):
+	# Row MC: confer the title in the Emperor's gift on this marshal.
+	_send_post("/confer_title", {"marshal": marshal_name}, callback)
+
+
 func send_marshal_petition_response(choice: String, callback: Callable):
 	# Jealousy v3.2 (spec §0.2-10): ONE endpoint answers every marshal
 	# petition kind — confrontation, rivalry, Fontainebleau, war-weary.

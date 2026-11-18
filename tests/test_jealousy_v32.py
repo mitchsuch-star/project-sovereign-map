@@ -192,6 +192,10 @@ class TestTriggers:
         assert world.marshals["Murat"].jealous_of == "Davout"
 
     def test_hostile_needs_idle(self, world):
+        # Row MC: the 1805 opening reads Bernadotte and Davout as Rivals (-1;
+        # their feud is Auerstedt's, 1806) - this rule is about a HOSTILE pair
+        world.marshals["Bernadotte"].set_relationship("Davout", -2)
+        world.marshals["Davout"].set_relationship("Bernadotte", -2)
         # Bernadotte → Davout authored -2 (Hostile): delta 1 + idle >= 2
         _glory(world, "Davout", 1)
         world.marshals["Bernadotte"].idle_turns = 0
@@ -320,6 +324,10 @@ class TestDerivedRelationship:
         assert ney.get_relationship("Davout") == 0  # self-restoring
 
     def test_hostile_floor(self, world):
+        # Row MC: the 1805 opening reads Bernadotte and Davout as Rivals (-1;
+        # their feud is Auerstedt's, 1806) - this rule is about a HOSTILE pair
+        world.marshals["Bernadotte"].set_relationship("Davout", -2)
+        world.marshals["Davout"].set_relationship("Bernadotte", -2)
         bernadotte = world.marshals["Bernadotte"]
         assert bernadotte.get_relationship("Davout") == -2
         bernadotte.jealous_of = "Davout"

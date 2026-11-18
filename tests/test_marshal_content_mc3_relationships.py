@@ -44,8 +44,13 @@ BLESSED_PAIRS = [
     ("Soult", "Ney", -1),
     ("Ney", "Murat", -1),
     ("Davout", "Murat", -1),
-    ("Davout", "Bernadotte", -2),
-    ("Murat", "Bernadotte", -2),
+    # Row MC (November 17, 2026; MARSHALATE_SPEC.md §1): the three enmities
+    # are read as they stood in 1805 — Davout/Bernadotte (Auerstedt is
+    # October 1806), Murat/Bernadotte and the Emperor/Bernadotte open as
+    # Rivals; `precedence.the_seeds_read_as_of_1805` down restores -2. A
+    # deliberate decision recorded in its spec, not drift.
+    ("Davout", "Bernadotte", -1),
+    ("Murat", "Bernadotte", -1),
     ("Ney", "Bernadotte", -1),
     ("Massena", "Soult", 1),
     ("ArchdukeCharles", "Mack", -2),
@@ -60,8 +65,16 @@ BLESSED_PAIRS = [
     ("Napoleon", "Lannes", 1),
     ("Napoleon", "Davout", 1),
     ("Napoleon", "Murat", 1),
-    ("Napoleon", "Bernadotte", -2),
+    ("Napoleon", "Bernadotte", -1),     # row MC's 1805 reading (above)
 ]
+
+
+def _the_old_feud(world, a="Davout", b="Bernadotte"):
+    """The A-D4 hostile premise (-2 both ways), set by the tests that are about
+    hostility: row MC opens the pair as Rivals, and the game can make its own
+    Auerstedt (`precedence.a_silence_is_remembered`)."""
+    world.get_marshal(a).set_relationship(b, -2)
+    world.get_marshal(b).set_relationship(a, -2)
 
 FRENCH = {"Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte", "Massena"}
 
@@ -183,8 +196,14 @@ class TestCoordinationScaling:
             world.get_marshal(name), [world.get_marshal(ally_name)])
 
     def test_hostile_pair_contributes_zero(self, world):
-        # Davout attacking beside Bernadotte: x0.0 — Auerstedt in embryo.
+        # Davout attacking beside a HOSTILE Bernadotte: x0.0 — Auerstedt in embryo.
+        _the_old_feud(world)
         assert self._coord(world, "Davout", "Bernadotte") == (0.0, 0.0)
+
+    def test_the_1805_rivals_coordinate_at_half(self, world):
+        # row MC: as they stood in 1805, Davout and Bernadotte are Rivals (x0.5)
+        atk, dfn = self._coord(world, "Davout", "Bernadotte")
+        assert (atk, dfn) == (pytest.approx(0.03 * 0.5), pytest.approx(0.05 * 0.5))
 
     def test_friendly_pair_scales_up(self, world):
         # Lannes beside Ney: +1 -> x1.25 on the 3%/5% base.
@@ -220,6 +239,7 @@ class TestHostileRefusal:
         return primary, candidate
 
     def test_bernadotte_ineligible_to_reinforce_davout(self, world):
+        _the_old_feud(world)
         primary, bernadotte = self._stage_adjacent(world, "Davout", "Bernadotte")
         eligible = CommandExecutor()._combat._is_reinforcement_eligible(
             bernadotte, primary, primary.location, "France", world)
@@ -227,6 +247,7 @@ class TestHostileRefusal:
 
     def test_written_support_overrides_hostility(self, world):
         # The counter-lever IS the fantasy: put it in writing and he comes.
+        _the_old_feud(world)
         primary, bernadotte = self._stage_adjacent(world, "Davout", "Bernadotte")
         bernadotte.strategic_order = StrategicOrder(
             command_type="SUPPORT", target="Davout", target_type="marshal",
@@ -246,6 +267,7 @@ class TestHostileRefusal:
     def test_muster_reason_hostile_before_ambition(self, world):
         # vs Davout the preview names the FEUD, not the ability — the
         # hostile arm outranks eyes_on_a_crown in the reason ladder.
+        _the_old_feud(world)
         primary, bernadotte = self._stage_adjacent(world, "Davout", "Bernadotte")
         will_join, code = CommandExecutor()._combat._muster_reason(
             bernadotte, primary, primary.location, "France", world)
@@ -297,9 +319,16 @@ class TestArrivalStacking:
         # Neutral base 60 (MC-2 pin) - 20 hostility: I Corps does not march
         # for Davout. (A-D4 already bars auto-reinforcement outright; this
         # pins the same feud priced into the score itself.)
+        _the_old_feud(world)
         self._stage_on_plains(world, "Bernadotte", "Davout")
         assert self._arrival(world, world.get_marshal("Bernadotte"),
                              world.get_marshal("Davout"), monkeypatch) == 40
+
+    def test_the_1805_rivals_price_minus_10(self, world, monkeypatch):
+        # row MC: as Rivals (-1) the same staging reads 60 - 10
+        self._stage_on_plains(world, "Bernadotte", "Davout")
+        assert self._arrival(world, world.get_marshal("Bernadotte"),
+                             world.get_marshal("Davout"), monkeypatch) == 50
 
     def test_enemy_side_rivalry_prices_minus_10(self, world, monkeypatch):
         # GR5 delta pin: Buxhowden's score for Kutuzov drops exactly 10
@@ -323,8 +352,9 @@ class TestCardSurface:
 
     def test_davout_card_names_the_feud(self, world):
         rows = {r["name"]: r for r in self._cards(world)["Davout"]["relationships"]}
-        assert rows["Bernadotte"]["value"] == -2
-        assert rows["Bernadotte"]["label"] == "Hostile"
+        # row MC's 1805 reading: Rivals, the feud still to come (Auerstedt, 1806)
+        assert rows["Bernadotte"]["value"] == -1
+        assert rows["Bernadotte"]["label"] == "Rival"
         assert rows["Murat"]["value"] == -1
         assert rows["Murat"]["label"] == "Rival"
 

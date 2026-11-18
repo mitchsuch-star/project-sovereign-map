@@ -174,15 +174,44 @@ func _fit_height_in_wing() -> void:
 	panel_container.size = Vector2.ZERO
 
 
+var _rest_tick := 0
+
+
+func _rest_window_soon(_v: float = 0.0) -> void:
+	"""BA2-X6: after the scroll has come to rest (the shared top snap runs two frames
+	after its last move) the window is set again from where it rests, so that its
+	foot falls between two lines at any offset, not only at the top."""
+	_rest_tick += 1
+	var tick := _rest_tick
+	for _i in range(3):
+		await get_tree().process_frame
+		if not is_inside_tree() or tick != _rest_tick:
+			return
+	_rest_window()
+
+
+func _rest_window() -> void:
+	if not visible or scroll == null or content_area == null:
+		return
+	var before: float = scroll.custom_minimum_size.y
+	_fit_height()
+	if absf(scroll.custom_minimum_size.y - before) > Utils.WHOLE_LINE_EDGE:
+		panel_container.size = Vector2.ZERO
+
+
 func _window_on_whole_lines(content_h: float, available: float) -> float:
 	"""The scroll window's height: the content's when it fits, else the room
 	there is cut back to the last line that fits WHOLE. BA2-X6 (row BA, BA-2,
 	November 15, 2026): a long province — its march, army and attack rows on a
 	short screen — opened with its fold through the middle of a line (13 px of
 	a row at 5120 × 1440, the frame census). The panel opens at its top, so
-	the fold is set between two lines there."""
-	if content_h <= available:
-		return clampf(content_h, 40.0, available)
+	the fold is set between two lines there. The same at any scroll offset `v`
+	(`scroll.scroll_vertical`, which the rest sets on a line's top): the window
+	is the span from `v` to the last line's foot that fits the room, so a panel
+	scrolled to the middle or the end rests on whole lines too."""
+	var v := float(scroll.scroll_vertical) if scroll != null else 0.0
+	if content_h - v <= available:
+		return _steady_window(clampf(content_h - v, 40.0, available))
 	var frame: StyleBox = content_area.get_theme_stylebox("normal")
 	var top: float = frame.get_margin(SIDE_TOP) if frame != null else 0.0
 	var lines: int = content_area.get_line_count()
@@ -190,10 +219,20 @@ func _window_on_whole_lines(content_h: float, available: float) -> float:
 	for i in range(lines):
 		var line_end: float = top + (float(content_area.get_line_offset(i + 1)) if i + 1 < lines
 				else content_h)
-		if line_end > available:
+		if line_end - v > available:
 			break
-		fits = line_end
-	return clampf(fits if fits >= 40.0 else available, 40.0, available)
+		fits = line_end - v
+	return _steady_window(clampf(fits if fits >= 40.0 else available, 40.0, available))
+
+
+func _steady_window(h: float) -> float:
+	"""A window within the rest's own tolerance of the one standing is left as it
+	is: the window sets the bar's range, the range moves the rest - this is what
+	keeps the two from chasing each other."""
+	var now: float = scroll.custom_minimum_size.y if scroll != null else 0.0
+	if now > 0.0 and absf(h - now) <= Utils.WHOLE_LINE_EDGE:
+		return now
+	return h
 
 var _region: String = ""
 # WO-V-D1 (Score Finish Step 7 slice 8): the Build rows fold behind one
@@ -233,6 +272,10 @@ func _ready():
 	# before its parent can scroll. PASS keeps the action chips working.
 	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 	get_viewport().size_changed.connect(_on_viewport_resized)
+	# BA2-X6: a scrolled panel rests with its top on a line's top (the shared rest) and
+	# its window on a line's foot (`_rest_window`, run once the scroll has come to rest)
+	Utils.keep_whole_lines(scroll)
+	scroll.get_v_scroll_bar().value_changed.connect(_rest_window_soon)
 	hide()
 
 

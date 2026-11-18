@@ -19,8 +19,8 @@
     "nation": "Austria",
     "arm": "infantry",
     "committed": 42014,
-    "casualties": 7929,
-    "remaining": 34085,
+    "casualties": 8829,
+    "remaining": 33185,
     "status": "engaged",
     "lead": true,
     "crowned": false,
@@ -31,8 +31,8 @@
     "nation": "Austria",
     "arm": "infantry",
     "committed": 17697,
-    "casualties": 2003,
-    "remaining": 15694,
+    "casualties": 2230,
+    "remaining": 15467,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -43,8 +43,8 @@
     "nation": "Austria",
     "arm": "infantry",
     "committed": 4425,
-    "casualties": 500,
-    "remaining": 3925,
+    "casualties": 557,
+    "remaining": 3868,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -52,9 +52,9 @@
    }
   ],
   "reserve_count": 1,
-  "casualties_total": 10932,
+  "casualties_total": 12173,
   "committed_total": 68561,
-  "reserve_casualties": 500,
+  "reserve_casualties": 557,
   "nation": "Austria"
  },
  "defender": {
@@ -64,8 +64,8 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 20618,
-    "casualties": 1460,
-    "remaining": 19158,
+    "casualties": 1311,
+    "remaining": 19307,
     "status": "engaged",
     "lead": true,
     "crowned": false,
@@ -76,8 +76,8 @@
     "nation": "France",
     "arm": "emperor",
     "committed": 9216,
-    "casualties": 391,
-    "remaining": 8825,
+    "casualties": 351,
+    "remaining": 8865,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -88,8 +88,8 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 23961,
-    "casualties": 1016,
-    "remaining": 22945,
+    "casualties": 1141,
+    "remaining": 22820,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -110,9 +110,9 @@
    }
   ],
   "reserve_count": 3,
-  "casualties_total": 4078,
+  "casualties_total": 4045,
   "committed_total": 92031,
-  "reserve_casualties": 1211,
+  "reserve_casualties": 1242,
   "nation": "France"
  },
  "observation": "The Emperor watched this field. Murat arrived to reinforce Ney, but Bernadotte failed to reach the field in time.",
@@ -238,7 +238,7 @@
   "theirs_of": 2,
   "awaits": "ours",
   "pending": false,
-  "morning": "The day so far: 11,803 of ours for 24,371 of his — the better of the toll is ours.",
+  "morning": "The day so far: 11,770 of ours for 25,612 of his — the better of the toll is ours.",
   "ahead": "ours",
   "told": [
    {
@@ -254,7 +254,7 @@
    {
     "who": "clash",
     "kind": "clash",
-    "line": "Mack's attack: we won on points — 4,078 of ours for 10,932 of his; our weight of numbers told."
+    "line": "Mack's attack: we won on points — 4,045 of ours for 12,173 of his; our weight of numbers told."
    }
   ],
   "ended": "",
@@ -272,8 +272,9 @@
     "odds": "favorable",
     "marshal": "Ney",
     "shown": "Ney",
-    "does": "odds: favorable — 94,851 on 34,085",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 87,986 on 33,185",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "guard",
@@ -287,8 +288,9 @@
     "odds": "favorable",
     "marshal": "Napoleon",
     "shown": "Napoleon",
-    "does": "odds: favorable — 126,791 on 34,085 · his morale −10",
-    "more": "As the Guard goes in his lead loses 10 morale. Thrown back, every corps of yours that fought loses 10."
+    "does": "odds: favorable — 87,986 on 33,185 · his morale −10",
+    "more": "As the Guard goes in his lead loses 10 morale. Thrown back, every corps of yours that fought loses 10.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "dig_in",
@@ -303,7 +305,8 @@
     "marshal": "Ney",
     "shown": "Ney",
     "does": "defensive stance: +9% if he strikes",
-    "more": "A dug-in line stands firmer when it is attacked. He speaks next."
+    "more": "A dug-in line stands firmer when it is attacked. He speaks next.",
+    "risk": "he answers next: firmer if he strikes, idle if he draws off"
    },
    {
     "kind": "lead",
@@ -314,11 +317,12 @@
     "ok": true,
     "why": "",
     "counsel": "none",
-    "odds": "even",
+    "odds": "favorable",
     "marshal": "Bernadotte",
     "shown": "Bernadotte",
-    "does": "odds: even — 48,849 on 34,085",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 104,986 on 33,185",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -332,8 +336,9 @@
     "odds": "favorable",
     "marshal": "Davout",
     "shown": "Davout",
-    "does": "odds: favorable — 92,208 on 34,085",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 87,986 on 33,185",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -347,8 +352,9 @@
     "odds": "favorable",
     "marshal": "Lannes",
     "shown": "Lannes",
-    "does": "odds: favorable — 96,444 on 34,085",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 87,986 on 33,185",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -362,8 +368,9 @@
     "odds": "favorable",
     "marshal": "Murat",
     "shown": "Murat",
-    "does": "odds: favorable — 67,938 on 34,085",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 87,986 on 33,185",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -377,8 +384,9 @@
     "odds": "favorable",
     "marshal": "Soult",
     "shown": "Soult",
-    "does": "odds: favorable — 126,818 on 34,085",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 117,986 on 33,185",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "bring_up",
@@ -392,7 +400,8 @@
     "odds": "",
     "marshal": "Bernadotte",
     "shown": "Bernadotte",
-    "does": "comes up beside the lead"
+    "does": "comes up beside the lead",
+    "risk": "the corps stands beside the lead for the next clash"
    },
    {
     "kind": "bring_up",
@@ -406,7 +415,8 @@
     "odds": "",
     "marshal": "Soult",
     "shown": "Soult",
-    "does": "comes up beside the lead"
+    "does": "comes up beside the lead",
+    "risk": "the corps stands beside the lead for the next clash"
    },
    {
     "kind": "stand",
@@ -420,7 +430,7 @@
     "odds": "",
     "marshal": "Ney",
     "shown": "Ney",
-    "does": "he speaks next",
+    "does": "he speaks next — he will strike",
     "more": "A silence costs no point. Two silences running, and night falls."
    },
    {
@@ -435,7 +445,7 @@
     "odds": "",
     "marshal": "Ney",
     "shown": "Ney",
-    "does": "the day ends; he keeps the field",
+    "does": "the day ends; he keeps the field; the toll stands at 11,770 of ours for 25,612 of his",
     "more": "The attack is given up and the day ends where it stands."
    },
    {

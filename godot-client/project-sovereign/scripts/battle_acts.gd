@@ -116,6 +116,7 @@ const RESERVE_DEAD := " — "            # what follows it on the tail is what t
 var _laid := "file"                    # "wedge" when the order of battle is laid
 var _laid_why: Array = []              # BA3-X2: what the wedge would have stood on (the walk reads it)
 var _reserve_dead: Array = []          # the reserve's dead, a line of its own on a wedge
+var _reserve_short_at_end: Array = []  # BA6-X10: [{label, short, left, edge}] a note a triumph's laurel will crowd
 var _wall: SiegeWall = null            # a garrison's wall (kind "assault")
 var _works: Dictionary = {}            # corps name -> its Rampart (field works)
 var _squares: Array = []               # the ground marks of corps in square
@@ -264,6 +265,9 @@ func dress(final_frame: bool) -> void:
 	if host == null:
 		return
 	_put_the_chrome_back()
+	# BA-6 (lever 1): a table with a day's panel asks the tray for DAY_ROOM at its foot, and every
+	# table without one has the tray as it was built — before the speed switch (and the plate) stand on it
+	host.set_day_room(DAY_ROOM if _day_has_panel() else 0.0)
 	_build_the_speed()     # BA-5: every table that plays — a fleet action's and an old payload's too
 	if host._is_naval():
 		return
@@ -325,7 +329,7 @@ func dress(final_frame: bool) -> void:
 		_dice = DiceTray.new()
 		host._stage.add_child(_dice)
 		host._transients.append(_dice)
-		_dice.build(host, roll, _luck_line(roll))
+		_dice.build(host, roll, _luck_line(roll), _luck_short(roll))
 		_dice.position = Vector2(sw / 2.0 - DiceTray.TRAY_W / 2.0, 74.0)
 		_dice.visible = false
 
@@ -490,7 +494,7 @@ func _chrome_rects() -> Array:
 			host._clash_label]:
 		if piece is Label and is_instance_valid(piece):
 			out.append(_label_ink(piece))
-	out.append(Rect2(host._stage.size.x / 2.0 - 110.0, 74.0, 220.0, DiceTray.ROOM_H))
+	out.append(Rect2(host._stage.size.x / 2.0 - 110.0, 74.0, 220.0, DiceTray.room_h(host)))
 	return out
 
 
@@ -770,10 +774,15 @@ func _the_tolls_keep_the_baize() -> void:
 	for name in _blocks:
 		var b: Dictionary = _blocks[name]
 		var toll: Label = b.get("toll", null)
-		if toll == null or not is_instance_valid(toll) or not toll.text.contains("\n"):
+		if toll == null or not is_instance_valid(toll):
 			continue
 		var station_y: float = maxf((b["node"] as Node2D).position.y, _rest_pos(b).y)
 		if station_y + toll.position.y + toll.size.y <= host._stage.size.y:
+			continue
+		if not toll.text.contains("\n"):
+			# BA1-X4: a single line may still hang under the baize (Text size 175 %):
+			# it is lifted to stand inside the stage
+			toll.position.y -= station_y + toll.position.y + toll.size.y - host._stage.size.y
 			continue
 		var was_w: float = toll.size.x
 		var left: bool = bool(b["is_left"])
@@ -942,8 +951,8 @@ func _put_the_chrome_back() -> void:
 	for ink in [&"font_color", &"font_hover_color"]:
 		host._btn_close.remove_theme_color_override(ink)
 	host._btn_close.reset_size()
-	host._btn_close.position = Vector2(host.TRAY_W - 154.0, host.TRAY_H - 46.0)
-	host._btn_replay.position = Vector2(host.TRAY_W - 274.0, host.TRAY_H - 46.0)
+	host._btn_close.position = Vector2(host.TRAY_W - 154.0, host.tray_h() - 46.0)
+	host._btn_replay.position = Vector2(host.TRAY_W - 274.0, host.tray_h() - 46.0)
 	# BA-3: the headline a day's banner replaced comes back (the host's own words
 	# and colour for this payload's register — what its populate set)
 	var register := str(host._data.get("register", "observer"))
@@ -977,14 +986,23 @@ func _the_end_is_told() -> void:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BA-5: the ground on the table (the user's tick — "The ground on the table")
+# BA-5 / BA-6: the ground on the table (the user's tick — "The ground on the table")
 # ─────────────────────────────────────────────────────────────────────────────
-# The province's terrain, DRAWN on the felt (no new art) as a campaign map is
-# printed under its counters: dark, low, and under the men and every label. It
-# lies on the DEFENDER's half — it is his ground, and the bonus it gives is his
-# — except a river, which runs between the two lines, and open country, which is
-# everywhere. A payload without `ground` (an old save's, a fleet action's) is a
-# bare felt, as before.
+# The province's ground is a SHEET OF A PERIOD SURVEY laid on the felt under the
+# men — row BA, BA-6, by the user's "make sure the terrain background does not
+# look ai genned even get assets if needed" (BA-5 had drawn it in code, and it
+# read as generated). Ferraris's hand-coloured survey of the Austrian
+# Netherlands (1771-78) gives the fields, woods, hills, towns and rivers; Anich's
+# engraved Atlas Tyrolensis (1774) the mountains: real scans, cut and graded by
+# lamplight into the felt's own dark range so every caption over them keeps its
+# contrast (tools/ba6_terrain_plates.py; assets/textures/battle/; the sources in
+# THIRD_PARTY_LICENSES.md). Open country, hills, mountains and a river span the
+# table; a wood or a town is the defender's ground (its bonus is his), so its
+# plate is the one whose feature lies on his half. A plate is never mirrored —
+# a survey's lettering would read backwards. A province picks its plate among
+# its kind's by its own name, so a field looks the same each time it is fought
+# on. A payload without `ground` (an old save's, a fleet action's) is a bare
+# felt, as before.
 
 var _ground: Ground = null
 
@@ -1010,275 +1028,67 @@ class Ground:
 	extends Node2D
 	# `kind` is the payload's `ground` (the backend's terrain key); `dir` is +1
 	# when the defender holds the right half of the table and -1 the left. The
-	# scatter is the province's own (seeded by its name): a field looks the same
-	# every time it is fought on. Everything is drawn in the felt's own shades —
-	# a little darker, a little lit where the lamp (upper right) would catch it.
+	# plate is the province's own among its kind's (seeded by its name). The
+	# sheet lies inside the felt's border band and below the loss counters'
+	# line, its shadow cast left and down from the lamp (upper right).
 	const KINDS := ["plains", "forest", "hills", "mountains", "urban", "river_crossing"]
-	const INK := Color(0.03, 0.07, 0.05)          # darker than the felt
-	const LIGHT := Color(0.66, 0.74, 0.58)        # an edge the lamp catches
-	const LEAF := Color(0.06, 0.19, 0.10)         # a wood's canopy
-	const LEAF_LIT := Color(0.36, 0.54, 0.30)
-	const ROOF := Color(0.47, 0.28, 0.19)         # tile, the slope the lamp is on
-	const ROOF_SHADE := Color(0.16, 0.09, 0.07)
-	const STONE := Utils.UI_GROUND_STONE
-	const SNOW := Color(0.84, 0.88, 0.86)
-	const WATER := Color(0.36, 0.50, 0.60)
-	const TIMBER := Color(0.45, 0.33, 0.21)
-	const EDGE := 12.0                             # the felt's border band
-	const TOP := 28.0                              # under the loss counters' line
-	const FOOT := 20.0
+	const PLATES := {              # a kind that spans the table: any of its plates
+		"plains": ["plains_1", "plains_2", "plains_3"],
+		"hills": ["hills_1", "hills_2"],
+		"mountains": ["mountains_1", "mountains_2"],
+		"river_crossing": ["river_crossing_1"],
+	}
+	const SIDED := {               # a kind on the defender's half: the plate with its feature there
+		"forest": {"right": ["forest_1"], "left": ["forest_2"]},
+		"urban": {"right": ["urban_1"], "left": ["urban_2"]},
+	}
+	const PLATE_DIR := "res://assets/textures/battle/"
+	const SIDE := 14.0                             # the sheet's margin on the felt, left and right
+	const TOP := 40.0                              # ...under the loss counters' line
+	const FOOT := 14.0
+	const SHADOW := Color(0.0, 0.0, 0.0, 0.42)
+	const EDGE_LIT := Color(0.86, 0.80, 0.62, 0.16)  # its trimmed edge, where the lamp catches it
 	var kind := ""
 	var dir := 1.0
 	var felt := Vector2(948.0, 440.0)
 	var seed_text := ""
+	var plate := ""                                # the plate on the table (the walk reads it)
+	var _tex: Texture2D = null
 
 	func _rng() -> RandomNumberGenerator:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = (kind + "|" + seed_text).hash()
 		return rng
 
-	func _x(u: float) -> float:
-		# 0 = the table's centre line, 1 = the defender's edge of the felt
-		return felt.x / 2.0 + dir * u * (felt.x / 2.0 - EDGE)
+	func _ready() -> void:
+		texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		var names: Array = PLATES.get(kind, [])
+		if SIDED.has(kind):
+			names = SIDED[kind]["right" if dir > 0.0 else "left"]
+		if names.is_empty():
+			return
+		var rng := _rng()
+		plate = str(names[rng.randi() % names.size()])
+		var path := PLATE_DIR + plate + ".jpg"
+		if ResourceLoader.exists(path):
+			_tex = load(path)
 
-	func _on_his_half(p: Vector2, r: float) -> Vector2:
-		# kept on the defender's half of the felt, a body's width inside its edges
-		var mid := felt.x / 2.0
-		var lo := (mid + 18.0 + r) if dir > 0.0 else (EDGE + r)
-		var hi := (felt.x - EDGE - r) if dir > 0.0 else (mid - 18.0 - r)
-		return Vector2(clampf(p.x, lo, hi), clampf(p.y, TOP + r, felt.y - FOOT - r))
-
-	static func _by_y(a: Dictionary, b: Dictionary) -> bool:
-		return float(a["p"].y) < float(b["p"].y)
+	func sheet_rect() -> Rect2:
+		return Rect2(Vector2(SIDE, TOP), Vector2(felt.x - 2.0 * SIDE, felt.y - TOP - FOOT))
 
 	func _draw() -> void:
-		match kind:
-			"forest":
-				_wood()
-			"hills":
-				_hills()
-			"mountains":
-				_heights()
-			"urban":
-				_town()
-			"river_crossing":
-				_river()
-			"plains":
-				_open_field()
-
-	# ── a wood: clumps of canopies ──────────────────────────────────────────
-	func _tree(p: Vector2, r: float) -> void:
-		draw_circle(p + Vector2(-r * 0.4, r * 0.5), r * 1.05, Color(INK, 0.22))            # its shade
-		for lobe in [Vector2(-0.46, 0.16), Vector2(0.46, 0.16), Vector2(0.0, -0.42)]:
-			draw_circle(p + (lobe as Vector2) * r, r * 0.72, Color(LEAF, 0.64))
-		draw_circle(p + Vector2(r * 0.24, -r * 0.44), r * 0.40, Color(LEAF_LIT, 0.17))       # where the lamp catches it
-
-	func _wood() -> void:
-		var rng := _rng()
-		var trees: Array = []
-		for clump in range(7):
-			var heart := Vector2(_x(0.16 + rng.randf() * 0.78), 56.0 + rng.randf() * (felt.y - 120.0))
-			for i in range(9):
-				var a: float = rng.randf() * TAU
-				var d: float = sqrt(rng.randf()) * 58.0
-				var r: float = 7.0 + rng.randf() * 5.0
-				trees.append({"p": _on_his_half(heart + Vector2(cos(a) * d * 1.5, sin(a) * d * 0.8), r), "r": r})
-		trees.sort_custom(_by_y)
-		for t in trees:
-			_tree(t["p"], float(t["r"]))
-
-	# ── hills: mounds as an engraver cuts them ──────────────────────────────
-	func _mound(c: Vector2, w: float, h: float) -> void:
-		var crest := PackedVector2Array()
-		var steps := 12
-		for s in range(steps + 1):
-			var f: float = float(s) / steps
-			crest.append(c + Vector2((f - 0.5) * w, -sin(f * PI) * h))
-		var body := crest.duplicate()
-		body.append(c + Vector2(w * 0.5, h * 0.28))
-		body.append(c + Vector2(-w * 0.5, h * 0.28))
-		draw_colored_polygon(body, Color(INK, 0.17))
-		# the slope, hachured: the strokes fall away from the crest
-		for s in range(1, steps):
-			var f: float = float(s) / steps
-			var p: Vector2 = crest[s] + Vector2(0.0, 3.0)
-			var fall := Vector2((f - 0.5) * 10.0, 6.0 + sin(f * PI) * h * 0.42)
-			draw_line(p, p + fall, Color(INK, 0.30 if f < 0.55 else 0.18), 1.0)       # the side away from the lamp is darker
-		draw_polyline(crest, Color(INK, 0.44), 1.8)
-		# the lamp on the crest's right shoulder
-		var lit := PackedVector2Array()
-		for s in range(int(steps * 0.45), steps):
-			lit.append(crest[s] + Vector2(0.0, -2.0))
-		draw_polyline(lit, Color(LIGHT, 0.18), 1.2)
-
-	func _hills() -> void:
-		var rng := _rng()
-		var mounds: Array = []
-		for k in range(6):
-			var w: float = 120.0 + rng.randf() * 80.0
-			var h: float = 18.0 + rng.randf() * 14.0
-			var c := Vector2(_x(0.14 + 0.78 * (float(k % 3) + rng.randf() * 0.7) / 3.0),
-					(92.0 if k < 3 else 250.0) + rng.randf() * 96.0)
-			mounds.append({"p": _on_his_half(c, w * 0.5), "w": w, "h": h})
-		mounds.sort_custom(_by_y)
-		for m in mounds:
-			_mound(m["p"], float(m["w"]), float(m["h"]))
-
-	# ── mountains: peaks, a shaded face, snow ───────────────────────────────
-	func _peak(foot: Vector2, h: float) -> void:
-		var half: float = h * 0.66
-		var top := foot + Vector2(h * 0.06, -h)
-		var left := foot + Vector2(-half, 0.0)
-		var right := foot + Vector2(half, 0.0)
-		var seam := foot + Vector2(half * 0.10, 0.0)
-		draw_colored_polygon(PackedVector2Array([top, left, right]), Color(STONE, 0.20))
-		draw_colored_polygon(PackedVector2Array([top, left, seam]), Color(INK, 0.40))          # the face away from the lamp
-		draw_colored_polygon(PackedVector2Array([top, top.lerp(left, 0.26), top.lerp(seam, 0.20),
-				top.lerp(right, 0.26)]), Color(SNOW, 0.20))
-		draw_polyline(PackedVector2Array([left, top, right]), Color(INK, 0.46), 1.6)
-		draw_line(top, seam, Color(INK, 0.30), 1.0)
-		draw_line(top + Vector2(1.5, 1.5), right + Vector2(-3.0, -1.0), Color(LIGHT, 0.20), 1.2)
-
-	func _heights() -> void:
-		var rng := _rng()
-		var peaks: Array = []
-		for k in range(8):
-			var h: float = 48.0 + rng.randf() * 34.0
-			var foot := Vector2(_x(0.12 + 0.82 * (float(k % 4) + rng.randf() * 0.7) / 4.0),
-					(112.0 if k < 4 else 288.0) + rng.randf() * 78.0)
-			foot = _on_his_half(foot, h * 0.66)
-			foot.y = maxf(foot.y, TOP + h + 4.0)           # its head under the counters' line
-			peaks.append({"p": foot, "h": h})
-		peaks.sort_custom(_by_y)
-		for k in peaks:
-			# a range, not a row of pyramids: each peak has a lower shoulder behind it
-			var h: float = float(k["h"])
-			var side: float = 1.0 if int(h) % 2 == 0 else -1.0
-			_peak((k["p"] as Vector2) + Vector2(side * h * 0.52, -3.0), h * 0.62)
-			_peak(k["p"], h)
-
-	# ── a town: tiled roofs about a church, two roads ───────────────────────
-	func _house(p: Vector2, w: float, h: float, upright: bool) -> void:
-		var box := Rect2(p - Vector2(w, h) / 2.0, Vector2(w, h))
-		draw_rect(Rect2(box.position + Vector2(-3.0, 3.0), box.size), Color(INK, 0.24))            # its shade
-		if upright:      # the ridge runs up the table: the right slope is the lamp's
-			draw_rect(Rect2(box.position, Vector2(w / 2.0, h)), Color(ROOF_SHADE, 0.58))
-			draw_rect(Rect2(box.position + Vector2(w / 2.0, 0.0), Vector2(w / 2.0, h)), Color(ROOF, 0.52))
-			draw_line(Vector2(p.x, box.position.y), Vector2(p.x, box.end.y), Color(LIGHT, 0.16), 1.0)
-		else:            # the ridge runs across: the upper slope is the lamp's
-			draw_rect(Rect2(box.position, Vector2(w, h / 2.0)), Color(ROOF, 0.52))
-			draw_rect(Rect2(box.position + Vector2(0.0, h / 2.0), Vector2(w, h / 2.0)), Color(ROOF_SHADE, 0.58))
-			draw_line(Vector2(box.position.x, p.y), Vector2(box.end.x, p.y), Color(LIGHT, 0.16), 1.0)
-
-	func _town() -> void:
-		var rng := _rng()
-		var heart := _on_his_half(Vector2(_x(0.58), 138.0), 40.0)
-		# two roads: one toward the attacker, one down the table
-		for road in [[Vector2(_x(0.30), 214.0), Vector2(_x(0.03), 240.0)],
-				[Vector2(_x(0.66), 292.0), Vector2(_x(0.74), felt.y - FOOT)]]:
-			var way := PackedVector2Array([heart])
-			for point in road:
-				way.append(point)
-			draw_polyline(way, Color(INK, 0.26), 5.0)
-			draw_polyline(way, Color(LIGHT, 0.07), 2.0)
-		var placed: Array = []
-		var houses: Array = []
-		for i in range(140):
-			if houses.size() >= 24:
-				break
-			var a: float = rng.randf() * TAU
-			var d: float = 0.22 + sqrt(rng.randf()) * 0.78
-			var upright: bool = rng.randf() < 0.4
-			var w: float = 20.0 + rng.randf() * 12.0
-			var h: float = 13.0 + rng.randf() * 6.0
-			if upright:
-				var swap := w
-				w = h
-				h = swap
-			var p := _on_his_half(heart + Vector2(cos(a) * d * 158.0, sin(a) * d * 86.0), maxf(w, h) * 0.5)
-			var box := Rect2(p - Vector2(w, h) / 2.0, Vector2(w, h)).grow(4.0)
-			var clear := true
-			for other in placed:
-				if box.intersects(other):
-					clear = false
-					break
-			if not clear:
-				continue
-			placed.append(box)
-			houses.append({"p": p, "w": w, "h": h, "up": upright})
-		houses.sort_custom(_by_y)
-		for hs in houses:
-			_house(hs["p"], float(hs["w"]), float(hs["h"]), bool(hs["up"]))
-		# the church on its square: nave, transept, tower
-		draw_rect(Rect2(heart + Vector2(-21.0, -5.0), Vector2(42.0, 16.0)), Color(INK, 0.26))
-		draw_rect(Rect2(heart + Vector2(-18.0, -8.0), Vector2(36.0, 14.0)), Color(STONE, 0.56))
-		draw_rect(Rect2(heart + Vector2(-5.0, -15.0), Vector2(12.0, 28.0)), Color(STONE, 0.56))
-		draw_rect(Rect2(heart + Vector2(15.0, -8.0), Vector2(11.0, 14.0)), Color(STONE, 0.74))
-		draw_line(heart + Vector2(-17.0, -1.0), heart + Vector2(15.0, -1.0), Color(LIGHT, 0.24), 1.0)
-
-	# ── a river between the lines, and its crossing ─────────────────────────
-	func _river() -> void:
-		var rng := _rng()
-		var phase: float = rng.randf() * TAU
-		var near := PackedVector2Array()
-		var far := PackedVector2Array()
-		var steps := 24
-		for s in range(steps + 1):
-			var f: float = float(s) / steps
-			var y: float = 5.0 + (felt.y - 10.0) * f
-			var x: float = felt.x / 2.0 + dir * (44.0 + sin(f * 5.2 + phase) * 15.0)
-			var half: float = 12.0 + sin(f * 3.1 + phase * 0.5) * 2.5
-			near.append(Vector2(x - half, y))
-			far.append(Vector2(x + half, y))
-		var water := near.duplicate()
-		for s in range(far.size() - 1, -1, -1):
-			water.append(far[s])
-		draw_colored_polygon(water, Color(WATER, 0.30))
-		draw_polyline(near, Color(INK, 0.40), 1.8)
-		draw_polyline(far, Color(INK, 0.40), 1.8)
-		for s in range(2, steps - 1, 3):          # the current, in a few light strokes
-			var mid: Vector2 = (near[s] + far[s]) / 2.0
-			var on: Vector2 = (near[s + 1] + far[s + 1]) / 2.0
-			draw_line(mid, mid.lerp(on, 0.7), Color(SNOW, 0.13), 1.0)
-		# the crossing, on the leads' own line: a planked bridge and its rails
-		var at: int = int(steps * 0.70)
-		var a: Vector2 = near[at] + Vector2(-10.0, 0.0)
-		var b: Vector2 = far[at] + Vector2(10.0, 0.0)
-		draw_rect(Rect2(Vector2(a.x - 2.0, a.y - 4.0), Vector2(b.x - a.x, 14.0)), Color(INK, 0.26))     # its shade
-		draw_rect(Rect2(Vector2(a.x, a.y - 7.0), Vector2(b.x - a.x, 14.0)), Color(TIMBER, 0.62))
-		var plank: float = a.x + 4.0
-		while plank < b.x - 1.0:
-			draw_line(Vector2(plank, a.y - 6.0), Vector2(plank, a.y + 6.0), Color(INK, 0.30), 1.0)
-			plank += 5.0
-		for rail in [-7.0, 7.0]:
-			draw_line(a + Vector2(0.0, rail), b + Vector2(0.0, rail), Color(LIGHT, 0.34), 1.4)
-
-	# ── open country: strips of field ───────────────────────────────────────
-	func _open_field() -> void:
-		var rng := _rng()
-		var x := EDGE + 8.0
-		var lane := 0
-		while x < felt.x - EDGE - 60.0:
-			var w: float = 90.0 + rng.randf() * 110.0
-			w = minf(w, felt.x - EDGE - 8.0 - x)
-			var y := TOP + 6.0
-			while y < felt.y - FOOT - 40.0:
-				var h: float = 70.0 + rng.randf() * 90.0
-				h = minf(h, felt.y - FOOT - 4.0 - y)
-				var plot := Rect2(Vector2(x, y), Vector2(w - 5.0, h - 5.0))
-				var tilled: bool = (lane + int(y)) % 3 == 0
-				draw_rect(plot, Color(INK, 0.10) if tilled else Color(LIGHT, 0.035))
-				draw_rect(plot, Color(INK, 0.16), false, 1.0)                    # its hedge
-				if tilled:                                                     # the furrows of a ploughed strip
-					var fy: float = plot.position.y + 6.0
-					while fy < plot.end.y - 3.0:
-						draw_line(Vector2(plot.position.x + 4.0, fy), Vector2(plot.end.x - 4.0, fy),
-								Color(INK, 0.10), 1.0)
-						fy += 7.0
-				y += h
-			x += w
-			lane += 1
-
+		if _tex == null:
+			return
+		var r := sheet_rect()
+		draw_rect(Rect2(r.position + Vector2(-3.0, 4.0), r.size), SHADOW)   # the sheet's shadow on the felt
+		# C15: the survey is cropped to the sheet's aspect, never stretched to it (the plates are
+		# wider than tall by 2.155 to 1, the sheet by about 2.38): the full width, a centred band
+		var tex_size: Vector2 = _tex.get_size()
+		var src_h: float = minf(tex_size.y, tex_size.x * r.size.y / maxf(r.size.x, 1.0))
+		var src_w: float = src_h * r.size.x / maxf(r.size.y, 1.0)
+		var src := Rect2(Vector2((tex_size.x - src_w) / 2.0, (tex_size.y - src_h) / 2.0), Vector2(src_w, src_h))
+		draw_texture_rect_region(_tex, r, src)
+		draw_rect(r, EDGE_LIT, false, 1.0)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # BA-5: the acts' speed (the user's tick at the gate — "Speed for the acts")
@@ -1360,7 +1170,7 @@ func _build_the_speed() -> void:
 	# plate, the seal and the laurels by the table's own laws.
 	var sw_size: Vector2 = sw.get_combined_minimum_size()
 	sw.position = Vector2(host.TRAY_W - SPEED_RIGHT - sw_size.x,
-			host.TRAY_H - SPEED_MID_UP - sw_size.y / 2.0)
+			host.tray_h() - SPEED_MID_UP - sw_size.y / 2.0)
 	sw.pressed.connect(_on_speed_pressed)
 	hint.visibility_changed.connect(sw.follow)
 	_speed_sync(sw)
@@ -1427,7 +1237,15 @@ class SpeedSwitch:
 
 const DAY_X := 30.0
 const DAY_W := 940.0
-const DAY_BOTTOM := 738.0              # the tray's floor, less its edge
+const DAY_BOTTOM := 738.0              # the tray's floor, less its edge (plus the room: `_day_floor`)
+# Row BA, the levers past 5 (the readers' agency 5 and clarity 5, bar 7): the tray grows by
+# this much, at its foot, while a day's panel stands (`BattleDiorama.set_day_room`); the
+# miniature keeps its place and the words keep their faces.
+const DAY_ROOM := 110.0
+const DAY_MEASURE_W := 4000.0           # the width a row of cards is measured in (read, then given its own)
+const DAY_MORE_SHOWN := 3              # the chips of the other kinds the digits 4-6 reach: the rest ride "+N more"
+const DAY_MORE_KEY := "daymore"
+const DAY_LEGEND_HOVER := "Gold names are each side's lead; a gold square is a point in hand and a grey one a point spent; the keys 1 to 9 say the words; a card shows its price, what it does and what it risks."
 const DAY_CHIPS_W := 680.0             # clear of Replay (x 726) and Close (x 846) at y 698
 const DAY_CHIP_BG := "233043"
 const DAY_CARD_BG := "2e3d57"          # BA-5: a word's card: a lighter ground than a chip's, under a gilt rim
@@ -1474,7 +1292,17 @@ var _day_exit_tags := false            # BA-5: the exits say what they do on the
 var _day_tags_kept := 0                # BA-5: level with the buttons, how many (in DAY_TAG_ORDER) still say it
 var _day_exits_up := false             # BA-5: the exits are two-line cards beside the buttons (the walk reads it)
 var _day_rule_row := false             # BA-5: the day's rule has its caption line (the walk reads it)
-var _day_exits_wide := false           # BA-5: the exits' cards were wider than their room (the walk reads it)
+var _day_exits_wide := false           # BA-5: the exits' cards gave way to the one-line chips for their WIDTH (the walk reads it)
+var _day_exits_row_tried := false      # BA-6: beside the buttons the cards did not fit, so the full-width row was tried (the walk reads it)
+var _relaying := false                 # BA-6: `_relay_the_day` rebuilds the panel: the latches, "+N more" and the first-day line stand
+var _day_cards_wide := false           # BA-6: the cards' second lines went for their width, not for room (the walk reads it)
+var _day_risk_lines := false           # BA-6: the cards' third line — what the word risks (the walk reads it)
+var _day_legend_row := false           # BA-6: the table's marks have their caption line (the walk reads it)
+var _day_more_open := false            # BA-6: "+N more" was pressed: every chip of the groups stands
+var _day_more_n := 0                   # BA-6: the chips of the groups the digits do not reach
+var _day_exits_row := false            # BA-6: the exits' cards stand full width, above the buttons (the walk reads it)
+var _day_exits_wrapped := false        # BA-6: ...and their second line wraps at a semicolon (the walk reads it)
+var _day_groups_scrolls := false       # BA-6: whether the groups scroll as the ladder left them
 var _day_lifted := false               # BA-5: the panel took DAY_LIFT of the gap under the bars (the walk reads it)
 var _day_top_plain := 0.0              # ...and where its top stands without that (the walk reads it)
 var _his_waiting := false              # a table whose clash is followed by his waits to go on
@@ -1704,7 +1532,7 @@ static func _sentence(words: String) -> String:
 	return s if s.ends_with(".") else s + "."
 
 
-func _day_chip_tip(chip: Dictionary, with_label: bool = false, with_does: bool = true) -> String:
+func _day_chip_tip(chip: Dictionary, with_label: bool = false, with_does: bool = true, with_risk: bool = true) -> String:
 	"""A chip's hover: why it is locked (always — a dim chip carries its reason
 	as its hover, wherever else it stands); what the word does, where its face
 	does not say it (BA-5: `does`), and the rest of it (`more`); whether the
@@ -1717,6 +1545,8 @@ func _day_chip_tip(chip: Dictionary, with_label: bool = false, with_does: bool =
 	var does := str(chip.get("does", ""))
 	if with_does and does != "":
 		parts.append(_sentence(does))
+	if with_risk and str(chip.get("risk", "")) != "":
+		parts.append("It risks: " + str(chip.get("risk", "")) + ".")     # BA-6: the third line, where the face has no room for it
 	if str(chip.get("more", "")) != "":
 		parts.append(str(chip.get("more", "")))
 	if str(chip.get("counsel", "none")) == "possible":
@@ -1810,9 +1640,16 @@ func _day_card_bb(i: int, chip: Dictionary) -> String:
 			sub, Utils.CHIP_PAD,
 			caption.replace("[", "[lb]").replace(" ", " "), Utils.CHIP_PAD]
 		inner += "\n" + Utils.bb_step(second, &"Caption")   # the ladder's Caption step
+	# BA-6: the third line, what the word risks — the Caption step, in the caption ink
+	var risk := str(chip.get("risk", ""))
+	var risk_on_face: bool = lit and _day_risk_lines and risk != ""
+	if risk_on_face:
+		var third: String = "[color=#%s]%s%s%s[/color]" % [
+			sub, Utils.CHIP_PAD, risk.replace("[", "[lb]").replace(" ", "\u00A0"), Utils.CHIP_PAD]
+		inner += "\n" + Utils.bb_step(third, &"Caption")
 	# the hover: the rest of what the word does (its face says the first of it)
 	# (the review) a locked card's face says why: its hover says it too, and what the word would do
-	var tip := _day_chip_tip(chip, false, not lit and why != "")
+	var tip := _day_chip_tip(chip, false, not lit and why != "", not risk_on_face)
 	if tip != "":
 		inner = Utils.bb_hint(inner, tip)
 	if lit:
@@ -1846,7 +1683,13 @@ func _day_groups_text(inline: bool = false) -> String:
 	var info := "[color=#" + Utils.COLOR_INFO + "]"
 	var lines: Array = []
 	for g in _day_split()[1]:
-		var idx: Array = g["idx"]
+		# BA-6 (fewer chips): the chips the digits 4-6 reach stand; the rest ride "+N more"
+		var idx: Array = []
+		for i in g["idx"]:
+			if _day_more_open or _day_digit_of.has(int(i)):
+				idx.append(i)
+		if idx.is_empty():
+			continue
 		if not DAY_GROUP_LABEL.has(g["kind"]):
 			for i in idx:
 				lines.append(_day_chip_bb(int(i), chips[int(i)]) + " ")
@@ -1860,7 +1703,68 @@ func _day_groups_text(inline: bool = false) -> String:
 		for i in idx:
 			line += _day_chip_bb(int(i), chips[int(i)], true) + " "
 		lines.append(line)
+	var more := _day_more_chip()
+	if more != "":
+		if lines.is_empty():
+			lines.append(more)
+		else:
+			lines[lines.size() - 1] = str(lines[lines.size() - 1]) + more + " "
 	return ("      " if inline else "\n").join(PackedStringArray(lines))
+
+
+func _day_hidden_groups() -> Array:
+	"""BA-6: the indices (into `chips`) of the groups' words the digits do not reach."""
+	var out: Array = []
+	if not _day_offering():
+		return out
+	for g in _day_split()[1]:
+		for i in g["idx"]:
+			if not _day_digit_of.has(int(i)):
+				out.append(int(i))
+	return out
+
+
+func _day_more_chip() -> String:
+	"""BA-6: the one quiet chip that holds the rest of the groups' words: "+N more"
+	(its hover names them), and "show fewer" once pressed."""
+	var hidden := _day_hidden_groups()
+	if hidden.is_empty():
+		return ""
+	var chips = _the_day().get("chips", [])
+	var names: Array = []
+	for i in hidden:
+		names.append(str((chips[int(i)] as Dictionary).get("label", "")))
+	if _day_more_open:
+		return Utils.bb_button_chip(DAY_MORE_KEY, "show fewer", DAY_EXIT_INK, DAY_EXIT_CARD_BG, "",
+				"Back to the words the keys 4 to 6 reach.")
+	return Utils.bb_button_chip(DAY_MORE_KEY, "+%d more" % hidden.size(), DAY_EXIT_INK, DAY_EXIT_CARD_BG, "",
+			"Press to show every word. Also: " + ", ".join(PackedStringArray(names)) + ".")
+
+
+func _day_legend_bb() -> String:
+	"""BA-6: the table's marks in one caption line, in the marks themselves (the head's
+	gold name and its squares — drawn, so no font's missing glyph shows as a box)."""
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	var gold := "[color=#" + Utils.COLOR_GOLD + "]"
+	return info + gold + "name[/color] each side's lead · " \
+		+ Utils.bb_icon(Utils.SWATCH, 10, DAY_PIP_ON) + " a point in hand · " \
+		+ Utils.bb_icon(Utils.SWATCH, 10, DAY_PIP_OFF) \
+		+ " a point spent · keys 1-9 say the words · a card: its price, what it does, what it risks[/color]"
+
+
+func _day_floor() -> float:
+	"""The panel's floor now: the tray's, with the room a day's panel asks for."""
+	return DAY_BOTTOM + (host._day_room if host != null else 0.0)
+
+
+static func _wrap_does(does: String) -> Array:
+	"""BA-6: an exit's stakes in two lines, broken at a semicolon where the words have one
+	(["the day ends; he keeps the field", "the toll stands at ..."]); one line otherwise."""
+	var parts: PackedStringArray = does.split("; ")
+	if parts.size() < 2:
+		return [does]
+	var cut := int(ceil(float(parts.size()) / 2.0))
+	return ["; ".join(parts.slice(0, cut)), "; ".join(parts.slice(cut))]
 
 
 func _day_exit_rank(chip: Dictionary) -> int:
@@ -1895,6 +1799,12 @@ func _day_exit_card_bb(i: int, chip: Dictionary) -> String:
 	var why := str(chip.get("why", ""))
 	var does := str(chip.get("does", ""))
 	var caption := (paid + (" · " + does if does != "" else "")) if (lit or why == "") else why
+	var third_line := ""
+	if _day_exits_wrapped and (lit or why == "") and does != "":
+		var halves := _wrap_does(does)           # BA-6: the stakes on two lines
+		caption = paid + " · " + str(halves[0])
+		if halves.size() > 1:
+			third_line = str(halves[1])
 	var ink := DAY_EXIT_INK if lit else Utils.CHIP_DIM_INK
 	var sub := DAY_CAPTION_INK if lit else Utils.CHIP_DIM_INK
 	var inner := "[color=#" + ink + "]" + Utils.CHIP_PAD + head.replace(" ", " ") + Utils.CHIP_PAD + "[/color]"
@@ -1902,6 +1812,9 @@ func _day_exit_card_bb(i: int, chip: Dictionary) -> String:
 		sub, Utils.CHIP_PAD,
 		caption.replace("[", "[lb]").replace(" ", " "), Utils.CHIP_PAD]
 	inner += "\n" + Utils.bb_step(second, &"Caption")   # the ladder's Caption step
+	if third_line != "":
+		inner += "\n" + Utils.bb_step("[color=#%s]%s%s%s[/color]" % [
+			sub, Utils.CHIP_PAD, third_line.replace("[", "[lb]").replace(" ", "\u00A0"), Utils.CHIP_PAD], &"Caption")
 	# the hover: the rest of what the word does (its face says the first of it)
 	# (the review) a locked card's face says why: its hover says it too, and what the word would do
 	var tip := _day_chip_tip(chip, false, not lit and why != "")
@@ -2073,6 +1986,14 @@ func _day_banner() -> String:
 	return str(_the_day().get("banner", ""))
 
 
+func _day_has_panel() -> bool:
+	"""Whether `_build_the_day` builds a panel for this table (its own early returns)."""
+	var day := _the_day()
+	if day.is_empty() or host == null or host._verdict == null:
+		return false
+	return _day_banner() != "" or bool(day.get("open", false))
+
+
 func _build_the_day() -> void:
 	"""At the end of the dress: the panel, hidden. Nothing for a payload that
 	carries no `day` (a small battle, a fleet action, a harness world) or whose
@@ -2099,8 +2020,9 @@ func _build_the_day() -> void:
 	_day_chips = null
 	_day_groups = null
 	_day_exits = null
-	_day_latched = false
-	_day_asked = false
+	if not _relaying:
+		_day_latched = false
+		_day_asked = false
 	_day_hide_shelves = false
 	_day_inline = false
 	_day_cards = false
@@ -2109,12 +2031,23 @@ func _build_the_day() -> void:
 	_day_exits_up = false
 	_day_rule_row = false
 	_day_exits_wide = false
+	_day_exits_row_tried = false
 	_day_lifted = false
+	_day_risk_lines = false
+	_day_cards_wide = false
+	_day_legend_row = false
+	if not _relaying:
+		_day_more_open = false          # a NEW table starts with the keys' three; a relay keeps what was pressed
+	_day_more_n = 0
+	_day_exits_row = false
+	_day_exits_wrapped = false
+	_day_groups_scrolls = false
 	_his_waiting = false
 	_day_digit_of = {}
 	_day_denied = 0
-	_day_first_screen = ""
-	_day_first_shown = ""
+	if not _relaying:
+		_day_first_screen = ""
+		_day_first_shown = ""
 	var day := _the_day()
 	if day.is_empty() or host == null or host._verdict == null:
 		return
@@ -2205,13 +2138,14 @@ func _build_the_day() -> void:
 	var btn_h: float = maxf(host._btn_close.size.y, host._btn_close.custom_minimum_size.y)
 	var btn_mid: float = btn_top + btn_h / 2.0
 
+	var floor_px: float = _day_floor()
 	var top: float = top_with
 	_day_top_plain = top_with
 	var y: float = head_h                     # the head is the panel's first row
 	if not offering and not pending:
 		# no chips (closed, his word, his clash follows): the told block, whole
 		# — and above the buttons' row
-		var floor_y: float = minf(DAY_BOTTOM, btn_top - 4.0)
+		var floor_y: float = minf(floor_px, btn_top - 4.0)
 		if first_box != null and floor_y - top - y - first_h >= lh:
 			first_box.visible = true          # the first day's line, right under the head
 			first_box.position = Vector2(0.0, y)
@@ -2226,6 +2160,10 @@ func _build_the_day() -> void:
 		var keep := clampi(int(avail / lh), 1, 5)
 		var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, lh * float(keep) + 2.0))
 		told.text = _day_told(lines, keep)
+		while keep > 1 and told.get_content_height() > avail:
+			keep -= 1                         # BA-6: a wrapped line takes two rows: whole rows or none
+			told.text = _day_told(lines, keep)
+		told.size.y = minf(maxf(told.get_content_height() + 2.0, lh), avail)
 		# (the review) a line of the close the table had no row for rides the head's hover
 		var kept_idx := _day_told_kept(lines, keep)
 		for i in range(lines.size()):
@@ -2273,6 +2211,22 @@ func _build_the_day() -> void:
 				rule_box.queue_free()
 				rule_box = null
 				hover.append(DAY_RULE)
+		# BA-6 (lever 6): the table's marks, in one caption line — whole or on the head's hover
+		var legend_box: RichTextLabel = null
+		var legend_h := 0.0
+		if offering:
+			legend_box = _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 40.0))
+			legend_box.name = "DayLegend"
+			legend_box.autowrap_mode = TextServer.AUTOWRAP_OFF
+			legend_box.theme_type_variation = &"CaptionRich"
+			legend_box.text = _day_legend_bb()
+			legend_h = legend_box.get_content_height() + 2.0
+			legend_box.visible = false
+			if legend_box.get_content_width() > DAY_W - 8.0:
+				panel.remove_child(legend_box)     # no room for it whole at this text size
+				legend_box.queue_free()
+				legend_box = null
+				hover.append(DAY_LEGEND_HOVER)
 		# BA-5: what the table CAN say on a word's face (a payload from before
 		# the finish carries no `does`: its chips are BA-4's)
 		var can_card := false
@@ -2289,9 +2243,24 @@ func _build_the_day() -> void:
 		var first_row: bool = first_box != null                     # 5 the first day's line
 		var rule_row: bool = rule_box != null and not first_row     # 3 the day's rule (the first day's line says it in full)
 		var told_row: bool = offering and not lines.is_empty()      # 4 the last word told
+		var told_fits := true
+		if told_row:
+			# BA-6: one row for the line, or none: a line that wraps at a large type rides the head's hover
+			var probe := _day_rtl(panel, Vector2.ZERO, Vector2(DAY_W, 100.0))
+			probe.text = _day_told(lines, 1)
+			if probe.get_content_height() > lh * 1.5:
+				told_row = false
+				told_fits = false
+			panel.remove_child(probe)
+			probe.queue_free()
 		var exit_cards: bool = offering and can_tag                 # 6 the exits as cards, each with what it does
 		var lifted := false                                         # 5b the panel takes DAY_LIFT of the gap under the bars
 		var cards: bool = offering and can_card                     # 7 the cards' second lines
+		var legend_row: bool = legend_box != null                   # 2b the legend's caption line
+		var risk_lines: bool = cards                                # 5c the cards' third line (what the word risks)
+		var exits_row := false                                      # the exits' cards full width, above the buttons
+		var exits_wrapped := false                                  # ...with their stakes on two lines
+		var tail_h := 0.0
 		var b_h: float = lh + 2.0
 		var c_h := 0.0
 		var d_h := 0.0
@@ -2300,39 +2269,70 @@ func _build_the_day() -> void:
 		var above := 0.0
 		var room := 0.0
 		var fits := false
-		for _step in range(14):
+		for _step in range(20):
 			_day_cards = cards
+			_day_risk_lines = risk_lines and cards
 			_day_exit_tags = exit_cards
+			_day_exits_row = exit_cards and exits_row
+			_day_exits_wrapped = exit_cards and exits_wrapped
 			_day_inline = inline
 			_day_retext()
+			# a rich line's content width is read against a box no narrower than its words (a box of
+			# the panel's own width would clip what it measures)
+			e_box.size.x = DAY_MEASURE_W
+			if c_box != null:
+				c_box.size.x = DAY_MEASURE_W
+			tail_h = legend_h if legend_row else 0.0
 			top = (top_free if give_shelves else top_with) - (DAY_LIFT if lifted else 0.0)
 			c_h = c_box.get_content_height() if c_box != null else 0.0
 			e_h = e_box.get_content_height()
 			# a row wider than its room is no row: its second lines go first
 			if cards and c_box != null and c_box.get_content_width() > DAY_W + 1.0:
-				cards = false
+				if risk_lines:
+					risk_lines = false        # the third line goes before the second
+				else:
+					cards = false
+					_day_cards_wide = true    # (the walk reads it: a row wider than its room is no row)
 				continue
-			if exit_cards and e_box.get_content_width() > DAY_CHIPS_W:
-				exit_cards = false
-				_day_exits_wide = true
-				continue
+			if exit_cards:
+				var e_w: float = e_box.get_content_width()
+				if not exits_row and e_w > DAY_CHIPS_W:
+					exits_row = true              # BA-6: beside the buttons they do not fit: the full-width row above them
+					_day_exits_row_tried = true
+					continue
+				if exits_row and e_w > DAY_W - 4.0:
+					if not exits_wrapped:
+						exits_wrapped = true      # ...then their stakes on two lines
+					else:
+						exit_cards = false        # ...then the one-line chips
+						exits_row = false
+						exits_wrapped = false
+						_day_exits_wide = true    # (the cards gave way for their width)
+					continue
 			above = head_h + (first_h if first_row else 0.0) + (rule_h if rule_row else 0.0) \
 				+ (b_h if told_row else 0.0) + c_h
 			if exit_cards:
-				e_top_abs = DAY_BOTTOM - DAY_EXIT_FLOOR - e_h    # beside the buttons, down to the tray's floor
+				if exits_row:
+					e_top_abs = btn_top - 4.0 - e_h              # BA-6: full width, on the row above the buttons
+				else:
+					e_top_abs = floor_px - DAY_EXIT_FLOOR - e_h  # beside the buttons, down to the tray's floor
 			else:
-				e_top_abs = btn_mid - e_h / 2.0                  # level with, and centred on, the buttons
+				e_top_abs = minf(btn_mid - e_h / 2.0, floor_px - 3.0 - e_h)   # level with, and centred on, the buttons (never on the floor)
 			room = e_top_abs - 2.0 - top
 			d_h = 0.0
 			if d_box != null:
-				d_h = _day_groups_h(d_box, inline, top + above, e_top_abs if exit_cards else btn_top)
-			fits = above + d_h <= room
+				d_h = _day_groups_h(d_box, inline, top + above, (e_top_abs if exit_cards else btn_top) - tail_h)
+			fits = above + d_h + tail_h <= room
 			if fits:
 				break
 			if shelf_up and not give_shelves:
 				give_shelves = true                   # 1
 			elif d_box != null and not inline:
 				inline = true                         # 2
+			elif legend_row and not lifted:
+				lifted = true                         # 2a: the lift costs least, and the legend is the first row to go after it
+			elif legend_row:
+				legend_row = false                    # 2b
 			elif rule_row:
 				rule_row = false                      # 3
 			elif told_row:
@@ -2341,11 +2341,15 @@ func _build_the_day() -> void:
 				first_row = false                     # 5
 				# ...and the last word told may have its row back: it gave it up for a line
 				# that is not on the table after all (one row for two)
-				told_row = offering and not lines.is_empty()
+				told_row = offering and not lines.is_empty() and told_fits
 			elif not lifted:
 				lifted = true                         # 5b
+			elif risk_lines and cards:
+				risk_lines = false                    # 5c: the third line goes before the second, and before the exits' faces
 			elif exit_cards:
 				exit_cards = false                    # 6
+				exits_row = false
+				exits_wrapped = false
 			elif cards:
 				cards = false                         # 7
 			else:
@@ -2354,11 +2358,17 @@ func _build_the_day() -> void:
 			# 8. whole text rows or nothing: the groups scroll by rows, never rows C or E
 			# (the exits are one-line chips by now: a chip's row is the groups' own)
 			var row_h: float = maxf(e_h, lh)
-			var left: float = room - above
+			var left: float = room - above - tail_h
 			var unit: float = maxf(row_h, 1.0)
 			d_h = maxf(unit, floorf(left / unit) * unit)
 			d_box.scroll_active = true
 		_day_hide_shelves = give_shelves
+		_day_risk_lines = risk_lines and cards
+		_day_legend_row = legend_row
+		_day_exits_row = exit_cards and exits_row
+		_day_exits_wrapped = exit_cards and exits_wrapped
+		_day_more_n = _day_hidden_groups().size()
+		_day_groups_scrolls = d_box != null and d_box.scroll_active
 		_day_exits_up = exit_cards
 		_day_rule_row = rule_row
 		_day_lifted = lifted
@@ -2414,14 +2424,23 @@ func _build_the_day() -> void:
 			d_box.size = Vector2(d_box.size.x, d_h)
 			y += d_h
 		e_box.position = Vector2(0.0, e_top_abs - top)
-		e_box.size = Vector2(DAY_CHIPS_W, maxf(e_h, 1.0))
+		e_box.size = Vector2(DAY_W if (exit_cards and exits_row) else DAY_CHIPS_W, maxf(e_h, 1.0))
+		if legend_box != null:
+			if legend_row:
+				legend_box.visible = true
+				legend_box.position = Vector2(0.0, e_top_abs - top - legend_h - 2.0)   # the foot of the words, above the exits
+				legend_box.size.y = legend_h
+			else:
+				panel.remove_child(legend_box)
+				legend_box.queue_free()
+				hover.append(DAY_LEGEND_HOVER)
 		if offering:
 			var keys := DayKeys.new()             # BA-4: the bare digits press the chips
 			keys.name = "DayKeys"
 			keys.acts = self
 			panel.add_child(keys)
 	panel.position = Vector2(DAY_X, top)
-	panel.size = Vector2(DAY_W, DAY_BOTTOM - top)
+	panel.size = Vector2(DAY_W, floor_px - top)
 	if name_label != null:
 		# in the band above the baize (its place is the tray's, whatever room the panel took)
 		name_label.position = Vector2(0.0, DAY_HEAD_Y - top)
@@ -2434,6 +2453,43 @@ func _build_the_day() -> void:
 		host._skip_hint.visibility_changed.connect(_on_skip_hint_changed, CONNECT_ONE_SHOT)
 
 
+func _relay_the_day() -> void:
+	"""BA-6: the panel laid again at rest, with `_day_more_open` as pressed - the ladder reads the
+	groups' opened text, makes room for it (shedding the lower rungs as it always does) and only
+	scrolls where it cannot. What the first laying did to the stage is undone for the measure
+	(the shelves it hid stand, the verdict is as populate set it) and done again by the result."""
+	if _day_panel == null or not is_instance_valid(_day_panel) or host == null or not is_instance_valid(host):
+		return
+	var was_shown: bool = _day_panel.visible
+	var shelves_were_hidden := _day_hide_shelves
+	var shelves: Array = [host._shelf_left, host._shelf_right]
+	if shelves_were_hidden:
+		for shelf in shelves:
+			if shelf != null:
+				(shelf as CanvasItem).visible = true
+	var lifted_verdict := _shelf_up()
+	if lifted_verdict:
+		host._verdict.position.y += VERDICT_LIFT     # (`_lift_the_verdict` lent it four; the ladder reads the populate's top)
+		host._verdict.size.y -= VERDICT_LIFT
+	var old: Control = _day_panel
+	host._transients.erase(old)
+	if old.get_parent() != null:
+		old.get_parent().remove_child(old)
+	old.queue_free()
+	_relaying = true
+	_build_the_day()
+	_relaying = false
+	_day_first_screen = ""                           # (shown already: the showing was the acknowledgement)
+	if lifted_verdict:
+		_lift_the_verdict()
+	if _day_panel != null and is_instance_valid(_day_panel):
+		if _day_hide_shelves:
+			for shelf in shelves:
+				if shelf != null:
+					(shelf as CanvasItem).visible = false
+		_day_panel.visible = was_shown
+
+
 func _on_skip_hint_changed() -> void:
 	if host == null or not is_instance_valid(host) or host._acts != self or host._skip_hint.visible:
 		return
@@ -2443,6 +2499,11 @@ func _on_skip_hint_changed() -> void:
 
 
 func _on_day_chip(meta) -> void:
+	if str(meta) == DAY_MORE_KEY:
+		# BA-6: "+N more" is a toggle: every word of the groups in place, or back to the keys' three
+		_day_more_open = not _day_more_open
+		_relay_the_day()       # the ladder measures the opened words and gives them their room
+		return
 	if _day_latched:
 		return
 	var s := str(meta)
@@ -2477,7 +2538,11 @@ func _sound_the_day() -> void:
 	var enemy := str(day.get("enemy", ""))
 	var told: Array = day.get("told", []) if day.get("told", []) is Array else []
 	var last_line := str((told[told.size() - 1] as Dictionary).get("line", "")) if not told.is_empty() else ""
-	var mark := "%s|%d|%s" % [str(day.get("ended", "")), told.size(), last_line]
+	# BA6-X2: the mark carries the battle's own identity (its turn, ground and name): the
+	# SAME table shown again stays silent, a LATER battle against the same enemy sounds
+	# (a night's close and its last line are fixed text, and `told` is capped)
+	var mark := "%d|%s|%s|%s|%d|%s" % [int(host._data.get("turn", 0)), str(host._data.get("region", "")),
+			str(host._data.get("battle_name", "")), str(day.get("ended", "")), told.size(), last_line]
 	if enemy == "" or str(_day_sounded.get(enemy, "")) == mark:
 		return
 	_day_sounded[enemy] = mark
@@ -2691,6 +2756,16 @@ func _tell_the_reserves_dead() -> void:
 	for tail in _reserve_tails:
 		if is_instance_valid(tail["label"]):
 			(tail["label"] as Label).text = str(tail["full"])
+	# BA6-X10: the laurels come now - a note one of them would stand on says it shortly
+	var sw: float = host._stage.size.x
+	for note in _reserve_short_at_end:
+		var label: Label = note["label"]
+		if not is_instance_valid(label):
+			continue
+		label.text = str(note["short"])
+		label.size = label.get_minimum_size()
+		label.position.x = float(note["edge"]) if bool(note["left"]) \
+				else sw - float(note["edge"]) - label.size.x
 	# BA-2: on a wedge the reserve's dead is a line of its own
 	for dead in _reserve_dead:
 		if is_instance_valid(dead):
@@ -2705,6 +2780,19 @@ func _rehome_the_reserve() -> void:
 	counter's own figure at its FINAL width."""
 	var sw: float = host._stage.size.x
 	var sides: Array = host._side_payloads()
+	# BA6-X10: where a triumph's laurels will flank its banner at the end, the stage x each
+	# takes (the host's `_laurel_layout`, measured on the register's own banner words)
+	var laurel_l := -1.0
+	var laurel_r := -1.0
+	var register := str(host._data.get("register", "observer"))
+	if register == "triumph" and host._laurel_l != null:
+		var shown_banner: String = host._banner.text
+		host._banner.text = host._banner_text(register)
+		var words: float = host._banner.get_minimum_size().x
+		host._banner.text = shown_banner
+		laurel_l = sw / 2.0 - words / 2.0 - host.LAUREL_GAP - host.LAUREL_PX
+		laurel_r = sw / 2.0 + words / 2.0 + host.LAUREL_GAP + host.LAUREL_PX
+	_reserve_short_at_end = []
 	for node in host._transients:
 		if not (node is Label) or not is_instance_valid(node):
 			continue
@@ -2722,10 +2810,18 @@ func _rehome_the_reserve() -> void:
 		var full: String = tail.text
 		var cut: int = full.find(RESERVE_DEAD)
 		tail.autowrap_mode = TextServer.AUTOWRAP_OFF
-		tail.text = (full.substr(0, cut) if cut >= 0 else full).replace(
-				" corps in reserve", " in reserve")
+		# BA6-X10 (the blind reading, both readers): the note keeps its noun - "+3 in reserve"
+		# beside the LOSSES counter was read as a count of men
+		tail.text = full.substr(0, cut) if cut >= 0 else full
 		tail.size = tail.get_minimum_size()
 		tail.position = Vector2(edge if left else sw - edge - tail.size.x, RESERVE_NOTE_Y)
+		# BA6-X10: the note keeps its noun while the battle is told; a triumph's laurel that would
+		# stand on it at the end takes it back to "+3 in reserve" as the laurels come
+		var crowded := (laurel_l >= 0.0 and edge + tail.size.x + 4.0 > laurel_l) if left \
+				else (laurel_r >= 0.0 and sw - edge - tail.size.x - 4.0 < laurel_r)
+		if crowded:
+			_reserve_short_at_end.append({"label": tail, "left": left, "edge": edge,
+					"short": tail.text.replace(" corps in reserve", " in reserve")})
 		if cut < 0:
 			continue
 		# the second line of the SAME note: the tail line's own ink (the host's
@@ -2756,9 +2852,50 @@ func _luck_line(roll: Dictionary) -> String:
 	var sides: Array = host._side_payloads()
 	var left_key: String = "fortune_attacker" if _attacker_left() else "fortune_defender"
 	var right_key: String = "fortune_defender" if _attacker_left() else "fortune_attacker"
+	var told := _what_told()
+	if told != "":
+		# BA-6 (lever 5): the luck set against the margin, in one phrase — what told, then what the dice
+		# added to the blow (the lands figure the row above shows, against the average throw's 102 %) and
+		# what the day's fortune added to US (our side's own figure, signed)
+		var dice_pct: int = int(roll.get("swing", 0)) + 100 - DiceTray.AVERAGE_LANDS
+		return "%s; the dice added %s to the blow, the day's fortune %s to us" % [
+			told, _signed(dice_pct), _signed(int(roll.get(left_key, 0)))]
 	return "the day's fortune in strength:  %s %s  ·  %s %s" % [
 		Utils.display_nation_name(str(sides[0].get("nation", ""))), _signed(int(roll.get(left_key, 0))),
 		Utils.display_nation_name(str(sides[1].get("nation", ""))), _signed(int(roll.get(right_key, 0)))]
+
+
+func _luck_short(roll: Dictionary) -> String:
+	"""BA-6 (the client review's C12, ruled): the luck's phrase without what told — the dice's
+	share of the blow and the day's fortune to us — for a plate whose room holds two rows only
+	(Text size 120 % and up), where it takes the lands row's place: no wider than that row, and
+	what told stands on the verdict's own line. "" where nothing told (the lands row stays)."""
+	if _what_told() == "":
+		return ""
+	var left_key: String = "fortune_attacker" if _attacker_left() else "fortune_defender"
+	var dice_pct: int = int(roll.get("swing", 0)) + 100 - DiceTray.AVERAGE_LANDS
+	return "the dice added %s to the blow, the day's fortune %s to us" % [
+		_signed(dice_pct), _signed(int(roll.get(left_key, 0)))]
+
+
+func _what_told() -> String:
+	"""BA-6: what told, as the payload says it ("Our weight of numbers told." / "Decided at the
+	second clash, when Mack's line broke: our weight of numbers told."), the cause alone,
+	capitalised and with no full stop — or "" where the payload says none."""
+	var line: String = str(host._data.get("verdict_told", ""))
+	if line == "" or line == "<null>":
+		var d := _the_day()
+		line = str(d.get("verdict_told", "")) if not d.is_empty() else ""
+	line = line.strip_edges()
+	if line == "" or line == "<null>":
+		return ""
+	if line.begins_with("Decided") and line.contains(": "):
+		line = line.substr(line.rfind(": ") + 2)
+	elif line.begins_with("Decided") and line.trim_suffix(".").ends_with(", in an even fight"):
+		line = "An even fight"             # (no cause was named: the fight itself is the cause)
+	if line.ends_with("."):
+		line = line.substr(0, line.length() - 1)
+	return line.substr(0, 1).to_upper() + line.substr(1)
 
 
 static func _signed(pct: int) -> String:
@@ -2928,6 +3065,7 @@ func _set_opening() -> void:
 			# the other side's corps comes up unseen: a dark slab, no face and
 			# no name until it is on the field
 			b["concealed"] = true
+			_band_hold_unseen(b)
 			var art: Node2D = node.get_node_or_null("Art")
 			if art != null:
 				art.modulate = UNSEEN
@@ -2952,6 +3090,7 @@ func settle() -> void:
 	turned down, every corps at its resting place, the dice on the baize."""
 	if host == null or host._is_naval():
 		return
+	_band_all_made_out()
 	for name in _blocks:
 		var b: Dictionary = _blocks[name]
 		var plinth: DioramaPlinth = b.get("plinth", null)
@@ -3206,8 +3345,9 @@ func _band_at(v: float, i: int, before: int) -> void:
 	"""The band's figure of one side while the guns' toll is counted: what it mustered,
 	and that less `v` (the host's own words: `_band_fig_text`)."""
 	if i < host._band_figs.size() and is_instance_valid(host._band_figs[i]):
+		var seen: int = before - int(_band_unseen_of(i))    # BA5-X15: only the corps made out
 		(host._band_figs[i] as Label).text = "%s → %s" % [
-				Utils.format_number(before), Utils.format_number(before - int(v))]
+				Utils.format_number(seen), Utils.format_number(seen - int(v))]
 
 
 func _band_never_above(_v: float, caps: Array) -> void:
@@ -3409,6 +3549,9 @@ func _reveal(b: Dictionary, tw: Tween) -> void:
 	var art: Node2D = node.get_node_or_null("Art")
 	if art != null:
 		tw.tween_property(art, "modulate", Color.WHITE, 0.35)
+	if float(b.get("band_unseen", 0.0)) > 0.0:
+		# BA5-X15: his men join the band as he is made out, over the reveal's own time
+		tw.parallel().tween_method(_band_unseen_step.bind(b), 1.0, 0.0, 0.35)
 	tw.parallel().tween_property(b["locket"], "modulate:a", 1.0, 0.35)
 	for child in b.get("unseen_labels", []):
 		if not is_instance_valid(child):
@@ -3417,6 +3560,51 @@ func _reveal(b: Dictionary, tw: Tween) -> void:
 		tw.parallel().tween_callback((child as Label).set_visible.bind(true))
 		tw.parallel().tween_property(child, "modulate:a", 1.0, 0.35)
 	b["unseen_labels"] = []
+
+
+func _band_side(b: Dictionary) -> int:
+	return 0 if bool(b["is_left"]) else 1
+
+
+func _band_hold_unseen(b: Dictionary) -> void:
+	"""BA5-X15: a corps that comes up unseen is not yet in the band's figure of his
+	side - his committed men are held back until `_reveal`."""
+	var men := float(int((b["data"] as Dictionary).get("committed", 0)))
+	if men <= 0.0 or float(b.get("band_unseen", 0.0)) > 0.0:
+		return
+	b["band_unseen"] = men
+	b["band_unseen_now"] = men
+	host.set_band_unseen(_band_side(b), _band_unseen_of(_band_side(b)) + men)
+
+
+func _band_unseen_of(i: int) -> float:
+	if i < 0 or i >= host._band_rows.size():
+		return 0.0
+	return float((host._band_rows[i] as Dictionary).get("unseen", 0))
+
+
+func _band_unseen_step(v: float, b: Dictionary) -> void:
+	"""v runs 1 -> 0: this corps' share of the side's unseen men shrinks with it."""
+	if host == null or not is_instance_valid(host):
+		return
+	var now: float = float(b.get("band_unseen", 0.0)) * v
+	var delta: float = now - float(b.get("band_unseen_now", 0.0))
+	b["band_unseen_now"] = now
+	var i := _band_side(b)
+	host.set_band_unseen(i, maxf(_band_unseen_of(i) + delta, 0.0))
+	if v <= 0.0:
+		b["band_unseen"] = 0.0
+
+
+func _band_all_made_out() -> void:
+	"""A settled frame / a skip: every corps is made out, whatever the tweens did."""
+	for name in _blocks:
+		var b: Dictionary = _blocks[name]
+		b["band_unseen"] = 0.0
+		b["band_unseen_now"] = 0.0
+	if host != null and is_instance_valid(host):
+		for i in range(mini(2, host._band_rows.size())):
+			host.set_band_unseen(i, 0.0)
 
 
 func _march_in(b: Dictionary, late: bool = false) -> void:
@@ -4289,6 +4477,14 @@ class DiceTray:
 	# three rows need more: the last — the luck — is the one left off;
 	# BA1-X4 owns the tableau's whole layout at those sizes).
 	const ROOM_H := 106.0
+	const LUCK_ROW_MAX_EXTRA := 3.0     # BA-6: the Caption line's extra the luck's row is printed to. The tableau's type is held at 130 % (about +2), so
+	# the branches that read it are the guard for a future TABLEAU_TEXT_CAP above 1.3 (150 % would be +4): unreachable today
+
+	static func room_h(diorama) -> float:
+		"""BA1-X4: the room the three rows need grows with the Caption line - the shipped
+		106 at the sizes it has always served (100 %, 115 %), the die and three lines
+		and their gaps above that - so the luck line is not the one left off."""
+		return diorama.dice_room_h()
 	const IVORY := Color(0.93, 0.89, 0.78, 1.0)
 	const IVORY_EDGE := Color(0.42, 0.36, 0.24, 1.0)
 	const PIP := Color(0.13, 0.10, 0.07, 1.0)
@@ -4307,7 +4503,7 @@ class DiceTray:
 	signal landed
 	const AVERAGE_LANDS := 102     # what an average throw (7) gives: 85 % + 2.5 a pip
 
-	func build(diorama, roll: Dictionary, luck_line: String) -> void:
+	func build(diorama, roll: Dictionary, luck_line: String, luck_short: String = "") -> void:
 		"""Call AFTER the tray is in the tree: the rows are placed by the
 		heights the theme gives them."""
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -4341,25 +4537,49 @@ class DiceTray:
 		if modified != natural:
 			thrown += " = %d" % modified
 		var crit: String = str(roll.get("critical", ""))
+		var crit_word := "a twelve: " if crit == "success" else ("a two: " if crit == "failure" else "")
 		var lands := "the blow lands at %d%% of its weight · an average throw: %d%%" % [
 				100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
+		if diorama._line_extra() > LUCK_ROW_MAX_EXTRA:
+			# BA-6 (a guard: unreachable while the type is held at 130 %): were the cap raised past 1.3 the line
+			# would be as wide as the gap between the two leads' names: the short form
+			lands = "lands at %d%% · an average throw: %d%%" % [100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
 		if crit == "success":
 			lands = "a twelve: " + lands
 		elif crit == "failure":
 			lands = "a two: " + lands
 		var y: float = DIE + 5.0
 		_rows = []
-		for text in [thrown, lands, luck_line]:
+		var texts: Array = [thrown, lands]
+		if diorama._line_extra() <= LUCK_ROW_MAX_EXTRA:
+			texts.append(luck_line)          # BA-6: the luck's phrase is wide: past a held 130 % (a guard) it would lie on the leads' names
+		for text in texts:
 			var row: Label = diorama._mk_label(self, str(text), &"Caption", BattleActs.BONE)
 			diorama._outline_over_colours(row)
 			var row_size: Vector2 = row.get_minimum_size()
-			if y + row_size.y > ROOM_H:
+			if y + row_size.y > room_h(diorama):
 				row.queue_free()
 				break
 			row.size = row_size
 			row.position = Vector2((TRAY_W - row_size.x) / 2.0, y)
 			_rows.append(row)
 			y += row_size.y + 1.0
+		# BA-6 (the client review's C12, ruled): where the room holds two rows only (Text size
+		# 120 % and up the third no longer fits, and the long phrase is too wide for the leads'
+		# names), the luck set against the margin is the readers' lever 5 - it takes the second
+		# row in its short form, no wider than the lands row it replaces (what told stands on
+		# the verdict's own line)
+		if _rows.size() == 2 and texts.size() == 3 and luck_short != "":
+			var second: Label = _rows[1]
+			second.text = crit_word + luck_short
+			second.size = second.get_minimum_size()
+			second.position.x = (TRAY_W - second.size.x) / 2.0
+		elif _rows.size() == 2 and texts.size() == 2 and luck_short != "":
+			# (the guard's branch, past a held 130 %: the long phrase was never offered)
+			var second2: Label = _rows[1]
+			second2.text = crit_word + luck_short
+			second2.size = second2.get_minimum_size()
+			second2.position.x = (TRAY_W - second2.size.x) / 2.0
 		# (the second reading: the table's dashed centre line ran through these lines)
 		# a dark plate behind the rows, as wide as the widest of them
 		_plate = Rect2()

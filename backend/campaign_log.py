@@ -331,6 +331,11 @@ CAMPAIGN_LOG_TYPES = {
     "garrison_placed",
     "proposal_voided_by_coalition",
     "relationship_change",
+    # Row MC (precedence.py): a move written in the book of incidents, a title
+    # standing in the Emperor's gift, a title conferred
+    "marshal_bond",
+    "title_in_the_gift",
+    "title_conferred",
     # PL-14: Ultimatum events
     "ultimatum_issued",
     "ultimatum_accepted",
@@ -693,6 +698,9 @@ CATEGORY_MAP = {
     "garrison_placed": "territory",
     "proposal_voided_by_coalition": "diplomacy",
     "relationship_change": "command",
+    "marshal_bond": "command",
+    "title_in_the_gift": "command",
+    "title_conferred": "command",
     # PL-14: Ultimatum events
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
@@ -811,7 +819,7 @@ LOG_TIER_NOTABLE = frozenset({
     "fleet_action", "fontainebleau_petition", "forced_alliance_imposed", "foreign_battle",
     "garrison_assault", "glory_crowned", "jealousy_autonomous",
     "jealousy_confrontation", "jealousy_escalation", "jealousy_fired",
-    "law_enacted", "marshal_broken", "marshal_commissioned",
+    "law_enacted", "marshal_bond", "marshal_broken", "marshal_commissioned",
     "marshal_released", "marshal_wounded", "moment", "offensive_cascade",
     "proposal_arrived", "region_captured", "retreat",
     "rivalry_confrontation", "settlement_summary", "strait_open",
@@ -849,7 +857,8 @@ LOG_TIER_ROUTINE = frozenset({
     "oathbreaker_posture_triggered", "objection", "offer_lapsed",
     "order_voided_by_battle", "proposal_dropped_overflow",
     "proposal_expired_unseen", "proposal_voided_by_coalition",
-    "recruitment", "relationship_change", "rente_defaulted",
+    "recruitment", "relationship_change", "rente_defaulted", "title_conferred",
+    "title_in_the_gift",
     "rente_granted", "rente_revoked", "settlement_ally_petition_declined",
     "settlement_ally_petition_granted", "settlement_bargain_honored",
     "settlement_digest", "settlement_recurring_gold_cancelled",
@@ -1002,6 +1011,28 @@ _PURPOSE_EVENT_TYPES = ("war_objective_declared", "war_objective_ticking_started
                         "war_articles_declared", "war_articles_settled")
 _PURPOSE_KNOWN_COURT_TYPES = ("war_objective_declared", "war_articles_declared",
                               "war_articles_settled")
+
+
+def a_bond_is_told_only_of_our_court() -> bool:
+    """BA-6's review (BA6-R8): a `relationship_change` reaches the campaign log
+    only for the player's own court (an event with no nation, written before
+    the field was stamped, keeps its old road). Every court's moves were
+    passed, and row MC's line names the field where the pair fought - an
+    enemy pair and a battle France never saw. Down (False): every court's."""
+    return True
+
+
+# The marshal-drama records of the PLAYER's court (Jealousy v3.2, spec §9b):
+# enemy friction reaches the player through battle reports and fog-filtered
+# dispatch intel, never the campaign log. Row MC adds the court's own book and
+# honours (a frozenset, read by `filter_campaign_log`).
+_PLAYER_COURT_RECORDS = frozenset({
+    "jealousy_fired", "jealousy_resolved", "jealousy_escalation", "jealousy_autonomous",
+    "jealousy_confrontation", "rivalry_confrontation", "glory_crowned", "glory_crown_lost",
+    "fontainebleau_petition", "rente_defaulted", "marshal_commissioned",
+    "order_voided_by_battle",
+    "marshal_bond", "title_in_the_gift", "title_conferred",
+})
 
 
 def filter_campaign_log(event_log: list, world_state) -> list:
@@ -1458,21 +1489,19 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                     filtered.append(event)
             continue
 
-        # Relationship change: always show (player marshals only)
+        # Relationship change: the player's own marshals only (BA6-R8, BA-6's
+        # review: it passed every court's, and row MC's line names the field -
+        # a battle of two courts France never saw)
         if event_type == "relationship_change":
-            filtered.append(event)
+            if not a_bond_is_told_only_of_our_court() or event.get("nation") in (
+                    None, "", world_state.player_nation):
+                filtered.append(event)
             continue
 
         # Jealousy v3.2: marshal-drama events are PLAYER-court records —
         # enemy friction reaches the player through battle reports and
         # fog-filtered dispatch intel (spec §9b), never the campaign log.
-        if event_type in ("jealousy_fired", "jealousy_resolved",
-                          "jealousy_escalation", "jealousy_autonomous",
-                          "jealousy_confrontation", "rivalry_confrontation",
-                          "glory_crowned", "glory_crown_lost",
-                          "fontainebleau_petition",
-                          "rente_defaulted", "marshal_commissioned",
-                          "order_voided_by_battle"):
+        if event_type in _PLAYER_COURT_RECORDS:
             if event.get("nation") == world_state.player_nation:
                 filtered.append(event)
             continue
@@ -3836,9 +3865,34 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         toward = ctx.event.get("toward", "Unknown")
         change = ctx.event.get("change", 0)
         new_label = ctx.event.get("new_label", "")
+        place = str(ctx.event.get("location") or "")
+        from backend.game_logic.precedence import the_book_keeps_its_incidents
+        if place and the_book_keeps_its_incidents():
+            # Row MC: the line names where the pair fought and what it did
+            why = ("after they fought side by side at" if change > 0
+                   else "after a defeat they shared at")
+            return (f"{humanize_entity_name(marshal)}'s view of {humanize_entity_name(toward)}: "
+                    f"{new_label or ('warmer' if change > 0 else 'colder')} — {why} "
+                    f"{humanize_entity_name(place)}")
         sign = "+" if change > 0 else ""
         label_str = f" ({new_label})" if new_label else ""
         return f"{marshal} → {toward}: {sign}{change}{label_str}"
+
+    if ctx.event_type == "marshal_bond":
+        # Row MC: the book's own sentence (precedence.bond_line), written at the move
+        return str(ctx.event.get("line") or "").strip() or "A bond between marshals has moved"
+
+    if ctx.event_type == "title_in_the_gift":
+        marshal = humanize_entity_name(ctx.event.get("marshal", "Unknown"))
+        return (f"A title of victory is in the Emperor's gift: {marshal}, "
+                f"{ctx.event.get('title', 'a title')} ({int(ctx.event.get('turns', 0) or 0)} turns)")
+
+    if ctx.event_type == "title_conferred":
+        marshal = humanize_entity_name(ctx.event.get("marshal", "Unknown"))
+        over = [humanize_entity_name(n) for n in (ctx.event.get("passed_over") or [])]
+        tail = (f" — passed over: {', '.join(over)}" if over else "")
+        styled = marshal_title(ctx.world, str(ctx.event.get("marshal", "") or ""), start=True) or marshal
+        return f"{styled} is created {ctx.event.get('title', 'a duke')}{tail}"
 
     # PL-14: Ultimatum events
     if ctx.event_type == "ultimatum_issued":

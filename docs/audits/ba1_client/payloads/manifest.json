@@ -52,7 +52,7 @@
    "approach": 5,
    "assault": 3,
    "crisis": 2,
-   "pursuit": 2
+   "pursuit": 3
   }
  },
  "ordinary_brief": {
@@ -437,7 +437,7 @@
    "approach": 5,
    "assault": 3,
    "crisis": 2,
-   "pursuit": 1
+   "pursuit": 2
   }
  }
 }

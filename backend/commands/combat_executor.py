@@ -5,9 +5,10 @@ Handles all combat-related execution: attack, charge, bombardment, garrison.
 Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 """
 import contextlib
+import functools
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from backend.models.world_state import (
     PLUNDER_INCOME_MULTIPLIER as WS_PLUNDER_INCOME_MULTIPLIER,
     WorldState,
@@ -825,6 +826,11 @@ MUSTER_SPREAD_MAX_UNCERTAIN = 6
 MUSTER_BAD_DAY_CHANCE = 0.10
 
 
+def _the_committed_men(ctx) -> Tuple[int, int]:
+    from backend.game_logic import battle_telling as _telling
+    return _telling.committed_men(ctx)
+
+
 def _attack_is_unordered(command) -> bool:
     """An attack the player did not order THIS INSTANT: a jealousy-
     autonomous glory attack (`_jealousy_autonomous`) or a DEFIANCE — the
@@ -960,6 +966,158 @@ def works_halt_line(world, marshal, region) -> str:
 # the local it replaced did, and `getattr(ctx, name, default)` /
 # `hasattr(ctx, name)` keep the old `locals()` reads exact.
 _NEXT_STAGE = object()
+
+
+def outnumbered_is_read_on_the_field() -> bool:
+    """WS-13 (the weak-spot review, November 14, 2026; fixed in row BA's
+    session BA-6, the battle's finishing pass, November 17): "outnumbered"
+    and "outnumbering" - the +5 / -5 of authority, the glory point won against
+    the odds, and the aggressive marshal's no-stomp win (EC-K) - read the men
+    each side put on the field: the lead and every corps that fought beside
+    him, at the muster (`battle_telling.committed_men`, the very figures the
+    verdict's "numbers told" reads). The war-damage and war-score readers keep
+    the two leads' figures. Down (False): the two leads alone, so a 4,000-man
+    lead on a 60,000-man stack that beat 20,000 men had won against the odds."""
+    return True
+
+
+def _the_odds_of_the_field(ctx: dict, pre_atk, pre_def) -> Tuple[int, int]:
+    """(attacker, defender) men for the odds of a battle: the field's
+    committed men when the caller gave them (the field battle does), else the
+    leads' pre-battle figures (a garrison, a charge, a bombardment)."""
+    if outnumbered_is_read_on_the_field():
+        atk = int(ctx.get('field_attacker_strength') or 0)
+        dfd = int(ctx.get('field_defender_strength') or 0)
+        if atk > 0 and dfd > 0:
+            return atk, dfd
+    return int(pre_atk or 0), int(pre_def or 0)
+
+
+def a_refused_attack_spends_nothing() -> bool:
+    """WS-15 (the weak-spot review; fixed in session BA-6): the attack road's
+    first stage breaks a square, disperses a first-turn drill and spends the
+    counter-punch BEFORE the stages that can refuse the order at no cost (a
+    man out of sight, a field on peace soil, a name that guesses, a war still
+    to declare, the muster's confirm). On every road - typed, post-objection,
+    strategic, the courts' - an attack that certainly struck no blow
+    (`attack_struck_no_blow`, the typed road's own fail-closed list) puts them
+    back as they stood, and the square's notice with them; a march into an
+    undefended province is a move and keeps the square broken and the drill
+    dispersed (the drill's own line rides that result). Down (False): only
+    the typed road gives back the counter-punch, as before."""
+    return True
+
+
+def attack_struck_no_blow(result) -> bool:
+    """The outcomes of the attack road that certainly struck NO blow -
+    FAIL-CLOSED: anything not listed is taken to have fought (a missing entry
+    spends, it never mints a repeatable free attack). The typed road's
+    counter-punch belt reads this list too (`CommandExecutor`)."""
+    res = result if isinstance(result, dict) else {}
+    if a_refused_attack_spends_nothing() and _a_blow_was_struck(res):
+        # BA6-R3 (BA-6's review): a garrison stormed into an occupation, or any
+        # exit carrying a fight, struck a blow whatever its other flags say
+        return False
+    return bool(
+        not res.get("success", False)
+        or res.get("requires_input")            # muster confirm
+        or res.get("pending_interrupt")
+        or res.get("awaiting_diplomatic_response")
+        or res.get("war_purpose_popup")         # war purpose staged
+        or res.get("opening_attack_guidance")   # a briefing, not a blow
+        or res.get("occupation_started")        # walked in unopposed
+        or res.get("strategic_order")           # a standing order written
+        or res.get("state") == "awaiting_clarification")
+
+
+def _gives_back_what_no_blow_spent(execute_attack):
+    """WS-15 on every road: `_execute_attack` - the one door of the typed,
+    insist, strategic and the courts' attacks - is wrapped, so what its first
+    stage spends (the square and what breaking it clears, a first-turn drill,
+    the counter-punch) comes back when the attack struck no blow. A decorator,
+    so the driver stays a driver (CODE-2a: its body is the context, the loop
+    and the last stage)."""
+    @functools.wraps(execute_attack)
+    def wrapper(self, *args, **kwargs):
+        marshal = args[0] if args else kwargs.get("marshal")
+        before = _what_the_open_may_spend(marshal) if marshal is not None else {}
+        result = execute_attack(self, *args, **kwargs)
+        if marshal is None:
+            return result
+        return _give_back_what_no_blow_spent(marshal, before, result, getattr(self, "_executor", None))
+    return wrapper
+
+
+_A_FIGHTS_EVENTS = frozenset({"garrison_destroyed", "garrison_assault", "battle", "conquest"})
+
+
+def _a_blow_was_struck(res: dict) -> bool:
+    """The evidence a result carries that a fight happened: the strike's own
+    credit, a tableau, a battle's result, or an assault's or battle's event
+    (BA6-R3: a fortified garrison stormed ends in `occupation_started`, which
+    the no-blow list reads as a walk-in)."""
+    if res.get("counter_punch_used") or res.get("battle_diorama") or res.get("battle_result"):
+        return True
+    return any(isinstance(e, dict) and e.get("type") in _A_FIGHTS_EVENTS
+               for e in (res.get("events") or []))
+
+
+# What the attack road's first stage may spend before a free refusal: the
+# square (and what breaking it clears), the drill, the counter-punch.
+_SQUARE_KEYS = ("square_formation", "ai_square_cooldown", "strategic_order",
+                "holding_position", "hold_region", "pending_interrupt")
+_SPENT_BY_THE_OPEN = _SQUARE_KEYS + ("drilling", "drill_complete_turn",
+                                     "counter_punch_available", "counter_punch_turns")
+
+
+def _what_the_open_may_spend(marshal) -> Dict[str, Any]:
+    kept = {k: getattr(marshal, k) for k in _SPENT_BY_THE_OPEN if hasattr(marshal, k)}
+    kept["_location"] = getattr(marshal, "location", None)
+    return kept
+
+
+def _give_back_what_no_blow_spent(m, before: Dict[str, Any], result, executor=None):
+    """WS-15: an attack that struck no blow puts back what its first stage
+    spent - the square and what breaking it cleared (and its notice), the
+    drill, the counter-punch. A march into an undefended province is a move:
+    the square stays broken and the drill dispersed."""
+    if not (a_refused_attack_spends_nothing() and before and attack_struck_no_blow(result)):
+        return result
+    said = str(result.get("message") or "") if isinstance(result, dict) else ""
+    # a corps that marched - into an undefended province, or the first step
+    # of the pursuit an attack out of reach becomes - has moved: its square
+    # stays broken and its drill dispersed (the counter-punch is no blow's)
+    marched = bool((isinstance(result, dict) and result.get("occupation_started"))
+                   or getattr(m, "location", None) != before.get("_location"))
+    if before.get("square_formation") and not getattr(m, "square_formation", False) and not marched:
+        m.square_formation = True
+        if "ai_square_cooldown" in before:
+            m.ai_square_cooldown = before["ai_square_cooldown"]
+        # what breaking the square cleared comes back only where nothing new
+        # stands: an order or a question the attack itself wrote is kept
+        if before.get("strategic_order") is not None and getattr(m, "strategic_order", None) is None:
+            m.strategic_order = before["strategic_order"]
+            for key in ("holding_position", "hold_region"):
+                if key in before:
+                    setattr(m, key, before[key])
+            if (before.get("pending_interrupt") is not None
+                    and getattr(m, "pending_interrupt", None) is None):
+                m.pending_interrupt = before["pending_interrupt"]
+        pending = getattr(executor, "_pending_square_break", None)
+        if isinstance(pending, dict) and pending.get("marshal") == m.name:
+            executor._pending_square_break = None
+            executor._pending_square_break_msg = ""
+    # the drill's own line rides an exit that dispersed it (`_attack_open`'s
+    # DRILL CANCELLED) - such an exit fought or marched
+    drill_line = f"DRILL CANCELLED: {getattr(m, 'name', '')}'s drill was interrupted"
+    if (before.get("drilling") and not getattr(m, "drilling", False) and not marched
+            and drill_line not in said):
+        m.drilling = True
+        m.drill_complete_turn = before.get("drill_complete_turn", -1)
+    if before.get("counter_punch_available") and not getattr(m, "counter_punch_available", False):
+        m.counter_punch_available = True
+        m.counter_punch_turns = before.get("counter_punch_turns", 0)
+    return result
 
 
 def charge_has_a_man(target_marshal) -> bool:
@@ -6047,6 +6205,10 @@ class CombatExecutor:
         def_casualties = ctx.get('defender_casualties', 0)
         pre_atk = ctx.get('pre_battle_attacker_strength', 0)
         pre_def = ctx.get('pre_battle_defender_strength', 0)
+        # WS-13: the odds of the field - the men each side put on it - for
+        # "outnumbered" / "outnumbering" (authority, the glory point, the
+        # no-stomp win); the war-damage and war-score readers keep pre_*.
+        odds_atk, odds_def = _the_odds_of_the_field(ctx, pre_atk, pre_def)
         battle_result = ctx.get('battle_result')
         conquered = ctx.get('conquered', False)
 
@@ -6267,7 +6429,7 @@ class CombatExecutor:
                 defender, battle_region, defender_nation, world) if defender else []
             _jl_pipe_res = _jealousy.check_battle_resolution(
                 world, attacker, defender, attacker_won, defender_won,
-                int(pre_atk), int(pre_def),
+                int(odds_atk), int(odds_def),
                 attacker_participants=jealousy_atk_parts,
                 defender_participants=jealousy_def_parts,
                 defender_broken=bool(defender and getattr(defender, 'broken', False)),
@@ -6355,8 +6517,8 @@ class CombatExecutor:
                 world, attacker, defender, attacker_won, defender_won,
                 int(atk_casualties), int(def_casualties),
                 conquered=bool(conquered),
-                pre_attacker_strength=int(pre_atk),
-                pre_defender_strength=int(pre_def),
+                pre_attacker_strength=int(odds_atk),
+                pre_defender_strength=int(odds_def),
                 attacker_participants=jealousy_atk_parts,
                 defender_participants=jealousy_def_parts,
                 # NP-V: the Shadow reads the verdict computed where the
@@ -6365,7 +6527,8 @@ class CombatExecutor:
                 # Absent (garrison/charge paths that set no key) it falls
                 # back to the participant scan, byte-identically.
                 attacker_shadow=ctx.get('attacker_sovereign_present'),
-                defender_shadow=ctx.get('defender_sovereign_present'))
+                defender_shadow=ctx.get('defender_sovereign_present'),
+                place=str(battle_region or ""))       # row MC: the field
             _jealousy.check_rivalry_transitions(
                 world, pipeline_out.get('relationship_changes'))
 
@@ -6419,9 +6582,9 @@ class CombatExecutor:
                     _emperor_led = False
 
                 if player_won:
-                    outnumbered = pre_atk < pre_def
+                    outnumbered = odds_atk < odds_def
                     if player_is_defender:
-                        outnumbered = pre_def < pre_atk
+                        outnumbered = odds_def < odds_atk
                     capital_captured = False
                     if conquered:
                         cap_reg = world.get_region(battle_region)
@@ -6454,9 +6617,9 @@ class CombatExecutor:
                     if _player_lead is not None:
                         _standing.honour_repaid(world, player_nation, str(getattr(_player_lead, 'name', '') or ''))
                 elif player_lost:
-                    outnumbering = pre_atk > pre_def
+                    outnumbering = odds_atk > odds_def
                     if player_is_defender:
-                        outnumbering = pre_def > pre_atk
+                        outnumbering = odds_def > odds_atk
                     # AU-19 (BUG_FIXES.md §AU): a capital is lost only by its
                     # defender, when it falls in this battle (`standing.capital_lost_by`)
                     from backend.game_logic import standing as _standing
@@ -6485,9 +6648,11 @@ class CombatExecutor:
             # AU-4 (§5.7): each court's side of the field — the player's rules, AI
             # against AI included; behind `standing.courts_move()` (arm AUC)
             from backend.game_logic import standing as _court_standing
+            # BA6-R4 (BA-6's review): WS-13's sibling - the courts' "outnumbered"
+            # reads the men each side put on the field, as the player's does
             _court_standing.courts_battle(
                 world, battle_region, attacker.nation, defender_nation, attacker_won, defender_won,
-                pre_atk, pre_def, bool(conquered), attacker, defender, atk_casualties, def_casualties)
+                odds_atk, odds_def, bool(conquered), attacker, defender, atk_casualties, def_casualties)
 
         # ── 13. Coalition: threat + war exhaustion ──
         if not is_bombardment:
@@ -8694,6 +8859,7 @@ class CombatExecutor:
         )
         return not has_setup_support
 
+    @_gives_back_what_no_blow_spent          # WS-15, every road (the driver stays a driver)
     def _execute_attack(self, marshal, target, world: WorldState, game_state,
                         skip_reckless_popup: bool = False,
                         command: Dict = None) -> Dict:
@@ -11709,10 +11875,15 @@ class CombatExecutor:
         # [7B-1] Split artillery reinforcements by nation for relationship processing
         atk_artillery = [a for a in ctx.artillery_reinforced_adjacent if a.nation == ctx.marshal.nation]
         def_artillery = [a for a in ctx.artillery_reinforced_adjacent if a.nation == ctx.enemy_marshal.nation]
+        # Row MC: the corps that came up (the rescue rule reads them)
+        _came = {side: [ctx.world.marshals[r["marshal"]] for r in (getattr(ctx, attr, None) or [])
+                        if isinstance(r, dict) and r.get("arrived") and r.get("marshal") in ctx.world.marshals]
+                 for side, attr in (("atk", "attacker_reinforcements"), ("def", "defender_reinforcements"))}
         relationship_changes = process_battle_relationships(
             ctx.marshal, ctx.enemy_marshal, ctx.battle_result, ctx.battle_region_name, ctx.world,
             attacker_artillery=atk_artillery, defender_artillery=def_artillery,
-            **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {})  # WS-11
+            **({"rng": ctx.battle_rng} if ctx.battle_rng is not None else {}),  # WS-11
+            attacker_arrivals=_came["atk"], defender_arrivals=_came["def"],
         )
         for rc in relationship_changes:
             ctx.world.log_event({
@@ -12343,6 +12514,9 @@ class CombatExecutor:
             'defender_casualties': def_pip_cas,
             'pre_battle_attacker_strength': ctx.pre_battle_attacker_strength,
             'pre_battle_defender_strength': ctx.pre_battle_defender_strength,
+            # WS-13: the men each side put on the field, at the muster
+            **dict(zip(('field_attacker_strength', 'field_defender_strength'),
+                       _the_committed_men(ctx))),
             'battle_result': ctx.battle_result,
             'conquered': ctx.conquered,
             # S14G-1: the capture ran above; its result says whether it
@@ -13561,8 +13735,10 @@ class CombatExecutor:
         if _unseen and world.get_distance(marshal.location, target_marshal.location) > marshal.movement_range:
             return _unseen
 
-        # Auto-break square formation (Session 67)
-        self._executor._auto_break_square(marshal, "attack")
+        # Auto-break square formation (Session 67) - with WS-15's seam up, below,
+        # where the charge is certain to go home (BA6-R5)
+        if not a_refused_attack_spends_nothing():
+            self._executor._auto_break_square(marshal, "attack")
 
         # ARTILLERY: Guns don't charge
         if getattr(marshal, 'artillery', False):
@@ -13663,6 +13839,11 @@ class CombatExecutor:
                     "success": False,
                     "message": f"{marshal.name} has already engaged {target_marshal.name} this turn!"
                 }
+
+        # BA6-R5 (BA-6's review, WS-15's sibling on the charge road): the square
+        # is broken here, after every free refusal above, where the charge goes home
+        if a_refused_attack_spends_nothing():
+            self._executor._auto_break_square(marshal, "attack")
 
         # V2-51: Record attack direction for flanking bonus
         world.record_attack(marshal.name, marshal.location,

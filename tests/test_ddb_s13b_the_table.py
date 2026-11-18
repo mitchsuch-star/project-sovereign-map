@@ -229,14 +229,31 @@ class TestDDB12:
         assert GE.home_nation_of(w, "Franche-Comte") == "France"
         assert GE.home_nation_of(w, "Vienna") == "Austria"
 
-    def test_a_conquest_from_a_neutral_courts_soil_stays_with_its_holder(self, w):
+    def _neutral_soil_at_the_peace(self, w):
         hanoverian = sorted(w.nation_starting_regions["Hanover"])[0]
         w.regions[hanoverian].controller = "Bavaria"
         GE.record_province_title(w, hanoverian, GE.TITLE_CONQUEST, "Austria", "Bavaria")
         w.invalidate_active_nations_cache()
         with contextlib.redirect_stdout(io.StringIO()):
             D.set_diplomatic_state(w, "Bavaria", "Austria", "PEACE", "common_peace_settlement")
+        return hanoverian
+
+    def test_a_conquest_from_a_neutral_courts_soil_stays_with_its_holder(self, w, monkeypatch):
+        """DDB-12's boundary as it was ruled: a NEUTRAL court's soil is not titled home (that is a
+        co-belligerent's homeland's road). Row BA, BA-6 moved it for a peace between AI courts
+        (BA-5's ruling 1, built as BA6-X8 — the seam `a_peace_evacuates_a_third_courts_ground`):
+        with that row down the neutral's soil stays with its holder, as DDB-12 pinned."""
+        monkeypatch.setattr(GE, "a_peace_evacuates_a_third_courts_ground", lambda: False)
+        hanoverian = self._neutral_soil_at_the_peace(w)
         assert w.regions[hanoverian].controller == "Bavaria"
+        assert w.province_title[hanoverian]["kind"] == GE.TITLE_TREATY
+
+    def test_a_neutral_courts_soil_outside_the_holders_aims_goes_back_to_the_ceder(self, w):
+        """The law as it stands (BA6-X8): at a peace between AI courts, ground the holder took from the
+        ceder outside what it may keep goes back to the ceder, whosever homeland it is — the
+        annexation outside aim the deploy gate forbids (its ambient line read 1 on rivoli before it)."""
+        hanoverian = self._neutral_soil_at_the_peace(w)
+        assert w.regions[hanoverian].controller == "Austria"
         assert w.province_title[hanoverian]["kind"] == GE.TITLE_TREATY
 
 

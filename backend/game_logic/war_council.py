@@ -2069,8 +2069,12 @@ def _bandwagon_join(world, nation: str, events: List[Dict]) -> None:
     player = getattr(world, "player_nation", "France")
     instances = getattr(world, "war_instances", {}) or {}
     for war_id in sorted(instances):
-        inst = instances[war_id]
-        if inst.get("ended_turn") is not None:
+        # BA6-X5 (row BA, session BA-6 — found by the treaty fuzzer on the
+        # session's world-line): a call below (a failed attach) can fold or
+        # close a war in place, so a war on the sorted list may be gone by its
+        # turn — it is skipped, never read (it raised KeyError: 'war_4')
+        inst = instances.get(war_id)
+        if not isinstance(inst, dict) or inst.get("ended_turn") is not None:
             continue
         active = set(inst.get("active_participants") or [])
         if len(active) < 2 or nation in active or player in active:
@@ -2154,8 +2158,8 @@ def _bandwagon_renege(world, nation: str, events: List[Dict]) -> None:
     from backend.game_logic.diplomacy import cleanup_war_end, set_diplomatic_state
     instances = getattr(world, "war_instances", {}) or {}
     for war_id in sorted(instances):
-        inst = instances[war_id]
-        if inst.get("ended_turn") is not None:
+        inst = instances.get(war_id)       # BA6-X5's sibling: a war folded mid-loop is skipped
+        if not isinstance(inst, dict) or inst.get("ended_turn") is not None:
             continue
         meta_row = (inst.get("participant_meta") or {}).get(nation) or {}
         if (meta_row.get("entry_path") != "bandwagon"

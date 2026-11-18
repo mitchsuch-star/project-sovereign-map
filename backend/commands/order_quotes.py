@@ -838,6 +838,15 @@ def _band_range(label: str) -> Tuple[int, int]:
     return 0, 0
 
 
+def a_cards_men_are_men_in_reach() -> bool:
+    """Row BA, session BA-6 seam (BA5-X17, found by BA-5's third blind
+    reading): the figure a press card - and the attack card's force bar -
+    gives as OURS is the men in reach (the lead and the corps that would
+    answer the guns), never the muster's effective weight. Down (False): the
+    weight, as before ("105,039 on 30,557" with 94,512 on the field)."""
+    return True
+
+
 def _force_block(world, marshal, enemy) -> Optional[Dict[str, Any]]:
     """UI-5: the attack card's force bar - ours (the lead plus the corps that
     would answer the guns, `muster_odds`' committed term) against the foe
@@ -856,7 +865,18 @@ def _force_block(world, marshal, enemy) -> Optional[Dict[str, Any]]:
             return None
         label = str(reader._fog_banded_strength(answering_defender(world, enemy), world))
         odds = reader.muster_odds(marshal, enemy, world)
-        ours = int(marshal.strength) + int(float(odds.get("committed_attacker", 0.0) or 0.0))
+        weight = int(marshal.strength) + int(float(odds.get("committed_attacker", 0.0) or 0.0))
+        ours = weight
+        if a_cards_men_are_men_in_reach():
+            # BA5-X17: the muster's committed term is an arrival-weighted,
+            # morale- and temper-scaled WEIGHT; printed beside the foe's true
+            # men it read "105,039 on 30,557" with 94,512 on the field. The
+            # card's figure is men in reach - the lead and the corps that
+            # would answer the guns - as men; the odds word stays the muster's
+            # and the great-battle forecast keeps reading the weight.
+            joining = [world.marshals.get(n) for n in (odds.get("joining") or [])]
+            ours = int(marshal.strength) + sum(
+                int(m.strength) for m in joining if m is not None and int(m.strength) > 0)
         if label.endswith(" men"):
             figure = int(label.replace(" men", "").replace(",", ""))
             low = high = figure
@@ -869,8 +889,11 @@ def _force_block(world, marshal, enemy) -> Optional[Dict[str, Any]]:
             word = ""
             if high == 0 and low > 0:
                 label = f"{label} ({low:,}+)"
-        return {"ours": ours, "theirs_low": int(low), "theirs_high": int(high),
-                "theirs_label": label, "odds": word}
+        return {"ours": ours, "ours_weight": int(weight), "theirs_low": int(low),
+                "theirs_high": int(high), "theirs_label": label, "odds": word,
+                # Row MC: the corps the muster says would answer the guns, by
+                # name - the court line reads who would serve under the lead.
+                "joining": [str(n) for n in (odds.get("joining") or [])]}
     except Exception as exc:
         report(exc, "order_quotes._force_block: muster_odds / _fog_banded_strength")
         return None
@@ -913,12 +936,21 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     force = _force_block(world, marshal, enemy)
     if force is not None:
         q["force"] = force
+        # Row MC: the court beforehand - a senior who will resent serving
+        # under the lead, a hostile or devoted marshal among the corps that
+        # would answer the guns (`precedence.order_card_line`).
+        from backend.game_logic import precedence as _court
+        court = _court.order_card_line(
+            world, marshal, [world.marshals.get(n) for n in force.get("joining") or ()])
+        if court:
+            q["note"] = " · ".join(part for part in (str(q.get("note") or ""), court) if part)
         # Row BA (BA-3): the attack card says beforehand when the battle it
         # opens would be a great one and the points its commander brings —
         # read off the force bar's own figures (his LEAST strength under fog:
         # "great" is never promised on men we cannot see).
         from backend.game_logic import battle_day as _day
-        great = _day.forecast(world, marshal, int(force["ours"]) + int(force["theirs_low"]),
+        great = _day.forecast(world, marshal,
+                              int(force.get("ours_weight", force["ours"])) + int(force["theirs_low"]),
                               foe=enemy)
         # No forecast while the day against him is ALREADY open: the card said
         # "A great battle — Ney commands the day: 2 points" over a day whose

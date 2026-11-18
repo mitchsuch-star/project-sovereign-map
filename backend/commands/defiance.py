@@ -112,6 +112,17 @@ def calculate_defiance_chance(marshal, concern_level, world, rng=None) -> float:
     return min(0.40, max(0.0, final))
 
 
+def a_cautious_man_defies_a_pursuit_by_fortifying() -> bool:
+    """GRD-31 (ruled November 17, 2026, row MC / session BA-6, under the
+    user's "make decisions yourself soundly"): a PURSUE is an advance into the
+    enemy, so a cautious marshal who defies one does what he does when he
+    defies an attack, a support or a march - he fortifies where he stands (his
+    V1 counsel to an advance). An aggressive marshal never objects to a
+    pursuit, so his row is unchanged. Down (False): PURSUE is in neither row,
+    and a cautious marshal who insisted-then-defied sulked (inconclusive)."""
+    return True
+
+
 def get_defiant_action(marshal, original_action: str) -> Optional[str]:
     """Get the action a marshal would take when defying orders.
 
@@ -155,6 +166,8 @@ def get_defiant_action(marshal, original_action: str) -> Optional[str]:
         # Cautious defiance: fortify when ordered to attack or advance
         if original_action in ("ATTACK", "SUPPORT", "MOVE_TO"):
             return "fortify"
+        if original_action == "PURSUE" and a_cautious_man_defies_a_pursuit_by_fortifying():
+            return "fortify"       # GRD-31: a pursuit is an advance
         return None  # Wouldn't object to defend/fortify/hold
 
     # Unknown personality — no defiance

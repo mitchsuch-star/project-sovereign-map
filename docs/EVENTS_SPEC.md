@@ -518,6 +518,8 @@ The real client (`tools/dd_b_play.py`, the one engine at 5120×1440) against a s
 
 ## §18 S15's head — the Crown asks a vassal Francis; loyalty pays (RE3-6, November 6, 2026)
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** the Crown's four readings — KEEP: each the user's "loyalty pays" / "the teeth are the point" applied — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 *The user's word in Plan Mode: "Ask him; loyalty pays" — the row `BUG_FIXES.md` §RE3 RE3-6 FIXED; the rules `SYSTEMS_REFERENCE.md` §177.2; pins `tests/test_moments_reich.py`, `tests/test_moments_pacing.py`.*
 
 - **The question (RE-3's re-measure, November 1):** on today's Rhine road Pressburg subjugates Austria, and M3's rule asked no vassal court for the crown, so the letter fired on no measured arm. Restated at S15's head on the flip's board: austerlitz alone was the clause's own block (the Confederation latches T13 with Austria France's vassal); on historical the Confederation never latches on the shipped tree (the courts' Edicts — with the rung held down it stamps T12), on marengo the Emperor falls (the seal `rhine.german_crown` fulfilled T12, the Confederation never).

@@ -165,13 +165,25 @@ class TestTheVolteFaceFiresOnItsArm:
         promoted where one was, and the beat never fires in forty turns.
         Measured on this drive: the bar held at 80,000 ALONE beside the
         seams above returns the beat on turn 25. The arm keeps its purpose
-        with the bar held — the days stage the war, they are not the rule."""
+        with the bar held — the days stage the war, they are not the rule.
+
+        RE-SEATED by row MC's 1805 reading (row BA's session BA-6, November
+        17, 2026; `MARSHALATE_SPEC.md` §1): Davout and Bernadotte, Murat and
+        Bernadotte, the Emperor and Bernadotte open as Rivals (-1), not Hostile
+        — they coordinate at half and march for each other — so the historical
+        board re-times from its changed battles and the beat never fires in
+        forty turns. Measured on this drive, one row of `tests/_ba6_seams.py`
+        held down at a time beside the seams above: MCSEEDS alone returns the
+        beat on turn 25 (every row down: 25; none of the other seven alone).
+        The arm keeps its purpose with the 1805 reading held at the old values
+        — the seeds stage the war, they are not the rule."""
         rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
                       "--seam", "backend.models.world_state:deck_entry_stands="
                       "(a[1] or {}).get('id') != 'the_old_alliance'",
                       "--seam", "backend.game_logic.affairs:ai_decrees=False",
                       "--seam", "backend.ai.enemy_ai:desperation_reads_the_brakes=False",
-                      "--seam", "backend.game_logic.battle_day:key_bar=80000")
+                      "--seam", "backend.game_logic.battle_day:key_bar=80000",
+                      "--seam", "backend.game_logic.precedence:the_seeds_read_as_of_1805=False")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

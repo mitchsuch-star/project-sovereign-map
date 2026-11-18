@@ -170,9 +170,11 @@ class TestTheTableIsCaseBlind:
 
     def test_literal_never_defies_and_pursue_stays_unwritten(self):
         assert get_defiant_action(self._marshal("literal"), "HOLD") is None
-        # GRD-31 (for the user): PURSUE is in neither row of the spec's table.
+        # GRD-31 (RULED November 17, 2026, row MC / session BA-6): a pursuit
+        # is an advance — a cautious marshal who defies one fortifies, as he
+        # does an attack; an aggressive marshal never objects to a pursuit.
         assert get_defiant_action(self._marshal("aggressive"), "PURSUE") is None
-        assert get_defiant_action(self._marshal("cautious"), "PURSUE") is None
+        assert get_defiant_action(self._marshal("cautious"), "PURSUE") == "fortify"
         assert get_defiant_action(self._marshal("aggressive"), None) is None
 
     def test_a_standing_hold_defied_by_an_aggressive_marshal_attacks(self, monkeypatch):

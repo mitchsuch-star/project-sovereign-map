@@ -95,9 +95,13 @@ class TestAttackAutoMove:
     """Attack auto-move (non-literal, out-of-range) should mirror _execute_move."""
 
     def test_attack_auto_move_breaks_square(self):
-        """Square formation should be broken when auto-moving toward enemy."""
+        """An attack on a foe out of reach now ASKS first ("Pursue him, or
+        cancel?" — the pursuit ask): no blow is struck and no march is made,
+        so the square stands until he marches (WS-15, row BA's session BA-6:
+        the attack road's first stage broke the square before this free
+        question, and nothing put it back)."""
         world = make_world()
-        # Ney in Paris, enemy in Vienna (far away) — will auto-move
+        # Ney in Paris, enemy in Vienna (far away) — out of reach
         ney = make_marshal(name="Ney", location="Paris", strength=30000)
         ney.square_formation = True
         wellington = make_enemy(name="Wellington", location="Vienna", strength=25000)
@@ -105,7 +109,8 @@ class TestAttackAutoMove:
 
         result = execute_attack(world, "Ney", "Wellington")
         assert result["success"]
-        assert not ney.square_formation
+        assert result.get("state") == "awaiting_clarification" and ney.location == "Paris"
+        assert ney.square_formation, "no blow, no march: the square stands"
 
     def test_attack_auto_move_checks_diplomacy(self):
         """Auto-move should be blocked if destination has diplomatic restrictions."""

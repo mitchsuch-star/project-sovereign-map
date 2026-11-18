@@ -45,7 +45,10 @@ def client(monkeypatch):
         yield TestClient(M.app)
 
 
-FORCE_KEYS = {"ours", "theirs_low", "theirs_high", "theirs_label", "odds"}
+# BA5-X17 (row BA, BA-6): `ours` is men in reach; `ours_weight` keeps the muster's
+# effective weight, which the great-battle forecast still reads
+FORCE_KEYS = {"ours", "ours_weight", "theirs_low", "theirs_high", "theirs_label", "odds",
+              "joining"}   # row MC: the muster's joining corps, by name (the court line)
 
 
 # ── 1. the force block ────────────────────────────────────────────────────

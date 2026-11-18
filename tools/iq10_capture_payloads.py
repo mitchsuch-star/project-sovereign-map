@@ -1415,6 +1415,38 @@ def cap_the_roads_and_the_fog():
         raise RuntimeError("the_roads_and_the_fog: " + "; ".join(problems))
 
 
+def cap_the_court():
+    """Row MC, BA-6 (November 17, 2026) — a LIVED court for the Generals screen:
+    thirty turns of a France played by the courts' own AI (the AI-France
+    harness's brain, `tools/ai_france_sweep.FranceBrain`, which answers every
+    question the player would be asked) on the 1805 board, then GET
+    /marshal_overview: the order of precedence, each marshal's bonds with
+    their causes, renown, a title in the gift where one stands."""
+    sys.path.insert(0, str(REPO))
+    from tools import ai_france_sweep as AF
+    from backend.commands.executor import CommandExecutor
+    from backend.game_logic.turn_manager import TurnManager
+    world, _c = fresh()
+    executor = CommandExecutor()
+    tm = TurnManager(world, executor=executor)
+    game_state = {"world": world, "executor": executor}
+    brain = AF.FranceBrain(world, executor, game_state, steward=False)
+    with _quiet():
+        for turn in range(30):
+            brain.step(turn)
+            random.seed(turn)
+            tm.end_turn(game_state)
+            brain.sample_battles()
+            brain.answer_pending(game_state)
+    c = adopt(world)
+    overview = get(c, "/marshal_overview")
+    record("marshal_overview_court", overview, source="GET /marshal_overview",
+           staging="1805 boot, then thirty turns of an AI-played France (tools/ai_france_sweep.FranceBrain, "
+                   "random.seed(turn) before each end turn)",
+           facts={"turn": int(world.current_turn),
+                  "marshals": len(overview.get("marshals") or [])})
+
+
 def cap_the_finish():
     """Row BA, BA-5 (November 17, 2026) — the finished table: a battle's own
     table names WHAT TOLD under its headline, and the clash that decides a day
@@ -3475,6 +3507,7 @@ CAPTURES = {
     "the_days_points": cap_the_days_points,
     "the_roads_and_the_fog": cap_the_roads_and_the_fog,
     "the_finish": cap_the_finish,
+    "the_court": cap_the_court,
     "petition": cap_petition,
     "moments": cap_moments,
     "prisoner": cap_prisoner,

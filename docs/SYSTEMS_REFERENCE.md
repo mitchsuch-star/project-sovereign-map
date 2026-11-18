@@ -17591,3 +17591,153 @@ Arms, cumulative: `0` (every BA-5 seam down), `TELL` (the rows that move no numb
 ### §223.9 Tests and tools
 
 `tests/test_ba5_the_finish.py` (288 tests): the six defects, the telling, the reading's law against the rule he follows, what told, the verdict's line, the card's count of him, the reserve parked and (seam up) its measured arm, the extras, the client's sources, the records. Older pins re-read, none deleted: `test_ba1_the_battle_in_acts.py` (BA1-X8 plain, the driven fixture's twenty shots), `test_ba3_the_rounds.py` / `test_ba3_the_review.py` (`_how`), `test_ba3_the_days_panel.py` (84 switch-off cases, 34 `ba5_*`; the first day's line on the crowded first day), `test_ba4_the_roads_and_the_fog.py`, `test_ba4_the_review.py` (the card's note), the two serialization censuses (`KEPT_ONLY_WHEN_HELD_FIELDS`). Tools: `tools/_ba5_measure.py`; `tools/ba1_acts_walk.py` / `.gd` (claims BA5-h, -r, -c, -e, -l, -p, -d3, -d6, -s1…s4, -g, -v; the laurels; the second reading's -n the band's name, -u the rule, -k the counters' scope, -q the guns' count, -m the march's cost, -t the lift; the review's -o the closing table, -w a liberation's long line and the locked card's hover under -c); `tools/ba2_switch_off.py` (84 cases); `tools/ba4_mode_c_walk.py` / `.gd` (boards `finish` and `oneday`, `--stamp`); `tools/ba1_stage_battles.py` (`FIRST_DAY_SCENES`); `tools/playtest_driver.py` (the reserve's tally, read-only).
+
+
+## §224 Row MC — the Order of the Marshalate (November 17, 2026)
+
+The user's word: "look into marshal relationships and mnake sure the pecking order and their relationships is engaing and well desinged", under "make decisions yourself soundlt with research". The court gets an order, a memory and a way to be wronged. The whole design, research and landing record: `docs/MARSHALATE_SPEC.md`; the code: `backend/game_logic/precedence.py` (its docstrings are the design). No rule draws a random number; no combat modifier is calculated here (golden rule 1).
+
+### §224.1 The seams
+
+Zero-argument functions, `True` in the game; the session's OFF list is `tests/_ba6_seams.py` (rows MC0, MCBOOK, MCSEEDS, MCBONDS, MCRANK and SILENCE, with GRD and TELL for the two voices). With every row down the court is the commit before (`fdd4756f`).
+
+| Row | Seam | Down |
+|---|---|---|
+| MC0 | `marshal.the_bond_writes_the_stored_view` | `modify_relationship` reads the derived view (a jealous man's live -1 baked in) |
+| MCBOOK | `precedence.the_book_keeps_its_incidents` | no book, no cause on any surface |
+| MCBOOK | `precedence.a_marshal_banks_his_renown` | no renown |
+| MCBOOK | `precedence.the_order_of_precedence_stands` | no order (passing-over, serving under a junior, the claim idle) |
+| MCBOOK | `precedence.an_audience_names_its_cause` | an audience names no laurels; the quiet answer is one constant line |
+| MCBOOK | `precedence.the_card_names_the_court` | the attack card is silent on the court |
+| MCSEEDS | `precedence.the_seeds_read_as_of_1805` | Davout-Bernadotte, Murat-Bernadotte, Bernadotte-Napoleon open Hostile (-2) |
+| MCBONDS | `precedence.brothers_in_arms` / `a_shared_defeat_sours` / `a_rescue_mends` / `a_silence_is_remembered` / `old_quarrels_cool` / `serving_under_a_junior_rankles` | each bond idle |
+| MCRANK | `precedence.titles_of_victory` / `ai_courts_confer_titles` / `a_marshal_claims_his_due` / `an_account_follows_a_joint_defeat` | no title, no AI conferring, no claim, a joint defeat sours at once |
+| TELL | `strategic_executor.each_aggressive_man_objects_in_his_own_voice` | GRD-17: the one idle-objection line |
+| GRD | `defiance.a_cautious_man_defies_a_pursuit_by_fortifying` | GRD-31: a cautious man who defies a pursuit sulks |
+| SILENCE | `precedence.a_silence_is_remembered_when_pressed` | a silence is remembered only when the battle was lost or hung (as row MC first built it) |
+
+### §224.2 The rules
+
+- **The order** (`order_of_precedence`): sorted `(-tier, seat, name)`; tier 2 a prince, 1 a duke (a title of victory in `Marshal.honours` or an estate's ducal style), else 0; seat = the scenario's `seniority` (the 1804 list's numbers) else `LATER_BATON` (100) + roster index; a commissioned marshal is seated after every baton given. The court = the nation's marshals who are not the sovereign nor a client's general, standing or captive; a captive keeps his place, marked.
+- **The book** (`world.marshal_ledger`, `{"A|B": {incidents, won, lost}}`): one writer `note` (moves the stored view inside a floor and cap, writes the incident with what actually moved, stamps `last_relationship_change_turn`, logs a `marshal_bond` line), one recorder `record` (the older writers' moves: the Win/Loss roll, an escalation, a council breach). `BOOK_KEEP` 4 incidents a pair, the founding `seed` kept. Per-direction causes (`note_a` / `note_b`); `cause_of` reads the latest incident that moved the viewer's view or that speaks the way it leans (AGAINST kinds for a Rival or Hostile, FOR kinds for a friend); same-turn tie-break: the incident that moved his view before one that only fed it.
+- **Renown** (`bank_renown`, from `jealousy._append_glory`): every laurel banked for good; a defeat that costs glory costs one. The season's glory is unchanged. The laurel carries its field (`jealousy._GLORY_PLACE`).
+- **Titles of victory** (`victory_earns` from `record_battle_glory`): a victory worth `DUKE_POINTS` 3 (`PRINCE_POINTS` 4 for a duke), the lead not shadowed by the Emperor, puts `Marshal.title_due` in the gift for `TITLE_DUE_TURNS` 8; `confer_title` pays `DUKE_PRICE` 3 / `PRINCE_PRICE` 5 authority through `standing.buy` (cause `title_conferred`), writes the honour, trust +`TITLE_TRUST` 3, raises his dotation expectation; seniors above him whose renown is within `RIVAL_DEEDS` 2 of his and who are not his friends are passed over: their view falls a rung, floor Rival. The AI courts confer by the same rule (`_courts_confer`).
+- **Bonds** (`after_shared_battle`, both sides, court men only): brothers in arms (friends + the `BROTHERS_AT` 4th real victory = Devoted); the shared defeat sours the lead's view with his comrades (Professional / Rival fall a rung, never below Rival; a friend forgives once; nothing sours with the Emperor present; the player's side asks the account first); the rescue (the man who came up is owed a rung, cooldown `BOND_COOLDOWN` 6); the silence (a Hostile comrade within one province who did not march to the guns while the battle was lost or hung, **or while the lead was hard pressed, won or not** — `a_silence_is_remembered_when_pressed`, the court count's find: Auerstedt itself was a victory won outnumbered; `_hard_pressed` is the ONE reading of pressure, the rescue's and the silence's); serving under a junior (`JUNIOR_COOLDOWN` 8); a Rival view that a quarrel of play made cools to Professional after `THAW_TURNS` 12 quiet turns, never an authored one, never a Hostile.
+- **The account** (`world.marshal_accounts`): four answers (the Emperor takes it: `ACCOUNT_PRICE` 2, cause `blame_taken`; on the lead; on another; let it lie); unseen for `ACCOUNT_SHOWS_FOR` 3 turns it lies.
+- **The claim** (`_check_claims`): untitled, renown at least `CLAIM_RENOWN` 6, renown place `CLAIM_GAP` 3 above his place in the order; once in `CLAIM_COOLDOWN` 12 turns; grant / not yet (trust -2) / rebuke (trust -4, a view against the senior above him).
+- **The audience** names the laurels it resents (`jealousy._laurels_place`); its quiet answer says what follows (GRD-17). **The attack card** carries `precedence.order_card_line` in `note`. **GRD-17's voices**: `strategic_executor.IDLE_OBJECTION_VOICES` (Ney, Murat, Lannes, Masséna). **GRD-31**: `defiance.get_defiant_action` fortifies for a cautious man defying a PURSUE.
+- **The seeds**: `seed_the_book` (from `WorldState.from_scenario`) reads `seniority` and `relationship_causes` from `europe_1805.json`; a cause naming a marshal still in the pool waits under `waiting` for his commission (`seed_the_commissioned`).
+
+### §224.3 The numbers
+
+`BOOK_KEEP` 4, `TITLE_DUE_TURNS` 8, `DUKE_POINTS` 3, `PRINCE_POINTS` 4, `DUKE_PRICE` 3, `PRINCE_PRICE` 5, `TITLE_TRUST` 3, `ACCOUNT_PRICE` 2, `ACCOUNT_TRUST` 2, `ACCOUNT_SHOWS_FOR` 3, `CLAIM_RENOWN` 6, `CLAIM_GAP` 3, `CLAIM_COOLDOWN` 12, `CLAIM_REFUSED_TRUST` 2, `CLAIM_REBUKED_TRUST` 4, `THAW_TURNS` 12, `BOND_COOLDOWN` 6, `JUNIOR_COOLDOWN` 8, `BROTHERS_AT` 4, `RIVAL_DEEDS` 2, `LATER_BATON` 100 (every constant of `precedence.py`; the table is `MARSHALATE_SPEC.md` §3).
+
+### §224.4 Endpoints, payloads and the log
+
+`POST /confer_title` `{marshal}` (`main.confer_title` → `precedence.confer_title`; the result rides `_build_result_response`); `GET /marshal_overview` carries each card's `court` block (`marshal_overview._build_court` → `precedence.card_fields`: place, of, seat, tier, style, honours, renown, renown_place, captive, trails_deeds, bonds, and `title_due` for the player's own); the Generals payload carries `order` (`precedence.order_payload`: the court's rows and `live_pairs`, at most three). Petition cards of kind `account` and `claim` ride the marshal-petition channel (`/marshal_petition_response`). Campaign log events `marshal_bond`, `title_in_the_gift`, `title_conferred` (own court's only; category `command`); authority causes `title_conferred` and `blame_taken` (`display_names.AUTHORITY_CAUSES`).
+
+### §224.5 The save
+
+Held-only (nothing written while empty): `Marshal.seniority`, `renown`, `honours`, `title_due`, `last_claim_turn`; `WorldState.marshal_ledger`, `marshal_accounts` (`SAVE_FORMAT_REFERENCE.md`). An old save loads as an empty court.
+
+### §224.6 Tests
+
+`tests/test_mc_the_order_of_the_marshalate.py` (47 tests), `tests/test_ba6_the_rulings.py` (GRD-31, GRD-17's voices, GRD-2, GRD-5, GRD-30, the court forms' tie order), `tests/_ba6_seams.py` (folded into `tests/_oct27_seams.py`). The attribution of the benchmark series (`tools/_ba6_series_arms_final.json`): arm 0 byte-identical to the prior; movers MCSEEDS from index 12, MCBONDS 16, WS 17; TELL, MC0, MCBOOK and MCRANK alone byte-identical.
+
+## §225 Row BA, session BA-6 — the last word: the backend (November 17, 2026)
+
+The user's word: "ba-5 is done please assure its good dont leave any open items" and "make decisions yourself soundlt with research". Every call an earlier session left open is ruled in `docs/audits/OPEN_CALLS_RULED_2026_11_17.md`; this section is the backend rules that landed. The session's OFF list is `tests/_ba6_seams.py` (rows TELL, RESERVE6, GRD, WS and PEACE beside row MC's). The client is §225.4; the traps §225.5.
+
+### §225.1 The seams
+
+| Row | Seam | What it does | Down |
+|---|---|---|---|
+| TELL | `battle_report.a_dear_defeat_is_not_a_narrow_one` (BA5-X16) | a defeat that cost a fifth of the corps or more is not called narrow; short of the grievous 30% and not a rout it has its own `lost_dear` lines | the margin alone |
+| TELL | `order_quotes.a_cards_men_are_men_in_reach` (BA5-X17) | the figure a press card and the attack card's force bar give as ours is the men in reach (the lead and the corps that would answer the guns), never the muster's effective weight | the weight ("105,039 on 30,557") |
+| TELL | `battle_day.a_ruin_is_kept_as_drawn` (BA6-X1) | a day closed by a clash that ruined both armies is kept "drawn" on his record, not "won on points" | the toll's verdict |
+| TELL | `battle_telling.a_word_says_what_it_risks` | a word's card carries a third line, `risk` (`risk_of`), off the odds band the card shows (`RISK_BY_ODDS`: favorable / even / unfavorable) or, with no band, the day's own count of men (`RISK_BY_MEN`: ours / even / his); the free words say their stakes (`stakes_of`: the toll that stands, the field kept or given) | the card's two lines |
+| RESERVE6 | `battle_day.the_attacker_pursues` | the reserve's attacker-only form: only the side that attacked in the deciding clash pursues, with its own unspent points (`reserve_pursuit()` men a point). **CLOSED - held DOWN in the game** (`BA6_CLOSED`): it failed the rule written before its data (`tools/_ba6_reserve_rule_2026_11_17.json`: pick null; clause iii, "neither side takes three quarters", false at 2,000 / 3,000 / 5,000 - 22 of 23 pursuits fell on a French corps, because his AI keeps points by its own spending rule and a France that spends to win holds none); up is the measured arm | no pursuit for a point kept |
+| WS | `combat_executor.outnumbered_is_read_on_the_field` (WS-13) | "outnumbered" / "outnumbering" (the +5 / -5 authority, the glory point against the odds, the aggressive marshal's no-stomp win) read the men each side put on the field at the muster, `_the_odds_of_the_field` over `battle_telling.committed_men` (the figures "numbers told" reads); the EC-K sibling `jealousy.check_battle_resolution` takes the same field figures from its caller; a garrison, charge or bombardment keeps the leads' figures | the two leads alone |
+| WS | `combat_executor.a_refused_attack_spends_nothing` (WS-15) | an attack that certainly struck no blow (`attack_struck_no_blow`, fail-closed) puts back what the road's first stage spent (`_give_back_what_no_blow_spent`): the drill, the counter-punch, and the square with what breaking it cleared and its notice; a corps that marched keeps them spent. Found by the sibling sweep: the square (BA6-X4) | only the typed road gives back the counter-punch |
+| TELL | `diplomacy.a_declaration_of_war_is_public` (GRD-2) | a formal war rides the morning's declaration row whatever France can see | needs PARTIAL sight of one court |
+| TELL | `ai_diplomacy.an_envoy_names_his_letter` (GRD-5) | "Envoy from Prussia: Defensive Alliance" on the rail | "An envoy ... has arrived with a proposal." |
+| TELL | `reforms.a_law_says_where_it_is_void` (GRD-30) | a recruit-morale law's line says a training ground voids it | the term alone |
+| TELL | `strategic_executor.each_aggressive_man_objects_in_his_own_voice` (GRD-17) | Ney, Murat, Lannes and Masséna object to sitting still in their own words (`IDLE_OBJECTION_VOICES`); the lines that carry a reading (EXTREME's, STRONG's) are unchanged | "I would rather attack than sit idle." for all four |
+| GRD | `defiance.a_cautious_man_defies_a_pursuit_by_fortifying` (GRD-31) | a cautious marshal who defies a PURSUE fortifies, as he does an attack, a support or a march | PURSUE in neither row: he sulked |
+| TELL | `strategic_executor.a_defiance_names_the_order_in_words` (BA6-R6, the review) | the strategic defiance names the defied order as a verb in words ("instead of pursuing", `_the_order_in_words`) | the raw enum ("instead of PURSUE") |
+| TELL | `campaign_log.a_bond_is_told_only_of_our_court` (BA6-R8, the review) | a `relationship_change` reaches the campaign log only for the player's own court | every court's (with the field of a battle France never saw) |
+
+No seam is needed for two byte-stable fixes: the court forms' tie order (`dialogue_routing._KNOWN_COURT_FORMS` sorts `(-len, form)`, alphabetical on a tie, so the list no longer differs between hash seeds) and BA4-BOMB (`battle_script` writes a cannonade's names in sorted order, so the staged bombardment payloads no longer differ between processes).
+
+**The review's rules with no seam of their own** (§15.26 of the battle spec; each with its behaviour test in `tests/test_ba6_the_review.py`): an account card on screen never lapses under the player, a settled account cannot be answered twice and its card retires (`precedence._push_accounts`, `apply_account`, `account_retirement_reason`; BA6-R1); POST /confer_title takes only a marshal of the player's own court, any other name reads as unknown (`precedence.confer_title`; the claim's grant keeps `_confer_title_on`; BA6-R2); under WS-15's seam a result that carries a fight — the strike's credit, a tableau, a battle's result, an assault's or a battle's event — struck a blow whatever its other flags say (`combat_executor._a_blow_was_struck`; BA6-R3), the courts' side of the field reads the field's men (`standing.courts_battle` is passed `odds_atk, odds_def`; BA6-R4) and a glorious charge breaks its square only past its own free refusals (BA6-R5); WS-15's give-back wraps `_execute_attack` as a decorator (`_gives_back_what_no_blow_spent`), so the driver stays a driver (CODE-2a). Two latent defects the session's world-line exposed, fixed with no seam (a crash and a broken invariant are never a mode): the courts' bandwagon pass skips a war folded in the middle of it (`war_council._bandwagon_join`, `_bandwagon_renege`; BA6-X5 — `KeyError: 'war_4'`), and a merged war takes a pair live in the absorbed war as live (`settlement_helpers._merge_instance_data`; BA6-X6 — §7.3). The instrument: `tools/keyed_world_probe.py` applies the held seams before the world is built (BA6-X7), so a seam that acts at the boot is held. **BA-5's ruling 1, built as it pre-decided** (row PEACE, seam `game_end.a_peace_evacuates_a_third_courts_ground`, BA6-X8): the final measure's ambient annexation line read 1 (rivoli — Saxony kept Swabia, Bavaria's homeland held by Austria, by the Austria–Saxony peace's retention), so T3-6's law of peace now reaches a third court's ground: at a peace between AI courts, ground the holder took from the ceder outside what it may keep (`war_council.keepable_regions`) goes back to the ceder, whosever homeland it is; never the holder's own homeland; the player's peaces keep SR-1a.
+
+### §225.2 The terrain plates
+
+The battle table's ground is cut from period military surveys, never drawn in code (the user: "make sure the terrain background does not look ai genned even get assets if needed"). `tools/ba6_terrain_plates.py` crops, scales to 1896x880 (twice the stage) and grades "by lamplight" into the felt's dark range twelve plates into `godot-client/project-sovereign/assets/textures/battle/` (plains x3, forest x2, hills x2, mountains x2, urban x2, river_crossing x1) with their record `plates.json` (source, crop, side, licence, page of each); the felt itself is `felt_baize.jpg`. Sources: Joseph de Ferraris, *Carte de cabinet des Pays-Bas autrichiens* (1771-78, KBR scans) for every kind but the mountains, Peter Anich and Blasius Hueber, *Atlas Tyrolensis* (1774) for those; all public domain from Wikimedia Commons; the felt CC0 (ambientCG, Fabric034). A wood's or a town's plate has its feature on one half (`side` left / right); the client lays the plate whose feature lies on the defender's half, never a mirror. A fleet action keeps its chart-blue table (the only period chart found was a Gallica/BnF scan, which the licence policy refuses). Licences: `THIRD_PARTY_LICENSES.md` "## Battle terrain". Pinned by `tests/test_ba6_the_last_word.py::TestTheGroundIsARealSurvey` (coverage, sides, never a mirror, contrast floors, licences).
+
+### §225.3 Tests
+
+`tests/test_ba6_the_last_word.py` (BA5-X16, BA5-X17, BA6-X1, the attacker's pursuit and the seams, every word's risk, the plates), `tests/test_ba6_the_weak_spots.py` (WS-13 `TestTheOddsOfTheField`, WS-15 `TestARefusedAttackSpendsNothing`), `tests/test_ba6_the_rulings.py`, `tests/test_ba6_levers.py` (the client half, by source), `tests/test_ba6_the_review.py` (the review's rows and X5–X8), and `TestTheMeasureOfRecord` in `tests/test_ba6_the_last_word.py` (the ladder is the hold list; arm 0 is the commit before on every key; the band on every arm; the day's sweep; the ambient ten and the harness). Tools: `tools/_ba6_measure.py` (the reserve's rule, the band, the probe, the sweep, the ambient ten, the harness, the gate), `tools/_ba6_series_arms.py`, `tools/_ba6_court_count.py` (row MC's court count, `MARSHALATE_SPEC.md` §8.1), `tools/ba6_terrain_plates.py`.
+
+### §225.4 The client (the table's levers, the large type, the ground, the court on the Generals screen)
+
+- **The decision panel's room** (`battle_diorama.gd` `set_day_room`, `tray_h()`, `DAY_ROOM` 110 px): while a day
+  awaits a word the tray grows and gives the room back when the day closes, on Close and at the next table; the
+  fit rule, the pivot and the nameplate read `tray_h()`.
+- **Three-line cards** (`battle_acts.gd`): the word, its price and the digit at body size; what it does and what
+  it RISKS (`risk`, from `battle_telling.risk_of`) at the Caption step; the risk line is shed first where a row is
+  too wide (the ladder's rung 5c) and then rides the card's hover.
+- **The free words' stakes** (`stakes_of`): laid as cards beside the buttons where they fit (680 px), else a
+  full-width row above them (`_day_exits_row_tried` at the first rung; `_day_exits_wide` only where the cards give
+  way to the one-line chips — BA6-R22), else wrapped at a semicolon.
+- **"+N more"** (`DAY_MORE_KEY`): a group shows the chips the digits 4–6 reach and one quiet "+N more" whose hover
+  names the rest; pressing it RE-LAYS the panel (`_relay_the_day`, BA6-R14), the latches and the first day's state
+  kept; it resets with each table.
+- **The dice plate** (`DiceTray.build`): the throw, the lands figure against an average throw, and the luck set
+  against what told (`_luck_line`); where the room holds two rows (Text size 120 % and up) the luck takes the second
+  row in its short form (`_luck_short`, BA6-R25). A "Decided …, in an even fight" verdict reads "An even fight"
+  (`_what_told`, BA6-R15).
+- **The legend** (`DayLegend`, `DAY_LEGEND_HOVER`): one Caption line in the head's own ink and swatches, shed to the
+  head's hover after the lift rung.
+- **Large type (BA1-X4)**: above `TABLEAU_TEXT_CAP` (1.3) `_fit_tableau_type` builds a held Theme at the 130 % steps
+  (`TABLEAU_TEXT_STEPS`) that `_mk_label` sets on each tableau label — never on a fixed display variation
+  (`Utils.TEXT_SIZE_FIXED_STEPS`: the engraved banner, the odometers, the clash, the plate — BA6-R28); the chrome
+  labels built once are re-held at every showing (`_chrome_labels`, `_refit_chrome_type`, BA6-R16); the skip hint
+  takes the project theme like Close and Replay (BA6-R17). `_line_extra` reads the held type.
+- **The ground** (`battle_acts.gd` `Ground`): a survey plate chosen by the province's terrain, seeded by the battle,
+  drawn with `draw_texture_rect_region` from a centred source rect of the sheet's aspect — cropped, never stretched
+  (BA6-R29) and never mirrored; the felt tiles `felt_baize.jpg`.
+- **The Generals screen** (`marshal_management.gd`): the card's body opens with THE COURT (`_court_line`: his style, his place in the order and seat, his renown and its place, his honours with their turns — BA6-X13; the page layout keeps it under his name); a roster line that does not fit beside its badge keeps the strength and gives the place to the hover (`marshal_roster_row.gd` `_fit_sub`, BA6-X12); each card's court block (place in the order and seat, style and
+  honours, renown and its place — shown only when the place is known, BA6-R21 —, the bonds with their causes, a
+  temporary grievance marked); a title in the Emperor's gift with its price and Confer (a locked Confer states its
+  refusal after the chip on the page layout, hovers it when folded — BA6-R19); `main.gd` `_on_title_requested`
+  refuses while a command or an end turn is on the wire (BA6-R20). The roster's sort "By renown" puts an unplaced
+  marshal last.
+- **The reserve's note** (BA6-X10): the wedge's note keeps its noun while the battle is told ("+3 corps in reserve"); where a triumph's laurel will stand on it at the end it says "+3 in reserve" as the laurels come (`_rehome_the_reserve` predicts the laurels from the register's own banner words; `_tell_the_reserves_dead` swaps the form).
+- **The walk** (`tools/ba1_acts_walk.py`): the levers' claims (BA6-1 … BA6-6), the luck's row at every size
+  (BA6-5), the exits' width and bottom measured against the panel and the buttons (BA6-R24); no waiver for long
+  type (BA6-R26). **The switch-off table** (`tools/ba2_switch_off.py`): ninety-five cases, eleven of them BA-6's
+  (`ba6_*`).
+
+### §225.5 Traps (the session's own, for the next)
+
+- **A probe must hold its seams before the world is built.** `tools/keyed_world_probe.py` applied them after
+  `WorldState.from_scenario`, so a seam that acts at the boot (row MC seeds the book, the seats and the 1805
+  reading there) read UP in arm 0 and arm 0 differed from the commit before (BA6-X7).
+- **Count what a played court does before believing a rule lives.** Row MC's Auerstedt rule passed its unit test
+  and never fired for France in ten AI-played campaigns: its condition ("lost or hung") excluded its own
+  namesake. `tools/_ba6_court_count.py` puts a counter on every write; run it after any change to the bonds.
+- **A row built after the final chain goes LAST on the ladder.** Every arm before it then reads as taken, and
+  only the new row's arm and ALL need re-taking (PEACE and SILENCE each cost one short chain, not a whole one).
+  The series rig re-takes every arm in under a minute.
+- **When the world-line moves, run the full suite before the frozen pass.** The treaty fuzzer's pinned seed
+  re-timed onto two latent defects of older machinery (BA6-X5, X6) only on the session's world-line.
+- **A decorator keeps a driver a driver.** WS-15's give-back wraps `_execute_attack` (`_gives_back_what_no_blow_spent`)
+  so its body stays the CODE-2a driver (Assign, For, Return); inlining it broke the purity census.
+- **A row the review did not uphold is written "REFUTED — not upheld"**; the census reads any other state word as
+  open.
+- **A frozen copy leaves `docs/audits/` out** (`scratchpad/freeze_tree.py` skips it for size): a reviewer who finds
+  a record "absent" there is reading the copy's gap, not the tree's (BA6-R13).
+- **Never chain two heredocs with `||`.** A malformed pair left the shell reading the second script's lines as
+  commands and the call hung; write a patch with the Write tool and run it as a file.
+- **Commit with `env -u PYTHONDONTWRITEBYTECODE`:** with it set, the bytecode tests fail in the hook.

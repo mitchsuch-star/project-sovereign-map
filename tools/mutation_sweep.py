@@ -321,6 +321,27 @@ def run(mutations: list[dict]) -> int:
     return 1 if (inert or broken or detonated) else 0
 
 
+def _the_lock() -> pathlib.Path:
+    """BA2-X16 (row BA, BA-6): the sweep rewrites sources in place, so a
+    second copy running beside it would read (and restore) the first one's
+    mutation. One sweep at a time: an exclusive-create lock file beside this
+    tool (the model: ba2_switch_off.py), refused while it exists."""
+    return pathlib.Path(__file__).resolve().parent / ".mutation_sweep.lock"
+
+
 if __name__ == "__main__":
-    payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-    sys.exit(run(payload))
+    import os
+    lock = _the_lock()
+    try:
+        handle = open(lock, "x", encoding="utf-8")
+    except FileExistsError:
+        sys.exit(f"another mutation sweep holds {lock} - wait for it, or remove the "
+                 f"lock if no sweep is running (check every source with git diff first)")
+    try:
+        with handle:
+            handle.write(str(os.getpid()))
+        payload = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+        code = run(payload)
+    finally:
+        lock.unlink(missing_ok=True)
+    sys.exit(code)

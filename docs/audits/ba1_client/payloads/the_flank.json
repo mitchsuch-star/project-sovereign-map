@@ -93,7 +93,7 @@
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "The Emperor watched this field. Ney fought without Bernadotte's support. The roads, or the will, proved insufficient. And Mack was taken on that field — France holds him.",
+ "observation": "The Emperor watched this field. Ney fought without Bernadotte's support. The roads, or the will, proved insufficient.",
  "ground": "plains",
  "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
  "script": {
@@ -214,9 +214,9 @@
       "kind": "break",
       "side": "defender",
       "actor": "Mack",
-      "text": "Mack is taken on the field.",
+      "text": "Mack's line breaks at 0% morale.",
       "weight": "head",
-      "how": "captured",
+      "how": "routed",
       "morale": 0
      }
     ]
@@ -233,6 +233,15 @@
       "damage": 5000,
       "halved": false,
       "target": "Mack"
+     },
+     {
+      "kind": "leave",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack leaves the field.",
+      "weight": "detail",
+      "how": "routed",
+      "to": ""
      },
      {
       "kind": "advance_to",

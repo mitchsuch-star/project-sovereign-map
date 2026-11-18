@@ -284,8 +284,9 @@
     "odds": "favorable",
     "marshal": "Ney",
     "shown": "Ney",
-    "does": "odds: favorable — 105,039 on 30,557",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 94,205 on 30,557",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "guard",
@@ -299,8 +300,9 @@
     "odds": "favorable",
     "marshal": "Napoleon",
     "shown": "Napoleon",
-    "does": "odds: favorable — 138,809 on 30,557 · his morale −10",
-    "more": "As the Guard goes in his lead loses 10 morale. Thrown back, every corps of yours that fought loses 10."
+    "does": "odds: favorable — 94,205 on 30,557 · his morale −10",
+    "more": "As the Guard goes in his lead loses 10 morale. Thrown back, every corps of yours that fought loses 10.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "dig_in",
@@ -315,7 +317,8 @@
     "marshal": "Ney",
     "shown": "Ney",
     "does": "defensive stance: +9% if he strikes",
-    "more": "A dug-in line stands firmer when it is attacked. He speaks next."
+    "more": "A dug-in line stands firmer when it is attacked. He speaks next.",
+    "risk": "he answers next: firmer if he strikes, idle if he draws off"
    },
    {
     "kind": "lead",
@@ -329,8 +332,9 @@
     "odds": "favorable",
     "marshal": "Bernadotte",
     "shown": "Bernadotte",
-    "does": "odds: favorable — 53,610 on 30,557",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 111,205 on 30,557",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -344,8 +348,9 @@
     "odds": "favorable",
     "marshal": "Davout",
     "shown": "Davout",
-    "does": "odds: favorable — 123,419 on 30,557",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 94,205 on 30,557",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -359,8 +364,9 @@
     "odds": "favorable",
     "marshal": "Lannes",
     "shown": "Lannes",
-    "does": "odds: favorable — 107,321 on 30,557",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 94,205 on 30,557",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -374,8 +380,9 @@
     "odds": "favorable",
     "marshal": "Murat",
     "shown": "Murat",
-    "does": "odds: favorable — 85,593 on 30,557",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 94,205 on 30,557",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "lead",
@@ -389,8 +396,9 @@
     "odds": "favorable",
     "marshal": "Soult",
     "shown": "Soult",
-    "does": "odds: favorable — 135,790 on 30,557",
-    "more": "A clash that decides ends the day at once."
+    "does": "odds: favorable — 124,205 on 30,557",
+    "more": "A clash that decides ends the day at once.",
+    "risk": "he is likely to give ground"
    },
    {
     "kind": "bring_up",
@@ -404,7 +412,8 @@
     "odds": "",
     "marshal": "Bernadotte",
     "shown": "Bernadotte",
-    "does": "comes up beside the lead"
+    "does": "comes up beside the lead",
+    "risk": "the corps stands beside the lead for the next clash"
    },
    {
     "kind": "bring_up",
@@ -418,7 +427,8 @@
     "odds": "",
     "marshal": "Soult",
     "shown": "Soult",
-    "does": "comes up beside the lead"
+    "does": "comes up beside the lead",
+    "risk": "the corps stands beside the lead for the next clash"
    },
    {
     "kind": "stand",
@@ -432,7 +442,7 @@
     "odds": "",
     "marshal": "Ney",
     "shown": "Ney",
-    "does": "he speaks next",
+    "does": "he speaks next — he will not strike",
     "more": "A silence costs no point. Two silences running, and night falls."
    },
    {
@@ -447,7 +457,7 @@
     "odds": "",
     "marshal": "Ney",
     "shown": "Ney",
-    "does": "the day ends; he keeps the field",
+    "does": "the day ends; he keeps the field; the toll stands at 5,488 of ours for 21,443 of his",
     "more": "The attack is given up and the day ends where it stands."
    },
    {

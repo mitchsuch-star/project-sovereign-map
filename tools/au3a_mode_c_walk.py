@@ -141,7 +141,15 @@ def main() -> int:
         print(f"  T{step.get('turn'):>3} {step.get('step'):16s} {step.get('frame')}  {step.get('note')}")
     for err in walk.get("errors", []):
         print("  ERROR", err)
-    if args.export:
+    # BA2-X16 (row BA, BA-6, November 17, 2026): the run is judged BEFORE it
+    # is exported - a run that did not pass never replaces the record of
+    # record; it stays in its run folder (the model: ba2_mode_c_walk.py).
+    # an empty engine log proves nothing: the census must have read the run
+    passed = bool(result.get("engine_exit") == 0 and not result["script_errors"]
+                  and result["engine_log_bytes"] > 0)
+    if args.export and not passed:
+        print("NOT exported — the run did not pass; the record stands as it was. Run folder:", run)
+    elif args.export:
         dest = pathlib.Path(args.export)
         (dest / "frames").mkdir(parents=True, exist_ok=True)
         for f in sorted(frames.glob("*.jpg")):
@@ -150,9 +158,7 @@ def main() -> int:
             shutil.copyfile(walk_path, dest / "walk.json")
         shutil.copyfile(run / "run.json", dest / "run.json")
         print("exported ->", dest)
-    # an empty engine log proves nothing: the census must have read the run
-    return 0 if (result.get("engine_exit") == 0 and not result["script_errors"]
-                 and result["engine_log_bytes"] > 0) else 1
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":

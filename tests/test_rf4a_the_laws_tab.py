@@ -158,9 +158,11 @@ class TestTheEffectLines:
         ({"type": "recruit_price", "arm": "all", "value": 0.9},
          "every levy costs 10% less (×0.9)"),
         ({"type": "recruit_morale", "arm": "infantry", "value": -10},
-         "infantry drafts muster at -10 morale"),
+         # GRD-30 (the user's "say it on the LAWS tab", session BA-6)
+         "infantry drafts muster at -10 morale (not at a training ground, whose 70 replaces it; Moore's drafts never muster under 60)"),
         ({"type": "recruit_morale", "arm": "infantry", "value": 10},
-         "infantry drafts muster at +10 morale"),
+         # GRD-30 (the user's "say it on the LAWS tab", session BA-6)
+         "infantry drafts muster at +10 morale (not at a training ground, whose 70 replaces it; Moore's drafts never muster under 60)"),
         ({"type": "drill_morale", "value": 5}, "+5 morale from every drill"),
         ({"type": "manpower_regen", "pool": "infantry", "value": 25},
          "infantry manpower returns 25% faster"),

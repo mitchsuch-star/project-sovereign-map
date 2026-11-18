@@ -367,7 +367,9 @@ func _play() -> void:
 				var which := str(event.get("box", "own"))
 				chips = acts_now._day_exits if which == "exits" else (acts_now._day_groups if which == "groups" else acts_now._day_chips)
 			if chips != null and is_instance_valid(chips):
-				(chips as RichTextLabel).meta_clicked.emit("day:%d" % int(event.get("index", 0)))
+				var meta_sent: String = str(event.get("meta", "")) if str(event.get("meta", "")) != "" \
+						else "day:%d" % int(event.get("index", 0))      # BA-6: the quiet "+N more" chip is `daymore`
+				(chips as RichTextLabel).meta_clicked.emit(meta_sent)
 			else:
 				(_current["missed"] as Array).append("press_chip: no such box on the panel")
 		"click_speed":
@@ -548,6 +550,9 @@ func _read_table() -> Dictionary:
 	var acts = _node._acts
 	row["act"] = ""
 	row["dice_shown"] = false
+	row["tray_h"] = int(round(_node.tray_h()))            # BA-6: the tray's height now (TRAY_H, plus the day's room)
+	row["tray_h_built"] = int(round(_node._tray_inner.custom_minimum_size.y))
+	row["day_room"] = int(round(_node._day_room))
 	row["plays"] = false
 	row["played"] = []
 	if acts != null:
@@ -562,6 +567,11 @@ func _read_table() -> Dictionary:
 					read += 1
 			row["dice_rows_shown"] = read
 			row["dice_sum"] = str(acts._dice._sum.text) if acts._dice._sum != null else ""
+			var dice_texts: Array = []                         # BA-6: the tray's lines as they read (the luck's phrase is the last)
+			for dice_row in acts._dice._rows:
+				if is_instance_valid(dice_row):
+					dice_texts.append(str((dice_row as Label).text))
+			row["dice_texts"] = dice_texts
 			row["caption_chars"] = int(_node._verdict.visible_characters)
 			var d: Control = acts._dice
 			row["dice_rect"] = [int(d.position.x), int(d.position.y), int(d.size.x), int(d.size.y)]
@@ -766,6 +776,7 @@ func _read_day() -> Dictionary:
 					"first": str(r.name) == "FirstOpen",       # BA-4: the first day's own line
 					"head": str(r.name) == "DayHead",          # BA-5: the head (the stakes: the panel's first row)
 					"rule": str(r.name) == "DayRule",          # ...and the day's rule, on its caption line
+					"legend": str(r.name) == "DayLegend",      # BA-6: ...and the table's marks
 					"shown": (r as CanvasItem).is_visible_in_tree(),
 					"scroll_active": bool(r.scroll_active),
 					"v_max": int(r.get_v_scroll_bar().max_value), "v_page": int(r.get_v_scroll_bar().page)})
@@ -780,8 +791,18 @@ func _read_day() -> Dictionary:
 	out["tags_kept"] = int(acts._day_tags_kept)      # ...level with the buttons, how many still do
 	out["exits_up"] = bool(acts._day_exits_up)       # ...as two-line cards beside the buttons
 	out["rule_row"] = bool(acts._day_rule_row)       # the day's rule has its caption line
-	out["exits_wide"] = bool(acts._day_exits_wide)   # the exits' cards were wider than their room
+	out["exits_wide"] = bool(acts._day_exits_wide)   # the exits' cards gave way to the one-line chips for width
 	out["lifted"] = bool(acts._day_lifted)           # the panel took 8 px of the gap under the bars
+	out["cards_wide"] = bool(acts._day_cards_wide)   # BA-6: the cards' second lines went for width
+	out["risk_lines"] = bool(acts._day_risk_lines)   # BA-6: the cards' third line
+	out["legend_row"] = bool(acts._day_legend_row)   # BA-6: the table's marks have their caption line
+	out["more_n"] = int(acts._day_more_n)            # BA-6: the groups' words the digits do not reach ("+N more")
+	out["more_open"] = bool(acts._day_more_open)
+	out["exits_row"] = bool(acts._day_exits_row)     # BA-6: the exits' cards full width, above the buttons
+	out["exits_wrapped"] = bool(acts._day_exits_wrapped)
+	out["exits_row_tried"] = bool(acts._day_exits_row_tried)   # the ladder's first rung: the full-width row was tried
+	out["groups_scrolls"] = bool(acts._day_groups_scrolls)     # the ladder could not make the groups room
+	out["room"] = int(acts.DAY_ROOM)
 	out["top_plain"] = int(acts._day_top_plain)      # ...and where its top stands without that
 	var named = panel.get_node_or_null("DayName")    # the battle's name, in the band above the baize
 	if named != null and named is Label:

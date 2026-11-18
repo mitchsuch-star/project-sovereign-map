@@ -367,7 +367,12 @@ class TestThePlanIsOrderable:
         # round Mack to the letter of the order, as he did
         bernadotte = next(q for row in served["quotes"]("Swabia")["attack"] for q in row["quotes"]
                           if q["marshal"] == "Bernadotte" and q["kind"] == "attack")
-        (soult,) = bernadotte["bring"]
+        # row MC: the 1805 opening reads Murat and Bernadotte as Rivals (-1), not
+        # Hostile (-2) — a Hostile corps never answers an unordered call, a Rival
+        # may — so Murat may now be brought to Bernadotte's attack too
+        brought = {b["marshal"]: b for b in bernadotte["bring"]}
+        assert set(brought) <= {"Soult", "Murat"} and "Soult" in brought, set(brought)
+        soult = brought["Soult"]
         assert soult["marshal"] == "Soult" and "halts at the approach" in soult["contact"]
         from backend.commands import order_quotes
         (round_him,) = order_quotes.bring_quotes(world, world.marshals["Massena"], world.marshals["Mack"])
@@ -493,8 +498,13 @@ class TestTheTableDriven:
                 assert abs(wing["home_x"] - WALK.STAGE_MID_X) > abs(lead["home_x"] - WALK.STAGE_MID_X)
         reserve = [m["text"] for m in settled["marks"] if m["kind"] == "text" and "in reserve" in m["text"]]
         payload = driven["payloads"]["the_reserve"]
+        # (row BA, BA-6 — BA6-X10: the note keeps its noun while the battle is told; on this
+        # triumph's settled frame a laurel takes its room, and it says it shortly there)
         assert sorted(reserve) == sorted(
             f"+{payload[side]['reserve_count']} in reserve" for side in ("attacker", "defender"))
+        opening = WALK._frame(driven["by_id"]["the_reserve"], "opening")
+        told = [m["text"] for m in opening["marks"] if m["kind"] == "text" and "in reserve" in m["text"]]
+        assert told and all(" corps in reserve" in t for t in told), told
 
     def test_a_corps_comes_on_in_column_and_ends_in_line(self, driven):
         res = driven["by_id"]["the_reserve"]
@@ -690,15 +700,15 @@ class TestBA2X2ACourtsTurnIsNotLost:
 
 
 class TestBA2X6ThePanelRestsOnWholeLines:
-    """BA2-X6 (half fixed here; the rest OPEN, owner Session H): a long
-    province's panel opened with its fold through the middle of a line. It now
-    opens with the fold between two lines; scrolled, it can still rest on a
-    cut line — it is not among the screens `Utils.keep_whole_lines` holds."""
+    """BA2-X6 (FIXED: the opening half by row BA's BA-2, the scrolled half by BA-6): a long
+    province's panel opened with its fold through the middle of a line. It opens with the fold
+    between two lines, and scrolled it comes to rest on whole lines (the frame census on the panel
+    scrolled to its middle and to its end at the five sizes: no cut line)."""
 
     def test_the_panel_opens_with_its_fold_between_lines(self):
         panel = _gd("region_panel.gd")
         rule = _func(panel, "_window_on_whole_lines")
-        assert "content_area.get_line_offset(i + 1)" in rule and "if line_end > available:" in rule
+        assert "content_area.get_line_offset(i + 1)" in rule and "if line_end - v > available:" in rule
         for name in ("_fit_height", "_fit_height_in_wing"):
             assert "scroll.custom_minimum_size.y = _window_on_whole_lines(content_h, available)" \
                 in _func(panel, name), name
@@ -706,9 +716,16 @@ class TestBA2X6ThePanelRestsOnWholeLines:
                              "frame_census_ba2_walls_guns_2026_11_15.json").read_text(encoding="utf-8"))
         assert record["cut_lines"] == []
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X6 OPEN — owner Session H (S15, the deploy)")
     def test_the_scrolled_panel_rests_on_whole_lines(self):
-        assert "Utils.keep_whole_lines(" in _gd("region_panel.gd")
+        panel = _gd("region_panel.gd")
+        assert "Utils.keep_whole_lines(scroll)" in panel
+        assert "scroll.get_v_scroll_bar().value_changed.connect(_rest_window_soon)" in panel
+        rule = _func(panel, "_window_on_whole_lines")
+        # the window is measured from the scroll offset, not only from the top
+        assert "scroll.scroll_vertical" in rule and "if line_end - v > available:" in rule
+        steady = _func(panel, "_steady_window")
+        assert "Utils.WHOLE_LINE_EDGE" in steady, "the guard against the window and the rest chasing each other"
+        assert "_fit_height()" in _func(panel, "_rest_window")
 
 
 class TestThePlanPressedInTheRealClient:

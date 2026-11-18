@@ -3177,6 +3177,9 @@ AUTHORITY_CAUSES = {
     # AU-3b (§5.3): the crowns and offices
     "endowed": "titles in place of rentes for the marshals",
     "titles_granted": "{act} paid in titles",
+    # row MC (`precedence.py`): the titles of victory and the account
+    "title_conferred": "{marshal} created {title}",
+    "blame_taken": "the defeat at {battle} taken on the Emperor's own name",
     # the console
     "debug_set": "set by the debug console",
     # the setter's fallback — a direct assignment (the test files); never a production cause

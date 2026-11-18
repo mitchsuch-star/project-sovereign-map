@@ -447,6 +447,15 @@ _OBSERVATIONS = {
         "{marshal} was close. A period of drilling could have changed the outcome.",
         "The margin was slim. Training and preparation would serve {marshal} well.",
     ],
+    # BA5-X16 (row BA, BA-6): a defeat that cost the lead a fifth of his corps
+    # or more, short of the grievous 30% and not a rout. It is not "narrow"
+    # (the margin family read the fight's margin and not its toll: "The margin
+    # was slim" over a 28% loss) and it was nothing to call "standard".
+    "lost_dear": [
+        "A hard defeat for {marshal}, Sire. A fifth of his corps or more is gone.",
+        "{enemy} carried the day, and {marshal} paid for it dearly. His corps needs time before it is tried again.",
+        "The losses are heavy, Sire. {marshal}'s corps will not soon be what it was this morning.",
+    ],
     "lost_costly": [
         "A grievous defeat for {marshal}, Sire. The losses are severe.",
         "{marshal}'s army has been badly mauled. {enemy} proved the stronger force today.",
@@ -694,6 +703,16 @@ def _join_names(names) -> str:
     if len(clean) == 2:
         return f"{clean[0]} and {clean[1]}"
     return ", ".join(clean[:-1]) + f" and {clean[-1]}"
+
+
+def a_dear_defeat_is_not_a_narrow_one() -> bool:
+    """Row BA, session BA-6 seam (BA5-X16, found by BA-5's second blind
+    reading): Berthier's "narrow defeat" family read the fight's MARGIN and
+    not our toll, so a defeat that cost the lead 28% of his corps came back
+    "The margin was slim". A defeat that cost a fifth of the corps or more is
+    not called narrow; short of the grievous 30% and not a rout it has its own
+    three lines (`lost_dear`). Down (False): the margin alone, as before."""
+    return True
 
 
 def a_rout_won_on_points_has_left_the_field() -> bool:
@@ -1146,7 +1165,9 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
                 "forced_retreat")):
         if our_original > 0:
             margin = abs(our_casualties - enemy_casualties)
-            if margin < our_original * 0.15:
+            # BA5-X16: ...nor is a defeat that cost a fifth of the corps.
+            dear = a_dear_defeat_is_not_a_narrow_one() and our_casualties * 5 >= our_original
+            if margin < our_original * 0.15 and not dear:
                 return _fill(_rng.choice(_OBSERVATIONS["lost_narrow_no_drill"]))
 
     # Priority 8.5: We lost with significant casualties (>30% of original) — catch-all for
@@ -1162,6 +1183,14 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # 26% — and there was no arm for it at any priority.
     if _our_side(battle_result, player_nation).get("forced_retreat"):
         return _fill(_rng.choice(_OBSERVATIONS["routed"]))
+
+    # ── BA5-X16, priority 8.65 ──────────────────────────────────────────
+    # A fifth of the corps or more, short of the grievous 30% and not a rout:
+    # a dear defeat, whatever its margin (8 no longer calls it narrow).
+    if (we_lost and _at_scale and our_original > 0
+            and a_dear_defeat_is_not_a_narrow_one()
+            and our_casualties * 5 >= our_original):
+        return _fill(_rng.choice(_OBSERVATIONS["lost_dear"]))
 
     # Priority 8.7: Flawless victory (we won with zero casualties)
     if we_won and our_casualties == 0 and enemy_casualties > 0:

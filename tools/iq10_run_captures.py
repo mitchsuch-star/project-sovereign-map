@@ -624,6 +624,28 @@ SHOTS: list[dict] = [
                      "said once on it ('to support Davout:'), then one chip per corps the muster "
                      "says will not come or may not — the man and the price ('Soult · 1 AP')",
     },
+    # Row BA, BA-6 — BA2-X6's done-when: the panel SCROLLED rests on whole lines (the window is
+    # re-set from where the scroll comes to rest, `region_panel._rest_window_soon`)
+    *[
+        {
+            "id": f"region_swabia_scrolled_{where}",
+            "surface": f"Region Action Panel — Swabia, the fold open, scrolled to its {where} (BA2-X6)",
+            "payload": "region_bring",
+            "scene": "res://scenes/region_panel.tscn",
+            "mode": "map_stub", "method": "show_region",
+            "args": ["Swabia", "$map"],
+            "steps": [
+                {"call": "set_march_quotes", "args": ["Swabia", "$payload.quotes"]},
+                {"wait": 4},
+                {"call": "_on_meta_clicked", "args": ["toggle:bring"]},
+                {"wait": 8},
+                {"set_path": "scroll.scroll_vertical", "value": offset},
+                {"wait": 12},
+            ],
+            "must_show": f"the panel scrolled to its {where}: no line cut at the window's top or foot",
+        }
+        for where, offset in (("middle", 140), ("end", 100000))
+    ],
     {
         "id": "order_card_bring",
         "surface": "Order card — an attack with the plan's chips (BA-2)",
@@ -988,6 +1010,32 @@ SHOTS: list[dict] = [
         }
         for i, t in [(0, "Nations"), (1, "Treaties"), (2, "Balance"), (5, "Vassals")]
     ],
+    {
+        # Row MC, BA-6: a LIVED court (thirty turns of an AI-played France) — the order, the bonds
+        # with their causes, renown (capture group `the_court`)
+        "id": "generals_court",
+        "surface": "Generals (a lived court, thirty turns)",
+        "payload": "marshal_overview_court",
+        "scene": "res://scenes/marshal_management.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_marshal_overview",
+        "steps": [{"call": "select_marshal", "args": ["Ney"], "then_wait": 6},
+                  {"shot": "card"},
+                  {"scroll_to": {"text": "Bonds:", "margin": 40}, "then_wait": 6}],
+        "must_show": "Ney's card: his place in the order and his renown under his name; scrolled to his "
+                     "bonds — each with its cause (a feud, a brother in arms) and what it means in the field",
+    },
+    {
+        # Row MC, BA-6: the same lived court's ORDER OF THE MARSHALATE (the "Laurels" view): the rows
+        # by precedence, renown and the season's laurels, the live pairs under them
+        "id": "generals_court_order",
+        "surface": "Generals — the Order of the Marshalate (a lived court, thirty turns)",
+        "payload": "marshal_overview_court",
+        "scene": "res://scenes/marshal_management.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_marshal_overview",
+        "steps": [{"call": "_on_head_button", "args": ["laurels"], "then_wait": 6}],
+        "must_show": "THE ORDER OF THE MARSHALATE: the court's rows by precedence (place, seat, style, renown), "
+                     "the sort chips, the live quarrels and bonds under them",
+    },
     {
         "id": "generals_t20",
         "surface": "Generals (t20 fixture)",

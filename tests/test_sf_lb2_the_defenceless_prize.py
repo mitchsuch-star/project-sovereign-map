@@ -716,12 +716,15 @@ class TestTheDrivenBoard:
         seat = json.loads((REPO_ROOT / "tools" / "_dy_signature_t4_2b_2026_11_10.json")
                           .read_text(encoding="utf-8"))["seeds"]["austerlitz"]["signature"]
         assert (ctl["ai_war_count"], seat["ai_war_count"]) == (1, 0)
+        # RE-SEATED at row BA's session BA-6 / row MC (November 17, 2026): on
+        # austerlitz Prussia declares on Hanover again, as historical and eylau
+        # do (the war ends at turn 17). Attributed on the probe itself, one row
+        # of `tests/_ba6_seams.py` up at a time: MCSEEDS alone (the three
+        # enmities read as of 1805) and MCBONDS alone (the two-way bonds) each
+        # bring the council's war back; every row down reproduces the seat's
+        # record (no council war, Prussia|Switzerland at the end).
         for seed, rec in records.items():
             wars = rec["wars_declared"]
-            if seed == "austerlitz":
-                assert wars == [], (seed, wars)
-                assert "Prussia|Switzerland" in rec["wars_at_end"], rec["wars_at_end"]
-                continue
             assert wars, f"{seed}: no council war in 40 turns"
             assert any(w["attackers"] == ["Prussia"] and w["defenders"] == ["Hanover"]
                        for w in wars), (seed, wars)

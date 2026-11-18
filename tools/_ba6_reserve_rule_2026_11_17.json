@@ -1,0 +1,1229 @@
+{
+ "_note": "Row BA, BA-6 \u2014 the reserve's rule, written in the plan before the data, read off tools/_ba6_sweep_a<n>_<stamp>.json (beside its ALL arm, now tools/_ba6_sweep_reserve_all_<stamp>.json) and the reserve chain's band (now tools/_ba6_band_reserve_<stamp>.json). `pick` is the lowest ladder value that passes every clause, or null (the rule is then NOT built). Written by tools/_ba6_measure.py --surfaces rule.",
+ "ladder": [
+  2000,
+  3000,
+  5000
+ ],
+ "pick": null,
+ "values": {
+  "2000": {
+   "band": {
+    "CMD-A": 28,
+    "CMD-H": 28,
+    "CMD-M": 27
+   },
+   "best_or_level_best_then_alone": {
+    "ALL": [
+     2,
+     0
+    ],
+    "B": [
+     4,
+     0
+    ],
+    "D": [
+     5,
+     1
+    ],
+    "G": [
+     4,
+     1
+    ],
+    "L": [
+     4,
+     0
+    ],
+    "P": [
+     1,
+     0
+    ],
+    "S": [
+     2,
+     0
+    ]
+   },
+   "best_with_the_reserve_down": {
+    "ALL": [
+     2,
+     0
+    ],
+    "B": [
+     4,
+     0
+    ],
+    "D": [
+     5,
+     0
+    ],
+    "G": [
+     4,
+     0
+    ],
+    "L": [
+     4,
+     0
+    ],
+    "P": [
+     2,
+     0
+    ],
+    "S": [
+     3,
+     0
+    ]
+   },
+   "clauses": {
+    "i_felt": true,
+    "ii_guard_still_best_somewhere": true,
+    "ii_no_dominant_way": true,
+    "ii_press_still_best_somewhere": true,
+    "iii_neither_side_takes_three_quarters": false,
+    "iv_band_in": true,
+    "v_hand_healthy": true
+   },
+   "days_the_reserve_pursued": 23,
+   "largest_single_pursuit": 4000,
+   "mean_delta_vs_T": {
+    "ALL": -0.38,
+    "B": 0.12,
+    "D": 0.12,
+    "G": -0.12,
+    "L": 0.38,
+    "P": -1.0,
+    "S": -0.38
+   },
+   "men_from_him": 2000,
+   "men_from_us": 70639,
+   "passes": false,
+   "per_run": {
+    "ALL/CMD-H": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 4000,
+       "points": 2,
+       "turn": 38
+      }
+     ]
+    },
+    "B/CMD-A": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 4000,
+       "points": 2,
+       "turn": 36
+      }
+     ]
+    },
+    "B/CMD-M": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 4000,
+       "points": 2,
+       "turn": 7
+      }
+     ]
+    },
+    "D/CMD-A": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "D/CMD-M": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "D/SEED-eylau": {
+     "days": 1,
+     "largest": 944,
+     "men_from_him": 0,
+     "men_from_us": 944,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Davout",
+       "men": 944,
+       "points": 2,
+       "turn": 36
+      }
+     ]
+    },
+    "D/SEED-lodi": {
+     "days": 3,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 12000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 2
+      },
+      {
+       "from": "us",
+       "loser": "Murat",
+       "men": 4000,
+       "points": 2,
+       "turn": 3
+      },
+      {
+       "from": "us",
+       "loser": "Soult",
+       "men": 4000,
+       "points": 2,
+       "turn": 37
+      }
+     ]
+    },
+    "D/SEED-wagram": {
+     "days": 2,
+     "largest": 2000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 2000,
+       "points": 1,
+       "turn": 2
+      },
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 2000,
+       "points": 1,
+       "turn": 5
+      }
+     ]
+    },
+    "G/CMD-M": {
+     "days": 1,
+     "largest": 1061,
+     "men_from_him": 0,
+     "men_from_us": 1061,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Lannes",
+       "men": 1061,
+       "points": 1,
+       "turn": 27
+      }
+     ]
+    },
+    "G/SEED-wagram": {
+     "days": 1,
+     "largest": 2104,
+     "men_from_him": 0,
+     "men_from_us": 2104,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 2104,
+       "points": 2,
+       "turn": 5
+      }
+     ]
+    },
+    "P/CMD-A": {
+     "days": 1,
+     "largest": 2000,
+     "men_from_him": 0,
+     "men_from_us": 2000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Soult",
+       "men": 2000,
+       "points": 1,
+       "turn": 39
+      }
+     ]
+    },
+    "P/CMD-M": {
+     "days": 2,
+     "largest": 3635,
+     "men_from_him": 2000,
+     "men_from_us": 3635,
+     "rows": [
+      {
+       "from": "him",
+       "loser": "Mack",
+       "men": 2000,
+       "points": 1,
+       "turn": 27
+      },
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 3635,
+       "points": 2,
+       "turn": 28
+      }
+     ]
+    },
+    "P/SEED-eylau": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 4
+      }
+     ]
+    },
+    "P/SEED-friedland": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 3
+      }
+     ]
+    },
+    "P/SEED-wagram": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 5
+      }
+     ]
+    },
+    "S/CMD-A": {
+     "days": 1,
+     "largest": 3594,
+     "men_from_him": 0,
+     "men_from_us": 3594,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 3594,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "S/CMD-M": {
+     "days": 1,
+     "largest": 3771,
+     "men_from_him": 0,
+     "men_from_us": 3771,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 3771,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "S/SEED-friedland": {
+     "days": 1,
+     "largest": 1530,
+     "men_from_him": 0,
+     "men_from_us": 1530,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 1530,
+       "points": 2,
+       "turn": 31
+      }
+     ]
+    },
+    "S/SEED-lodi": {
+     "days": 1,
+     "largest": 4000,
+     "men_from_him": 0,
+     "men_from_us": 4000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4000,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    }
+   },
+   "share_of_the_larger_side": 0.972
+  },
+  "3000": {
+   "band": {
+    "CMD-A": 28,
+    "CMD-H": 28,
+    "CMD-M": 27
+   },
+   "best_or_level_best_then_alone": {
+    "ALL": [
+     2,
+     0
+    ],
+    "B": [
+     4,
+     0
+    ],
+    "D": [
+     5,
+     1
+    ],
+    "G": [
+     4,
+     1
+    ],
+    "L": [
+     4,
+     0
+    ],
+    "P": [
+     1,
+     0
+    ],
+    "S": [
+     2,
+     0
+    ]
+   },
+   "best_with_the_reserve_down": {
+    "ALL": [
+     2,
+     0
+    ],
+    "B": [
+     4,
+     0
+    ],
+    "D": [
+     5,
+     0
+    ],
+    "G": [
+     4,
+     0
+    ],
+    "L": [
+     4,
+     0
+    ],
+    "P": [
+     2,
+     0
+    ],
+    "S": [
+     3,
+     0
+    ]
+   },
+   "clauses": {
+    "i_felt": true,
+    "ii_guard_still_best_somewhere": true,
+    "ii_no_dominant_way": true,
+    "ii_press_still_best_somewhere": true,
+    "iii_neither_side_takes_three_quarters": false,
+    "iv_band_in": true,
+    "v_hand_healthy": true
+   },
+   "days_the_reserve_pursued": 23,
+   "largest_single_pursuit": 6000,
+   "mean_delta_vs_T": {
+    "ALL": -0.38,
+    "B": 0.12,
+    "D": 0.12,
+    "G": -0.12,
+    "L": 0.38,
+    "P": -1.0,
+    "S": -0.38
+   },
+   "men_from_him": 3000,
+   "men_from_us": 87987,
+   "passes": false,
+   "per_run": {
+    "ALL/CMD-H": {
+     "days": 1,
+     "largest": 6000,
+     "men_from_him": 0,
+     "men_from_us": 6000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 6000,
+       "points": 2,
+       "turn": 38
+      }
+     ]
+    },
+    "B/CMD-A": {
+     "days": 1,
+     "largest": 6000,
+     "men_from_him": 0,
+     "men_from_us": 6000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 6000,
+       "points": 2,
+       "turn": 36
+      }
+     ]
+    },
+    "B/CMD-M": {
+     "days": 1,
+     "largest": 6000,
+     "men_from_him": 0,
+     "men_from_us": 6000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 6000,
+       "points": 2,
+       "turn": 7
+      }
+     ]
+    },
+    "D/CMD-A": {
+     "days": 1,
+     "largest": 4829,
+     "men_from_him": 0,
+     "men_from_us": 4829,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4829,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "D/CMD-M": {
+     "days": 1,
+     "largest": 4522,
+     "men_from_him": 0,
+     "men_from_us": 4522,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4522,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "D/SEED-eylau": {
+     "days": 1,
+     "largest": 944,
+     "men_from_him": 0,
+     "men_from_us": 944,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Davout",
+       "men": 944,
+       "points": 2,
+       "turn": 36
+      }
+     ]
+    },
+    "D/SEED-lodi": {
+     "days": 3,
+     "largest": 5364,
+     "men_from_him": 0,
+     "men_from_us": 14438,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 5364,
+       "points": 2,
+       "turn": 2
+      },
+      {
+       "from": "us",
+       "loser": "Murat",
+       "men": 4944,
+       "points": 2,
+       "turn": 3
+      },
+      {
+       "from": "us",
+       "loser": "Soult",
+       "men": 4130,
+       "points": 2,
+       "turn": 37
+      }
+     ]
+    },
+    "D/SEED-wagram": {
+     "days": 2,
+     "largest": 3000,
+     "men_from_him": 0,
+     "men_from_us": 5640,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 3000,
+       "points": 1,
+       "turn": 2
+      },
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 2640,
+       "points": 1,
+       "turn": 5
+      }
+     ]
+    },
+    "G/CMD-M": {
+     "days": 1,
+     "largest": 1061,
+     "men_from_him": 0,
+     "men_from_us": 1061,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Lannes",
+       "men": 1061,
+       "points": 1,
+       "turn": 27
+      }
+     ]
+    },
+    "G/SEED-wagram": {
+     "days": 1,
+     "largest": 2104,
+     "men_from_him": 0,
+     "men_from_us": 2104,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 2104,
+       "points": 2,
+       "turn": 5
+      }
+     ]
+    },
+    "P/CMD-A": {
+     "days": 1,
+     "largest": 3000,
+     "men_from_him": 0,
+     "men_from_us": 3000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Soult",
+       "men": 3000,
+       "points": 1,
+       "turn": 39
+      }
+     ]
+    },
+    "P/CMD-M": {
+     "days": 2,
+     "largest": 3646,
+     "men_from_him": 3000,
+     "men_from_us": 3646,
+     "rows": [
+      {
+       "from": "him",
+       "loser": "Mack",
+       "men": 3000,
+       "points": 1,
+       "turn": 27
+      },
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 3646,
+       "points": 2,
+       "turn": 28
+      }
+     ]
+    },
+    "P/SEED-eylau": {
+     "days": 1,
+     "largest": 6000,
+     "men_from_him": 0,
+     "men_from_us": 6000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 6000,
+       "points": 2,
+       "turn": 4
+      }
+     ]
+    },
+    "P/SEED-friedland": {
+     "days": 1,
+     "largest": 6000,
+     "men_from_him": 0,
+     "men_from_us": 6000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 6000,
+       "points": 2,
+       "turn": 3
+      }
+     ]
+    },
+    "P/SEED-wagram": {
+     "days": 1,
+     "largest": 4339,
+     "men_from_him": 0,
+     "men_from_us": 4339,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4339,
+       "points": 2,
+       "turn": 5
+      }
+     ]
+    },
+    "S/CMD-A": {
+     "days": 1,
+     "largest": 3594,
+     "men_from_him": 0,
+     "men_from_us": 3594,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 3594,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "S/CMD-M": {
+     "days": 1,
+     "largest": 3771,
+     "men_from_him": 0,
+     "men_from_us": 3771,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 3771,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "S/SEED-friedland": {
+     "days": 1,
+     "largest": 1530,
+     "men_from_him": 0,
+     "men_from_us": 1530,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 1530,
+       "points": 2,
+       "turn": 31
+      }
+     ]
+    },
+    "S/SEED-lodi": {
+     "days": 1,
+     "largest": 4569,
+     "men_from_him": 0,
+     "men_from_us": 4569,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4569,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    }
+   },
+   "share_of_the_larger_side": 0.967
+  },
+  "5000": {
+   "band": {
+    "CMD-A": 28,
+    "CMD-H": 28,
+    "CMD-M": 27
+   },
+   "best_or_level_best_then_alone": {
+    "ALL": [
+     2,
+     0
+    ],
+    "B": [
+     4,
+     0
+    ],
+    "D": [
+     5,
+     1
+    ],
+    "G": [
+     4,
+     1
+    ],
+    "L": [
+     4,
+     0
+    ],
+    "P": [
+     1,
+     0
+    ],
+    "S": [
+     2,
+     0
+    ]
+   },
+   "best_with_the_reserve_down": {
+    "ALL": [
+     2,
+     0
+    ],
+    "B": [
+     4,
+     0
+    ],
+    "D": [
+     5,
+     0
+    ],
+    "G": [
+     4,
+     0
+    ],
+    "L": [
+     4,
+     0
+    ],
+    "P": [
+     2,
+     0
+    ],
+    "S": [
+     3,
+     0
+    ]
+   },
+   "clauses": {
+    "i_felt": true,
+    "ii_guard_still_best_somewhere": true,
+    "ii_no_dominant_way": true,
+    "ii_press_still_best_somewhere": true,
+    "iii_neither_side_takes_three_quarters": false,
+    "iv_band_in": true,
+    "v_hand_healthy": true
+   },
+   "days_the_reserve_pursued": 23,
+   "largest_single_pursuit": 10000,
+   "mean_delta_vs_T": {
+    "ALL": -0.38,
+    "B": 0.12,
+    "D": 0.12,
+    "G": -0.12,
+    "L": 0.38,
+    "P": -1.0,
+    "S": -0.38
+   },
+   "men_from_him": 5000,
+   "men_from_us": 100702,
+   "passes": false,
+   "per_run": {
+    "ALL/CMD-H": {
+     "days": 1,
+     "largest": 10000,
+     "men_from_him": 0,
+     "men_from_us": 10000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 10000,
+       "points": 2,
+       "turn": 38
+      }
+     ]
+    },
+    "B/CMD-A": {
+     "days": 1,
+     "largest": 10000,
+     "men_from_him": 0,
+     "men_from_us": 10000,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 10000,
+       "points": 2,
+       "turn": 36
+      }
+     ]
+    },
+    "B/CMD-M": {
+     "days": 1,
+     "largest": 6653,
+     "men_from_him": 0,
+     "men_from_us": 6653,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 6653,
+       "points": 2,
+       "turn": 7
+      }
+     ]
+    },
+    "D/CMD-A": {
+     "days": 1,
+     "largest": 4829,
+     "men_from_him": 0,
+     "men_from_us": 4829,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4829,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "D/CMD-M": {
+     "days": 1,
+     "largest": 4522,
+     "men_from_him": 0,
+     "men_from_us": 4522,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4522,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "D/SEED-eylau": {
+     "days": 1,
+     "largest": 944,
+     "men_from_him": 0,
+     "men_from_us": 944,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Davout",
+       "men": 944,
+       "points": 2,
+       "turn": 36
+      }
+     ]
+    },
+    "D/SEED-lodi": {
+     "days": 3,
+     "largest": 5364,
+     "men_from_him": 0,
+     "men_from_us": 14438,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 5364,
+       "points": 2,
+       "turn": 2
+      },
+      {
+       "from": "us",
+       "loser": "Murat",
+       "men": 4944,
+       "points": 2,
+       "turn": 3
+      },
+      {
+       "from": "us",
+       "loser": "Soult",
+       "men": 4130,
+       "points": 2,
+       "turn": 37
+      }
+     ]
+    },
+    "D/SEED-wagram": {
+     "days": 2,
+     "largest": 5000,
+     "men_from_him": 0,
+     "men_from_us": 7640,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Massena",
+       "men": 5000,
+       "points": 1,
+       "turn": 2
+      },
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 2640,
+       "points": 1,
+       "turn": 5
+      }
+     ]
+    },
+    "G/CMD-M": {
+     "days": 1,
+     "largest": 1061,
+     "men_from_him": 0,
+     "men_from_us": 1061,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Lannes",
+       "men": 1061,
+       "points": 1,
+       "turn": 27
+      }
+     ]
+    },
+    "G/SEED-wagram": {
+     "days": 1,
+     "largest": 2104,
+     "men_from_him": 0,
+     "men_from_us": 2104,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 2104,
+       "points": 2,
+       "turn": 5
+      }
+     ]
+    },
+    "P/CMD-A": {
+     "days": 1,
+     "largest": 4077,
+     "men_from_him": 0,
+     "men_from_us": 4077,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Soult",
+       "men": 4077,
+       "points": 1,
+       "turn": 39
+      }
+     ]
+    },
+    "P/CMD-M": {
+     "days": 2,
+     "largest": 5000,
+     "men_from_him": 5000,
+     "men_from_us": 3673,
+     "rows": [
+      {
+       "from": "him",
+       "loser": "Mack",
+       "men": 5000,
+       "points": 1,
+       "turn": 27
+      },
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 3673,
+       "points": 2,
+       "turn": 28
+      }
+     ]
+    },
+    "P/SEED-eylau": {
+     "days": 1,
+     "largest": 6424,
+     "men_from_him": 0,
+     "men_from_us": 6424,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 6424,
+       "points": 2,
+       "turn": 4
+      }
+     ]
+    },
+    "P/SEED-friedland": {
+     "days": 1,
+     "largest": 6534,
+     "men_from_him": 0,
+     "men_from_us": 6534,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 6534,
+       "points": 2,
+       "turn": 3
+      }
+     ]
+    },
+    "P/SEED-wagram": {
+     "days": 1,
+     "largest": 4339,
+     "men_from_him": 0,
+     "men_from_us": 4339,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4339,
+       "points": 2,
+       "turn": 5
+      }
+     ]
+    },
+    "S/CMD-A": {
+     "days": 1,
+     "largest": 3594,
+     "men_from_him": 0,
+     "men_from_us": 3594,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 3594,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "S/CMD-M": {
+     "days": 1,
+     "largest": 3771,
+     "men_from_him": 0,
+     "men_from_us": 3771,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 3771,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    },
+    "S/SEED-friedland": {
+     "days": 1,
+     "largest": 1530,
+     "men_from_him": 0,
+     "men_from_us": 1530,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Ney",
+       "men": 1530,
+       "points": 2,
+       "turn": 31
+      }
+     ]
+    },
+    "S/SEED-lodi": {
+     "days": 1,
+     "largest": 4569,
+     "men_from_him": 0,
+     "men_from_us": 4569,
+     "rows": [
+      {
+       "from": "us",
+       "loser": "Bernadotte",
+       "men": 4569,
+       "points": 2,
+       "turn": 2
+      }
+     ]
+    }
+   },
+   "share_of_the_larger_side": 0.953
+  }
+ }
+}

@@ -191,7 +191,8 @@
     "marshal": "Massena",
     "shown": "Massena",
     "does": "by the day's count — 38,210 on 47,175",
-    "more": "A clash that decides ends the day at once."
+    "more": "A clash that decides ends the day at once.",
+    "risk": "neither side has the weight of numbers"
    },
    {
     "kind": "dig_in",
@@ -206,7 +207,8 @@
     "marshal": "Massena",
     "shown": "Massena",
     "does": "defensive stance: +9% if he strikes",
-    "more": "A dug-in line stands firmer when it is attacked. He speaks next."
+    "more": "A dug-in line stands firmer when it is attacked. He speaks next.",
+    "risk": "he answers next: firmer if he strikes, idle if he draws off"
    },
    {
     "kind": "stand",
@@ -220,7 +222,7 @@
     "odds": "",
     "marshal": "Massena",
     "shown": "Massena",
-    "does": "he speaks next",
+    "does": "he speaks next — he may strike",
     "more": "A silence costs no point. Two silences running, and night falls."
    },
    {
@@ -235,7 +237,7 @@
     "odds": "",
     "marshal": "Massena",
     "shown": "Massena",
-    "does": "the day ends; he takes the field",
+    "does": "the day ends; he takes the field; the toll stands at 3,790 of ours for 6,825 of his",
     "more": "Your lead leaves the field and the day ends."
    },
    {

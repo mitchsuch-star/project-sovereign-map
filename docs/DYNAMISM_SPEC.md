@@ -481,6 +481,8 @@ the era's rivalry at the table", with the second-war count per seed.
 
 ### §4a The Tier-5 gate record (✅ RULED November 10, 2026, in Plan Mode at session B's head)
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session B's three readings — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 **The user's words at the gate**, verbatim, on the four questions put in one batch (the §2b
 idiom — the rulings listed in the session's prompt beforehand): on Q4 and the provinces —
 **"Four on the drawn map"** (the authored lists below, the proposed seats included); on Bern —
@@ -726,6 +728,8 @@ scenario's `awakening` block, the raises, cools and the ulcer's factor code cons
 
 ### §5a The Tier-6 gate record (✅ RULED November 10, 2026, in Plan Mode at session C's head)
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session C's five readings — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 **The user's words at the gate**, verbatim, on the three questions put in one batch (the §2b
 idiom — the rulings listed in the session's prompt beforehand): **"rule yourself be rigioprous
 make it good"** — a delegation of all three. The calls below are Claude's under it, approved
@@ -907,6 +911,8 @@ forward — RE's design, the user's call; (c) the bands' pace on the ambient boa
 
 ### §5b The session D landing record — DY-5 the levée, the client dial, the interplays, The Nation in Arms (✅ LANDED November 10, 2026 — TIER 6 COMPLETE)
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session D's three readings (the letter's floor, the levée's reach, the dial's ambient road) — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 **Nothing new was ruled at the head** (the prompt pre-decided it; the user's word "code commit push"). Five rules
 behind their own zero-arg seams (`tests/_t3_seams.py` rows T6-LEVEE, T6-DIAL, T6-REVANCHE, T6-LIBERATORS, T6-ARMS),
 ONE sweep with six arms on three surfaces (`tools/_t6b_measure.py`: 0 / LEVEE / DIAL / REVANCHE / LIBERATORS /
@@ -1081,6 +1087,8 @@ NO default (§7).
 
 ### §6b The session E landing record — DY-6 the crown erected and the marshal king (✅ LANDED November 10, 2026)
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session E's four readings — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 **The gate ruled at the head under the user's delegation (§6a).** Three rules behind their own zero-arg seams
 (`tests/_t3_seams.py` rows T8-CROWN, T8-KING, T8-AI), ONE sweep with four arms on three surfaces
 (`tools/_t8_measure.py`: 0 / CROWN / AI / ALL), the standing series (`tools/_t8_series_arms.py`), ONE commit. The
@@ -1111,6 +1119,8 @@ rules in full: `SYSTEMS_REFERENCE.md` §205; the pins `tests/test_dy6_the_crown_
 
 
 ### §6c The session F landing record — DY-7 Recognition, Tier 8's close, Tier 7 evaluated (✅ LANDED November 10, 2026 — TIER 8 COMPLETE)
+
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session F's three readings (the trade price's seat and its fellows) — the people's-stir letters keep RE's desk order, the user's own design; the 1805 board's single ambient great-power war stands, since authoring a second for the idle board would fabricate history — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
 
 **Nothing new ruled at the head** (the prompt's word: the shape §6a Q4's, the numbers N-DY7 tuneable). Two rules behind their own zero-arg seams (`tests/_t3_seams.py` rows T8-RECOG, T8-PRICE), ONE sweep with three arms on three surfaces (`tools/_t8b_measure.py`: 0 / RECOG / ALL), the standing series (`tools/_t8b_series_arms.py`), ONE commit. The rules in full: `SYSTEMS_REFERENCE.md` §206; the pins `tests/test_dy7_recognition.py` (43).
 
@@ -1199,6 +1209,8 @@ Papal States} on **wagram** (the Pope erased by the cast Naples at turn 31), two
 deploy gate stands met in full; the deploy is session H (§2b). No clause was lowered.
 
 ### §7a The gate earned — session G's landing record (✅ LANDED November 11, 2026)
+
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session G's four readings (the understudy's reach; the chest's number; 26 to 25; jena's Pope) — emergent and seeded, seeded paths and not laws; price alone earned clause 2; 25 is inside 23–28; the deterrence working (D5) — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
 
 **The user's word at session F's close, verbatim:** *"Earn them first"* — the content fork of §7 taken over the
 deploy-as-read. One session, two rules behind their own zero-arg seams (`tests/_t3_seams.py` rows G-PACT, G-CHEST),
@@ -1581,6 +1593,8 @@ on friedland; on the harness's lodi an uncalled Holland drifts and rises;
 
 
 ### §7e A client rallies against the house — session G5's landing record (✅ LANDED November 11, 2026)
+
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** Session G5's four readings (Switzerland bought on six unattended seeds; friedland's kingdom falls; the gate's corrected count; the ally's branch) — the bribe works on an idle France as it should and a played France keeps Switzerland on every band arm; the gate is met either way; the corrected count is the instrument's; an ally's policy is its own (a client is bound, an ally is sovereign). The older sessions' readings (C to G) are ruled in the same record — KEEP: each a measured default under its own delegation; none blocks the deploy — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
 
 **The user's word**, at session G4's close, to the five readings left with him: *"do what you deem best then tell me
 what next."* A delegation; the rulings are the author's under it. The rules in full: `SYSTEMS_REFERENCE.md` §211; the

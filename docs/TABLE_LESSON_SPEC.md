@@ -6,6 +6,8 @@
 
 **One user ruling is re-read, and named for the user (A1).** The row's done-when says "a new-player run reaches the table on turn 1"; measured, the campaign's table already **mounts** on turn 1 for 0 DP and 0 AP and **signs** nothing until a battle is fought, because the per-court gate is field-gated by rulings the user made (PC-R4 the stake floor, CA9 row 1 the war-age term, F5 the chip at its threshold). This record reads the clause as *mounts* in the campaign and *signs* in the lesson, and does not change the campaign's gates. **That is a reduction of the row's promise as a player read it** (DD-B's diplomacy player could not get a seat); the user may overrule it at any time, and `docs/STATUS.md` ▶ NEXT UP names it. Six amendments of ruled specs, each carried into its spec when its part lands:
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** S14d's A1 — KEEP: measured under its delegation; the campaign's table mounts on turn 1 and the lesson signs it, and the campaign's gates (PC-R4, CA9 row 1, F5) stay as the user ruled them — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 | | Amends | What |
 |---|---|---|
 | **A1** | `PRE_DEPLOY_PLAN.md` §2 S14d row | "names the mechanic it shows **the first time it opens**" reads as a once-per-campaign line latched in the save, beside the standing R159 subtitles (Q1); "a new-player run **reaches the table on turn 1**" reads as **mounts** (campaign, true today) and **signs** (lesson) — **a user-visible reduction, named for the user**; the row's size 1.5 → about 2.5 (Q11) and the plan's session total moves with it. The muster's line is `what_if_line` on every muster road; its W6-4 hint is untouched (Q3). |

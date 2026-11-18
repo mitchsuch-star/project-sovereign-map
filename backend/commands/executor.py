@@ -3482,14 +3482,11 @@ class CommandExecutor:
         if counter_punch_snapshot is not None:
             _cp_holder, _cp_turns = counter_punch_snapshot
             _res = result if isinstance(result, dict) else {}
+            # WS-15: the one fail-closed list (`attack_struck_no_blow`), read
+            # by this belt and by the attack road's own give-back.
+            from backend.commands.combat_executor import attack_struck_no_blow
             _no_strike = (
-                not _res.get("success", False)
-                or _res.get("requires_input")            # muster confirm
-                or _res.get("pending_interrupt")
-                or _res.get("awaiting_diplomatic_response")
-                or _res.get("war_purpose_popup")         # war purpose staged
-                or _res.get("opening_attack_guidance")   # a briefing, not a blow
-                or _res.get("occupation_started")        # walked in unopposed
+                attack_struck_no_blow(_res)
                 # Aug 30, 2026 review: writing a standing order is not
                 # throwing a punch. An `attack` on an out-of-range enemy
                 # auto-upgrades to a strategic PURSUE, and this block read the

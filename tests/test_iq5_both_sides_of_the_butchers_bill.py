@@ -2136,10 +2136,12 @@ class TestTheCardPricesTheIncrement:
         assert "he brings NONE of his 17,000 men" in detail
 
     def test_an_already_hostile_pair_costs_no_weight(self):
-        """Hazard 1: Bernadotte–Davout is authored −2 both ways. The engine
-        applies 0.0 with the grievance AND without it, so "NONE for 3 more
-        turns" would promise a return that never comes."""
-        detail, w, bd, cf = _let_it_stand("Bernadotte", "Davout")
+        """Hazard 1: a pair already −2 both ways (Bernadotte–Davout, set here:
+        row MC's 1805 reading opens them as Rivals). The engine applies 0.0
+        with the grievance AND without it, so "NONE for 3 more turns" would
+        promise a return that never comes."""
+        detail, w, bd, cf = _let_it_stand("Bernadotte", "Davout", rels={
+            ("Bernadotte", "Davout"): -2, ("Davout", "Bernadotte"): -2})
         assert w.marshals["Bernadotte"].relationships["Davout"] == -2
         assert w.marshals["Davout"].relationships["Bernadotte"] == -2
         assert bd["scale"] == cf["scale"] == 0.0 and cf["relationship"] == -2

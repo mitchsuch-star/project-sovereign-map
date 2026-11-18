@@ -1,0 +1,267 @@
+{
+ "_note": "Row BA, BA-6: the ground on the table, cut from period surveys and charts (public domain scans, Wikimedia Commons) by tools/ba6_terrain_plates.py. A wood's or a town's plate has its feature on one half (`side`); the client lays the plate whose feature lies on the defender's half, never a mirror.",
+ "size": [
+  1896,
+  880
+ ],
+ "plates": {
+  "plains_1": {
+   "kind": "plains",
+   "side": "both",
+   "file": "plains_1.jpg",
+   "source": "Mons, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.6,
+    0.235,
+    0.957,
+    0.495
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1223
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Mons,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "plains_2": {
+   "kind": "plains",
+   "side": "both",
+   "file": "plains_2.jpg",
+   "source": "Hannut, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.22,
+    0.3,
+    0.6,
+    0.578
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1217
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Hannut,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "plains_3": {
+   "kind": "plains",
+   "side": "both",
+   "file": "plains_3.jpg",
+   "source": "Tintigny, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.56,
+    0.64,
+    0.94,
+    0.917
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1217
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Tintigny,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "forest_1": {
+   "kind": "forest",
+   "side": "right",
+   "file": "forest_1.jpg",
+   "source": "Huy, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.59,
+    0.64,
+    0.985,
+    0.928
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1221
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Huy,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "forest_2": {
+   "kind": "forest",
+   "side": "left",
+   "file": "forest_2.jpg",
+   "source": "Tintigny, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.02,
+    0.64,
+    0.4,
+    0.917
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1217
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Tintigny,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "hills_1": {
+   "kind": "hills",
+   "side": "both",
+   "file": "hills_1.jpg",
+   "source": "Liège, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.52,
+    0.49,
+    0.9,
+    0.768
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1217
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Liège,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "hills_2": {
+   "kind": "hills",
+   "side": "both",
+   "file": "hills_2.jpg",
+   "source": "Tintigny, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.56,
+    0.04,
+    0.94,
+    0.317
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1217
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Tintigny,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "mountains_1": {
+   "kind": "mountains",
+   "side": "both",
+   "file": "mountains_1.jpg",
+   "source": "Atlas Tyrolensis-1.jpg",
+   "work": "Peter Anich and Blasius Hueber, Atlas Tyrolensis (1774)",
+   "crop": [
+    0.3,
+    0.52,
+    0.96,
+    0.819
+   ],
+   "flip": false,
+   "grade": "engraving",
+   "source_pixels": [
+    1920,
+    1971
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Atlas_Tyrolensis-1.jpg"
+  },
+  "mountains_2": {
+   "kind": "mountains",
+   "side": "both",
+   "file": "mountains_2.jpg",
+   "source": "Atlas Tyrolensis-1.jpg",
+   "work": "Peter Anich and Blasius Hueber, Atlas Tyrolensis (1774)",
+   "crop": [
+    0.08,
+    0.3,
+    0.74,
+    0.599
+   ],
+   "flip": false,
+   "grade": "engraving",
+   "source_pixels": [
+    1920,
+    1971
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Atlas_Tyrolensis-1.jpg"
+  },
+  "urban_1": {
+   "kind": "urban",
+   "side": "right",
+   "file": "urban_1.jpg",
+   "source": "Namur, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.42,
+    0.38,
+    0.8,
+    0.657
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1221
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Namur,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "urban_2": {
+   "kind": "urban",
+   "side": "left",
+   "file": "urban_2.jpg",
+   "source": "Namur, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.6,
+    0.37,
+    0.98,
+    0.647
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1221
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Namur,_par_Joseph_de_Ferraris,_KBR.jpg"
+  },
+  "river_crossing_1": {
+   "kind": "river_crossing",
+   "side": "both",
+   "file": "river_crossing_1.jpg",
+   "source": "Namur, par Joseph de Ferraris, KBR.jpg",
+   "work": "Joseph de Ferraris, Carte de cabinet des Pays-Bas autrichiens (1771-78), KBR",
+   "crop": [
+    0.54,
+    0.49,
+    0.92,
+    0.767
+   ],
+   "flip": false,
+   "grade": "survey",
+   "source_pixels": [
+    1920,
+    1221
+   ],
+   "licence": "Public domain (PD-old / PD-Art), Wikimedia Commons",
+   "page": "https://commons.wikimedia.org/wiki/File:Namur,_par_Joseph_de_Ferraris,_KBR.jpg"
+  }
+ },
+ "felt": {
+  "file": "Fabric034_1K-JPG_Color.jpg",
+  "work": "ambientCG, Fabric034 (felt), photographed fabric",
+  "licence": "CC0 1.0 (public domain)",
+  "page": "https://ambientcg.com/a/Fabric034"
+ }
+}

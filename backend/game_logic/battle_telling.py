@@ -66,6 +66,80 @@ def a_word_says_what_it_does() -> bool:
     return True
 
 
+def a_word_says_what_it_risks() -> bool:
+    """Row BA, session BA-6 seam (the levers past 5 the user ruled under the
+    delegation of November 17, 2026: the blind readers' first ask was "price AND
+    consequence before a command"). A word's card carries a third line, `risk`:
+    what the clash is likely to bring, read off the odds band the card already
+    shows (never a figure of its own — the band is the muster's single reading),
+    or for a word that strikes no blow, what follows it; the free words say their
+    stakes on their faces (the toll that stands, the field that is kept or
+    given). Down (False): the card's two lines, as BA-5 left them."""
+    return True
+
+
+# What an attack is likely to bring, by the odds band the card shows (the
+# muster's own reading of the effective ratio: favorable at 1.7 weighed and up,
+# unfavorable under 0.7 — `objection_v2.odds_reading_of_ratio`). Said as a
+# likelihood, never a promise: the dice and the day's fortune move every clash.
+RISK_BY_ODDS = {
+    "favorable": "he is likely to give ground",
+    "even": "either side may give ground",
+    "unfavorable": "likely to be thrown back; he may strike in turn",
+}
+# ...and by the day's own count, where no odds word is given (the table counts
+# men, so the line speaks of men, not of the muster's weight)
+RISK_BY_MEN = {
+    "ours": "our men outnumber his",
+    "even": "neither side has the weight of numbers",
+    "his": "his men outnumber ours; he may strike in turn",
+}
+
+
+def risk_of(kind: str, quote: dict, day: Optional[dict] = None) -> str:
+    """The third line of a word's card: what it is likely to bring."""
+    if not a_word_says_what_it_risks():
+        return ""
+    if kind == "dig_in":
+        return "he answers next: firmer if he strikes, idle if he draws off"
+    if kind == "bring_up":
+        return "the corps stands beside the lead for the next clash"
+    if kind == "cannonade":
+        return "no clash, so no line can break; he answers next"
+    force = (quote or {}).get("force") or {}
+    odds = str(force.get("odds") or "")
+    if odds in RISK_BY_ODDS:
+        return RISK_BY_ODDS[odds]
+    ours = int(force.get("ours", 0) or 0)
+    low, high = int(force.get("theirs_low", 0) or 0), int(force.get("theirs_high", 0) or 0)
+    if ours > 0 and low > 0 and low == high:
+        if ours >= low * 1.25:
+            return RISK_BY_MEN["ours"]
+        if low >= ours * 1.25:
+            return RISK_BY_MEN["his"]
+        return RISK_BY_MEN["even"]
+    return ""
+
+
+def stakes_of(kind: str, day: dict, *, leave_said: str = "", reading: str = "") -> str:
+    """A free word's face, with its stakes: what the day comes to if it is said
+    (BA-6). `kind` is break_off / fall_back / stand / stand_night / leave_it."""
+    toll = (day or {}).get("toll") or {}
+    ours, his = int(toll.get("ours", 0) or 0), int(toll.get("his", 0) or 0)
+    stands = (f"; the toll stands at {ours:,} of ours for {his:,} of his" if (ours or his) else "")
+    if kind == "break_off":
+        return f"{DOES['break_off']}{stands}"
+    if kind == "fall_back":
+        return f"{DOES['fall_back']}{stands}"
+    if kind == "stand_night":
+        return f"{DOES['stand_night']}{stands}"
+    if kind == "stand":
+        return f"{DOES['stand']}" + (f" — {reading}" if reading else "")
+    if kind == "leave_it":
+        return leave_said
+    return ""
+
+
 def the_day_tells_its_clashes() -> bool:
     """The line under the title is the day's toll so far ("The day so far: …")
     and every clash adds one line to the day's telling, with what told. Down
@@ -257,6 +331,13 @@ def _committed(ctx) -> Tuple[int, int]:
                  getattr(ctx, "pre_battle_attacker_strength", 0)),
             side(getattr(ctx, "enemy_marshal", None), getattr(ctx, "def_participants", None),
                  getattr(ctx, "pre_battle_defender_strength", 0)))
+
+
+def committed_men(ctx) -> Tuple[int, int]:
+    """(attacker, defender) men committed at the muster - the public name of
+    `_committed`, read by the odds of a battle (WS-13) so "numbers told" and
+    "against the odds" can never disagree."""
+    return _committed(ctx)
 
 
 def what_told(ctx, attacker_is_ours: bool, better: str) -> str:

@@ -16,6 +16,7 @@ signal reward_requested(card: Dictionary)
 # main.gd issues the typed `commission <name>` command through the same
 # pipeline the reward dialog uses.
 signal commission_requested(candidate_name: String)
+signal title_requested(marshal_name: String)
 # UI-6: a per-card order chip ([Fortify]/[Drill]) — main.gd sends the typed
 # command through the reward pipeline (history + echo + Generals refresh).
 signal order_command(command: String)
@@ -101,6 +102,9 @@ var cached_data: Array = []
 # Jealousy v3.2: the player's glory ladder + the recruitment pool ride the
 # same /marshal_overview payload.
 var cached_ladder: Array = []
+# Row MC: the Order of the Marshalate (`order` of the overview) and its sort.
+var cached_order: Dictionary = {}
+var _order_sort := "place"
 var cached_recruitment: Dictionary = {}
 # SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE — `/marshal_overview`'s
 # `doctrine` payload (name, says, strength, flaw with the cure's status).
@@ -271,6 +275,13 @@ func _on_meta_clicked(meta):
 			reward_requested.emit(cached_data[index])
 	elif meta_str == "audience:open":
 		audience_requested.emit()
+	elif meta_str.begins_with("ordersort:"):
+		_order_sort = meta_str.substr(10)
+		_rerender_in_place()
+	elif meta_str.begins_with("title:"):
+		var titled = meta_str.substr(6)
+		if titled != "":
+			title_requested.emit(titled)
 	elif meta_str == "commission_open":
 		_commission_view = true
 		_render_current_view()
@@ -312,6 +323,7 @@ func close_view():
 	hide()
 	cached_data = []
 	cached_ladder = []
+	cached_order = {}
 	cached_recruitment = {}
 	_commission_view = false
 	_detail_view = ""
@@ -329,6 +341,8 @@ func _on_data_received(response):
 
 	cached_data = response.get("marshals", [])
 	cached_ladder = response.get("glory_ladder", [])
+	var _order = response.get("order")
+	cached_order = _order if _order is Dictionary else {}
 	# A11: the window comes from the backend constant (GLORY_WINDOW), never
 	# a number typed here. The 8 below is only the fallback for an old
 	# payload; the caption used to say 5, three turns adrift of the engine.
@@ -509,13 +523,20 @@ func _render_glory_ladder() -> String:
 	var candidates = cached_recruitment.get("candidates", [])
 	var has_bench = candidates is Array and candidates.size() > 0
 
+	var order_rows = cached_order.get("rows", [])
+	var order_stands: bool = order_rows is Array and order_rows.size() > 0
+	if order_stands:
+		bbcode += _render_order()
+
 	var any_glory := false
-	if cached_ladder is Array:
+	if cached_ladder is Array and not order_stands:
 		for lrow in cached_ladder:
 			if lrow is Dictionary and (int(lrow.get("glory", 0)) > 0 or bool(lrow.get("crowned", false))):
 				any_glory = true
 				break
-	if cached_ladder is Array and cached_ladder.size() > 1 and not any_glory:
+	if order_stands:
+		pass
+	elif cached_ladder is Array and cached_ladder.size() > 1 and not any_glory:
 		# UXR3-24: a ladder of zeros said nothing in seven rows and pushed the
 		# roster below the fold — one line says it.
 		bbcode += Utils.bb_glyph("medal", 20, Utils.COLOR_GOLD)
@@ -558,6 +579,211 @@ func _render_glory_ladder() -> String:
 	# Session UI-5 interim fix (Nov 13): no closing hairline here - the first card
 	# opens with its own rule; the short stray one stood alone under the Commission row.
 	return bbcode
+
+
+# =============================================================================
+# ROW MC - THE ORDER OF THE MARSHALATE
+# =============================================================================
+
+func _order_rows_sorted() -> Array:
+	"""The court's rows in the order the player chose: precedence (the served
+	order), renown, or the season's laurels (ties by place)."""
+	var rows: Array = []
+	var served = cached_order.get("rows", [])
+	if served is Array:
+		for r in served:
+			if r is Dictionary:
+				rows.append(r)
+	match _order_sort:
+		"renown":
+			rows.sort_custom(func(a, b):
+				# (a rule that is down sends place 0: those rows stand last, not first)
+				var ra := int(a.get("renown_place", 0))
+				var rb := int(b.get("renown_place", 0))
+				ra = ra if ra > 0 else 1000000
+				rb = rb if rb > 0 else 1000000
+				if ra != rb:
+					return ra < rb
+				return int(a.get("place", 0)) < int(b.get("place", 0)))
+		"laurels":
+			rows.sort_custom(func(a, b):
+				var ga := int(a.get("glory", 0))
+				var gb := int(b.get("glory", 0))
+				if ga != gb:
+					return ga > gb
+				return int(a.get("place", 0)) < int(b.get("place", 0)))
+		_:
+			rows.sort_custom(func(a, b): return int(a.get("place", 0)) < int(b.get("place", 0)))
+	return rows
+
+
+func _render_order() -> String:
+	"""THE ORDER OF THE MARSHALATE: the ladder header block when the rule
+	stands - rows by precedence / renown / laurels, the quarrels and bonds under."""
+	var rows := _order_rows_sorted()
+	var bbcode := Utils.bb_glyph("medal", 20, Utils.COLOR_GOLD)
+	bbcode += " [color=#" + Utils.COLOR_GOLD + "]THE ORDER OF THE MARSHALATE[/color]\n"
+	bbcode += "  "
+	var tabs := [["place", "By precedence"], ["renown", "By renown"], ["laurels", "By the season's laurels"]]
+	for t in tabs:
+		if _order_sort == t[0]:
+			bbcode += _button_chip("ordersort:" + t[0], t[1], CHIP_GILT_INK, CHIP_GILT_BG)
+		else:
+			bbcode += _button_chip("ordersort:" + t[0], t[1], "a9c7e6", Utils.COLOR_CHIP_BG_NAVY)
+		bbcode += " "
+	bbcode += "\n"
+	bbcode += "  " + Utils.bb_step("[color=#" + Utils.COLOR_INFO + "]Titles first - a prince, then a duke - then the order of the 1804 list; the season's laurels (the last " \
+		+ str(cached_glory_window) + " turns) still decide envy and the crown.[/color]", &"Caption") + "\n"
+	var any_due := false
+	for r in rows:
+		if bool(r.get("title_due", false)):
+			any_due = true
+	if any_due:
+		bbcode += "  [color=#" + COLOR_DEVOTED + "]a title is in your gift[/color]\n"
+	for i in range(rows.size()):
+		var row: Dictionary = rows[i]
+		var shown := str(row.get("shown", row.get("name", "?")))
+		var captive := bool(row.get("captive", false))
+		var crowned := bool(row.get("crowned", false))
+		var ink: String = Utils.COLOR_INFO if captive else Utils.COLOR_TEXT
+		bbcode += "  " + str(i + 1) + ". "
+		if crowned and not captive:
+			bbcode += "[color=#" + COLOR_DEVOTED + "]★ " + shown + "[/color]"
+		else:
+			bbcode += "[color=#" + ink + "]" + shown + "[/color]"
+		var style := str(row.get("style", ""))
+		if style != "":
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + style + "[/color]"
+		# (the renown segment only where the rule ranks him: a rule that is down sends renown 0, place 0)
+		var renown_seg := ""
+		if int(row.get("renown_place", 0)) > 0:
+			renown_seg = " · renown " + str(int(row.get("renown", 0)))
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]seat " + str(int(row.get("seat", 0))) \
+			+ renown_seg + " · laurels " + str(int(row.get("glory", 0))) + "[/color]"
+		if crowned and not captive:
+			bbcode += " [color=#" + COLOR_DEVOTED + "]★[/color]"
+		if captive:
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]in enemy hands[/color]"
+		var envies := str(row.get("envious_of", ""))
+		if envies != "" and not captive:
+			bbcode += "  [color=#" + Utils.COLOR_ERROR + "]» envies " + envies + "[/color]"
+		if bool(row.get("trails_deeds", false)):
+			bbcode += "  " + Utils.bb_tag("his place trails his deeds", Utils.COLOR_BADGE_QUIET)
+		bbcode += "\n"
+		if crowned and not captive:
+			bbcode += "      " + Utils.bb_step("[color=#" + COLOR_DEVOTED + "]Crowned with Glory (+1 shock/defense/administration)[/color]", &"Caption") + "\n"
+	bbcode += "\n"
+	bbcode += _caption("Quarrels and bonds")
+	var pairs = cached_order.get("pairs", [])
+	var wrote_pair := false
+	if pairs is Array:
+		for p in pairs:
+			if not (p is Dictionary):
+				continue
+			wrote_pair = true
+			bbcode += "  " + str(p.get("a_shown", p.get("a", "?"))) + " and " + str(p.get("b_shown", p.get("b", "?"))) \
+				+ " - [color=#" + Utils.COLOR_GOLD + "]" + str(p.get("label", "")) + "[/color]"
+			var cause := str(p.get("cause", ""))
+			if cause != "":
+				bbcode += " · " + cause
+			bbcode += "\n"
+			var cons := str(p.get("consequence", ""))
+			if cons != "":
+				bbcode += "      " + Utils.bb_step("[color=#" + Utils.COLOR_INFO + "]" + cons + "[/color]", &"Caption") + "\n"
+	if not wrote_pair:
+		bbcode += "  [color=#" + Utils.COLOR_INFO + "]No quarrel or bond stands out.[/color]\n"
+	bbcode += "\n"
+	return bbcode
+
+
+func _court_line(m: Dictionary) -> String:
+	"""Under his name: his style, and his place in the order."""
+	var court = m.get("court", {})
+	if not (court is Dictionary) or court.is_empty():
+		return ""
+	var out := ""
+	var style := str(court.get("style", ""))
+	if style != "":
+		out += "[color=#" + Utils.COLOR_GOLD + "]" + style + "[/color]\n"
+	var place := int(court.get("place", 0))
+	var of := int(court.get("of", 0))
+	if place > 0:
+		var line := _ordinal(place) + " of " + str(of) + " in the order · seat " + str(int(court.get("seat", 0)))
+		if int(court.get("renown_place", 0)) > 0:      # (a rule that is down sends renown 0, place 0: nothing to print)
+			line += " · renown " + str(int(court.get("renown", 0))) + " (" + _ordinal(int(court.get("renown_place", 0))) + ")"
+		out += Utils.bb_step("[color=#" + Utils.COLOR_INFO + "]" + line + "[/color]", &"Caption") + "\n"
+	if bool(court.get("captive", false)):
+		out += Utils.bb_step("[color=#" + Utils.COLOR_INFO + "]his place is kept while he is a prisoner[/color]", &"Caption") + "\n"
+	# BA6-X13: his honours (MARSHALATE_SPEC.md §4), each with the turn it was won
+	var honours = court.get("honours", [])
+	var named: Array = []
+	if honours is Array:
+		for h in honours:
+			if h is Dictionary and str(h.get("name", "")) != "":
+				var bit := str(h.get("name", ""))
+				if int(h.get("turn", 0)) > 0:
+					bit += " (turn " + str(int(h.get("turn", 0))) + ")"
+				named.append(bit)
+	if named.size() > 0:
+		out += Utils.bb_step("[color=#" + Utils.COLOR_INFO + "]honours: " + ", ".join(PackedStringArray(named)) + "[/color]", &"Caption") + "\n"
+	return out
+
+
+func _ordinal(n: int) -> String:
+	var s := "th"
+	if n % 100 < 11 or n % 100 > 13:
+		match n % 10:
+			1:
+				s = "st"
+			2:
+				s = "nd"
+			3:
+				s = "rd"
+	return str(n) + s
+
+
+func _bonds_block(m: Dictionary) -> String:
+	"""His bonds (court.bonds) and the title in the Emperor's gift; "" when the
+	court block is empty, so the caller falls back to the old relationships."""
+	var court = m.get("court", {})
+	if not (court is Dictionary) or court.is_empty():
+		return ""
+	var out := ""
+	var bonds = court.get("bonds", [])
+	if bonds is Array and bonds.size() > 0:
+		out += "  Bonds:\n"
+		for b in bonds:
+			if not (b is Dictionary):
+				continue
+			var view := int(b.get("view", 0))
+			var line := "    " + str(b.get("shown", b.get("other", "?"))) + " - " + _relationship_colored(view, str(b.get("view_label", "Professional")))
+			if int(b.get("felt", view)) != view:
+				line += " · he is " + str(b.get("felt_label", "")) + " toward him"
+			if bool(b.get("temporary", false)):
+				line += " (a grievance - it passes when he is satisfied)"
+			out += line + "\n"
+			var cause := str(b.get("cause", ""))
+			var cons := str(b.get("consequence", ""))
+			var second := cause
+			if cons != "" and not bool(b.get("sovereign", false)) and (view <= -1 or view >= 2):
+				second = (second + " - " if second != "" else "") + cons
+			if second != "":
+				out += "        " + Utils.bb_step("[color=#" + Utils.COLOR_INFO + "]" + second + "[/color]", &"Caption") + "\n"
+	var due = court.get("title_due", null)
+	if due is Dictionary and not due.is_empty():
+		var label := "Confer: " + str(due.get("name", "")) + " - " + str(int(due.get("price", 0))) + " authority · " \
+			+ str(int(due.get("turns_left", 0))) + " turns"
+		out += "  "
+		if bool(due.get("ok", false)):
+			out += Utils.bb_button_chip("title:" + str(m.get("name", "")), label, CHIP_GILT_INK, CHIP_GILT_BG, "", str(due.get("line", "")))
+		else:
+			var refusal := str(due.get("refusal", ""))
+			out += Utils.bb_chip_disabled(label, "", refusal if Utils.explanations_folded() else "")
+			if not Utils.explanations_folded() and refusal != "":
+				# (as `_locked_chip`'s notes: the page prints the refusal after the chip)
+				out += "  [color=#" + Utils.COLOR_INFO + "]" + refusal + "[/color]"
+		out += "\n"
+	return out
 
 
 func _render_commission_view():
@@ -732,6 +958,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	# the sheet is a table cell (bb_portrait_row): its tags are inline runs
 	sheet += Utils.bb_tag(unit_type, arm_tone)
 	sheet += "  " + Utils.bb_flag(nation) + " " + Utils.bb_tag(Utils.display_nation_name(nation), Utils.COLOR_BADGE_QUIET) + "\n"
+	sheet += _court_line(m)
 
 	# UXR3-24: the Emperor's card opens on his STATE (the backend's line: in
 	# the field, at the Seat, a captive), then The Presence as it applies and
@@ -1080,7 +1307,10 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 
 	# ═══════ RELATIONSHIPS ═══════
 	var rels = m.get("relationships", [])
-	if rels.size() > 0:
+	var court_bonds := _bonds_block(m)
+	if court_bonds != "":
+		bbcode += court_bonds
+	elif rels.size() > 0:
 		var rel_parts = []
 		for r in rels:
 			var rname = str(r.get("name", "?"))
@@ -1838,6 +2068,11 @@ func _on_locate_pressed(mname: String) -> void:
 
 func _detail_body(m: Dictionary, index: int) -> String:
 	var bbcode := ""
+	# BA6-X13: the card opens with his place in the court (the page layout carries it under
+	# his name; the roster's card had it nowhere)
+	var court := _court_line(m)
+	if court != "":
+		bbcode += _caption("The court") + court
 	bbcode += _skills_grid(m)
 	bbcode += _ability_chips(m)
 	bbcode += _reward_lines(m, index)
@@ -2047,7 +2282,10 @@ func _status_lines(m: Dictionary) -> String:
 	if specifics.size() > 0:
 		bbcode += "  " + " | ".join(specifics) + "\n"
 	var rels = m.get("relationships", [])
-	if rels is Array and rels.size() > 0:
+	var court_bonds := _bonds_block(m)
+	if court_bonds != "":
+		bbcode += court_bonds
+	elif rels is Array and rels.size() > 0:
 		var rel_parts: Array = []
 		for r in rels:
 			rel_parts.append(str(r.get("name", "?")) + ": " + _relationship_colored(int(r.get("value", 0)), str(r.get("label", "Professional"))))

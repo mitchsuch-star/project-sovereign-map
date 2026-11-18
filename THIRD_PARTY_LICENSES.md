@@ -264,6 +264,32 @@ hover names its work.
 | `ulm_banner.jpg`, `ulm_plate.jpg` | The Surrender of Ulm — Charles Thévenin (1815) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Charles_Th%C3%A9venin_-_Reddition_de_la_ville_d%27Ulm.jpg |
 | `wedding_banner.jpg`, `wedding_plate.jpg` | The Marriage of Prince Eugène and Princess Augusta of Bavaria — François-Guillaume Ménageot (1808) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:M%C3%A9nageot_Matrimonio.jpg |
 
+## Battle terrain — `assets/textures/battle/` (row BA, BA-6, November 17, 2026)
+
+The ground under the battle tableau's figures (the user: "make sure the terrain
+background does not look ai genned even get assets if needed"). Each plate is a
+crop of a period military survey — the province's kind of country, laid on the
+table as a sheet — and the felt under it is a photographed baize. No pixel is
+generated: every line was drawn by a surveyor or an engraver between 1771 and
+1778. Every source is a 2D work whose authors died more than 100 years ago,
+reproduced faithfully (PD-Art), from Wikimedia Commons; nothing from Gallica/BnF
+(the one period sea chart found was a Gallica scan and was refused — a fleet
+action keeps its chart-blue table); the felt is CC0. Each file is made by
+`tools/ba6_terrain_plates.py` with one treatment — a crop, a scale to 1896x880,
+and a grade "by lamplight" into the felt's dark range (the record of each crop:
+`assets/textures/battle/plates.json`). No credit is legally required.
+
+| Files | Work | Licence | Source page |
+|---|---|---|---|
+| `plains_1.jpg` | Joseph de Ferraris, *Carte de cabinet des Pays-Bas autrichiens* (1771–78), sheet Mons (KBR) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Mons,_par_Joseph_de_Ferraris,_KBR.jpg |
+| `plains_2.jpg` | Ferraris, sheet Hannut (KBR) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Hannut,_par_Joseph_de_Ferraris,_KBR.jpg |
+| `plains_3.jpg`, `forest_2.jpg`, `hills_2.jpg` | Ferraris, sheet Tintigny (KBR) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Tintigny,_par_Joseph_de_Ferraris,_KBR.jpg |
+| `forest_1.jpg` | Ferraris, sheet Huy (KBR) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Huy,_par_Joseph_de_Ferraris,_KBR.jpg |
+| `hills_1.jpg` | Ferraris, sheet Liège (KBR) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Li%C3%A8ge,_par_Joseph_de_Ferraris,_KBR.jpg |
+| `urban_1.jpg`, `urban_2.jpg`, `river_crossing_1.jpg` | Ferraris, sheet Namur (KBR) | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Namur,_par_Joseph_de_Ferraris,_KBR.jpg |
+| `mountains_1.jpg`, `mountains_2.jpg` | Peter Anich and Blasius Hueber, *Atlas Tyrolensis* (1774), part 1 | Public domain (PD-old / PD-Art) | https://commons.wikimedia.org/wiki/File:Atlas_Tyrolensis-1.jpg |
+| `felt_baize.jpg` | ambientCG, Fabric034 (felt), its colour map tinted to the table's green | CC0 1.0 | https://ambientcg.com/a/Fabric034 |
+
 ## Heraldry — `assets/ui/heraldry/` (Public Domain, Wikimedia + original)
 
 33 period national flags, named `<Nation>.svg` — the 20 for the 1805 boot roster, plus 7

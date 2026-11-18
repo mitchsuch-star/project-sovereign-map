@@ -372,6 +372,15 @@ def recruit_price_terms(world, nation: str, arm: Optional[str]) -> List[tuple]:
     return _terms(world, nation, "recruit_price", "arm", want, float)
 
 
+def a_law_says_where_it_is_void() -> bool:
+    """GRD-30 (the user's ruling "say it on the LAWS tab"; built November 17,
+    2026, session BA-6): a recruit-morale law's line says that a training
+    ground voids it - the ground's rung (70) replaces the green conscripts'
+    base the law's term sits on, so Jager Battalions' +10 and the Extraordinary
+    Levy's -10 do nothing there. Down (False): the line says only the term."""
+    return True
+
+
 def recruit_morale_terms(world, nation: str, arm: Optional[str]) -> List[tuple]:
     """[(law, ±morale)] on a DRAFT levy's green-conscript morale."""
     want = ("all", arm) if arm else ("all",)
@@ -1002,6 +1011,11 @@ def effect_line(clause) -> str:
         n = int(value or 0)
         arm = clause.get("arm")
         who = "every draft" if arm == "all" else f"{_ARM_NOUN.get(arm, arm)} drafts"
+        if a_law_says_where_it_is_void():
+            # GRD-30: the training ground's rung REPLACES the conscripts' base
+            # the law sits on (`economy_executor._execute_recruit`)
+            return (f"{who} muster at {n:+d} morale (not at a training ground, whose 70 "
+                    f"replaces it; Moore's drafts never muster under 60)")
         return f"{who} muster at {n:+d} morale"
     if etype == "drill_morale":
         return f"+{int(value or 0)} morale from every drill"

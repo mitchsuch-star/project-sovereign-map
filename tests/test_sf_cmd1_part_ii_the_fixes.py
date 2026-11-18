@@ -119,7 +119,8 @@ class TestW1TheDeskAnswers:
         msg = post(client, "what is Ney's trust")["message"]
         assert str(int(world.get_marshal("Ney").trust.value)) in msg
         msg = post(client, "how do Davout and Bernadotte get on")["message"]
-        assert "Davout" in msg and "Bernadotte" in msg and "hostile" in msg.lower()
+        # row MC: the 1805 reading opens them as Rivals (their feud is 1806's)
+        assert "Davout" in msg and "Bernadotte" in msg and "rival" in msg.lower()
         msg = post(client, "what turn is it")["message"]
         assert "turn 1" in msg and "1805" in msg
         msg = post(client, "is Swabia next to Rhineland")["message"]
@@ -155,7 +156,7 @@ class TestW1TheDeskAnswers:
         client, _ = shipped
         reply = post(client, "how do Davout and Bernadotte get on")
         assert reply.get("dropped_sequel") in (None, "")
-        assert "hostile" in reply["message"].lower()
+        assert "rival" in reply["message"].lower()      # row MC's 1805 reading
 
     def test_a_hedge_is_left_to_the_router(self, shipped):
         client, _ = shipped

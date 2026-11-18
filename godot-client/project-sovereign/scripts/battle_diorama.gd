@@ -67,6 +67,10 @@ const FAITH_CAPTION_INBOARD := 20.0
 # (what became of them), one 14-px line apart.
 const TEXT_PITCH := 18.0
 const FATE_PITCH := 18.0
+# BA1-X4: the pitches above are the 115 % line (a Caption line is 25 px tall there);
+# at a larger Text size the stack's pitch grows with the line, never below today's
+const LINE_H_SHIPPED := 25.0
+const CLASH_PUSH_MAX_EXTRA := 10.0     # guard for a future cap above 1.3 (held at 130 % the extra never exceeds +3; unreachable today)
 # A fate caption is cut back to stay on the baize, never narrower than this.
 const BAIZE_PAD := 14.0
 const FATE_MIN_W := 96.0
@@ -122,6 +126,12 @@ const FIGURES_BY_ARM := {"infantry": 5, "cavalry": 4, "artillery": 3, "ship": 3}
 # thing it must say at a glance is "this is not a field".
 const CHART_SEA := Color(0.098, 0.153, 0.216, 1.0)
 const CHART_SEA_EDGE := Color(0.063, 0.098, 0.145, 1.0)
+# Row BA, BA-6 (the user's "does not look ai genned … get assets if needed"):
+# the felt is a photographed baize (ambientCG Fabric034, CC0, on the table's own
+# green) tiled under a land battle, whose province's survey is laid on it (the
+# acts' Ground class; tools/ba6_terrain_plates.py). A fleet action keeps its
+# chart-blue table (no period chart passed the licence policy).
+const FELT_TILE := "res://assets/textures/battle/felt_baize.jpg"
 
 # ── State
 var _data: Dictionary = {}
@@ -143,6 +153,7 @@ var _tray: PanelContainer = null
 var _tray_inner: Control = null
 var _stage: Control = null
 var _stage_canvas: Control = null
+var _felt_tex: Texture2D = null        # BA-6: the photographed baize
 var _vignette: TextureRect = null
 var _lamp: TextureRect = null
 var _clash_label: Label = null
@@ -212,6 +223,8 @@ func show_diorama(data: Dictionary, cinematic := true) -> void:
 	# it ended (Replay still plays it).
 	if cinematic and BattleActs.opens_settled():
 		cinematic = false
+	_fit_tableau_type()
+	_refit_chrome_type()
 	_populate(not cinematic)
 	_fit_tray_to_viewport()
 	if cinematic:
@@ -254,12 +267,51 @@ func _fit_tray_to_viewport() -> void:
 		return
 	var view: Vector2 = viewport.get_visible_rect().size
 	var fit := 1.0
-	if TRAY_W > 0.0 and TRAY_H > 0.0:
+	if TRAY_W > 0.0 and tray_h() > 0.0:
 		fit = minf(1.0, minf((view.x - FIT_MARGIN_X) / TRAY_W,
-				(view.y - FIT_MARGIN_Y) / TRAY_H))
+				(view.y - FIT_MARGIN_Y) / tray_h()))
 	fit = clampf(fit, 0.35, 1.0)
-	_tray.pivot_offset = Vector2(TRAY_W / 2.0, TRAY_H / 2.0)
+	_tray.pivot_offset = Vector2(TRAY_W / 2.0, tray_h() / 2.0)
 	_tray.scale = Vector2(fit, fit)
+
+
+# Row BA, the levers past 5: a table whose day panel stands asks the tray for more
+# room at its foot (the acts' DAY_ROOM, design px). The stage, the band and the
+# shelves keep their places; everything anchored to the foot moves down with it.
+var _day_room := 0.0
+
+
+func tray_h() -> float:
+	"""The tray's design height now: TRAY_H, and the day panel's room while one stands."""
+	return TRAY_H + _day_room
+
+
+func set_day_room(px: float) -> void:
+	"""Idempotent: the tray grows by `px` (0 puts it back to TRAY_H), the foot's
+	controls follow it down, and the tray is fitted to the screen again."""
+	_day_room = maxf(px, 0.0)
+	if _tray == null:
+		return
+	_tray.offset_top = -tray_h() / 2.0
+	_tray.offset_bottom = tray_h() / 2.0
+	if _tray_inner != null:
+		_tray_inner.custom_minimum_size = Vector2(TRAY_W, tray_h())
+	_tray.reset_size()
+	_place_the_foot()
+	if _nameplate != null and _nameplate.size.y > 0.0:
+		_nameplate.position.y = tray_h() - _nameplate.size.y - 12.0
+		if _seal != null:
+			_seal.position.y = _nameplate.position.y + _nameplate.size.y / 2.0 - 22.0
+	_fit_tray_to_viewport()
+
+
+func _place_the_foot() -> void:
+	if _btn_close != null:
+		_btn_close.position.y = tray_h() - 46.0
+	if _btn_replay != null:
+		_btn_replay.position.y = tray_h() - 46.0
+	if _skip_hint != null:
+		_skip_hint.position.y = tray_h() - 40.0
 
 
 func refit() -> void:
@@ -340,6 +392,9 @@ func _build_stage() -> void:
 	_stage_canvas.name = "Baize"
 	_stage_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_stage_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# BA-6: the felt tile repeats across the baize; the plates scale smoothly
+	_stage_canvas.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_stage_canvas.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_stage_canvas.draw.connect(_draw_stage)
 	_stage.add_child(_stage_canvas)
 
@@ -399,6 +454,8 @@ func _build_stage() -> void:
 	_banner.add_theme_constant_override("outline_size", 6)
 	_sub_banner = _mk_label(_stage, "", &"", Color(BONE_HEX))
 	_sub_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# C2: the labels made once, here - show_diorama re-applies the held type to them
+	_chrome_labels = [_odo_left_cap, _odo_left, _odo_right_cap, _odo_right, _banner, _sub_banner]
 
 
 func _build_strength_band() -> void:
@@ -455,7 +512,8 @@ func _draw_band_bar(bar: Control, i: int) -> void:
 	var w: float = bar.size.x
 	var h: float = bar.size.y
 	var peak: float = maxf(float(row.get("peak", 1)), 1.0)
-	var before: float = float(row.get("before", 0))
+	# BA5-X15: a corps still unseen is not in the figure; the peak stays the full muster
+	var before: float = float(row.get("before", 0)) - float(row.get("unseen", 0))
 	var lost: float = float(row.get("lost", 0)) * _band_progress
 	var w_before: float = w * clampf(before / peak, 0.0, 1.0)
 	var w_after: float = w * clampf((before - lost) / peak, 0.0, 1.0)
@@ -472,10 +530,21 @@ func _draw_band_bar(bar: Control, i: int) -> void:
 
 func _band_fig_text(i: int) -> String:
 	var row: Dictionary = _band_rows[i]
-	var before: int = int(row.get("before", 0))
+	var before: int = int(roundf(float(row.get("before", 0)) - float(row.get("unseen", 0))))
 	var after: int = int(roundf(float(before) - float(row.get("lost", 0)) * _band_progress))
 	return "%s → %s%s" % [Utils.format_number(before), Utils.format_number(after),
 		str(row.get("unit", ""))]
+
+
+func set_band_unseen(i: int, men: float) -> void:
+	"""BA5-X15: the men of a side's corps still unseen on the table; the band
+	counts only the corps made out (the acts set it, and tween it back to 0)."""
+	if i < 0 or i >= _band_rows.size():
+		return
+	(_band_rows[i] as Dictionary)["unseen"] = men
+	if _band != null and _band_rows.size() >= 2:
+		_band_figs[i].text = _band_fig_text(i)
+		_band_bars[i].queue_redraw()
 
 
 func _set_band_progress(p: float) -> void:
@@ -503,7 +572,7 @@ func _populate_band(left: Dictionary, right: Dictionary, final_frame: bool) -> v
 		var lost := clampi(int(side.get("casualties_total", 0)), 0, maxi(before, 0))
 		var tone: Color = Utils.NATION_COLORS.get(str(side.get("nation", "")),
 				Utils.UI_NEUTRAL_FIGURE)
-		_band_rows.append({"before": before, "lost": lost, "tone": tone, "unit": unit})
+		_band_rows.append({"before": before, "lost": lost, "tone": tone, "unit": unit, "unseen": 0})
 		peak = maxi(peak, before)
 	for row in _band_rows:
 		row["peak"] = peak
@@ -645,7 +714,7 @@ func _build_buttons() -> void:
 	# UXR3-F2 (S12 part 2): the buttons stood clear of the corner filigree
 	# (TRAY_W - 38 .. TRAY_W - 8); Session UI-2 retired it for the gilt frame,
 	# whose cut corner lies inside its band. Close's right edge is TRAY_W - 44.
-	_btn_close.position = Vector2(TRAY_W - 154.0, TRAY_H - 46.0)
+	_btn_close.position = Vector2(TRAY_W - 154.0, tray_h() - 46.0)
 
 	_btn_replay = Button.new()
 	_btn_replay.text = "Replay"
@@ -656,11 +725,12 @@ func _build_buttons() -> void:
 	_btn_replay.custom_minimum_size = Vector2(110, 34)
 	_btn_replay.pressed.connect(_on_replay_pressed)
 	_tray_inner.add_child(_btn_replay)
-	_btn_replay.position = Vector2(TRAY_W - 274.0, TRAY_H - 46.0)
+	_btn_replay.position = Vector2(TRAY_W - 274.0, tray_h() - 46.0)
 
 	_skip_hint = _mk_label(_tray_inner, "click anywhere to skip ▸", &"Caption",
 			Color(Utils.COLOR_DIMMED))
-	_skip_hint.position = Vector2(22.0, TRAY_H - 40.0)
+	_skip_hint.theme = null      # C3: stands beside Close and Replay, which render at the full size
+	_skip_hint.position = Vector2(22.0, tray_h() - 40.0)
 
 
 func _replay_face(hover: bool) -> StyleBox:
@@ -678,6 +748,79 @@ func _replay_face(hover: bool) -> StyleBox:
 	return st
 
 
+func _line_extra() -> float:
+	"""BA1-X4: how much taller a Caption line is than the shipped 115 % line (0 at 100 % and
+	115 %, so those stay pixel for pixel what they were): what every fixed pitch of
+	the tableau's stacked lines is lengthened by at Text size 130 % and up."""
+	_fit_tableau_type()
+	var probe := Label.new()
+	probe.theme_type_variation = &"Caption"
+	probe.text = "Mg"
+	probe.theme = _tableau_theme        # the type the baize's own lines are read in
+	add_child(probe)
+	var h: float = probe.get_minimum_size().y
+	probe.queue_free()
+	return maxf(h - LINE_H_SHIPPED, 0.0)
+
+
+# BA1-X4: the baize is a fixed 948 x 440 surface and its small type is a fixed step
+# beyond TABLEAU_TEXT_CAP (as its display type is at every size): Text size scales the
+# tableau's lines up to a 130 % step, where the walk holds every claim, and the
+# stage keeps that step above it - the plate's verdict, the day's panel, the band
+# and the buttons below the baize keep the player's whole size.
+const TABLEAU_TEXT_CAP := 1.3
+const TABLEAU_TEXT_STEPS := {"Caption": 14, "Label": 16, "Lead": 18, "BodyLarge": 17}
+
+
+var _tableau_theme: Theme = null
+var _chrome_labels: Array = []      # C2: the persistent chrome labels _mk_label built once
+
+
+func _refit_chrome_type() -> void:
+	"""C2: a Text size change in Settings between two showings re-holds (or releases)
+	the persistent chrome labels' type; a fixed display variation never carries it."""
+	for l in _chrome_labels:
+		if l != null and is_instance_valid(l):
+			var fixed := String((l as Label).theme_type_variation) in Utils.TEXT_SIZE_FIXED_STEPS
+			(l as Label).theme = null if fixed else _tableau_theme
+var _tableau_theme_for := -1.0
+
+
+func _fit_tableau_type() -> void:
+	"""BA1-X4: the ladder's steps the baize's lines read in, held at the cap (a Theme the
+	tableau's own labels carry: they stand under Node2D blocks, which pass no theme down).
+	Nothing is held at or under the cap: 100 % and 115 % are the project theme."""
+	var factor: float = Utils.text_size_factor()
+	if is_equal_approx(factor, _tableau_theme_for):
+		return
+	_tableau_theme_for = factor
+	_tableau_theme = null
+	if factor <= TABLEAU_TEXT_CAP + 0.001:
+		return
+	var held := Theme.new()
+	for step in TABLEAU_TEXT_STEPS:
+		held.set_font_size(&"font_size", StringName(step),
+				Utils.text_px(int(TABLEAU_TEXT_STEPS[step]), TABLEAU_TEXT_CAP))
+	_tableau_theme = held
+
+
+func dice_room_h() -> float:
+	"""BA1-X4: the room the dice tray's die and three lines need: the shipped 106 at the sizes
+	it has always served (100 %, 115 %), and above that the die, the three Caption lines
+	and their gaps - so the luck line is not the one left off. The crossed swords stand
+	below it (`_populate`)."""
+	var extra := _line_extra()
+	if extra <= 0.0:
+		return 106.0
+	# the swords may be pushed down only so far: at Text size 175 % the lead's name
+	# (taller too) stands at their foot, so that size keeps the first two lines
+	# (guard for a future cap above 1.3: the type is held at 130 %, so this branch is not
+	# reached today - kept so a higher TABLEAU_TEXT_CAP cannot push the swords into the lead's name)
+	if extra > CLASH_PUSH_MAX_EXTRA:
+		return 106.0
+	return maxf(106.0, 30.0 + 5.0 + 3.0 * (LINE_H_SHIPPED + extra + 1.0))
+
+
 func _mk_label(parent: Node, text: String, variation: StringName, color: Color,
 		font: Font = null) -> Label:
 	"""UXR-X5 (UXR-2, October 12, 2026): a tableau label takes a THEME size —
@@ -686,7 +829,11 @@ func _mk_label(parent: Node, text: String, variation: StringName, color: Color,
 	number passed here was how the 10/11/12-px lines escaped the floor's
 	census (it read only literal overrides). The four engraved display
 	sizes (odometer 24, banner 30) are set by their callers."""
+	_fit_tableau_type()
 	var l := Label.new()
+	# C1: the held theme sets a font_size for base type Label, which would override a fixed
+	# display variation (banner 30, odometer 24 ...): those labels carry no held theme.
+	l.theme = null if String(variation) in Utils.TEXT_SIZE_FIXED_STEPS else _tableau_theme
 	l.text = text
 	if variation != &"":
 		l.theme_type_variation = variation
@@ -718,6 +865,11 @@ func _draw_stage() -> void:
 	var naval := _is_naval()
 	_stage_canvas.draw_rect(r, CHART_SEA_EDGE if naval else BAIZE_EDGE)
 	_stage_canvas.draw_rect(r.grow(-5.0), CHART_SEA if naval else BAIZE)
+	if _felt_tex == null and ResourceLoader.exists(FELT_TILE):
+		_felt_tex = load(FELT_TILE)
+	if _felt_tex != null and not naval:
+		# BA-6: the felt's own nap, tiled (the table's green, a photograph's grain)
+		_stage_canvas.draw_texture_rect(_felt_tex, r.grow(-5.0), true)
 	if naval:
 		# A few ruled swell lines: an admiralty chart, not an ocean.
 		var rows := int(_stage_canvas.size.y / 34.0)
@@ -784,6 +936,8 @@ func _populate(final_frame: bool) -> void:
 	var sw := _stage.size.x
 	var sh := _stage.size.y
 	_clash_label.position = Vector2(sw / 2.0 - 14.0, sh * 0.42)
+	if _line_extra() > 0.0:                # BA1-X4: the swords stand below the dice tray's room
+		_clash_label.position.y = maxf(_clash_label.position.y, 74.0 + dice_room_h() + 4.0)
 	_vignette.modulate = Color(1, 1, 1, 1) if register != "defeat" \
 		else Color(1.25, 0.82, 0.82, 1.0)
 
@@ -795,11 +949,12 @@ func _populate(final_frame: bool) -> void:
 	_odo_left_cap.text = left_name.to_upper() + loss_word
 	_odo_right_cap.text = right_name.to_upper() + loss_word
 	_odo_left_cap.position = Vector2(14.0, 8.0)
-	_odo_left.position = Vector2(14.0, 22.0)
+	var cap_extra := _line_extra()          # BA1-X4: the count stands under its caption's own height
+	_odo_left.position = Vector2(14.0, 22.0 + cap_extra)
 	_odo_right_cap.size = Vector2(220.0, 16.0)
 	_odo_right_cap.position = Vector2(sw - 234.0, 8.0)
 	_odo_right.size = Vector2(220.0, 30.0)
-	_odo_right.position = Vector2(sw - 234.0, 22.0)
+	_odo_right.position = Vector2(sw - 234.0, 22.0 + cap_extra)
 	_odo_left.text = "0"
 	_odo_right.text = "0"
 
@@ -892,7 +1047,7 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 		var pole := STANDARD_POLE
 		if n >= 2 and i > 0:
 			var fwd_scale := 1.0 - 0.12 * (i - 1)
-			var clear_top := 156.0 * fwd_scale - (TEXT_PITCH + 19.0) - 4.0 - step_y
+			var clear_top := 156.0 * fwd_scale - (TEXT_PITCH + 19.0) - 4.0 - step_y - _line_extra()
 			# the art is scaled by block_scale; the pole is drawn in art units
 			pole = clampf(clear_top / maxf(block_scale, 0.01), STANDARD_POLE_MIN, STANDARD_POLE)
 		blocks.append(_make_block(holder, c, pos, block_scale, is_left, i, pole))
@@ -1053,8 +1208,9 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	var strength_l := _mk_label(
 		block, "%s → %s%s%s" % [Utils.format_number(committed),
 		Utils.format_number(remaining), unit, after_advance], &"Caption", Color(BONE_HEX))
-	strength_l.position = Vector2(text_x, text_y + TEXT_PITCH)
-	strength_l.size = Vector2(text_w, 19.0)
+	var line_extra := _line_extra()         # BA1-X4
+	strength_l.position = Vector2(text_x, text_y + TEXT_PITCH + line_extra)
+	strength_l.size = Vector2(text_w, 19.0 + line_extra)
 	strength_l.horizontal_alignment = text_align
 	strength_l.z_index = TEXT_Z
 	_outline_over_colours(strength_l)
@@ -1086,7 +1242,7 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 			status_l.position = Vector2(-FAITH_CAPTION_INBOARD * block_scale, fate_y)
 		_keep_fate_on_baize(status_l, pos, is_left)
 		status_l.z_index = TEXT_Z
-		fate_y += FATE_PITCH
+		fate_y += FATE_PITCH + line_extra
 
 	# IQ-5 / PR-X3 (R11): a man whose faith in you is spent brought less
 	# than his whole weight to this field. The optional `faith` caption says
@@ -1277,7 +1433,7 @@ func _nameplate_layout() -> void:
 	await get_tree().process_frame
 	var plate_size := _nameplate.size
 	_nameplate.position = Vector2(
-		(TRAY_W - plate_size.x) / 2.0, TRAY_H - plate_size.y - 12.0)
+		(TRAY_W - plate_size.x) / 2.0, tray_h() - plate_size.y - 12.0)
 	_fit_verdict_room()
 	if _seal != null:
 		# Session UI-2: the seal stands LEFT of the plate, clear of Replay / Close
@@ -1798,7 +1954,14 @@ func _on_replay_pressed() -> void:
 	_play_cinematic()
 
 
+func _exit_tree() -> void:
+	# BA6-X3: a table that leaves the tree without its Close (freed by its owner, the
+	# walk's teardown) must not leave the verdict's quill scratching over the next table
+	AudioManager.stop_loop("scribble_verdict")
+
+
 func _on_close_pressed() -> void:
+	set_day_room(0.0)
 	_kill_sequence()
 	AudioManager.stop_loop("battle_bed")
 	AudioManager.stop_loop("sea")

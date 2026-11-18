@@ -535,16 +535,16 @@ class TestALiveWalkThatFailsKeepsTheRecord:
         assert verdict < guard < wipe
         assert "return 0 if passed else 1" in runner
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X16 OPEN — owner Session H (S15, the deploy)")
     def test_the_four_older_walks_judge_first_too(self):
+        """BA2-X16 — FIXED November 17, 2026 (row BA, session BA-6)."""
         for name in ("au3a", "re5", "ui5", "ui6"):
             runner = (REPO / "tools" / f"{name}_mode_c_walk.py").read_text(encoding="utf-8")
             assert "if args.export and not passed:" in runner, name
 
-    @pytest.mark.xfail(strict=True, reason="BA2-X16 OPEN — owner Session H (S15, the deploy)")
     def test_the_mutation_sweep_refuses_a_second_copy(self):
         """BA2-X15's sibling: the other tool that mutates a source in place
-        restores it byte for byte and takes no lock against a second copy."""
+        restored it byte for byte and took no lock against a second copy —
+        BA2-X16, FIXED November 17, 2026 (row BA, session BA-6)."""
         sweep = (REPO / "tools" / "mutation_sweep.py").read_text(encoding="utf-8")
         assert re.search(r"""open\([^)]*["']x["']""", sweep), "an exclusive lock file"
 

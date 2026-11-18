@@ -1145,6 +1145,8 @@ frames' marks are not comparable to UI-3's, so they are reported apart.
 
 ## 13. Session UI-5 — The Full Measure: sound, pictures, Help & Keys, saves ✅ LANDED November 13, 2026
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** UI-5's eighteen decisions — KEEP, each a Settings switch; the levers past 7 — CLOSED (three passes held 7 / 7 / 7 after their levers; several mean cutting copy, which is the user's word to give); UI-5's look and listen is not a call — the user's own experience of the client, nothing waits on it — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 **The ask.** The user: "do full upgrade of sounds, ux and ui leave nothing unturned look online if needed, be throrough
 and dont leave anything open". Plan Mode drafted it with eighteen decisions taken under the delegation, each one switch
 or one line to reverse; the user approved the plan. The sound half's landing record is `MUSIC_SOUND_SPEC.md` §6; the
@@ -1278,6 +1280,8 @@ anachronism for the Empire, on the record; the compact view keeps the chest and 
 command window is folded.
 
 ## 14. Session UI-6 — The Last Reading: every decision ruled, the Generals and the command line rebuilt for play ✅ LANDED November 13, 2026
+
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** UI-6's decisions — KEEP, each ruled where its record says; the levers past 7 — CLOSED, as at §13; UI-6's look is not a call — the user's own experience of the client, nothing waits on it — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
 
 **The ask.** The user, after UI-5's reading (7 / 7 / 7, mean 7.07): "this is last scoring make all deicisons and fix
 this, while at it please analyze if there are better ways to interact with gernals as well and to make typing clicking

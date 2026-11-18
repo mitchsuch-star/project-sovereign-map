@@ -1,0 +1,4026 @@
+{
+ "_note": "T3-5 chain D \u2014 the AI-France sweep, Tier 3's second gate surface (AI_INTENT_SPEC.md \u00a713.2 R6): ten SWEEP_SEEDS x 40 turns at K=10000, arm D0 the conduct rule's player exemption held (T3-3's reading), arm D the AI-run France bound; written by tools/_t3_5_chain_d.py (a chain run ALONE); pinned by tests/test_t3_5_the_tier_closes.py. The deploy gate's 0 is the gate's to measure.",
+ "arm_seams": {
+  "0": "backend.game_logic.battle_report:a_dear_defeat_is_not_a_narrow_one=False;backend.commands.order_quotes:a_cards_men_are_men_in_reach=False;backend.game_logic.battle_day:a_ruin_is_kept_as_drawn=False;backend.game_logic.battle_telling:a_word_says_what_it_risks=False;backend.commands.strategic_executor:each_aggressive_man_objects_in_his_own_voice=False;backend.game_logic.diplomacy:a_declaration_of_war_is_public=False;backend.game_logic.ai_diplomacy:an_envoy_names_his_letter=False;backend.game_logic.reforms:a_law_says_where_it_is_void=False;backend.commands.strategic_executor:a_defiance_names_the_order_in_words=False;backend.campaign_log:a_bond_is_told_only_of_our_court=False;backend.models.marshal:the_bond_writes_the_stored_view=False;backend.game_logic.precedence:the_book_keeps_its_incidents=False;backend.game_logic.precedence:a_marshal_banks_his_renown=False;backend.game_logic.precedence:the_order_of_precedence_stands=False;backend.game_logic.precedence:an_audience_names_its_cause=False;backend.game_logic.precedence:the_card_names_the_court=False;backend.game_logic.precedence:the_seeds_read_as_of_1805=False;backend.game_logic.precedence:brothers_in_arms=False;backend.game_logic.precedence:a_shared_defeat_sours=False;backend.game_logic.precedence:a_rescue_mends=False;backend.game_logic.precedence:a_silence_is_remembered=False;backend.game_logic.precedence:old_quarrels_cool=False;backend.game_logic.precedence:serving_under_a_junior_rankles=False;backend.commands.defiance:a_cautious_man_defies_a_pursuit_by_fortifying=False;backend.commands.combat_executor:outnumbered_is_read_on_the_field=False;backend.commands.combat_executor:a_refused_attack_spends_nothing=False;backend.game_logic.precedence:titles_of_victory=False;backend.game_logic.precedence:ai_courts_confer_titles=False;backend.game_logic.precedence:a_marshal_claims_his_due=False;backend.game_logic.precedence:an_account_follows_a_joint_defeat=False;backend.game_logic.game_end:a_peace_evacuates_a_third_courts_ground=False;backend.game_logic.precedence:a_silence_is_remembered_when_pressed=False"
+ },
+ "arms": {
+  "0": {
+   "austerlitz": {
+    "alarm_guarantees": [
+     [
+      4,
+      "Prussia",
+      "Bavaria",
+      "Austria"
+     ]
+    ],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      29,
+      "Russia"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      39,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 15,
+    "captures_outside_aim_by_court": {
+     "Austria": 3,
+     "Bavaria": 3,
+     "Britain": 1,
+     "France": 17,
+     "Hanover": 4,
+     "Naples": 2,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      9,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      7,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      8,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      14,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      16,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      16,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      18,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      19,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      39,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      41,
+      "Champagne",
+      "Hanover"
+     ]
+    ],
+    "france_outside_aim": 17,
+    "france_provinces_final": 41,
+    "grounds_lapses": [],
+    "guarantees_honoured": [
+     [
+      22,
+      "Prussia",
+      "Bavaria",
+      "Switzerland"
+     ]
+    ],
+    "last_refuges": [
+     [
+      36,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      29,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 1536,
+     "Britain": 70405,
+     "Denmark": 20087,
+     "France": 59578,
+     "Holland": 902,
+     "Russia": 605,
+     "Spain": 3628,
+     "Sweden": 18447
+    }
+   },
+   "eylau": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      30,
+      "Austria"
+     ]
+    ],
+    "captures_outside_aim": 16,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 5,
+     "Britain": 1,
+     "France": 15,
+     "Hanover": 1,
+     "Holland": 1,
+     "Naples": 2,
+     "Prussia": 3,
+     "Russia": 1
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      12,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [
+     "Holland"
+    ],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      7,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      9,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      12,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      16,
+      "Moravia",
+      "Russia"
+     ],
+     [
+      26,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      28,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      28,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      29,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      30,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      31,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      32,
+      "Samogitia",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 15,
+    "france_provinces_final": 41,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      11,
+      "Austria",
+      "Bavaria",
+      "Austria signs at the last \u2014 Bavaria evacuates Vienna. Her other wars go on."
+     ],
+     [
+      37,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      22,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 1158,
+     "Britain": 46486,
+     "France": 58791,
+     "Holland": 68,
+     "Russia": 4169,
+     "Sweden": 15859
+    }
+   },
+   "friedland": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Croatia",
+      "Hungary",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      30,
+      "Austria"
+     ]
+    ],
+    "captures_outside_aim": 19,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 1,
+     "Britain": 1,
+     "France": 21,
+     "Hanover": 3,
+     "Holland": 5,
+     "Prussia": 6,
+     "Russia": 1
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      12,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [
+     "Holland"
+    ],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      7,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      9,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      12,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      16,
+      "Moravia",
+      "Russia"
+     ],
+     [
+      31,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      33,
+      "Posen",
+      "Prussia"
+     ],
+     [
+      34,
+      "Bohemia",
+      "Prussia"
+     ],
+     [
+      34,
+      "Carniola",
+      "Prussia"
+     ],
+     [
+      36,
+      "Rhineland",
+      "Hanover"
+     ],
+     [
+      36,
+      "Brandenburg",
+      "Prussia"
+     ],
+     [
+      38,
+      "Lorraine",
+      "Hanover"
+     ],
+     [
+      39,
+      "Orleanais",
+      "Hanover"
+     ],
+     [
+      39,
+      "Osnabruck",
+      "Hanover"
+     ],
+     [
+      40,
+      "Flanders",
+      "Holland"
+     ],
+     [
+      41,
+      "Picardy",
+      "Holland"
+     ],
+     [
+      41,
+      "Ile-de-France",
+      "Holland"
+     ]
+    ],
+    "france_outside_aim": 21,
+    "france_provinces_final": 34,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      11,
+      "Austria",
+      "Bavaria",
+      "Austria signs at the last \u2014 Bavaria evacuates Vienna. Her other wars go on."
+     ]
+    ],
+    "levee_events": [],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 690,
+     "Britain": 42823,
+     "France": 53002,
+     "KingdomOfItaly": 1059,
+     "Prussia": 2759,
+     "Russia": 4143,
+     "Spain": 683,
+     "Sweden": 14802
+    }
+   },
+   "historical": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      28,
+      "Russia"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      38,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 8,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 3,
+     "France": 14,
+     "Holland": 1,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      10,
+      "Austria"
+     ],
+     [
+      34,
+      "Switzerland"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      14,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      15,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      15,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      16,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      17,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      18,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      34,
+      "Bern",
+      "Switzerland"
+     ]
+    ],
+    "france_outside_aim": 14,
+    "france_provinces_final": 43,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      32,
+      "Switzerland",
+      "Bavaria",
+      "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on."
+     ],
+     [
+      33,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      28,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      16,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 3690,
+     "France": 73641,
+     "Prussia": 1874,
+     "Spain": 2979,
+     "Sweden": 27580
+    }
+   },
+   "jena": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 2,
+    "annexations_outside_aim_by_court": {
+     "Britain": [
+      "Carniola"
+     ],
+     "France": [
+      "Bohemia",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ],
+     "Sweden": [
+      "Pomerania"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      19,
+      "Austria"
+     ],
+     [
+      29,
+      "Austria"
+     ],
+     [
+      32,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 21,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 1,
+     "Britain": 1,
+     "France": 22,
+     "Hanover": 6,
+     "Holland": 2,
+     "Prussia": 3,
+     "Spain": 3,
+     "Sweden": 1,
+     "Switzerland": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      14,
+      "Austria"
+     ],
+     [
+      19,
+      "PapalStates"
+     ]
+    ],
+    "ending": null,
+    "formations": [
+     "Holland"
+    ],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      7,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      7,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      7,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      14,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      17,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      18,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      19,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      19,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      21,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      22,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      22,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      29,
+      "Brandenburg",
+      "Prussia"
+     ],
+     [
+      34,
+      "Orleanais",
+      "Hanover"
+     ],
+     [
+      35,
+      "Picardy",
+      "Hanover"
+     ],
+     [
+      35,
+      "Berlin",
+      "Prussia"
+     ],
+     [
+      36,
+      "Artois",
+      "Hanover"
+     ],
+     [
+      37,
+      "Flanders",
+      "Holland"
+     ],
+     [
+      38,
+      "Savoy",
+      "Switzerland"
+     ],
+     [
+      38,
+      "Limousin",
+      "Switzerland"
+     ],
+     [
+      39,
+      "Osnabruck",
+      "Hanover"
+     ],
+     [
+      39,
+      "Amsterdam",
+      "Holland"
+     ],
+     [
+      41,
+      "Brandenburg",
+      "Prussia"
+     ]
+    ],
+    "france_outside_aim": 22,
+    "france_provinces_final": 42,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      17,
+      "Sardinia",
+      "Naples",
+      "Sardinia signs at the last \u2014 Naples evacuates Cagliari."
+     ]
+    ],
+    "levee_events": [
+     [
+      32,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      16,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 2093,
+     "Bavaria": 1632,
+     "Britain": 28854,
+     "France": 27101,
+     "Holland": 898,
+     "Prussia": 2736,
+     "Russia": 1307,
+     "Spain": 2087,
+     "Sweden": 18541
+    }
+   },
+   "lodi": {
+    "alarm_guarantees": [
+     [
+      4,
+      "Prussia",
+      "Bavaria",
+      "Austria"
+     ]
+    ],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      29,
+      "Russia"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      39,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 17,
+    "captures_outside_aim_by_court": {
+     "Austria": 3,
+     "Bavaria": 1,
+     "Britain": 1,
+     "France": 17,
+     "Hanover": 6,
+     "Holland": 3,
+     "Naples": 1,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      9,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      7,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      8,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      14,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      16,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      18,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      19,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      21,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      39,
+      "New Russia",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 17,
+    "france_provinces_final": 35,
+    "grounds_lapses": [],
+    "guarantees_honoured": [
+     [
+      22,
+      "Prussia",
+      "Bavaria",
+      "Switzerland"
+     ]
+    ],
+    "last_refuges": [
+     [
+      36,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ],
+     [
+      40,
+      "KingdomOfItaly",
+      "Naples",
+      "Kingdom Of Italy signs at the last \u2014 Naples evacuates Milan and Piedmont. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      29,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 781,
+     "Britain": 46667,
+     "Denmark": 13200,
+     "France": 63637,
+     "Naples": 41,
+     "Russia": 620,
+     "Spain": 945,
+     "Sweden": 16992
+    }
+   },
+   "marengo": {
+    "alarm_guarantees": [
+     [
+      4,
+      "Prussia",
+      "Bavaria",
+      "Austria"
+     ]
+    ],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      21,
+      "Austria"
+     ],
+     [
+      31,
+      "Austria"
+     ],
+     [
+      31,
+      "Russia"
+     ],
+     [
+      34,
+      "Hanover"
+     ],
+     [
+      41,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 15,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Britain": 1,
+     "France": 21,
+     "Hesse": 2,
+     "Naples": 1,
+     "Prussia": 6,
+     "Spain": 3
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      11,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      6,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      11,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      11,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      14,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      15,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      16,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      19,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      20,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      24,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      24,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      26,
+      "Brabant",
+      "Holland"
+     ],
+     [
+      28,
+      "Gelderland",
+      "Holland"
+     ],
+     [
+      33,
+      "Osnabruck",
+      "Hanover"
+     ],
+     [
+      34,
+      "New Russia",
+      "Russia"
+     ],
+     [
+      34,
+      "Oldenburg",
+      "Hanover"
+     ],
+     [
+      41,
+      "Vilna",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 21,
+    "france_provinces_final": 47,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      26,
+      "Switzerland",
+      "Bavaria",
+      "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on."
+     ],
+     [
+      27,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ],
+     [
+      29,
+      "Hanover",
+      "Prussia",
+      "Hanover signs at the last \u2014 Prussia keeps Hanover by treaty; Prussia evacuates Brunswick, East Frisia, Oldenburg, Osnabruck and Westphalia. Her other wars go on."
+     ],
+     [
+      38,
+      "KingdomOfItaly",
+      "Naples",
+      "Kingdom Of Italy signs at the last \u2014 Naples evacuates Milan and Piedmont. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      31,
+      "Russia",
+      "raised"
+     ],
+     [
+      34,
+      "Hanover",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      15,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 240,
+     "Britain": 47909,
+     "France": 47733,
+     "Hesse": 402,
+     "Naples": 890,
+     "Prussia": 5030,
+     "Russia": 255,
+     "Spain": 546,
+     "Sweden": 16563
+    }
+   },
+   "rivoli": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bern",
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      25,
+      "Russia"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      35,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 11,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Britain": 2,
+     "France": 17,
+     "Hanover": 2,
+     "Holland": 3,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      11,
+      "Austria"
+     ],
+     [
+      30,
+      "Switzerland"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      7,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      9,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      10,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      10,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      11,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      11,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      11,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      13,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      14,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      15,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      21,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      30,
+      "Bern",
+      "Switzerland"
+     ],
+     [
+      39,
+      "Orleanais",
+      "Holland"
+     ],
+     [
+      41,
+      "Lorraine",
+      "Holland"
+     ]
+    ],
+    "france_outside_aim": 17,
+    "france_provinces_final": 39,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      11,
+      "Austria",
+      "Bavaria",
+      "Austria signs at the last \u2014 Bavaria evacuates Vienna. Her other wars go on."
+     ],
+     [
+      28,
+      "Switzerland",
+      "Bavaria",
+      "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      25,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      19,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 1615,
+     "Britain": 49050,
+     "France": 69860,
+     "Spain": 730,
+     "Sweden": 27951
+    }
+   },
+   "ulm": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      28,
+      "Russia"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      38,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 10,
+    "captures_outside_aim_by_court": {
+     "Austria": 3,
+     "Britain": 1,
+     "France": 18,
+     "Naples": 1,
+     "Prussia": 2,
+     "Spain": 3
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      11,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      7,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      11,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      14,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      16,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      17,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      17,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      17,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      23,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      25,
+      "New Russia",
+      "Russia"
+     ],
+     [
+      35,
+      "Estonia",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 18,
+    "france_provinces_final": 43,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      31,
+      "Holland",
+      "Spain",
+      "Holland signs at the last \u2014 Spain evacuates Amsterdam, Brabant, Friesland and Gelderland. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      28,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      18,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 733,
+     "Britain": 31505,
+     "France": 58147,
+     "Spain": 36,
+     "Sweden": 17842
+    }
+   },
+   "wagram": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bern",
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      28,
+      "Russia"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      38,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 4,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "France": 14,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      10,
+      "Austria"
+     ],
+     [
+      17,
+      "PapalStates"
+     ],
+     [
+      26,
+      "Switzerland"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      14,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      15,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      15,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      16,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      17,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      18,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      26,
+      "Bern",
+      "Switzerland"
+     ]
+    ],
+    "france_outside_aim": 14,
+    "france_provinces_final": 43,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      15,
+      "Sardinia",
+      "Naples",
+      "Sardinia signs at the last \u2014 Naples evacuates Cagliari."
+     ]
+    ],
+    "levee_events": [
+     [
+      28,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 709,
+     "Britain": 2345,
+     "France": 80634,
+     "Holland": 570,
+     "Sweden": 29755
+    }
+   }
+  },
+  "ALL": {
+   "austerlitz": {
+    "alarm_guarantees": [
+     [
+      4,
+      "Prussia",
+      "Bavaria",
+      "Austria"
+     ]
+    ],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Moravia",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      22,
+      "Austria"
+     ],
+     [
+      32,
+      "Austria"
+     ],
+     [
+      40,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 24,
+    "captures_outside_aim_by_court": {
+     "Austria": 3,
+     "Bavaria": 4,
+     "Britain": 5,
+     "France": 20,
+     "Hanover": 2,
+     "Naples": 2,
+     "Prussia": 2,
+     "Spain": 6
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      17,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      6,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      6,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      9,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      17,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      25,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      26,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      27,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      28,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      28,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      29,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      34,
+      "Carniola",
+      "Britain"
+     ],
+     [
+      34,
+      "Hungary",
+      "Britain"
+     ],
+     [
+      34,
+      "Croatia",
+      "Britain"
+     ],
+     [
+      39,
+      "Brabant",
+      "Holland"
+     ],
+     [
+      40,
+      "Gelderland",
+      "Holland"
+     ]
+    ],
+    "france_outside_aim": 20,
+    "france_provinces_final": 41,
+    "grounds_lapses": [],
+    "guarantees_honoured": [
+     [
+      25,
+      "Prussia",
+      "Bavaria",
+      "Switzerland"
+     ]
+    ],
+    "last_refuges": [
+     [
+      39,
+      "Holland",
+      "Bavaria",
+      "Holland signs at the last \u2014 Bavaria evacuates Amsterdam and Gelderland; Spain evacuates Friesland. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      40,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 733,
+     "Britain": 37109,
+     "Denmark": 20087,
+     "France": 40961,
+     "Russia": 1793,
+     "Spain": 677,
+     "Sweden": 22050
+    }
+   },
+   "eylau": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bern",
+      "Bohemia",
+      "Croatia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      21,
+      "Austria"
+     ],
+     [
+      30,
+      "Russia"
+     ],
+     [
+      31,
+      "Austria"
+     ],
+     [
+      40,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 12,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 1,
+     "Britain": 5,
+     "France": 17,
+     "Naples": 1,
+     "Prussia": 3
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      12,
+      "Austria"
+     ],
+     [
+      26,
+      "Switzerland"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      10,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      10,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      11,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      12,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      12,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      15,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      15,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      15,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      18,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      19,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      20,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      23,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      26,
+      "Bern",
+      "Switzerland"
+     ],
+     [
+      40,
+      "Carniola",
+      "Britain"
+     ],
+     [
+      40,
+      "Moravia",
+      "Britain"
+     ]
+    ],
+    "france_outside_aim": 17,
+    "france_provinces_final": 40,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      12,
+      "Austria",
+      "Bavaria",
+      "Austria signs at the last \u2014 Bavaria evacuates Vienna. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      30,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      22,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1488,
+     "Bavaria": 971,
+     "Britain": 28267,
+     "France": 62597,
+     "Naples": 39,
+     "Sweden": 27599
+    }
+   },
+   "friedland": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {},
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      25,
+      "Austria"
+     ],
+     [
+      33,
+      "Russia"
+     ],
+     [
+      37,
+      "Austria"
+     ]
+    ],
+    "captures_outside_aim": 6,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Britain": 2,
+     "France": 16,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      31,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      7,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      8,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      9,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      16,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      17,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      19,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      20,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      21,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      25,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      30,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      31,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      31,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      31,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      38,
+      "Ukraine",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 16,
+    "france_provinces_final": 42,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      32,
+      "Switzerland",
+      "Bavaria",
+      "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on."
+     ],
+     [
+      33,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      25,
+      "Austria",
+      "raised"
+     ],
+     [
+      31,
+      "Austria",
+      "stood_down"
+     ],
+     [
+      33,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1489,
+     "Bavaria": 2631,
+     "Britain": 16766,
+     "France": 52322,
+     "Spain": 3642,
+     "Sweden": 30298
+    }
+   },
+   "historical": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bern"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      36,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 14,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 5,
+     "France": 15,
+     "Hanover": 3,
+     "Holland": 2,
+     "Prussia": 2
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      27,
+      "Switzerland"
+     ],
+     [
+      33,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      14,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      15,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      19,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      21,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      22,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      23,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      27,
+      "Bern",
+      "Switzerland"
+     ],
+     [
+      33,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      41,
+      "Lorraine",
+      "Hanover"
+     ]
+    ],
+    "france_outside_aim": 15,
+    "france_provinces_final": 41,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      26,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ],
+     [
+      26,
+      "Switzerland",
+      "Bavaria",
+      "Switzerland signs at the last \u2014 Bavaria evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      20,
+      "Austria",
+      "raised"
+     ],
+     [
+      33,
+      "Austria",
+      "stood_down"
+     ],
+     [
+      36,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      16,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 2066,
+     "Britain": 56704,
+     "France": 52832,
+     "Prussia": 1874,
+     "Spain": 5647,
+     "Sweden": 26125
+    }
+   },
+   "jena": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      19,
+      "Austria"
+     ],
+     [
+      25,
+      "Russia"
+     ],
+     [
+      29,
+      "Austria"
+     ],
+     [
+      35,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 14,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 1,
+     "Britain": 1,
+     "France": 16,
+     "Holland": 4,
+     "Prussia": 2,
+     "Spain": 4
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      9,
+      "Austria"
+     ],
+     [
+      19,
+      "PapalStates"
+     ]
+    ],
+    "ending": null,
+    "formations": [
+     "Holland"
+    ],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      5,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      7,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      7,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      10,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      11,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      13,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      14,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      15,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      15,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      39,
+      "Brabant",
+      "Holland"
+     ],
+     [
+      40,
+      "Flanders",
+      "Holland"
+     ]
+    ],
+    "france_outside_aim": 16,
+    "france_provinces_final": 42,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      17,
+      "Sardinia",
+      "Naples",
+      "Sardinia signs at the last \u2014 Naples evacuates Cagliari."
+     ]
+    ],
+    "levee_events": [
+     [
+      25,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      14,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1784,
+     "Bavaria": 368,
+     "Britain": 49622,
+     "France": 55071,
+     "KingdomOfItaly": 200,
+     "Russia": 711,
+     "Spain": 1276,
+     "Sweden": 16710
+    }
+   },
+   "lodi": {
+    "alarm_guarantees": [
+     [
+      4,
+      "Prussia",
+      "Bavaria",
+      "Austria"
+     ]
+    ],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      24,
+      "Austria"
+     ],
+     [
+      34,
+      "Austria"
+     ],
+     [
+      35,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 10,
+    "captures_outside_aim_by_court": {
+     "Austria": 3,
+     "Britain": 3,
+     "France": 23,
+     "Prussia": 2,
+     "Spain": 1,
+     "Switzerland": 1
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      22,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      6,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      6,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      9,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      13,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      15,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      16,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      16,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      17,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      17,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      20,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      20,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      21,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      22,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      25,
+      "Westphalia",
+      "Hanover"
+     ],
+     [
+      26,
+      "Posen",
+      "Prussia"
+     ],
+     [
+      27,
+      "East Prussia",
+      "Prussia"
+     ],
+     [
+      30,
+      "Brandenburg",
+      "Prussia"
+     ],
+     [
+      36,
+      "Nivernais",
+      "Switzerland"
+     ],
+     [
+      38,
+      "Pomerania",
+      "Prussia"
+     ]
+    ],
+    "france_outside_aim": 23,
+    "france_provinces_final": 44,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [],
+    "levee_events": [
+     [
+      35,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 1420,
+     "Britain": 53653,
+     "Denmark": 19979,
+     "France": 35716,
+     "Hanover": 130,
+     "Russia": 994,
+     "Spain": 1255,
+     "Sweden": 16959
+    }
+   },
+   "marengo": {
+    "alarm_guarantees": [
+     [
+      4,
+      "Prussia",
+      "Bavaria",
+      "Austria"
+     ]
+    ],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Piedmont",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      30,
+      "Austria"
+     ],
+     [
+      33,
+      "Russia"
+     ]
+    ],
+    "captures_outside_aim": 8,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Britain": 1,
+     "France": 18,
+     "Hanover": 1,
+     "KingdomOfItaly": 1,
+     "Prussia": 2,
+     "Spain": 1
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      13,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      6,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      7,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      7,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      11,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      11,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      11,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      13,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      17,
+      "Ukraine",
+      "Russia"
+     ],
+     [
+      19,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      19,
+      "New Russia",
+      "Russia"
+     ],
+     [
+      21,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      23,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      24,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      25,
+      "Vilna",
+      "Russia"
+     ],
+     [
+      25,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      32,
+      "Piedmont",
+      "KingdomOfItaly"
+     ]
+    ],
+    "france_outside_aim": 18,
+    "france_provinces_final": 43,
+    "grounds_lapses": [],
+    "guarantees_honoured": [
+     [
+      23,
+      "Prussia",
+      "Bavaria",
+      "Switzerland"
+     ]
+    ],
+    "last_refuges": [],
+    "levee_events": [
+     [
+      33,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      15,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 662,
+     "Britain": 2350,
+     "France": 44493,
+     "Holland": 127,
+     "Spain": 2667,
+     "Sweden": 28475
+    }
+   },
+   "rivoli": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bern",
+      "Carniola",
+      "Croatia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      30,
+      "Austria"
+     ]
+    ],
+    "captures_outside_aim": 8,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "France": 11,
+     "Prussia": 3,
+     "Russia": 3
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      19,
+      "Austria"
+     ],
+     [
+      27,
+      "Switzerland"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      16,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      16,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      19,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      27,
+      "Bern",
+      "Switzerland"
+     ],
+     [
+      27,
+      "Lithuania",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 11,
+    "france_provinces_final": 33,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      26,
+      "Switzerland",
+      "Spain",
+      "Switzerland signs at the last \u2014 Spain evacuates Bern. Her other wars go on."
+     ]
+    ],
+    "levee_events": [],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      22,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 2085,
+     "Britain": 120,
+     "France": 49382,
+     "Russia": 2913,
+     "Sweden": 25114
+    }
+   },
+   "ulm": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bern",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      23,
+      "Austria"
+     ],
+     [
+      32,
+      "Russia"
+     ],
+     [
+      33,
+      "Austria"
+     ]
+    ],
+    "captures_outside_aim": 18,
+    "captures_outside_aim_by_court": {
+     "Austria": 3,
+     "Britain": 5,
+     "France": 26,
+     "Naples": 1,
+     "Prussia": 9
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      18,
+      "Austria"
+     ],
+     [
+      25,
+      "Switzerland"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      5,
+      "Munich",
+      "Austria"
+     ],
+     [
+      6,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      6,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      9,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      12,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      13,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      14,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      15,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      15,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      16,
+      "Samogitia",
+      "Russia"
+     ],
+     [
+      17,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      17,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      18,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      18,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      25,
+      "Bern",
+      "Switzerland"
+     ],
+     [
+      31,
+      "Posen",
+      "Prussia"
+     ],
+     [
+      31,
+      "Franconia",
+      "Prussia"
+     ],
+     [
+      32,
+      "Brandenburg",
+      "Prussia"
+     ],
+     [
+      32,
+      "Swabia",
+      "Prussia"
+     ],
+     [
+      33,
+      "Rhineland",
+      "Prussia"
+     ],
+     [
+      34,
+      "Bohemia",
+      "Prussia"
+     ],
+     [
+      34,
+      "Lorraine",
+      "Prussia"
+     ],
+     [
+      35,
+      "Franche-Comte",
+      "Prussia"
+     ],
+     [
+      36,
+      "Franconia",
+      "Prussia"
+     ]
+    ],
+    "france_outside_aim": 26,
+    "france_provinces_final": 43,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [],
+    "levee_events": [
+     [
+      32,
+      "Russia",
+      "raised"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      18,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 2230,
+     "Britain": 43967,
+     "France": 23349,
+     "Naples": 49,
+     "Russia": 995,
+     "Spain": 909,
+     "Sweden": 14802
+    }
+   },
+   "wagram": {
+    "alarm_guarantees": [],
+    "annexations_outside_aim": 0,
+    "annexations_outside_aim_by_court": {
+     "France": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+     ]
+    },
+    "awakened_rebellions": [],
+    "awakening_events": [
+     [
+      20,
+      "Austria"
+     ],
+     [
+      30,
+      "Austria"
+     ]
+    ],
+    "captures_outside_aim": 19,
+    "captures_outside_aim_by_court": {
+     "Austria": 2,
+     "Bavaria": 4,
+     "France": 14,
+     "Hanover": 2,
+     "Prussia": 4,
+     "Spain": 7
+    },
+    "crowns": [],
+    "eliminations": [
+     [
+      17,
+      "PapalStates"
+     ],
+     [
+      26,
+      "Austria"
+     ]
+    ],
+    "ending": null,
+    "formations": [],
+    "france_captures": [
+     [
+      3,
+      "Swabia",
+      "Austria"
+     ],
+     [
+      4,
+      "Franconia",
+      "Austria"
+     ],
+     [
+      5,
+      "Tyrol",
+      "Austria"
+     ],
+     [
+      8,
+      "Carniola",
+      "Austria"
+     ],
+     [
+      8,
+      "Bohemia",
+      "Austria"
+     ],
+     [
+      9,
+      "Croatia",
+      "Austria"
+     ],
+     [
+      9,
+      "Hungary",
+      "Austria"
+     ],
+     [
+      10,
+      "Moravia",
+      "Austria"
+     ],
+     [
+      19,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      26,
+      "Vienna",
+      "Austria"
+     ],
+     [
+      32,
+      "Lithuania",
+      "Russia"
+     ],
+     [
+      34,
+      "Volhynia",
+      "Russia"
+     ],
+     [
+      35,
+      "White Russia",
+      "Russia"
+     ],
+     [
+      35,
+      "Estonia",
+      "Russia"
+     ],
+     [
+      36,
+      "Samogitia",
+      "Russia"
+     ]
+    ],
+    "france_outside_aim": 14,
+    "france_provinces_final": 40,
+    "grounds_lapses": [],
+    "guarantees_honoured": [],
+    "last_refuges": [
+     [
+      15,
+      "Sardinia",
+      "Naples",
+      "Sardinia signs at the last \u2014 Naples evacuates Cagliari."
+     ],
+     [
+      38,
+      "Holland",
+      "Bavaria",
+      "Holland signs at the last \u2014 Bavaria evacuates Amsterdam and Gelderland; Spain evacuates Brabant and Friesland. Her other wars go on."
+     ]
+    ],
+    "levee_events": [
+     [
+      20,
+      "Austria",
+      "raised"
+     ],
+     [
+      26,
+      "Austria",
+      "stood_down"
+     ]
+    ],
+    "rank_promotions": [],
+    "recognitions": [],
+    "risen_revanche": [],
+    "seats": [
+     [
+      17,
+      "Hanover",
+      "court_removed",
+      "Brunswick",
+      "Hanover",
+      "Prussia"
+     ]
+    ],
+    "supply_losses": {
+     "Austria": 1011,
+     "Bavaria": 1632,
+     "Britain": 28002,
+     "France": 33017,
+     "Prussia": 3098,
+     "Russia": 645,
+     "Spain": 1356,
+     "Sweden": 19982
+    }
+   }
+  }
+ },
+ "nov6_france_captures": {},
+ "totals": {
+  "0": {
+   "alarm_guarantees": 3,
+   "annexations_outside_aim": 2,
+   "captures_outside_aim": 136,
+   "crowns_erected": 0,
+   "france_outside_aim": 176,
+   "last_refuges": 17,
+   "rank_promotions": 0,
+   "recognitions": 0,
+   "seats_removed": 10
+  },
+  "ALL": {
+   "alarm_guarantees": 3,
+   "annexations_outside_aim": 0,
+   "captures_outside_aim": 133,
+   "crowns_erected": 0,
+   "france_outside_aim": 176,
+   "last_refuges": 10,
+   "rank_promotions": 0,
+   "recognitions": 0,
+   "seats_removed": 10
+  }
+ },
+ "turns": 40
+}

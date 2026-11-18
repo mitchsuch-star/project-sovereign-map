@@ -313,6 +313,11 @@ def day_shots(name: str, payload_path: str, scale: float) -> list[dict]:
         shots.append({**common, "id": f"{name}__{kind}", "events": events})
     shots.append({**common, "id": f"{name}__esc", "events": [
         before, {"t": 0.7, "do": "esc", "shot": "after"}]})
+    # BA-6 (fewer chips): "+N more" is a toggle — every word of the groups in place, and back
+    if any(i not in day_digits(chips) for _k, idx in day_split(chips)[1] for i in idx):
+        shots.append({**common, "id": f"{name}__more", "events": [
+            before, {"t": 0.7, "do": "press_chip", "meta": "daymore", "box": "groups", "shot": "open"},
+            {"t": 0.8, "do": "press_chip", "meta": "daymore", "box": "groups", "shot": "closed"}]})
     # BA-4: the bare digits press the day's chips in fixed slots — a real key
     # each: the lead's own word, a corps of a group, a free word, a slot no
     # chip holds, a locked chip's slot, and a key while the acts still play
@@ -335,6 +340,20 @@ def day_shots(name: str, payload_path: str, scale: float) -> list[dict]:
             before, {"t": 0.7, "do": "reopen", "cinematic": False, "payload": str(ordinary)},
             {"t": 0.6, "frames": 4, "shot": "after"}]})
     if name == "day_opens":
+        # BA6-6: the table's marks have their caption line where the table has the room — a day that
+        # carries no first-day line has it (that line takes the room once a campaign)
+        plain = json.loads(json.dumps(payload))
+        plain["day"].pop("first_open", None)
+        shots.append({**common, "id": f"{name}__legend", "payload": _variant(name, plain, "legend"),
+                      "events": [{"t": 0.6, "frames": 4, "shot": "settled"}]})
+        # BA6-3: stakes short enough to stand beside the buttons: the exits' cards keep the tray's floor
+        short = json.loads(json.dumps(payload))
+        for chip in short["day"].get("chips") or []:
+            if chip_box(chip) == "exits":
+                chip["does"] = {"stand": "he speaks next", "break_off": "the day ends"}.get(
+                    str(chip.get("kind")), "he may press")
+        shots.append({**common, "id": f"{name}__beside", "payload": _variant(name, short, "beside"),
+                      "events": [{"t": 0.6, "frames": 4, "shot": "settled"}]})
         bare = json.loads(json.dumps(payload))
         bare["day"]["chips"] = []                  # K7: an open day that awaits OUR word, and no chips
         shots.append({**common, "id": f"{name}__no_chips", "payload": _variant(name, bare, "no_chips"),
@@ -1037,6 +1056,7 @@ def _told_claims(where: str, frame: dict, payload: dict) -> list[str]:
 
 
 SPEED_WORDS = {"x1": "Speed ×1", "x2": "Speed ×2"}
+TRAY_H = 744                         # battle_diorama.gd TRAY_H (the tray without a day's room)
 SPEED_ROOM = [846, 696, 110, 42]     # Close's room in the tray's design pixels (to the tray's floor)
 
 
@@ -1090,9 +1110,15 @@ def _speed_claims(by_id: dict) -> list[str]:
                 # it stands in Close's own room (x 846..956, y 698..738 of the tray), which
                 # the table keeps clear of the plate, the seal and the laurels
                 rect = sw.get("rect") or []
-                if len(rect) != 4 or not _rect_inside(rect, SPEED_ROOM):
+                # (BA-6) Close's room moves down with the tray's foot while a day's panel asks for room
+                room = [SPEED_ROOM[0], SPEED_ROOM[1] + int(row.get("tray_h", TRAY_H) or TRAY_H) - TRAY_H,
+                        SPEED_ROOM[2], SPEED_ROOM[3]]
+                if len(rect) == 4 and rect[2] > room[2]:
+                    # (large type) the switch is wider than Close: it keeps Close's right edge and grows leftward
+                    room = [SPEED_ROOM[0] + SPEED_ROOM[2] - rect[2], room[1], rect[2], room[3]]
+                if len(rect) != 4 or not _rect_inside(rect, room, slack=3):
                     problems.append(f"{where}: (BA5-s1) the switch stands outside Close's room "
-                                    f"({rect}, the room {SPEED_ROOM})")
+                                    f"({rect}, the room {room})")
                 mine = sw.get("window_rect") or []
                 for piece, at in (row.get("chrome") or {}).items():
                     if piece in ("close", "replay") or len(mine) != 4:
@@ -1242,6 +1268,7 @@ CHIP_HEAD = "[table=1,baseline]"
 PIP_RX = re.compile(r"\[img width=\d+ height=\d+ color=#([0-9a-f]{6})\][^\[]*swatch\.png\[/img\]")
 PIP_ON = "d9c08c"
 URL_RX = re.compile(r"\[url=day:(\d+)\]")
+DAY_MORE_KEY = "daymore"    # battle_acts.gd DAY_MORE_KEY: the quiet chip's own link
 EXITS_RIGHT_EDGE = 716      # the exits row stands left of Replay (x 726)
 EXIT_CARDS_FLOOR = 735      # battle_acts.gd DAY_BOTTOM (738) less DAY_EXIT_FLOOR (3): where the exits' cards end
 STAGE_TOP = 52              # the baize begins here: the band above it is the day's head's (BA-5)
@@ -1367,7 +1394,8 @@ def _one_chip_claims(where: str, i: int, chip: dict, seg: str, *, name_only: boo
     return wrong
 
 
-def _day_chip_claims(rid: str, day: dict, src: dict, digits: dict | None = None) -> list[str]:
+def _day_chip_claims(rid: str, day: dict, src: dict, digits: dict | None = None,
+                     built: dict | None = None) -> list[str]:
     """Claims 4, (d), (m) and (q) over the three boxes: row C (the lead's own
     words, full chips), rows D (one line per kind: a plain label once with the
     price, then name-only chips; a kind with ONE chip is written whole), row E
@@ -1388,15 +1416,40 @@ def _day_chip_claims(rid: str, day: dict, src: dict, digits: dict | None = None)
         wrong += _one_chip_claims(f"{rid} row C", i, chips[i], seg, name_only=False,
                                   digit=want_digits.get(i, 0))
     segs = src["groups"].split(CHIP_HEAD)[1:]       # one run of chips, whether the groups flow inline or by line
-    if len(segs) != sum(len(idx) for _kind, idx in groups):
-        return wrong + [f"{rid}: rows D draw {len(segs)} chip(s), the day's groups hold "
-                        f"{sum(len(idx) for _kind, idx in groups)}"]
+    # (BA6-4, fewer chips) the groups show the chips the digits 4-6 reach and ONE quiet "+N more" chip
+    # that holds the rest (its hover names them); pressed, every chip stands and the chip reads "show fewer"
+    more_open = bool((built or {}).get("more_open"))
+    shown_idx = [[i for i in idx if more_open or want_digits.get(i)] for _kind, idx in groups]
+    hidden = [i for (_kind, idx), keep in zip(groups, shown_idx) for i in idx if i not in keep]
+    n_more = sum(1 for _kind, idx in groups for i in idx if not want_digits.get(i))
+    n_more_chip = 1 if n_more > 0 else 0
+    if built is not None and int(built.get("more_n") or 0) != n_more:
+        wrong.append(f"{rid}: (BA6-4) the table counts {built.get('more_n')} word(s) behind '+N more', "
+                     f"the digits leave {n_more}")
+    if len(segs) != sum(len(k) for k in shown_idx) + n_more_chip:
+        return wrong + [f"{rid}: (BA6-4) rows D draw {len(segs)} chip(s), the day's groups show "
+                        f"{sum(len(k) for k in shown_idx)} and {n_more_chip} '+N more'"]
+    if n_more_chip:
+        more_seg = segs[-1]
+        segs = segs[:-1]
+        want_more = "show fewer" if more_open else f"+{n_more} more"
+        if want_more not in _shown_text(more_seg) or f"[url={DAY_MORE_KEY}]" not in more_seg:
+            wrong.append(f"{rid}: (BA6-4) the quiet chip reads {_shown_text(more_seg)!r} / "
+                         f"{'linked' if f'[url={DAY_MORE_KEY}]' in more_seg else 'not linked'}, wanted {want_more!r}")
+        if not more_open:
+            for i in hidden:
+                if _plain(chips[i].get("label", "")) not in _hovers(more_seg):
+                    wrong.append(f"{rid}: (BA6-4) the '+{n_more} more' hover does not name {chips[i].get('label')!r}")
     said = _shown_text(src["groups"]).replace("\u00a0", " ")     # (a label never breaks inside itself)
     cursor = 0
     taken = 0
-    for kind, idx in groups:
+    for (kind, full), idx in zip(groups, shown_idx):
         mine = segs[taken: taken + len(idx)]
         taken += len(idx)
+        if not idx:
+            if GROUP_LABEL.get(kind) and (GROUP_LABEL[kind] + ":") in said:
+                wrong.append(f"{rid} rows D: the {kind} group shows a label and no chip")
+            continue
         if kind not in GROUP_LABEL:
             # a kind the table has no label for is written whole, chip by chip
             for i, seg in zip(idx, mine):
@@ -1461,12 +1514,13 @@ def _day_head_claims(where: str, day: dict, head: dict, text_size: float = 1.15)
     if " points" not in said and text_size <= 1.15:
         wrong.append(f"{where}: (K3) the head does not say the purses in words at text {text_size:g}: {said[:90]!r}")
     temper = str(day.get("his_temper") or "")
-    if temper and temper not in src:
+    src_all = src + " " + " ".join(HINT_RX.findall(head.get("source", "")))     # the line, and its hover
+    if temper and temper not in src_all:
         wrong.append(f"{where}: the head (or its hover) does not name his temper {temper!r}")
     road = day.get("his_road")
     if isinstance(road, bool):
         phrase = "his road is open" if road else "no road behind him"
-        if phrase not in src:
+        if phrase not in src_all:
             wrong.append(f"{where}: the head (or its hover) does not say {phrase!r}")
     return wrong
 
@@ -1515,6 +1569,9 @@ def _button_places(where: str, frame: dict, follows: bool) -> list[str]:
         return []
     if close[0] != 846 or replay[0] != 726:
         return [f"{where}: (K4) the buttons stand at Close x {close[0]} / Replay x {replay[0]}, not 846 / 726"]
+    foot = int(frame.get("tray_h", TRAY_H) or TRAY_H) - 46         # (BA-6) the foot's own line: the tray's height less 46
+    if close[1] != foot or replay[1] != foot:
+        return [f"{where}: (BA6-1) the buttons stand at y {close[1]} / {replay[1]}, the tray's foot is y {foot}"]
     return []
 
 
@@ -1532,6 +1589,9 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
     if day is None:
         for name, frame in (("end", end), ("settled", settled)):
             built = frame.get("day") or {}
+            if int(frame.get("tray_h_built", TRAY_H)) != TRAY_H or int(frame.get("day_room", 0)) != 0:
+                wrong.append(f"{rid} {name}: (BA6-1) a table with no day has a tray {frame.get('tray_h_built')} high "
+                             f"(room {frame.get('day_room')}), not {TRAY_H}")
             if built.get("has"):
                 wrong.append(f"{rid} {name}: a day's panel on a table that has no day")
             wrong += _button_places(f"{rid} {name}", frame, False)
@@ -1633,8 +1693,9 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
             # (the second reading) the stakes head the decision block: the panel's own first row
             wrong.append(f"{where}: (BA5-h) the head is not the panel's first row "
                          f"(box {heads[0]['box']}, ink {heads[0]['ink']}, panel {prect})")
-        wrong += _day_band_claims(where, built, frame, payload, offered)
+        wrong += _day_band_claims(where, built, frame, payload, offered, text_size)
         wrong += _day_finish_claims(where, day, built, frame, offered)
+        wrong += _day_lever_claims(rid, where, day, built, frame, offered, text_size, lines)
         kinds = {k: [ln for ln in lines if ln.get(k)] for k in ("chips", "groups", "exits")}
         for ln in lines:
             what = ("row C (the lead's own words)" if ln.get("chips") else "rows D (the groups)"
@@ -1719,7 +1780,7 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
         if offered and built.get("has_exits"):
             src = {k: (kinds[key][0]["source"] if kinds[key] else "")
                    for k, key in (("own", "chips"), ("groups", "groups"), ("exits", "exits"))}
-            wrong += _day_chip_claims(where, day, src, built.get("digits"))
+            wrong += _day_chip_claims(where, day, src, built.get("digits"), built)
             e_ln = kinds["exits"][0] if kinds["exits"] else None
             # (k) the Guard, when offered, is the second chip of the array, on row C beside the press
             guard = [i for i in own_chips if chips[i].get("kind") == "guard"]
@@ -1742,21 +1803,31 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
                     # (the second reading) two-line cards beside the buttons, whole, above the
                     # frame's inner line (738)
                     e_bottom = prect[1] + e_ln["box"][1] + e_ln["box"][3]
-                    if abs(e_bottom - EXIT_CARDS_FLOOR) > 2:
-                        wrong.append(f"{where}: (BA5-e) the exits' cards end at y {e_bottom}: they stand on "
-                                     f"the tray's floor ({EXIT_CARDS_FLOOR}), beside the buttons")
+                    if built.get("exits_row"):
+                        # (BA-6) the exits' stakes need the width: a full-width row on the line above the buttons
+                        want_bottom = btns["close"][1] - 4
+                        if abs(e_bottom - want_bottom) > 2:
+                            wrong.append(f"{where}: (BA6-3) the exits' full-width row ends at y {e_bottom}: it stands "
+                                         f"on the line above the buttons (y {want_bottom})")
+                    else:
+                        floor = tray[3] - 6 - 3          # DAY_BOTTOM + room, less DAY_EXIT_FLOOR
+                        if abs(e_bottom - floor) > 2:
+                            wrong.append(f"{where}: (BA5-e) the exits' cards end at y {e_bottom}: they stand on "
+                                         f"the tray's floor ({floor}), beside the buttons")
                 elif btns:
                     centre_b = btns["close"][1] + btns["close"][3] / 2.0
                     centre_e = prect[1] + e_ln["box"][1] + e_ln["box"][3] / 2.0
-                    if abs(centre_e - centre_b) > 1.0:
+                    clamped = abs(prect[1] + e_ln["box"][1] + e_ln["box"][3] - (tray[3] - 6 - 3)) <= 2   # (BA-6) the floor's own line
+                    if abs(centre_e - centre_b) > 1.0 and not clamped:
                         wrong.append(f"{where}: (K2) the exits row's mid-line ({centre_e:.1f}) is not the buttons' "
                                      f"({centre_b:.1f})")
-                    if prect[1] + e_ln["box"][1] + e_ln["box"][3] >= 738:
-                        wrong.append(f"{where}: (K2) the exits row's bottom reaches the frame's inner line (738)")
+                    if prect[1] + e_ln["box"][1] + e_ln["box"][3] >= tray[3] - 6:
+                        wrong.append(f"{where}: (K2) the exits row's bottom reaches the frame's inner line ({tray[3] - 6})")
                 bottom = e_ln["box"][1] + e_ln["box"][3]
                 others_bottom = max([ln["box"][1] + ln["box"][3] for ln in lines if ln is not e_ln] or [0])
-                if bottom < others_bottom or e_ln["ink"][0] + e_ln["ink"][2] > EXITS_RIGHT_EDGE:
-                    wrong.append(f"{where}: (l) the exits row is not the last row or runs past x {EXITS_RIGHT_EDGE} "
+                right_edge = 970 if built.get("exits_row") else EXITS_RIGHT_EDGE
+                if bottom < others_bottom or e_ln["ink"][0] + e_ln["ink"][2] > right_edge:
+                    wrong.append(f"{where}: (l) the exits row is not the last row or runs past x {right_edge} "
                                  f"(bottom {bottom} / {others_bottom}, ink {e_ln['ink']})")
         if not day.get("open") and "[url=day:" in " ".join(
                 ln.get("source", "") for ln in built.get("lines") or []):
@@ -1800,6 +1871,15 @@ def _day_claims(rid: str, res: dict, end: dict, settled: dict, payload: dict, ow
     return wrong
 
 
+def wrap_does(does: str) -> list[str]:
+    """battle_acts.gd `_wrap_does`: an exit's stakes in two lines, cut at a semicolon."""
+    parts = does.split("; ")
+    if len(parts) < 2:
+        return [does]
+    cut = -(-len(parts) // 2)
+    return ["; ".join(parts[:cut]), "; ".join(parts[cut:])]
+
+
 def _hovers(seg: str) -> str:
     return " ".join(_plain(h) for h in HINT_RX.findall(seg))
 
@@ -1815,7 +1895,8 @@ def _exit_rank(chip: dict) -> int:
     return EXIT_TAG_ORDER.index(kind) if kind in EXIT_TAG_ORDER else -1
 
 
-def _day_band_claims(where: str, built: dict, frame: dict, payload: dict, offered: bool) -> list[str]:
+def _day_band_claims(where: str, built: dict, frame: dict, payload: dict, offered: bool,
+                     text_size: float = 1.15) -> list[str]:
     """Row BA, BA-5, the second reading. (BA5-n) the band above the baize names the battle —
     the plate's own words, whose room the panel takes. (BA5-u) the day's rule stands on a
     table that offers its words: on its own caption line, or in the first day's line (which
@@ -1854,6 +1935,7 @@ def _day_band_claims(where: str, built: dict, frame: dict, payload: dict, offere
         wrong.append(f"{where}: (BA5-u) a table that offers no word says the day's rule")
     if frame.get("final"):
         caps = [str(pair[0]) for pair in frame.get("counters") or []]
+        # (the type is held at the 130 % step above it, so the scoped captions fit as they do there)
         if len(caps) != 2 or not any(cap.endswith(DAY_CLASH_SCOPE) for cap in caps):
             wrong.append(f"{where}: (BA5-k) neither counter says it counts this clash ({caps})")
     return wrong
@@ -1966,6 +2048,13 @@ def _day_finish_claims(where: str, day: dict, built: dict, frame: dict, offered:
             said_as = (("free · " if int(chip.get("price", 0)) <= 0 else "") + does) if tags else f"— {does}"
             if tags and not lit:
                 said_as = str(chip.get("why"))
+            if tags and lit and built.get("exits_wrapped"):
+                # (BA6-3) the stakes wrap at a semicolon: both halves stand, one on each line
+                halves = wrap_does(does)
+                said_as = ("free · " if int(chip.get("price", 0)) <= 0 else "") + halves[0]
+                if len(halves) > 1 and halves[1] not in face:
+                    wrong.append(f"{where}: (BA6-3) the exit {chip.get('label')!r} wraps its stakes and the second "
+                                 f"line {halves[1]!r} is not on its face: {face!r}")
             if on_face and said_as not in face:
                 wrong.append(f"{where}: (BA5-e) the exit {chip.get('label')!r} does not say {said_as!r} on its face: {face!r}")
             if not on_face and (does in face or _plain(does) not in _hovers(seg)):
@@ -1991,9 +2080,190 @@ def _day_finish_claims(where: str, day: dict, built: dict, frame: dict, offered:
              if up]
     if can_tag and not exits_up and not built.get("exits_wide") and stood:
         wrong.append(f"{where}: (BA5-l) the exits lost their cards while {', '.join(stood)} still stood")
-    if can_card and not cards and (exits_up or stood):
+    if can_card and not cards and (exits_up or stood) and not built.get("cards_wide"):
         wrong.append(f"{where}: (BA5-l) the cards lost their second lines while the exits' cards ({exits_up}) "
                      f"or {', '.join(stood) or 'no line'} still stood")
+    return wrong
+
+
+def what_told(payload: dict) -> str:
+    """battle_acts.gd `_what_told`: the cause alone, capitalised, no full stop ('' where none)."""
+    line = str(payload.get("verdict_told") or "")
+    if not line or line == "<null>":
+        line = str((payload.get("day") or {}).get("verdict_told") or "") if isinstance(payload.get("day"), dict) else ""
+    line = line.strip()
+    if not line or line == "<null>":
+        return ""
+    if line.startswith("Decided") and ": " in line:
+        line = line[line.rindex(": ") + 2:]
+    elif line.startswith("Decided") and line.rstrip(".").endswith(", in an even fight"):
+        line = "An even fight"
+    if line.endswith("."):
+        line = line[:-1]
+    return line[:1].upper() + line[1:]
+
+
+def _signed_pct(n: int) -> str:
+    return f"+{n}%" if n >= 0 else f"\u2212{abs(n)}%"
+
+
+def _luck_claims(where: str, frame: dict, payload: dict, text_size: float = 1.0) -> list[str]:
+    """(BA6-5) the dice plate's third row sets the luck against what told, in one phrase:
+    '<What told>; the dice added +X% to the blow, the day's fortune +Y% to us' — X the roll's
+    lands figure against the average throw's 102 %, Y OUR side's fortune; a table whose payload
+    names nothing that told keeps the fortune line as it was. Read where the row stands."""
+    texts = frame.get("dice_texts") or []
+    if not texts:
+        return []                      # (an old save's tableau has no dice plate at all)
+    roll = next((b for b in _beats(payload) if b.get("kind") == "dice"), None)
+    if roll is None:
+        return []
+    told = what_told(payload)
+    attacker_left = str(payload.get("player_side") or "") != "defender"
+    key = "fortune_attacker" if attacker_left else "fortune_defender"
+    if len(texts) < 3:
+        # the third row (the luck) is printed wherever the tray's room holds it: at the sizes the shipped
+        # 106 px serves (100 %, 115 %) it must stand; from 120 % the three rows no longer fit the room
+        # (a Caption line of 24 px) and the plate keeps two - and the luck takes the SECOND row in its
+        # short form (the C12 ruling: the dice's share and the day's fortune, no wider than the lands
+        # row it replaces; what told stands on the verdict's line)
+        if text_size <= 1.15 + 1e-6:
+            return [f"{where}: (BA6-5) the dice plate shows {len(texts)} row(s) ({texts!r}), wanted three"]
+        if not told or len(texts) < 2:
+            return []
+        crit = str(roll.get("critical") or "")
+        prefix = "a twelve: " if crit == "success" else ("a two: " if crit == "failure" else "")
+        short = (f"{prefix}the dice added {_signed_pct(int(roll.get('swing', 0)) + 100 - 102)} to the blow, "
+                 f"the day's fortune {_signed_pct(int(roll.get(key, 0)))} to us")
+        if str(texts[1]) != short:
+            return [f"{where}: (BA6-5) at Text size {text_size:g} the luck's short row reads {texts[1]!r}, "
+                    f"wanted {short!r}"]
+        return []
+    last = str(texts[2])
+    if not told:
+        if not last.startswith("the day's fortune in strength:"):
+            return [f"{where}: (BA6-5) with nothing told the luck row reads {last!r}"]
+        return []
+    want = (f"{told}; the dice added {_signed_pct(int(roll.get('swing', 0)) + 100 - 102)} to the blow, "
+            f"the day's fortune {_signed_pct(int(roll.get(key, 0)))} to us")
+    if last != want:
+        return [f"{where}: (BA6-5) the luck row reads {last!r}, wanted {want!r}"]
+    return []
+
+
+def _day_lever_claims(rid: str, where: str, day: dict, built: dict, frame: dict, offered: bool,
+                      text_size: float, lines: list) -> list[str]:
+    """Row BA, "the levers past 5" (BA-6): (BA6-1) the tray grows by DAY_ROOM while a day's panel
+    stands and the panel's floor with it; (BA6-2) the lead's own words are THREE-line cards where
+    the ladder left room — the word and its price at the body's size, what it does and what it
+    risks at the Caption step, the third line shed before the second (a card without it carries
+    its risk on its hover); (BA6-3) the exits' stakes stand on their faces, full width on the line
+    above the buttons where they do not fit beside them; (BA6-4) the groups show the chips the
+    digits reach and a quiet '+N more'; (BA6-6) the table's marks stand in one caption line
+    above the exits, else on the head's hover."""
+    wrong = []
+    room = int(built.get("room") or 110)
+    if not frame.get("final"):
+        return wrong
+    if int(frame.get("tray_h_built", 0)) != TRAY_H + room or int(frame.get("day_room", 0)) != room \
+            or int(frame.get("tray_h", 0)) != TRAY_H + room:
+        wrong.append(f"{where}: (BA6-1) the tray is {frame.get('tray_h_built')} high (room {frame.get('day_room')}) "
+                     f"while a day's panel stands, wanted {TRAY_H + room}")
+    prect = built.get("rect") or [0, 0, 0, 0]
+    if prect[1] + prect[3] != TRAY_H + room - 6:
+        wrong.append(f"{where}: (BA6-1) the panel's floor is y {prect[1] + prect[3]}, the tray's less its edge "
+                     f"is {TRAY_H + room - 6}")
+    if not offered or not built.get("visible"):
+        return wrong
+    chips = day.get("chips") or []
+    own, groups, exits = day_split(chips)
+    by = {key: next((ln for ln in lines if ln.get(key)), None) for key in ("chips", "groups", "exits")}
+    # (BA6-2) three-line cards
+    if built.get("risk_lines") and not built.get("cards"):
+        wrong.append(f"{where}: (BA6-2) the cards carry a third line and no second")
+    if by["chips"] is not None:
+        segs = by["chips"]["source"].split(CHIP_HEAD)[1:]
+        for i, seg in zip(own, segs):
+            chip = chips[i]
+            risk = str(chip.get("risk") or "")
+            if not risk or not chip.get("ok"):
+                continue
+            face = _shown_text(seg).replace("\u00a0", " ")
+            if built.get("risk_lines"):
+                if risk not in face:
+                    wrong.append(f"{where}: (BA6-2) the card of {chip.get('label')!r} does not carry what it risks "
+                                 f"({risk!r}) on its face: {face!r}")
+                head_line = seg.split("\n", 1)[0]
+                if "[font_size" in head_line:
+                    wrong.append(f"{where}: (BA6-2) the card of {chip.get('label')!r} sets its first line "
+                                 f"(the word and its price) in a smaller step")
+                if seg.count("[font_size") < 2:
+                    wrong.append(f"{where}: (BA6-2) the card of {chip.get('label')!r} has {seg.count('[font_size')} "
+                                 f"Caption line(s), wanted 2 (what it does, what it risks)")
+            else:
+                if risk in face or _plain(risk) not in _hovers(seg):
+                    wrong.append(f"{where}: (BA6-2) a card with no third line still carries {risk!r}, or says it "
+                                 f"nowhere (hovers: {_hovers(seg)!r})")
+    # (BA6-3) the exits' faces say the stakes (BA5-e), beside the buttons or on a row of their own
+    # (independent evidence: the box's own measured size and place, the buttons' record and the card lines
+    # drawn - never the panel's flags read against each other)
+    e_ln = by["exits"]
+    if e_ln is not None and built.get("exits_up"):
+        btn_top = (built.get("buttons") or {}).get("close", [0, 0, 0, 0])[1]
+        e_box_w, e_bottom = e_ln["box"][2], prect[1] + e_ln["box"][1] + e_ln["box"][3]
+        if built.get("exits_row"):
+            if abs(e_box_w - prect[2]) > 2 or e_bottom > btn_top:
+                wrong.append(f"{where}: (BA6-3) the exits' full-width row is {e_box_w} px wide (the panel is "
+                             f"{prect[2]}) and ends at y {e_bottom}, the buttons' top is {btn_top}")
+        elif e_box_w >= prect[2] - 2:
+            wrong.append(f"{where}: (BA6-3) the exits stand beside the buttons in a box {e_box_w} px wide "
+                         f"(the panel is {prect[2]}: Replay's room is not kept)")
+    if e_ln is not None and built.get("exits_wrapped"):
+        two = sum(1 for seg in e_ln["source"].split(CHIP_HEAD)[1:] if seg.count("[font_size") >= 2)
+        if not two:
+            wrong.append(f"{where}: (BA6-3) the exits wrap their stakes and no card draws two Caption lines")
+    if by["exits"] is not None and built.get("exits_wrapped"):
+        for i, seg in zip(exits, by["exits"]["source"].split(CHIP_HEAD)[1:]):
+            chip = chips[i]
+            if chip.get("ok") and len(wrap_does(str(chip.get("does") or ""))) > 1 and seg.count("[font_size") < 2:
+                wrong.append(f"{where}: (BA6-3) the exit {chip.get('label')!r} wraps its stakes on "
+                             f"{seg.count('[font_size')} Caption line(s), wanted 2")
+    if by["exits"] is not None and built.get("exits_up"):
+        ink = by["exits"]["ink"]
+        if not built.get("exits_row") and ink[0] + ink[2] > EXITS_RIGHT_EDGE:
+            wrong.append(f"{where}: (BA6-3) the exits beside the buttons run to x {ink[0] + ink[2]}")
+    # (BA6-6) the legend
+    leg = next((ln for ln in lines if ln.get("legend")), None)
+    head = next((ln for ln in lines if ln.get("head")), None)
+    hover = _plain(" ".join(HINT_RX.findall((head or {}).get("source", ""))))
+    if built.get("legend_row") != (leg is not None):
+        wrong.append(f"{where}: (BA6-6) the table says its legend has a row ({built.get('legend_row')}) and draws "
+                     f"{1 if leg else 0}")
+    if leg is not None:
+        said = _plain(leg.get("text", ""))
+        for words in ("eachsideslead", "apointinhand", "apointspent", "keys19saythewords",
+                      "acardits" + "price"):
+            if words not in said:
+                wrong.append(f"{where}: (BA6-6) the legend does not say {words!r}: {leg.get('text')!r}")
+        if len(leg.get("rows") or []) != 1 or not leg.get("shown"):
+            wrong.append(f"{where}: (BA6-6) the legend is not one shown row ({leg.get('rows')})")
+        if by["exits"] is not None and leg["ink"][1] + leg["ink"][3] > by["exits"]["ink"][1]:
+            wrong.append(f"{where}: (BA6-6) the legend stands on the exits ({leg['ink']} / {by['exits']['ink']})")
+        if leg["ink"][1] < prect[1]:
+            wrong.append(f"{where}: (BA6-6) the legend stands above the panel")
+    elif "keys1to9saythewords" not in hover and "thekeys1to9saythewords" not in hover:
+        wrong.append(f"{where}: (BA6-6) no legend row and none on the head's hover")
+    # (BA6-4) the groups: at most the chips the digits reach, plus the quiet chip
+    if groups and not built.get("more_open"):
+        n_digit = sum(1 for _k, idx in groups for i in idx if day_digits(chips).get(i))
+        links = len(URL_RX.findall((by["groups"] or {}).get("source", ""))) if by["groups"] else 0
+        if links > 3 or links != n_digit:
+            wrong.append(f"{where}: (BA6-4) the groups draw {links} lit chip(s), the digits 4-6 reach {n_digit}")
+        total = sum(len(idx) for _k, idx in groups)
+        if total > 3 and int(built.get("more_n") or 0) != total - 3:
+            wrong.append(f"{where}: (BA6-4) {total} group words and '+N more' counts {built.get('more_n')}")
+        if total > 3 and rid in ("day_crowded", "day_guns", "day_ulm") and not built.get("more_n"):
+            wrong.append(f"{where}: (BA6-4) no '+N more' on a crowded day")
     return wrong
 
 
@@ -2075,6 +2345,65 @@ def _day_press_claims(rid: str, res: dict, day: dict, by_id: dict | None = None)
         if again and (again.get("emitted") or []) != [word]:
             wrong.append(f"{rid}: a second press before new data gave {again.get('emitted')}, "
                          f"wanted still exactly [{word!r}]")
+    elif kind == "beside":
+        # BA6-3: short stakes stand BESIDE the buttons (no full-width row), on the tray's floor
+        built = frame("settled").get("day") or {}
+        e_ln = next((ln for ln in built.get("lines") or [] if ln.get("exits")), None)
+        prect = built.get("rect") or [0, 0, 0, 0]
+        tray_h = (built.get("tray") or [0, 0, 1000, TRAY_H])[3]
+        # (BA1-X4) above Text size 130 % even the short stakes' cards are wider than the room beside
+        # the buttons (the panel records it as `exits_wide`), and the designed fallback is the
+        # full-width row above them - the same answer the panel gives every longer stake
+        size = float(res.get("text_size") or DEFAULT_TEXT_SIZE)
+        row_is_the_answer = bool(built.get("exits_row")) and bool(built.get("exits_row_tried")) and size > 1.3
+        if not built.get("exits_up") or (built.get("exits_row") and not row_is_the_answer) or e_ln is None:
+            wrong.append(f"{rid}: (BA5-e) short stakes did not stand beside the buttons "
+                         f"(cards {built.get('exits_up')}, row {built.get('exits_row')})")
+        elif not row_is_the_answer and abs(prect[1] + e_ln["box"][1] + e_ln["box"][3] - (tray_h - 6 - 3)) > 2:
+            wrong.append(f"{rid}: (BA5-e) the exits' cards beside the buttons end at y "
+                         f"{prect[1] + e_ln['box'][1] + e_ln['box'][3]}, the tray's floor is {tray_h - 9}")
+    elif kind == "legend":
+        # BA6-6: with room (no first-day line) the legend stands whole on its own caption line at the
+        # sizes the table has always fitted; at larger type it may ride the head's hover
+        built = frame("settled").get("day") or {}
+        size = float(res.get("text_size") or DEFAULT_TEXT_SIZE)
+        leg = next((ln for ln in built.get("lines") or [] if ln.get("legend")), None)
+        if size <= 1.15 and (not built.get("legend_row") or leg is None):
+            wrong.append(f"{rid}: (BA6-6) a day with room (no first-day line) has no legend row at text {size:g}")
+        elif leg is not None and not leg.get("shown"):
+            wrong.append(f"{rid}: (BA6-6) the legend row is not shown")
+    elif kind == "more":
+        # BA6-4: the quiet chip sends no word; pressed it shows every chip of the groups, pressed again
+        # it gives them back — and the digits do not change
+        if (frame("open").get("emitted") or []) != [] or (frame("closed").get("emitted") or []) != []:
+            wrong.append(f"{rid}: (BA6-4) '+N more' gave a word ({frame('open').get('emitted')})")
+        opened, closed = frame("open").get("day") or {}, frame("closed").get("day") or {}
+        if not opened.get("more_open") or closed.get("more_open"):
+            wrong.append(f"{rid}: (BA6-4) '+N more' did not toggle (open {opened.get('more_open')}, "
+                         f"closed again {closed.get('more_open')})")
+        _own, groups_now, _exits = day_split(chips)
+        total = sum(len(idx) for _k, idx in groups_now)
+        for tag, built, want_open in (("open", opened, True), ("closed", closed, False)):
+            grp = next((ln for ln in built.get("lines") or [] if ln.get("groups")), {})
+            n_links = len(URL_RX.findall(grp.get("source", "")))
+            shown = total if want_open else sum(1 for _k, idx in groups_now for i in idx if day_digits(chips).get(i))
+            if n_links != shown:
+                wrong.append(f"{rid}/{tag}: (BA6-4) the groups draw {n_links} lit chip(s), wanted {shown}")
+        if opened.get("digits") != closed.get("digits"):
+            wrong.append(f"{rid}: (BA6-4) the digits changed with '+N more'")
+        # (BA6-4) the opened box gets the room its words need (the panel is laid again with them),
+        # and scrolls only where the ladder could not make that room
+        grp_open = next((ln for ln in opened.get("lines") or [] if ln.get("groups")), None)
+        if grp_open is not None:
+            overflow = grp_open["content_h"] > grp_open["box"][3] + 1
+            if overflow and not opened.get("groups_scrolls"):
+                wrong.append(f"{rid}: (BA6-4) the opened groups need {grp_open['content_h']} px in a box "
+                             f"{grp_open['box'][3]} high and the panel says they do not scroll")
+            if overflow and not grp_open.get("scroll_active"):
+                wrong.append(f"{rid}: (BA6-4) the opened groups overflow their box and cannot be scrolled to")
+            exits_open = next((ln for ln in opened.get("lines") or [] if ln.get("exits")), None)
+            if exits_open is not None and grp_open["box"][1] + grp_open["box"][3] > exits_open["box"][1] + 1:
+                wrong.append(f"{rid}: (BA6-4) the opened groups run down into the exits' row")
     elif kind == "press_dim":
         pressed = frame("pressed")
         if (pressed.get("emitted") or []) != []:
@@ -2264,6 +2593,8 @@ def check(results: dict, shots: list[dict]) -> list[str]:
                 if frame.get("dice_shown") and int(frame.get("dice_rows_shown", 0)) < 2:
                     problems.append(f"{rid} {name}: (BA5-d6) at rest the tray reads "
                                     f"{frame.get('dice_rows_shown')} line(s) of the throw")
+                problems += _luck_claims(f"{rid} {name}", frame, payload,
+                                         float(res.get("text_size") or DEFAULT_TEXT_SIZE))
         elif end.get("dice_shown") or settled.get("dice_shown"):
             # BA-2: a wall is not rolled for, and guns throw no dice
             problems.append(f"{rid}: dice on a {_kind(payload)}'s table, which rolled none")
@@ -2347,7 +2678,7 @@ def check(results: dict, shots: list[dict]) -> list[str]:
         if res and res.get("ok") and rid.rsplit("__", 1)[-1] in (
                 "press_lit", "press_word", "press_group", "press_dim", "esc", "then_ordinary",
                 "awaits_him", "awaits_him_acts", "awaits_him_skip", "no_script", "follows_awaits_him",
-                "no_chips", "goes_on", "stays_reduced", "replays",
+                "no_chips", "goes_on", "stays_reduced", "replays", "more", "legend", "beside",
                 # BA-4: the digits' own shots. They were built and shot and their
                 # claims never read — this list did not name them, and the switch-off
                 # table said so (three digit cases walked green with the fix off)

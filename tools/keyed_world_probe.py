@@ -70,21 +70,26 @@ def run(root: str, seed: str, turns: int, out: str) -> int:
         from backend.commands.executor import CommandExecutor
         from backend.game_logic.turn_manager import TurnManager
         from backend.models.world_state import WorldState
-        world = WorldState.from_scenario(os.path.join(
-            root, "godot-client", "project-sovereign", "assets", "maps", "europe_1805.json"))
-        executor = CommandExecutor()
-        turn_manager = TurnManager(world, executor=executor)
-        game_state = {"world": world, "executor": executor}
     tree = os.path.dirname(os.path.abspath(backend.__file__))
     if os.path.dirname(tree) != root:
         raise SystemExit(f"the backend imported is {tree}, not the one under {root}")
     # BA-4: the seams the measure holds for this run, applied to THIS tree's
     # modules (a tree older than the channel has no `tools/_seams_env.py` and
     # is read as it stands — a spec asked of it is an error, never ignored).
+    # BA6-X7 (row BA, session BA-6): applied BEFORE the world is built — row
+    # MC's seams act at the boot (the book seeded, the seats, the 1805
+    # reading), and a probe that applied them after `from_scenario` read
+    # arm 0 as a campaign booted with them up.
     seams = []
     if os.environ.get("INK_IRON_SEAMS"):
         from tools._seams_env import apply_from_env
         seams = apply_from_env()
+    with redirect_stdout(sink), redirect_stderr(sink):
+        world = WorldState.from_scenario(os.path.join(
+            root, "godot-client", "project-sovereign", "assets", "maps", "europe_1805.json"))
+        executor = CommandExecutor()
+        turn_manager = TurnManager(world, executor=executor)
+        game_state = {"world": world, "executor": executor}
 
     rows, crashes = [], 0
     for turn in range(int(turns)):

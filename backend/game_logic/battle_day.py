@@ -143,8 +143,9 @@ def the_reserve_pursues() -> bool:
     thrown back; a victor who spent to win holds nothing over the loser. It
     would have taught standing still. By the plan's own words it is not
     built: no surface of the game promises it, and this function returning
-    True again is the measured arm (`tools/_ba5_measure.py`, arms R<n>). The
-    user's word arms it or asks for another form."""
+    True again is the measured arm (`tools/_ba5_measure.py`, arms R<n>).
+    CLOSED (session BA-6, November 17, 2026): its second form failed the same
+    rule (`the_attacker_pursues`), and the reserve does not land."""
     return False
 
 
@@ -152,6 +153,45 @@ def reserve_pursuit() -> int:
     """The men a point of reserve costs a beaten lead (a function, so that the
     measure's ladder can read 2,000 / 3,000 / 5,000 through it)."""
     return RESERVE_PURSUIT
+
+
+def the_attacker_pursues() -> bool:
+    """Row BA, session BA-6 seam — the reserve in the form BA-5's own data
+    pointed to (§15.23, "Recommended, not built"; ruled under the user's
+    delegation of November 17, 2026: "make decisions yourself soundly with
+    research"). ONLY THE SIDE THAT ATTACKED IN THE DECIDING CLASH PURSUES, WITH
+    THE POINTS IT STILL HOLDS ITSELF: when a word's clash drives the defender
+    from the field, each point the attacker kept costs the beaten lead
+    `reserve_pursuit()` men more, under the game's pursuit laws (never below
+    1,000 men; halved against the Old Fox). A defender who throws the attack
+    back keeps the field and does not pursue; a point the loser kept does not
+    cover him; nothing is paid on a break-off, a draw-off or at night. It
+    rewards winning CHEAPLY - a press that breaks him with points in hand -
+    and it cannot pay a side for standing, which is why BA-5's form (the
+    victor's points less the loser's, either side) failed its rule: nine in
+    ten of the men it took were ours. Either side, the same rule (GR5).
+    Measured by the rule BA-5 wrote before its data (§15.22's five clauses,
+    the same ladder; `tools/_ba6_measure.py`, arms A<n>). Down (False): no
+    pursuit for a point kept, as BA-3 had it.
+
+    CLOSED - DOWN IN THE GAME (November 17, 2026). It failed the rule's third
+    clause at every value of the ladder (`tools/_ba6_reserve_rule_2026_11_17.json`):
+    twenty-two of its twenty-three pursuits fell on a French corps - 70,639 /
+    87,987 / 100,702 of our men against 2,000 / 3,000 / 5,000 of his. The
+    reason is not standing but the purse: his AI keeps points by its own
+    spending rule, so his attacks that break one of our corps are paid in
+    full, while a France that spends to win holds nothing at the close.
+    Whoever keeps points harvests, and the measure's France never does. Both
+    forms failed the rule written before their data, so the reserve is closed
+    and the hand stays as BA-3 made it (a point kept is worth nothing at the
+    close). No surface of the game promises a reserve; this function returning
+    True is the measured arm only."""
+    return False
+
+
+def _the_reserve_is_counted() -> bool:
+    """Either form of the reserve is up (BA-5's parked form, BA-6's)."""
+    return the_reserve_pursues() or the_attacker_pursues()
 
 
 def a_words_battle_is_its_own_clash() -> bool:
@@ -188,7 +228,7 @@ def count_the_reserve(ctx) -> None:
     that is no word of an open day."""
     word = _word_for(ctx)
     world = getattr(ctx, "world", None)
-    if not (word and the_reserve_pursues() and _on(world)):
+    if not (word and _the_reserve_is_counted() and _on(world)):
         return
     day = day_against(world, word.get("key"))
     if day is None:
@@ -206,10 +246,16 @@ def reserve_pursuit_men(*, attacker_wins: bool, loser):
     seam down, when the victor holds no more than the loser, or when the
     beaten corps stands at 1,000 men or under."""
     counted = (_WORD.get() or {}).get("reserve")
-    if not (the_reserve_pursues() and isinstance(counted, dict)):
+    if not (_the_reserve_is_counted() and isinstance(counted, dict)):
         return 0, 0
-    victor, beaten = ("attacker", "defender") if attacker_wins else ("defender", "attacker")
-    points = int(counted.get(victor, 0)) - int(counted.get(beaten, 0))
+    if the_attacker_pursues():
+        # BA-6: only the attacker of the clash pursues, with his own purse
+        if not attacker_wins:
+            return 0, 0
+        points = int(counted.get("attacker", 0))
+    else:
+        victor, beaten = ("attacker", "defender") if attacker_wins else ("defender", "attacker")
+        points = int(counted.get(victor, 0)) - int(counted.get(beaten, 0))
     if points <= 0:
         return 0, 0
     men = int(reserve_pursuit()) * points
@@ -298,6 +344,15 @@ def a_marshal_keeps_his_days() -> bool:
     return True
 
 
+def a_ruin_is_kept_as_drawn() -> bool:
+    """Row BA, session BA-6 seam (BA6-X1, found by the session's fresh review
+    of BA-5): a day closed by a clash that ruined both armies was decided for
+    neither, and his record says "drawn" - not "won on points" (read off the
+    day's toll) above its own shape "Neither army kept the field.". Down
+    (False): the toll's verdict, as before."""
+    return True
+
+
 # How a battle went for the marshal who led it, in his card's words: by a
 # clash that decided it, else on points (the toll at 5 to 4 — `better_of`).
 _VERDICTS = {
@@ -355,6 +410,11 @@ def _keep_his_day(world, day: dict, how: str) -> None:
         ours_lost, his_lost = int(toll.get("ours", 0) or 0), int(toll.get("his", 0) or 0)
         decided = str(day.get("decided_for") or "") if how == "decided" else ""
         better = decided or _telling.better_of(ours_lost, his_lost)
+        if how == "decided" and not decided and a_ruin_is_kept_as_drawn():
+            # BA6-X1 (BA-6's fresh review of BA-5): a clash that ruined both
+            # armies decided the day for NEITHER; the toll does not make it a
+            # day "won on points" beside "Neither army kept the field."
+            better = ""
         told = str(day.get("decided_by") or "") if how == "decided" else ""
         lead.keep_day({
             "name": str(day.get("name") or ""),
@@ -2434,13 +2494,16 @@ def _chip(kind, label, *, command="", word="", ok=True, why="", counsel="none",
             "counsel": counsel, "odds": odds, "marshal": who, "shown": _shown(who) if who else ""}
 
 
-def _does(chip: dict, does: str, more: str = "") -> None:
+def _does(chip: dict, does: str, more: str = "", risk: str = "") -> None:
     """BA-5: what the chip's word does — `does` for its face, `more` for its
-    hover. With the seam down a chip carries neither key (BA-4's chip)."""
+    hover. With the seam down a chip carries neither key (BA-4's chip).
+    BA-6: `risk`, what it is likely to bring (a card's third line)."""
     if _telling.a_word_says_what_it_does():
         chip["does"] = str(does or "")
         if more:
             chip["more"] = str(more)
+        if risk:
+            chip["risk"] = str(risk)
 
 
 # One order for every surface (the table, the province panel, the log): the
@@ -2516,7 +2579,8 @@ def the_offer(world, day) -> List[dict]:
                                odds=str((quote.get("force") or {}).get("odds") or ""), who=corps.name))
             _does(chips[-1],
                   _telling.DOES["cannonade"] if kind == "cannonade" else _telling.does_attack(kind, quote),
-                  _telling.more_of("guard" if kind == "guard" else "press") if kind != "cannonade" else "")
+                  _telling.more_of("guard" if kind == "guard" else "press") if kind != "cannonade" else "",
+                  _telling.risk_of(kind, quote, day))
             if corps.name == lead.name:
                 for row in quote.get("bring") or []:
                     if not row.get("command"):
@@ -2526,28 +2590,38 @@ def the_offer(world, day) -> List[dict]:
                                        command=str(row["command"]), ok=ok, why=why,
                                        counsel=str(row.get("objection") or "none"),
                                        who=str(row.get("marshal") or "")))
-                    _does(chips[-1], _telling.DOES["bring_up"])
+                    _does(chips[-1], _telling.DOES["bring_up"], "", _telling.risk_of("bring_up", {}, day))
         refusal = order_state_refusal(world, lead, "defend")
         ok, why = lit(PRICES["dig_in"], str(refusal or ""))
         chips.append(_chip("dig_in", f"{_shown(lead.name)} digs in",
                            command=f"{_shown(lead.name)}, defend", ok=ok, why=why,
                            counsel=Q._tactical_objection(world, lead, "defend", ""), who=lead.name))
         _does(chips[-1], _telling.does_dig_in(lead) if not refusal else _telling.DOES["dig_in"],
-              _telling.more_of("dig_in"))
+              _telling.more_of("dig_in"), _telling.risk_of("dig_in", {}, day))
         if day.get("side") == "defence":
             refusal = order_state_refusal(world, lead, "retreat")
             chips.append(_chip("break_off", "Fall back", command=f"{_shown(lead.name)}, retreat",
                                ok=not refusal, why=str(refusal or ""), who=lead.name))
-            _does(chips[-1], _telling.DOES["fall_back"], _telling.more_of("fall_back"))
+            _does(chips[-1], _telling.stakes_of("fall_back", day) if _telling.a_word_says_what_it_risks()
+                  else _telling.DOES["fall_back"], _telling.more_of("fall_back"))
+    # BA-6: the free words say their stakes (the toll that stands, Berthier's reading)
+    _risks = _telling.a_word_says_what_it_risks()
+    _reading = _telling.reading_of(world, day) if (_risks and _telling.the_table_reads_him()) else None
+    _read_line = str((_reading or {}).get("line") or "") if isinstance(_reading, dict) else ""
     chips.append(_chip("stand", f"{_shown(lead.name)} stands", word="stand", who=lead.name))
-    _does(chips[-1], _telling.does_stand(day), _telling.more_of("stand"))
+    _stand = _telling.does_stand(day)
+    if _risks:
+        _stand = _telling.stakes_of("stand_night" if _stand == _telling.DOES["stand_night"] else "stand",
+                                    day, reading=_read_line)
+    _does(chips[-1], _stand, _telling.more_of("stand"))
     if a_marshal_may_be_left_to_it():
         chips.append(_chip("stand", f"Leave it to {_shown(lead.name)}", word="leave_it", who=lead.name))
         if _telling.a_word_says_what_it_does():
             _does(chips[-1], _telling.would_of(world, day), _telling.more_of("leave_it"))
     if day.get("side") == "attack":
         chips.append(_chip("break_off", "Break off", word="break_off", who=lead.name))
-        _does(chips[-1], _telling.DOES["break_off"], _telling.more_of("break_off"))
+        _does(chips[-1], _telling.stakes_of("break_off", day) if _risks else _telling.DOES["break_off"],
+              _telling.more_of("break_off"))
     chips.sort(key=_chip_rank)            # stable: the order within a kind is kept
     return chips
 

@@ -1258,4 +1258,6 @@ def build_bombardment_script(world, payload: dict, battery, target, br: dict) ->
     # A cannonade is ONE act of a few beats: it is told whole. The brief form
     # keeps one head beat an act, which here would leave out the works coming
     # down and our own corps caught under our own guns.
-    return _script_out(script, payload, {n: "steady" for n in shown if n}, whole=True)
+    # BA4-BOMB (closed in session BA-6): the names in a fixed order - a set's
+    # order differs between processes, and the staged payloads with it
+    return _script_out(script, payload, {n: "steady" for n in sorted(shown) if n}, whole=True)

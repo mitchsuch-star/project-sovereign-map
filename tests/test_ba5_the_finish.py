@@ -457,17 +457,20 @@ class TestAWordSaysWhatItDoes:
         body, day = table.open_a_day(_awaits_us)
         assert _chip(day, kind="dig_in")["does"] == (
             f"defensive stance: +{T.dug_in_pct(table.world.marshals['Ney'])}% if he strikes")
-        assert _chip(day, word="break_off")["does"] == "the day ends; he keeps the field"
-        assert _chip(day, word="stand")["does"] in ("he speaks next", "night falls, undecided")
+        # BA-6: a free word says its stakes after what it does (the toll a
+        # leave-taking keeps, Berthier's reading of a stand) — pinned whole in
+        # tests/test_ba6_the_last_word.py; here, what it does comes first.
+        assert _chip(day, word="break_off")["does"].startswith("the day ends; he keeps the field")
+        assert _chip(day, word="stand")["does"].startswith(("he speaks next", "night falls, undecided"))
         assert "day ends" in _chip(day, word="break_off")["more"]
 
     def test_a_stand_after_his_silence_says_night_falls(self, table):
         table.open_a_day(_awaits_us)
         stored = table.world.battle_days["days"]["Mack"]
         stored["silences"] = 1
-        assert _chip(BD.block(table.world, stored), word="stand")["does"] == "night falls, undecided"
+        assert _chip(BD.block(table.world, stored), word="stand")["does"].startswith("night falls, undecided")
         stored["silences"] = 0
-        assert _chip(BD.block(table.world, stored), word="stand")["does"] == "he speaks next"
+        assert _chip(BD.block(table.world, stored), word="stand")["does"].startswith("he speaks next")
 
     def test_left_to_it_the_marshal_says_what_he_would_do(self, table):
         body, day = table.open_a_day(_awaits_us)
@@ -1327,13 +1330,24 @@ class TestTheGroundOnTheTable:
         assert battle_diorama.ground_key(world, "the Channel") == {}, "a fleet action's waters are no province"
 
     def test_the_client_draws_every_terrain_the_game_has(self):
+        """Row BA, BA-6: the ground is a period survey's plate, not shapes drawn
+        in code - every terrain the game has names its plates (a sided kind,
+        one for each half), and every plate is a file the client ships."""
+        import pathlib
         from backend.models.region import VALID_TERRAINS
         acts = self._gd("battle_acts.gd")
-        kinds = re.search(r'const KINDS := \[([^\]]*)\]', acts.split("class Ground:", 1)[1]).group(1)
+        ground = acts.split("class Ground:", 1)[1]
+        kinds = re.search(r'const KINDS := \[([^\]]*)\]', ground).group(1)
         assert {k.strip().strip('"') for k in kinds.split(",")} == set(VALID_TERRAINS)
-        draw = acts.split("class Ground:", 1)[1].split("func _draw() -> void:", 1)[1].split("\n\t#", 1)[0]
+        plates = ground.split("const PLATES := {", 1)[1].split("}", 1)[0]
+        sided = ground.split("const SIDED := {", 1)[1].split("\n\t}", 1)[0]
+        art = (pathlib.Path(BD.__file__).resolve().parents[2] / "godot-client" / "project-sovereign"
+               / "assets" / "textures" / "battle")
         for terrain in VALID_TERRAINS:
-            assert f'"{terrain}":' in draw, terrain
+            assert f'"{terrain}":' in plates or f'"{terrain}":' in sided, terrain
+        for name in set(re.findall(r'"([a-z_]+_\d)"', plates + sided)):
+            assert (art / f"{name}.jpg").exists(), name
+            assert (art / f"{name}.jpg.import").exists(), f"{name}: imported (and force-added: assets/ is ignored)"
 
     def test_it_lies_under_the_men_and_on_the_defenders_half(self):
         acts = self._gd("battle_acts.gd")
@@ -1347,11 +1361,16 @@ class TestTheGroundOnTheTable:
         assert dress.index("if host._is_naval():") < dress.index("_build_the_ground()"), "no ground at sea"
 
     def test_a_field_looks_the_same_every_time_it_is_fought_on(self):
+        """The province picks its plate among its kind's by its own name (a
+        seeded stream, never randomize), and the plate is never mirrored - a
+        survey's lettering would read backwards (BA-6)."""
         acts = self._gd("battle_acts.gd")
         ground = acts.split("class Ground:", 1)[1].split("\n# ──", 1)[0]
         assert 'rng.seed = (kind + "|" + seed_text).hash()' in ground
-        assert "randomize()" not in ground and "randf()" in ground
-        assert ground.count("var rng := _rng()") == 6, "one seeded stream a terrain"
+        assert "randomize()" not in ground
+        assert "plate = str(names[rng.randi() % names.size()])" in ground
+        assert 'names = SIDED[kind]["right" if dir > 0.0 else "left"]' in ground, "a wood or a town on his half"
+        assert "draw_set_transform" not in ground and "Vector2(-1.0, 1.0)" not in ground, "never a mirror"
 
 
 class TestTheClientsOwnDefects:
@@ -1474,6 +1493,9 @@ class TestTheDaysSoundsAndHelp:
         sound = acts.split("func _sound_the_day() -> void:", 1)[1].split("\nfunc ", 1)[0]
         assert "host._cue(" in sound and "AudioManager.play(" not in sound, "the Battle sounds setting is the host's guard"
         assert "_day_sounded[enemy] = mark" in sound and "== mark:" in sound, "a table shown again says nothing twice"
+        # BA6-X2: the mark is the battle's own (its turn, ground and name), so a LATER battle against
+        # the same enemy sounds, and the same table shown again still stays silent
+        assert 'host._data.get("turn", 0)' in sound and 'host._data.get("region", "")' in sound             and 'host._data.get("battle_name", "")' in sound
         press = acts.split("func _on_day_chip(meta) -> void:", 1)[1].split("\nfunc ", 1)[0]
         assert "host._cue(str(DAY_WORD_CUES.get(" in press
 
@@ -1771,7 +1793,7 @@ class TestTheExitsSayWhatTheyDoBesideTheButtons:
         fit = build.split("if not exit_cards and can_tag:", 1)[1].split("if first_box != null:", 1)[0]
         assert "for kept in range(DAY_TAG_ORDER.size(), 0, -1):" in fit
         assert "if e_box.get_content_width() <= DAY_CHIPS_W:" in fit, "the row fits left of Replay, or the tag goes"
-        assert build.index("_day_tags_kept = 0") < build.index("for _step in range(14):"), (
+        assert build.index("_day_tags_kept = 0") < build.index("for _step in range(20):"), (
             "the ladder itself is measured with every tag or none")
 
     def test_an_exits_turn_is_read_from_its_word_and_kind(self):
@@ -1963,7 +1985,7 @@ class TestTheSecondReading:
 
     def test_every_exit_says_that_the_day_ends(self, table):
         body, day = table.open_a_day(_awaits_us)
-        assert _chip(day, word="break_off")["does"] == "the day ends; he keeps the field"
+        assert _chip(day, word="break_off")["does"].startswith("the day ends; he keeps the field")   # BA-6: + its stakes
         assert T.DOES["fall_back"] == "the day ends; he takes the field"
         assert T.DOES["stand_night"] == "night falls, undecided"
         for chip in day["chips"]:
@@ -2041,9 +2063,11 @@ class TestTheSecondReading:
         text = self._func(acts, "_day_exits_text")
         assert "if _day_exit_tags:" in text and "_day_exit_card_bb(int(i), chip)" in text
         build = self._func(acts, "_build_the_day")
-        assert "if exit_cards and e_box.get_content_width() > DAY_CHIPS_W:" in build, (
-            "cards that do not fit left of Replay give way to the one-line chips")
-        assert "e_top_abs = DAY_BOTTOM - DAY_EXIT_FLOOR - e_h" in build, "beside the buttons, down to the tray's floor"
+        # BA-6 (the levers past 5): cards that do not fit left of Replay take the full-width row above the
+        # buttons, then wrap their stakes, and only then give way to the one-line chips
+        assert "if not exits_row and e_w > DAY_CHIPS_W:" in build and "exit_cards = false        # ...then the one-line chips" in build, (
+            "cards that fit nowhere give way to the one-line chips")
+        assert "e_top_abs = floor_px - DAY_EXIT_FLOOR - e_h" in build, "beside the buttons, down to the tray's floor"
         assert "COLOR_CHIP_BG_GREEN" not in acts.split("# The payload's `day` block", 1)[1].split("func _the_day()", 1)[0], (
             "\"Leave it to him\" is no go-ahead: its green ground is gone")
 
@@ -2516,7 +2540,9 @@ class TestTheSessionsReview:
         `day_dim_chip`)."""
         acts = self._gd("battle_acts.gd")
         want = 'var tip := _day_chip_tip(chip, false, not lit and why != "")'
-        assert want in self._func(acts, "_day_card_bb") and want in self._func(acts, "_day_exit_card_bb")
+        # (BA-6: a card whose face carries the third line leaves the risk out of its hover)
+        assert want.replace('"")', '"", not risk_on_face)') in self._func(acts, "_day_card_bb")
+        assert want in self._func(acts, "_day_exit_card_bb")
         tip = self._func(acts, "_day_chip_tip")
         assert 'if not bool(chip.get("ok", false)) and str(chip.get("why", "")) != "":' in tip
         assert "with_why" not in tip
@@ -2722,8 +2748,20 @@ class TestTheSecondReadingsOpenRows:
         root = pathlib.Path(BD.__file__).resolve().parents[2]
         return json.loads((root / relative).read_text(encoding="utf-8"))
 
-    @pytest.mark.xfail(strict=True, reason="BA5-X15: the band counts a corps still unseen — Session H's head")
+    def test_the_band_holds_back_a_corps_unseen_in_the_source(self):
+        """BA5-X15 (fixed in session BA-6): the host's band rows carry `unseen`, the acts hold a
+        concealed corps' men there and `_reveal` brings them over its own 0.35 s."""
+        import pathlib
+        scripts = pathlib.Path(BD.__file__).resolve().parents[2] / "godot-client" / "project-sovereign" / "scripts"
+        host = (scripts / "battle_diorama.gd").read_text(encoding="utf-8")
+        acts = (scripts / "battle_acts.gd").read_text(encoding="utf-8")
+        assert '"unseen": 0' in host and 'row.get("unseen", 0)' in host and "func set_band_unseen" in host
+        assert "_band_hold_unseen(b)" in acts and "_band_unseen_step.bind(b), 1.0, 0.0, 0.35" in acts
+        assert "_band_all_made_out()" in acts.split("func settle() -> void:", 1)[1].split("\nfunc ", 1)[0]
+
     def test_the_band_does_not_count_a_corps_still_unseen(self):
+        """BA5-X15 (fixed in session BA-6): the walk of record, shot from the fixed client, reads
+        the band holding the unseen corps' share back (the strict xfail made a plain test)."""
         record = self._read("docs/audits/ba1_client/walk_record.json")
         payload = self._read("docs/audits/ba1_client/payloads/enemy_comes.json")
         res = next(r for r in record["results"] if r.get("id") == "enemy_comes")
@@ -2737,8 +2775,8 @@ class TestTheSecondReadingsOpenRows:
         assert any(str(fig).startswith(f"{made_out:,} ") for fig in frame["band"]), (
             "while he is still unseen the band reads his whole muster", frame["band"])
 
-    @pytest.mark.xfail(strict=True, reason="BA5-X16: a narrow defeat is said of a heavy toll — Session H's head")
     def test_a_narrow_defeat_is_not_said_of_a_heavy_toll(self):
+        """BA5-X16 (fixed in session BA-6, `battle_report.a_dear_defeat_is_not_a_narrow_one`)."""
         payload = self._read("docs/audits/ba1_client/payloads/defeat_defending.json")
         ours = next(c for side in ("attacker", "defender") for c in payload[side]["contingents"]
                     if c.get("name") == "Bernadotte")
@@ -2746,8 +2784,8 @@ class TestTheSecondReadingsOpenRows:
         said = str(payload.get("observation") or "")
         assert not any(words in said for words in ("margin was slim", "narrow defeat", "was close")), said
 
-    @pytest.mark.xfail(strict=True, reason="BA5-X17: a card's men of ours are the muster's weight — Session H's head")
     def test_a_cards_men_are_men_on_the_field(self):
+        """BA5-X17 (fixed in session BA-6, `order_quotes.a_cards_men_are_men_in_reach`)."""
         payload = self._read("docs/audits/ba1_client/payloads/day_ulm.json")
         ours = next(side for side in (payload["attacker"], payload["defender"]) if side.get("nation") == "France")
         on_the_field = int(ours["committed_total"]) - int(ours["casualties_total"])
@@ -2785,7 +2823,8 @@ class TestTheSeams:
     def test_every_seam_of_the_new_module_is_registered(self):
         import inspect
         from tests._ba5_seams import BA5_SEAMS_DOWN
-        registered = {spec.split("=", 1)[0] for spec in BA5_SEAMS_DOWN}
+        from tests._ba6_seams import BA6_SEAMS_DOWN      # BA-6 adds `a_word_says_what_it_risks`
+        registered = {spec.split("=", 1)[0] for spec in BA5_SEAMS_DOWN + BA6_SEAMS_DOWN}
         for name, fn in inspect.getmembers(T, inspect.isfunction):
             if fn.__module__ != T.__name__ or name.startswith("_"):
                 continue

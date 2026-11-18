@@ -2062,7 +2062,9 @@ class TestNewsOfABattleAbroad:
         from backend import campaign_log
         for kind in ("foreign_battle", "battle_day_closed"):
             assert kind in campaign_log.CAMPAIGN_LOG_TYPES
-        assert len(campaign_log.CAMPAIGN_LOG_TYPES) == 188
+        # 188 at BA-4; 191 since row MC (Nov 17, 2026) added `marshal_bond`, `title_in_the_gift`
+        # and `title_conferred` (precedence.py)
+        assert len(campaign_log.CAMPAIGN_LOG_TYPES) == 191
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -2848,8 +2850,9 @@ class TestTheRecordsSayWhatLanded:
         rows = dict(re.findall(r"^\| \*\*(BA\d-X\d+)\*\* \| P\d \| (✅ FIXED|OPEN) ", ledger, flags=re.M))
         still_open = sorted(name for name, state in rows.items() if state == "OPEN")
         assert not [name for name in still_open if name.startswith("BA4-")], "none of BA-4's"
-        # (row BA, BA-5 closed BA1-X8 and filed three older rows for Session H's head)
-        assert still_open == ["BA1-X4", "BA2-X16", "BA2-X6", "BA5-X15", "BA5-X16", "BA5-X17"], "Session H's"
+        # (row BA, BA-5 closed BA1-X8 and filed three older rows for Session H's head; row BA,
+        # BA-6 closed all six — BA1-X4, BA2-X6, BA2-X16, BA5-X15, BA5-X16, BA5-X17 — and its own)
+        assert still_open == [], "row BA leaves no row open"
         assert rows["BA4-X1"] == rows["BA4-X2"] == "✅ FIXED"
         for name in ("BA2-X2", "BA2-X7", "BA2-X10", "BA2-X12", "BA2-X20", "BA2-X21",
                      "BA3-X2", "BA3-X5", "BA3-X13", "BA3-X14", "BA3-X15", "BA3-X16"):
@@ -2857,12 +2860,16 @@ class TestTheRecordsSayWhatLanded:
 
     def test_the_brief_for_the_deploy_reads_the_gate_against_this_sessions_records(self):
         brief = (REPO / "docs" / "NEXT_SESSION_PROMPT.md").read_text(encoding="utf-8")
-        assert brief.startswith("# NEXT SESSION PROMPT — Session H")
-        # (row BA, BA-5 re-took every one of these surfaces on its final tree, and the brief now
-        # reads the gate against those records: BA-4's stand as the game before the finish)
+        # (row BA, BA-6 hands over to row OC — the rulings built — and then Session H; the brief
+        # reads the gate against BA-6's records, and BA-5's and BA-4's stay as the games before)
+        assert brief.startswith("# NEXT SESSION PROMPT — Row OC")
+        assert "## Session H: S15 the deploy" in brief
+        for name in ("_ba6_band_2026_11_17.json", "_dy_signature_ba6_all_2026_11_17.json",
+                     "_ba6_all_census_2026_11_17.json", "_ba6_chain_d_2026_11_17.json"):
+            assert name in brief, name
         for name in ("_ba5_band_2026_11_17.json", "_dy_signature_ba5_all_2026_11_17.json",
                      "_ba5_all_census_2026_11_17.json", "_ba5_chain_d_2026_11_17.json"):
-            assert name in brief, name
+            assert (REPO / "tools" / name).is_file(), name
         for name in (f"_ba4_band_{STAMP}.json", f"_dy_signature_ba4_x14_{STAMP}.json",
                      f"_ba4_x14_census_{STAMP}.json", f"_ba4_chain_d_{STAMP}.json"):
             assert (REPO / "tools" / name).is_file(), name

@@ -165,7 +165,7 @@
                 "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
             },
             "biography": "III Corps - crossed the Rhine at Mannheim on September 26. The iron marshal, exacting and incorruptible.",
-            "relationships": { "Murat": -1, "Bernadotte": -2, "Napoleon": 1 }
+            "relationships": { "Murat": -1, "Bernadotte": -1, "Napoleon": 1 }
         },
         "Soult": {
             "name": "Soult",
@@ -221,7 +221,7 @@
                 "effect": "+5,000 pursuit casualties when an enemy he helped defeat is forced to retreat (cavalry; leading the attack, or fighting beside a lead who has no pursuit of his own)"
             },
             "biography": "The Cavalry Reserve - screening the Black Forest feint while the army wheels north of the Danube.",
-            "relationships": { "Ney": -1, "Davout": -1, "Lannes": -1, "Bernadotte": -2, "Napoleon": 1 }
+            "relationships": { "Ney": -1, "Davout": -1, "Lannes": -1, "Bernadotte": -1, "Napoleon": 1 }
         },
         "Bernadotte": {
             "name": "Bernadotte",
@@ -239,7 +239,7 @@
                 "effect": "+10% defiance after insisted objections; -15 reinforcement arrival score (a written support order mostly cancels it)"
             },
             "biography": "I Corps at Wuerzburg, marched down from occupied Hanover - standing on allied Bavarian soil across Mack's rear.",
-            "relationships": { "Ney": -1, "Davout": -2, "Murat": -2, "Napoleon": -2 }
+            "relationships": { "Ney": -1, "Davout": -1, "Murat": -1, "Napoleon": -1 }
         },
         "Massena": {
             "name": "Massena",
@@ -276,7 +276,7 @@
                 "effect": "Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal."
             },
             "biography": "Emperor of the French, on the Rhine with the Guard - 10,000 men carved from Soult's own IV Corps, and Soult's corps is drawn up beside them. He left Paris on the 24th of September and the army is across the river; Mack sits at Ulm one march east. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.",
-            "relationships": { "Lannes": 1, "Davout": 1, "Murat": 1, "Bernadotte": -2 }
+            "relationships": { "Lannes": 1, "Davout": 1, "Murat": 1, "Bernadotte": -1 }
         },
         "Deroy": {
             "name": "Deroy",
@@ -479,6 +479,61 @@
             "trust": { "value": 65 },
             "biography": "Bernardim Freire de Andrade - a careful, prickly general of a neutral court's unmobilised army; in 1808 he led Portugal's northern army beside Wellesley, who found him hard to work with."
         }
+    },
+    "_seniority_comment": "Row MC (docs/MARSHALATE_SPEC.md): each court's seats on the list. France's are the order of the 1804 list of marshals (the decree's order - a convention of the histories, not a formal precedence: the game's order of precedence puts the titles the Emperor grants first, then these seats); a baton given later is junior to every baton already given. A court left out ranks its generals in roster order.",
+    "seniority": {"France": {"Murat": 2, "Massena": 5, "Bernadotte": 7, "Soult": 8, "Lannes": 10, "Ney": 12, "Davout": 13}, "Austria": {"ArchdukeCharles": 1, "ArchdukeJohn": 2, "Mack": 3}, "Russia": {"Kutuzov": 1, "Buxhowden": 2}, "Prussia": {"Brunswick": 1, "Hohenlohe": 2}},
+    "_relationship_causes_comment": "Row MC: the cause of each authored relationship, shown beside it and cited by the staff - true as of September 1805: an incident where one is documented, a characterization where none is, never an invented incident. Three enmities stand as they stood in 1805 (Rivals, -1): the feud of Davout and Bernadotte is Auerstedt's (October 1806), and the game can make its own Auerstedt. A cause naming a man still in the pool waits for his commission.",
+    "relationship_causes": {
+        "Ney->Soult": "Montreuil and Saint-Omer: rival camps on the Channel coast, 1803-05",
+        "Soult->Ney": "Montreuil and Saint-Omer: rival camps on the Channel coast, 1803-05",
+        "Ney->Lannes": "two soldiers risen from the ranks, alike in their dash",
+        "Lannes->Ney": "two soldiers risen from the ranks, alike in their dash",
+        "Ney->Murat": "Moreau's Army of the Rhine against Bonaparte's Army of Italy: old rivalries",
+        "Murat->Ney": "Bonaparte's Army of Italy against Moreau's Army of the Rhine: old rivalries",
+        "Ney->Bernadotte": "two proud veterans of the Sambre-et-Meuse, never easy together",
+        "Bernadotte->Ney": "two proud veterans of the Sambre-et-Meuse, never easy together",
+        "Davout->Murat": "Egypt's austere infantryman and its plumed cavalryman",
+        "Murat->Davout": "Egypt's plumed cavalryman and its austere infantryman",
+        "Davout->Bernadotte": "the Emperor's loyalist against the Republic's general",
+        "Bernadotte->Davout": "the Republic's general against the Emperor's loyalist",
+        "Lannes->Murat": "the Guard's deficit, 1802: Murat worked to have him removed",
+        "Murat->Lannes": "the Guard's deficit, 1802: he pressed the accounts against Lannes",
+        "Murat->Bernadotte": "Brumaire, 1799: Murat cleared the Orangery; Bernadotte stood aside",
+        "Bernadotte->Murat": "Brumaire, 1799: Murat cleared the Orangery; Bernadotte stood aside",
+        "Soult->Massena": "Zurich, 1799, and the siege of Genoa, 1800, at Massena's side",
+        "Massena->Soult": "his lieutenant at Zurich, 1799, and in the siege of Genoa, 1800",
+        "Davout->Napoleon": "Bonaparte's man since Egypt, 1798",
+        "Napoleon->Davout": "his man since Egypt, 1798",
+        "Lannes->Napoleon": "Italy, 1796: friends ever since - he alone still says 'tu'",
+        "Napoleon->Lannes": "Italy, 1796: friends ever since",
+        "Murat->Napoleon": "Brumaire, 1799, and Caroline Bonaparte's hand, 1800",
+        "Napoleon->Murat": "Brumaire, 1799, and his sister Caroline's husband since 1800",
+        "Bernadotte->Napoleon": "he stood aside at Brumaire, 1799, and has not been forgiven",
+        "Napoleon->Bernadotte": "he stood aside at Brumaire, 1799",
+        "Grouchy->Murat": "the marquis and the innkeeper's son: two cavalrymen of different worlds",
+        "Grouchy->Davout": "two nobles of the old army who served the Republic",
+        "Suchet->Lannes": "his division serves in Lannes's corps",
+        "Oudinot->Lannes": "his grenadiers march in Lannes's corps",
+        "Augereau->Massena": "the Army of Italy, 1796: division commanders together under Bonaparte",
+        "Mack->ArchdukeCharles": "the war party's chief of staff against the Archduke who opposed the war, 1805",
+        "ArchdukeCharles->Mack": "the war party's chief of staff, who has the Emperor's ear, 1805",
+        "ArchdukeCharles->ArchdukeJohn": "brothers, sons of Leopold II",
+        "ArchdukeJohn->ArchdukeCharles": "brothers, sons of Leopold II",
+        "Schwarzenberg->ArchdukeCharles": "a cavalry general of the Archduke's campaigns of the 1790s",
+        "Hiller->ArchdukeCharles": "a general of the line, never of the Archduke's circle",
+        "Kutuzov->Buxhowden": "two army commanders with one war between them, 1805",
+        "Buxhowden->Kutuzov": "two army commanders with one war between them, 1805",
+        "Bagration->Kutuzov": "both of Suvorov's school: Izmail and Italy",
+        "Bagration->Buxhowden": "the Georgian prince and the Baltic baron",
+        "Bennigsen->Kutuzov": "rivals for the Tsar's confidence",
+        "Brunswick->Hohenlohe": "Prussia's two senior generals, each sure of the command",
+        "Hohenlohe->Brunswick": "Prussia's two senior generals, each sure of the command",
+        "Blucher->Hohenlohe": "the hussar general and the prince who outranks him",
+        "Blucher->Scharnhorst": "the hussar and the reformer: kindred minds",
+        "Scharnhorst->Blucher": "the reformer and the hussar: kindred minds",
+        "Wellesley->Moore": "two of the army's rising generals",
+        "Cuesta->Blake": "the old captain-general and a younger officer of Irish stock",
+        "Wrede->Deroy": "Bavaria's two division generals, rivals for the Elector's favour"
     },
     "_marshal_pool_comment": "Marshal Recruitment (docs/MARSHAL_RECRUITMENT_SPEC.md): commissionable candidates per nation, authored quality order (the AI takes the first affordable). No location/strength - the corps is raised at commission (5,000 infantry from the pool). cost = gold. Relationship seeds apply symmetrically to marshals in service. The secondaries' benches (EG-D3, ruled October 13, 2026; built in SF-RR4): Spain's La Romana, Blake and Cuesta, Sweden's Toll and Adlercreutz, Bavaria's Wrede - each court at war commissions from its own, as the great powers do. S14k (ruled October 28, 2026 - the user: 'they should get armies or the ability to make them'): the courts that had none - Portugal's Silveira, Saxony's Le Coq, Hesse's Emil, Hanover's Wallmoden and Alten, Holland's Janssens, the Kingdom of Italy's Fontanelli, Switzerland's Wattenwyl and Bachmann - and the one-general courts' second men, Denmark's Christian August, Naples' Philippsthal, the Ottomans' Alemdar and Yusuf Ziya. A court commissions at war, preparing a design, or called to arms by a design priced against it; a satellite serving its lord's war fights by its contingent, and its bench is for a war of its own. Sardinia and the Papal States keep their garrisons only: neither fielded an army in the period.",
     "marshal_pool": {

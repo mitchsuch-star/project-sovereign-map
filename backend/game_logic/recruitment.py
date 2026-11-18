@@ -275,7 +275,7 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
     # arm flag rides through the ctor untouched.
     ctor = {k: v for k, v in candidate.items()
             if k not in ("cost", "relationships", "nation", "location",
-                         "strength", "trust")}
+                         "strength", "trust", "relationship_causes", "seniority")}
     ctor["name"] = name
     ctor["nation"] = nation
     ctor["location"] = spawn
@@ -305,6 +305,9 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
         marshal.set_relationship(other_name, int(value))
         other.set_relationship(name, int(value))
         applied_seeds[other_name] = int(value)
+    # Row MC: his seat after the list, and the history he brings
+    from backend.game_logic.precedence import seed_the_commissioned
+    seed_the_commissioned(world, marshal, candidate, applied_seeds)
 
     # Remove from the pool (a commissioned man cannot be commissioned twice).
     world.marshal_pool[nation] = [

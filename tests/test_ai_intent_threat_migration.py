@@ -1847,7 +1847,29 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # [19]. Mack's late assaults on Lorraine ([20]–[29]'s 2s) never come.
 # The prior's series: SERIES_BEFORE_T4_2.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 28, 25, 22, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by row BA's session BA-6 and row MC "Mon Cousin" (November 17,
+# 2026 — `BATTLE_DIORAMA_SPEC.md` §15.25, `MARSHALATE_SPEC.md`). The
+# attribution: `tools/_ba6_series_arms.py` → `tools/_ba6_series_arms_final.json`
+# — every seam of `tests/_ba6_seams.py` wrapped in the child and its reads
+# counted; arm 0 (every row down) reproduces the prior BYTE FOR BYTE, so the
+# rows isolate the session exactly. Three rows move the loop, each alone:
+# MCSEEDS (the three enmities read as of 1805 — Davout/Bernadotte,
+# Murat/Bernadotte, Bernadotte/the Emperor open as Rivals) from [12]: traced on
+# the series' own loop, the courts' choice of whom to strike at Franche-Comte
+# changes from world turn 10 (Kutuzov's assault on Murat becomes Mack's on
+# Lannes), and Soult's decisive defensive win at Lorraine on turn 12 (+5,
+# the defender's arm of `add_threat`) never comes: [12] 28 → 23; MCBONDS (the
+# two-way bonds) from [16]; WS (WS-13 / WS-15) from [17]. TELL, MC0, MCBOOK
+# and MCRANK alone are byte-identical (their seams read 15 to 960 times on the
+# loop). Taken on a frozen copy before GRD-31 / GRD-17's voices / GRD-2
+# landed — none can reach this loop (an idle France gives no order to defy;
+# the voices and the morning's rows are told, not threat); this pin re-reads
+# the final tree. The prior's series: SERIES_BEFORE_BA6.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 23, 20, 17, 14, 11, 13, 10, 7, 4, 1, 3, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# T4-2's series (BA-6's prior; the BA-6 rig's arm 0):
+SERIES_BEFORE_BA6 = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 28, 25, 22, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T4-1's series (T4-2's prior; the T4-2 rig's arm 0):
 SERIES_BEFORE_T4_2 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T3-3's series (T4-1's prior; the T4-1 rig's arm 0):

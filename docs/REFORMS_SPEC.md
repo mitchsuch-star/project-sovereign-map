@@ -213,6 +213,8 @@ Rules:
 
 ## §5a The army order — the Staff's second power (AO; gate record and landing record, October 17, 2026)
 
+**RULED November 17, 2026 (row BA, session BA-6, under the user's "make decisions yourself"):** AO's three questions — Q1 (two provinces) KEEP, measured under its delegation; Q2 (a "name the two who matter" card for a short pool) CLOSED, the fan-out already sends in roster order and names who did not go; Q3 (the courts' AI using the army order) CLOSED, the courts issue no standing orders by design (CC D8) — `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §4.
+
 **The user's rulings (October 16–17, 2026, on `docs/audits/COMMAND_FEEL_2026_10_16.md` §10, then "make decisions and code it, make it work well"):** *the army moves as one after getting the tech; before then the corps may follow a friendly unit, it just costs more; all army orders work only while Napoleon's authority is high enough.* The decisions below were taken under that delegation and are the record; a reversal is flagged, never silent. Rules `SYSTEMS_REFERENCE.md` §125; pins `tests/test_ao_the_army_order.py`; the code `backend/commands/group_orders.py` (the entry, the fan-out, the gate, the resume), `backend/ai/second_name.py` (`_follow_patterns`), `backend/ai/strategic_parser.py` (`_FOLLOW_LEAD_RE`), `backend/commands/order_quotes.py` (`follow_quote`, `army_quote`).
 
 ### The three tiers

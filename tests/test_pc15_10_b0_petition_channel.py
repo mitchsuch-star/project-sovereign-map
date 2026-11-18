@@ -297,6 +297,7 @@ class TestF7DrainFamily:
     DRAINING = {
         "/command",                    # the main delivery channel
         "/marshal_petition_response",  # answer consumes, next popup rides
+        "/confer_title",               # row MC: a court act; the result response rides the popups like a petition answer
         "/respond_to_diplomatic_dialogue",
         "/respond_to_diplomatic_objection",
         "/new_game",                   # fresh world, nothing to lose

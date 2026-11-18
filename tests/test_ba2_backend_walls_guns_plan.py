@@ -732,7 +732,10 @@ class TestBringQuotes:
         # Murat is brought to Lannes, who stands beside him (no road to walk) —
         # and, since row BA's BA-4, to Ney and Davout too: his roads to them
         # run through Mack, and the order now halts him at the approach
-        assert {lead for lead, name, *_ in offers if name == "Murat"} == {"Lannes", "Ney", "Davout"}
+        # — and, since row MC's 1805 reading (November 17, 2026), to Bernadotte:
+        # the two open as Rivals, not Hostile, so a written order brings him
+        assert {lead for lead, name, *_ in offers if name == "Murat"} == {"Lannes", "Ney", "Davout",
+                                                                          "Bernadotte"}
         for lead_name, name, command, objection in offers:
             w, ex = _board()
             lead, foe, m = w.marshals[lead_name], w.marshals["Mack"], w.marshals[name]

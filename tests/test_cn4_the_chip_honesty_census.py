@@ -1197,6 +1197,13 @@ REVIEWED = {
     # against a real server (`tools/ba3_mode_c_walk.py`, three boards).
     ("battle_acts.gd", '"day:%d" % i'):
         "the table's day chips: the index of the block's chip; the press emits its command or word on the host's word_given (BA-3)",
+    # Row BA, BA-6 (November 17, 2026): the readers' lever 4 — "+N more" on a crowded day. It sends
+    # nothing: pressing it shows the group's hidden chips in place ("show fewer" puts them back) and
+    # re-lays the panel (`_relay_the_day`, BA6-R14); the digits are unchanged. The walk claims the toggle
+    # and the re-lay (`tools/ba1_acts_walk.py` BA6-4), the switch-off table catches both
+    # (`ba6_more_toggle`, `ba6_more_relay`).
+    ("battle_acts.gd", "DAY_MORE_KEY"):
+        "shows or hides the group's hidden chips in place; sends no order (BA-6, lever 4)",
     ("main.gd", '"day:" + command'):
         "a day read from the notice with no tableau held: the block's chip as a log line; main.gd's own guarded send road (BA-3)",
     ("main.gd", '"dayopen:" + enemy_key'):
@@ -1222,6 +1229,8 @@ REVIEWED = {
     ("marshal_management.gd", '"order:" + verb + ":" + str(m.get("name", ""))'): "same commands as the panel's; dimmed with the card's reason",
     ("marshal_management.gd", '"commission:" + cname'): "driven: `commission <name>`",
     ("marshal_management.gd", '"commission_open"'): "opens the bench; sends nothing",
+    ("marshal_management.gd", '"ordersort:" + t[0]'): "re-sorts the order's rows from the cache; sends nothing",
+    ("marshal_management.gd", '"title:" + str(m.get("name", ""))'): "row MC: POST /confer_title; dimmed with the quote's refusal when it cannot be conferred",
     ("marshal_management.gd", '"commission_back"'): "closes the bench; sends nothing",
     ("marshal_management.gd", '"reward:" + str(index)'): "opens the reward dialog; its commands driven",
     # PC15-10 B1 "The Antechamber" (Sept 26, 2026): the card's "Hear him"

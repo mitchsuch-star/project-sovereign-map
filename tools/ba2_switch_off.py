@@ -316,7 +316,7 @@ func _type_the_verdict""")], "day_opens", 8.0, "stands in the panel's room"),
 				first_row = false                     # 5
 """, """			elif false:
 				first_row = false                     # 5
-""")], "day_crowded,day_guns", 8.0, "(BA5-l)"),
+""")], "day_crowded,day_guns|--text-size 1.3", 8.0, "(BA5-l)"),
     # ── Row BA, BA-5 "the finish": the day's table tells itself ──
     ("ba5_no_reading", "the head carries no reading of him (BA5-r)",
      [("""	if _day_reading(day) != "":
@@ -448,8 +448,8 @@ func _type_the_verdict""")], "day_opens", 8.0, "stands in the panel's room"),
 	if _sub_told != "":
 """)], "day_crowded|--text-size 1.3", 8.0, "ink over ink"),
     ("ba5_exit_cards_off_the_floor", "the exits' cards stand nine pixels off the tray's floor (BA5-e)",
-     [("""				e_top_abs = DAY_BOTTOM - DAY_EXIT_FLOOR - e_h    # beside the buttons, down to the tray's floor
-""", """				e_top_abs = DAY_BOTTOM - DAY_EXIT_FLOOR - e_h - 9.0
+     [("""					e_top_abs = floor_px - DAY_EXIT_FLOOR - e_h  # beside the buttons, down to the tray's floor
+""", """					e_top_abs = floor_px - DAY_EXIT_FLOOR - e_h - 9.0
 """)], "day_opens", 8.0, "(BA5-e)"),
     ("ba5_card_no_digit", "a card of the lead's own word does not show the digit that fires it (BA4-d)",
      [("""		head = "%d %s" % [digit, head]
@@ -469,16 +469,13 @@ func _type_the_verdict""")], "day_opens", 8.0, "stands in the panel's room"),
      # tells four lines, so a table that kept only the newest rows dropped nothing on a staged
      # scene: the case drops the first row kept - on a closing table, the line that says how it ended
      [("""	for i in _day_told_kept(lines, keep):
-""", """	for i in _day_told_kept(lines, keep).slice(1):
+""", """	for i in _day_told_kept(lines, keep).filter(func(k): return k != lines.find_custom(
+			func(t): return str(t.get("who", "")) == "end")):
 """)],
      "day_night", 8.0, "(BA5-o)"),
     ("ba5_locked_card_hides_does", "a locked card's hover does not say what the word would do (BA5-c)",
-     [("""		inner += "\\n" + Utils.bb_step(second, &"Caption")   # the ladder's Caption step
-	# the hover: the rest of what the word does (its face says the first of it)
-	# (the review) a locked card's face says why: its hover says it too, and what the word would do
-	var tip := _day_chip_tip(chip, false, not lit and why != "")
-""", """		inner += "\\n" + Utils.bb_step(second, &"Caption")   # the ladder's Caption step
-	var tip := _day_chip_tip(chip, false, false)
+     [("""	var tip := _day_chip_tip(chip, false, not lit and why != "", not risk_on_face)
+""", """	var tip := _day_chip_tip(chip, false, false, not risk_on_face)
 """)], "day_dim_chip", 8.0, "(BA5-c)"),
     ("ba5_toll_one_line_lost", "at the baize's foot the march's cost is left off its one line (BA5-m)",
      [("""	var cost: int = int(b.get("march_cost", 0))
@@ -500,6 +497,54 @@ func _type_the_verdict""")], "day_opens", 8.0, "stands in the panel's room"),
      [("""		span = 1.2
 """, """		pass
 """)], "bombard_link", 1.0, "(BA5-q)"),
+    # --- Row BA, the levers past 5 (BA-6)
+    ("ba6_tray_room", "the tray does not grow for a day's panel (BA6-1)",
+     [("""	host.set_day_room(DAY_ROOM if _day_has_panel() else 0.0)
+""", """	host.set_day_room(0.0)
+""")], "day_opens", 8.0, "(BA6-1) the tray is"),
+    ("ba6_panel_floor", "the panel's floor stays where the unextended tray had it (BA6-1)",
+     [("""	panel.size = Vector2(DAY_W, floor_px - top)
+""", """	panel.size = Vector2(DAY_W, DAY_BOTTOM - top)
+""")], "day_opens", 8.0, "(BA6-1) the panel's floor is"),
+    ("ba6_risk_line", "the cards carry no third line, with the ladder saying they do (BA6-2)",
+     [("""	var risk_on_face: bool = lit and _day_risk_lines and risk != ""
+""", """	var risk_on_face: bool = false
+""")], "day_opens", 8.0, "does not carry what it risks"),
+    ("ba6_exits_row", "the exits' cards stay beside the buttons where their stakes do not fit (BA6-3)",
+     [("""				if not exits_row and e_w > DAY_CHIPS_W:
+""", """				if false:
+""")], "day_ulm", 8.0, "runs past its box's right edge"),
+    ("ba6_exits_wrap", "the exits' stakes are said to wrap and stand on one line (BA6-3)",
+     # (the flag stays true and the cards keep their one-line width, so the ladder still reads them as wrapped:
+     # only the second half of the stakes goes missing from the face - the claim "wraps its stakes" is the catch)
+     [("""		if halves.size() > 1:
+			third_line = str(halves[1])
+""", """		if halves.size() > 1:
+			third_line = ""
+""")], "day_ulm", 8.0, "wraps its stakes"),
+    ("ba6_more_chip", "the groups show every chip and no quiet '+N more' stands for the rest (BA6-4)",
+     [("""			if _day_more_open or _day_digit_of.has(int(i)):
+""", """			if true:
+""")], "day_crowded", 8.0, "(BA6-4) rows D draw"),
+    ("ba6_more_toggle", "'+N more' does not open the rest (BA6-4)",
+     [("""		_day_more_open = not _day_more_open
+""", """		pass
+""")], "day_crowded", 8.0, "(BA6-4) '+N more' did not toggle"),
+    ("ba6_more_relay", "'+N more' only re-texts the groups' box, which keeps its closed height (BA6-4)",
+     [("""		_relay_the_day()       # the ladder measures the opened words and gives them their room
+""", """		_day_retext()
+""")], "day_crowded|--text-size 1.3", 8.0, "the opened groups"),
+    ("ba6_legend", "the table's marks have no caption line where there is room (BA6-6)",
+     [("""var legend_row: bool = legend_box != null""", """var legend_row: bool = false and legend_box != null""")],
+     "day_opens", 8.0, "has no legend row"),
+    ("ba6_luck", "the luck is not set against what told (BA6-5)",
+     [("""	var told := _what_told()
+""", """	var told := ""
+""")], "ordinary_brief", 8.0, "(BA6-5) the luck row reads"),
+    ("ba6_luck_short", "where the plate holds two rows the luck's short form does not take the second (BA6-5, the C12 ruling)",
+     [("""		if _rows.size() == 2 and texts.size() == 3 and luck_short != "":
+""", """		if false:
+""")], "ordinary_brief|--text-size 1.3", 8.0, "the luck's short row reads"),
 ]
 
 

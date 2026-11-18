@@ -1856,10 +1856,26 @@ def _merge_instance_data(
     merge_keeps_letters(survivor, absorbed)
 
 
+    # BA6-X6 (row BA, session BA-6 — the treaty fuzzer, once BA6-X5 let its
+    # seed run on): a pair the survivor had RESOLVED (an older peace between
+    # the two) and the absorbed war holds LIVE is live in the merged war —
+    # PC-X19's rule for a court, for a pair. `setdefault` kept the survivor's
+    # stale "resolved" row and the union kept the pair in both lists, so the
+    # merge broke §7.3 (a resolved pair in active_diplo_keys, a WAR pair no
+    # instance claims).
+    absorbed_live = set(absorbed.get("active_diplo_keys") or [])
     survivor_meta = dict(survivor.get("diplo_key_meta") or {})
     for pair, meta in (absorbed.get("diplo_key_meta") or {}).items():
-        survivor_meta.setdefault(pair, dict(meta))
+        mine = survivor_meta.get(pair)
+        if pair in absorbed_live and (not isinstance(mine, dict)
+                                      or mine.get("pair_status") == "resolved"):
+            survivor_meta[pair] = dict(meta)
+        else:
+            survivor_meta.setdefault(pair, dict(meta))
     survivor["diplo_key_meta"] = survivor_meta
+    if absorbed_live:
+        survivor["resolved_diplo_keys"] = [k for k in (survivor.get("resolved_diplo_keys") or [])
+                                           if k not in absorbed_live]
 
     survivor_pmeta = dict(survivor.get("participant_meta") or {})
     for nation, meta in (absorbed.get("participant_meta") or {}).items():

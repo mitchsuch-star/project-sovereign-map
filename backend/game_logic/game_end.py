@@ -1359,6 +1359,21 @@ def a_peace_evacuates_what_it_does_not_cede() -> bool:
     return True
 
 
+def a_peace_evacuates_a_third_courts_ground() -> bool:
+    """BA-5's ruling 1, built as it pre-decided (row BA, session BA-6 — BA6-X8,
+    November 17, 2026: "it is built before the gate is read if the ambient
+    line ever reads above 0"; the final measure read 1 — rivoli, Saxony
+    holding Swabia): T3-6's law of peace reaches a third court's ground. At a
+    peace between AI courts, ground the holder took FROM the ceder — a
+    province the ceder held, whosever homeland it is (Swabia, Bavaria's,
+    held by Austria) — that lies outside what the holder may keep goes back
+    to the ceder, as the ceder's own homeland already does: a peace
+    evacuates what it does not cede. The holder's own homeland never goes;
+    the player's peaces keep SR-1a. Down (False): only the ceder's homeland
+    goes home (Saxony kept Swabia by the treaty's retention)."""
+    return True
+
+
 def aim_evacuations(world, nation_a: str, nation_b: str, holder_leader: str,
                     ceder: str, kept: Dict[str, List[str]]
                     ) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
@@ -1381,10 +1396,18 @@ def aim_evacuations(world, nation_a: str, nation_b: str, holder_leader: str,
     home = set((getattr(world, "nation_starting_regions", {}) or {}).get(ceder, []) or [])
     keep: Dict[str, List[str]] = {}
     gone: Dict[str, List[str]] = {}
+    third = a_peace_evacuates_a_third_courts_ground()
     for holder, regions in (kept or {}).items():
         allowed = keepable_regions(world, holder, ceder)
         for region_name in regions:
-            if region_name in home and region_name not in allowed:
+            # BA6-X8: a third court's ground the holder took from the ceder
+            # goes back too (`status_quo_retentions` keeps only the ceder's
+            # homeland or ground captured FROM the ceder) — never the
+            # holder's own homeland
+            outside = region_name not in allowed and (
+                region_name in home
+                or (third and not _is_homeland(world, region_name, holder)))
+            if outside:
                 gone.setdefault(holder, []).append(region_name)
             else:
                 keep.setdefault(holder, []).append(region_name)

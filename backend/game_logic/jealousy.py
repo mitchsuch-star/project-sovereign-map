@@ -441,13 +441,23 @@ def take_initiative_laurel_awarded(world) -> int:
     return awarded
 
 
+# Row MC: the field a laurel was won on, for the length of one
+# `record_battle_glory` call (its callers know it; `_append_glory` does not).
+_GLORY_PLACE: List[str] = [""]
+
+
 def _append_glory(marshal, turn: int, points: int) -> None:
     # NP-0 (NAPOLEON_SPEC §6.1): a sovereign accrues NO glory, ever — his
     # victories are the Empire's. This is the single accrual chokepoint,
     # so the whole ladder/crown/envy economy inherits the exemption.
     if marshal is None or points == 0 or getattr(marshal, "is_sovereign", False):
         return
-    marshal.glory_events.append({"turn": int(turn), "points": int(points)})
+    event = {"turn": int(turn), "points": int(points)}
+    from backend.game_logic import precedence as _precedence
+    if _GLORY_PLACE[0] and _precedence.the_book_keeps_its_incidents():
+        event["place"] = str(_GLORY_PLACE[0])      # row MC: where it was won
+    marshal.glory_events.append(event)
+    _precedence.bank_renown(marshal, int(points))   # row MC: banked for good
 
 
 def _victory_points(casualties_own: int, casualties_enemy: int,
@@ -504,8 +514,12 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
                         attacker_participants: Optional[List] = None,
                         defender_participants: Optional[List] = None,
                         attacker_shadow: Optional[bool] = None,
-                        defender_shadow: Optional[bool] = None) -> None:
-    """Record glory for a resolved battle. Runs AFTER the Win/Loss
+                        defender_shadow: Optional[bool] = None,
+                        place: str = "") -> None:
+    """Row MC: `place` is the battle's field (its glory events carry it, and
+    a title of victory is named for it). It is set for this call only.
+
+    Record glory for a resolved battle. Runs AFTER the Win/Loss
     relationship step (EC-F ordering) from every combat path.
 
     Primaries score the full formula; non-primary participants
@@ -524,6 +538,10 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     # S14E-D1 re-ruled (October 25, 2026): the armed deed's laurel — read
     # here, after the gates below, so the School, the skirmish floor and the
     # sovereign's exemption govern it like every other point.
+    # Row MC: the field of THIS call — every accrual is inside this function
+    # (FA-S16-D4's census), so it is always set by the call that accrues.
+    _GLORY_PLACE[0] = str(place or "")
+    from backend.game_logic import precedence as _precedence
     _initiative_for = getattr(world, "_initiative_laurel_for", None)
     if glory_dormant(world):
         return
@@ -585,9 +603,10 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
 
     if attacker is not None:
         if attacker_won:
-            _append_glory(attacker, turn, _shadowed(_victory_points(
-                attacker_casualties, defender_casualties,
-                conquered, atk_outnumbered), atk_shadow))
+            _won = _victory_points(attacker_casualties, defender_casualties,
+                                   conquered, atk_outnumbered)
+            _append_glory(attacker, turn, _shadowed(_won, atk_shadow))
+            _precedence.victory_earns(world, attacker, _won, place, shadowed=bool(atk_shadow))
         elif defender_won:
             _append_glory(attacker, turn, _shadowed(_defeat_points(
                 attacker_casualties, defender_casualties,
@@ -596,9 +615,10 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
 
     if defender is not None:
         if defender_won:
-            _append_glory(defender, turn, _shadowed(_victory_points(
-                defender_casualties, attacker_casualties,
-                conquered=False, outnumbered=def_outnumbered), def_shadow))
+            _won = _victory_points(defender_casualties, attacker_casualties,
+                                   conquered=False, outnumbered=def_outnumbered)
+            _append_glory(defender, turn, _shadowed(_won, def_shadow))
+            _precedence.victory_earns(world, defender, _won, place, shadowed=bool(def_shadow))
         elif attacker_won:
             _append_glory(defender, turn, _shadowed(_defeat_points(
                 defender_casualties, attacker_casualties,
@@ -1178,6 +1198,15 @@ def _recurrence_clause(marshal, target_name: str, turn: int) -> str:
     return f" again, {gap} turns after the last"
 
 
+def _laurels_place(target) -> Tuple[str, int]:
+    """Row MC: where and when the rival won the laurels resented — his latest
+    laurel in the window that names its field."""
+    for event in reversed(list(getattr(target, "glory_events", []) or [])):
+        if isinstance(event, dict) and int(event.get("points", 0) or 0) > 0 and event.get("place"):
+            return str(event["place"]), int(event.get("turn", 0) or 0)
+    return "", 0
+
+
 def apply_jealousy(world, marshal, target, delta: int, threshold: int,
                    events: List[Dict], forced: bool = False) -> None:
     """Set the grievance: fields, history, escalation, expression setup,
@@ -1428,6 +1457,9 @@ def _check_escalation(world, marshal, target, events: List[Dict],
         # Permanent -1 both directions (does NOT restore on resolution).
         change_a = marshal.modify_relationship(target.name, -1)
         change_b = target.modify_relationship(marshal.name, -1)
+        from backend.game_logic import precedence as _precedence
+        _precedence.record(world, marshal.name, target.name, "escalation", "",
+                           a_to_b=change_a, b_to_a=change_b)
         if is_player:
             events.append({
                 "type": "jealousy_escalation",
@@ -1865,8 +1897,9 @@ def check_battle_resolution(world, attacker, defender, attacker_won: bool,
     battle's relationship processing when the battle itself resolves the
     grievance).
 
-    aggressive: win where enemy raw strength >= 70% of yours (EC-K,
-                primary-vs-primary pre-battle strengths, no stomps)
+    aggressive: win where enemy raw strength >= 70% of yours (EC-K, no
+                stomps; the men each side put on the field - WS-13, the
+                caller passes them - or the two leads with its seam down)
     cautious:   shared victory with the target, OR a winning battle with
                 3+ same-nation participants (EC-L)
     literal:    enemy contact — any battle participation (attack, defense
@@ -2403,7 +2436,7 @@ def petition_tier_for(kind: str, context: Optional[Dict] = None) -> str:
         except (TypeError, ValueError):
             value = 0
         return PETITION_TIER_CRISIS if value <= -2 else PETITION_TIER_AUDIENCE
-    if kind == "shadow_command":
+    if kind in ("shadow_command", "account", "claim"):
         return PETITION_TIER_AUDIENCE
     return PETITION_TIER_CRISIS
 
@@ -2894,6 +2927,12 @@ def petition_retirement_reason(petition, world) -> str:
         if _sovereign_locations(world).get(marshal.nation) != marshal.location:
             return "no_shadow"
         return ""
+    if kind == "account":
+        from backend.game_logic import precedence as _precedence
+        return _precedence.account_retirement_reason(world, context)
+    if kind == "claim":
+        from backend.game_logic import precedence as _precedence
+        return _precedence.claim_retirement_reason(world, context)
     return ""
 
 
@@ -3285,6 +3324,16 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
             f"knows it. He asks, plainly, where the Emperor stands."),
     }.get(int(level), "")
     body += escalation_clause
+    # Row MC (`an_audience_names_its_cause`): the card names what he resents —
+    # the rival's laurels, where and when they were won — so an audience is
+    # never about nothing (the first audience of a campaign read as uncaused)
+    from backend.game_logic import precedence as _precedence
+    if _precedence.an_audience_names_its_cause():
+        _where, _when = _laurels_place(target)
+        if _where:
+            from backend.display_names import humanize_entity_name as _hn
+            body += (f" He has not forgotten {_hn(target.name)}'s laurels at "
+                     f"{_hn(_where)} (turn {_when}).")
     # F6 (row EP, LV-17): a quarrel settled by action within the last turn
     # and now reopened SAYS so, first — the report that called it settled
     # and the card that reopens it can no longer contradict each other.
@@ -3941,6 +3990,12 @@ def handle_petition_response(world, choice: str, executor=None,
                                          game_state=game_state)
     elif kind == "shadow_command":
         result = _apply_shadow_choice(world, choice, context)
+    elif kind == "account":
+        from backend.game_logic import precedence as _precedence
+        result = _precedence.apply_account(world, choice, context)
+    elif kind == "claim":
+        from backend.game_logic import precedence as _precedence
+        result = _precedence.apply_claim(world, choice, context)
     else:
         result = {"success": False,
                   "message": f"Unknown petition kind '{kind}'."}
@@ -4237,6 +4292,19 @@ def _apply_confrontation_choice(world, choice: str, context: Dict,
                    + f"). {str(paid.get('line') or '').strip()}")
     else:
         message = f"{marshal.name}'s grievance runs its course."
+        from backend.game_logic import precedence as _precedence
+        _target = world.marshals.get(str(context.get("target") or ""))
+        if _precedence.an_audience_names_its_cause() and _target is not None:
+            # GRD-17 (row MC): the quiet answer says what follows — the
+            # standing cost in men and turns, read off the same rule the
+            # card's own option quotes (it was one constant line)
+            _cost = _standing_cost_detail(marshal, _target)
+            for _lead in ("Free, and it fixes nothing. ", "Free. "):
+                if _cost.startswith(_lead):
+                    _cost = _cost[len(_lead):]
+            _cost = _cost.rstrip(".")
+            message = (f"{marshal.name}'s grievance stands: "
+                       f"{_cost[:1].lower() + _cost[1:]}.")
     world.log_event({
         "type": "jealousy_confrontation",
         "marshal": marshal.name,
@@ -4288,8 +4356,15 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
                           get_escalation_level(other, marshal.name)) \
             >= ESCALATION_PERMANENT_LEVEL
         _value = min(int(to_value), -1) if _entrenched else int(to_value)
+        _before = (int(marshal.relationships.get(other.name, 0) or 0),
+                   int(other.relationships.get(marshal.name, 0) or 0))
         marshal.set_relationship(other.name, _value)
         other.set_relationship(marshal.name, _value)
+        from backend.game_logic import precedence as _precedence
+        _precedence.record(world, marshal.name, other.name,
+                           {"decree": "decreed", "mediate": "mediated",
+                            "reprimand": "reprimanded"}.get(choice, "mediated"), "",
+                           a_to_b=_value - _before[0], b_to_a=_value - _before[1])
 
     def _mend_grievance(reason: str) -> None:
         """Q4(a): a SUCCESSFUL mend must move something a mechanic reads.
@@ -4332,8 +4407,11 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
             if roll < simmer:
                 outcome = "They simmer down. The rivalry stands."
             elif roll < simmer + escalate:
-                marshal.modify_relationship(other.name, -1)
-                other.modify_relationship(marshal.name, -1)
+                _da = marshal.modify_relationship(other.name, -1)
+                _db = other.modify_relationship(marshal.name, -1)
+                from backend.game_logic import precedence as _precedence
+                _precedence.record(world, marshal.name, other.name, "breach", "",
+                                   a_to_b=_da, b_to_a=_db)
                 outcome = ("It escalates without you — the breach deepens "
                            "to open hostility.")
             else:
@@ -5162,6 +5240,12 @@ def process_turn(world) -> List[Dict]:
     # the slot and the shadow petition is BLOCKED, retrying next turn with
     # its latch unburned (the B0 status contract).
     check_shadow_petitions(world, events)
+
+    # 8c) Row MC (precedence.py) — AFTER the older petitions, which keep the
+    # slot first: old quarrels cool, lapsed titles leave the gift, the courts
+    # confer theirs, a waiting account is offered, a claim may be heard.
+    from backend.game_logic import precedence as _precedence
+    _precedence.process_turn(world)
 
     # clear the per-cycle rebuke latch
     for marshal in world.marshals.values():

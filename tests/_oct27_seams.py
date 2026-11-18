@@ -195,6 +195,14 @@ from tests._ba5_seams import BA5_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in BA5_SEAMS_BY_ROW for spec in BA5_SEAMS_BY_ROW[row]]
 
+# Row BA, BA-6 "the last word" and row MC "Mon Cousin" (November 17, 2026):
+# what the day's table and Berthier tell, the reserve's attacker form, and the
+# Order of the Marshalate (the book, the seats, the bonds, the titles). The
+# seams' own rows: `tests/_ba6_seams.py`.
+from tests._ba6_seams import BA6_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in BA6_SEAMS_BY_ROW for spec in BA6_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

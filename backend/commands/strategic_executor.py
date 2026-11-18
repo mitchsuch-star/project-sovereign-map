@@ -488,6 +488,24 @@ def _defiant_verb(action: str) -> str:
         str(action or ""), _action_display_name(action))
 
 
+def a_defiance_names_the_order_in_words() -> bool:
+    """BA-6's review (BA6-R6; GRD-31 made a defied PURSUE newly reach it): the
+    strategic road's defiance sentence names the order it defied as a verb in
+    words ("Davout fortifies instead of pursuing!") - it printed the raw enum
+    ("instead of PURSUE", "instead of MOVE TO"). Down (False): the raw name."""
+    return True
+
+
+_ORDER_GERUND = {"MOVE_TO": "marching", "PURSUE": "pursuing", "HOLD": "holding",
+                 "SUPPORT": "supporting"}
+
+
+def _the_order_in_words(order_type: str) -> str:
+    if a_defiance_names_the_order_in_words():
+        return _ORDER_GERUND.get(str(order_type or ""), "obeying")
+    return _action_display_name(order_type)
+
+
 def order_verb_display(order_or_action: str) -> str:
     """FA-N70 (slice 17): an ORDER enum ("MOVE_TO") reads through the R7
     single source as a lower-case verb ("march"); anything else is an action
@@ -618,6 +636,31 @@ def _visible_marshal_names(world, actor_nation: str) -> set:
 # it — `slots` with no default, so a read before any assignment raises as
 # the local it replaced did.
 _NEXT_STAGE = object()
+
+
+def each_aggressive_man_objects_in_his_own_voice() -> bool:
+    """GRD-17's objection half (ruled November 17, 2026, row MC / session
+    BA-6, under the user's "make sure the pecking order and their
+    relationships is engaging" and "make decisions yourself"): the four
+    aggressive marshals of 1805 each object to sitting still in his own voice
+    - the real man's character - where all four said "I would rather attack
+    than sit idle." The lines that carry a reading (EXTREME's "We outnumber
+    them", STRONG's "we have the advantage") are unchanged. A marshal with no
+    voice of his own keeps the old line. Down (False): the one line."""
+    return True
+
+
+# GRD-17: the idle-order objection, in each man's own voice. Ney the bravest
+# of the brave, who led from the front; Murat, the cavalryman who could not
+# keep still; Lannes, the one marshal who spoke to the Emperor as a friend
+# and said what he thought; Massena, the old smuggler who fed on the enemy's
+# country and never let an army sit.
+IDLE_OBJECTION_VOICES = {
+    "Ney": "Dig in, Sire? Give me the drums and the column — I will take them in front.",
+    "Murat": "Horses were not bred to stand in a field, Sire. Let me ride at them!",
+    "Lannes": "We sit while they gather? Strike now, Sire, or we pay twice for it later.",
+    "Massena": "An army that sits, rots. Give me leave to fall on them and feed on their country.",
+}
 
 
 @dataclass(slots=True, repr=False, eq=False)
@@ -851,7 +894,9 @@ class StrategicExecutor:
                 elif concern == ConcernLevel.STRONG:
                     return f"{prefix} 'Sire, we have the advantage. Let me strike!'"
                 else:
-                    return f"{prefix} 'I would rather attack than sit idle.'"
+                    own = (IDLE_OBJECTION_VOICES.get(str(getattr(marshal, "name", "")))
+                           if each_aggressive_man_objects_in_his_own_voice() else None)
+                    return f"{prefix} '{own or 'I would rather attack than sit idle.'}'"
             elif action == 'retreat':
                 return f"{prefix} 'Retreat? We can still fight!'"
             elif action == 'support':
@@ -4271,7 +4316,7 @@ class StrategicExecutor:
                 action_desc = _action_display_name(defiant_action)
                 defiance_message = (
                     f"Despite your insistence, {marshal_name} {action_desc} instead of "
-                    f"{_action_display_name(strategic_type)}!\n\n"
+                    f"{_the_order_in_words(strategic_type)}!\n\n"
                     f"{outcome_result['berthier_text']}"
                 )
                 if defiant_execution.get("message"):

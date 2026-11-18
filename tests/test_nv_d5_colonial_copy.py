@@ -56,7 +56,10 @@ ALLOWED = {
 }
 # the scenario outside `moments.affairs`: a marshal's biography is history,
 # not a colonial surface (Yusuf Ziya Pasha retook Egypt in 1801)
-SCENARIO_ALLOWED = [re.compile(r"^marshal_pool\.[A-Za-z]+\[\d+\]\.biography$")]
+SCENARIO_ALLOWED = [re.compile(r"^marshal_pool\.[A-Za-z]+\[\d+\]\.biography$"),
+                    # row MC (November 17, 2026): the authored cause of a pair's view is
+                    # biography, as a pool marshal's is ("Bonaparte's man since Egypt, 1798")
+                    re.compile(r"^relationship_causes\.[^.]+$")]
 
 
 def _py_hits(path: Path):

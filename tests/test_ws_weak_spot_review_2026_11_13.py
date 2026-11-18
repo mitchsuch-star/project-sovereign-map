@@ -584,11 +584,12 @@ class TestWS12AModelsNumberMovesAMarshal:
 
 
 class TestWS13OutnumberedIsReadOnTheTwoLeads:
-    """"Outnumbered" compares the two LEAD corps' strengths before the corps
-    beside them join: a 4,000-man lead on a 60,000-man stack beats 20,000 men
-    "against the odds" (+5 authority, the glory point)."""
+    """"Outnumbered" compared the two LEAD corps' strengths before the corps
+    beside them join: a 4,000-man lead on a 60,000-man stack beat 20,000 men
+    "against the odds" (+5 authority, the glory point). FIXED in row BA's
+    session BA-6 (November 17, 2026): the odds read the men each side put on
+    the field — behaviour pinned in tests/test_ba6_the_weak_spots.py."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     def test_outnumbered_is_read_on_the_field(self):
         src = inspect.getsource(CombatExecutor._post_combat_pipeline)
         assert "outnumbered = pre_atk < pre_def" not in src
@@ -613,15 +614,20 @@ class TestWS14TheReadbackOverclaimsAStandingQuestion:
 
 
 class TestWS15ARefusedAttackCancelsADrill:
-    """The attack road's first stage cancels a first-turn drill (and spends the
-    counter-punch, which the typed road gives back) BEFORE the stages that can
-    refuse the order for free — an unseen target, a field on peace soil, a
-    name that guesses. The order costs nothing and the drill is gone."""
+    """The attack road's first stage cancelled a first-turn drill (and spent
+    the counter-punch, which only the typed road gave back) BEFORE the stages
+    that can refuse the order for free. FIXED in row BA's session BA-6
+    (November 17, 2026) by the row's second form: an attack that struck no
+    blow puts back what the first stage spent — the drill, the counter-punch,
+    a square — for every caller (the driver of `_execute_attack`); behaviour
+    pinned in tests/test_ba6_the_weak_spots.py."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
-    def test_the_drill_is_not_cancelled_before_the_refusals(self):
-        src = inspect.getsource(CombatExecutor._attack_open)
-        assert "ctx.marshal.drilling = False" not in src
+    def test_the_drill_is_put_back_for_every_caller_when_no_blow_lands(self):
+        # the one door of every road is wrapped (a decorator: the driver stays
+        # a driver, CODE-2a)
+        src = inspect.getsource(CombatExecutor._execute_attack)
+        assert src.lstrip().startswith("@_gives_back_what_no_blow_spent")
+        assert CombatExecutor._execute_attack.__wrapped__ is not None
 
 
 class TestWSRTheReviewsUnconfirmedFinds:

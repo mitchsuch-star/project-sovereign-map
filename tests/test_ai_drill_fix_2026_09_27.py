@@ -706,10 +706,25 @@ class TestTheMeasuredArms:
         t42 = json.loads((ROOT / "tools" / "_t4_2_series_arms_final.json").read_text(encoding="utf-8"))
         assert t42["prior"] == SERIES_BEFORE_T4_2
         assert t42["arms"]["0"]["series"] == SERIES_BEFORE_T4_2
-        assert t42["arms"]["ALL"]["series"] == BASELINE_SERIES
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_BA6
+        assert t42["arms"]["ALL"]["series"] == SERIES_BEFORE_BA6
         assert t42["arms"]["ALL"]["first_divergence_vs_prior"] == 8
         for _arm in ("0", "ALL"):
             assert t42["arms"][_arm]["reach"]["counts"]["last_provinces"] == 2
         assert t42["arms"]["0"]["reach"]["counts"]["signed"] == 0
         assert t42["arms"]["ALL"]["reach"]["counts"]["signed"] == 1
         assert t42["arms"]["ALL"]["reach"]["signed"][0][:2] == [5, "Bavaria"]
+        # Re-pinned by row BA's session BA-6 and row MC (November 17, 2026;
+        # `tools/_ba6_series_arms.py` → `tools/_ba6_series_arms_final.json`):
+        # arm 0 (every row of `tests/_ba6_seams.py` down) reproduces T4-2's
+        # series byte for byte; the shipped tree IS the live BASELINE_SERIES;
+        # the movers are MCSEEDS ([12]), MCBONDS ([16]) and WS ([17]).
+        ba6 = json.loads((ROOT / "tools" / "_ba6_series_arms_final.json").read_text(encoding="utf-8"))
+        assert ba6["prior"] == ba6["arms"]["0"]["series"] == SERIES_BEFORE_BA6
+        assert ba6["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert ba6["arms"]["ALL"]["first_divergence_vs_prior"] == 12
+        assert {arm: ba6["arms"][arm]["first_divergence_vs_prior"] for arm in ba6["arms"]
+                if arm.startswith("+")} == {"+TELL": None, "+MC0": None, "+MCBOOK": None,
+                                            "+MCSEEDS": 12, "+MCBONDS": 16, "+GRD": None,
+                                            "+WS": 17, "+MCRANK": None, "+PEACE": None,
+                                            "+SILENCE": None}

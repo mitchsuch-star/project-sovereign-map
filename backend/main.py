@@ -5604,6 +5604,30 @@ def get_marshal_petition():
             "petition": refresh_petition_affordability(petition, world)}
 
 
+class ConferTitleRequest(BaseModel):
+    marshal: str
+
+
+@app.post("/confer_title")
+def confer_title(request: ConferTitleRequest):
+    """Row MC: confer the title of victory standing in the Emperor's gift for
+    a marshal (its price in authority at the buy's recency; the seniors it
+    passes over remember it). The Generals card's chip sends it."""
+    try:
+        if world.game_over:
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
+        from backend.game_logic.precedence import confer_title as _confer_title
+        result = _confer_title(world, str(request.marshal or ""))
+        return _build_result_response(result, world)
+    except Exception as e:
+        _errors.report(e, "main.confer_title: the route", every=True)
+        return build_base_response(
+            world, success=False, message="The title could not be conferred.",
+            **_errors.debug_fields(e, "main.confer_title: the route", DEBUG_MODE))
+
+
 @app.post("/marshal_petition_response")
 def marshal_petition_response(request: MarshalPetitionResponse):
     """Answer the pending marshal petition (Jealousy v3.2 §0.2 item 10).
@@ -8357,6 +8381,10 @@ def get_marshal_overview():
         "glory_window": int(GLORY_WINDOW),
         # Marshal recruitment: the commissionable candidate pool
         "recruitment": build_recruitment_payload(world),
+        # Row MC: the order of precedence (and by renown, and by the season's
+        # laurels) with the court's live quarrels and bonds
+        "order": __import__("backend.game_logic.precedence",
+                            fromlist=["order_payload"]).order_payload(world, world.player_nation),
         # CRT-9 (Oct 3, 2026): the two pools, so the screen can state them.
         "action_pools": __import__("backend.commands.state_probe",
                                    fromlist=["action_pools"]).action_pools(world),

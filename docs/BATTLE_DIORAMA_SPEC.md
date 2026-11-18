@@ -2951,3 +2951,376 @@ ALL and the reserve's three — so the rule is read off records of one tree): th
 `ONEDAY` → `OWNWAY` (a word's battle is its own clash: the one rung after ONEDAY that can move a number,
 on that one road) → `RESERVE` (alias `ALL`, the tree as shipped: the reserve parked) → `R2000` / `R3000`
 / `R5000`. The rule's reserve-down baseline is the sweep at `ALL`; `ONEDAY` now holds OWNWAY down too.
+
+### 15.25 BA-6 "the last word" — BUILT November 17, 2026 (authoritative; it closes row BA)
+
+**The user's words:** "ba-5 is done please assure its good dont leave any open items also make sure the
+terrian background does not look ai genend even get assets if needed and look into marshal relationships
+and mnake sure the pecking order and their relationships is engaing and well desinged", then "go ahead",
+then, mid-session, "commit and push when done leave no open calls or anything make decisions yourself
+soundlt with research". No plan gate: every decision below was taken under that delegation, each with its
+research and, where a number could move, a rule written before its data. The marshals' half is row MC
+(`MARSHALATE_SPEC.md`, `SYSTEMS_REFERENCE.md` §224); every open call of the whole project is ruled in
+`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`. The rules of this session are `SYSTEMS_REFERENCE.md` §225;
+the finds `BUG_FIXES.md` §BA6.
+
+#### What was open when the session began
+
+BA-5's three filed rows (X15 the band counted a corps still unseen; X16 "a narrow defeat" said of a
+defeat that cost a fifth of the corps; X17 a press card's men of ours were the muster's weighted figure),
+row BA's four older rows heading Session H (BA1-X4 the tableau at Text size 150 % and 175 %; BA2-X6 the
+province panel resting on a cut line; BA2-X16 four live-walk tools exporting before they judge and the
+mutation sweep with no lock), the reserve parked with its recommended form unmeasured, the blind reading's
+bar NOT met with six levers named as the user's, and the readings of BA-1 … BA-5 that STATUS still listed
+as the user's. A fresh review of BA-5's tree before any line was changed found three more (BA6-X1 a clash
+that ruined both sides was kept in the lead's days as "won on points"; BA6-X2 a later battle against the
+same enemy stayed silent; BA6-X3 a table freed without its Close left the verdict's quill scratching).
+
+#### The ground — real surveys, not drawn shapes
+
+BA-5 drew the province's ground in code on the felt (see-through triangles for mountains, domes for hills,
+a patchwork of soft rectangles for fields) and it read as generated. The ground is now a PLATE cut from a
+real hand-drawn military survey of the period, chosen by the province's terrain and seeded by the battle
+(`battle_acts.gd` `Ground`): Joseph de Ferraris's *Carte de cabinet des Pays-Bas autrichiens* (1771–78) —
+the hand-coloured Austrian survey of the very country the armies of 1792–1815 marched over — for plains
+(Mons, Hannut, Tintigny), forest (Huy, Tintigny), hills (Liège, Tintigny), a town (Namur) and a river with
+its bridge (Namur); Peter Anich and Blasius Hueber's *Atlas Tyrolensis* (1774) for mountains. Twelve plates,
+each a crop of a public-domain scan from Wikimedia Commons, graded "by lamplight" into the felt's own dark
+range (`tools/ba6_terrain_plates.py`: linear-light luminance mapped into 0.008–0.048, chroma kept lean, a
+vignette) so the engraver's lines show and every caption over them keeps its contrast — crimson 3 : 1 over
+the brightest common paper, bone 5 : 1 over the brightest at all, each plate pinned
+(`tests/test_ba6_the_last_word.py` `TestTheGroundIsARealSurvey`). A forest or a town stands on the side its
+plate was cut for; **no plate is ever mirrored** (its lettering would read backwards). The felt itself is a
+photographed baize (ambientCG *Fabric034*, CC0), tiled. No pixel is generated. Each plate's source page,
+crop and licence is in `assets/textures/battle/plates.json` and `THIRD_PARTY_LICENSES.md` ("Battle
+terrain"). Two honest limits: the sources are Commons' 1920-px renderings (the full scans were rate-limited
+for the session; a crop is about 1 : 1 on the stage at the shipped size), and a fleet action keeps its
+chart-blue table — the only period sea charts found were Gallica/BnF scans, which the licence policy refuses.
+
+#### The reserve — the attacker's form, measured and CLOSED
+
+BA-5's recommendation was built behind `battle_day.the_attacker_pursues`: only the side that attacked in
+the deciding clash pursues, with the points it still holds itself; a defender who throws the attack back
+does not pursue; a point the loser kept does not cover him. It was measured by BA-5's own rule, unchanged,
+on the same ladder (2,000 / 3,000 / 5,000 men a point) over the same eight seeds and ways of playing:
+**the rule's pick is none** (`tools/_ba6_reserve_rule_2026_11_17.json`). Clauses i, ii, iv and v pass at
+every value; clause iii fails at every value — **twenty-two of its twenty-three pursuits fell on a French
+corps** (70,639 / 87,987 / 100,702 of our men against 2,000 / 3,000 / 5,000 of his). The cause is not
+standing (the form cannot pay for that) but the purse: his AI keeps points by its own spending rule, so
+his attacks that break one of our corps are paid in full, while a France that spends every point to win
+holds none at the close. Whoever keeps points harvests, and the measure's France never does. Both forms
+failed the rule written before their data, so **the reserve is closed**: the seam stays down in the game
+(`tests/_ba6_seams.py` `BA6_CLOSED`), up is the measured arm only, and no surface promises a reserve. The
+hand stays as BA-3 made it — a point kept is worth nothing at the close.
+
+#### The weak-spot review's two battle-pipeline rows (taken from Session H's head)
+
+- **WS-13** — "outnumbered" read the two LEAD corps before the corps beside them joined, so a 4,000-man lead
+  on a 60,000-man stack that beat 20,000 men had won "against the odds" (+5 authority, the glory point).
+  The odds of a battle now read the men each side put on the field — the lead and every corps that fought
+  beside him, at the muster (`battle_telling.committed_men`, the very figures the verdict's "numbers told"
+  reads, so the two can never disagree); the war-damage and war-score readers keep the leads' figures. Its
+  sibling the aggressive marshal's no-stomp win (EC-K) reads the field too
+  (`combat_executor.outnumbered_is_read_on_the_field`).
+- **WS-15** — the attack road's first stage dispersed a first-turn drill and spent the counter-punch before
+  the stages that can refuse the order for free (a man out of sight, peace soil, a name that guesses, a war
+  to declare, the muster's confirm), and only the typed road gave the counter-punch back. Now an attack that
+  certainly struck no blow — the typed road's own fail-closed list, made one function
+  (`attack_struck_no_blow`) — puts back what that stage spent, on every road (typed, insist, strategic, the
+  courts'): the drill, the counter-punch and, its sibling found by the sweep, **a square** with what breaking
+  it cleared (BA6-X4); a corps that marched keeps them spent, and an order or a question the attack itself
+  wrote is kept (`combat_executor.a_refused_attack_spends_nothing`).
+
+#### The rest of what was open, closed
+
+BA5-X16 (`battle_report.a_dear_defeat_is_not_a_narrow_one`: a defeat that cost a fifth of the corps or
+more is never "narrow"; a new bank, `lost_dear`, gated by the scale of a battle); BA5-X17
+(`order_quotes.a_cards_men_are_men_in_reach`: a card's men of ours are the lead and the corps that would
+answer the guns, as men; the great-battle forecast keeps the weight); BA6-X1
+(`battle_day.a_ruin_is_kept_as_drawn`); BA6-X2 and BA6-X3 (the client); BA2-X16 (the four walk tools judge
+before they export; the mutation sweep takes a lock); BA4-BOMB (the cannonade's names in a fixed order, so
+the staged payloads are byte-stable); the court's line on the attack card (row MC: a senior who will resent
+serving under the lead, a hostile or devoted marshal among the corps that would answer the guns —
+`precedence.order_card_line`).
+
+#### The table — the levers past 5 (BA-5's six, ruled; five built, one built as words)
+
+BA-5's readers named six levers between agency 5 and 7, the user's to rule; under the delegation each was
+ruled on its own merit (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §1):
+
+- **A taller decision panel.** While a day awaits a word the tray grows by `DAY_ROOM` (110 px) and gives
+  the room back when the day closes, on Close and on the next table (`battle_diorama.gd` `set_day_room`,
+  `tray_h()`, `_place_the_foot`; idempotent; the fit rule, the pivot and the nameplate read `tray_h()`).
+  At 1600 × 900 the fit rule scales the grown tray to 0.95 — the price of the room, kept.
+- **Three-line cards.** A word's card is its digit, word and price (body size), what it does (Caption),
+  and — new — what it RISKS (Caption, the caption ink; `battle_telling.risk_of`: the odds band the attack
+  card shows, said in words, or the men on each side by the day's count where the band is fogged). The
+  hover carries the risk wherever the face cannot. Shed first when a row is too wide (the ladder's rung 5c).
+- **The free words' stakes.** "Break off" says what the day keeps ("the day ends; he keeps the field; the
+  toll stands at 3,790 of ours for 6,825 of his"), "stand" says who speaks next and Berthier's reading; laid
+  as cards beside the buttons where they fit (up to 680 px), else a full-width row above them, else wrapped
+  at a semicolon, else the one-line chips (rows measured in a 4,000 px box — a 940 px box had clipped the
+  measure and hidden the overflow).
+- **Fewer chips on a crowded day.** A group shows the chips the digits 4–6 reach and one "+N more" chip
+  whose hover names the rest; pressing it shows them in place ("show fewer" puts them back); it resets with
+  each table, and the digits are unchanged (`DAY_MORE_KEY`).
+- **Luck against margin, in one phrase.** The dice plate's line says what told and what the dice added:
+  "<what told>; the dice added +X% to the blow, the day's fortune +Y% to us" (`_luck_line`, `_what_told`;
+  with no `verdict_told` the old line stands); from Text size 120 %, where the plate holds two rows, its short
+  form takes the second (`_luck_short`; BA6-R25).
+- **A legend.** One Caption line, drawn with the head's own gold name and swatch squares (no glyph a
+  font may lack), shed to the head's hover after the lift rung (`DayLegend`, `DAY_LEGEND_HOVER`); the
+  staged first days carry a first-day line that takes its room, so on them the legend rides the hover.
+- **A chance figure ("about 8 in 10") — built as words instead.** An honest probability needs the
+  resolver's dice and variance priced apart from its draws (golden rule 1) and an exact sighting (fog
+  §4.4); a figure the engine cannot stand behind would be a promise the dice can break. The risk line says
+  the same thing in the words the odds band already earns.
+
+#### BA1-X4 — the table at 150 % and 175 %
+
+At Text size 150 % and 175 % the tableau's lines ran into each other (a commander's name over his own
+figures, the losses caption over its count, a fate caption onto the next rank's, the advance's toll under
+the baize, the dice's luck line left off): at 175 % the baize is 948 × 440 and its lines 34 px, and no
+re-pitch clears every collision (the walk read 99 claims failed). The row's own alternative was taken: the
+tableau's **small type takes a fixed step above 130 %**, as its display type already does
+(`battle_diorama.gd` `TABLEAU_TEXT_CAP` 1.3, `TABLEAU_TEXT_STEPS`, `_fit_tableau_type`: above the cap a
+small Theme holds Caption, Label, Lead and BodyLarge at their 130 % sizes, set on each label `_mk_label`
+makes — a theme on the stage would not reach labels under Node2D blocks); at or under 130 % nothing is set,
+so 100 % and 115 % are the project theme exactly. `_line_extra` reads the held type, so every pitch, the
+dice room and the swords' push behave as at 130 %, which already held. **The dice plate's luck** keeps its
+place at every size: from Text size 120 % its room holds two rows (three 24-px lines no longer fit the 106 px,
+and the long phrase is wider than the leads' names allow), so the luck takes the second row in its short form —
+"the dice added +4% to the blow, the day's fortune +2% to us", no wider than the lands row it replaces, what
+told standing on the verdict's own line (the client review's C12, ruled: BA6-R25). The plate, the verdict's
+lines, the band and the buttons keep the player's full size. The exits' claims read the right flag since the
+review (BA6-R22): `_day_exits_row_tried` at the ladder's first rung, `_day_exits_wide` only where the cards
+give way to chips.
+
+#### The marshals — row MC, the Order of the Marshalate
+
+The user's "look into marshal relationships and make sure the pecking order and their relationships is
+engaging and well designed" is row MC, built in this session and recorded in its own spec
+(`docs/MARSHALATE_SPEC.md`: the research §1, the design §2, the numbers §3, the surfaces §4, the measure §8;
+the rules `SYSTEMS_REFERENCE.md` §224). In one paragraph: the marshals stand in **an order of precedence**
+(the 1804 list's seats; a title of victory raises a man above it); every move between two of them is written in
+**a book of incidents** with its cause, and every surface that shows a bond says why (Ney of Soult: "Montreuil and Saint-Omer: rival camps on the Channel coast,
+1803-05"; after a battle, "Davout came up when Ney was hard pressed at Elchingen"); a victory **banks renown**; a decisive victory
+won away from the Emperor puts **a title in his gift** for eight turns — conferring it costs authority and
+passes over the seniors whose deeds were within reach of his; **the bonds run both ways** (brothers in arms, a
+shared defeat that sours the lead — the player's side asks first whose the defeat was, the account —, a rescue
+that mends even a Hostile view, the Auerstedt silence, a senior who resents serving under a junior, a quarrel of
+play that cools and an authored one that does not); an untitled man whose renown runs three places ahead of his
+seat **claims his due**; the AI courts do all of it by the same code (golden rule 5); and the attack card says
+beforehand who will resent serving under the lead and who will not answer his guns. **The court count**
+(`MARSHALATE_SPEC.md` §8.1) measured what a court that is never steered does in forty turns: brotherhoods and
+feuds of its own on every seed — and found the Auerstedt rule deaf for France (BA6-X9), fixed by a rule written
+before its data. **The lived court on the screen** (`MARSHALATE_SPEC.md` §8.3: thirty turns of an AI-played France,
+shot on the Generals screen at the five sizes) found three faults of the row's own presentation, each fixed: the
+honours the spec promised were rendered nowhere and the default card did not carry the marshal's place in the
+order (BA6-X13 — the card now opens with THE COURT), the brothers' cause told the wrong count (X11), and a roster
+line lost its figure beside a wide badge (X12). One blind reader read the court at legibility 7, causes 8, stakes
+7, engagement 6, historical flavour 8 ("each bond has a date and a reason"); the levers it names are ruled there.
+
+#### Every open call, ruled
+
+`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`: nine read-only readers gathered every call an earlier session
+left "for the user" across the specs, STATUS and the next prompt, and each is ruled — KEEP (the built default
+stands, with its measure or its design), BUILT (in this session, behind its own seam, with its test), HOMED
+(built before the deploy in a named slice with a done-when and a strict-xfail pin: row OC's four slices, and
+Session H's head) or CLOSED (by design, with the reason; no surface promises it). Nothing waits on the user.
+
+#### The measure — ONE, with arms (`tools/_ba6_measure.py`; every chain alone, on a frozen copy)
+
+The arms are cumulative, read off `tests/_ba6_seams.py`: `0` (every BA-6 seam down — it must be the commit
+before, `fdd4756f`, on every surface), then TELL → MC0 → MCBOOK → MCSEEDS → MCBONDS → GRD → WS → MCRANK →
+PEACE → SILENCE (ALL: every row up — the tree as shipped). The final chain took every arm from 0 to MCRANK on
+the frozen final tree; the two rows built after it (PEACE, BA6-X8, when the ambient line read 1; SILENCE,
+BA6-X9, from the court count) each stand LAST on the ladder, so every arm before them stands as taken, and the
+chain was re-run for each: arm PEACE is the chain that added it, arm ALL the chain that added SILENCE. The
+reserve's three sweeps are the reserve chain's (above). The probe arm 0 was taken AFTER the probe itself was
+fixed to hold its seams from the boot (BA6-X7): before, a seam that acts at the boot read up in arm 0.
+
+| Surface | Arms | Reading |
+|---|---|---|
+| The keyed probe (jena and marengo, 40 ambient turns) | every arm | **arm 0 identical to `fdd4756f` on every key, both seeds** (212 keys a turn); no crash on any arm. TELL moves only what is told (`notifications`, `pending_dispatch_events`); from MCBOOK on the world carries one key more (`marshal_ledger`, 213) |
+| The series of the keyed benchmark (`tools/_ba6_series_arms_final.json`) | 0, ALL, and each row alone | arm 0 byte-identical to the prior; ALL diverges at index 12; alone, **MCSEEDS from 12, MCBONDS from 16, WS from 17**; TELL, MC0, MCBOOK, GRD, MCRANK, PEACE and SILENCE alone byte-identical. `BASELINE_SERIES` re-pinned to ALL, the prior kept as `SERIES_BEFORE_BA6` |
+| The commanded band (CMD-H / CMD-A / CMD-M at the game's own key bar; the gate's guard 23–28) | every arm | **0, TELL, MC0, MCBOOK: 28 / 28 / 27** (BA-5's reading); **MCSEEDS 27 / 26 / 26**; **MCBONDS, GRD, WS, MCRANK, PEACE and ALL: 28 / 27 / 28** — inside the band on every arm |
+| BA-3's sweep of the day (eight seeds by nine ways of playing) | 0, ALL | **arm 0: 72 cells of 72 equal BA-5's sweep on the commit before**; ALL: a whole run (every cell ok, forty turns); 48 of 72 cells differ from the commit before — the world-line the 1805 reading, the bonds and WS move — and the silence row alone moves one (27 → 28); six cells read under the band (21–22) where arm 0 had four (19–22): the band is the gate's guard on the commanded arms, not on a way of playing a day |
+| The ambient ten seeds (40 turns): the DY signature and the census | 0, ALL | arm 0 equal to BA-5's final tree entry for entry; ALL: story classes 10 of 10; Hesse promoted on marengo (34); the roster in three readings; no annexation outside aim (the final chain's ALL read 1, on rivoli — BA6-X8, the PEACE row, takes it to 0); the silence row moves no entry |
+| The AI-France harness (ten seeds) | 0, ALL | arm 0 equal to BA-5's entry for entry (its annexation line 2, on jena); **ALL: no annexation outside aim (arm 0 reads BA-5's 2, on jena; it falls to 0 with the session's world-line, before the PEACE row); the silence row moves one figure (eylau's French supply losses, 62,580 → 62,597)** |
+| **The deploy gate** | 0, ALL | **MET on the final tree** — arm ALL: band 28 / 27 / 28, story classes 10, Hesse promoted on marengo (34), the roster in three readings, no annexation outside aim; arm 0 reads as BA-5 left it (Hesse on lodi 33 and marengo 39, the roster in two readings) |
+
+**What moves, and why.** The telling (TELL), the stored-view writer (MC0), the book and the order (MCBOOK), the
+titles and the claim (MCRANK), GRD-31, ruling 1's peace and the Auerstedt clause move no measured world-line
+alone; three rows do, each by a rule that must: the 1805 reading (MCSEEDS — three enmities a rung warmer, so
+other corps answer each other's guns from the opening), the bonds (MCBONDS — a view that moves changes who
+answers whose guns) and WS (WS-13's odds read on the field change who wins authority and glory; WS-15's give-back
+returns a drill and a counter-punch). MCSEEDS alone reads one province lower on each commanded arm (27 / 26 /
+26); with the bonds up the band reads 28 / 27 / 28 and stays there.
+
+#### Verification (each once, on the final tree)
+
+- **The staged scenes** (`tools/ba1_stage_battles.py`): staged again from the final backend — every payload
+  byte-identical to the ones the walk had read (no battle-telling line moved after them).
+- **The parse harness:** 100 scripts and 17 scenes, none bad (run on the final client).
+- **The walk of record** (`tools/ba1_acts_walk.py`, the window): **167 of 167 shots, no script error, no claim failed** on the final client (its record hashes the sources and the payloads: `docs/audits/ba1_client/walk_record.json`; the 41 frames of record are this walk's). It was shot three times in the session's last hour — after the client review's fixes, after the luck's short form, and after BA6-X10, whose first form ("+3 corps in reserve" at every moment) the walk caught standing 7 px into a triumph's laurel on twelve frames: the reason BA-2 had cut the noun. The note now keeps its noun while the battle is told and gives it up only where a laurel will stand on it.
+- **The walk at the other sizes** (headless, the same payloads): headless, on the same payloads, after the last client change: **167 of 167 shots at 100 %, 120 %, 130 %, 150 %, 175 % and at Interface Scale 2.0**, no script error, no claim failed (the client review's worker had walked the same sizes on its fixes, and the luck's short form was walked at 120 % … 175 % before BA6-X10).
+- **The switch-off table** (`tools/ba2_switch_off.py`): **19 of 19 caught** — the cases the session's last client changes bear on (the dice plate, the reserve's note, the eleven `ba6_*` with the new `ba6_luck_short`, and the two the review re-aimed), run on the final client with `battle_acts.gd` put back byte for byte (the walk of record's hashes read it unchanged after). The client review's worker had run the whole table on its fixes: 90 of 94, its four misses re-aimed (two by the case's own design) and caught alone. The table is ninety-five cases now.
+- **The live client** (`tools/ba4_mode_c_walk.py --export`: the real `main.tscn` against a sandboxed server;
+  `docs/audits/ba6_mode_c_2026_11_17/`): **five boards, 41 steps, every one held**, no script error, every
+  engine's exit clean — `day` 13, `finish` 11 (Generals: the lead's card), `oldsave` 6 (a save BA-3 wrote at
+  `aeae6967`, its day carried open and loaded through the client's own Load), `oneday` 5, `roads` 6; and in the real client the pitched battle's card says the court's
+  line beforehand: "Massena ranks above Bernadotte and will resent serving under him."
+- **The scrolled province panel** (BA2-X6's done-when; two shots added to `tools/iq10_run_captures.py`):
+  Swabia's panel with its "Bring up" fold open, scrolled to its middle and to its end, at the five sizes —
+  **ten frames, no cut line** (`docs/audits/uxr3/frame_census_ba6_scrolled_panel_2026_11_17.json`).
+- **The four instruments on the battle's 28 surfaces** (the set BA-5 read — the day's surfaces, the order
+  cards, the four tables — at the five sizes): **readability** 29 surfaces (the 28 and the lived court), 145 readings, 3,400 rows, none red, no P1 (`docs/audits/uxr0/readability_ba6_the_last_word_2026_11_17.json`); **contrast** 3,355 rows measured, none under the floor (`…/uxr0/contrast_…`); **fit** 29 of 29 surfaces at 1920 × 1080, 3840 × 2160 and 5120 × 1440 — its first run caught the lived court's roster line cut at a long place (BA6-X12), fixed and read again (`…/uxr3/fit_…`); **the frame census** 145 frames, no cut line, no grip or tick overlap, the verdict's gap 8.3 px at the least, and the six hidden map items BA-5's record already carried (`…/uxr3/frame_census_…`).
+- **The court count** (`tools/_ba6_court_count.py`, both arms): the record above (`MARSHALATE_SPEC.md` §8.1).
+- **The DD-1 sign-ability sweep** (`tools/sign_ability_sweep.py`, its nine arms and the quick pair): **A = 0 and
+  B = 0 on every arm**, re-taken on the final tree because the world-line moved (BA-5 had not needed to: its
+  probe was identical on every key) — its pin compares a live run with these records
+  (`docs/audits/dd1/sign_ability_*.json`).
+- **The suite:** run whole before the commit: **42,003 passed**, 27 skipped, 23 xfailed and two failed (10:42 at ten workers) — both this session's own changes of law, each fixed and its file run again: the chip honesty census met the new "+N more" chip unreviewed (reviewed: it sends nothing, `tests/test_cn4_the_chip_honesty_census.py`), and DDB-12's neutral-soil pin met BA-5's ruling 1 (BA6-X8), which moved its boundary for peaces between AI courts — the pin now holds both laws, DDB-12's with the PEACE row down (`tests/test_ddb_s13b_the_table.py::TestDDB12`). The pre-commit hook ran it again at the commit.
+
+#### The blind reading, taken a fourth time (BA-5's bar)
+
+The same two briefs as BA-5's three takes, the same 29 frames re-shot from the walk of record on the final
+client, two fresh Sonnet readers who see only the frames (no source, no document):
+
+| | BA-5 — before the work | BA-5 — its last take | **BA-6** |
+|---|---|---|---|
+| **Player** — clarity | 5 | 6 | **6** |
+| drama | 7 | 8 | **6** |
+| **agency ("the day felt mine")** | 4 | 5 | **6** |
+| historical flavour | 8 | 9 | **7** |
+| visual appeal | 6 | 7 | **6** |
+| desire to see the next battle | 6 | 7 | **6** |
+| **Critic** — hierarchy | 4 | 5 | **7** |
+| readability | 5 | 5 | **6** |
+| **decision clarity** | 4 | 5 | **6** |
+| drama | 7 | 7 | **7** |
+| visual polish | 6 | 6 | **7** |
+
+**THE BAR IS NOT MET.** Agency and decision clarity read 6 and 6 against 7, each one above BA-5's last take
+(and two above the first). The critic's hierarchy rose two and readability and polish one. The bar's second
+clause (no score below its first reading) fails on two of the player's scores, drama and flavour (6 and 7
+against a first reading of 7 and 8) — one fresh reader each time, so a point either way is within one reader's
+taste; it is reported, not explained away. The four checks: the verdict names a cause — yes, both; **price AND consequence before a command —
+the player "yes" for the first time** ("cards carry both price and consequence"), the critic "partly" (the
+group chips); the figures on a screen agree — "partly", both; a named decisive moment — yes, both, where a
+line broke.
+
+**Every figure the readers doubted was read again in the frames and the code:** both took the wedge's "+3 in
+reserve" beside the LOSSES counter for a count of men — a real fault of the wording (the note had dropped its
+noun for room): **BA6-X10, fixed** — the note keeps "corps"; Ulm's 100,000 against 84,000 are two different
+staged battles on two seeds; "24,000 → 21,994" beside "→ 21,687 after the advance" agree (307 lost on the march,
+said on the frame); the press card's "94,205 on 30,557" against the plinth's 21,994 is BA5-X17's ruling (a card
+counts the men who would answer the guns, after the march); the capitulation's "our weight of numbers told"
+beside Berthier's "laid down its arms before the assault" is the same cause told twice; the clash's counters
+against "the day so far" are each labelled.
+
+**The levers the readers name, ruled under the delegation:**
+
+- *Three lines for every chip, the group chips' corps too, with each corps' own odds* — **CLOSED for this row**:
+  a group's chips share one price and say their kind in the group's label, each chip's odds stand on its hover,
+  and three lines for sixteen chips needs twice the panel the readers' own first lever already traded against
+  the miniature. It is the readers' first lever for decision clarity, and it stays on record here as theirs.
+- *Corps-level odds in place of the force in reach* — **KEEP** (BA5-X17: the figure is the men who would answer
+  the guns; a corps alone would understate a press).
+- *The verdict naming the player's own word* ("because you committed the Guard") — **CLOSED**: the day's clash
+  line already names the word and what it did, and the verdict names what told.
+- *Fewer words, a larger decision type, the pips beside each price* — **KEEP**: the head carries the pips and the
+  purse in words; the type is the theme's own steps (the house rule).
+
+#### Decisions taken under the delegation (each one line to reverse)
+
+Every call the session met is ruled in `docs/audits/OPEN_CALLS_RULED_2026_11_17.md`; these are the ones it made
+in building, each with its seam or its line.
+
+| Decision | Why | To reverse |
+|---|---|---|
+| The ground is a plate cut from a period survey, never drawn | the user's "does not look ai genned"; a survey is what an officer of 1805 had on his table | `battle_acts.gd` `Ground` (the drawn ground is gone; the plates' record `assets/textures/battle/plates.json`) |
+| A plate is never mirrored; a wood or a town lies on the defender's side by choosing the plate cut for it | a mirrored survey reads its lettering backwards | `plates.json` `side` |
+| A fleet action keeps its chart-blue table | the only period sea charts found were Gallica/BnF scans; the licence policy refuses them | a public-domain sea chart, added to `plates.json` |
+| The reserve's attacker-only form is closed, not armed | the rule written before its data picked none | `battle_day.the_attacker_pursues` returns True — its own measure first |
+| The chance figure is built as words | a figure the engine cannot stand behind would be a promise the dice can break | `battle_telling.risk_of` (the words) — a figure needs the resolver's variance priced (golden rule 1) |
+| Above 130 % the tableau's small type holds its 130 % step | no re-pitch clears every collision at 175 % on a 948 × 440 baize (the walk: 99 claims failed) | `battle_diorama.gd` `TABLEAU_TEXT_CAP` |
+| The decision panel grows by 110 px while a day awaits a word, and gives it back | the readers' lever 1; the miniature is the host's pinned body | `battle_diorama.gd` `DAY_ROOM` |
+| A crowded day shows the chips the digits reach and one "+N more" | the readers' lever 4 (sixteen chips at Ulm) | `battle_acts.gd` `DAY_MORE_KEY` |
+| WS-13 reads the odds on the men each side put on the field; the war-damage and war-score readers keep the leads | "numbers told" and "against the odds" must never disagree; the damage readers are a different question | `combat_executor.outnumbered_is_read_on_the_field` |
+| WS-15 gives back only when the attack certainly struck no blow; a corps that marched keeps them spent | the typed road's own fail-closed list, made one function | `combat_executor.a_refused_attack_spends_nothing` |
+| The three enmities read as of 1805 (Rivals, not Hostile) | the scenario's own comment: Auerstedt is October 1806, "and the game can make its own Auerstedt" — in September 1805 the three were rivals, not yet enemies | `precedence.the_seeds_read_as_of_1805` |
+| A silence is remembered when the lead was hard pressed, won or not | Auerstedt was a victory; the court count found the rule deaf for France | `precedence.a_silence_is_remembered_when_pressed` |
+| The account asks the player first; the AI courts sour at once | the defeat's blame is the Emperor's to place; the courts are unseen | `precedence.an_account_follows_a_joint_defeat` |
+| A slight (passed over) makes a Rival, never by itself a Hostile | a Hostile corps never answers the guns: one title must not cost a corps | `precedence._confer` (`floor_a=-1`) |
+
+#### Owned by the session after this one
+
+- **Row OC — "the rulings built"** (before Session H; `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §5): OC-1 the
+  courts' purse, OC-2 the Emperor's purse, OC-3 the Strangulation's letter, OC-4 golden rule 1 — each with its
+  done-when and a strict-xfail pin in `tests/test_oc_the_rulings_to_build.py`; STATUS ▶ NEXT UP names the row.
+- **Session H (S15, the deploy)** — its head: WS-10, WS-12 with GRD-33, WS-14, WS-R, UI6-X70 … X75 with GRD-16 (each
+  a strict-xfail pin; `tools/defect_census.py --open`). Row BA has no open row. Its gate reads against this
+  session's records (`tools/_ba6_*_2026_11_17.json`).
+- **Not done here, each with its reason:** the whole switch-off table was not run again after the last two client changes (the luck's short form and BA6-X10): the nineteen cases those changes can bear on were, and the worker's whole run stands for the rest; the live client's `day`, `oldsave`, `oneday` and `roads` boards ran before the last two Generals changes (BA6-X12, X13), which none of them opens — the `finish` board, which opens the Generals screen, ran again after them.
+
+### 15.26 BA-6's review — run before any commit, on frozen copies (November 17, 2026, authoritative)
+
+Two halves, each on a frozen copy outside the repository, read-only: **the backend, the tests, the tools and
+the records** (four finder lanes — row MC's hooks; the battle backend with WS-13 and WS-15; the six small
+rulings; the honesty of the tests, tools and records — and a completeness critic), then **the client** (the
+day panel's levers; BA1-X4's type step and the survey ground; the Generals screen; the walk's claims and the
+switch-off cases — and a critic). **Every finding was put to two Sonnet verifiers, one to reproduce it, one
+to refute it**; a finding stood only when the code made it certain. Thirty-four findings in all.
+
+**The backend — seventeen findings, fifteen upheld, all fixed (BA6-R1 … R11; two not upheld, R12 and R13):**
+an account card left on screen past its three turns was let lie under the player while the card stayed, and
+answering it afterwards charged the Emperor for a promise already broken (R1); the confer route took an
+enemy marshal's name (R2); **WS-15's give-back read a fortress stormed into an occupation as no blow and
+handed back the counter-punch — a repeatable free assault** (R3); WS-13's sibling, the courts' own
+"outnumbered", still read the leads (R4); WS-15's sibling on the charge road broke a square before its free
+refusals (R5); a strategic defiance printed "instead of PURSUE" (R6, made newly reachable by GRD-31); GRD-30's
+line missed Moore's floor (R7); **every court's relationship moves reached the player's log, row MC's line
+naming the field of a battle France never saw — a fog leak** (R8); the measure tool's stale commit id and arm
+list (R9); two hollow tests (R10); the series attribution taken before the GRD row existed (R11, re-taken on
+the final tree). Not upheld: a save from before row MC ranks by the roster (documented; no such save can
+exist outside development — R12); the rulings' record "absent" (the frozen copy left `docs/audits/` out — R13).
+
+**What the suite's run found after the backend's fixes (BA6-X5 … X7):** the treaty fuzzer's pinned seed,
+on the session's world-line, met **two latent defects of older machinery** — a war folded in the middle of
+the courts' bandwagon pass raised `KeyError: 'war_4'` (X5), and once that was fixed the seed ran on into a
+merge that broke §7.3, a stale RESOLVED row kept for a pair the absorbed war held LIVE (X6, PC-X19's
+pair-level sibling); with every BA-6 row down the seed never reaches either, and each of three rows alone
+(the 1805 reading, the bonds, WS) re-times the board onto them. And **the keyed probe itself**: it applied
+its held seams after `from_scenario`, so a seam acting at the boot (row MC seeds the book, the seats and the
+1805 reading there) was read up in arm 0 (X7); fixed, arm 0 reads IDENTICAL to `fdd4756f`.
+
+**What the measure found after them (BA6-X8):** the final chain's ambient annexation line read 1 — on rivoli
+Saxony, at war on France's side, kept Swabia (Bavaria's homeland, held by Austria by treaty) by the
+Austria–Saxony peace — the residual BA-5's ruling 1 wrote down. It was built as that ruling pre-decided ("built
+before the gate is read if the ambient line ever reads above 0"): `game_end.a_peace_evacuates_a_third_courts_ground`,
+row PEACE, last on the ladder; the gate re-read MET with it up.
+
+**The client — seventeen findings, sixteen upheld, all fixed (BA6-R14 … R30, R27 not upheld):** "+N more"
+opened the hidden words into a box at its closed height (R14 — the panel now re-lays); an even fight's luck
+phrase opened with a decision clause (R15); **the chrome labels kept the Text size they were built at, so a
+size raised between two battles left them at the full size over a tableau held at 130 %** (R16, P2); the skip
+hint was held while the buttons beside it were not (R17); two branches past the held size were described as
+live (R18 — kept as guards, said so); the Generals screen's locked Confer chip gave its refusal only as a
+hover (R19) and a Confer click could ride behind an end turn on the wire (R20); the court line printed "0th"
+with the renown rule down (R21); four of the walk's and the switch-off table's own checks could not fail or
+read the wrong flag (R22–R24, R26); **the luck claim passed a dropped luck row — and at Text size 120 % and over
+the row WAS dropped** (R25: three 24-px lines do not fit the 106-px room, and the long phrase is wider than the
+leads' names allow — ruled under the delegation: there the luck takes the second row in its short form, the
+dice's share and the day's fortune, no wider than the lands row it replaces); **the held Theme overrode the
+engraved banner's and the odometers' fixed sizes above 130 %** (R28, P2); **the survey plate was stretched
+10.6 % onto its sheet** — the slice's own "not generated" aim (R29: cropped to the sheet's aspect, never
+stretched); and the new textures were git-ignored and untracked (R30: force-added, pinned by `git ls-files`).
+Not upheld (R27): the speed switch's room claim over Replay — the two are never on screen together.
+
+The client's fixes were made by one Sonnet worker against the review's own reproductions; each was read back
+here in the code (the Confer guard, the refusal on the page, the crop, the re-lay), and the luck's short form was
+ruled and written here.
+
+**How the client half was verified:** the walk of record and the walks at six sizes after the last client change (167 of 167 shots each, no claim failed); the nineteen switch-off cases those changes bear on (19 of 19 caught); the parse harness; the client's pins (`tests/test_ba6_levers.py::TestTheReviewsFixes`); the live client's five boards (41 steps, every one held).

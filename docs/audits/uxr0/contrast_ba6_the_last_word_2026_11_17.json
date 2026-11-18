@@ -1,0 +1,2154 @@
+{
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\c069ad832af6e1f2\\ab261fff-bdf3-46a2-92ae-f2182bc54265\\scratchpad\\cap_ba6\\index.json",
+ "client_commit": "fdd4756f",
+ "physical_scale": "auto",
+ "high_contrast": false,
+ "surfaces": {
+  "diorama_ba3_day_opens": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 26,
+      "measured": 26,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_dim_chip": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_word": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_night": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_defence": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_follows": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_follows_his": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 27,
+      "measured": 27,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_ulm": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_crowded": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "measured": 39,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "measured": 39,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "measured": 39,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "measured": 39,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 39,
+      "measured": 39,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_day_guns": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 36,
+      "measured": 36,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_dawn_table": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 28,
+      "measured": 28,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_night_table": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba5_ulm_full": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 35,
+      "measured": 35,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba5_defeat_defending": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "measured": 25,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "measured": 25,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "measured": 25,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "measured": 25,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 25,
+      "measured": 25,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba5_square_and_horse": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 24,
+      "measured": 24,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba5_day_decided": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 32,
+      "measured": 32,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 32,
+      "measured": 32,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 32,
+      "measured": 32,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 32,
+      "measured": 32,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 32,
+      "measured": 32,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "diorama_ba3_act_approach": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "measured": 19,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "measured": 19,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "measured": 19,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "measured": 19,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 19,
+      "measured": 19,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "region_ba3_the_day": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 2,
+      "measured": 2,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "order_card_ba3_great_battle": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "enemy_phase_ba3_day_awaits": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "enemy_phase_ba3_night": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 3,
+      "measured": 3,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "order_card_ba4_halts": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "order_card_ba4_march_cost": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "measured": 6,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "order_card_ba4_word": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "order_card_ba4_pitched": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 10,
+      "measured": 10,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "order_card_ba4_one_day": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "measured": 11,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "rail_ba3_day_awaits": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "measured": 14,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "measured": 14,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "measured": 14,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "measured": 14,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 14,
+      "measured": 14,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "generals_court": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 72,
+      "measured": 68,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 72,
+      "measured": 68,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 72,
+      "measured": 68,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 72,
+      "measured": 56,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 72,
+      "measured": 68,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  },
+  "war_room_ba3_day_gate": {
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 79,
+      "measured": 46,
+      "under": 0
+     },
+     "under": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 83,
+      "measured": 48,
+      "under": 0
+     },
+     "under": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "ok": true,
+     "counts": {
+      "rows": 87,
+      "measured": 52,
+      "under": 0
+     },
+     "under": []
+    },
+    "5120x1440@1.80": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.8,
+     "ok": true,
+     "counts": {
+      "rows": 88,
+      "measured": 55,
+      "under": 0
+     },
+     "under": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "ok": true,
+     "counts": {
+      "rows": 85,
+      "measured": 50,
+      "under": 0
+     },
+     "under": []
+    }
+   }
+  }
+ }
+}

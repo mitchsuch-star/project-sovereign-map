@@ -386,6 +386,17 @@ class Marshal:
         # read by his card on the Generals screen and by NO rule of the game.
         # Serialized only while it holds something (KEPT_ONLY_WHEN_HELD_FIELDS).
         self.days: List[Dict[str, Any]] = []
+        # Row MC ("Mon Cousin", backend/game_logic/precedence.py): his seat on
+        # the list (the order of 1804; 0 = unset, he ranks after the list in
+        # roster order), his banked renown, the titles the Emperor conferred
+        # on him ({tier, name, place, turn}), the title standing in the gift
+        # ({tier, name, place, turn, expires}) and the turn of his last claim
+        # (0 = never). Kept only when held (a save without them is as it was).
+        self.seniority: int = 0
+        self.renown: int = 0
+        self.honours: List[Dict[str, Any]] = []
+        self.title_due: Optional[Dict[str, Any]] = None
+        self.last_claim_turn: int = 0
 
 
         # Disobedience System (Phase 2)
@@ -882,6 +893,11 @@ class Marshal:
     # something and is not serialized is still a defect they report.
     KEPT_ONLY_WHEN_HELD_FIELDS = (
         'days',                   # BA-5: a marshal's days
+        'seniority',              # row MC: his seat on the list
+        'renown',                 # row MC: his banked laurels
+        'honours',                # row MC: his titles of victory
+        'title_due',              # row MC: the title in the Emperor's gift
+        'last_claim_turn',        # row MC: his last claim
     )
     DAYS_KEPT = 6                 # BA-5: the last six pitched battles he led
 
@@ -1018,7 +1034,15 @@ class Marshal:
         """
         if other_name == self.name:
             return 0
-        old_value = self.get_relationship(other_name)
+        if the_bond_writes_the_stored_view():
+            # Row MC (R0): the STORED view moves. It read the derived view (the
+            # live grievance's -1) and wrote it back as stored, so a jealous
+            # man's +1 was swallowed and the escalation's -1 dropped him two
+            # rungs (PETITION_POPUP_REVISIT_SPEC Q5(c) left it for a playtest
+            # re-open; row MC re-opens it under the user's delegation).
+            old_value = int(self.relationships.get(other_name, 0) or 0)
+        else:
+            old_value = self.get_relationship(other_name)
         new_value = max(-2, min(2, old_value + int(delta)))
         self.relationships[other_name] = new_value
         return new_value - old_value
@@ -2081,6 +2105,17 @@ class Marshal:
         # (KEPT_ONLY_WHEN_HELD_FIELDS: a save without one is as it always was)
         if self.days:
             data["days"] = [dict(day) for day in self.days]
+        # Row MC: each written only while it holds something
+        if self.seniority:
+            data["seniority"] = int(self.seniority)
+        if self.renown:
+            data["renown"] = int(self.renown)
+        if self.honours:
+            data["honours"] = [dict(h) for h in self.honours]
+        if self.title_due:
+            data["title_due"] = dict(self.title_due)
+        if self.last_claim_turn:
+            data["last_claim_turn"] = int(self.last_claim_turn)
         return data
 
     @classmethod
@@ -2116,6 +2151,14 @@ class Marshal:
         # save of a marshal who has led no pitched battle on a served campaign)
         marshal.days = [dict(day) for day in (data.get("days") or [])
                         if isinstance(day, dict)][-cls.DAYS_KEPT:]
+        # Row MC (absent from every save made before it; a scenario authors the
+        # seats in its own top-level `seniority`, read by the opening's seeding)
+        marshal.seniority = int(data.get("seniority", 0) or 0)
+        marshal.renown = int(data.get("renown", 0) or 0)
+        marshal.honours = [dict(h) for h in (data.get("honours") or []) if isinstance(h, dict)]
+        _due = data.get("title_due")
+        marshal.title_due = dict(_due) if isinstance(_due, dict) else None
+        marshal.last_claim_turn = int(data.get("last_claim_turn", 0) or 0)
 
         # ═══════ DISOBEDIENCE SYSTEM ═══════
         if data.get("trust"):
@@ -2318,6 +2361,13 @@ class Marshal:
         return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, trust: {trust_label}, {unit_type})"
 
 
+def the_bond_writes_the_stored_view() -> bool:
+    """Row MC seam (R0, `docs/MARSHALATE_SPEC.md` §3): `modify_relationship`
+    reads and writes the STORED view (a jealous marshal's derived -1 is never
+    baked in). Down (False): it read the derived view, as before."""
+    return True
+
+
 def create_marshal_from_data(data: Mapping) -> Marshal:
     """Create a single Marshal from a data-driven definition dict.
 
@@ -2337,7 +2387,8 @@ def create_marshal_from_data(data: Mapping) -> Marshal:
             f"is not an implemented type — author one of "
             f"{sorted(IMPLEMENTED_PERSONALITIES)} (MC-4 boot guard)"
         )
-    ctor_kwargs = {k: v for k, v in data.items() if k not in ("biography", "relationships")}
+    ctor_kwargs = {k: v for k, v in data.items()
+                   if k not in ("biography", "relationships", "relationship_causes", "seniority")}
     marshal = Marshal(**ctor_kwargs)
     biography = data.get("biography", "")
     if biography:

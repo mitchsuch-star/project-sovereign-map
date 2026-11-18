@@ -493,6 +493,11 @@ class TestWorldStateSerializationEnforcement:
         # populated world carries one — `tests/test_ba3_the_rounds.py` pins
         # both halves (written when open; absent when none).
         world.battle_days = {"days": {"Wellington": {"lead": "Ney", "ours": 2, "theirs": 2}}}
+        # Row MC: the book of incidents and the waiting accounts are written
+        # ONLY when they hold something (BA-3's precedent above) — populated
+        # here so the census reads both keys.
+        world.marshal_ledger = {"Davout|Ney": {"incidents": [], "won": 1, "lost": 0}}
+        world.marshal_accounts = [{"lead": "Ney", "others": ["Davout"], "place": "Swabia", "turn": 4}]
 
         instance_attrs = get_instance_attributes(world)
         serialized_keys = get_serialized_keys(world)

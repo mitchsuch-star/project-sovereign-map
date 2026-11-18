@@ -45,7 +45,8 @@ func setup(card: Dictionary, status: Dictionary, slot_index: int, narrow: bool,
 	if narrow:
 		tooltip_text = shown + " — " + str(status.get("detail", ""))
 	else:
-		tooltip_text = str(status.get("detail", ""))
+		# BA6-X12: the place and strength ride the hover too, for a line that gives up its place
+		tooltip_text = _sub_line(card) + " — " + str(status.get("detail", ""))
 	_apply_styles()
 	pressed.connect(_on_pressed)
 
@@ -109,6 +110,13 @@ func setup(card: Dictionary, status: Dictionary, slot_index: int, narrow: bool,
 		line2.add_theme_constant_override("separation", 6)
 		line2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# BA6-X12 (the lived court's capture at five sizes): a long place beside a wide badge cut
+		# the line at the place and lost the figure ("Amster…"); where the whole line does not
+		# fit its box it keeps the strength alone (the place stands in the card's detail and the
+		# row's hover)
+		_sub_full = _sub_line(card)
+		_sub_short = _men_of(card)
+		sub.resized.connect(_fit_sub.bind(sub))
 		line2.add_child(sub)
 		line2.add_child(_badge(status, tone))
 		col.add_child(line2)
@@ -121,13 +129,34 @@ func _on_pressed() -> void:
 	chosen.emit(marshal_name)
 
 
-func _sub_line(card: Dictionary) -> String:
-	var where: String = Utils.humanize_entity_name(str(card.get("location", "")))
+var _sub_full := ""
+var _sub_short := ""
+
+
+func _fit_sub(sub: Label) -> void:
+	"""BA6-X12: the whole line where it fits its box, else the strength alone."""
+	if sub == null or not is_instance_valid(sub):
+		return
+	var font: Font = sub.get_theme_font(&"font")
+	var size_px: int = sub.get_theme_font_size(&"font_size")
+	var want := _sub_full
+	if font != null and font.get_string_size(_sub_full, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x > sub.size.x + 0.5:
+		want = _sub_short
+	if sub.text != want:
+		sub.text = want
+
+
+func _men_of(card: Dictionary) -> String:
 	# the interim readers (November 13): "Rhineland · 24,…" — the badge beside
 	# the line left the figure no room; the roster states it in thousands (the
 	# detail's strip carries the exact figure)
 	var strength: int = int(card.get("strength", 0))
-	var men: String = (str(int(round(float(strength) / 1000.0))) + "k") if strength >= 1000 else str(strength)
+	return (str(int(round(float(strength) / 1000.0))) + "k") if strength >= 1000 else str(strength)
+
+
+func _sub_line(card: Dictionary) -> String:
+	var where: String = Utils.humanize_entity_name(str(card.get("location", "")))
+	var men := _men_of(card)
 	if where == "":
 		return men
 	return where + " · " + men

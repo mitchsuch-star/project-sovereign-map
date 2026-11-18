@@ -19,8 +19,8 @@
     "nation": "France",
     "arm": "emperor",
     "committed": 9499,
-    "casualties": 187,
-    "remaining": 9312,
+    "casualties": 175,
+    "remaining": 9324,
     "status": "engaged",
     "lead": true,
     "crowned": false,
@@ -31,8 +31,8 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 24697,
-    "casualties": 368,
-    "remaining": 24329,
+    "casualties": 346,
+    "remaining": 24351,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -43,8 +43,8 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 21687,
-    "casualties": 257,
-    "remaining": 21430,
+    "casualties": 240,
+    "remaining": 21447,
     "status": "engaged",
     "lead": false,
     "crowned": false,
@@ -64,10 +64,10 @@
     "absence_reason": "awaits explicit orders"
    }
   ],
-  "reserve_count": 2,
-  "casualties_total": 1379,
+  "reserve_count": 3,
+  "casualties_total": 1292,
   "committed_total": 94205,
-  "reserve_casualties": 567,
+  "reserve_casualties": 531,
   "nation": "France"
  },
  "defender": {
@@ -91,7 +91,7 @@
   "reserve_casualties": 0,
   "nation": "Austria"
  },
- "observation": "The Emperor watched this field. A costly day for Mack: the losses ran two to one in Napoleon's favour, and the field is Napoleon's. And Mack was taken on that field — France holds him.",
+ "observation": "The Emperor watched this field. Bernadotte never reached the guns. The battle was decided without them, Sire.",
  "ground": "plains",
  "enemy_voice": "Mack: \"I withdraw in perfect conformity with a plan I have just completed.\"",
  "script": {
@@ -198,24 +198,24 @@
       "kind": "dice",
       "side": "attacker",
       "actor": "Napoleon",
-      "text": "The fortune of the day: Napoleon rolls 7, +3 for his eye for ground, +1 for the flank: 11.",
+      "text": "The fortune of the day: Napoleon rolls 9, +3 for his eye for ground, +1 for the flank: 13.",
       "weight": "head",
-      "natural": 7,
+      "natural": 9,
       "skill": 3,
       "flank": 1,
-      "modified": 11,
+      "modified": 13,
       "critical": "",
-      "swing": 12,
-      "fortune_attacker": 0,
-      "fortune_defender": 7
+      "swing": 18,
+      "fortune_attacker": -1,
+      "fortune_defender": 0
      },
      {
       "kind": "break",
       "side": "defender",
       "actor": "Mack",
-      "text": "Mack is taken on the field.",
+      "text": "Mack's line breaks at 0% morale.",
       "weight": "head",
-      "how": "captured",
+      "how": "routed",
       "morale": 0
      }
     ]
@@ -227,11 +227,20 @@
       "kind": "pursue",
       "side": "attacker",
       "actor": "Napoleon",
-      "text": "Murat, from the reserve, rides them down (First Horseman of Europe): 1,259 more.",
+      "text": "Murat, from the reserve, rides them down (First Horseman of Europe): 1 more.",
       "weight": "head",
-      "damage": 1259,
+      "damage": 1,
       "halved": false,
       "target": "Mack"
+     },
+     {
+      "kind": "leave",
+      "side": "defender",
+      "actor": "Mack",
+      "text": "Mack leaves the field.",
+      "weight": "detail",
+      "how": "routed",
+      "to": ""
      }
     ]
    }
@@ -259,7 +268,7 @@
   "theirs_of": 2,
   "awaits": "",
   "pending": false,
-  "morning": "The day: 6,867 of ours for 51,000 of his — the better of the toll was ours.",
+  "morning": "The day: 6,780 of ours for 51,000 of his — the better of the toll was ours.",
   "ahead": "ours",
   "told": [
    {
@@ -281,7 +290,7 @@
   "ended": "decided",
   "banner": "",
   "chips": [],
-  "close": "The day at Swabia was decided at the second clash — 6,867 of ours for 51,000 of the enemy's. Our weight of numbers told. The Guard decided it.",
+  "close": "The day at Swabia was decided at the second clash — 6,780 of ours for 51,000 of the enemy's. Our weight of numbers told. The Guard decided it.",
   "verdict_told": "Decided at the second clash, when Mack's line broke: our weight of numbers told."
  },
  "verdict_told": "Decided at the second clash, when Mack's line broke: our weight of numbers told."

@@ -228,7 +228,10 @@ class TestTheStore:
     def test_the_store_survives_a_save(self, world):
         from backend.models.world_state import WorldState
         data = world.to_dict()
-        assert set(data) == set(WorldState().to_dict()), "no new top-level field"
+        # row MC's book of incidents is seeded at a scenario's opening and written
+        # while it holds something (as DY-2's and DY-4's censuses allow)
+        assert set(data) - {"marshal_ledger", "marshal_accounts"} == set(WorldState().to_dict()), \
+            "no new top-level field"
         again = WorldState.from_dict(data)
         assert CR.store(again) == CR.store(world)
         assert set(again.formable_nations) == set(world.formable_nations)

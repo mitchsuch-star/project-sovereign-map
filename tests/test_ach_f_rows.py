@@ -350,6 +350,11 @@ _MACK_BEYOND_THE_MUSTER = 400000
 def _davouts_objection(client, line="Davout, pursue Mack"):
     if "pursue Mack" in line:
         M.world.get_marshal("Mack").strength = _MACK_BEYOND_THE_MUSTER
+    if "support Bernadotte" in line:
+        # Row MC (November 17, 2026): the 1805 reading opens the pair as
+        # Rivals (-1); this row's premise is the HOSTILE pair that objects
+        for a, b in (("Davout", "Bernadotte"), ("Bernadotte", "Davout")):
+            M.world.get_marshal(a).set_relationship(b, -2)
     asked, spent, _ = _order(client, line)
     assert M.world.pending_strategic_objection, asked.get("message")
     assert spent == 0

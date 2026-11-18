@@ -3809,6 +3809,23 @@ def best_ratifiable_treaty(world, nation: str, wanted: str,
     return None
 
 
+
+def an_envoy_names_his_letter() -> bool:
+    """GRD-5 (the user's ruling "name the letter"; built November 17, 2026,
+    session BA-6): a letter with no rail line of its own names its kind
+    ("Envoy from Prussia: Defensive Alliance"). Down (False): "An envoy from
+    Prussia has arrived with a proposal.", as before."""
+    return True
+
+
+def _the_letters_name(proposal) -> str:
+    """The letter's kind in the player's words (`PROPOSAL_TYPE_DISPLAY`), the
+    terms' own type where the proposal's is a P-rule label; "" when unknown."""
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
+    ptype = str((proposal or {}).get("proposal_type") or "")
+    terms_type = str(((proposal or {}).get("terms") or {}).get("type") or "")
+    return str(PROPOSAL_TYPE_DISPLAY.get(ptype) or PROPOSAL_TYPE_DISPLAY.get(terms_type) or "")
+
 def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     """Take a proposal dict and set up world.pending_diplomatic_dialogue.
 
@@ -3970,11 +3987,17 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
             int(world.current_turn),
         ))
     else:
+        # GRD-5 (the user's ruling "name the letter"; built November 17, 2026,
+        # session BA-6): every other letter names what it proposes on the
+        # rail - eight identical "has arrived with a proposal" rows a run
+        # told the player nothing (`an_envoy_names_his_letter`).
+        _kind = _the_letters_name(proposal) if an_envoy_names_his_letter() else ""
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
-            f"Envoy from {sender}",
-            f"An envoy from {sender} has arrived with a proposal.",
+            f"Envoy from {sender}" + (f": {_kind}" if _kind else ""),
+            (f"An envoy from {sender} has arrived with a letter: {_kind}." if _kind
+             else f"An envoy from {sender} has arrived with a proposal."),
             int(world.current_turn),
         ))
 

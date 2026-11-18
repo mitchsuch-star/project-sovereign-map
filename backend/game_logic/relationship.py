@@ -155,7 +155,7 @@ def get_battle_participants(primary, battle_region, nation, world):
 def process_battle_relationships(attacker_marshal, defender_marshal, battle_result,
                                  battle_region, world,
                                  attacker_artillery=None, defender_artillery=None,
-                                 rng=None):
+                                 rng=None, attacker_arrivals=None, defender_arrivals=None):
     """Process relationship changes for all participants on both sides.
 
     Uses ordered pairs (permutations) per D4.
@@ -164,6 +164,8 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
         attacker_artillery: List of artillery marshals that reinforced from adjacent regions
         defender_artillery: List of artillery marshals that reinforced from adjacent regions
         rng: WS-11 — the battle's own stream (None = the module `random`)
+        attacker_arrivals / defender_arrivals: row MC — the corps that came
+            up as reinforcements this battle (the rescue rule reads them)
 
     Returns:
         list of dicts with keys: marshal, toward, change, new_value, nation
@@ -255,4 +257,21 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
                     "stored_moved": a.relationships.get(b.name, 0) != _stored_before,
                 })
 
+    # Row MC: the roll's moves written in the book, then the battle's own bond
+    # rules on both sides (brothers in arms, the shared defeat, the rescue,
+    # the silence, serving under a junior) — none of them draws on a stream.
+    from backend.game_logic import precedence as _precedence
+    for rc in changes:
+        a = world.marshals.get(rc["marshal"])
+        b = world.marshals.get(rc["toward"])
+        if a is not None and b is not None:
+            _precedence.record_roll(world, a, b, int(rc["change"]),
+                                    rc["direction"] == "improved", battle_region)
+    _precedence.after_shared_battle(
+        world, attacker=attacker_marshal, defender=defender_marshal,
+        battle_result=battle_result, region=battle_region,
+        attacker_participants=attacker_participants,
+        defender_participants=defender_participants,
+        attacker_reinforcements=attacker_arrivals or (),
+        defender_reinforcements=defender_arrivals or ())
     return changes

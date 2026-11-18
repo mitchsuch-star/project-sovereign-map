@@ -208,11 +208,15 @@ class TestRefusedAttackDoesNotBurnTheCounterPunch:
         result = executor._execute_attack(
             davout, "Wellington", world, {"world": world})
 
+        # WS-15 (row BA, session BA-6): `_execute_attack` runs past the point
+        # where the flag is cleared, and since then puts it back ITSELF when
+        # no blow lands, for every caller (the courts', the strategic and the
+        # insist roads too); the typed road's belt restores what is restored.
         assert result.get("success") is False
-        assert davout.counter_punch_available is False, (
-            "_execute_attack is expected to clear the flag at its head — if "
-            "this ever stops being true the restore below is unnecessary"
-        )
+        assert "setting up after repositioning" in str(result.get("message", "")), (
+            "the refusal raised INSIDE _execute_attack, past the consumption site")
+        assert davout.counter_punch_available is True, (
+            "WS-15: the attack road gives back the strike no blow spent")
 
     def test_refused_attack_restores_the_counter_punch(self):
         world, davout = _world_with_cautious_attacker(ap=4, counter_punch=True)
@@ -321,6 +325,12 @@ class TestTheWaiverBuysAStrikeAndNothingElse:
             src = fh.read()
         block = src[src.index("_no_strike = ("):]
         block = block[:block.index("\n            )")]
+        # WS-15 (row BA, session BA-6): the list is ONE function, read by this
+        # belt and by the attack road's own give-back
+        assert "attack_struck_no_blow(_res)" in block
+        import inspect
+        from backend.commands.combat_executor import attack_struck_no_blow
+        block = inspect.getsource(attack_struck_no_blow)
         for marker in ("requires_input", "pending_interrupt",
                        "awaiting_diplomatic_response", "war_purpose_popup",
                        "opening_attack_guidance", "occupation_started",

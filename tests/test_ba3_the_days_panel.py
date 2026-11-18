@@ -144,10 +144,11 @@ class TestThePanelDriven:
         assert row[0]["text"].startswith("The day hangs, Sire.")
         assert opens["first_shown"] == "battle_day"
         assert not any(ln.get("scroll_active") for ln in opens["lines"])
+        # (BA-6, the levers past 5: the tray grows by DAY_ROOM, so the crowded first day HAS the room for
+        # the line: it stands on its row and is acknowledged; the guns' day, which also carries the third
+        # group, is the one whose line still rides the head's hover)
         crowded = WALK._frame(driven["by_id"]["day_crowded__settled"], "settled")["day"]
-        assert not [ln for ln in crowded["lines"] if ln.get("first")] and crowded["first_shown"] == ""
-        crowded_head = [ln for ln in crowded["lines"] if ln.get("head")][0]
-        assert "The day hangs, Sire." in crowded_head.get("source", ""), "it rides the head's hover"
+        assert len([ln for ln in crowded["lines"] if ln.get("first")]) == 1 and crowded["first_shown"] == "battle_day"
         assert not any(ln.get("scroll_active") for ln in crowded["lines"])
         ulm = WALK._frame(driven["by_id"]["day_ulm__settled"], "settled")["day"]
         assert not [ln for ln in ulm["lines"] if ln.get("first")] and ulm["first_shown"] == "", (
@@ -155,6 +156,8 @@ class TestThePanelDriven:
         assert ulm["exits_up"] and ulm["exit_tags"], "and its exits say what they do, on a row of their own"
         guns = WALK._frame(driven["by_id"]["day_guns__settled"], "settled")["day"]
         assert not [ln for ln in guns["lines"] if ln.get("first")] and guns["first_shown"] == ""
+        guns_head = [ln for ln in guns["lines"] if ln.get("head")][0]
+        assert "The day hangs, Sire." in guns_head.get("source", ""), "it rides the head's hover"
         night = WALK._frame(driven["by_id"]["day_night__settled"], "settled")["day"]
         assert not [ln for ln in night["lines"] if ln.get("first")], "a closed day names no rules"
 
@@ -210,7 +213,11 @@ class TestTheSwitchOffTable:
         # sizes), its review four (the closing table, a locked card, the toll's one line,
         # a liberation's long line), and its final pass one (the verdict's step smaller, read
         # off the label under the house rule)
-        assert len(keys) == len(set(keys)) == 84
+        # ...and row BA's BA-6 (the levers past 5) nine more (`ba6_*`: the tray's room, the three-line
+        # cards, the exits' row and wrap, "+N more", the legend, the luck), its review the re-lay of
+        # "+N more", and the luck's short row where the plate holds two (the C12 ruling)
+        assert len(keys) == len(set(keys)) == 95
+        assert len([k for k in keys if k.startswith("ba6_")]) == 11
         assert len([k for k in keys if k.startswith("ba5_")]) == 34
         assert [k for k in keys if k.startswith("ba4_")] == [
             "ba4_digit_face", "ba4_digit_press", "ba4_digit_denial", "ba4_digit_at_rest",

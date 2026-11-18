@@ -832,6 +832,9 @@ func _ready():
 				# Marshal Recruitment (Jealousy v3.2): the Commission view
 				if instance.has_signal("commission_requested"):
 					instance.commission_requested.connect(_on_commission_requested)
+				# Row MC: the title in the Emperor's gift
+				if instance.has_signal("title_requested"):
+					instance.title_requested.connect(_on_title_requested)
 				# UI-6: per-card order chips (Fortify/Drill) — typed commands
 				if instance.has_signal("order_command"):
 					instance.order_command.connect(_on_reward_command)
@@ -9882,6 +9885,30 @@ func _on_commission_requested(candidate_name: String):
 	if candidate_name.is_empty():
 		return
 	_on_reward_command("commission " + candidate_name)
+
+
+func _on_title_requested(marshal_name: String):
+	"""Row MC: a [Confer: ...] chip - POST /confer_title, the answer where the
+	other Generals actions show theirs, the screen refreshed in place."""
+	if marshal_name.is_empty() or _chip_command_in_flight:
+		return
+	if command_input == null or not command_input.editable:
+		# an end turn or a command is on the wire (as `_on_notification_action_requested`): say so
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+		return
+	_chip_command_in_flight = true
+	api_client.confer_title(marshal_name, _on_title_result)
+
+
+func _on_title_result(response):
+	_chip_command_in_flight = false
+	_on_command_result(response)
+	if top_bar and top_bar.screens.has("generals"):
+		var generals_screen = top_bar.screens["generals"]
+		if generals_screen and generals_screen.has_method("refresh_if_open"):
+			generals_screen.refresh_if_open()
+	_ui6_toast_reply(response)
 
 
 func _on_notification_action_requested(command: String):

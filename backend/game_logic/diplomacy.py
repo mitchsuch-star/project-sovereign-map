@@ -11370,6 +11370,17 @@ def dead_court_refusal(world, target: str) -> Optional[str]:
             f"no longer exists — there is nobody left to declare war on.")
 
 
+def a_declaration_of_war_is_public() -> bool:
+    """GRD-2 (the user's ruling, "diplomacy has no fog — the declaration row
+    rides always"; built November 17, 2026, session BA-6): a formal war
+    between two courts is a public act, so the morning's declaration row is
+    told whatever France can see of either court (it rode only on PARTIAL
+    sight of a party, and four of six ambient seeds read no declaration
+    though Prussia's war on Hanover opened on turn 11). Down (False): the
+    row needs PARTIAL sight of one of the courts, as before."""
+    return True
+
+
 def declare_war(
     world,
     aggressor: str,
@@ -11887,7 +11898,7 @@ def declare_war(
                             "relation_cost": int(_cost),
                             "player": str(world.player_nation),
                         },
-                        "partial_on_nation")
+                        "always" if a_declaration_of_war_is_public() else "partial_on_nation")
 
     # R29: Log to diplomatic history
     diplomatic_history = getattr(world, 'diplomatic_history', [])

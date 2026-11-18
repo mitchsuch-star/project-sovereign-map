@@ -1709,7 +1709,9 @@ class TestTheSessionAMeasure:
         """An arm per seam, each seam's reach counted: the seat moves three
         times on that loop and the series reproduces the prior on every arm
         — no re-pin, `BASELINE_SERIES` stands."""
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES
+        # (row BA, BA-6 / row MC re-pinned the live series; this record was
+        # taken before it, so it reads the series of its day)
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_BA6 as BASELINE_SERIES
         rig = _record("_t4_3_series_arms_final.json")
         assert rig["prior"] == BASELINE_SERIES
         for arm in ("0", "SEAT", "ALL"):

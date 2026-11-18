@@ -715,7 +715,11 @@ def _closed_known_court_forms() -> List[str]:
             except Exception as exc:
                 report(exc, "dialogue_routing._closed_known_court_forms: _closed_normalised / _addressee_forms")
                 continue
-        _KNOWN_COURT_FORMS = sorted((f for f in forms if f), key=len, reverse=True)
+        # the November 10 hash-seed reading, checked November 17 (session BA-6):
+        # longest first, ties alphabetical - no reader turns on the tie (two
+        # distinct forms of one length cannot both be the same whole word), and
+        # the list no longer differs between two processes' hash seeds
+        _KNOWN_COURT_FORMS = sorted((f for f in forms if f), key=lambda f: (-len(f), f))
     return _KNOWN_COURT_FORMS
 
 
