@@ -12,6 +12,21 @@ extends CanvasLayer
 
 signal card_clicked(nation: String, status: String, war_instance_id: String)
 signal coalition_header_clicked()
+# Row PW: a war card's "Make peace" — the owner opens that war's peace talks.
+signal peace_clicked(nation: String, war_instance_id: String)
+
+# The figure at which a war reads as won or lost in a word (the tug-of-war
+# bar's own scale, -100 … +100).
+const STANDING_BAND := 15
+
+
+static func war_standing_word(score: int) -> String:
+	"""Row PW: how the war stands, in one word."""
+	if score >= STANDING_BAND:
+		return "Winning"
+	if score <= -STANDING_BAND:
+		return "Losing"
+	return "Even"
 
 @onready var panel_container = $PanelContainer
 @onready var scroll_container = $PanelContainer/ScrollContainer
@@ -529,20 +544,37 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	# Session UI-2: the figure stands in the bar's medallion below; the trend's
 	# glyph (PC-F84, S13e part 3: "+77 ↑") keeps its place beside the title.
 	var glyph = str(war_data.get("trend_glyph", ""))
-	if glyph != "":
+
+	# Row PW "Plain Words" (the first playtest: "its unclear how to end wars"):
+	# the card says in a WORD how the war stands — Winning / Even / Losing, the
+	# bar's own figure read aloud — and carries the one button that ends it.
+	# (The war's age moved to the hover: "T:12" told a first reader nothing.)
+	var standing_label = Label.new()
+	standing_label.name = "WarStanding"
+	standing_label.text = war_standing_word(score)
+	standing_label.theme_type_variation = &"Caption"
+	standing_label.add_theme_color_override("font_color", _get_score_color(score))
+	standing_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_row.add_child(standing_label)
+	# (The trend's glyph follows the word — "Winning ↑"; a steady "→" before
+	# "Even" read as an arrow pointing at it, so the steady one is not drawn.)
+	if glyph != "" and glyph != "→":
 		var glyph_label = Label.new()
 		glyph_label.text = glyph
 		glyph_label.theme_type_variation = &"Caption"
 		glyph_label.add_theme_color_override("font_color", _get_score_color(score))
 		glyph_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_row.add_child(glyph_label)
-
-	var turn_label = Label.new()
-	turn_label.text = "T:" + str(duration)
-	turn_label.theme_type_variation = &"Caption"
-	turn_label.add_theme_color_override("font_color", COLOR_DIMMED)
-	turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_row.add_child(turn_label)
+	var peace_btn := Button.new()
+	peace_btn.name = "MakePeaceButton"
+	peace_btn.text = "Make peace"
+	peace_btn.theme_type_variation = &"CaptionButton"
+	peace_btn.focus_mode = Control.FOCUS_NONE
+	peace_btn.custom_minimum_size = Vector2(0, 22)
+	peace_btn.tooltip_text = "Open the peace talks for this war: choose the terms and see who will sign."
+	peace_btn.pressed.connect(func(): peace_clicked.emit(opponent, str(war_data.get("war_instance_id", ""))))
+	name_row.add_child(peace_btn)
+	row_btn.tooltip_text += "\nAt war for " + Utils.plural(duration, "turn") + "."
 	col.add_child(name_row)
 
 	# ── Line 2: full-width tug-of-war bar ──
@@ -562,6 +594,10 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 
 	row_btn.add_child(col)
 	vbox.add_child(row_btn)
+	# Row PW: the card is as tall as its two lines need — the name row holds a
+	# button now, and the fixed 50 px cut the bar's lower half off (found in
+	# the real client). Measured in the tree, where the theme's sizes are known.
+	row_btn.custom_minimum_size.y = maxf(50.0, col.get_combined_minimum_size().y + 6.0)
 
 
 func _bar_flag(nation: String) -> Control:

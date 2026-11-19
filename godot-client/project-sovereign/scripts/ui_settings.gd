@@ -671,16 +671,53 @@ static func set_idle_warning(on: bool) -> void:
 # Settings → ORDERS (the plan's N4): after a card verb, a gesture order or a
 # confirm-card send that began from a selection, the next idle marshal is
 # selected and the camera eases to him; off, the same marshal is selected
-# again. Never after a typed line. A driven harness keeps the selection its
-# script made (`harness_active`, the idle-warning precedent above); a
-# player's default is ON.
+# again. Never after a typed line.
+#
+# Row PW (November 18, 2026 — the first playtest: "everything feels convoluted
+# and opaque and disconnected"): the default is OFF. On, every order's answer
+# took the selection AND the camera to another corps — the player never saw
+# the order he had just given carried out, and with one click sending a move
+# the next click on the map would have commanded a different marshal than the
+# one he had been ordering. The switch stays for the player who wants the
+# round of the corps; an order sent with no card keeps its man whatever it
+# says (`main.gd _pw_send_and_keep_him`).
 static func get_next_marshal_after_order() -> bool:
-	return bool(_config().get_value("orders", "next_marshal_after_order", not harness_active()))
+	return bool(_config().get_value("orders", "next_marshal_after_order", false))
 
 
 static func set_next_marshal_after_order(on: bool) -> void:
 	_config().set_value("orders", "next_marshal_after_order", on)
 	_save()
+
+
+# --- Row PW (November 18, 2026 — the first playtest): ask before every order? ---
+# Settings → ORDERS. The player: "clicking on genral and sending them somewhere
+# is bad ux" — every click order opened a card that had to be sent. Off (a
+# player's default): with a marshal selected, a click on a province SENDS a
+# plain move or march at once (the tag by the cursor has said its price and
+# what it does); the card opens only where the backend's quote says to ask
+# (`confirm`: an attack, a refusal, a road that meets a corps, a province he
+# would enter without taking). On: the card opens for every order, as before.
+# A driven harness keeps the card (its scripts press Send), like the settings
+# above; a player's default is OFF.
+static func get_confirm_every_order() -> bool:
+	return bool(_config().get_value("orders", "confirm_every_order", harness_active()))
+
+
+static func set_confirm_every_order(on: bool) -> void:
+	_config().set_value("orders", "confirm_every_order", on)
+	_save()
+
+
+# --- Row PW: the order's card rises once, on its quote ---
+# A player's card waits the moment its quote takes (`main.gd _open_order_card`:
+# it used to rise on a placeholder and lay itself out again when the quote
+# came — one of the windows that "bobble"). A driven harness HOLDS each quote
+# until its script answers it and reads the card in between, so there the
+# card rises at once on the placeholder, as it always did. No Settings row:
+# it is not a choice a player needs.
+static func get_card_waits_for_quote() -> bool:
+	return bool(_config().get_value("orders", "card_waits_for_quote", not harness_active()))
 
 
 # --- Session UI-6: the readback line above the command line ---

@@ -96,7 +96,7 @@ const COMPACT_ROW_HEIGHT := 30.0
 # Session UI-4: a court's status row — fixed widths so the courts stand in columns
 const COURT_NAME_WIDTH := 130.0
 const COURT_METER_WIDTH := 160.0
-const COURT_METER_WIDTH_COMPACT := 90.0
+const COURT_METER_WIDTH_COMPACT := 64.0   # row PW: 90 -> 64, the plain button faces need the room
 const COURT_SCORE_WIDTH := 66.0
 const COURT_STATUS_WIDTH := 104.0
 const COURT_BLOCKER_WIDTH := 250.0
@@ -244,7 +244,20 @@ var _close_x: Button = null
 func show_dialogue(data: Dictionary):
 	"""Display proposal confirmation popup with terms and options."""
 	current_data = data
+	if str(data.get("type", "")) == "settlement_confirm":
+		_pw_plain_table_strings(current_data)   # row PW: the guidance sentences, in the buttons' words
 	var was_visible: bool = visible
+	# Row PW (November 18, 2026 — the first playtest: "some screens bobble up
+	# and down"): the peace table as it STANDS when a press restages it — its
+	# rect, the body's floor, the two regions' shares (`_hold_document`).
+	var held_doc: Dictionary = {}
+	if was_visible and _doc_fitted and per_court_frame != null and content_label != null:
+		var held_panel := $PanelContainer as Control
+		held_doc = {"top": held_panel.offset_top, "bottom": held_panel.offset_bottom,
+			"floor": per_court_frame.custom_minimum_size.y,
+			"shares": [content_label.size_flags_stretch_ratio, per_court_frame.size_flags_stretch_ratio]}
+	_doc_fitted = false
+	_restaging = false     # the restage a press waited on (or any other showing) is here
 	if _close_x != null:
 		var exit_action := _find_safe_exit_action()
 		_close_x.visible = exit_action != ""
@@ -376,7 +389,9 @@ func show_dialogue(data: Dictionary):
 	_scroll_resume = {"key": "", "value": 0}
 
 	# Create buttons dynamically from dialogue options
+	_rail_rebuilds_in_place = true   # row PW: the last showing's buttons leave the rail NOW
 	_clear_buttons()
+	_rail_rebuilds_in_place = false
 	var options = data.get("options", [])
 	var is_options_picker = (dtype == "proposal_options")
 	var idx = 1
@@ -389,13 +404,48 @@ func show_dialogue(data: Dictionary):
 		# reason in `disabled_reason_display` (the wizard's key); the old
 		# `disabled_reason`-only read rendered a bare "Unavailable" tooltip.
 		var disabled_reason = str(opt.get("disabled_reason_display", opt.get("disabled_reason", original_tooltip)))
+		# Row PW: a dial that the last press found could change nothing is shut,
+		# its reason its hover (the backend's `dial_dead`), until the terms change.
+		var dead_why: String = _pw_dial_dead_reason(str(opt.get("action", "")), str(opt.get("scope", "table")))
+		if dead_why != "":
+			available = false
+			disabled_reason = "Nothing more to change — " + dead_why + "."
 		btn.text = original_label
 		btn.tooltip_text = original_tooltip
+		# Row PW (plain words): the peace table's buttons say what they DO
+		# ("Offer them more", "Review and sign") — the backend's labels stay the
+		# options' names (every road that reads them is untouched).
+		if is_settlement_table:
+			var plain_face: Array = plain_option_face(str(opt.get("action", "")), original_label, original_tooltip)
+			btn.text = str(plain_face[0])
+			btn.tooltip_text = str(plain_face[1])
+			original_tooltip = str(plain_face[1])
+			# Row PW (PW-X13 — the blind reading: no reader could say what "Offer
+			# them more" would do before pressing it): a dial wears what its NEXT
+			# press does as its second line ("+100 gold to each court"), the change
+			# in full as its hover, and stands shut with its reason when a press
+			# would change nothing — before the press, not after it.
+			var next_step: Dictionary = _pw_dial_next(str(opt.get("action", "")), str(opt.get("scope", "table")))
+			if not next_step.is_empty():
+				var second: String = str(next_step.get("face", ""))
+				if second != "" and not Utils.compact_view():
+					btn.text = str(plain_face[0]) + "\n" + second
+				var next_line: String = str(next_step.get("line", ""))
+				if next_line != "":
+					original_tooltip = next_line + "\n" + original_tooltip
+					btn.tooltip_text = original_tooltip
+				if bool(next_step.get("dead", false)) and available:
+					available = false
+					disabled_reason = "Nothing more to change — " + str(next_step.get("why", "nothing more can change")) + "."
 		# Session UI-4: 5 px lower in the compact view — at the shipped 115 % the
 		# table's last court row stood at the body's very edge (EA-E6)
 		btn.custom_minimum_size = Vector2(160, 40 if Utils.compact_view() else 45)
 		# Session UI-2: the act a table exists for is its primary button.
-		if original_label.begins_with("Submit for Review") or original_label.begins_with("Ratify"):
+		# Row PW (the blind reading: "Review and sign is the highlighted button
+		# even though all 3 refuse"): the review is the table's primary act only
+		# where the courts would sign what stands.
+		var _would_be_signed: bool = (not is_settlement_table) or bool(data.get("can_ratify", true))
+		if (original_label.begins_with("Submit for Review") and _would_be_signed) or original_label.begins_with("Ratify"):
 			btn.theme_type_variation = &"PrimaryButton"
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.disabled = not available
@@ -485,9 +535,27 @@ func show_dialogue(data: Dictionary):
 	elif $PanelContainer.has_meta("clamp_ceiling_override"):
 		$PanelContainer.remove_meta("clamp_ceiling_override")
 	_reset_document_shares()
+	# Row PW: the cue's row is reserved NOW (the body's frame is visible), so
+	# the clamp and the fit below measure the window with it — never some
+	# frames later, under the reader's eye (`_update_body_cue`).
+	_update_body_cue()
 	Utils.clamp_centered_panel($PanelContainer)
 	if is_settlement_table:
-		_fit_settlement_document()
+		# Row PW (PW-X12 — "some screens bobble up and down", measured frame by
+		# frame in the real client): the rail's grid was thrown back to three
+		# columns above and put in ONE row again by the fit two frames later —
+		# so under every press the four buttons stood in two rows for two
+		# frames (the rail 45 -> 98 px, the list 78 px shorter, then back). The
+		# row is decided HERE, in the frame the buttons are built: the last
+		# showing's buttons are already out of the grid (`_clear_buttons`), so
+		# the measure reads the new ones alone. The fit's own measure, two
+		# frames on, finds the same answer and changes nothing.
+		if _fit_action_columns():
+			Utils.clamp_centered_panel($PanelContainer)
+		if held_doc.is_empty():
+			_fit_settlement_document()
+		else:
+			_fit_settlement_document(_hold_document(held_doc))
 	# S14G-12: the header's "more below" cue (every dtype's ContentLabel) and,
 	# on the settlement table, the one-shot beats brought into view.
 	call_deferred("_update_header_cue")
@@ -581,16 +649,18 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			line.add_child(caption)
 		for aff in entry.get("affordances", []):
 			var btn = Button.new()
-			btn.text = str(aff.get("label", "???"))
-			btn.tooltip_text = str(aff.get("description", ""))
+			# Row PW (plain words): the face and its hover by what the press does.
+			var court_face: Array = plain_court_face(aff)
+			btn.text = str(court_face[0])
+			btn.tooltip_text = str(court_face[1])
 			# Session UI-4: folded, a court's three buttons wear short faces (Demand
 			# more / Ease / Drop) in its status row; the full label and the
 			# description are the hover. On the page the full label stands.
 			var short_face: String = _short_face(str(aff.get("action", ""))) if at >= 0 and Utils.explanations_folded() else ""
-			var face_tip: String = str(aff.get("description", ""))
+			var face_tip: String = str(court_face[1])
 			if short_face != "":
 				btn.text = short_face
-				face_tip = (str(aff.get("label", "")) + " — " + face_tip) if face_tip != "" else str(aff.get("label", ""))
+				face_tip = (str(court_face[0]) + " — " + face_tip) if face_tip != "" else str(court_face[0])
 			btn.custom_minimum_size = Vector2(0.0 if (compact or short_face != "") else 150.0, COMPACT_ROW_HEIGHT if (compact or short_face != "") else 36.0)
 			# Session UI-2: one button language — the theme's gilt face.
 			btn.theme_type_variation = &"CaptionButton"
@@ -605,6 +675,18 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			# at war with Austria" is the shut chip's own reason.
 			var aff_available := bool(aff.get("available", true))
 			var aff_reason := str(aff.get("disabled_reason_display", ""))
+			var aff_scope: String = str(aff.get("scope", ""))
+			var aff_dead: String = _pw_dial_dead_reason(str(aff.get("action", "")), aff_scope) if aff_scope != "" else ""
+			# PW-X13: the court's own next step leads its hover; a press that would
+			# change nothing is shut before it is made
+			var aff_next: Dictionary = _pw_dial_next(str(aff.get("action", "")), aff_scope) if aff_scope != "" else {}
+			if str(aff_next.get("line", "")) != "":
+				face_tip = str(aff_next.get("line", "")) + "\n" + face_tip
+			if aff_dead == "" and bool(aff_next.get("dead", false)):
+				aff_dead = str(aff_next.get("why", "nothing more can change"))
+			if aff_dead != "":   # row PW: a press here changes nothing
+				aff_available = false
+				aff_reason = "Nothing more to change — " + aff_dead + "."
 			Utils.set_available(btn, aff_available, face_tip,
 				aff_reason if aff_reason != "" else face_tip)
 			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
@@ -615,15 +697,126 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			(line.get_meta("host") as Control).visible = true
 
 func _short_face(action: String) -> String:
-	"""Session UI-4: a court row's short button face, by the affordance's action."""
+	"""Session UI-4: a court row's short button face, by the affordance's action.
+	Row PW (plain words): the faces say what the press does to the DEAL — the
+	table's own words ("Ease", "Drop") told a first reader nothing."""
 	match action:
 		"settlement_dial_harsher":
-			return "Demand more"
+			return "Ask more"
 		"settlement_dial_generous":
-			return "Ease"
+			return "Offer more"
 		"settlement_cover_drop":
-			return "Drop"
+			return "Leave out"
 	return ""
+
+
+# Row PW "Plain Words" (November 18, 2026 — the first playtest: "diplomacy is
+# very confusing"). The peace table's rail, by the option's ACTION: what the
+# button does, on its face, and one plain sentence for its hover. The
+# backend's `label` stays the option's name (no road that reads it changes).
+const PLAIN_FACES := {
+	"settlement_dial_harsher": ["Ask for more", "Ask more of every court. Each court's answer updates at once."],
+	"settlement_dial_generous": ["Offer them more", "Offer every court more gold. Your land is never added unless you choose it. Each court's answer updates at once."],
+	"submit_settlement_for_review": ["Review and sign", "See the whole deal once more — then sign it, or go back and change it. Nothing is sent yet."],
+	"suspend_settlement_editor": ["Cancel", "Close the talks. Nothing is sent; this draft is kept until the turn ends."],
+	"back_out_settlement": ["Cancel", "Close without signing. Nothing changes."],
+	"confirm_settlement": ["Sign the peace", "Sign. The war ends on these terms."],
+	"return_to_settlement_terms": ["Go back and change the terms", "Return to the talks with this draft."],
+	"open_war_detail": ["See the war", "Close this and open the war's own window."],
+}
+
+
+# Row PW (plain words): the table's own guidance sentences name its buttons and
+# its verdict in the table's old trade ("Will NOT carry as drafted", "Holding
+# out", "use 'More generous'", "Submit for Review", "Ratify"). The backend's
+# sentences stay what every road, rule and pin reads; the popup PRINTS this
+# reading of them — each phrase to the words now on the buttons. Ordered: the
+# longer phrase first.
+const TABLE_WORDS := [
+	["Will NOT carry as drafted — every court must reach", "They will not sign this — every court's number must reach"],
+	["Will carry as drafted — every court at or above", "They will sign — every court is at or above"],
+	["Will NOT carry as drafted", "They will not sign this"],
+	["Will carry as drafted", "They will sign"],
+	["Holding out:", "Refusing:"],
+	["'More generous'", "'Offer them more'"],
+	["More generous", "Offer them more"],
+	["'Harsher terms'", "'Ask for more'"],
+	["Harsher terms", "Ask for more"],
+	["Submit for Review", "Review and sign"],
+	["Back Out", "Cancel"],
+	["Drop a court from the table (they fight on)", "Leave a court out (it fights on)"],
+	["Drop a court from the table", "Leave a court out"],
+	["ratification", "signing"],
+	["Ratify", "Sign"],
+	["ratify", "sign"],
+	["ratified", "signed"],
+	["won't accept", "will not sign"],
+]
+
+
+# PW-X12: what stands in the change line's row before the first press.
+const CHANGE_LINE_HINT := "What each press changes is written on this line."
+# Row PW (the blind reading): what the number on each court's row is.
+const TABLE_NUMBER_CAPTION := "The number on each row is how willing that court is to sign — it signs at 50."
+
+
+func _pw_plain_table_strings(data: Dictionary) -> void:
+	"""Row PW: the peace table's guidance sentences re-worded ONCE as its data
+	arrives (TABLE_WORDS), so every site that prints them — the head, the
+	verdict tile's hover, the counsel note, the review's "Why not" — reads the
+	plain form. Display strings only; nothing the backend reads back."""
+	for key in ["propose_carry_hint", "ratify_blocked_reason"]:
+		if data.get(key) is String:
+			data[key] = plain_table_words(str(data[key]))
+	var overall = data.get("overall_acceptance", {})
+	if overall is Dictionary:
+		for key in ["carry_verdict_display", "summary_display"]:
+			if (overall as Dictionary).get(key) is String:
+				(overall as Dictionary)[key] = plain_table_words(str((overall as Dictionary)[key]))
+
+
+static func plain_table_words(text: String) -> String:
+	"""A guidance sentence of the table in the words on its buttons (TABLE_WORDS)."""
+	var out := text
+	for pair in TABLE_WORDS:
+		out = out.replace(str(pair[0]), str(pair[1]))
+	return out
+
+
+static func plain_option_face(action: String, label: String, tip: String) -> Array:
+	"""[face, hover] for a rail option of the peace table — the plain pair for
+	a known action, else the option's own label and description."""
+	if action == "confirm_settlement" and label.findn("white peace") >= 0:
+		return ["Sign a white peace", "Sign. The war ends and nothing changes hands."]
+	if PLAIN_FACES.has(action):
+		var pair: Array = PLAIN_FACES[action]
+		return [str(pair[0]), str(pair[1])]
+	if action == "seek_armistice_instead":
+		# "Armistice with Britain only" -> "Truce with Britain only" (the
+		# Cabinet's own word for it: "Ask for a truce")
+		return [label.replace("Armistice with", "Truce with"), tip.replace("an armistice", "a truce")]
+	return [label, tip]
+
+
+static func plain_court_face(aff: Dictionary) -> Array:
+	"""[face, hover] for a per-court button of the peace table, by its action
+	and the court it names — "Ask more of Russia", "Offer Russia more",
+	"Leave Russia out". Every other affordance keeps its own label."""
+	var court := Utils.display_nation_name(str(aff.get("nation", aff.get("scope", ""))))
+	var label := str(aff.get("label", "???"))
+	var tip := str(aff.get("description", ""))
+	if court == "":
+		return [label, tip]
+	match str(aff.get("action", "")):
+		"settlement_dial_harsher":
+			return ["Ask more of " + court, "Ask more of " + court + " alone. Their answer updates at once."]
+		"settlement_dial_generous":
+			return ["Offer " + court + " more", "Offer " + court + " more gold. Your land is never added unless you choose it."]
+		"settlement_cover_drop":
+			return ["Leave " + court + " out", "Leave " + court + " out of this peace. You stay at war with them."]
+		"settlement_cover_add":
+			return ["Add " + court + " to this peace", "Bring " + court + " into these talks."]
+	return [label, tip]
 
 func _is_default_builder(dtype: String, data: Dictionary) -> bool:
 	"""PC-F34: true when `show_dialogue`'s match fell to `_build_content`
@@ -815,13 +1008,13 @@ func _build_settlement_content(data: Dictionary) -> String:
 		# Session UI-2: the verdict stands in the title face — gilt when the
 		# table carries, the alert red when it does not.
 		if can_ratify_now:
-			bbcode += Utils.HEAD_OPEN + "Settlement of %s — every court consents; submit it for review" % war_label + Utils.HEAD_CLOSE + "\n"
+			bbcode += Utils.HEAD_OPEN + _verdict_heading_words(data) + Utils.HEAD_CLOSE + "\n"
 		else:
-			bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]This draft will not carry as it stands.[/color][/font]\n"
+			bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]" + _verdict_heading_words(data) + "[/color][/font]\n"
 	elif can_ratify_now:
-		bbcode += Utils.HEAD_OPEN + "Settlement of %s — ready for ratification" % war_label + Utils.HEAD_CLOSE + "\n"
+		bbcode += Utils.HEAD_OPEN + _verdict_heading_words(data) + Utils.HEAD_CLOSE + "\n"
 	else:
-		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]This settlement cannot be ratified now.[/color][/font]\n"
+		bbcode += "[font=" + Utils.TITLE_FONT + "][color=#" + _ALERT_HEX + "]" + _verdict_heading_words(data) + "[/color][/font]\n"
 	# Session UI-5 (F16): Folded, the war line repeats the title row and stands
 	# under "▸ counsel" (`_build_settlement_counsel_below`); On the page, as ever.
 	if not Utils.explanations_folded():
@@ -838,11 +1031,16 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# blockers are promoted to the top, and no authoring affordances render
 	# anywhere below (the backend already withholds them server-side).
 	if dialogue_mode == "REVIEW":
-		bbcode += "[color=#80a0d0][b]STAGED FOR REVIEW[/b] — the terms are frozen. Ratify, revise, or return to shaping.[/color]\n"
+		# Row PW (plain words): "STAGED FOR REVIEW — the terms are frozen.
+		# Ratify, revise, or return to shaping." told a first reader nothing.
+		if can_ratify_now:
+			bbcode += "[color=#80a0d0][b]REVIEW[/b] — nothing is sent yet. Sign it, or go back and change the terms.[/color]\n"
+		else:
+			bbcode += "[color=#80a0d0][b]REVIEW[/b] — nothing is sent yet. They will not sign this; go back and change the terms.[/color]\n"
 		if not can_ratify_now:
-			var promoted_blocker = str(data.get("ratify_blocked_reason", ""))
+			var promoted_blocker = plain_table_words(str(data.get("ratify_blocked_reason", "")))
 			if promoted_blocker != "":
-				bbcode += "[color=#e0a040]▸ Blocked: %s[/color]\n" % promoted_blocker
+				bbcode += "[color=#e0a040]▸ Why not: %s[/color]\n" % promoted_blocker
 			var overall_review = data.get("overall_acceptance", {})
 			if overall_review is Dictionary:
 				var holdouts = overall_review.get("holdout_courts", [])
@@ -850,7 +1048,9 @@ func _build_settlement_content(data: Dictionary) -> String:
 					var holdout_names: Array = []
 					for holdout in holdouts:
 						holdout_names.append(Utils.display_nation_name(str(holdout)))
-					bbcode += "[color=#e0a040]▸ Holding out: %s[/color]\n" % ", ".join(PackedStringArray(holdout_names))
+					# (said once: the "Why not" line above names them with their numbers)
+					if str(data.get("ratify_blocked_reason", "")).find("Refusing:") < 0:
+						bbcode += "[color=#e0a040]▸ Refusing: %s[/color]\n" % ", ".join(PackedStringArray(holdout_names))
 
 	# Session UI-5 (F16): Folded, "Covered enemies" repeats the war line and
 	# stands under "▸ counsel" too.
@@ -1283,19 +1483,56 @@ func _region_need(region: Control) -> float:
 	return float(label.get_content_height()) + margins + DOCUMENT_SLACK
 
 
-func _fit_settlement_document() -> void:
+# Row PW: true once the table stands fitted (`_fit_settlement_document` ran to
+# its end) — a restage may then hold what stands (`show_dialogue`).
+var _doc_fitted := false
+
+
+func _hold_document(held: Dictionary) -> Dictionary:
+	"""Row PW (the first playtest: "some screens bobble up and down"). A press
+	on the peace table restages it: the same window, new words. The restage
+	threw the window to its FULL size and its two regions to equal shares, and
+	the fit shrank them again two frames on — measured on the real client, the
+	window grew and shrank under every press of Harsher / More generous.
+
+	The full values the clamp just set are RETURNED (the fit measures against
+	them); the screen keeps what stood (`held`), so the window changes once,
+	to the size its new words need — and not at all when they need the same."""
+	var panel := $PanelContainer as Control
+	var full := {"top": panel.offset_top, "bottom": panel.offset_bottom,
+		"floor": per_court_frame.custom_minimum_size.y}
+	panel.offset_top = float(held["top"])
+	panel.offset_bottom = float(held["bottom"])
+	per_court_frame.custom_minimum_size.y = float(held["floor"])
+	var held_shares: Array = held["shares"]
+	content_label.size_flags_stretch_ratio = float(held_shares[0])
+	per_court_frame.size_flags_stretch_ratio = float(held_shares[1])
+	return full
+
+
+func _fit_settlement_document(full: Dictionary = {}) -> void:
 	var panel := $PanelContainer as Control
 	# the frame the text is set, a wrapping label has no width yet
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if not is_instance_valid(panel) or not visible:
 		return
+	# Row PW: `full` in hand = a restage whose old rect still stands on the
+	# screen (`_hold_document`); the measure reads the FULL values from it.
+	var held: bool = not full.is_empty()
 	# EA-E6: the actions take one row where it fits — measured once the last
 	# open's buttons are gone — and the clamp refits to it.
-	if _fit_action_columns():
+	if _fit_action_columns() and not held:
 		Utils.clamp_centered_panel(panel)
-	var have: float = panel.offset_bottom - panel.offset_top
+	var have: float = (float(full["bottom"]) - float(full["top"])) if held \
+		else (panel.offset_bottom - panel.offset_top)
+	var floor_auth: float = float(full["floor"]) if held else per_court_frame.custom_minimum_size.y
 	var need_panel: float = panel.get_combined_minimum_size().y
+	if held:
+		# ...as if the body's authored floor stood, not the held one
+		var body_inner: float = per_court_frame.get_minimum_size().y
+		need_panel += maxf(floor_auth, body_inner) \
+			- maxf(per_court_frame.custom_minimum_size.y, body_inner)
 	var shares: Array = []
 	var table_floor: float = -1.0
 	for region in _document_regions():
@@ -1304,6 +1541,8 @@ func _fit_settlement_document() -> void:
 			continue
 		var need: float = _region_need(region)
 		var floor_y: float = region.get_combined_minimum_size().y
+		if held and region == per_court_frame:
+			floor_y = maxf(floor_auth, per_court_frame.get_minimum_size().y)
 		if region == per_court_frame and need < floor_y:
 			# the table's floor is a priority for a long table, not a band
 			table_floor = need
@@ -1313,15 +1552,26 @@ func _fit_settlement_document() -> void:
 		shares.append(maxf(need, floor_y))
 	need_panel = ceilf(need_panel)
 	if need_panel >= have:
+		if held:
+			# the new words need the whole window: its full rect, the authored
+			# floor, equal shares — what a first open would have left
+			per_court_frame.custom_minimum_size.y = floor_auth
+			_reset_document_shares()
+			panel.offset_top = float(full["top"])
+			panel.offset_bottom = float(full["bottom"])
+		_doc_fitted = true
 		return
 	if table_floor >= 0.0:
 		per_court_frame.custom_minimum_size.y = table_floor
+	elif held:
+		per_court_frame.custom_minimum_size.y = floor_auth
 	var regions := _document_regions()
 	for i in regions.size():
 		if regions[i] and regions[i].visible:
 			regions[i].size_flags_stretch_ratio = maxf(float(shares[i]), 1.0)
 	panel.offset_top = -need_panel / 2.0
 	panel.offset_bottom = need_panel / 2.0
+	_doc_fitted = true
 
 
 func _render_per_court_table():
@@ -1350,6 +1600,19 @@ func _render_per_court_table():
 	# the head of the body: the first-open line (seen with the first court's
 	# "Demand more" at Interface Scale 2.0), then the section's own title —
 	# the short window keeps the line and spends the title's height on a court
+	# Row PW (plain words): THIS DEAL leads the body — what you get, give and
+	# keep, what an ally hands back, who stays at war — before any court's row.
+	# (The compact view — a window under 600 logical px — keeps EA-E6's rule:
+	# every court's row and its three buttons above the fold; THIS DEAL follows
+	# the rows there, one scroll down.)
+	var deal_bb: String = _pw_this_deal_bbcode(data)
+	var deal_label: RichTextLabel = null
+	if deal_bb != "":
+		deal_label = _body_label(12.0, 8.0, 0.0, 8.0, _on_deal_meta_clicked)
+		deal_label.name = "ThisDeal"
+		deal_label.text = Utils.humanize_nation_keys_in_text(deal_bb)
+		if not (compact and has_courts):
+			per_court_body.add_child(deal_label)
 	var lead: String = _settlement_first_open
 	if has_courts and not compact:
 		var table_head: String = _build_settlement_per_court_block(data, PART_LEAD)
@@ -1378,6 +1641,8 @@ func _render_per_court_table():
 			if not (row is Dictionary):
 				continue
 			per_court_body.add_child(_court_card(row, court_index, compact))
+		if deal_label != null and compact:
+			per_court_body.add_child(deal_label)   # row PW: under the rows in the compact view
 		# the table's closing line (carries / does not carry) and the next step
 		var tail: String = _build_settlement_per_court_block(data, PART_TAIL).rstrip("\n")
 		if tail.strip_edges() != "":
@@ -1565,7 +1830,7 @@ func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
 	# the status tag
 	var tag := PanelContainer.new()
 	tag.name = "CourtStatus"
-	tag.custom_minimum_size = Vector2(COURT_STATUS_WIDTH, 0)
+	tag.custom_minimum_size = Vector2(0.0 if compact else COURT_STATUS_WIDTH, 0)
 	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	tag.mouse_filter = Control.MOUSE_FILTER_PASS
 	var tag_box := StyleBoxFlat.new()
@@ -1579,7 +1844,8 @@ func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
 	tag_box.content_margin_bottom = 2.0
 	tag.add_theme_stylebox_override("panel", tag_box)
 	var tag_label := Label.new()
-	tag_label.text = _court_status_text(total, row)
+	tag_label.text = _court_status_short(total, row) if compact else _court_status_text(total, row)
+	tag.tooltip_text = _court_status_text(total, row)
 	tag_label.theme_type_variation = &"Caption"
 	tag_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag_label.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1592,9 +1858,18 @@ func _court_card(row: Dictionary, court_index: int, compact: bool) -> Control:
 		var blocker := Label.new()
 		blocker.name = "CourtBlocker"
 		blocker.text = ("Blocker: " + blocker_words) if blocker_words != "" else ""
-		blocker.tooltip_text = blocker.text
+		# Row PW (plain words): the reason said so the player can act on it
+		# ("Why: you ask for more than you have won") — the backend's
+		# `top_blocker_plain`; the scorer's column name is the hover.
+		var plain_why: String = _safe_str(row.get("top_blocker_plain"))
+		if plain_why != "" and blocker_words != "":
+			blocker.text = "Why: " + plain_why
+		blocker.tooltip_text = blocker.text + ((" (" + blocker_words + ")") if plain_why != "" and blocker_words != "" else "")
 		blocker.theme_type_variation = &"Caption"
 		blocker.custom_minimum_size = Vector2(COURT_BLOCKER_WIDTH, row_h)
+		# Row PW: ...and whatever more the line has to spare (the reason is
+		# never cut where there is room for it beside the three buttons).
+		blocker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		blocker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		blocker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		blocker.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -1628,12 +1903,35 @@ func _court_is_open(nation: String) -> bool:
 func _court_status_text(total, row: Dictionary) -> String:
 	"""The status tag's words: Consents (its own offer is on the table), Carries
 	(its score reaches the bar), else the band as the backend names it (Holding out)."""
+	# Row PW (plain words): what the court will DO — "Will sign" / "Will not
+	# sign" — where the table said "Consents" / "Carries" / "Holding out".
 	if bool(row.get("consents", false)) or _safe_str(row.get("band")) == "consented":
-		return "Consents"
+		return "Will sign"
 	if _court_standing(total, row) == 2:
-		return "Carries"
+		return "Will sign"
+	var plain: String = _safe_str(row.get("band_plain"))
+	if plain != "":
+		return plain.substr(0, 1).to_upper() + plain.substr(1)
 	var band: String = _safe_str(row.get("band_display"))
 	return band if band != "" else _safe_str(row.get("band"))
+
+
+func _court_status_short(total, row: Dictionary) -> String:
+	"""Row PW: the compact row's tag in ONE word — the row must hold the court's
+	three buttons on its one line (EA-E6); the full words are the tag's hover."""
+	var full: String = _court_status_text(total, row)
+	if full.begins_with("Will sign"):
+		return "Signs"
+	if full.begins_with("Will not sign yet"):
+		return "Not yet"
+	if full.begins_with("Will not sign"):
+		return "Refuses"
+	if full.begins_with("Cannot sign"):
+		return "Cannot"
+	# (the review, PW-R24) any other status: its first two words — the compact
+	# row has no room for a sentence, and the full words are the tag's hover
+	var words: PackedStringArray = full.split(" ", false)
+	return " ".join(words.slice(0, 2)) if words.size() > 2 else full
 
 
 func _court_meter_nodes(host: Control, total: int, threshold: int, tone: Color, w: float, h: float) -> void:
@@ -1724,11 +2022,203 @@ func _rerender_settlement_head() -> void:
 
 
 func _on_head_meta_clicked(meta) -> void:
+	var meta_str := str(meta)
+	# Row PW: the land question's two buttons (`_pw_dial_change_bbcode`).
+	if meta_str.begins_with("landoffer:") or meta_str.begins_with("landkeep:"):
+		_pw_land_answer(meta_str)
+		return
 	if not Utils.is_note_meta(meta):
 		return
 	Utils.toggle_note(meta)
 	_rerender_settlement_head()
 	_refit_settlement_document()
+
+
+# === Row PW "Plain Words" (November 18, 2026 — the first playtest) ===========
+# "hasrher and more genrous sometime s do nothing" and — on the player's own
+# record — three presses of More generous that ended by giving Bohemia to
+# Russia. The answer to every press of the dial is now ONE plain line at the
+# head of the table (what changed, or that nothing did and why), and where the
+# gold ran out the land that COULD be offered is a question with two buttons:
+# the backend's `land_offers` rows. Nothing is ceded unless the named button
+# is pressed (it sends the guided table's own add verb for that clause).
+
+func _pw_dial_next(action: String, scope: String) -> Dictionary:
+	"""Row PW (PW-X13): what the NEXT press of this dial would do — the
+	backend's `dial_next` row ("<scope>:<direction>": {face, line, changes,
+	dead, why, asks_land, refused}), read fresh from the terms that stand; {}
+	for any other button or a table that carries none."""
+	var direction := ""
+	if action == "settlement_dial_harsher":
+		direction = "harsher"
+	elif action == "settlement_dial_generous":
+		direction = "generous"
+	else:
+		return {}
+	var next_map = current_data.get("dial_next", {})
+	if not (next_map is Dictionary):
+		return {}
+	var row = (next_map as Dictionary).get((scope if scope != "" else "table") + ":" + direction, {})
+	return row if row is Dictionary else {}
+
+
+func _pw_dial_dead_reason(action: String, scope: String) -> String:
+	"""Row PW: why this dial button can change nothing right now ("" when it
+	can) — the backend's `dial_dead` map ("<scope>:<direction>": why), written
+	by the press that found it so and gone once the terms change."""
+	var dead = current_data.get("dial_dead", {})
+	if not (dead is Dictionary) or (dead as Dictionary).is_empty():
+		return ""
+	var direction := ""
+	if action == "settlement_dial_harsher":
+		direction = "harsher"
+	elif action == "settlement_dial_generous":
+		direction = "generous"
+	else:
+		return ""
+	return str((dead as Dictionary).get((scope if scope != "" else "table") + ":" + direction, ""))
+
+
+func _pw_dial_change_bbcode(data: Dictionary) -> String:
+	var out := ""
+	var change = data.get("dial_change", {})
+	if change is Dictionary and str(change.get("line", "")) != "":
+		var ink: String = Utils.COLOR_SUCCESS if bool(change.get("changed", false)) else Utils.COLOR_WARNING
+		out += "[color=#" + ink + "][b]" + str(change.get("line", "")) + "[/b][/color]\n"
+	var offers = data.get("land_offers", [])
+	if offers is Array:
+		for i in range(offers.size()):
+			var row = offers[i]
+			if not (row is Dictionary) or bool(row.get("kept", false)):
+				continue
+			out += "[color=#" + Utils.COLOR_WARNING + "]" + str(row.get("line", "")) + "[/color]\n"
+			out += "  " + Utils.bb_button_chip("landoffer:" + str(i), str(row.get("label", "Offer it")),
+					Utils.COLOR_GOLD, "4a2f12") \
+				+ "    " + Utils.bb_button_chip("landkeep:" + str(i), str(row.get("keep_label", "No — keep it")),
+					Utils.COLOR_TEXT, "233043") + "\n"
+	# PW-X12 (the table stands still): the change line's ROW stands from the
+	# first open of the player's own table — the first press wrote the line in
+	# and pushed the courts' rows down by it (measured: the list 430 -> 405).
+	# (The short window keeps every row for a court: EA-E6.)
+	if out == "" and str(data.get("dialogue_mode", "REVIEW")) == "PROPOSE" and not Utils.compact_view():
+		out = "[color=%s]%s[/color]\n" % [COLOR_DIMMED, CHANGE_LINE_HINT]
+	return out
+
+
+func _pw_join(names: Array) -> String:
+	var words := PackedStringArray()
+	for n in names:
+		words.append(str(n))
+	if words.size() <= 1:
+		return "".join(words)
+	return ", ".join(words.slice(0, words.size() - 1)) + " and " + words[words.size() - 1]
+
+
+func _pw_this_deal_bbcode(data: Dictionary) -> String:
+	"""Row PW: THIS DEAL, in plain words — the backend's `plain_deal`
+	(`settlement_staging.settlement_plain_deal`: the package's own terms and
+	the ratifier's own forecast). "" when the payload carries none."""
+	var deal = data.get("plain_deal", {})
+	if not (deal is Dictionary) or (deal as Dictionary).is_empty():
+		return ""
+	var d: Dictionary = deal
+	var good := Utils.COLOR_SUCCESS
+	var bad := Utils.COLOR_ERROR
+	var out := "[font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_GOLD + "]THIS DEAL[/color][/font]\n"
+	var gets: Array = d.get("get", [])
+	var gives: Array = d.get("give", [])
+	out += "[b]You get:[/b] " + ("[color=#" + good + "]" + " · ".join(PackedStringArray(gets)) + "[/color]"
+		if not gets.is_empty() else "[color=#" + Utils.COLOR_INFO + "]nothing[/color]") + "\n"
+	out += "[b]You give:[/b] " + ("[color=#" + bad + "]" + " · ".join(PackedStringArray(gives)) + "[/color]"
+		if not gives.is_empty() else "[color=#" + Utils.COLOR_INFO + "]nothing[/color]") + "\n"
+	# (The review, PW-R8: an ally's gains and payments are the ally's — said
+	# under their own heads, never as "You get" / "You give".)
+	var allies_get: Array = d.get("allies_get", [])
+	if not allies_get.is_empty():
+		out += "[b]Your allies get:[/b] " + " · ".join(PackedStringArray(allies_get)) + "\n"
+	var allies_give: Array = d.get("allies_give", [])
+	if not allies_give.is_empty():
+		out += "[b]Your allies give:[/b] [color=#" + Utils.COLOR_WARNING + "]" + " · ".join(PackedStringArray(allies_give)) + "[/color]\n"
+	var keep: Array = d.get("keep", [])
+	if not keep.is_empty():
+		out += "[b]You keep:[/b] [color=#" + good + "]" + _pw_join(keep) + "[/color] — taken in this war, yours by the peace\n"
+	# (PW-R9: what our side holds and the treaty sends home to one of our own)
+	for home_row in d.get("goes_home", []):
+		if home_row is Dictionary and not (home_row.get("regions", []) as Array).is_empty():
+			if bool(home_row.get("yours", false)):
+				out += "[b]Comes back to you:[/b] [color=#" + good + "]" + _pw_join(home_row.get("regions", [])) + "[/color] — your own land, retaken by an ally\n"
+			else:
+				out += "[b]Goes home to " + str(home_row.get("to_display", "an ally")) + ":[/b] " \
+					+ _pw_join(home_row.get("regions", [])) + " — its own land, retaken in this war\n"
+	var they_keep: Array = d.get("they_keep", [])
+	if not they_keep.is_empty():
+		out += "[b]They keep:[/b] [color=#" + bad + "]" + _pw_join(they_keep) + "[/color] — your side's land they hold now\n"
+	for row in d.get("allies_keep", []):
+		if row is Dictionary:
+			out += "[b]" + str(row.get("ally_display", "An ally")) + " keeps:[/b] " + _pw_join(row.get("regions", [])) + "\n"
+	var hand_rows: Array = d.get("allies_hand_back", [])
+	for i in range(hand_rows.size()):
+		var row = hand_rows[i]
+		if not (row is Dictionary):
+			continue
+		var regions: Array = row.get("regions", [])
+		out += "[b]" + str(row.get("ally_display", "An ally")) + " hands back:[/b] [color=#" + Utils.COLOR_WARNING + "]" \
+			+ _pw_join(regions) + " to " + str(row.get("to_display", "them")) + "[/color] — an ally only occupies a province; " \
+			+ "the peace returns it unless this deal claims it"
+		var claims: Array = row.get("claims", [])
+		for c in range(claims.size()):
+			var claim = claims[c]
+			if claim is Dictionary:
+				out += "  " + Utils.bb_button_chip("dealclaim:%d:%d" % [i, c], str(claim.get("label", "Take it")),
+					Utils.COLOR_GOLD, "233043")
+		out += "\n"
+	var still: Array = d.get("still_at_war", [])
+	if not still.is_empty():
+		out += "[b]Still at war after this:[/b] [color=#" + Utils.COLOR_WARNING + "]" + _pw_join(still) + "[/color]\n"
+	return out
+
+
+func _on_deal_meta_clicked(meta) -> void:
+	"""A "Take <province>" chip of THIS DEAL: the guided table's own demand for
+	that province (the row's `claims`), sent as any row's add is."""
+	var meta_str := str(meta)
+	if not meta_str.begins_with("dealclaim:"):
+		_on_per_court_meta_clicked(meta)
+		return
+	var deal = current_data.get("plain_deal", {})
+	var rows = deal.get("allies_hand_back", []) if deal is Dictionary else []
+	var row_i := int(meta_str.get_slice(":", 1))
+	var claim_i := int(meta_str.get_slice(":", 2))
+	if not (rows is Array) or row_i < 0 or row_i >= rows.size() or not (rows[row_i] is Dictionary):
+		return
+	var claims = (rows[row_i] as Dictionary).get("claims", [])
+	if not (claims is Array) or claim_i < 0 or claim_i >= claims.size() or not (claims[claim_i] is Dictionary):
+		return
+	var claim: Dictionary = claims[claim_i]
+	var params = claim.get("action_params", {})
+	var payload: Dictionary = params.duplicate(true) if params is Dictionary else {}
+	payload["war_id"] = str(claim.get("war_id", current_data.get("war_id", "")))
+	payload["draft_key"] = str(claim.get("draft_key", current_data.get("draft_key", "")))
+	_emit_settlement_action(str(claim.get("action", "settlement_demand_add")), payload)
+
+
+func _pw_land_answer(meta_str: String) -> void:
+	var offers = current_data.get("land_offers", [])
+	var index := int(meta_str.get_slice(":", 1))
+	if not (offers is Array) or index < 0 or index >= offers.size() or not (offers[index] is Dictionary):
+		return
+	var row: Dictionary = offers[index]
+	if meta_str.begins_with("landkeep:"):
+		# Declined: the question goes, the province stays his, nothing is sent.
+		row["kept"] = true
+		_rerender_settlement_head()
+		_refit_settlement_document()
+		return
+	var params = row.get("action_params", {})
+	var payload: Dictionary = params.duplicate(true) if params is Dictionary else {}
+	payload["war_id"] = str(row.get("war_id", current_data.get("war_id", "")))
+	payload["draft_key"] = str(row.get("draft_key", current_data.get("draft_key", "")))
+	_emit_settlement_action(str(row.get("action", "settlement_demand_add")), payload)
 
 
 func _on_explanations_changed() -> void:
@@ -1800,6 +2290,20 @@ func _update_body_cue() -> void:
 	var bar: VScrollBar = per_court_scroll.get_v_scroll_bar()
 	var more: bool = bar != null and per_court_frame.visible \
 		and (bar.max_value - bar.page) > bar.value + 1.0
+	# Row PW (the first playtest: "some screens bobble up and down"): on a full
+	# view the strip's ROW is reserved while the table stands — its words come
+	# and go, the scroll over it keeps its height. (The cue arrived some frames
+	# after the window opened and shortened the scroll by its 18 px under the
+	# reader's eye: measured in the real client.) The compact view keeps the
+	# old rule — there every row is a court's (EA-E6).
+	var tag: Control = _body_more_below.get_node_or_null("Tag") as Control
+	if tag != null and per_court_frame.visible and not Utils.compact_view():
+		if not _body_more_below.visible:
+			_body_more_below.visible = true
+		tag.visible = more
+		return
+	if tag != null:
+		tag.visible = true
 	if _body_more_below.visible != more:
 		_body_more_below.visible = more
 
@@ -1853,11 +2357,12 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	var treasury = data.get("treasury_line", {})
 	# Session UI-6: Folded, the treasury stands as the verdict panel's tiles.
 	if authoring_surface and treasury is Dictionary and treasury.size() > 0 and not _figures_first(data):
-		bbcode += "[color=#d9c08c][b]Treasury[/b] %s gold: committed %s / reserve %s / remaining %s[/color]\n" % [
+		# (row PW, the review PW-R24: the tiles' own three figures — "committed
+		# / reserve / remaining" was the suggestions' bookkeeping)
+		bbcode += "[color=#d9c08c][b]Treasury[/b] %s gold: you offer %s; left if they sign %s[/color]\n" % [
 			Utils.format_number(int(treasury.get("treasury", 0))),
 			Utils.format_number(int(treasury.get("committed", 0))),
-			Utils.format_number(int(treasury.get("reserve", 0))),
-			Utils.format_number(int(treasury.get("remaining", 0))),
+			Utils.format_number(maxi(int(treasury.get("treasury", 0)) - int(treasury.get("committed", 0)), 0)),
 		]
 	# Session UI-3 (November 12, 2026): the narration and the advisory open from
 	# their first sentence (`settle.narration`, `settle.advisory`) — G4F-3's rule
@@ -1888,7 +2393,9 @@ func _settlement_voice_beats_bbcode(data: Dictionary) -> String:
 	# the warm gold of a caution, a line each; the diplomat's reaction keeps
 	# its grey italic.
 	var voice_beats = data.get("authoring_voice_beats", [])
-	var bbcode := ""
+	# Row PW: what the press changed — the plain line and the land question —
+	# leads the beats (the period asides follow as colour).
+	var bbcode := _pw_dial_change_bbcode(data)
 	if not (voice_beats is Array):
 		return bbcode
 	for beat in voice_beats:
@@ -2071,6 +2578,10 @@ func _build_settlement_per_court_block(data: Dictionary, part: int = PART_ALL) -
 	var bbcode = ""
 	if part == PART_ALL or part == PART_LEAD:
 		bbcode += Utils.bb_section("The table")
+		# Row PW (the blind reading, three readers of three: "I don't know what
+		# the number measures"): said once, where the rows begin.
+		if authoring_surface:
+			bbcode += "[color=%s]%s[/color]\n" % [COLOR_DIMMED, TABLE_NUMBER_CAPTION]
 	if part == PART_LEAD:
 		return bbcode
 	var focused_court = _safe_str(data.get("focused_court"))
@@ -2611,9 +3122,12 @@ func _emit_settlement_action(action: String, payload: Dictionary):
 	# main.gd route the structured payload through
 	# send_dialogue_response_with_params; the backend re-mounts the popup on
 	# success AND on failure (the CH-5 re-attach + error_display invariant).
-	if action == "":
+	if action == "" or _restaging:
 		return
 	_remember_scroll()
+	if _stay_for_restage(action):   # row PW: the table stays, the words change in place
+		choice_made.emit(action, payload)
+		return
 	_clear_buttons()
 	hide()
 	choice_made.emit(action, payload)
@@ -3277,6 +3791,9 @@ func _on_visibility_changed() -> void:
 	cue and releases the court's music - once, the flag guarding it."""
 	if visible:
 		return
+	# Row PW: a table that is put away holds no restage and no fitted rect.
+	_restaging = false
+	_doc_fitted = false
 	if _open_cue != null:
 		if is_instance_valid(_open_cue):
 			AudioManager.stop_player(_open_cue)
@@ -3398,13 +3915,15 @@ func _verdict_heading_words(data: Dictionary) -> String:
 	"""The heading sentence the head prints On the page (`_build_settlement_content`)."""
 	var war_label: String = str(data.get("war_label", data.get("war_id", "Settlement")))
 	var can: bool = bool(data.get("can_ratify", true))
+	# Row PW (plain words): ONE source for the sentence, in everyday words —
+	# "will not carry", "consents", "ratification" were the table's own trade.
 	if str(data.get("dialogue_mode", "REVIEW")) == "PROPOSE":
 		if can:
-			return "Settlement of %s — every court consents; submit it for review" % war_label
-		return "This draft will not carry as it stands."
+			return "Peace for %s — they will all sign. Review it, then sign." % war_label
+		return "They will not sign this yet."
 	if can:
-		return "Settlement of %s — ready for ratification" % war_label
-	return "This settlement cannot be ratified now."
+		return "Peace for %s — ready to sign" % war_label
+	return "This peace cannot be signed now."
 
 
 func _verdict_words(data: Dictionary) -> String:
@@ -3423,7 +3942,7 @@ func _verdict_words(data: Dictionary) -> String:
 	var hint: String = _safe_str(data.get("propose_carry_hint"))
 	if hint != "":
 		parts.append(hint)
-	return " ".join(PackedStringArray(parts))
+	return plain_table_words(" ".join(PackedStringArray(parts)))
 
 
 func _verdict_tiles(data: Dictionary) -> Array:
@@ -3432,18 +3951,21 @@ func _verdict_tiles(data: Dictionary) -> Array:
 	var holdouts: int = _holdout_count(data)
 	var can: bool = bool(data.get("can_ratify", true))
 	var propose: bool = str(data.get("dialogue_mode", "REVIEW")) == "PROPOSE"
+	# Row PW (plain words — the first playtest: "diplomacy is very confusing"):
+	# the verdict says what will HAPPEN if the deal is sent, never the table's
+	# own jargon ("Will not carry — 2 of 2 hold out").
 	var figure: String
 	if propose:
-		figure = "Will carry" if can else "Will not carry"
+		figure = "They will sign" if can else "They will not sign yet"
 	else:
-		figure = "Ready to ratify" if can else "Cannot be ratified"
+		figure = "Ready to sign" if can else "Cannot be signed"
 	var caption: String
 	if can:
-		caption = "%d of %d courts consent" % [total - holdouts, total]
+		caption = "%d of %d will sign" % [total - holdouts, total]
 	elif holdouts > 0:
-		caption = "%d of %d hold out" % [holdouts, total]
+		caption = "%d of %d refuse" % [holdouts, total] if total > 1 else "they refuse these terms"
 	else:
-		caption = "ratification is blocked"
+		caption = "something else blocks it — see below"
 	var tone: Color = Color.from_string("#" + (_TEXT_CARRIES if can else _ALERT_HEX), Color.WHITE)
 	var tiles: Array = [{
 		"glyph": "medal" if can else "threat",
@@ -3454,13 +3976,20 @@ func _verdict_tiles(data: Dictionary) -> Array:
 	}]
 	var treasury = data.get("treasury_line", {})
 	if propose and treasury is Dictionary and treasury.size() > 0:
-		var pool: String = "Treasury %s gold." % Utils.format_number(int(treasury.get("treasury", 0)))
-		tiles.append({"glyph": "gold", "figure": Utils.format_number(int(treasury.get("committed", 0))),
-			"caption": "Committed", "tip": pool})
-		tiles.append({"glyph": "gold", "figure": Utils.format_number(int(treasury.get("reserve", 0))),
-			"caption": "Reserve", "tip": pool})
-		tiles.append({"glyph": "gold", "figure": Utils.format_number(int(treasury.get("remaining", 0))),
-			"caption": "Remaining", "tip": pool})
+		# Row PW (plain words): the three figures a player can check against
+		# his purse — what this deal offers, what he has, what he would have
+		# left. (They read "Committed / Reserve / Remaining": the middle one, a
+		# hold-back the SUGGESTIONS keep, fell as "Offer them more" was pressed
+		# while "Remaining" stood at 0 — found pressing the real table.)
+		var have: int = int(treasury.get("treasury", 0))
+		var offered: int = int(treasury.get("committed", 0))
+		var pool: String = "Your treasury holds %s gold now." % Utils.format_number(have)
+		tiles.append({"glyph": "gold", "figure": Utils.format_number(offered),
+			"caption": "Gold you offer", "tip": pool + " This deal pays out %s of it." % Utils.format_number(offered)})
+		tiles.append({"glyph": "gold", "figure": Utils.format_number(have),
+			"caption": "In your treasury", "tip": pool})
+		tiles.append({"glyph": "gold", "figure": Utils.format_number(maxi(have - offered, 0)),
+			"caption": "Left if they sign", "tip": pool + " Gold paid by the turn is counted in full."})
 	return tiles
 
 
@@ -3805,8 +4334,13 @@ func _build_settlement_counsel_below(data: Dictionary) -> String:
 
 
 func _on_option_selected(action: String):
+	if _restaging:
+		return   # row PW: one press at a time — the table is being restaged
 	_play_decision_cue(str(current_data.get("type", "proposal_confirm")), action)
 	_remember_scroll()
+	if _stay_for_restage(action):
+		choice_made.emit(action, current_data)
+		return
 	_clear_buttons()
 	hide()
 	choice_made.emit(action, current_data)
@@ -3818,14 +4352,110 @@ func _on_settlement_tier2_affordance(affordance: Dictionary):
 	# `action_params` dialogue path instead of options[] index matching.
 	# Session UI-3: the restage re-mounts this same draft — the reader keeps
 	# their place in the body.
+	if _restaging:
+		return   # row PW
 	_remember_scroll()
+	if _stay_for_restage(str(affordance.get("action", ""))):
+		choice_made.emit(str(affordance.get("action", "")), affordance)
+		return
 	_clear_buttons()
 	hide()
 	choice_made.emit(str(affordance.get("action", "")), affordance)
+
+
+# === Row PW "Plain Words" (November 18, 2026 — the first playtest) ===========
+# "some screens bobble up and down … hasrher and more genrous sometime s do
+# nothing". Every press on the peace table HID the window, sent the action,
+# and showed the window again when the restage came back — at its full size,
+# shrunk two frames later. To the player the table vanished and came back at
+# another height on every press. THE TABLE NOW STAYS: a press that restages
+# the same draft leaves the window where it stands (its buttons shut for the
+# moment the answer takes) and the new words arrive in place
+# (`show_dialogue` → `_hold_document`). A press that LEAVES the table (its
+# safe exit, an action that is no settlement verb) closes it as before; and
+# if the answer carries no restage (`restage_answered`), or none comes
+# (RESTAGE_WAIT_SEC), the table goes — never a window left standing.
+
+const RESTAGE_WAIT_SEC := 6.0
+# the presses that restage the SAME table (the guided rows' verbs join them by
+# their prefix: settlement_demand_* / settlement_offer_*)
+const STAYS_THROUGH := [
+	"settlement_dial_harsher", "settlement_dial_generous",
+	"settlement_cover_add", "settlement_cover_drop", "settlement_focus_court",
+	"submit_settlement_for_review", "return_to_settlement_terms",
+]
+var _restaging := false
+var _restage_serial := 0
+var _rail_rebuilds_in_place := false
+
+
+func the_table_stays_through_a_press() -> bool:
+	"""The seam (one line to reverse). Down (False): every press hides the
+	table and the restage shows it again, as before."""
+	return true
+
+
+func _stay_for_restage(action: String) -> bool:
+	if not the_table_stays_through_a_press() or not visible:
+		return false
+	if str(current_data.get("type", "")) != "settlement_confirm":
+		return false
+	# The review (PW-R21): by NAME. "Review and sign" and "Go back and change
+	# the terms" restage the same table and did not begin with "settlement_":
+	# they still hid it and showed it again (the bobble, on the flip the
+	# player presses most). And an action that merely begins so is no promise
+	# of a restage.
+	if action == "" or action == _find_safe_exit_action() \
+			or not (STAYS_THROUGH.has(action) or action.begins_with("settlement_demand_")
+				or action.begins_with("settlement_offer_")):
+		return false
+	_restaging = true
+	_restage_serial += 1
+	_shut_buttons_for_the_moment()
+	var serial := _restage_serial
+	get_tree().create_timer(RESTAGE_WAIT_SEC).timeout.connect(func(): _restage_gave_none(serial))
+	return true
+
+
+func _shut_buttons_for_the_moment() -> void:
+	"""The rail's buttons are shut (never removed: the row would fold and the
+	window's foot jump) until the restage rebuilds them."""
+	for child in button_container.get_children():
+		for node in [child] + child.get_children():
+			if node is BaseButton:
+				(node as BaseButton).disabled = true
+
+
+func is_restaging() -> bool:
+	return _restaging
+
+
+func restage_answered() -> void:
+	"""main.gd's word that the press's answer has been handled. A restage has
+	already cleared the flag (`show_dialogue`); an answer that brought none —
+	the draft was signed, shut, or another surface was raised — closes the
+	table now."""
+	if _restaging:
+		_restage_gave_none.call_deferred(_restage_serial)
+
+
+func _restage_gave_none(serial: int) -> void:
+	if not _restaging or serial != _restage_serial:
+		return
+	_restaging = false
+	_clear_buttons()
+	hide()
+
 
 func _clear_buttons():
 	# The per-court Demand / Ease / Drop buttons live inside the body's cards
 	# now (rebuilt whole by `_render_per_court_table`, never stacked), so only
 	# the primary rail is cleared here.
 	for child in button_container.get_children():
+		# Row PW: out of the layout NOW when the table stays through a press —
+		# a queued button still stands in the rail until the frame ends, beside
+		# the new ones (the per-court body's own rule, above).
+		if _rail_rebuilds_in_place and not child.is_queued_for_deletion():
+			button_container.remove_child(child)
 		child.queue_free()
+

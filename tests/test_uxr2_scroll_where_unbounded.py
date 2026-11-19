@@ -232,7 +232,10 @@ class TestTheScriptArm:
         # Cabinet's rows - a group's title-face heading, a court row's figures
         # cell, an act row's price/verdict cell - three more code-built fit-content
         # labels, every one in the wizard's scrolled list.
-        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 20
+        # 20 -> 21 flipped consciously at row PW (November 18, 2026): the heading
+        # over a group of the Cabinet's acts ("END THE WAR", `_add_group_heading`) -
+        # one more code-built fit-content label in the wizard's scrolled list.
+        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 21
         assert any(n == "campaign_log.gd" for n, _v, _f in resolved), "the log's rows"
 
 

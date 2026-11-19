@@ -27,6 +27,7 @@ const RING_SHADOW := Color(0.08, 0.06, 0.04, 0.75)
 const GHOST_SHADOW := Color(0.08, 0.06, 0.04, 0.62)
 const GHOST_COLORS := {
 	"march": Color(1.0, 0.92, 0.66, 0.95),
+	"move": Color(1.0, 0.96, 0.80, 0.98),      # row PW: the plain move, he arrives now
 	"march_attack": Color(0.98, 0.52, 0.36, 0.95),
 	"attack": Color(0.98, 0.42, 0.32, 0.95),
 	"support": Color(0.62, 0.86, 1.0, 0.95),
@@ -62,6 +63,9 @@ var _renderer = null
 # The rings: [{"at": WORLD feet, "r": WORLD radius}] — one for a selection,
 # one a member for a group.
 var _rings: Array = []
+# Row PW: the piece of ours under the cursor ({} for none) — {"at", "r"}.
+var _hover_ring: Dictionary = {}
+const HOVER_RING_COLOR := Color(1.0, 0.95, 0.78, 0.85)
 # The ghost: WORLD points (his feet first), its kind, the badge, and which
 # points are a turn's end (indexes into the points).
 var _ghost_world: Array = []
@@ -101,6 +105,24 @@ func clear_ring() -> void:
 	queue_redraw()
 
 
+func set_hover_ring(feet_world: Vector2, radius_world: float) -> void:
+	"""Row PW (the first playtest: "its hard to click genral pieces"): a quiet
+	ring at the feet of the piece of ours under the cursor — the one a click
+	would pick — so the eye sees the target before the hand commits."""
+	var ring := {"at": feet_world, "r": radius_world}
+	if _hover_ring == ring:
+		return
+	_hover_ring = ring
+	queue_redraw()
+
+
+func clear_hover_ring() -> void:
+	if _hover_ring.is_empty():
+		return
+	_hover_ring = {}
+	queue_redraw()
+
+
 func set_ghost(points_world: Array, kind: String, label: String, pips: Array = []) -> void:
 	"""The road to draw: WORLD points from his feet to the road's end."""
 	_ghost_world = points_world.duplicate()
@@ -120,6 +142,25 @@ func set_ghost_to_cursor(from_world: Vector2, cursor_local: Vector2) -> void:
 	_ghost_cursor_local = cursor_local
 	_ghost_to_cursor = true
 	queue_redraw()
+
+
+func ghost_badge_rect() -> Rect2:
+	"""Row PW: where the ghost road's tag stands, in this layer's LOCAL space
+	(empty with no tag) — the hover box stands clear of it, so the order's
+	price and consequence are never covered by a second box."""
+	if _renderer == null or _renderer.map_viewport == null \
+			or _ghost_label == "" or _ghost_world.is_empty():
+		return Rect2()
+	var xform := _projection()
+	var pts := PackedVector2Array()
+	for p in _ghost_world:
+		pts.append(xform * (p as Vector2))
+	if _ghost_to_cursor:
+		pts.append(_ghost_cursor_local)
+	if pts.size() < 2:
+		return Rect2()
+	var westward: bool = pts[pts.size() - 1].x < pts[pts.size() - 2].x
+	return _badge_rect(pts[pts.size() - 1], _ghost_label, westward, BADGE_FONT_PX)
 
 
 func clear_ghost() -> void:
@@ -257,10 +298,53 @@ func _projection() -> Transform2D:
 	return xform
 
 
+# Row PW "Plain Words" (the first playtest: "it seemd liek things randfomly
+# flipped back to enemy control"): the provinces that changed hands while the
+# turn turned pulse on the map when the report is put away — what changed is
+# seen where it changed. WORLD points; FLASH_SECONDS, then gone. With Reduce
+# Motion on the rings stand still for the same time.
+const FLASH_SECONDS := 3.5
+const FLASH_COLOR := Color(1.0, 0.86, 0.42, 1.0)
+var _flashes: Array = []
+var _flash_from_msec := 0
+
+
+func set_flashes(points_world: Array) -> void:
+	_flashes = points_world.duplicate()
+	_flash_from_msec = Time.get_ticks_msec()
+	queue_redraw()
+
+
+func flash_count() -> int:
+	return _flashes.size()
+
+
+func _draw_flashes(xform: Transform2D) -> void:
+	if _flashes.is_empty():
+		return
+	var age: float = float(Time.get_ticks_msec() - _flash_from_msec) / 1000.0
+	if age >= FLASH_SECONDS:
+		return
+	var still: bool = UiSettings.get_reduce_motion()
+	var fade: float = clampf(1.0 - age / FLASH_SECONDS, 0.0, 1.0)
+	var phase: float = 0.5 if still else fmod(age, 1.0)      # one pulse a second
+	for p in _flashes:
+		var c: Vector2 = xform * (p as Vector2)
+		var r: float = 14.0 + 26.0 * phase
+		var ring := Color(FLASH_COLOR, (0.95 if still else 1.0 - phase * 0.7) * fade)
+		_draw_ellipse(c, r, r * 0.62, Color(RING_SHADOW, RING_SHADOW.a * fade), 6.0)
+		_draw_ellipse(c, r, r * 0.62, ring, 3.0)
+
+
 func _process(_delta: float) -> void:
 	if _renderer == null or _renderer.map_viewport == null:
 		return
-	if _rings.is_empty() and _ghost_world.is_empty() and _arrows.is_empty():
+	if not _flashes.is_empty():
+		if float(Time.get_ticks_msec() - _flash_from_msec) / 1000.0 >= FLASH_SECONDS:
+			_flashes = []
+		queue_redraw()
+	if _rings.is_empty() and _ghost_world.is_empty() and _arrows.is_empty() \
+			and _hover_ring.is_empty():
 		return
 	if _projection() != _drawn_xform:
 		queue_redraw()
@@ -272,7 +356,14 @@ func _draw() -> void:
 	var xform := _projection()
 	_drawn_xform = xform
 	_draw_arrows()
+	_draw_flashes(xform)     # row PW: the provinces that changed hands
 	var zoom: float = xform.get_scale().x
+	if not _hover_ring.is_empty():
+		# Row PW: under the selection's ring, thinner — "a click picks him".
+		var hc: Vector2 = xform * (_hover_ring["at"] as Vector2)
+		var hr: float = maxf(float(_hover_ring["r"]) * zoom, 11.0)
+		_draw_ellipse(hc, hr, hr * 0.42, RING_SHADOW, 4.0)
+		_draw_ellipse(hc, hr, hr * 0.42, HOVER_RING_COLOR, 1.8)
 	for ring in _rings:
 		var c: Vector2 = xform * (ring["at"] as Vector2)
 		var r: float = maxf(float(ring["r"]) * zoom, 9.0)
@@ -418,7 +509,13 @@ func _badge_rect(anchor: Vector2, text: String, westward: bool, font_px: int) ->
 	var font: Font = ThemeDB.fallback_font
 	if font == null:
 		return Rect2(anchor, Vector2.ZERO)
-	var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+	# Row PW: a badge may run to several lines (the order's tag: its price and
+	# clock, then what it does to the province) — as wide as its widest line.
+	var text_size := Vector2.ZERO
+	for line in text.split("\n"):
+		var line_size := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px)
+		text_size.x = maxf(text_size.x, line_size.x)
+		text_size.y += line_size.y
 	var box_size := text_size + BADGE_PAD * 2.0
 	var at := anchor + Vector2(12, -text_size.y - 14)
 	if westward:
@@ -444,4 +541,10 @@ func _draw_badge_in(box: Rect2, text: String, accent: Color, font_px: int, bg: C
 	draw_rect(box, accent, false, 2.0 if strong else 1.5)
 	var baseline := box.position + Vector2(BADGE_PAD.x, BADGE_PAD.y + font.get_ascent(font_px))
 	var ink := Color(0.98, 0.95, 0.88, clampf(accent.a + 0.1, 0.0, 1.0))
-	draw_string(font, baseline, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, ink)
+	var line_h: float = font.get_height(font_px)
+	var lines := text.split("\n")
+	for i in range(lines.size()):
+		# the first line is the order; the lines under it (what it does) a shade quieter
+		var line_ink := ink if i == 0 else Color(ink, ink.a * 0.86)
+		draw_string(font, baseline + Vector2(0, line_h * float(i)), lines[i],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, line_ink)

@@ -101,7 +101,10 @@ class TestLever2ThreeLineCards:
     def test_where_the_face_has_no_third_line_the_hover_says_it(self):
         tip = _func(ACTS, "_day_chip_tip")
         assert "with_risk: bool = true" in tip
-        assert 'parts.append("It risks: " + str(chip.get("risk", "")) + ".")' in tip
+        # row PW (plain words): the same third line, headed "Expect:" on a day
+        # served in everyday words and "It risks:" on a day as it was
+        assert ('parts.append(("Expect: " if _day_is_plain() else "It risks: ") '
+                '+ str(chip.get("risk", "")) + ".")') in tip
         card = _func(ACTS, "_day_card_bb")
         assert 'var tip := _day_chip_tip(chip, false, not lit and why != "", not risk_on_face)' in card
 
@@ -173,7 +176,12 @@ class TestLever5LuckAgainstMargin:
         assert '"%s; the dice added %s to the blow, the day\'s fortune %s to us"' in luck
         assert "int(roll.get(\"swing\", 0)) + 100 - DiceTray.AVERAGE_LANDS" in luck
         assert "_signed(int(roll.get(left_key, 0)))" in luck, "our side's own figure"
-        assert 'return "the day\'s fortune in strength:' in luck, "no what-told: the line as it was"
+        # row PW (November 18, 2026): the head is a variable now — the line as it was for a payload that
+        # is not plain, "luck today, as extra strength:" only where the payload says `plain`
+        assert 'var luck_head := "the day\'s fortune in strength:"' in luck, "no what-told: the line as it was"
+        assert "BattleActs.payload_is_plain(host._data)" in luck
+        assert 'luck_head = "luck today, as extra strength:"' in luck
+        assert 'return "%s  %s %s  ·  %s %s" % [luck_head,' in luck
 
     def test_what_told_is_the_cause_alone(self):
         told = _func(ACTS, "_what_told")
@@ -196,7 +204,11 @@ class TestLever6TheLegend:
 
     def test_it_is_shed_to_the_heads_hover_under_pressure_after_the_lift(self):
         build = _func(ACTS, "_build_the_day")
-        assert "hover.append(DAY_LEGEND_HOVER)" in build
+        # row PW: the legend is read through `_day_legend_hover()` (its plain
+        # form on a plain day; this one as it was)
+        assert "hover.append(_day_legend_hover())" in build
+        assert "return DAY_LEGEND_HOVER_PLAIN if _day_is_plain() else DAY_LEGEND_HOVER" in _func(
+            ACTS, "_day_legend_hover")
         assert "_day_legend_row = legend_row" in build
         ladder = build.split("elif legend_row and not lifted:", 1)[1]
         assert ladder.index("lifted = true") < ladder.index("legend_row = false") < ladder.index("rule_row = false")

@@ -3324,3 +3324,26 @@ here in the code (the Confer guard, the refusal on the page, the crop, the re-la
 ruled and written here.
 
 **How the client half was verified:** the walk of record and the walks at six sizes after the last client change (167 of 167 shots each, no claim failed); the nineteen switch-off cases those changes bear on (19 of 19 caught); the parse harness; the client's pins (`tests/test_ba6_levers.py::TestTheReviewsFixes`); the live client's five boards (41 steps, every one held).
+
+
+### 15.27 Row PW — the day of battle in plain words (November 18, 2026, authoritative)
+
+The first playtest: "battles are opaque and its unclear what decisions mean". The rules of §15 are untouched; what the table SAYS changed, behind one seam (`battle_telling.the_day_speaks_plainly`; `SYSTEMS_REFERENCE.md` §227.6; `BUG_FIXES.md` §PW, PW-10, PW-R11, PW-R16).
+
+| Was | Is |
+|---|---|
+| THE DAY HANGS | NO WINNER YET |
+| The day so far: 10,837 of ours for 9,559 of his — the toll stands even. | Losses so far: you 10,837 · him 9,559 — about even. |
+| Massena presses · 1 point — odds: unfavorable — likely to be thrown back; he may strike in turn | Attack again · 1 point — 31,163 men against 44,441 — odds bad — you will probably lose |
+| Massena digs in — defensive stance: +9% if he strikes | Dig in · 1 point — +9% defence if he attacks — he moves next — this helps only if he attacks |
+| Massena stands — free · he speaks next | Wait — free · he moves next — he will attack |
+| Break off — the day ends; he keeps the field | Withdraw / Retreat — free · the battle ends; he keeps (takes) the province; losses so far |
+| Leave it to Massena — he may press | Let Massena decide — free · he will attack |
+| A word costs points, and he answers it. A line that breaks decides the day; two silences running… | Each order costs battle points, and the enemy answers each one. The battle ends when an army breaks, when someone withdraws, after two turns in a row with no order, or when all the points are spent. |
+| he will strike / he may strike / he will not strike | he will attack / he may attack / he will not attack |
+| Archduke Charles throws 7 … the blow lands at 108% of its weight | Archduke Charles rolled 7 … the attack hits at 108% strength · an average roll gives 102% |
+| The day at Franconia hangs — the day is yours to answer [Take the field] | Battle at Franconia: no winner yet — the battle waits for your orders [Give your orders] |
+
+**Why it was won or lost.** `battle_telling.why_plain` reads the battle's own report for the player whose marshal led a side: the men each side brought, the largest named advantages on each side with the report's own percentages (two a side, five points or more), and the dice when the attacker's throw stood three or more from seven. It is carried on the tableau (`why`), printed in the log ("Why: he had more men — 25,000 against your 12,000.") and shown as the sub-banner's hover; the tableau's `plain` flag lets the table's own captions follow. "Points" keeps its name (the user's word).
+
+**The tests and the walk.** Row BA's tests and the walk of record (`tools/ba1_acts_walk.py`) read the older wording: `tests/conftest.py` and `tools/ba1_stage_battles.py` hold the seam down for them, and with it down the stage writes the thirty-four committed payloads byte for byte (checked on the final tree). The walk was re-shot on the final client (167 of 167 shots, no script error, no claim failed). The plain wording is pinned in `tests/test_pw_plain_words.py` (`TestTheDayInPlainWords`, `TestTheBattleAndTheReportAfterTheRealClient`) and was read on the real table at the player's own setup (`docs/audits/pw_client/`).

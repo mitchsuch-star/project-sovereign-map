@@ -653,6 +653,7 @@ func _ready():
 		order_card.standing_change_requested.connect(_on_standing_change_requested)
 		order_card.group_send_requested.connect(_on_group_send_requested)
 		order_card.bring_requested.connect(_on_order_card_bring)   # row BA, BA-2
+		order_card.take_requested.connect(_on_order_card_take)     # row PW
 	dialog_manager.modal_shown.connect(_on_modal_shown)
 
 	_configure_response_routes()
@@ -676,6 +677,9 @@ func _ready():
 	if war_status_panel:
 		war_status_panel.card_clicked.connect(_on_war_card_clicked)
 		war_status_panel.coalition_header_clicked.connect(_on_coalition_header_clicked)
+		# Row PW: a war card's own "Make peace" button.
+		if war_status_panel.has_signal("peace_clicked"):
+			war_status_panel.peace_clicked.connect(_on_war_card_peace)
 		# Session UI-4: the war list never stands on the command window.
 		if "avoid_control" in war_status_panel:
 			war_status_panel.avoid_control = bottom_left_ui
@@ -949,6 +953,10 @@ func _ready():
 	if map_area and "arrow_click_check" in map_area:
 		map_area.arrow_click_check = _arrow_may_take_a_click
 		map_area.order_arrow_clicked.connect(_on_order_arrow_clicked)
+	# Row PW: a click on a stack's label ("Napoleon · 3 more") asks which corps.
+	if map_area and map_area.has_signal("stack_clicked"):
+		map_area.stack_pick_check = _stack_may_be_picked
+		map_area.stack_clicked.connect(_on_stack_clicked)
 	_order_dwell = Timer.new()
 	_order_dwell.one_shot = true
 	_order_dwell.timeout.connect(_on_order_dwell_timeout)
@@ -1870,6 +1878,10 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	# held the caret after the close ("the line keeps focus", DDB-54), and the
 	# next bare G / T / D typed a letter into it (conquest #4, diplomacy #14).
 	# A line holding a draft keeps its caret and its text.
+	# Row PW: the stack's pick-list is the topmost thing while it is up.
+	if _stack_picker != null and _stack_picker.is_open():
+		_stack_picker.close_list()
+		return true
 	# Session UI-5: the Help & Keys book and the save dialog are the topmost.
 	if codex != null and codex.is_open():
 		codex.close()
@@ -3028,6 +3040,11 @@ func _execute_end_turn():
 	if _day_warning_stands():
 		_show_lapse_confirmation()
 		return
+	# Row PW: a corps of ours stands on an enemy province NOTHING holds — one
+	# action takes it. Said once per gate, with the order as a chip.
+	if _pw_take_warning_stands():
+		_show_lapse_confirmation()
+		return
 	# Session UI-5: corps with no orders yet, named once per gate.
 	if _ui5_idle_warning_stands():
 		_show_lapse_confirmation()
@@ -3036,6 +3053,57 @@ func _execute_end_turn():
 	_awaiting_end_turn_confirmation = false
 	_set_open_envoys_prompt_visible(false)
 	_send_end_turn()
+
+
+var _take_warned := false       # row PW: the End Turn gate's "he can take it" latch
+
+
+func _pw_takers() -> Array:
+	"""Our corps standing on an enemy province they can take NOW (the board's
+	`tactical_state.stands_on.open`): [{"key", "name", "place", "label"}]."""
+	var out: Array = []
+	var marshals = _last_game_state.get("marshals", {})
+	if not (marshals is Dictionary):
+		return out
+	for key in marshals:
+		var entry := _marshal_entry(str(key))
+		var ts = entry.get("tactical_state", {})
+		var stands = ts.get("stands_on", {}) if ts is Dictionary else {}
+		if not (stands is Dictionary) or not bool(stands.get("ok", false)):
+			continue
+		# Nothing holds it (one action takes it now), or only works do (one
+		# action begins the siege — the Carniola of the first playtest: three
+		# corps stood on a fortified province for three turns and none was
+		# ever told to besiege it). A garrison's storm is a fight: never urged.
+		var code := str(stands.get("code", ""))
+		if bool(stands.get("open", false)) or code == "fort":
+			out.append({"key": str(key), "name": Utils.humanize_entity_name(str(key)),
+				"place": str(entry.get("location", "")), "label": str(stands.get("label", "Take it")),
+				"fort": code == "fort"})
+	return out
+
+
+func _pw_take_warning_stands() -> bool:
+	return not _take_warned and int(actions_remaining) > 0 and not _pw_takers().is_empty()
+
+
+func _pw_take_sentence(rows: Array) -> String:
+	var said := PackedStringArray()
+	var open_rows := 0
+	var fort_rows := 0
+	for row in rows:
+		if bool(row.get("fort", false)):
+			fort_rows += 1
+			said.append("%s stands in %s, which is fortified and not yet under siege" % [str(row.get("name", "")), str(row.get("place", ""))])
+		else:
+			open_rows += 1
+			said.append("%s stands in %s and nothing holds it" % [str(row.get("name", "")), str(row.get("place", ""))])
+	var remedy := "one action takes it"
+	if fort_rows > 0 and open_rows > 0:
+		remedy = "one action takes it, or begins the siege"
+	elif fort_rows > 0:
+		remedy = "one action begins the siege"
+	return "; ".join(said) + " — " + remedy + ". Leave it and it stays the enemy's."
 
 func _strip_desk_address(text: String) -> String:
 	"""Remove ONE leading address to the desk.
@@ -3067,6 +3135,7 @@ func _send_end_turn():
 	_army_warned = false   # S14E-7: a passed gate re-arms the army's line for the next day
 	_treasury_warned = false   # S14E-X (DDB-13's sweep): and the treasury's — a deficit that stands gates every turn it stands
 	_idle_warned = false   # Session UI-5: and the idle corps' line
+	_take_warned = false   # row PW: and "he can take it"
 	_day_warned = false   # BA-3 (K12): and the day of battle's
 	_ui5_end_turn_out = true   # the busy chip says "the courts of Europe move"
 	_set_open_envoys_prompt_visible(false)
@@ -3160,9 +3229,12 @@ func _day_gate_sentence(row: Dictionary) -> String:
 	var field := str(row.get("field_shown", ""))
 	var foe := str(row.get("enemy_shown", ""))
 	var tail := "End the turn and %s answers alone." % foe
+	# Row PW (plain words): "The day at X still hangs — Ney holds 2 points.
+	# End the turn and Mack answers alone."
+	tail = "End the turn and %s decides alone." % foe
 	if left > 0:
-		return "The day at %s still hangs — %s holds %s. %s" % [field, lead, Utils.plural(left, "point"), tail]
-	return "The day at %s still hangs — %s may still stand, fall back or break off. %s" % [field, lead, tail]
+		return "The battle at %s has no winner yet — %s still has %s to spend. %s" % [field, lead, Utils.plural(left, "battle point"), tail]
+	return "The battle at %s has no winner yet — %s can still wait, pull back or withdraw. %s" % [field, lead, tail]
 
 
 func _show_lapse_confirmation():
@@ -3224,6 +3296,12 @@ func _show_lapse_confirmation():
 		day_rows = pending_battle_days.duplicate()
 		for row in day_rows:
 			parts.append(_day_gate_sentence(row))
+	# Row PW: corps that can take the province they stand on — once per gate.
+	var take_rows: Array = []
+	if _pw_take_warning_stands():
+		_take_warned = true
+		take_rows = _pw_takers()
+		parts.append(_pw_take_sentence(take_rows))
 	# Session UI-5: the idle corps — named last, on their own latch.
 	if _ui5_idle_warning_stands():
 		_idle_warned = true
@@ -3231,11 +3309,14 @@ func _show_lapse_confirmation():
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
+	for row in take_rows:
+		add_output("   " + Utils.bb_button_chip("pwtake:" + str(row.get("key", "")),
+			str(row.get("label", "Take it")) + " — " + str(row.get("name", "")), Utils.COLOR_GOLD, "233043"))
 	# a warning is not a dead end: a chip opens each day's table (the notice's road)
 	for row in day_rows:
 		var enemy_key := str(row.get("enemy", ""))
 		if enemy_key != "":
-			add_output("   " + Utils.bb_button_chip("dayopen:" + enemy_key, "Take the field — " + str(row.get("field_shown", "")),
+			add_output("   " + Utils.bb_button_chip("dayopen:" + enemy_key, "Give your orders — " + str(row.get("field_shown", "")),
 				Utils.COLOR_GOLD, "233043"))
 	if _current_lapsing_count > 0:
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
@@ -5139,6 +5220,10 @@ func _on_output_meta_clicked(meta) -> void:
 		if not _is_modal_dialog_open():
 			_open_battle_day(meta_str.substr("dayopen:".length()))
 		return
+	# Row PW: the end-turn gate's "Take <province>" for a corps standing on it.
+	if meta_str.begins_with("pwtake:"):
+		_pw_take_where_he_stands(meta_str.substr("pwtake:".length()))
+		return
 	# Row BA, BA-3: a day's chip written into the log (the compact presentation).
 	if meta_str.begins_with("day:"):
 		var day_command := meta_str.substr("day:".length())
@@ -5195,6 +5280,10 @@ func _return_control_to_player() -> void:
 	# UXR-D4: the chain has settled (or waits on a surface it raised) — a
 	# pinned screen re-reads the new state.
 	_queue_pinned_refresh()
+	# Row PW: an autosave toast held for a report that never stood is said now.
+	if _pw_toast_after_report != "" and (enemy_phase_dialog == null or not enemy_phase_dialog.visible):
+		ToastLayer.say(_pw_toast_after_report, "letter")
+		_pw_toast_after_report = ""
 	_say_the_day_later()   # BA-3: the day as a typed word left it, after the reply
 	if _day_raise_over_list():
 		return   # BA3-X22: the answer's table, over the enemy phase's list
@@ -5527,8 +5616,17 @@ func _route_redemption_response(response: Dictionary):
 		_display_result(response)
 	_show_redemption_dialog(response.redemption_event)
 
+func _pw_shut_the_stack_list() -> void:
+	"""The review (PW-R25): the "Which corps?" list answers the board it was
+	opened on — an answer from the server (a turn ended by its key, an order
+	typed) or another campaign shuts it."""
+	if _stack_picker != null and is_instance_valid(_stack_picker) and _stack_picker.is_open():
+		_stack_picker.close_list()
+
+
 func _on_command_result(response):
 	"""Handle command execution result."""
+	_pw_shut_the_stack_list()
 	# NA-6b: stash a Proclamation BEFORE any routing or early return — the
 	# backend already popped it off the PopupQueue, so anything that drops
 	# the response here loses the moment permanently (the formation latch
@@ -5538,11 +5636,30 @@ func _on_command_result(response):
 	# returns included — reaches it; coalesced with the end-turn tail's).
 	_queue_pinned_refresh()
 	_readback_forget()   # Session UI-6: every /command answer ages the readings held
+	# Row PW: the peace table stayed on the screen through a press; if this
+	# answer brings no restage of it (handled below, in this same call), the
+	# table closes once the answer has been routed.
+	# (The review, PW-R22: only when this answer IS the table's own — any
+	# other command's reply arriving meanwhile shut the table early.)
+	if _pw_table_answer_due and proposal_confirm_popup != null \
+			and proposal_confirm_popup.has_method("restage_answered"):
+		_pw_table_answer_due = false
+		proposal_confirm_popup.restage_answered.call_deferred()
 	if typeof(response) == TYPE_DICTIONARY:
 		_forget_unreadable_command(response)  # CX-7
 		# Session UI-5: the autosave at the turn's start is announced.
 		if bool(response.get("autosaved", false)):
-			ToastLayer.say("Autosaved · " + str(response.get("autosave_label", "")), "letter")
+			var saved_line := "Autosaved · " + str(response.get("autosave_label", ""))
+			# Row PW: the turn's report opens under the toast's place — its
+			# title read "EN[Autosaved · Early October 1805]N 1". The toast
+			# waits for the report to be put away (`_pw_after_the_report`).
+			var report_follows: bool = response.has("enemy_phase") and (
+				not _enemy_phase_is_quiet_fog(response.get("enemy_phase"))
+				or _pw_digest_has_news(_pw_digest_of(response)))
+			if report_follows:
+				_pw_toast_after_report = saved_line
+			else:
+				ToastLayer.say(saved_line, "letter")
 		# PC15-10 B4b (F9): every deferred surface this response carries is
 		# stashed through ONE chokepoint, BEFORE any routing or early return.
 		_day_say_later = null   # BA-3: a day left unsaid by an earlier answer is not this one's
@@ -5559,6 +5676,14 @@ func _on_command_result(response):
 		var _reward_for = response.get("open_reward_for", null)
 		if _reward_for is String and _reward_for != "":
 			call_deferred("_open_reward_for_marshal", _reward_for)
+		# Row PW (the first playtest: "sometimes they enter enemy land without
+		# taking it"): a corps that entered a province and did not take it —
+		# the reason is SEEN (a notice over the map), not only printed; the
+		# order that would take it waits in the ↳ slot (`remedy_command`).
+		var _ground = response.get("ground", null)
+		if _ground is Dictionary and str(_ground.get("line", "")).strip_edges() != "":
+			var _said := str(_ground.get("line", "")).strip_edges()
+			ToastLayer.say("Not taken — " + _said, "command")
 		# RE-2 (docs/RECURRING_EVENTS_SPEC.md §12b.2): the answer beat — the
 		# seal presses on the backend's OWN word that a letter of state was
 		# answered (`moment_answered`, written by `moments.answer` on success
@@ -5703,6 +5828,17 @@ func _on_command_result(response):
 		# treatment as any battle the player ordered himself.
 		_display_jealousy_attacks(response)
 
+		# Row PW: something of the player's changed while the turn turned and
+		# the phase carries nothing he may see (the fog hid every move, or no
+		# court moved in his sight): it is still SAID — a province is never
+		# lost in silence. The review (PW-R20): said in the log, with the map's
+		# flash, never as a report window the client raises by itself — the
+		# server defers the turn's other popups only behind a phase it sent,
+		# and a window raised here stood over (or under) them.
+		var wyw := _pw_digest_of(response)
+		var wyw_news := _pw_digest_has_news(wyw)
+		if wyw_news and not response.has("enemy_phase"):
+			_pw_say_the_digest(wyw)
 		if response.has("enemy_phase"):
 			# S14G-27 (Pre-Deploy S14h part 2, October 26, 2026): a phase of
 			# fog alone that names no court at war with France or in a truce
@@ -5710,7 +5846,7 @@ func _on_command_result(response):
 			# clicked through every turn at peace. The dismissal flow runs
 			# at once (mild dispatches, game over, reports, the dispatch,
 			# the control-return tail), exactly as if Continue were pressed.
-			if _enemy_phase_is_quiet_fog(response.enemy_phase):
+			if not wyw_news and _enemy_phase_is_quiet_fog(response.enemy_phase):
 				_print_quiet_fog_lines(response.enemy_phase)
 				set_input_enabled(false)   # as the box does: the tail returns control
 				pending_enemy_phase_response = response
@@ -5730,7 +5866,7 @@ func _on_command_result(response):
 			elif response.has("action_summary"):
 				turn = int(response.action_summary.get("turn", current_turn))
 			pending_enemy_phase_response = response  # Store for post-enemy-phase flow
-			_show_enemy_phase_dialog(response.enemy_phase, turn)
+			_show_enemy_phase_dialog(response.enemy_phase, turn, wyw)
 			_update_war_panel_visibility()
 			return  # Don't re-enable input until dialog dismissed
 
@@ -6009,6 +6145,38 @@ func _display_result(response):
 	if response.has("feedback"):
 		_display_feedback(response.feedback)
 
+# Row PW (plain words): the log's echo of a press on the peace table. It read
+# "Directing Talleyrand: submit settlement for review" — the action's key with
+# its underscores taken out. A press of the table is said as what was pressed;
+# every other dialogue's echo is as it was.
+const PW_TABLE_ECHO := {
+	"settlement_dial_generous": "offer them more",
+	"settlement_dial_harsher": "ask for more",
+	"submit_settlement_for_review": "review the deal",
+	"return_to_settlement_terms": "back to the terms",
+	"suspend_settlement_editor": "closed — the draft is kept until the turn ends",
+	"back_out_settlement": "closed without signing",
+	"confirm_settlement": "sign the peace",
+	"settlement_cover_drop": "leave a court out",
+	"settlement_cover_add": "bring a court in",
+	"settlement_demand_add": "add a term",
+	"settlement_demand_remove": "take a term off",
+}
+
+
+var _pw_table_answer_due := false   # a press on a dialogue awaits its /command answer
+
+
+func _pw_dialogue_echo(action: String) -> String:
+	if PW_TABLE_ECHO.has(action):
+		return "Peace talks: " + str(PW_TABLE_ECHO[action])
+	if action.begins_with("settlement_"):
+		# (the review, PW-R24) a table verb with no row above still says the
+		# table, never "Directing Talleyrand: settlement …"
+		return "Peace talks: " + action.trim_prefix("settlement_").replace("_", " ")
+	return "Directing Talleyrand: %s" % action.replace("_", " ")
+
+
 func _display_peace_ratification_summary(summary: Dictionary):
 	var target = str(summary.get("target_nation", "Unknown"))
 	var capital = str(summary.get("target_capital", target))
@@ -6056,13 +6224,25 @@ func _display_settlement_result_feedback(feedback: Dictionary):
 	var message = str(feedback.get("message", ""))
 	var war_label = str(feedback.get("war_label", ""))
 	var resolved = int(feedback.get("resolved_pair_count", 0))
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + title + "[/color]")
-	if message != "":
-		add_output("[color=#" + Utils.COLOR_INFO + "]  " + message + "[/color]")
-	elif war_label != "":
-		add_output("[color=#" + Utils.COLOR_INFO + "]  " + war_label + " updated.[/color]")
-	if resolved > 0:
-		add_output("[color=#" + Utils.COLOR_INFO + "]  Covered pairings: " + str(resolved) + "[/color]")
+	# Row PW (plain words): what the peace did — who signed, what you got,
+	# gave and keep, what an ally handed back, who you are still at war with —
+	# in place of "2 hostile pairs resolved. Covered pairings: 2".
+	var plain = feedback.get("plain", {})
+	if plain is Dictionary and not (plain as Dictionary).is_empty():
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + str(plain.get("head", "Peace signed.")) + "[/color]")
+		for plain_line in plain.get("lines", []):
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + str(plain_line) + "[/color]")
+		var said := str(plain.get("toast", "")).strip_edges()
+		if said != "":
+			ToastLayer.say(said, "letter")
+	else:
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + title + "[/color]")
+		if message != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + message + "[/color]")
+		elif war_label != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + war_label + " updated.[/color]")
+		if resolved > 0:
+			add_output("[color=#" + Utils.COLOR_INFO + "]  Covered pairings: " + str(resolved) + "[/color]")
 	var review_route = feedback.get("review_route", {})
 	var route_id = str(feedback.get("route_id", ""))
 	var war_id = str(feedback.get("war_id", ""))
@@ -6109,6 +6289,17 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	
 	# Main result
 	add_output("[color=#" + Utils.COLOR_BATTLE + "]" + message + "[/color]")
+
+	# Row PW (plain words — the first playtest: "battles are opaque"): WHY it
+	# went as it did, with the numbers, in one line under the result (the
+	# tableau's own `why`: the men, the largest advantages, the dice).
+	var tableau = event.get("diorama", {})
+	var why = tableau.get("why", []) if tableau is Dictionary else []
+	if why is Array and not (why as Array).is_empty():
+		var causes := PackedStringArray()
+		for cause in why:
+			causes.append(str(cause))
+		add_output("[color=#" + Utils.COLOR_INFO + "]   Why: " + "; ".join(causes) + ".[/color]")
 
 	# Cavalry terrain flavor (Phase 6.1: separate colored line for cavalry effectiveness)
 	var cav_terrain_msg = event.get("cavalry_terrain_message", "")
@@ -8176,8 +8367,9 @@ func _print_quiet_fog_lines(phase: Dictionary) -> void:
 			add_output("[color=#" + Utils.COLOR_INFO + "]" + str(line) + "[/color]")
 
 
-func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
-	"""Display enemy phase popup with full battle details."""
+func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int, digest: Dictionary = {}):
+	"""Display enemy phase popup with full battle details. Row PW: `digest`
+	(the response's `while_you_waited`) leads the report."""
 	if DEBUG_VERBOSE:
 		print("Showing enemy phase dialog for turn ", turn)
 
@@ -8190,7 +8382,7 @@ func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
 		return
 
 	# Show the dialog
-	enemy_phase_dialog.show_enemy_phase(enemy_phase, turn)
+	enemy_phase_dialog.show_enemy_phase(enemy_phase, turn, digest)
 
 
 func _show_mild_dispatches(response):
@@ -8211,10 +8403,69 @@ func _show_mild_dispatches(response):
 		add_output("")
 
 
+var _pw_toast_after_report := ""     # row PW: the autosave toast held while the report stands
+
+
+func _pw_digest_of(response) -> Dictionary:
+	"""Row PW: the end-turn response's `while_you_waited` ({} when it has none)."""
+	if not (response is Dictionary):
+		return {}
+	var d = (response as Dictionary).get("while_you_waited", {})
+	return d if d is Dictionary else {}
+
+
+func _pw_digest_has_news(digest: Dictionary) -> bool:
+	return not digest.is_empty() and not bool(digest.get("quiet", true))
+
+
+func _pw_after_the_report() -> void:
+	"""The report is put away: the provinces it named flash on the map (what
+	changed is seen where it changed), the digest's lines are kept in the log,
+	and the held autosave toast is said."""
+	if _pw_toast_after_report != "":
+		ToastLayer.say(_pw_toast_after_report, "letter")
+		_pw_toast_after_report = ""
+	_pw_say_the_digest(_pw_digest_of(pending_enemy_phase_response))
+
+
+func _pw_say_the_digest(digest: Dictionary) -> void:
+	"""What changed for the player, in the log and on the map: the provinces
+	flash, the digest's lines are printed."""
+	if digest.is_empty():
+		return
+	var flash = digest.get("flash", [])
+	if flash is Array and not flash.is_empty() and map_area != null and map_area.has_method("flash_regions"):
+		map_area.flash_regions(flash)
+	if not _pw_digest_has_news(digest):
+		return
+	# The log keeps what the window said (the window is gone once Continue is pressed).
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]━━ The enemy's moves ━━[/color]")
+	for wyw_group in ["lost", "gained", "friends_lost", "friends_gained", "battles", "beside"]:
+		var rows = digest.get(wyw_group, [])
+		if not (rows is Array):
+			continue
+		# (each line's ink is a palette token: the log's colour census reads it)
+		var wyw_ink := Utils.COLOR_INFO
+		if wyw_group in ["lost", "friends_lost"]:
+			wyw_ink = Utils.COLOR_ERROR
+		elif wyw_group in ["gained", "friends_gained"]:
+			wyw_ink = Utils.COLOR_SUCCESS
+		elif wyw_group == "beside":
+			wyw_ink = Utils.COLOR_WARNING
+		for row in rows:
+			if row is Dictionary and str(row.get("line", "")) != "":
+				add_output("[color=#" + wyw_ink + "]  " + str(row.get("line", "")) + "[/color]")
+	var keep := str(digest.get("keep_it", ""))
+	if keep != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]  " + keep + "[/color]")
+
+
 func _on_enemy_phase_dismissed():
 	"""Handle enemy phase dialog dismissal."""
 	# Enemy phase text removed from terminal — popup is sufficient,
 	# campaign log has the full record.
+	_pw_after_the_report()   # row PW: the map flash, the digest's lines, the held toast
 
 	# Show MILD dispatches after enemy phase (V2a: atmosphere text)
 	if pending_enemy_phase_response != null:
@@ -8425,6 +8676,7 @@ func _on_load_save_selected(filename: String):
 
 func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	"""Clear transient local UI state before hydrating a different campaign."""
+	_pw_shut_the_stack_list()   # row PW: the "Which corps?" list is the old board's
 	# S14d: the first-open acknowledgements are THIS world's (a new game or a
 	# load in the same client session starts afresh).
 	if api_client and api_client.has_method("reset_first_open_acks"):
@@ -8499,6 +8751,7 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	_pending_envoy_request_active = false
 	_awaiting_end_turn_confirmation = false
 	_idle_warned = false   # Session UI-5 review: the idle corps' latch, as the army's and the treasury's
+	_take_warned = false   # row PW
 	# Session UI-6: a new world opens with the slim bar's log folded, its reply line blank.
 	_ui5_close_log()
 	_bar_reply_text = ""
@@ -9207,8 +9460,9 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 	# popup emits the affordance dict as `data`; route it through the structured
 	# `action_params` dialogue path. (Whole-table dials ride in options[] and
 	# resolve via the index path with their server-side `scope: "table"`.)
+	_pw_table_answer_due = true   # row PW: the next /command answer is this press's (PW-R22)
 	if action in SETTLEMENT_DIALOGUE_ACTIONS and (data.has("scope") or data.has("nation")):
-		add_output("[color=#" + Utils.COLOR_GOLD + "]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
+		add_output("[color=#" + Utils.COLOR_GOLD + "]" + _pw_dialogue_echo(action) + "[/color]")
 		set_input_enabled(false)
 		api_client.send_dialogue_response_with_params(action, data, _on_command_result, int(data.get("dialogue_id", -1)))
 		return
@@ -9232,7 +9486,7 @@ func _on_proposal_confirm_choice(action: String, data: Dictionary):
 			choice_index = i + 1  # 1-based
 			break
 	if choice_index > 0:
-		add_output("[color=#" + Utils.COLOR_GOLD + "]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
+		add_output("[color=#" + Utils.COLOR_GOLD + "]" + _pw_dialogue_echo(action) + "[/color]")
 		set_input_enabled(false)
 		# W6-0 (BUG-CA-7): bind the answer to the dialogue this popup rendered.
 		api_client.send_dialogue_response(choice_index, _on_command_result, int(data.get("dialogue_id", -1)))
@@ -10583,6 +10837,12 @@ func _select_marshal(key: String) -> void:
 	"""Select a corps of ours: the ring, the strip, his reach asked for once
 	(a selection replaces a CC-5 group)."""
 	_order_serial += 1
+	# The review (PW-R17): a click that waited on a quote, or a card that
+	# waited on it, belongs to the selection that made it — dropped here, or a
+	# later HOVER of the same province under another corps consumed it and
+	# sent him there with no click.
+	_order_go_pending = ""
+	_order_card_wait = ""
 	_order_marshal = key
 	_order_group = []
 	if map_area and map_area.has_method("set_order_group"):
@@ -10643,6 +10903,8 @@ func _reread_order_selection() -> void:
 	if _order_card_open():
 		return
 	_order_serial += 1
+	_order_go_pending = ""   # (PW-R17: the board moved under a waiting click)
+	_order_card_wait = ""
 	_order_reach = {}
 	_order_quotes = {}
 	_order_quote_pending = {}
@@ -10666,6 +10928,8 @@ func _clear_order_selection() -> void:
 	_order_quote_pending = {}
 	_order_hover_key = ""
 	_order_card_key = ""
+	_order_go_pending = ""   # row PW: a click that waited on a quote waits no more
+	_order_card_wait = ""
 	if _order_dwell != null:
 		_order_dwell.stop()
 	if map_area and map_area.has_method("clear_order_selection"):
@@ -10736,7 +11000,155 @@ func _order_click(region: String, marshal_key: String, via_right := false) -> vo
 	if key.begins_with("pick:"):
 		_select_marshal(key.substr(5))
 		return
-	_open_order_card(key)
+	_order_go(key)
+
+
+# ═══════ Row PW "Plain Words" (November 18, 2026 — the first playtest) ═══════
+#
+# "clicking on genral and sending them somewhere is bad ux". Every click order
+# opened the confirm card and waited for its Send. ONE CLICK SENDS a plain
+# move or march now: the tag by the cursor has already said its price, its
+# clock and what it does to the province (`_order_ghost_label`), and the
+# backend's quote says when to ask instead (`confirm`: an attack, a refusal,
+# a road that meets a corps or guarded ground, a province he would enter
+# without taking). Settings → Orders → "Ask before every order" keeps the card.
+
+var _order_go_pending := ""     # the target whose quote a click waits on, to send or ask
+var _stack_picker = null        # the StackPicker (loaded by path)
+
+
+func _order_go(key: String) -> void:
+	"""A click or a drop named `key` for the selected corps: send it at once
+	when its quote says there is nothing to ask, else open the card."""
+	_order_go_pending = ""
+	if UiSettings.get_confirm_every_order() or not key.begins_with("dest:"):
+		_open_order_card(key)
+		return
+	var quote = _order_quotes.get(key, null)
+	if quote is Dictionary:
+		_order_go_with(key, quote)
+		return
+	# The exact quote is one GET away (the hover's dwell may not have asked
+	# yet): the click waits on it — a moment — and then sends or asks.
+	_order_go_pending = key
+	_fetch_order_quote(key)
+
+
+func _order_go_with(key: String, quote: Dictionary) -> void:
+	# The review (PW-R18): the quote may arrive a moment after the click —
+	# the guards a click passes are asked again here (a draft begun on the
+	# line, a screen opened, a modal raised in between: nothing is sent).
+	if not _order_input_ready() or command_input.text.strip_edges() != "":
+		return
+	var command := str(quote.get("command", ""))
+	var plain: bool = bool(quote.get("ok", false)) and command != "" \
+		and quote.has("confirm") and not bool(quote.get("confirm"))
+	if not plain:
+		_open_order_card(key)
+		return
+	if bool(quote.get("already", false)):
+		ToastLayer.say(Utils.humanize_entity_name(_order_marshal) + " already has that order.", "command")
+		return
+	_pw_send_and_keep_him(command)
+
+
+func _pw_send_and_keep_him(command: String) -> void:
+	"""An order sent on the click that named it — no card stood between. HE
+	stays selected when the answer comes (`_card_sent_stays`), whatever
+	Settings → "Next marshal after an order" says: the player's eye is on the
+	ground he was just sent to, the result is seen where it happens, and the
+	NEXT click on the map can never command a different corps than the one
+	the ring and the card show (found pressing the real client: one click
+	sent Massena, the camera left for Napoleon, and a second click — meant
+	for a look at the province — would have marched the Emperor)."""
+	var was_flying := _chip_command_in_flight
+	_send_map_order(command)
+	if _chip_command_in_flight and not was_flying:
+		_card_sent_stays = true
+
+
+func _stack_may_be_picked(names: Array) -> bool:
+	"""The renderer's `stack_pick_check`: one of the stack is ours in the
+	field, the line is EMPTY and nothing is on the wire."""
+	if command_input == null or command_input.text.strip_edges() != "" or not _order_input_ready():
+		return false
+	for n in names:
+		if _own_field_marshal(str(n)):
+			return true
+	return false
+
+
+func _on_stack_clicked(region: String, names: Array, at: Vector2) -> void:
+	"""A click on a stack's label: the list of OUR corps there — a row picks
+	one (`_select_marshal`). One of ours alone is picked at once."""
+	var rows: Array = []
+	for n in names:
+		var key := str(n)
+		if not _own_field_marshal(key):
+			continue
+		var board = _last_game_state.get("marshals", {})
+		var row = board.get(key, {}) if board is Dictionary else {}
+		var entry := _marshal_entry(key)
+		var ts = entry.get("tactical_state", {})
+		var doing := ""
+		if ts is Dictionary and bool(ts.get("in_strategic_mode", false)):
+			doing = "on the march"
+		elif ts is Dictionary and bool(ts.get("fortified", false)):
+			doing = "fortified"
+		rows.append({"key": key, "name": Utils.humanize_entity_name(key),
+			"men": int(row.get("strength", 0)) if row is Dictionary else 0, "doing": doing})
+	if rows.is_empty():
+		return
+	if rows.size() == 1:
+		_select_marshal(str(rows[0]["key"]))
+		return
+	if _stack_picker == null:
+		_stack_picker = load("res://scripts/stack_picker.gd").new()
+		add_child(_stack_picker)
+		_stack_picker.picked.connect(_on_stack_picked)
+	_stack_picker.open_list(region, rows, at)
+
+
+func _on_order_card_take(province: String) -> void:
+	"""The card's "Storm it instead" (or a "Take <province>" chip): the order
+	that TAKES the province, on its own card — the storm's reckoning, its Send."""
+	if _order_marshal == "" or province == "" or order_card == null:
+		return
+	_open_order_card.call_deferred("take:" + province)
+
+
+func _pw_take_where_he_stands(key: String) -> void:
+	"""A "Take <province>" chip for a corps of ours standing on ground that is
+	not ours: nothing holds it — sent at once; a garrison or works — the card."""
+	if not _own_field_marshal(key) or not _order_input_ready():
+		return
+	var ts = _marshal_entry(key).get("tactical_state", {})
+	var stands = ts.get("stands_on", {}) if ts is Dictionary else {}
+	if not (stands is Dictionary) or not bool(stands.get("ok", false)):
+		return
+	var foe := str(stands.get("foe", ""))
+	if foe != "":
+		# A corps of the enemy's stands on the same ground: the attack on HIM,
+		# on its own card (the odds, the muster) — never sent blind.
+		if _order_marshal != key:
+			_select_marshal(key)
+		_open_order_card.call_deferred("enemy:" + foe)
+		return
+	if bool(stands.get("open", false)) and not UiSettings.get_confirm_every_order() \
+			and str(stands.get("command", "")) != "":
+		if _order_marshal != key:
+			_select_marshal(key)
+		_pw_send_and_keep_him(str(stands.get("command", "")))
+		return
+	if _order_marshal != key:
+		_select_marshal(key)
+	_open_order_card.call_deferred("take:" + str(_marshal_entry(key).get("location", "")))
+
+
+func _on_stack_picked(key: String) -> void:
+	# He is on screen already (his label was under the cursor): no camera move.
+	if _own_field_marshal(key) and _order_input_ready():
+		_select_marshal(key)
 
 
 func _order_target_shown(key: String) -> String:
@@ -10754,13 +11166,48 @@ func _open_order_card(key: String) -> void:
 		_order_dwell.stop()
 	var quote = _order_quotes.get(key, null)
 	if quote is Dictionary:
+		_order_card_wait = ""
 		_show_ghost_for(key)
+		_raise_order_card(key, quote)
+		return
+	if not UiSettings.get_card_waits_for_quote():
+		# A driven harness holds the quote and reads the card meanwhile: the
+		# placeholder at once, as before row PW.
+		_order_card_wait = ""
+		_raise_order_card(key, null)
+		_fetch_order_quote(key)
+		return
+	# Row PW (the first playtest: "some screens bobble up and down"): the quote
+	# is one GET away. The card rose at once on a placeholder ("Reading the
+	# road…") and laid itself out AGAIN when the answer came — measured on the
+	# real client, 75 px taller and 37 px higher two frames after it opened, on
+	# every order whose quote the hover had not fetched. It rises ONCE now, on
+	# the quote; the placeholder is kept for an answer slower than
+	# ORDER_CARD_WAIT_SEC (a busy backend), so a click is never met by nothing.
+	_order_card_wait = key
+	_fetch_order_quote(key)
+	var serial := _order_serial
+	get_tree().create_timer(ORDER_CARD_WAIT_SEC).timeout.connect(
+		func(): _order_card_wait_due(key, serial))
+
+
+const ORDER_CARD_WAIT_SEC := 0.35
+var _order_card_wait := ""      # the target whose card waits on its quote
+
+
+func _raise_order_card(key: String, quote) -> void:
 	order_card.open_card(quote if quote is Dictionary else {},
 		"ORDERS FOR " + Utils.humanize_entity_name(_order_marshal).to_upper(),
 		"Reading the road to " + _order_target_shown(key) + "…", _order_card_avoid())
 	_update_war_panel_visibility()
-	if not (quote is Dictionary):
-		_fetch_order_quote(key)
+
+
+func _order_card_wait_due(key: String, serial: int) -> void:
+	"""The quote is slow: raise the card on its placeholder, as it always did."""
+	if serial != _order_serial or _order_card_wait != key or _order_card_open():
+		return
+	_order_card_wait = ""
+	_raise_order_card(key, null)
 
 
 func _order_card_avoid() -> Array:
@@ -10804,6 +11251,18 @@ func _on_order_quote(serial: int, key: String, response) -> void:
 		var why := str(response.get("message", "")) if response is Dictionary else ""
 		quote = {"ok": false, "command": "", "refusal": why}
 	_order_quotes[key] = quote
+	if key == _order_go_pending and not _order_card_open():
+		# Row PW: the click that waited on this quote — send it, or ask.
+		_order_go_pending = ""
+		_show_ghost_for(key)
+		_order_go_with(key, quote)
+		return
+	if key == _order_card_wait and not _order_card_open():
+		# Row PW: the card that waited on this quote rises now, whole.
+		_order_card_wait = ""
+		_show_ghost_for(key)
+		_raise_order_card(key, quote)
+		return
 	if _order_card_open() and key == _order_card_key:
 		_show_ghost_for(key)
 		order_card.show_quote(quote)
@@ -10918,7 +11377,7 @@ func _show_ghost_for(key: String) -> void:
 		var road = quote.get("road", [])
 		if bool(quote.get("ok", false)) and road is Array and not road.is_empty():
 			map_area.show_order_ghost(road, str(quote.get("kind", "march")),
-				_order_ghost_label(quote), steps)
+				_order_ghost_label(quote, key), steps)
 		else:
 			map_area.clear_order_ghost()
 		return
@@ -10926,30 +11385,65 @@ func _show_ghost_for(key: String) -> void:
 		var reach = _order_reach.get("reach", {})
 		var row = reach.get(key.substr(5), null) if reach is Dictionary else null
 		if row is Dictionary:
-			map_area.show_order_ghost(row.get("road", []), "march", _order_ghost_label({
-				"kind": "march", "turns": row.get("turns", 0), "ap": _order_reach.get("ap", 0),
-				"already": row.get("already", false)}), steps)
+			# Row PW: a province within the plain move's reach carries its own
+			# price and kind on its row ("ap", "kind": "move").
+			var row_kind := str(row.get("kind", "march"))
+			map_area.show_order_ghost(row.get("road", []), row_kind, _order_ghost_label({
+				"kind": row_kind, "turns": row.get("turns", 0),
+				"ap": row.get("ap", _order_reach.get("ap", 0)),
+				"tag": row.get("tag", []),
+				"already": row.get("already", false)}, key), steps)
 			return
 	map_area.clear_order_ghost()
 
 
-func _order_ghost_label(q: Dictionary) -> String:
-	"""The badge at the ghost road's head: its clock and its price. A word of
-	an open day of battle is priced in the day's points, never as "free"; an
-	order that halts at the approach says so in place of a road's clock (row
-	BA, BA-4 - the card's own two rules, `OrderConfirmCard.price_of` / `_clock`)."""
+func _order_ghost_label(q: Dictionary, key := "") -> String:
+	"""The tag at the ghost road's head (row PW — plain words): WHERE or WHOM
+	(the province's name, the enemy's), what the order is, its price and its
+	clock; and under it what happens first — a corps in the road, else what
+	the order does to the province it ends in (the quote's `ground` line —
+	"takes the province", "enters only — a garrison of 12,500 holds it"), or
+	for an attack what to expect of the odds. The province's own hover box
+	steps aside while the tag stands (`map_renderer_base._draw`), so the tag
+	names the place itself. A word of an open day of battle is priced in the
+	day's points, never as "free"; an order that halts at the approach says so
+	in place of a road's clock (row BA, BA-4 - the card's own two rules,
+	`OrderConfirmCard.price_of` / `_clock`)."""
 	if bool(q.get("already", false)):
-		return "already ordered"
+		return "Already ordered"
 	var ap := int(q.get("ap", 0))
-	var price := "free" if ap <= 0 else "%d AP" % ap
+	var price := "free" if ap <= 0 else Utils.plural(ap, "action")
 	if str(q.get("word", "")) != "":
 		price = Utils.quote_price_tail(q)
-	if str(q.get("kind", "")) == "attack":
-		return "attack · " + price
+	var kind := str(q.get("kind", ""))
+	var named := key.get_slice(":", 1) if key.contains(":") else ""
+	# The lines under the head are the BACKEND's (`order_quotes.tag_lines`, on
+	# every quote and every row of the reach): what happens first, what the
+	# order does to the province, the men the march costs, an attack's odds.
+	var under := ""
+	var tag = q.get("tag", [])
+	if tag is Array:
+		for tag_line in tag:
+			if str(tag_line) != "":
+				under += "\n" + str(tag_line)
+	if kind == "attack":
+		var whom := Utils.humanize_entity_name(named) if key.begins_with("enemy:") else ""
+		return ("Attack " + whom if whom != "" else "Attack") + " · " + price + under
+	var head: String
 	if bool(q.get("halts", false)):
-		return "halts at the approach · " + price
-	var turns := int(q.get("turns", 0))
-	return ("this turn" if turns <= 0 else Utils.plural(turns, "turn")) + " · " + price
+		head = "Halts at the approach · " + price
+	else:
+		var turns := int(q.get("turns", 0))
+		var verb := "Move" if kind == "move" else ("Support" if kind in ["support", "follow"] else "March")
+		if kind == "march_attack":
+			verb = "March, then attack"   # (the review, PW-R24: it read "March")
+		head = verb + " · " + price + " · " \
+			+ ("arrives now" if turns <= 0 else "arrives in " + Utils.plural(turns, "turn"))
+	if key.begins_with("dest:") and named != "":
+		head = named + " — " + head
+	elif (key.begins_with("ally:") or key.begins_with("enemy:")) and named != "":
+		head = Utils.humanize_entity_name(named) + " — " + head
+	return head + under
 
 
 func _on_piece_drag_started(marshal_key: String) -> void:
@@ -10974,7 +11468,7 @@ func _on_piece_dropped(marshal_key: String, region: String) -> void:
 	if key == "":
 		_clear_order_selection()
 		return
-	_open_order_card(key)
+	_order_go(key)   # row PW: a drop sends a plain move, as a click does
 
 
 func _on_piece_drag_cancelled(_marshal_key: String) -> void:
@@ -11174,6 +11668,8 @@ func _set_order_group(members: Array) -> void:
 			_clear_order_selection()
 		return
 	_order_serial += 1
+	_order_go_pending = ""   # (PW-R17)
+	_order_card_wait = ""
 	_order_marshal = ""
 	_order_reach = {}
 	_order_quotes = {}
@@ -11384,7 +11880,8 @@ func order_strip_text() -> String:
 # Session UI-6 (N3): the card's hint. The card's title names him, its slots
 # his own orders; the hint is what a click on the map does (a left click on
 # another of ours picks him — the hint keeps to the orders).
-const ORDER_STRIP_HINT := "Right-click a province: march · an enemy: attack · a marshal: support · Esc cancels"
+# Row PW (plain words; one click sends): what a click does now, said as it is.
+const ORDER_STRIP_HINT := "Click a province to send him · an enemy to attack · right-click a marshal to support him · Esc lets him go"
 
 
 func _render_order_strip() -> void:
@@ -11412,8 +11909,27 @@ func _render_order_strip() -> void:
 			legend = str(map_area.order_band_legend_bbcode()) + "   "
 		var reach = _order_reach.get("reach", {})
 		var count: int = reach.size() if reach is Dictionary else 0
-		text += ("\n" + legend + "[color=#" + Utils.COLOR_INFO + "]" + Utils.plural(count, "province")
-			+ " on his roads · a march costs " + Utils.plural(int(_order_reach.get("ap", 0)), "action") + "[/color]")
+		# Row PW: the two prices, said — a move within his reach, a march beyond it.
+		var move_ap := -1
+		if reach is Dictionary:
+			for dest in reach:
+				var reach_row = reach[dest]
+				if reach_row is Dictionary and str(reach_row.get("kind", "")) == "move":
+					move_ap = int(reach_row.get("ap", 1))
+					break
+		# The card stands on the map: its words are kept to what the colours
+		# mean and the two prices (the count of provinces told him nothing).
+		var prices := "a march costs " + Utils.plural(int(_order_reach.get("ap", 0)), "action")
+		var march_refusal := str(_order_reach.get("march_refusal", "")).strip_edges()
+		if march_refusal != "":
+			prices = "this turn: " + Utils.plural(maxi(move_ap, 1), "action") \
+				+ " · no longer march today — " + march_refusal
+		elif move_ap >= 0:
+			prices = "this turn: " + Utils.plural(move_ap, "action") + " · further off: " \
+				+ Utils.plural(int(_order_reach.get("ap", 0)), "action")
+		if count <= 0:
+			prices = "no province on his roads"
+		text += "\n" + legend + "[color=#" + Utils.COLOR_INFO + "]" + prices + "[/color]"
 	_show_order_strip(text)
 
 
@@ -11468,6 +11984,8 @@ func _fit_order_strip() -> void:
 		return
 	if _ui6_dock_card_in_wing(surface):
 		return
+	if _pw_dock_card_beside_the_window(surface):
+		return
 	var band := Utils.hud_band(size)
 	var cs := surface.get_combined_minimum_size()
 	var anchor_x := (band.x + band.y) / 2.0
@@ -11487,6 +12005,36 @@ func _fit_order_strip() -> void:
 	var top_floor := TOP_BAR_RESERVED_PX + Utils.top_bar_growth() + Utils.HUD_MARGIN
 	surface.position = Vector2(x, maxf(top_floor, bottom - cs.y))
 	surface.size = cs
+
+
+func _pw_dock_card_beside_the_window(surface: Control) -> bool:
+	"""Row PW (November 18, 2026 — the first playtest: "clicking on genral and
+	sending them somewhere is bad ux"). The selection card stood centred over
+	the map's controls — on the player's own screen (5120x1440 at 1.8) that is
+	the MIDDLE of the map, on top of the selected corps and the provinces round
+	him: the very ground the next click is meant for. It now stands in the
+	map's bottom-left corner, against the command window (where his chip was
+	pressed), and above the map controls' row only where it would cross them.
+	False on the compact view's slim bar (its own layout) and with the command
+	window hidden — the old slot is kept there."""
+	if surface == null or surface != _selection_card or _ui5_bar_mode():
+		return false
+	if bottom_left_ui == null or not bottom_left_ui.visible:
+		return false
+	var term: Rect2 = bottom_left_ui.get_global_rect()
+	var cs: Vector2 = surface.get_combined_minimum_size()
+	var x: float = term.end.x + Utils.HUD_MARGIN
+	var bottom: float = size.y - Utils.HUD_MARGIN
+	if map_controls != null and is_instance_valid(map_controls) and map_controls.visible:
+		var mc: Rect2 = map_controls.get_global_rect()
+		if x + cs.x > mc.position.x - Utils.HUD_MARGIN and x < mc.end.x + Utils.HUD_MARGIN:
+			bottom = mc.position.y - Utils.HUD_MARGIN
+	var top_floor: float = TOP_BAR_RESERVED_PX + Utils.top_bar_growth() + Utils.HUD_MARGIN
+	if x + cs.x > size.x - Utils.HUD_MARGIN:
+		return false     # no room beside the window: the centred slot
+	surface.position = Vector2(x, maxf(top_floor, bottom - cs.y))
+	surface.size = cs
+	return true
 
 
 func _on_map_dismiss_requested():
@@ -11706,6 +12254,24 @@ func _update_war_panel_visibility():
 		# 1600 x 900, where it hid a book's close button. A screen pinned at
 		# the Side Desk is not a covering one: the rail stays beside it.
 		notification_bar.set_suspended(_is_modal_dialog_open() or _is_screen_open() or _hud_hidden)
+
+
+func _on_war_card_peace(nation: String, war_instance_id: String = "") -> void:
+	"""Row PW (the first playtest: "its unclear how to end wars"): a war card's
+	"Make peace" — straight to that war's peace talks where the table is open
+	(the war window's own "Make peace" road, `_on_war_settlement_clicked`);
+	where it is not, the war's window, which says why and what else can be
+	done."""
+	var war_data = _find_war_data(nation, war_instance_id)
+	if war_data == null:
+		return
+	if _is_modal_dialog_open() or not _order_input_ready():
+		return
+	var war_id := str(war_data.get("war_instance_id", war_instance_id))
+	if bool(war_data.get("settlement_available", false)) and war_id != "":
+		_on_war_settlement_clicked(war_id, nation)
+		return
+	_on_war_card_clicked(nation, "war", war_instance_id)
 
 
 func _on_war_card_clicked(nation: String, status: String, war_instance_id: String = ""):
@@ -14105,6 +14671,7 @@ func _ui6_build_selection_card() -> void:
 	_selection_card.verb_pressed.connect(_on_selection_verb)
 	_selection_card.cancel_order_pressed.connect(_on_selection_cancel)
 	_selection_card.close_pressed.connect(_clear_order_selection)
+	_selection_card.take_pressed.connect(_pw_take_where_he_stands)   # row PW
 	# its size settles after its labels measure themselves: the slot follows
 	_selection_card.resized.connect(_queue_fit_map_controls)
 	_selection_card.visibility_changed.connect(_queue_fit_map_controls)
@@ -14139,6 +14706,13 @@ func _ui6_show_selection_card(hint: String) -> bool:
 	var view: Dictionary = MarshalStateKit.from_board(_marshal_entry(_order_marshal), row)
 	if (row as Dictionary).has("morale"):
 		view["morale"] = int(row.get("morale", 0))
+	# Row PW: the province he stands on, when it is not ours — why, and the
+	# order that takes it (the board's `tactical_state.stands_on`).
+	var stands_ts = _marshal_entry(_order_marshal).get("tactical_state", {})
+	var stands = stands_ts.get("stands_on", {}) if stands_ts is Dictionary else {}
+	if stands is Dictionary and not stands.is_empty():
+		view["stands_on"] = stands
+		view["stands_at"] = str(_marshal_entry(_order_marshal).get("location", ""))
 	_selection_card.show_for(view, _order_marshal, int(actions_remaining), hint)
 	return true
 

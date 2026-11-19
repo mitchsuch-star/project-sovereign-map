@@ -6,15 +6,20 @@ var _width: float = 0.0
 var _panel_color: Color = Color(0.1, 0.1, 0.15, 0.95)
 var _border_color: Color = Color.WHITE
 var _mouse_position: Vector2 = Vector2.ZERO
+# Row PW: a box on the map this one must not cover (the order's tag at the
+# head of a ghost road) — LOCAL space; empty for none.
+var _avoid: Rect2 = Rect2()
 
 
-func show_tooltip(lines: Array, width: float, panel_color: Color, border_color: Color, mouse_position: Vector2):
+func show_tooltip(lines: Array, width: float, panel_color: Color, border_color: Color,
+		mouse_position: Vector2, avoid: Rect2 = Rect2()):
 	_visible_tooltip = true
 	_lines = lines.duplicate(true)
 	_width = width
 	_panel_color = panel_color
 	_border_color = border_color
 	_mouse_position = mouse_position
+	_avoid = avoid
 	queue_redraw()
 
 
@@ -99,9 +104,53 @@ func _measure_tooltip(lines: Array, width: float) -> Vector2:
 
 
 func _clamp_tooltip_pos(pos: Vector2, tooltip_size: Vector2) -> Vector2:
-	var viewport_size = get_viewport_rect().size
-	if pos.x + tooltip_size.x > viewport_size.x:
-		pos.x = viewport_size.x - tooltip_size.x
-	if pos.y + tooltip_size.y > viewport_size.y:
-		pos.y = _mouse_position.y - tooltip_size.y - 5.0
+	var view: Vector2 = get_viewport_rect().size
+	var top_floor: float = Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + 4.0 - global_position.y
+	var left_floor: float = -global_position.x
+	var placed := clamp_box(pos, tooltip_size, _mouse_position, view, top_floor, left_floor)
+	if _avoid.size == Vector2.ZERO or not Rect2(placed, tooltip_size).intersects(_avoid):
+		return placed
+	return clear_of(placed, tooltip_size, _mouse_position, view, top_floor, left_floor, _avoid)
+
+
+static func clear_of(placed: Vector2, box: Vector2, mouse: Vector2, view: Vector2,
+		top_floor: float, left_floor: float, avoid: Rect2) -> Vector2:
+	"""Row PW: the hover box's place when its usual one would cover `avoid`
+	(the order's tag) — the cursor's other three corners in turn, each held on
+	the screen; the first that leaves the tag whole wins, else the usual place
+	(a view too small for both: the box is the older word)."""
+	var gap := 15.0
+	var corners := [
+		Vector2(mouse.x - gap - box.x, mouse.y + gap),      # below, left
+		Vector2(mouse.x + gap, mouse.y - gap - box.y),      # above, right
+		Vector2(mouse.x - gap - box.x, mouse.y - gap - box.y),   # above, left
+	]
+	for corner in corners:
+		var at: Vector2 = corner
+		at.x = clampf(at.x, left_floor, maxf(left_floor, view.x - box.x))
+		at.y = clampf(at.y, top_floor, maxf(top_floor, view.y - box.y - 4.0))
+		if not Rect2(at, box).intersects(avoid):
+			return at
+	return placed
+
+
+static func clamp_box(pos: Vector2, box: Vector2, mouse: Vector2, view: Vector2,
+		top_floor: float, left_floor: float = 0.0) -> Vector2:
+	"""Row PW (November 18, 2026 — the first playtest, at 5120x1440 and Interface
+	Scale 1.8: a view 800 units tall): where the hover box stands. Below-right
+	of the cursor; flipped above it where it would pass the bottom edge — and
+	then, the half the old rule lacked, held WHOLE on the screen: never above
+	`top_floor` (the top bar's strip covered a marshal's name and half his
+	figures on any hover in the middle band of a short view) and never past
+	the left edge. A box taller than the room stands at the floor and runs
+	off the bottom, the lines a reader starts with kept."""
+	if pos.x + box.x > view.x:
+		pos.x = view.x - box.x
+	if pos.y + box.y > view.y:
+		pos.y = mouse.y - box.y - 5.0
+	if pos.y < top_floor:
+		# No room above the cursor either: as low as the screen lets it stand
+		# (beside the cursor, which the x-shift above already cleared).
+		pos.y = maxf(top_floor, view.y - box.y - 4.0)
+	pos.x = maxf(pos.x, left_floor)
 	return pos

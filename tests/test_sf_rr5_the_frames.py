@@ -71,7 +71,8 @@ S14D_LINED = {
     "wizard_designs_step4": ("Your own aims, Sire, not the courts'", "Proclaim Road I —"),   # not Road III
     # Session UI-4: folded, a court row's faces are short — Austria's row is the
     # first in the body, so its "Demand more" is the first such button
-    "settlement_three_courts": ("This is the table, Sire. Every court", "Demand more"),
+    # (row PW, November 18, 2026: the face reads "Ask more" — plain words)
+    "settlement_three_courts": ("This is the table, Sire. Every court", "Ask more"),
     "settlement_pair_substitute": ("A separate peace, Sire, takes this one", "Proceed — separate peace with Austria"),
     "moment_letter_bavarian_match": ("A moment of history, Sire", "Seal the match"),
     "moment_letter_decree_of_berlin": ("A moment of history, Sire", "Sign the Decree"),
@@ -205,14 +206,24 @@ def _button(frame: dict, text: str) -> dict:
 # Session UI-4 (November 12, 2026): every court is one status row, and folded its
 # three faces are short ("Demand more" / "Ease" / "Drop") with the court's full
 # label as the button's hover; on the page the face is the full label.
-_SHORT_FACE = {"Demand more of ": "Demand more", "Ease ": "Ease", "Drop ": "Drop"}
+# RE-SEATED (row PW, November 18, 2026 — the first playtest: "diplomacy is very
+# confusing"): the three faces say what the press does to the deal, in everyday
+# words — "Demand more of X" -> "Ask more of X" ("Ask more"), "Ease X" ->
+# "Offer X more" ("Offer more"), "Drop X" -> "Leave X out" ("Leave out"). The
+# same three buttons a court; the same rule (each seen whole, none folded).
+_COURT_FACES = {
+    "ask": ("Ask more of {court}", "Ask more"),
+    "offer": ("Offer {court} more", "Offer more"),
+    "leave": ("Leave {court} out", "Leave out"),
+}
 
 
 def _court_button(frame: dict, verb: str, court: str) -> dict:
+    full, short = _COURT_FACES[verb]
     hits = [b for b in frame.get("buttons") or []
-            if b["text"].startswith(verb + court)
-            or (b["text"] == _SHORT_FACE[verb] and court in (b.get("tooltip") or ""))]
-    assert hits, f"no '{verb}{court}' in {[(b['text'], b.get('tooltip')) for b in frame.get('buttons') or []]}"
+            if b["text"].startswith(full.format(court=court))
+            or (b["text"] == short and court in (b.get("tooltip") or ""))]
+    assert hits, f"no '{verb}' of {court} in {[(b['text'], b.get('tooltip')) for b in frame.get('buttons') or []]}"
     return hits[0]
 
 
@@ -510,7 +521,7 @@ class TestEAE6EveryCourtKeepsItsRow:
     def test_every_court_row_is_seen_whole(self, record, scale):
         frame = _frame(record, "settlement_three_courts", scale)
         for court in ("Austria", "Britain", "Russia"):
-            for verb in ("Demand more of ", "Ease ", "Drop "):
+            for verb in ("ask", "offer", "leave"):
                 b = _court_button(frame, verb, court)
                 assert _inside(b["rect_raw"], b["scroll_rect"] or b["rect_raw"]), (court, verb)
         assert _folded(frame) == []
@@ -525,12 +536,15 @@ class TestEAE6EveryCourtKeepsItsRow:
         # over "3 of 3 hold out" — and the heading sentence is that tile's hover
         # (On the page prints it). The compact view keeps the page's head
         # (`_figures_first` is false there), so at 2.0 the sentence stands.
+        # RE-SEATED (row PW, November 18, 2026): the same two places, in plain
+        # words — the tile reads "They will not sign yet" over "3 of 3 refuse",
+        # the heading sentence "They will not sign this yet."
         if scale == 2.0:
-            assert "This draft will not carry as it stands." in seen
+            assert "They will not sign this yet." in seen
         else:
-            assert "Will not carry" in seen and "3 of 3 hold out" in seen
-        assert "cannot be ratified" not in seen and "Cannot be ratified" not in seen
-        assert "Ready to ratify" not in seen
+            assert "They will not sign yet" in seen and "3 of 3 refuse" in seen
+        assert "cannot be signed" not in seen and "Cannot be signed" not in seen
+        assert "Ready to sign" not in seen
         assert "Austria" in seen
 
 

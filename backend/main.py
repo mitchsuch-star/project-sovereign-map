@@ -1187,6 +1187,10 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     # FA-9, slice 17 review round (L1-3): the walk-in-refused flag reaches the
     # wire, so the digest (and a pin) can tell "walked on and did not take".
     "capture_refused_recovering",
+    # Row PW (November 18, 2026): a corps of ours that entered an enemy's
+    # province and did not take it — why, and the order that would
+    # (`backend/commands/ground.py`); the client offers it as a chip.
+    "ground",
     "cavalry_terrain_message",
     "bombardment_advisory",
     "battle_report",
@@ -2513,6 +2517,11 @@ def _apply_command_result_layers(response: dict, result: dict, world) -> None:
     # about.
     if result.get("jealousy_attacks"):
         response["jealousy_attacks"] = result["jealousy_attacks"]
+    # Row PW "Plain Words": the turn's digest — what changed for the player
+    # while Europe moved (`while_you_waited.digest`: plain dicts and ints, the
+    # fog applied where it is built). The enemy-phase report opens on it.
+    if result.get("while_you_waited"):
+        response["while_you_waited"] = result["while_you_waited"]
     _include_command_tactical_events(response, result, world)
     _include_command_independent_report(response, result)
     _apply_command_popup_contract(response, result, world)
@@ -7819,7 +7828,8 @@ def _quote_field_marshal(name: str):
 
 @app.get("/march_quotes")
 def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "",
-                              enemy: str = "", ally: str = "", marshals: str = ""):
+                              enemy: str = "", ally: str = "", marshals: str = "",
+                              take: str = ""):
     """CC-2 "March here": every click order the province panel offers at
     `region`, quoted from the order's own pure readers
     (`backend/commands/order_quotes.py`). READ-ONLY — it runs no command,
@@ -7855,10 +7865,19 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
             subject = _quote_field_marshal(marshal)
             if subject is None:
                 return {"success": False, "message": f"No corps of ours in the field named {marshal}."}
+            if take:
+                # Row PW: the order that takes a province — the one he STANDS
+                # in (`take=1`), or one within his reach, by name.
+                from backend.commands.order_quotes import take_quote
+                named = "" if take in ("1", "here") else take
+                if named and world.get_region(named) is None:
+                    return {"success": False, "message": f"Unknown province: {named}"}
+                return {"success": True, "quote": take_quote(world, subject, named)}
             if dest:
                 if world.get_region(dest) is None:
                     return {"success": False, "message": f"Unknown province: {dest}"}
-                return {"success": True, "quote": march_quote(world, subject, dest)}
+                # (row PW: the click road — a province in reach is the move)
+                return {"success": True, "quote": march_quote(world, subject, dest, click=True)}
             if enemy:
                 foe = world.get_marshal(enemy)
                 player = world.player_nation
@@ -8546,7 +8565,30 @@ def _wire_dialogue(active_world, dialogue):
     from backend.game_logic import first_open
     return _dialogue_cabinet_lock_for_wire(
         active_world,
-        _dialogue_settlement_for_wire(first_open.with_line(active_world, dialogue)))
+        _dialogue_dial_next_for_wire(
+            active_world,
+            _dialogue_settlement_for_wire(first_open.with_line(active_world, dialogue))))
+
+
+def _dialogue_dial_next_for_wire(active_world, dialogue):
+    """Row PW (PW-X13): the player's peace table leaves with what the NEXT
+    press of each dial would do (`dial_next`, the dial's own dry run —
+    `settlement_actions.dial_previews`) on a COPY: read fresh from the terms
+    that stand, never stored. Anything else passes through untouched."""
+    if not isinstance(dialogue, dict) or dialogue.get("dialogue_mode") != "PROPOSE":
+        return dialogue
+    try:
+        from backend.game_logic.settlement_actions import dial_previews
+        nxt = dial_previews(active_world, dialogue)
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "main._dialogue_dial_next_for_wire: dial_previews")
+        return dialogue
+    if not nxt:
+        return dialogue
+    out = dict(dialogue)
+    out["dial_next"] = nxt
+    return out
 
 
 def _dialogue_cabinet_lock_for_wire(active_world, dialogue):

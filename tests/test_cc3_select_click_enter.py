@@ -295,13 +295,25 @@ class TestTheRoutes:
         assert json.dumps(M.world.to_dict(), sort_keys=True, default=str) == before
 
     def test_a_province_hidden_by_fog_names_no_corps_in_the_reach(self, client):
-        """The reach carries roads and turns only — never a corps (the quote's
-        note is fetched per target, and the CC-2 fog pins hold it)."""
+        """The reach carries roads, turns and — since row PW — each row's own
+        price and the lines the map's tag shows under it (`tag`: what happens
+        first, what the order does to the province, the men the march costs).
+        A tag line may name a corps the player SEES in the road; it never
+        names one he does not (`visible_foe_on_road`, R5)."""
         C.boot()
-        r = march_reach(M.world, _field(M.world)[0])
-        assert set(r) == {"success", "marshal", "shown", "location", "ap", "range", "ok",
-                          "refusal", "reach"}
-        assert all(set(row) <= {"turns", "road", "already"} for row in r["reach"].values())
+        w = M.world
+        seen = {e.name for e in w.get_visible_enemies(w.player_nation)}
+        hidden = {humanize_entity_name(m.name) for m in w.marshals.values()
+                  if m.name not in seen and w.is_at_war(w.player_nation, m.nation)}
+        assert hidden, "the boot board hides no corps: the pin would prove nothing"
+        for corps in _field(w):
+            r = march_reach(w, corps)
+            assert set(r) <= {"success", "marshal", "shown", "location", "ap", "range", "ok",
+                              "refusal", "reach", "march_refusal"}
+            for dest, row in r["reach"].items():
+                assert set(row) <= {"turns", "road", "already", "tag", "ap", "kind"}, (corps.name, dest)
+                for line in row.get("tag") or []:
+                    assert not any(name in line for name in hidden), (corps.name, dest, line)
 
 
 # ═══ the source pins ════════════════════════════════════════════════════════
@@ -491,6 +503,21 @@ def _cc3(driven):
     return driven["spec"]["cc3"]
 
 
+def _actions(ap: int) -> str:
+    """`Utils.plural(ap, "action")`."""
+    return f"{ap} action" + ("" if ap == 1 else "s")
+
+
+def _tag_head(dest: str, kind: str, ap: int, turns: int) -> str:
+    """The head of the map's tag for a province (`main.gd::_order_ghost_label`,
+    row PW): the place, the order, its price, its clock."""
+    verb = "Move" if kind == "move" else "March"
+    price = "free" if int(ap) <= 0 else _actions(int(ap))
+    clock = "arrives now" if int(turns) <= 0 else (
+        f"arrives in {int(turns)} turn" + ("" if int(turns) == 1 else "s"))
+    return f"{dest} — {verb} · {price} · {clock}"
+
+
 class TestTheHarnessRanClean:
 
     def test_no_script_errors(self, driven):
@@ -517,11 +544,16 @@ class TestTheSelection:
         strip's place, its title names him). The right click is the order —
         a province, an enemy, a marshal (support); a LEFT click on another of
         ours picks him (`test_a_corps_of_ours_is_the_support_quote`)."""
+        # Row PW (plain words; one click sends): the hint says what a click
+        # does now, and the line under it the price in place of a count of
+        # provinces ("the count told him nothing" — the first playtest).
         assert driven["k1_strip_loading"].startswith(
-            "Right-click a province: march · an enemy: attack · a marshal: support · Esc cancels")
+            "Click a province to send him · an enemy to attack · "
+            "right-click a marshal to support him · Esc lets him go")
         assert "Reading his roads" in driven["k1_strip_loading"]
-        n = len(_cc3(driven)["reach"]["reach"])
-        assert f"{n} provinces on his roads" in driven["k1_strip"]
+        ap = int(_cc3(driven)["reach"]["ap"])
+        assert f"a march costs {_actions(ap)}" in driven["k1_strip"]
+        assert "provinces on his roads" not in driven["k1_strip"]
         for band in ("this turn", "1 turn", "2–3 turns", "4+ turns"):
             assert band in driven["k1_strip"], band
 
@@ -547,13 +579,18 @@ class TestTheGhostRoad:
         cc3 = _cc3(driven)
         road = cc3["reach"]["reach"][cc3["dest"]]["road"]
         assert driven["k2_ghost_points"] == len(road) + 1   # his feet, then the road
-        assert driven["k2_ghost_label"].endswith(f"· {cc3['reach']['ap']} AP")
+        # Row PW: the tag names the province, says "actions" and when he
+        # arrives, and carries the row's own lines under its head.
+        row = cc3["reach"]["reach"][cc3["dest"]]
+        assert driven["k2_ghost_label"].split("\n") == [
+            _tag_head(cc3["dest"], "march", cc3["reach"]["ap"], row["turns"])] + list(row.get("tag") or [])
 
     def test_at_rest_the_exact_quote_is_fetched_once(self, driven):
         cc3 = _cc3(driven)
         assert driven["k2_quote_asked"] == [f"order_quote:{cc3['subject']}|dest|{cc3['dest']}"]
         q = cc3["dest_quote"]
-        assert driven["k2_ghost_label_exact"].endswith(f"· {q['ap']} AP")
+        assert driven["k2_ghost_label_exact"].split("\n") == [
+            _tag_head(cc3["dest"], q["kind"], q["ap"], q["turns"])] + list(q.get("tag") or [])
         assert driven["k2_ghost_kind"] == q["kind"]
 
 

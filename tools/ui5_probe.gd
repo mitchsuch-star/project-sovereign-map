@@ -68,7 +68,10 @@ func _run() -> void:
 	# ── the study restarts after a swap ──
 	AudioManager.start_ambience()
 	await process_frame
-	_check(inst._loop_players.has("wind") and inst._loop_players.has("fire") and inst._loop_players.has("clock"), "the study's beds")
+	# Row PW (November 18, 2026 — the first playtest: "i hear like a car
+	# cliking turn signla ish noise constantly"): the study's bed is wind and
+	# fire; the clock's tick (123 a minute, without end) is out of it.
+	_check(inst._loop_players.has("wind") and inst._loop_players.has("fire") and not inst._loop_players.has("clock"), "the study's beds")
 	AudioManager.stop_all_loops()
 	await process_frame
 	_check(not inst._loop_players.has("fire"), "the swap silences the beds")

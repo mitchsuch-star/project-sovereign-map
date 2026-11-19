@@ -131,7 +131,8 @@ class TestWarDetailClient:
         body = _func(_src(), "_render_war_detail")
         assert "var tier_bb: String = _ground_block(w) + bbcode" in body
         # the PC-F46 order and the HUD builder's literal both stand
-        assert body.index('"Settlement Tier: [color="') < body.index("# Breakdown")
+        # (row PW: the tier line's label is the constant PEACE_YOU_COULD_GET)
+        assert body.index('PEACE_YOU_COULD_GET + "[color="') < body.index("# Breakdown")
         assert "bbcode = tier_bb + bbcode + prose" in body
 
     def test_the_ground_block_is_folded_only_and_chips_with_hovers(self):

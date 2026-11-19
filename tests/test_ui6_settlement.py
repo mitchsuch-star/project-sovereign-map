@@ -46,8 +46,18 @@ class TestTheVerdictPanel:
 
     def test_the_status_tile_reads_its_verdict_and_the_treasury_is_tiles(self):
         body = _func(_src(), "func _verdict_tiles(")
-        for words in ('"Will carry"', '"Will not carry"', '"Ready to ratify"', '"Cannot be ratified"',
-                      '"%d of %d hold out"', '"Committed"', '"Reserve"', '"Remaining"'):
+        # RE-SEATED (row PW, November 18, 2026 — the first playtest: "diplomacy
+        # is very confusing"): the tiles read in everyday words. "Will carry"
+        # -> "They will sign", "Will not carry" -> "They will not sign yet",
+        # "Ready to ratify" -> "Ready to sign", "Cannot be ratified" ->
+        # "Cannot be signed", "N of M hold out" -> "N of M refuse", and the
+        # gold tiles "Committed / Reserve / Remaining" -> "Gold you offer /
+        # In your treasury / Left if they sign" (what the deal pays, what the
+        # purse holds, what would be left: the middle tile was the suggestions'
+        # hold-back, which the dial spends — it fell while "Remaining" read 0).
+        for words in ('"They will sign"', '"They will not sign yet"', '"Ready to sign"',
+                      '"Cannot be signed"', '"%d of %d refuse"', '"Gold you offer"',
+                      '"In your treasury"', '"Left if they sign"'):
             assert words in body, words
         assert "Utils.clean_tip(_verdict_words(data))" in body
 
@@ -55,11 +65,14 @@ class TestTheVerdictPanel:
         src = _src()
         head = _func(src, "func _build_settlement_content(")
         assert head.index("if _figures_first(data):") < head.index('elif dialogue_mode == "PROPOSE":')
-        # On the page the heading still prints
-        assert "This draft will not carry as it stands." in head
+        # On the page the heading still prints (row PW: its words come from
+        # the ONE source, `_verdict_heading_words` — "They will not sign this yet.")
+        assert "_verdict_heading_words(data)" in head
+        assert 'return "They will not sign this yet."' in _func(src, "func _verdict_heading_words(")
         pre = _func(src, "func _build_settlement_table_preamble(")
         assert "and not _figures_first(data)" in pre
-        assert "Treasury[/b] %s gold: committed %s / reserve %s / remaining %s" in pre
+        # (row PW: the page's line says the tiles' own figures)
+        assert "Treasury[/b] %s gold: you offer %s; left if they sign %s" in pre
 
     def test_no_sentence_is_lost_the_verdict_words_are_the_tiles_hover_and_the_counsel(self):
         src = _src()

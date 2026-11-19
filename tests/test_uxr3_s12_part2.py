@@ -419,7 +419,11 @@ class TestTheBoardsLeadWithTheirSubject:
         assert 'const INSTRUMENT_ACTIONS := ["sponsor_design", "buy_off_design", "guarantee_nation"]' in src
         # DDB-7 (S13b): the counsel's recommended row and a running mission's
         # Cancel stay on top; the instruments lead the rest.
-        assert "others = lead + rest" in src and "actions = counsel + others" in src
+        # (row PW, November 18, 2026: the rows are added counsel first, then the
+        # ways to end the war, then the rest — `others` is still lead + rest)
+        assert "others = lead + rest" in src
+        assert src.index("\tfor action in counsel:\n\t\t_add_action_button(action)") \
+            < src.index("\tfor action in rest_rows:\n\t\t_add_action_button(action)")
 
     def test_the_diplomatic_ledger_leads_with_laws_doctrine_and_the_spent_league(self):
         """UXR3-29 / 77: a court's Laws and Doctrine lines under its name; the
@@ -600,7 +604,12 @@ class TestTheFoundRows:
         assert _order(opened, "_reset_document_shares()", "Utils.clamp_centered_panel($PanelContainer)",
                       "_fit_settlement_document()")
         fit = _func(popup, "_fit_settlement_document")
-        assert "if need_panel >= have:\n\t\treturn" in fit
+        # (row PW: the equal-shares arm still returns before the shrink; it
+        # first restores a table that was held on the screen through a press
+        # — `_hold_document` — to its full rect, and marks the fit done)
+        full_arm = fit[fit.index("if need_panel >= have:"):fit.index("if table_floor >= 0.0:")]
+        assert full_arm.rstrip().endswith("_doc_fitted = true\n\t\treturn")
+        assert "panel.offset_top = float(full[\"top\"])" in full_arm
         assert "regions[i].size_flags_stretch_ratio = maxf(float(shares[i]), 1.0)" in fit
         assert "panel.offset_top = -need_panel / 2.0" in fit
         # a re-render inside the table re-fits from the full rect

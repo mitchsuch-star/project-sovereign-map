@@ -1149,7 +1149,10 @@ func _render() -> void:
 	# section: under the province's own header lines (and, Folded, the figures
 	# row) and above ACTIONS, not down among the ATTACK rows.
 	if _quotes_region == _region and not _quotes.is_empty():
-		var day_text := _day_block()
+		# Row PW: ...and with it the order that makes the province OURS, when a
+		# corps of ours stands on it (`_take_section`) — at the head, where the
+		# eye lands, not down among the march rows.
+		var day_text := _day_block() + _take_section()
 		if day_text != "":
 			var day_at: int = actions_at + folded_facts.length()
 			bbcode = bbcode.substr(0, day_at) + day_text + bbcode.substr(day_at)
@@ -1928,7 +1931,9 @@ func _march_here_section() -> String:
 	var out := ""
 	var march = _quotes.get("march", [])
 	if march is Array and not march.is_empty():
-		out += _march_caption("MARCH HERE", "a standing order — he marches on each turn")
+		# Row PW: a corps within one move pays the move's price and arrives now;
+		# further off it is the standing march (each row says which).
+		out += _march_caption("SEND A CORPS HERE", "next door is a move, and he arrives now; further off he marches on each turn")
 		out += _quote_rows(march)
 	var support = _quotes.get("support", [])
 	if support is Array:
@@ -1970,6 +1975,49 @@ func _march_here_section() -> String:
 				out += "\n" + Utils.HEAD_OPEN + "ATTACK " \
 					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
 				out += _quote_rows(ordinary)
+	return out
+
+
+func _take_section() -> String:
+	"""Row PW (the first playtest: "i had 3 people in colinia and no one could
+	take it"): a corps of ours stands HERE and the province is not ours — the
+	backend's `take` rows (`order_quotes.take_quote`): the order that takes it
+	as a chip ("Take Carniola — Ney · 1 action", "Storm Vienna — Davout"), with
+	the storm's reckoning under it, or the plain reason nothing would."""
+	var take = _quotes.get("take", [])
+	if not (take is Array) or take.is_empty():
+		return ""
+	var out := "\n" + Utils.HEAD_OPEN + "TAKE THIS PROVINCE" + Utils.HEAD_CLOSE + "\n"
+	var said := {}
+	for q in take:
+		if not (q is Dictionary):
+			continue
+		var ground = q.get("ground", {})
+		var line := str(ground.get("line", "")) if ground is Dictionary else ""
+		var who := str(q.get("shown", ""))
+		if bool(q.get("ok", false)) and str(q.get("command", "")) != "":
+			var label := (str(ground.get("remedy_label", "Take it")) if ground is Dictionary else "Take it") \
+				+ " — " + who + " · " + Utils.plural(int(q.get("ap", 1)), "action")
+			var reckoning := str(q.get("muster", "")).strip_edges()
+			var note := str(q.get("note", "")).strip_edges()
+			var hover := " ".join(PackedStringArray([line, reckoning, note])).strip_edges()
+			out += "  " + Utils.bb_button_chip("do:" + str(q.get("command", "")), label,
+				Utils.COLOR_GOLD, _CHIP_BG, "", hover if Utils.explanations_folded() else "") + "\n"
+			if not Utils.explanations_folded():
+				for extra in [line, reckoning, note]:
+					if str(extra) != "":
+						out += "    [color=#" + Utils.COLOR_INFO + "]" + str(extra) + "[/color]\n"
+			elif not said.has(line) and line != "":
+				out += "    [color=#" + Utils.COLOR_INFO + "]" + line.substr(0, 1).to_upper() + line.substr(1) + ".[/color]\n"
+				said[line] = true
+		else:
+			var why := str(q.get("refusal", "")).strip_edges()
+			if why == "":
+				why = line
+			if why != "" and not said.has(why):
+				out += "  [color=#" + Utils.COLOR_WARNING + "]" + why.substr(0, 1).to_upper() + why.substr(1) \
+					+ ("" if why.ends_with(".") else ".") + "[/color]\n"
+				said[why] = true
 	return out
 
 

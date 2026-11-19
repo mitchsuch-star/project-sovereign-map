@@ -649,6 +649,15 @@ func _dress_the_kind() -> void:
 	if told != "" and told != "<null>":
 		_sub_told = told
 		host._sub_banner.text = told if host._sub_banner.text == "" else host._sub_banner.text + " " + told
+	# Row PW (plain words): every cause of the battle with its numbers, as the
+	# line's hover — the line itself carries the first ("Why: he had more men —
+	# 25,000 against your 12,000."), the payload's `why` the rest.
+	var why = host._data.get("why", [])
+	if why is Array and (why as Array).size() > 1:
+		var causes := PackedStringArray()
+		for cause in why:
+			causes.append(str(cause))
+		_hint_the_line("Why: " + "; ".join(causes) + ".")
 	if _laid == "wedge":
 		_rehome_the_reserve()
 	_build_the_works()
@@ -1272,6 +1281,44 @@ const DAY_GROUP_LABEL := {"lead": "Another leads the attack", "bring_up": "Bring
 # ...and the day's rule stands on every table that offers its words, in one caption line
 # ("keep this explainer visible on every turn"): what a word costs, what decides, what ends it.
 const DAY_RULE := "A word costs points, and he answers it. A line that breaks decides the day; two silences running, or no point left, and night falls: nothing decided."
+# Row PW "Plain Words" (November 18, 2026 — the first playtest: "battles are opaque
+# and its unclear what decisions mean"): a day whose block carries `rule` speaks in
+# everyday words (`battle_telling.speak_plainly`) — the table's own captions follow it.
+# A block without one (the seam down, an older payload) keeps the idiom above.
+const DAY_GROUP_LABEL_PLAIN := {"lead": "Attack with another corps", "bring_up": "Bring up",
+	"cannonade": "Bombard, no clash"}
+const DAY_LEGEND_HOVER_PLAIN := "Gold names are each side's commander; a gold square is a battle point in hand and a grey one a point spent; the keys 1 to 9 give the orders; a card shows its price, what it does and what to expect."
+
+
+func _day_is_plain() -> bool:
+	return str(_the_day().get("rule", "")) != ""
+
+
+static func payload_is_plain(data) -> bool:
+	"""Row PW: this tableau speaks in everyday words — the server says so
+	(`plain`, every battle), or its open day does (`rule`)."""
+	if not (data is Dictionary):
+		return false
+	if bool((data as Dictionary).get("plain", false)):
+		return true
+	var day = (data as Dictionary).get("day", null)
+	return day is Dictionary and str((day as Dictionary).get("rule", "")) != ""
+
+
+func _day_rule() -> String:
+	var said := str(_the_day().get("rule", ""))
+	return said if said != "" else DAY_RULE
+
+
+func _day_legend_hover() -> String:
+	return DAY_LEGEND_HOVER_PLAIN if _day_is_plain() else DAY_LEGEND_HOVER
+
+
+func _day_group_label(kind: String) -> String:
+	var table: Dictionary = DAY_GROUP_LABEL_PLAIN if _day_is_plain() else DAY_GROUP_LABEL
+	return str(table.get(kind, DAY_GROUP_LABEL.get(kind, kind)))
+
+
 const DAY_CLASH_SCOPE := " LOST THIS CLASH"   # the two counters' scope on a day's table, in the room of " LOSSES" (the line under the title counts the day)
 const DAY_LOSSES := " LOSSES"                 # ...the host's own word (a fleet action counts sail and hangs no day)
 const DAY_SCOPE_ROOM := 300.0              # ...as wide as a caption may run before it nears the headline (a long crown's name keeps " LOSSES")
@@ -1546,7 +1593,7 @@ func _day_chip_tip(chip: Dictionary, with_label: bool = false, with_does: bool =
 	if with_does and does != "":
 		parts.append(_sentence(does))
 	if with_risk and str(chip.get("risk", "")) != "":
-		parts.append("It risks: " + str(chip.get("risk", "")) + ".")     # BA-6: the third line, where the face has no room for it
+		parts.append(("Expect: " if _day_is_plain() else "It risks: ") + str(chip.get("risk", "")) + ".")     # BA-6: the third line, where the face has no room for it
 	if str(chip.get("more", "")) != "":
 		parts.append(str(chip.get("more", "")))
 	if str(chip.get("counsel", "none")) == "possible":
@@ -1696,7 +1743,7 @@ func _day_groups_text(inline: bool = false) -> String:
 			continue
 		var first: Dictionary = chips[int(idx[0])]
 		var price := int(first.get("price", 0))
-		var label: String = str(DAY_GROUP_LABEL[g["kind"]])
+		var label: String = _day_group_label(str(g["kind"]))
 		var paid := (" · %d %s" % [price, "point" if price == 1 else "points"]) if price > 0 else ""
 		# (a label never breaks inside itself, nor from its first chip)
 		var line := info + (label + paid).replace(" ", "\u00A0") + ":[/color]\u00A0"
@@ -2203,14 +2250,14 @@ func _build_the_day() -> void:
 			rule_box.name = "DayRule"
 			rule_box.autowrap_mode = TextServer.AUTOWRAP_OFF
 			rule_box.theme_type_variation = &"CaptionRich"     # the ladder's Caption step (no BBCode size)
-			rule_box.text = "[color=#%s]%s[/color]" % [Utils.COLOR_INFO, DAY_RULE]
+			rule_box.text = "[color=#%s]%s[/color]" % [Utils.COLOR_INFO, _day_rule()]
 			rule_h = rule_box.get_content_height() + 2.0
 			rule_box.visible = false
 			if rule_box.get_content_width() > DAY_W - 8.0:
 				panel.remove_child(rule_box)      # no room for it whole at this text size
 				rule_box.queue_free()
 				rule_box = null
-				hover.append(DAY_RULE)
+				hover.append(_day_rule())
 		# BA-6 (lever 6): the table's marks, in one caption line — whole or on the head's hover
 		var legend_box: RichTextLabel = null
 		var legend_h := 0.0
@@ -2226,7 +2273,7 @@ func _build_the_day() -> void:
 				panel.remove_child(legend_box)     # no room for it whole at this text size
 				legend_box.queue_free()
 				legend_box = null
-				hover.append(DAY_LEGEND_HOVER)
+				hover.append(_day_legend_hover())
 		# BA-5: what the table CAN say on a word's face (a payload from before
 		# the finish carries no `does`: its chips are BA-4's)
 		var can_card := false
@@ -2408,7 +2455,7 @@ func _build_the_day() -> void:
 				panel.remove_child(rule_box)
 				rule_box.queue_free()
 				if not first_row:
-					hover.append(DAY_RULE)        # (the first day's line says the rule in full)
+					hover.append(_day_rule())        # (the first day's line says the rule in full)
 		if told_row:
 			var told := _day_rtl(panel, Vector2(0.0, y), Vector2(DAY_W, b_h))
 			told.text = _day_told(lines, 1)
@@ -2433,7 +2480,7 @@ func _build_the_day() -> void:
 			else:
 				panel.remove_child(legend_box)
 				legend_box.queue_free()
-				hover.append(DAY_LEGEND_HOVER)
+				hover.append(_day_legend_hover())
 		if offering:
 			var keys := DayKeys.new()             # BA-4: the bare digits press the chips
 			keys.name = "DayKeys"
@@ -2860,7 +2907,10 @@ func _luck_line(roll: Dictionary) -> String:
 		var dice_pct: int = int(roll.get("swing", 0)) + 100 - DiceTray.AVERAGE_LANDS
 		return "%s; the dice added %s to the blow, the day's fortune %s to us" % [
 			told, _signed(dice_pct), _signed(int(roll.get(left_key, 0)))]
-	return "the day's fortune in strength:  %s %s  ·  %s %s" % [
+	var luck_head := "the day's fortune in strength:"
+	if host != null and BattleActs.payload_is_plain(host._data):
+		luck_head = "luck today, as extra strength:"   # row PW
+	return "%s  %s %s  ·  %s %s" % [luck_head,
 		Utils.display_nation_name(str(sides[0].get("nation", ""))), _signed(int(roll.get(left_key, 0))),
 		Utils.display_nation_name(str(sides[1].get("nation", ""))), _signed(int(roll.get(right_key, 0)))]
 
@@ -4528,7 +4578,11 @@ class DiceTray:
 		# figure beside the dice; the blow it gives stands against an average throw's
 		# ...and whose throw it is (the attacker's: the server names him on the beat)
 		var thrower: String = Utils.display_marshal_name(str(roll.get("actor", "")))
+		var plain: bool = BattleActs.payload_is_plain(diorama._data)
 		var bits: Array = [("%s throws %d" % [thrower, natural]) if thrower != "" else ("thrown %d" % natural)]
+		if plain:
+			# Row PW (plain words): "X rolled 7", then what the roll did
+			bits = [("%s rolled %d" % [thrower, natural]) if thrower != "" else ("rolled %d" % natural)]
 		if int(roll.get("skill", 0)) != 0:
 			bits.append("%+d skill" % int(roll.get("skill", 0)))
 		if int(roll.get("flank", 0)) != 0:
@@ -4539,6 +4593,9 @@ class DiceTray:
 		var crit: String = str(roll.get("critical", ""))
 		var crit_word := "a twelve: " if crit == "success" else ("a two: " if crit == "failure" else "")
 		var lands := "the blow lands at %d%% of its weight · an average throw: %d%%" % [
+				100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
+		if plain:
+			lands = "the attack hits at %d%% strength · an average roll gives %d%%" % [
 				100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
 		if diorama._line_extra() > LUCK_ROW_MAX_EXTRA:
 			# BA-6 (a guard: unreachable while the type is held at 130 %): were the cap raised past 1.3 the line

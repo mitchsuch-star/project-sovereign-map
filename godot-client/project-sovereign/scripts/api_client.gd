@@ -11,6 +11,7 @@ signal response_received(data)
 
 var http_request: HTTPRequest
 var _request_in_flight: bool = false
+var _in_flight_is_post: bool = false   # row PW: an order's reply stops the quill
 var pending_callback: Callable
 var _request_queue: Array = []
 # S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open acknowledgements of THIS
@@ -74,6 +75,7 @@ func _start_next_request():
 	var endpoint = str(request_data.get("endpoint", ""))
 	sent_counts[endpoint] = int(sent_counts.get(endpoint, 0)) + 1
 	var method = int(request_data.get("method", HTTPClient.METHOD_GET))
+	_in_flight_is_post = method != HTTPClient.METHOD_GET
 	var error = OK
 
 	if method == HTTPClient.METHOD_GET:
@@ -413,6 +415,17 @@ func _on_request_completed(result, response_code, _headers, body):
 	_request_in_flight = false
 	var callback = pending_callback
 	pending_callback = Callable()
+	# Row PW (November 18, 2026 — the first playtest: "some sound lingers on
+	# after"): the quill that scratches while an order's reply is on its way
+	# stops HERE, where every reply lands — answered, refused, timed out or
+	# lost. Its one stop used to be the command line re-opening
+	# (`main.set_input_enabled`), and a reply that raises a popup, a tableau or
+	# the enemy's turn leaves the line shut: the quill scratched under all of
+	# them. An order is a POST; a GET (a ledger's read, a quote) is not what
+	# the quill waits on.
+	if _in_flight_is_post:
+		_in_flight_is_post = false
+		AudioManager.stop_scribble()
 
 	if result == HTTPRequest.RESULT_TIMEOUT:
 		push_error("HTTP request timed out")

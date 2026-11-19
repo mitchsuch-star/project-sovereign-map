@@ -1417,6 +1417,9 @@ const TITLE_FONT := "res://ui/title_face.tres"
 const HEAD_OPEN := "[font=" + TITLE_FONT + "][color=#" + COLOR_GOLD + "]"
 const HEAD_CLOSE := "[/color][/font]"
 const MOTION_SECONDS := 0.16
+# Row PW: how many frames a surface stays unseen when it opens — its fit to its
+# own words runs two frames after a deferred call (`motion_open`).
+const MOTION_HOLD_FRAMES := 4
 
 
 static func glyph(name: String) -> String:
@@ -1502,9 +1505,29 @@ static func motion_open(node: Node) -> void:
 	for t in targets:
 		var item := t as CanvasItem
 		item.modulate.a = 0.0
-		var tw := item.create_tween()
-		tw.tween_property(item, "modulate:a", 1.0, MOTION_SECONDS) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		# Row PW (November 18, 2026 — the first playtest: "some screens bobble
+		# up and down"): a window is laid out when it opens and FITTED to its
+		# words two frames later (`fit_reading_window`, `shrink_centered_
+		# panel_to_content` — a text's height is not known sooner). The fade's
+		# ease-out had it half visible by then: measured on the real client,
+		# the turn's report stood 680 px tall and snapped to 417 under the
+		# player's eye, every End Turn. The surface is now held unseen for
+		# MOTION_HOLD_FRAMES — FRAMES, not a time: the fit waits on frames, and
+		# a slow one (a save just loaded) outran an 80 ms hold — and fades in
+		# at the size it keeps.
+		_fade_in_after_the_fit(item)
+
+
+static func _fade_in_after_the_fit(item: CanvasItem) -> void:
+	for _i in range(MOTION_HOLD_FRAMES):
+		if not is_instance_valid(item) or not item.is_inside_tree():
+			return
+		await item.get_tree().process_frame
+	if not is_instance_valid(item) or not item.is_inside_tree():
+		return
+	var tw := item.create_tween()
+	tw.tween_property(item, "modulate:a", 1.0, MOTION_SECONDS) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 static func watch_motion(node: Node) -> void:

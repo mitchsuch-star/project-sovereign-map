@@ -191,6 +191,21 @@ var _font_voice: Font = null
 func _ready() -> void:
 	hide()
 	_build_chrome()
+	# Row PW (the first playtest: "some sound lingers on after"): the field's
+	# noise and the ducked music end with the table, by whatever road it shut —
+	# `_on_close_pressed` was their one stop, and a world swap's `hide_all` (or
+	# any bare `hide()`) left the battle murmuring under the map.
+	visibility_changed.connect(_on_table_visibility_changed)
+
+
+func _on_table_visibility_changed() -> void:
+	if visible:
+		return
+	for tag in ["battle_bed", "sea", "creak", "scribble_verdict"]:
+		AudioManager.stop_loop(tag)
+	if _music_ducked:
+		_music_ducked = false
+		AudioManager.duck_music(false)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

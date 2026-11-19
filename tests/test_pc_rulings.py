@@ -4286,7 +4286,9 @@ class TestPCF41:
 
     def test_the_war_popup_names_each_court(self):
         popup = (SCRIPTS / "war_detail_popup.gd").read_text(encoding="utf-8")
-        assert '"Negotiate with " + Utils.display_nation_name(nation)' in popup
+        # (row PW, plain words: "Negotiate with X" reads "Deal with X" — the
+        # button still names the court it addresses, PC-F41's rule)
+        assert '"Deal with " + Utils.display_nation_name(nation)' in popup
         assert "for court in courts:" in popup and "_add_negotiate_button(str(court))" in popup
         assert 'btn.text = "Negotiate Peace"' not in popup
 

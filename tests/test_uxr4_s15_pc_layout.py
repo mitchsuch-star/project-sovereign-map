@@ -44,8 +44,11 @@ FRAMES = REPO / "docs" / "audits" / "peace_client"
 SIZES = ("1920x1080", "5120x1440")
 LETTER_NEEDLES = ["Armistice Terms", "When it expires", "At expiry", "The cure",
                   "Political Consequences", "War Summary"]
-WAR_NEEDLES = ["Settlement Tier", "The peace table reads", "Court by court",
+# (row PW, plain words: the tier line reads "The peace you could get now:" on
+# the live window; the COMMITTED S15 record was shot with "Settlement Tier")
+WAR_NEEDLES = ["The peace you could get now", "The peace table reads", "Court by court",
                "This turn's battles and captures"]
+WAR_NEEDLES_S15 = ["Settlement Tier"] + WAR_NEEDLES[1:]
 
 
 def _read(path: pathlib.Path) -> str:
@@ -208,10 +211,12 @@ class TestPCF46:
         assert _const(src, "WIDTH_FRACTION") == 0.46 and _const(src, "FIT_MAX_WIDTH") == 1100.0
         assert _const(src, "HEIGHT_FRACTION") == 0.9 and _const(src, "FIT_MAX_HEIGHT") == 1300.0
         body = _func(src, "_render_war_detail")
-        order = [body.index(x) for x in ('"Settlement Tier: [color="', 'peace_table.get("lines", [])',
+        # (row PW, plain words: "Settlement Tier:" reads "The peace you could
+        # get now:" — the constant PEACE_YOU_COULD_GET; the order is unchanged)
+        order = [body.index(x) for x in ('PEACE_YOU_COULD_GET + "[color="', 'peace_table.get("lines", [])',
                                           "# Breakdown", "]Score Breakdown[/color]")]
         assert order == sorted(order), order
-        assert body.count('"Settlement Tier: [color="') == 1      # moved, not copied
+        assert body.count('PEACE_YOU_COULD_GET + "[color="') == 1      # moved, not copied
         assert 'Settlement Tier (theirs to impose): [color=" + COLOR_RED' in body   # IQ-2's arm intact
 
     # ── the frames, as committed ────────────────────────────────────────────
@@ -243,7 +248,7 @@ class TestPCF46:
         assert all(letter["seen_above_the_fold"][n] for n in LETTER_NEEDLES), letter["seen_above_the_fold"]
         assert {b["text"] for b in letter["buttons"]} >= {"Accept", "Reject", "Not Now"}
         war = rec[("pc_war_detail", size, "after")]
-        assert all(war["seen_above_the_fold"][n] for n in WAR_NEEDLES), war["seen_above_the_fold"]
+        assert all(war["seen_above_the_fold"][n] for n in WAR_NEEDLES_S15), war["seen_above_the_fold"]
         wvw, wvh = war["logical_viewport"]
         assert _inside(war["panel_rect"], [0, 44, wvw, wvh - 44])
 
@@ -317,7 +322,7 @@ class TestPCF46:
         seen = _seen(frame, "WarDetailPopup")
         for needle in WAR_NEEDLES:
             assert needle in seen, (size, needle)
-        assert seen.index("Settlement Tier") < seen.index("Score Breakdown")
+        assert seen.index("The peace you could get now") < seen.index("Score Breakdown")
         vw, vh = frame["logical_viewport"]
         assert _inside(_panel(frame, "WarDetailPopup"), [0, 44, vw, vh - 44])
 

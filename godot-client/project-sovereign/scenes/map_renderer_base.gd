@@ -35,6 +35,11 @@ signal order_arrow_clicked(marshal_name: String)
 # `marshal` is the visible piece's roster key ("" for a province or a fog chip,
 # which never names its man). Right-click on nothing still dismisses.
 signal order_context_requested(region: String, marshal: String)
+# Row PW (November 18, 2026 — the first playtest: "its hard to click genral
+# pieces"): a click on a STACK's label ("Napoleon · 3 more") — the province and
+# every roster key the label gathers, and where it was clicked (screen px), for
+# the owner's pick-list. The label used to pick the lead alone.
+signal stack_clicked(region_name: String, marshal_names: Array, at: Vector2)
 
 const MapConnectionLayer = preload("res://scenes/map_connection_layer.gd")
 const MapTooltipLayer = preload("res://scenes/map_tooltip_layer.gd")
@@ -386,6 +391,11 @@ var last_click_fogged: String = ""
 # or Ctrl never drags (CC-1 writes, CC-5 groups).
 var order_selected: String = ""
 var drag_allowed_check: Callable = Callable()
+# Row PW: the stack whose label is under the cursor (roster keys; [] for none)
+# and the owner's word that a click on it may open the pick-list (some of them
+# are ours, the line is empty, nothing is on the wire).
+var _hovered_stack: Array = []
+var stack_pick_check: Callable = Callable()
 # CC-5: a Ctrl-click GROUP (roster keys, two or more — one is a selection):
 # a ring at every member's feet; and whether an arrow may take a click now.
 var order_group: Array = []
@@ -2350,6 +2360,13 @@ func _label_hit(key: String, map_mouse: Vector2, boxes: Array):
 	"""S14G-19: what the label under the point names (`key` = marshal / force /
 	region / fleet), or null. Labels never overlap once laid out; where two
 	do, the lower one is drawn in front, as with the pieces (CC-1)."""
+	var box = _label_hit_box(key, map_mouse, boxes)
+	return box[key] if box != null else null
+
+
+func _label_hit_box(key: String, map_mouse: Vector2, boxes: Array):
+	"""Row PW: the label BOX under the point (its binding and all), or null —
+	`_label_hit`'s own search; a stack's box carries its group (`stack`)."""
 	var named = null
 	var front_bottom := -INF
 	for box in boxes:
@@ -2357,9 +2374,37 @@ func _label_hit(key: String, map_mouse: Vector2, boxes: Array):
 			continue
 		var rect: Rect2 = box["rect"]
 		if rect.has_point(map_mouse) and rect.end.y >= front_bottom:
-			named = box[key]
+			named = box
 			front_bottom = rect.end.y
 	return named
+
+
+# Row PW: how far from a piece's body a click still picks it, in LOGICAL screen
+# px (a 60-px target, whatever the zoom). Measured on the player's own screen
+# (5120x1440 at Interface Scale 1.8): the piece is drawn 25 px tall and its own
+# box is 25 x 26 px — a click 30 px off its middle used to open the province.
+const PIECE_GRAB_PX := 30.0
+
+
+func _piece_grab_world() -> float:
+	"""PIECE_GRAB_PX in WORLD units at the current zoom (the camera's zoom is
+	physical px per world px; the pointer is in logical px)."""
+	return PIECE_GRAB_PX * _viewport_pixel_scale() / maxf(_zoom_level, 0.001)
+
+
+static func pick_piece_near(hitboxes: Array, point: Vector2, reach: float) -> Dictionary:
+	"""PURE: the piece whose body centre is nearest `point`, when that is
+	within `reach` (WORLD units) — {} when none is. The body centre is the
+	middle of the piece's own box (its feet are the box's bottom edge)."""
+	var best := {}
+	var best_d := INF
+	for hitbox in hitboxes:
+		var rect: Rect2 = hitbox["rect"]
+		var d: float = rect.get_center().distance_to(point)
+		if d <= reach and d < best_d:
+			best_d = d
+			best = hitbox["marshal"]
+	return best
 
 
 func _push_furniture() -> void:
@@ -2521,6 +2566,7 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			name_label.set_meta("gather_rank", _gather_rank(marshal))
 			name_label.set_meta("gather_name", marshal_name)
 			name_label.set_meta("gather_count", 1)
+			name_label.set_meta("gather_keys", [str(marshal.get("name", ""))])   # row PW: his roster key
 			_style_furniture(name_label, "name")
 			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			if pieces_active:
@@ -2594,7 +2640,15 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			# the command strip says "click a marshal". The label's own box
 			# names the group's lead (the piece the label names) and moves
 			# with the label.
-			_add_label_hitbox(label_hitboxes, stack_label, {"marshal": lead_marshal})
+			# Row PW: ...and it carries the whole group, so a click on it can
+			# ask WHICH man (`stack_clicked`) — it only ever picked the lead.
+			var stack_names: Array = []
+			for sm in marshals:
+				if str(sm.get("nation", "Neutral")) == group_nation:
+					stack_names.append(str(sm.get("name", "")))
+			stack_label.set_meta("gather_keys", stack_names)
+			_add_label_hitbox(label_hitboxes, stack_label,
+				{"marshal": lead_marshal, "stack": stack_names})
 			stack_row += 1
 
 
@@ -3322,6 +3376,22 @@ func _input(event):
 				if arrow != "":
 					order_arrow_clicked.emit(arrow)
 					return
+			# Row PW: a plain click on a stack's label asks which of them — the
+			# owner answers with a pick-list (never while an order is being
+			# given: then the label is a target like any piece).
+			if _hovered_stack.size() >= 2 and not event.shift_pressed and not event.ctrl_pressed \
+					and not order_engaged() and stack_pick_check.is_valid() \
+					and bool(stack_pick_check.call(_hovered_stack)):
+				stack_clicked.emit(_stack_region(_hovered_stack),
+					_hovered_stack.duplicate(), event.position)
+				# The press is spent: the owner's list opens UNDER the cursor
+				# with a click-away of its own, and the same press reaching it
+				# through the GUI pass shut the list in the frame it opened.
+				get_viewport().set_input_as_handled()
+				# ...and the lead's hover box goes: it stood under the list.
+				_clear_hover_state()
+				queue_redraw()
+				return
 			# CC-3: a press on a piece of ours with nothing typed waits — 8 px
 			# of travel make it a drag, a release where it stands the click.
 			if _arm_piece_drag(event):
@@ -3419,6 +3489,9 @@ func _clear_pan_key_state():
 
 func _clear_hover_state():
 	hovered_marshal = {}
+	_hovered_stack = []   # row PW
+	if order_layer != null:
+		order_layer.clear_hover_ring()
 	hovered_fogged_force = {}
 	hovered_fleet = {}
 	hovered_sea_link = {}
@@ -3516,6 +3589,16 @@ func _release_piece_drag(event: InputEventMouseButton) -> void:
 	if region == "" and last_click_marshal == "" and last_click_fogged == "":
 		piece_drag_cancelled.emit(piece)   # open water: no target
 		return
+	# Row PW: a press that wobbled past the threshold and was let go on his OWN
+	# province (on himself, or on bare ground there) is the click it was meant
+	# as — he is selected; it used to open a march "to" the province he stands in.
+	var home := _region_of_marshal(piece)
+	if home != "" and region == home and last_click_marshal in ["", piece] and last_click_fogged == "":
+		# The drag's start already selected him: a drop "on himself" keeps the
+		# selection and clears the drag's line (the owner's own "self" arm).
+		last_click_marshal = piece
+		piece_dropped.emit(piece, home)
+		return
 	AudioManager.play("boots")
 	piece_dropped.emit(piece, region)
 
@@ -3556,6 +3639,19 @@ func _region_of_marshal(marshal_name: String) -> String:
 	return ""
 
 
+func _stack_region(keys: Array) -> String:
+	"""Row PW: the ONE province a stack stands in — "" when a gathered plate
+	spans more than one (the pick-list then names no place)."""
+	var region := ""
+	for k in keys:
+		var r := _region_of_marshal(str(k))
+		if region == "":
+			region = r
+		elif r != region:
+			return ""
+	return region
+
+
 func _order_home_region() -> String:
 	return _region_of_marshal(order_selected) if order_selected != "" else ""
 
@@ -3568,6 +3664,28 @@ func _order_piece_feet(marshal_name: String) -> Dictionary:
 			var rect: Rect2 = hitbox["rect"]
 			return {"feet": Vector2(rect.get_center().x, rect.end.y), "radius": rect.size.x * 0.62}
 	return {}
+
+
+func _sync_hover_ring() -> void:
+	"""Row PW: the quiet ring under the piece of OURS the cursor would pick
+	(the owner's `drag_allowed_check` — ours, in the field, the line free),
+	and the hand cursor over any piece. Gone when the hover is no piece."""
+	if order_layer == null:
+		return
+	var key := str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
+	if key == "":
+		order_layer.clear_hover_ring()
+		return
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if key == order_selected or not drag_allowed_check.is_valid() \
+			or not bool(drag_allowed_check.call(hovered_marshal)):
+		order_layer.clear_hover_ring()
+		return
+	var feet := _order_piece_feet(key)
+	if feet.is_empty():
+		order_layer.clear_hover_ring()
+		return
+	order_layer.set_hover_ring(feet["feet"], float(feet["radius"]))
 
 
 func _refresh_order_ring() -> void:
@@ -3804,6 +3922,20 @@ func clear_order_ghost() -> void:
 		order_layer.clear_ghost()
 
 
+func flash_regions(names: Array) -> void:
+	"""Row PW: the provinces that changed hands while the turn turned pulse on
+	the map for a few seconds (`map_order_layer.set_flashes`) — a name the
+	sheet does not carry is skipped."""
+	if order_layer == null or not order_layer.has_method("set_flashes"):
+		return
+	var positions = _get_active_region_positions()
+	var points: Array = []
+	for n in names:
+		if positions.has(str(n)):
+			points.append(positions[str(n)])
+	order_layer.set_flashes(points)
+
+
 func order_screen_rect() -> Rect2:
 	"""CC-3: the selected corps' ring and ghost road on screen (GLOBAL
 	coordinates; empty with neither) — the card stands clear of it."""
@@ -3888,7 +4020,13 @@ func _draw():
 			tooltip_layer.clear_tooltip()
 		return
 	if hovered_marshal.size() > 0:
-		_draw_marshal_tooltip()
+		# Row PW: the selected corps' card already stands on the screen — a
+		# second box over him covers the ground the next click is meant for.
+		if order_selected != "" and str(hovered_marshal.get("name", "")) == order_selected:
+			if tooltip_layer != null:
+				tooltip_layer.clear_tooltip()
+		else:
+			_draw_marshal_tooltip()
 	elif hovered_fogged_force.size() > 0:
 		_draw_fogged_force_tooltip()
 	elif hovered_fleet.size() > 0:
@@ -3897,6 +4035,13 @@ func _draw():
 		_draw_sea_link_tooltip()
 	elif order_layer != null and order_layer.arrow_hovered() != "" and tooltip_layer != null:
 		# CC-5: the hovered arrow's badge is the word — no province card over it.
+		tooltip_layer.clear_tooltip()
+	elif order_selected != "" and _order_ghost_set and hovered_region != "" and tooltip_layer != null:
+		# Row PW: a corps is selected and the order's tag stands at the head of
+		# its road — the province's name, the price, the clock and what the
+		# order does there. The province's own box stood ON it (the playtest:
+		# the tag read as a sliver under "Carniola — Hills — No intelligence").
+		# One word at a time: the tag's, while a click here is an order.
 		tooltip_layer.clear_tooltip()
 	elif hovered_region != "" and not _is_region_wired(hovered_region):
 		# §4.4: unwired provinces never populate region_full_data, so the
@@ -3972,6 +4117,7 @@ func _refresh_hover_state():
 	# drawn in front) and the boxes of two ranks overlap, so the FIRST box
 	# hit used to name the man standing behind the one under the cursor —
 	# the tooltip, and now the click, named the wrong marshal.
+	_hovered_stack = []
 	var front := {}
 	var front_bottom := -INF
 	for hitbox in marshal_hitboxes:
@@ -3982,16 +4128,41 @@ func _refresh_hover_state():
 	if front.size() > 0:
 		hovered_marshal = front
 		_set_hovered_region("")
+		_sync_hover_ring()
 		return
 
 	# S14G-19: then the label the eye sees - a stack label ("Ney +4") or a
 	# name is the man it names (a click on it selects him, it does not open
 	# the province under the text).
-	var named_marshal = _label_hit("marshal", map_mouse, label_hitboxes)
-	if named_marshal != null:
-		hovered_marshal = named_marshal
+	var named_box = _label_hit_box("marshal", map_mouse, label_hitboxes)
+	if named_box != null:
+		hovered_marshal = named_box["marshal"]
+		# Row PW: a stack's label carries its whole group — a click on it asks
+		# WHICH of them (`stack_clicked`), where it only ever picked the lead.
+		var stack = named_box.get("stack", [])
+		# ...and a plate the whole-sheet view GATHERED ("Napoleon · 2 more":
+		# the label layer's `gathered_keys`) stands for every plate it took.
+		var plate = named_box.get("node", null)
+		if plate != null and is_instance_valid(plate) and (plate as Node).has_meta("gathered_keys"):
+			stack = (plate as Node).get_meta("gathered_keys")
+		_hovered_stack = stack if stack is Array else []
 		_set_hovered_region("")
+		_sync_hover_ring()
 		return
+
+	# Row PW (the first playtest: "its hard to click genral pieces"): a piece's
+	# own box is 38 world px wide — about 20 px on the screen at the whole-map
+	# zoom, and half of it overlaps its neighbour in a stack. A miss within
+	# PIECE_GRAB_PX of a piece's body (screen px, whatever the zoom) is that
+	# piece: the NEAREST one wins, so a stack's members stay separable.
+	# The review (PW-R19): the near-grab is for SELECTING — with a corps
+	# already selected (or a piece being dragged) a click is an order, and a
+	# province clicked beside another piece meant the province: the grab made
+	# it a re-selection, or an attack card on the enemy standing near. It also
+	# ran ahead of the exact hits below (a fog chip, a fleet, a garrison chip
+	# within its radius lost their own click). So: exact hits first, the grab
+	# last, and only while no order is engaged.
+	_sync_hover_ring()
 
 	for hitbox in fogged_force_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
@@ -4028,6 +4199,14 @@ func _refresh_hover_state():
 		_label_region_hit = str(chip_region)
 		_set_hovered_region(_label_region_hit)
 		return
+
+	if not ordering:
+		var grabbed := pick_piece_near(marshal_hitboxes, map_mouse, _piece_grab_world())
+		if grabbed.size() > 0:
+			hovered_marshal = grabbed
+			_set_hovered_region("")
+			_sync_hover_ring()
+			return
 
 	var color_map_region = _lookup_region_from_color_map(map_mouse)
 	if color_map_region != "":
@@ -4117,7 +4296,12 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 
 func _draw_tooltip_lines(lines: Array, width: float, panel_color: Color, border_color: Color):
 	if tooltip_layer != null:
-		tooltip_layer.show_tooltip(lines, width, panel_color, border_color, mouse_position)
+		# Row PW: the order's tag (the ghost road's badge) is never covered —
+		# both layers fill the map's rect, so the tag's box is in this space.
+		var tag := Rect2()
+		if _order_ghost_set and order_layer != null and order_layer.has_method("ghost_badge_rect"):
+			tag = order_layer.ghost_badge_rect()
+		tooltip_layer.show_tooltip(lines, width, panel_color, border_color, mouse_position, tag)
 
 
 func _push_tooltip_line(lines: Array, text: String, color: Color, size: int = 11):

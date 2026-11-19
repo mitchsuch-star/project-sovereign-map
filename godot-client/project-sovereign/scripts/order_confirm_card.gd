@@ -36,6 +36,9 @@ signal group_send_requested(lines: Array, held: Array)
 # Row BA, BA-2: a `bring` chip on an attack's card — the order that brings a
 # corps standing by, sent at once (the card closes; the lead is selected again).
 signal bring_requested(command: String)
+# Row PW: "Storm <province> instead" — the order that TAKES the province the
+# quoted march would only enter; the host opens that order's own card.
+signal take_requested(province: String)
 
 @onready var title_label: Label = $PanelContainer/VBox/TitleLabel
 @onready var command_label: Label = $PanelContainer/VBox/CommandLabel
@@ -158,7 +161,11 @@ func _set_force(q: Dictionary) -> void:
 	if odds != "":
 		var odds_label := Label.new()
 		odds_label.name = "OddsLabel"
-		odds_label.text = "Odds: " + odds
+		# Row PW (plain words): the band said as what to expect — the quote's
+		# own `expect` ("odds bad — you will probably lose"); the bare word
+		# only where an older reply carries none.
+		var expect: String = str(force.get("expect", "")) if force.get("expect") != null else ""
+		odds_label.text = (expect.substr(0, 1).to_upper() + expect.substr(1)) if expect != "" else "Odds: " + odds
 		odds_label.theme_type_variation = &"Caption"
 		odds_label.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
 		odds_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -591,6 +598,7 @@ func _terms(q: Dictionary) -> String:
 		lines.append("[b]No cost[/b] — " + str(q.get("note", "he is already carrying out that order.")))
 		return "\n".join(lines)
 	lines.append("[b]" + price_of(q) + "[/b] · " + _clock(q))
+	lines.append_array(_ground_lines(q))
 	var road = q.get("road", [])
 	if road is Array and road.size() > 1:
 		lines.append("[color=#" + Utils.COLOR_INFO + "]Road: " + " → ".join(PackedStringArray(road)) + "[/color]")
@@ -713,10 +721,52 @@ func _bring_lines(q: Dictionary) -> PackedStringArray:
 	return lines
 
 
+func _ground_lines(q: Dictionary) -> PackedStringArray:
+	"""Row PW (the first playtest: "sometimes they enter enemy land without
+	taking it"): what the order does to the province it ends in — the quote's
+	`ground` (`backend/commands/ground.py`), in plain words under the price:
+	green where the province becomes ours, amber where he would only stand
+	there, and then the order that WOULD take it as a chip ("Storm Vienna
+	instead" — its own card, with the reckoning)."""
+	var lines := PackedStringArray()
+	var ground = q.get("ground", {})
+	if not (ground is Dictionary):
+		return lines
+	var said := str(ground.get("line", "")).strip_edges()
+	if said == "":
+		return lines
+	# A corps we see in the road stops the march before the province is
+	# reached: the contact line is what happens first, and a promise about
+	# the province above it ("takes it …") would be read as the result.
+	if str(q.get("contact", "")).strip_edges() != "" and str(ground.get("code", "")) != "enemy_corps":
+		return lines
+	# The siege's own card: its note says the whole of it, once.
+	if str(q.get("kind", "")) == "take" and str(ground.get("code", "")) == "fort":
+		return lines
+	var takes = ground.get("takes", null)
+	var tone: String = Utils.COLOR_SUCCESS if (takes is bool and takes) else Utils.COLOR_WARNING
+	lines.append("[color=#" + tone + "]" + said.substr(0, 1).to_upper() + said.substr(1) + ".[/color]")
+	var remedy := str(ground.get("remedy_command", ""))
+	var label := str(ground.get("remedy_label", ""))
+	if remedy != "" and label != "" and not (takes is bool and takes) and str(q.get("kind", "")) != "take":
+		var chip_meta := "do:" + remedy
+		if str(ground.get("code", "")) in ["garrison", "garrison_unsure", "fort"]:
+			chip_meta = "take:" + str(q.get("dest", ""))   # its own card: the storm's reckoning
+		lines.append("  " + Utils.bb_button_chip(chip_meta, label + " instead", Utils.COLOR_GOLD, BRING_CHIP_BG))
+	return lines
+
+
 func _on_terms_meta(meta) -> void:
 	"""A `bring` chip pressed: its own quoted command is handed on, the card
 	shut first (an order's card answers once)."""
 	var meta_str := str(meta)
+	# Row PW: "Storm it instead" — the order that takes the province, on its own card.
+	if _mode == "order" and visible and meta_str.begins_with("take:"):
+		var province := meta_str.substr("take:".length())
+		if province != "":
+			_close_quietly()
+			take_requested.emit(province)
+		return
 	if _mode != "order" or not visible or not meta_str.begins_with("do:"):
 		return
 	var cmd := meta_str.substr("do:".length())
@@ -750,6 +800,17 @@ static func _clock(q: Dictionary) -> String:
 			return "attacks at once"
 		"support", "follow":
 			return "joins him this turn" if turns <= 0 else "joins him in " + Utils.plural(turns, "turn")
+		"take":
+			# Row PW: the order that takes a province — what begins, by what holds it.
+			var held = q.get("ground", {})
+			match str(held.get("code", "")) if held is Dictionary else "":
+				"fort":
+					return "the siege begins now"
+				"garrison", "garrison_unsure":
+					return "the assault goes in now"
+			return "taken now"
+		"move":
+			return "arrives now"
 	return "arrives this turn" if turns <= 0 else "arrives in " + Utils.plural(turns, "turn")
 
 

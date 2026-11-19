@@ -236,7 +236,10 @@ class TestNoBodyLineTakesADimStepUnderTheFloor:
             assert '&"Caption"' in call, call
         hud = GS.read(SCRIPTS / "war_status_panel.gd")
         uses = [ln for ln in GS.code_lines(hud).splitlines() if '"font_color", COLOR_DIMMED)' in ln]
-        assert len(uses) == 4, uses
+        # (row PW, November 18, 2026: four were three once the war card's
+        # dim "T:12" caption moved to the card's hover — a first reader could
+        # not tell what it counted; the card says Winning / Even / Losing)
+        assert len(uses) == 3, uses
         for name in ("_add_war_entry", "_add_armistice_card", "_add_foreign_wars_header",
                      "_add_foreign_war_row"):
             body = _func(hud, name)

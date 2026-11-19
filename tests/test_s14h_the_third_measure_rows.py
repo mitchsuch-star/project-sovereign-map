@@ -10928,6 +10928,8 @@ class TestS14GX74:
         "load_dialog.gd": "Esc answers its own Load? card, then closes it: a world swap follows a load",
         "settings_panel.gd": "a key being rebound: Esc cancels the capture, never touches the command line",
         "keys.gd": "the binding registry: Esc is RESERVED (it never names it as a key to bind)",
+        # Row PW (November 18, 2026): the "Which corps?" list of a stack.
+        "stack_picker.gd": "a map list: Esc shuts it and never touches the command line",
     }
     POPUP_BASE_ROADS = {
         "proclamation_popup.gd": ("proclamation_popup.dismissed.connect(_on_proclamation_dismissed)",
@@ -12016,7 +12018,9 @@ class TestS14G19:
         # stack the gathered plates' one phrasing, map_label_layer's GATHER_FORMAT)
         loop = body.index("var lead_marshal: Dictionary = {}")
         assert loop < body.index("lead_marshal = m") < body.index('var stack_text := "%s · %d more" % [lead_name, group_size - 1]')
-        added = body.index('_add_label_hitbox(label_hitboxes, stack_label, {"marshal": lead_marshal})')
+        # (row PW: the box carries the whole group too — a click on a stack's
+        # label asks WHICH corps, where it only ever picked the lead)
+        added = body.index('_add_label_hitbox(label_hitboxes, stack_label,\n\t\t\t\t{"marshal": lead_marshal, "stack": stack_names})')
         assert body.index('_add_furniture("stack", [stack_label])') < added < body.index("stack_row += 1")
 
     def test_a_fogged_forces_name_and_chip_boxes_are_bound(self):
@@ -12072,7 +12076,9 @@ class TestS14G19:
     def test_the_hover_reads_labels_after_the_pieces_and_before_the_colour_map(self):
         body = _r19_func(_r19_src(BASE_GD), "_refresh_hover_state")
         front = body.index("rect.end.y >= front_bottom")
-        marshal = body.index('_label_hit("marshal", map_mouse, label_hitboxes)')
+        # (row PW: the marshal's label is read as its BOX — `_label_hit_box`,
+        # `_label_hit`'s own search — for the group a stack's label carries)
+        marshal = body.index('_label_hit_box("marshal", map_mouse, label_hitboxes)')
         chips = body.index("for hitbox in fogged_force_hitboxes:")
         force = body.index('_label_hit("force", map_mouse, label_hitboxes)')
         fleets = body.index("for hitbox in ([] if ordering else fleet_hitboxes):")
@@ -14494,8 +14500,10 @@ class TestS14G25TheLineItself:
 _R26_GD = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
            / "scripts" / "war_detail_popup.gd")
 
-_R26_REPLY = "Settlement draft kept until the turn ends — reopen Settlement this turn to continue."
-_R26_BADGE = "Draft kept until turn's end — Open Settlement resumes your terms."
+# (row PW, November 18, 2026: both lines name the button as it now reads —
+# "Make peace"; the bound, "until the turn ends", is the S14G-26 rule held)
+_R26_REPLY = "Your draft is kept until the turn ends — press Make peace again this turn to carry on."
+_R26_BADGE = "Draft kept until the turn ends — Make peace picks your terms up again."
 _R26_LASTS = "(a draft lasts one turn)"
 
 
@@ -14857,7 +14865,9 @@ class TestS14G27:
         body = src[src.index('		if response.has("enemy_phase"):'):]
         quiet_at = body.index("_enemy_phase_is_quiet_fog(response.enemy_phase)")
         close_at = body.index("top_bar.close_all_screens()")
-        show_at = body.index("_show_enemy_phase_dialog(response.enemy_phase, turn)")
+        # (row PW: the report is shown with the turn's digest — "what changed
+        # for you" — as its third argument)
+        show_at = body.index("_show_enemy_phase_dialog(response.enemy_phase, turn, wyw)")
         assert quiet_at < close_at < show_at, (
             "the quiet arm must come BEFORE the modal's screen-closing and show")
         arm = body[quiet_at:close_at]

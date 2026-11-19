@@ -339,6 +339,88 @@ def corps_takes_no_ground(marshal) -> bool:
     return bool(in_recovery()) if callable(in_recovery) else False
 
 
+def two_province_hop(world, marshal, target_name: str):
+    """A two-province move's connector: `(connector, None)` when one stands
+    open, else `(None, refusal)` — the refusal the move answers with. PURE.
+
+    Row PW (November 18, 2026): lifted whole out of `_execute_move`, where it
+    stood inline, so the click road's quote of a move within reach
+    (`order_quotes.move_quote`) reads the road the move then walks. The rule
+    is unchanged: prefer an enemy-FREE connector (a cavalry hop must not slip
+    through an enemy army — zone of control); the MOVEMENT LAW applies to the
+    connector too (WO-17: a hop was transiting a truce partner's soil
+    unchecked; mover-aware, so a stranded corps's corridor transit passes);
+    BOTH legs clear the crossing gate (DEF-5 §4.1). The `_no_path` key marks
+    the one refusal that carries the substitution note."""
+    current_region = world.get_region(marshal.location)
+    intermediate = None
+    blocked_intermediate = None
+    naval_blocked_leg = None
+    closed_intermediate = None
+    for adj_name in current_region.adjacent_regions:
+        adj_region = world.get_region(adj_name)
+        if adj_region and target_name in adj_region.adjacent_regions:
+            if world.get_enemies_in_region(adj_name, marshal.nation):
+                blocked_intermediate = adj_name
+                continue
+            if not world._region_passable_for(
+                    adj_name, marshal.nation,
+                    mover_location=marshal.location):
+                closed_intermediate = adj_name
+                continue
+            if getattr(world, "fleets", None):
+                from backend.game_logic.naval import crossing_check
+                _ms = int(marshal.strength)
+                leg1 = crossing_check(world, marshal.nation,
+                                      marshal.location, adj_name,
+                                      mover_strength=_ms)
+                leg2 = crossing_check(world, marshal.nation,
+                                      adj_name, target_name,
+                                      mover_strength=_ms)
+                if not leg1["allowed"] or not leg2["allowed"]:
+                    naval_blocked_leg = (leg1 if not leg1["allowed"]
+                                         else leg2)
+                    continue
+            intermediate = adj_name
+            break
+    if intermediate:
+        return intermediate, None
+    if naval_blocked_leg and not blocked_intermediate:
+        return None, {
+            "success": False,
+            "message": naval_blocked_leg["message"],
+            "blocked_naval": naval_blocked_leg["coverer"],
+            "naval_ratio": naval_blocked_leg["ratio"],
+        }
+    if (closed_intermediate and not blocked_intermediate):
+        closed_region = world.get_region(closed_intermediate)
+        closed_controller = getattr(closed_region, "controller",
+                                    None) or "a neutral court"
+        return None, {
+            "success": False,
+            "message": (
+                f"The route from {marshal.location} to "
+                f"{target_name} crosses {closed_intermediate} — "
+                f"{closed_controller} soil, and the frontier is "
+                f"closed. The peace grants us no passage."),
+            "blocked_diplomatic": closed_controller,
+        }
+    if blocked_intermediate:
+        return None, {
+            "success": False,
+            "message": (f"Enemy forces in {blocked_intermediate} block the route "
+                        f"from {marshal.location} to {target_name}. "
+                        f"Attack them or route around."),
+            "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
+        }
+    return None, {
+        "success": False,
+        "message": f"No valid path from {marshal.location} to {target_name}",
+        "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}",
+        "_no_path": True,
+    }
+
+
 def commander_not_a_province(world, marshal, named, verb: str) -> Dict:
     """The free answer to a province verb aimed at a foreign COMMANDER —
     "Kutuzov is a commander, Sire, not a province. Name the province to
@@ -1225,86 +1307,18 @@ class MovementExecutor:
                 }
 
         # For 2-tile moves (cavalry), verify there's a valid path through adjacent region
+        intermediate = None
         if distance == 2:
-            # Find path through an intermediate region — prefer an enemy-FREE
-            # connector. A 2-tile cavalry hop must not slip straight through an
-            # enemy army (zone of control): the strategic per-hop path blocks on
-            # get_enemies_in_region, so the tactical path is made consistent here.
-            intermediate = None
-            blocked_intermediate = None
-            naval_blocked_leg = None
-            closed_intermediate = None
-            for adj_name in current_region.adjacent_regions:
-                adj_region = world.get_region(adj_name)
-                if adj_region and target_name in adj_region.adjacent_regions:
-                    if world.get_enemies_in_region(adj_name, marshal.nation):
-                        blocked_intermediate = adj_name
-                        continue
-                    # WO-17 review round: the MOVEMENT LAW applies to the
-                    # CONNECTOR too — a 2-tile hop was transiting a truce
-                    # partner's sovereign soil unchecked (and could seed a
-                    # fresh corps into the nation's own cut-off enclave,
-                    # re-arming the corridor for a corps the war never
-                    # stranded). Mover-aware: a stranded corps's corridor
-                    # transit still passes.
-                    if not world._region_passable_for(
-                            adj_name, marshal.nation,
-                            mover_location=marshal.location):
-                        closed_intermediate = adj_name
-                        continue
-                    # DEF-5 §4.1: BOTH legs of a 2-tile hop must clear the
-                    # crossing gate — a cavalry hop cannot skip the Channel.
-                    if getattr(world, "fleets", None):
-                        from backend.game_logic.naval import crossing_check
-                        _ms = int(marshal.strength)
-                        leg1 = crossing_check(world, marshal.nation,
-                                              marshal.location, adj_name,
-                                              mover_strength=_ms)
-                        leg2 = crossing_check(world, marshal.nation,
-                                              adj_name, target_name,
-                                              mover_strength=_ms)
-                        if not leg1["allowed"] or not leg2["allowed"]:
-                            naval_blocked_leg = (leg1 if not leg1["allowed"]
-                                                 else leg2)
-                            continue
-                    intermediate = adj_name
-                    break
-
+            # Row PW: the connector's rule is ONE pure reader
+            # (`two_province_hop`) — the click road's quote of a move within
+            # reach walks the same road the move then walks.
+            intermediate, _hop_refusal = two_province_hop(world, marshal, target_name)
             if not intermediate:
-                if naval_blocked_leg and not blocked_intermediate:
-                    return {
-                        "success": False,
-                        "message": naval_blocked_leg["message"],
-                        "blocked_naval": naval_blocked_leg["coverer"],
-                        "naval_ratio": naval_blocked_leg["ratio"],
-                    }
-                if (closed_intermediate and not blocked_intermediate):
-                    closed_region = world.get_region(closed_intermediate)
-                    closed_controller = getattr(closed_region, "controller",
-                                                None) or "a neutral court"
-                    return {
-                        "success": False,
-                        "message": (
-                            f"The route from {marshal.location} to "
-                            f"{target_name} crosses {closed_intermediate} — "
-                            f"{closed_controller} soil, and the frontier is "
-                            f"closed. The peace grants us no passage."),
-                        "blocked_diplomatic": closed_controller,
-                    }
-                if blocked_intermediate:
-                    return {
-                        "success": False,
-                        "message": (f"Enemy forces in {blocked_intermediate} block the route "
-                                    f"from {marshal.location} to {target_name}. "
-                                    f"Attack them or route around."),
-                        "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
-                    }
-                return {
-                    "success": False,
-                    "message": (f"No valid path from {marshal.location} to "
-                            f"{target_name}" + move_substitution_note),
-                    "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
-                }
+                if move_substitution_note and _hop_refusal.pop("_no_path", False):
+                    _hop_refusal["message"] = (
+                        str(_hop_refusal["message"]) + move_substitution_note)
+                _hop_refusal.pop("_no_path", None)
+                return _hop_refusal
 
         # S14G-X50: the direct move (one province, or a cavalry hop through
         # `intermediate`) crossing guarded ground asks FIRST, free; an order
@@ -1666,6 +1680,29 @@ class MovementExecutor:
             result["capture_refused_raiding_party"] = True   # VP-R1 (b)
         if capture_hints:
             result["capture_hints"] = capture_hints
+        # Row PW (the first playtest: "sometimes they enter enemy land without
+        # taking it"): a corps of ours that walked onto an enemy's province and
+        # did not take it is told WHY, and the order that would — structured
+        # (`ground`: the client's remedy chip) and, for the two arms that had
+        # no sentence at all (a garrison that holds, works), in a plain line.
+        # (The review, PW-R7: never on an automated hop of a standing march —
+        # the player cannot answer it mid-road, every enemy province on the
+        # way read "is not ours yet", and the hop's own remedy was overwritten.)
+        if (marshal.nation == world.player_nation and not captured_on_move
+                and not strategic_execution):
+            from backend.commands import ground as _ground
+            _reading = _ground.after_the_move(world, marshal, target_name, captured_on_move)
+            if _reading:
+                result["ground"] = _reading
+                if _reading.get("remedy_command"):
+                    # the order that would take it, in the ↳ offer slot (CF-4's
+                    # own key; it replaces nothing, so it is never re-offered)
+                    result["remedy_command"] = str(_reading["remedy_command"])
+                    result["remedy_reoffer"] = False
+                if _reading.get("code") in ("garrison", "fort"):
+                    _said = str(_reading.get("line") or "")
+                    if _said:
+                        result["message"] += f"\n{target_name} is not ours yet: {_said}."
         # PF-3: surface the plunder/secure popup for a player's move-capture,
         # mirroring the attack path (the AI branch auto-decided, no popup).
         if (captured_on_move and marshal.nation == world.player_nation

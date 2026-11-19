@@ -160,7 +160,9 @@ class TestSettlementSide:
         )
         assert theirs, body
         assert theirs.group(1) == "COLOR_RED", "the popup's own loss colour, never gold"
-        assert '"Settlement Tier: [color=" + COLOR_GOLD + "]"' in body, "ours/absent unchanged"
+        # (row PW, plain words: "Settlement Tier:" reads "The peace you could
+        # get now:" — a constant; the colour rule is IQ-2's, unchanged)
+        assert 'PEACE_YOU_COULD_GET + "[color=" + COLOR_GOLD + "]"' in body, "ours/absent unchanged"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

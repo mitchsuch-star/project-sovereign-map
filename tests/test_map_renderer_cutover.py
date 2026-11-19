@@ -179,7 +179,9 @@ def test_garrison_badge_sizes_to_text():
 def test_tooltip_drawing_delegates_to_overlay_layer():
     source = _read(BASE_GD)
     overlay = _read(TOOLTIP_GD)
-    assert "tooltip_layer.show_tooltip(lines, width, panel_color, border_color, mouse_position)" in source
+    # (row PW: the box is told what to stand clear of — the order tag by
+    # the cursor — as a sixth argument)
+    assert "tooltip_layer.show_tooltip(lines, width, panel_color, border_color, mouse_position, tag)" in source
     assert "tooltip_layer.clear_tooltip()" in source
     assert "func show_tooltip(" in overlay
     assert "func clear_tooltip()" in overlay

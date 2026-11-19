@@ -444,3 +444,93 @@ def lever_offer_opening_terms(world: Any, *, war_id: str, payer: str, court: str
         return None
     return kept + [{"type": "gold_indemnity", "from": payer, "to": court,
                     "amount": amount, "authored_by": "player"}]
+
+
+# ═══ Row PW "Plain Words" (November 18, 2026 — the first playtest) ═══════════
+# "diplomacy is very confusing and its unclear how to end wars." The Cabinet's
+# page for a court at war offered four peace acts under four names of the
+# trade — Propose Armistice, Open Settlement, Propose White Peace, Propose
+# Peace — with nothing on the face to tell them apart, and verdicts like
+# "Hopeless". Each of those rows now carries, beside the names every pin and
+# the counsel read, what it IS in everyday words (`plain_name`), one line of
+# what it does (`plain_line`) and its group (`group`: "peace" — the client
+# sets the group first under its own heading); and every row with a verdict
+# word carries what the court will do (`likelihood_plain`).
+
+def the_cabinet_says_peace_plainly() -> bool:
+    """The seam (one line to reverse). Down (False): the rows are as they
+    were — no `plain_name`, `plain_line`, `group` or `likelihood_plain`."""
+    return True
+
+
+_PLAIN_PEACE = {
+    "open_settlement": (
+        "Make peace — choose the terms",
+        "Opens the peace table: you choose who gets what, and every court that signs is out of the war."),
+    "propose_white_peace": (
+        "Make peace with no terms",
+        "Ends the war as it stands: nobody pays and nothing is demanded. "
+        "The peace screen lists who keeps what before you sign."),
+    "propose_peace": (
+        "Offer peace to {court} alone",
+        "Talleyrand drafts terms for {court} only. They can accept, refuse, or answer "
+        "with terms of their own; your other wars go on."),
+    "propose_armistice": (
+        "Ask for a truce",
+        "If they agree, the fighting stops for some turns. The war is not over: "
+        "a peace still has to be signed before the truce runs out."),
+}
+
+_PLAIN_SEPARATE_PEACE = (
+    "Leave this war — peace with {court} alone",
+    "You joined this war at an ally's call. This ends it for you and {court}; "
+    "your ally fights on, and the note under this row says what it costs you.")
+
+
+def _plain_courts(world: Any, courts: List[str], whole_table: bool) -> str:
+    from backend.game_logic.formations import formed_display_name
+    names = [formed_display_name(world, str(n)) for n in courts if n]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return f"with {names[0]}" + ("" if whole_table else " alone")
+    return "with " + ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def plain_rows(world: Any, player: str, target: str,
+               actions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Stamp the plain words on the Cabinet's rows (see the block above). The
+    list and its order are untouched; display only (GR6)."""
+    if not the_cabinet_says_peace_plainly():
+        return actions
+    from backend.display_names import likelihood_plain
+    from backend.game_logic.formations import formed_display_name
+    try:
+        state = str(world.get_diplomatic_state(player, target) or "")
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "cabinet_rows.plain_rows: world.get_diplomatic_state")
+        state = ""
+    court = formed_display_name(world, target)
+    for row in actions:
+        if not isinstance(row, dict):
+            continue
+        said = likelihood_plain(row.get("likelihood"))
+        if said:
+            row["likelihood_plain"] = said
+        action = str(row.get("action") or "")
+        if state not in ("WAR", "ARMISTICE") or action not in _PLAIN_PEACE:
+            continue
+        name, line = _PLAIN_PEACE[action]
+        if action == "propose_peace" and "Separate Peace" in str(row.get("display_name") or ""):
+            name, line = _PLAIN_SEPARATE_PEACE
+        addresses = [str(n) for n in (row.get("addresses") or []) if n]
+        if addresses and action in ("open_settlement", "propose_white_peace"):
+            whole = "the whole table" in str(row.get("addresses_display") or "") or (
+                len(addresses) == 1 and "alone" not in str(row.get("addresses_display") or ""))
+            name = f"{name} — {_plain_courts(world, addresses, whole)}"
+        row["plain_name"] = name.format(court=court)
+        row["plain_line"] = line.format(court=court)
+        row["group"] = "peace"
+    return actions
+

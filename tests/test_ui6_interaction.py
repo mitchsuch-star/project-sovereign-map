@@ -116,8 +116,9 @@ class TestTheSelectionCard:
         render = _func(MAIN, "_render_order_strip")
         assert "_ui6_hide_selection_card()" in render
         assert "var text := ORDER_STRIP_HINT" in render
-        assert ('const ORDER_STRIP_HINT := "Right-click a province: march · an enemy: attack · '
-                'a marshal: support · Esc cancels"') in MAIN
+        # (row PW — one click sends: the hint says what a click does now)
+        assert ('const ORDER_STRIP_HINT := "Click a province to send him · an enemy to attack · '
+                'right-click a marshal to support him · Esc lets him go"') in MAIN
 
     def test_order_strip_text_keeps_its_contract(self):
         body = _func(MAIN, "order_strip_text")
@@ -251,9 +252,16 @@ class TestTheNextMarshal:
         answered = _func(MAIN, "_ui6_order_answered")
         assert "_ui6_after_order.call_deferred(actor, stays or not took)" in answered
 
-    def test_the_setting_defaults_on_for_a_player(self):
+    def test_the_setting_defaults_off_since_the_first_playtest(self):
+        """RE-SEATED (row PW, November 18, 2026): UI-6 shipped this ON for a
+        player. The first playtest ("everything feels … disconnected"): every
+        order's answer took the selection AND the camera to another corps, so
+        the player never saw his order carried out — and with one click
+        sending a move, the next click would have commanded a different
+        marshal. The default is OFF; the switch stays in Settings."""
         settings = _read(SCRIPTS / "ui_settings.gd")
-        assert '"next_marshal_after_order", not harness_active()' in settings
+        assert '"next_marshal_after_order", false)' in settings
+        assert '"next_marshal_after_order", not harness_active()' not in settings
 
 
 # ═══ the marshal row, the Generals, the province panel, the toast ═══════════

@@ -843,6 +843,16 @@ def main() -> int:
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")   # a scene's line may quote "−10"
+    # Row PW "Plain Words" (November 18, 2026): the walk of record plays row
+    # BA's battles in row BA's own wording — its claims read those words
+    # ("presses", "he speaks next", the day's rule) — so the stage holds the
+    # plain-words seam DOWN, as `tests/conftest.py` holds it for row BA's
+    # tests. With it down the stage writes the committed payloads byte for
+    # byte (checked when row PW landed). The everyday wording is pinned in
+    # `tests/test_pw_plain_words.py` and walked in the real client by the
+    # instrument (`tools/dd_b_play.py`; the frames are in docs/audits/pw_client).
+    from backend.game_logic import battle_telling as _telling
+    _telling.the_day_speaks_plainly = lambda: False
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     manifest_path = out / "manifest.json"

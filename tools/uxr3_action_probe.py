@@ -123,8 +123,14 @@ def start_backend(work: pathlib.Path, port: int) -> tuple[subprocess.Popen, int]
     env.pop("PYTHONIOENCODING", None)
     for key in ("SOVEREIGN_SCENARIO", "SOVEREIGN_SMOKE_START"):
         env.pop(key, None)
+    # Row PW: DD_B_STAGE=1 lets a STAGING run type the debug commands (`debug
+    # set_location …`, `debug add_building …`) to put a board in the state a
+    # player's report describes. Never a measure: a run of record leaves it unset
+    # and the backend stays the player's own build.
+    staging = os.environ.get("DD_B_STAGE", "") == "1"
     env.update({"SOVEREIGN_PORT": str(port), "INK_IRON_SAVE_DIR": str(saves), "LLM_MODE": "mock",
-                "SOVEREIGN_SEED": "historical", "SOVEREIGN_MAP": "europe", "DEBUG_MODE": "false",
+                "SOVEREIGN_SEED": "historical", "SOVEREIGN_MAP": "europe",
+                "DEBUG_MODE": "true" if staging else "false",
                 "PYTHONHASHSEED": "0"})
     py = REPO / ".venv" / "Scripts" / "python.exe"
     log = (work / "backend.log").open("w", encoding="utf-8")

@@ -865,7 +865,7 @@ func _show_expanded_panel(notif: Dictionary):
 			and str(details.get("review_target", "")) == "":
 		details = details.duplicate()
 		details["review_target"] = "battle_day"
-		details["review_label"] = "Take the field"
+		details["review_label"] = "Give your orders"   # row PW: was "Take the field"
 		details["route_id"] = str(details.get("enemy", ""))
 
 	# ── UX23-A: the primary action, on its own full-width row ──

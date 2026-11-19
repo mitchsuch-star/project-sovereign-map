@@ -27,8 +27,9 @@ class_name AudioManager
 #     the Congress, a one-shot overlay lane (La Marseillaise, the courts'
 #     anthems, the campaign end's triumph and lament), ducking for the
 #     diorama, "now playing", a skip and the Music Room
-#   • the ambience — the Emperor's study (wind, fire, clock), the season's
-#     layer from the calendar, sparse distant drums while at war
+#   • the ambience — the Emperor's study (wind, fire; the clock went out with
+#     row PW, the first playtest), the season's layer from the calendar, sparse
+#     distant drums while at war
 #   • named loops (scribble / wind / sea / crowd / march / bed ...)
 #   • the global hooks: every BaseButton clicks through one seam (node_added),
 #     CheckButton/CheckBox get the toggle sound, any button can opt out with
@@ -168,6 +169,14 @@ const LOOPS := {
 	"rain": {"file": "ambient/rain_loop_seamless.ogg", "bus": "Ambience", "db": -18.0},
 	"winter_wind": {"file": "ambient/winter_wind_loop_seamless.ogg", "bus": "Ambience", "db": -16.0},
 }
+
+# Row PW: the beds the Emperor's study starts (the clock is not one — see
+# `_start_ambience`), and the loops that are the sound of WAITING, which may
+# never outlive the wait: a quill that scratches while a reply is on its way
+# is silenced when the reply arrives (`api_client._on_request_completed`) and,
+# whatever road the reply took, after this many seconds at the latest.
+const STUDY_BED := ["wind", "fire"]
+const LOOP_MAX_S := {"scribble": 6.0, "scribble_long": 12.0, "scribble_verdict": 6.0}
 
 # The music program (docs/MUSIC_SOUND_SPEC.md §2, §6). Rotations crossfade on
 # mood change and advance on track end — after a rest of ambience when the
@@ -1150,6 +1159,20 @@ func _start_loop(tag: String) -> void:
 	p.volume_db = float(spec.get("db", -16.0)) + float(FILE_TRIM_DB.get(String(spec["file"]), 0.0))
 	_loop_players[tag] = p
 	p.play()
+	# Row PW: a loop of waiting has a ceiling (the playtest: "some sound lingers
+	# on after" — the quill scratched under every popup an order opened, since
+	# its one stop was the command line re-opening). By the player's instance
+	# id, as the one-shots' caps are: a later start of the same tag is another
+	# player and an old timer never stops it.
+	if LOOP_MAX_S.has(tag):
+		var cap := get_tree().create_timer(float(LOOP_MAX_S[tag]))
+		cap.timeout.connect(_loop_cap_due.bind(tag, p.get_instance_id()))
+
+
+func _loop_cap_due(tag: String, player_id: int) -> void:
+	var p = _loop_players.get(tag, null)
+	if p != null and is_instance_valid(p) and p.get_instance_id() == player_id:
+		_stop_loop(tag)
 
 
 func _stop_loop(tag: String) -> void:
@@ -1166,10 +1189,18 @@ func _stop_loop(tag: String) -> void:
 # ── the ambience (UI-5: the Emperor's study) ────────────────────────────────
 
 func _start_ambience() -> void:
-	"""The room under the map: the wind at the window, a low fire, the clock;
-	the season's layer; distant drums while at war. Idempotent."""
+	"""The room under the map: the wind at the window and a low fire; the
+	season's layer; distant drums while at war. Idempotent.
+
+	Row PW (November 18, 2026 — the first playtest): the study's CLOCK is out
+	of the bed. The player heard it as "a car clicking turn signal-ish noise
+	constantly in background" — measured, the loop is nine clicks in 4.86 s,
+	0.487 s apart to within 3 ms (123 a minute), with nothing in the room
+	loud enough to hide them: a steady click under every turn of a campaign.
+	The file and its LOOPS row stay (`_stop_ambience` still stops the tag, so
+	a campaign that was mid-loop when this landed goes quiet)."""
 	_ambience_on = true
-	for tag in ["wind", "fire", "clock"]:
+	for tag in STUDY_BED:
 		_start_loop_if_present(tag)
 	_apply_season_layer()
 	_refresh_war_layer()

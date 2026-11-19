@@ -59,6 +59,15 @@ extends SceneTree
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const WINDOW := Vector2i(5120, 1440)
 const PARKED := Vector2i(5200, 20)
+
+
+func _window() -> Vector2i:
+	"""The run's window: WINDOW, or `DD_B_WINDOW=WxH` (row PW — a maximised game
+	on this monitor is 5120 x 1377: the title bar and the taskbar taken off)."""
+	var asked := OS.get_environment("DD_B_WINDOW").split("x")
+	if asked.size() == 2 and asked[0].is_valid_int() and asked[1].is_valid_int():
+		return Vector2i(int(asked[0]), int(asked[1]))
+	return WINDOW
 const SETTLE_FRAMES := 20
 const SETTLE_REAL_MS := 600
 const IDLE_MS := 120000
@@ -100,6 +109,10 @@ var _glyph_re := RegEx.create_from_string("^\\[([^\\sA-Za-z0-9\\[\\]=/]{1,3})\\]
 var _glyph_any_re := RegEx.create_from_string("\\[[^\\sA-Za-z0-9\\[\\]=/]{1,3}\\]")
 var _lead_sym_re := RegEx.create_from_string("^[\\s*\\-•·▸▾>]+")
 var _sv_display_cache: Dictionary = {}
+# Row PW: the moves seen while the last action settled (`_settle`).
+var _settle_moves: Array = []
+var _settle_frame := 0
+const SETTLE_GRACE := 2
 
 
 func _init():
@@ -107,6 +120,23 @@ func _init():
 	UiSettings._cfg = ConfigFile.new()
 	var settings_class: Variant = UiSettings
 	settings_class.set("_persist", false)
+	# Row PW (November 18, 2026 — the first playtest): the player's OWN Interface
+	# Scale. The player who found the oversized war window and the bobbing table
+	# plays at 1.8 on this 5120x1440 screen (a logical view of 2844 x 800), a
+	# size no measure had stood at (the derived 1.4, and 1.0 / 2.0 by hand).
+	# `DD_B_UI_SCALE=1.8` boots the run at a stored scale, as that player's
+	# settings file does (the scale card acknowledged); unset, a first launch.
+	var own_scale := OS.get_environment("DD_B_UI_SCALE")
+	if own_scale.is_valid_float():
+		UiSettings._cfg.set_value("display", "ui_scale", float(own_scale))
+		UiSettings._cfg.set_value("display", "ui_scale_auto", false)
+		UiSettings._cfg.set_value("display", "scale_acknowledged", true)
+		# ...and a PLAYER's default where a harness's differs (`UiSettings.
+		# harness_active`): one click sends a plain move — what that player's
+		# game does. (The idle-corps warning stays off, as under every harness:
+		# a walk that means to meet it switches it on.)
+		UiSettings._cfg.set_value("orders", "confirm_every_order", false)
+		UiSettings._cfg.set_value("orders", "card_waits_for_quote", true)
 	_run.call_deferred()
 
 
@@ -128,7 +158,7 @@ func _run() -> void:
 	root.mode = Window.MODE_WINDOWED
 	root.unfocusable = OS.get_environment("DD_B_FOCUSABLE") != "1"
 	root.position = PARKED
-	root.size = WINDOW
+	root.size = _window()
 	await _frames(10)
 	var menu: Node = (load(MENU_SCENE) as PackedScene).instantiate()
 	root.add_child(menu)
@@ -140,7 +170,7 @@ func _run() -> void:
 		if bool(menu.get("_backend_up")):
 			break
 	_boot_scale = root.content_scale_factor
-	_derived_scale = UiSettings.derive_ui_scale_for(WINDOW.x, WINDOW.y,
+	_derived_scale = UiSettings.derive_ui_scale_for(_window().x, _window().y,
 			float(DisplayServer.screen_get_dpi(DisplayServer.window_get_current_screen())))
 	await _settle()
 	var rec := {"n": 0, "action": "boot", "ok": bool(menu.get("_backend_up")),
@@ -190,16 +220,42 @@ func _do(action: String) -> void:
 		await _act_key(rest, rec)
 	elif verb == "scroll":
 		await _act_scroll(rest, rec)
+	elif verb == "hover":
+		# Row PW: the cursor brought to rest at a point, nothing pressed — what a
+		# player sees BEFORE he clicks (the piece's ring, the order's tag).
+		var hp := rest.split(" ", false)
+		if hp.size() != 2 or not hp[0].is_valid_float() or not hp[1].is_valid_float():
+			_err(rec, "hover wants two numbers: hover <x> <y> (logical px)")
+		else:
+			_motion(Vector2(float(hp[0]), float(hp[1])))
+			await _frames(30)   # past the order's dwell (0.15 s) and its one GET
+			rec["note"] = "the cursor rests at (%d, %d)" % [int(float(hp[0])), int(float(hp[1]))]
+	elif verb == "still":
+		await _act_still(rest, rec)
 	elif verb == "look":
 		rec["note"] = "a fresh frame"
 	elif verb == "quit":
 		_quitting = true
 		rec["note"] = "the engine quits" + (" (idle)" if rest == "idle" else "")
 	else:
-		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, key, scroll, look" % verb)
+		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, hover, key, scroll, still, look" % verb)
 	var t1 := Time.get_ticks_msec()
+	_settle_moves = []
+	_settle_frame = 0
 	if not _quitting:
 		await _settle_after()
+	# Row PW: what moved while the action settled. The first frames are the
+	# window taking its place (a panel that did not exist has no "before", so an
+	# opening is no move); anything after frame SETTLE_GRACE is a window moving
+	# under the player's eye.
+	var late: Array = _settle_moves.filter(func(m): return int(m["frame"]) > SETTLE_GRACE)
+	if not late.is_empty():
+		rec["settle_moves"] = late
+	# Row PW: what stands PAST THE SCREEN once the action has settled (the first
+	# playtest: "clicking war detail makes a popup buigger than screen").
+	var beyond := _off_screen()
+	if not beyond.is_empty():
+		rec["off_screen"] = beyond
 	var tail_after := _terminal_text()
 	rec["terminal_new"] = _new_lines(tail_before, tail_after)
 	rec["responses"] = _responses.duplicate()
@@ -367,6 +423,126 @@ func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
 			int(at.x), int(at.y), cover if cover != "" else "nothing"]
 
 
+# ── Row PW: does the screen stand still? ─────────────────────────────────────
+# The first playtest: "some screens bobble up and down". A frame is one sample
+# of every window on the screen — each visible panel's rect, each scroll's
+# offset and its page; `still <frames>` (default 90) takes that many in a row
+# with NOTHING pressed and records every frame on which a sample differs from
+# the one before, and by how much. A screen that has opened and come to rest
+# reports no change; a panel that re-fits itself after it is shown, or a scroll
+# that trades a row with a cue, reports each move with its frame.
+
+func _still_sample() -> Dictionary:
+	"""Every WINDOW on the screen — a visible panel standing directly on a
+	CanvasLayer — with its rect, and inside it each scroll's offset and height.
+	Only windows are walked (a few hundred nodes), never the whole tree."""
+	var out := {}
+	var layers: Array = []
+	_collect_layers(root, layers, 0)
+	for layer in layers:
+		if not (layer as CanvasLayer).visible:
+			continue
+		for child in layer.get_children():
+			if not (child is Control) or not (child as Control).visible:
+				continue
+			if not (child is PanelContainer or child is Panel):
+				continue
+			var c: Control = child
+			# A window is on the screen once it is SEEN: one still held unseen as
+			# it opens (`Utils.motion_open`'s hold, alpha 0) may lay itself out.
+			if c.modulate.a < 0.05:
+				continue
+			var path := str(layer.name) + "/" + str(c.name)
+			var r := c.get_global_rect()
+			out["panel " + path] = [roundi(r.position.x), roundi(r.position.y), roundi(r.size.x), roundi(r.size.y)]
+			_sample_scrolls(c, path, out, 0)
+	return out
+
+
+func _off_screen() -> Array:
+	"""Every WINDOW (a visible panel standing directly on a CanvasLayer) that
+	reaches past the view, with how far on each side — [{"what", "rect",
+	"past": {"left", "top", "right", "bottom"}}]. A pixel of rounding is not
+	counted. The map's own layer 0 furniture is the HUD's, measured too."""
+	var out: Array = []
+	var view := root.get_visible_rect().size
+	var layers: Array = []
+	_collect_layers(root, layers, 0)
+	for layer in layers:
+		if not (layer as CanvasLayer).visible:
+			continue
+		for child in layer.get_children():
+			if not (child is Control) or not (child as Control).visible:
+				continue
+			if not (child is PanelContainer or child is Panel):
+				continue
+			var c: Control = child
+			if c.modulate.a < 0.05:
+				continue
+			var r := c.get_global_rect()
+			var past := {}
+			if r.position.x < -1.0:
+				past["left"] = roundi(-r.position.x)
+			if r.position.y < -1.0:
+				past["top"] = roundi(-r.position.y)
+			if r.end.x > view.x + 1.0:
+				past["right"] = roundi(r.end.x - view.x)
+			if r.end.y > view.y + 1.0:
+				past["bottom"] = roundi(r.end.y - view.y)
+			if not past.is_empty():
+				out.append({"what": str(layer.name) + "/" + str(c.name),
+						"rect": [roundi(r.position.x), roundi(r.position.y), roundi(r.size.x), roundi(r.size.y)],
+						"past": past})
+	return out
+
+
+func _collect_layers(node: Node, into: Array, depth: int) -> void:
+	if depth > 6:
+		return
+	for child in node.get_children():
+		if child is CanvasLayer:
+			into.append(child)
+		if not (child is SubViewport):
+			_collect_layers(child, into, depth + 1)
+
+
+func _sample_scrolls(node: Node, path: String, out: Dictionary, depth: int) -> void:
+	if depth > 12:
+		return
+	for child in node.get_children():
+		if not (child is Control) or not (child as Control).visible:
+			continue
+		if child is ScrollContainer:
+			var sc: ScrollContainer = child
+			out["scroll " + path + "/" + str(sc.name)] = [sc.scroll_vertical, roundi(sc.size.y)]
+		elif child is RichTextLabel and (child as RichTextLabel).scroll_active:
+			var bar := (child as RichTextLabel).get_v_scroll_bar()
+			out["text " + path + "/" + str(child.name)] = [roundi(bar.value), roundi((child as Control).size.y)]
+		_sample_scrolls(child, path, out, depth + 1)
+
+
+func _act_still(spec: String, rec: Dictionary) -> void:
+	var frames := 90
+	if spec.strip_edges().is_valid_int():
+		frames = clampi(int(spec.strip_edges()), 10, 600)
+	var before := _still_sample()
+	var changes: Array = []
+	for i in range(frames):
+		await process_frame
+		var now := _still_sample()
+		for key in now:
+			if before.has(key) and before[key] != now[key]:
+				if changes.size() < 60:
+					changes.append({"frame": i + 1, "what": key, "from": before[key], "to": now[key]})
+		before = now
+	var moved := {}
+	for ch in changes:
+		moved[ch["what"]] = int(moved.get(ch["what"], 0)) + 1
+	rec["still"] = {"frames": frames, "changes": changes, "moved": moved}
+	rec["note"] = ("stood still for %d frames" % frames) if changes.is_empty() \
+		else ("MOVED: %d change(s) in %d frames — %s" % [changes.size(), frames, ", ".join(PackedStringArray(moved.keys()))])
+
+
 func _act_click_at(at: Vector2, rec: Dictionary) -> void:
 	var view := root.get_visible_rect().size
 	if at.x < 0 or at.y < 0 or at.x > view.x or at.y > view.y:
@@ -529,17 +705,35 @@ func _api_idle() -> bool:
 
 
 func _settle() -> void:
+	# Row PW: every frame of the settle is sampled (`_still_sample`), so a
+	# window that moves AFTER it has opened — a late re-fit, a scroll that
+	# trades a row with a cue — is on the record of the action that opened it
+	# (`settle_moves`), with the frame it moved on. The waits are unchanged.
 	var start := Time.get_ticks_msec()
 	var calm := 0
+	var before := _still_sample()
 	while Time.get_ticks_msec() - start < IDLE_MS:
 		await process_frame
+		before = _note_moves(before)
 		if _api_idle():
 			calm += 1
 			if calm >= SETTLE_FRAMES:
 				break
 		else:
 			calm = 0
-	await create_timer(SETTLE_REAL_MS / 1000.0).timeout
+	var rest := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - rest < SETTLE_REAL_MS:
+		await process_frame
+		before = _note_moves(before)
+
+
+func _note_moves(before: Dictionary) -> Dictionary:
+	_settle_frame += 1
+	var now := _still_sample()
+	for key in now:
+		if before.has(key) and before[key] != now[key] and _settle_moves.size() < 80:
+			_settle_moves.append({"frame": _settle_frame, "what": key, "from": before[key], "to": now[key]})
+	return now
 
 
 func _settle_after() -> void:
@@ -548,6 +742,19 @@ func _settle_after() -> void:
 	await _settle()
 	for _round in range(3):
 		var cs: Node = current_scene
+		# Row PW (November 18, 2026): NO scene standing is a change in flight
+		# too — the old scene freed, the next still loading. The settle now
+		# samples every frame (`_still_sample`) and can end inside that gap,
+		# where it used to end while the menu was still `_leaving`: the record
+		# of "click Begin" was taken on an empty tree (scene '', no texts).
+		if cs == null or not is_instance_valid(cs):
+			var gap := Time.get_ticks_msec()
+			while Time.get_ticks_msec() - gap < SCENE_CHANGE_MS:
+				await process_frame
+				if current_scene != null and is_instance_valid(current_scene):
+					break
+			await _frames(5)
+			cs = current_scene
 		var leaving: bool = cs != null and is_instance_valid(cs) and cs.get("_leaving") == true
 		if leaving:
 			var start := Time.get_ticks_msec()

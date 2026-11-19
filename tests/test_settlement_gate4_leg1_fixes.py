@@ -1420,13 +1420,21 @@ class TestDialTerritoryEscalation:
         offer_regions = [c["region"] for c in offers.values()]
         assert len(offer_regions) == len(set(offer_regions))
 
-    def test_ease_with_empty_treasury_offers_land_through_the_handler(self):
+    def test_ease_with_empty_treasury_offers_land_through_the_handler(self, monkeypatch):
         """End to end through the real handler + scorer: France with an
         empty treasury eases the whole table â€” the courts receive France
         territory offers (distinct regions), voiced as escalation beats.
         France must hold CAPTURED land first: the transferable-region
         selector never cedes proposer home territory, so a fresh-start
         France legitimately has nothing to offer."""
+        # Row PW (November 18, 2026): the dial no longer authors the player's
+        # land by itself — it asks, and a button that NAMES the province
+        # offers it (`the_dial_never_gives_land_unasked`; the first playtest
+        # gave Bohemia away on "More generous"). This is the June 11 rule as
+        # it was built, read with that seam down; the rule that replaced it is
+        # pinned in `tests/test_pw_plain_words.py`.
+        from backend.game_logic import settlement_actions
+        monkeypatch.setattr(settlement_actions, "the_dial_never_gives_land_unasked", lambda: False)
         world, _war = _winning_two_court_world(france_gold=0)
         for captured in ("Rhineland", "Waterloo"):
             world.regions[captured].controller = "France"

@@ -467,10 +467,248 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     return q
 
 
+# ═══ Row PW "Plain Words" (November 18, 2026 — the first playtest) ═══════════
+#
+# "clicking on genral and sending them somewhere is bad ux and it almosyt
+# always costs 2 eeven if next to them". Measured on the player's own record:
+# every click order in his history is `<Marshal>, march to <Province>` — the
+# standing order, 2 actions — while the same step typed as `move to` is the
+# plain move, 1 action, he arrives now. The click road quoted ONE verb for
+# every distance.
+#
+# THE MOVE WITHIN REACH: a destination the plain move's own law takes — within
+# his `movement_range`, the state probe clear, `move_refusal_probe` silent, a
+# connector open for a two-province hop — is quoted as `<Marshal>, move to
+# <dest>` at the move's price, arriving now. Everything else (further off, an
+# enemy in the way, a closed frontier) is the march, as before, in its own
+# words. The EXECUTOR is untouched (GR5: the AI's road is byte-identical) —
+# only what the click road asks for changes; the typed verbs mean what they
+# always meant. The drift census (`tests/test_pw_plain_words.py`) sends every
+# quoted move and compares what `/command` then does, field for field.
+
+def a_move_in_reach_is_a_move() -> bool:
+    """The seam (one line to reverse). Down (False): every click order to a
+    province is the march, as CC-2 landed it."""
+    return True
+
+
+def move_quote(world, marshal, dest: str, *, memo: Optional[dict] = None
+               ) -> Optional[Dict[str, Any]]:
+    """`<Marshal>, move to <dest>` when the plain move takes it — else None,
+    and the march quote speaks (its refusals are the road's own sentences)."""
+    if not a_move_in_reach_is_a_move():
+        return None
+    region = world.get_region(dest) if dest else None
+    if region is None or dest == marshal.location:
+        return None
+    reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    try:
+        distance = world.get_distance(marshal.location, dest)
+    except Exception as exc:
+        report(exc, "order_quotes.move_quote: world.get_distance")
+        return None
+    if distance is None or not (0 < int(distance) <= reach):
+        return None
+    order = getattr(marshal, "strategic_order", None)
+    if (order is not None and getattr(order, "command_type", None) == "MOVE_TO"
+            and str(getattr(order, "target", "") or "").lower() == str(dest).lower()):
+        return None   # the identical standing order: the march quote's "already" arm
+    from backend.commands import strategic as road_law
+    from backend.commands.movement_executor import (
+        MovementExecutor, campaign_pay_line, departure_note, front_line, two_province_hop)
+    from backend.game_logic.naval import camp_leave_line
+    shown = humanize_entity_name(marshal.name)
+    q = _blank("move", marshal, dest, f"{shown}, move to {dest}")
+    state = _state_refusal(world, marshal, "move", None)
+    if state:
+        q["refusal"] = state
+        return q
+    if MovementExecutor.move_refusal_probe(world, marshal, region, dest) is not None:
+        return None
+    road = [dest]
+    if int(distance) == 2:
+        connector, _refusal = two_province_hop(world, marshal, dest)
+        if not connector:
+            return None
+        road = [connector, dest]
+    q.update(
+        ok=True,
+        ap=int(world.get_action_cost("move")),
+        turns=0,
+        road=road,
+        replaces=_replaces(marshal),
+        objection=_tactical_objection(world, marshal, "move", dest),
+    )
+    q["pay"] = campaign_pay_line(world, marshal, dest)
+    guard = road_law.march_guard_reading(world, marshal, dest, road, "MOVE_TO")
+    if guard is not None:
+        q["guard"] = road_law.march_guard_sentence(guard)
+    q["front"] = front_line(world, marshal, dest)
+    q["camp"] = camp_leave_line(world, marshal, road)
+    q["departs"] = departure_note(marshal, quote=True)
+    q["march_cost"] = march_cost_line(world, marshal, road, first=False)
+    return q
+
+
+def _with_ground(world, marshal, q: Dict[str, Any]) -> Dict[str, Any]:
+    """Row PW: what the order does to the province it ends in (`ground`,
+    `backend/commands/ground.py`) and whether the click road should stop and
+    ASK before it sends (`confirm`). A plain move or march goes at once — the
+    tag by the cursor has already said its price and its end; the card is
+    kept for what is rare and costly: an order the game refuses (the card
+    says why), an attack, a road that meets a corps, guarded ground or an
+    ally's front, and a province he would enter WITHOUT taking where an order
+    exists that would take it."""
+    from backend.commands import ground
+    if not ground.the_ground_is_read_before_the_order():
+        return q
+    kind = str(q.get("kind") or "")
+    if kind in ("move", "march", "march_attack"):
+        try:
+            q["ground"] = ground.entering(world, marshal, str(q.get("dest") or ""))
+        except Exception as exc:
+            report(exc, "order_quotes._with_ground: ground.entering")
+            q["ground"] = {}
+    reading = q.get("ground") or {}
+    try:
+        q["tag"] = tag_lines(world, marshal, q)
+    except Exception as exc:
+        report(exc, "order_quotes._with_ground: tag_lines")
+        q["tag"] = []
+    if q.get("already"):
+        q["confirm"] = False      # the order already stands: nothing to ask
+        return q
+    q["confirm"] = bool(
+        not q.get("ok")
+        or kind not in ("move", "march")
+        or q.get("contact") or q.get("guard") or q.get("front") or q.get("note")
+        or (reading.get("takes") is not True and reading.get("remedy_command")))
+    return q
+
+
+def _moves_in_reach(world, marshal) -> Dict[str, Dict[str, Any]]:
+    """Every province the plain move takes from where he stands (`move_quote`
+    ok), for the reach's tint: a handful of neighbours, never the map."""
+    out: Dict[str, Dict[str, Any]] = {}
+    if not a_move_in_reach_is_a_move():
+        return out
+    here = world.get_region(marshal.location)
+    if here is None:
+        return out
+    reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    ring = list(getattr(here, "adjacent_regions", []) or [])
+    seen = set(ring)
+    if reach >= 2:
+        for name in list(ring):
+            neighbour = world.get_region(name)
+            for further in (getattr(neighbour, "adjacent_regions", []) or []) if neighbour else []:
+                if further not in seen and further != marshal.location:
+                    seen.add(further)
+                    ring.append(further)
+    for dest in ring:
+        try:
+            q = move_quote(world, marshal, dest)
+        except Exception as exc:
+            report(exc, "order_quotes._moves_in_reach: move_quote")
+            q = None
+        if q is not None and q.get("ok"):
+            out[dest] = q
+    return out
+
+
+def take_quote(world, marshal, target: str = "") -> Dict[str, Any]:
+    """Row PW ("i had 3 people in colinia and no one could take it"): the order
+    that TAKES a province — `<Marshal>, attack <Province>`, the attack road's
+    own exits, quoted: taken now where nothing holds it, the garrison's storm
+    with its reckoning, the works' siege. The province he STANDS in (`target`
+    empty: `ground.standing`), or one within his reach that he would only
+    enter by marching (`ground.entering` — the card's "storm it instead").
+    Refused in plain words when nothing would take it (a corps of his still in
+    the field — that is an attack on HIM — or no war, or too few men)."""
+    from backend.commands import ground
+    here = str(marshal.location or "")
+    name = str(target or here)
+    shown = humanize_entity_name(marshal.name)
+    reading = (ground.standing(world, marshal) if name == here
+               else ground.entering(world, marshal, name))
+    q = _blank("take", marshal, name, f"{shown}, attack {name}")
+    q["ground"] = reading
+    q["confirm"] = True
+    code = str(reading.get("code") or "")
+    takeable = ("open", "garrison", "fort") if name == here else (
+        "garrison", "garrison_unsure", "fort", "takes", "takes_if_open", "liberates")
+    if code not in takeable:
+        q["refusal"] = str(reading.get("line") or f"{name} is not to be taken.")
+        return q
+    if name != here:
+        reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+        try:
+            distance = world.get_distance(here, name)
+        except Exception as exc:
+            report(exc, "order_quotes.take_quote: world.get_distance")
+            distance = None
+        if distance is None or int(distance) > reach:
+            q["refusal"] = f"{name} is out of {shown}'s reach — march him beside it first."
+            return q
+        # The review (PW-R3): the attack road's own sea gate (`crossing_check_
+        # reach`, NV-9) — a strait an enemy fleet covers refuses the order, and
+        # the quote said "ok" over it.
+        try:
+            from backend.game_logic.naval import crossing_check_reach
+            cross = crossing_check_reach(world, marshal.nation, here, name, int(marshal.strength))
+            if not cross.get("allowed", True):
+                q["refusal"] = str(cross.get("message") or f"The sea bars the way to {name}.")
+                return q
+        except Exception as exc:
+            report(exc, "order_quotes.take_quote: crossing_check_reach")
+    state = _state_refusal(world, marshal, "attack", None)
+    if state:
+        q["refusal"] = state
+        return q
+    q.update(ok=True, ap=int(world.get_action_cost("attack")), turns=0,
+             replaces=_replaces(marshal),
+             objection=_tactical_objection(world, marshal, "attack", name))
+    region = world.get_region(name)
+    if code in ("garrison", "garrison_unsure") and region is not None:
+        try:
+            from backend.game_logic.garrison_report import assault_forecast_text
+            q["muster"] = assault_forecast_text(world, world.player_nation, marshal, region)
+        except Exception as exc:
+            report(exc, "order_quotes.take_quote: assault_forecast_text")
+    elif code == "fort":
+        # The works' rule (`_capture_or_besiege`: one turn held; the turn's end
+        # counts it, and a corps that leaves or is driven off loses the siege).
+        q["note"] = (f"{name} is fortified: {shown} lays siege, and it falls when the turn "
+                     f"ends if he still stands there. If he leaves or is driven off, the "
+                     f"siege is lost.")
+    elif name == here:
+        q["confirm"] = False     # nothing holds it: one click takes it
+    return q
+
+
 def march_quote(world, marshal, dest: str, *, then_attack: str = "",
-                memo: Optional[dict] = None) -> Dict[str, Any]:
+                memo: Optional[dict] = None, click: bool = False) -> Dict[str, Any]:
     """`<Marshal>, march to <dest>` (and `then attack <enemy>` when named —
-    the CR-7 arrival tail, paid once with the march)."""
+    the CR-7 arrival tail, paid once with the march).
+
+    Row PW: on the CLICK road (`click=True`: a province clicked or dropped
+    on, a row of the province panel) a destination the plain move takes is
+    quoted as the MOVE (`move_quote`). A reader of a TYPED march — the
+    readback under the line, Berthier's "what if he marches to …", a group's
+    march, the army's — asks about the march and is answered about the march
+    (the typed verbs mean what they always meant). Every quote carries
+    `ground` and `confirm`."""
+    if click and not then_attack:
+        moved = move_quote(world, marshal, dest, memo=memo)
+        if moved is not None:
+            return _with_ground(world, marshal, moved)
+    return _with_ground(world, marshal, _march_quote(world, marshal, dest,
+                                                     then_attack=then_attack, memo=memo))
+
+
+def _march_quote(world, marshal, dest: str, *, then_attack: str = "",
+                 memo: Optional[dict] = None) -> Dict[str, Any]:
+    """The march itself (CC-2), as it stood before row PW."""
     shown = humanize_entity_name(marshal.name)
     command = f"{shown}, march to {dest}"
     if then_attack:
@@ -530,7 +768,24 @@ def march_reach(world, marshal) -> Dict[str, Any]:
         "reach": {},
     }
     state = order_state_refusal(world, marshal, "march")
+    # Row PW: the provinces the plain move takes are in reach at the MOVE's
+    # price ("ap", "kind" on their rows) — also when the march itself is
+    # refused (one action left buys a move next door, never a march).
+    moves = _moves_in_reach(world, marshal)
+    # Each row carries its tag's lines (`tag_lines` — what the order does to
+    # the province, what the march costs in men), so the tag by the cursor is
+    # whole the moment the cursor rests, before any quote is fetched: a click
+    # that sends at once must never outrun what it costs.
+    move_rows = {dest: {"turns": 0, "road": list(q["road"]), "ap": int(q["ap"]),
+                        "kind": "move",
+                        "tag": list(_with_ground(world, marshal, q).get("tag") or [])}
+                 for dest, q in moves.items()}
     if state:
+        if move_rows:
+            out["ok"] = True
+            out["reach"] = move_rows
+            out["march_refusal"] = state
+            return out
         out["refusal"] = state
         return out
     order = getattr(marshal, "strategic_order", None)
@@ -542,6 +797,7 @@ def march_reach(world, marshal) -> Dict[str, Any]:
     reach: Dict[str, Any] = {}
     roads = road_law.march_roads(world, marshal, "MOVE_TO")
     detours = _literal_detours(world, marshal, roads)
+    tag_cache: dict = {}
     for dest, (road, refusal, _kind) in roads.items():
         # S14G-4: the province he stands in is no destination, even one a
         # standing order still names (`_standing_quote` refuses it first).
@@ -553,15 +809,67 @@ def march_reach(world, marshal) -> Dict[str, Any]:
             continue
         if refusal is not None or not road:
             continue
+        planned = list(road)
         if dest in detours:
             road = detours[dest]   # CC-X14: a literal man goes round
             if not road:
                 continue           # no road round him: the march is refused
         reach[dest] = {"turns": int(road_law.march_turns(len(road), reach_range)),
                        "road": list(road)}
+        if dest not in move_rows:
+            reach[dest]["tag"] = _reach_tag(world, marshal, dest, planned, list(road), tag_cache)
+            if dest not in detours and tag_cache.get(("first", planned[0])) is not None:
+                # The first step meets a corps we see: 1 action now, whatever
+                # the march's price (`_standing_quote`'s contact arm).
+                reach[dest]["ap"] = 1
+    reach.update(move_rows)   # row PW: a move within reach is the move
     out["ok"] = True
     out["reach"] = reach
     return out
+
+
+def _reach_tag(world, marshal, dest: str, planned: List[str], road: List[str],
+               cache: dict) -> List[str]:
+    """`tag_lines` for a MARCH row of the reach, from the light readers — the
+    corps we see in the road's first province (`planned`: the road before a
+    literal man's detour) or within a cavalryman's reach, else the ground's
+    line; then the first march's cost in men. Pinned equal to the exact
+    quote's `tag` for every province of the reach (`tests/test_pw_plain_words`).
+    `cache` holds what many destinations share (the first step, the walk)."""
+    from backend.commands import ground
+    if not ground.the_ground_is_read_before_the_order():
+        return []
+    player = world.player_nation
+    lines: List[str] = []
+    first_key = ("first", planned[0] if planned else "")
+    if first_key not in cache:
+        cache[first_key] = visible_foe_on_road(world, player, planned[:1])
+    contact = cache[first_key]
+    if contact is not None:
+        name = humanize_entity_name(contact[0].name)
+        lines.append(f"{name} holds {contact[1]}" if contact[1] == dest
+                     else f"{name} blocks the road at {contact[1]}")
+    else:
+        reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+        halt = visible_foe_on_road(world, player, road[1:reach]) if reach > 1 else None
+        if halt is not None:
+            lines.append(f"{humanize_entity_name(halt[0].name)} stands at {halt[1]}")
+        else:
+            try:
+                said = str(ground.entering(world, marshal, dest).get("line") or "")
+            except Exception as exc:
+                report(exc, "order_quotes._reach_tag: ground.entering")
+                said = ""
+            if said:
+                lines.append(said)
+    reach_n = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    walk_key = ("walk", tuple(road[:reach_n]))
+    if walk_key not in cache:
+        walked = _first_march(world, marshal, {"road": road})
+        cache[walk_key] = _men_clause(*march_cost_reading(world, marshal, walked))
+    if cache[walk_key]:
+        lines.append(cache[walk_key])
+    return lines
 
 
 def _literal_detours(world, marshal, roads) -> Dict[str, List[str]]:
@@ -889,8 +1197,11 @@ def _force_block(world, marshal, enemy) -> Optional[Dict[str, Any]]:
             word = ""
             if high == 0 and low > 0:
                 label = f"{label} ({low:,}+)"
+        from backend.display_names import odds_plain
         return {"ours": ours, "ours_weight": int(weight), "theirs_low": int(low),
                 "theirs_high": int(high), "theirs_label": label, "odds": word,
+                # Row PW: the band word said as what to expect ("" with no word).
+                "expect": odds_plain(word),
                 # Row MC: the corps the muster says would answer the guns, by
                 # name - the court line reads who would serve under the lead.
                 "joining": [str(n) for n in (odds.get("joining") or [])]}
@@ -971,6 +1282,8 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
                     # does to the day he holds — he advances, and has left it
                     said += " Should he win it and advance, that day ends where it stands."
                 q["note"] = " · ".join(part for part in (str(q.get("note") or ""), said) if part)
+    # Row PW: the map tag's line under "Attack <him>" — what to expect.
+    q["tag"] = tag_lines(world, marshal, q)
     return q
 
 
@@ -1018,7 +1331,7 @@ def _stop_this_turn(world, marshal, q: Dict[str, Any]) -> str:
     return walked[-1] if walked else marshal.location
 
 
-def march_cost_line(world, marshal, walked: List[str]) -> str:
+def march_cost_line(world, marshal, walked: List[str], *, first: bool = True) -> str:
     """BA2-X21 (row BA, BA-4): what the first march costs in MEN, said before
     the order is given. A standing order's first march is taken the moment the
     order is — Soult, 30,000 strong, ordered from Swabia over the mountain
@@ -1034,8 +1347,22 @@ def march_cost_line(world, marshal, walked: List[str]) -> str:
     take the province (the rule then reads our own new soil) and an enemy's
     fort or detachment adds its toll — which the quote may not name without
     showing works the fog hides. "" when the march costs nothing."""
+    lost, unsure = march_cost_reading(world, marshal, walked)
+    # Row PW: a plain move is the whole march, not the first of several.
+    the_march = "The first march" if first else "The march"
+    if unsure:
+        return (f"{the_march} costs about {lost:,} men, more if {unsure}'s works harass him."
+                if lost > 0 else
+                f"{the_march} is onto {unsure}: its works may harass him.")
+    return f"{the_march} costs {lost:,} men." if lost > 0 else ""
+
+
+def march_cost_reading(world, marshal, walked: List[str]) -> Tuple[int, str]:
+    """`march_cost_line`'s two facts: the men the walk costs (the march rule,
+    read one province at a time on a copy of the corps) and the hostile
+    province whose works may add to it ("" for none). (0, "") for no walk."""
     if not walked:
-        return ""
+        return 0, ""
     import copy
     from backend.commands.movement_executor import march_attrition_reading
     ghost = copy.copy(marshal)
@@ -1051,11 +1378,54 @@ def march_cost_line(world, marshal, walked: List[str]) -> str:
             unsure = province
         lost += step
         ghost.strength = max(0, int(ghost.strength) - step)
-    if unsure:
-        return (f"The first march costs about {lost:,} men, more if {unsure}'s works harass him."
-                if lost > 0 else
-                f"The first march is onto {unsure}: its works may harass him.")
-    return f"The first march costs {lost:,} men." if lost > 0 else ""
+    return int(lost), unsure
+
+
+def tag_lines(world, marshal, q: Dict[str, Any]) -> List[str]:
+    """Row PW "Plain Words": the lines UNDER an order's tag on the map — what
+    the player must know before a click that sends at once, each short enough
+    for a badge at the head of the road:
+
+    * what happens FIRST — a corps we see in the road (the quote's `contact`,
+      its own first clause), else what the order does to the province it ends
+      in (`ground.entering`'s line: "takes the province", "enters only — a
+      garrison of 12,500 holds it");
+    * what the march costs in MEN this turn (`march_cost_reading`, the mover's
+      own rule) — a move next door through the mountains cost Massena 2,520
+      of 42,000, read until now only in the reply;
+    * for an attack, what to expect of the odds (`display_names.odds_plain`,
+      on an exact sighting only — the force bar's own fog rule).
+
+    [] for an order that is refused or already stands. The reach's rows carry
+    the same lines for a province (`_reach_tag`), pinned equal."""
+    if not q.get("ok") or q.get("already"):
+        return []
+    kind = str(q.get("kind") or "")
+    if kind == "attack":
+        from backend.display_names import odds_plain
+        expect = odds_plain((q.get("force") or {}).get("odds"))
+        return [expect] if expect else []
+    lines: List[str] = []
+    contact = str(q.get("contact") or "").strip()
+    reading = q.get("ground") or {}
+    if contact:
+        lines.append(contact.split(" — ")[0])
+    elif reading.get("line"):
+        lines.append(str(reading["line"]))
+    if kind in ("move", "march", "march_attack", "support", "follow"):
+        walked = (list(q.get("road") or []) if kind == "move"
+                  else _first_march(world, marshal, q))
+        men = _men_clause(*march_cost_reading(world, marshal, walked))
+        if men:
+            lines.append(men)
+    return lines
+
+
+def _men_clause(lost: int, unsure: str) -> str:
+    if lost <= 0:
+        return ""
+    return (f"about {lost:,} men lost on the march" if unsure
+            else f"{lost:,} men lost on the march")
 
 
 def _first_step_asks(world, q: Dict[str, Any], dest: str, ally=None) -> bool:
@@ -1316,7 +1686,7 @@ def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
     field = _field_marshals(world)
     here = [m for m in field if m.location == region]
     away = [m for m in field if m.location != region]
-    march = sorted((march_quote(world, m, region, memo=memo) for m in away), key=_sort_key)
+    march = sorted((march_quote(world, m, region, memo=memo, click=True) for m in away), key=_sort_key)
     support = []
     follow = []
     for ally in here:
@@ -1344,10 +1714,23 @@ def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
                              key=_sort_key)
         attack.append({"enemy": enemy.name, "enemy_shown": humanize_entity_name(enemy.name),
                        "quotes": quotes, "here": here_quotes})
+    # Row PW: a corps of ours standing on ground that is not ours — why it is
+    # not, and the order that takes it (`take_quote`), one row per corps here.
+    take = []
+    here_region = world.get_region(region)
+    if (here_region is not None and here and here_region.controller
+            and here_region.controller != player):
+        from backend.commands import ground as _ground
+        if _ground.the_ground_is_read_before_the_order():
+            # only where there is something to say: ground we are at war
+            # for, or ground a peace has just closed under him
+            take = [q for q in (take_quote(world, m) for m in here)
+                    if str((q.get("ground") or {}).get("code") or "") in _ground.SAID_ON_THE_PANEL]
     return {
         "success": True,
         "region": region,
         "ap_left": int(getattr(world, "actions_remaining", 0) or 0),
+        "take": take,
         "march": march,
         "support": support,
         "follow": follow,

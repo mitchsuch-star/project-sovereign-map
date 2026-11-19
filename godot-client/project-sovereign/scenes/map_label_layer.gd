@@ -431,6 +431,8 @@ func _gather_names(xform: Transform2D) -> Array:
 		var plate: Label = nodes[0]
 		if _renderer != null and _renderer.has_method("ungather_label"):
 			_renderer.ungather_label(plate)
+		if plate.has_meta("gathered_keys"):
+			plate.remove_meta("gathered_keys")   # row PW: put back with the plate
 		if plate.has_meta("gather_nation"):
 			names.append(item)
 	if names.size() < 2 or _renderer == null or not _renderer.has_method("gathers_names") \
@@ -450,11 +452,17 @@ func _gather_names(xform: Transform2D) -> Array:
 		var lead_item: Dictionary = names[int(group["lead"])]
 		var lead_plate: Label = lead_item["nodes"][0]
 		var lead_name := str(lead_plate.get_meta("gather_name", lead_plate.text))
+		# Row PW: every roster key the gathered plate now stands for — the lead's
+		# own and each plate it took — so a click on "Napoleon · 2 more" can ask
+		# WHICH of them (the renderer's `stack_clicked`).
+		var keys: Array = (lead_plate.get_meta("gather_keys", []) as Array).duplicate()
 		for m in group["members"]:
 			var member: Dictionary = names[int(m)]
 			member["gathered_away"] = true
+			keys.append_array((member["nodes"][0] as Label).get_meta("gather_keys", []))
 			out.append("%s:%s>%s" % [str(member.get("kind", "")),
 				str((member["nodes"][0] as Label).get_meta("gather_name", "")), lead_name])
+		lead_plate.set_meta("gathered_keys", keys)
 		var words := GATHER_FORMAT % [lead_name, int(group["count"]) - 1]
 		lead_item["gather_shift"] = _renderer.gather_label(lead_plate, words)
 	return out

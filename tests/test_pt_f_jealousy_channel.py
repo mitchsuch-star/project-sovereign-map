@@ -98,8 +98,11 @@ class TestTheAutonomousAttackIsShown:
         start = MAIN_GD.index("func _on_command_result(")
         body = MAIN_GD[start:MAIN_GD.index("\nfunc ", start + 10)]
         head = body.split("_display_jealousy_attacks(response)")[1]
-        assert head.lstrip().startswith("\n\t\tif response.has(\"enemy_phase\")") \
-            or 'if response.has("enemy_phase")' in head[:200]
+        # (row PW, November 18, 2026: the turn's digest — "what changed for
+        # you" — is read between the two, so the report can open on it alone;
+        # the enemy phase is still the next BRANCH after the marshal's battle)
+        between = head[:head.index('\n\t\tif response.has("enemy_phase"):')]
+        assert len(between) < 700 and "_display_" not in between and "_show_" not in between, between
 
 
 # ═══════════════════════════════════════════════════════════════════════

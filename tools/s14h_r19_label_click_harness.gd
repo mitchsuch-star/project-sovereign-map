@@ -335,6 +335,18 @@ func _read_label_click(tag: String, kind: String, text: String, expect_key: Stri
 	_out[tag + "_last_click_marshal"] = str(map.get("last_click_marshal"))
 	var panel = _main.get("region_panel")
 	_out[tag + "_panel_open"] = panel != null and panel.visible
+	# Row PW (November 18, 2026): a stack's label asks WHICH corps — the list
+	# stands, the lead is its first row, and a pick selects that man. Read
+	# what the list holds, pick the expected man from it, read the selection.
+	var picker = _main.get("_stack_picker")
+	var picking: bool = picker != null and picker.call("is_open")
+	_out[tag + "_picker_open"] = picking
+	if picking:
+		_out[tag + "_picker_keys"] = (picker.get("_keys") as Array).duplicate()
+		picker.call("_on_row_pressed", expect_key)
+		await process_frame
+		_out[tag + "_picked_selected"] = str(_main.get("_order_marshal"))
+		_out[tag + "_picker_open_after"] = bool(picker.call("is_open"))
 	_fresh()
 
 
@@ -353,9 +365,9 @@ func _scenario() -> void:
 	_out["layout_ran"] = layer != null and not (layer.get("_laid_out_key") as Array).is_empty()
 	_out["label_hitboxes"] = (map.get("label_hitboxes") as Array).size()
 	var stack: Dictionary = _spec.get("stack", {})
-	_read_label_click("stack", "stack", str(stack.get("text", "")), str(stack.get("lead", "")))
+	await _read_label_click("stack", "stack", str(stack.get("text", "")), str(stack.get("lead", "")))
 	var name_spec: Dictionary = _spec.get("name", {})
-	_read_label_click("name", "name", str(name_spec.get("text", "")), str(name_spec.get("key", "")))
+	await _read_label_click("name", "name", str(name_spec.get("text", "")), str(name_spec.get("key", "")))
 	_phase = "done"
 
 

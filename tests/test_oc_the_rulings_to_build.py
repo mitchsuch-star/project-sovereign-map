@@ -698,6 +698,22 @@ class TestTheHooksOwnFind:
         with pytest.raises(SystemExit, match="never two engines at once"):
             P.cmd_start(args)
 
+    @staticmethod
+    def _stays(monkeypatch, counts):
+        """OC-X5: the client pins' own gate re-reads a window before it skips."""
+        from tests import test_dd_b_the_client_hands as H
+        reads = iter(counts)
+        monkeypatch.setattr(H.P, "_godot_running", lambda windowed_only=False: next(reads))
+        monkeypatch.setattr(H.time, "sleep", lambda s: None)
+        return H._a_window_stays()
+
+    def test_the_client_pins_do_not_skip_on_a_passing_engine(self, monkeypatch):
+        assert self._stays(monkeypatch, [0]) is False
+        assert self._stays(monkeypatch, [1, 0]) is False
+
+    def test_the_client_pins_skip_on_a_window_that_stays(self, monkeypatch):
+        assert self._stays(monkeypatch, [1, 1, 1]) is True
+
 
 class TestSessionHsHead:
 

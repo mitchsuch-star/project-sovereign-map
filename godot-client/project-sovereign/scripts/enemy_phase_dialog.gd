@@ -58,6 +58,12 @@ var _diorama_payloads: Array = []
 # the "enemy_phase" banner stands at the head of the sheet.
 var _day_ended := false
 var _banner: TextureRect = null
+const BANNER_MIN_VIEW_H := 900.0
+
+# Row PW: the report's title, in plain words — what the other courts did while
+# the turn passed. (It first read "WHILE YOU WAITED"; the user, November 18:
+# "isnt thematic or sensible".) The payload's key keeps its name.
+const REPORT_TITLE := "THE ENEMY'S MOVES"
 
 
 func _ensure_banner() -> void:
@@ -66,6 +72,11 @@ func _ensure_banner() -> void:
 		box.remove_child(_banner)
 		_banner.free()
 	_banner = null
+	# Row PW: on a short view (the first playtest's 2844 x 800 at Interface
+	# Scale 1.8) the painting took a third of the window and left nine lines
+	# for the report. Under BANNER_MIN_VIEW_H the words have the room.
+	if get_viewport().get_visible_rect().size.y < BANNER_MIN_VIEW_H:
+		return
 	var w: float = panel_container.size.x
 	if w < 200.0:
 		w = get_viewport().get_visible_rect().size.x * 0.5
@@ -124,11 +135,209 @@ func _ready():
 	# lets the parent scroll.
 	content_label.mouse_filter = Control.MOUSE_FILTER_PASS
 
+	# Row PW (the first playtest: "some sound lingers on after"): the armies'
+	# march ends with the report, by whatever road it shut (Continue and the
+	# view-field link were its only stops; a world swap's `hide_all` was not).
+	visibility_changed.connect(_on_visibility_changed)
+
 	# Hide by default
 	hide()
 
-func show_enemy_phase(enemy_phase: Dictionary, turn: int):
-	"""Display enemy phase with full battle details."""
+
+func _on_visibility_changed() -> void:
+	if not visible:
+		AudioManager.stop_loop("march_long")
+
+# ═══ Row PW "Plain Words" (November 18, 2026 — the first playtest) ═══════════
+# "what happens on eenmy turns is opaque and ocnfusing … it seemd liek things
+# randfomly flipped back to enemy control." The report was every court's every
+# move in the order it was made; a province of the player's changing hands was
+# one line among forty. It now OPENS on what changed for him — the backend's
+# digest (`while_you_waited.digest`, on the end-turn response): the provinces
+# he lost and won and why, his allies', his own battles, the enemies now beside
+# him — and the courts' full list stands folded under it, one click away.
+
+const WYW_FOLD_META := "wyw:more"
+var _phase: Dictionary = {}
+var _phase_turn := 0
+var _digest: Dictionary = {}
+var _courts_open := false
+# The provinces the digest named as changed — the owner flashes them on the map
+# when the report is put away.
+var flash_regions: Array = []
+
+
+func digest_has_news(digest) -> bool:
+	"""True when the digest names anything of the player's that changed."""
+	if not (digest is Dictionary) or (digest as Dictionary).is_empty():
+		return false
+	return not bool((digest as Dictionary).get("quiet", true))
+
+
+func _wyw_rows(rows, more: int, ink: String, glyph: String) -> String:
+	var out := ""
+	if not (rows is Array):
+		return out
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+		var line := str(row.get("line", "")).strip_edges()
+		if line == "":
+			continue
+		out += "  " + Utils.bb_glyph(glyph, 16, ink) + " [color=#" + ink + "]" + line + "[/color]"
+		var place := str(row.get("region", row.get("at", row.get("place", ""))))
+		if place != "" and place != "<null>":
+			out += "  [color=#" + Utils.COLOR_GOLD + "][url=focus:" + place + "]⌖ show[/url][/color]"
+		var field := _wyw_field_link(row)
+		if field != "":
+			out += "  " + field
+		out += "\n"
+	if more > 0:
+		out += "  [color=#" + Utils.COLOR_INFO + "]… and " + str(more) + " more[/color]\n"
+	return out
+
+
+func _wyw_field_link(row: Dictionary) -> String:
+	"""A digest battle row's "⚔ View the field" — the phase's own battle event
+	for the same place and pair, when it carried a tableau."""
+	if not row.has("ours") or not row.has("theirs"):
+		return ""
+	var place := str(row.get("place", ""))
+	var names := [str(row.get("ours", "")), str(row.get("theirs", ""))]
+	var nations = _phase.get("nations", {})
+	if not (nations is Dictionary):
+		return ""
+	for court_key in nations:
+		var nd = nations[court_key]
+		if not (nd is Dictionary):
+			continue
+		for action in nd.get("actions", []):
+			if not (action is Dictionary):
+				continue
+			for ev in action.get("events", []):
+				if typeof(ev) != TYPE_DICTIONARY or str(ev.get("type", "")) != "battle":
+					continue
+				if str(ev.get("location", "")) != place:
+					continue
+				var att = ev.get("attacker", {})
+				var dfn = ev.get("defender", {})
+				var a := Utils.humanize_entity_name(str(att.get("name", "") if att is Dictionary else ""))
+				var d := Utils.humanize_entity_name(str(dfn.get("name", "") if dfn is Dictionary else ""))
+				if not (a in names and d in names):
+					continue
+				var diorama = ev.get("diorama")
+				if not (diorama is Dictionary) or (diorama as Dictionary).is_empty():
+					continue
+				_diorama_payloads.append(diorama)
+				var open_day: bool = str(row.get("result", "")) == "open"
+				return "[color=#" + Utils.COLOR_GOLD + "][url=diorama:" \
+					+ str(_diorama_payloads.size() - 1) + "]⚔ " \
+					+ ("open the battle" if open_day else "view") + "[/url][/color]"
+	return ""
+
+
+func _wyw_block() -> String:
+	"""The digest, in plain words: what the player lost and won, his allies',
+	his battles, who now stands beside him."""
+	var d := _digest
+	var out := ""
+	if d.is_empty():
+		return out
+	out += "[font=" + Utils.TITLE_FONT + "][color=#" + Utils.COLOR_GOLD + "]WHAT CHANGED FOR YOU[/color][/font]\n"
+	if bool(d.get("quiet", true)):
+		out += "  [color=#" + Utils.COLOR_INFO + "]Nothing of yours changed hands and none of your corps fought.[/color]\n\n"
+		return out
+	var lost = d.get("lost", [])
+	if lost is Array and not lost.is_empty():
+		out += "[color=#" + COLOR_ERROR + "][b]You lost[/b][/color]\n"
+		out += _wyw_rows(lost, int(d.get("lost_more", 0)), COLOR_ERROR, "europe")
+	var gained = d.get("gained", [])
+	if gained is Array and not gained.is_empty():
+		out += "[color=#" + Utils.COLOR_SUCCESS + "][b]You gained[/b][/color]\n"
+		out += _wyw_rows(gained, int(d.get("gained_more", 0)), Utils.COLOR_SUCCESS, "europe")
+	var f_lost = d.get("friends_lost", [])
+	var f_gained = d.get("friends_gained", [])
+	if (f_lost is Array and not f_lost.is_empty()) or (f_gained is Array and not f_gained.is_empty()):
+		out += "[color=#" + Utils.COLOR_TEXT + "][b]Your allies[/b][/color]\n"
+		out += _wyw_rows(f_lost, int(d.get("friends_lost_more", 0)), COLOR_ERROR, "europe")
+		out += _wyw_rows(f_gained, int(d.get("friends_gained_more", 0)), Utils.COLOR_SUCCESS, "europe")
+	var battles = d.get("battles", [])
+	if battles is Array and not battles.is_empty():
+		out += "[color=#" + Utils.COLOR_TEXT + "][b]Your battles[/b][/color]\n"
+		for row in battles:
+			if not (row is Dictionary):
+				continue
+			var ink: String = Utils.COLOR_INFO
+			match str(row.get("result", "")):
+				"won":
+					ink = Utils.COLOR_SUCCESS
+				"lost":
+					ink = COLOR_ERROR
+				"open":
+					ink = Utils.COLOR_WARNING
+			out += _wyw_rows([row], 0, ink, "war")
+		if int(d.get("battles_more", 0)) > 0:
+			out += "  [color=#" + Utils.COLOR_INFO + "]… and " + str(int(d.get("battles_more", 0))) + " more[/color]\n"
+	var beside = d.get("beside", [])
+	if beside is Array and not beside.is_empty():
+		out += "[color=#" + Utils.COLOR_WARNING + "][b]Now next to you[/b][/color]\n"
+		out += _wyw_rows(beside, int(d.get("beside_more", 0)), Utils.COLOR_WARNING, "march")
+	var keep := str(d.get("keep_it", "")).strip_edges()
+	if keep != "":
+		out += "  [color=#" + Utils.COLOR_INFO + "]" + keep + "[/color]\n"
+	return out + "\n"
+
+
+func _courts_count() -> int:
+	var n := 0
+	var nations = _phase.get("nations", {})
+	if nations is Dictionary:
+		for court_key in nations:
+			var nd = nations[court_key]
+			if nd is Dictionary:
+				n += (nd.get("actions", []) as Array).size()
+	return n
+
+
+func show_enemy_phase(enemy_phase: Dictionary, turn: int, digest: Dictionary = {}):
+	"""Display enemy phase with full battle details. Row PW: `digest` (the
+	end-turn response's `while_you_waited`) leads the sheet; with one in hand
+	the courts' list is folded under it."""
+	_phase = enemy_phase
+	_phase_turn = turn
+	_digest = digest if digest is Dictionary else {}
+	_courts_open = _digest.is_empty()     # no digest (an old reply): the list, as before
+	flash_regions = []
+	var flash = _digest.get("flash", [])
+	if flash is Array:
+		flash_regions = flash.duplicate()
+	AudioManager.start_loop("march_long")  # the armies of Europe on the move
+	_render_phase()
+
+	# Show the dialog
+	show()
+	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
+	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
+	# viewport, so a fixed authored rect can push the action row off-screen.
+	# Runs AFTER show() so layout has settled.
+	# Session UI-4 (November 12, 2026): a reading window that fits its report
+	# (the three interim readers: "the card is small and the content scrolls
+	# beyond view") — the reading share, then the scroll sized to the report.
+	_fit_window()
+	_connect_entry_snap()
+
+
+func _fit_window() -> void:
+	Utils.set_reading_share($PanelContainer, Vector2(0.5, 0.85), Vector2(820.0, 980.0))
+	Utils.clamp_centered_panel($PanelContainer)
+	Utils.fit_reading_window($PanelContainer, $PanelContainer/VBoxContainer/ContentScroll, content_label)
+
+
+func _render_phase() -> void:
+	"""The sheet's words: the digest, then the courts' list (or the line that
+	opens it)."""
+	var enemy_phase := _phase
+	var turn := _phase_turn
 
 	# DEBUG: Print received enemy_phase structure
 	print("[GODOT_ENEMY_PHASE] ═══════════════════════════════════════")
@@ -137,13 +346,26 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	print("[GODOT_ENEMY_PHASE] total_actions: ", enemy_phase.get("total_actions", "MISSING"))
 
 	# Set title
-	title_label.text = "ENEMY PHASE - Turn %d" % turn
-	AudioManager.start_loop("march_long")  # the armies of Europe on the move
+	title_label.text = (REPORT_TITLE + " · TURN %d") % turn if not _digest.is_empty() \
+		else "ENEMY PHASE - Turn %d" % turn
 
 	# Build content
 	_diorama_payloads = []
 	_day_ended = false
-	var content = ""
+	var content = _wyw_block()
+	if not _digest.is_empty() and not _courts_open:
+		# The courts' own list, folded: one line that opens it.
+		var moves := _courts_count()
+		if moves > 0 or enemy_phase.has("fog_hidden_summary"):
+			var said := "Everything else that happened"
+			if moves > 0:
+				said += " — " + Utils.plural(moves, "move") + " by the other courts"
+			content += "[color=#" + Utils.COLOR_GOLD + "][url=" + WYW_FOLD_META + "]▸ " + said + "[/url][/color]\n"
+		content_label.text = Utils.dress_heads(content)
+		_ensure_banner()
+		return
+	if not _digest.is_empty():
+		content += "[color=#" + Utils.COLOR_GOLD + "][url=" + WYW_FOLD_META + "]▾ Everything else that happened[/url][/color]\n\n"
 
 	var nations = enemy_phase.get("nations", {})
 	var total_actions = enemy_phase.get("total_actions", 0)
@@ -170,8 +392,8 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 		# carries `fog_hidden_summary` (the arm above). Fog with no war/truce
 		# court never reaches this dialog at all: main.gd prints its one line
 		# to the terminal (`_enemy_phase_is_quiet_fog`). Kept as the fallback
-		# for a payload that is neither.
-		content = "[color=#" + Utils.COLOR_INFO + "]No enemy actions this turn.[/color]"
+		# for a payload that is neither. (Row PW: under a digest it follows it.)
+		content += "[color=#" + Utils.COLOR_INFO + "]No enemy actions this turn.[/color]"
 	else:
 		# Session UI-6 (F19): the report opens on ONE summary line - what the
 		# phase held, counted from the entries' own kinds - before the entries.
@@ -212,20 +434,6 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	# Set content
 	content_label.text = Utils.dress_heads(content)
 	_ensure_banner()
-
-	# Show the dialog
-	show()
-	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
-	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
-	# viewport, so a fixed authored rect can push the action row off-screen.
-	# Runs AFTER show() so layout has settled.
-	# Session UI-4 (November 12, 2026): a reading window that fits its report
-	# (the three interim readers: "the card is small and the content scrolls
-	# beyond view") — the reading share, then the scroll sized to the report.
-	Utils.set_reading_share($PanelContainer, Vector2(0.5, 0.85), Vector2(820.0, 980.0))
-	Utils.clamp_centered_panel($PanelContainer)
-	Utils.fit_reading_window($PanelContainer, $PanelContainer/VBoxContainer/ContentScroll, content_label)
-	_connect_entry_snap()
 
 
 # Session UI-6 (F19) -----------------------------------------------------------
@@ -1458,6 +1666,12 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_content_meta_clicked(meta) -> void:
 	"""BD: open the tableau for a battle line's view-field link."""
 	var meta_str := str(meta)
+	if meta_str == WYW_FOLD_META:
+		# Row PW: the courts' own list, opened or folded again under the digest.
+		_courts_open = not _courts_open
+		_render_phase()
+		_fit_window()
+		return
 	if meta_str.begins_with("focus:"):
 		# Session UI-5: close the way Continue does, then ask the map to pan.
 		var region := meta_str.trim_prefix("focus:")

@@ -207,6 +207,15 @@ def clash_line(read: dict, attacker_shown: str, told: str, *, opening: bool = Fa
     toll, and what told."""
     head = "The opening" if opening else f"{attacker_shown}'s attack"
     result = _ON_POINTS.get(str((read or {}).get("ahead") or ""), "drawn")
+    if the_day_speaks_plainly():
+        # Row PW: "Mack's attack: you came off better — you lost 1,200, he lost
+        # 3,400; you had more men."
+        plain_result = {"ours": "you came off better", "theirs": "he came off better"}.get(
+            str((read or {}).get("ahead") or ""), "about even")
+        plain_tail = f"; {plain_told(told)}" if told else ""
+        return (f"{'The first clash' if opening else head}: {plain_result} — you lost "
+                f"{int((read or {}).get('our_loss', 0) or 0):,}, he lost "
+                f"{int((read or {}).get('his_loss', 0) or 0):,}{plain_tail}.")
     tail = f"; {told}" if told else ""
     return (f"{head}: {result} — {int((read or {}).get('our_loss', 0) or 0):,} of ours for "
             f"{int((read or {}).get('his_loss', 0) or 0):,} of his{tail}.")
@@ -222,6 +231,8 @@ def verdict_line(told: str, clash: str = "", broke: str = "") -> str:
     "Decided when Mack's line broke: our weight of numbers told." Never a
     figure (`what_told` carries none)."""
     told = str(told or "").strip() or "an even fight"
+    if the_day_speaks_plainly():
+        told = plain_told(told)      # row PW: "you had more men", never "our weight of numbers told"
     when = f"when {broke}'s line broke" if broke else ""
     if clash:
         head = f"Decided at the {clash} clash" + (f", {when}" if when else "")
@@ -568,6 +579,9 @@ def reading_of(world, day) -> Optional[dict]:
         truth = _read(world, terms)
         seen = _as_seen(world, terms["marshal"], truth, terms)
         state = str(truth["strike"]) if seen == truth["strike"] else "may"
+        if the_day_speaks_plainly():
+            # Row PW: "he will strike" -> "he will attack" (the table's header)
+            return {"strike": state, "line": PLAIN_READ[state], "hover": PLAIN_READ_HOVER}
         return {"strike": state, "line": READ_LINES[state], "hover": READ_HOVER}
     except Exception as exc:
         report(exc, "battle_telling.reading_of")
@@ -772,6 +786,300 @@ def more_of(kind: str) -> str:
     if BD.the_reserve_pursues() and kind in RESERVE_MORE:
         said = (said + " " + RESERVE_MORE[kind].format(men=int(BD.reserve_pursuit()))).strip()
     return said
+
+
+# ════════════════════════════════════════════════════════
+# Row PW "Plain Words" (November 18, 2026 — the first playtest)
+# ════════════════════════════════════════════════════════
+#
+# "battles are opaque and its unclear what decisions mean." The day's table
+# spoke in its own idiom — "Massena presses", "he speaks next", "the toll
+# stands even", "a word costs points" — and a first reader could not tell what
+# a choice would do. The SAME chips, rules and figures are now said in
+# everyday words on every surface that shows them (the table, the province's
+# panel, the log): the order by its plain name ("Attack again", "Dig in",
+# "Wait", "Withdraw"), the men on each side, what to expect of the odds
+# (`display_names.ODDS_PLAIN` — the one table), and who moves next.
+#
+# ONE pass, at the end of `battle_day.the_offer` (`speak_plainly`), over the
+# chips as they were built: nothing is judged here and no figure is computed
+# that the idiom's own line did not carry. Seam down (False): the chips as
+# BA-6 left them, byte for byte — the BA rows' own pins read that state.
+
+def the_day_speaks_plainly() -> bool:
+    """The seam (one line to reverse)."""
+    return True
+
+
+PLAIN_READ = {"will": "he will attack", "may": "he may attack",
+              "will_not": "he will not attack"}
+PLAIN_READ_HOVER = ("What Berthier expects his next move to be, as things stand; a clash can "
+                    "change it. \"May\" means it depends on his mood, or on something you cannot see.")
+PLAIN_VERB = {"press": "attack", "strike back": "counter-attack",
+              "bring up a corps": "bring up a corps", "break off": "withdraw",
+              "fall back": "retreat", "dig in": "dig in", "stand": "wait"}
+PLAIN_MORE = {
+    "press": "If either army breaks in this clash, the battle ends at once.",
+    "guard": ("The Guard's attack costs his lead {shock} morale as it goes in. If it is "
+              "thrown back, every corps of yours that fought loses {recoil} morale."),
+    "dig_in": "A dug-in army defends better when it is attacked. The enemy moves next.",
+    "stand": "Waiting costs no battle point. If both sides wait in turn, night ends the battle with no winner.",
+    "break_off": "You give up the attack. The battle ends as it stands; nobody is driven off.",
+    "fall_back": "Your army leaves the province and the battle ends.",
+    "leave_it": ("He spends the battle points that are left as he sees fit, and the enemy "
+                 "answers each time, until the battle ends."),
+}
+PLAIN_RULE = ("Each order costs battle points, and the enemy answers each one. The battle ends "
+              "when an army breaks, when someone withdraws, after two turns in a row with no order, "
+              "or when all the points are spent.")
+
+
+def plain_men(force: dict) -> str:
+    """"35,000 men against 50,000" — ours against his, as far as his is known."""
+    if not isinstance(force, dict) or not force:
+        return ""
+    ours = int(force.get("ours", 0) or 0)
+    low, high = int(force.get("theirs_low", 0) or 0), int(force.get("theirs_high", 0) or 0)
+    theirs = f"{low:,}" if (low > 0 and low == high) else str(force.get("theirs_label") or "")
+    return f"{ours:,} men against {theirs}" if (ours > 0 and theirs) else ""
+
+
+def plain_expect(force: dict) -> str:
+    """What to expect of an attack: the odds word said plainly, else — where
+    the table has only counted men — which side has the numbers."""
+    from backend.display_names import odds_plain
+    force = force if isinstance(force, dict) else {}
+    said = odds_plain(force.get("odds"))
+    if said:
+        return said
+    ours = int(force.get("ours", 0) or 0)
+    low, high = int(force.get("theirs_low", 0) or 0), int(force.get("theirs_high", 0) or 0)
+    if ours > 0 and low > 0 and low == high:
+        if ours >= low * BETTER_MARGIN:
+            return "you outnumber him"
+        if low >= ours * BETTER_MARGIN:
+            return "he outnumbers you — he may attack next"
+        return "the numbers are about even"
+    return "his strength is not known"
+
+
+def plain_losses(day: dict) -> str:
+    """"losses so far: you 10,837 · him 9,559" — "" before any clash."""
+    toll = (day or {}).get("toll") or {}
+    ours, his = int(toll.get("ours", 0) or 0), int(toll.get("his", 0) or 0)
+    return f"losses so far: you {ours:,} · him {his:,}" if (ours or his) else ""
+
+
+def plain_so_far(day: dict, enemy_shown: str = "") -> str:
+    """The line under the title, plainly: "Losses so far: you 10,837 · him
+    9,559 — about even." ("Losses: …" once the battle has closed.) "" for a
+    day with no clash yet."""
+    if int((day or {}).get("clashes", 0) or 0) <= 0:
+        return ""
+    toll = day.get("toll") or {}
+    ours, his = int(toll.get("ours", 0) or 0), int(toll.get("his", 0) or 0)
+    better = better_of(ours, his)
+    tail = {"ours": "you have lost fewer", "theirs": "he has lost fewer"}.get(better, "about even")
+    head = "Losses" if day.get("open", True) is False else "Losses so far"
+    return f"{head}: you {ours:,} · him {his:,} — {tail}."
+
+
+def plain_banner(banner: str, enemy_shown: str = "") -> str:
+    """A day's banner in plain words ("The day hangs" → "No winner yet")."""
+    said = str(banner or "")
+    if said == "The day hangs":
+        return "No winner yet"
+    if said == "Night falls":
+        return "Night — no winner"
+    if said.endswith(" draws off"):
+        return said[: -len(" draws off")] + " withdraws"
+    return said
+
+
+def plain_told(told: str) -> str:
+    """`what_told`'s line in everyday words: "our weight of numbers told" →
+    "you had more men"; "his dug-in line told" → "his dug-in line helped him";
+    "our exhaustion told against us" → "your exhaustion hurt you"; "the dice
+    told for him" → "the dice ran his way". A line that fits no pattern is
+    returned as it is."""
+    import re
+    said = str(told or "").strip()
+    if not said or said == "an even fight":
+        return said
+    fixed = {
+        "our weight of numbers told": "you had more men",
+        "his weight of numbers told": "he had more men",
+        "the dice told for us": "the dice ran your way",
+        "the dice told for him": "the dice ran his way",
+    }
+    if said in fixed:
+        return fixed[said]
+    match = re.fullmatch(r"(our|his) (.+) told against (us|him)", said)
+    if match:
+        whose = "your" if match.group(1) == "our" else "his"
+        whom = "you" if match.group(3) == "us" else "him"
+        return f"{whose} {match.group(2)} hurt {whom}"
+    match = re.fullmatch(r"(.+) told for (us|him)", said)
+    if match:
+        return f"{match.group(1)} helped {'you' if match.group(2) == 'us' else 'him'}"
+    match = re.fullmatch(r"(.+) told against (our|his) (.+)", said)
+    if match:
+        return f"{match.group(1)} hurt {'your' if match.group(2) == 'our' else 'his'} {match.group(3)}"
+    match = re.fullmatch(r"(our|his) (.+) told on (our|his) (.+)", said)
+    if match:
+        return (f"{'your' if match.group(1) == 'our' else 'his'} {match.group(2)} broke "
+                f"{'your' if match.group(3) == 'our' else 'his'} {match.group(4)}")
+    match = re.fullmatch(r"(our|his) (.+) told", said)
+    if match:
+        return (f"your {match.group(2)} helped you" if match.group(1) == "our"
+                else f"his {match.group(2)} helped him")
+    return said
+
+
+def why_plain(ctx, attacker_is_ours: bool) -> List[str]:
+    """Row PW: WHY a battle went as it did, with its numbers — for the player
+    whose marshal led a side of it (the battle's own report, which he is given
+    whole). In this order: the men each side brought; the largest named
+    advantages on each side (the report's own rows and percents, 5 points or
+    more, two a side); the dice, when the throw stood 3 or more from seven.
+    Never a judgement of its own: every figure is the report's."""
+    lines: List[str] = []
+    try:
+        result = getattr(ctx, "battle_result", None) or {}
+        atk, dfd = _committed(ctx)
+        ours, his = (atk, dfd) if attacker_is_ours else (dfd, atk)
+        if ours > 0 and his > 0:
+            if ours >= BETTER_MARGIN * his:
+                lines.append(f"you had more men — {ours:,} against {his:,}")
+            elif his >= BETTER_MARGIN * ours:
+                lines.append(f"he had more men — {his:,} against your {ours:,}")
+            else:
+                lines.append(f"the numbers were close — your {ours:,} against {his:,}")
+        snap = result.get("modifier_snapshot") or {}
+        sides = (("your", snap.get("attacker" if attacker_is_ours else "defender") or []),
+                 ("his", snap.get("defender" if attacker_is_ours else "attacker") or []))
+        for whose, rows in sides:
+            named = sorted(
+                (r for r in rows if isinstance(r, dict) and int(r.get("value", 0) or 0) >= 5
+                 and str(r.get("type") or "") in ("bonus", "penalty")),
+                key=lambda r: -int(r.get("value", 0) or 0))[:2]
+            for row in named:
+                label = str(row.get("label") or "").strip()
+                # The review (PW-R16): a label that carries a figure of its own
+                # in brackets ("Ranged bombardment (−50% return fire)") read
+                # "… (−50% return fire) +50%": the bracket goes, the row's own
+                # figure stands.
+                if "(" in label and "%" in label:
+                    label = label.split("(", 1)[0].strip()
+                if not label:
+                    continue
+                sign = "+" if row.get("type") == "bonus" else "−"
+                lines.append(f"{whose} {label[:1].lower()}{label[1:]} {sign}{int(row['value'])}%")
+        natural = (result.get("attacker_roll") or {}).get("natural")
+        if natural is not None and abs(int(natural) - AVERAGE_THROW) >= DICE_GAP:
+            attacker_lucky = int(natural) > AVERAGE_THROW
+            lucky_is_us = attacker_lucky == bool(attacker_is_ours)
+            lines.append(f"the dice ran {'your' if lucky_is_us else 'his'} way "
+                         f"(the attacker threw {int(natural)} of 12)")
+    except Exception as exc:
+        report(exc, "battle_telling.why_plain")
+    return lines
+
+
+def speak_plainly(chip: dict, day: dict, *, lead_shown: str = "") -> None:
+    """Rewrite ONE chip of a day in plain words, in place: its `label`, `does`,
+    `risk` and `more`. Reads the private hints `battle_day.the_offer` left on
+    it (`_force`, `_reading`) and removes them; with the seam down it only
+    removes them."""
+    force = chip.pop("_force", None)
+    reading = chip.pop("_reading", None)
+    if not the_day_speaks_plainly():
+        return
+    from backend.game_logic import battle_day as BD
+    kind = str(chip.get("kind") or "")
+    word = str(chip.get("word") or "")
+    shown = str(chip.get("shown") or lead_shown or "")
+    was_does = str(chip.get("does") or "")
+    losses = plain_losses(day)
+    stands = f"; {losses}" if losses else ""
+
+    def more(key: str) -> str:
+        said = PLAIN_MORE.get(key, "").format(shock=int(BD.GUARD_SHOCK), recoil=int(BD.GUARD_RECOIL))
+        if BD.the_reserve_pursues() and key in ("press", "guard", "stand"):
+            men = int(BD.reserve_pursuit())
+            said += (f" Each battle point you still hold over his when he breaks costs him {men:,} more men."
+                     if key != "stand" else
+                     f" A battle point you keep costs a broken enemy {men:,} more men, and covers you if you break.")
+        return said.strip()
+
+    if kind in ("press", "guard", "lead"):
+        if kind == "guard":
+            chip["label"] = "Send in the Guard"
+        elif kind == "lead":
+            chip["label"] = f"Attack with {shown}"
+        else:
+            chip["label"] = "Counter-attack" if (day or {}).get("side") == "defence" else "Attack again"
+        men = plain_men(force or {})
+        if kind == "guard" and BD.the_guards_numbers_bite():
+            men = (men + " · " if men else "") + f"his morale −{int(BD.GUARD_SHOCK)}"
+        if "does" in chip:
+            chip["does"] = men
+        if "risk" in chip or "does" in chip:
+            chip["risk"] = plain_expect(force or {})
+        if "more" in chip:
+            chip["more"] = more("guard" if kind == "guard" else "press")
+    elif kind == "cannonade":
+        chip["label"] = f"Bombard with {shown}'s guns"
+        if "does" in chip:
+            chip["does"] = "shells his army; no clash"
+            chip["risk"] = "no army can break; he moves next"
+    elif kind == "bring_up":
+        if "does" in chip:
+            chip["does"] = "joins your lead for the next clash"
+            chip.pop("risk", None)
+    elif kind == "dig_in":
+        chip["label"] = "Dig in"
+        if "does" in chip:
+            import re
+            pct = re.search(r"\+(\d+)%", was_does)
+            if pct:
+                chip["does"] = f"+{pct.group(1)}% defence if he attacks"
+            elif was_does.startswith("field works"):
+                chip["does"] = "field works: stronger still if he attacks"
+            else:
+                chip["does"] = "defends better if he attacks"
+            chip["risk"] = "he moves next — this helps only if he attacks"
+            chip["more"] = more("dig_in")
+    elif word == "leave_it":
+        chip["label"] = f"Let {shown} decide"
+        if "does" in chip:
+            said = was_does
+            for old, new in sorted(PLAIN_VERB.items(), key=lambda kv: -len(kv[0])):
+                if said.endswith(" " + old):
+                    said = said[: -len(old)] + new
+                    break
+            chip["does"] = said.replace("he would ", "he will ").replace("he may ", "he will probably ")
+            chip["more"] = more("leave_it")
+    elif kind == "stand":
+        chip["label"] = "Wait"
+        if "does" in chip:
+            if was_does.startswith(DOES["stand_night"]):
+                chip["does"] = "the battle ends with no winner" + stands
+            else:
+                read = PLAIN_READ.get(str(reading or ""), "")
+                chip["does"] = "he moves next" + (f" — {read}" if read else "")
+            chip["more"] = more("stand")
+    elif kind == "break_off":
+        if str(chip.get("command") or ""):
+            chip["label"] = "Retreat"
+            if "does" in chip:
+                chip["does"] = "the battle ends; he takes the province" + stands
+                chip["more"] = more("fall_back")
+        else:
+            chip["label"] = "Withdraw"
+            if "does" in chip:
+                chip["does"] = "the battle ends; he keeps the province" + stands
+                chip["more"] = more("break_off")
 
 
 # ════════════════════════════════════════════════════════

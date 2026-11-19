@@ -17773,7 +17773,7 @@ ONE chain, run alone on a frozen copy of the final tree (`tools/_oc_measure.py`,
 - **T8 re-read** (DOCTRINES_SPEC's bar: no rival cured before turn 10, at least two of four by turn 30 on historical): 0 of 4 → **1 of 4** (Britain: Staff turn 8, cure turn 14); none before turn 10; still the recorded miss.
 - **OC-3 on the sea arms** (a save a turn): SHUT-H — the contactless seed — has Britain write for an armistice at turn 9 with LETTER up and never with it down (the conjunction holds from turn 8); SHUT-A/M and NAV1-H/A/M meet a British corps first and the row alone moves none of them. On the shipped tree every strangulation seed ends Britain's war without contact: SHUT-A/M at turn 8, NAV1-H/A at 9 / 10, and NAV1-M by the league's common peace at turn 9 (Austria's settlement offer for Britain and Austria, ratified).
 - **The day's sweep on the shipped tree** (BA-3's eight seeds by nine ways of playing): every cell whole, 71 of 72 inside 23–28 (the one outside: CMD-A played the P way, 20); the commit before reads 66 of 72.
-- **The suite's own boards (the hook's first run):** seven pins of AI-played boards moved with the world-line and are re-recorded with their attribution — with every OC seam down in the child each reads its prior figure: the seven-seed SF-LB-2 record (`docs/audits/probes/sf_lb2/`; Prussia→Hanover opens on 8 / 12 / 11 / 8 / 12 / 10 / 12, and on friedland Prussia is at war from turn 10 and never marches on Hanover), the direction gate's count 1 → 0, the courting cap's rebellion 12 → 11, the volte-face baseline (OC's seams ride down with Step 3's), the estate-grant pins (a chest that keeps a turn of upkeep) and RB14's control (CHEAP down beside its own seam); SF-LB-2 §6.4's three-seed clause read on the seven-seed record (OC-X4); the client instrument's engine rail re-reads a transient count (OC-X3).
+- **The suite's own boards (the hook's first run):** seven pins of AI-played boards moved with the world-line and are re-recorded with their attribution — with every OC seam down in the child each reads its prior figure: the seven-seed SF-LB-2 record (`docs/audits/probes/sf_lb2/`; Prussia→Hanover opens on 8 / 12 / 11 / 8 / 12 / 10 / 12, and on friedland Prussia is at war from turn 10 and never marches on Hanover), the direction gate's count 1 → 0, the courting cap's rebellion 12 → 11, the volte-face baseline (OC's seams ride down with Step 3's), the estate-grant pins (a chest that keeps a turn of upkeep) and RB14's control (CHEAP down beside its own seam); SF-LB-2 §6.4's three-seed clause read on the seven-seed record (OC-X4); the client instrument's engine rail re-reads a transient count (OC-X3), and so does the driven client pins' own gate before it skips (OC-X5, after the commit's run skipped the nine — a skip is not a pass).
 - **Off the served road (ALL):** story classes 10 of 10; the roster in three readings; no annexation outside aim on the ambient record or in the AI-France harness (captures outside aim 133 → 117 in the harness).
 - **The deploy gate:** **MET on the final tree** — story classes 10 of 10, the roster in three readings, no annexation outside aim on the ambient record or in the harness, the band 26 / 27 / 28; clause 2 (a minor raised to secondary rank by promotion on at least one seed) is read on **thirty** ambient seeds by the user's ruling (`DYNAMISM_SPEC.md` §7, under *"make best deciison for gameplayt … do research"*): on the ten the shipped tree raises none — the rulings re-time marengo: Britain, cured by turn 13, holds Hanover's Westphalia and Hesse's crown waits past turn forty (holding CURE alone down brings it back at turn 36) — and on the twenty more it raises two (Bavaria on aspern at turn 21, Denmark on borodino at turn 30); the commit before raises two in thirty as well (Hesse on marengo at 34, Denmark on borodino at 31) — the same rate, two campaigns in thirty (`tools/_oc_gate_2026_11_18.json`, `tools/_oc_promotions_wide_2026_11_18.json`).
 
@@ -17783,3 +17783,107 @@ ONE chain, run alone on a frozen copy of the final tree (`tools/_oc_measure.py`,
 - **A done-when about the close is read to its cause.** GRD-21's two misses are wars, not purchases; the purse probe reports the close AND the turns under, and the opening treasury is the scenario's.
 - **A wider sample is not a lower bar, but it is an easier one** — clause 2's ruling says both, in the record (DYNAMISM_SPEC §7).
 - **A bash script is read as it runs:** never edit a chain script while its chain runs; queue a second short chain instead.
+
+## §227 Row PW — "Plain Words": the first playtest (November 18, 2026)
+
+The user played thirteen turns and found the game "convoluted and opaque and disconnected". Row PW changes no rule of the executor (the AI's road is untouched — GR5): it changes what the client asks for, what every surface says, and three readings that were wrong. The ledger is `BUG_FIXES.md` §PW; the pins are `tests/test_pw_plain_words.py`.
+
+### 227.1 The rule of the row: plain words
+
+Every button, verdict and consequence is said in everyday words ("Attack again", "They will not sign yet", "You give: Bohemia"). The period voice stays in Berthier's and Talleyrand's own quoted lines. Where an older name is the stable key that roads, rules and pins read (`display_name` of a Cabinet row, a settlement option's `label`, `get_likelihood_descriptor`'s words, the verdict sentence "Will NOT carry as drafted"), the key stays and the plain words ride beside it (`plain_name`, `plain_line`, `likelihood_plain`, `top_blocker_plain`, `band_plain`) or are printed in its place by the client (`proposal_confirm_popup.PLAIN_FACES`, `TABLE_WORDS`). CLAUDE.md golden rule 11 keeps it.
+
+### 227.2 The seams (each one line to reverse; down = the behaviour before the row)
+
+| Seam | What it governs |
+|---|---|
+| `ground.the_ground_is_read_before_the_order` | the `ground` / `tag` / `confirm` on every quote, the move's "not ours yet" line and remedy, `tactical_state.stands_on` |
+| `order_quotes.a_move_in_reach_is_a_move` | a province within reach quoted as the one-action move on the click road |
+| `combat_executor.a_siege_is_said_as_a_siege` | "lays siege to X" for works begun (a message only) |
+| `while_you_waited.the_turn_is_summed_up` | the end turn's `while_you_waited` digest |
+| `settlement_actions.the_dial_never_gives_land_unasked` | the dial never authors the player's land; the change line, the shut button, the land question |
+| `settlement_actions.the_dial_says_its_next_step` | `dial_next` on the wire: what each dial's next press would do (§227.9) |
+| `settlement_staging.the_table_says_the_deal_plainly` | `plain_deal` on the table, `plain` on the signed result |
+| `game_end.the_forecast_reads_each_holders_own_peace` | the status-quo forecast per holder's own pair |
+| `battle_telling.the_day_speaks_plainly` | the day's chips, banner, rule, reading, notice, first-open line, `why`, the tableau's `plain` |
+| `cabinet_rows.the_cabinet_says_peace_plainly` | `plain_name` / `plain_line` / `group` / `likelihood_plain` on the Cabinet's rows |
+| client `proposal_confirm_popup.the_table_stays_through_a_press()` | the table stays on the screen through a press |
+
+`tests/conftest.py` holds `the_day_speaks_plainly` down for row BA's test modules and `a_move_in_reach_is_a_move` down for three click-road modules, whose pins are on the older wording and price; `tools/ba1_stage_battles.py` holds the day's seam down for the walk of record (with it down the stage writes the committed payloads byte for byte).
+
+### 227.3 Orders: the ground, the price, the click
+
+- **`backend/commands/ground.py`** (pure, fog-honest readers). `entering(world, marshal, region)` → `{takes, code, line, remedy_command, remedy_label}`: what walking onto a province does to it as far as the player sees — an enemy corps in sight first; a garrison that fights (exact count at FULL sight, "it may have to be stormed" for a band); works, only where `WorldState.region_econ_visible` lets his screens state a province's buildings; the mover's own state (rallying, a raiding party under 5,000 on home soil); out of full sight "takes it if nothing we cannot see holds it"; else "takes the province". `standing(world, marshal)` reads the province he is in by the attack road's own exits, in its order (a corps in the field, a siege in progress, a garrison, the raiding party, works, open) and names the order that takes it. `SAID_ON_THE_PANEL` is the set of codes the card may show.
+- **Quotes** (`order_quotes.py`). Every quote carries `ground`, `tag` (the lines under the map's tag: what happens first, what the order does to the province, the men the march costs — `tag_lines`, `march_cost_reading`; an attack's odds said as what to expect — `display_names.ODDS_PLAIN`) and `confirm` (false only for an `ok` move or march with no contact, guard, front or note, on ground it takes or that is not an enemy's to take). `march_quote(..., click=True)` — the click road: `/march_quotes?dest=`, the province panel's rows, `march_reach` — quotes a province within reach as `<Marshal>, move to <dest>` at the move's price; a reader of a typed march (the readback, Berthier's what-if, a group's or the army's march) is answered about the march. `take_quote(world, marshal, target="")` quotes the order that takes a province (`<Marshal>, attack <Province>`): taken now where nothing holds it, the garrison's storm with its reckoning, the works' siege; refused in plain words for a corps still in the field, no war, a covered strait (`crossing_check_reach`). `march_reach` rows carry `kind`, `ap` and `tag`.
+- **The client.** One click sends an order whose quote says `confirm == false` (`main._order_go`, `_order_go_with`, `_pw_send_and_keep_him` — he stays selected); every other target opens the card. `UiSettings.get_confirm_every_order()` restores the card for every order; `get_next_marshal_after_order()` is off by default. A click that waits on a quote is dropped when the selection or the board changes, and the deferred send asks the click's guards again. A piece is picked from within `PIECE_GRAB_PX` (30 logical px) while no order is engaged; a stack's label opens `StackPicker`. The card's "Storm it instead" and the "Take / Storm / Besiege <province>" chips (the card, the province panel, the end-turn ask) send `tactical_state.stands_on.command` or open the take order's own card.
+
+### 227.4 The turn: "The enemy's moves"
+
+> The report's title is **THE ENEMY'S MOVES** (it first read "WHILE YOU WAITED"; the user, November 18:
+> "isnt thematic or sensible"). The module (`while_you_waited.py`) and the payload's key keep their names.
+
+`while_you_waited.before(world, resuming)` is read as End Turn is pressed and `attach(result, world, before, enemy_phase, tactical_events)` after the turn (`meta_executor._execute_end_turn`; `TurnManager.end_turn` is untouched). The digest: `lost` / `gained` (the player's), `friends_lost` / `friends_gained`, `battles` (the player's own corps'), `beside` (enemy corps he sees that moved onto or beside his ground), `flash` (provinces for the map), `quiet`, `keep_it`. A row's cause is read off the turn's own events — a battle, a garrison stormed, a siege ended, a march in — and says who held it only for the player's own province; "under their peace treaty" only where the two courts were at war as the turn ended and are not now; otherwise no cause. An enemy marshal is named only where the player sees him now; else "a British army". The client's report window opens on it (`enemy_phase_dialog._wyw_block`) with the courts' list folded; with no phase from the server the digest is printed in the log and flashed on the map, never raised as a window.
+
+### 227.5 The peace table
+
+- **The dial** (`settlement_actions`). A press of "Offer them more" never authors a cession from the proposer's side: the cessions its dry run would have made are returned as `land_offers` (one named button a court: `settlement_demand_add`, group `offer`, clause `territory_cede`, the region — the guided table's own verb), each line saying the true cause and whose province it is. Every press carries `dial_change` (`{changed, line, parts, why}`); a press that changed nothing writes `dial_dead["<scope>:<direction>"] = why`, which the client shows as a shut button with its reason until any press changes the terms. (This amends GT-A5's escalation of June 11, by the plan's ruling; the harsher dial still escalates to a demand for land.)
+- **THIS DEAL** (`settlement_staging.settlement_plain_deal`, payload key `plain_deal`): `get` / `give` (clauses to and from the PLAYER), `allies_get` / `allies_give` (clauses to and from the rest of his side, said with both parties), `keep`, `allies_keep`, `allies_hand_back` (what an ally only occupies and the treaty sends home, with `claims` — the guided demand that would keep it), `goes_home` (what our side holds and the treaty returns to one of our own courts), `they_keep`, `still_at_war`, `with`. It is read off the package's own terms and `game_end.status_quo_forecast` (shown == applied). `settlement_plain_result` says the same block in the past tense on the ratifier's `settlement_result_feedback.plain`.
+- **The forecast** (`game_end.status_quo_forecast`). Each holder's retentions are split by `aim_evacuations` against its own pair with the ceder, as `title_status_quo_retentions` applies it per signing pair: an independent ally's occupation outside its aims is forecast as handed back (`entry["evacuated"]`).
+- **Each court's row** (`settlement_baseline`): `top_blocker_plain` (`display_names.acceptance_component_plain(component, detail)`) and `band_plain`.
+- **The client** (`proposal_confirm_popup.gd`): the table stays through the presses that restage it (`STAYS_THROUGH`, the guided verbs by prefix) and keeps its rect while the new words arrive (`_hold_document`); the faces "Ask for more", "Offer them more", "Review and sign", "Cancel", "Sign the peace", "Go back and change the terms", "Ask more / Offer more / Leave out" a court; the tiles "They will sign / They will not sign yet / N of M refuse", "Gold you offer / In your treasury / Left if they sign"; the table's own guidance sentences printed in those words (`TABLE_WORDS`); in the compact view THIS DEAL follows the courts' rows.
+- **Doors.** `war_status_panel.gd`: "Make peace" and Winning / Even / Losing (±15 of the war score) on each war card (`peace_clicked`). `war_detail_popup.gd`: "Make peace (with all of them)" first, then "Deal with <court>". The Cabinet: `cabinet_rows.plain_rows` stamps the four peace rows (`open_settlement`, `propose_white_peace`, `propose_peace`, `propose_armistice`) with `plain_name`, `plain_line`, `group: "peace"`; the wizard draws the group first under END THE WAR.
+
+### 227.6 The battle in plain words
+
+Under `the_day_speaks_plainly`: the chips' labels and lines (`battle_telling.speak_plainly`: "Attack again", "Counter-attack", "Send in the Guard", "Attack with X", "Bombard with X's guns", "Dig in", "Wait", "Let X decide", "Withdraw", "Retreat"; the men each side has, what to expect, the losses so far), the banner (`plain_banner`: "No winner yet"), the rule (`PLAIN_RULE`: the day's four ends), Berthier's reading ("he will attack"), the notice ("Battle at X: no winner yet … The battle waits for your orders"), the first-open line, and `why_plain(ctx, attacker_is_ours)` — the men each side brought, the largest named advantages with the report's own figures, the dice when the throw stood three or more from seven — on the tableau as `why`. The tableau's `plain` lets the table's own captions follow (the dice lines). Row BA's tests and its walk of record read the older wording with the seam down.
+
+### 227.7 Sound, and windows that stand still
+
+The study's bed is wind and fire (`audio_manager.STUDY_BED`); a loop of waiting has a ceiling (`LOOP_MAX_S`); the quill stops when a request completes; the screens' loops stop on `visibility_changed`. A window opens unseen for `Utils.MOTION_HOLD_FRAMES` frames while it takes its size, then fades in. `tools/dd_b_client.gd` stands a run at a stored scale and window (`DD_B_UI_SCALE`, `DD_B_WINDOW`), samples every window on every frame of an action's settle (`settle_moves`) and lists what reaches past the screen (`off_screen`); `still` and `hover` are its two new verbs.
+
+### 227.8 What the row measured, and what it did not
+
+No AI world-line moves: the executor's rules are untouched and the standing series pins hold. The battle walk of record was re-shot on the final tree (167 of 167 shots, no script error, no claim failed). The player's oversized war window was not reproduced at 2844 x 765 or x 800; the standing check reads his setup. The blind reading and its bar are recorded in `BUG_FIXES.md` §PW's head and `STATUS.md`.
+
+### 227.9 After the blind reading: a dial says its next step; the table stands still
+
+**The reading.** The bar was written before the frames were read (`docs/audits/pw_client/`): three fresh
+readers who have never seen the game, shown only five frames of the real client at the first player's setup
+(the war card, the peace table after one press, the Cabinet's page for an enemy, the report after End Turn, a
+battle with no winner yet) and asked six questions — every reader, every question. The first reading met
+five and missed the sixth with all three readers: none could say what "Offer them more" would do BEFORE
+pressing it, nor tell the table's two dials from a court's own. The second reading, on the final tree's
+frames, met the bar. What its readers still marked unclear is part 2's worklist.
+
+**A dial wears its next press (PW-X13).** `settlement_actions.dial_previews(world, dialogue)` runs the
+dial's own computation on copies (`_dial_dry_run` — the payers' budgets, the land it could escalate to, the
+unbuyable courts, `_redial_settlement_terms`, step for step as `_handle_settlement_tier2_action` does) for
+the whole table and for each court, both directions, and returns per `"<scope>:<direction>"`:
+
+| key | meaning |
+|---|---|
+| `changes` | the press would change the terms |
+| `face` | the button's second line: "+100 gold to each court", "−100 gold to Britain · drops your demand for Rhineland" (`_dial_face`: a gold move of one size and one direction said once; "each court" only when it touches every court in the dial's scope; at most two phrases and a count) |
+| `line` | the hover: the change in full ("Next press: gold you pay Britain 100 → 200; …") |
+| `dead` + `why` | the press would change nothing and ask nothing — the client shuts the button with the reason BEFORE the press |
+| `asks_land` | the press would add no gold and put the land question (PW-12) |
+| `refused` | the dial would refuse the press (gold cannot buy the court — S14E-6) |
+
+It reads only (0.6 ms for a three-court table), and it is what the press then applies: the pin walks three
+boards press by press and holds the preview against the press's own `dial_change`. It leaves on the wire as
+`dial_next` on a COPY (`main._dialogue_dial_next_for_wire`, beside the first-open line) and is never stored.
+Seam: `the_dial_says_its_next_step()` (down: no `dial_next`; the table as part 1 first stood); it also
+stands under `the_dial_never_gives_land_unasked()`. The client: `_pw_dial_next`; the rail's second line is
+not drawn in the compact view (EA-E6 keeps one line a button there — the step is the hover). "Review and
+sign" is the primary button only where `can_ratify` (a reader: "the highlighted button even though all 3
+refuse"). Under "The table": "The number on each row is how willing that court is to sign — it signs at 50."
+
+**The table stands still (PW-X12).** A probe printed every row's height for sixteen frames after each
+showing. Under a press the rail's grid was thrown back to three columns and put in one row again by the fit
+two frames later, so the four buttons stood in two rows for two frames (45 → 98 px) and the list swung
+429 → 351 → 422 → 405. The row is now decided in the frame the buttons are built (`_fit_action_columns` right
+after the clamp; the last showing's buttons are removed from the grid at once), and the change line's row
+stands from the first open ("What each press changes is written on this line."). Measured after: no change
+as the table opens, none under a dial, one when the page turns to the review and one when it turns back.
+The driven check holds it at 1.8 on 5120 x 1377.
+
+**The report's title (PW-X14).** "THE ENEMY'S MOVES" — see §227.4.

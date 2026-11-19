@@ -913,6 +913,17 @@ A_PROVINCE_OUTRANKS_A_FRIENDLY_NAMESAKE = True
 # Bohemia where he stands! (900 lost to march)". False = the charge.
 AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE = True
 
+# Row PW "Plain Words" (November 18, 2026 — the first playtest: "i had 3 people
+# in colinia and no one could take it"). An attack on an undefended province
+# with works starts the occupation timer — and its reply read "Massena takes
+# Carniola where he stands! Carniola is fortified! Massena must hold for 1 turn
+# to capture.": taken, and in the next breath not taken. The head of that
+# reply says what happened — "lays siege to Carniola." The rule and every
+# figure are untouched (a message only). The seam (one line to reverse):
+# down (False) = the old head.
+def a_siege_is_said_as_a_siege() -> bool:
+    return True
+
 # IQ5-R1 (Score Finish Step 3 / SR-7a): THE POOL SPLITS BY THE MEN COMMITTED.
 # FA-D29 sized each side's casualty pool by its ENGAGED bodies — the lead's
 # whole corps plus COMMITTED_ALPHA × strength × the pair scale of each
@@ -10126,13 +10137,22 @@ class CombatExecutor:
                     ctx.capture_result = self._attempt_region_capture(
                         ctx.marshal, ctx.resolved_target, ctx.world, ctx.game_state, had_garrison=False)
 
+                    # Row PW: works that must be held are a SIEGE begun, never a
+                    # province taken (the reply said both in two sentences).
+                    _besieges = bool(a_siege_is_said_as_a_siege()
+                                     and ctx.capture_result["occupation_started"])
                     if ctx.old_location == ctx.resolved_target:
                         # AAR-22 (SR Chunk 2 reserve): a corps already
                         # standing on the province does not march
                         # "from Bohemia into Bohemia".
-                        capture_message = f"{ctx.marshal.name} takes {ctx.resolved_target} where he stands!"
+                        capture_message = (
+                            f"{ctx.marshal.name} lays siege to {ctx.resolved_target}." if _besieges
+                            else f"{ctx.marshal.name} takes {ctx.resolved_target} where he stands!")
                     else:
-                        capture_message = f"{ctx.marshal.name} marches from {ctx.old_location} into {ctx.resolved_target} unopposed!"
+                        capture_message = (
+                            f"{ctx.marshal.name} marches from {ctx.old_location} into "
+                            f"{ctx.resolved_target} and lays siege." if _besieges
+                            else f"{ctx.marshal.name} marches from {ctx.old_location} into {ctx.resolved_target} unopposed!")
                     if surrender_note:
                         capture_message = surrender_note.strip() + " " + capture_message
                     if ctx.attrition_info["total_losses"] > 0:
@@ -12753,6 +12773,14 @@ class CombatExecutor:
             _told_line = _battle_day.the_verdicts_line(ctx, _day_block)
             if _told_line:
                 _bd_payload["verdict_told"] = _told_line
+            # Row PW "Plain Words": WHY the battle went as it did, with its
+            # numbers (the men, the largest advantages, the dice) — a list of
+            # plain clauses for the table's hover and the log's "Why:" line.
+            _why = _battle_day.the_whys(ctx)
+            if _why:
+                _bd_payload["why"] = _why
+            if _battle_day.speaks_plainly():
+                _bd_payload["plain"] = True   # the table's own captions follow (the dice lines)
             ctx.result["battle_diorama"] = _bd_payload
             ctx.result["events"][0]["diorama"] = _bd_payload
 

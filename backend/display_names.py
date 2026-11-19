@@ -1570,6 +1570,90 @@ def acceptance_component_display(component: str) -> str:
     return result or _fallback_display_name(raw, default="Settlement pressure")
 
 
+# Row PW "Plain Words" (November 18, 2026 — the first playtest: "diplomacy is
+# very confusing and its unclear how to end wars"). The peace table named a
+# court's refusal by the scorer's column ("Blocker: Settlement legitimacy",
+# "Base side pressure") and its state by the table's jargon ("Holding out").
+# These are the same facts said as what the court will DO and WHY, in words a
+# player can act on. The column labels above stand where they are (the score
+# breakdown, the voice lines, every test that reads them); these ride beside
+# them on each row (`top_blocker_plain`, `band_plain`).
+ACCEPTANCE_COMPONENT_PLAIN = {
+    # (each within ~34 letters: the court row's "Why:" shows it whole)
+    "base_side_pressure": "they are not losing badly enough",
+    "settlement_tier_legitimacy": "you ask more than you have won",
+    "term_harshness_penalty": "your terms are too harsh",
+    "leader_own_losses": "they have not lost enough yet",
+    "burdened_participant_penalty": "it costs one of their allies too much",
+    "projected_hegemony_mod": "it would make you too strong",
+    "war_objective_alignment": "it does not fit what the war was for",
+    "concession_credit": "you offer them too little",
+    "war_exhaustion": "they are not yet tired of the war",
+    "abandoned_by_ally_acceptance_mod": "it would abandon an ally of theirs",
+    "agenda_settlement_mod": "it crosses their own plans",
+    "coalition_bond": "their league allows no separate peace",
+    "crown_recognition": "they do not recognise your crown",
+}
+
+ACCEPTANCE_BAND_PLAIN = {
+    "accept": "will sign",
+    "acceptable": "will sign",
+    "near_acceptable": "will not sign yet — close",
+    "reject": "will not sign",
+    "unlikely": "will not sign",
+    "blocked": "cannot sign",
+    "consented": "will sign — these are their own terms",
+}
+
+
+# Row PW "Plain Words" (November 18, 2026 — the first playtest: "diplomacy is
+# very confusing"): the Cabinet's verdict word on a proposal row, said as what
+# the court will DO. The key is `get_likelihood_descriptor`'s own word (which
+# stays the stable key every pin and colour reads); the plain word rides the
+# row beside it (`likelihood_plain`).
+LIKELIHOOD_PLAIN = {
+    "Almost Certain": "They will accept",
+    "Favorable": "They will probably accept",
+    "Uncertain — a counter is likely": "Unsure — they will probably ask for changes",
+    "Uncertain": "Unsure",
+    "Doubtful — may counter": "They will probably refuse — they may ask for changes",
+    "Doubtful": "They will probably refuse",
+    "Unlikely": "They will probably refuse",
+    "Hopeless": "They will refuse",
+}
+
+
+def likelihood_plain(word) -> str:
+    """What the court will do, for a likelihood word; "" for an unknown one."""
+    return LIKELIHOOD_PLAIN.get(str(word or "").strip(), "")
+
+
+def acceptance_component_plain(component, detail="") -> str:
+    """The plain reason behind a scorer column; "" for a column with none.
+
+    `detail` is the row's `top_blocker_detail`. The legitimacy column says two
+    different things: with `tier_mismatch` the package overreaches the field
+    ("you ask more than you have won"); without it the war itself has not gone
+    far enough for ANY peace to weigh with them — a draft that asks nothing
+    was told it asked too much (found on the real table, turn 1)."""
+    key = str(component or "")
+    if key == "settlement_tier_legitimacy" and str(detail or "") != "tier_mismatch":
+        return "the war has decided nothing yet"
+    # The review (PW-R12): the war's OBJECT blocks in two ways, and neither is
+    # "it lacks" something (`settlement_baseline._objective_blocker_view`).
+    if key == "war_objective_alignment":
+        if str(detail or "") == "objective_contradicts":
+            return "it gives away what the war was for"
+        if str(detail or "") == "objective_unrelated_harsh":
+            return "it asks what the war was not about"
+    return ACCEPTANCE_COMPONENT_PLAIN.get(key, "")
+
+
+def acceptance_band_plain(band) -> str:
+    """What a court in this band will do; "" for an unknown band."""
+    return ACCEPTANCE_BAND_PLAIN.get(str(band or "").strip().lower(), "")
+
+
 def side_label_display(side: str) -> str:
     """Translate `attackers` / `defenders` enum to player-facing text."""
     result, raw = _lookup_display_name(SIDE_LABEL_DISPLAY, side)
@@ -1611,6 +1695,25 @@ def humanize_entity_name(name: str) -> str:
     if not name:
         return name
     return _CAMEL_BOUNDARY_RE.sub(" ", str(name)).replace("_", " ")
+
+
+# Row PW "Plain Words" (November 18, 2026 — the first playtest: "battles are
+# opaque and its unclear what decisions mean"). The muster's odds word, said
+# as WHAT TO EXPECT. The three bands and what each was measured to deliver
+# (AAR32-D1, `objection_v2.FAVORABLE_WEIGHED_RATIO`): a favorable attack wins
+# 58-70% of its fights; an even one decides nothing 40-96% of the time; an
+# unfavorable one is thrown back. ONE table — the map's order tag, the attack
+# card and the day's cards read it; the client holds no copy.
+ODDS_PLAIN = {
+    "favorable": "odds good — you will probably win",
+    "even": "odds even — it may well end with no winner",
+    "unfavorable": "odds bad — you will probably lose",
+}
+
+
+def odds_plain(word) -> str:
+    """The plain reading of an odds band word; "" for a word that is none."""
+    return ODDS_PLAIN.get(str(word or "").strip().lower(), "")
 
 
 # EG-X1 (the economy gate, October 5, 2026 — found by NPC-12's driven name
@@ -2573,9 +2676,12 @@ def dropped_demands_words(demands) -> str:
 # good (diplomacy #13: the table opened on turn 2, Back Out read "kept", and
 # turn 3 began with "set aside at turn's end"). The bound is said HERE, once;
 # every surface calls `settlement_draft_words`.
+# Row PW (plain words, November 18, 2026): the two lines that named a button
+# say the button's name as it now reads ("Make peace" — "Open Settlement" and
+# "reopen Settlement" are no longer on any face).
 _SETTLEMENT_DRAFT_BOUND = {
-    "reply": "Settlement draft kept until the turn ends — reopen Settlement this turn to continue.",
-    "badge": "Draft kept until turn's end — Open Settlement resumes your terms.",
+    "reply": "Your draft is kept until the turn ends — press Make peace again this turn to carry on.",
+    "badge": "Draft kept until the turn ends — Make peace picks your terms up again.",
     "until": "until the turn ends",
     "set_aside": "(a draft lasts one turn)",
 }

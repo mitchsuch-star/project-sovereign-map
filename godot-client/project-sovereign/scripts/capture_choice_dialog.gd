@@ -45,6 +45,9 @@ func _ready():
 	# Hide by default
 	hide()
 
+const KEEP_IT_LINE := "To keep it, leave a corps here or post a garrison — an empty province can be walked back into."
+
+
 func show_capture_choice(data: Dictionary):
 	"""Display capture choice popup with data from backend."""
 	AudioManager.play("cloth")
@@ -93,6 +96,10 @@ func show_capture_choice(data: Dictionary):
 		var road_note := str(data.get("road_note", ""))
 		if road_note != "":
 			description_label.text = road_note + ".\n" + description_label.text
+		# Row PW (the first playtest: "it seemd liek things randfomly flipped
+		# back to enemy control"): how a province is KEPT, said where it is
+		# taken — an enemy corps walks back into one left empty.
+		description_label.text += "\n" + KEEP_IT_LINE
 
 		# Set button text with consequences.
 		# IGR-E: the PLUNDER arm now quotes what it will actually pay. The

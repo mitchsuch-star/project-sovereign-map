@@ -17116,6 +17116,10 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     from backend.game_logic.cabinet_rows import lever_table_actions
     actions = lever_table_actions(world, player, target_nation, actions,
                                   list((_counsel or {}).get("roads") or []))
+    # Row PW (plain words): the peace rows say what they are and do, and every
+    # verdict word what the court will do — beside the names the pins read.
+    from backend.game_logic.cabinet_rows import plain_rows
+    actions = plain_rows(world, player, target_nation, actions)
     response["actions"] = actions
     # IQ-4: the machine key the counsel names (display-only, GR6) — the
     # playtest driver's advisor arm reads it; absent when nothing is named.

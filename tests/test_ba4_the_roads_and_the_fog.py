@@ -2163,10 +2163,13 @@ class TestAWordsPriceInTheClient:
         `card_during_the_day`, `approach_card`)."""
         label = _gd_func(_gd("main.gd"), "_order_ghost_label")
         assert 'if str(q.get("word", "")) != "":\n\t\tprice = Utils.quote_price_tail(q)' in label
-        assert 'if bool(q.get("halts", false)):\n\t\treturn "halts at the approach · " + price' in label
-        assert label.index('return "attack · " + price') < label.index('return "halts at the approach · "')
-        # an ordinary order's badge is as it was: its actions, "free" for none
-        assert 'var price := "free" if ap <= 0 else "%d AP" % ap' in label
+        # row PW (plain words) re-worded the badge and kept both rules: it now
+        # names the place or the enemy, says "actions" for "AP", and carries
+        # the backend's own lines under its head (`order_quotes.tag_lines`)
+        assert 'if bool(q.get("halts", false)):\n\t\thead = "Halts at the approach · " + price' in label
+        assert label.index('" · " + price + under') < label.index('head = "Halts at the approach · "')
+        # an ordinary order's badge: its actions, "free" for none
+        assert 'var price := "free" if ap <= 0 else Utils.plural(ap, "action")' in label
 
     def test_the_province_does_not_offer_a_word_twice(self):
         """While a day is open its chips stand above the province's actions;

@@ -1060,11 +1060,45 @@ def the_verdicts_line(ctx, day_block=None) -> str:
             attacker_is_ours = False
         else:
             return ""
+        if _telling.the_day_speaks_plainly():
+            # Row PW: the first cause WITH its numbers ("Why: he had more men —
+            # 25,000 against your 12,000."); the rest ride the payload's `why`.
+            why = _telling.why_plain(ctx, attacker_is_ours)
+            if why:
+                return f"Why: {why[0]}."
         return _telling.verdict_line(_what_told_in_it(ctx, attacker_is_ours),
                                      broke=_whose_line_broke(ctx))
     except Exception as exc:
         report(exc, "battle_day.the_verdicts_line")
         return ""
+
+
+def speaks_plainly() -> bool:
+    """Row PW: the battle's words are the everyday ones (`battle_telling.
+    the_day_speaks_plainly`) — the tableau says so (`plain`), and the table's
+    own captions follow it."""
+    return bool(_telling.the_day_speaks_plainly())
+
+
+def the_whys(ctx) -> List[str]:
+    """Row PW: every cause of a battle the player's marshal led a side of, in
+    plain words with its numbers (`battle_telling.why_plain`) — [] for a
+    battle he led no side of, or with the plain seam down."""
+    if not _telling.the_day_speaks_plainly():
+        return []
+    try:
+        world = getattr(ctx, "world", None)
+        atk, dfd = getattr(ctx, "marshal", None), getattr(ctx, "enemy_marshal", None)
+        if world is None or atk is None or dfd is None:
+            return []
+        player = getattr(world, "player_nation", None)
+        if getattr(atk, "nation", None) == player:
+            return _telling.why_plain(ctx, True)
+        if getattr(dfd, "nation", None) == player:
+            return _telling.why_plain(ctx, False)
+    except Exception as exc:
+        report(exc, "battle_day.the_whys")
+    return []
 
 
 def _after_the_battle(ctx) -> Optional[dict]:
@@ -2317,12 +2351,21 @@ def _notice(world, day) -> None:
         )
         lead, foe = _shown(day.get("lead")), _shown(day.get("enemy"))
         left = int(day.get("ours", 0))
+        title = f"The day at {_place(world, day.get('field'))} hangs"
+        message = (f"{foe} and {lead} fought to no decision. The day is yours to answer: "
+                   f"{left} point{'s' if left != 1 else ''} to spend.")
+        if _telling.the_day_speaks_plainly():
+            # Row PW (plain words): the notice says what happened and what is
+            # asked of the player ("The day at Franconia hangs … the day is
+            # yours to answer" told a first reader neither).
+            title = f"Battle at {_place(world, day.get('field'))}: no winner yet"
+            message = (f"{foe} and {lead} fought and neither won. The battle waits for your "
+                       f"orders: {left} battle point{'s' if left != 1 else ''} to spend.")
         world.notifications.add(create_notification(
             notification_type=BATTLE_DAY_AWAITS,
             priority=NotificationPriority.HIGH,
-            title=f"The day at {_place(world, day.get('field'))} hangs",
-            message=(f"{foe} and {lead} fought to no decision. The day is yours to answer: "
-                     f"{left} point{'s' if left != 1 else ''} to spend."),
+            title=title,
+            message=message,
             turn_created=int(getattr(world, "current_turn", 0) or 0),
             details={"marshal": day.get("lead"), "enemy": day.get("enemy"),
                      "field": day.get("field")}))
@@ -2386,6 +2429,15 @@ def block(world, day: dict, *, chips: bool = True) -> dict:
         "banner": BANNER_OPEN if is_open else str(day.get("banner", "") or ""),
         "chips": [],
     }
+    # Row PW "Plain Words": the headline and the line under the title in
+    # everyday words ("No winner yet" / "Losses so far: you … · him …"), and
+    # the rule of the day in one plain sentence for the table's caption.
+    if _telling.the_day_speaks_plainly():
+        out["banner"] = _telling.plain_banner(out["banner"], out["enemy_shown"])
+        if day.get("read") and _telling.the_day_tells_its_clashes():
+            out["morning"] = (_telling.plain_so_far(dict(day, open=is_open), out["enemy_shown"])
+                              or out["morning"])
+        out["rule"] = _telling.PLAIN_RULE
     if day.get("close"):
         out["close"] = str(day["close"])        # BA-4: how the day ended, in one line
     if day.get("verdict_told"):
@@ -2581,6 +2633,7 @@ def the_offer(world, day) -> List[dict]:
                   _telling.DOES["cannonade"] if kind == "cannonade" else _telling.does_attack(kind, quote),
                   _telling.more_of("guard" if kind == "guard" else "press") if kind != "cannonade" else "",
                   _telling.risk_of(kind, quote, day))
+            chips[-1]["_force"] = dict(quote.get("force") or {})   # row PW: for `speak_plainly`
             if corps.name == lead.name:
                 for row in quote.get("bring") or []:
                     if not row.get("command"):
@@ -2614,6 +2667,8 @@ def the_offer(world, day) -> List[dict]:
         _stand = _telling.stakes_of("stand_night" if _stand == _telling.DOES["stand_night"] else "stand",
                                     day, reading=_read_line)
     _does(chips[-1], _stand, _telling.more_of("stand"))
+    if isinstance(_reading, dict):
+        chips[-1]["_reading"] = str(_reading.get("strike") or "")   # row PW: for `speak_plainly`
     if a_marshal_may_be_left_to_it():
         chips.append(_chip("stand", f"Leave it to {_shown(lead.name)}", word="leave_it", who=lead.name))
         if _telling.a_word_says_what_it_does():
@@ -2622,6 +2677,11 @@ def the_offer(world, day) -> List[dict]:
         chips.append(_chip("break_off", "Break off", word="break_off", who=lead.name))
         _does(chips[-1], _telling.stakes_of("break_off", day) if _risks else _telling.DOES["break_off"],
               _telling.more_of("break_off"))
+    # Row PW "Plain Words": every chip said in everyday words — one pass over
+    # the chips as built (`battle_telling.speak_plainly`; the seam down leaves
+    # them as they are and only drops the pass's private hints).
+    for chip in chips:
+        _telling.speak_plainly(chip, day, lead_shown=_shown(lead.name))
     chips.sort(key=_chip_rank)            # stable: the order within a kind is kept
     return chips
 

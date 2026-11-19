@@ -29,6 +29,7 @@ const MarshalStateKit = preload("res://scripts/marshal_state.gd")
 signal verb_pressed(verb: String, marshal: String)
 signal cancel_order_pressed(marshal: String)
 signal close_pressed
+signal take_pressed(marshal: String)   # row PW: "Take <province>" where he stands
 
 const CARD_WIDTH := 440.0
 const CARD_MIN_WIDTH := 280.0
@@ -140,11 +141,49 @@ func _render() -> void:
 	if _group.is_empty():
 		_specs = MarshalStateKit.order_specs(_view)
 		_body.add_child(_head_row(compact))
+		var ground := _ground_row(compact)
+		if ground != null:
+			_body.add_child(ground)
 		_body.add_child(_order_row(compact))
 	else:
 		_body.add_child(_group_row(compact))
 	_body.add_child(_hint_label(compact))
 	reset_size()
+
+
+func _ground_row(compact: bool) -> Control:
+	"""Row PW (the first playtest: "i had 3 people in colinia and no one could
+	take it"): he stands on a province that is not ours — the board's
+	`stands_on`. Where an order would take it, that order is a button here
+	("Take Carniola", "Storm Vienna"); where none would, the reason is said in
+	one line. Null on our own ground."""
+	var stands = _view.get("stands_on", {})
+	if not (stands is Dictionary) or (stands as Dictionary).is_empty():
+		return null
+	var place := str(_view.get("stands_at", ""))
+	var line := str(stands.get("line", "")).strip_edges()
+	var row := VBoxContainer.new()
+	row.name = "GroundRow"
+	row.add_theme_constant_override("separation", 3)
+	var wrap_w: float = maxf(_card_width(compact) - 24.0, 120.0)
+	if bool(stands.get("ok", false)) and str(stands.get("command", "")) != "":
+		var btn := Button.new()
+		btn.name = "TakeButton"
+		btn.text = str(stands.get("label", "Take it"))
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.custom_minimum_size = Vector2(0, 34)
+		btn.tooltip_text = Utils.clean_tip(
+			(place + ": " if place != "" else "") + line + " — one action.")
+		btn.theme_type_variation = &"PrimaryButton"   # the one gilt act on the card
+		btn.pressed.connect(func(): take_pressed.emit(_marshal))
+		row.add_child(btn)
+	if line != "":
+		var words := ("[color=#" + Utils.COLOR_WARNING + "]" + (place + " is not ours: " if place != "" else "")
+			+ line + ".[/color]")
+		if str(stands.get("refusal", "")) != "":
+			words += " [color=#" + Utils.COLOR_INFO + "](" + str(stands.get("refusal", "")) + ")[/color]"
+		row.add_child(_measured_rich("GroundLine", words, wrap_w, true))
+	return row
 
 
 func _card_width(compact: bool) -> float:

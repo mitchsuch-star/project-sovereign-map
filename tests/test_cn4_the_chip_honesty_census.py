@@ -1287,6 +1287,40 @@ REVIEWED = {
     # Session UI-2 (November 12, 2026): the settlement table's "+ / − Add demand" became a chip (it was a bare [url=]).
     ("proposal_confirm_popup.gd", '"addmenu:%d" % court_index'): "toggles that court's demand menu open or shut (_add_demand_expanded, then the table re-renders and re-fits); never sends",
     ("main.gd", '"ledger:7"'): "the terminal dispatch's twin of the LAWS door — _on_output_meta_clicked → _on_tutorial_open_ledger; never sends",
+    # Row PW "Plain Words" (November 18, 2026 — the first playtest). Five chips.
+    # The order that TAKES the province a corps stands in: the chip names the
+    # corps; `_pw_take_where_he_stands` reads his own `tactical_state.stands_on`
+    # (the backend's reading, `world_state._stands_on` <- `ground.standing`) and
+    # sends ITS command through main.gd's guarded map-order road only where
+    # nothing holds the province; a garrison, works or an enemy corps open the
+    # order card instead (the quote, the odds). The command is the attack
+    # road's own, sent and read back in
+    # `tests/test_pw_plain_words.py::TestTheOrderThatTakes`.
+    ("main.gd", '"pwtake:" + str(row.get("key", ""))'):
+        "the end-turn ask's \"Take <province>\": the corps' own stands_on command by main.gd's guarded send road when nothing holds the ground, else the order card (row PW)",
+    # The order card's remedy for a move that would enter and not take: "do:" +
+    # the quote's `remedy_command` (the backend's, `ground.entering`) is handed
+    # to main.gd's send road like the bring rows above; for a garrison or works
+    # the chip is "take:<province>" and opens that order's OWN card (its
+    # reckoning) — nothing is sent by the press.
+    ("order_confirm_card.gd", "chip_meta"):
+        "the quote's own remedy command on the card (\"Storm it instead\"): handed to main.gd's send road, or — a garrison, works — opens the take order's own card and sends nothing (row PW)",
+    # THIS DEAL's "Take <province>" beside a province an ally only occupies:
+    # the guided table's own demand row for it (`plain_deal.allies_hand_back[]
+    # .claims[]`, built from the court's `demand_suggestions`), sent as any
+    # row's add is (`_emit_settlement_action`); the table restages.
+    ("proposal_confirm_popup.gd", '"dealclaim:%d:%d" % [i, c]'):
+        "the table's own guided demand for that province, by the per-court rows' road (_emit_settlement_action); restages the table (row PW)",
+    # The land question under a press of "Offer them more": the named button
+    # sends the table's own add verb for that one clause (the backend's
+    # `land_offers` row: `settlement_demand_add`, group offer) — the ONLY road
+    # by which the player's land enters the offer
+    # (`tests/test_pw_plain_words.py::TestThePeaceTableInPlainWords`); "No —
+    # keep it" strikes the question in place and sends nothing.
+    ("proposal_confirm_popup.gd", '"landoffer:" + str(i)'):
+        "the backend's land_offers row: the table's add verb for that one named province, by _emit_settlement_action; restages the table (row PW)",
+    ("proposal_confirm_popup.gd", '"landkeep:" + str(i)'):
+        "declines the land question in place (the row is marked kept, the head re-renders); never sends (row PW)",
 }
 
 

@@ -1968,6 +1968,9 @@ def ratify_settlement_confirm(
         "settlement_reactions": reaction_summary,
         "settlement_result_feedback": {
             "title": "Settlement Ratified",
+            # Row PW (plain words): what the peace did, as the table said it
+            # before the signature (`settlement_plain_result`).
+            "plain": _plain_result_of(dialogue),
             "war_label": ratified_war_label,
             "resolved_pair_count": len(resolved_pairs),
             "review_target": "ledger_settlements",
@@ -1985,6 +1988,17 @@ def ratify_settlement_confirm(
         "mutated": True,
         "message": result_message,
     }
+
+
+def _plain_result_of(dialogue: Mapping[str, Any]) -> Dict[str, Any]:
+    """Row PW: the signed table's own THIS DEAL block, in the past tense."""
+    try:
+        from backend.game_logic.settlement_staging import settlement_plain_result
+        return settlement_plain_result((dialogue or {}).get("plain_deal") or {})
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "settlement_ratify._plain_result_of")
+        return {}
 
 
 def _stage_replacement_settlement_terms(

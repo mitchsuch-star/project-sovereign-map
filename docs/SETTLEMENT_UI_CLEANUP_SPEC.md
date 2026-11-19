@@ -1438,3 +1438,23 @@ This spec is complete only when:
 - No `counterproposal_*` constants, dialogue types, or voice families appear in code, popup payloads, or mailbox content. AI rejection of a player-staged settlement produces no counter-offer; the SC-5 / SC-30 `Request Revision` route remains the only counter-flow for AI-originated offers.
 - `wait_for_enemy_offer_visible` and `ask_for_terms_visible` flags are absent from popup payloads after G2-Slice-G2d. `wait_for_enemy_offer_unavailable` is absent from `display_names.py`. STATUS DWL-SET-SC30 Notes records the removal as terminal (no future SC-30b/c slice).
 - Same-war different-scope restaging surfaces the `settlement_scope_replace_confirm` chooser after G2-Slice-G2e instead of the rejection-only `same_war_scope_collision` default. Outer-cancel = keep.
+
+
+## Row PW (November 18, 2026) — the table's plain faces (a note; the contract is `SYSTEMS_REFERENCE.md` §227.5)
+
+The first playtest found the table's words opaque. The option and affordance LABELS this spec names stay the stable keys every road and pin reads; the client prints these faces over them (`proposal_confirm_popup.PLAIN_FACES`, `plain_court_face`, `TABLE_WORDS`):
+
+| The label in this spec | The face on the screen |
+|---|---|
+| Harsher terms | Ask for more |
+| More generous | Offer them more |
+| Submit for Review | Review and sign |
+| Back Out | Cancel |
+| Ratify … | Sign the peace (Sign a white peace) |
+| Return to terms | Go back and change the terms |
+| Demand more of X / Ease X / Drop X | Ask more of X / Offer X more / Leave X out ("Ask more", "Offer more", "Leave out" on a folded row) |
+| Will carry / Will NOT carry — N of M hold out | They will sign / They will not sign yet — N of M refuse |
+| Committed / Reserve / Remaining | Gold you offer / In your treasury / Left if they sign |
+| Blocker: Settlement legitimacy | Why: you ask more than you have won / the war has decided nothing yet |
+
+Two rules of this spec are AMENDED by the row, by the user's approval of its plan: **GT-A5's territory escalation** — the generous dial no longer authors a cession of the proposer's land; it asks, and only a button naming the province adds it (PW-12) — and the table **stays on the screen** through a press that restages it (PW-9, PW-R21). The table also carries THIS DEAL (`plain_deal`) and each court's `top_blocker_plain` / `band_plain`.

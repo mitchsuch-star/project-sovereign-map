@@ -89,7 +89,10 @@ def test_war_detail_and_notifications_preserve_settlement_route_ids() -> None:
     main = read_repo_file("godot-client/project-sovereign/scripts/main.gd")
 
     assert "signal settlement_clicked(war_id: String, target_nation: String)" in war_detail
-    assert "Open Whole-War Settlement" in war_detail
+    # (row PW, plain words: "Open Whole-War Settlement" reads "Make peace
+    # with all of them"; the same button, the same route ids)
+    assert 'const MAKE_PEACE_ALL := "Make peace with all of them"' in war_detail
+    assert "_add_settlement_button(shared_war_id, _current_nation, MAKE_PEACE_ALL)" in war_detail
     assert 'war_data.get("settlement_available", false)' in war_detail
     assert "_shared_coalition_war_id" in war_detail
     assert "notification_review_requested(review_target: String, route_id: String, war_id: String)" in notifications

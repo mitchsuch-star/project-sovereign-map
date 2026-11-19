@@ -434,6 +434,12 @@ class MetaExecutor:
         # Use TurnManager to process everything including ENEMY AI
         from backend.game_logic.turn_manager import TurnManager
         turn_manager = TurnManager(world, executor=self._executor)
+        # Row PW "Plain Words": the board as End Turn is pressed (who holds
+        # what, who stands where) — the "before" of what changed for the
+        # player while the turn turned. A resumed close has no honest one.
+        from backend.game_logic import while_you_waited as _while_you_waited
+        _before_the_turn = _while_you_waited.before(
+            world, bool(getattr(world, "_advance_failed", False)))
         try:
             turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
         except Exception:
@@ -446,6 +452,11 @@ class MetaExecutor:
             }
             raise
         world._end_turn_window = None
+        # Row PW: ... and what changed (`while_you_waited.digest`: the
+        # provinces lost and won with their causes, his battles, the enemies
+        # now beside him). A reading; nothing is written to the world.
+        _while_you_waited.attach(turn_result, world, _before_the_turn,
+                                 turn_result.get("enemy_phase"), turn_result.get("tactical_events"))
 
         # RR6-X3: the store learns what the enemy-phase dialog SHOWS — before
         # the morning dispatch and the autosave read it. The dialog's own fog
@@ -776,6 +787,11 @@ class MetaExecutor:
         # ══════════════════════════════════════════════════════════════
         if turn_result.get("jealousy_attacks"):
             result["jealousy_attacks"] = turn_result["jealousy_attacks"]
+
+        # Row PW: what changed for the player while the turn turned
+        # (`while_you_waited.digest` — the report's first word).
+        if turn_result.get("while_you_waited"):
+            result["while_you_waited"] = turn_result["while_you_waited"]
 
         # V2a: Include saved mild concerns (captured before advance_turn cleared them)
         if saved_mild_concerns:

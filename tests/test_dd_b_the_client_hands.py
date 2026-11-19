@@ -88,8 +88,20 @@ class TestTheRails:
         assert 'settings_class.set("_persist", false)' in src
         # A FIRST launch: no latch is pre-set (the scale card, the parser
         # hint and the tutor are as a new player has them).
+        # Row PW (November 18, 2026): `DD_B_UI_SCALE=<scale>` stands the run at
+        # a RETURNING player's stored scale (the player who found the oversized
+        # war window plays at 1.8) — inside that arm, and nowhere else, the
+        # scale card is acknowledged as his settings file has it. With the
+        # variable unset the launch is a first launch, as before.
+        arm_at = src.index("if own_scale.is_valid_float():")
+        arm = src[arm_at:src.index("_run.call_deferred()", arm_at)]
+        first_launch = src.replace(arm, "")
+        assert 'var own_scale := OS.get_environment("DD_B_UI_SCALE")' in src
+        assert '"scale_acknowledged", true' in arm
         for latch in ("scale_acknowledged", "hint_seen", '"tutorial", "done"'):
-            assert latch not in src, latch
+            assert latch not in first_launch, latch
+        for latch in ("hint_seen", '"tutorial", "done"'):
+            assert latch not in arm, latch
 
     def test_the_window_is_the_users_screen_parked_past_the_desktop(self):
         assert P.WINDOW == "5120x1440"
@@ -271,6 +283,19 @@ def _answer_chain(run: pathlib.Path, state: dict, answered: list, limit: int = 1
     raise AssertionError(f"the chain never ended: {answered}")
 
 
+def _a_window_stays() -> bool:
+    """OC-X5 (row OC, November 18, 2026 — OC-X3's sibling in the pins' own
+    gate): an engine starting or exiting in a sibling lane reads as a window
+    for an instant, and the driven pins skipped on it (nine skips in a loaded
+    hook run; a skip is not a pass). A window counts only if it is still
+    there after three re-reads, two seconds apart."""
+    for _ in range(3):
+        time.sleep(2)
+        if not P._godot_running(True):
+            return False
+    return True
+
+
 @pytest.fixture(scope="module")
 def played(tmp_path_factory) -> dict:
     engine = _engine()
@@ -278,7 +303,7 @@ def played(tmp_path_factory) -> dict:
         pytest.skip("Godot engine not on this machine — the driven pins skip, and a skip is not a pass")
     # A headless engine in another lane is no second window (conftest,
     # ENGINE_LANES): only a WINDOW skips the pins, and a skip is not a pass.
-    if P._godot_running(windowed_only=True):
+    if P._godot_running(windowed_only=True) and _a_window_stays():
         pytest.skip("another Godot window is open — never two at once")
     run = tmp_path_factory.mktemp("dd_b_hands") / "run"
     env = dict(os.environ)
@@ -357,7 +382,7 @@ def _start_engine_run(tmp_path_factory, name: str):
         pytest.skip("Godot engine not on this machine — the driven pins skip, and a skip is not a pass")
     # A headless engine in another lane is no second window (conftest,
     # ENGINE_LANES): only a WINDOW skips the pins, and a skip is not a pass.
-    if P._godot_running(windowed_only=True):
+    if P._godot_running(windowed_only=True) and _a_window_stays():
         pytest.skip("another Godot window is open — never two at once")
     run = tmp_path_factory.mktemp(name) / "run"
     env = dict(os.environ)
@@ -425,7 +450,9 @@ def table(tmp_path_factory) -> dict:
         # preview, which has no demand lines).
         states["cabinet"] = _act(run, "key F1")
         states["court"] = _act(run, "click Britain")
-        states["opened"] = _act(run, "click Open Settlement")
+        # row PW (November 18, 2026): the Cabinet's row says what it does — "Make peace —
+        # choose the terms — with Britain, Austria and Russia" (it read "Open Settlement")
+        states["opened"] = _act(run, "click Make peace — choose the terms")
         st = states["opened"]
         # Session UI-4 (November 12, 2026), re-ruled consciously: EVERY court is one
         # uniform status row and its words (the demand lines, "+ Add demand") stand
@@ -474,9 +501,22 @@ def table(tmp_path_factory) -> dict:
         states["expanded"] = st
         # the expansion folds each court's options under "▸ Demands of <court> (N)"
         st = _act(run, "click Demands of Britain")
+
+        def _gold_rows(state: dict) -> list:
+            return [b["text"].strip() for b in state["buttons"] if b.get("kind") == "link"
+                    and re.fullmatch(r"Demand \d[\d,]* gold from Britain", b["text"].strip())]
+
+        # row PW (November 18, 2026): the table's head and its lead stand two
+        # lines taller (the change line's row, the caption on the number), so
+        # the opened options may stand under the body's fold — the player
+        # scrolls to them
+        if scroll_at is not None:
+            for _ in range(6):
+                if _gold_rows(st):
+                    break
+                st = _act(run, f"scroll {scroll_at[0]} {scroll_at[1]} down 3")
         states["demands"] = st
-        gold = [b["text"].strip() for b in st["buttons"] if b.get("kind") == "link"
-                and re.fullmatch(r"Demand \d[\d,]* gold from Britain", b["text"].strip())]
+        gold = _gold_rows(st)
         assert gold, [b["text"] for b in st["buttons"] if b.get("kind") == "link"]
         states["staged"] = _act(run, f"click {gold[0]}")
         # Session UI-4: the staged gold line stands under Britain's open card,
@@ -1016,3 +1056,126 @@ class TestTheRecords:
                 assert any(ln.startswith(f"| **{c['dr_id']}** |") for ln in design.splitlines()), c["dr_id"]
             for s in c["sightings"]:
                 assert (REPO / s["frame"]).is_file(), s["frame"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Row PW "Plain Words" (November 18, 2026 — the first playtest): the windows
+# FIT the first player's own screen and STAND STILL, on the real client
+# ═══════════════════════════════════════════════════════════════════════════
+# "clicking war detail makes a popup buigger than screen … some screens bobble
+# up and down". He plays at Interface Scale 1.8 on a maximised 5120-wide
+# window (a logical view of 2844 x 765) — a size no measure had stood at. The
+# instrument stands the run there (`DD_B_UI_SCALE`, `DD_B_WINDOW`), and every
+# action's record now carries what reaches PAST THE SCREEN (`off_screen`) and
+# which window MOVED after it had opened (`settle_moves`). The walk: the war
+# card's Make peace, a press on the peace table (the table stays), the war's
+# own window, the turn's end and its report.
+
+def _pw_said(state: dict) -> str:
+    return " | ".join(str(t.get("text") or "") for t in state.get("texts") or [])
+
+
+def _pw_buttons(state: dict) -> list:
+    return [str(b.get("text") or "") for b in state.get("buttons") or []]
+
+
+def _pw_panel_moves(state: dict) -> list:
+    """A WINDOW that moved after it had opened (a list inside it coming to
+    rest on a whole line — `Utils.keep_whole_lines`, UXR3-F3 — is not one)."""
+    return [m for m in state.get("settle_moves") or [] if str(m.get("what", "")).startswith("panel ")]
+
+
+@pytest.fixture(scope="module")
+def pw_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        run, sup = _start_engine_run(tmp_path_factory, "pw_fit")
+    states: dict = {}
+    try:
+        states["boot"] = json.loads((run / "state" / "0000.json").read_text(encoding="utf-8"))
+        states["begin"] = _act(run, "click Begin")
+        states["table"] = _act(run, "click Make peace")
+        states["offer"] = _act(run, "click Offer them more")
+        states["offer_again"] = _act(run, "click Offer them more")
+        states["ask"] = _act(run, "click Ask for more")
+        states["cancel"] = _act(run, "click Cancel")
+        states["war_window"] = _act(run, "click War with the Third Coalition")
+        states["esc"] = _act(run, "key Escape")
+        states["end_turn"] = _act(run, "click End Turn", meant="end_turn")
+        states["continue"] = _act(run, "click Continue") if "enemy_phase" in " ".join(_modal(states["end_turn"])) \
+            else states["end_turn"]
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowPWTheWindowsFitAndStandStill:
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, pw_walk):
+        boot = pw_walk["boot"]
+        assert float(boot["ui_scale"]["at_boot"]) == 1.8
+        assert boot["factor"]["physical_size"] == [5120, 1377]
+        logical = boot["factor"]["logical_size"]
+        assert [round(float(logical[0])), round(float(logical[1]))] == [2844, 765], logical
+        assert pw_walk["run"]["n_script_errors"] == 0, pw_walk["run"]["script_errors"]
+
+    def test_nothing_reaches_past_the_screen(self, pw_walk):
+        past = {name: state.get("off_screen") for name, state in pw_walk.items()
+                if isinstance(state, dict) and state.get("off_screen")}
+        assert past == {}, past
+
+    def test_no_window_moves_once_it_has_opened(self, pw_walk):
+        moved = {name: _pw_panel_moves(state) for name, state in pw_walk.items()
+                 if isinstance(state, dict) and _pw_panel_moves(state)}
+        assert moved == {}, moved
+
+    def test_the_war_card_ends_the_war_in_one_press(self, pw_walk):
+        assert "Make peace" in _pw_buttons(pw_walk["begin"])
+        table = pw_walk["table"]
+        assert any("proposal_confirm" in p for p in _modal(table))
+        said = _pw_said(table)
+        assert "THIS DEAL" in said and "You get:" in said and "You give:" in said
+        assert "They will not sign yet" in said or "They will sign" in said
+        for face in ("Ask for more", "Offer them more", "Review and sign", "Cancel"):
+            assert any(b.split("\n", 1)[0] == face for b in _pw_buttons(table)), face
+
+    def test_a_dial_wears_what_its_next_press_does(self, pw_walk):
+        """PW-X13 (the blind reading): the face's second line, before any press."""
+        faces = {b.split("\n", 1)[0]: b for b in _pw_buttons(pw_walk["table"])}
+        for name in ("Ask for more", "Offer them more"):
+            lines = faces[name].split("\n")
+            assert len(lines) == 2 and "gold" in lines[1], faces[name]
+        assert faces["Offer them more"].split("\n")[1] == "+100 gold to each court"
+
+    def test_the_peace_table_stands_still_under_a_dial(self, pw_walk):
+        """PW-X12: measured frame by frame, the rail stood in two rows for two
+        frames under every press and the list's height swung 78 px and back.
+        Nothing of the table moves now — not as it opens, not under a press."""
+        for name in ("table", "offer", "offer_again", "ask"):
+            moved = [m for m in pw_walk[name].get("settle_moves") or []
+                     if "ProposalConfirmPopup" in str(m.get("what", ""))]
+            assert moved == [], (name, moved)
+
+    def test_the_table_stays_through_a_press_and_says_what_changed(self, pw_walk):
+        offer = pw_walk["offer"]
+        assert any("proposal_confirm" in p for p in _modal(offer)), "the table left the screen on a press"
+        said = _pw_said(offer)
+        assert "Changed: " in said or "Nothing changed — " in said, said[:600]
+        assert not any("proposal_confirm" in p for p in _modal(pw_walk["cancel"]))
+
+    def test_the_wars_window_leads_with_make_peace(self, pw_walk):
+        war = pw_walk["war_window"]
+        assert any("war_detail" in p for p in war["open"]["popups"])
+        buttons = _pw_buttons(war)
+        assert any(b.startswith("Make peace") for b in buttons), buttons
+        assert "Open Settlement" not in buttons and "Negotiate Peace" not in buttons
+
+    def test_the_turns_report_opens_on_what_changed_for_the_player(self, pw_walk):
+        end = pw_walk["end_turn"]
+        assert end["ok"], end.get("error")
+        if any("enemy_phase" in p for p in _modal(end)):
+            said = _pw_said(end)
+            assert "THE ENEMY'S MOVES" in said, said[:400]
+            assert "Continue" in _pw_buttons(end)

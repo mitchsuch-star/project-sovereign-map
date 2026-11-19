@@ -313,8 +313,20 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	# wrapped into a cramped 2 + 1 column (the readers: "a cramped column of
 	# buttons"). A caption, then one flag-and-name button per court in a row;
 	# the full words are each button's hover (and, On the page, its face).
+	# Row PW "Plain Words" (the first playtest: "its unclear how to end wars"):
+	# the button that ENDS THE WAR leads the row, by its plain name — "Make
+	# peace" (it read "Open Settlement", third in a row captioned "Negotiate
+	# with:"). Then the single courts, for a dealing with one of them alone.
+	if bool(war_data.get("settlement_available", false)):
+		_add_settlement_button(_current_war_id, _current_nation,
+			MAKE_PEACE_ALL if courts.size() > 1 else MAKE_PEACE)
+	elif str(war_data.get("settlement_tier_display", "")) != "" and str(war_data.get("settlement_disabled_reason_display", "")) != "":
+		# FA-D15 (slice 17, Phase 2): the Request Terms idiom — a settlement-tier
+		# war whose review is unavailable renders the button DISABLED with the
+		# reason in the tooltip, instead of vanishing.
+		_add_disabled_settlement_button(str(war_data.get("settlement_disabled_reason_display", "")))
 	var negotiate_caption := Label.new()
-	negotiate_caption.text = "Negotiate with:"
+	negotiate_caption.text = "Or deal with one court:"
 	negotiate_caption.theme_type_variation = &"Caption"
 	negotiate_caption.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	negotiate_caption.custom_minimum_size = Vector2(0, 36)
@@ -322,13 +334,6 @@ func show_war(war_data: Dictionary, _coalition_data) -> void:
 	button_row.add_child(negotiate_caption)
 	for court in courts:
 		_add_negotiate_button(str(court))
-	if bool(war_data.get("settlement_available", false)):
-		_add_settlement_button(_current_war_id, _current_nation, "Open Settlement")
-	elif str(war_data.get("settlement_tier_display", "")) != "" and str(war_data.get("settlement_disabled_reason_display", "")) != "":
-		# FA-D15 (slice 17, Phase 2): the Request Terms idiom — a settlement-tier
-		# war whose review is unavailable renders the button DISABLED with the
-		# reason in the tooltip, instead of vanishing.
-		_add_disabled_settlement_button(str(war_data.get("settlement_disabled_reason_display", "")))
 	# SC-30 / Slice G1: Request Terms — absent state never renders (the
 	# no-false-affordance rule); disabled renders ONLY for deterministic
 	# temporal reasons, with the pre-click clock in the tooltip (G4F-16).
@@ -361,7 +366,7 @@ func show_coalition(coalition_data: Dictionary, wars: Array) -> void:
 	_clear_buttons()
 	var shared_war_id = _shared_coalition_war_id(wars)
 	if shared_war_id != "":
-		_add_settlement_button(shared_war_id, _current_nation, "Open Whole-War Settlement")
+		_add_settlement_button(shared_war_id, _current_nation, MAKE_PEACE_ALL)
 	else:
 		_add_coalition_settlement_explainer()
 	# Add Target buttons for non-leader coalition members
@@ -711,7 +716,7 @@ func _render_war_detail(w: Dictionary):
 		if str(w.get("settlement_tier_side", "")) == "theirs":
 			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]" + tier_link + "\n"
 		else:
-			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]" + tier_link + "\n"
+			bbcode += PEACE_YOU_COULD_GET + "[color=" + COLOR_GOLD + "]" + tier_display + "[/color]" + tier_link + "\n"
 	# PC-F33 (S13e part 4): a white peace confirms every holding — say so
 	# beside the tier.
 	var held_line = str(w.get("held_line", ""))
@@ -737,7 +742,7 @@ func _render_war_detail(w: Dictionary):
 		# words the Back Out reply shares) is drawn; the literal is its twin.
 		var kept_line = str(w.get("settlement_draft_kept_line", ""))
 		if kept_line == "":
-			kept_line = "Draft kept until turn's end — Open Settlement resumes your terms."
+			kept_line = "Draft kept until the turn ends — Make peace picks your terms up again."
 		bbcode += "[color=" + COLOR_GOLD + "]▸ " + kept_line + "[/color]\n"
 	if tier_display or (peace_table is Dictionary and (tier_display == "" or Utils.show_note(tier_note_id))) or bool(w.get("settlement_draft_kept", false)):
 		bbcode += "\n"
@@ -1310,14 +1315,24 @@ func _clear_buttons():
 		child.queue_free()
 
 
+# Row PW (plain words): the war window's peace buttons, by what they do.
+const MAKE_PEACE := "Make peace"
+const MAKE_PEACE_ALL := "Make peace with all of them"
+const MAKE_PEACE_TIP := "Open the peace talks for this war: choose the terms, see who will sign, then sign or cancel. Nothing is sent until you sign."
+const ASK_TERMS := "Ask what they want"
+# ("Settlement Tier: White Peace" — the losing side's line, IQ-2's "theirs to
+# impose", keeps its words: six pins and the war card's hover read them)
+const PEACE_YOU_COULD_GET := "The peace you could get now: "
+
+
 func _add_negotiate_button(nation: String):
 	var btn = Button.new()
 	# PC-F41: the button names the court it addresses.
-	var full_label: String = "Negotiate with " + Utils.display_nation_name(nation)
+	var full_label: String = "Deal with " + Utils.display_nation_name(nation)
 	# Session UI-4: Folded, the face is the court's flag and name; the page keeps
 	# the full label on the face. The hover carries the full words either way.
 	btn.text = Utils.display_nation_name(nation) if Utils.explanations_folded() else full_label
-	btn.tooltip_text = full_label + " — open bilateral peace options with " + Utils.display_nation_name(nation) + " only."
+	btn.tooltip_text = full_label + " alone — a separate peace, a truce or an offer, in the Cabinet."
 	Utils.apply_flag_icon(btn, nation)
 	btn.custom_minimum_size = Vector2(110, 36)
 	btn.theme_type_variation = &"CaptionButton"
@@ -1331,9 +1346,10 @@ func _add_negotiate_button(nation: String):
 func _add_settlement_button(war_id: String, nation: String, label: String):
 	var btn = Button.new()
 	btn.text = label
-	btn.tooltip_text = "Open a war-wide settlement review."
+	btn.tooltip_text = MAKE_PEACE_TIP
 	btn.custom_minimum_size = Vector2(190, 36)
-	btn.theme_type_variation = &"CaptionButton"
+	# Row PW: the act the window exists for is its primary button.
+	btn.theme_type_variation = &"PrimaryButton"
 	btn.pressed.connect(func():
 		hide()
 		settlement_clicked.emit(war_id, nation)
@@ -1343,7 +1359,7 @@ func _add_settlement_button(war_id: String, nation: String, label: String):
 
 func _add_disabled_settlement_button(reason: String):
 	var btn = Button.new()
-	btn.text = "Open Settlement"
+	btn.text = MAKE_PEACE
 	btn.custom_minimum_size = Vector2(190, 36)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.disabled = true
@@ -1353,11 +1369,11 @@ func _add_disabled_settlement_button(reason: String):
 
 func _add_request_terms_button(war_id: String, nation: String, rt_state: Dictionary):
 	var btn = Button.new()
-	btn.text = "Request Terms"
+	btn.text = ASK_TERMS
 	btn.custom_minimum_size = Vector2(150, 36)
 	btn.theme_type_variation = &"CaptionButton"
 	if str(rt_state.get("state", "")) == "available":
-		btn.tooltip_text = "Ask the enemy war leader to name settlement terms."
+		btn.tooltip_text = "Ask them to name the terms they would sign."
 		btn.pressed.connect(func():
 			hide()
 			request_terms_clicked.emit(war_id, nation)

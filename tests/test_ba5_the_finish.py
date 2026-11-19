@@ -1723,7 +1723,8 @@ class TestAVerdictNamesWhatTold:
                       "the clash that decides a day is named", "the attacker's throw"):
             assert words in entry, words
         names = [m for m in re.findall(r'^\t\["([^"]+)",', terms.split("const ORDER_GRAMMAR", 1)[0], flags=re.M)]
-        assert names[-2:] == ["War score", "What told"], "the terms stay A to Z"
+        # row PW (November 18, 2026): "White peace" files after it, A to Z
+        assert names[-3:] == ["War score", "What told", "White peace"], "the terms stay A to Z"
 
 
 class TestARoutWonOnPointsHasLeftTheField:

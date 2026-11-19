@@ -691,9 +691,9 @@ func _walk_dawn() -> void:
 	var phase_up: bool = dlg != null and bool(dlg.visible)
 	_rec("end_turn", "pressed the End Turn button (%d press(es))" % presses,
 		"turn %d -> %d; the lapse gate stood=%s and spoke of a day=%s; the enemy phase's dialog up=%s; the log: %s" % [
-			turn0, _turn(), str(gate), str(gate_said.find("Take the field") >= 0 or gate_said.find("still hangs") >= 0),
+			turn0, _turn(), str(gate), str(gate_said.find("Give your orders") >= 0 or gate_said.find("no winner yet") >= 0),
 			str(phase_up), _last_words(_log_tail(), 200)],
-		btn != null and phase_up and gate_said.find("Take the field") < 0 and gate_said.find("still hangs") < 0)
+		btn != null and phase_up and gate_said.find("Give your orders") < 0 and gate_said.find("no winner yet") < 0)
 	await _shot("enemy_phase", "the enemy phase's dialog")
 	if not phase_up:
 		_finish()
@@ -835,10 +835,10 @@ func _walk_dawn() -> void:
 		await _frames(10)
 	var gate2 := _log_since(log1)
 	var stopped: bool = pressable and not bool(dlg.visible) and _turn() == turn1
-	var chip_meta := _log_meta_labelled("Take the field", msg1)
-	var sentence_ok: bool = gate2.find("The day at " + field_s) >= 0 and gate2.find("still hangs") >= 0 \
-		and (gate2.find(lead_s + " holds") >= 0 or gate2.find(lead_s + " may still stand") >= 0) \
-		and gate2.find("answers alone") >= 0
+	var chip_meta := _log_meta_labelled("Give your orders", msg1)
+	var sentence_ok: bool = gate2.find("The battle at " + field_s) >= 0 and gate2.find("no winner yet") >= 0 \
+		and (gate2.find(lead_s + " still has") >= 0 or gate2.find(lead_s + " can still wait") >= 0) \
+		and gate2.find("decides alone") >= 0
 	_rec("day_gate", "closed the table and the modals the turn's tail raised (%s), then pressed End Turn once with the day open" % str(modals.get("closed", [])),
 		"modal stuck='%s'; the turn stopped=%s (turn %d -> %d); the gate's sentence in its message: %s; the day's sentence ok=%s; a 'Take the field' chip (%s) in the log=%s" % [
 			str(modals.get("stuck", "")), str(stopped), turn1, _turn(), _last_words(gate2, 420), str(sentence_ok),
@@ -868,7 +868,7 @@ func _walk_dawn() -> void:
 	if closed_ok and icon != null:
 		icon.emit_signal("pressed")
 		await _frames(10)
-		take = _button_named(bar.expanded_panel, "Take the field")
+		take = _button_named(bar.expanded_panel, "Give your orders")
 	_rec("notice", "closed the table (the day still open), found the 'battle_day_awaits' icon on the rail and opened it",
 		"table closed=%s; the icon on the rail=%s; notices held: %s; 'Take the field' reachable=%s" % [
 			str(closed_ok), str(icon != null), str(shown_types), str(take != null)],
@@ -955,8 +955,8 @@ func _walk_dawn() -> void:
 	_rec("no_day_gate", "pressed End Turn with no day open",
 		"pending days held=%d; the enemy phase's dialog came up=%s (no gate); the gate's words: %s; spoke of a day=%s" % [
 			pend_before, str(went), _last_words(said3, 240),
-			str(said3.find("Take the field") >= 0 or said3.find("still hangs") >= 0)],
-		pend_before == 0 and said3.find("Take the field") < 0 and said3.find("still hangs") < 0
+			str(said3.find("Give your orders") >= 0 or said3.find("no winner yet") >= 0)],
+		pend_before == 0 and said3.find("Give your orders") < 0 and said3.find("no winner yet") < 0
 			and str(modals3.get("stuck", "")) == "")
 	_finish()
 

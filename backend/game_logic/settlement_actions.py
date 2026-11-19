@@ -44,6 +44,7 @@ from backend.game_logic.settlement_baseline import (
     _guided_region_offer_candidate,
     _promised_regions_in_terms,
     compute_settlement_baseline,
+    compute_settlement_treasury_line,
 )
 from backend.game_logic.settlement_ratify import (
     _stage_replacement_settlement_terms,
@@ -458,6 +459,353 @@ def _dial_territory_escalation_candidates(
     return candidates
 
 
+# ═══ Row PW "Plain Words" (November 18, 2026 — the first playtest) ═══════════
+
+def the_dial_never_gives_land_unasked() -> bool:
+    """The seam (one line to reverse). Down (False): the generous dial authors
+    a cession of the proposer's own province when its gold is exhausted, as
+    GT-A5 landed it (June 11, 2026). Up: it stops at gold and ASKS — the land
+    is a named button (`land_offers`), pressed or not by the player."""
+    return True
+
+
+def land_offer_rows(world: Any, would_cede: Iterable[Mapping[str, Any]], *,
+                    war_id: str, draft_key: str, no_gold: bool = False) -> List[Dict[str, Any]]:
+    """The land the generous dial WOULD have ceded (its dry run's
+    `territory_escalation` events on the offer side), as questions: one row a
+    court, each the guided table's own add verb for that very clause
+    (`settlement_demand_add`, group `offer` — the "Offer <region> to <court>"
+    row a click in the court's card sends), so the button authors exactly
+    what a deliberate click would."""
+    from backend.game_logic.formations import formed_display_name
+    rows: List[Dict[str, Any]] = []
+    seen: Set[str] = set()
+    for event in would_cede or []:
+        if not isinstance(event, Mapping) or event.get("kind") != "territory_escalation":
+            continue
+        if str(event.get("group") or "") == "demand":
+            continue
+        court = str(event.get("court") or "")
+        region = str(event.get("region") or "")
+        if not court or not region or court in seen:
+            continue
+        seen.add(court)
+        shown = formed_display_name(world, court)
+        # The review (PW-R10, PW-R13): the sentence says the true cause (an
+        # empty purse, or gold that would buy nothing more) and WHOSE province
+        # it is — the candidates are drawn from the whole proposing side, so
+        # the land may be an ally's.
+        player = str(getattr(world, "player_nation", "") or "")
+        holder = str(getattr(world.get_region(region), "controller", "") or "") if world.get_region(region) else ""
+        whose = ("which is yours" if holder == player or not holder
+                 else f"which your ally {formed_display_name(world, holder)} holds")
+        cause = (f"You have no more gold to offer {shown}." if no_gold
+                 else f"More gold would buy nothing more from {shown}.")
+        rows.append({
+            "court": court,
+            "court_display": shown,
+            "region": region,
+            "holder": holder,
+            "label": f"Offer {region} to {shown}",
+            "keep_label": f"No — keep {region}",
+            "line": (f"{cause} The only thing left to offer is land: {region}, {whose}. "
+                     f"Nothing is given unless you choose it."),
+            "action": "settlement_demand_add",
+            "war_id": war_id,
+            "draft_key": draft_key,
+            "action_params": {"nation": court, "group": "offer",
+                              "clause_type": "territory_cede", "region": region},
+        })
+    return rows
+
+
+def _term_words(world: Any, term: Mapping[str, Any], leader: str) -> str:
+    """A clause in plain words from the proposer's side ("gold you pay
+    Russia", "Bohemia to Russia", "Silesia from Prussia")."""
+    from backend.game_logic.formations import formed_display_name
+    ttype = str(term.get("type") or "")
+    frm = str(term.get("from") or "")
+    to = str(term.get("to") or "")
+    ours = frm == leader
+    other = formed_display_name(world, to if ours else frm) if (to if ours else frm) else "them"
+    if frm and to and frm != leader and to != leader:
+        # The review (PW-R8): a clause between two OTHER courts (an ally's
+        # payment, a cession to an ally) is neither paid by nor to the player.
+        payer, payee = formed_display_name(world, frm), formed_display_name(world, to)
+        if ttype in ("gold_indemnity", "gold_lump"):
+            return f"gold {payer} pays {payee}"
+        if ttype == "gold_per_turn":
+            return f"gold a turn {payer} pays {payee}"
+        if ttype.startswith("territory"):
+            return f"{str(term.get('region') or 'a province')} from {payer} to {payee}"
+    if ttype in ("gold_indemnity", "gold_lump"):
+        return f"gold you pay {other}" if ours else f"gold {other} pays you"
+    if ttype == "gold_per_turn":
+        return f"gold a turn you pay {other}" if ours else f"gold a turn {other} pays you"
+    if ttype.startswith("territory"):
+        region = str(term.get("region") or "a province")
+        return f"{region} to {other}" if ours else f"{region} from {other}"
+    from backend.display_names import CLAUSE_TYPE_DISPLAY
+    return str(CLAUSE_TYPE_DISPLAY.get(ttype, ttype.replace("_", " ")))
+
+
+def dial_change_line(world: Any, before: Iterable[Mapping[str, Any]],
+                     after: Iterable[Mapping[str, Any]], *, direction: str,
+                     proposer_leader: str, land_offers: Optional[List[Mapping[str, Any]]] = None,
+                     no_gold: bool = False) -> Dict[str, Any]:
+    """What a press of the dial changed, in plain words — `{"changed": bool,
+    "line": str, "parts": [...]}`. A clause is matched by type and parties
+    (and its region); gold lines say their amounts ("gold you pay Russia
+    825 → 925"), a clause that came or went says so. Nothing changed: the
+    line says that, and why (the gold is spent, or there is nothing more to
+    ask) — a press is never answered by silence."""
+    def key_of(term: Mapping[str, Any]):
+        return (str(term.get("type") or ""), str(term.get("from") or ""),
+                str(term.get("to") or ""), str(term.get("region") or ""))
+
+    old = {key_of(t): t for t in (before or []) if isinstance(t, Mapping)}
+    new = {key_of(t): t for t in (after or []) if isinstance(t, Mapping)}
+    parts: List[str] = []
+    for key, term in new.items():
+        if key[0] == "peace":
+            continue
+        words = _term_words(world, term, proposer_leader)
+        if key not in old:
+            amount = int(term.get("amount", 0) or 0)
+            parts.append(f"added {words}" + (f" ({amount:,})" if amount else ""))
+            continue
+        was = int(old[key].get("amount", 0) or 0)
+        now = int(term.get("amount", 0) or 0)
+        if was != now:
+            parts.append(f"{words} {was:,} → {now:,}")
+    for key, term in old.items():
+        if key[0] != "peace" and key not in new:
+            parts.append(f"removed {_term_words(world, term, proposer_leader)}")
+    if parts:
+        line = "Changed: " + "; ".join(parts) + "."
+        return {"changed": True, "line": line, "parts": parts}
+    if direction == "generous":
+        # The review (PW-R10): by its CAUSE. An empty purse is said only
+        # where the purse is empty; where gold remains and the court's ceiling
+        # is the scorer's (gold past its cap buys nothing more), that is said;
+        # anything else (the accord's clause cap, a protected line) names none.
+        if no_gold:
+            why = "you have no more gold to offer"
+        elif land_offers:
+            why = "more gold would buy nothing more from them"
+        else:
+            why = "nothing more can be added to this deal"
+    else:
+        why = "there is nothing more to ask that they could give"
+    return {"changed": False, "line": f"Nothing changed — {why}.", "parts": [], "why": why}
+
+
+def the_dial_says_its_next_step() -> bool:
+    """The seam (one line to reverse). Down (False): the table leaves without
+    `dial_next` — a dial says what it did only after the press (`dial_change`,
+    `dial_dead`), as row PW first stood."""
+    return True
+
+
+_GOLD_CLAUSES = ("gold_indemnity", "gold_lump", "gold_per_turn")
+
+
+def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[Mapping[str, Any]],
+               *, proposer_leader: str, scope_courts: Iterable[str]) -> str:
+    """What a press would change, short enough for a button's second line
+    ("+100 gold to each court", "−100 gold from Prussia", "asks Austria for
+    Tyrol", "drops your demand for Silesia"). A gold move of one size and one
+    direction (to a court: the player pays; from it: the court pays) is said once
+    for the courts it touches — "each court" when it touches every court in
+    the dial's scope."""
+    from backend.game_logic.formations import formed_display_name
+
+    def key_of(term: Mapping[str, Any]):
+        return (str(term.get("type") or ""), str(term.get("from") or ""),
+                str(term.get("to") or ""), str(term.get("region") or ""))
+
+    def shown(nation: str) -> str:
+        return formed_display_name(world, nation) if nation else "them"
+
+    old = {key_of(t): t for t in (before or []) if isinstance(t, Mapping)}
+    new = {key_of(t): t for t in (after or []) if isinstance(t, Mapping)}
+    scope = [str(c) for c in (scope_courts or []) if c]
+    gold: Dict[tuple, List[str]] = {}   # (side, per turn, delta) -> courts, in the order met
+    other: List[str] = []
+
+    def gold_move(key, delta: int) -> None:
+        ttype, frm, to, _region = key
+        per = " a turn" if ttype == "gold_per_turn" else ""
+        if frm == proposer_leader:
+            gold.setdefault(("to", per, delta), []).append(to)
+        elif to == proposer_leader:
+            gold.setdefault(("from", per, delta), []).append(frm)
+        else:
+            sign = "+" if delta > 0 else "−"
+            other.append(f"{sign}{abs(delta):,} {_term_words(world, {'type': ttype, 'from': frm, 'to': to}, proposer_leader)}")
+
+    for key, term in new.items():
+        ttype, frm, to, region = key
+        if ttype == "peace":
+            continue
+        if ttype in _GOLD_CLAUSES:
+            was = int(old[key].get("amount", 0) or 0) if key in old else 0
+            delta = int(term.get("amount", 0) or 0) - was
+            if delta:
+                gold_move(key, delta)
+        elif key not in old:
+            if ttype.startswith("territory") and to == proposer_leader:
+                other.append(f"asks {shown(frm)} for {region or 'a province'}")
+            elif ttype.startswith("territory") and frm == proposer_leader:
+                other.append(f"offers {region or 'a province'} to {shown(to)}")
+            else:
+                other.append(f"adds {_term_words(world, term, proposer_leader)}")
+    for key, term in old.items():
+        ttype, frm, to, region = key
+        if ttype == "peace" or key in new:
+            continue
+        if ttype in _GOLD_CLAUSES:
+            gold_move(key, -int(term.get("amount", 0) or 0))
+        elif ttype.startswith("territory") and to == proposer_leader:
+            other.append(f"drops your demand for {region or 'a province'}")
+        elif ttype.startswith("territory") and frm == proposer_leader:
+            other.append(f"takes back {region or 'a province'}")
+        else:
+            other.append(f"drops {_term_words(world, term, proposer_leader)}")
+
+    phrases: List[str] = []
+    for (side, per, delta), courts in gold.items():
+        if len(courts) > 1 and set(courts) == set(scope):
+            who = "each court"
+        elif len(courts) <= 2:
+            who = " and ".join(shown(c) for c in courts)
+        else:
+            who = f"{len(courts)} courts"
+        amount = f"+{delta:,}" if delta > 0 else f"−{abs(delta):,}"
+        phrases.append(f"{amount} gold{per} {side} {who}")
+    phrases.extend(other)
+    if len(phrases) > 2:
+        phrases = phrases[:2] + [f"and {len(phrases) - 2} more"]
+    return " · ".join(phrases)
+
+
+def _dial_dry_run(world: Any, dialogue: Mapping[str, Any], *, scope_courts: List[str],
+                  direction: str) -> Dict[str, Any]:
+    """The dial's own computation (`_handle_settlement_tier2_action`'s, step
+    for step: the payers' budgets, the land it could escalate to, the
+    unbuyable courts, the redial), on copies — the terms a press would leave.
+    Mutates nothing."""
+    war_id = str(dialogue.get("war_id") or "")
+    proposer_side = str(dialogue.get("proposer_side") or "")
+    terms = [dict(t) for t in (dialogue.get("settlement_terms") or []) if isinstance(t, Mapping)]
+    war_instance = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+    staged_leaders = dialogue.get("staged_leaders") or {}
+    proposer_leader = staged_leaders.get(proposer_side) or _side_leader(war_instance, proposer_side)
+    budgets = compute_gold_payer_budgets(
+        world, terms, extra_payers=[n for n in [str(proposer_leader or ""), *scope_courts] if n])
+    escalations = _dial_territory_escalation_candidates(
+        world, terms=terms, scope_courts=list(scope_courts), direction=direction,
+        proposer_side_participants=[str(n) for n in (war_instance.get(proposer_side) or []) if n],
+        proposer_leader=str(proposer_leader or ""))
+    would_cede: List[Dict[str, str]] = []
+    if direction == "generous" and the_dial_never_gives_land_unasked():
+        _redial_settlement_terms(
+            terms=terms, scope_courts=scope_courts, direction=direction,
+            proposer_side_leader=proposer_leader, protected_notes=[],
+            seeded_events=would_cede, payer_gold_budgets=budgets,
+            territory_escalations=escalations)
+        escalations = {}
+    unbuyable: Dict[str, Dict[str, Any]] = {}
+    refused = ""
+    if direction == "generous":
+        trial_terms = _redial_settlement_terms(
+            terms=terms, scope_courts=scope_courts, direction=direction,
+            proposer_side_leader=proposer_leader, protected_notes=[], seeded_events=[],
+            payer_gold_budgets=budgets, territory_escalations=escalations)
+        unbuyable = gold_cannot_buy_courts(
+            dialogue, scope_courts=scope_courts, terms=terms, trial_terms=trial_terms)
+        holdouts = {str(n) for n in ((dialogue.get("overall_acceptance") or {}).get("holdout_courts") or [])}
+        holdouts_in_scope = [c for c in scope_courts if c in holdouts]
+        if holdouts_in_scope and len(unbuyable) == len(holdouts_in_scope):
+            refused = gold_cannot_buy_sentence(unbuyable)
+    new_terms = terms if refused else _redial_settlement_terms(
+        terms=terms, scope_courts=scope_courts, direction=direction,
+        proposer_side_leader=proposer_leader, protected_notes=[], seeded_events=[],
+        payer_gold_budgets=budgets, territory_escalations=escalations,
+        unbuyable_courts=set(unbuyable))
+    return {"terms": terms, "new_terms": new_terms, "would_cede": would_cede, "refused": refused,
+            "leader": str(proposer_leader or ""), "war_id": war_id}
+
+
+def dial_previews(world: Any, dialogue: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Row PW (PW-X13 — the blind reading of November 18, 2026: no reader
+    could say what "Offer them more" would do before pressing it). What the
+    NEXT press of each dial would do, by the dial's own dry run — the whole
+    table's two and each court's two:
+
+        {"<scope>:<direction>": {"changes": bool, "face": str, "line": str,
+                                 "why": str, "dead": bool, "asks_land": bool,
+                                 "refused": bool}}
+
+    `face` is the button's second line ("+100 gold to each court"); `line`
+    its hover, the change in full; `dead` a press that would change nothing
+    and ask nothing (the client shuts the button with `why` BEFORE the press);
+    `asks_land` a press that would add no gold and put the land question;
+    `refused` a press the dial would refuse (gold cannot buy the court). Reads
+    only. {} off the player's own PROPOSE table, or with either seam down."""
+    if not (the_dial_says_its_next_step() and the_dial_never_gives_land_unasked()):
+        return {}
+    if not isinstance(dialogue, Mapping):
+        return {}
+    if str(dialogue.get("caller_kind") or "") != SETTLEMENT_EDITOR_CALLER_KIND:
+        return {}
+    if str(dialogue.get("dialogue_mode") or "") != "PROPOSE":
+        return {}
+    covered = sorted({str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n})
+    if not covered:
+        return {}
+    out: Dict[str, Dict[str, Any]] = {}
+    for scope, courts in [("table", covered)] + [(court, [court]) for court in covered]:
+        for direction in ("harsher", "generous"):
+            try:
+                out[f"{scope}:{direction}"] = _dial_preview_row(
+                    world, dialogue, scope_courts=courts, direction=direction)
+            except Exception as exc:  # a preview never stops the table from leaving
+                report(exc, "settlement_actions.dial_previews: _dial_preview_row")
+    return out
+
+
+def _dial_preview_row(world: Any, dialogue: Mapping[str, Any], *, scope_courts: List[str],
+                      direction: str) -> Dict[str, Any]:
+    run = _dial_dry_run(world, dialogue, scope_courts=scope_courts, direction=direction)
+    if run["refused"]:
+        return {"changes": False, "refused": True, "line": str(run["refused"]),
+                "face": "gold cannot buy this — press to see why"}
+    purse = compute_settlement_treasury_line(
+        world, proposer_side_leader=run["leader"], settlement_terms=run["new_terms"])
+    no_gold = int(purse.get("treasury", 0)) - int(purse.get("committed", 0)) <= 0
+    rows = land_offer_rows(
+        world, run["would_cede"], war_id=run["war_id"],
+        draft_key=str(dialogue.get("draft_key") or ""), no_gold=no_gold) if run["would_cede"] else []
+    change = dial_change_line(
+        world, run["terms"], run["new_terms"], direction=direction,
+        proposer_leader=run["leader"], land_offers=rows, no_gold=no_gold)
+    if change.get("changed"):
+        return {"changes": True, "asks_land": bool(rows),
+                "face": _dial_face(world, run["terms"], run["new_terms"],
+                                   proposer_leader=run["leader"], scope_courts=scope_courts),
+                "line": "Next press: " + "; ".join(change.get("parts") or []) + "."}
+    why = str(change.get("why") or "nothing more can change")
+    if rows:
+        return {"changes": False, "asks_land": True, "why": why,
+                "face": "gold can add no more — asks about land",
+                "line": f"Next press: no gold is added — {why}. It asks whether you would offer land; "
+                        "nothing is given unless you choose it."}
+    return {"changes": False, "dead": True, "why": why,
+            "face": "nothing more to add" if direction == "generous" else "nothing more to ask",
+            "line": f"Nothing more to change — {why}."}
+
+
 def gold_cannot_buy_courts(
     dialogue: Mapping[str, Any],
     *,
@@ -650,6 +998,26 @@ def _handle_settlement_tier2_action(
             ],
             proposer_leader=str(proposer_leader or ""),
         )
+        # Row PW "Plain Words" (November 18, 2026 — the first playtest): the
+        # player's LAND IS NEVER OFFERED UNASKED. Pressing "More generous" at
+        # the gold ceiling used to author a cession of his own province
+        # (GT-A5's escalation) — on his own record, three presses took an
+        # offer of 825 gold to 1,000 and then added Bohemia to Russia, which
+        # he signed without knowing. The dial now stops at gold: what it WOULD
+        # have ceded is found by a dry run and put to him as a question
+        # (`land_offers` on the restaged table — one named button a court),
+        # and no land moves unless he presses it. (The harsher dial still
+        # escalates to a DEMAND for land — that asks, it does not give.)
+        land_offers: List[Dict[str, Any]] = []
+        _would_cede: List[Dict[str, str]] = []
+        _plain_dial = bool(the_dial_never_gives_land_unasked())
+        if direction == "generous" and _plain_dial:
+            _redial_settlement_terms(
+                terms=terms, scope_courts=scope_courts, direction=direction,
+                proposer_side_leader=proposer_leader, protected_notes=[],
+                seeded_events=_would_cede, payer_gold_budgets=payer_gold_budgets,
+                territory_escalations=territory_escalations)
+            territory_escalations = {}
         # S14E-6 (Pre-Deploy S14f part 1, October 24, 2026): an Ease cannot
         # buy a legitimacy MISMATCH. Where a holdout's top blocker is a clause
         # of its own that this very dial would leave standing, the gold the
@@ -778,6 +1146,42 @@ def _handle_settlement_tier2_action(
         # and the magnitude verb; the popup draws these at the TOP of the
         # header, under the verdict, where the player's eye already is.
         voice_beats.extend(_dial_note_voice_beats(unique_notes))
+        # Row PW: what the press CHANGED, in one plain line ("Russia: gold you
+        # pay 825 → 925"), or that it changed nothing and why — a button that
+        # did nothing used to answer with a period-voice aside or not at all.
+        dial_extra: Dict[str, Any] = {}
+        if voice_beats:
+            dial_extra["authoring_voice_beats"] = voice_beats
+        # (The review, PW-R14: the dial's plain answers — the change line, the
+        # shut button, the land question — all stand under the ONE seam; with
+        # it down the dial's reply is the old one exactly.)
+        _purse = compute_settlement_treasury_line(
+            world, proposer_side_leader=str(proposer_leader or ""), settlement_terms=new_terms)
+        _no_gold = int(_purse.get("treasury", 0)) - int(_purse.get("committed", 0)) <= 0
+        if _would_cede:
+            # the question's own sentence says the true cause (PW-R10): the
+            # purse as it stands AFTER this press
+            land_offers = land_offer_rows(
+                world, _would_cede, war_id=war_id,
+                draft_key=str(dialogue.get("draft_key") or ""), no_gold=_no_gold)
+        change = dial_change_line(
+            world, terms, new_terms, direction=direction,
+            proposer_leader=str(proposer_leader or ""), land_offers=land_offers,
+            no_gold=_no_gold) if _plain_dial else {}
+        if change:
+            dial_extra["dial_change"] = change
+            message = f"{message} {change['line']}"
+        # Row PW: A BUTTON ALWAYS ACTS, OR SAYS WHY IT CANNOT. A press that
+        # changed nothing shuts THAT button (this scope, this direction) with
+        # its reason — `dial_dead`, carried on the restaged table while the
+        # terms stand and dropped by any press that changes them (this map is
+        # written here only; every other restage starts without it).
+        if change and not change.get("changed"):
+            dead = dict(dialogue.get("dial_dead") or {})
+            dead[f"{scope}:{direction}"] = str(change.get("why") or "nothing more can change")
+            dial_extra["dial_dead"] = dead
+        if land_offers:
+            dial_extra["land_offers"] = land_offers
         return _restage_settlement_after_redraw(
             world,
             dialogue,
@@ -785,7 +1189,7 @@ def _handle_settlement_tier2_action(
             new_terms=new_terms,
             new_covered=covered,
             message=message,
-            extra={"authoring_voice_beats": voice_beats} if voice_beats else None,
+            extra=dial_extra or None,
         )
 
     # settlement_cover_add / settlement_cover_drop

@@ -630,7 +630,8 @@ class TestTheOffers:
 # ═══════════════════════════════════════════════════════════════════════════
 class TestTheSettings:
     def test_next_marshal_after_an_order(self):
-        assert 'get_value("orders", "next_marshal_after_order", not harness_active())' in _func(
+        # (row PW: OFF by default since the first playtest — the switch stays)
+        assert 'get_value("orders", "next_marshal_after_order", false)' in _func(
             SETTINGS, "get_next_marshal_after_order")
         setter = _func(SETTINGS, "set_next_marshal_after_order")
         assert "static func set_next_marshal_after_order(on: bool) -> void:" in setter

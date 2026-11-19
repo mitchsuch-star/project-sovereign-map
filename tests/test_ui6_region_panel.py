@@ -106,9 +106,11 @@ class TestBuildAndTheMarchCaptions:
         # the page prints title and sentence as it did
         assert 'Utils.HEAD_CLOSE + "  [color=#" + Utils.COLOR_INFO + "]" + sentence' in fn
         sect = _func("_march_here_section")
-        for title in ('"MARCH HERE"', '"THE ARMY"', '"SUPPORT "', '"FOLLOW "'):
+        # (row PW: "MARCH HERE" is "SEND A CORPS HERE" — a corps one move
+        # away pays the move's price and arrives now, and the caption says so)
+        for title in ('"SEND A CORPS HERE"', '"THE ARMY"', '"SUPPORT "', '"FOLLOW "'):
             assert f"_march_caption({title}" in sect, title
-        for sentence in ("a standing order — he marches on each turn",
+        for sentence in ("next door is a move, and he arrives now; further off he marches on each turn",
                          "he follows, and marches to the guns",
                          "one order, the Staff's price, every corps within the Emperor's reach"):
             assert sentence in sect, sentence

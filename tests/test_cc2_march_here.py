@@ -541,6 +541,8 @@ class TestThePanelRendersTheQuotes:
         text = driven["p6_text"]
         refused = driven["spec"]["refused_quotes"]["march"]
         assert refused and not any(q["ok"] for q in refused)
-        assert "[url=do:" not in text.split("MARCH HERE")[1].split("\n\n")[0]
+        # (row PW: the section's heading is "SEND A CORPS HERE" — next door
+        # is a move, further off the march)
+        assert "[url=do:" not in text.split("SEND A CORPS HERE")[1].split("\n\n")[0]
         for reason in {q["refusal"] for q in refused}:
             assert reason in text, reason

@@ -210,13 +210,20 @@ def cmd_start(args) -> int:
     env.pop("PYTHONIOENCODING", None)
     log = (run / "engine.log").open("w", encoding="utf-8")
     t0 = time.time()
+    # Row PW: DD_B_WINDOW=WxH stands the run at another window (a maximised
+    # game on this monitor is 5120 x 1377 — the title bar and the taskbar
+    # taken off — which is where a player's windows are really measured).
+    window = os.environ.get("DD_B_WINDOW", "").strip() or WINDOW
+    if not re.fullmatch(r"\d{3,5}x\d{3,5}", window):
+        raise SystemExit(f"DD_B_WINDOW wants WIDTHxHEIGHT, e.g. 5120x1377 — got {window!r}")
+    env["DD_B_WINDOW"] = window
     engine = subprocess.Popen(
-        [godot, "--audio-driver", "Dummy", "--windowed", "--resolution", WINDOW,
+        [godot, "--audio-driver", "Dummy", "--windowed", "--resolution", window,
          "--position", PARKED, "--path", str(PROJECT), "--script", str(CLIENT)],
         cwd=str(PROJECT), env=env, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     meta = {"road": args.road, "brief": ROADS.get(args.road, ""), "port": port,
             "backend_pid": backend.pid, "engine_pid": engine.pid, "godot": godot,
-            "started": _dt.datetime.now().isoformat(timespec="seconds"), "window": WINDOW}
+            "started": _dt.datetime.now().isoformat(timespec="seconds"), "window": window}
     _write(run / "meta.json", meta)
     try:
         boot = run / "state" / "0000.json"
@@ -441,6 +448,21 @@ def summary(run: pathlib.Path, n: int, width: int = 14000, live: bool = True) ->
         out.append("  candidates: " + " | ".join(
             f"#{i + 1} {_button_label(c)} on {c.get('surface')} @{_centre(c['rect'])}"
             for i, c in enumerate(s["candidates"][:20])))
+    # Row PW (November 18, 2026 — "some screens bobble up and down"): a window
+    # that moved AFTER it opened, while this action settled, and what moved.
+    moves = s.get("settle_moves") or []
+    if moves:
+        by_what: dict = {}
+        for m in moves:
+            by_what.setdefault(m.get("what"), []).append(m)
+        out.append(f"  MOVED WHILE SETTLING ({len(moves)}): " + " | ".join(
+            f"{what} x{len(rows)} (frame {rows[0].get('frame')}: {rows[0].get('from')} -> {rows[-1].get('to')})"
+            for what, rows in list(by_what.items())[:6]))
+    # Row PW ("a popup bigger than screen"): a window that reaches past the view.
+    beyond = s.get("off_screen") or []
+    if beyond:
+        out.append(f"  PAST THE SCREEN ({len(beyond)}): " + " | ".join(
+            f"{b.get('what')} {b.get('rect')} past {b.get('past')}" for b in beyond[:6]))
     f = s.get("factor", {})
     k = float(f.get("logical_per_view_px") or 0)
     out.append(f"view: {run / s.get('view', '')}   (a view-JPEG pixel x {k} = logical px; if your viewer "

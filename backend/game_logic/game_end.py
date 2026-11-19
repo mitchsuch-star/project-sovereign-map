@@ -1611,13 +1611,32 @@ def status_quo_summary_lines(world, entries: Iterable[Dict[str, Any]],
     from backend.game_logic.formations import formed_display_name
     lines: List[str] = []
     for entry in entries or []:
+        # Row PW: ground an independent ally only OCCUPIED (T3-6's evacuation)
+        # is said as that — "Vienna and Moravia go back to Austria: Bavaria only
+        # occupied them, and this treaty does not award them" — where it read
+        # "return to Austria by the treaty — homeland retaken by an ally", the
+        # sentence of another rule.
+        evacuated = entry.get("evacuated") or {}
+        handed = {r for rs in evacuated.values() for r in rs} \
+            if the_forecast_reads_each_holders_own_peace() else set()
         # DDB-12: a homeland the status quo titles back to its court.
         for home, regions in sorted((entry.get("returned") or {}).items()):
-            if regions:
-                verb = "returns" if len(regions) == 1 else "return"
-                to = "us" if home == speaker else formed_display_name(world, home)
-                lines.append(f"Status quo: {_join_names(sorted(regions))} {verb} to {to} "
+            back = sorted(r for r in regions if r not in handed)
+            gone = sorted(r for r in regions if r in handed)
+            to = "us" if home == speaker else formed_display_name(world, home)
+            if back:
+                verb = "returns" if len(back) == 1 else "return"
+                lines.append(f"Status quo: {_join_names(back)} {verb} to {to} "
                              f"by the treaty — homeland retaken by an ally.")
+            if gone:
+                holders = _join_names(sorted(
+                    formed_display_name(world, h) for h, rs in evacuated.items()
+                    if any(r in gone for r in rs)))
+                one = len(gone) == 1
+                lines.append(
+                    f"{_join_names(gone)} {'goes' if one else 'go'} back to {to}: "
+                    f"{holders} only occupied {'it' if one else 'them'}, and this treaty "
+                    f"does not award {'it' if one else 'them'}.")
         # PC-X22 (S13e part 4): a province the same instrument then CEDED
         # (Tyrol to Bavaria — the status quo titles at the state write, the
         # cession moves it after) is no longer the holder's; the sentence
@@ -1636,6 +1655,15 @@ def status_quo_summary_lines(world, entries: Iterable[Dict[str, Any]],
             whose = adj if adj and adj != house else f"with {formed_display_name(world, house)}"
             lines.append(f"Status quo: {_join_names(names)} {verb} {whose} by the treaty.")
     return lines
+
+
+def the_forecast_reads_each_holders_own_peace() -> bool:
+    """Row PW seam (one line to reverse): `status_quo_forecast` reads T3-6's
+    evacuation for every holder against its OWN pair with the ceder, as the
+    retention pass applies it. Down (False): the forecast keeps every holding
+    of the leader's bloc, as before (and an independent ally's occupation of
+    the ceder's homeland is promised to it, then handed back)."""
+    return True
 
 
 def status_quo_forecast(world, nation_a: str, nation_b: str,
@@ -1664,14 +1692,42 @@ def status_quo_forecast(world, nation_a: str, nation_b: str,
             if not kept and not ally_home:
                 continue
             kept, returned = homeland_returns(world, holder_leader, ceder, kept)
+            # Row PW (November 18, 2026 — the first playtest: "i also got
+            # austrias land then it went back to them aftr peace"). The pass
+            # applies T3-6 PER SIGNING PAIR: an independent ally's own pair
+            # with the ceder (Bavaria–Austria, closed by its lord's peace) is
+            # a peace between AI courts, and `aim_evacuations` sends home what
+            # that ally occupies outside its aims — while this forecast, read
+            # for the leaders' pair alone, said the ally KEPT it ("Vienna and
+            # Moravia stay Bavarian by the treaty"; the treaty then handed
+            # them back). Each holder is now read against ITS OWN pair, as the
+            # pass reads it: shown == applied.
+            evacuated: Dict[str, List[str]] = {}
+            if the_forecast_reads_each_holders_own_peace():
+                still_kept: Dict[str, List[str]] = {}
+                for holder, regions in kept.items():
+                    theirs, sent_home = aim_evacuations(
+                        world, holder, ceder, holder, ceder, {holder: list(regions)})
+                    if theirs.get(holder):
+                        still_kept[holder] = theirs[holder]
+                    for _holder, _regions in sent_home.items():
+                        if _regions:
+                            evacuated[_holder] = sorted(_regions)
+                kept = still_kept
+                if evacuated:
+                    _gone = {r for rs in evacuated.values() for r in rs}
+                    returned[ceder] = sorted(set(returned.get(ceder) or []) | _gone)
             for home, regions in ally_home.items():
                 returned[home] = sorted(set(returned.get(home, [])) | set(regions))
-            entries.append({
+            entry = {
                 "house": str(world._top_overlord(holder_leader) or holder_leader),
                 "ceder": ceder,
                 "titled": kept,
                 "returned": returned,
-            })
+            }
+            if evacuated:
+                entry["evacuated"] = evacuated
+            entries.append(entry)
     except Exception as exc:
         report(exc, "game_end.status_quo_forecast: status_quo_retentions / kept.items")
         return []

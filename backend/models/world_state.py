@@ -313,6 +313,49 @@ def _order_road(world, marshal) -> Dict:
         return {}
 
 
+def _stands_on(world, marshal) -> Dict:
+    """Row PW: `order_quotes.take_quote` for a corps of ours standing on ground
+    that is not ours — why it is not, and the order that takes it — cut to
+    what the selection card and the end-turn ask read: `code`, `line`,
+    `command`, `label`, `ok` (the order would be taken), `open` (nothing
+    holds the province: one action takes it now). {} on our own ground."""
+    try:
+        region = world.get_region(marshal.location)
+        holder = getattr(region, "controller", None) if region is not None else None
+        if not holder or holder == marshal.nation:
+            return {}
+        # The reading and the state probe alone — never the storm's reckoning
+        # (`take_quote` runs it for the card; this rides every response).
+        from backend.commands import ground
+        from backend.commands.state_probe import order_state_refusal
+        if not ground.the_ground_is_read_before_the_order():
+            return {}
+        reading = ground.standing(world, marshal)
+        code = str(reading.get("code") or "")
+        # An ally's or a neutral's province is no news: a line on the card
+        # for it ("Milan is Italy's and we are not at war") reads as a fault.
+        if code not in ground.SAID_ON_THE_PANEL:
+            return {}
+        takeable = code in ("open", "garrison", "fort")
+        # A corps of the enemy's on the same ground: the order is an attack on
+        # HIM (its own card, with the odds) — the button names him.
+        fights = code == "enemy_corps" and bool(reading.get("foe"))
+        refusal = order_state_refusal(world, marshal, "attack") if (takeable or fights) else ""
+        return {
+            "code": code,
+            "line": str(reading.get("line") or ""),
+            "command": str(reading.get("remedy_command") or ""),
+            "label": str(reading.get("remedy_label") or ""),
+            "ok": bool((takeable or fights) and not refusal),
+            "open": bool(code == "open" and not refusal),
+            "refusal": str(refusal or ""),
+            "foe": str(reading.get("foe") or "") if fights else "",
+        }
+    except Exception as exc:
+        report(exc, "world_state._stands_on: ground.standing")
+        return {}
+
+
 def _action_pools(world) -> Dict:
     """CRT-9: `state_probe.action_pools` (a display-only read)."""
     from backend.commands.state_probe import action_pools
@@ -12166,6 +12209,11 @@ class WorldState:
                         # player-only like the rest of this dict: no enemy
                         # corps ever carries it (the fog boundary).
                         "order_road": _order_road(self, m),
+                        # Row PW (the first playtest: "i had 3 people in
+                        # colinia and no one could take it"): the province he
+                        # STANDS on, when it is not ours — why, and the order
+                        # that takes it. Player-only, like the rest ({} at home).
+                        "stands_on": _stands_on(self, m),
                     }
 
                     # Session 66: Relationships for tooltip display

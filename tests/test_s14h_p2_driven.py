@@ -102,11 +102,21 @@ class TestS14G19Driven:
         lead = _r19_driven["spec"]["stack"]["lead"]
         assert _r19_driven["stack_hovered_marshal"] == lead
 
-    def test_clicking_the_stack_label_selects_its_lead_and_opens_no_panel(self, _r19_driven):
+    def test_clicking_the_stack_label_asks_which_corps_and_opens_no_panel(self, _r19_driven):
+        """RE-SEATED (row PW, November 18, 2026 — the first playtest: "its hard
+        to click genral pieces"). S14G-19 made the stack's label select its
+        LEAD — and only ever its lead: the other four of "Ney · 4 more" could
+        not be picked from it. The label now asks WHICH corps: a list of the
+        stack (the lead its first row) opens beside it, no province panel, and
+        a pick from the list selects that man."""
         lead = _r19_driven["spec"]["stack"]["lead"]
-        assert _r19_driven["stack_last_click_marshal"] == lead
-        assert _r19_driven["stack_selected"] == lead
         assert _r19_driven["stack_panel_open"] is False
+        assert _r19_driven["stack_picker_open"] is True
+        keys = _r19_driven["stack_picker_keys"]
+        assert len(keys) == 5 and keys[0] == lead, keys
+        assert _r19_driven["stack_selected"] == ""          # nobody is picked by the label itself
+        assert _r19_driven["stack_picked_selected"] == lead  # ...the row picks him
+        assert _r19_driven["stack_picker_open_after"] is False
 
     def test_clicking_a_marshals_name_label_selects_him(self, _r19_driven):
         assert _r19_driven["name_found"] is True

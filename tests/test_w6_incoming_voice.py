@@ -390,8 +390,17 @@ class TestTerritorialHonesty:
         lines = _derive_status_quo_lines(
             world, self._war(Austria="attackers", Russia="defenders",
                              France="defenders"))
-        assert any(line.startswith("Status quo:") and target in line
-                   and "Austria" in line for line in lines), lines
+        # RE-SEATED (row PW, November 18, 2026 — the first playtest: "i also
+        # got austrias land then it went back to them"). The line used to
+        # read "Status quo: … stays Austrian" — and the signature then handed
+        # the province BACK (T3-6: at a peace between AI courts an occupation
+        # outside the holder's aims goes home). The forecast now reads each
+        # holder against its own pair, as the pass does: the occupation is
+        # still listed, fog or none, and listed as what the peace will do.
+        assert any(target in line and "Austria" in line and "goes back to Russia" in line
+                   for line in lines), lines
+        set_diplomatic_state(world, "Austria", "Russia", "PEACE", reason="common_peace_settlement")
+        assert world.regions[target].controller == "Russia"      # shown == applied
 
     def test_offer_popup_appends_status_quo(self, world):
         france_home = list(world.nation_starting_regions.get("France", []))

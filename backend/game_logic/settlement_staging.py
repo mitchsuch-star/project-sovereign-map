@@ -4638,6 +4638,13 @@ def build_settlement_confirm_dialogue(
         "status_quo_review": _status_quo_review,
         "held_line_note": _held_note,
         "status_quo_regions": _status_quo_regions,
+        # Row PW "Plain Words": THIS DEAL as the player's side of it — what he
+        # gets, gives and keeps, what an ally only occupies and hands back
+        # (with the claim that would keep it), who stays at war.
+        "plain_deal": settlement_plain_deal(
+            world, war_instance, proposer_side, covered,
+            preview.get("settlement_terms") or [], per_court_acceptance,
+            player=str(getattr(world, "player_nation", "") or "")),
         "manner_badges": _manner_badges,
         "road_closing_lines": _road_closing,
         # VP1-X7 (S14b part 2): the Revanche and the manner, top level (the
@@ -4941,6 +4948,270 @@ def settlement_status_quo_regions(world: Any, war_instance: Mapping[str, Any],
                             seen.add(region)
                             out.append({"region": str(region), "house": house})
     return out
+
+
+def the_table_says_the_deal_plainly() -> bool:
+    """Row PW seam (one line to reverse): the settlement payload carries
+    `plain_deal`. Down (False): no such key (the table as it stood)."""
+    return True
+
+
+def settlement_plain_deal(world: Any, war_instance: Mapping[str, Any],
+                          proposer_side: str, covered: Iterable[str],
+                          settlement_terms: Iterable[Mapping[str, Any]],
+                          per_court_acceptance: Iterable[Mapping[str, Any]],
+                          *, player: str) -> Dict[str, Any]:
+    """Row PW "Plain Words" (November 18, 2026 — the first playtest: "diplomacy
+    is very confusing … i also got austrias land then it went back to them").
+    THIS DEAL, as the player's side of it, in plain words — read off the
+    package's own terms and the ratifier's own forecast (`status_quo_
+    forecast`: shown == applied), nothing judged here:
+
+    * `get` / `give` — each clause that moves something to or from our side;
+    * `keep` — the provinces the PLAYER holds that the peace leaves his;
+    * `allies_keep` / `allies_hand_back` — the same for each ally: what it
+      keeps, and what it only occupies and the treaty sends home (with the
+      claim that would keep it, where the table offers one);
+    * `they_keep` — what the other side keeps of our side's own soil;
+    * `still_at_war` — the war's courts this peace leaves out.
+
+    PURE. {} with the seam down or no terms."""
+    if not the_table_says_the_deal_plainly():
+        return {}
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.game_end import status_quo_forecast
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
+    try:
+        side_by_nation = dict((war_instance or {}).get("side_by_nation") or {})
+        covered_list = [str(c) for c in (covered or []) if c]
+        covered_set = set(covered_list)
+        ours = [n for n, side in side_by_nation.items() if side == proposer_side]
+        ours_set = set(ours)
+        terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+
+        def court(nation: str) -> str:
+            return formed_display_name(world, nation) if nation else "them"
+
+        get_lines: List[str] = []
+        give_lines: List[str] = []
+        # The review (PW-R8): an ALLY's gains and payments are the ally's. The
+        # block read every clause from our side as "You give" and every other
+        # as "You get" — a province ceded to Bavaria was the player's gain, a
+        # payment by Bavaria his cost.
+        allies_get: List[str] = []
+        allies_give: List[str] = []
+        moved: set = set()
+
+        def what(term: Mapping[str, Any]) -> str:
+            """The thing a clause moves, without its parties."""
+            ttype = str(term.get("type") or "")
+            amount = int(term.get("amount", 0) or 0)
+            if ttype in ("gold_indemnity", "gold_lump"):
+                return f"{amount:,} gold"
+            if ttype == "gold_per_turn":
+                turns = int(term.get("turns", 0) or 0)
+                return f"{amount:,} gold a turn" + (f" for {turns} turns" if turns else "")
+            if ttype.startswith("territory"):
+                return str(term.get("region") or "a province")
+            from backend.display_names import CLAUSE_TYPE_DISPLAY
+            label = str(CLAUSE_TYPE_DISPLAY.get(ttype, ttype.replace("_", " ")))
+            region = str(term.get("region") or "")
+            return f"{label}{' — ' + region if region else ''}"
+
+        for term in terms:
+            moved.update(cession_shaped_regions(term))
+            ttype = str(term.get("type") or "")
+            frm = str(term.get("from") or "")
+            to = str(term.get("to") or "")
+            if ttype == "peace" or not ttype:
+                continue
+            thing = what(term)
+            if frm == player:
+                give_lines.append(f"{thing} to {court(to)}")
+            elif frm in ours_set:
+                allies_give.append(f"{court(frm)} gives {thing} to {court(to)}")
+            elif to == player or not to:
+                get_lines.append(f"{thing} from {court(frm)}")
+            elif to in ours_set:
+                allies_get.append(f"{court(to)} gets {thing} from {court(frm)}")
+            else:
+                # the other side's burden for a third court (a liberation, a
+                # crown): said with both its parties
+                get_lines.append(f"{thing} from {court(frm)} (to {court(to)})")
+
+        keep: List[str] = []
+        allies_keep: Dict[str, List[str]] = {}
+        hand_back: Dict[Tuple[str, str], List[str]] = {}
+        they_keep: List[str] = []
+        goes_home: Dict[str, List[str]] = {}
+        seen: set = set()
+        for a in sorted(ours):
+            lord = str(world._top_overlord(a) or a)
+            for b in sorted(covered_set):
+                if world.get_diplomatic_state(a, b) not in ("WAR", "ARMISTICE"):
+                    continue
+                if (lord != a and lord in ours_set
+                        and world.get_diplomatic_state(lord, b) in ("WAR", "ARMISTICE")):
+                    continue
+                for entry in status_quo_forecast(world, a, b, moved):
+                    ceder = str(entry.get("ceder") or "")
+                    ours_holds = ceder in covered_set or ceder not in ours_set
+                    for holder, regions in (entry.get("titled") or {}).items():
+                        for region in regions:
+                            key = ("keep", region)
+                            if key in seen:
+                                continue
+                            seen.add(key)
+                            if not ours_holds:
+                                they_keep.append(str(region))
+                            elif holder == player:
+                                keep.append(str(region))
+                            else:
+                                allies_keep.setdefault(str(holder), []).append(str(region))
+                    for holder, regions in (entry.get("evacuated") or {}).items():
+                        if holder not in ours_set:
+                            continue
+                        for region in regions:
+                            key = ("back", region)
+                            if key in seen:
+                                continue
+                            seen.add(key)
+                            hand_back.setdefault((str(holder), ceder), []).append(str(region))
+                    # The review (PW-R9): what our side holds and the treaty
+                    # sends HOME to one of our own courts (an ally's homeland
+                    # an ally of ours retook: DDB-12, PC-F75) — never in
+                    # `keep`, and until now said nowhere in this block.
+                    if ours_holds:
+                        _sent = {r for rs in (entry.get("evacuated") or {}).values() for r in rs}
+                        for home, regions in (entry.get("returned") or {}).items():
+                            if str(home) == ceder:
+                                continue          # the evacuations, said above
+                            for region in regions:
+                                key = ("home", region)
+                                if region in _sent or key in seen:
+                                    continue
+                                seen.add(key)
+                                goes_home.setdefault(str(home), []).append(str(region))
+
+        # The claim that would KEEP a province an ally only occupies: the
+        # court's own guided demand row for it, where the table offers one.
+        claimable: Dict[str, Dict[str, Any]] = {}
+        for row in per_court_acceptance or []:
+            if not isinstance(row, Mapping):
+                continue
+            for suggestion in row.get("demand_suggestions") or []:
+                if not isinstance(suggestion, Mapping):
+                    continue
+                if (str(suggestion.get("clause_type") or "") != "territory_cede"
+                        or str(suggestion.get("group") or "") != "demand"
+                        or suggestion.get("available") is False):
+                    continue
+                params = dict(suggestion.get("action_params") or {})
+                options = [str(r) for r in (suggestion.get("region_options") or [])]
+                if not options and params.get("region"):
+                    options = [str(params.get("region"))]
+                for region in options:
+                    claimable.setdefault(region, {
+                        "region": region,
+                        "label": f"Take {region}",
+                        "action": str(suggestion.get("action") or "settlement_demand_add"),
+                        "war_id": str(suggestion.get("war_id") or ""),
+                        "draft_key": str(suggestion.get("draft_key") or ""),
+                        "action_params": {**params, "region": region},
+                    })
+        hand_rows: List[Dict[str, Any]] = []
+        for (holder, ceder), regions in sorted(hand_back.items()):
+            hand_rows.append({
+                "ally": holder, "ally_display": court(holder),
+                "to": ceder, "to_display": court(ceder),
+                "regions": sorted(regions),
+                "claims": [claimable[r] for r in sorted(regions) if r in claimable],
+            })
+        still = sorted(
+            n for n, side in side_by_nation.items()
+            if side and side != proposer_side and n not in covered_set
+            and any(world.is_at_war(member, n) for member in ours))
+        return {
+            "get": get_lines,
+            "give": give_lines,
+            "allies_get": allies_get,
+            "allies_give": allies_give,
+            "goes_home": [{"to": h, "to_display": court(h), "yours": h == player, "regions": sorted(rs)}
+                          for h, rs in sorted(goes_home.items())],
+            "keep": sorted(keep),
+            "allies_keep": [{"ally": h, "ally_display": court(h), "regions": sorted(rs)}
+                            for h, rs in sorted(allies_keep.items())],
+            "allies_hand_back": hand_rows,
+            "they_keep": sorted(they_keep),
+            "still_at_war": [court(n) for n in still],
+            "with": [court(n) for n in covered_list],
+        }
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "settlement_staging.settlement_plain_deal")
+        return {}
+
+
+def _plain_join(names: Iterable[Any]) -> str:
+    names = [str(n) for n in (names or []) if str(n)]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _past_tense(said: str) -> str:
+    """ "Bavaria gets X from Y" -> "Bavaria got X from Y" (the block's own two verbs)."""
+    return said.replace(" gets ", " got ", 1).replace(" gives ", " gave ", 1)
+
+
+def settlement_plain_result(deal: Mapping[str, Any]) -> Dict[str, Any]:
+    """Row PW "Plain Words": what a SIGNED peace did, in everyday words — the
+    staged table's own THIS DEAL block (`settlement_plain_deal`) said in the
+    past tense, so what was shown before the signature is what is reported
+    after it. `{"head", "lines", "toast", "still_at_war"}`; {} for no block
+    (the seam down, or a table staged before row PW)."""
+    if not isinstance(deal, Mapping) or not deal:
+        return {}
+    signed_with = _plain_join(deal.get("with"))
+    head = f"Peace signed with {signed_with}." if signed_with else "Peace signed."
+    lines: List[str] = []
+    got = [str(x) for x in (deal.get("get") or []) if x]
+    gave = [str(x) for x in (deal.get("give") or []) if x]
+    lines.append("You got: " + ("; ".join(got) if got else "nothing") + ".")
+    lines.append("You gave: " + ("; ".join(gave) if gave else "nothing") + ".")
+    for said in deal.get("allies_get") or []:
+        lines.append(_past_tense(str(said)) + ".")
+    for said in deal.get("allies_give") or []:
+        lines.append(_past_tense(str(said)) + ".")
+    keep = [str(x) for x in (deal.get("keep") or []) if x]
+    if keep:
+        lines.append("You keep: " + _plain_join(keep) + ".")
+    for row in deal.get("goes_home") or []:
+        if isinstance(row, Mapping) and row.get("regions"):
+            whose = "you" if row.get("yours") else str(row.get("to_display") or row.get("to"))
+            lines.append(_plain_join(row.get("regions")) + f" went home to {whose}.")
+    for row in deal.get("allies_keep") or []:
+        if isinstance(row, Mapping) and row.get("regions"):
+            lines.append(f"{row.get('ally_display') or row.get('ally')} keeps: "
+                         + _plain_join(row.get("regions")) + ".")
+    for row in deal.get("allies_hand_back") or []:
+        if isinstance(row, Mapping) and row.get("regions"):
+            lines.append(f"{row.get('ally_display') or row.get('ally')} handed back "
+                         + _plain_join(row.get("regions"))
+                         + f" to {row.get('to_display') or row.get('to')}: it only occupied "
+                         + ("it" if len(row.get("regions") or []) == 1 else "them")
+                         + ", and the treaty did not award "
+                         + ("it" if len(row.get("regions") or []) == 1 else "them") + ".")
+    they_keep = [str(x) for x in (deal.get("they_keep") or []) if x]
+    if they_keep:
+        lines.append("They keep: " + _plain_join(they_keep) + ".")
+    still = [str(x) for x in (deal.get("still_at_war") or []) if x]
+    if still:
+        tail = "Still at war with " + _plain_join(still) + "."
+    else:
+        tail = "That war is over."
+    lines.append(tail)
+    return {"head": head, "lines": lines, "toast": head + " " + tail, "still_at_war": still}
 
 
 def settlement_manner_badges(manner_lines: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:

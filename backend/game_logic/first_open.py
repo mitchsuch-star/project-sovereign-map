@@ -80,12 +80,15 @@ def _line_formables(world, ctx: Optional[Mapping[str, Any]]) -> str:
 def _line_settlement(world, ctx: Optional[Mapping[str, Any]]) -> str:
     from backend.game_logic.settlement_scoring import ACCEPTANCE_THRESHOLD
     mode = str((ctx or {}).get("mode") or "").upper()
+    # Row PW (plain words, November 18, 2026): the line names the table's
+    # buttons as they now read (Ask more / Offer more / Leave out) and says
+    # what the number means, in place of "the draft will not carry".
     head = ("This is the table, Sire. Every court seated here signs for itself — "
-            f"each must reach {int(ACCEPTANCE_THRESHOLD)} or the draft will not carry")
+            f"each signs when its number reaches {int(ACCEPTANCE_THRESHOLD)}")
     if mode == "PROPOSE":
-        return (head + ". Demand more of a court, ease it, or drop it to fight on; "
-                "a court that is ready may be taken alone.")
-    return (head + "; the verdict beside each row is that court's own, and the "
+        return (head + ". Ask more of a court, offer it more, or leave it out to "
+                "fight on; a court that is ready may sign alone.")
+    return (head + "; the answer beside each row is that court's own, and the "
             "terms before you stand as offered.")
 
 
@@ -170,6 +173,12 @@ def _line_battle_day(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
     # first day of battle names its own rules, in the table's words — points,
     # a word, the enemy. The two silences are the day's own number
     # (`battle_day._spent`).
+    from backend.game_logic.battle_telling import the_day_speaks_plainly
+    if the_day_speaks_plainly():
+        # Row PW (plain words): the same rules, said so a first reader can act.
+        return ("No winner yet, Sire. Each side has battle points: an order costs points, "
+                "not actions, and the enemy answers each one. It ends when an army breaks, "
+                "someone withdraws, two turns pass with no order, or the points run out.")
     return ("The day hangs, Sire. Each side holds points for the rest of it: a "
             "word costs points, never an action, and the enemy answers each word "
             "in turn. Two silences running, or every point spent, and night falls.")

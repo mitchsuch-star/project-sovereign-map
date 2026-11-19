@@ -168,7 +168,9 @@ class TestTheLines:
         assert f"{PROCLAIM_DP_COST} DP" in FO.line_for(world, "designs")
         assert f"{PROCLAIM_ADMIN_COST} administrative" in FO.line_for(world, "designs")
         for mode in ("PROPOSE", "REVIEW"):
-            assert f"reach {ACCEPTANCE_THRESHOLD}" in FO.line_for(world, "settlement", {"mode": mode})
+            # (row PW, plain words: "each must reach 50 or the draft will not
+            # carry" reads "each signs when its number reaches 50")
+            assert f"reaches {ACCEPTANCE_THRESHOLD}" in FO.line_for(world, "settlement", {"mode": mode})
         assert f"within {ARREARS_WINDOW_TURNS} turns" in FO.line_for(world, "laws")
         camp = FO.line_for(world, "admiralty_camp")
         assert f"{DESCENT_CAMP_MIN_TROOPS:,} men" in camp
@@ -181,8 +183,10 @@ class TestTheLines:
         terms and the verdict beside each row."""
         propose = FO.line_for(world, "settlement", {"mode": "PROPOSE"})
         review = FO.line_for(world, "settlement", {"mode": "REVIEW"})
-        assert "Demand more" in propose and "taken alone" in propose
-        assert "Demand more" not in review and "as offered" in review
+        # (row PW: the line names the table's buttons as they now read —
+        # "Ask more of a court, offer it more, or leave it out")
+        assert "Ask more of a court" in propose and "sign alone" in propose
+        assert "Ask more of a court" not in review and "as offered" in review
         assert FO.line_for(world, "settlement") == review   # no mode → the frozen form
 
     def test_the_camp_line_states_no_shut_outcome_as_certain(self, world):
@@ -217,7 +221,7 @@ class TestTheTurnRule:
         wired = FO.with_line(world, stored)
         assert wired is not stored
         assert wired["first_open"]["screen"] == "settlement"
-        assert "Demand more" in wired["first_open"]["line"]
+        assert "Ask more of a court" in wired["first_open"]["line"]
         assert "first_open" not in stored
         # not a lined dialogue → the SAME object, untouched
         other = {"type": "mission"}
@@ -275,7 +279,7 @@ class TestTheAttachSites:
         dialogue = response["diplomatic_dialogue"]
         assert dialogue["dialogue_type"] == "settlement_confirm"
         assert dialogue["first_open"]["screen"] == "settlement"
-        assert "Demand more" in dialogue["first_open"]["line"]           # PROPOSE form
+        assert "Ask more of a court" in dialogue["first_open"]["line"]   # PROPOSE form
         assert "first_open" not in world.pending_diplomatic_dialogue
 
     def test_the_acknowledgement_is_a_tiny_dict_that_drains_nothing(self, europe):

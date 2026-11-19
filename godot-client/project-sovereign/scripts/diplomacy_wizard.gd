@@ -361,6 +361,12 @@ func _on_visibility_changed() -> void:
 		if _banner != null:
 			_banner.queue_free()
 			_banner = null
+	# Row PW (the first playtest: "some sound lingers on after"): the court's
+	# murmur ends with the room, by whatever road it shut — `_close_wizard` was
+	# its one stop, and a world swap's `hide_all` or any bare `hide()` left the
+	# crowd talking over the map.
+	if not visible:
+		AudioManager.stop_loop("crowd")
 
 
 func _lay_out_prompt(step: int) -> void:
@@ -1842,10 +1848,71 @@ func _render_preview(data: Dictionary):
 			else:
 				rest.append(action)
 		others = lead + rest
-	actions = counsel + others
-	for action in actions:
+	# Row PW "Plain Words" (the first playtest: "its unclear how to end wars"):
+	# the ways to END THE WAR stand first under their own heading, the most
+	# used first (`PEACE_ROW_RANK`); everything else follows under OTHER
+	# ACTIONS. Talleyrand's counsel keeps its place on top either way.
+	var peace: Array = []
+	var rest_rows: Array = []
+	for action in others:
+		if action is Dictionary and str(action.get("group", "")) == "peace":
+			peace.append(action)
+		else:
+			rest_rows.append(action)
+	# (the review, PW-R24: a STABLE order — rank, then the server's own order —
+	# and a note that counts the ways that are there)
+	var ranked: Array = []
+	for i in range(peace.size()):
+		ranked.append([_peace_rank(peace[i]), i, peace[i]])
+	ranked.sort_custom(func(a, b): return a[0] < b[0] if a[0] != b[0] else a[1] < b[1])
+	peace = ranked.map(func(row): return row[2])
+	for action in counsel:
+		_add_action_button(action)
+	if not peace.is_empty():
+		var ways: int = peace.size()
+		for action in counsel:
+			if action is Dictionary and str(action.get("group", "")) == "peace":
+				ways += 1
+		# (The short window — Interface Scale 2.0 — keeps every line for a row:
+		# EA-E5's "the actions still show and say there are more". The order and
+		# the plain names stand; the headings and each act's line are the page's.)
+		var roomy: bool = not Utils.compact_view()
+		if roomy:
+			_add_group_heading(PEACE_HEADING, PEACE_HEADING_NOTE % Utils.plural(ways, "way") if ways > 1 else "")
+		for action in peace:
+			_add_action_button(action)
+		if roomy and not rest_rows.is_empty():
+			_add_group_heading(OTHER_HEADING, "")
+	for action in rest_rows:
 		_add_action_button(action)
 	call_deferred("_update_more_below")
+
+
+const PEACE_HEADING := "END THE WAR"
+const PEACE_HEADING_NOTE := "%s, the most used first. Each says what it does."
+const OTHER_HEADING := "OTHER ACTIONS"
+const PEACE_ROW_RANK := {"open_settlement": 0, "propose_white_peace": 1, "propose_peace": 2, "propose_armistice": 3}
+
+
+func _peace_rank(action) -> int:
+	return int(PEACE_ROW_RANK.get(str((action as Dictionary).get("action", "")), 9)) if action is Dictionary else 9
+
+
+func _add_group_heading(title: String, note: String) -> void:
+	"""Row PW: a heading over a group of the court's acts (the heading face,
+	its note in the dim caption beside it)."""
+	var head := RichTextLabel.new()
+	head.bbcode_enabled = true
+	head.fit_content = true
+	head.scroll_active = false
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.theme_type_variation = &"CaptionRich"
+	var text := Utils.HEAD_OPEN + title + Utils.HEAD_CLOSE
+	if note != "":
+		text += "  [color=#" + Utils.COLOR_INFO + "]" + note + "[/color]"
+	head.text = text
+	content_list.add_child(head)
 
 
 func _verdict_line(text: String, cut: int, whole: bool) -> String:
@@ -1916,8 +1983,21 @@ func _add_action_button(action: Dictionary):
 	var likelihood = str(action.get("likelihood", ""))
 	var action_id = str(action.get("action", ""))
 
-	# The button's text: the act, as named.
+	# The button's text: the act, as named — in everyday words where the row
+	# carries them (row PW: the peace rows' `plain_name`).
 	var text = display_name
+	var plain_name := str(action.get("plain_name", ""))
+	if plain_name != "" and plain_name != "null":
+		text = plain_name
+	var plain_line := str(action.get("plain_line", ""))
+	if plain_line == "null":
+		plain_line = ""
+	# (row PW) what the court will do, in place of the trade's word (which
+	# still keys the badge's tone)
+	var tone_word: String = "" if str(likelihood) == "null" else str(likelihood)
+	var likelihood_plain := str(action.get("likelihood_plain", ""))
+	if likelihood_plain != "" and likelihood_plain != "null":
+		likelihood = likelihood_plain
 
 	# W5: Mission effect text
 	var note := ""
@@ -1987,7 +2067,8 @@ func _add_action_button(action: Dictionary):
 	if gold_cost > 0:
 		badges += Utils.bb_glyph("gold", 16, Utils.COLOR_GOLD) + " " + str(gold_cost) + "g  "
 	if verdict != "":
-		badges += Utils.bb_badge(verdict, _verdict_tone(verdict))
+		# (row PW) the badge's tone is keyed by the trade's own word
+		badges += Utils.bb_badge(verdict, _verdict_tone(tone_word if tone_word != "" else verdict))
 	if badges != "":
 		var cell := RichTextLabel.new()
 		cell.bbcode_enabled = true
@@ -2003,6 +2084,18 @@ func _add_action_button(action: Dictionary):
 			cell.modulate = Color(1, 1, 1, 0.85 if Utils.explanations_folded() else 0.6)
 		row.add_child(cell)
 	content_list.add_child(row)
+	# Row PW: what a peace act DOES stands under it on the page, folded or not
+	# (it is what tells the four apart; a hover was where nobody looked).
+	if plain_line != "" and Utils.compact_view():
+		# the short window: the line is the act's hover (EA-E5)
+		btn.tooltip_text = plain_line if btn.tooltip_text == "" else plain_line + "\n" + btn.tooltip_text
+	elif plain_line != "":
+		var plain_label = Label.new()
+		plain_label.text = "    " + plain_line
+		plain_label.theme_type_variation = &"Caption"
+		plain_label.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+		plain_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_list.add_child(plain_label)
 	# Session UI-3 (November 12, 2026): "Fold, a switch restores" - the act's
 	# effect note is the act Button's hover (its DP / gold figures and the verdict
 	# badge stay on the face); On the page the line prints under it as before.

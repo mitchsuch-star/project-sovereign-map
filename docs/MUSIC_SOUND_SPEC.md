@@ -688,3 +688,14 @@ re-ruled where this plan changed what they encoded.
 **Costs, said once:** about 75 MB more audio (measured: 50 files, 74.8 MB); hover and typing ticks can tire some
 players (quiet by default, one switch each); La Marseillaise is an anachronism for
 the Empire (no clean public-domain *Chant du Départ* exists), on the record.
+
+
+## §7 Row PW — the sounds that would not stop (November 18, 2026, landing record)
+
+The first playtest: "some sound slinger on after, i hear like a car cliking turn signla ish noise constantly in bacgkroud".
+
+- **The clock is out of the study's bed.** `ambient/clock_loop.ogg` ticks 123 times a minute, perfectly regular (measured on the file), and the bed played it without end. The bed is wind and fire (`audio_manager.STUDY_BED`); the file stays in the inventory, unplayed.
+- **The quill stops with the reply.** It stopped only when the command line re-opened, so it scratched under every popup, battle and report an order raised. It now stops when ANY request completes (`api_client._on_request_completed`) and a loop of waiting has a ceiling (`LOOP_MAX_S`: six seconds for the quill).
+- **A screen's loop stops however the screen shuts.** The Cabinet's crowd, the enemy phase's march and the battle table's bed stopped on one of several ways their screen could close; each now stops on `visibility_changed`.
+
+Pins: `tests/test_pw_plain_words.py::TestTheSoundsStop`; the probe `tools/ui5_probe.gd` reads the bed without the clock (`tests/test_ui5_full_measure.py`).

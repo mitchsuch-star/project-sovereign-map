@@ -317,7 +317,11 @@ class TestDDB7:
     def test_the_wizard_keeps_them_on_top_and_cues_the_fold(self):
         src = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
         assert 'bool(action.get("counsel_first", false))' in src
-        assert "actions = counsel + others" in src
+        # row PW (November 18, 2026): the counsel's rows are still added first —
+        # then the ways to end the war under their heading, then the rest
+        first = src.index("\tfor action in counsel:\n\t\t_add_action_button(action)")
+        assert first < src.index("_add_group_heading(PEACE_HEADING")
+        assert src.index("_add_group_heading(PEACE_HEADING") < src.index("\tfor action in rest_rows:\n\t\t_add_action_button(action)")
         assert '_more_below.text = "▼ more below"' in src
         assert '_more_below.theme_type_variation = &"Caption"' in src
         assert "Utils.COLOR_INFO" in src[src.index("_more_below = Label.new()"):][:600]

@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from backend.display_names import (
     acceptance_band_display,
+    acceptance_band_plain,
+    acceptance_component_plain,
     acceptance_band_phrase,
     acceptance_component_display,
 )
@@ -2324,6 +2326,17 @@ def compute_per_court_acceptance(
             "direction": direction,
             "direct_score": row_direct_score,
             "top_blocker_display": top_blocker,
+            # Row PW "Plain Words": the blocker said as a REASON the player can
+            # act on ("you ask more than you have won"), where the label is the
+            # scorer's column name ("Settlement legitimacy"). "" when the court
+            # signs, or for a column with no plain reading (the label stands).
+            "top_blocker_plain": (
+                acceptance_component_plain(
+                    enriched.get("top_blocker_component"),
+                    tier_detail or str(_objective_view.get("top_blocker_detail") or ""))
+                if below_threshold and top_blocker else ""),
+            # ...and the band as what the court will DO ("will not sign").
+            "band_plain": acceptance_band_plain(band),
             # CA8-17: the component KEY beside the label, same gating —
             # the table voice speaks it; the table itself keeps the label.
             "top_blocker_component": (

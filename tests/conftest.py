@@ -418,6 +418,53 @@ def _isolate_sovereign_seed(monkeypatch):
 
 
 # ════════════════════════════════════════════════════════════════════════════════
+# ROW PW "PLAIN WORDS" (November 18, 2026) — THE DAY'S ORIGINAL IDIOM
+#
+# The first playtest ("battles are opaque and its unclear what decisions mean")
+# put the day of battle's chips, its headline and its lines into everyday words
+# behind ONE seam, `battle_telling.the_day_speaks_plainly` (up: "Attack again",
+# "he moves next", "Losses so far: you … · him …"; down: the chips and lines as
+# row BA left them, byte for byte). Row BA's own pins quote that original idiom
+# — "Massena presses", "he speaks next", "The day hangs" — and what they pin is
+# the RULE behind each line (which chip is lit, what it costs, what told, what
+# the fog hides), which the plain pass does not touch: it rewrites words over
+# the chips as built. Those modules therefore run with the seam DOWN, reading
+# the state they were written against; `tests/test_pw_plain_words.py` pins the
+# plain words with the seam up, chip for chip against the same rule.
+# ════════════════════════════════════════════════════════════════════════════════
+_PW_THE_DAYS_OLD_IDIOM = (
+    "test_ba1_", "test_ba2_", "test_ba3_", "test_ba4_", "test_ba5_", "test_ba6_",
+    "test_battle_diorama", "test_battle_script", "test_battle_report",
+)
+# The same for the click road: rows CC-2 / CC-3 (and BA-4's quote pins) were
+# written when a click on a province always quoted the standing MARCH. Row PW
+# quotes a step within reach as the one-action MOVE behind
+# `order_quotes.a_move_in_reach_is_a_move`; those modules pin the march's own
+# rule (its road, its price, its first step, its refusals) with the seam down,
+# and `tests/test_pw_plain_words.py` pins the move.
+_PW_THE_MARCH_AS_IT_STOOD = (
+    "test_cc2_march_here", "test_cc3_select_click_enter", "test_ba4_the_roads_and_the_fog",
+)
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _pw_the_rows_before_plain_words(request):
+    """MODULE scope: the BA walks stage their boards in class- and module-
+    scoped fixtures, built before any function-scoped patch could stand."""
+    module = getattr(getattr(request, "module", None), "__name__", "") or ""
+    name = module.rsplit(".", 1)[-1]
+    patch = pytest.MonkeyPatch()
+    if name.startswith(_PW_THE_DAYS_OLD_IDIOM):
+        from backend.game_logic import battle_telling
+        patch.setattr(battle_telling, "the_day_speaks_plainly", lambda: False)
+    if name.startswith(_PW_THE_MARCH_AS_IT_STOOD):
+        from backend.commands import order_quotes
+        patch.setattr(order_quotes, "a_move_in_reach_is_a_move", lambda: False)
+    yield
+    patch.undo()
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 # MARSHAL FACTORY
 # ════════════════════════════════════════════════════════════════════════════════
 
