@@ -1303,11 +1303,63 @@ def pw3_walk(tmp_path_factory) -> dict:
         states["key_esc"] = _act(run, "key Escape")
         states["line"] = _act(run, "click_at 130 720")
         states["tab"] = _act(run, "key Tab")
+        # Row IC (the desk) rides the same engine — one boot fewer in the window
+        # lane. Its own steps, guarded: a fault in them is row IC's to report
+        # (`TestRowICTheDesk`), never a PW3 pin's.
+        try:
+            _ic_steps(run, states)
+        except Exception as exc:      # noqa: BLE001 - re-raised by row IC's own class
+            states["ic_error"] = repr(exc)
     finally:
         _stop_engine_run(run, sup)
     states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
     states["run_dir"] = str(run)
     return states
+
+
+def _ic_on(state: dict, surface: str) -> list:
+    """The controls of one surface, in the listing's order."""
+    return [b for b in state.get("buttons") or [] if str(b.get("surface") or "") == surface]
+
+
+def _ic_press(run: pathlib.Path, button: dict) -> dict:
+    r = button["rect"]
+    return _act(run, f"click_at {int(r[0] + r[2] / 2)} {int(r[1] + r[3] / 2)}")
+
+
+def _ic_steps(run: pathlib.Path, states: dict) -> None:
+    """Row IC's walk at the first player's own setup: a row of the desk's card is a door;
+    the card folds; two corps marched off their province leave it in danger — on the card,
+    on the map and at End Turn; the list's row opens the province."""
+    states["ic_boot"] = json.loads((run / "state" / "0000.json").read_text(encoding="utf-8"))
+    _act(run, "key Ctrl+A")
+    states["ic_clear"] = _act(run, "key Delete")              # PW3's last step left an idea on the line
+    card = _ic_on(states["ic_clear"], "DeskCard")
+    first = next(b for b in card if str(b["text"]).startswith("1. "))
+    states["ic_row"] = _ic_press(run, first)
+    states["ic_let_go"] = _act(run, "key Escape")
+    fold = next(b for b in _ic_on(states["ic_let_go"], "DeskCard") if str(b["text"]) == "–")
+    states["ic_folded"] = _ic_press(run, fold)
+    unfold = next(b for b in _ic_on(states["ic_folded"], "DeskCard") if str(b["text"]) == "+")
+    states["ic_unfolded"] = _ic_press(run, unfold)
+    answered: list = []
+    for line, meant in (("Davout, march to Lorraine", "move Davout"), ("Ney, march to Lorraine", "move Ney")):
+        state = _act(run, f"type {line}", meant=meant)
+        state = _answer_chain(run, state, answered)
+    states["ic_answered"] = answered
+    states["ic_danger"] = _act(run, "look")
+    states["ic_end_turn"] = _act(run, "click End Turn (E)")
+    rows = _ic_on(states["ic_end_turn"], "TurnEndList")
+    danger = next(b for b in rows if "Nothing holds Rhineland" in str(b["text"]))
+    states["ic_door"] = _ic_press(run, danger)
+    states["ic_key"] = _act(run, "click Key")
+    states["ic_key_esc"] = _act(run, "key Escape")
+    # the card's row set aside from the keyboard: Tab to the card's first row, Delete
+    card = _ic_on(states["ic_key_esc"], "DeskCard")
+    first = next(b for b in card if str(b["text"]).startswith("1. "))
+    states["ic_aside_before"] = states["ic_key_esc"]
+    states["ic_aside"] = _ic_press(run, next(b for b in card if str(b["text"]) == "×"
+                                             and abs(b["rect"][1] - first["rect"][1]) < first["rect"][3]))
 
 
 def _pw3_button(state: dict, text: str) -> dict:
@@ -1358,3 +1410,159 @@ class TestRowPW3TheFinishingPass:
 
     def test_the_run_met_no_script_error(self, pw3_walk):
         assert pw3_walk["run"]["n_script_errors"] == 0, pw3_walk["run"]["script_errors"]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Row IC "Independent Command", the desk (November 19, 2026) — pressed in the real
+# client at the first player's own setup (Interface Scale 1.8 on 5120 x 1377):
+# THE PEACE, THE WAR and TO DECIDE on a card at the map's corner; a row is a door
+# that sends nothing; a province left open beside an enemy in sight is said on
+# the card, marked on the map and listed at End Turn. (The rule and the sources:
+# `tests/test_ic1_the_desk.py`, `tests/test_ic2_the_turns_end.py`,
+# `tests/test_ic3_what_was_hidden.py`.) The walk rides PW3's engine (`_ic_steps`).
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _ic_rect_of(buttons: list) -> list:
+    """The box around a surface's controls: [x, y, right, bottom]."""
+    return [min(b["rect"][0] for b in buttons), min(b["rect"][1] for b in buttons),
+            max(b["rect"][0] + b["rect"][2] for b in buttons),
+            max(b["rect"][1] + b["rect"][3] for b in buttons)]
+
+
+def _ic_sent_an_order(state: dict) -> bool:
+    """A `/command` reply carries the board (`game_state`); a reading does not."""
+    return any("game_state" in (r.get("keys") or []) for r in state.get("responses") or [])
+
+
+class TestRowICTheDesk:
+
+    @pytest.fixture(scope="class")
+    def walk(self, pw3_walk):
+        assert "ic_error" not in pw3_walk, pw3_walk.get("ic_error")
+        return pw3_walk
+
+    def test_a_first_time_menu_lights_the_school_and_keeps_its_title(self, walk):
+        boot = walk["ic_boot"]
+        said = _pw_said(boot)
+        assert "INK & IRON" in said                         # the line beside the row costs the title nothing
+        line = [t for t in boot["texts"] if str(t["text"]).startswith("New here? Start with the School of War")]
+        assert line, said
+        width, height = boot["factor"]["logical_size"]
+        assert line[0]["rect"][0] + line[0]["rect"][2] <= width and line[0]["rect"][1] + line[0]["rect"][3] <= height
+        school = _pw3_button(boot, "The School of War — a guided campaign")
+        assert line[0]["rect"][0] >= school["rect"][0] + school["rect"][2]     # beside the row, not under it
+        assert abs((line[0]["rect"][1] + line[0]["rect"][3] / 2)
+                   - (school["rect"][1] + school["rect"][3] / 2)) < school["rect"][3]
+        assert "(Button)" in str(boot.get("focus") or "")                       # the keyboard is on a row
+        assert "Begin the 1805 Campaign" in _pw_buttons(boot)                   # one press away, as ever
+        # the review: no count of turns is promised (the lesson is longer than "twelve")
+        assert str(line[0]["text"]) == ("New here? Start with the School of War — a short guided campaign you "
+                                        "can leave at any time.")
+        # lever L1 (all three readers: "two lit rows"): ONE row is lit — the School's row stands
+        # taller in its prominent face, "Begin" in the plain face every other row wears
+        begin = _pw3_button(boot, "Begin the 1805 Campaign")
+        other = _pw3_button(boot, "Settings")
+        assert begin["disabled"] is False
+        assert school["rect"][3] > begin["rect"][3], (school["rect"], begin["rect"])
+        assert abs(begin["rect"][3] - other["rect"][3]) < 0.5, (begin["rect"], other["rect"])
+
+    def test_the_card_says_the_peace_the_war_and_what_to_decide(self, walk):
+        begin = walk["begin"]
+        faces = [str(b["text"]) for b in _ic_on(begin, "DeskCard")]
+        assert any(f.startswith("THE PEACE — Win the peace: hold 45 titled provinces — your homeland, lands a "
+                                "treaty gave you, and conquests kept ") for f in faces), faces
+        assert any(f.startswith("THE WAR — ") and "to hold the homeland" in f for f in faces), faces
+        assert any(f.startswith("TO DECIDE — ") for f in faces), faces
+        rows = [f for f in faces if re.match(r"\d+\. ", f)]
+        # ours first, then the enemy (the review): "7 corps of yours have no orders and Mack (…) is within one march…"
+        assert 1 <= len(rows) <= 3 and " no orders and Mack (" in rows[0], rows
+        log = " ".join(begin.get("terminal_new") or [])
+        assert log.count("Three things stay in view, Sire:") == 1, log[:400]   # said once, in the log
+
+    def test_the_card_stands_on_the_map_s_corner_and_moves_nothing(self, walk):
+        begin = walk["begin"]
+        width, height = begin["factor"]["logical_size"]
+        card = _ic_rect_of(_ic_on(begin, "DeskCard"))
+        window = _ic_rect_of(_ic_on(begin, "BottomLeftUI"))
+        assert card[0] >= window[2], (card, window)             # beside the command window, never on it
+        assert 30 <= card[1] and card[2] <= width and card[3] <= height * 0.6, card
+        head = [t for t in begin["texts"] if str(t["text"]) == "IMPERIAL COMMAND"]
+        assert head and head[0]["rect"][1] >= 36, head          # the window's header stands under the top bar
+        for key in ("begin", "ic_row", "ic_folded", "ic_unfolded", "ic_danger", "ic_end_turn", "ic_door"):
+            assert not walk[key].get("off_screen"), (key, walk[key].get("off_screen"))
+        for key in ("ic_folded", "ic_unfolded", "ic_end_turn"):
+            assert not _pw_panel_moves(walk[key]), (key, _pw_panel_moves(walk[key]))
+
+    def test_a_row_is_a_door_that_sends_nothing(self, walk):
+        pressed = walk["ic_row"]
+        assert not _ic_sent_an_order(pressed), pressed.get("responses")
+        assert any(str(s.get("name", "")) == "SelectionCard" for s in pressed.get("surfaces") or [])
+        line = pressed.get("command_line") or {}
+        assert line.get("focused") and str(line.get("text", "")) == "", line     # the keyboard is the line's again
+        assert not _modal(pressed)
+        assert "4/4" in _pw_said(pressed), "nothing was spent"
+
+    def test_the_card_folds_to_one_line_and_opens_again(self, walk):
+        folded = [str(b["text"]) for b in _ic_on(walk["ic_folded"], "DeskCard")]
+        assert len(folded) == 2 and folded[0].startswith("TO DECIDE (") and folded[1] == "+", folded
+        opened = [str(b["text"]) for b in _ic_on(walk["ic_unfolded"], "DeskCard")]
+        assert any(f.startswith("THE PEACE — ") for f in opened) and "–" in opened, opened
+        before = _ic_rect_of(_ic_on(walk["ic_let_go"], "DeskCard"))
+        after = _ic_rect_of(_ic_on(walk["ic_folded"], "DeskCard"))
+        assert after[3] - after[1] < (before[3] - before[1]) / 2          # put away: it gives the map back
+
+    def test_a_province_left_open_is_said_marked_and_listed(self, walk):
+        danger = walk["ic_danger"]
+        assert danger.get("map_dangers") == ["Rhineland"], (danger.get("map_dangers"), walk.get("ic_answered"))
+        # lever L3 (reader 2: "the red triangle on the map has no name"): the mark wears it
+        assert danger.get("map_danger_names") == ["Rhineland"], danger.get("map_danger_names")
+        # lever L2 (all three readers: "the ! is not explained"): said under the card's rows …
+        assert "! can cost you when the turn ends" in _pw_said(danger)
+        faces = [str(b["text"]) for b in _ic_on(danger, "DeskCard")]
+        assert any(re.match(r"\d+\. ! Nothing holds Rhineland — Mack \(", f) and f.endswith("one march away.")
+                   for f in faces), faces
+        stop = walk["ic_end_turn"]
+        assert not _ic_sent_an_order(stop) and not _modal(stop)            # the turn did not end
+        assert "EndTurnButton" in str(stop.get("focus") or "")
+        listed = [str(b["text"]) for b in _ic_on(stop, "TurnEndList")]
+        assert any(f.startswith("! Nothing holds Rhineland") for f in listed), listed
+        said = _pw_said(stop)
+        assert "Still to decide before the turn ends — " in said
+        # no action is left (two marches spent four): the one remedy in hand is said
+        assert "No actions are left — Take back (Ctrl+Z) undoes your last order." in said
+        assert "(! can cost you when the turn ends)" in said                # … and in the list's head
+        assert "Press End Turn again, or Enter, to end the turn anyway." in said
+        # lever L6 (both readings: the log's last reply showed above the list, cut off): the
+        # list's panel covers the log's whole room — from under the marshals to the line
+        where = stop.get("turn_end") or {}
+        listing, log, line = where.get("list"), where.get("log"), (stop.get("command_line") or {}).get("rect")
+        assert listing and log and line, where
+        assert listing[1] <= log[1] + 1.0, ("the panel's head stands at the log's head", listing, log)
+        assert listing[1] + listing[3] <= line[1] + 1.0, ("its foot stands above the line", listing, line)
+        assert "Nothing holds Rhineland" in " ".join(stop.get("terminal_new") or [])    # the log's warning says it too
+
+    def test_the_list_s_row_opens_the_province_and_the_wait_stands(self, walk):
+        """RE-SEATED by the review: a door does not end End Turn's wait. The list stays up — a
+        second matter is one press away, and "End Turn again, or Enter" still means what it says."""
+        door = walk["ic_door"]
+        assert door["open"]["region_panel"] is True
+        assert "RHINELAND" in _pw_said(door).upper()
+        assert _ic_on(door, "TurnEndList"), "the list stands while the wait stands"
+        assert "Press End Turn again, or Enter, to end the turn anyway." in _pw_said(door)
+        assert not _ic_sent_an_order(door)
+        line = door.get("command_line") or {}
+        assert line.get("focused") and line.get("editing"), line          # the keyboard is the line's, live
+
+    def test_a_row_set_aside_leaves_the_card_for_the_turn(self, walk):
+        before = [str(b["text"]) for b in _ic_on(walk["ic_aside_before"], "DeskCard") if re.match(r"\d+\. ", str(b["text"]))]
+        after = [str(b["text"]) for b in _ic_on(walk["ic_aside"], "DeskCard") if re.match(r"\d+\. ", str(b["text"]))]
+        gone = before[0].split(". ", 1)[1]
+        assert all(gone not in face for face in after), (before, after)
+        assert not _ic_sent_an_order(walk["ic_aside"])
+
+    def test_the_map_s_key_names_the_mark(self, walk):
+        key = [s for s in walk["ic_key"].get("surfaces") or [] if str(s.get("name", "")) == "MapKeyLayer"]
+        assert key, [s.get("name") for s in walk["ic_key"].get("surfaces") or []]
+        assert any("A province of yours with nothing strong enough to hold it" in line
+                   for line in key[0]["lines"]), key[0]["lines"]
+        assert not walk["ic_key"].get("off_screen")

@@ -737,6 +737,22 @@ def _end_turn_army_warning(world):
         return None
 
 
+def _desk(world, envelope=None):
+    """Row IC: the desk's three lines — THE PEACE, THE WAR, TO DECIDE
+    (`today.desk`), or None when it is not shown or cannot be built. `envelope`
+    is the reply being built: the desk reads the wars and the treasury's
+    forecast it already holds instead of working them out a second time."""
+    try:
+        from backend.game_logic import today as _today
+        envelope = envelope if isinstance(envelope, dict) else {}
+        have = ({"gold_projected_net": envelope["gold_projected_net"]}
+                if "gold_projected_net" in envelope else None)
+        return _today.desk(world, envelope.get("active_wars"), have)
+    except Exception as exc:
+        _errors.report(exc, "main._desk: today.desk")
+        return None
+
+
 def _end_turn_peril_warning(world):
     """S14E-X31: the end-turn gate's second clause - a corps sharing its
     province with an enemy force at `PERIL_RATIO` times its strength or more
@@ -860,6 +876,10 @@ def build_base_response(world, success: bool = True, message: str = "",
         # on the same once-per-End-Turn latch (a string, or null).
         "end_turn_peril_warning": _end_turn_peril_warning(world),
     }
+    # Row IC (the desk, November 19, 2026): THE PEACE, THE WAR, TO DECIDE — one
+    # key on every reply, built from the wars this envelope already holds (a
+    # pure read; null with the seam down).
+    response["desk"] = _desk(world, response)
     response.update(extra)
     # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): a line of authority crossed by ANY
     # write since the last response rides this one (the tracker's queue, read
@@ -3460,6 +3480,9 @@ def test_connection():
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
+    # Row IC: the desk's three lines from the first frame (a HUD field, never a
+    # modal carrier — the same builder every POST envelope carries).
+    response["desk"] = _desk(world, response)
     # S14E-X154 (XP2's sweep): the formed-nation overrides ride this door too -
     # `api_client._adopt_formation_overrides` reads them off every 200 body,
     # and a plain entry to a campaign with a formed nation is the one road

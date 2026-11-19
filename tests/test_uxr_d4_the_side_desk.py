@@ -214,6 +214,10 @@ CLOSE_SITES = {
     # book would cover — each keeps the pin (the open screen only).
     "_ui5_toggle_codex": ["close_all_screens"],               # a book of its own (Help & Keys)
     "_on_show_on_map_requested": ["close_all_screens"],       # the camera to a notice's province
+    # Row IC (the desk): a TO DECIDE row that names a corps puts the camera on
+    # him — the same class as "Show on map" (the row that names a province goes
+    # through `_on_show_on_map_requested` itself).
+    "_ic_go_to_marshal": ["close_all_screens"],               # the camera to a row's corps
 }
 
 

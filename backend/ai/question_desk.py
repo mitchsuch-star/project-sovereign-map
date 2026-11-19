@@ -2500,7 +2500,6 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
     stands there, and every enemy corps AT WAR with us within two marches
     THAT WE CAN SEE (`get_visible_enemies`, Golden Rule 5: a fogged corps is
     never named, and the answer says how far our intelligence reaches)."""
-    from backend.models.intel import FULL, get_strength_band
     region = world.get_region(region_name)
     if region is None:
         return None
@@ -2523,33 +2522,12 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
         _form, _value = _garrison_report.garrison_view(world, region_name, player)
         if _form == "band":
             garrison_words = f"a garrison ({_value})"
-    adjacent = list(getattr(region, "adjacent_regions", None) or [])
-    two_off = set()
-    for name in adjacent:
-        near = world.get_region(name)
-        for far in (getattr(near, "adjacent_regions", None) or []) if near else []:
-            if far != region_name and far not in adjacent:
-                two_off.add(far)
-    threats = []
-    for enemy in world.get_visible_enemies(player):
-        if int(getattr(enemy, "strength", 0) or 0) <= 0:
-            continue
-        if not world.is_at_war(player, getattr(enemy, "nation", "")):
-            continue
-        where = enemy.location
-        if where == region_name:
-            steps = 0
-        elif where in adjacent:
-            steps = 1
-        elif where in two_off:
-            steps = 2
-        else:
-            continue
-        intel = world.get_region_intel(where)
-        force = (f"{int(enemy.strength):,} men" if intel.visibility == FULL
-                 else get_strength_band(int(enemy.strength)))
-        threats.append((steps, enemy, force))
-    threats.sort(key=lambda t: (t[0], -int(t[1].strength)))
+    # Row IC (November 19, 2026): the two-march loop lives in ONE place now —
+    # `game_logic/threats.py` — so the desk's TO DECIDE row, the map's mark and
+    # this answer can never read a different board.
+    from backend.game_logic import threats as _threats
+    adjacent, two_off = _threats.two_marches(world, region_name)
+    threats = _threats.visible_threats(world, player, region_name)
     parts = []
     whose = "ours" if ours else _possessive(holder)
     if own:
@@ -2579,10 +2557,20 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
                         f"{distance} ({force})")
         parts.append("Threats we can see: " + "; ".join(said) + ".")
         nearest = threats[0][0]
+        # Row IC, IC-D1 (the sibling of the desk's danger row): what stops a
+        # march is the attack road's own rule (`threats.stands_in_the_way`) —
+        # a token garrison gives way to a march ("held, but threatened" was
+        # false of it), and works with nobody behind them buy turns, not safety.
+        way = _threats.stands_in_the_way(world, region, player,
+                                         str(getattr(threats[0][1], "nation", "") or ""))
         if nearest == 0:
             verdict = "It is contested, not safe."
-        elif nearest == 1 and not own and garrison <= 0:
+        elif nearest == 1 and not way and garrison > 0:
+            verdict = "It is in danger — the garrison is too small to stop a march."
+        elif nearest == 1 and not way:
             verdict = "It is in danger — nothing of ours stands in its way."
+        elif nearest == 1 and way == "works":
+            verdict = "Its works must be besieged, which buys time — but it is threatened."
         elif nearest == 1:
             verdict = "It is held, but threatened."
         else:
@@ -3072,8 +3060,15 @@ def _answer_options(world, player: str) -> Optional[str]:
     """
     from backend.ai.counsel import what_can_i_do
     lines = what_can_i_do(world, player, limit=6)
+    # Row IC (the desk): "what now?" answers from the SAME rows the desk shows
+    # under TO DECIDE (`today.what_now_lines`) — said after the orders, so the
+    # sentences above them stand as they were. "" with the seam down or when
+    # nothing wants a word.
+    from backend.game_logic import today as _today
+    decide = _today.what_now_lines(world, 3)
+    to_decide = ("\nTo decide now:\n" + "\n".join(f"  {text}" for text in decide)) if decide else ""
     if not lines:
-        return (f"Nothing can be ordered this turn, Sire. {CABINET_LINE_FOR_DESK}")
+        return (f"Nothing can be ordered this turn, Sire. {CABINET_LINE_FOR_DESK}" + to_decide)
     body = "\n".join(f"  {line}" for line in lines)
     # S14E-X80: an attack in the list is taught with its free preview, as the
     # TODAY list does (S14E-24); "" (and no line) when none is listed.
@@ -3081,7 +3076,7 @@ def _answer_options(world, player: str) -> Optional[str]:
     hint = attack_preview_hint(lines)
     return ("These orders would be carried out today, Sire:\n" + body
             + (f"\n{hint}" if hint else "")
-            + f"\n{CABINET_LINE_FOR_DESK}")
+            + f"\n{CABINET_LINE_FOR_DESK}" + to_decide)
 
 
 CABINET_LINE_FOR_DESK = "For any matter of state, press F1 for the Cabinet."

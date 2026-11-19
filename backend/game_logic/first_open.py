@@ -42,7 +42,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 SCREENS: Tuple[str, ...] = (
     "cabinet", "designs", "formables", "settlement", "separate_peace",
     "laws", "admiralty_camp", "moment_letter", "affair_letter", "correspondence",
-    "battle_day",
+    "battle_day", "desk",
 )
 LINE_CAP = 220
 KEY = "first_open"
@@ -184,6 +184,15 @@ def _line_battle_day(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
             "in turn. Two silences running, or every point spent, and night falls.")
 
 
+def _line_desk(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
+    # Row IC (the desk, November 19, 2026): the card's three lines, named once
+    # — what each is for, and that a row is a door. ("in view", not "at the
+    # head of your desk": the card stands at the map's corner — the review.)
+    return ("Three things stay in view, Sire: THE PEACE — how the campaign is won; "
+            "THE WAR — what each war is fought for; TO DECIDE — what wants your "
+            "word now. Press a row and it takes you there.")
+
+
 LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "cabinet": _line_cabinet,
     "designs": _line_designs,
@@ -196,6 +205,7 @@ LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "affair_letter": _line_affair_letter,
     "correspondence": _line_correspondence,
     "battle_day": _line_battle_day,
+    "desk": _line_desk,
 }
 
 

@@ -43,6 +43,7 @@ const ENTRIES := [
 	["THE SEA", "sea", "A sea crossing. Grey: an army can cross. Red: an enemy fleet has closed it. Amber: only a landing can cross. Gold: open for a short time."],
 	["THE LAND", "land", "A province's colour is the nation that holds it. A gold border marks a capital."],
 	["THE LAND", "flash", "A province that has just changed hands."],
+	["THE LAND", "danger", "A province of yours with nothing strong enough to hold it, and an enemy you can see one march away. March a corps in, or have a corps there leave a garrison."],
 	["ORDERS", "reach", "With a corps selected, each province shows how long he needs to get there: this turn, 1 turn, 2–3 turns, 4 or more. Dark = he cannot reach it."],
 	["ORDERS", "arrow", "A standing order: the road a corps is marching. Red: he is pursuing. Blue: he is supporting. Click the line to change or cancel it."],
 	["ORDERS", "trail", "The road a corps has just walked — yours when you send it, the enemy's after you end the turn."],
@@ -188,6 +189,7 @@ class MapKeySample extends Control:
 	const FLASH := Color(1.0, 0.86, 0.42, 1.0)
 	const SHADOW := Color(0.08, 0.06, 0.04, 0.75)
 	const PORT_RED := Color(0.85, 0.25, 0.25, 0.95)
+	const DANGER := Color(0.93, 0.36, 0.28, 0.98)       # row IC: `map_order_layer.DANGER_COLOR`
 	var kind := ""
 
 	func _ready() -> void:
@@ -262,6 +264,16 @@ class MapKeySample extends Control:
 				var c2 := Vector2(w / 2.0, h / 2.0)
 				draw_arc(c2, 12.0, 0.0, TAU, 28, SHADOW, 6.0, true)
 				draw_arc(c2, 12.0, 0.0, TAU, 28, FLASH, 3.0, true)
+			"danger":
+				# the order layer's own mark (`map_order_layer._draw_dangers`)
+				var c4 := Vector2(w / 2.0, h / 2.0 + 2.0)
+				var half := 11.0
+				var tri := PackedVector2Array([c4 + Vector2(0, -half), c4 + Vector2(-half, half * 0.8),
+					c4 + Vector2(half, half * 0.8)])
+				draw_colored_polygon(PackedVector2Array([tri[0] + Vector2(0, -3), tri[1] + Vector2(-3, 2), tri[2] + Vector2(3, 2)]), SHADOW)
+				draw_colored_polygon(tri, DANGER)
+				draw_line(c4 + Vector2(0, -5.0), c4 + Vector2(0, 2.5), Color(0.99, 0.95, 0.88), 2.4, true)
+				draw_circle(c4 + Vector2(0, 6.0), 1.5, Color(0.99, 0.95, 0.88))
 			"reach":
 				var side_px := 12.0
 				for i in range(REACH.size()):

@@ -974,7 +974,116 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 			var data = JSON.parse_string(body.get_string_from_utf8())
 			if data is Dictionary and data.get("saves") is Array:
 				_saves = data["saves"]
+				_ic_saves_known = true
 		_apply_backend_state()
+		_ic_steer_a_first_timer()
+
+
+# ── Row IC (November 19, 2026): the first time at the menu ──────────────────
+# Research and the first playtest agree: a new player who presses "Begin" meets
+# the whole 1805 campaign cold, while a guided lesson sits two rows down in the
+# same plain face. On a machine with NO saved campaign and NO finished lesson
+# the School of War is the lit, focused row, with one line saying what it is and
+# that it can be left. Styling and focus only: no row is renamed, moved or shut,
+# and "Begin the 1805 Campaign" stays one press away.
+
+# (The review: "twelve short turns" was false — the Danube lesson gates on
+# turn 14 and the Table lesson has three. The line promises only what is true.)
+const IC_FIRST_TIME_LINE := "New here? Start with the School of War — a short guided campaign you can leave at any time."
+var _ic_saves_known := false
+var _ic_first_line: Label = null
+var _ic_steered := false
+
+
+func _ic_first_time() -> bool:
+	"""No saved campaign and no finished lesson on this machine (and the menu
+	is not a pause from a running game)."""
+	return _ic_saves_known and _saves.is_empty() and not MenuBoot.came_from_game \
+			and not UiSettings.get_tutorial_done()
+
+
+func _ic_steer_a_first_timer() -> void:
+	"""Light the School of War row and give it the keyboard, once, when the
+	saves are known. Any later visit (a lesson finished, a campaign saved)
+	leaves the menu as it always was."""
+	if _ic_steered or not _backend_up or not _ic_first_time():
+		return
+	var school: Button = _buttons.get("tutorial", null)
+	if school == null or school.disabled:
+		return
+	_ic_steered = true
+	# the prominent face `_make_button` gives Begin: the 2-px lit rim, the
+	# brighter ink (the same drawn gilt button — `_button_face`)
+	school.theme_type_variation = &"TitleScreenButtonProminent"
+	school.add_theme_color_override("font_color", Color(0.99, 0.95, 0.82))
+	school.add_theme_stylebox_override("normal", _button_face(Utils.UI_MENU_FACE_PROMINENT,
+		Utils.UI_MENU_FACE_FOOT, Color(Utils.UI_GOLD_BRIGHT, 0.95), 2, 0.2, 0.0, false))
+	# Lever L1 of the blind reading (all three readers: "TWO lit rows — not
+	# clear which one is the default"): while the steer stands, "Begin" wears
+	# the plain face every other row wears. ONE row is lit. It is not shut,
+	# renamed or moved — it is one press away, as it was.
+	var begin: Button = _buttons.get("begin", null)
+	if begin != null and begin != school:
+		begin.theme_type_variation = &"TitleScreenButton"
+		begin.add_theme_color_override("font_color", Color(0.95, 0.91, 0.80))
+		begin.add_theme_stylebox_override("normal", _button_face(Utils.UI_MENU_FACE,
+			Utils.UI_MENU_FACE_FOOT, Color(0.90, 0.80, 0.58, 0.75), 1, 0.0, 0.0, false))
+		var hover: StyleBox = _button_face(Utils.UI_MENU_FACE_HOVER, Utils.UI_MENU_FACE_HOVER_FOOT,
+			Color(Utils.UI_GOLD_BRIGHT, 0.95), 1, 0.35, 0.0, false)
+		begin.add_theme_stylebox_override("hover", hover)
+		begin.add_theme_stylebox_override("focus", hover)
+		begin.add_theme_stylebox_override("pressed", _button_face(Utils.UI_MENU_FACE_PRESSED,
+			Utils.UI_MENU_FACE_PRESSED_FOOT, Color(Utils.UI_GOLD_BRIGHT, 0.95), 1, 0.0, 0.5, false))
+	# the rows' heights and paddings follow their faces (`_fit_menu_column`)
+	_fit_menu_column.call_deferred()
+	if _ic_first_line == null:
+		# BESIDE the row, never in the column: a line in the column made it
+		# taller, and on a short window the title block stepped aside for it
+		# (seen in the real client at 5120x1377, scale 1.8 — the wordmark gone).
+		# A child of the button adds nothing to the button's own size.
+		# ONE unwrapped line, a child of the menu itself (a wrapping label keeps
+		# the height it measured before it had a width — it stood 420 px tall
+		# and drew nothing where it was put).
+		_ic_first_line = Label.new()
+		_ic_first_line.name = "FirstTimeLine"
+		_ic_first_line.text = IC_FIRST_TIME_LINE
+		_ic_first_line.theme_type_variation = &"Caption"
+		_ic_first_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ic_first_line.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+		_ic_first_line.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+		_ic_first_line.add_theme_constant_override("shadow_offset_y", 1)
+		add_child(_ic_first_line)
+		# Just above the menu's column in the draw order — UNDER everything
+		# added after it (the settings view, the cards, the fade): the review
+		# found the line drawn over an open settings panel.
+		move_child(_ic_first_line, _menu_column.get_index() + 1)
+		resized.connect(_ic_seat_first_line)
+		school.item_rect_changed.connect(_ic_seat_first_line)
+		_menu_column.item_rect_changed.connect(_ic_seat_first_line)
+	_ic_seat_first_line()
+	# The keyboard goes to the lit row — unless the player is already typing
+	# (the campaign seed's box): the saves arrive a moment after the menu
+	# shows, and a focus taken then would eat his next keys (the review).
+	var holder: Control = get_viewport().gui_get_focus_owner()
+	if not (holder is LineEdit):
+		school.grab_focus()
+
+
+func _ic_seat_first_line() -> void:
+	"""The line stands to the right of the School's row, level with it, when
+	the window has the width for it; otherwise it is the row's hover."""
+	var school: Button = _buttons.get("tutorial", null)
+	if school == null or _ic_first_line == null or not is_instance_valid(_ic_first_line):
+		return
+	var row: Rect2 = school.get_global_rect()
+	var want: Vector2 = _ic_first_line.get_combined_minimum_size()
+	var room: float = size.x - row.end.x - 16.0 - 24.0
+	_ic_first_line.visible = room >= want.x and school.is_visible_in_tree()
+	school.tooltip_text = "" if _ic_first_line.visible else IC_FIRST_TIME_LINE
+	if not _ic_first_line.visible:
+		return
+	_ic_first_line.size = want
+	_ic_first_line.global_position = Vector2(row.end.x + 16.0, row.position.y + (row.size.y - want.y) / 2.0)
 
 
 func _style_status_chip(rim: Color) -> void:

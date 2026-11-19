@@ -187,6 +187,29 @@ func set_ui_avoid_rects(global_ui_rects: Array) -> void:
 	queue_redraw()
 
 
+# Row IC: boxes anchored at WORLD points with a fixed size in px — the map's
+# danger marks and their name plates (`map_order_layer.danger_mark_boxes`).
+# BOTH tiers dodge them, as they dodge a UI panel: the plate names a province
+# the player must find, and a nation's name drawn under it hid half of both.
+var _mark_boxes: Array = []
+
+
+func set_mark_boxes(boxes: Array) -> void:
+	_mark_boxes = boxes.duplicate()
+	queue_redraw()
+
+
+func _mark_rects(xform: Transform2D) -> Array:
+	var out: Array = []
+	for box in _mark_boxes:
+		if not (box is Dictionary) or not (box.get("at") is Vector2) or not (box.get("rect") is Rect2):
+			continue
+		var at: Vector2 = xform * (box["at"] as Vector2)
+		var rect: Rect2 = box["rect"]
+		out.append(Rect2(at + rect.position, rect.size).grow(AVOID_RECT_PADDING))
+	return out
+
+
 func set_zoom_level(zoom_level: float) -> void:
 	if is_equal_approx(_zoom_level, zoom_level):
 		return
@@ -631,7 +654,7 @@ func _draw():
 	if fresh:
 		for wr in _furniture_world_rects:
 			guard.append(_project_rect(xform, wr).grow(AVOID_RECT_PADDING))
-	_draw_label_tier(spec, xform, avoid, _local_ui_avoid_rects(), guard, fresh)
+	_draw_label_tier(spec, xform, avoid, _local_ui_avoid_rects() + _mark_rects(xform), guard, fresh)
 
 
 func _local_ui_avoid_rects() -> Array:

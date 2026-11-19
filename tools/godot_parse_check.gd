@@ -125,6 +125,12 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# --import` pass first after a fresh clone).
 	"res://scripts/battle_acts.gd",
 	"res://scripts/diorama_plinth.gd",
+	# Row IC, the desk (November 19, 2026): THE PEACE / THE WAR / TO DECIDE at
+	# the head of the command desk, the list as the turn ends, and the map's
+	# key (its 13th entry — the danger mark; main.gd loads all three by path).
+	"res://scripts/desk_lines.gd",
+	"res://scripts/turn_end_list.gd",
+	"res://scripts/map_key.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not

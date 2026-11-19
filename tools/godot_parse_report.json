@@ -478,6 +478,24 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/desk_lines.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/turn_end_list.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/map_key.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -709,5 +727,5 @@
       "path": "res://../../tools/ba4_mode_c_walk.gd"
     }
   ],
-  "timestamp": "2026-11-19T07:58:24Z"
+  "timestamp": "2026-11-19T21:26:48Z"
 }

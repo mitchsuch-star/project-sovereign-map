@@ -508,7 +508,12 @@ class MetaExecutor:
 
                 action_str = _action_display_name(action)
                 if target:
-                    action_str += f" {target}"
+                    # Row IC review (IC-R3, the sibling): the man chose his
+                    # quarry with the AI's eyes — an enemy the player cannot
+                    # see and did not fight is "an enemy corps" here too
+                    # (`while_you_waited.own_way_target`, the one reading).
+                    from backend.game_logic.while_you_waited import own_way_target
+                    action_str += f" {own_way_target(world, entry) or target}"
 
                 perf_parts = []
                 if perf.get("battles_won", 0) > 0:

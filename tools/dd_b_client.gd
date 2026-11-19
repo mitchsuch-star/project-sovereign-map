@@ -1063,6 +1063,10 @@ func _state() -> Dictionary:
 	out["buttons"] = buttons
 	out["modal_floor"] = floor_layer
 	out["map"] = _map_rows()
+	# Row IC: the provinces that wear the map's standing danger mark.
+	out["map_dangers"] = _map_dangers()
+	out["map_danger_names"] = _map_danger_names()
+	out["turn_end"] = _turn_end_rects()
 	out["open"] = _open_surfaces()
 	var fo: Control = root.gui_get_focus_owner()
 	out["focus"] = (str(fo.name) + " (" + fo.get_class() + ")") if fo != null else ""
@@ -1160,6 +1164,47 @@ func _map_rows() -> Array:
 			out.append({"text": str((n as Label).text).strip_edges(),
 					"kind": str(n.get_meta("furniture_kind", "piece")), "rect": _r(g2)})
 	return out
+
+
+func _map_dangers() -> Array:
+	"""Row IC: the names of the provinces the map marks as in danger — an
+	enemy in sight one march from ground nothing holds (`set_danger_regions`)."""
+	var main := _main()
+	if main == null:
+		return []
+	var map_area = main.get("map_area")
+	if map_area != null and map_area.has_method("danger_regions"):
+		return map_area.danger_regions()
+	return []
+
+
+func _turn_end_rects() -> Dictionary:
+	"""Row IC, lever L6: where the turn's-end list stands and where the log
+	stands — {list, log}, each [x, y, w, h] (absent while not on show)."""
+	var out := {}
+	var main := _main()
+	if main == null:
+		return out
+	var listing = main.get("_turn_end_list")
+	if listing != null and is_instance_valid(listing) and listing.is_visible_in_tree():
+		out["list"] = _r(listing.get_global_rect())
+	var log_scroll = main.get("output_scroll")
+	if log_scroll != null and is_instance_valid(log_scroll) and log_scroll.is_visible_in_tree():
+		out["log"] = _r(log_scroll.get_global_rect())
+	return out
+
+
+func _map_danger_names() -> Array:
+	"""Row IC, lever L3: the names the map's danger marks WEAR (the order
+	layer's own list — what is drawn beside each triangle)."""
+	var main := _main()
+	if main == null:
+		return []
+	var map_area = main.get("map_area")
+	var layer = map_area.get("order_layer") if map_area != null else null
+	if layer != null and layer.has_method("danger_names"):
+		return layer.danger_names()
+	return []
 
 
 # ── controls ────────────────────────────────────────────────────────────────

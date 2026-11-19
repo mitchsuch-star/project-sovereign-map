@@ -1690,7 +1690,10 @@ class TestTheFirstDayNamesItsRules:
         assert line == ("The day hangs, Sire. Each side holds points for the rest of it: a "
                         "word costs points, never an action, and the enemy answers each word "
                         "in turn. Two silences running, or every point spent, and night falls.")
-        assert len(line) <= first_open.LINE_CAP and first_open.SCREENS[-1] == "battle_day"
+        # RE-SEATED (row IC, November 19, 2026): `battle_day` was the last
+        # screen when this row landed; the desk's line (`desk`) joined after
+        # it. The pin is that the day's line is a registered screen.
+        assert len(line) <= first_open.LINE_CAP and "battle_day" in first_open.SCREENS
 
     def test_the_open_block_carries_it_until_it_is_shown(self, table):
         from backend.game_logic import first_open

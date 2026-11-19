@@ -269,6 +269,7 @@ func report() -> Dictionary:
 		"arrows": arrows_report(),
 		"arrow_hover": _arrow_hover,
 		"arrows_dimmed": _arrow_dimmed,
+		"dangers": _dangers.size(),      # row IC: the provinces marked as in danger
 	}
 
 
@@ -317,6 +318,84 @@ func set_flashes(points_world: Array) -> void:
 
 func flash_count() -> int:
 	return _flashes.size()
+
+
+# Row IC "the desk" (November 19, 2026): a province of ours that an enemy we
+# can see could walk into next turn because nothing holds it (the backend's
+# `desk.danger`, `threats.in_danger`). A standing mark, not a pulse: a red
+# warning triangle with its "!" — a SHAPE as well as a colour — above the
+# province's seat, for as long as the danger stands. WORLD points.
+const DANGER_COLOR := Color(0.93, 0.36, 0.28, 0.98)
+const DANGER_INK := Color(0.99, 0.95, 0.88, 1.0)
+const DANGER_LIFT := 30.0        # px above the province's seat (clear of the pieces)
+const DANGER_HALF := 11.0        # half the triangle's base
+var _dangers: Array = []
+var _danger_names: Array = []    # the province each mark stands for, in the points' order
+
+
+func set_dangers(points_world: Array, names: Array = []) -> void:
+	"""The provinces in danger, as WORLD points (the renderer resolves the
+	names); [] clears every mark. `names` are the provinces' own, in the same
+	order — lever L3 of the blind reading (reader 2: "Rhineland is named in
+	the list, but the red triangle on the map has no name"): the mark wears
+	the name the list and the card say."""
+	if points_world == _dangers and names == _danger_names:
+		return
+	_dangers = points_world.duplicate()
+	_danger_names = names.duplicate()
+	queue_redraw()
+
+
+func danger_count() -> int:
+	return _dangers.size()
+
+
+func danger_names() -> Array:
+	"""The names the marks wear now (read by the driven tests)."""
+	return _danger_names.duplicate()
+
+
+func danger_mark_boxes() -> Array:
+	"""Each mark's box for the map's names to dodge (seen in the real client:
+	the "Rhineland" plate stood over the name HESSE): [{at: the WORLD point,
+	rect: the triangle and its name plate in px FROM the projected point}] —
+	a fixed size on screen, whatever the zoom (`map_label_layer.set_mark_boxes`)."""
+	var out: Array = []
+	var font: Font = ThemeDB.fallback_font
+	for i in range(_dangers.size()):
+		var label: String = str(_danger_names[i]) if i < _danger_names.size() else ""
+		var plate := Vector2.ZERO
+		if font != null and label != "":
+			plate = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, BADGE_FONT_PX) + BADGE_PAD * 2.0
+			plate.x += 5.0
+		var half_h: float = maxf(DANGER_HALF + 3.0, plate.y * 0.5)
+		out.append({"at": _dangers[i], "rect": Rect2(-DANGER_HALF - 3.0, -DANGER_LIFT - half_h,
+				DANGER_HALF * 2.0 + 6.0 + plate.x, half_h * 2.0)})
+	return out
+
+
+func _draw_dangers(xform: Transform2D) -> void:
+	for i in range(_dangers.size()):
+		var c: Vector2 = xform * (_dangers[i] as Vector2) + Vector2(0, -DANGER_LIFT)
+		var tip := c + Vector2(0, -DANGER_HALF)
+		var left := c + Vector2(-DANGER_HALF, DANGER_HALF * 0.8)
+		var right := c + Vector2(DANGER_HALF, DANGER_HALF * 0.8)
+		var grow := 3.0
+		draw_colored_polygon(PackedVector2Array([tip + Vector2(0, -grow), left + Vector2(-grow, grow * 0.7),
+			right + Vector2(grow, grow * 0.7)]), RING_SHADOW)
+		draw_colored_polygon(PackedVector2Array([tip, left, right]), Utils.cv(DANGER_COLOR))
+		# the "!" — a stem and a dot
+		draw_line(c + Vector2(0, -5.0), c + Vector2(0, 2.5), DANGER_INK, 2.4, true)
+		draw_circle(c + Vector2(0, 6.0), 1.5, DANGER_INK)
+		# its province's name, on a small plate beside the mark (the badge's own face)
+		var label: String = str(_danger_names[i]) if i < _danger_names.size() else ""
+		if label != "":
+			var font: Font = ThemeDB.fallback_font
+			if font != null:
+				var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, BADGE_FONT_PX)
+				var box := Rect2(c + Vector2(DANGER_HALF + 5.0, -text_size.y * 0.5 - BADGE_PAD.y),
+						text_size + BADGE_PAD * 2.0)
+				_draw_badge_in(box, label, Utils.cv(DANGER_COLOR), BADGE_FONT_PX, BADGE_BG, false)
 
 
 func _draw_flashes(xform: Transform2D) -> void:
@@ -428,7 +507,7 @@ func _process(_delta: float) -> void:
 		_trails = kept
 		queue_redraw()
 	if _rings.is_empty() and _ghost_world.is_empty() and _arrows.is_empty() \
-			and _hover_ring.is_empty():
+			and _hover_ring.is_empty() and _dangers.is_empty():
 		return
 	if _projection() != _drawn_xform:
 		queue_redraw()
@@ -442,6 +521,7 @@ func _draw() -> void:
 	_draw_arrows()
 	_draw_trails(xform)      # row PW part 3: where the marching pieces came from
 	_draw_flashes(xform)     # row PW: the provinces that changed hands
+	_draw_dangers(xform)     # row IC: the provinces an enemy in sight can walk into
 	var zoom: float = xform.get_scale().x
 	if not _hover_ring.is_empty():
 		# Row PW: under the selection's ring, thinner — "a click picks him".

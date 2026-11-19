@@ -570,8 +570,10 @@ class TestTheMapHasAKey:
     def test_every_mark_the_readers_named_is_in_it(self):
         entries = re.findall(r'^\t\["([A-Z ]+)", "([a-z]+)", "([^\n]+)"\],$', self.KEY, re.M)
         kinds = [kind for _section, kind, _words in entries]
+        # Thirteen since row IC's desk (November 19, 2026): the standing mark on a province
+        # an enemy in sight can walk into (`tests/test_ic2_the_turns_end.py`).
         assert kinds == ["piece", "name", "fog", "garrison", "sail", "port", "sea", "land", "flash",
-                         "reach", "arrow", "trail"]
+                         "danger", "reach", "arrow", "trail"]
         words = " ".join(text for _s, _k, text in entries)
         for said in ("fog of war", "12k = 12,000", "ships of the line", "A red anchor: a port under blockade.",
                      "A gold border marks a capital.", "this turn, 1 turn, 2–3 turns, 4 or more"):

@@ -3843,6 +3843,10 @@ func _refresh_order_arrows() -> void:
 				"anchor": kind == "hold", "label": order_arrow_label(info),
 				"halted": bool(info.get("halted", false))})
 	order_layer.set_arrows(arrows)
+	# Row IC: the danger marks are seated from the same board (a boot whose
+	# names arrived before the map knew where its provinces stand).
+	if not _danger_regions.is_empty():
+		set_danger_regions(_danger_regions)
 
 
 func order_arrow_label(info: Dictionary) -> String:
@@ -4016,6 +4020,37 @@ func flash_regions(names: Array) -> void:
 		if positions.has(str(n)):
 			points.append(positions[str(n)])
 	order_layer.set_flashes(points)
+
+
+var _danger_regions: Array = []
+
+
+func set_danger_regions(names: Array) -> void:
+	"""Row IC: the provinces of ours an enemy in sight could walk into next
+	turn (the backend's `desk.danger`) wear a standing warning mark
+	(`map_order_layer.set_dangers`) — a name the sheet does not carry is
+	skipped; [] clears them."""
+	_danger_regions = names.duplicate()
+	if order_layer == null or not order_layer.has_method("set_dangers"):
+		return
+	var positions = _get_active_region_positions()
+	var points: Array = []
+	var shown: Array = []      # lever L3: each mark wears its province's name
+	for n in names:
+		if positions.has(str(n)):
+			points.append(positions[str(n)])
+			shown.append(str(n))
+	order_layer.set_dangers(points, shown)
+	# the map's names dodge each mark and its plate (a nation's name under the
+	# plate hid half of both — seen in the real client)
+	if map_label_layer != null and map_label_layer.has_method("set_mark_boxes") \
+			and order_layer.has_method("danger_mark_boxes"):
+		map_label_layer.set_mark_boxes(order_layer.danger_mark_boxes())
+
+
+func danger_regions() -> Array:
+	"""The provinces marked as in danger now (read by the driven tests)."""
+	return _danger_regions.duplicate()
 
 
 # ═══ Row PW part 2 (November 18, 2026): the enemy's moves, played on the map ═══

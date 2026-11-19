@@ -218,9 +218,13 @@ def cmd_start(args) -> int:
     if not re.fullmatch(r"\d{3,5}x\d{3,5}", window):
         raise SystemExit(f"DD_B_WINDOW wants WIDTHxHEIGHT, e.g. 5120x1377 — got {window!r}")
     env["DD_B_WINDOW"] = window
+    # Row IC: DD_B_VERBOSE=1 runs the engine with --verbose, so its exit names
+    # every object and resource still alive ("N resources still in use at
+    # exit" says only how many). A diagnosis aid: the log grows very long.
+    wordy = ["--verbose"] if os.environ.get("DD_B_VERBOSE", "").strip() == "1" else []
     engine = subprocess.Popen(
         [godot, "--audio-driver", "Dummy", "--windowed", "--resolution", window,
-         "--position", PARKED, "--path", str(PROJECT), "--script", str(CLIENT)],
+         "--position", PARKED, "--path", str(PROJECT), "--script", str(CLIENT)] + wordy,
         cwd=str(PROJECT), env=env, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
     meta = {"road": args.road, "brief": ROADS.get(args.road, ""), "port": port,
             "backend_pid": backend.pid, "engine_pid": engine.pid, "godot": godot,

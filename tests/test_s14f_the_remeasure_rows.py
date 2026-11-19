@@ -19368,6 +19368,10 @@ class TestS14EX80:
         monkeypatch.setattr(counsel, "military_counsel", lambda *a, **k: list(lines))
         options = answer_board_question(_w2_world, {"kind": "options", "subject": "",
                                                     "subject_type": "board"})
+        # Row IC (the desk, November 19, 2026): "what now?" also answers from
+        # the desk's TO DECIDE rows, AFTER the sentences pinned here
+        # (`today.what_now_lines`; `tests/test_ic1_the_desk.py` pins that block).
+        options, _sep, _to_decide = options.partition("\nTo decide now:")
         assert options == ("These orders would be carried out today, Sire:\n"
                            "  Davout, march to Lorraine\n  Soult, fortify\n"
                            "For any matter of state, press F1 for the Cabinet."), options

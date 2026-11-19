@@ -144,10 +144,12 @@ class TestTheLines:
         # Eleven since row BA's BA-4 (November 16, 2026): the first day of
         # battle names its own rules — points, a word, the enemy's answer, the
         # two silences (the user's tick at the plan gate; attached to the open
-        # day's block, `battle_day.block`).
+        # day's block, `battle_day.block`). Twelve since row IC's desk
+        # (November 19, 2026): the three lines at the head of the command desk
+        # are named once (attached to the `desk` payload, `today.desk`).
         assert FO.SCREENS == ("cabinet", "designs", "formables", "settlement", "separate_peace",
                               "laws", "admiralty_camp", "moment_letter", "affair_letter",
-                              "correspondence", "battle_day")
+                              "correspondence", "battle_day", "desk")
         for screen, line in _every_line(world):
             assert line, screen
             assert len(line) <= FO.LINE_CAP, (screen, len(line), line)

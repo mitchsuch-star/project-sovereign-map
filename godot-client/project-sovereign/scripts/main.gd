@@ -1012,6 +1012,9 @@ func _ready():
 	# Session UI-6: the desk's three forms — the marshal row, the bar's second
 	# row and its ⋯ menu, the send glyph — built before the first relayout.
 	_ui6_build_desk()
+	# Row IC: THE PEACE, THE WAR, TO DECIDE at the desk's head, and the list
+	# that stands above the line when End Turn stops.
+	_ic_build_desk()
 
 	# Minimize/Restore terminal panel
 	if not minimize_button.pressed.is_connected(_minimize_terminal):
@@ -1129,6 +1132,11 @@ func _on_connection_test(response):
 		# Update diplomatic top bar fields (Session 8B)
 		_update_diplomatic_top_bar(response)
 
+		# Row IC: the desk's three lines from the first frame (`/test` carries
+		# the same `desk` every reply does); its first-open line waits for the
+		# boot help below.
+		_ic_take_desk(response, false)
+
 		# N4i: Initialize war status HUD on game start
 		_process_active_wars(response)
 
@@ -1190,6 +1198,7 @@ func _on_connection_test(response):
 
 		# Show instructions
 		_print_boot_help()
+		_ic_say_first_line()   # row IC: the desk's once-per-campaign line, under the help
 		# PB-4 (the release build): the war office's build stamp, for the
 		# pause menu's version line.
 		MenuBoot.server_version = str(response.get("version", ""))
@@ -2878,6 +2887,10 @@ func _push_map_label_avoid_rects() -> void:
 		var rail: Rect2 = notification_bar.rail_rect()
 		if rail.size.x > 0.0:
 			rects.append(rail)
+	# Row IC: the desk's card at the map's top-left corner.
+	var desk_card := _ic_desk_card_rect()
+	if desk_card.size.x > 0.0:
+		rects.append(desk_card)
 	map_area.set_ui_avoid_rects(rects)
 
 func _on_grip_gui_input(event: InputEvent) -> void:
@@ -3186,6 +3199,11 @@ func _execute_end_turn():
 	if _army_warning_stands():
 		_show_lapse_confirmation()
 		return
+	# Row IC: a province of ours that an enemy in sight can walk into (named
+	# once per province), or a man who may attack without orders tonight.
+	if _ic_danger_warning_stands() or _ic_strike_warning_stands():
+		_show_lapse_confirmation()
+		return
 	# Row BA, BA-3 (K12): a day of battle that still awaits our word.
 	if _day_warning_stands():
 		_show_lapse_confirmation()
@@ -3287,6 +3305,7 @@ func _send_end_turn():
 	_idle_warned = false   # Session UI-5: and the idle corps' line
 	_take_warned = false   # row PW: and "he can take it"
 	_day_warned = false   # BA-3 (K12): and the day of battle's
+	_ic_strike_warned.clear()   # row IC: and the man who may attack without orders
 	_ui5_end_turn_out = true   # the busy chip says "the courts of Europe move"
 	_set_open_envoys_prompt_visible(false)
 	# Add to history
@@ -3456,6 +3475,10 @@ func _show_lapse_confirmation():
 	if _ui5_idle_warning_stands():
 		_idle_warned = true
 		parts.append(_ui5_idle_sentence())
+	# Row IC: the provinces in danger and the men who may attack without
+	# orders — each named once (their own latches, set as they are read).
+	for ic_said in _ic_gate_sentences():
+		parts.append(ic_said)
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
@@ -3479,6 +3502,7 @@ func _show_lapse_confirmation():
 	_awaiting_end_turn_confirmation = true
 	_set_open_envoys_prompt_visible(_current_lapsing_count > 0)
 	end_turn_button.grab_focus()
+	_ic_show_turn_end_list()   # row IC: the same stop, as a list above the line
 
 func _execute_command():
 	"""Execute the command in the input field."""
@@ -7908,6 +7932,7 @@ func _sync_response_hud(response: Dictionary):
 	_update_diplomatic_top_bar(response)
 	if notification_bar and response.has("notifications"):
 		notification_bar.update_notifications(response.notifications)
+	_ic_take_desk(response)   # row IC: THE PEACE, THE WAR, TO DECIDE ride every reply
 
 
 func _signed_number(value: int) -> String:
@@ -9104,6 +9129,7 @@ func _on_load_save_selected(filename: String):
 func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	"""Clear transient local UI state before hydrating a different campaign."""
 	_pw_shut_the_stack_list()   # row PW: the "Which corps?" list is the old board's
+	_ic_forget_the_board()      # row IC: the desk's lines and its latches are the old board's
 	# S14d: the first-open acknowledgements are THIS world's (a new game or a
 	# load in the same client session starts afresh).
 	if api_client and api_client.has_method("reset_first_open_acks"):
@@ -10768,42 +10794,46 @@ func _on_ledger_assess_requested():
 
 # ═══════ UI-6: REGION ACTION PANEL (map provinces answer a click) ═══════
 
-func _on_map_region_clicked(region_name: String):
+func _on_map_region_clicked(region_name: String, by_door: bool = false):
 	"""Open the Region Action Panel for a clicked province. Map input is
 	already disabled while screens are open; modals block via the guard.
 	UX pass July 16: clicking the already-open province toggles the panel
-	closed, and the clicked province stays lit on the map while it's open."""
+	closed, and the clicked province stays lit on the map while it's open.
+	Row IC: `by_door` — a row of the desk opens the province through this
+	same function (the panel keeps its ONE door, S14G-X66). No click was
+	made, so no click gesture is read and an open panel is not toggled shut."""
 	if region_panel == null or region_name == "":
 		return
 	if _is_screen_open() or _is_modal_dialog_open():
 		return
-	# CC-3: with a corps selected the click is an ORDER gesture (a card,
-	# never the panel) — while the line is empty; a draft owns the clicks
-	# (CC-X12: a line filled by code lets the selection go first).
-	var drafting: bool = command_input.text.strip_edges() != ""
-	if _order_engaged() and drafting:
-		_clear_order_selection()
-	# CC-5: Ctrl-click on a piece of ours gathers him into the group (or lets
-	# him out of it) — on an empty line only (a draft owns the clicks).
-	if not drafting and _click_groups_a_marshal():
-		return
-	if _order_group.size() >= 2:
-		_group_click(region_name)
-		return
-	if _order_marshal != "":
-		# Session UI-6 (N3): the left path — another of ours is picked, not supported
-		_order_click(region_name, _last_click_target_key())
-		return
-	# CC-1: a click while the line waits for a name writes the name there
-	# (the province, or the piece clicked) instead of opening the panel.
-	if _click_writes_a_name(region_name):
-		return
-	# CC-3: on an EMPTY line a plain click on a piece of ours selects him.
-	if _click_selects_a_marshal():
-		return
-	if region_panel.visible and region_panel.current_region() == region_name:
-		region_panel.close_panel()
-		return
+	if not by_door:
+		# CC-3: with a corps selected the click is an ORDER gesture (a card,
+		# never the panel) — while the line is empty; a draft owns the clicks
+		# (CC-X12: a line filled by code lets the selection go first).
+		var drafting: bool = command_input.text.strip_edges() != ""
+		if _order_engaged() and drafting:
+			_clear_order_selection()
+		# CC-5: Ctrl-click on a piece of ours gathers him into the group (or lets
+		# him out of it) — on an empty line only (a draft owns the clicks).
+		if not drafting and _click_groups_a_marshal():
+			return
+		if _order_group.size() >= 2:
+			_group_click(region_name)
+			return
+		if _order_marshal != "":
+			# Session UI-6 (N3): the left path — another of ours is picked, not supported
+			_order_click(region_name, _last_click_target_key())
+			return
+		# CC-1: a click while the line waits for a name writes the name there
+		# (the province, or the piece clicked) instead of opening the panel.
+		if _click_writes_a_name(region_name):
+			return
+		# CC-3: on an EMPTY line a plain click on a piece of ours selects him.
+		if _click_selects_a_marshal():
+			return
+		if region_panel.visible and region_panel.current_region() == region_name:
+			region_panel.close_panel()
+			return
 	# S14G-15 (Pre-Deploy S14h part 2, October 26, 2026): a tall reply
 	# raises the command window to its tallest until the next SEND, and a map
 	# click is not a send — the province panel opened above it was clamped to
@@ -14168,6 +14198,7 @@ func _ui5_toggle_hud() -> void:
 	# Session UI-6: the 32:9 wing and the selection card stand aside with the HUD.
 	_ui6_fit_right_wing()
 	_render_order_strip()
+	_ic_queue_fit_card()   # row IC: and the desk's card (its fit pushes the names' avoid rects)
 	_push_map_label_avoid_rects()
 	_queue_fit_map_controls()
 
@@ -14232,7 +14263,12 @@ func _ui5_bar_mode() -> bool:
 # ── the idle corps in the End Turn gate ─────────────────────────────────────
 
 func _ui5_idle_warning_stands() -> bool:
-	return UiSettings.get_idle_warning() and not _idle_warned and not _idle_marshals().is_empty()
+	# Row IC, lever L4 (the blind reading: "Actions 0/4 — '6 corps have no
+	# orders' cannot be acted on"): with no action left nothing can be given
+	# to a corps, so it is no reason to stop — the take warning's own rule
+	# (`_pw_take_warning_stands`), and the desk's (`today._rows_reach_and_idle`).
+	return UiSettings.get_idle_warning() and not _idle_warned and int(actions_remaining) > 0 \
+			and not _idle_marshals().is_empty()
 
 
 func _ui5_idle_sentence() -> String:
@@ -14658,6 +14694,7 @@ func _ui6_apply_desk_mode(mode: String) -> void:
 		_map_mode_chip.visible = not bar     # M still cycles; the bar's ⋯ names the view
 	if changed:
 		_ui6_seat_marshal_row(mode)
+	_ic_apply_desk_mode(mode)   # row IC: the desk's lines keep their seat under the header
 	_ui6_dress_status_row()
 	_ui6_refresh_bar()
 
@@ -15957,3 +15994,482 @@ static func _history_words(text: String) -> PackedStringArray:
 			or (code > 191 and not HISTORY_BREAKS.contains(c))
 		clean += c if letter else " "
 	return clean.split(" ", false)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Row IC "Independent Command" — the desk (November 19, 2026)
+# ════════════════════════════════════════════════════════════════════════════
+# The first playtest: "everything feels convoluted and opaque and disconnected."
+# The backend now says, on every reply, what the campaign is for, what each war
+# is fought for and what wants a word this turn — ONE key, `desk`
+# (`backend/game_logic/today.py`). This section draws it:
+#
+#   * the desk's three lines (`scripts/desk_lines.gd`) — THE PEACE, THE WAR,
+#     TO DECIDE — on a small card at the map's top-left corner, beside the
+#     command desk (it folds to one line); one line at the head of the slim bar;
+#   * the turn's-end list (`scripts/turn_end_list.gd`) floating just above the
+#     command line while End Turn waits for its second press — the same stop
+#     the log's warning says (that warning is unchanged), as rows with doors;
+#   * the map's standing mark on a province an enemy in sight can walk into;
+#   * two more reasons for End Turn to stop once: such a province (named once
+#     per province, not every turn) and a man who may attack without orders.
+#
+# A row's door NEVER sends an order and never spends anything: it selects the
+# corps, shows the province, or opens the screen that settles the matter.
+
+const DeskLinesScript := preload("res://scripts/desk_lines.gd")
+const TurnEndListScript := preload("res://scripts/turn_end_list.gd")
+const IC_LIST_CLOSING := "Press End Turn again, or Enter, to end the turn anyway."
+const IC_LIST_NO_ACTIONS := "No actions are left — Take back (Ctrl+Z) undoes your last order. "
+const IC_LIST_NARROW_BELOW := 560.0  # under this width a row of the turn's-end list wraps to two lines
+const IC_LIST_ROW_PX := 24.0         # one line of a row, with its air
+const IC_LIST_CHROME_PX := 70.0      # the list's head, its closing line and its frame
+const IC_LIST_MIN_ROWS := 1
+const IC_CARD_WIDTH := 480.0         # the card's ceiling, logical px
+const IC_CARD_MIN_WIDTH := 300.0
+const IC_CARD_SHARE := 0.30          # of the map's room
+
+var _desk_lines = null               # scripts/desk_lines.gd, loaded by path
+var _desk_card: PanelContainer = null   # the frame the lines stand in, over the map's corner
+var _ic_fit_queued := false
+var _ic_fit_passes := 0
+var _ic_list_rows: Array = []        # the rows the turn's-end list stands for
+var _ic_list_cap := 6                # how many of them it shows (the rest are counted)
+var _ic_list_stood_frame := -1       # the frame its rows were last built (they measure true a frame later)
+var _turn_end_list = null            # scripts/turn_end_list.gd, loaded by path
+var _ic_desk: Dictionary = {}        # the last reply's `desk`
+var _ic_danger_warned := {}          # province -> true: a turn's end has named it
+var _ic_strike_warned := {}          # row id -> true: this turn's gate has named him
+var _ic_first_line_said := false
+
+
+func _ic_build_desk() -> void:
+	"""The card and the list, built once. Neither is a child of the command
+	window: the window's own rows, heights and floors are exactly as they
+	were (seen in the real client at 5120x1377, scale 1.8 — three more lines
+	inside the 32:9 column pushed its header under the top bar)."""
+	if command_input == null or _desk_lines != null:
+		return
+	_desk_lines = DeskLinesScript.new()
+	_desk_lines.door_pressed.connect(_ic_open_door)
+	_desk_lines.resized_by_content.connect(_ic_queue_fit_card)
+	_desk_lines.focus_released.connect(_ic_take_the_keyboard_back)
+	_desk_card = PanelContainer.new()
+	_desk_card.name = "DeskCard"
+	_desk_card.visible = false
+	_desk_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	_desk_card.add_theme_stylebox_override("panel", Utils.leather_frame(Utils.FRAME_HUD, 8.0))
+	add_child(_desk_card)
+	_desk_card.add_child(_desk_lines)
+	_desk_lines.set_foldable(true)
+	# The card follows its own lines (a wrapped row's height settles a frame
+	# after its width) and the command window's rect (the window widens when
+	# "Open Envoys" joins its row — seen in the real client: it grew into the card).
+	_desk_card.minimum_size_changed.connect(_ic_queue_fit_card)
+	if bottom_left_ui != null:
+		bottom_left_ui.item_rect_changed.connect(_ic_queue_fit_card)
+		# … and its showing (the review: minimised and brought back, the card
+		# stood where the window had pushed it) and the view's own size.
+		bottom_left_ui.visibility_changed.connect(_ic_queue_fit_card)
+	resized.connect(_ic_queue_fit_card)
+	_turn_end_list = TurnEndListScript.new()
+	add_child(_turn_end_list)
+	_turn_end_list.door_pressed.connect(_ic_open_door)
+	set_process(false)
+
+
+func _ic_apply_desk_mode(mode: String) -> void:
+	"""The lines' seat for the desk's form: one line at the head of the slim
+	bar (the compact view); else the card at the map's top-left corner."""
+	if _desk_lines == null or not is_instance_valid(_desk_lines) or _desk_card == null:
+		return
+	var layout := get_node_or_null(DESK_PATH)
+	if mode == "bar" and layout != null:
+		if _desk_lines.get_parent() != layout:
+			_desk_lines.reparent(layout, false)
+		if _desk_lines.get_index() != 0:
+			layout.move_child(_desk_lines, 0)
+		_desk_lines.set_foldable(false)
+		_desk_lines.set_mode("line")
+	else:
+		if _desk_lines.get_parent() != _desk_card:
+			_desk_lines.reparent(_desk_card, false)
+		_desk_lines.set_foldable(true)
+		_desk_lines.set_mode("full")
+	_ic_queue_fit_card()
+
+
+func _ic_queue_fit_card() -> void:
+	"""One fit a frame, for a few frames (a wrapped row's height is known only
+	once its width has been laid out); a fit that changes nothing ends them."""
+	_ic_fit_passes = 4
+	if _ic_fit_queued:
+		return
+	_ic_fit_queued = true
+	_ic_fit_card.call_deferred()
+
+
+func _ic_fit_card() -> void:
+	"""The card stands at the top-left corner of the map's room — under the
+	top bar, beside the 32:9 column or over the desk's corner of the map —
+	as wide as IC_CARD_SHARE of that room (between its floor and ceiling) and
+	as tall as its lines. It steps right of the command window where the
+	window reaches that high, and goes with the HUD (H) and the campaign."""
+	_ic_fit_queued = false
+	if _desk_card == null or not is_instance_valid(_desk_card) or _desk_lines == null:
+		return
+	var shown: bool = _desk_mode_now != "bar" and not _hud_hidden and not _campaign_over \
+			and _desk_lines.get_parent() == _desk_card and _desk_lines.visible
+	var before := Rect2(_desk_card.position, _desk_card.size)
+	var at: Vector2 = _desk_card.position
+	if shown:
+		var band := Utils.hud_band(size)
+		var width: float = clampf(floorf((band.y - band.x) * IC_CARD_SHARE), IC_CARD_MIN_WIDTH, IC_CARD_WIDTH)
+		at = Vector2(band.x + Utils.HUD_MARGIN,
+				TOP_BAR_RESERVED_PX + Utils.top_bar_growth() + Utils.HUD_MARGIN)
+		if not is_equal_approx(_desk_card.custom_minimum_size.x, width):
+			_desk_card.custom_minimum_size = Vector2(width, 0.0)
+		var want := Vector2(width, _desk_card.get_combined_minimum_size().y)
+		if not _desk_card.size.is_equal_approx(want):
+			_desk_card.size = want
+		if bottom_left_ui != null and bottom_left_ui.visible:
+			var desk_rect: Rect2 = bottom_left_ui.get_global_rect()
+			if desk_rect.intersects(Rect2(at, want)):
+				at.x = desk_rect.end.x + Utils.HUD_MARGIN
+			# Never past the band's right edge (the review: a window dragged
+			# wide pushed the card off the view). Where the window leaves it
+			# no room at all — raised tall AND wide — the card steps away
+			# until the window goes back (a raise lasts until the next send).
+			at.x = minf(at.x, maxf(band.x + Utils.HUD_MARGIN, band.y - Utils.HUD_MARGIN - width))
+			if desk_rect.intersects(Rect2(at, want)):
+				shown = false
+	# ONE write of its showing a fit (a show-then-hide inside one fit would
+	# raise the signals that queue the next fit, for ever).
+	if _desk_card.visible != shown:
+		_desk_card.visible = shown
+	if shown and not _desk_card.position.is_equal_approx(at):
+		_desk_card.position = at
+	_push_map_label_avoid_rects()
+	_ic_fit_passes -= 1
+	var settled: bool = Rect2(_desk_card.position, _desk_card.size).is_equal_approx(before)
+	if _ic_fit_passes > 0 and not (settled and _ic_fit_passes < 3):
+		_ic_fit_queued = true
+		_ic_fit_card.call_deferred()
+
+
+func _ic_desk_card_rect() -> Rect2:
+	"""The card's drawn rect (empty while it does not stand) — the map's names
+	dodge it (`_push_map_label_avoid_rects`)."""
+	if _desk_card == null or not is_instance_valid(_desk_card) or not _desk_card.visible:
+		return Rect2()
+	return _desk_card.get_global_rect()
+
+
+func _ic_take_desk(response, say_line: bool = true) -> void:
+	"""A reply's `desk` (absent on an older server: nothing changes): the three
+	lines, the map's danger marks, and the danger latch pruned to what still
+	stands — a province that leaves danger and comes back is named again."""
+	if not (response is Dictionary) or not (response as Dictionary).has("desk"):
+		return
+	var raw = (response as Dictionary).get("desk")
+	_ic_desk = raw if raw is Dictionary else {}
+	if _desk_lines != null and is_instance_valid(_desk_lines):
+		_desk_lines.set_desk(_ic_desk, int(current_turn))
+	var standing := {}
+	for region_name in _ic_danger_regions():
+		standing[region_name] = true
+	for region_name in _ic_danger_warned.keys():
+		if not standing.has(region_name):
+			_ic_danger_warned.erase(region_name)
+	if map_area != null and map_area.has_method("set_danger_regions"):
+		map_area.set_danger_regions(_ic_danger_regions())
+	if say_line:
+		_ic_say_first_line()
+
+
+func _ic_forget_the_board() -> void:
+	"""A load or a new campaign: the lines, the marks and every latch go."""
+	_ic_desk = {}
+	_ic_danger_warned.clear()
+	_ic_strike_warned.clear()
+	_ic_first_line_said = false
+	if _desk_lines != null and is_instance_valid(_desk_lines):
+		_desk_lines.set_desk({}, -1)
+	if _turn_end_list != null and is_instance_valid(_turn_end_list):
+		_turn_end_list.hide_list()
+	if map_area != null and map_area.has_method("set_danger_regions"):
+		map_area.set_danger_regions([])
+
+
+func _ic_say_first_line() -> void:
+	"""The desk's once-per-campaign line (`first_open.py`, screen `desk`): said
+	once in the log, then acknowledged (the showing sets the latch)."""
+	if _ic_first_line_said:
+		return
+	var fo = _ic_desk.get("first_open")
+	if not (fo is Dictionary) or str((fo as Dictionary).get("line", "")) == "":
+		return
+	_ic_first_line_said = true
+	add_output("[color=#" + Utils.COLOR_INFO + "]" + str((fo as Dictionary).get("line", "")) + "[/color]")
+	_on_first_open_seen(str((fo as Dictionary).get("screen", "desk")))
+
+
+func _ic_rows() -> Array:
+	"""The desk's TO DECIDE rows, in the backend's order."""
+	var out: Array = []
+	var rows = _ic_desk.get("decide", [])
+	if rows is Array:
+		for r in rows:
+			if r is Dictionary:
+				out.append(r)
+	return out
+
+
+func _ic_danger_regions() -> Array:
+	var out: Array = []
+	var rows = _ic_desk.get("danger", [])
+	if rows is Array:
+		for r in rows:
+			if r is Dictionary and str(r.get("region", "")) != "":
+				out.append(str(r.get("region", "")))
+	return out
+
+
+func _ic_new_danger() -> Array:
+	"""The provinces in danger that no turn's end has named yet: [{region, line}]."""
+	var out: Array = []
+	var rows = _ic_desk.get("danger", [])
+	if rows is Array:
+		for r in rows:
+			if r is Dictionary and str(r.get("region", "")) != "" \
+					and not _ic_danger_warned.has(str(r.get("region", ""))):
+				out.append(r)
+	return out
+
+
+func _ic_danger_warning_stands() -> bool:
+	return not _ic_new_danger().is_empty()
+
+
+func _ic_strikers() -> Array:
+	"""The rows of the men who may attack without orders tonight, not yet named
+	by this turn's gate."""
+	var out: Array = []
+	for r in _ic_rows():
+		var row_id := str(r.get("id", ""))
+		if row_id.begins_with("strike:") and not _ic_strike_warned.has(row_id):
+			out.append(r)
+	return out
+
+
+func _ic_strike_warning_stands() -> bool:
+	return not _ic_strikers().is_empty()
+
+
+func _ic_gate_sentences() -> PackedStringArray:
+	"""The log warning's sentences for the two new reasons — and their latches,
+	set as they are read: every province now in danger is named (the new ones
+	stopped the gate), each striker once a turn."""
+	var said := PackedStringArray()
+	for r in _ic_new_danger():
+		if str(r.get("line", "")) != "":
+			said.append(str(r.get("line", "")))
+	for region_name in _ic_danger_regions():
+		_ic_danger_warned[region_name] = true
+	for r in _ic_strikers():
+		if str(r.get("text", "")) != "":
+			said.append(str(r.get("text", "")))
+		_ic_strike_warned[str(r.get("id", ""))] = true
+	return said
+
+
+func _ic_show_turn_end_list() -> void:
+	"""Stand the list above the line: every desk row that bites when the turn
+	ends or wastes it (tiers 1 and 2), each with its door; End Turn keeps the
+	focus, and Up from it reaches the last row."""
+	if _turn_end_list == null or not is_instance_valid(_turn_end_list):
+		return
+	var rows: Array = []
+	for r in _ic_rows():
+		if int(r.get("tier", 3)) <= 2:
+			rows.append(r)
+	if rows.is_empty():
+		_turn_end_list.hide_list()
+		return
+	if bottom_left_ui == null or not bottom_left_ui.visible:
+		_turn_end_list.hide_list()   # no command window to stand over (minimised, or H)
+		return
+	_ic_list_rows = rows
+	_ic_list_cap = _ic_list_rows_that_fit()
+	_ic_stand_the_list()
+	set_process(true)
+
+
+func _ic_stand_the_list() -> void:
+	"""The list's rows at its present cap, End Turn's upward neighbour set to
+	the last of them, and its place above the line."""
+	# With no action left the one remedy still in hand is to take the last
+	# order back (the third blind reading: "I am told to decide, but I have no
+	# actions left") — said only while the server offers it.
+	var closing := IC_LIST_CLOSING
+	if int(actions_remaining) <= 0 and bool(_take_back_offer.get("available", false)):
+		closing = IC_LIST_NO_ACTIONS + closing
+	_turn_end_list.show_rows(_ic_list_rows, closing, _ic_list_cap)
+	_ic_list_stood_frame = Engine.get_process_frames()
+	var last: Button = _turn_end_list.last_button()
+	if last != null and end_turn_button != null:
+		end_turn_button.focus_neighbor_top = end_turn_button.get_path_to(last)
+		last.focus_neighbor_bottom = last.get_path_to(end_turn_button)
+	_ic_place_turn_end_list()
+
+
+func _ic_list_room() -> float:
+	"""The height the list may take: the log's own, above the command line
+	(the list stands over the log, never over the marshals above it); half
+	the view where the log is put away (the slim bar)."""
+	var line_row := command_input.get_parent() as Control
+	if line_row == null:
+		return size.y * 0.5
+	if output_scroll == null or not output_scroll.is_visible_in_tree():
+		return size.y * 0.5
+	return line_row.get_global_rect().position.y - 4.0 - output_scroll.get_global_rect().position.y
+
+
+func _ic_list_rows_that_fit() -> int:
+	"""A first reckoning of how many rows the room takes (a narrow window
+	wraps each row to two lines); `_ic_place_turn_end_list` takes one more
+	off while the laid-out list still stands taller than its room."""
+	var line_row := command_input.get_parent() as Control
+	var narrow: bool = line_row != null and line_row.size.x < IC_LIST_NARROW_BELOW
+	var row_px: float = IC_LIST_ROW_PX * (2.0 if narrow else 1.0)
+	return clampi(int(floor((_ic_list_room() - IC_LIST_CHROME_PX) / row_px)), IC_LIST_MIN_ROWS, 6)
+
+
+func _ic_place_turn_end_list() -> void:
+	"""The list floats just above the command line, as wide as the line's row
+	and as tall as its rows — over the log, whose last lines say the same
+	thing. It changes nothing in the window's own layout."""
+	if _turn_end_list == null or command_input == null:
+		return
+	var row := command_input.get_parent() as Control
+	if row == null:
+		return
+	var anchor := row.get_global_rect()
+	if not is_equal_approx(_turn_end_list.custom_minimum_size.x, anchor.size.x):
+		_turn_end_list.custom_minimum_size = Vector2(anchor.size.x, 0.0)
+	var want: Vector2 = _turn_end_list.get_combined_minimum_size()
+	# A row that wraps knows its height only once it has been laid out at its
+	# width: measured in the frame it was built, every row read as tall as its
+	# words stacked one a line, and the list fell to its floor (the review).
+	# So the "one row fewer" reckoning waits a frame after the rows are stood.
+	var measured: bool = Engine.get_process_frames() > _ic_list_stood_frame + 1
+	if measured and want.y > _ic_list_room() + 2.0 and _ic_list_cap > IC_LIST_MIN_ROWS \
+			and _ic_list_rows.size() > IC_LIST_MIN_ROWS:
+		_ic_list_cap -= 1          # still taller than the log: one row fewer, counted on its last line
+		_ic_stand_the_list()
+		return
+	# Lever L6 (both blind readings: the log's last reply showed above the
+	# list, cut off mid-line, and was read as one more matter): while the log
+	# is on show the panel covers its WHOLE room — its rows keep to the foot,
+	# beside the line. On the slim bar (the log put away) it is as tall as its rows.
+	var tall: float = want.y
+	if output_scroll != null and output_scroll.is_visible_in_tree():
+		tall = maxf(want.y, _ic_list_room())
+	var box := Vector2(want.x, tall)
+	if not _turn_end_list.size.is_equal_approx(box):
+		_turn_end_list.size = box
+	# Its foot stands just above the line — always: the command line and End
+	# Turn are never covered (a list too tall for a very short view rises
+	# toward the top bar instead).
+	var at := Vector2(anchor.position.x, anchor.position.y - 4.0 - tall)
+	if not _turn_end_list.position.is_equal_approx(at):
+		_turn_end_list.position = at
+
+
+func _process(_delta: float) -> void:
+	"""Row IC: the list stands exactly while End Turn waits for its second
+	press (eight roads end that wait; this is the one place that reads it),
+	and keeps its place above the line while it stands."""
+	if _turn_end_list == null or not is_instance_valid(_turn_end_list) or not _turn_end_list.visible:
+		set_process(false)
+		return
+	if not _awaiting_end_turn_confirmation or bottom_left_ui == null or not bottom_left_ui.visible:
+		_turn_end_list.hide_list()
+		if end_turn_button != null:
+			end_turn_button.focus_neighbor_top = NodePath("")   # the row it pointed at is gone
+		set_process(false)
+		return
+	_ic_place_turn_end_list()
+
+
+func _ic_open_door(door: Dictionary, _row_id: String = "") -> void:
+	"""ONE road for every row of the desk and of the turn's-end list: the place
+	that settles the matter. It sends nothing — and it does NOT end End Turn's
+	wait (the review; `_on_envoy_clicked`'s own rule of August 23: "armed and
+	visible is one state"). The list stays up while the wait stands, so a
+	second matter is one press away, and "End Turn again, or Enter" still
+	means what the list says; an order SENT ends the wait, as it always did
+	(a wait ended here would have let the next End Turn straight through —
+	every reason already named — with the other matters never seen again)."""
+	if _is_modal_dialog_open():
+		return
+	match str(door.get("kind", "")):
+		"marshal":
+			_ic_go_to_marshal(str(door.get("marshal", "")))
+		"region":
+			_ic_go_to_region(str(door.get("region", "")))
+		"day":
+			_open_battle_day(str(door.get("enemy", "")))
+		"envoys":
+			_on_envoy_clicked()
+		"ledger":
+			_on_tutorial_open_ledger(int(door.get("tab", 0)))
+		"congress":
+			_on_wizard_open_congress_requested()
+		"generals":
+			_ui6_open_generals()
+		"idle":
+			_cycle_idle_marshal()
+		"war":
+			_on_tutorial_open_cabinet(str(door.get("opponent", "")))
+		"court":
+			_on_tutorial_open_cabinet(str(door.get("nation", "")))
+	# A door that opened no window hands the keyboard back to the line (a
+	# focused row would swallow the next typed letter as a hotkey).
+	if not _is_modal_dialog_open() and not _is_screen_open() and command_input != null \
+			and command_input.editable:
+		command_input.grab_focus()
+		_resume_editing()      # CC-X10: focus is not editing on Godot 4.4's LineEdit
+
+
+func _ic_take_the_keyboard_back() -> void:
+	"""The card's last row was set aside from the keyboard: the line takes it."""
+	if command_input != null and command_input.editable and not _is_modal_dialog_open():
+		command_input.grab_focus()
+		_resume_editing()
+
+
+func _ic_go_to_marshal(key: String) -> void:
+	"""Select the corps (on an empty line) and put the camera on him."""
+	if key == "" or not _own_field_marshal(key):
+		return
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	if _order_input_ready() and command_input.text.strip_edges() == "" and _order_marshal != key:
+		_select_marshal(key)
+	if map_area != null and map_area.has_method("focus_on_marshal"):
+		map_area.focus_on_marshal(key)
+
+
+func _ic_go_to_region(region_name: String) -> void:
+	"""The camera on the province and its panel open (its chips are the
+	remedies: garrison it, march a corps to it). Two roads that already
+	exist, in order: a notice's "Show on map" (a covering screen steps aside,
+	the camera goes there) and the panel's ONE door (`_on_map_region_clicked`,
+	`by_door` — the window is lowered before the panel opens)."""
+	if region_name == "" or region_panel == null:
+		return
+	if _order_engaged():
+		_clear_order_selection()
+	_on_show_on_map_requested(region_name)
+	_on_map_region_clicked(region_name, true)

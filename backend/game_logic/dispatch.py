@@ -4835,11 +4835,13 @@ _OFF_PHRASES = {0: "in his own province", 1: "one province off", 2: "two provinc
 _INTERRUPT_LINES_NAMED = 3
 
 
-def end_turn_interrupt_warning(world, nation: str) -> Optional[str]:
+def end_turn_interrupt_reading(world, nation: str) -> Optional[Dict[str, Any]]:
     """S14G-2 + S14G-D2 (Pre-Deploy S14h part 1, October 26, 2026): the end-turn
     gate's interrupt clause — one line per aggressive corps that holds a
     standing order with a known enemy of a war of ours within the cannon-fire
-    range, or None.
+    range, or None. (Row IC: the reading behind the words — {corps: [{marshal,
+    foe, hops}], line} — so the desk's row can open the corps it names; the
+    words are unchanged.)
 
     "Massena (aggressive) holds a standing order at Bohemia with Kutuzov's
     ~33,000 two provinces off — he will drop it for any battle within two
@@ -4885,6 +4887,7 @@ def end_turn_interrupt_warning(world, nation: str) -> Optional[str]:
     from backend.game_logic import intel_surfaces as _surf
     rows = {}
     lines: List[str] = []
+    named: List[Dict[str, Any]] = []
     for m in sorted(held, key=lambda x: x.name):
         best = None
         for foe in foes:
@@ -4908,6 +4911,9 @@ def end_turn_interrupt_warning(world, nation: str) -> Optional[str]:
         if best is None:
             continue
         _rank, row, figure, hops = best
+        named.append({"marshal": m.name, "foe": str(row["name"]), "hops": int(hops),
+                      # what he would break off (row IC: the desk's row says it in plain words)
+                      "order": str(getattr(getattr(m, "strategic_order", None), "command_type", "") or "")})
         lines.append(
             f"{humanize_entity_name(m.name)} (aggressive) holds a standing order at "
             f"{m.location} with {row['name']}'s {figure} {_OFF_PHRASES.get(hops, 'near')} — "
@@ -4919,7 +4925,14 @@ def end_turn_interrupt_warning(world, nation: str) -> Optional[str]:
         lines = lines[:_INTERRUPT_LINES_NAMED]
         lines.append(f"{extra} more aggressive corps "
                      f"{'stands' if extra == 1 else 'stand'} likewise.")
-    return " ".join(lines)
+    return {"corps": named, "line": " ".join(lines)}
+
+
+def end_turn_interrupt_warning(world, nation: str) -> Optional[str]:
+    """S14G-2: the end-turn gate's interrupt clause(s) — one string, or None
+    (`end_turn_interrupt_reading`'s `line`)."""
+    reading = end_turn_interrupt_reading(world, nation)
+    return reading["line"] if reading else None
 
 
 # S14G-4 (Pre-Deploy S14h part 1, October 26, 2026): what each answer to a
@@ -4977,8 +4990,10 @@ def mark_interrupt_answered(world, marshal_name: str, answer: str) -> bool:
     return False
 
 
-def end_turn_morale_warning(world, nation: str) -> Optional[str]:
+def end_turn_morale_reading(world, nation: str) -> Optional[Dict[str, Any]]:
     """S14E-7: the end-turn gate's army line — ONE sentence, or None.
+    (Row IC: the reading behind the sentence — {corps, location, line} — so
+    the desk's row can open the corps it names; the sentence is unchanged.)
 
     Spent corps (strength standing, morale below `MORALE_FAILING_BELOW`, the
     threshold `_derive_danger` reads) with a KNOWN enemy army co-located with
@@ -5039,12 +5054,30 @@ def end_turn_morale_warning(world, nation: str) -> Optional[str]:
         subject = f"{humanize_entity_name(here[0].name)}'s corps stands"
     else:
         subject = f"{len(here)} corps stand"
-    return (f"{subject} below {MORALE_FAILING_BELOW}% morale beside "
-            f"{row['name']} ({figure}, {row['location']}) — end the turn anyway?")
+    return {"corps": [m.name for m in here], "location": str(row["location"]),
+            "line": (f"{subject} below {MORALE_FAILING_BELOW}% morale beside "
+                     f"{row['name']} ({figure}, {row['location']}) — end the turn anyway?")}
+
+
+def end_turn_morale_warning(world, nation: str) -> Optional[str]:
+    """S14E-7: the end-turn gate's army line — ONE sentence, or None
+    (`end_turn_morale_reading`'s `line`)."""
+    reading = end_turn_morale_reading(world, nation)
+    return reading["line"] if reading else None
 
 
 def end_turn_peril_warning(world, nation: str) -> Optional[str]:
+    """S14E-X31: the end-turn gate's SECOND clause - ONE sentence, or None
+    (`end_turn_peril_reading`'s `line`, below — the scan and the words are
+    there, unchanged; two older pins read them from this header on)."""
+    reading = end_turn_peril_reading(world, nation)
+    return reading["line"] if reading else None
+
+
+def end_turn_peril_reading(world, nation: str) -> Optional[Dict[str, Any]]:
     """S14E-X31: the end-turn gate's SECOND clause - ONE sentence, or None.
+    (Row IC: the reading behind the sentence — {location, foe, corps, line} —
+    so the desk's row can open the corps it names; the sentence is unchanged.)
 
     The dawn dispatch's "IN PERIL" (a corps sharing its province with an enemy
     force of `PERIL_RATIO` times its strength or more) said once, at turn
@@ -5100,8 +5133,10 @@ def end_turn_peril_warning(world, nation: str) -> Optional[str]:
                    f"({int(corps[0].strength):,}) stands")
     else:
         subject = f"{len(corps)} corps stand"
-    return (f"{subject} in peril — an enemy force of ~{foe:,} shares the "
-            f"field ({location}).")
+    return {"location": str(location), "foe": int(foe),
+            "corps": [m.name for m in corps],
+            "line": (f"{subject} in peril — an enemy force of ~{foe:,} shares the "
+                     f"field ({location}).")}
 
 
 _ROUT_CLAUSES = (
