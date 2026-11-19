@@ -220,7 +220,7 @@ func _head_row(compact: bool) -> Control:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(spacer)
 	top.add_child(_close_button())
-	col.add_child(_measured_rich("Figures", _figures_bbcode(), 0.0))
+	col.add_child(_measured_rich("Figures", _figures_bbcode(compact), 0.0))
 	return row
 
 
@@ -259,12 +259,15 @@ func _measure_rich(label: RichTextLabel, wrap_width: float, clip_to_card: bool) 
 	reset_size()
 
 
-func _figures_bbcode() -> String:
+func _figures_bbcode(compact: bool = false) -> String:
 	var parts := PackedStringArray()
 	parts.append(Utils.bb_glyph("strength", 16) + " " + Utils.format_number(int(_view.get("strength", 0))))
 	if _view.has("morale"):
 		parts.append(Utils.bb_glyph("morale", 16) + " " + str(int(_view.get("morale", 0))) + "%")
-	parts.append(Utils.bb_glyph("actions", 16) + " " + str(_actions_left) + " left")
+	# Row PW part 2 (three blind readers of three: "the icon is not labelled
+	# actions"): the figure says what it counts. The short view keeps its room.
+	var left := (str(_actions_left) + " left") if compact else (Utils.plural(_actions_left, "action") + " left")
+	parts.append(Utils.bb_glyph("actions", 16) + " " + left)
 	return "   ".join(parts)
 
 
@@ -299,6 +302,10 @@ func _slot_button(spec: Dictionary, compact: bool) -> Button:
 		tip = full
 	else:
 		btn.text = str(slot) + " " + full
+		# Row PW part 2 (four blind readers of four read "1 Hold · 2" right, and
+		# only by inference — its two numbers are never labelled): the hover
+		# says them in words. The face keeps its room.
+		tip = slot_words(label, int(spec["price"]), slot)
 	var locked := bool(spec["locked"])
 	btn.disabled = locked
 	var reason := str(spec["reason"])
@@ -308,6 +315,17 @@ func _slot_button(spec: Dictionary, compact: bool) -> Button:
 	btn.tooltip_text = tip
 	btn.pressed.connect(_fire.bind(spec))
 	return btn
+
+
+static func slot_words(label: String, price: int, slot: int) -> String:
+	"""A slot's two numbers in words: "Hold — costs 2 actions · key 1",
+	"Fall back — free · key 5", "Cancel order · key 7" (no price named)."""
+	var out := label
+	if price == 0:
+		out += " — free"
+	elif price > 0:
+		out += " — costs " + Utils.plural(price, "action")
+	return out + " · key " + str(slot)
 
 
 func _fire(spec: Dictionary) -> void:

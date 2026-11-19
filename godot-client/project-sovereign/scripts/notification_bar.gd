@@ -985,7 +985,7 @@ func _build_detail_text(notif: Dictionary) -> String:
 				if feedback != "":
 					text += "\n[color=#8faed6]Talleyrand:[/color] \"%s\"\n" % feedback
 			"diplomatic_proposal":
-				text += "\n[color=#8faed6]The diplomatic packet waits in Envoys for review.[/color]\n"
+				text += "\n[color=#8faed6]The letter waits in Envoys (top bar) — open it there to answer.[/color]\n"
 
 	return text.strip_edges()
 

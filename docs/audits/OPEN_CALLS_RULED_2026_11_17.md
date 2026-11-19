@@ -63,7 +63,7 @@
 | WS-12 — the live model's `strategic_score` moves morale, trust and attack | **Retired: the model's number moves nothing**; the literal marshal's buff and clarification read the fast parser's own deterministic ambiguity | Golden rule 6 is the user's law; every measure was taken in mock mode, where the bonus never fires, so live play was an unmeasured, easier game (+15 morale and +10 % attack per well-phrased line, repeatable on a refused order). Not a cut of content: no surface promised it. **HOMED: Session H's head** (pin `TestWS12AModelsNumberMovesAMarshal`), with GRD-33 (below). |
 | WS-14, WS-R, UI6-X70 / X73 / X74 / X75 | Defects, not calls | Session H's head, as filed (their pins). |
 | GRD-33 — the literal marshal's ambiguity buff never expires | **It expires at the turn's end** (Iron Resolve's no-banking) | **HOMED: Session H's head**, with WS-12 (the same code). |
-| GRD-16 — "Did you mean Ney?" for a marshal-name typo | **Offer the nearest of the player's own marshals** (never a fogged name) | **HOMED: Session H's head**, with UI6-X70…X75 (the typed order road). |
+| GRD-16 — "Did you mean Ney?" for a marshal-name typo | **Offer the nearest of the player's own marshals** (never a fogged name) | **HOMED: Session H's head**, with UI6-X70…X75 (the typed order road). **✅ BUILT November 18, 2026 by row PW part 2** (`BUG_FIXES.md` PW2-4; the seam `executor.a_marshal_typo_is_offered_the_nearest_own_name`). |
 
 ## 4. The design rows and the older readings
 

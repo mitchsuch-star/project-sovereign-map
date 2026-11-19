@@ -1285,13 +1285,38 @@ const DAY_RULE := "A word costs points, and he answers it. A line that breaks de
 # and its unclear what decisions mean"): a day whose block carries `rule` speaks in
 # everyday words (`battle_telling.speak_plainly`) — the table's own captions follow it.
 # A block without one (the seam down, an older payload) keeps the idiom above.
-const DAY_GROUP_LABEL_PLAIN := {"lead": "Attack with another corps", "bring_up": "Bring up",
+const DAY_GROUP_LABEL_PLAIN := {"lead": "Send another corps to attack", "bring_up": "Bring up",
 	"cannonade": "Bombard, no clash"}
 const DAY_LEGEND_HOVER_PLAIN := "Gold names are each side's commander; a gold square is a battle point in hand and a grey one a point spent; the keys 1 to 9 give the orders; a card shows its price, what it does and what to expect."
 
 
 func _day_is_plain() -> bool:
 	return str(_the_day().get("rule", "")) != ""
+
+
+static func plain_lands(hits: int, average: int) -> String:
+	"""Row PW part 2: what the roll did, as a sentence — "a strong roll: the
+	attack hits 6% harder than an average one" (it read "the attack hits at
+	108% strength · an average roll gives 102%"; three readers of three, twice:
+	jargon). Within two points of the average roll it is an average roll."""
+	var diff: int = hits - average
+	if diff >= 3:
+		return "a strong roll: the attack hits %d%% harder than an average one" % diff
+	if diff <= -3:
+		return "a weak roll: the attack hits %d%% weaker than an average one" % -diff
+	return "an average roll: the attack hits as hard as usual"
+
+
+static func plain_luck(side: String, pct: int, fights: bool = true) -> String:
+	"""Row PW part 2: one side's luck of the day, as words. The row names two
+	sides; the second goes without the verb ("France fights 4% weaker · Austria
+	2% stronger" — the review: the row had grown past the plate's other rows)."""
+	var verb := "fights " if fights else ""
+	if pct > 0:
+		return "%s %s%d%% stronger" % [side, verb, pct]
+	if pct < 0:
+		return "%s %s%d%% weaker" % [side, verb, -pct]
+	return "%s %sas usual" % [side, verb]
 
 
 static func payload_is_plain(data) -> bool:
@@ -2905,11 +2930,19 @@ func _luck_line(roll: Dictionary) -> String:
 		# added to the blow (the lands figure the row above shows, against the average throw's 102 %) and
 		# what the day's fortune added to US (our side's own figure, signed)
 		var dice_pct: int = int(roll.get("swing", 0)) + 100 - DiceTray.AVERAGE_LANDS
+		if host != null and BattleActs.payload_is_plain(host._data):
+			# row PW part 2: the cause stands on the line above — this row says
+			# the roll's share and the luck's, in plain words
+			return _luck_told_plain(roll)
 		return "%s; the dice added %s to the blow, the day's fortune %s to us" % [
 			told, _signed(dice_pct), _signed(int(roll.get(left_key, 0)))]
 	var luck_head := "the day's fortune in strength:"
 	if host != null and BattleActs.payload_is_plain(host._data):
-		luck_head = "luck today, as extra strength:"   # row PW
+		# row PW part 2: the day's luck as a sentence ("today's luck: France
+		# fights 4% weaker · Austria as usual")
+		return "today's luck: %s · %s" % [
+			BattleActs.plain_luck(Utils.display_nation_name(str(sides[0].get("nation", ""))), int(roll.get(left_key, 0))),
+			BattleActs.plain_luck(Utils.display_nation_name(str(sides[1].get("nation", ""))), int(roll.get(right_key, 0)), false)]
 	return "%s  %s %s  ·  %s %s" % [luck_head,
 		Utils.display_nation_name(str(sides[0].get("nation", ""))), _signed(int(roll.get(left_key, 0))),
 		Utils.display_nation_name(str(sides[1].get("nation", ""))), _signed(int(roll.get(right_key, 0)))]
@@ -2922,10 +2955,26 @@ func _luck_short(roll: Dictionary) -> String:
 	what told stands on the verdict's own line. "" where nothing told (the lands row stays)."""
 	if _what_told() == "":
 		return ""
+	if host != null and BattleActs.payload_is_plain(host._data):
+		return _luck_told_plain(roll)      # row PW part 2, the review: the short form speaks plainly too
 	var left_key: String = "fortune_attacker" if _attacker_left() else "fortune_defender"
 	var dice_pct: int = int(roll.get("swing", 0)) + 100 - DiceTray.AVERAGE_LANDS
 	return "the dice added %s to the blow, the day's fortune %s to us" % [
 		_signed(dice_pct), _signed(int(roll.get(left_key, 0)))]
+
+
+func _luck_told_plain(roll: Dictionary) -> String:
+	"""Row PW part 2: under a verdict's cause, the roll's share of the attack and
+	the day's luck in plain words — "for you" where the player fights the battle;
+	a battle he only watches (`player_side` empty) names the side on the left."""
+	var left_key: String = "fortune_attacker" if _attacker_left() else "fortune_defender"
+	var dice_pct: int = int(roll.get("swing", 0)) + 100 - DiceTray.AVERAGE_LANDS
+	var whose := "you"
+	if not (str(host._data.get("player_side", "")) in ["attacker", "defender"]):
+		var sides: Array = host._side_payloads()
+		whose = Utils.display_nation_name(str(sides[0].get("nation", "")))
+	return "the roll added %s to the attack · today's luck: %s for %s" % [
+		_signed(dice_pct), _signed(int(roll.get(left_key, 0))), whose]
 
 
 func _what_told() -> String:
@@ -4595,8 +4644,7 @@ class DiceTray:
 		var lands := "the blow lands at %d%% of its weight · an average throw: %d%%" % [
 				100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
 		if plain:
-			lands = "the attack hits at %d%% strength · an average roll gives %d%%" % [
-				100 + int(roll.get("swing", 0)), AVERAGE_LANDS]
+			lands = BattleActs.plain_lands(100 + int(roll.get("swing", 0)), AVERAGE_LANDS)   # row PW part 2
 		if diorama._line_extra() > LUCK_ROW_MAX_EXTRA:
 			# BA-6 (a guard: unreachable while the type is held at 130 %): were the cap raised past 1.3 the line
 			# would be as wide as the gap between the two leads' names: the short form

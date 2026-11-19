@@ -802,7 +802,7 @@ func _render_commission_view():
 		pools = {}
 	var inf_pool = int(pools.get("infantry", cached_recruitment.get("infantry_pool", 0)))
 	bbcode += Utils.bb_glyph("gold", 16, Utils.COLOR_GOLD) + " [color=#" + Utils.COLOR_INFO + "]Treasury: " + _format_number(treasury) + "g | Pools: " + _format_number(inf_pool) + " foot · " + _format_number(int(pools.get("cavalry", 0))) + " horse · " + _format_number(int(pools.get("artillery", 0))) + " guns"
-	bbcode += " | A commission raises his corps at the capital from his own arm's pool (1 admin AP + the candidate's price).[/color]\n\n"
+	bbcode += " | A commission raises his corps at the capital from his own arm's pool (1 admin action + the candidate's price).[/color]\n\n"
 
 	var candidates = cached_recruitment.get("candidates", [])
 	if not (candidates is Array) or candidates.size() == 0:

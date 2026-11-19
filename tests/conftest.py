@@ -181,6 +181,9 @@ ENGINE_LANES = {
         # Session UI-6: UI6-X22, the scroll that flipped forever, headless
         # (tools/ui6_scroll_flip_probe.gd)
         "test_ui6_scroll_gutter",
+        # Row PW part 2: the played board that finishes itself, headless
+        # (tools/pw2_played_board_probe.gd)
+        "test_pw2_the_played_board",
         # four 40-turn driver children at once and no engine: it rode the one
         # lane, and it stays in one so its load never lands on all three
         "test_sf_page_the_front_page_of_the_peace",

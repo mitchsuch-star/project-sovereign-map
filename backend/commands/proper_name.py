@@ -434,6 +434,25 @@ def attack_proper_name_ask(world, marshal, raw: str) -> Optional[Dict]:
             lead = (f"{humanize_entity_name(f_name)} fell at "
                     f"{humanize_entity_name(where)}{when}, Sire — his corps is no "
                     f"more.")
+    # Row PW part 2: no man in sight bears the name, nor a near miss of one —
+    # but it stands one slip from a PROVINCE on the map ("Carolina" for
+    # Carniola). Asked back as the province, with the order to give again;
+    # nothing is spent and no foe is offered in its place.
+    # (The review: only an ATTACK takes a province — a charge and a
+    # bombardment name a foe, and keep their own ask.)
+    if not lead and verb == "attack" and _near_miss(world, name, viewer) is None:
+        province = near_province(world, name)
+        if province is not None:
+            again = (f"{humanize_entity_name(marshal.name)}, {verb} {province}"
+                     if marshal is not None else f"{verb} {province}")
+            return {
+                "success": False,
+                "message": (f"No foe called {shown_name} is in sight, Sire — did you mean the "
+                            f"province of {province}? Say '{again}'."),
+                "variable_action_cost": 0,
+                "proper_name_ask": True,
+                "suggestion": province,
+            }
     if not foes:
         # the existing refusal, reworded to "in sight" (§6.3)
         opening = (f"{lead} No other foe is in sight —" if lead else
@@ -458,6 +477,50 @@ def attack_proper_name_ask(world, marshal, raw: str) -> Optional[Dict]:
                 f"The nearest in sight is {humanize_entity_name(nearest.name)} at "
                 f"{humanize_entity_name(nearest.location)} — {engage}")
     return _ask(world, marshal, foes, raw, question, nearest, verb=verb)
+
+
+def near_province(world, name: str) -> Optional[str]:
+    """Row PW part 2 (the first playtest: "attack Carniola", mistyped, asked
+    for a foe called "Carolina"). The ONE province a mistyped name stands a
+    slip from: within two edits (transposition-aware) of a province's name,
+    or its letters in another order — both of five letters or more. None
+    when no province fits, or more than one. Read only on the ask's road."""
+    from backend.utils.fuzzy_matcher import osa_distance_at_most
+    word = re.sub(r"[^a-z]", "", str(name or "").lower())
+    if len(word) < 5:
+        return None
+    hits = []
+    for region_name in (getattr(world, "regions", None) or {}):
+        plain = re.sub(r"[^a-z]", "", str(region_name).lower())
+        if len(plain) >= 5 and plain != word and (
+                osa_distance_at_most(word, plain, 2) or sorted(word) == sorted(plain)):
+            hits.append(str(region_name))
+    return hits[0] if len(hits) == 1 else None
+
+
+def nearest_own_marshal(world, name: str) -> Optional[str]:
+    """GRD-16 (ruled November 17, 2026; built by row PW part 2): the ONE
+    marshal of the player's OWN a mistyped address stands a slip from — one
+    edit (transposition-aware) where either name has four letters or fewer,
+    two otherwise; a name of four letters or fewer must also begin as his does
+    (the review: "Hey" and "Key" are one letter from Ney and are not him).
+    None when none fits, or more than one. Only the player's own marshals are
+    read: never a foe, never a name the fog holds."""
+    from backend.utils.fuzzy_matcher import osa_distance_at_most
+    word = re.sub(r"[^a-z]", "", str(name or "").lower())
+    if len(word) < 3:
+        return None
+    hits = []
+    for marshal in world.get_player_marshals():
+        plain = re.sub(r"[^a-z]", "", str(marshal.name).lower())
+        if not plain or plain == word:
+            continue
+        short = min(len(word), len(plain)) <= 4
+        if short and word[0] != plain[0]:
+            continue
+        if osa_distance_at_most(word, plain, 1 if short else 2):
+            hits.append(humanize_entity_name(marshal.name))
+    return hits[0] if len(hits) == 1 else None
 
 
 def unseen_commander_named(obj_text: str, world, viewer: Optional[str]):

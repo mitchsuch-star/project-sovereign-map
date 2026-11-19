@@ -14636,8 +14636,9 @@ class TestS14G26:
                    if not n.get("petition_lapsed")]
         assert len(notices) == 1
         text = notices[0]["message_display"]
-        assert text.startswith("Your unratified settlement draft with Britain (")
-        assert text.endswith(f"was set aside at turn's end {_R26_LASTS}.")
+        # row PW part 2 (November 18, 2026): the same notice in plain words
+        assert text.startswith("Your unsigned peace draft with Britain (")
+        assert text.endswith(f"was dropped when the turn ended {_R26_LASTS}.")
 
 
 class TestS14GX119:

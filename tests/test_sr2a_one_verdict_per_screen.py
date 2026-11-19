@@ -724,7 +724,8 @@ class TestThePetitionExpiresWithItsTable:
                    if n.get("petition_lapsed")]
         assert len(notices) == 1
         assert "Prussia" in notices[0]["message_display"]
-        assert "set aside at turn's end" in notices[0]["message_display"]
+        # row PW part 2 (November 18, 2026): "… lapsed with the peace draft it was made on"
+        assert "the draft was dropped when the turn ended" in notices[0]["message_display"]
 
     def test_a_mounted_table_keeps_it(self):
         w = _restoration_world()
@@ -744,7 +745,8 @@ class TestThePetitionExpiresWithItsTable:
             w.advance_turn()
         assert _petitions(w) == []
         notices = [n for n in w.pending_settlement_draft_notices if n.get("petition_lapsed")]
-        assert notices and "the war it was filed against" in notices[0]["message_display"]
+        # (row PW part 2, plain words: "lapses: the war it was filed against has ended")
+        assert notices and "lapsed: the war it was made in is over." in notices[0]["message_display"]
 
     def test_the_rail_row_goes_with_the_petition(self):
         w = _restoration_world()

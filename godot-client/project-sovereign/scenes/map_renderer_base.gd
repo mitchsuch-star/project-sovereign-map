@@ -2730,7 +2730,9 @@ func _update_war_table_pieces() -> void:
 					piece.set_facing("r")
 				elif anchor.x < prev.x - 0.5:
 					piece.set_facing("l")
-				piece.move_to(anchor, WAR_PIECE_MOVE_DURATION)
+				piece.move_to(anchor, _play_seconds if _play_seconds > 0.0 else WAR_PIECE_MOVE_DURATION)
+				if _play_seconds > 0.0:
+					_play_moved += 1
 			elif prev.distance_to(anchor) > 0.5:
 				# Same region, slot re-centered because a neighbor arrived/left —
 				# snap in place (no slide, no facing flip) so idle pieces are still.
@@ -3936,6 +3938,201 @@ func flash_regions(names: Array) -> void:
 	order_layer.set_flashes(points)
 
 
+# ═══ Row PW part 2 (November 18, 2026): the enemy's moves, played on the map ═══
+# The user, of the report after End Turn: "can we show the pieces moving or
+# something better?" The pieces already slid from province to province — in
+# 0.45 s, all at once, under the report's window. A PLAYED board changes in
+# two beats the player can watch: the pieces march first, to where they stand
+# on the new board, while every province that changed hands keeps its old
+# holder's colour; then the new board stands whole (`finish_play`) and those
+# provinces take their new colour where the eye already is. Nothing is shown
+# that the new board does not show: both boards are the fog-filtered ones the
+# server sent.
+var _play_seconds: float = 0.0     # > 0 only inside `play_all_regions`: the march's length
+var _play_applying: bool = false
+var _play_final: Dictionary = {}   # the new board, while its pieces march
+var _play_moved: int = 0
+var _play_serial: int = 0          # one played board; a later one, or its finish, moves it on
+# The review (PW2-R9): a played board whose caller never comes back for beat two
+# (another window answered the same response first) finishes ITSELF this long
+# after its march — it never stands in its old colours with its marchers out.
+const PLAY_SELF_FINISH_S := 0.3
+
+
+func play_all_regions(map_data: Dictionary, seconds: float) -> Dictionary:
+	"""Beat one. Returns {"changed": the provinces that change hands (names),
+	"moved": how many pieces march}."""
+	var changed: Array = []
+	var held: Dictionary = {}
+	for region_name in map_data:
+		var row = map_data[region_name]
+		held[region_name] = row
+		if not (row is Dictionary) or not region_controllers.has(region_name):
+			continue
+		var new_holder = (row as Dictionary).get("controller", "Neutral")
+		if new_holder == null:
+			new_holder = "Neutral"
+		var old_holder = region_controllers[region_name]
+		if str(old_holder) != str(new_holder):
+			changed.append(str(region_name))
+			var kept: Dictionary = (row as Dictionary).duplicate()
+			kept["controller"] = old_holder
+			held[region_name] = kept
+	# The MARKERS march too. A corps the fog half-hides is a marker ("Mack ?"),
+	# rebuilt where the new board has it: it jumped. Every name that stands in
+	# one province on the board that stands and in another on the new one —
+	# marker to marker, marker to piece (he came into sight), piece to marker
+	# (he left it) — is held OUT of the board the march is shown on and walks
+	# there as a marching marker (`_play_spawn_marker`); the new board, whole,
+	# puts him down where he arrives. (Piece to piece is the standee's own
+	# march.) Names and places are the two boards' own: nothing is shown that
+	# they do not show.
+	var was: Dictionary = _play_places(region_marshals, region_fogged_forces)
+	var new_marshals: Dictionary = {}
+	var new_forces: Dictionary = {}
+	for region_name in map_data:
+		var new_row = map_data[region_name]
+		if new_row is Dictionary:
+			new_marshals[region_name] = (new_row as Dictionary).get("marshals", [])
+			new_forces[region_name] = (new_row as Dictionary).get("fogged_forces", [])
+	var will: Dictionary = _play_places(new_marshals, new_forces)
+	var marchers: Array = []
+	for mname in will:
+		if not was.has(mname):
+			continue
+		var a: Dictionary = was[mname]
+		var b: Dictionary = will[mname]
+		if str(a["region"]) == str(b["region"]):
+			continue
+		if bool(a["piece"]) and bool(b["piece"]) and pieces_layer != null:
+			continue
+		marchers.append({"name": str(mname), "from": str(a["region"]), "to": str(b["region"]),
+			"nation": str(b["nation"])})
+	for g in marchers:
+		var dest = held.get(g["to"])
+		if not (dest is Dictionary):
+			continue
+		var kept_row: Dictionary = (dest as Dictionary).duplicate()
+		var who: String = g["name"]
+		for key in ["marshals", "fogged_forces"]:
+			var rows = kept_row.get(key, [])
+			if rows is Array:
+				kept_row[key] = (rows as Array).filter(
+					func(m): return not (m is Dictionary and str((m as Dictionary).get("name", "")) == who))
+		held[g["to"]] = kept_row
+	_play_moved = 0
+	_play_seconds = maxf(seconds, 0.0)
+	_play_applying = true
+	update_all_regions(held)
+	_play_applying = false
+	var marched: int = _play_moved
+	for g in marchers:
+		if _play_spawn_marker(g, _play_seconds):
+			marched += 1
+	var march_s: float = _play_seconds
+	_play_seconds = 0.0
+	_play_final = map_data
+	_play_serial += 1
+	if is_inside_tree():
+		get_tree().create_timer(march_s + PLAY_SELF_FINISH_S).timeout.connect(
+			_play_self_finish.bind(_play_serial))
+	return {"changed": changed, "moved": marched}
+
+
+func _play_self_finish(serial: int) -> void:
+	"""The played board's own clock: a later board, or the caller's own
+	`finish_play`, has moved the serial on and there is nothing to do."""
+	if serial == _play_serial:
+		finish_play()
+
+
+func _play_places(marshals_by_region: Dictionary, forces_by_region: Dictionary) -> Dictionary:
+	"""Who stands where on a board: name -> {region, nation, piece}. A force
+	the fog leaves nameless ("?") cannot be followed and is not here."""
+	var out := {}
+	for region_name in marshals_by_region:
+		var rows = marshals_by_region[region_name]
+		if not (rows is Array):
+			continue
+		for m in rows:
+			if m is Dictionary and str(m.get("name", "")) != "":
+				out[str(m.get("name"))] = {"region": str(region_name),
+					"nation": str(m.get("nation", "")), "piece": true}
+	for region_name in forces_by_region:
+		var rows = forces_by_region[region_name]
+		if not (rows is Array):
+			continue
+		for f in rows:
+			if f is Dictionary and not (str(f.get("name", "")) in ["", "?"]) and not out.has(str(f.get("name"))):
+				out[str(f.get("name"))] = {"region": str(region_name),
+					"nation": str(f.get("nation", "")), "piece": false}
+	return out
+
+
+func _play_spawn_marker(g: Dictionary, seconds: float) -> bool:
+	"""A marker on the march: the man's name on his plate over a round token,
+	sliding from where the board that stood showed him to where the new board
+	shows him. A child of the force layer — the next board's rebuild frees it."""
+	var positions = _get_active_region_positions()
+	if force_layer == null or not positions.has(g["from"]) or not positions.has(g["to"]):
+		return false
+	var colors = _get_colors()
+	var nation_color: Color = colors.get(str(g["nation"]), Utils.MAP_NEUTRAL_NATION)
+	var chip_size: Vector2 = MARSHAL_ICON_SIZE * _furniture_scale
+	var marker := Control.new()
+	marker.name = "MarchingMarker"
+	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marker.size = chip_size
+	var token := Panel.new()
+	token.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	token.size = chip_size
+	var rim = _plaque(MapPlaque.Kind.FOG, nation_color.lightened(0.25))
+	rim.bg_color = Color(0.06, 0.07, 0.1, 0.9)
+	token.add_theme_stylebox_override("panel", rim)
+	marker.add_child(token)
+	var shown: String = Utils.display_marshal_name(str(g["name"]))
+	var font = ThemeDB.fallback_font
+	var name_width: float = font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
+	var name_h: float = _furn(14.0)
+	var plate := Label.new()
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.text = shown
+	plate.size = Vector2(name_width, name_h)
+	plate.position = Vector2(chip_size.x / 2.0 - name_width / 2.0, -name_h - _furn(1.0))
+	_style_furniture(plate, "name")
+	plate.add_theme_color_override("font_color", Color(PLAQUE_IVORY, 0.95))
+	plate.add_theme_stylebox_override("normal", _nameplate(nation_color, false))
+	marker.add_child(plate)
+	var slot := Vector2(-chip_size.x / 2.0, MARSHAL_ICON_Y_OFFSET)
+	marker.position = _world_to_layer_position((positions[g["from"]] as Vector2) + slot)
+	force_layer.add_child(marker)
+	marker.create_tween().tween_property(marker, "position",
+			_world_to_layer_position((positions[g["to"]] as Vector2) + slot), maxf(seconds, 0.05)) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	return true
+
+
+func finish_play() -> bool:
+	"""Beat two: the new board, whole. False when no played board stands
+	(already finished, or another board has arrived since)."""
+	_play_serial += 1   # its own clock (`PLAY_SELF_FINISH_S`) has nothing left to do
+	if _play_final.is_empty():
+		return false
+	var final: Dictionary = _play_final
+	_play_final = {}
+	_play_applying = true
+	update_all_regions(final)
+	_play_applying = false
+	return true
+
+
+func region_on_screen(region_name: String, margin: float = 48.0) -> bool:
+	var p := screen_point_of_region(region_name)
+	if p.x < 0.0:
+		return false
+	return Rect2(global_position, size).grow(-margin).has_point(p)
+
+
 func order_screen_rect() -> Rect2:
 	"""CC-3: the selected corps' ring and ghost road on screen (GLOBAL
 	coordinates; empty with neither) — the card stands clear of it."""
@@ -4839,6 +5036,8 @@ func update_action_pools(data: Dictionary) -> void:
 
 
 func update_all_regions(map_data: Dictionary):
+	if not _play_applying:
+		_play_final = {}   # row PW part 2: a board from anywhere else ends a played one
 	var wired_data := {}
 	for region_name in map_data:
 		if province_shapes.has(region_name) and not bool(province_shapes[region_name].get("wired", true)):

@@ -936,6 +936,26 @@ def plain_told(told: str) -> str:
     return said
 
 
+def plain_verdict(ctx, attacker_is_ours: bool) -> str:
+    """Row PW part 2: who won, in two plain words, before the cause ("You
+    lost. Why: he had more men — …"). The banner over the line keeps its own
+    words ("THE FIELD IS LOST"); this rides beside them. "" when the battle's
+    report names no result."""
+    try:
+        result = getattr(ctx, "battle_result", None) or {}
+        outcome = str(result.get("outcome") or "")
+        victor = str(result.get("victor") or "")
+        if not outcome and not victor:
+            return ""
+        if not victor or outcome in ("stalemate", "mutual_destruction"):
+            return "No winner."
+        ours = getattr(ctx, "marshal", None) if attacker_is_ours else getattr(ctx, "enemy_marshal", None)
+        return "You won." if victor == str(getattr(ours, "name", "") or "") else "You lost."
+    except Exception as exc:
+        report(exc, "battle_telling.plain_verdict")
+        return ""
+
+
 def why_plain(ctx, attacker_is_ours: bool) -> List[str]:
     """Row PW: WHY a battle went as it did, with its numbers — for the player
     whose marshal led a side of it (the battle's own report, which he is given

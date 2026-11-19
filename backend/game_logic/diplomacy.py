@@ -10466,20 +10466,22 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
 # not terms and never print as factors. A test censuses `components` against
 # the two sets, so a term added without a label fails there, not on a screen.
 _COMPONENT_LABELS = {
-    "base_disposition": "Base willingness",
+    "base_disposition": "How willing they are to begin with",
     "war_score_modifier": "Our military dominance",
-    "relation_modifier": "Current relations",
+    "relation_modifier": "Their relations with you",
     "war_weariness": "Exhaustion from prolonged conflict",
     # CA9 row 1: the option-B argument is that the rule teaches itself
     # through a surface that already names its terms, so this label is
     # load-bearing, not decoration.
     "war_age_penalty": "The war is barely begun",
     "stalemate_duration": "Stalemate weariness",
-    "hegemony_target_mod": "Hegemon bloc pressure",
+    # (row PW part 2, the review: the term is the great power's BLOC pressing
+    # outward — the asker may be a member of it and not the power itself)
+    "hegemony_target_mod": "Their fear of your side's power",
     "bilateral_betrayal_mod": "Remembered betrayals",
     "deal_balance": "Deal terms",
-    "diplomat_skill_bonus": "Diplomatic skill advantage",
-    "personality_modifier": "Diplomat personality",
+    "diplomat_skill_bonus": "Talleyrand's skill",
+    "personality_modifier": "Their envoy's temper",
     "military_supremacy": "Military supremacy",
     "battlefield_diplomacy": "Battlefield diplomacy",
     "military_pressure": "Military pressure",
@@ -10527,6 +10529,10 @@ def acceptance_term_label(key: str, value=0, grievance_kind_value: str = "") -> 
     if key == "grievance_modifier":
         from backend.display_names import grievance_kind_display
         return str(grievance_kind_display(grievance_kind_value)["label"])
+    if key == "diplomat_skill_bonus" and (value or 0) < 0:
+        # (row PW part 2, the review: the term is the asker's envoy AGAINST
+        # theirs — "Talleyrand's skill −4" named the wrong man)
+        return "Their envoy's skill"
     return _COMPONENT_LABELS.get(key) or key.replace("_", " ").title()
 
 

@@ -73,3 +73,92 @@ Named by two or three readers of the six unless marked:
 - **The war card (A):** "Even", the "0" and the slider — what it measures; a British flag for a coalition's war.
 - **The report (E):** "Mack marched in" (who is Mack?); "⌖ show"; "Now next to you"; how long a battle
   "waits for your orders".
+
+## Part 2 — the readings of the session's second commit
+
+The same bar, written before any frame was read (`reading3/answer_key.md`): three fresh readers (Sonnet) who
+have never seen the game, shown six frames of the real client at the first player's setup — **O** a marshal's
+objection · **L** a letter that has arrived · **R** the map while the enemy's moves are played on it · **D** the
+Cabinet's page for an enemy · **F** a battle with no winner yet · **B** the peace table after one press of
+"Offer them more" — and asked six questions; every reader, every question.
+
+| # | Question |
+|---|---|
+| 1 | (O) In one line each: what happens if you press each of the five answers, and what does each cost or gain? |
+| 2 | (L) What is Prussia asking for? What happens if you accept, and if you reject? |
+| 3 | (R) What is this frame showing, and what happened to the province it names? |
+| 4 | (D) What do the numbers under "What moves them" mean, and which counts most against peace? What are DP for? |
+| 5 | (F) What did the dice roll do in this battle, and how did luck affect each side? |
+| 6 | (B) What will "Ask for more" do if pressed now? What does "Review and sign" say will happen? What is the number on each court's row? |
+
+### Reading 3 — `reading3/` (part 2 before its review's fixes) — NOT MET
+
+| Question | Reader 1 | Reader 2 | Reader 3 |
+|---|---|---|---|
+| 1 | ✗ | ✗ | ✗ |
+| 2 | ✓ | ✓ | ✓ |
+| 3 | ✓ | ✓ | ✓ |
+| 4 | ✓ | ✓ | ✓ |
+| 5 | ✓ | ✓ | ✓ |
+| 6 | ✓ | ✓ | ✓ |
+
+Question 1 was missed by all three on one answer: "By My Word"'s caption ran past its cell and was cut at both
+ends ("eys — it costs authority, not his trust −3 autl"), so no reader could say what it does. The three also
+asked whether the stakes' −5 / +5 stand on top of the buttons' figures, and summed the Cabinet's table against
+Talleyrand's figure. The rows: `BUG_FIXES.md` PW2-B1 … B3.
+
+### Reading 4 — `reading4/` (the final tree, after the review's fixes) — MET, 18 of 18
+
+Key: `reading4/answer_key.md` (another campaign seed: the battle is at Franconia). Three NEW readers.
+
+| Question | Reader 1 | Reader 2 | Reader 3 |
+|---|---|---|---|
+| 1 | ✓ | ✓ | ✓ |
+| 2 | ✓ | ✓ | ✓ |
+| 3 | ✓ | ✓ | ✓ |
+| 4 | ✓ | ✓ | ✓ |
+| 5 | ✓ | ✓ | ✓ |
+| 6 | ✓ | ✓ | ✓ |
+
+Each reader on question 1: "By My Word" — "he obeys · no trust lost", "−3 authority". On question 3: "a replay
+on the map of what the enemy did after I ended my turn" — "Franconia — Bavaria lost it to Austria", "Franconia
+— battle lost".
+
+**Two measurements beside the bar** (declared in the key before the reading, with their rule: missed by two
+readers of three, a surface's own wording is fixed in the session and a vocabulary across the game is filed):
+
+| # | Question | Reader 1 | Reader 2 | Reader 3 |
+|---|---|---|---|---|
+| 7 | (C — the general's card) What do the two numbers on "1 Hold · 2" mean? How many actions are left? | ✓ by inference | ✓ by inference | ✓ by inference |
+| 8 | (S — a province's panel) What does "(2 AP)" mean? | a guess; "I cannot tell for certain" | ✓ by inference | "I cannot tell what AP stands for" |
+
+Every reader on 7: "the card never says so outright", "the icon is not labelled actions". "AP is never
+defined" stood on all three lists. Built from them (`BUG_FIXES.md` PW2-M1 … M3): the card says "4 actions
+left" and each order's hover says its two numbers; the panel says "AP = actions · 4 left this turn". A fourth
+fresh reader on the two re-shot frames (`C2_…`, `S2_…`): "'(2 AP)' … means Fortify costs 2 actions. The panel
+states 'AP = actions · 4 left this turn'"; of the card, the count is plain ("4 actions left") and "1 Hold · 2"
+is still read by inference. The vocabulary itself is the owned row **PW2-D1** (the head of the next session).
+
+### What the readers still found unclear — the next session's worklist
+
+Named by two or more of the four readers; none is asked by the bar.
+
+- **The desk (C):** its counters are figures with no word beside them ("4/4", "2/2", "80k", "15k", "10k") —
+  the user's own fold (Session UI-3: their words are the hover); the white dots on the generals' tiles; the
+  colour legend of the march ("this turn / 1 turn / 2–3 turns / 4+ turns") with no colour on the card.
+- **The general's card (C):** "1 Hold · 2" — the key and the price are never labelled on the face (PW2-D1);
+  what Hold, Fortify, Drill, Scout and Garrison each do; a dashed (locked) order gives its reason on hover only.
+- **The province panel (S):** "Levies ×1.45"; "Infantry · 741g" (a price for what?); the padlocks give no
+  reason on the face; "+4 orders"; the circled figure beside "Plains".
+- **The objection (O):** what trust and authority ARE and what each is for; how "By My Word" differs from
+  "Proceed as Ordered" beyond their costs; "Questioning", "Track record: Neutral".
+- **The letter (L):** "Armed Neutrality" and a "guarded" province; how much a remembered refusal costs; "Not
+  Now (Cabinet stays shut)".
+- **The map (R):** the "?" markers, the numbers in circles with ships, the "12k" boxes, "45 sail · BLOCKADED" —
+  no key on the screen; which labels are mine.
+- **The Cabinet (D):** Talleyrand's "stands at −7 of 50 … (−15)" — its figure is not built from the table
+  beside it; "They will refuse" beside an act that can still be pressed; how DP are earned.
+- **The battle (F):** "battle points" and their squares; "Cautious · he will attack"; why a roll that hits
+  "8% harder" and a luck of "2% stronger" are two things; "Let Bernadotte decide".
+- **The peace table (B):** what would make a court's number rise when "the war has decided nothing yet"; what
+  "Leave out" does to the war with that court.

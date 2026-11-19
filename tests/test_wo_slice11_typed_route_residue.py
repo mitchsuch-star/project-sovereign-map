@@ -179,7 +179,11 @@ class TestThePeaceOverture:
         assert _cmd(parsed)["action"] != "diplomatic_declare_war"
         assert _diplo(parsed)["action"] == "diplomatic_error"
         assert _diplo(parsed)["error"] == "missing_target_nation"
-        assert "which nation" in _diplo(parsed)["message"].lower()
+        # row PW part 2 (November 18, 2026): the answer is the BUTTON that ends a
+        # war — the war card's Make peace, or the Cabinet — never "which nation?"
+        # (the first player typed "end the war"; diplomacy is never typed)
+        said = _diplo(parsed)["message"].lower()
+        assert "press make peace on the war's card" in said and "cabinet (f1)" in said
 
     @pytest.mark.parametrize("text", [
         "end the war with Britain", "stop the war with Britain",

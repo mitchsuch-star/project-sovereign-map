@@ -939,7 +939,7 @@ func _ready():
 	# SF7-X21: a modal covers the map — no hover, no tooltip beneath it (the
 	# screens already turn `panning_enabled` off in `_on_screen_changed`).
 	if map_area and "pointer_blocked_check" in map_area:
-		map_area.pointer_blocked_check = _is_modal_dialog_open
+		map_area.pointer_blocked_check = _map_pointer_blocked
 	# CC-3: the order gesture — which pieces may drag, and what the cursor and
 	# a dragged piece say while a corps is selected.
 	if map_area and "drag_allowed_check" in map_area:
@@ -1409,11 +1409,17 @@ func _remember_game_state(game_state: Dictionary) -> void:
 		_readback_forget()             # Session UI-6: a new board, new readings
 
 
-func _update_map_from_game_state(game_state: Dictionary) -> void:
+func _update_map_from_game_state(game_state: Dictionary, played: bool = false) -> void:
 	# One seam for every map refresh: regions + the DEF-5 naval overlay
 	# (sea-link verdict tint + port blockade glyphs, NAVAL_SPEC section 9).
 	_remember_game_state(game_state)
-	map_area.update_all_regions(game_state.map_data)
+	_pw_replay_board = {}
+	if played and map_area.has_method("play_all_regions"):
+		# row PW part 2: the pieces march first; the provinces that changed
+		# hands take their colour when they arrive (`_pw_play_then_report`)
+		_pw_replay_board = map_area.play_all_regions(game_state.map_data, PW_REPLAY_MARCH_S)
+	else:
+		map_area.update_all_regions(game_state.map_data)
 	if map_area.has_method("update_naval_overlay"):
 		map_area.update_naval_overlay(game_state.get("naval_overlay", {}))
 	_update_admiralty_chip(game_state.get("naval_overlay", {}))
@@ -5738,9 +5744,13 @@ func _on_command_result(response):
 
 	_sync_response_hud(response)
 	if response.has("settlement_draft_notices") and response.settlement_draft_notices is Array:
+		var _said_notices: Array = []   # row PW part 2: the same sentence is said once
 		for notice in response.settlement_draft_notices:
 			if notice is Dictionary:
-				var notice_text = str(notice.get("message_display", "Settlement draft discarded at turn end."))
+				var notice_text = str(notice.get("message_display", "Your peace draft was dropped when the turn ended."))
+				if _said_notices.has(notice_text):
+					continue
+				_said_notices.append(notice_text)
 				add_output("[color=#" + Utils.COLOR_INFO + "]" + notice_text + "[/color]")
 
 	# Priority 3: Coalition Declaration Popup (Session 8C)
@@ -5758,6 +5768,10 @@ func _on_command_result(response):
 	# LV-12: a modal riding this response (a `result_first` route) waits
 	# behind the command's own result.
 	if _route_response_ui(response, _post_hud_response_routes, _render_own_result):
+		# (row PW part 2, the review: a window that answers the end of a turn
+		# first leaves no telling to run — the played board finishes itself,
+		# `map_renderer_base.PLAY_SELF_FINISH_S`)
+		_pw_replay_board = {}
 		return  # Don't re-enable input until choice made
 
 	# Re-enable input
@@ -5866,7 +5880,10 @@ func _on_command_result(response):
 			elif response.has("action_summary"):
 				turn = int(response.action_summary.get("turn", current_turn))
 			pending_enemy_phase_response = response  # Store for post-enemy-phase flow
-			_show_enemy_phase_dialog(response.enemy_phase, turn, wyw)
+			if not _pw_replay_board.is_empty():
+				_pw_play_then_report(response.enemy_phase, turn, wyw)   # the report opens when the map has shown it
+			else:
+				_show_enemy_phase_dialog(response.enemy_phase, turn, wyw)
 			_update_war_panel_visibility()
 			return  # Don't re-enable input until dialog dismissed
 
@@ -7331,6 +7348,10 @@ func _display_morning_dispatch(data: Dictionary):
 	var today = data.get("today", null)
 	if today is Dictionary and not today.is_empty():
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]TODAY[/color]")
+		# Row PW part 2: what to do with the map, first and in plain words.
+		var what_now = str(today.get("what_now", ""))
+		if what_now != "":
+			add_output("[color=#" + Utils.COLOR_GOLD + "]  " + what_now + "[/color]")
 		var today_orders = today.get("orders", [])
 		if today_orders is Array and today_orders.size() > 0:
 			# SF7-X47: the header is the backend's sentence (a choice, not a plan).
@@ -7737,7 +7758,8 @@ func _sync_response_hud(response: Dictionary):
 		if response.has("game_state") and response.game_state.has("manpower_pools"):
 			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
+			# row PW part 2: an end turn whose report will open is played on the map first
+			_update_map_from_game_state(response.game_state, _pw_replay_due(response))
 	_update_diplomatic_top_bar(response)
 	if notification_bar and response.has("notifications"):
 		notification_bar.update_notifications(response.notifications)
@@ -8404,6 +8426,257 @@ func _show_mild_dispatches(response):
 
 
 var _pw_toast_after_report := ""     # row PW: the autosave toast held while the report stands
+
+
+# ═══ Row PW part 2 (November 18, 2026): THE ENEMY'S MOVES, PLAYED ON THE MAP ═══
+# The user, of the report after End Turn: "can we show the pieces moving or
+# something better? thinj on it". The report TOLD the turn; the map now SHOWS
+# it first (the research the plan stood on: nothing important may happen off
+# screen untold, and a preview beats three sentences):
+#   beat 1  THE ENEMY MOVES — every piece the player can see marches to where
+#           it now stands (`map_renderer_base.play_all_regions`), the provinces
+#           still in their old colours;
+#   beat 2  the provinces that changed hands take their new colour and pulse,
+#           and the ones that are the player's business wear a plaque for a
+#           moment ("Swabia — Bavaria lost it to Austria" — the digest's own
+#           words, `while_you_waited._plaques`);
+#   then    the report opens, as before, with the same lines and its buttons.
+# Any click or key ends the telling at once. It is not played with Reduce
+# motion on, with the switch off (Settings → Orders → "Show the enemy's moves
+# on the map"), under a capture harness, or when the phase is fog alone (that
+# was already one line in the log, S14G-27).
+const PW_REPLAY_MARCH_S := 0.9
+const PW_REPLAY_HOLD_S := 1.8      # the plaques' time
+const PW_REPLAY_QUIET_S := 0.4     # nothing of the player's changed: a breath, then the report
+const PW_REPLAY_BANNER := "THE ENEMY MOVES"
+const PW_REPLAY_SKIP_HINT := "click, or press any key, to skip"
+var _pw_replay_board: Dictionary = {}       # what the renderer played ({changed, moved}); {} = not played
+var _pw_replay_running := false
+var _pw_replay_beat := 0                    # 0 none · 1 the march · 2 the plaques
+var _pw_replay_serial := 0
+var _pw_replay_then: Callable = Callable()
+var _pw_replay_layer: CanvasLayer = null
+var _pw_last_replay: Dictionary = {}        # what the last telling showed (the instrument reads it)
+
+
+func _pw_replay_due(response) -> bool:
+	"""An end turn whose REPORT will open — a phase that is not fog alone, or
+	one with news for the player — and a client that plays it."""
+	if not (response is Dictionary) or not (response as Dictionary).has("enemy_phase"):
+		return false
+	if not UiSettings.get_play_enemy_moves() or UiSettings.get_reduce_motion():
+		return false
+	if DisplayServer.get_name() == "headless" or map_area == null:
+		return false
+	var digest := _pw_digest_of(response)
+	return _pw_digest_has_news(digest) or not _enemy_phase_is_quiet_fog(response.enemy_phase)
+
+
+# The review (PW2-R11): a key that is no answer — a modifier pressed alone
+# (Alt on its way to Alt+Tab), a lock, the screenshot key.
+const PW_REPLAY_NO_SKIP_KEYS := [KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_META, KEY_CAPSLOCK, KEY_NUMLOCK,
+	KEY_SCROLLLOCK, KEY_PRINT]
+
+
+func _pw_replay_skips(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		return event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return false
+	return not (event.keycode in PW_REPLAY_NO_SKIP_KEYS) and not event.alt_pressed and not event.meta_pressed
+
+
+func _map_pointer_blocked() -> bool:
+	"""The map takes no pointer while a modal covers it (SF7-X21) — nor while
+	the enemy's moves are played on it (the review, PW2-R10: the map reads a
+	press BEFORE this script's `_input` ends the telling, so the press that
+	skipped it also picked the province or the corps under the cursor, and a
+	turn of the wheel rebuilt the board under its marchers)."""
+	return _pw_replay_running or _is_modal_dialog_open()
+
+
+func _pw_replay_plaques(digest: Dictionary) -> Array:
+	var rows = digest.get("plaques", [])
+	var out: Array = []
+	if rows is Array:
+		for row in rows:
+			if row is Dictionary and str(row.get("text", "")) != "":
+				out.append(row)
+	return out
+
+
+func _pw_play_then_report(enemy_phase: Dictionary, turn: int, digest: Dictionary) -> void:
+	_pw_replay_serial += 1
+	var serial := _pw_replay_serial
+	_pw_replay_running = true
+	_pw_replay_beat = 1
+	_pw_replay_then = _show_enemy_phase_dialog.bind(enemy_phase, turn, digest)
+	var plaques := _pw_replay_plaques(digest)
+	var changed: Array = _pw_replay_board.get("changed", [])
+	_pw_last_replay = {"turn": turn, "changed": changed.duplicate(),
+		"moved": int(_pw_replay_board.get("moved", 0)), "plaques": [], "skipped": false, "ended": false}
+	for row in plaques:
+		(_pw_last_replay["plaques"] as Array).append(str(row.get("text", "")))
+	_pw_replay_board = {}
+	# what is the player's business stands on the screen before it is shown
+	if not plaques.is_empty() and map_area.has_method("region_on_screen"):
+		var seen := false
+		for row in plaques:
+			if map_area.region_on_screen(str(row.get("region", ""))):
+				seen = true
+				break
+		if not seen:
+			map_area.focus_on_region(str((plaques[0] as Dictionary).get("region", "")))
+	_pw_replay_banner_show()
+	await get_tree().create_timer(PW_REPLAY_MARCH_S).timeout
+	if serial != _pw_replay_serial or not _pw_replay_running:
+		return
+	_pw_replay_beat = 2
+	if map_area.has_method("finish_play"):
+		map_area.finish_play()
+	var flash: Array = digest.get("flash", []) if digest.get("flash", []) is Array else []
+	for name in changed:
+		if not flash.has(name):
+			flash.append(name)
+	if not flash.is_empty() and map_area.has_method("flash_regions"):
+		map_area.flash_regions(flash)
+	_pw_replay_plaques_show(plaques)
+	await get_tree().create_timer(PW_REPLAY_HOLD_S if not plaques.is_empty() else PW_REPLAY_QUIET_S).timeout
+	if serial != _pw_replay_serial or not _pw_replay_running:
+		return
+	_pw_replay_finish(false)
+
+
+func _pw_replay_finish(skipped: bool) -> void:
+	"""The telling ends (by its clock or a press): the new board stands, the
+	stage is cleared, the report opens."""
+	if not _pw_replay_running:
+		return
+	_pw_replay_running = false
+	_pw_replay_beat = 0
+	_pw_replay_serial += 1
+	if map_area != null and map_area.has_method("finish_play"):
+		map_area.finish_play()
+	_pw_last_replay["skipped"] = skipped
+	_pw_last_replay["ended"] = true
+	_pw_replay_clear_stage()
+	var then := _pw_replay_then
+	_pw_replay_then = Callable()
+	if then.is_valid():
+		then.call()
+
+
+func _pw_replay_stage() -> CanvasLayer:
+	if _pw_replay_layer == null or not is_instance_valid(_pw_replay_layer):
+		_pw_replay_layer = CanvasLayer.new()
+		_pw_replay_layer.name = "EnemyMovesStage"
+		_pw_replay_layer.layer = 24      # over the map, under the war card (25) and every window
+		add_child(_pw_replay_layer)
+	return _pw_replay_layer
+
+
+func _pw_replay_clear_stage() -> void:
+	if _pw_replay_layer == null or not is_instance_valid(_pw_replay_layer):
+		return
+	for child in _pw_replay_layer.get_children():
+		child.queue_free()
+
+
+func _pw_replay_plate(rim: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.07, 0.08, 0.12, 0.95)
+	box.border_color = rim
+	box.set_border_width_all(2)
+	box.set_corner_radius_all(3)
+	box.content_margin_left = 12.0
+	box.content_margin_right = 12.0
+	box.content_margin_top = 5.0
+	box.content_margin_bottom = 5.0
+	return box
+
+
+func _pw_replay_banner_show() -> void:
+	var stage := _pw_replay_stage()
+	_pw_replay_clear_stage()
+	var plate := PanelContainer.new()
+	plate.name = "EnemyMovesBanner"
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_theme_stylebox_override("panel", _pw_replay_plate(Color("#" + Utils.COLOR_GOLD)))
+	var words := VBoxContainer.new()
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_theme_constant_override("separation", 0)
+	var head := Label.new()
+	head.name = "Head"
+	head.text = PW_REPLAY_BANNER
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.theme_type_variation = &"DialogTitle"   # a named step (the title face at 22), never a raw size
+	head.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+	words.add_child(head)
+	var hint := Label.new()
+	hint.name = "Hint"
+	hint.text = PW_REPLAY_SKIP_HINT
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.theme_type_variation = &"Caption"
+	hint.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	words.add_child(hint)
+	plate.add_child(words)
+	stage.add_child(plate)
+	# top centre of the view, under the top bar
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var want: Vector2 = plate.get_combined_minimum_size()
+	plate.position = Vector2(roundf((view.x - want.x) / 2.0), 46.0)
+	plate.modulate.a = 0.0
+	plate.create_tween().tween_property(plate, "modulate:a", 1.0, 0.15)
+
+
+func _pw_replay_plaques_show(plaques: Array) -> void:
+	"""Each plaque under its province: the digest's own words, rimmed by what
+	it is (lost, gained, a battle). Kept inside the view."""
+	if plaques.is_empty() or map_area == null or not map_area.has_method("screen_point_of_region"):
+		return
+	var stage := _pw_replay_stage()
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var taken: Array = []
+	for row in plaques:
+		var at: Vector2 = map_area.screen_point_of_region(str(row.get("region", "")))
+		if at.x < 0.0:
+			continue
+		var tone := str(row.get("tone", ""))
+		var rim := Color("#" + Utils.COLOR_GOLD)
+		if tone == "bad":
+			rim = Color("#" + Utils.COLOR_ERROR)
+		elif tone == "good":
+			rim = Color("#" + Utils.COLOR_SUCCESS)
+		var plate := PanelContainer.new()
+		plate.name = "EnemyMovesPlaque"
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.add_theme_stylebox_override("panel", _pw_replay_plate(rim))
+		var words := Label.new()
+		words.text = str(row.get("text", ""))
+		words.add_theme_color_override("font_color", Color("#" + Utils.COLOR_TEXT))
+		plate.add_child(words)
+		stage.add_child(plate)
+		var want: Vector2 = plate.get_combined_minimum_size()
+		var spot := Vector2(at.x - want.x / 2.0, at.y + 34.0)
+		spot.x = clampf(spot.x, 8.0, maxf(view.x - want.x - 8.0, 8.0))
+		spot.y = clampf(spot.y, 44.0, maxf(view.y - want.y - 8.0, 44.0))
+		# two plaques never stand on each other: the later one steps down
+		var box := Rect2(spot, want)
+		var tries := 0
+		while tries < 6:
+			var hit := false
+			for other in taken:
+				if (other as Rect2).grow(2.0).intersects(box):
+					hit = true
+					break
+			if not hit:
+				break
+			box.position.y += want.y + 4.0
+			tries += 1
+		taken.append(box)
+		plate.position = box.position.round()
+		plate.modulate.a = 0.0
+		plate.create_tween().tween_property(plate, "modulate:a", 1.0, 0.12)
 
 
 func _pw_digest_of(response) -> Dictionary:
@@ -10542,6 +10815,11 @@ func _input(event: InputEvent) -> void:
 	L/T/G/D/R/N/Tab/M/+/- did their own things. With a draft on the line, a
 	printable key, Backspace, Delete or Enter goes to the draft instead. The
 	arrow keys still pan; an empty line keeps every hotkey."""
+	if _pw_replay_running and _pw_replay_skips(event):
+		# row PW part 2: any press ends the map's telling — the report opens at once
+		_pw_replay_finish(true)
+		get_viewport().set_input_as_handled()
+		return
 	_ui6_press_outside_folds_the_log(event)   # Session UI-6: never consumes the press
 	if not (event is InputEventKey) or not event.pressed:
 		return
@@ -12347,14 +12625,14 @@ func _on_war_settlement_clicked(war_id: String, nation: String):
 	`propose_common_peace`, which would only return a humanized error.
 	Active wars continue to open the live settlement review."""
 	if _is_war_archived_in_cache(war_id):
-		add_output("[color=#" + Utils.COLOR_GOLD + "]Opening settlement history for %s[/color]" % nation)
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Opening the record of the peace with %s[/color]" % nation)
 		_route_settlement_recovery_route({
 			"surface": "settlement_history",
 			"war_id": war_id,
 		})
 		return
 	var command = "propose common peace with " + nation
-	add_output("[color=#" + Utils.COLOR_GOLD + "]Opening settlement review for %s[/color]" % nation)
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Peace talks: opening the table with %s[/color]" % nation)
 	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	if api_client.has_method("send_structured_command"):

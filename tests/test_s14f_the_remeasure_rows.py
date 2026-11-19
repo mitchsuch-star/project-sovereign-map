@@ -7160,7 +7160,8 @@ class TestS14E29:
         for needle in ("gold_projected_net", "response.game_state.gold",
                        "_update_status(response.action_summary)",
                        "_apply_manpower(response.game_state.manpower_pools)",
-                       "_update_map_from_game_state(response.game_state)",
+                       # (row PW part 2: the board is PLAYED when the turn's report will open)
+                       "_update_map_from_game_state(response.game_state, _pw_replay_due(response))",
                        "notification_bar.update_notifications(response.notifications)"):
             assert needle in sync, needle
 
@@ -8216,8 +8217,9 @@ class TestS14E24:
                             lambda *a, **k: ["Davout, march to Lorraine", "Ney, fortify"])
         today = _build_first_morning_doors(_r24_world, "France")
         assert "orders_hint" not in today
+        # (row PW part 2: the first morning also says what to do with the map — `what_now`)
         assert set(today) == {"orders", "orders_header", "doors", "cabinet",
-                              "doctrine", "designs"}
+                              "doctrine", "designs", "what_now"}
 
     def test_the_hint_reads_the_first_attack_among_the_lines(self):
         from backend.game_logic.dispatch import attack_preview_hint

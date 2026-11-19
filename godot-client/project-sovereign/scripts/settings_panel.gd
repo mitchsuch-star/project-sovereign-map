@@ -131,6 +131,7 @@ var _segments: Array = []        # {option, row, buttons}
 var _card_nodes: Dictionary = {}  # title -> {panel, box, heading, title, moved}
 var _next_marshal_toggle: CheckButton = null
 var _confirm_orders_toggle: CheckButton = null   # row PW: ask before every order
+var _play_moves_toggle: CheckButton = null       # row PW part 2: the enemy's moves on the map
 var _readback_toggle: CheckButton = null
 
 var _scale_dragging := false
@@ -1265,6 +1266,8 @@ func _refresh_new_controls() -> void:
 		_next_marshal_toggle.set_pressed_no_signal(UiSettings.get_next_marshal_after_order())
 	if _confirm_orders_toggle != null:
 		_confirm_orders_toggle.set_pressed_no_signal(UiSettings.get_confirm_every_order())
+	if _play_moves_toggle != null:
+		_play_moves_toggle.set_pressed_no_signal(UiSettings.get_play_enemy_moves())
 	if _readback_toggle != null:
 		_readback_toggle.set_pressed_no_signal(UiSettings.get_readback())
 	_refresh_remap()
@@ -1539,6 +1542,13 @@ func _build_parser_section() -> void:
 	_add_hint("Off: with a marshal selected, a click on a province sends a plain move at once - "
 		+ "the tag by the cursor shows its price and what it does first. Attacks and risky "
 		+ "moves still ask. On: every order opens a card to confirm.")
+	# Row PW part 2: the turn is shown on the map before it is told.
+	_play_moves_toggle = _add_switch("Show the enemy's moves on the map", "PlayEnemyMovesToggle",
+			UiSettings.get_play_enemy_moves())
+	_play_moves_toggle.toggled.connect(func(on: bool): UiSettings.set_play_enemy_moves(on))
+	_add_hint("On: when you end the turn the pieces march on the map and the provinces that "
+		+ "changed hands are marked, then the report opens. Any click or key skips it. "
+		+ "Off: the report opens at once.")
 
 
 func _key_placeholder() -> String:

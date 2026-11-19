@@ -187,7 +187,7 @@ func _wyw_rows(rows, more: int, ink: String, glyph: String) -> String:
 		out += "  " + Utils.bb_glyph(glyph, 16, ink) + " [color=#" + ink + "]" + line + "[/color]"
 		var place := str(row.get("region", row.get("at", row.get("place", ""))))
 		if place != "" and place != "<null>":
-			out += "  [color=#" + Utils.COLOR_GOLD + "][url=focus:" + place + "]⌖ show[/url][/color]"
+			out += "  [color=#" + Utils.COLOR_GOLD + "][url=focus:" + place + "]⌖ show on the map[/url][/color]"
 		var field := _wyw_field_link(row)
 		if field != "":
 			out += "  " + field

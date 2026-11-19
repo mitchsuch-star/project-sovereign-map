@@ -717,8 +717,10 @@ class TestTheHooksOwnFind:
 
 class TestSessionHsHead:
 
-    @pytest.mark.xfail(strict=True, reason=_H)
     def test_grd16_a_marshal_typo_is_offered_the_nearest_own_name(self):
+        """BUILT November 18, 2026 (row PW part 2 — the typed road): the strict-xfail turned red the day
+        the seam landed, as it said it would, and is re-seated as a pass. Its behaviour:
+        `tests/test_pw2_the_typed_road.py::TestGRD16TheNearestOfYourOwnMarshals`."""
         assert _seam_up("backend.commands.executor", "a_marshal_typo_is_offered_the_nearest_own_name")
 
     @pytest.mark.xfail(strict=True, reason=_H)

@@ -930,7 +930,9 @@ class TestTheCabinetSaysHowToEndAWar:
         assert by["propose_white_peace"]["plain_name"].startswith("Make peace with no terms")
         assert by["propose_peace"]["plain_name"] == "Offer peace to Prussia alone"
         assert by["propose_armistice"]["plain_name"] == "Ask for a truce"
-        assert "a peace still has to be signed" in by["propose_armistice"]["plain_line"]
+        # (row PW part 2, the review: a truce becomes a peace at its end, or the war starts again)
+        assert "When the truce runs out it becomes a peace" in by["propose_armistice"]["plain_line"]
+        assert "{" not in by["propose_armistice"]["plain_line"], "the truce's length is filled from its constant"
         # no other row is in the group
         assert not [r for r in rows if r.get("group") == "peace" and not r["action"].startswith(
             ("open_settlement", "propose_"))]
@@ -1076,8 +1078,12 @@ class TestTheBattleAndTheReportAfterTheRealClient:
         assert 'title = f"Battle at {_place(world, day.get(\'field\'))}: no winner yet"' in day
         assert "The battle waits for your " in day
         acts = _src(SCRIPTS / "battle_acts.gd")
-        assert '"the attack hits at %d%% strength · an average roll gives %d%%"' in acts
-        assert 'luck_head = "luck today, as extra strength:"' in acts
+        # (row PW part 2: the two lines became sentences — `plain_lands`, `plain_luck`)
+        assert "lands = BattleActs.plain_lands(100 + int(roll.get(\"swing\", 0)), AVERAGE_LANDS)" in acts
+        assert 'return "a strong roll: the attack hits %d%% harder than an average one" % diff' in acts
+        assert 'return "a weak roll: the attack hits %d%% weaker than an average one" % -diff' in acts
+        assert 'return "an average roll: the attack hits as hard as usual"' in acts
+        assert 'return "today\'s luck: %s · %s" % [' in acts
         assert "static func payload_is_plain(data) -> bool:" in acts
         assert 'details["review_label"] = "Give your orders"' in _src(SCRIPTS / "notification_bar.gd")
 
@@ -1283,7 +1289,11 @@ class TestTheReviewThePeaceLane:
     def test_pw_r15_a_truce_is_an_ask_and_runs_out(self):
         from backend.game_logic.cabinet_rows import _PLAIN_PEACE
         line = _PLAIN_PEACE["propose_armistice"][1]
-        assert line.startswith("If they agree, the fighting stops") and "before the truce runs out" in line
+        # (row PW part 2, the review: a truce is not "signed into a peace before it runs out" — at its end
+        # it becomes one, or the war starts again: `diplomacy.armistice_expiry_exit`)
+        assert line.startswith("If they agree, the fighting stops for {truce} turns.")
+        assert "When the truce runs out it becomes a peace if relations have mended enough" in line
+        assert line.endswith("If not, the war starts again.") and "has to be signed" not in line
 
     def test_pw_r16_a_label_with_its_own_figure_is_said_once(self):
         class Ctx:
@@ -1405,8 +1415,8 @@ class TestTheDialSaysItsNextStep:
         rows = self._walk(world, dialogue, [
             ("generous", "table"), ("generous", "table"), ("harsher", "table"), ("harsher", "table"),
             ("harsher", court), ("generous", court)])
-        assert rows[1]["face"] == "+100 gold to each court"
-        assert rows[2]["face"] == "−100 gold to each court"
+        assert rows[1]["face"] == "you pay each court 100 more gold"
+        assert rows[2]["face"] == "you pay each court 100 less gold"
 
     def test_at_the_end_of_the_gold_it_says_so_before_the_press(self):
         from tests.test_settlement_gate4_leg1_fixes import (
@@ -1415,8 +1425,8 @@ class TestTheDialSaysItsNextStep:
         world, _war = _winning_two_court_world(france_gold=250)
         dialogue = _strip_to_peace_only(world, _stage_propose(world))
         rows = self._walk(world, dialogue, [("generous", "table")] * 4)
-        assert rows[0]["face"] == "+100 gold to each court"
-        assert rows[1]["face"] == "+50 gold to Britain"                  # what the purse still holds
+        assert rows[0]["face"] == "you pay each court 100 more gold"
+        assert rows[1]["face"] == "you pay Britain 50 more gold"         # what the purse still holds
         assert rows[2] == {"changes": False, "dead": True, "why": "you have no more gold to offer",
                            "face": "nothing more to add",
                            "line": "Nothing more to change — you have no more gold to offer."}
@@ -1478,15 +1488,17 @@ class TestTheDialSaysItsNextStep:
             {"type": "gold_indemnity", "from": "France", "to": court, "amount": 100}
             for court in ("Austria", "Britain", "Russia")]
         assert _dial_face(world, before, after, proposer_leader="France",
-                          scope_courts=["Austria", "Britain", "Russia"]) == "+100 gold to each court"
+                          scope_courts=["Austria", "Britain", "Russia"]) == "you pay each court 100 more gold"
         assert _dial_face(world, before, after[:2], proposer_leader="France",
-                          scope_courts=["Austria", "Britain", "Russia"]) == "+100 gold to Austria"
+                          scope_courts=["Austria", "Britain", "Russia"]) == "you pay Austria 100 more gold"
+        assert _dial_face(world, before, after[:3], proposer_leader="France",
+                          scope_courts=["Austria", "Britain", "Russia"]) == "you pay 2 courts 100 more gold"
         asks = before + [{"type": "territory_cede", "from": "Austria", "to": "France", "region": "Tyrol"},
                          {"type": "gold_indemnity", "from": "Britain", "to": "France", "amount": 100},
                          {"type": "gold_per_turn", "from": "Russia", "to": "France", "amount": 20, "turns": 5}]
         face = _dial_face(world, before, asks, proposer_leader="France",
                           scope_courts=["Austria", "Britain", "Russia"])
-        assert face == "+100 gold from Britain · +20 gold a turn from Russia · and 1 more"
+        assert face == "Britain pays you 100 more gold · Russia pays you 20 more gold a turn · and 1 more"
 
     def test_the_rail_wears_it_and_shuts_before_a_dead_press(self):
         show = _func(self.POPUP, "show_dialogue")
@@ -1510,7 +1522,8 @@ class TestTheDialSaysItsNextStep:
 
     def test_the_number_on_a_row_is_said_where_the_rows_begin(self):
         assert ('const TABLE_NUMBER_CAPTION := "The number on each row is how willing that court is to sign '
-                '— it signs at 50."') in self.POPUP
+                '— it signs at 50. It rises as you win the war and as you offer more, and falls as you ask '
+                'more."') in self.POPUP
         block = _func(self.POPUP, "_build_settlement_per_court_block")
         assert "if authoring_surface:" in block.split('Utils.bb_section("The table")', 1)[1][:260]
         from backend.game_logic.settlement_scoring import ACCEPTANCE_THRESHOLD

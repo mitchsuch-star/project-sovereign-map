@@ -81,7 +81,7 @@ func _ready():
 	cancel_button.custom_minimum_size = insist_button.custom_minimum_size
 	insist_button.get_parent().add_child(cancel_button)
 	cancel_button.pressed.connect(_on_cancel_pressed)
-	_cancel_caption = "[center][color=#" + Utils.COLOR_GOLD + "]no AP, no trust spent[/color][/center]"
+	_cancel_caption = "[center][color=#" + Utils.COLOR_GOLD + "]nothing spent[/color][/center]"
 
 	# UI-5: each answer plays its own cue, so the global click stands aside
 	for b in [trust_button, insist_button, compromise_button, word_button, cancel_button]:
@@ -249,8 +249,9 @@ func show_objection(objection_data: Dictionary):
 			# SFR-D3: trusting him names its price when it is more than the
 			# order's face value (a fortify from NEUTRAL is two actions).
 			if str(objection_data.get("trust_note", "")) != "":
-				trust_button.text = _face("Trust %s: %s" % [current_marshal, alt_desc], "%d AP — %s, %+d trust" % [
-					int(objection_data.get("trust_ap_cost", 2)), str(objection_data.get("trust_note", "")), trust_gain])
+				# (row PW part 2, the review: a price is in actions on the face too, never "AP")
+				trust_button.text = _face("Trust %s: %s" % [current_marshal, alt_desc], "%s — %s, %+d trust" % [
+					Utils.plural(int(objection_data.get("trust_ap_cost", 2)), "action"), str(objection_data.get("trust_note", "")), trust_gain])
 				if Utils.explanations_folded():
 					trust_button.tooltip_text = str(objection_data.get("trust_note", ""))
 			else:
@@ -263,8 +264,8 @@ func show_objection(objection_data: Dictionary):
 		# NEUTRAL is two actions, the auto-shift first. The backend stamps
 		# `insist_ap_cost` + `insist_note` only in that case.
 		if objection_data.has("insist_note") and str(objection_data.get("insist_note", "")) != "":
-			insist_button.text = _face("Proceed as Ordered", "%d AP — %s, %+d trust" % [
-				int(objection_data.get("insist_ap_cost", 2)),
+			insist_button.text = _face("Proceed as Ordered", "%s — %s, %+d trust" % [
+				Utils.plural(int(objection_data.get("insist_ap_cost", 2)), "action"),
 				str(objection_data.get("insist_note", "")), insist_penalty])
 			if Utils.explanations_folded():
 				insist_button.tooltip_text = str(objection_data.get("insist_note", ""))
@@ -289,8 +290,8 @@ func show_objection(objection_data: Dictionary):
 			var comp = objection_data.compromise
 			var comp_desc = _describe_order(comp)
 			if str(objection_data.get("compromise_note", "")) != "":
-				compromise_button.text = _face("Compromise: %s" % comp_desc, "%d AP — %s, %+d trust" % [
-					int(objection_data.get("compromise_ap_cost", 2)),
+				compromise_button.text = _face("Compromise: %s" % comp_desc, "%s — %s, %+d trust" % [
+					Utils.plural(int(objection_data.get("compromise_ap_cost", 2)), "action"),
 					str(objection_data.get("compromise_note", "")), compromise_gain])
 				if Utils.explanations_folded():
 					compromise_button.tooltip_text = str(objection_data.get("compromise_note", ""))
@@ -473,7 +474,7 @@ func _caption_text(ap: int, trust: int, authority: int = 0, free_note: String = 
 	if free_note != "":
 		parts.append("[color=#" + Utils.COLOR_GOLD + "]" + free_note + "[/color]")
 	if ap > 0:
-		parts.append("[color=#" + Utils.COLOR_GOLD + "]%d AP[/color]" % ap)
+		parts.append("[color=#" + Utils.COLOR_GOLD + "]%s[/color]" % Utils.plural(ap, "action"))   # row PW: never "AP"
 	if authority != 0:
 		var ahex: String = Utils.RELATION_POS if authority > 0 else Utils.UI_ALERT_TEXT.to_html(false)
 		parts.append("[color=#%s]%s authority[/color]" % [ahex, _signed(authority)])
@@ -496,8 +497,40 @@ func _set_caption(btn: Button, text: String) -> void:
 	var cap := cell.get_node_or_null("Caption") as RichTextLabel
 	if cap == null:
 		return
+	# Row PW part 2 (plain words): what the answer DOES leads its figures — the
+	# faces keep their names ("By My Word" told a first reader nothing).
+	var does: String = _does_note(btn)
+	if text != "" and does != "":
+		text = text.replace("[center]", "[center][color=#%s]%s[/color]   " % [Utils.UI_TEXT_DIM.to_html(false), does])
 	cap.text = text
 	cap.visible = text != "" and not Utils.compact_view()
+
+
+func _does_note(btn: Button) -> String:
+	"""Row PW part 2: what an answer does, in everyday words."""
+	if btn == trust_button:
+		# (the review: an objection that carries no other order of his — a
+		# fallback the server's own rule demotes before it is sent — has no
+		# "this" to do instead; the answer then wears its figures alone)
+		return ANSWER_DOES["trust"] if has_alternative else ""
+	if btn == insist_button:
+		return ANSWER_DOES["insist"]
+	if btn == word_button:
+		return ANSWER_DOES["word"]
+	if btn == compromise_button:
+		return ANSWER_DOES["compromise"]
+	if btn == cancel_button:
+		return ANSWER_DOES["cancel"]
+	return ""
+
+
+const ANSWER_DOES := {
+	"trust": "he does this instead",
+	"insist": "he obeys your order",
+	"word": "he obeys · no trust lost",
+	"compromise": "a middle course",
+	"cancel": "nothing happens",
+}
 
 
 func _even_the_answers() -> void:
@@ -608,7 +641,7 @@ func _setup_strategic_buttons(options: Array):
 		var text = proceed_opt.get("text", "Proceed as Ordered")
 		var ap = proceed_opt.get("ap_cost", 2)
 		var trust = proceed_opt.get("trust_change", -10)
-		insist_button.text = _face(text, "%d AP, %+d trust" % [ap, trust])
+		insist_button.text = _face(text, "%s, %+d trust" % [Utils.plural(int(ap), "action"), trust])
 		_set_caption(insist_button, _caption_text(int(ap), int(trust)))
 	else:
 		insist_button.text = "Proceed as Ordered"
@@ -619,20 +652,20 @@ func _setup_strategic_buttons(options: Array):
 		var text = preferred_opt.get("text", "Accept Alternative")
 		var ap = preferred_opt.get("ap_cost", 1)
 		var trust = preferred_opt.get("trust_change", 12)
-		trust_button.text = _face(text, "%d AP, %+d trust" % [ap, trust])
+		has_alternative = true       # (before the caption: its note reads it)
+		trust_button.text = _face(text, "%s, %+d trust" % [Utils.plural(int(ap), "action"), trust])
 		_set_caption(trust_button, _caption_text(int(ap), int(trust)))
-		has_alternative = true
 	else:
+		has_alternative = false
 		trust_button.text = "Trust %s's Judgment" % current_marshal
 		_set_caption(trust_button, "")
-		has_alternative = false
 
 	# Set up Compromise button
 	if compromise_opt:
 		var text = compromise_opt.get("text", "Compromise")
 		var ap = compromise_opt.get("ap_cost", 2)
 		var trust = compromise_opt.get("trust_change", 3)
-		compromise_button.text = _face(text, "%d AP, %+d trust" % [ap, trust])
+		compromise_button.text = _face(text, "%s, %+d trust" % [Utils.plural(int(ap), "action"), trust])
 		_set_caption(compromise_button, _caption_text(int(ap), int(trust)))
 		compromise_button.visible = true
 		has_compromise = true

@@ -77,7 +77,9 @@ def test_the_columns_stand_45_55_folded_and_even_on_the_page():
 
 def test_the_key_factors_span_their_column_folded():
     src = _src()
-    assert "Utils.bb_table([\"Factor\", \"Value\"], factor_rows, [1], [4, 1], _factors_width())" in _func(src, "_render_preview")
+    # (row PW part 2, plain words: the table's heads read "What weighs with them" / "Effect")
+    assert ("Utils.bb_table([\"What weighs with them\", \"Effect\"], factor_rows, [1], [4, 1], _factors_width())"
+            in _func(src, "_render_preview"))
     width = _func(src, "_factors_width")
     assert "if not Utils.explanations_folded():\n\t\treturn 0.0" in width
 

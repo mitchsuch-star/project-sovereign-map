@@ -321,7 +321,7 @@ def _our_battles(world, events) -> List[Dict[str, Any]]:
             result = "open"
             who = (f"{our_name} attacked {his_name}" if we_attacked
                    else f"{his_name} attacked {our_name}")
-            said = (f"{who} — no winner yet: the battle waits for your orders"
+            said = (f"{who} — no winner yet: the battle waits for your orders this turn"
                     if str(day.get("awaits") or "") == "ours"
                     else f"{who} — no winner yet: the battle goes on")
         place = str(event.get("location") or event.get("region_name") or "")
@@ -394,6 +394,41 @@ def _now_beside(world, before) -> List[Dict[str, Any]]:
     return rows
 
 
+MAX_PLAQUES = 6
+
+_BATTLE_PLAQUE = {"won": "battle won", "lost": "battle lost", "none": "battle — no winner",
+                  "open": "battle — no winner yet"}
+
+
+def _plaques(lost, friends_lost, battles, gained, friends_gained) -> List[Dict[str, str]]:
+    """The words the map wears at a province while the enemy's moves are
+    played on it (`main.gd::_pw_play_then_report`): rows of {region, text,
+    tone} — `tone` "bad" (a province lost), "good" (one gained) or "battle".
+    The player's own losses lead; at most MAX_PLAQUES. Built from the
+    digest's own rows: it says nothing the report does not."""
+    rows: List[Dict[str, str]] = []
+    for row in lost:
+        rows.append({"region": str(row["region"]), "tone": "bad",
+                     "text": f"{row['region']} — lost to {row.get('to_shown') or 'no one'}"})
+    for row in friends_lost:
+        rows.append({"region": str(row["region"]), "tone": "bad",
+                     "text": (f"{row['region']} — {row.get('from_shown') or 'an ally'} lost it to "
+                              f"{row.get('to_shown') or 'no one'}")})
+    for row in battles:
+        place = str(row.get("place") or "")
+        if place:
+            result = str(row.get("result") or "")
+            words = _BATTLE_PLAQUE.get(result, "battle")
+            rows.append({"region": place, "tone": {"won": "good", "lost": "bad"}.get(result, "battle"),
+                         "text": f"{place} — {words}"})
+    for row in gained:
+        rows.append({"region": str(row["region"]), "tone": "good", "text": f"{row['region']} — now yours"})
+    for row in friends_gained:
+        rows.append({"region": str(row["region"]), "tone": "good",
+                     "text": f"{row['region']} — now {row.get('to_shown') or 'an ally'}'s"})
+    return rows[:MAX_PLAQUES]
+
+
 def digest(world, before: Optional[Dict[str, Any]], enemy_phase=None,
            tactical_events=None) -> Dict[str, Any]:
     """What changed for the player between `before` (End Turn pressed) and
@@ -444,6 +479,10 @@ def digest(world, before: Optional[Dict[str, Any]], enemy_phase=None,
             "flash": [r["region"] for r in (lost + gained + friends_lost + friends_gained)][:24],
         }
         out["quiet"] = not (lost or gained or friends_lost or friends_gained or battles or beside)
+        # Row PW part 2 (the user, of the report: "can we show the pieces moving
+        # or something better?"): the few words the MAP wears at a province
+        # while the turn is played on it — the report's own facts, no new one.
+        out["plaques"] = _plaques(lost, friends_lost, battles, gained, friends_gained)
         # How to keep what is taken: said with the first province lost to a
         # march onto empty ground (the Carniola of the first playtest).
         out["keep_it"] = ""

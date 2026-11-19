@@ -709,6 +709,22 @@ static func set_confirm_every_order(on: bool) -> void:
 	_save()
 
 
+# --- Row PW part 2 (November 18, 2026): the enemy's moves on the map ---
+# Settings → ORDERS. On (a player's default): after End Turn the map SHOWS the
+# turn before the report opens — the pieces march, the provinces that changed
+# hands take their colour, a plaque names what is the player's business
+# (`main.gd::_pw_play_then_report`); any press skips it. Off: the report opens
+# at once, as before. A driven capture harness keeps it off (its scripts read
+# the report the moment the turn ends), and Reduce motion turns it off too.
+static func get_play_enemy_moves() -> bool:
+	return bool(_config().get_value("orders", "play_enemy_moves", not harness_active()))
+
+
+static func set_play_enemy_moves(on: bool) -> void:
+	_config().set_value("orders", "play_enemy_moves", on)
+	_save()
+
+
 # --- Row PW: the order's card rises once, on its quote ---
 # A player's card waits the moment its quote takes (`main.gd _open_order_card`:
 # it used to rise on a placeholder and lay itself out again when the quote

@@ -528,6 +528,11 @@ def _term_words(world: Any, term: Mapping[str, Any], leader: str) -> str:
     to = str(term.get("to") or "")
     ours = frm == leader
     other = formed_display_name(world, to if ours else frm) if (to if ours else frm) else "them"
+    # (row PW part 2, the review: the side's leader is not always the player —
+    # an ally who leads it is named, never called "you")
+    player = str(getattr(world, "player_nation", "") or "")
+    mine = not leader or not player or leader == player
+    lead = "" if mine else formed_display_name(world, leader)
     if frm and to and frm != leader and to != leader:
         # The review (PW-R8): a clause between two OTHER courts (an ally's
         # payment, a cession to an ally) is neither paid by nor to the player.
@@ -539,9 +544,13 @@ def _term_words(world: Any, term: Mapping[str, Any], leader: str) -> str:
         if ttype.startswith("territory"):
             return f"{str(term.get('region') or 'a province')} from {payer} to {payee}"
     if ttype in ("gold_indemnity", "gold_lump"):
-        return f"gold you pay {other}" if ours else f"gold {other} pays you"
+        if ours:
+            return f"gold you pay {other}" if mine else f"gold {lead} pays {other}"
+        return f"gold {other} pays you" if mine else f"gold {other} pays {lead}"
     if ttype == "gold_per_turn":
-        return f"gold a turn you pay {other}" if ours else f"gold a turn {other} pays you"
+        if ours:
+            return f"gold a turn you pay {other}" if mine else f"gold a turn {lead} pays {other}"
+        return f"gold a turn {other} pays you" if mine else f"gold a turn {other} pays {lead}"
     if ttype.startswith("territory"):
         region = str(term.get("region") or "a province")
         return f"{region} to {other}" if ours else f"{region} from {other}"
@@ -613,9 +622,9 @@ _GOLD_CLAUSES = ("gold_indemnity", "gold_lump", "gold_per_turn")
 def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[Mapping[str, Any]],
                *, proposer_leader: str, scope_courts: Iterable[str]) -> str:
     """What a press would change, short enough for a button's second line
-    ("+100 gold to each court", "−100 gold from Prussia", "asks Austria for
-    Tyrol", "drops your demand for Silesia"). A gold move of one size and one
-    direction (to a court: the player pays; from it: the court pays) is said once
+    ("you pay each court 100 more gold", "Prussia pays you 100 less gold",
+    "asks Austria for Tyrol", "drops your demand for Silesia"). A gold move of
+    one size and one direction (who pays whom, more or less) is said once
     for the courts it touches — "each court" when it touches every court in
     the dial's scope."""
     from backend.game_logic.formations import formed_display_name
@@ -630,6 +639,10 @@ def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[
     old = {key_of(t): t for t in (before or []) if isinstance(t, Mapping)}
     new = {key_of(t): t for t in (after or []) if isinstance(t, Mapping)}
     scope = [str(c) for c in (scope_courts or []) if c]
+    # (the review: an ally who leads the side is named, never called "you")
+    player = str(getattr(world, "player_nation", "") or "")
+    mine = not proposer_leader or not player or proposer_leader == player
+    lead = "you" if mine else shown(proposer_leader)
     gold: Dict[tuple, List[str]] = {}   # (side, per turn, delta) -> courts, in the order met
     other: List[str] = []
 
@@ -641,8 +654,8 @@ def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[
         elif to == proposer_leader:
             gold.setdefault(("from", per, delta), []).append(frm)
         else:
-            sign = "+" if delta > 0 else "−"
-            other.append(f"{sign}{abs(delta):,} {_term_words(world, {'type': ttype, 'from': frm, 'to': to}, proposer_leader)}")
+            other.append(f"{abs(delta):,} {'more' if delta > 0 else 'less'}: "
+                         f"{_term_words(world, {'type': ttype, 'from': frm, 'to': to}, proposer_leader)}")
 
     for key, term in new.items():
         ttype, frm, to, region = key
@@ -667,7 +680,7 @@ def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[
         if ttype in _GOLD_CLAUSES:
             gold_move(key, -int(term.get("amount", 0) or 0))
         elif ttype.startswith("territory") and to == proposer_leader:
-            other.append(f"drops your demand for {region or 'a province'}")
+            other.append(f"drops {'your' if mine else lead + chr(39) + 's'} demand for {region or 'a province'}")
         elif ttype.startswith("territory") and frm == proposer_leader:
             other.append(f"takes back {region or 'a province'}")
         else:
@@ -675,14 +688,19 @@ def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[
 
     phrases: List[str] = []
     for (side, per, delta), courts in gold.items():
+        # (Row PW part 2 — the second blind reading: "Ask for more" wearing
+        # "−100 gold to each court" left two readers of three unsure whether
+        # they demanded more or took their own payment back. The line says who
+        # pays whom, and whether it is more or less.)
         if len(courts) > 1 and set(courts) == set(scope):
-            who = "each court"
-        elif len(courts) <= 2:
-            who = " and ".join(shown(c) for c in courts)
+            who, pays = "each court", "pays"
+        elif len(courts) == 1:
+            who, pays = shown(courts[0]), "pays"
         else:
-            who = f"{len(courts)} courts"
-        amount = f"+{delta:,}" if delta > 0 else f"−{abs(delta):,}"
-        phrases.append(f"{amount} gold{per} {side} {who}")
+            who, pays = f"{len(courts)} courts", "pay"
+        change = f"{abs(delta):,} {'more' if delta > 0 else 'less'} gold{per}"
+        phrases.append(f"{lead} {'pay' if mine else 'pays'} {who} {change}" if side == "to"
+                       else f"{who} {pays} {lead} {change}")
     phrases.extend(other)
     if len(phrases) > 2:
         phrases = phrases[:2] + [f"and {len(phrases) - 2} more"]
@@ -747,7 +765,7 @@ def dial_previews(world: Any, dialogue: Mapping[str, Any]) -> Dict[str, Dict[str
                                  "why": str, "dead": bool, "asks_land": bool,
                                  "refused": bool}}
 
-    `face` is the button's second line ("+100 gold to each court"); `line`
+    `face` is the button's second line ("you pay each court 100 more gold"); `line`
     its hover, the change in full; `dead` a press that would change nothing
     and ask nothing (the client shuts the button with `why` BEFORE the press);
     `asks_land` a press that would add no gold and put the land question;

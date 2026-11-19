@@ -5936,7 +5936,15 @@ def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     hint = attack_preview_hint(orders)
     if hint:
         today["orders_hint"] = hint
+    # Row PW part 2 (the first playtest: "everything feels … disconnected"):
+    # what to DO with the map, in one plain line, before anything else.
+    today["what_now"] = WHAT_NOW_LINE
     return today
+
+
+WHAT_NOW_LINE = ("What now: click a marshal, then click a province to send him — the tag by the cursor "
+                 "says what it costs and what will happen. Press End Turn when you are done. To end a war, "
+                 "press Make peace on its card at the top right.")
 
 
 # ============================================================================

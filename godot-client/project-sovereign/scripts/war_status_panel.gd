@@ -20,6 +20,10 @@ signal peace_clicked(nation: String, war_instance_id: String)
 const STANDING_BAND := 15
 
 
+# Row PW part 2: how the card says it ("The war: even").
+const WAR_STANDS := "The war: %s"
+
+
 static func war_standing_word(score: int) -> String:
 	"""Row PW: how the war stands, in one word."""
 	if score >= STANDING_BAND:
@@ -551,7 +555,9 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	# (The war's age moved to the hover: "T:12" told a first reader nothing.)
 	var standing_label = Label.new()
 	standing_label.name = "WarStanding"
-	standing_label.text = war_standing_word(score)
+	# (Row PW part 2 — the blind readers: "'Even' and a 0: what does it
+	# measure?" — the word is said of the WAR.)
+	standing_label.text = WAR_STANDS % war_standing_word(score).to_lower()
 	standing_label.theme_type_variation = &"Caption"
 	standing_label.add_theme_color_override("font_color", _get_score_color(score))
 	standing_label.mouse_filter = Control.MOUSE_FILTER_IGNORE

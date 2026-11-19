@@ -92,6 +92,21 @@ var _assessment_id: String = NOTE_ASSESSMENT
 var _silent_rebuild := false
 
 
+func _in_short_block(data: Dictionary) -> String:
+	"""Row PW part 2: IN SHORT — the backend's three plain lines; "" for a
+	letter that carries none (its own register says its own)."""
+	var short = data.get("in_short", {})
+	if not (short is Dictionary) or str((short as Dictionary).get("ask", "")) == "":
+		return ""
+	var out := "[color=#" + Utils.COLOR_GOLD + "][b]IN SHORT[/b][/color]\n"
+	out += str(short.get("ask", "")) + "\n"
+	for key in ["accept", "reject"]:
+		var line := str(short.get(key, ""))
+		if line != "":
+			out += "[color=#" + Utils.UI_TEXT_DIM.to_html(false) + "]" + line + "[/color]\n"
+	return out + "\n"
+
+
 func _assessment_block() -> String:
 	"""The grey assessment line: whole On the page (byte for byte as before);
 	Folded, its first sentence and a more/less link (`Utils.bb_note`)."""
@@ -319,6 +334,10 @@ func show_proposal(data: Dictionary):
 		# S14E-23: the header says what the treaty does ("Open Borders Agreement
 		# (free military passage)") - the backend's summary, when it has one.
 		var type_summary = str(data.get("proposal_type_summary", ""))
+		# Row PW part 2 (plain words): the letter in three lines — what they
+		# ask, what Accept does, what Reject does — before the treaty's own
+		# wording (`mailbox_payloads.letter_in_short`).
+		bbcode += _in_short_block(data)
 		bbcode += "[b]Proposes:[/b] %s\n" % (type_summary if type_summary != "" else type_display)
 		bbcode += "[b]Terms:[/b]\n"
 		# Restore default gold border

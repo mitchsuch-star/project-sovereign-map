@@ -625,7 +625,9 @@ class TestTheScreenSays:
         """SF7-X21's wiring (the driven pin overrides the check; this pins
         that the live client sets it)."""
         src = _read(SCRIPTS / "main.gd")
-        assert "map_area.pointer_blocked_check = _is_modal_dialog_open" in src
+        # (row PW part 2: the check is the modal's OR the enemy's moves being played on the map)
+        assert "map_area.pointer_blocked_check = _map_pointer_blocked" in src
+        assert "return _pw_replay_running or _is_modal_dialog_open()" in src
 
     @pytest.mark.parametrize("script", ["strategic_ledger.gd", "diplomatic_ledger.gd"])
     def test_the_books_turn_while_you_type(self, script):

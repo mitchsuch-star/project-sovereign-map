@@ -284,8 +284,10 @@ class TestTheStakesTold:
     def test_the_stake_line_names_the_vindications_figures(self):
         from backend.game_logic import standing
         assert standing.insist_stake_line() == (
-            "If the field is lost under your insistence: trust −5, authority −5; won: authority +5. "
-            "A compromise: authority +2 won, trust −2 and authority −2 lost.")
+            # row PW part 2 (November 18, 2026): the same figures, in plain sentences
+            "Later, when the battle is fought — if you insisted and it is lost: trust −5, authority −5; "
+            "if it is won: authority +5. If you compromised: authority +2 if won; trust −2 and "
+            "authority −2 if lost.")
 
     def test_both_objection_paths_stamp_it_and_the_dialog_prints_it(self):
         ex = (BACKEND / "commands" / "executor.py").read_text(encoding="utf-8")

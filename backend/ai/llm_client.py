@@ -343,7 +343,9 @@ def _supports_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
 
 # DD0-15 (S4 part 3): the three-letter telegraph typos the OSA floor cannot
 # reach — a closed table, each a deletion of ONE order verb and no word.
-_SHORT_TYPO_TABLE = {"mve": "move", "mov": "move", "hld": "hold", "atk": "attack", "atack": "attack"}
+_SHORT_TYPO_TABLE = {"mve": "move", "mov": "move", "hld": "hold", "atk": "attack", "atack": "attack",
+                     # row PW part 2: the first playtest's own slip, two edits from the verb
+                     "tatck": "attack"}
 _TYPO_VERBS = ("attack", "move", "march", "scout", "defend", "hold", "retreat",
                "fortify", "recruit", "bombard",
                # DD0-9 (October 10, 2026): "davout suport ney"
@@ -360,6 +362,10 @@ _TYPO_STOPLIST = frozenset({
     "hoed", "holt", "moved", "retreats", "retreated", "forty", "fortune",
     "bombast", "recount", "hound", "mount", "mould", "molt", "hilt", "halt",
     "hood", "hoot", "boot", "sold", "told", "cold", "fold", "gold",
+    # Row PW part 2, the review: the first-letter rule's own real words — every
+    # English word one edit ON the first letter from a verb of five letters or
+    # more (the letter dropped, another in its place, one set before it).
+    "arch", "larch", "parch", "mortify", "lombard", "pretreat",
 })
 # Where an ORDER VERB stands: the first word of the sentence, the first word
 # after a leading address ("Ney, …"), and the first word after a clause
@@ -376,6 +382,29 @@ _VERB_POSITION_RE = re.compile(
     r"|^|,\s*then\s+|\bthen\s+|;\s*|\band\s+|\bplease\s+)"
     r"(?:(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*\s*,\s*)?"
     r"(?P<verb>[A-Za-z][A-Za-z'’-]*)", re.IGNORECASE)
+
+
+def _verb_for_typo(low: str, known) -> Optional[str]:
+    """The ONE order verb a mistyped token stands for, or None: the closed
+    table of telegraph typos; one edit (transposition-aware) with the verb's
+    own first letter; or — row PW part 2, the first playtest's "ney ttack
+    vienna" — one edit that falls ON the first letter of a verb of five
+    letters or more, where no same-letter verb fits. A roster, province or
+    nation form, a verb already and a stoplisted real word are never read."""
+    if low in _SHORT_TYPO_TABLE and low not in known:
+        return _SHORT_TYPO_TABLE[low]
+    if (len(low) < 4 or low in ADDRESS_NON_NAME_WORDS or low in known
+            or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
+        return None
+    hits = [v for v in _TYPO_VERBS if v[0] == low[0] and osa_distance_at_most(low, v, 1)]
+    if len(hits) == 1:
+        return hits[0]
+    if not hits:
+        slipped = [v for v in _TYPO_VERBS
+                   if len(v) >= 5 and v[0] != low[0] and osa_distance_at_most(low, v, 1)]
+        if len(slipped) == 1:
+            return slipped[0]
+    return None
 
 
 def repair_leading_verb_typo(command_text: str, game_state: Optional[Dict]):
@@ -399,20 +428,11 @@ def repair_leading_verb_typo(command_text: str, game_state: Optional[Dict]):
         low = token.lower()
         # DD0-15 (S4 part 3): "mve murat to rhineland" — the three-letter
         # telegraph typos, a closed table under the four-letter floor.
-        if low in _SHORT_TYPO_TABLE and low not in known:
-            verb = _SHORT_TYPO_TABLE[low]
+        # (Row PW part 2: the reading is `_verb_for_typo`'s, for both arms.)
+        verb = _verb_for_typo(low, known)
+        if verb:
             start, end = match.span("verb")
             return text[:start] + verb + text[end:], f"(Berthier read '{token}' as '{verb}'.)"
-        if (len(low) < 4 or low in ADDRESS_NON_NAME_WORDS or low in known
-                or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
-            continue
-        hits = [v for v in _TYPO_VERBS
-                if v[0] == low[0] and osa_distance_at_most(low, v, 1)]
-        if len(hits) == 1:
-            verb = hits[0]
-            start, end = match.span("verb")
-            repaired = text[:start] + verb + text[end:]
-            return repaired, f"(Berthier read '{token}' as '{verb}'.)"
     # SF-CMD-1 (ii), the fresh census (Oct 3, 2026): the verb after an
     # UNMARKED address — "Ney attak Mack" (CX-R1 reads the name at the head
     # as the address; the typo sits one token in).
@@ -421,12 +441,10 @@ def repair_leading_verb_typo(command_text: str, game_state: Optional[Dict]):
         str(name).lower() for name in _game_state_dict(game_state, "marshals")}
     m = re.match(r"^\s*(?:" + HONORIFIC + r")?(?P<name>[A-Za-z][\w'’-]*)\s+(?P<verb>[A-Za-z]{4,})\b", text)
     if m and m.group("name").lower() in roster:
-        low = m.group("verb").lower()
-        if not (low in ADDRESS_NON_NAME_WORDS or low in known or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
-            hits = [v for v in _TYPO_VERBS if v[0] == low[0] and osa_distance_at_most(low, v, 1)]
-            if len(hits) == 1:
-                start, end = m.span("verb")
-                return text[:start] + hits[0] + text[end:], f"(Berthier read '{m.group('verb')}' as '{hits[0]}'.)"
+        verb = _verb_for_typo(m.group("verb").lower(), known)
+        if verb:
+            start, end = m.span("verb")
+            return text[:start] + verb + text[end:], f"(Berthier read '{m.group('verb')}' as '{verb}'.)"
     return None, None
 
 
@@ -5594,7 +5612,14 @@ class LLMClient:
                         "action": "diplomatic_error",
                         "diplomat": "Talleyrand",
                         "error": "missing_target_nation",
-                        "message": "Sire, which nation should I direct this proposal to? Please specify a nation.",
+                        # Row PW part 2: "end the war" names no court — the answer
+                        # is the BUTTON that ends one (diplomacy is never typed).
+                        "message": (
+                            "To end a war, Sire, press Make peace on the war's card at the top right of the "
+                            "map — or open the Cabinet (F1) and choose the court: its page begins with the "
+                            "ways to end the war."
+                            if _mentions_peace_intent(command_lower) else
+                            "Sire, which nation should I direct this proposal to? Please specify a nation."),
                     },
                 )
 

@@ -112,6 +112,13 @@ var _sv_display_cache: Dictionary = {}
 # Row PW: the moves seen while the last action settled (`_settle`).
 var _settle_moves: Array = []
 var _settle_frame := 0
+# Row PW part 2: the enemy's moves played on the map (`main.gd::_pw_play_then_report`)
+const REPLAY_MAX_MS := 8000
+var _replay_seen := false
+var _replay_shot := {}
+var _replay_frames: Array = []
+var _replay_beat_seen := -1
+var _replay_beat_frames := 0
 const SETTLE_GRACE := 2
 
 
@@ -137,6 +144,10 @@ func _init():
 		# a walk that means to meet it switches it on.)
 		UiSettings._cfg.set_value("orders", "confirm_every_order", false)
 		UiSettings._cfg.set_value("orders", "card_waits_for_quote", true)
+		# row PW part 2: and the enemy's moves are played on the map before the
+		# report opens (a harness's default is off: its scripts read the report
+		# the moment the turn ends)
+		UiSettings._cfg.set_value("orders", "play_enemy_moves", true)
 	_run.call_deferred()
 
 
@@ -200,6 +211,10 @@ func _do(action: String) -> void:
 	_responses = []
 	var tail_before := _terminal_text()
 	var rec := {"n": _n, "action": action, "ok": true, "error": "", "note": ""}
+	_replay_seen = false       # row PW part 2: this action's own telling of the turn, if any
+	_replay_shot = {}
+	_replay_frames = []
+	_replay_beat_seen = -1
 	var words := action.strip_edges()
 	var verb := words.get_slice(" ", 0).to_lower()
 	var rest := words.substr(verb.length()).strip_edges()
@@ -230,6 +245,40 @@ func _do(action: String) -> void:
 			_motion(Vector2(float(hp[0]), float(hp[1])))
 			await _frames(30)   # past the order's dwell (0.15 s) and its one GET
 			rec["note"] = "the cursor rests at (%d, %d)" % [int(float(hp[0])), int(float(hp[1]))]
+	elif verb == "endturn_skip":
+		# Row PW part 2: End Turn, then a key while the map is telling the turn
+		# (`main.gd::_pw_play_then_report`) — a player's skip. The record's
+		# `replay.skipped` says the press ended it.
+		await _act_click_words("End Turn", 0, rec)
+		var waited_from := Time.get_ticks_msec()
+		while not _replay_running() and Time.get_ticks_msec() - waited_from < 20000:
+			await process_frame
+		if _replay_running():
+			_replay_seen = true
+			await _frames(12)
+			# (the part's review) `endturn_skip shift …`: a modifier alone is no
+			# answer — Shift first, and the record says the map was still telling
+			# (`shift_left_it_running`); `endturn_skip [shift] click X Y`: a real
+			# click on the map while it is told — the press must end the telling
+			# and pick nothing under the cursor. Bare: Space.
+			var how := rest.strip_edges()
+			if how.begins_with("shift"):
+				await _push_key(KEY_SHIFT, false, false, true, 0)
+				await _frames(4)
+				rec["shift_left_it_running"] = _replay_running()
+				rec["note"] = str(rec.get("note", "")) + " · pressed Shift (still telling: %s)" % str(rec["shift_left_it_running"])
+				how = how.substr(5).strip_edges()
+			if how.begins_with("click"):
+				var xy := how.split(" ", false)
+				var at := Vector2(float(xy[1]), float(xy[2])) if xy.size() >= 3 else Vector2(1400.0, 400.0)
+				rec["click_found_it_running"] = _replay_running()
+				await _real_click(at)
+				rec["note"] = str(rec.get("note", "")) + " · clicked the map at (%d, %d) while it told the turn" % [int(at.x), int(at.y)]
+			else:
+				_push_key(KEY_SPACE, false, false, false, 32)
+				rec["note"] = str(rec.get("note", "")) + " · pressed Space while the map told the turn"
+		else:
+			rec["note"] = str(rec.get("note", "")) + " · the map told nothing this turn (no skip to press)"
 	elif verb == "still":
 		await _act_still(rest, rec)
 	elif verb == "look":
@@ -238,12 +287,16 @@ func _do(action: String) -> void:
 		_quitting = true
 		rec["note"] = "the engine quits" + (" (idle)" if rest == "idle" else "")
 	else:
-		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, hover, key, scroll, still, look" % verb)
+		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, hover, key, scroll, still, look, endturn_skip" % verb)
 	var t1 := Time.get_ticks_msec()
 	_settle_moves = []
 	_settle_frame = 0
 	if not _quitting:
 		await _settle_after()
+	# Row PW part 2: what the map's telling of the enemy's moves showed
+	if _replay_seen and _main() != null and _main().get("_pw_last_replay") is Dictionary:
+		rec["replay"] = (_main().get("_pw_last_replay") as Dictionary).duplicate(true)
+		rec["replay_frames"] = _replay_frames.duplicate()
 	# Row PW: what moved while the action settled. The first frames are the
 	# window taking its place (a panel that did not exist has no "before", so an
 	# opening is no move); anything after frame SETTLE_GRACE is a window moving
@@ -714,6 +767,7 @@ func _settle() -> void:
 	var before := _still_sample()
 	while Time.get_ticks_msec() - start < IDLE_MS:
 		await process_frame
+		_replay_watch()
 		before = _note_moves(before)
 		if _api_idle():
 			calm += 1
@@ -724,7 +778,47 @@ func _settle() -> void:
 	var rest := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - rest < SETTLE_REAL_MS:
 		await process_frame
+		_replay_watch()
 		before = _note_moves(before)
+	# Row PW part 2: the map is still TELLING the turn (the pieces march, the
+	# plaques stand) — the report opens when it ends. Waited out, as a player
+	# who does not skip waits; then the report's own opening settles.
+	var telling := Time.get_ticks_msec()
+	var waited := false
+	while _replay_running() and Time.get_ticks_msec() - telling < REPLAY_MAX_MS:
+		waited = true
+		await process_frame
+		_replay_watch()
+		before = _note_moves(before)
+	if waited:
+		var after := Time.get_ticks_msec()
+		while Time.get_ticks_msec() - after < SETTLE_REAL_MS:
+			await process_frame
+			before = _note_moves(before)
+
+
+func _replay_running() -> bool:
+	var main := _main()
+	return main != null and bool(main.get("_pw_replay_running"))
+
+
+func _replay_watch() -> void:
+	"""One frame of each beat of the telling, kept beside the action's own:
+	the march mid-way, the plaques once they stand (`replay_frames`)."""
+	if not _replay_running():
+		return
+	_replay_seen = true
+	var beat := int(_main().get("_pw_replay_beat"))
+	if beat != _replay_beat_seen:
+		_replay_beat_seen = beat
+		_replay_beat_frames = 0
+	_replay_beat_frames += 1
+	var due: int = 18 if beat == 1 else 14
+	if _replay_beat_frames == due and not _replay_shot.has(beat):
+		_replay_shot[beat] = true
+		var rel := "frames/%04d_replay%d.png" % [_n, beat]
+		root.get_texture().get_image().save_png("%s/%s" % [_run_dir, rel])
+		_replay_frames.append(rel)
 
 
 func _note_moves(before: Dictionary) -> Dictionary:

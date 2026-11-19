@@ -437,6 +437,11 @@ func show_dialogue(data: Dictionary):
 				if bool(next_step.get("dead", false)) and available:
 					available = false
 					disabled_reason = "Nothing more to change — " + str(next_step.get("why", "nothing more can change")) + "."
+			# Row PW part 2 (the second blind reading, three readers of three: "can
+			# Review and sign be pressed while all three refuse?"): the review
+			# wears what it will find.
+			if str(opt.get("action", "")) == "submit_settlement_for_review" and not Utils.compact_view():
+				btn.text = str(plain_face[0]) + "\n" + (REVIEW_WILL_SIGN if bool(data.get("can_ratify", true)) else REVIEW_WILL_NOT_SIGN)
 		# Session UI-4: 5 px lower in the compact view — at the shipped 115 % the
 		# table's last court row stood at the body's very edge (EA-E6)
 		btn.custom_minimum_size = Vector2(160, 40 if Utils.compact_view() else 45)
@@ -757,7 +762,10 @@ const TABLE_WORDS := [
 # PW-X12: what stands in the change line's row before the first press.
 const CHANGE_LINE_HINT := "What each press changes is written on this line."
 # Row PW (the blind reading): what the number on each court's row is.
-const TABLE_NUMBER_CAPTION := "The number on each row is how willing that court is to sign — it signs at 50."
+const TABLE_NUMBER_CAPTION := "The number on each row is how willing that court is to sign — it signs at 50. It rises as you win the war and as you offer more, and falls as you ask more."
+# Row PW part 2: what the review will find, on the button that opens it.
+const REVIEW_WILL_SIGN := "they would all sign"
+const REVIEW_WILL_NOT_SIGN := "they will not sign it yet"
 
 
 func _pw_plain_table_strings(data: Dictionary) -> void:
@@ -4076,7 +4084,7 @@ func _peace_titles_bbcode(data: Dictionary) -> String:
 		for line in sentences:
 			out += "  [color=#" + Utils.COLOR_GOLD + "]*[/color] %s\n" % line
 	else:
-		out += Utils.bb_glyph("europe", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint("[b]Titled[/b]", review_words) + "  "
+		out += Utils.bb_glyph("europe", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint("[b]Yours by this treaty[/b]", review_words) + "  "
 		var shown: int = mini(names.size(), PEACE_CHIP_CAP)
 		for i in shown:
 			out += Utils.bb_badge(str(names[i]), Utils.COLOR_CHIP_BG_NAVY) + " "
@@ -4117,7 +4125,7 @@ func _peace_manner_bbcode(data: Dictionary) -> String:
 		label_row += Utils.bb_flag(court, 16) + Utils.bb_hint(
 			Utils.bb_badge("%s: %s" % [Utils.display_nation_name(court), _peace_manner_label(kind)], _peace_manner_tone(kind)), line) + "  "
 	if label_row != "":
-		out += Utils.bb_glyph("envoy", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint("[b]Manner[/b]", "The manner of this peace, court by court.") + "  " + label_row + "\n"
+		out += Utils.bb_glyph("envoy", 16, Utils.COLOR_GOLD) + " " + Utils.bb_hint("[b]Each court's peace[/b]", "What kind of peace each court would sign.") + "  " + label_row + "\n"
 	return out
 
 

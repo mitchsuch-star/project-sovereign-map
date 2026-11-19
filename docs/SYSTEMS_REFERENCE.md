@@ -17887,3 +17887,94 @@ as the table opens, none under a dial, one when the page turns to the review and
 The driven check holds it at 1.8 on 5120 x 1377.
 
 **The report's title (PW-X14).** "THE ENEMY'S MOVES" — see §227.4.
+
+### 227.10 Part 2: the enemy's moves, played on the map
+
+The user, of the report after End Turn: "can we show the pieces moving or something better?" The report TOLD
+the turn; the map now SHOWS it first.
+
+| Beat | What the player sees | Where |
+|---|---|---|
+| 1 — the march (0.9 s) | "THE ENEMY MOVES · click, or press any key, to skip"; every corps he can see marches to where it now stands, the fog's half-hidden markers too; a province that changed hands keeps its OLD colour | `map_renderer_base.play_all_regions(map_data, seconds)` → `{"changed", "moved"}`; `_play_spawn_marker` walks a marker; `main._pw_play_then_report` |
+| 2 — the plaques (1.8 s; 0.4 s with none) | those provinces take their new colour and pulse; the ones that are his business wear a plaque with the report's own words | `map_renderer_base.finish_play()`; `while_you_waited._plaques` (at most `MAX_PLAQUES` = 6: lost, allies' lost, battles, gained, allies' gained — tone bad / good / battle) |
+| then | the report opens, as before, with the same lines and its buttons | `_pw_replay_finish` → `_show_enemy_phase_dialog` |
+
+- **Played when** the turn's report will open (`_pw_replay_due`: a phase that is not fog alone, or one with
+  news for the player), the switch is on (Settings → Orders → "Show the enemy's moves on the map",
+  `UiSettings.get_play_enemy_moves` — a player's default; a harness keeps the report), Reduce motion is off and
+  the engine is not headless.
+- **Fog.** Both boards are the fog-filtered ones the server sent: a marcher is a NAME that stands in one
+  province on the board that stood and in another on the new one (marker to marker, marker to piece, piece to
+  marker; piece to piece is the standee's own march); a force the fog leaves nameless cannot be followed. The
+  plaques are the digest's own rows.
+- **A press ends it.** A left or right click or a key ends the telling at once and opens the report; a
+  modifier pressed alone, a lock and the screenshot key are no answer (`PW_REPLAY_NO_SKIP_KEYS`). **The map
+  takes no pointer while it is told** (`_map_pointer_blocked`: the modal's check OR the telling) — the map's
+  `_input` runs before `main`'s, so the press that skipped it would otherwise pick the province under the
+  cursor.
+- **A played board finishes itself.** Beat two's caller is the telling; a response another window answers
+  first (every entry of `_post_hud_response_routes` returns before the report) never comes back for it. A
+  played board therefore lands its new board `PLAY_SELF_FINISH_S` (0.3 s) after its march by its own clock
+  (`_play_self_finish`, stood down by a later board or by the caller's `finish_play`); an older board never
+  lands over a newer (`update_all_regions` from anywhere else empties `_play_final`). Driven, headless:
+  `tools/pw2_played_board_probe.gd`.
+- The provinces pulse at beat two and again when the report closes (the report covers the map between).
+- The instrument: `replay` / `replay_frames` on the action's record; `endturn_skip [shift] [click X Y]`.
+
+### 227.11 Part 2: the typed road forgives a slipped key
+
+Nothing here spends anything: a repaired verb is read back before it is sent, and every ask is free.
+
+| Slip | Answer | Where |
+|---|---|---|
+| a verb, one edit ON its first letter ("ttack", "narch", "etreat") — verbs of five letters or more — or the closed table's "tatck" | read as the verb, with "(Berthier read 'ttack' as 'attack'.)" | `llm_client._verb_for_typo` (both arms of `repair_leading_verb_typo`); real words one such slip away are on `_TYPO_STOPLIST` ("arch", "larch", "parch", "mortify", "lombard", "pretreat") |
+| an ATTACK on a name one slip from a province (two edits or its letters in another order; five letters or more; exactly one province fits) | "No foe called Carolina is in sight, Sire — did you mean the province of Carniola? Say 'Ney, attack Carniola'." | `proper_name.near_province` — after a near miss of a foe in sight; a charge and a bombardment keep their own ask |
+| an address one slip from a marshal of the player's OWN (one edit where either name has four letters or fewer, and then the same first letter; two otherwise) | "There is no 'Nay' in the order of battle, Sire — did you mean Ney? Say 'Ney, attack Mack'." | GRD-16: `proper_name.nearest_own_marshal` behind `executor.a_marshal_typo_is_offered_the_nearest_own_name()` (down: the bare refusal). Never a foe, never a name the fog holds |
+| "end the war" / "make peace" with no court | "To end a war, Sire, press Make peace on the war's card … or open the Cabinet (F1) and choose the court" | `llm_client` (the nation-less peace overture) |
+
+**When typing is worth it** (the user's question; read from the interactive-fiction "guess the verb"
+literature, command-palette write-ups and the reviews of voice-commanded strategy games): typing fails when
+the player must GUESS the words the game takes, and earns its place as a shortcut that RECOGNISES — a fragment
+recalled and completed — for compound and conditional orders no button holds ("Ney, march to Vienna then
+attack Mack"), for questions ("what can Ney do?") and for the fantasy of giving the order in one's own words.
+The line already completes the slot being typed (CX-3: the marshal, the verb, the target; Tab takes it), reads
+the order back before it is sent, and — since this row — forgives the slips above. Every act the player needs
+has a button; the line is the fast road, never the only one.
+
+### 227.12 Part 2: the rest of the screens
+
+| Screen | What it says now | Where |
+|---|---|---|
+| The Cabinet | "Diplomatic points (DP): 5"; "WHAT MOVES THEM MOST — each adds to, or takes from, their willingness to agree" with plain rows; every other act's one sentence (`plain_line`, each figure from its own constant: the truce's turns, the guarantee's grace, the spies' wait); Talleyrand's counsel with each act named as its button reads on that page; the "more below" cue keeps its row | `diplomacy._COMPONENT_LABELS`, `acceptance_term_label` (a skill against the asker reads "Their envoy's skill"); `cabinet_rows._PLAIN_OTHER`, `_plain_figures`; `diplomacy_wizard.plain_counsel(text, court, rows)`, `_more_below_keep_row` |
+| The peace table | a dial's face says who pays whom, more or less ("you pay each court 100 less gold"; an ally who leads the side is named); "Review and sign" wears "they would all sign" / "they will not sign it yet"; what moves a court's number; "Each court's peace", "Yours by this treaty" | `settlement_actions._dial_face`, `_term_words`; `proposal_confirm_popup.REVIEW_WILL_SIGN` |
+| A marshal's objection | under each answer what it does and costs ("he obeys · no trust lost · −3 authority"); prices in actions on face and caption; the stakes as a sentence that says when they fall | `objection_dialog.ANSWER_DOES`, `_does_note`; `standing.insist_stake_line` |
+| A letter that arrives | IN SHORT: what they ask, what Accept does, what Reject does — above the treaty's own words (a truce's two answers on ONE line: its own expiry lines stay above the fold on the first player's panel, PC-F46) | `mailbox_payloads.letter_in_short` (seam `the_letter_says_itself_plainly`; payload key `in_short`) |
+| The small lines | "The war: even"; the first morning's "What now" line; plain log echoes, each said once; "Your unsigned peace draft … was dropped"; "⌖ show on the map" | `war_status_panel.WAR_STANDS`; `dispatch.WHAT_NOW_LINE`; `main._said_notices` |
+| The battle | "a strong roll: the attack hits 8% harder than an average one"; "today's luck: France fights 2% stronger · Austria 5% weaker"; "You lost. Why: …"; "Send another corps to attack" | `battle_acts.plain_lands`, `plain_luck`, `_luck_told_plain`; `battle_telling.plain_verdict` |
+| A truce, wherever it is said | "the fighting stops for 5 turns. When the truce runs out it becomes a peace if relations have mended enough — or if the loser is badly beaten with no help coming. If not, the war starts again." | `diplomacy.armistice_expiry_exit`'s three exits, said on the Cabinet's row; the letter points at its own expiry lines |
+
+### 227.13 Part 2: "AP" where the player meets it
+
+Golden rule 11: a pinned key keeps its name and plain words ride beside it. "AP" is the price key of 251 pins
+in 81 test files. Where the player meets it first the words ride beside it: the general's card says
+"4 actions left" and each order's hover says its two numbers ("Hold — costs 2 actions · key 1" —
+`selection_card.slot_words`); the province panel says once, right under the first orders that carry a tag,
+"AP = actions · 4 left this turn" (`region_panel._ap_words`, from the map's `action_pools`). The vocabulary's
+retirement — every price tag reading "N actions" — is the owned row **PW2-D1** (`BUG_FIXES.md` §PW part 2;
+owner Session H's head; its strict-xfail pin `TestPW2D1NoPriceTagSaysAP`).
+
+### 227.14 Part 2: what it measured
+
+- **The review** (three Sonnet readers by lane on the part's diff, before the commit): nineteen findings —
+  sixteen fixed, two closed by design, one not upheld (`BUG_FIXES.md` PW2-R1 … R19). Four of the part's own
+  new sentences promised more than the rule gives (an ultimatum, a guarantee, a truce, the spies): each now
+  says what the code does, its figure read from its constant.
+- **The blind reading** (bar written first; three fresh readers; six frames of the real client at the first
+  player's setup; six questions; every reader, every question): the first reading met five and missed the
+  first with all three readers (a caption cut at both ends); held again on the final tree's frames with three
+  NEW readers it **met the bar, 18 of 18**. Beside the bar, by a rule written first, two measurements: the
+  general's card was read right by every reader, and only by inference; "AP" was never defined (§227.13).
+- **The walk of record** was run again on the final tree after the last edit to a pinned battle source:
+  167 of 167 shots, no script error, no claim failed.
+- **No AI world-line moves:** the part is wording, the client's own telling and the typed road's free
+  asks; the executor's rules are untouched and the standing series pins hold.

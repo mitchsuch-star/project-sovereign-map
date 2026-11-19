@@ -178,7 +178,10 @@ class TestDiplomaticCommandTargetValidation:
         if result.diplomatic_data:
             action = result.diplomatic_data.get("action", "")
             if action == "diplomatic_error":
-                assert "nation" in result.diplomatic_data.get("message", "").lower()
+                # (row PW part 2: a peace with no court named points at the button — "press Make peace on
+                # the war's card … or open the Cabinet (F1) and choose the court"; it read "which nation …?")
+                said = result.diplomatic_data.get("message", "").lower()
+                assert "nation" in said or "choose the court" in said, said
             else:
                 # Even if it parsed differently, target_nation should be None
                 assert result.diplomatic_data.get("target_nation") is None

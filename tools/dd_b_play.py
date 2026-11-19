@@ -458,6 +458,13 @@ def summary(run: pathlib.Path, n: int, width: int = 14000, live: bool = True) ->
         out.append(f"  MOVED WHILE SETTLING ({len(moves)}): " + " | ".join(
             f"{what} x{len(rows)} (frame {rows[0].get('frame')}: {rows[0].get('from')} -> {rows[-1].get('to')})"
             for what, rows in list(by_what.items())[:6]))
+    # Row PW part 2: the enemy's moves were played on the map before the report opened.
+    replay = s.get("replay") or {}
+    if replay:
+        out.append(f"  PLAYED ON THE MAP: {replay.get('moved', 0)} piece(s) marched; changed hands "
+                   f"{replay.get('changed') or []}; plaques {replay.get('plaques') or []}"
+                   + ("; skipped" if replay.get("skipped") else "")
+                   + f"; frames {s.get('replay_frames') or []}")
     # Row PW ("a popup bigger than screen"): a window that reaches past the view.
     beyond = s.get("off_screen") or []
     if beyond:

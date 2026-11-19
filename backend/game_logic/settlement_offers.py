@@ -2119,14 +2119,15 @@ def lapse_ally_petitions_without_a_table(world: Any) -> List[Dict[str, Any]]:
         claim = str(petition.get("claim_region") or "its claim")
         from backend.display_names import display_nation
         if war_live:
+            # (row PW part 2, plain words)
             message = (
-                f"{display_nation(ally)}'s petition over {claim} lapses with "
-                "the settlement it was filed against, set aside at turn's end."
+                f"{display_nation(ally)}'s request for {claim} lapsed with the "
+                "peace draft it was made on — the draft was dropped when the turn ended."
             )
         else:
             message = (
-                f"{display_nation(ally)}'s petition over {claim} lapses with "
-                "the war it was filed against."
+                f"{display_nation(ally)}'s request for {claim} lapsed: the war it "
+                "was made in is over."
             )
         petition_id = str(petition.get("petition_id") or "")
         notifications = getattr(world, "notifications", None)

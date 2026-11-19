@@ -1108,6 +1108,7 @@ def pw_walk(tmp_path_factory) -> dict:
     finally:
         _stop_engine_run(run, sup)
     states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    states["run_dir"] = str(run)
     return states
 
 
@@ -1147,7 +1148,9 @@ class TestRowPWTheWindowsFitAndStandStill:
         for name in ("Ask for more", "Offer them more"):
             lines = faces[name].split("\n")
             assert len(lines) == 2 and "gold" in lines[1], faces[name]
-        assert faces["Offer them more"].split("\n")[1] == "+100 gold to each court"
+        assert faces["Offer them more"].split("\n")[1] == "you pay each court 100 more gold"
+        # row PW part 2: and the review wears what it will find
+        assert faces["Review and sign"].split("\n")[1] in ("they will not sign it yet", "they would all sign")
 
     def test_the_peace_table_stands_still_under_a_dial(self, pw_walk):
         """PW-X12: measured frame by frame, the rail stood in two rows for two
@@ -1179,3 +1182,97 @@ class TestRowPWTheWindowsFitAndStandStill:
             said = _pw_said(end)
             assert "THE ENEMY'S MOVES" in said, said[:400]
             assert "Continue" in _pw_buttons(end)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Row PW part 2 (November 18, 2026): THE ENEMY'S MOVES ARE PLAYED ON THE MAP
+# ═══════════════════════════════════════════════════════════════════════════
+# The user, of the report after End Turn: "can we show the pieces moving or
+# something better?" At his own setup the instrument plays as his game does
+# (`play_enemy_moves` on): the map tells the turn — the pieces and the fog's
+# markers march, the provinces that changed hands take their colour and wear a
+# plaque — and THEN the report opens. The settle waits the telling out and
+# keeps a frame of each beat (`replay`, `replay_frames`); `endturn_skip`
+# presses a key while it runs, as a player who will not wait does.
+
+@pytest.fixture(scope="module")
+def pw_skip(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        run, sup = _start_engine_run(tmp_path_factory, "pw_skip")
+    states: dict = {}
+    try:
+        states["begin"] = _act(run, "click Begin")
+        # (the part's review) Shift alone must not end the telling; then a real click on the map — on
+        # France, clear of every panel — ends it and must pick nothing under the cursor
+        states["skip"] = _act(run, "endturn_skip shift click 1330 400", meant="end_turn")
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowPWTheEnemysMovesArePlayedOnTheMap:
+
+    def test_the_map_tells_the_turn_and_then_the_report_opens(self, pw_walk):
+        end = pw_walk["end_turn"]
+        if not any("enemy_phase" in p for p in _modal(end)):
+            pytest.skip("a turn of fog alone: one line in the log, nothing to play")
+        replay = end.get("replay") or {}
+        assert replay.get("ended") is True and replay.get("skipped") is False, replay
+        shown = int(replay.get("moved", 0)) + len(replay.get("changed") or []) + len(replay.get("plaques") or [])
+        assert shown >= 1, replay
+        assert "THE ENEMY'S MOVES" in _pw_said(end), "the report stands once the telling has ended"
+
+    def test_its_plaques_are_the_reports_own_words(self, pw_walk):
+        end = pw_walk["end_turn"]
+        replay = end.get("replay") or {}
+        if not replay.get("plaques"):
+            pytest.skip("nothing of the player's changed this turn: no plaque to wear")
+        said = _pw_said(end)
+        for text in replay["plaques"]:
+            place = text.split(" — ", 1)[0]
+            assert place in said, (text, said[:500])
+
+    def test_a_frame_of_each_beat_is_kept(self, pw_walk):
+        end = pw_walk["end_turn"]
+        if not end.get("replay"):
+            pytest.skip("no telling this turn")
+        frames = end.get("replay_frames") or []
+        assert len(frames) == 2, frames
+        for rel in frames:
+            assert (pathlib.Path(pw_walk["run_dir"]) / rel).is_file(), rel
+
+    def test_nothing_of_the_telling_reaches_past_the_screen_or_is_left_behind(self, pw_walk):
+        end = pw_walk["end_turn"]
+        assert not end.get("off_screen"), end.get("off_screen")
+        left = [s for s in (end.get("surfaces") or []) if "EnemyMoves" in str(s.get("name", ""))]
+        assert left == [], "the banner and the plaques are cleared when the report opens"
+
+    def test_a_press_skips_it_and_the_report_opens_at_once(self, pw_skip):
+        skip = pw_skip["skip"]
+        if "told nothing" in str(skip.get("note", "")):
+            pytest.skip("a turn of fog alone: nothing to skip")
+        replay = skip.get("replay") or {}
+        assert replay.get("skipped") is True and replay.get("ended") is True, (replay, skip.get("note"))
+        assert any("enemy_phase" in p for p in _modal(skip)), "the report opened on the press"
+        assert pw_skip["run"]["n_script_errors"] == 0, pw_skip["run"]["script_errors"]
+
+    def test_a_modifier_alone_is_no_answer(self, pw_skip):
+        """The review (PW2-R11): Shift — or Alt on its way to Alt+Tab, the screenshot key — ended it."""
+        skip = pw_skip["skip"]
+        if "told nothing" in str(skip.get("note", "")):
+            pytest.skip("a turn of fog alone: nothing to skip")
+        assert skip.get("shift_left_it_running") is True, skip.get("note")
+
+    def test_the_press_that_skips_it_picks_nothing_on_the_map(self, pw_skip):
+        """The review (PW2-R10): the map reads a press before `main._input` ends the telling — the click
+        that skipped it also opened the province under the cursor, beneath the report."""
+        skip = pw_skip["skip"]
+        if "told nothing" in str(skip.get("note", "")):
+            pytest.skip("a turn of fog alone: nothing to skip")
+        assert skip.get("click_found_it_running") is True, "the click came while the map was telling"
+        assert skip["open"]["region_panel"] is False, "the click reached the map: a province panel opened"
+        assert (skip.get("replay") or {}).get("skipped") is True
+

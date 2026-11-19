@@ -669,17 +669,27 @@ func _render() -> void:
 			if str(em.get("nation", "")) != _PLAYER_NATION \
 					and bool(em.get("at_war_with_player", false)):
 				enemy_names.append(str(em.get("name", "")))
+	# Row PW part 2: "AP" is said once, right under the first rows that carry a
+	# price tag — the forces' orders, else the march-here orders (`_ap_words`).
+	var ap_said := false
 	if marshals is Array and marshals.size() > 0:
 		bbcode += "\n" + Utils.HEAD_OPEN + "FORCES PRESENT" + Utils.HEAD_CLOSE + "\n"
+		var forces_from := bbcode.length()
 		for m in marshals:
 			if Utils.explanations_folded():
 				bbcode += _marshal_row_folded(m, enemy_names)   # Session UI-6: one row a marshal
 			else:
 				bbcode += _format_marshal_row(m, enemy_names)
+		var ap_under_forces := _ap_words(bbcode.substr(forces_from))
+		ap_said = ap_under_forces != ""
+		bbcode += ap_under_forces
 
 	# ── CC-2 "March here": the click orders, as the backend quoted them ──
 	if _quotes_region == _region and not _quotes.is_empty():
-		bbcode += _march_here_section()
+		var march := _march_here_section()
+		bbcode += march
+		if not ap_said:
+			bbcode += _ap_words(march)
 
 	# ── THE SEA (NUI "The Admiralty on the Map", September 23, 2026) ──
 	# A coastal province says what the water around it means: every sea
@@ -1920,6 +1930,26 @@ func _state_order_chips(m_name: String, tactical: Dictionary, dimmed: Array) -> 
 		else:
 			dimmed.append([label, why])
 	return out
+
+
+# Row PW part 2 (the held-again blind reading: "AP is never defined" on three
+# readers' lists of three). The price tags keep their key — "(2 AP)" is what
+# every chip census and pin reads — and the plain words ride beside it, once,
+# under the panel's orders: what an AP is, and how many are left this turn
+# (the map's `action_pools`, the top bar's own figure).
+const AP_WORDS := "AP = actions"
+
+
+func _ap_words(shown: String) -> String:
+	# (a chip binds its spaces — U+00A0, UXR3-83 — so the tag is read with both)
+	var flat := shown.replace("\u00a0", " ")
+	if not (flat.contains(" AP)") or flat.contains(" AP ·")):
+		return ""
+	var words := AP_WORDS
+	if _map_node != null and ("action_pools" in _map_node) and _map_node.action_pools is Dictionary \
+			and (_map_node.action_pools as Dictionary).has("military"):
+		words += " · %d left this turn" % int((_map_node.action_pools as Dictionary).get("military", 0))
+	return "\n[color=#" + Utils.COLOR_INFO + "]" + words + "[/color]\n"
 
 
 func _march_here_section() -> String:

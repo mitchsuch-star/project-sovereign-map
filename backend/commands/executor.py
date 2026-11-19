@@ -570,6 +570,16 @@ from backend.ai import clause_guards
 # metamorphic ledger and the series pin it). A stage that returns a dict
 # ends the chain, as its early return did.
 # ════════════════════════════════════════════════════════════════════════════
+def a_marshal_typo_is_offered_the_nearest_own_name() -> bool:
+    """GRD-16 (ruled November 17, 2026; built by row PW part 2) — the seam
+    (one line to reverse). An order addressed to a name one slip from a
+    marshal of the player's OWN is answered "did you mean Ney? Say 'Ney,
+    <the order>'" (`proper_name.nearest_own_marshal`: never a foe, never a
+    name the fog holds; nothing is spent). Down (False): the bare refusal —
+    "Whom did you intend?"."""
+    return True
+
+
 @_dataclass
 class _ExecState:
     """The executor's locals, carried between its stages."""
@@ -2119,6 +2129,20 @@ class CommandExecutor:
                 if _plain:
                     _message += (f" If it is yours to give, give it without "
                                  f"the name: '{_plain}'.")
+            else:
+                # GRD-16 (ruled November 17, 2026; built by row PW part 2): a
+                # name one slip from a marshal of the player's OWN is answered
+                # with him and the order to give again — never a foe's name,
+                # never one the fog holds. Nothing is spent either way.
+                from backend.commands.proper_name import nearest_own_marshal
+                _near = (nearest_own_marshal(world, _unbound)
+                         if a_marshal_typo_is_offered_the_nearest_own_name() else None)
+                if _near:
+                    _again = clause_guards.order_after_address(
+                        str(parsed_command.get("raw_input") or command.get("raw_input") or ""))
+                    _message = (f"There is no '{_unbound}' in the order of battle, Sire — "
+                                f"did you mean {_near}?"
+                                + (f" Say '{_near}, {_again}'." if _again else ""))
             return {
                 "success": False,
                 "message": _message,

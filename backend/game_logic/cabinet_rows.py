@@ -477,14 +477,81 @@ _PLAIN_PEACE = {
         "with terms of their own; your other wars go on."),
     "propose_armistice": (
         "Ask for a truce",
-        "If they agree, the fighting stops for some turns. The war is not over: "
-        "a peace still has to be signed before the truce runs out."),
+        # (row PW part 2, the review: a truce is not "signed into a peace before
+        # it runs out" — at its end it BECOMES one, or the war resumes:
+        # `diplomacy.armistice_expiry_exit`'s three exits)
+        "If they agree, the fighting stops for {truce} turns. When the truce runs out it becomes a "
+        "peace if relations have mended enough — or if the loser is badly beaten with no help "
+        "coming. If not, the war starts again."),
 }
 
 _PLAIN_SEPARATE_PEACE = (
     "Leave this war — peace with {court} alone",
     "You joined this war at an ally's call. This ends it for you and {court}; "
     "your ally fights on, and the note under this row says what it costs you.")
+
+
+# Row PW part 2: what each of the Cabinet's OTHER acts does, in one plain
+# sentence (its `plain_line` — the page prints it under the act when its
+# explanations are not folded, and it leads the act's hover when they are).
+# By the act's id; an act without a line here keeps what it had.
+_PLAIN_OTHER = {
+    "mission_improve_relations": (
+        "Talleyrand works on their court: relations rise each turn the mission runs, and better "
+        "relations make every offer likelier to be taken."),
+    "mission_court": (
+        "Court them hard: relations rise and each offer gets likelier turn by turn — at the risk, "
+        "each turn, of a slight that sets relations back."),
+    "mission_gather_intel": (
+        "Send agents: after {intel_wait} turns you see everything in the provinces they hold then, "
+        "for 5 turns."),
+    "mission_undermine": (
+        "Work against their alliances: their relations with their allies fall each turn the mission runs."),
+    "cancel_mission": "Recall Talleyrand from this mission. What it has gained so far stays.",
+    "propose_open_borders": "Ask that each side's armies may cross the other's land.",
+    "propose_trade_agreement": "Ask for trade: both treasuries gain income each turn while it lasts.",
+    "propose_non_aggression": "Ask for a promise that neither will attack the other.",
+    "propose_defensive_alliance": "Ask for a pact: each defends the other if it is attacked.",
+    "propose_alliance": "Ask for a full alliance: each joins the other's wars.",
+    "propose_vassal": (
+        "Ask them to become your vassal: they follow you to war and pay tribute, and you answer for "
+        "their safety."),
+    "declare_war": "Go to war with them. Their allies may join, and Europe's alarm at you rises.",
+    # (the review: a refused ultimatum starts no war — it gives the cause for one)
+    "send_ultimatum": (
+        "Demand gold, land or men under threat. They give way at once — or refuse, which gives "
+        "you a just cause for war. Europe's alarm at you rises either way."),
+    "set_war_purpose": "Say what this war is for. It decides which peace terms count as won.",
+    "sponsor_design": (
+        "Back their own plan, with gold or with a free hand. If they go to war for it, Europe holds "
+        "you to it."),
+    "buy_off_design": (
+        "Pay them to shelve their plan. It sleeps while both keep the bargain; breaking it is a "
+        "cause for war."),
+    "guarantee_nation": (
+        # (the review: nothing is automatic — the player has the grace to join)
+        "Promise to defend them: other courts grow warier of attacking them. If one does attack, "
+        "you have {grace} turns to join that war — or the promise is broken, and they hold it "
+        "against you."),
+    "break_treaty": "End the treaty you have with them. It costs your reputation with every court.",
+    "invest_vassal": "Spend gold on your vassal: its loyalty rises.",
+    "release_vassal": "Set your vassal free: it becomes its own master.",
+    "grant_region_to_vassal": "Give your vassal one of your provinces: its loyalty rises.",
+    "ask_return_province": "Ask them to hand back a province of yours that they hold.",
+}
+
+
+def _plain_figures() -> Dict[str, int]:
+    """The figures the plain lines quote, each from its own constant — a line
+    never carries a copy that can drift from the rule it describes."""
+    from backend.game_logic.diplomacy import ARMISTICE_DURATION
+    from backend.game_logic.diplomatic_dialogue import MISSION_EFFECTS
+    from backend.game_logic.instruments import GUARANTEE_GRACE_TURNS
+    return {
+        "truce": int(ARMISTICE_DURATION),
+        "grace": int(GUARANTEE_GRACE_TURNS),
+        "intel_wait": int((MISSION_EFFECTS.get("GATHER_INTEL") or {}).get("duration", 3)),
+    }
 
 
 def _plain_courts(world: Any, courts: List[str], whole_table: bool) -> str:
@@ -512,6 +579,7 @@ def plain_rows(world: Any, player: str, target: str,
         report(exc, "cabinet_rows.plain_rows: world.get_diplomatic_state")
         state = ""
     court = formed_display_name(world, target)
+    figures = _plain_figures()
     for row in actions:
         if not isinstance(row, dict):
             continue
@@ -519,6 +587,8 @@ def plain_rows(world: Any, player: str, target: str,
         if said:
             row["likelihood_plain"] = said
         action = str(row.get("action") or "")
+        if action in _PLAIN_OTHER and not row.get("plain_line"):
+            row["plain_line"] = _PLAIN_OTHER[action].format(**figures)   # row PW part 2: what the act does
         if state not in ("WAR", "ARMISTICE") or action not in _PLAIN_PEACE:
             continue
         name, line = _PLAIN_PEACE[action]
@@ -530,7 +600,7 @@ def plain_rows(world: Any, player: str, target: str,
                 len(addresses) == 1 and "alone" not in str(row.get("addresses_display") or ""))
             name = f"{name} — {_plain_courts(world, addresses, whole)}"
         row["plain_name"] = name.format(court=court)
-        row["plain_line"] = line.format(court=court)
+        row["plain_line"] = line.format(court=court, **figures)
         row["group"] = "peace"
     return actions
 

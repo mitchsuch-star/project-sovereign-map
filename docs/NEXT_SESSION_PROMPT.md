@@ -1,7 +1,16 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk)
 
 > Overwritten each time a session hands off. Current hand-over: **November 18, 2026 — ROW PW "PLAIN WORDS",
-> PART 1 ✅ LANDED (committed and pushed at the user's word, "commit and push everything when you are done")** —
+> BOTH PARTS ✅ LANDED (two commits, each through the hook and pushed at the user's word, "commit and push
+> everything when you are done"; his ruling "Keep going — all screens").** **Part 2** (`SYSTEMS_REFERENCE.md`
+> §227.10–§227.14; `BUG_FIXES.md` §PW part 2 — 40 rows, ONE open and owned, PW2-D1): the enemy's moves played
+> on the map before the report (his "can we show the pieces moving or something better?"), a typed line that
+> forgives a slipped key (GRD-16 built with it: "did you mean Ney?"), and plain words on the rest of the
+> screens (the Cabinet, the peace table's faces, a marshal's objection, a letter's IN SHORT, the battle's
+> dice). Its review: nineteen findings, sixteen fixed. Its blind reading met the bar on the final tree, 18 of
+> 18 (`docs/audits/pw_client/README.md`). **PW2-D1 heads Session H:** no price a player acts on says "AP" —
+> every tag reads "N actions" (251 pins in 81 test files; the strict-xfail `TestPW2D1NoPriceTagSaysAP`).
+> **Part 1** —
 > the user's FIRST playtest (thirteen turns: "everything feels convoluted and opaque and disconnected") and
 > the fixes of everything he reported: the sounds that would not stop, generals easier to click and sent on
 > one click (a move next door costs 1 action), the order that TAKES a province a corps stands in, the turn's
@@ -10,11 +19,8 @@
 > still at his own setup (Interface Scale 1.8 on 5120 x 1377). Rules `SYSTEMS_REFERENCE.md` §227; ledger
 > `BUG_FIXES.md` §PW (54 rows, 0 open); pins `tests/test_pw_plain_words.py`; the blind reading and what
 > its readers still found unclear `docs/audits/pw_client/README.md`; **CLAUDE.md golden rule 11 — plain
-> words — is now standing law** (read `memory/feedback_first_playtest_ux_is_key.md`). **Part 2 was in flight
-> in the same session when this was written — its head is the user's own ask, mid-session: "can we show the
-> pieces moving or something better?" (the enemy's moves played on the map; the report is already renamed
-> THE ENEMY'S MOVES), then the readers' unclear list and the rest of the screens: `STATUS.md` ▶ NEXT UP says
-> where it stands.** Then Session H, below, unchanged.
+> words — is now standing law** (read `memory/feedback_first_playtest_ux_is_key.md`). Then Session H,
+> below — its head gains PW2-D1 and loses GRD-16 (built).
 >
 > The hand-over before it: **November 18, 2026 — ROW OC "THE RULINGS
 > BUILT" ✅ LANDED (committed and pushed at the user's word, "commit and push")** (the rules and the measure
@@ -38,17 +44,20 @@
 
 **FIRST — in this order:**
 
-0. `git log`: row OC is ONE commit, made through the hook and PUSHED at the user's word. Its one review ran
-   before the commit (`BUG_FIXES.md` §OC). Read `STATUS.md` ▶ NEXT UP first.
+0. `git log`: row PW is TWO commits (part 1, part 2), each made through the hook and PUSHED at the user's
+   word; each part's one review ran before its commit (`BUG_FIXES.md` §PW). Read `STATUS.md` ▶ NEXT UP first.
 1. **SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
    `DYNAMISM_SPEC.md` §7). Its head's open rows — each a defect with a strict-xfail pin, none a call:
    **WS-10** (the war room keeps the bare digits; a docked ledger's tabs move to Alt+1–8 and its lead line says
    so — `TestWS10TwoSurfacesClaimTheBareDigits`), **WS-12 with GRD-33** (the live model's number moves
    nothing; the literal marshal's buff reads the fast parser's own ambiguity and expires at the turn's end —
    `TestWS12AModelsNumberMovesAMarshal`, `TestSessionHsHead::test_grd33_…`), **WS-14** (the readback's standing
-   question), **WS-R** (the readers' unconfirmed finds), **UI6-X70, X73, X74, X75 with GRD-16** (the typed
-   order road's compound subjects; "Did you mean Ney?" offers the nearest of the player's own marshals, never a
-   fogged name). `tools/defect_census.py --open` lists them; the release waits for 0 open defect rows.
+   question), **WS-R** (the readers' unconfirmed finds), **UI6-X70, X73, X74, X75** (the typed order road's
+   compound subjects; GRD-16, "Did you mean Ney?", was BUILT by row PW part 2), and **PW2-D1** (row PW part 2:
+   no price a player acts on says "AP" — every tag on a chip, a button and a message reads "N actions",
+   "1 action" or "free", its 251 pins re-seated and the chips re-read for fit at 1.0, 1.5, 1.8 and 2.0;
+   `TestPW2D1NoPriceTagSaysAP`). `tools/defect_census.py --open` lists them; the release waits for 0 open
+   defect rows.
 
 **What rows BA and OC change in Session H's brief below** (the brief is kept as it stood; these lines overrule
 it where they differ):

@@ -35,6 +35,70 @@ def _incoming_type_summary(terms: Dict, label_type: str = "", is_counter_offer: 
     return f"{summary} - {effect}" if effect else summary
 
 
+# Row PW part 2 (plain words): what a treaty letter ASKS, in a sentence, by
+# the kind of treaty its terms are.
+_PLAIN_ASK = {
+    "open_borders": "each side's armies may cross the other's land",
+    "non_aggression": "a promise that neither will attack the other",
+    "defensive_alliance": "a pact — each defends the other if it is attacked",
+    "alliance": "a full alliance — each joins the other's wars",
+    "peace": "an end to the war between you, on the terms below",
+    "armistice": "a truce — the fighting stops for {truce} turns, but the war is not over",
+    "vassalage": "that one court becomes the other's vassal, on the terms below",
+}
+
+
+def the_letter_says_itself_plainly() -> bool:
+    """The seam (one line to reverse). Down (False): a letter carries no
+    `in_short` (the letter as it stood before row PW part 2)."""
+    return True
+
+
+def letter_in_short(terms: Dict, from_display: str, *, label_type: str = "",
+                    is_counter_offer: bool = False) -> Dict[str, str]:
+    """A treaty letter in three plain lines — `ask` (what the court asks),
+    `accept` and `reject` (what each answer does). {} for a letter with its
+    own register (a counter, a dictated peace, an ultimatum, a petition, a
+    call to arms, a moment — each says its own) and for a kind of treaty the
+    table does not know."""
+    if not the_letter_says_itself_plainly() or is_counter_offer or label_type == "harsh_peace":
+        return {}
+    kind = str((terms or {}).get("type") or "").strip().lower()
+    if kind.startswith("armistice"):
+        kind = "armistice"
+    asked = _PLAIN_ASK.get(kind)
+    if not asked:
+        return {}
+    from backend.game_logic.diplomacy import ARMISTICE_DURATION
+    asked = asked.format(truce=int(ARMISTICE_DURATION))
+    court = str(from_display or "The court")
+    court = court[:1].upper() + court[1:]
+    accept = {
+        "peace": "the war with them ends on these terms.",
+        # (Row PW part 2, the review: no peace "must still be signed" — a truce
+        # becomes one at its end, or the war resumes: `armistice_expiry_exit`.
+        # The letter's own lines say which, right below — "When it expires",
+        # "At expiry" — and PC-F46 keeps them above the fold on the first
+        # player's panel, so this line stays one line and points at them.)
+        "armistice": "the fighting stops at once (how it ends is written below).",
+    }.get(kind, "it is signed at once.")
+    # (a letter that would end or pause a war, refused, leaves the war on)
+    refused = "the war goes on." if kind in ("peace", "armistice") else "nothing is signed."
+    if kind == "armistice":
+        # ONE line for both answers: the truce letter is the long one, and its
+        # own cost lines must stand above the fold (PC-F46, the driven pin).
+        return {
+            "ask": f"{court} asks: {asked}.",
+            "accept": f"Accept — {accept} Reject — {refused}",
+            "reject": "",
+        }
+    return {
+        "ask": f"{court} asks: {asked}.",
+        "accept": f"Accept — {accept}",
+        "reject": f"Reject — {refused} Their court remembers the refusal.",
+    }
+
+
 def build_proposal_popup_clauses(terms: Dict, *, include_base: bool = True, **reader) -> list[str]:
     """Build incoming_proposal_popup.gd-compatible clause strings. `reader`
     (S14E-28) is the letter's chair - `viewer`, `proposer`, `target`,
@@ -519,6 +583,10 @@ def build_pending_envoy_popup_from_terms(
         # ("Open Borders Agreement (free military passage)") - the popup's
         # "Proposes:" line prints it; the bare name stays `proposal_type_display`.
         "proposal_type_summary": _incoming_type_summary(terms, label_type, is_counter_offer),
+        # Row PW part 2: the letter in three plain lines (what they ask; what
+        # each answer does) — the popup prints it above the terms.
+        "in_short": letter_in_short(terms, from_nation_display, label_type=label_type,
+                                    is_counter_offer=is_counter_offer),
         "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
         "acceptance_hint": acceptance_hint,
         "rejection_hint": rejection_hint,
@@ -539,6 +607,7 @@ def build_pending_envoy_popup_from_terms(
     # header) — the same shape `is_ultimatum` takes.
     if terms_are_a_client_petition(terms):
         payload["is_petition"] = True
+        payload["in_short"] = {}       # a petition says its own grant and refusal
         payload["clauses"] = client_petition_clauses(terms)
         # Session UI-3 (November 12, 2026): the lines' figures (display only).
         _pet = terms.get("petition") if isinstance(terms.get("petition"), dict) else {}

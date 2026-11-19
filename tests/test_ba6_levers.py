@@ -180,7 +180,8 @@ class TestLever5LuckAgainstMargin:
         # is not plain, "luck today, as extra strength:" only where the payload says `plain`
         assert 'var luck_head := "the day\'s fortune in strength:"' in luck, "no what-told: the line as it was"
         assert "BattleActs.payload_is_plain(host._data)" in luck
-        assert 'luck_head = "luck today, as extra strength:"' in luck
+        # row PW part 2: a plain payload's luck is a sentence of its own (`plain_luck`)
+        assert 'return "today\'s luck: %s · %s" % [' in luck
         assert 'return "%s  %s %s  ·  %s %s" % [luck_head,' in luck
 
     def test_what_told_is_the_cause_alone(self):

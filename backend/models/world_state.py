@@ -13053,15 +13053,17 @@ class WorldState:
                 from backend.display_names import settlement_draft_words
                 _lasts = settlement_draft_words("set_aside")
                 if selected_display:
+                    # (row PW part 2, plain words: "unratified settlement
+                    # draft … set aside at turn's end")
                     message_display = (
-                        f"Your unratified settlement draft with "
-                        f"{selected_display} ({clause_phrase}) was set "
-                        f"aside at turn's end {_lasts}."
+                        f"Your unsigned peace draft with "
+                        f"{selected_display} ({clause_phrase}) was dropped "
+                        f"when the turn ended {_lasts}."
                     )
                 else:
                     message_display = (
-                        f"An unratified settlement draft ({clause_phrase}) "
-                        f"was set aside at turn's end {_lasts}."
+                        f"An unsigned peace draft ({clause_phrase}) "
+                        f"was dropped when the turn ended {_lasts}."
                     )
                 notices.append({
                     "war_id": str(wid),

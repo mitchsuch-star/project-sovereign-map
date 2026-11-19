@@ -531,10 +531,15 @@ def insist_stake_line() -> str:
     from backend.commands.vindication import (
         COMPROMISE_LOSS_AUTHORITY, COMPROMISE_LOSS_TRUST, COMPROMISE_WIN_AUTHORITY,
         INSIST_LOSS_AUTHORITY, INSIST_LOSS_TRUST, INSIST_WIN_AUTHORITY)
-    return (f"If the field is lost under your insistence: trust {_signed(INSIST_LOSS_TRUST)}, "
-            f"authority {_signed(INSIST_LOSS_AUTHORITY)}; won: authority {_signed(INSIST_WIN_AUTHORITY)}. "
-            f"A compromise: authority {_signed(COMPROMISE_WIN_AUTHORITY)} won, "
-            f"trust {_signed(COMPROMISE_LOSS_TRUST)} and authority {_signed(COMPROMISE_LOSS_AUTHORITY)} lost.")
+    # Row PW part 2 (plain words): the same figures, as sentences a first
+    # reader follows ("the field is lost under your insistence … won: …").
+    # (the part's own blind reading, three readers of three: "are these on
+    # top of the figures under the buttons?" — they say WHEN they fall)
+    return (f"Later, when the battle is fought — if you insisted and it is lost: trust "
+            f"{_signed(INSIST_LOSS_TRUST)}, authority {_signed(INSIST_LOSS_AUTHORITY)}; if it is won: "
+            f"authority {_signed(INSIST_WIN_AUTHORITY)}. If you compromised: authority "
+            f"{_signed(COMPROMISE_WIN_AUTHORITY)} if won; trust {_signed(COMPROMISE_LOSS_TRUST)} and "
+            f"authority {_signed(COMPROMISE_LOSS_AUTHORITY)} if lost.")
 
 
 # ─────────────────────────────── the lumps (AU-2b) ───────────────────────────────

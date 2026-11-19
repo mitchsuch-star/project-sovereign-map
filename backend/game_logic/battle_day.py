@@ -1065,7 +1065,9 @@ def the_verdicts_line(ctx, day_block=None) -> str:
             # 25,000 against your 12,000."); the rest ride the payload's `why`.
             why = _telling.why_plain(ctx, attacker_is_ours)
             if why:
-                return f"Why: {why[0]}."
+                # (row PW part 2: who won, in two words, leads the cause)
+                said = _telling.plain_verdict(ctx, attacker_is_ours)
+                return (f"{said} " if said else "") + f"Why: {why[0]}."
         return _telling.verdict_line(_what_told_in_it(ctx, attacker_is_ours),
                                      broke=_whose_line_broke(ctx))
     except Exception as exc:

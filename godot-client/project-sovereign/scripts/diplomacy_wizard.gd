@@ -619,7 +619,7 @@ func _render_nations(data: Dictionary):
 	_clear_content_list()
 	scroll_container.scroll_vertical = 0
 	_dp_available = int(data.get("dp_available", 0))
-	dp_label.text = "DP: " + str(_dp_available)
+	dp_label.text = DP_WORDS % _dp_available
 	var pending_envoy_count = int(data.get("pending_envoy_count", 0))
 
 	# PL-30: Distinguish blocking dialogue from deferred proposal result.
@@ -1605,7 +1605,7 @@ func _render_preview(data: Dictionary):
 	_clear_content_list()
 	scroll_container.scroll_vertical = 0
 	_dp_available = int(data.get("dp_available", 0))
-	dp_label.text = "DP: " + str(_dp_available)
+	dp_label.text = DP_WORDS % _dp_available
 	var pending_envoy_count = int(data.get("pending_envoy_count", 0))
 
 	# PL-30: Same fix as Step 1 — never close+add_output (null-instance crash).
@@ -1627,7 +1627,11 @@ func _render_preview(data: Dictionary):
 	var relation = int(data.get("relation", 0))
 	var relation_desc = str(data.get("relation_descriptor", "?"))
 	var assessment_text = str(data.get("assessment", ""))
-	var recommendation = str(data.get("recommendation", ""))
+	# Row PW part 2: Talleyrand's counsel names the acts by the names their
+	# buttons now wear (`plain_counsel`).
+	var counsel_rows = data.get("actions", [])
+	var recommendation = plain_counsel(str(data.get("recommendation", "")),
+		Utils.display_nation_name(str(data.get("nation", ""))), counsel_rows if counsel_rows is Array else [])
 	var is_vassal = data.get("is_vassal", false)
 
 	var rel_sign = "+" if relation > 0 else ""
@@ -1782,7 +1786,9 @@ func _render_preview(data: Dictionary):
 		var positives = acceptance_preview.get("positive", [])
 		var negatives = acceptance_preview.get("negative", [])
 		if positives.size() > 0 or negatives.size() > 0:
-			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]KEY FACTORS[/color]\n"
+			# Row PW part 2 (the blind readers: "Key factors … jargon"): what the
+			# table is, in its own heading.
+			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]" + FACTORS_HEADING + "[/color]\n"
 			# Session UI-4: the factors are a small two-column table (factor |
 			# value), each figure in the tone of what it does to the court's
 			# willingness (the readers: "the assessment text is dense ... move
@@ -1794,7 +1800,7 @@ func _render_preview(data: Dictionary):
 			for neg in negatives:
 				factor_rows.append([str(neg.get("label", "?")),
 					"[color=#" + _alert_hex + "]" + str(int(neg.get("value", 0))) + "[/color]"])
-			bbcode += Utils.bb_table(["Factor", "Value"], factor_rows, [1], [4, 1], _factors_width()) + "\n"
+			bbcode += Utils.bb_table(["What weighs with them", "Effect"], factor_rows, [1], [4, 1], _factors_width()) + "\n"
 
 	# W4: Cooldown pre-check warning
 	var actions_list = data.get("actions", [])
@@ -1886,6 +1892,71 @@ func _render_preview(data: Dictionary):
 	for action in rest_rows:
 		_add_action_button(action)
 	call_deferred("_update_more_below")
+
+
+# Row PW part 2 (the blind readers): the page's own words.
+const FACTORS_HEADING := "WHAT MOVES THEM MOST — each adds to, or takes from, their willingness to agree"
+const DP_WORDS := "Diplomatic points (DP): %d"
+# Talleyrand's counsel names a road by the name its act once wore; the page
+# prints the name the BUTTON ON THIS PAGE wears (the review, PW2-R14: a fixed
+# table named buttons the page did not have — the separate peace's row reads
+# "Leave this war — peace with … alone", the table's "Make peace — choose the
+# terms — with …" — and took the court's name from another source).
+# [the counsel's old name, the act whose row wears the new one, the words where
+# the page has no such row]. Ordered: the longer phrase first.
+const COUNSEL_ACTS := [
+	["Propose White Peace", "propose_white_peace", "Make peace with no terms"],
+	["Propose Armistice", "propose_armistice", "Ask for a truce"],
+	["Propose Peace", "propose_peace", "Offer peace to %s alone"],
+	["Open Settlement", "", "Make peace — choose the terms"],
+]
+# The table for every court is a phrase in the counsel's sentences, not an act's
+# name ("The whole table reads their mean…"): it stays a phrase, in both cases.
+const COUNSEL_WORDS := [
+	["The whole table", "Peace with all of them"],
+	["the whole table", "peace with all of them"],
+]
+
+
+static func plain_counsel(text: String, court: String, rows: Array = []) -> String:
+	"""The counsel's sentence with each act named as its button reads ON THIS
+	PAGE (`rows`: the page's own, each with the name it wore — `display_name` —
+	and the name it wears — `plain_name`): "Propose Peace stands at -7 of 50"
+	-> "Offer peace to Britain alone stands at -7 of 50". The backend's
+	sentence is what every rule and pin reads."""
+	var out := text
+	var worn := {}            # the act -> the name its first row wears on this page
+	var renamed: Array = []   # [a row's old name, the name it wears now]
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+		var plain := str((row as Dictionary).get("plain_name", ""))
+		if plain == "" or plain == "null" or plain == "<null>":
+			continue
+		var act := str((row as Dictionary).get("action", ""))
+		if not worn.has(act):
+			worn[act] = plain
+		var old := str((row as Dictionary).get("display_name", ""))
+		if old != "" and old != plain:
+			renamed.append([old, plain])
+	# a row's own old name first, the longer first ("Open Settlement with Britain alone")
+	renamed.sort_custom(func(a, b): return str(a[0]).length() > str(b[0]).length())
+	for pair in renamed:
+		out = out.replace(str(pair[0]), str(pair[1]))
+	var alone := RegEx.create_from_string("Open Settlement with (.+?) alone")
+	out = alone.sub(out, "Make peace — choose the terms — with $1 alone", true)
+	var whom := court if court != "" else "them"
+	for trio in COUNSEL_ACTS:
+		var words := str(trio[2])
+		if words.contains("%s"):
+			words = words % whom
+		out = out.replace(str(trio[0]), str(worn.get(str(trio[1]), words)))
+	for pair in COUNSEL_WORDS:
+		out = out.replace(str(pair[0]), str(pair[1]))
+	return out
+
+
+const MORE_BELOW_WORDS := "▼ more below"
 
 
 const PEACE_HEADING := "END THE WAR"
@@ -2086,8 +2157,11 @@ func _add_action_button(action: Dictionary):
 	content_list.add_child(row)
 	# Row PW: what a peace act DOES stands under it on the page, folded or not
 	# (it is what tells the four apart; a hover was where nobody looked).
-	if plain_line != "" and Utils.compact_view():
-		# the short window: the line is the act's hover (EA-E5)
+	# (Row PW part 2: an act that ENDS THE WAR always wears its line; any
+	# other act wears it On the page, and as its hover's lead when folded.)
+	var _wears_its_line: bool = str(action.get("group", "")) == "peace" or not Utils.explanations_folded()
+	if plain_line != "" and (Utils.compact_view() or not _wears_its_line):
+		# the short window, or a folded page: the line is the act's hover (EA-E5)
 		btn.tooltip_text = plain_line if btn.tooltip_text == "" else plain_line + "\n" + btn.tooltip_text
 	elif plain_line != "":
 		var plain_label = Label.new()
@@ -2479,7 +2553,30 @@ func _update_more_below() -> void:
 	if _more_below == null:
 		return
 	var bar: VScrollBar = scroll_container.get_v_scroll_bar()
-	_more_below.visible = bar != null and (bar.max_value - bar.page) > bar.value + 1.0
+	var more: bool = bar != null and (bar.max_value - bar.page) > bar.value + 1.0
+	# Row PW part 2 (measured in the real client: the Cabinet's list changed
+	# height a few frames after a page opened, as this cue arrived): on a full
+	# view the cue's ROW is reserved — its words come and go, the list over it
+	# keeps its height. The short view keeps the old rule (EA-E5: every row
+	# there is a row of acts).
+	if not Utils.compact_view():
+		_more_below_keep_row()
+		_more_below.text = MORE_BELOW_WORDS if more else ""
+		return
+	_more_below.custom_minimum_size.y = 0.0
+	_more_below.text = MORE_BELOW_WORDS
+	_more_below.visible = more
+
+
+func _more_below_keep_row() -> void:
+	"""On a full view the cue's row stands, empty: its height is read from its
+	own words each time (the review, PW2-R15: read once, a Text size changed in
+	Settings left the row the old height)."""
+	_more_below.custom_minimum_size.y = 0.0
+	_more_below.text = MORE_BELOW_WORDS
+	_more_below.custom_minimum_size.y = _more_below.get_combined_minimum_size().y
+	_more_below.text = ""
+	_more_below.visible = true
 
 
 func _add_first_open_line(data: Dictionary) -> void:
@@ -2507,7 +2604,12 @@ func _add_first_open_line(data: Dictionary) -> void:
 
 func _clear_content_list():
 	if _more_below != null:
-		_more_below.visible = false
+		# (the review, PW2-R15: hiding the cue here took its row away for the
+		# frames a page builds in — on a full view the row stays, without words)
+		if Utils.compact_view():
+			_more_below.visible = false
+		else:
+			_more_below_keep_row()
 	for child in content_list.get_children():
 		child.queue_free()
 
