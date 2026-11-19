@@ -1752,12 +1752,22 @@ func _render_preview(data: Dictionary):
 	var counsel_carded: bool = counsel_held or recommendation != ""
 	if counsel_carded:
 		bbcode += Utils.card_open(Utils.COLOR_GOLD)
+	# Row PW part 3: under Talleyrand's sentence, its figures in everyday words
+	# (`counsel.plain_line`) — the acts named as this page's buttons name them.
+	var plain_part := ""
+	var counsel_payload = data.get("counsel")
+	if recommendation and counsel_payload is Dictionary and str((counsel_payload as Dictionary).get("plain", "")) != "":
+		plain_part = "[color=#" + Utils.COLOR_INFO + "]" + plain_counsel(
+			str((counsel_payload as Dictionary).get("plain", "")),
+			Utils.display_nation_name(str(data.get("nation", ""))),
+			counsel_rows if counsel_rows is Array else []) + "[/color]\n"
 	if Utils.show_note(COUNSEL_NOTE) or not counsel_held:
 		if recommendation:
 			if Utils.explanations_folded():
 				bbcode += _verdict_line(str(recommendation), rec_cut, true) + "\n"
 			else:
 				bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+		bbcode += plain_part
 		bbcode += designs_part + roads_part
 		if Utils.explanations_folded() and counsel_held:
 			bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
@@ -1767,6 +1777,8 @@ func _render_preview(data: Dictionary):
 			bbcode += _verdict_line(opening, -1, false) + " " + Utils.note_link(COUNSEL_NOTE) + "\n"
 		else:
 			bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + opening + "[/color] " + Utils.note_link(COUNSEL_NOTE) + "\n"
+		if not Utils.compact_view():
+			bbcode += plain_part   # (the compact view's 30 % keeps the quote above its fold, EA-E5: there it opens with "▸ more")
 	else:
 		bbcode += Utils.note_link(COUNSEL_NOTE) + "\n"
 	if counsel_carded:
@@ -1788,7 +1800,18 @@ func _render_preview(data: Dictionary):
 		if positives.size() > 0 or negatives.size() > 0:
 			# Row PW part 2 (the blind readers: "Key factors … jargon"): what the
 			# table is, in its own heading.
+			var factors_for := str(acceptance_preview.get("for_label", ""))
 			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]" + FACTORS_HEADING + "[/color]\n"
+			if factors_for != "":
+				# the total stands with the act's name, above the rows (under the
+				# table it fell below the panel's fold at Interface Scale 1.8)
+				var for_line: String = FACTORS_FOR % factors_for
+				if acceptance_preview.has("score"):
+					var all_told := int(acceptance_preview.get("score", 0))
+					var agree_at := int(acceptance_preview.get("threshold", 50))
+					for_line += " — all told [b][color=#" + (Utils.COLOR_SUCCESS if all_told >= agree_at else _alert_hex) \
+						+ "]" + str(all_told) + "[/color][/b]; they agree at " + str(agree_at) + " or more"
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]" + for_line + "[/color]\n"
 			# Session UI-4: the factors are a small two-column table (factor |
 			# value), each figure in the tone of what it does to the court's
 			# willingness (the readers: "the assessment text is dense ... move
@@ -1800,6 +1823,15 @@ func _render_preview(data: Dictionary):
 			for neg in negatives:
 				factor_rows.append([str(neg.get("label", "?")),
 					"[color=#" + _alert_hex + "]" + str(int(neg.get("value", 0))) + "[/color]"])
+			# Row PW part 3: the table adds up — everything it does not list is
+			# one row, and the total stands above it with the act's name (the
+			# figure Talleyrand's sentence names for the same act).
+			if acceptance_preview.has("score"):
+				var others := int(acceptance_preview.get("others", 0))
+				if others != 0:
+					factor_rows.append(["Everything else",
+						"[color=#" + (Utils.COLOR_SUCCESS if others > 0 else _alert_hex) + "]"
+						+ ("+" if others > 0 else "") + str(others) + "[/color]"])
 			bbcode += Utils.bb_table(["What weighs with them", "Effect"], factor_rows, [1], [4, 1], _factors_width()) + "\n"
 
 	# W4: Cooldown pre-check warning
@@ -1896,6 +1928,7 @@ func _render_preview(data: Dictionary):
 
 # Row PW part 2 (the blind readers): the page's own words.
 const FACTORS_HEADING := "WHAT MOVES THEM MOST — each adds to, or takes from, their willingness to agree"
+const FACTORS_FOR := "For “%s”"      # row PW part 3: the act the table is about (its total follows)
 const DP_WORDS := "Diplomatic points (DP): %d"
 # Talleyrand's counsel names a road by the name its act once wore; the page
 # prints the name the BUTTON ON THIS PAGE wears (the review, PW2-R14: a fixed

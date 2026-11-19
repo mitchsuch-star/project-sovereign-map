@@ -2711,6 +2711,9 @@ func _update_war_table_pieces() -> void:
 			_war_piece_regions.erase(mname)
 
 	# Create or update the live pieces.
+	var marched := 0             # row PW part 3: the pieces that march on this board
+	var marched_s := 0.0
+	var marched_horse := true
 	for mname in desired:
 		var spec: Dictionary = desired[mname]
 		var anchor: Vector2 = spec["anchor"]
@@ -2725,12 +2728,26 @@ func _update_war_table_pieces() -> void:
 			var prev_region: String = str(_war_piece_regions.get(mname, region))
 			var prev: Vector2 = _war_piece_anchors.get(mname, anchor)
 			if region != prev_region:
-				# A REAL march — tween along the path + face the travel heading.
-				if anchor.x > prev.x + 0.5:
-					piece.set_facing("r")
-				elif anchor.x < prev.x - 0.5:
-					piece.set_facing("l")
-				piece.move_to(anchor, _play_seconds if _play_seconds > 0.0 else WAR_PIECE_MOVE_DURATION)
+				# A REAL march — he walks the road, province by province (row PW
+				# part 3), facing the way each leg runs; the trail is drawn behind
+				# him and the batch's sound is played once, below.
+				var road_names: Array = march_road(prev_region, region)
+				var seconds: float = _play_seconds if _play_seconds > 0.0 else march_seconds(road_names.size() - 1)
+				var road_layer: Array = []
+				var road_world: Array = [prev + world_bounds.position]
+				for k in range(1, road_names.size() - 1):
+					if positions.has(road_names[k]):
+						road_layer.append(_world_to_layer_position(positions[road_names[k]]))
+						road_world.append(positions[road_names[k]])
+				road_layer.append(anchor)
+				road_world.append(anchor + world_bounds.position)
+				piece.march(road_layer, seconds)
+				marched_s = maxf(marched_s, seconds)
+				marched_horse = marched_horse and arm == "cavalry"
+				marched += 1
+				if order_layer != null and order_layer.has_method("add_trail") \
+						and not UiSettings.get_reduce_motion():
+					order_layer.add_trail(road_world, nation_color, seconds)
 				if _play_seconds > 0.0:
 					_play_moved += 1
 			elif prev.distance_to(anchor) > 0.5:
@@ -2748,6 +2765,69 @@ func _update_war_table_pieces() -> void:
 		_war_pieces[mname] = new_piece
 		_war_piece_anchors[mname] = anchor
 		_war_piece_regions[mname] = region
+	if marched > 0:
+		_sound_the_march(marched_s, marched_horse)
+
+
+# ═══ Row PW part 3 (November 19, 2026): a march walks its road, and is heard ═══
+# One province of road is MARCH_STEP_S of walking, between MARCH_MIN_S and
+# MARCH_MAX_S — long enough to follow with the eye, short enough never to be
+# waited for (the next order can be given while he walks).
+const MARCH_STEP_S := 0.36
+const MARCH_MIN_S := 0.6
+const MARCH_MAX_S := 1.6
+const MARCH_MAX_HOPS := 7
+var last_march: Dictionary = {}      # what the last marching board showed (the instrument reads it)
+
+
+static func march_seconds(hops: int) -> float:
+	return clampf(float(maxi(hops, 1)) * MARCH_STEP_S, MARCH_MIN_S, MARCH_MAX_S)
+
+
+func march_road(from_region: String, to_region: String) -> Array:
+	"""The provinces a marching piece is SHOWN through: the shortest road on
+	the map's own links, at most MARCH_MAX_HOPS long — else the two ends
+	alone (a crossing the links do not carry, a far redeployment). The
+	server's board says where he stands; this is only how the eye is led."""
+	var links = _march_links()
+	if from_region == to_region or not (links is Dictionary) or not links.has(from_region):
+		return [from_region, to_region]
+	var came := {from_region: ""}
+	var frontier: Array = [from_region]
+	for _depth in range(MARCH_MAX_HOPS):
+		var next: Array = []
+		for name in frontier:
+			for other in links.get(name, []):
+				if came.has(other):
+					continue
+				came[other] = name
+				if str(other) == to_region:
+					var road: Array = [to_region]
+					while str(came[road[0]]) != "":
+						road.push_front(came[road[0]])
+					return road
+				next.append(other)
+		if next.is_empty():
+			break
+		frontier = next
+	return [from_region, to_region]
+
+
+func _march_links() -> Dictionary:
+	"""{province: [its neighbours]} a march is shown along: the drawn links
+	here; the game map answers with the backend's whole topology (`map.gd`)."""
+	return _get_region_connections()
+
+
+func _sound_the_march(seconds: float, horse: bool) -> void:
+	"""The column's tramp (the horses' trot when every marcher is cavalry) for
+	as long as the pieces walk, and the halt as they are set down. One play a
+	board: the cue is the order's own (`AudioManager.RESULT_CUES`), so the
+	order's sound and the march's are one sound, never two."""
+	last_march = {"seconds": seconds, "horse": horse, "msec": Time.get_ticks_msec()}
+	AudioManager.play_march(seconds, horse)
+	if is_inside_tree() and seconds > 0.0 and not UiSettings.get_reduce_motion():
+		get_tree().create_timer(seconds).timeout.connect(AudioManager.play.bind("march_halt"))
 
 
 func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regular_marshal_offset: int):
@@ -4109,6 +4189,11 @@ func _play_spawn_marker(g: Dictionary, seconds: float) -> bool:
 	marker.create_tween().tween_property(marker, "position",
 			_world_to_layer_position((positions[g["to"]] as Vector2) + slot), maxf(seconds, 0.05)) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	# Row PW part 3: a force the fog half-hides leaves its trail too, and is
+	# heard faintly — a column somewhere beyond the outposts.
+	if order_layer != null and order_layer.has_method("add_trail"):
+		order_layer.add_trail([positions[g["from"]], positions[g["to"]]], nation_color, maxf(seconds, 0.05))
+	AudioManager.play("march_step")
 	return true
 
 

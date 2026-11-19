@@ -35,6 +35,7 @@ import random
 from typing import Dict, List, Optional, Tuple
 
 from backend.display_names import humanize_entity_name
+from backend.display_names import actions_words as _actions  # row PW, PW2-D1: a price in plain words
 from backend.game_logic import dotation
 # One grip = one module (VS-R gate Open Q#5): the shared authority breakpoints
 # live in the leaf so jealousy AND vassal anchor on the SAME two lines. Used
@@ -2352,7 +2353,7 @@ def _command_option(world, marshal, card=None) -> Dict:
         # cases apart from a bare `False`.
         return {"id": COMMAND_ARM_ID, "label": "Give him a command",
                 "detail": reason, "unavailable_reason": reason,
-                "cost_note": f"{cost} AP", "ap_cost": cost,
+                "cost_note": _actions(cost), "ap_cost": cost,
                 "available": False,
                 "enabled": False}
     enemy, region = quarry
@@ -2373,7 +2374,7 @@ def _command_option(world, marshal, card=None) -> Dict:
                    f"ends on the field, not at the table — if he makes "
                    f"good on it, it ends for good. Giving the order may "
                    f"bring on a battle at once."),
-        "cost_note": f"{cost} AP",
+        "cost_note": _actions(cost),
         "ap_cost": cost,
         "available": True,
         "enabled": _player_ap(world) >= cost,
@@ -3398,7 +3399,7 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
                               f"{CONFRONT_PROMISE_DURATION_CUT} turns, and for "
                               f"{CONFRONT_PROMISE_HOLD_TURNS} turns the quarrel "
                               f"cannot harden further.")),
-             "cost_note": f"{CONFRONT_PROMISE_AP} AP",
+             "cost_note": _actions(CONFRONT_PROMISE_AP),
              "ap_cost": CONFRONT_PROMISE_AP,
              "enabled": ap >= CONFRONT_PROMISE_AP},
             {"id": "rebuke", "label": "Rebuke",
@@ -3490,7 +3491,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
              "cost_note": "", "enabled": True},
             {"id": "mediate", "label": "Mediate",
              "detail": _mediate_detail(_authority),
-             "cost_note": "1 AP", "ap_cost": 1, "enabled": ap >= 1},
+             "cost_note": "1 action", "ap_cost": 1, "enabled": ap >= 1},
             {"id": "reprimand", "label": "Reprimand Both",
              "detail": ("Trust -3 on both, at once. Then 60% the breach "
                         "mends outright, 30% nothing changes, and 10% the "
@@ -3508,7 +3509,7 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
              "cost_note": "", "enabled": True},
             {"id": "force_reconciliation", "label": "Force Reconciliation",
              "detail": _force_detail(_authority),
-             "cost_note": "2 AP", "ap_cost": 2, "enabled": ap >= 2},
+             "cost_note": "2 actions", "ap_cost": 2, "enabled": ap >= 2},
             {"id": "separate", "label": "Separate Them",
              "detail": ("Not a fix — Berthier will warn you whenever their "
                         "commands stand together."),
@@ -3755,7 +3756,7 @@ def queue_shadow_petition(world, marshal) -> str:
             {"id": "promise", "label": "Promise him the next campaign",
              "detail": (f"He holds you to your word — trust "
                         f"+{SHADOW_PROMISE_TRUST}."),
-             "cost_note": "1 AP", "ap_cost": SHADOW_PROMISE_AP,
+             "cost_note": _actions(SHADOW_PROMISE_AP), "ap_cost": SHADOW_PROMISE_AP,
              "enabled": True},
         ],
         "context": {"marshal": marshal.name, "frontier": frontier},

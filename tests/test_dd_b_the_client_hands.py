@@ -1276,3 +1276,85 @@ class TestRowPWTheEnemysMovesArePlayedOnTheMap:
         assert skip["open"]["region_panel"] is False, "the click reached the map: a province panel opened"
         assert (skip.get("replay") or {}).get("skipped") is True
 
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Row PW "Plain Words", part 3 (November 19, 2026) — the finishing pass, pressed
+# in the real client at the first player's own setup: a general sent by a click
+# and his order TAKEN BACK from the map's controls; the map's key; the price in
+# words on the general's card; the empty command line's ideas. (The rule and the
+# sources: `tests/test_pw3_the_finishing_pass.py`.)
+# ═════════════════════════════════════════════════════════════════════════════
+
+@pytest.fixture(scope="module")
+def pw3_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        run, sup = _start_engine_run(tmp_path_factory, "pw3")
+    states: dict = {}
+    try:
+        states["begin"] = _act(run, "click Begin")
+        states["select"] = _act(run, "click Soult")
+        # a province of France two marches west of Lorraine: a plain order, nothing fought or shown
+        states["send"] = _act(run, "clickshots 1436 375 4 220")
+        states["take_back"] = _act(run, "click Take back")
+        states["key"] = _act(run, "click Key")
+        states["key_esc"] = _act(run, "key Escape")
+        states["line"] = _act(run, "click_at 130 720")
+        states["tab"] = _act(run, "key Tab")
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    states["run_dir"] = str(run)
+    return states
+
+
+def _pw3_button(state: dict, text: str) -> dict:
+    found = [b for b in state.get("buttons") or [] if str(b.get("text") or "") == text]
+    assert found, f"no button reads {text!r}"
+    return found[0]
+
+
+class TestRowPW3TheFinishingPass:
+
+    def test_the_cards_orders_say_their_price_in_words(self, pw3_walk):
+        faces = _pw_buttons(pw3_walk["select"])
+        assert "1 Hold · 1 action" in faces and "5 Fall back · free" in faces, faces
+        assert not any(re.search(r"(?<![A-Za-z])AP(?![A-Za-z])", face) for face in faces), faces
+
+    def test_the_counters_wear_their_words(self, pw3_walk):
+        said = _pw_said(pw3_walk["begin"])
+        for word in ("Actions", "Admin", "Recruits", "Gold", "Diplomacy", "Authority", "Threat"):
+            assert word in said, word
+
+    def test_a_sent_general_can_be_taken_back_from_the_maps_controls(self, pw3_walk):
+        assert _pw3_button(pw3_walk["begin"], "Take back")["disabled"] is True, "nothing to take back at the open"
+        sent = pw3_walk["send"]
+        shots = sent.get("shots") or []
+        assert len(shots) == 4 and all((pathlib.Path(pw3_walk["run_dir"]) / s["file"]).is_file() for s in shots)
+        chip = _pw3_button(sent, "Take back")
+        assert chip["disabled"] is False and "Soult" in chip["tooltip"], chip
+        assert "until it shows you something new" in chip["tooltip"]
+        back = pw3_walk["take_back"]
+        assert "Order taken back" in _pw_said(back)
+        assert _pw3_button(back, "Take back")["disabled"] is True
+        assert "4/4" in _pw_said(back), "the action is the player's again"
+
+    def test_the_maps_key_opens_over_the_controls_and_esc_puts_it_away(self, pw3_walk):
+        opened = pw3_walk["key"]
+        key = [s for s in opened.get("surfaces") or [] if str(s.get("name", "")) == "MapKeyLayer"]
+        assert key and "MAP KEY" in key[0]["lines"], [s.get("name") for s in opened.get("surfaces") or []]
+        assert not opened.get("off_screen"), opened.get("off_screen")
+        closed = pw3_walk["key_esc"]
+        assert not [s for s in closed.get("surfaces") or [] if str(s.get("name", "")) == "MapKeyLayer"]
+        assert not _modal(closed), "Esc put the key away and opened nothing"
+
+    def test_a_click_on_the_empty_line_offers_what_can_be_asked(self, pw3_walk):
+        said = _pw_said(pw3_walk["line"])
+        assert "what can " in said and "what now?" in said, said[-600:]
+        line = pw3_walk["tab"].get("command_line") or {}
+        assert str(line.get("text", "")).startswith("what can "), ("Tab takes the first idea", line)
+
+    def test_the_run_met_no_script_error(self, pw3_walk):
+        assert pw3_walk["run"]["n_script_errors"] == 0, pw3_walk["run"]["script_errors"]

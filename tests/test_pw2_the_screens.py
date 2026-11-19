@@ -382,7 +382,8 @@ class TestTheSmallLines:
 class TestThePriceTagsSayActions:
     """Two measurements beside the reading's bar: three readers of three read the general's card right only
     by inference, and "AP is never defined" stood on all three lists. The key stays (251 pins read it); the
-    plain words ride beside it (golden rule 11). The vocabulary's retirement is the owned row PW2-D1."""
+    plain words ride beside it (golden rule 11). The vocabulary's retirement, the row PW2-D1, is CLOSED
+    (November 19, 2026): every price tag now says "action(s)" (`TestPW2D1NoPriceTagSaysAP`)."""
 
     def test_the_generals_card_says_actions_left(self):
         card = _src(SCRIPTS / "selection_card.gd")
@@ -404,18 +405,20 @@ class TestThePriceTagsSayActions:
         assert button.index('tip = slot_words(') < button.index("var locked := bool(spec[\"locked\"])"), (
             "a locked order's reason follows its words")
 
-    def test_the_province_panel_says_what_an_ap_is_once(self):
+    def test_the_province_panel_says_what_is_left_once(self):
         panel = _src(SCRIPTS / "region_panel.gd")
-        assert 'const AP_WORDS := "AP = actions"' in panel
-        words = _func(panel, "_ap_words")
-        assert 'if not (flat.contains(" AP)") or flat.contains(" AP ·")):' in words, (
+        assert "const AP_WORDS" not in panel and "_ap_words(" not in panel, "the AP gloss is retired (PW2-D1)"
+        words = _func(panel, "_actions_left_words")
+        assert ('if not (flat.contains(" action)") or flat.contains(" actions)")\n'
+                '\t\t\tor flat.contains(" action \u00b7") or flat.contains(" actions \u00b7")):') in words, (
             "said only where a price tag is on the panel")
         assert 'var flat := shown.replace("\\u00a0", " ")' in words, "a chip binds its spaces (UXR3-83)"
-        assert 'words += " · %d left this turn" % int((_map_node.action_pools as Dictionary).get("military", 0))' in words
+        assert 'var left := int((_map_node.action_pools as Dictionary).get("military", 0))' in words
+        assert '"]You have " + Utils.plural(left, "action") + " left this turn[/color]' in words
         # once: right under the forces' rows where they carry a tag, else under the march-here orders
-        assert "var ap_under_forces := _ap_words(bbcode.substr(forces_from))" in panel
-        assert "if not ap_said:\n\t\t\tbbcode += _ap_words(march)" in panel
-        assert panel.count("_ap_words(") == 3, "its definition and its two places"
+        assert "var ap_under_forces := _actions_left_words(bbcode.substr(forces_from))" in panel
+        assert "if not ap_said:\n\t\t\tbbcode += _actions_left_words(march)" in panel
+        assert panel.count("_actions_left_words(") == 3, "its definition and its two places"
 
     def test_the_commission_line_says_an_admin_action(self):
         roster = _src(SCRIPTS / "marshal_management.gd")
@@ -476,13 +479,8 @@ class TestTheBattlesDiceAsSentences:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# PW2-D1 — OPEN, owned by Session H's head: no price a player acts on says "AP"
+# PW2-D1 — CLOSED (November 19, 2026): no price a player acts on says "AP"
 # ═════════════════════════════════════════════════════════════════════════════
-
-_PW2_D1 = ("PW2-D1 OPEN — owner Session H's head (BUG_FIXES.md §PW part 2): the price tags' \"AP\" is retired "
-           "for \"actions\" on every chip, button and message; this pin turns red the day the client's last "
-           "tag is gone, so the row is closed with it")
-
 
 def _code_of(line: str) -> str:
     """A GDScript line without its trailing comment (a '#' inside a string is no comment)."""
@@ -511,12 +509,11 @@ def _ap_tags() -> list:
 
 
 class TestPW2D1NoPriceTagSaysAP:
-    def test_the_census_reads_the_tags_that_stand_today(self):
-        tags = _ap_tags()
-        files = {tag.split(":", 1)[0] for tag in tags}
-        assert {"region_panel.gd", "marshal_management.gd", "utils.gd", "order_confirm_card.gd"} <= files, tags
-        assert "objection_dialog.gd" not in files and "selection_card.gd" not in files, tags
+    def test_the_census_still_reads_a_tag_when_one_is_present(self):
+        """The census's regex must keep seeing a price tag that says "AP" - else a clean census is blind."""
+        for sample in (" AP)", " (2 AP)", "Hold (2 AP)", "Bernadotte · 1 AP", "1 Admin AP"):
+            assert re.search(r"(?<![A-Za-z])AP(?![A-Za-z])", sample), sample
+        assert not re.search(r"(?<![A-Za-z])AP(?![A-Za-z])", "Hold (2 actions)")
 
-    @pytest.mark.xfail(strict=True, reason=_PW2_D1)
     def test_no_price_tag_says_ap(self):
         assert _ap_tags() == []

@@ -47,8 +47,21 @@ func _draw():
 	for glyph_pos in _port_glyphs:
 		if not (glyph_pos is Vector2):
 			continue
-		# A small fouled anchor: ring + shank + stock — unmistakable at map
-		# scale and colorblind-safe by shape.
-		draw_arc(glyph_pos, GLYPH_RADIUS, 0.0, TAU, 16, Utils.cv(GLYPH_COLOR), 2.0, true)
-		draw_line(glyph_pos + Vector2(0, -GLYPH_RADIUS - 4), glyph_pos + Vector2(0, GLYPH_RADIUS - 2), Utils.cv(GLYPH_COLOR), 2.0)
-		draw_line(glyph_pos + Vector2(-4, -GLYPH_RADIUS - 2), glyph_pos + Vector2(4, -GLYPH_RADIUS - 2), Utils.cv(GLYPH_COLOR), 2.0)
+		draw_anchor(self, glyph_pos, GLYPH_RADIUS, Utils.cv(GLYPH_COLOR))
+
+
+static func draw_anchor(item: CanvasItem, at: Vector2, r: float, color: Color) -> void:
+	"""A small anchor — a ring at the head, the stock across under it, the
+	shank down, and the two arms curving up from its foot. Row PW part 3: the
+	mark was a ring with a line through it, and three blind readers of three
+	read it as a stopwatch. One drawing for the map and for the map's key."""
+	var head := at + Vector2(0, -r - 2.0)
+	item.draw_arc(head, 2.6, 0.0, TAU, 12, color, 1.8, true)                    # the ring
+	item.draw_line(at + Vector2(-r * 0.6, -r + 2.5), at + Vector2(r * 0.6, -r + 2.5), color, 2.0)   # the stock
+	item.draw_line(head + Vector2(0, 2.6), at + Vector2(0, r + 1.0), color, 2.0)                   # the shank
+	item.draw_arc(at + Vector2(0, 1.0), r, deg_to_rad(12.0), deg_to_rad(168.0), 14, color, 2.0, true)  # the arms
+	# the flukes: a short barb at each arm's tip
+	var tip_r := at + Vector2(0, 1.0) + Vector2(cos(deg_to_rad(12.0)), sin(deg_to_rad(12.0))) * r
+	var tip_l := at + Vector2(0, 1.0) + Vector2(cos(deg_to_rad(168.0)), sin(deg_to_rad(168.0))) * r
+	item.draw_line(tip_r, tip_r + Vector2(-3.5, -1.0), color, 2.0)
+	item.draw_line(tip_l, tip_l + Vector2(3.5, -1.0), color, 2.0)

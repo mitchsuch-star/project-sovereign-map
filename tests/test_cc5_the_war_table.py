@@ -719,7 +719,7 @@ class TestTheArrowCard:
         assert f"arrives in {soult['turns']} turns" in driven["w2_terms"]
         assert "Road: " + " → ".join(soult["road"]) in driven["w2_terms"]
         assert "Cancelling costs 1 action — no trust lost: it was given this turn." in driven["w2_terms"]
-        assert driven["w2_cancel_label"] == "Cancel order  (1 AP)"
+        assert driven["w2_cancel_label"] == "Cancel order  (1 action)"
         assert driven["w2_card_covers_arrow"] is False
 
     def test_enter_is_change_he_is_selected(self, driven):

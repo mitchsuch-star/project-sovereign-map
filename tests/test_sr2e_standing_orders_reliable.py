@@ -206,7 +206,7 @@ class TestEveryPricingSiteNamesItsOrder:
     def test_the_help_names_the_support_price(self, shipped):
         client, _world = shipped
         text = str(post(client, "help").get("message") or "")
-        assert "support 1 AP" in text, text[:400]
+        assert "support 1 action" in text, text[:400]
 
 
 # ═══════════════════════════════════════════════════════════════════════════

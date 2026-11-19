@@ -19,7 +19,8 @@ can: one action at a time on the REAL client (`tools/dd_b_client.gd`) at
         family of order you meant (attack, move, hold, …, question, or
         "other: <your words>") and the marshal, if one ("attack Ney").
         Actions: type <text> | click <words> | click#N <words> |
-        click_at <x> <y> | key <K> | scroll <x> <y> up|down <n> | look
+        click_at <x> <y> | key <K> | scroll <x> <y> up|down <n> | look |
+        clickshots <x> <y> [n] [gap_ms] (a click, then frames while the board moves)
     .venv/Scripts/python.exe tools/dd_b_play.py crop --out <run> --n N --rect X Y W H
         A JPEG crop of frame N's full PNG (logical px), for reading small text.
     .venv/Scripts/python.exe tools/dd_b_play.py row --out <run> --n N --severity P1|P2|P3 \

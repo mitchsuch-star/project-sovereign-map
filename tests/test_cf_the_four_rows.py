@@ -2,7 +2,7 @@
 `docs/audits/COMMAND_FEEL_2026_10_16.md`), built October 17, 2026; rules
 `SYSTEMS_REFERENCE.md` §126.
 
-* CF-6 — Hold (2 AP) · Fall back · Garrison (2 AP) chips on the province
+* CF-6 — Hold (2 actions) · Fall back · Garrison (2 actions) chips on the province
   panel's own-marshal row (and the Generals card) in the CN-4 pattern: lit
   only where `tactical_state.order_refusals` carries no reason for the verb,
   dimmed with the reason otherwise, priced on the label from
@@ -217,12 +217,12 @@ class TestCF6TheChips:
                            overview=C.overview_now())
             assert out["errors"] == 0
             rhine = out["regions"]["Rhineland"]
-            assert "[url=order:hold:Ney]" in rhine and "Hold (2 AP)" in rhine
+            assert "[url=order:hold:Ney]" in rhine and "Hold (2 actions)" in rhine
             assert "[url=order:retreat:Ney]" in rhine and "Fall back" in rhine
             assert "[url=order:garrison:Ney]" not in rhine
             assert "3 of 3 garrisons kept" in rhine
             lorraine = out["regions"]["Lorraine"]
-            assert "[url=order:hold:Soult]" in lorraine and "Hold (1 AP)" in lorraine
+            assert "[url=order:hold:Soult]" in lorraine and "Hold (1 action)" in lorraine
             milan = out["regions"]["Milan"]
             assert "not our soil" in milan
             cards = out["cards"]

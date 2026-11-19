@@ -17149,6 +17149,16 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
             if score > best_score:
                 best_score = score
                 best_proposal_action = a
+    # Row PW part 3: where the counsel quotes a bilateral act (a peace, a
+    # truce), the table is built for THAT act — the same draft, so its rows
+    # add up to the figure Talleyrand names. It was the likeliest proposal on
+    # the page, which could be another act with another figure.
+    _quoted = str((_counsel or {}).get("quoted_action") or "")
+    if _quoted in ("propose_peace", "propose_armistice"):
+        for a in actions:
+            if a.get("action") == _quoted and a.get("available"):
+                best_proposal_action = a
+                break
     if best_proposal_action:
         try:
             # Build a mock proposal to get components
@@ -17203,6 +17213,17 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                 "positive": positives[:3],
                 "negative": negatives[:3],
             }
+            # Row PW part 3: the act the table is about, its total and the bar
+            # — with "everything else" as one row, the table adds up.
+            _shown = sum(int(e["value"]) for e in positives[:3] + negatives[:3])
+            _total = int(result.get("score", 0) or 0)
+            acceptance_preview.update({
+                "for_action": str(best_proposal_action.get("action") or ""),
+                "for_label": str(best_proposal_action.get("plain_name")
+                                 or best_proposal_action.get("display_name") or ""),
+                "score": _total, "threshold": int(ACCEPT_SCORE),
+                "others": int(_total - _shown),
+            })
         except Exception as exc:
             report(exc, "diplomacy.get_diplomatic_preview: armistice_variant_for")
             acceptance_preview = None

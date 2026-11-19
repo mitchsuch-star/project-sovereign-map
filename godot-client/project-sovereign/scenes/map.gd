@@ -33,6 +33,12 @@ func set_region_topology(topology: Dictionary) -> void:
 		_build_static_map_visuals()
 
 
+func _march_links() -> Dictionary:
+	"""Row PW part 3: a marching piece walks the roads the executor walks
+	(`/map_topology`); before the topology arrives, the drawn links."""
+	return _region_topology if not _region_topology.is_empty() else super._march_links()
+
+
 func get_region_topology() -> Dictionary:
 	"""CX-R2: {province: [adjacent...]} from `/map_topology` — the command-line
 	completer orders its targets by marching distance over the same graph the

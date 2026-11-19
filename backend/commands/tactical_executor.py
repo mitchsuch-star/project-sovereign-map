@@ -699,7 +699,7 @@ class TacticalExecutor:
             # Execute stance change first
             marshal.stance = Stance.DEFENSIVE
             stance_message = ("[Shifted to DEFENSIVE stance first] " if _carried else
-                              "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] ")
+                              "[Auto-shifted to DEFENSIVE stance first — cost 2 actions: 1 for stance change + 1 for fortify] ")
 
         # ════════════════════════════════════════════════════════════
         # PERSONALITY-SPECIFIC FORTIFY (Phase 2.8)

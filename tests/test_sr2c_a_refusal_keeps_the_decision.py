@@ -101,7 +101,7 @@ class TestARefusedArmKeepsTheDecision:
         with _quiet():
             r = ex.handle_diplomatic_dialogue_response(
                 "garrison_vassal_rebellion", {"world": w}, dialogue_id=dlg["dialogue_id"])
-        assert r["success"] is False and "Insufficient AP" in r["message"]
+        assert r["success"] is False and "Not enough actions" in r["message"]
         assert w.dialogue_manager.peek() is dlg
         assert w.vassal_rebellion_imminent_popup["refusal"] == r["message"]
 

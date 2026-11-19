@@ -123,7 +123,7 @@ class TestOrderEcho:
              "command": {"marshal": "Soult", "action": "move",
                          "target": "Belgium"}},
             {"world": world})
-        assert "1 AP" in result["message"]
+        assert "1 action" in result["message"]
         assert "fewer couriers" in result["message"]
 
     def test_non_literal_gets_no_echo(self):

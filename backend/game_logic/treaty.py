@@ -437,7 +437,7 @@ def _treaty_verdict(world, proposal: Dict[str, Any], *, at_send: bool) -> Verdic
                 if score <= 80:
                     return refuse(
                         "ap_clause",
-                        "AP demands require overwhelming military dominance (war score > 80).",
+                        "A demand on their actions requires overwhelming military dominance (war score > 80).",
                         named=target_nation)
 
     # 6. AI-AI only: the alliance conflict rule.

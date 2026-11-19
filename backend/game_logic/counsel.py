@@ -986,6 +986,39 @@ def _times(n: int) -> str:
     return {0: "never", 1: "once", 2: "twice"}.get(int(n), f"{int(n)} times")
 
 
+def plain_line(reading: Mapping[str, Any]) -> str:
+    """Row PW part 3 (the first player's readers: "Propose Peace stands at -7
+    of 50 … (-15) — dense, and its figure matches nothing on the table"): the
+    figures of the road the counsel quotes, in everyday words, to stand under
+    his sentence. The road is the sentence's own (`best`, else `nearest`); a
+    road with no acceptance figure (a battle, a table that cannot be read)
+    says nothing. Display only (GR6): the same numbers, nothing new."""
+    best = reading.get("best") or reading.get("nearest") or {}
+    score, need = best.get("score"), best.get("threshold")
+    if not best or best.get("road") == "battle" or isinstance(score, bool) \
+            or not isinstance(score, (int, float)) or not need:
+        return ""
+    label = str(best.get("label") or "this")
+    score, need = int(score), int(need)
+    if best.get("carries"):
+        return (f"In plain words: they would say yes to “{label}” today. "
+                f"It stands at {score}; they agree at {need} or more.")
+    out = (f"In plain words: they would say no to “{label}” today. "
+           f"It stands at {score}; they agree at {need} or more — {need - score} short.")
+    flip = best.get("flip") or {}
+    if flip.get("label"):
+        # the table's own short name for the term (the page prints it beside this line)
+        named = str(flip["label"])
+        try:
+            from backend.game_logic.diplomacy import acceptance_term_label
+            named = str(acceptance_term_label(str(flip.get("component") or ""),
+                                              int(flip.get("value", 0)), "") or named)
+        except Exception as exc:
+            report(exc, "counsel.plain_line: the term's table label")
+        out += f" What counts most against it: {named[:1].lower() + named[1:]} ({int(flip.get('value', 0)):+d})."
+    return out
+
+
 def priced_terms_for_confirm(world, court: str, proposal_type: str) -> Optional[Dict[str, Any]]:
     """K item 6: the draft the wizard open priced for (court, proposal type)
     THIS turn — read by `diplomatic_dialogue._enrich_proposal_summary`, so
@@ -1054,11 +1087,16 @@ def counsel_for_wizard(world, court: str, *, staged_terms=None, remember: bool =
                          "priced_terms": {str(k): dict(v) for k, v in (priced_terms or {}).items()
                                           if isinstance(v, Mapping)}}
     best = reading.get("best") or {}
+    quoted = reading.get("best") or reading.get("nearest") or {}
     text = composed["line"]
     if composed.get("preference_line"):
         text = f"{text} {composed['preference_line']}"
     return {
         "line": text,
+        # Row PW part 3: the sentence's figures in everyday words, and the act
+        # they are about (the page's factor table is built for the same act).
+        "plain": plain_line(reading),
+        "quoted_action": str(quoted.get("action") or ""),
         "recommendation_line": composed["line"],
         "preference_line": composed.get("preference_line", ""),
         "situation": composed["situation"],

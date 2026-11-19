@@ -73,7 +73,7 @@ _PERSONALITY_DESCRIPTIONS = {
     # mechanic (NAPOLEON_SPEC §4.2/§5.1/§5.2/§6.2/§8).
     "sovereign": (
         "Sovereign: You, in the field. He never objects — his orders are "
-        "your own will, and cost 1 AP, not 2 (with the live parser, a "
+        "your own will, and cost 1 action, not 2 (with the live parser, a "
         "delegated order such as 'deal with Mack' is read back to you by "
         "Berthier for its target before he marches). Where he "
         "stands, every corps of his nation fights +10% harder on attack "
@@ -87,7 +87,7 @@ _PERSONALITY_DESCRIPTIONS = {
         # W6-5 The Literal Doctrine (§7.1) — the doctrine, stated on the card.
         "Literal: Executes orders to the letter — no improvisation, no "
         "initiative, no objection. Cheaper to command (strategic orders "
-        "cost 1 AP, not 2), immovable on the defense (+15% when holding), "
+        "cost 1 action, not 2), immovable on the defense (+15% when holding), "
         "and utterly predictable. He will never march to the sound of the "
         "guns without your written word ('support X' authorizes him)."
     ),

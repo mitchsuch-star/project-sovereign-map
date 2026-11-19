@@ -182,7 +182,7 @@ def march_detour_ask(ctx, dest: str):
         "interpreted_target": dest,
         "interpretation_reason": "detour",
         "options": [{
-            "label": f"{verb.capitalize()} ({ap} AP)",
+            "label": f"{verb.capitalize()} ({_plural(ap, 'action')})",
             "value": "specify",
             "target": dest,
             # The answer re-issues the order as typed; the flag keeps the ask
@@ -264,7 +264,7 @@ def _guard_ask_parts(ctx, dest: str, raw: str, verb: str, ap: int):
     if around is not None:
         road, turns = around
         options.append({
-            "label": f"Go round ({ap} AP, {_plural(len(road), 'province')})",
+            "label": f"Go round ({_plural(ap, 'action')}, {_plural(len(road), 'province')})",
             "value": "specify",
             "target": f"{dest} (round)",
             "command": _guard_round_command(ctx, raw),
@@ -324,7 +324,7 @@ def march_guard_ask(ctx, dest: str):
         "interpreted_target": dest,
         "interpretation_reason": "guarded_ground",
         "options": [{
-            "label": f"{verb.capitalize()} ({ap} AP)",
+            "label": f"{verb.capitalize()} ({_plural(ap, 'action')})",
             "value": "specify",
             "target": dest,
             "command": raw,
@@ -2990,7 +2990,7 @@ class StrategicExecutor:
             if original:
                 ctx.msg += " " + literal_ack(original, int(ctx.world.current_turn))
             if not is_auto_upgrade:
-                ctx.msg += (f" (1 AP — {ctx.marshal.name} executes precise orders "
+                ctx.msg += (f" (1 action — {ctx.marshal.name} executes precise orders "
                         f"with fewer couriers.)")
         else:
             # Marshal Voice Tier 1 (position 9): aggressive/cautious
@@ -3009,16 +3009,16 @@ class StrategicExecutor:
             # NP-1: the sovereign's discount is captioned like the
             # literal's, so 1 AP reads as doctrine, not accounting.
             if is_sovereign and not is_auto_upgrade:
-                ctx.msg += " (1 AP — the Emperor commands in his own name.)"
+                ctx.msg += " (1 action — the Emperor commands in his own name.)"
             if ctx.strategic_type == "HOLD" and strategic_cost == 2:
                 # PF-6: a tactical-sounding "hold your ground" is upgraded
                 # to a 2-AP standing strategic HOLD for a non-literal
                 # marshal. Announce the upgrade inline (the V2-58 pricing
                 # stands — do NOT re-price) and name the 1-AP tactical
                 # alternative so the player can opt out.
-                ctx.msg += (" (2 AP — a standing strategic order to hold this "
+                ctx.msg += (" (2 actions — a standing strategic order to hold this "
                         "ground turn after turn. For a single-turn tactical "
-                        "hold, order 'defend' at 1 AP.)")
+                        "hold, order 'defend' for 1 action.)")
 
         _reply = {
             "success": True,

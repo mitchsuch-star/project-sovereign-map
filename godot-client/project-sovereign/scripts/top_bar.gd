@@ -954,14 +954,38 @@ func _cluster_rule() -> Control:
 	return r
 
 
+# Row PW part 3 (November 19, 2026): a word beside each figure. The first
+# player's readers could not say what the bar's bare numbers were ("800 +828",
+# "5/5", "100", "71" — a glyph and a figure, the word on the hover alone). Each
+# group now says its name; the words are the first thing the fit ladder sheds
+# (step 1, with the gauge) and never stand on the compact bar.
+const FIGURE_WORDS := {"gold": "Gold", "dp": "Diplomacy", "authority": "Authority", "threat": "Threat",
+	"turn": "Turn"}
+var _figure_words: Array = []
+
+
+func _figure_word(glyph_name: String) -> Label:
+	var word := Label.new()
+	word.name = "Word_" + glyph_name
+	word.text = str(FIGURE_WORDS.get(glyph_name, ""))
+	word.theme_type_variation = &"Caption"
+	word.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
+	word.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_figure_words.append(word)
+	return word
+
+
 func _group(name: String, glyph_name: String, figure: Control, opens: Callable) -> HBoxContainer:
-	"""Glyph + figure as one hover target that opens its book."""
+	"""Glyph + word + figure as one hover target that opens its book."""
 	var box := HBoxContainer.new()
 	box.name = name
 	box.add_theme_constant_override("separation", 4)
 	box.mouse_filter = Control.MOUSE_FILTER_STOP
 	_pointer_controls.append(box)   # the pointing hand once the bar is laid out
 	box.add_child(_glyph(glyph_name))
+	if FIGURE_WORDS.has(glyph_name):
+		box.add_child(_figure_word(glyph_name))
 	box.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			AudioManager.play("click")
@@ -1093,7 +1117,10 @@ func _refresh_treasury_text() -> void:
 		return
 	var sign := "+" if _treasury_net >= 0 else "\u2212"
 	var net_words := sign + Utils.format_number(absi(_treasury_net))
-	treasury_label.text = shown_words if _fit_step >= 2 else shown_words + "  " + net_words
+	# Row PW part 3 (the blind reading: "+828 — I cannot tell the period"): the net says "a turn"
+	# while the bar has room (fit step 0); the bare net from step 1, nothing from step 2.
+	var net_tail := " a turn" if _fit_step < 1 and not _compact else ""
+	treasury_label.text = shown_words if _fit_step >= 2 else shown_words + "  " + net_words + net_tail
 	treasury_label.tooltip_text = TREASURY_TOOLTIP % [gold_words, net_words]
 	treasury_label.get_parent().tooltip_text = treasury_label.tooltip_text
 
@@ -1137,6 +1164,9 @@ func _fit_right_cluster() -> void:
 
 func _apply_fit_step(step: int) -> void:
 	_fit_step = step
+	for word in _figure_words:
+		if is_instance_valid(word):
+			(word as Label).visible = step < 1 and not _compact
 	if _threat_gauge != null:
 		_threat_gauge.visible = threat_label.visible and step < 1
 	_refresh_treasury_text()
@@ -1206,7 +1236,11 @@ func _set_threat_gauge(threat: int) -> void:
 # the DP label's gold from 71 (credit), amber under 71 (the calm and the
 # Charges lost), red under 50. The tooltip names the last moves with their
 # causes and the five lines; the grip and the Presence when they differ.
-const AUTHORITY_LINES_TOOLTIP := "The lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral."
+# Row PW part 3: what authority IS and what it is FOR, then what each level
+# does — in everyday words (the readers: "what trust and authority are for").
+# Each line is the rule's own (`AUTHORITY_CURRENCY_SPEC.md` §1.2).
+const AUTHORITY_WORDS := "Authority is your standing as Emperor, from 0 to 100. You spend it to overrule a marshal by your own word and on titles and laws; victories win it back; defeats and broken promises cost it. Nothing can be bought that would leave it under 60."
+const AUTHORITY_LINES_TOOLTIP := "What each level does:\n  85 or more — your presence in a battle is worth its full +10%\n  80 or more — marshals obey more readily and defy less\n  above 70 — rival marshals keep the peace; under 70 the Charges of Empire cost more\n  60 or more — one more diplomatic point a turn\n  under 50 — marshals obey less and defy more\n  under 30 — one diplomatic point less a turn, and your client states' loyalty falls"
 var authority_chip: Label = null
 var _authority_payload: Dictionary = {}
 
@@ -1254,7 +1288,7 @@ func _authority_tooltip(payload: Dictionary) -> String:
 	var label := str(payload.get("label", ""))
 	var grip := int(payload.get("grip", value))
 	var presence := int(payload.get("presence", -1))
-	var lines: Array = ["Authority %d (%s)" % [value, label]]
+	var lines: Array = ["Authority %d (%s)" % [value, label], AUTHORITY_WORDS]
 	if grip != value:
 		lines.append("The Empire's grip %d — the number the game acts on (a lost capital, a losing war)." % grip)
 	if presence >= 0 and presence < 10:

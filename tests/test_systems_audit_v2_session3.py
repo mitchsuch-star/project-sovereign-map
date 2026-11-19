@@ -462,8 +462,8 @@ class TestAdminAPBonusAlignment:
         economy_path = os.path.join(os.path.dirname(__file__), "..", "backend", "commands", "economy_executor.py")
         with open(economy_path, "r", encoding="utf-8") as f:
             source = f.read()
-        assert "unused AP x 25" in source
-        assert "unused AP x 75" not in source
+        assert "'unused admin action')} x 25)" in source
+        assert "'unused admin action')} x 75)" not in source
 
 
 # ═══════════════════════════════════════════════════════

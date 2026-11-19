@@ -5654,9 +5654,9 @@ class TestS14G11:
         assert int(w.actions_remaining) == ap
         assert (out.get("action_info") or {}).get("cost", 0) == 0
         march, around = out["options"]
-        assert march["label"] == "March (1 AP)" and march["command"] == "Soult, march to Flanders"
+        assert march["label"] == "March (1 action)" and march["command"] == "Soult, march to Flanders"
         assert march["flags"] == {"_guard_confirmed": True}
-        assert around["label"] == "Go round (1 AP, 5 provinces)"
+        assert around["label"] == "Go round (1 action, 5 provinces)"
         assert around["flags"] == {"_march_confirmed": True, "_guard_confirmed": True,
                                    "_guard_go_round": True}
         # a button click re-sends an option's command verbatim: the two must differ
@@ -7820,7 +7820,7 @@ class TestS14GX29:
         _r13_assert_pay_then_front(result["message"])
         # the question still closes the sentence
         assert result["message"].index(_R13_SWABIA_FRONT) < result["message"].index(
-            "Pursue him (2 AP")
+            "Pursue him (2 actions")
 
     def test_a_breakout_onto_the_front(self, _r13_boot, monkeypatch):
         world = _r13_front_world(_r13_boot)
@@ -8048,7 +8048,7 @@ class TestS14GX50:
         assert out["message"] == _R13_GUARD_BERLIN.rstrip(".") + " — move or cancel?"
         assert soult.location == "Dresden" and int(world.actions_remaining) == ap
         (move,) = out["options"]
-        assert move["label"] == "Move (1 AP)" and move["target"] == "Berlin"
+        assert move["label"] == "Move (1 action)" and move["target"] == "Berlin"
         assert "move" in move["aliases"] and "move anyway" in move["aliases"]
         # the answered option is the player's own words, verbatim, and carries
         # the flag that keeps the move from asking twice
@@ -8216,7 +8216,7 @@ class TestS14GX51:
         assert out["clarification_kind"] == "pursuit_ask", out.get("message")
         assert out["message"] == (
             f"Kutuzov stands at Amsterdam, three marches off. {_R13_GUARD_ROAD} "
-            "Pursue him (1 AP — a standing order; the first march takes Soult to Berlin, "
+            "Pursue him (1 action — a standing order; the first march takes Soult to Berlin, "
             "Prussia's soil), or cancel?")
         assert out["free_action"] is True
         assert world.get_marshal("Soult").location == "Dresden"
@@ -10930,6 +10930,8 @@ class TestS14GX74:
         "keys.gd": "the binding registry: Esc is RESERVED (it never names it as a key to bind)",
         # Row PW (November 18, 2026): the "Which corps?" list of a stack.
         "stack_picker.gd": "a map list: Esc shuts it and never touches the command line",
+        # Row PW part 3 (November 19, 2026): Esc sets a letter aside.
+        "incoming_proposal_popup.gd": "presses its own Not Now: that button's handler returns control",
     }
     POPUP_BASE_ROADS = {
         "proclamation_popup.gd": ("proclamation_popup.dismissed.connect(_on_proclamation_dismissed)",
@@ -15489,7 +15491,16 @@ _R29_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project
 _R29_SCRIPTS = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
                 / "scripts")
 
-_R29_PRICE = re.compile(r"^\((\d+) (Admin )?AP(?: · (?:this turn|\d+ turns?))?\)$")
+_R29_PRICE = re.compile(r"^\((\d+) (admin )?actions?(?: · (?:this turn|\d+ turns?))?\)$")
+
+
+def _r29_actions(n) -> str:
+    """PW2-D1: a price in everyday words - '1 action' / '2 actions'."""
+    return f"{int(n)} action{'' if int(n) == 1 else 's'}"
+
+
+def _r29_admin(n) -> str:
+    return f"{int(n)} admin action{'' if int(n) == 1 else 's'}"
 
 
 def _r29_quiet():
@@ -15550,7 +15561,7 @@ def _r29_price(chip) -> tuple:
 
 def _r29_PRICE_MATCH(note):
     got = _R29_PRICE.match(note)
-    assert got, f"cost note {note!r} is not '(N AP)' / '(N Admin AP)' / '(N AP - T turns)'"
+    assert got, f"cost note {note!r} is not '(N action[s])' / '(N admin action[s])' / '(N action[s] - T turns)'"
     return got
 
 
@@ -15597,7 +15608,7 @@ class TestS14G29:
             assert quote["ok"] is True
             turns = int(quote["turns"])
             word = "this turn" if turns == 0 else f"{turns} turn{'s' if turns != 1 else ''}"
-            assert chip["cost_note"] == f"({int(quote['ap'])} AP · {word})"
+            assert chip["cost_note"] == f"({_r29_actions(quote['ap'])} · {word})"
             assert chip["ap"] == int(quote["ap"]) and chip["turns"] == turns
             assert chip["enabled"] is True and chip["reason"] == ""
         # the two corps are priced differently - the price is the MAN's
@@ -15712,7 +15723,7 @@ class TestS14G29:
         for chip in chips:
             assert chip["reason"]
             marshal = world.get_marshal(chip["command"].split(",")[0])
-            assert chip["cost_note"] == f"({int(marshal.strategic_order_ap(order_type='MOVE_TO'))} AP)"
+            assert chip["cost_note"] == f"({_r29_actions(marshal.strategic_order_ap(order_type='MOVE_TO'))})"
 
     def test_the_march_chip_prints_the_quotes_lines_in_the_panels_order(self, _r29_boot, monkeypatch):
         """Every line of the quote rides the chip, in the order
@@ -15737,7 +15748,7 @@ class TestS14G29:
                  "he may object"]
         at = [note.index(p) for p in order]
         assert at == sorted(at), note
-        assert chip["cost_note"] == "(2 AP · 3 turns)" and chip["turns"] == 3
+        assert chip["cost_note"] == "(2 actions · 3 turns)" and chip["turns"] == 3
         assert "3 provinces to the yard" in note        # the quote's road, not a copy
         # a refused quote withholds the chip with its own words
         crafted.update(ok=False, refusal="REFUSED-by-the-quote", ap=0, turns=0)
@@ -15776,9 +15787,9 @@ class TestS14GX133:
         assert options
         for rows in options.values():
             for row in rows:
-                assert row["cost_note"] == f"({int(world.get_action_cost('naval_expedition'))} AP)"
+                assert row["cost_note"] == f"({_r29_actions(world.get_action_cost('naval_expedition'))})"
         overlay = naval.map_naval_overlay(world)["expedition_landings"]
-        assert all(row["cost_note"] == "(2 AP)" for rows in overlay.values() for row in rows)
+        assert all(row["cost_note"] == "(2 actions)" for rows in overlay.values() for row in rows)
 
 
 class TestS14GX134:
@@ -15813,18 +15824,18 @@ class TestS14GX135:
         world._action_costs["set_fleet_posture"] = 2
         world._action_costs["build_fleet"] = 4
         rep = _r29_report(world)
-        assert _r29_chip(rep, "order the diversion")["cost_note"] == "(3 AP)"
-        assert _r29_chip(rep, "blockade the enemy")["cost_note"] == "(2 AP)"
-        assert _r29_chip(rep, "build ships")["cost_note"] == "(4 Admin AP)"
+        assert _r29_chip(rep, "order the diversion")["cost_note"] == "(3 actions)"
+        assert _r29_chip(rep, "blockade the enemy")["cost_note"] == "(2 actions)"
+        assert _r29_chip(rep, "build ships")["cost_note"] == "(4 admin actions)"
 
     def test_the_admin_pool_is_named(self, _r29_boot):
         from backend.game_logic import naval
         world = _r29_copy(_r29_boot)
         for verb in ("build_fleet", "build", "recruit_marshal"):
-            assert naval.ap_price_words(world, verb) == "1 Admin AP", verb
+            assert naval.ap_price_words(world, verb) == "1 admin action", verb
         for verb in ("set_fleet_posture", "naval_diversion"):
-            assert naval.ap_price_words(world, verb) == "1 AP", verb
-        assert naval.ap_price_words(world, "naval_expedition") == "2 AP"
+            assert naval.ap_price_words(world, verb) == "1 action", verb
+        assert naval.ap_price_words(world, "naval_expedition") == "2 actions"
 
 
 class TestS14GX136:
@@ -15858,8 +15869,8 @@ class TestS14GX140:
         from backend.game_logic import naval
         world = _r29_copy(_r29_boot)
         overlay = naval.map_naval_overlay(world)
-        assert overlay["ship_ap_note"] == f"({world.get_action_cost('build_fleet')} Admin AP)"
-        assert overlay["yard_ap_note"] == f"({world.get_action_cost('build')} Admin AP)"
+        assert overlay["ship_ap_note"] == f"({_r29_admin(world.get_action_cost('build_fleet'))})"
+        assert overlay["yard_ap_note"] == f"({_r29_admin(world.get_action_cost('build'))})"
         # and they are the chips' own words
         rep = _r29_report(world)
         assert _r29_chip(rep, "build ships")["cost_note"] == overlay["ship_ap_note"]
@@ -16222,7 +16233,7 @@ class TestS14G31:
         # the carve's provinces and the war that keeps the road open ride the clause
         assert "Ulster" in msg and "Munster" in msg and "Britain" in msg
         # and the card still ends on the question, with the price before it
-        assert msg.rstrip().endswith("Sailing costs 2 AP. Sail? (yes / no)")
+        assert msg.rstrip().endswith("Sailing costs 2 actions. Sail? (yes / no)")
 
     def test_a_corps_over_the_floor_hears_the_pointer_and_the_ashore_note_only(self, _r31_w):
         w = _r31_w
@@ -16514,9 +16525,9 @@ class TestS14GX146:
     def test_the_card_prints_the_verbs_price_from_the_table(self, _r31_w):
         w = _r31_w
         msg = self._diversion(w)["message"]
-        assert msg.rstrip().endswith("Ordering it costs 1 AP. Sail? (yes / no)"), msg
+        assert msg.rstrip().endswith("Ordering it costs 1 action. Sail? (yes / no)"), msg
         w._action_costs["naval_diversion"] = 3                  # the table, not a literal
-        assert "Ordering it costs 3 AP. Sail? (yes / no)" in self._diversion(w)["message"]
+        assert "Ordering it costs 3 actions. Sail? (yes / no)" in self._diversion(w)["message"]
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -16563,8 +16574,8 @@ class TestS14GX137:
         from backend.game_logic import naval
         w = _r31_w
         overlay = naval.map_naval_overlay(w)
-        assert overlay["ship_ap_note"] == f"({w.get_action_cost('build_fleet')} Admin AP)"
-        assert overlay["yard_ap_note"] == f"({w.get_action_cost('build')} Admin AP)"
+        assert overlay["ship_ap_note"] == f"({_r29_admin(w.get_action_cost('build_fleet'))})"
+        assert overlay["yard_ap_note"] == f"({_r29_admin(w.get_action_cost('build'))})"
 
     def test_the_chips_print_them(self):
         text = _R31_PANEL.read_text(encoding="utf-8")
@@ -16583,9 +16594,9 @@ class TestS14GX138:
     def test_the_expedition_card_prices_the_sailing(self, _r31_w):
         w = _r31_w
         _r31_corps(w, men=12000)
-        assert "Sailing costs 2 AP. Sail? (yes / no)" in _r31_card(w)["message"]
+        assert "Sailing costs 2 actions. Sail? (yes / no)" in _r31_card(w)["message"]
         w._action_costs["naval_expedition"] = 4
-        assert "Sailing costs 4 AP. Sail? (yes / no)" in _r31_card(w)["message"]
+        assert "Sailing costs 4 actions. Sail? (yes / no)" in _r31_card(w)["message"]
 
     def test_the_source_reads_the_helper_not_a_number(self):
         text = (_R31_ROOT / "backend" / "commands" / "naval_executor.py").read_text(encoding="utf-8")
@@ -16607,21 +16618,21 @@ class TestS14GX139:
         assert payload and payload["rows"]
         for entry in payload["rows"]:
             assert entry["chip"]["label"] == "Enact"
-            assert entry["chip"]["cost_note"] == naval.ap_cost_note(w, "enact_law") == "(1 Admin AP)"
+            assert entry["chip"]["cost_note"] == naval.ap_cost_note(w, "enact_law") == "(1 admin action)"
         # a law in force offers Repeal, priced by its own verb
         row = reforms.deck(w, "France")[0]
         row["enacted_turn"] = 1
         repeal = next(e for e in reforms.laws_payload(w, "France")["rows"]
                       if e["id"] == str(row.get("id")))
         assert repeal["chip"]["label"] == "Repeal"
-        assert repeal["chip"]["cost_note"] == naval.ap_cost_note(w, "repeal_law") == "(1 Admin AP)"
+        assert repeal["chip"]["cost_note"] == naval.ap_cost_note(w, "repeal_law") == "(1 admin action)"
 
     def test_the_price_is_the_tables(self, _r31_w):
         from backend.game_logic import reforms
         w = _r31_w
         w._action_costs["enact_law"] = 2
         first = reforms.laws_payload(w, "France")["rows"][0]
-        assert first["chip"]["cost_note"] == "(2 Admin AP)"
+        assert first["chip"]["cost_note"] == "(2 admin actions)"
 
     def test_the_ledger_renders_the_chips_cost_note(self):
         text = (_R31_ROOT / "godot-client" / "project-sovereign" / "scripts"
@@ -19368,7 +19379,7 @@ class TestS14GM1:
     def test_the_counsel_prices_the_fortify_from_neutral(self, _r35_w):
         from backend.ai import counsel as C
         lines = C.military_counsel(_r35_w, "France", limit=6)
-        assert "Soult, fortify (2 AP)" in lines, lines
+        assert "Soult, fortify (2 actions)" in lines, lines
         assert not any(line == "Soult, fortify" for line in lines)
 
     def test_a_defensive_corps_is_priced_at_the_table_and_the_price_is_read_not_typed(
@@ -19376,14 +19387,14 @@ class TestS14GM1:
         from backend.ai import counsel as C
         from backend.models.marshal import Stance
         soult = _r35_w.get_marshal("Soult")
-        assert C._fortify_price_tail(_r35_w, soult) == " (2 AP)"
+        assert C._fortify_price_tail(_r35_w, soult) == " (2 actions)"
         soult.stance = Stance.DEFENSIVE
         assert C._fortify_price_tail(_r35_w, soult) == ""        # face value: no tag
         soult.stance = Stance.NEUTRAL
         W = type(_r35_w)
         monkeypatch.setattr(W, "get_action_cost",
                             lambda self, action: 2 if action == "fortify" else 1)
-        assert C._fortify_price_tail(_r35_w, soult) == " (3 AP)"  # table + the stance step
+        assert C._fortify_price_tail(_r35_w, soult) == " (3 actions)"  # table + the stance step
 
     def test_the_counsel_names_the_march_the_order_would_set_aside(self, _r35_w):
         """"Soult, fortify" met "Soult's march to Paris is set aside." in the
@@ -19398,7 +19409,7 @@ class TestS14GM1:
                 if C._is_free_to_order(m)] == ["Soult"]
         assert C._standing_order_clause(soult) == " — his march to Paris would be set aside"
         lines = C.military_counsel(_r35_w, "France", limit=6)
-        assert ("Soult, fortify (2 AP) — his march to Paris would be set aside") in lines, lines
+        assert ("Soult, fortify (2 actions) — his march to Paris would be set aside") in lines, lines
         # ...and it is the reply's own sentence, in the conditional
         reply = _r35_fortify_typed(_r35_w, ex, "Soult")["message"]
         assert "Soult's march to Paris is set aside." in reply, reply
@@ -21138,7 +21149,7 @@ class TestS14GX164:
         neutral, defensive, _growth = _fortify_rule_words(_r37_w)
         assert (neutral, defensive) == (2, 1)
         assert int(insist_terms(_r37_w, soult, "fortify")[0]) == neutral
-        assert counsel._fortify_price_tail(_r37_w, soult) == f" ({neutral} AP)"
+        assert counsel._fortify_price_tail(_r37_w, soult) == f" ({_r29_actions(neutral)})"
 
     def test_the_price_is_read_from_the_cost_table_never_a_literal(self, _r37_w):
         from backend.ai.state_desk import _rule_text
@@ -21644,7 +21655,7 @@ class TestS14GX168:
         arm = row[row.index('elif fortify_why == "":'):row.index("# CN-4: the Drill chip")]
         assert 'var fortify_prices = tactical.get("order_prices", {})' in arm
         assert 'int(fortify_prices.get("fortify", 0)) > 0' in arm
-        assert 'fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"' in arm
+        assert 'fortify_label += " (" + Utils.plural(int(fortify_prices.get("fortify", 0)), "action") + ")"' in arm
         # the chip's command expression is the census's pinned text - untouched
         assert 'Utils.bb_button_chip("order:fortify:" + m_name, fortify_label, Utils.COLOR_COMMAND, _CHIP_BG)' in arm
         # a dimmed Fortify keeps its bare label (the CN-4 census reads it)
@@ -21654,7 +21665,7 @@ class TestS14GX168:
     def test_no_literal_price_is_kept_in_the_script(self):
         arm = _r37_func(_r37_gd("region_panel.gd"), "_format_marshal_row")
         arm = arm[arm.index('elif fortify_why == "":'):arm.index("# CN-4: the Drill chip")]
-        assert '"Fortify (' not in arm and '(2 AP)' not in arm and '(1 AP)' not in arm
+        assert '"Fortify (' not in arm and '(2 actions)' not in arm and '(1 action)' not in arm
 
     def test_the_chip_sends_the_typed_fortify_the_price_is_for(self, _r37_w):
         """The order the chip sends is `<Name>, fortify` and it spends what the
@@ -21807,9 +21818,9 @@ class TestS14GX170:
         arm = src[start:src.index("# CN-4: Drill is offered only where the drill would begin", start)]
         assert 'var fortify_prices = m.get("order_prices", {})' in arm
         assert 'int(fortify_prices.get("fortify", 0)) > 0' in arm
-        assert 'fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"' in arm
+        assert 'fortify_label += " (" + Utils.plural(int(fortify_prices.get("fortify", 0)), "action") + ")"' in arm
         assert 'Utils.bb_button_chip("order:fortify:" + chip_name, fortify_label, Utils.COLOR_COMMAND, "233043")' in arm
-        assert '"Fortify (' not in arm and "(2 AP)" not in arm and "(1 AP)" not in arm
+        assert '"Fortify (' not in arm and "(2 actions)" not in arm and "(1 action)" not in arm
         assert "S14G-X170" in arm
         # the dimmed chip keeps its bare label
         assert 'Utils.bb_chip_disabled("Fortify")' in src

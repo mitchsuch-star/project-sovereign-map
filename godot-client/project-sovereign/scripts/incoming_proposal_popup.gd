@@ -204,6 +204,20 @@ func _play_letter_open_late() -> void:
 		AudioManager.play("letter_open")
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	"""Row PW part 3 (found by pressing the real client): Esc on a letter did
+	nothing at all — no close, no word. It now sets the letter aside: it
+	presses "Not Now" where the letter shows one. An ANSWER is never given by
+	a reflex key (FA-94's rule) — Accept and Reject stay clicks; a letter with
+	no "Not Now" keeps its Esc silent."""
+	if not visible or not event.is_action_pressed("ui_cancel"):
+		return
+	if dismiss_btn == null or not dismiss_btn.visible or dismiss_btn.disabled:
+		return
+	get_viewport().set_input_as_handled()
+	dismiss_btn.pressed.emit()
+
+
 func show_proposal(data: Dictionary):
 	"""Display incoming proposal popup."""
 	if not _silent_rebuild:

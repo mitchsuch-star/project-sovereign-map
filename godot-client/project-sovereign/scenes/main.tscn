@@ -220,25 +220,33 @@ theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
 theme_type_variation = &"Caption"
 text = "80,000"
 
-[node name="CavLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+[node name="CavalryDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CavLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/CavalryDisplay"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
 theme_type_variation = &"Caption"
 text = "Cav:"
 
-[node name="CavValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+[node name="CavValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/CavalryDisplay"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
 theme_type_variation = &"Caption"
 text = "15,000"
 
-[node name="ArtLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+[node name="ArtilleryDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ArtLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ArtilleryDisplay"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
 theme_type_variation = &"Caption"
 text = "Art:"
 
-[node name="ArtValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+[node name="ArtValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ArtilleryDisplay"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.7, 0.85, 1)
 theme_type_variation = &"Caption"

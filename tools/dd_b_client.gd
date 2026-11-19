@@ -279,6 +279,35 @@ func _do(action: String) -> void:
 				rec["note"] = str(rec.get("note", "")) + " · pressed Space while the map told the turn"
 		else:
 			rec["note"] = str(rec.get("note", "")) + " · the map told nothing this turn (no skip to press)"
+	elif verb == "clickshots":
+		# Row PW part 3: a click, then a strip of frames WHILE the board moves
+		# (a march is over before an action's own frame is taken):
+		# `clickshots <x> <y> [n=5] [gap_ms=220]` — the frames are JPEG crops of
+		# the map round the click (`shots`), each with its age in ms.
+		var cp := rest.split(" ", false)
+		if cp.size() < 2 or not cp[0].is_valid_float() or not cp[1].is_valid_float():
+			_err(rec, "clickshots wants: clickshots <x> <y> [n] [gap_ms]")
+		else:
+			var at := Vector2(float(cp[0]), float(cp[1]))
+			var shots_n: int = clampi(int(cp[2]) if cp.size() > 2 and cp[2].is_valid_int() else 5, 1, 12)
+			var gap_ms: int = clampi(int(cp[3]) if cp.size() > 3 and cp[3].is_valid_int() else 220, 40, 2000)
+			await _real_click(at)
+			var began := Time.get_ticks_msec()
+			var shots: Array = []
+			for i in range(shots_n):
+				while Time.get_ticks_msec() - began < (i + 1) * gap_ms:
+					await process_frame
+				var img := root.get_texture().get_image()
+				var k: float = float(img.get_width()) / maxf(root.get_visible_rect().size.x, 1.0)
+				var box := Rect2i(int((at.x - 420.0) * k), int((at.y - 230.0) * k), int(840.0 * k), int(460.0 * k)) \
+					.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
+				var crop := img.get_region(box)
+				crop.resize(1120, int(1120.0 * float(box.size.y) / float(maxi(box.size.x, 1))), Image.INTERPOLATE_BILINEAR)
+				var rel := "frames/%04d_shot%d.jpg" % [_n, i + 1]
+				crop.save_jpg("%s/%s" % [_run_dir, rel], 0.85)
+				shots.append({"file": rel, "ms": Time.get_ticks_msec() - began})
+			rec["shots"] = shots
+			rec["note"] = "clicked at (%d, %d) and took %d frames while the board moved" % [int(at.x), int(at.y), shots_n]
 	elif verb == "still":
 		await _act_still(rest, rec)
 	elif verb == "look":
@@ -287,7 +316,7 @@ func _do(action: String) -> void:
 		_quitting = true
 		rec["note"] = "the engine quits" + (" (idle)" if rest == "idle" else "")
 	else:
-		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, hover, key, scroll, still, look, endturn_skip" % verb)
+		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, clickshots, hover, key, scroll, still, look, endturn_skip" % verb)
 	var t1 := Time.get_ticks_msec()
 	_settle_moves = []
 	_settle_frame = 0

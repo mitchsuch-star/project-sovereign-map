@@ -10,6 +10,7 @@ from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import TERRAIN_DEFENSE_BONUS
 from backend.display_names import display_nation, humanize_entity_name
+from backend.display_names import actions_words as _actions  # row PW, PW2-D1: a price in plain words
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
@@ -745,7 +746,7 @@ def move_guard_ask(world, marshal, dest: str, road, raw_input, ap: int):
         "interpreted_target": dest,
         "interpretation_reason": "guarded_ground",
         "options": [{
-            "label": f"Move ({ap} AP)",
+            "label": f"Move ({_actions(ap)})",
             "value": "specify",
             "target": dest,
             "command": raw,

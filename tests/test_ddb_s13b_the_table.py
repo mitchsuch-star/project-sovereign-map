@@ -494,10 +494,10 @@ class TestDDB23:
         assert stream_term_phrase({"type": "gold_lump", "value": 50}) == ""
         terms = {"type": "vassalage", "sweeteners": [{"type": "ap_per_turn", "value": 1}],
                  "demands": [], "clauses": []}
-        assert "France concedes 1 AP/turn for as long as the treaty stands" in format_terms_for_display(
+        assert "France concedes 1 action a turn for as long as the treaty stands" in format_terms_for_display(
             terms, "vassalage", "Bavaria")
         (row,) = annotate_peace_terms(terms, "France", "Bavaria")
-        assert row["display_label"] == "France cedes 1 AP per turn to Bavaria for as long as the treaty stands"
+        assert row["display_label"] == "France cedes 1 of its actions each turn to Bavaria for as long as the treaty stands"
 
     def test_a_generous_round_on_an_armistice_keeps_the_armistice_first(self, client):
         c, w = client

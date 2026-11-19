@@ -130,7 +130,7 @@ class TestTheTreatyVerdict:
                             lambda world, n, o: 90 if (n, o) == ("France", "Prussia") else -90)
         v = can_sign(w, letter)
         assert v.clause == "ap_clause"
-        assert v.message == "AP demands require overwhelming military dominance (war score > 80)."
+        assert v.message == "A demand on their actions requires overwhelming military dominance (war score > 80)."
 
     def test_the_vassal_gates_are_the_creators_one_predicate(self, w):
         D.set_diplomatic_state(w, "France", "Prussia", "OPEN_BORDERS", "test")

@@ -1085,7 +1085,7 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
                         "gold_lump": "Gold payment",
                         "gold_per_turn": "Gold/turn",
                         "manpower_per_turn": "Manpower/turn",
-                        "ap_per_turn": "AP/turn",
+                        "ap_per_turn": "actions a turn",
                         "territory_cede": "Territory cession",
                         "infantry_manpower": "Infantry levy",
                         "cavalry_manpower": "Cavalry levy",

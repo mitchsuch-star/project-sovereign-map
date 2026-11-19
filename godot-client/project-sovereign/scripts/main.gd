@@ -145,8 +145,8 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 @onready var admin_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/AdminDisplay/AdminValue
 @onready var gold_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
 @onready var inf_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/InfValue
-@onready var cav_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/CavValue
-@onready var art_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/ArtValue
+@onready var cav_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/CavalryDisplay/CavValue
+@onready var art_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ArtilleryDisplay/ArtValue
 
 # UI References - Main Interface
 @onready var output_scroll = $BottomLeftUI/MainMargin/MainLayout/OutputScroll
@@ -998,6 +998,7 @@ func _ready():
 	# how to get back ("Esc: menu · click to type"); regained, the default.
 	if not command_input.focus_exited.is_connected(_refresh_command_placeholder):
 		command_input.focus_exited.connect(_refresh_command_placeholder)
+		command_input.focus_exited.connect(_pw3_drop_line_ideas)   # row PW part 3
 	if not command_input.focus_entered.is_connected(_refresh_command_placeholder):
 		command_input.focus_entered.connect(_refresh_command_placeholder)
 	_refresh_command_placeholder()
@@ -1521,6 +1522,9 @@ func _on_command_input_gui_input(event):
 	# Session UI-5: a rebound global key is read as its default (Keys.canonical);
 	# a plain typed character always stays what the player typed.
 	var _raw_event = event
+	# Row PW part 3: a click on an empty line asks for ideas (what can be typed).
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_pw3_want_line_ideas()
 	event = Keys.canonical(event)
 	if _raw_event is InputEventKey and _is_text_key(_raw_event):
 		event = _raw_event
@@ -1598,6 +1602,13 @@ func _on_command_input_gui_input(event):
 			# reds `test_tab_is_the_accept_key_and_was_free`, whose docstring is
 			# about nothing having been taken from the player.
 			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_TAB and not event.shift_pressed and _suggestions.is_empty() \
+				and command_input.text.strip_edges() == "" and not _line_ideas_wanted:
+			# Row PW part 3: Tab on an EMPTY line with nothing offered asks for
+			# ideas (what the line is best at); the next Tab takes the first. A
+			# SEPARATE arm above the Tab one, as the arm above asks of its own.
+			_pw3_want_line_ideas()
+			command_input.accept_event()
 		elif event.keycode == KEY_TAB:
 			# CX-3: Tab takes the highlighted completion, and Tab again walks
 			# the list. It never SENDS — the player still presses Enter, the
@@ -1634,6 +1645,8 @@ func _on_command_input_gui_input(event):
 			# focus away from a player who only wanted the list gone.
 			if not _suggestions.is_empty():
 				_clear_suggestions()
+			elif _map_key != null and is_instance_valid(_map_key) and _map_key.is_open():
+				_map_key.close_key()   # row PW part 3: the map's key stands over the map — it goes first
 			elif _ui5_log_open:
 				_ui5_close_log()   # Session UI-6: then the bar's open log folds
 			elif _order_engaged():
@@ -1887,6 +1900,10 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	# Row PW: the stack's pick-list is the topmost thing while it is up.
 	if _stack_picker != null and _stack_picker.is_open():
 		_stack_picker.close_list()
+		return true
+	# Row PW part 3: the map's key is put away before anything under it.
+	if _map_key != null and is_instance_valid(_map_key) and _map_key.is_open():
+		_map_key.close_key()
 		return true
 	# Session UI-5: the Help & Keys book and the save dialog are the topmost.
 	if codex != null and codex.is_open():
@@ -2437,8 +2454,8 @@ func _dress_status_glyphs() -> void:
 	status.set_meta("glyphs_dressed", true)
 	var pairs := [["TurnDisplay/TurnLabel", "turn"], ["ActionsDisplay/ActionsLabel", "actions"],
 		["AdminDisplay/AdminLabel", "admin"], ["GoldDisplay/GoldLabel", "gold"],
-		["ManpowerDisplay/InfLabel", "foot"], ["ManpowerDisplay/CavLabel", "horse"],
-		["ManpowerDisplay/ArtLabel", "guns"]]
+		["ManpowerDisplay/InfLabel", "foot"], ["CavalryDisplay/CavLabel", "horse"],
+		["ArtilleryDisplay/ArtLabel", "guns"]]
 	for pair in pairs:
 		var key := status.get_node_or_null(pair[0]) as Control
 		if key == null:
@@ -2589,6 +2606,7 @@ func _build_map_controls() -> void:
 		elif chip[0] == "FitEuropeButton":
 			_map_fit_btn = btn
 	_ui5_build_map_mode_chip(row)   # Session UI-5: "Lands & rule ▾"
+	_pw3_build_map_tools(row)       # row PW part 3: "Key", "Take back"
 	add_child(map_controls)
 	map_controls.resized.connect(_queue_fit_map_controls)
 	_queue_fit_map_controls()
@@ -2601,6 +2619,131 @@ func _build_map_controls() -> void:
 
 var _map_zoom_out_btn: Button = null
 var _map_fit_btn: Button = null
+
+
+# ── Row PW part 3 (November 19, 2026): the map's key and the take-back ──────
+# Two more chips on the map's own controls. "Key" opens what every mark on the
+# map means (`map_key.gd`; the readers: "no key on the screen"). "Take back"
+# takes the last order back while the server keeps it (`take_back.py`: until it
+# shows something new, starts a fight or raises a question) — every reply says
+# whether one is kept (`undo`), so the chip never offers an order that stands.
+const MAP_KEY_FACE := "Key"
+const MAP_KEY_TIP := "What the marks on the map mean  (%s)"
+const TAKE_BACK_FACE := "Take back"
+const TAKE_BACK_TIP := "Take back your last order: %s  (Ctrl+Z)\nYou can take an order back until it shows you something new, starts a fight or raises a question."
+const TAKE_BACK_NONE_TIP := "%s\nCtrl+Z takes back your last order — until it shows you something new, starts a fight or raises a question."
+const MapKeyPanel = preload("res://scripts/map_key.gd")
+var _map_key = null
+var _map_key_btn: Button = null
+var _take_back_btn: Button = null
+var _take_back_offer: Dictionary = {}
+var _take_back_in_flight := false
+
+
+func _pw3_build_map_tools(row: HBoxContainer) -> void:
+	_map_key_btn = Button.new()
+	_map_key_btn.name = "MapKeyButton"
+	_map_key_btn.text = MAP_KEY_FACE
+	_map_key_btn.tooltip_text = MAP_KEY_TIP % Keys.key_name("map_key")
+	_map_key_btn.focus_mode = Control.FOCUS_NONE
+	_map_key_btn.custom_minimum_size = Vector2(0, MAP_CONTROL_SIZE)
+	Utils.apply_button_icon(_map_key_btn, Utils.ICON_PHOSPHOR + "map-trifold.svg")
+	_map_key_btn.pressed.connect(_pw3_toggle_map_key)
+	row.add_child(_map_key_btn)
+	_take_back_btn = Button.new()
+	_take_back_btn.name = "TakeBackButton"
+	_take_back_btn.text = TAKE_BACK_FACE
+	_take_back_btn.focus_mode = Control.FOCUS_NONE
+	_take_back_btn.custom_minimum_size = Vector2(0, MAP_CONTROL_SIZE)
+	Utils.apply_button_icon(_take_back_btn, Utils.ICON_PHOSPHOR + "arrow-arc-left.svg")
+	_take_back_btn.pressed.connect(_pw3_take_back)
+	row.add_child(_take_back_btn)
+	_pw3_note_take_back({})
+
+
+func _pw3_toggle_map_key() -> void:
+	if _map_key == null or not is_instance_valid(_map_key):
+		# Its own layer: over the map and the map's names (they stood on the
+		# key), under the war card (25) and every window.
+		var key_layer := CanvasLayer.new()
+		key_layer.name = "MapKeyLayer"
+		key_layer.layer = 24
+		add_child(key_layer)
+		_map_key = MapKeyPanel.new()
+		key_layer.add_child(_map_key)
+	_map_key.toggle()
+	_pw3_fit_map_key()
+
+
+func _pw3_fit_map_key() -> void:
+	"""The key stands over the map's controls, centred on the HUD band and
+	kept clear of the command window (left) and the war card (right): as many
+	columns as that room seats."""
+	if _map_key == null or not is_instance_valid(_map_key) or not _map_key.visible:
+		return
+	var band := Utils.hud_band(size)
+	var left: float = band.x + Utils.HUD_MARGIN
+	if bottom_left_ui != null and bottom_left_ui.visible:
+		left = maxf(left, bottom_left_ui.get_global_rect().end.x + Utils.HUD_MARGIN)
+	var right: float = band.y - Utils.HUD_MARGIN
+	var hud := _war_hud_rect()
+	if hud.size.x > 0.0:
+		right = minf(right, hud.position.x - Utils.HUD_MARGIN)
+	_map_key.fit(right - left)
+	var ks: Vector2 = _map_key.get_combined_minimum_size()
+	var floor_y: float = size.y - Utils.HUD_MARGIN
+	if map_controls != null and is_instance_valid(map_controls):
+		floor_y = minf(floor_y, map_controls.position.y - Utils.HUD_MARGIN)
+	var x: float = clampf((left + right - ks.x) / 2.0, left, maxf(left, right - ks.x))
+	var y: float = maxf(_ui6_column_top(), floor_y - ks.y)
+	_map_key.position = Vector2(x, y)
+	_map_key.size = ks
+
+
+func _pw3_note_take_back(response) -> void:
+	"""Every reply says whether the last order can be taken back (`undo`:
+	{available, words, why}); a reply without the key (an older server, a
+	read) leaves the chip as it stands."""
+	if response is Dictionary and (response as Dictionary).get("undo") is Dictionary:
+		_take_back_offer = ((response as Dictionary).get("undo") as Dictionary).duplicate()
+	if _take_back_btn == null or not is_instance_valid(_take_back_btn):
+		return
+	var available: bool = bool(_take_back_offer.get("available", false)) and not _take_back_in_flight
+	var why := str(_take_back_offer.get("why", ""))
+	if why == "":
+		why = "There is no order to take back."
+	Utils.set_available(_take_back_btn, available,
+		TAKE_BACK_TIP % ("“" + str(_take_back_offer.get("words", "")) + "”"), TAKE_BACK_NONE_TIP % why)
+
+
+func _pw3_take_back() -> void:
+	"""The chip and Ctrl+Z: ask the server to put the board back. Nothing is
+	sent under a modal, while an order is on its way, or when none is kept —
+	then the reason is said, never a silent press."""
+	if _take_back_in_flight or _chip_command_in_flight or _is_modal_dialog_open() or _pw_replay_running:
+		return
+	if command_input != null and not command_input.editable:
+		return   # an order is still out: its reply decides what can be taken back
+	if not bool(_take_back_offer.get("available", false)):
+		var why := str(_take_back_offer.get("why", ""))
+		ToastLayer.say(why if why != "" else "There is no order to take back.", "")
+		AudioManager.play("error")
+		return
+	_take_back_in_flight = true
+	_pw3_note_take_back(null)
+	api_client.take_back_last_order(_on_take_back_result)
+
+
+func _on_take_back_result(response) -> void:
+	_take_back_in_flight = false
+	_on_command_result(response)
+	if response is Dictionary and bool((response as Dictionary).get("taken_back", false)):
+		AudioManager.play("page_turn")
+		ToastLayer.say("Order taken back", "")
+	if top_bar and top_bar.screens.has("ledger"):
+		var ledger_screen = top_bar.screens["ledger"]
+		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
+			ledger_screen.refresh_if_open()
 const ZOOM_OUT_FLOOR_TIP := "Zoomed out as far as the map goes — the whole theatre is in view"
 const FIT_EUROPE_DONE_TIP := "The whole theatre is already in view"
 
@@ -2689,6 +2832,7 @@ func _fit_map_controls() -> void:
 		y = hud.position.y - Utils.HUD_MARGIN - cs.y
 	map_controls.position = Vector2(x, y)
 	map_controls.size = cs
+	_pw3_fit_map_key()   # row PW part 3: the key stands over the controls' row
 	_fit_order_strip()   # CC-3: the selection's strip rides above the chips
 	_push_map_label_avoid_rects.call_deferred()
 
@@ -5651,6 +5795,7 @@ func _on_command_result(response):
 			and proposal_confirm_popup.has_method("restage_answered"):
 		_pw_table_answer_due = false
 		proposal_confirm_popup.restage_answered.call_deferred()
+	_pw3_note_take_back(response)   # row PW part 3: whether the last order can still be taken back
 	if typeof(response) == TYPE_DICTIONARY:
 		_forget_unreadable_command(response)  # CX-7
 		# Session UI-5: the autosave at the turn's start is announced.
@@ -8445,7 +8590,7 @@ var _pw_toast_after_report := ""     # row PW: the autosave toast held while the
 # motion on, with the switch off (Settings → Orders → "Show the enemy's moves
 # on the map"), under a capture harness, or when the phase is fog alone (that
 # was already one line in the log, S14G-27).
-const PW_REPLAY_MARCH_S := 0.9
+const PW_REPLAY_MARCH_S := 1.4      # row PW part 3: 0.9 -> 1.4 — the pieces walk their roads, and are heard
 const PW_REPLAY_HOLD_S := 1.8      # the plaques' time
 const PW_REPLAY_QUIET_S := 0.4     # nothing of the player's changed: a breath, then the report
 const PW_REPLAY_BANNER := "THE ENEMY MOVES"
@@ -8514,7 +8659,8 @@ func _pw_play_then_report(enemy_phase: Dictionary, turn: int, digest: Dictionary
 	var plaques := _pw_replay_plaques(digest)
 	var changed: Array = _pw_replay_board.get("changed", [])
 	_pw_last_replay = {"turn": turn, "changed": changed.duplicate(),
-		"moved": int(_pw_replay_board.get("moved", 0)), "plaques": [], "skipped": false, "ended": false}
+		"moved": int(_pw_replay_board.get("moved", 0)), "plaques": [], "skipped": false, "ended": false,
+		"flashed": false, "digest_turn": int(digest.get("turn", -1))}
 	for row in plaques:
 		(_pw_last_replay["plaques"] as Array).append(str(row.get("text", "")))
 	_pw_replay_board = {}
@@ -8540,6 +8686,7 @@ func _pw_play_then_report(enemy_phase: Dictionary, turn: int, digest: Dictionary
 			flash.append(name)
 	if not flash.is_empty() and map_area.has_method("flash_regions"):
 		map_area.flash_regions(flash)
+		_pw_last_replay["flashed"] = true   # row PW part 3: shown once — not again when the report closes
 	_pw_replay_plaques_show(plaques)
 	await get_tree().create_timer(PW_REPLAY_HOLD_S if not plaques.is_empty() else PW_REPLAY_QUIET_S).timeout
 	if serial != _pw_replay_serial or not _pw_replay_running:
@@ -8707,7 +8854,14 @@ func _pw_say_the_digest(digest: Dictionary) -> void:
 	if digest.is_empty():
 		return
 	var flash = digest.get("flash", [])
-	if flash is Array and not flash.is_empty() and map_area != null and map_area.has_method("flash_regions"):
+	# Row PW part 3: a turn the map already told flashed these provinces in its
+	# second beat, where the eye was; the report's close does not flash them
+	# again (it did — "by design", and it read as a second event). A telling
+	# skipped before that beat, or not played at all, still flashes here.
+	var told: bool = bool(_pw_last_replay.get("flashed", false)) \
+		and int(_pw_last_replay.get("digest_turn", -1)) == int(digest.get("turn", -2))
+	if not told and flash is Array and not flash.is_empty() and map_area != null \
+			and map_area.has_method("flash_regions"):
 		map_area.flash_regions(flash)
 	if not _pw_digest_has_news(digest):
 		return
@@ -10728,7 +10882,7 @@ func _refresh_command_placeholder() -> void:
 	if command_input.editable and not command_input.has_focus():
 		command_input.placeholder_text = COMMAND_PLACEHOLDER_RELEASED
 	elif Utils.explanations_folded():
-		command_input.placeholder_text = COMMAND_PLACEHOLDER_EXAMPLE   # Session UI-6
+		command_input.placeholder_text = LINE_IDEAS_PLACEHOLDER   # row PW part 3 (was COMMAND_PLACEHOLDER_EXAMPLE, Session UI-6)
 	else:
 		command_input.placeholder_text = COMMAND_PLACEHOLDER_FOCUSED
 
@@ -12203,8 +12357,9 @@ func _render_order_strip() -> void:
 			prices = "this turn: " + Utils.plural(maxi(move_ap, 1), "action") \
 				+ " · no longer march today — " + march_refusal
 		elif move_ap >= 0:
-			prices = "this turn: " + Utils.plural(move_ap, "action") + " · further off: " \
-				+ Utils.plural(int(_order_reach.get("ap", 0)), "action")
+			# Row PW part 3: said as a sentence ("this turn: 1 action · further off: 1 action" was two labels).
+			prices = "a province he reaches this turn costs " + Utils.plural(move_ap, "action") \
+				+ " · a longer march costs " + Utils.plural(int(_order_reach.get("ap", 0)), "action")
 		if count <= 0:
 			prices = "no province on his roads"
 		text += "\n" + legend + "[color=#" + Utils.COLOR_INFO + "]" + prices + "[/color]"
@@ -13424,6 +13579,10 @@ func _build_completions(typed: String) -> Array:
 			seen[h.to_lower()] = true
 			out.append(h)
 	if prefix.strip_edges() == "":
+		# Row PW part 3: an empty line asked for ideas (Tab, or a click on it)
+		# offers what the typed line is best at — never over an offer held.
+		if out.is_empty() and _line_ideas_wanted:
+			return _pw3_line_ideas()
 		return out
 
 	# 1. What this player has already sent — 86% of the archive is exact
@@ -13632,6 +13791,63 @@ func _add_verb_or_target(marshal: String, rest: String, _prefix: String,
 				return
 
 
+# ── Row PW part 3 (November 19, 2026): what the typed line is FOR ────────────
+# The user, twice: "look into if parser is ever fun … when can entering text be
+# useful instead of a chore", "looking up things can be a pain is there a way
+# to make it fun". Measured on the live parser (28 lines a person might type):
+# every order has a button and a click is faster, but the line ANSWERS — "can
+# Ney reach Vienna?" names the road and who stands on it, "what if Ney attacks
+# Mack?" musters the battle without fighting it, "who is my best general?",
+# "how much gold do I have?" — free, at once, and no screen holds those. And
+# one line moves an army ("everyone, attack Mack"). The chore was the lookup:
+# a name to remember, a phrasing to guess. So an EMPTY line, on Tab or a click,
+# offers those questions ready-made from the board — the corps in hand, an
+# enemy in sight — and Tab or a click takes one. Nothing is sent by taking it.
+const LINE_IDEAS_PLACEHOLDER := "Ask or order · Tab: ideas"
+var _line_ideas_wanted := false
+
+
+func _pw3_line_ideas() -> Array:
+	var out: Array = []
+	var who_key: String = _order_marshal
+	if who_key == "":
+		var idle := _idle_marshals()
+		if not idle.is_empty():
+			who_key = str(idle[0])
+	var who := ""
+	var origin := ""
+	if who_key != "" and not _marshal_entry(who_key).is_empty():
+		who = Utils.humanize_entity_name(who_key)
+		origin = str(_marshal_entry(who_key).get("location", ""))
+	var foes: Array = _enemy_offers(origin) if origin != "" else []
+	var foe := str(foes[0]) if not foes.is_empty() else ""
+	if who != "":
+		out.append("what can %s do?" % who)
+		if foe != "":
+			out.append("what if %s attacks %s?" % [who, foe])
+	out.append("what now?")
+	out.append(("where is %s?" % foe) if foe != "" else "who is my best general?")
+	return out
+
+
+func _pw3_want_line_ideas() -> void:
+	"""Tab on an empty line, or a click on it: the ideas stand until the line
+	is typed into, sent, or let go."""
+	if not COMPLETIONS_ACTIVE or command_input == null or not command_input.editable:
+		return
+	if command_input.text.strip_edges() != "":
+		return
+	_line_ideas_wanted = true
+	_refresh_suggestions()
+
+
+func _pw3_drop_line_ideas() -> void:
+	if _line_ideas_wanted:
+		_line_ideas_wanted = false
+		if command_input != null and command_input.text.strip_edges() == "":
+			_refresh_suggestions()
+
+
 func _refresh_suggestions() -> void:
 	if not COMPLETIONS_ACTIVE or _suggestion_row == null:
 		return
@@ -13755,6 +13971,7 @@ func _refresh_after_accept() -> void:
 
 
 func _clear_suggestions() -> void:
+	_line_ideas_wanted = false   # row PW part 3: the ideas go with the line they stood over
 	_suggestions = []
 	_suggestion_index = 0
 	_render_suggestions()
@@ -13851,8 +14068,20 @@ func _ui5_hotkey_core(event: InputEventKey, on_line: bool) -> bool:
 			return false
 		_ui5_toggle_codex()
 		return true
+	# Row PW part 3: Ctrl+Z takes the last order back — on the line only while
+	# it is empty (a line holding a draft keeps Ctrl+Z for its own text).
+	if event.keycode == KEY_Z and event.ctrl_pressed and not event.alt_pressed and not event.shift_pressed:
+		if on_line and command_input.text != "":
+			return false
+		_pw3_take_back()
+		return true
 	if printable and on_line:
 		return false
+	if Keys.matches(event, "map_key"):
+		if _is_modal_dialog_open():
+			return false
+		_pw3_toggle_map_key()
+		return true
 	if Keys.matches(event, "hide_hud"):
 		if _is_modal_dialog_open():
 			return false
@@ -14490,26 +14719,49 @@ func _ui6_dress_status_row() -> void:
 	var status := get_node_or_null(STATUS_PATH)
 	if status == null:
 		return
-	var keys_shown := not Utils.explanations_folded()
-	for path in ["ActionsDisplay/ActionsLabel", "AdminDisplay/AdminLabel",
-			"ManpowerDisplay/InfLabel", "ManpowerDisplay/CavLabel", "ManpowerDisplay/ArtLabel"]:
-		var key_label := status.get_node_or_null(path) as Control
-		if key_label != null:
-			key_label.visible = keys_shown
+	# Row PW part 3 (the readers: "the unlabelled counters on the command desk
+	# ('4/4', '80k')"): folded, each group of figures still wears ONE short
+	# word — "Actions 4/4", "Admin (build · recruit) 2/2", "Recruits: foot 80k
+	# horse 15k guns 10k" (the part's own blind reading: three readers of three
+	# could not say what "Admin" buys or which arm each levy is). On the page
+	# the keys print as authored. The whole sentence stays the hover.
+	var folded := Utils.explanations_folded()
+	for row in DESK_KEY_WORDS:
+		var key_label := status.get_node_or_null(str(row[0])) as Label
+		if key_label == null:
+			continue
+		if not key_label.has_meta("authored"):
+			key_label.set_meta("authored", key_label.text)
+		var short := str(row[1])
+		key_label.text = short if folded else str(key_label.get_meta("authored"))
+		key_label.visible = (short != "") if folded else true
+
+
+# [the key's node under the status row, its short word while folded ("" = the glyph alone)]
+const DESK_KEY_WORDS := [
+	["ActionsDisplay/ActionsLabel", "Actions"], ["AdminDisplay/AdminLabel", "Admin (build · recruit)"],
+	["ManpowerDisplay/InfLabel", "Recruits: foot"], ["CavalryDisplay/CavLabel", "horse"], ["ArtilleryDisplay/ArtLabel", "guns"],
+]
 
 
 func _ui6_refresh_status_tips() -> void:
 	"""The figures' hovers: the words a folded key gave up."""
 	if actions_value != null and actions_value.get_parent() is Control:
-		(actions_value.get_parent() as Control).tooltip_text = "Military actions left today: %d of %d" % [
-			int(actions_remaining), int(max_actions)]
+		(actions_value.get_parent() as Control).tooltip_text = (
+			"Actions left this turn: %d of %d — each order to a marshal spends them; they come back when you end the turn"
+			% [int(actions_remaining), int(max_actions)])
 	if admin_value != null and admin_value.get_parent() is Control:
-		(admin_value.get_parent() as Control).tooltip_text = "Administrative actions left today: %d of %d" % [
-			int(admin_actions_remaining), int(max_admin_actions)]
-	if inf_value != null and inf_value.get_parent() is Control:
-		(inf_value.get_parent() as Control).tooltip_text = (
-			"Levies in the depots — infantry %s · cavalry %s · artillery %s (the Ledger's Manpower book)"
-			% [_format_number(infantry_pool), _format_number(cavalry_pool), _format_number(artillery_pool)])
+		(admin_value.get_parent() as Control).tooltip_text = (
+			"Administrative actions left this turn: %d of %d — recruiting, building and laws spend them, never your marshals' orders"
+			% [int(admin_actions_remaining), int(max_admin_actions)])
+	# (row PW part 3: each levy is its own group of the row — the row wraps between
+	# them, so the window's width floor stays its input row's, UXR-X21 — and each
+	# wears the whole sentence)
+	for levy in [inf_value, cav_value, art_value]:
+		if levy != null and levy.get_parent() is Control:
+			(levy.get_parent() as Control).tooltip_text = (
+				"Men you can still recruit — infantry %s · cavalry %s · artillery %s (the Ledger's Manpower book)"
+				% [_format_number(infantry_pool), _format_number(cavalry_pool), _format_number(artillery_pool)])
 
 
 func _levy_text(n) -> String:
@@ -14609,10 +14861,11 @@ func _ui6_bar_figures_bbcode() -> String:
 		a_hex = Utils.COLOR_WARNING
 	var m_hex: String = Utils.COLOR_INFO if int(admin_actions_remaining) == 0 else Utils.COLOR_COMMAND
 	var sep := " [color=#" + Utils.COLOR_INFO + "]·[/color] "
-	return ("[color=#" + Utils.COLOR_GOLD + "]T" + str(int(current_turn)) + "[/color]" + sep
-		+ Utils.bb_glyph("actions", 16, a_hex) + " [color=#" + a_hex + "]"
+	# Row PW part 3: each figure wears its word here too ("Turn 1 · Actions 4/4 · Admin 2/2").
+	return ("[color=#" + Utils.COLOR_GOLD + "]Turn " + str(int(current_turn)) + "[/color]" + sep
+		+ Utils.bb_glyph("actions", 16, a_hex) + " [color=#" + a_hex + "]Actions "
 		+ str(int(actions_remaining)) + "/" + str(int(max_actions)) + "[/color]" + sep
-		+ Utils.bb_glyph("admin", 16, m_hex) + " [color=#" + m_hex + "]"
+		+ Utils.bb_glyph("admin", 16, m_hex) + " [color=#" + m_hex + "]Admin "
 		+ str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions)) + "[/color]")
 
 

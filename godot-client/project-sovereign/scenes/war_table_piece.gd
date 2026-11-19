@@ -162,11 +162,94 @@ func set_arm(arm_key: String) -> void:
 func move_to(target: Vector2, duration: float) -> void:
 	# Tween the standee province -> province. Kills any in-flight move so a rapid
 	# second update retargets cleanly instead of stacking conflicting tweens.
+	march([target], duration)
+
+
+# ── Row PW part 3 (November 19, 2026): a march WALKS its road ───────────────
+# The user: "perhaps animate pieces moving … sound when they move too think of
+# a human playing game". A piece slid in a straight line in 0.45 s, across
+# whatever lay between, under a 0.65-s cue at −12 dB: nobody saw it go. It now
+# walks the road province by province (`road`: the points it passes, the last
+# one where it stands), stepping as it goes — the figure lifts and comes down
+# on each stride, its shadow kept on the ground — and is set down at the end.
+# The renderer plays the march's sound once for the batch and draws the trail.
+const STRIDE_S := 0.16          # one lift and one fall
+const STRIDE_LIFT_PX := 9.0     # in the 256-px source frame
+var _stride_tween: Tween = null
+var _lift: float = 0.0
+
+
+func march(road: Array, duration: float) -> void:
 	if _move_tween != null and _move_tween.is_valid():
 		_move_tween.kill()
-	# A column on the march — one cadence per update batch (the cue's own
-	# throttle collapses a fleet of simultaneous moves into a single play).
-	AudioManager.play("march_step")
+	if road.is_empty():
+		return
+	var last: Vector2 = road[road.size() - 1]
+	if duration <= 0.0 or UiSettings.get_reduce_motion() or not is_inside_tree():
+		_end_stride()
+		position = last
+		return
+	var lengths: Array = []
+	var total := 0.0
+	var at: Vector2 = position
+	for p in road:
+		var leg: float = at.distance_to(p as Vector2)
+		lengths.append(leg)
+		total += leg
+		at = p
+	if total <= 0.5:
+		_end_stride()
+		position = last
+		return
 	_move_tween = create_tween()
-	_move_tween.tween_property(self, "position", target, duration) \
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	at = position
+	for i in range(road.size()):
+		var p: Vector2 = road[i]
+		if float(lengths[i]) <= 0.5:
+			continue
+		# he faces the way each leg runs
+		if p.x > at.x + 0.5:
+			_move_tween.tween_callback(set_facing.bind("r"))
+		elif p.x < at.x - 0.5:
+			_move_tween.tween_callback(set_facing.bind("l"))
+		var step := _move_tween.tween_property(self, "position", p, duration * float(lengths[i]) / total)
+		# the column gathers way on its first leg and is halted on its last
+		if i == 0 and road.size() == 1:
+			step.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		elif i == 0:
+			step.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		elif i == road.size() - 1:
+			step.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		at = p
+	_move_tween.tween_callback(_end_stride)
+	_begin_stride()
+
+
+func is_marching() -> bool:
+	return _move_tween != null and _move_tween.is_valid() and _move_tween.is_running()
+
+
+func _begin_stride() -> void:
+	_end_stride()
+	_stride_tween = create_tween().set_loops()
+	_stride_tween.tween_method(_set_lift, 0.0, STRIDE_LIFT_PX, STRIDE_S / 2.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_stride_tween.tween_method(_set_lift, STRIDE_LIFT_PX, 0.0, STRIDE_S / 2.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+
+func _end_stride() -> void:
+	if _stride_tween != null and _stride_tween.is_valid():
+		_stride_tween.kill()
+	_stride_tween = null
+	_set_lift(0.0)
+
+
+func _set_lift(px: float) -> void:
+	"""The figure's height off the board; the shadow stays where his feet were."""
+	_lift = px
+	var offset := Vector2(-SPRITE_FRAME / 2.0, -SPRITE_GROUND_Y)
+	for layer in _sprites:
+		var spr: Sprite2D = _sprites[layer]
+		if spr != null:
+			spr.position = offset if layer == "shadow" else offset - Vector2(0.0, px)

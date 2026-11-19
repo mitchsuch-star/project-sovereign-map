@@ -44,6 +44,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 from backend.errors import report
+from backend.display_names import actions_words as _actions  # row PW, PW2-D1: a price in plain words
 
 # Flip lever: False makes every function here return an empty list, and each
 # consumer keeps the hardcoded copy it had before CX-2.
@@ -170,7 +171,7 @@ def _fortify_price_tail(world, marshal) -> str:
     except Exception as exc:
         report(exc, "counsel._fortify_price_tail: insist_terms / world.get_action_cost")
         return ""
-    return f" ({price} AP)" if price > face else ""
+    return f" ({_actions(price)})" if price > face else ""
 
 
 def _military_actions_left(world) -> int:

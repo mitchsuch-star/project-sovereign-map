@@ -1238,7 +1238,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 				var fortify_label := "Fortify"
 				var fortify_prices = m.get("order_prices", {})
 				if fortify_prices is Dictionary and int(fortify_prices.get("fortify", 0)) > 0:
-					fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"
+					fortify_label += " (" + Utils.plural(int(fortify_prices.get("fortify", 0)), "action") + ")"
 				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, fortify_label, Utils.COLOR_COMMAND, "233043"))
 			else:
 				# the dimmed chip keeps its bare label (the CN-4 census); the reason is
@@ -1274,7 +1274,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 			var label := str(spec[1])
 			var ap := int(prices.get(verb, 0))
 			if ap > 0:
-				label += " (" + str(ap) + " AP)"
+				label += " (" + Utils.plural(ap, "action") + ")"
 			var why := str(state_refusals.get(verb, ""))
 			if why == "":
 				order_chips.append(Utils.bb_button_chip("order:" + verb + ":" + str(m.get("name", "")), label, Utils.COLOR_COMMAND, "233043"))
@@ -2027,7 +2027,7 @@ func _order_button(mname: String, spec: Dictionary) -> Button:
 	var face := str(spec["label"])
 	var price_words: String = MarshalKit.price_text(int(spec["price"]))
 	if price_words != "":
-		face += " · " + (price_words if price_words == "free" else price_words + " AP")
+		face += " · " + (price_words if price_words == "free" else Utils.plural(int(spec["price"]), "action"))
 	btn.text = face
 	btn.focus_mode = Control.FOCUS_ALL
 	if bool(spec["locked"]):

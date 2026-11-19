@@ -1762,17 +1762,17 @@ class TestR10Copy:
     def test_the_garrison_option_says_what_it_does_on_both_boards(self):
         w = _europe()
         assert V.garrison_option_copy(w, SWISS) == (
-            "2 AP → Loyalty +10 now. No corps moves: a corps standing in Bern adds +2 every turn.")
+            "2 actions → Loyalty +10 now. No corps moves: a corps standing in Bern adds +2 every turn.")
         assert V.lord_garrison_present(w, PLAYER, "Milan")                    # Massena stands there at boot
         assert V.garrison_option_copy(w, KOI) == (
-            "2 AP → Loyalty +10 now. No corps moves: our corps already standing in Milan adds +2 every turn.")
+            "2 actions → Loyalty +10 now. No corps moves: our corps already standing in Milan adds +2 every turn.")
         assert V.garrison_result_line(w, KOI, 5, 15).endswith(
             "No corps moves — our corps already standing in Milan adds +2 a turn.")
         assert V.garrison_result_line(w, SWISS, 9, 19) == (
-            "Switzerland shown the flag: loyalty 9 → 19 (2 AP spent). No corps moves — "
+            "Switzerland shown the flag: loyalty 9 → 19 (2 actions spent). No corps moves — "
             "station one in Bern for +2 a turn.")
         assert V.garrison_refusal_line(w, KOI, 1) == (
-            "Showing the flag in the Kingdom of Italy costs 2 AP — you have 1. No corps moves either way.")
+            "Showing the flag in the Kingdom of Italy costs 2 actions — you have 1. No corps moves either way.")
 
     def _rebellion_dialogue(self, w, vassal):
         with _quiet():
@@ -1795,7 +1795,7 @@ class TestR10Copy:
                 "garrison_vassal_rebellion", {"world": w}, dialogue_id=dlg["dialogue_id"])
         assert r["success"] is True
         assert r["message"] == (f"The flag is shown in Switzerland: loyalty {old} → {old + 10} "
-                                f"(2 AP spent). No corps moves — station one in Bern for a standing +2 a turn.")
+                                f"(2 actions spent). No corps moves — station one in Bern for a standing +2 a turn.")
         assert w.actions_remaining == 2 and w.vassals[SWISS]["loyalty"] == old + 10
         assert not V.lord_garrison_present(w, PLAYER, "Bern")
         # the Kingdom of Italy: our corps already stands in Milan
@@ -1816,7 +1816,7 @@ class TestR10Copy:
             r = M.executor.handle_diplomatic_dialogue_response(
                 "garrison_vassal_rebellion", {"world": w}, dialogue_id=dlg["dialogue_id"])
         assert r["success"] is False
-        assert r["message"] == "Insufficient AP. Showing the flag in Switzerland costs 2 AP, you have 1."
+        assert r["message"] == "Not enough actions. Showing the flag in Switzerland costs 2 actions, you have 1."
 
     def test_the_wavering_card_key_follows_the_regiments(self):
         w = _europe()

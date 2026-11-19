@@ -224,7 +224,7 @@ class TestDisplayLabelGeneration:
                  "demands": [{"type": "ap_per_turn", "value": 1}],
                  "clauses": []}
         result = annotate_peace_terms(terms, "France", "Prussia")
-        assert result[0]["display_label"] == ("Prussia cedes 1 AP per turn to France"
+        assert result[0]["display_label"] == ("Prussia cedes 1 of its actions each turn to France"
                                               " for as long as the treaty stands")  # DDB-23
 
     def test_manpower_display_label_format(self):

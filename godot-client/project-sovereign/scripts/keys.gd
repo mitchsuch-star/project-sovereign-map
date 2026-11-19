@@ -31,6 +31,7 @@ const ACTIONS := [
 	["terminal", "Command window", KEY_TAB],
 	["idle_corps", "Next idle corps", KEY_PERIOD],
 	["map_mode", "Map view", KEY_M],
+	["map_key", "Map key", KEY_K],
 	["cabinet", "The Cabinet", KEY_F1],
 	["help", "Help & Keys", KEY_F10],
 	["hide_hud", "Hide the HUD", KEY_H],

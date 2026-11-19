@@ -183,7 +183,7 @@ class TestForcesPresentIsOneRowAMarshal:
         assert "Utils.COLOR_ERROR_CHIP" in fn
         chip = _func("_order_chip")
         assert '"order:" + verb + ":" + m_name' in chip
-        assert 'label += " (" + str(price) + " AP)"' in chip
+        assert 'label += " (" + Utils.plural(price, "action") + ")"' in chip
         assert 'Utils.bb_chip_disabled(label, "", str(spec["reason"]))' in chip   # reason = hover
 
     def test_a_foreign_marshal_is_not_a_link_and_wears_no_badge(self):

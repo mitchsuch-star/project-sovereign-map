@@ -524,7 +524,7 @@ class TestTheClientsWords:
         badge on the map said "free", the province's chip "0 AP"."""
         tail = _gd_func(_gd("utils.gd"), "quote_price_tail")
         assert 'if ap <= 0 and bool(q.get("ok", true)):\n\t\treturn "free"' in tail
-        assert 'return str(ap) + " AP"' in tail
+        assert 'return plural(ap, "action")' in tail
         card = _gd("order_confirm_card.gd")
         assert 'return "free" if ap <= 0 else Utils.plural(ap, "action")' in card
 

@@ -1572,4 +1572,4 @@ class TestTheReportIsTheEnemysMoves:
         names = re.findall(r'^\t\["([^"]+)",', terms.split("const ORDER_GRAMMAR", 1)[0], flags=re.M)
         at = names.index("The enemy's moves")
         assert names[at - 1] == "Ending a war" and names[at + 1] == "Expedition"
-        assert len(names) == 60
+        assert len(names) == 61

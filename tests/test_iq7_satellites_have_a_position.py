@@ -1682,7 +1682,7 @@ class TestT17R3TheGarrisonOptionSaysWhatItDoes:
         assert [o["action"] for o in dlg["options"]] == [
             "invest_vassal_rebellion", "garrison_vassal_rebellion", "accept_vassal_rebellion"]
         garrison = dlg["options"][1]["description"]
-        assert garrison == ("2 AP → Loyalty +10 now. No corps moves: a corps standing in "
+        assert garrison == ("2 actions → Loyalty +10 now. No corps moves: a corps standing in "
                             "Bern adds +2 every turn.")
         popup = w.vassal_rebellion_imminent_popups[-1]
         assert popup["garrison_effect"] == garrison

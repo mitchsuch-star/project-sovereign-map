@@ -17978,3 +17978,54 @@ owner Session H's head; its strict-xfail pin `TestPW2D1NoPriceTagSaysAP`).
   167 of 167 shots, no script error, no claim failed.
 - **No AI world-line moves:** the part is wording, the client's own telling and the typed road's free
   asks; the executor's rules are untouched and the standing series pins hold.
+
+---
+
+## §228 Row PW — "Plain Words", part 3: the finishing pass (November 19, 2026)
+
+The user, on part 2's own list of what was left: "fix these the general game ux and perhaps animate pieces moving and make sure the game isnt clunky or wierd to play and everything makes sense … dont ask me questions use reason", then "sound when they move too think of a human playing game, also evaluate the utility of the parser and typed commands … is there a way to make it fun". The ledger: `BUG_FIXES.md` §PW part 3 (PW2-D1 closed; PW3-1 … PW3-10 fixed; PW3-D1 open and owned). The pins: `tests/test_pw3_the_finishing_pass.py`, the driven `tests/test_dd_b_the_client_hands.py::TestRowPW3TheFinishingPass`.
+
+### 228.1 The take-back (`backend/commands/take_back.py`)
+
+- **The rule.** The last order can be taken back while taking it back would un-know nothing and un-roll nothing: it went through and changed the board; no battle was fought and no province changed hands; it raised no question (an objection, an interrupt, a capture choice, a dialogue); it showed the player nothing new — the fog's ledger (`intel`) reads as it did everywhere but on his own and his clients' soil; it touched nothing outside an order's own books (`ORDER_KEYS`: the two pools, the purse, the corps, the provinces' works, the logs — a save key outside them moving reads as "more happened than an order"); and the turn has not ended. A question, a refusal and an order that fails change nothing and leave a kept order kept.
+- **The mechanism.** `mark(world)` before a command (the world's own save dict, about 6 ms on the 1805 board, and the ambient `random` state), `settle(world, mark, reply, words)` after its reply is built — the route's decorator `main._keeps_the_take_back`. A kept order joins a stack (`MAX_KEPT` 12): a second take-back steps back the order before it. `take_back(world)` restores by `WorldState._restore_from_snapshot` (the turn's own restore, about 10 ms), puts the dice back and recomputes the fog. The dice come back by construction on a seeded campaign (WS-11); the stack lives in the module and never in the save.
+- **What closes it.** An order that stands empties the stack with its reason (`WHY`: a question, a battle, ground, fog, more, the turn). Any POST that moves the board (a popup's answer, a letter, a cancel, a load) empties it before its handler runs (`main.serialize_state_mutations`; `KEEPING_POSTS` are the ones that move nothing: the command road, `/undo`, a save, a line of help marked read, a notice dismissed, a preview, the parser's setting).
+- **The surfaces.** Every reply carries `undo: {available, words, why, kept}` (`build_base_response`). `POST /undo` and the typed `undo` / `take that back` / `oops` (`take_back.is_take_back_line`) answer with a command's reply and `taken_back`. The client: the "Take back" chip on the map's controls (greyed with the reason on its hover; a press that cannot act says why in a toast), Ctrl+Z (on the command line only while it is empty), Help's "Take back" entry. Berthier's old shrug is reached only when the last order stands, and names why.
+- **The seam:** `take_back.a_taken_order_can_be_taken_back` (down: nothing is offered, the typed `undo` keeps the shrug).
+
+### 228.2 The march (`war_table_piece.gd`, `map_renderer_base.gd`, `map_order_layer.gd`, `audio_manager.gd`)
+
+- A piece whose province changed WALKS: `march_road(from, to)` is the shortest road on the map's own links (`_march_links` — the backend's `/map_topology` on the game map; at most `MARCH_MAX_HOPS` 7, else the two ends), `march_seconds(hops)` = 0.36 s a province between 0.6 and 1.6 s, `WarTablePiece.march(road, seconds)` tweens leg by leg, faces each leg, and steps (the figure lifts 9 px and comes down every 0.16 s; the shadow stays on the ground). Display only: the server's board says where he stands.
+- The trail: `map_order_layer.add_trail(points, colour, seconds)` — a dashed line in the nation's colour drawn as he goes, kept `TRAIL_LINGER_S` 3.2 s after he is set down, an arrowhead once he has arrived.
+- The sound: `AudioManager.play_march(seconds, horse)` plays the ORDER's own cue (`order_march`, or `horse_trot` when every marcher is cavalry) for the walk's length — one cue, so the order's sound and the march's are one — and `march_halt` as the pieces are set down. A force the fog half-hides marches under `march_step`, faintly, and leaves a trail.
+- The enemy's moves after End Turn walk the same way in `PW_REPLAY_MARCH_S` 1.4 s (it was 0.9). The provinces that changed hands flash once: in the telling's second beat (`_pw_last_replay.flashed`), and at the report's close only when that beat was skipped or not played.
+- Reduce motion sets every piece down at once and draws no trail.
+
+### 228.3 The words beside the figures; trust and authority
+
+- The desk's status row keeps one short word a group while folded (`main.DESK_KEY_WORDS`: "Actions", "Admin (build · recruit)", "Recruits: foot", "horse", "guns"); the slim bar reads "Turn 1 · Actions 4/4 · Admin 2/2". The top bar's groups each wear a word (`top_bar.FIGURE_WORDS`), shed at fit step 1 and never on the compact bar; the chest's net reads "+828 a turn" at fit step 0.
+- The general's card prints an order's price in words ("1 Hold · 1 action"); PW2-D1 is closed — no price says "AP" (`display_names.actions_words` for the backend's 55 messages).
+- Authority's hover opens on what it is and is for (`AUTHORITY_WORDS`), then what each level does (`AUTHORITY_LINES_TOOLTIP`, each line `AUTHORITY_CURRENCY_SPEC.md` §1.2's). The objection says "His trust in you" and "Your authority", each with its sentence on the hover. Help's Authority entry and the typed desk's `what is authority` / `what is trust` say the same.
+
+### 228.4 Talleyrand's figure
+
+`counsel.plain_line(reading)` says the quoted road's figures in everyday words under his sentence (`counsel.plain`); `counsel.quoted_action` names the act. Where it is a peace or a truce, `get_diplomatic_preview` builds the factor table for that same act and draft, and the table carries `for_label`, `score`, `threshold` and `others` (the total less the rows shown) — it adds up to the figure he names. The client prints "For “<the act>” — all told N; they agree at 50 or more" over the rows and an "Everything else" row under them.
+
+### 228.5 The map's key (`map_key.gd`)
+
+A HUD panel on its own layer (24: over the map's names, under the war card), opened from "Key" on the map's controls and by K, closed by Esc or its ×. Twelve entries in four sections — armies, the sea, the land, orders — each a sample drawn as the map draws the mark (the map's own plaques and tints) beside what it means and what to do about it; three columns, two or one as the room allows. Esc closes it first — on the focused command line too, before a selected corps is let go. The blockaded port's mark is one drawing for the map and the key (`map_connection_layer.draw_anchor`).
+
+### 228.6 What the typed line is for (the measurement)
+
+Twenty-eight lines a person might type were sent to the live parser on the 1805 board. Every ORDER has a button and a click is faster. The line's worth is ASKING: "can Ney reach Vienna?" names the road and who stands on it; "what if Ney attacks Mack?" musters the battle without fighting it; "who is my best general?", "how much gold do I have?", "what does fortify do?", "where is Mack?", "how do I end the war?" answer at once and free, and no screen holds those answers in one place. And one line moves an army ("everyone, attack Mack"; "Ney, march to Vienna then attack"). The chore is recalling a name or guessing a phrasing — so an EMPTY line, on Tab or a click, offers those questions ready-made from the board (`main._pw3_line_ideas`: the corps in hand, else the first idle one; the nearest enemy in sight), taken with Tab or a click and never sent by it. One line had no answer and is recommended, not built: "who threatens me?" (the desk answers it only for a named province).
+
+### 228.7 Found by pressing the client; traps
+
+- Esc on a letter did nothing; it now presses "Not Now" where the letter shows one (PW3-10). The Cabinet's first page seats two courts above a scroll at the first player's setup (PW3-D1, open and owned).
+- A new `class_name` needs the engine's class cache rebuilt (`--import`); a script loaded by path (`preload`) does not — `map_key.gd` is loaded by path, as the plaques are.
+- A lambda that runs over two lines inside a call (`.filter(func(t): return … \n …)`) does not parse; write the loop.
+- The map's names are drawn over anything on the map's own layer: a panel that stands on the map takes a CanvasLayer of its own.
+- **The part's blind reading** (`docs/audits/pw_client/README.md`, part 3): the first reading missed three of six questions with every reader (what "Admin" buys and which arm each levy is; the period of "+828"; the port's mark, read as a stopwatch); each was fixed and the reading held again with three new readers met its bar, 18 of 18.
+- The desk's longer words made its status row's widest group wider than the input row, which raises the command window's width floor (UXR-X21's driven pin, `test_uxr2_grips_driven`): each levy is now its own group of the row (`ManpowerDisplay`, `CavalryDisplay`, `ArtilleryDisplay` in `main.tscn`), so the row wraps between them.
+- The instrument gained `clickshots <x> <y> [n] [gap_ms]` — a click, then a strip of frames while the board moves (a march is over before an action's own frame is taken).
+- The full suite ran green on the final tree; the battle walk of record was re-run on the final tree (a pinned source, utils.gd, changed).

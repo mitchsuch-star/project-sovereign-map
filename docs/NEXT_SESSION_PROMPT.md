@@ -1,6 +1,34 @@
 # NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk)
 
-> Overwritten each time a session hands off. Current hand-over: **November 18, 2026 — ROW PW "PLAIN WORDS",
+> Overwritten each time a session hands off. Current hand-over: **November 19, 2026 — ROW PW PART 3, "THE
+> FINISHING PASS" ✅ BUILT AND COMMITTED (on his word; NOT pushed — the push is his to call:
+> `git status -sb` says how far master is ahead).** His words: "fix these the general
+> game ux and perhaps animate pieces moving and make sure the game isnt clunky or wierd to play … dont ask me
+> questions use reason", then "sound when they move too think of a human playing game, also evaluate the
+> utility of the parser and typed commands". Built (`SYSTEMS_REFERENCE.md` §228; `BUG_FIXES.md` §PW part 3;
+> `tests/test_pw3_the_finishing_pass.py`; the driven `TestRowPW3TheFinishingPass`): **PW2-D1 CLOSED** (no
+> price says "AP" — `display_names.actions_words`); **the take-back** (`backend/commands/take_back.py`,
+> `POST /undo`, the Take back chip, Ctrl+Z, the typed `undo`); **the march** (a piece walks its road, a trail,
+> the order's own cue for the walk's length, a halt); one flash; words beside every counter; trust and
+> authority said; Talleyrand's plain line and a table that adds up; **the map's key** (`map_key.gd`, K); the
+> empty command line's ideas; Esc sets a letter aside. **One row open and owned — PW3-D1** (the Cabinet's
+> first page seats two courts above a scroll at 1.8: its courts in columns; strict-xfail
+> `TestPW3D1TheCabinetsCourtListHasRoom`). Recommended, not built: the typed "who threatens me?".
+> **Its blind reading** (`docs/audits/pw_client/README.md`, part 3): reading 5 NOT MET (what "Admin" buys and
+> which arm each levy is; "+828"'s period; the port's mark read as a stopwatch), each fixed, reading 6 with three
+> new readers MET, 18 of 18; the readers' still-unclear list there is the next UX pass's worklist (what
+> Authority and Threat measure on the bar; the idle dot; "Scale + −"; "100%" on the card).
+> the full test suite passes on the final build.
+>
+> **Part 3's traps (fresh):** a new `class_name` needs the engine's class cache (`--import`) — load a new
+> script by path; a two-line lambda inside a call does not parse; a panel standing on the map needs its own
+> CanvasLayer (the map's names draw over layer 0); `clickshots <x> <y> [n] [gap_ms]` on the instrument takes
+> frames WHILE the board moves; STATUS, the Q4 archive and CLAUDE.md are MIXED or LF line endings — patch on
+> bytes and match each anchor as it stands; the suite ran slowly beside a windowed instrument — stop the
+> instrument before the suite; `tests/test_s14f…::TestS14EX155` is the census of the reply envelope's keys
+> (a new key on `build_base_response` joins it).
+>
+> The hand-over before it: **November 18, 2026 — ROW PW "PLAIN WORDS",
 > BOTH PARTS ✅ LANDED (two commits, each through the hook and pushed at the user's word, "commit and push
 > everything when you are done"; his ruling "Keep going — all screens").** **Part 2** (`SYSTEMS_REFERENCE.md`
 > §227.10–§227.14; `BUG_FIXES.md` §PW part 2 — 40 rows, ONE open and owned, PW2-D1): the enemy's moves played
@@ -53,7 +81,9 @@
    nothing; the literal marshal's buff reads the fast parser's own ambiguity and expires at the turn's end —
    `TestWS12AModelsNumberMovesAMarshal`, `TestSessionHsHead::test_grd33_…`), **WS-14** (the readback's standing
    question), **WS-R** (the readers' unconfirmed finds), **UI6-X70, X73, X74, X75** (the typed order road's
-   compound subjects; GRD-16, "Did you mean Ney?", was BUILT by row PW part 2), and **PW2-D1** (row PW part 2:
+   compound subjects; GRD-16, "Did you mean Ney?", was BUILT by row PW part 2), **PW3-D1** (row PW part 3: the
+   Cabinet's first page seats its courts in columns — `TestPW3D1TheCabinetsCourtListHasRoom`), and — CLOSED by row
+   PW part 3, kept here as the record — **PW2-D1** (row PW part 2:
    no price a player acts on says "AP" — every tag on a chip, a button and a message reads "N actions",
    "1 action" or "free", its 251 pins re-seated and the chips re-read for fit at 1.0, 1.5, 1.8 and 2.0;
    `TestPW2D1NoPriceTagSaysAP`). `tools/defect_census.py --open` lists them; the release waits for 0 open

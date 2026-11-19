@@ -1882,7 +1882,7 @@ def pursuit_ask(ctx, cost):
     if _guard is not None:
         riders += " " + march_guard_sentence(_guard)
     question = (f"{placed}, {marches} off.{riders} Pursue him "
-                f"({cost} AP — a standing order; {first_march}), or cancel?")
+                f"({plural(cost, 'action')} — a standing order; {first_march}), or cancel?")
     reissue = f"{humanize_entity_name(marshal.name)}, attack {quarry}"   # UI6-X27 (R7)
     return {
         "success": True,
@@ -1897,7 +1897,7 @@ def pursuit_ask(ctx, cost):
         "interpreted_target": enemy.name,
         "interpretation_reason": "out_of_reach",
         "options": [{
-            "label": f"Pursue {quarry} ({cost} AP)",
+            "label": f"Pursue {quarry} ({plural(cost, 'action')})",
             "value": "specify",
             "target": enemy.name,
             "command": reissue,
@@ -3678,12 +3678,12 @@ class CombatExecutor:
         _neutral = [c.name for c in _adj_corps
                     if getattr(getattr(c, "stance", None), "name", "") == "NEUTRAL"]
         if _adj_corps and len(_neutral) == len(_adj_corps):
-            _fortify_price = "2 AP from a neutral stance — 1 to stand defensive, 1 to fortify"
+            _fortify_price = "2 actions from a neutral stance — 1 to stand defensive, 1 to fortify"
         elif _neutral:
-            _fortify_price = (f"1 AP; 2 for {', '.join(_neutral)}, who "
+            _fortify_price = (f"1 action; 2 for {', '.join(_neutral)}, who "
                               f"{'stands' if len(_neutral) == 1 else 'stand'} neutral")
         else:
-            _fortify_price = "1 AP"
+            _fortify_price = "1 action"
         preview["province_fights_note"] = (
             f"Every corps in the province shares the field — "
             f"{_design_clause}. Only a corps still adjacent can be held "

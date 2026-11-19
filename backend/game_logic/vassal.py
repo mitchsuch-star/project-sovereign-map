@@ -16,6 +16,7 @@ Single source of truth for vassal mechanics:
 import random
 from typing import Dict, List, Optional
 from backend.display_names import display_nation, with_definite_article
+from backend.display_names import actions_words as _actions  # row PW, PW2-D1: a price in plain words
 from backend.models.trust import Trust
 # VS-R (docs/VASSAL_DEEPENING_SPEC.md §2): imperial-grip -> vassal-loyalty
 # coupling. authority.py is the leaf "one grip = one module" home, so this is a
@@ -4776,10 +4777,10 @@ def garrison_option_copy(world, vassal_name: str, lord: Optional[str] = None) ->
     lord = lord or str(row.get("lord") or "")
     capital = world.get_nation_capital(vassal_name) or "their capital"
     if capital != "their capital" and lord and lord_garrison_present(world, lord, capital):
-        return (f"{_GARRISON_AP_COST} AP → Loyalty +{_GARRISON_LOYALTY} now. No corps "
+        return (f"{_actions(_GARRISON_AP_COST)} → Loyalty +{_GARRISON_LOYALTY} now. No corps "
                 f"moves: our corps already standing in {capital} adds "
                 f"+{GARRISON_LOYALTY_BONUS} every turn.")
-    return (f"{_GARRISON_AP_COST} AP → Loyalty +{_GARRISON_LOYALTY} now. No corps moves: "
+    return (f"{_actions(_GARRISON_AP_COST)} → Loyalty +{_GARRISON_LOYALTY} now. No corps moves: "
             f"a corps standing in {capital} adds +{GARRISON_LOYALTY_BONUS} every turn.")
 
 
@@ -4795,7 +4796,7 @@ def garrison_result_line(world, vassal_name: str, loyalty_before: int,
     vd_cap = _court_name(world, vassal_name, article=True, capitalize=True)
     capital = world.get_nation_capital(vassal_name) or "their capital"
     head = (f"{vd_cap} shown the flag: loyalty {int(loyalty_before)} → "
-            f"{int(loyalty_after)} ({int(ap_spent)} AP spent).")
+            f"{int(loyalty_after)} ({_actions(ap_spent)} spent).")
     if capital != "their capital" and lord and lord_garrison_present(world, lord, capital):
         return (f"{head} No corps moves — our corps already standing in {capital} "
                 f"adds +{GARRISON_LOYALTY_BONUS} a turn.")
@@ -4807,7 +4808,7 @@ def garrison_refusal_line(world, vassal_name: str, ap_available: int,
                           ap_cost: int = _GARRISON_AP_COST) -> str:
     """The <2 AP refusal, in the same voice as the option it refuses."""
     vd = _court_name(world, vassal_name, article=True)
-    return (f"Showing the flag in {vd} costs {int(ap_cost)} AP — you have "
+    return (f"Showing the flag in {vd} costs {_actions(ap_cost)} — you have "
             f"{int(ap_available)}. No corps moves either way.")
 
 

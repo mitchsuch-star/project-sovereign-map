@@ -771,7 +771,7 @@ class TestTheDamperExplainsItself:
         assert "trust_gain_modifier" in code
         assert "if trust_mod < 1.0:" in code
         assert "taken your measure" in code
-        assert 'authority_label.text = "Authority: %d" % authority' in code
+        assert 'authority_label.text = "Your authority: %d" % authority' in code
 
 
 # ══════════════════════════════════════════════════════════════════

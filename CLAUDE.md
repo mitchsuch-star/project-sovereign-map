@@ -33,12 +33,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); PW ✅ Nov 18 (§227); H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); PW ✅ Nov 18–19 (§227–§228); H**.
 
-**▶ LIVE STATE (Nov 18, 2026).** Last three rows:
+**▶ LIVE STATE (Nov 19, 2026).** Last three rows:
+- **Row PW3 (Nov 19) — undo (`take_back.py`), the march, a map key** (§228).
 - **Row PW (Nov 18) — plain words: the first playtest's fixes** (§227).
 - **Row OC (Nov 18) — the rulings built** (§226).
-- **Row BA, BA-6 + row MC (Nov 17) — the last word; the Marshalate** (§224–§225).
 
 **Open with the user:** none (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`); the certificate is a purchase.
 

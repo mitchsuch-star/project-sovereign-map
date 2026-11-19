@@ -1921,6 +1921,11 @@ def plural(n, noun: str) -> str:
     return f"{count} {word}"
 
 
+def actions_words(n) -> str:
+    """The price of an order in everyday words — "1 action", "2 actions" (row
+    PW, PW2-D1: no price a player acts on says "AP"; golden rule 11)."""
+    return plural(int(n), "action")
+
 def proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
     result, raw = _lookup_display_name(PROPOSAL_TYPE_DISPLAY, proposal_type)
@@ -2990,7 +2995,7 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
         elif demand_type == "gold_lump":
             lines.append(f"{target_label} pays {int(value)} gold")
         elif demand_type == "ap_per_turn":
-            lines.append(f"{target_label} loses {int(value)} AP/turn{stream_term_phrase(demand)}")
+            lines.append(f"{target_label} loses {plural(int(value), 'action')} a turn{stream_term_phrase(demand)}")
         elif demand_type == "create_client":
             # NA-6c / IGR-D: without this arm the generic fallback below
             # renders a bare "Demand: Client state erected" — naming
@@ -3032,7 +3037,7 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
         elif sweetener_type in ("artillery_manpower", "manpower_artillery"):
             lines.append(f"France provides {int(value)} artillery reserves")
         elif sweetener_type == "ap_per_turn":
-            lines.append(f"France concedes {int(value)} AP/turn{stream_term_phrase(sweetener)}")
+            lines.append(f"France concedes {plural(int(value), 'action')} a turn{stream_term_phrase(sweetener)}")
         elif sweetener_type == "territory_compensate":
             # PC-R7 (ii): the compensation France pays.
             from backend.game_logic.compensation import compensation_words
@@ -3164,7 +3169,7 @@ def summarize_proposal(proposal: dict) -> str:
         elif demand_type == "gold_per_turn":
             parts.append(f"{int(demand.get('value', 0))} gold/turn{stream_term_phrase(demand)}")
         elif demand_type == "ap_per_turn":
-            parts.append(f"{int(demand.get('value', 1))} AP/turn{stream_term_phrase(demand)}")
+            parts.append(f"{plural(int(demand.get('value', 1)), 'action')} a turn{stream_term_phrase(demand)}")
         elif demand_type == "unit_trade":
             parts.append(f"{int(demand.get('value', 0))} units")
         elif demand_type == "territory_compensate":

@@ -79,7 +79,7 @@ class TestFortifyHint:
             game_state
         )
         msg = result.get("message", "")
-        assert "cost 2 AP" in msg
+        assert "cost 2 actions" in msg
         assert "1 for stance change + 1 for fortify" in msg
 
     def test_fortify_from_defensive_no_hint(self):
@@ -94,7 +94,7 @@ class TestFortifyHint:
             game_state
         )
         msg = result.get("message", "")
-        assert "cost 2 AP" not in msg
+        assert "cost 2 actions" not in msg
 
 
 # ════════════════════════════════════════════════════════════

@@ -291,7 +291,13 @@ func _slot_button(spec: Dictionary, compact: bool) -> Button:
 	btn.name = "Slot" + str(slot)
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	var full := label + (" · " + price if price != "" else "")
+	# Row PW part 3: the price in words on the face — "1 Hold · 1 action", "5
+	# Fall back · free" (it read "1 Hold · 1": two bare numbers, the key and the
+	# price, which four readers of four parsed only by inference).
+	var tail := price
+	if price != "" and price != "free":
+		tail = Utils.plural(int(spec["price"]), "action")
+	var full := label + (" · " + tail if tail != "" else "")
 	var tip := ""
 	if compact:
 		btn.text = str(slot)

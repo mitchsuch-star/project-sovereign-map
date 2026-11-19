@@ -576,17 +576,18 @@ static func quote_price(q: Dictionary) -> String:
 
 static func quote_price_tail(q: Dictionary) -> String:
 	"""A quote's price as a chip's tail: `1 point` for a word of the day (`free`
-	for one that asks none), `2 AP` for every other order — and `free` for an
+	for one that asks none), `2 actions` for every other order — and `free` for an
 	order that would be taken at no action (Davout's counter-punch), as the
 	card and the map's badge say it (the session's review, lane 5: the chip
-	said `0 AP` beside them). A refused quote keeps its bare figure."""
+	said `0 AP` beside them). A refused quote keeps its bare figure. Row PW
+	(PW2-D1): the figure is in actions, never "AP"."""
 	if str(q.get("word", "")) != "":
 		var points := int(q.get("points", 0))
 		return "free" if points <= 0 else plural(points, "point")
 	var ap := int(q.get("ap", 0))
 	if ap <= 0 and bool(q.get("ok", true)):
 		return "free"
-	return str(ap) + " AP"
+	return plural(ap, "action")
 
 
 static func plural(n: int, noun: String) -> String:

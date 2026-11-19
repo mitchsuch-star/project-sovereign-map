@@ -2799,7 +2799,7 @@ def _rule_text(world, key: str, ap: bool) -> str:
         "buy_off": "Buying off a design pays a court to set its ambition aside for fifteen turns; reneging on it is the strongest casus belli there is.",
         "vassal": "A vassal pays tribute and lends its marshals; it is made at the peace table, by conquest of a beaten court, or by a treaty a court accepts — and bleeds loyalty unless invested in, garrisoned or granted autonomy.",
         "autonomy": "Autonomy is a vassal's leash: a puppet pays most and rebels soonest, a satellite between, an autonomous court least.",
-        "authority": "Authority is your standing with the marshals: it falls when they defy you and are let be, rises when they are rebuked; the imperial grip blends it with the Empire's territory.",
+        "authority": "Authority is your standing as Emperor, from 0 to 100, with every marshal and court. You spend it to overrule a marshal by your own word and on titles and laws; victories win it back; defeats, broken promises and a marshal's defiance left unanswered cost it. When it is low, marshals obey less and defy more. The crown on the top bar shows it.",
         "capture": "The Emperor can be captured only by encirclement after a defeat: the Guard buys his escape at a third of its men while it has a thousand left; in chains he is the enemy's leverage at the table.",
         "continental_system": "The Continental System closes Europe's ports to Britain: every coast we hold or ally shuts her trade, and at 60% closure she is strangled without an invasion.",
         "coalition": "A coalition forms when Europe's alarm at France passes the brewing gate: its members declare war together, its paymaster subsidises them, and a signed peace with its leader dissolves it.",
@@ -2823,7 +2823,7 @@ def _rule_text(world, key: str, ap: bool) -> str:
         "broken": "A corps is broken when it loses badly: it falls back and cannot take orders until it rallies (two to four turns, faster under a marshal of command 8 or more); a broken corps caught again may be destroyed.",
         "diversion": "The Grand Diversion sends the fleet out to draw the Royal Navy off the Channel: one action, readiness spent, a throw at the odds the Admiralty quotes — won, it opens a window for the Descent; lost, the fleet pays at sea.",
         "morale": "Morale is the corps's heart: it falls with defeats and bleeds in the field, rises with victories and drill, and a corps under 50 fights at a discount and breaks sooner.",
-        "trust_rule": "Trust is a marshal's faith in you: it rises when his counsel is heard and his victories rewarded, falls when he is overruled, neglected or left unpaid; below 40 he objects and may defy an order.",
+        "trust_rule": "Trust is a marshal's confidence in you, from 0 to 100: it rises when his counsel is heard and his victories rewarded, falls when he is overruled, neglected or left unpaid. The lower it is, the more he objects — below 40 he objects and may defy an order; at 80 or more he always obeys when you insist.",
     }
     text = T.get(key)
     if not text:

@@ -1413,9 +1413,9 @@ class EconomyExecutor:
 
         # Admin bonus
         if admin_bonus > 0:
-            lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({world.admin_actions_remaining} unused AP x 25)")
+            lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({plural(world.admin_actions_remaining, 'unused admin action')} x 25)")
         else:
-            lines.append("\n  Admin bonus: 0g  (all AP used)")
+            lines.append("\n  Admin bonus: 0g  (all admin actions used)")
 
         # Spending this turn
         spent = world.gold_spent_this_turn.get(nation, 0)

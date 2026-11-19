@@ -317,6 +317,7 @@ class TestF7DrainFamily:
         "/notifications/dismiss",
         "/cancel_order",
         "/battle_day/word",            # row BA (BA-3): a day's word that is no order; its answer goes to the table
+        "/undo",                       # row PW part 3: the board put back; it raises nothing and drains nothing
     }
     PLAIN = {                          # no gameplay envelope at all
         "/config/llm",

@@ -326,7 +326,9 @@ class TestTheBar:
 
     def test_the_second_row_carries_the_turn_and_the_days_pools(self):
         figures = _func(MAIN, "_ui6_bar_figures_bbcode")
-        assert '"]T" + str(int(current_turn))' in figures
+        # (row PW part 3: each figure wears its word — "Turn 1 · Actions 4/4 · Admin 2/2")
+        assert '"]Turn " + str(int(current_turn))' in figures
+        assert ']Actions "' in figures and ']Admin "' in figures
         assert 'Utils.bb_glyph("actions", 16, a_hex)' in figures and 'Utils.bb_glyph("admin", 16, m_hex)' in figures
         assert "str(int(actions_remaining))" in figures and "str(int(max_admin_actions))" in figures
         assert "_ui6_refresh_bar()" in _func(MAIN, "_update_status")
@@ -513,12 +515,17 @@ class TestTheDesksWords:
         assert "(gold_value.get_parent() as Control).visible = full_header" in relayout
         assert "(turn_value.get_parent() as Control).visible = full_header" in relayout
         dress = _func(MAIN, "_ui6_dress_status_row")
-        assert "var keys_shown := not Utils.explanations_folded()" in dress
+        # (row PW part 3: folded, each group of figures keeps ONE short word — the
+        # readers could not say what the bare "4/4" and "80k" were; On the page the
+        # keys print as authored)
+        assert "var folded := Utils.explanations_folded()" in dress
+        assert "for row in DESK_KEY_WORDS:" in dress
+        assert 'key_label.text = short if folded else str(key_label.get_meta("authored"))' in dress
         for key in ("ActionsDisplay/ActionsLabel", "AdminDisplay/AdminLabel", "ManpowerDisplay/InfLabel",
-                    "ManpowerDisplay/CavLabel", "ManpowerDisplay/ArtLabel"):
-            assert key in dress, key
+                    "CavalryDisplay/CavLabel", "ArtilleryDisplay/ArtLabel"):
+            assert key in MAIN.split("const DESK_KEY_WORDS := [", 1)[1].split("]\n\n", 1)[0], key
         tips = _func(MAIN, "_ui6_refresh_status_tips")
-        assert "Military actions left today: %d of %d" in tips and "Levies in the depots" in tips
+        assert "Actions left this turn: %d of %d" in tips and "Men you can still recruit" in tips
         # the turn stays the header's write (the top bar shows it; On the page the header does)
         assert "turn_value.text = str(int(current_turn))\n" in MAIN
 
@@ -543,7 +550,8 @@ class TestTheDesksWords:
         assert 'add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")' in boot
         assert boot.index("Commands:") > at
         ph = _func(MAIN, "_refresh_command_placeholder")
-        assert "elif Utils.explanations_folded():\n\t\tcommand_input.placeholder_text = COMMAND_PLACEHOLDER_EXAMPLE" in ph
+        # (row PW part 3: the folded line says what it is for and how to get ideas)
+        assert "elif Utils.explanations_folded():\n\t\tcommand_input.placeholder_text = LINE_IDEAS_PLACEHOLDER" in ph
         assert 'placeholder_text = "Type command..."' in SCENE   # the scene's own default
 
     def test_the_cabinet_reads_cabinet(self):

@@ -598,6 +598,17 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
                   if holder else
                   " A standing march or hold can be stood down with "
                   "'cancel <marshal>', free.")
+        # Row PW part 3: an order CAN be taken back while it has shown and
+        # rolled nothing (`take_back.py`, the Take back button, Ctrl+Z); this
+        # answer is reached only when the last one stands — and says why.
+        from backend.commands import take_back as _take_back
+        stands = str(_take_back.offer(world).get("why") or "")
+        if _take_back.a_taken_order_can_be_taken_back() and stands:
+            return (f"Berthier shakes his head. \"{stands} An order can be taken "
+                    f"back only until it shows you something new, starts a "
+                    f"fight or raises a question, Sire.{cancel} An earlier day "
+                    f"can be recalled from a saved game on the pause menu (Esc). "
+                    f"Nothing has been relayed.\"")
         return (f"Berthier shakes his head. \"There is no unsaying an order "
                 f"once relayed, Sire — what has gone out has gone out.{cancel} "
                 f"An earlier day can be recalled from a saved game on the "

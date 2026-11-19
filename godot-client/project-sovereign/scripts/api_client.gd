@@ -252,6 +252,12 @@ func send_command(command: String, callback: Callable, relayed: bool = false):
 	_send_post("/command", body, callback)
 
 
+func take_back_last_order(callback: Callable):
+	# Row PW part 3: the board put back as it stood before the last order
+	# (`backend/commands/take_back.py`); the reply is a command's reply.
+	_send_post("/undo", {}, callback)
+
+
 func send_structured_command(command: String, data: Dictionary, callback: Callable):
 	var body = {"command": command}
 	for key in data.keys():

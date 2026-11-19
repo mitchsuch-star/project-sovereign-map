@@ -1977,10 +1977,10 @@ def _answer_how_stop(world, player: str, name: str) -> Optional[str]:
     if order is not None:
         phrase = _order_phrase(order)
         return (f"{shown} is {phrase[:1].lower()}{phrase[1:]} '{shown}, cancel' "
-                f"recalls him (1 AP).")
+                f"recalls him (1 action).")
     return (f"{shown} is under no standing march or hold, Sire, so there is "
             f"nothing to recall; '{shown}, cancel' recalls a march or a hold "
-            f"once he has one (1 AP).")
+            f"once he has one (1 action).")
 
 
 def _answer_what_if(world, player: str, enemy_name: str,

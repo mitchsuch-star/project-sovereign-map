@@ -442,8 +442,8 @@ def build_confrontation_dialogue(sabotage: Dict, talleyrand) -> Dict:
             "I left the door open — timing in diplomacy is everything."
         ),
         "ap_downgrade": (
-            "Sire, I converted the AP demand to gold. "
-            "AP demands breed rebellion faster than anything else."
+            "Sire, I converted the demand on their actions to gold. "
+            "Taking a court's actions breeds rebellion faster than anything else."
         ),
         "unit_overpay": (
             "Sire, I offered more units than you specified. "

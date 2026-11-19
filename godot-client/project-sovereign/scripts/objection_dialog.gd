@@ -23,6 +23,12 @@ signal choice_made(choice: String)
 @onready var insist_button = $PanelContainer/VBoxContainer/ButtonContainer/InsistButton
 @onready var compromise_button = $PanelContainer/VBoxContainer/ButtonContainer/CompromiseButton
 
+# Row PW part 3: what the two figures are FOR (each claim is Help's own entry
+# and `AUTHORITY_CURRENCY_SPEC.md` §1.2's).
+const TRUST_WORDS := "Trust is this marshal's confidence in you, from 0 to 100. The higher it is, the less he objects and the more readily he obeys when you insist — at 80 or more, always. Taking his advice raises it; overruling him lowers it. At 20 or less he demands an audience."
+const TRACK_RECORD_WORDS := "Track record: whether his past objections have proved right or wrong so far."
+const AUTHORITY_WORDS := "Authority is your standing as Emperor, from 0 to 100, with every marshal and court. You spend it to overrule a marshal by your own word (he obeys and loses no trust), and on titles and laws; victories win it back; defeats and broken promises cost it. When it is low, marshals obey less and defy more."
+
 var current_marshal: String = ""
 var has_alternative: bool = false
 var has_compromise: bool = false
@@ -205,10 +211,16 @@ func show_objection(objection_data: Dictionary):
 
 	var trust = int(objection_data.get("trust", 70))
 	var trust_label_text = objection_data.get("trust_label", "Unknown")
-	trust_label.text = "Trust: %d (%s)" % [trust, trust_label_text]
+	# Row PW part 3 (the readers: "what trust and authority ARE and what each is
+	# for"): each figure says whose it is on its face, and what it does on its hover.
+	trust_label.text = "His trust in you: %d (%s)" % [trust, trust_label_text]
+	trust_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	trust_label.tooltip_text = TRUST_WORDS
 
 	var vindication = int(objection_data.get("vindication", 0))
 	vindication_label.text = "Track record: %s" % _get_vindication_text(vindication)
+	vindication_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	vindication_label.tooltip_text = TRACK_RECORD_WORDS   # row PW part 3
 
 	var authority = int(objection_data.get("authority", 100))
 	# WO-D12: the anti-pushover damper halves trust rewards for a player
@@ -220,9 +232,11 @@ func show_objection(objection_data: Dictionary):
 	# damped); the line below prints it as the x0.50 multiplier it always was.
 	var trust_mod = float(objection_data.get("trust_gain_modifier", 100)) / 100.0
 	if trust_mod < 1.0:
-		authority_label.text = "Authority: %d — they have taken your measure (trust rewards x%.2f)" % [authority, trust_mod]
+		authority_label.text = "Your authority: %d — they have taken your measure (trust rewards x%.2f)" % [authority, trust_mod]
 	else:
-		authority_label.text = "Authority: %d" % authority
+		authority_label.text = "Your authority: %d" % authority
+	authority_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	authority_label.tooltip_text = AUTHORITY_WORDS
 
 	# V2a trust change values for button previews
 	var trust_gain = int(objection_data.get("trust_gain", 3))

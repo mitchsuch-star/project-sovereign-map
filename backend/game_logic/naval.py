@@ -4629,11 +4629,11 @@ EXPEDITION_CHIP_MARCHES = 2    # corps offered a march to a yard
 # routes the verb to (`ADMIN_ACTIONS`: a keel, a yard, a commission spend the
 # ADMINISTRATIVE pool) - never a number typed here.
 def ap_price_words(world, action: str) -> str:
-    """"2 AP" / "1 Admin AP" - the price of the verb `action` in the pool it
-    is charged to."""
+    """"2 actions" / "1 admin action" - the price of the verb `action` in the
+    pool it is charged to (row PW, PW2-D1: no price tag says "AP")."""
     from backend.commands.meta_executor import ADMIN_ACTIONS
     price = int(world.get_action_cost(action))
-    return f"{price} Admin AP" if action in ADMIN_ACTIONS else f"{price} AP"
+    return _plural(price, "admin action" if action in ADMIN_ACTIONS else "action")
 
 
 def ap_cost_note(world, action: str) -> str:
@@ -4697,13 +4697,13 @@ def march_to_yard_chip(world, marshal, yard: str, road, yards) -> Dict:
     turns = int(quote.get("turns", 0) or 0)
     if ok:
         ap = int(quote.get("ap", 0) or 0)
-        price = (f"({ap} AP · "
+        price = (f"({_plural(ap, 'action')} · "
                  f"{'this turn' if turns == 0 else _plural(turns, 'turn')})")
     else:
         # A refused quote carries no price (0) and no clock; the order's own
         # price is still what it WOULD cost (`strategic_order_ap`).
         ap = int(marshal.strategic_order_ap(order_type="MOVE_TO"))
-        price = f"({ap} AP)"
+        price = f"({_plural(ap, 'action')})"
     reason = ""
     if not ok:
         reason = (str(quote.get("refusal") or "")

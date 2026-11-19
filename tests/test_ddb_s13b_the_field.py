@@ -507,7 +507,7 @@ class TestDDB40:
     def test_from_neutral_the_price_is_two_actions(self, client):
         c, w = client
         note = _muster(w, "Davout", "Mack")["province_fights_note"]
-        assert "fortify him (2 AP from a neutral stance — 1 to stand defensive, 1 to fortify)" in note
+        assert "fortify him (2 actions from a neutral stance — 1 to stand defensive, 1 to fortify)" in note
 
     def test_from_defensive_it_is_one(self, client):
         c, w = client
@@ -515,7 +515,7 @@ class TestDDB40:
             if m.nation == "France":
                 m.stance = type(m.stance)["DEFENSIVE"]
         note = _muster(w, "Davout", "Mack")["province_fights_note"]
-        assert "fortify him (1 AP)" in note
+        assert "fortify him (1 action)" in note
         assert w._action_costs["fortify"] == 1
 
 

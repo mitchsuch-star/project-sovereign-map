@@ -103,7 +103,11 @@ class TestTheMapPlaysTheBoardInTwoBeats:
         assert "update_all_regions(held)" in play and "_play_final = map_data" in play
         assert 'return {"changed": changed, "moved": marched}' in play
         pieces = _func(self.MAP, "_update_war_table_pieces")
-        assert "piece.move_to(anchor, _play_seconds if _play_seconds > 0.0 else WAR_PIECE_MOVE_DURATION)" in pieces
+        # (row PW part 3: the piece WALKS its road in the board's time — the played board's `_play_seconds`,
+        # else the road's own length)
+        assert ("var seconds: float = _play_seconds if _play_seconds > 0.0 else "
+                "march_seconds(road_names.size() - 1)") in pieces
+        assert "piece.march(road_layer, seconds)" in pieces
 
     def test_the_fogs_markers_march_too(self):
         """Most enemy corps are markers ("Mack ?"): static nodes that jumped."""

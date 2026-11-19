@@ -235,7 +235,7 @@ def _ports_help_block() -> str:
         "               court by court, with their ports.\n"
         f"  notches    - shut {int(round(first[0] * 100))}% of the Continent's ports and she\n"
         f"               wears +{first[1]} war-weariness a turn; {rest}.\n"
-        "  postures   - the fleet keeps ONE of two, each an order of 1 AP:\n"
+        "  postures   - the fleet keeps ONE of two, each an order of 1 action:\n"
         "               guard home waters - she covers every crossing that\n"
         "               touches our own coast; blockade the enemy - she\n"
         "               closes an at-war court's ports where our sail\n"
@@ -1128,7 +1128,7 @@ MILITARY COMMANDS:
                It costs nothing. An attack at unfavourable odds pauses
                on its muster - Commit, or Cancel at no cost. A foe out
                of reach is asked about first: pursue him (a standing
-               order, 2 AP), or cancel.
+               order, 2 actions), or cancel.
 
   defend     - Take defensive position (+30% bonus)
                "Davout, defend" / "hold" (alias)
@@ -1139,7 +1139,7 @@ MILITARY COMMANDS:
   retreat    - Fall back toward friendly territory (FREE)
                "Ney, retreat" - Aggressive marshals may object!
 
-  recruit    - Raise troops (1 Admin AP + gold)
+  recruit    - Raise troops (1 admin action + gold)
                "recruit for Davout" - his corps, where he stands
                "recruit at Paris" / "recruit" - at the depot, or the
                nearest corps: a marshal must stand within reach of it
@@ -1148,7 +1148,7 @@ MILITARY COMMANDS:
                x3 AT WAR, dearer above the FORCE LIMIT, and the
                marshal's administration prices the levy (Davout -15%,
                Murat +15% - his card explains: press ⟨KEY_G⟩).
-  substitutes - "buy substitutes for Ney" (1 Admin AP + gold)
+  substitutes - "buy substitutes for Ney" (1 admin action + gold)
                "purchase a levy for Ney" / "hire replacements for Ney"
                The remplacant: under the
                conscription law a called-up man could pay another
@@ -1166,17 +1166,17 @@ MILITARY COMMANDS:
   bombardment - Artillery fires on adjacent region (max 2/turn)
                "bombard Swabia" - Cannot fire after moving.
 
-  garrison   - Leave detachment to defend a region (2 AP)
+  garrison   - Leave detachment to defend a region (2 actions)
                Max 3 garrisons per nation. A detachment must be
                stormed: it lays down its arms below 500, and
                capitulates whole to an assault at 4:1 odds.
 
-  enact      - Enact a law of state (1 Admin AP + its price)
+  enact      - Enact a law of state (1 admin action + its price)
                "enact the Staff" - the Council of State quotes the
                terms first; answer yes to enact. A law costs gold (or
                authority) once and gold every turn; a law the chest
                cannot pay lapses. The Laws tab: press ⟨KEY_T_8⟩.
-  repeal     - "repeal the Code Abroad" (1 Admin AP, nothing refunded)
+  repeal     - "repeal the Code Abroad" (1 admin action, nothing refunded)
   doctrine   - "what is our doctrine?" / "what is Austria's doctrine?"
                Each great power's army has a strength and a flaw (ours:
                the corps system, and living off the land beyond the
@@ -1200,22 +1200,22 @@ STANCE COMMANDS:
   defensive  - -10% attack, +15% defense
   neutral    - Balanced (default, FREE to return)
 
-STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):
+STRATEGIC COMMANDS (multi-turn; 2 actions, support 1 action):
   march      - "Ney, march to Vienna" - travels over several turns
   pursue     - "Murat, pursue Kutuzov" - chase across the map
-  support    - "Lannes, support Ney" - march to an ally's battles (1 AP)
+  support    - "Lannes, support Ney" - march to an ally's battles (1 action)
   follow     - "Soult, follow Ney" - march with him, turn after turn, and
-               to his guns; stands until cancelled (1 AP)
+               to his guns; stands until cancelled (1 action)
   everyone   - "everyone fortify", "all marshals march to Swabia" - the
                order goes to every corps that can take it, in turn, each
                at its own price; a marshal who objects asks you himself
   the army   - with the Grand Quartier General in force: "the army
                marches on Swabia", "everyone follow Napoleon" - ONE order,
-               2 AP, every corps within two provinces of the Emperor, while
+               2 actions, every corps within two provinces of the Emperor, while
                your authority holds (70 and above carries the army; below 50
                the marshals march only on your own word, one by one)
   hold       - "Davout, hold Swabia" - hold ground (artillery auto-fires)
-  cancel     - "cancel Ney" / "halt Ney" (1 AP)
+  cancel     - "cancel Ney" / "halt Ney" (1 action)
   muster     - an attack brings every corps of ours in reach to the
                field beside its lead - ask "what if Ney attacks Mack"
                first: who marches, who will not and why. It is free.
@@ -1223,7 +1223,7 @@ STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):
 TWO ORDERS IN ONE LINE:
   then attack - "Ney, march to Swabia then attack Mack" - he marches,
                and engages the named man (or whoever holds the
-               ground) on arrival. Paid once, at 2 AP.
+               ground) on arrival. Paid once, at 2 actions.
   then fortify - "Ney, march to Lorraine then fortify" - a march
                carries ONE thing to do when he arrives: fortify,
                hold, drill or defend - done there at no further
@@ -1231,7 +1231,7 @@ TWO ORDERS IN ONE LINE:
   , then ...  - "Ney, scout Swabia, then fortify" - any other pair
                is TWO orders: the first goes out, the second is
                handed back to your command line for your seal (it
-               pays its own AP when you send it). A pair whose
+               pays its own actions when you send it). A pair whose
                second order would UNDO the first - 'fortify then
                attack Mack' - sends NOTHING: you are asked, free,
                and the order that gives both ('attack Mack then
@@ -1263,13 +1263,13 @@ TWO ORDERS IN ONE LINE:
         orders; everything else you give on the morning you want it
         carried.
 
-ECONOMY (Admin AP - the new imperial economy):
+ECONOMY (admin actions - the new imperial economy):
   economy    - Treasury report: income, upkeep, occupation costs,
                dotations, manpower pools ("economy" / "treasury")
-  build      - "build market at Paris" (1 AP) - also fortification,
+  build      - "build market at Paris" (1 action) - also fortification,
                stables, training ground, supply depot, watchtower
-  repair     - "repair Lorraine" (1 AP, 150g)
-  endow      - "Endow Ney with the Duchy of Swabia" (1 AP)
+  repair     - "repair Lorraine" (1 action, 150g)
+  endow      - "Endow Ney with the Duchy of Swabia" (1 action)
                Grants a CONQUERED province to a marshal as his
                ESTATE: its full income becomes his, permanently.
                First estate = 200g investiture; more are fee-free.
@@ -1278,7 +1278,7 @@ ECONOMY (Admin AP - the new imperial economy):
                Estates never pay occupation costs, and they GROW:
                an able administrator's estates (admin 8+) stabilize
                faster; a wasteful lord's (3-) decay.
-  rente      - "Grant Ney a rente" (1 AP) / "Revoke Ney's rente"
+  rente      - "Grant Ney a rente" (1 action) / "Revoke Ney's rente"
                The treasury alternative to land: a pension sized to
                his current shortfall. Safe from war and instantly
                available anywhere - but it costs the crown HALF
@@ -1300,20 +1300,20 @@ ECONOMY (Admin AP - the new imperial economy):
 THE ADMIRALTY (the wooden wall - every order below is a button there,
 with its terms, so none of it need be typed; press ⟨KEY_T_7⟩):
   build ships - Lay down ships, on THE ADMIRALTY or a yard's map
-               chip (1 Admin AP + 400g). 2 keels/turn at most - 1 under blockade.
+               chip (1 admin action + 400g). 2 keels/turn at most - 1 under blockade.
                New crews come aboard GREEN; only sea-time drills
                a navy. Ships are laid down in a yard we control.
-  blockade   - Blockade the enemy (1 AP) - the fleet closes an
+  blockade   - Blockade the enemy (1 action) - the fleet closes an
                at-war enemy's ports where our sail outmatches
                hers (1.25x her effective strength): her trade
                halves and her crews rot at anchor. A court we
                cannot outmatch is not closed, and a fleet that is
                itself blockaded does not drill. The Admiralty
                board names both, court by court.
-  guard      - Recall to home waters (1 AP) - cover every crossing
+  guard      - Recall to home waters (1 action) - cover every crossing
                that touches our own coast.
   land       - a coastal province's landing chip on the map, or
-               THE ADMIRALTY's landings (2 AP) - a small
+               THE ADMIRALTY's landings (2 actions) - a small
                expedition (15,000 men or fewer, embarking at one of
                our yards, or from any shore abroad or of ours across
                the water - an Irish beachhead) slips past the
@@ -1329,7 +1329,7 @@ with its terms, so none of it need be typed; press ⟨KEY_T_7⟩):
         any hostile fleet watches the water, a hostile shore is
         taken by expedition or not at all. Sink the covering fleet
         and the crossing becomes an open ferry.
-  diversion  - The Grand Diversion (1 AP) - the fleet draws the
+  diversion  - The Grand Diversion (1 action) - the fleet draws the
                enemy off station: succeed and the Strait lies open
                two turns; fail and be brought to battle coming home.
                The odds are the fleet's readiness less 25 (45 at 70),
@@ -1388,7 +1388,7 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
 THE CONGRESS OF PARIS (how the reign is WON - the table of the
 great powers is the Diplomatic Ledger's Congress tab; press ⟨KEY_D_7⟩):
   summon     - the Congress of Paris row atop the Cabinet (F1)
-               (1 Admin AP + ⟨SUMMON_DP⟩ DP). It needs
+               (1 admin action + ⟨SUMMON_DP⟩ DP). It needs
                ⟨HOLD⟩ TITLED provinces - homeland, ceded by treaty, a
                client's soil, or held ⟨QUIET⟩ quiet turns - with Paris
                held, the Emperor free and no satellite on the brink.
@@ -1411,7 +1411,7 @@ THE EMPEROR'S DESIGNS (what the Empire is FOR - the road page atop
 the Cabinet, F1 -> The Emperor's Designs):
   Three roads - the Protector of the Rhine, the Crowns of Italy, the
   Continental System - each a construction, then a seal. One
-  proclamation chooses (1 Admin AP + 2 DP; Europe's alarm and the
+  proclamation chooses (1 admin action + 2 DP; Europe's alarm and the
   courts' relations move), and it cannot be undone: the other roads
   are forsworn. Ask "what are our designs?" - each design is named
   with what it still asks.

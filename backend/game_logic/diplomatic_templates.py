@@ -5207,7 +5207,7 @@ _TERM_DISPLAY_LABELS = {
     "manpower_infantry": "{from_nation} transfers {value} infantry to {to_nation}",
     "manpower_cavalry": "{from_nation} transfers {value} cavalry to {to_nation}",
     "manpower_artillery": "{from_nation} transfers {value} artillery to {to_nation}",
-    "ap_per_turn": "{from_nation} cedes {value} AP per turn to {to_nation}",
+    "ap_per_turn": "{from_nation} cedes {value} of its actions each turn to {to_nation}",
     "open_borders": "Mutual open borders between {nation_a} and {nation_b}",
     "military_access": "{from_nation} grants military access to {to_nation}",
     # S14E-X167 (the XF2 sweep): the pledge binds no army and mints no guarantee

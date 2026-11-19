@@ -270,7 +270,7 @@ func open_standing_card(marshal: String, shown: String, info: Dictionary, ap_lef
 	title_label.text = "STANDING ORDER — " + shown.to_upper()
 	command_label.text = standing_headline(shown, info)
 	var cancel_ap := int(info.get("cancel_ap", 1))
-	send_button.text = "Cancel order  (%s)" % ("free" if cancel_ap <= 0 else "%d AP" % cancel_ap)
+	send_button.text = "Cancel order  (%s)" % ("free" if cancel_ap <= 0 else Utils.plural(cancel_ap, "action"))
 	terms_label.text = _standing_terms(info, ap_left)
 	send_button.disabled = ap_left < cancel_ap
 	line_button.disabled = false

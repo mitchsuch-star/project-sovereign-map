@@ -150,24 +150,52 @@ class TestThePauseMenuIsNamed:
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestUndoIsHonest:
+    """Row PW part 3 (November 19, 2026) built the take-back: `undo` takes the last order back while it
+    has shown and rolled nothing (`backend/commands/take_back.py`). What stays honest here: with no order
+    kept the desk says so and says WHY, moves nothing, and still names what can be stood down; the old
+    shrug stands with the seam down."""
+
     @pytest.mark.parametrize("line", ["undo", "undo that", "can I undo that",
                                       "go back", "take that back", "oops",
                                       "I didn't mean that", "revert"])
-    def test_there_is_no_unsaying_an_order(self, shipped, line):
+    def test_with_no_order_kept_the_desk_says_why_and_moves_nothing(self, shipped, line):
         client, world = shipped
         reply = say(client, world, line)
         assert reply["success"] is True, reply
         msg = reply["message"]
+        assert "There is no order to take back." in msg, msg
+        assert "can be taken back only until it shows you something new" in msg, msg
+        assert "Esc" in msg and "Nothing has been relayed" in msg
+
+    def test_the_old_shrug_stands_with_the_seam_down(self, shipped, monkeypatch):
+        from backend.commands import take_back
+        monkeypatch.setattr(take_back, "a_taken_order_can_be_taken_back", lambda: False)
+        client, world = shipped
+        msg = say(client, world, "undo")["message"]
         assert "no unsaying an order" in msg, msg
         assert "Esc" in msg and "Nothing has been relayed" in msg
 
+    def test_a_kept_order_is_taken_back(self, shipped):
+        client, world = shipped
+        before = snapshot(world)
+        marched = post(client, "Ney, march to Lorraine")
+        assert marched["success"] is True, marched
+        assert world.get_marshal("Ney").strategic_order is not None
+        assert marched["undo"]["available"] is True, marched["undo"]
+        back = post(client, "undo")
+        assert back.get("taken_back") is True, back
+        assert snapshot(world) == before, "the board stands as it did before the march"
+
     def test_a_standing_order_is_named_as_the_one_thing_that_can_be_stood_down(self, shipped):
+        from backend.commands import take_back
         client, world = shipped
         marched = post(client, "Ney, march to Lorraine")
         assert marched["success"] is True, marched
         assert world.get_marshal("Ney").strategic_order is not None
+        take_back.forget()          # something else done since: the march stands
         msg = say(client, world, "undo")["message"]
         assert "'cancel Ney'" in msg, msg
+        assert "Something else has been done since that order." in msg, msg
 
     def test_an_addressed_go_back_is_the_marshals_order_not_the_desks(self, shipped):
         """`Ney, go back` is an order to a marshal (the address is his name,

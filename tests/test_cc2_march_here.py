@@ -514,7 +514,7 @@ class TestThePanelRendersTheQuotes:
         ok = [q for q in driven["spec"]["march_quotes"]["march"] if q["ok"]]
         for q in ok[:5]:
             assert f"[url=do:{q['command']}]" in text, q["command"]
-            assert f"{q['shown']} · {q['ap']} AP" in text
+            assert f"{q['shown']} · {q['ap']} action{'' if q['ap'] == 1 else 's'}" in text
         hidden = len(ok) - 5 + sum(not q["ok"] for q in driven["spec"]["march_quotes"]["march"])
         assert f"+{hidden} more…" in text
 

@@ -669,8 +669,9 @@ func _render() -> void:
 			if str(em.get("nation", "")) != _PLAYER_NATION \
 					and bool(em.get("at_war_with_player", false)):
 				enemy_names.append(str(em.get("name", "")))
-	# Row PW part 2: "AP" is said once, right under the first rows that carry a
-	# price tag — the forces' orders, else the march-here orders (`_ap_words`).
+	# Row PW (PW2-D1): the actions left are said once, right under the first rows
+	# that carry a price — the forces' orders, else the march-here orders
+	# (`_actions_left_words`).
 	var ap_said := false
 	if marshals is Array and marshals.size() > 0:
 		bbcode += "\n" + Utils.HEAD_OPEN + "FORCES PRESENT" + Utils.HEAD_CLOSE + "\n"
@@ -680,7 +681,7 @@ func _render() -> void:
 				bbcode += _marshal_row_folded(m, enemy_names)   # Session UI-6: one row a marshal
 			else:
 				bbcode += _format_marshal_row(m, enemy_names)
-		var ap_under_forces := _ap_words(bbcode.substr(forces_from))
+		var ap_under_forces := _actions_left_words(bbcode.substr(forces_from))
 		ap_said = ap_under_forces != ""
 		bbcode += ap_under_forces
 
@@ -689,7 +690,7 @@ func _render() -> void:
 		var march := _march_here_section()
 		bbcode += march
 		if not ap_said:
-			bbcode += _ap_words(march)
+			bbcode += _actions_left_words(march)
 
 	# ── THE SEA (NUI "The Admiralty on the Map", September 23, 2026) ──
 	# A coastal province says what the water around it means: every sea
@@ -1480,7 +1481,7 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 					var fortify_label := "Fortify"
 					var fortify_prices = tactical.get("order_prices", {})
 					if fortify_prices is Dictionary and int(fortify_prices.get("fortify", 0)) > 0:
-						fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"
+						fortify_label += " (" + Utils.plural(int(fortify_prices.get("fortify", 0)), "action") + ")"
 					row += "  " + Utils.bb_button_chip("order:fortify:" + m_name, fortify_label, Utils.COLOR_COMMAND, _CHIP_BG)
 				# CN-4: the Drill chip is offered only where the drill would
 				# begin; otherwise it is dimmed at the end of the row beside
@@ -1676,13 +1677,13 @@ func _marshal_row_folded(m: Dictionary, enemy_names: Array) -> String:
 
 func _order_chip(spec: Dictionary, m_name: String) -> String:
 	"""Session UI-6: one of a marshal's order slots as a chip - priced on its
-	face when it costs ("Hold (2 AP)"), locked (lock + dim words) with the
+	face when it costs ("Hold (2 actions)"), locked (lock + dim words) with the
 	probe's reason as its hover when the executor would refuse it."""
 	var verb := str(spec["verb"])
 	var label := str(spec["label"])
 	var price := int(spec["price"])
 	if price > 0:
-		label += " (" + str(price) + " AP)"
+		label += " (" + Utils.plural(price, "action") + ")"
 	if bool(spec["locked"]):
 		return Utils.bb_chip_disabled(label, "", str(spec["reason"]))
 	return Utils.bb_button_chip("order:" + verb + ":" + m_name, label, Utils.COLOR_COMMAND, _CHIP_BG)
@@ -1910,7 +1911,7 @@ func _state_order_chips(m_name: String, tactical: Dictionary, dimmed: Array) -> 
 	"""CF-6: the Hold / Fall back / Garrison chips of one corps of ours —
 	lit where `order_refusals` carries no reason for the verb, else added to
 	`dimmed` with the reason. The label carries the price when it is not
-	free ("Hold (2 AP)"); the free retreat has none."""
+	free ("Hold (2 actions)"); the free retreat has none."""
 	var refusals = tactical.get("order_refusals", {})
 	if not (refusals is Dictionary):
 		refusals = {}
@@ -1923,7 +1924,7 @@ func _state_order_chips(m_name: String, tactical: Dictionary, dimmed: Array) -> 
 		var label := str(spec[1])
 		var ap := int(prices.get(verb, 0))
 		if ap > 0:
-			label += " (" + str(ap) + " AP)"
+			label += " (" + Utils.plural(ap, "action") + ")"
 		var why := str(refusals.get(verb, ""))
 		if why == "":
 			out += "  " + Utils.bb_button_chip("order:" + verb + ":" + m_name, label, Utils.COLOR_COMMAND, _CHIP_BG)
@@ -1932,24 +1933,22 @@ func _state_order_chips(m_name: String, tactical: Dictionary, dimmed: Array) -> 
 	return out
 
 
-# Row PW part 2 (the held-again blind reading: "AP is never defined" on three
-# readers' lists of three). The price tags keep their key — "(2 AP)" is what
-# every chip census and pin reads — and the plain words ride beside it, once,
-# under the panel's orders: what an AP is, and how many are left this turn
-# (the map's `action_pools`, the top bar's own figure).
-const AP_WORDS := "AP = actions"
-
-
-func _ap_words(shown: String) -> String:
+# Row PW, PW2-D1 (November 19, 2026): a price tag reads in actions — "Hold
+# (2 actions)", never "(2 AP)": four blind readers of four could not say what
+# AP stands for. Where the panel shows a price it also says, once, how many
+# actions are left this turn (the map's `action_pools`, the top bar's own
+# figure) — the number a price is read against.
+func _actions_left_words(shown: String) -> String:
 	# (a chip binds its spaces — U+00A0, UXR3-83 — so the tag is read with both)
 	var flat := shown.replace("\u00a0", " ")
-	if not (flat.contains(" AP)") or flat.contains(" AP ·")):
+	if not (flat.contains(" action)") or flat.contains(" actions)")
+			or flat.contains(" action ·") or flat.contains(" actions ·")):
 		return ""
-	var words := AP_WORDS
-	if _map_node != null and ("action_pools" in _map_node) and _map_node.action_pools is Dictionary \
-			and (_map_node.action_pools as Dictionary).has("military"):
-		words += " · %d left this turn" % int((_map_node.action_pools as Dictionary).get("military", 0))
-	return "\n[color=#" + Utils.COLOR_INFO + "]" + words + "[/color]\n"
+	if _map_node == null or not ("action_pools" in _map_node) or not (_map_node.action_pools is Dictionary) \
+			or not (_map_node.action_pools as Dictionary).has("military"):
+		return ""
+	var left := int((_map_node.action_pools as Dictionary).get("military", 0))
+	return "\n[color=#" + Utils.COLOR_INFO + "]You have " + Utils.plural(left, "action") + " left this turn[/color]\n"
 
 
 func _march_here_section() -> String:
@@ -2248,7 +2247,7 @@ func _army_corps_tip(army: Dictionary) -> String:
 
 
 func _quote_label(q: Dictionary) -> String:
-	"""`Soult · 2 AP · 3 turns` — the man, the price, the clock."""
+	"""`Soult · 2 actions · 3 turns` — the man, the price, the clock."""
 	var label := str(q.get("shown", ""))
 	if bool(q.get("already", false)):
 		return label + " · already ordered"
@@ -2258,10 +2257,10 @@ func _quote_label(q: Dictionary) -> String:
 	elif kind == "march_attack":
 		label += " · march & attack"
 	elif kind == "army":
-		# AO: `The army · 6 corps · 2 AP · longest 3 turns`
+		# AO: `The army · 6 corps · 2 actions · longest 3 turns`
 		var corps = q.get("corps", [])
 		var n: int = corps.size() if corps is Array else 0
-		label += " · " + Utils.plural(n, "corps") + " · " + str(int(q.get("ap", 0))) + " AP"
+		label += " · " + Utils.plural(n, "corps") + " · " + Utils.plural(int(q.get("ap", 0)), "action")
 		var longest := int(q.get("turns", 0))
 		label += " · " + ("this turn" if longest == 0 else "longest " + Utils.plural(longest, "turn"))
 		return label

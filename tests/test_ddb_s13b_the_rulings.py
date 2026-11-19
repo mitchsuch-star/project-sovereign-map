@@ -848,7 +848,7 @@ class TestDDBR1:
     # before its question - the march card's own sentence.
     _ASK = ("Kutuzov stands at Bohemia, three marches off. Swabia is Bavaria's "
             "soil — the corps standing there are fed by contract, about −288g "
-            "more a turn. Pursue him (2 AP — a "
+            "more a turn. Pursue him (2 actions — a "
             "standing order; the first march takes Ney to Swabia, Bavaria's "
             "soil), or cancel?")
 

@@ -162,3 +162,70 @@ Named by two or more of the four readers; none is asked by the bar.
   "8% harder" and a luck of "2% stronger" are two things; "Let Bernadotte decide".
 - **The peace table (B):** what would make a court's number rise when "the war has decided nothing yet"; what
   "Leave out" does to the war with that court.
+
+## Part 3 — the finishing pass (November 19, 2026)
+
+The same kind of bar, written before any frame was shot (`reading5/answer_key.md`): three fresh readers
+(Sonnet) who have never seen the game, shown crops of four frames of the real client at the first player's
+setup — **C** a general selected (the command desk, his card, the top bar) · **K** the map's key, open ·
+**D** the Cabinet's page for an enemy · **O** a marshal's objection — and asked six questions; every reader,
+every question.
+
+| # | Question |
+|---|---|
+| 1 | (C) On the left, what do "Actions", "Admin" and "Recruits" with their numbers tell you? |
+| 2 | (C) On the general's card, what does "2 Fortify · 2 actions" mean — the first 2, and the second? |
+| 3 | (C) Name the four figures at the top right of the screen and say what each is. |
+| 4 | (K) On the map, what is: a round "?" token; a dark box reading "12k"; a ship with a number in a circle; a red anchor? |
+| 5 | (D) Would this court accept the peace named on the page today? How far short, and what weighs most against it? |
+| 6 | (O) Whose is the "trust" figure and whose the "authority"? What does "By My Word" do to each? |
+
+### Reading 5 — `reading5/` (frames `C1_`, `C2_`, `K_`, `D_`, `O_`; the tree before the reading's fixes) — NOT MET
+
+| Question | Reader 1 | Reader 2 | Reader 3 |
+|---|---|---|---|
+| 1 | ✗ | ✗ | ✗ |
+| 2 | ✓ | ✓ | ✓ |
+| 3 | ✗ | ✗ | ✗ |
+| 4 | ✓ | ✗ | ✗ |
+| 5 | ✓ | ✓ | ✓ |
+| 6 | ✓ | ✓ | ✓ |
+
+Question 1: "I cannot tell what Admin buys"; the three recruit figures were "three stocks of men" whose
+icons no reader could name. Question 3: "+828" — "I cannot tell the period". Question 4: the blockaded
+port's mark is "a red stopwatch-like icon … I see no anchor". Built from it (`BUG_FIXES.md` PW3-4, PW3-8):
+"Admin (build · recruit)"; "Recruits: foot 80k · horse 15k · guns 10k"; "+828 a turn"; the port's mark drawn
+as an anchor, on the map and in the key, and named in the key ("A red anchor: a port under blockade.").
+
+### Reading 6 — `reading5/` (frames `C1b_`, `C2b_`, `Kb_`, `D_`, `O_`; the final tree) — MET, 18 of 18
+
+Three NEW readers.
+
+| Question | Reader 4 | Reader 5 | Reader 6 |
+|---|---|---|---|
+| 1 | ✓ | ✓ | ✓ |
+| 2 | ✓ | ✓ | ✓ |
+| 3 | ✓ | ✓ | ✓ |
+| 4 | ✓ | ✓ | ✓ |
+| 5 | ✓ | ✓ | ✓ |
+| 6 | ✓ | ✓ | ✓ |
+
+Each reader on question 1: Admin is "a second, separate allowance for building and recruiting"; the recruits
+are "pools of men … split by foot, horse and guns". On question 3: "money in hand and income per turn". On
+question 5: "It stands at -1; they agree at 50 or more — 51 short … her loyalty to the league (-15)". On
+question 6: "Ney's trust is unchanged and your authority drops by 3". Said plainly: question 3's key asks the
+four figures' NAMES; every reader of the six named Authority and Threat and added that the bar does not say
+what either measures (their hovers and Help's entries do).
+
+### What the readers still found unclear — the next pass's worklist
+
+Named by two or more of reading 6's three readers; none is asked by the bar.
+
+- **The top bar:** what Authority and Threat MEASURE and what Diplomacy's points buy (hover-only; a still
+  picture cannot hover); "Envoys" and "Talleyrand: Idle".
+- **The desk:** the white dot on each general's tile (he is idle); "Scale + −" (the interface's size).
+- **The general's card:** "Idle" and "100%" beside the flag (his morale); why three orders are dashed (the
+  reason is the hover).
+- **The Cabinet:** Talleyrand's own sentence ("the field reads +0 and no road carries") — the plain line
+  under it was read right by all six; "the league" (which league).
+- **The objection:** "Track record: Neutral" (its hover now says what it is).

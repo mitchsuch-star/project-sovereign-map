@@ -71,8 +71,8 @@ def test_non_literal_hold_announces_2ap_and_defend_alternative():
     assert result.get("pending_objection") is not True
     assert result.get("variable_action_cost") == 2
     msg = result["message"]
-    assert "2 AP" in msg
-    assert "defend" in msg and "1 AP" in msg
+    assert "2 actions" in msg
+    assert "defend" in msg and "1 action" in msg
 
 
 def test_literal_hold_keeps_1ap_caption_no_hold_note():
@@ -87,8 +87,8 @@ def test_literal_hold_keeps_1ap_caption_no_hold_note():
             {"world": world})
     assert result.get("variable_action_cost") == 1
     msg = result["message"]
-    assert "1 AP" in msg
-    assert "2 AP" not in msg
+    assert "1 action" in msg
+    assert "2 actions" not in msg
     assert "standing strategic order to hold this ground" not in msg
 
 

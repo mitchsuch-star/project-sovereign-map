@@ -311,9 +311,9 @@ class TestTheSentences:
         # DDB-40 (Pre-Deploy S13b part 2): fortify is priced from the
         # corps' stance, as the counsel prices it — from NEUTRAL it shifts to
         # DEFENSIVE first. The fortify itself is still 1 AP.
-        assert "1 to fortify" in note or "(1 AP" in note, note
+        assert "1 to fortify" in note or "(1 action" in note, note
         if soult.stance.name == "NEUTRAL":
-            assert "2 AP from a neutral stance" in note, note
+            assert "2 actions from a neutral stance" in note, note
         assert "restrain" not in note.lower()
         assert world._action_costs["fortify"] == 1, (
             "the taught price drifted from the applied one")

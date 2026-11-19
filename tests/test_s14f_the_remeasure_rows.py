@@ -5197,7 +5197,7 @@ class TestS14E14:
     def test_the_help_carries_it(self, _r14_world):
         from backend.commands.meta_executor import MetaExecutor
         text = MetaExecutor(None)._execute_help({}, {"world": _r14_world})["message"]
-        assert "The Grand Diversion (1 AP)" in text
+        assert "The Grand Diversion (1 action)" in text
         flat = " ".join(text.split())    # the help is hand-wrapped
         assert "Caught, she fights the action at her readiness less 10" in flat
         assert "loses 20% of every pooled fleet, up to 55% in a decisive defeat" in flat
@@ -13104,7 +13104,7 @@ class TestS14E22:
         opt = out["options"][0]
         assert opt["command"] == "Soult, march to Vienna"
         assert opt["flags"] == {"_march_confirmed": True}
-        assert opt["label"] == "March (1 AP)"
+        assert opt["label"] == "March (1 action)"
         assert out["marshal"] == "Berthier" and out["interpreted_target"] == "Vienna"
 
     def test_the_ask_comes_before_the_square_breaks_and_before_any_objection(self, _r22_board):
@@ -13448,7 +13448,7 @@ class TestS14EX67:
                 "about " + _RX67_MINUS + "144g more a turn.")
         # S14G-X138 (Pre-Deploy S14h part 2, October 26, 2026): the verb's
         # price now stands between the pay line and the question.
-        assert card["state"] == "awaiting_clarification" and line + " Sailing costs 2 AP. Sail? (yes / no)" in card["message"]
+        assert card["state"] == "awaiting_clarification" and line + " Sailing costs 2 actions. Sail? (yes / no)" in card["message"]
         before = w.calculate_turn_upkeep("France")["campaign_pay"]
         with _rx67_quiet():
             landed = executor._naval._execute_naval_expedition(
@@ -13667,7 +13667,7 @@ class TestS14EX83:
             assert out.get("clarification_kind") == "march_detour_ask", out.get("message")
             assert out["strategic_type"] == "HOLD"
             assert out["message"].endswith("through Prussia and Russia \u2014 hold, or cancel?")
-            assert out["options"][0]["label"] == "Hold (1 AP)"
+            assert out["options"][0]["label"] == "Hold (1 action)"
             assert soult.location == "Berlin" and soult.strategic_order is None
             assert int(w.actions_remaining) == ap
             done = _r22_say(client, "hold")
@@ -19694,7 +19694,7 @@ class TestS14EX72:
         assert _w2_world.get_marshal("Ney").strategic_order is not None
         text = self._w2_reply(_w2_client, "how do I stop Ney")
         assert "standing order to march to Lorraine" in text, text
-        assert "'Ney, cancel' recalls him (1 AP)" in text, text
+        assert "'Ney, cancel' recalls him (1 action)" in text, text
         # shown == applied: the sentence it quotes runs, and ends the order
         cancel = _w2_say(_w2_client, "Ney, cancel")
         assert cancel.get("success") is True, cancel.get("message")
@@ -21790,7 +21790,7 @@ class TestS14EX86:
     sentence the march card, the plain move and the muster print - rides the
     ask before its question; byte-identical when the pay does not change."""
 
-    _BASE = ("Kutuzov stands at Bohemia, three marches off. Pursue him (2 AP "
+    _BASE = ("Kutuzov stands at Bohemia, three marches off. Pursue him (2 actions "
              "— a standing order; the first march takes Ney to Swabia, Bavaria's "
              "soil), or cancel?")
 
@@ -21803,7 +21803,7 @@ class TestS14EX86:
         assert out.get("clarification_kind") == "pursuit_ask", out.get("message")
         assert out["message"] == (
             "Kutuzov stands at Bohemia, three marches off. " + _W5_SWABIA_PAY
-            + " Pursue him (2 AP — a standing order; the first march takes Ney to "
+            + " Pursue him (2 actions — a standing order; the first march takes Ney to "
             "Swabia, Bavaria's soil), or cancel?"), out["message"]
         assert ney.location == "Rhineland" and ney.strategic_order is None
         assert int(w.actions_remaining) == ap                  # a free ask

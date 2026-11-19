@@ -116,6 +116,8 @@ const CUES := {
 	"whinny": {"files": ["battle/horse_whinny.ogg"], "bus": "SFX", "db": -6.0},
 	"sword_draw": {"files": ["battle/sword_draw.mp3"], "bus": "SFX", "db": -3.0, "max_s": 2.4},
 	"march_step": {"files": ["battle/army_march_loop_short.mp3"], "bus": "SFX", "db": -12.0, "throttle_ms": 1500, "max_s": 0.65},
+	# Row PW part 3: the halt as a marching piece is set down (`play_march`).
+	"march_halt": {"files": ["battle/boots_halt.ogg"], "bus": "SFX", "db": -8.0, "throttle_ms": 400, "max_s": 1.2, "pitch": 0.04},
 	# ── UI-5: an order heard as it is carried out (`play_result`) ──
 	"order_march": {"files": ["battle/army_march_loop_short.mp3"], "bus": "SFX", "db": -7.0, "throttle_ms": 400, "max_s": 1.4},
 	"spade": {"files": ["battle/spade_dig.ogg"], "bus": "SFX", "db": -5.0, "throttle_ms": 400, "max_s": 2.4, "pitch": 0.04},
@@ -552,6 +554,19 @@ static func play_result(verb: String) -> void:
 	inst._play_cue(cue, 0.0)
 	if cue == "coins_small":
 		inst._play_cue("boots", 0.0)
+
+
+static func play_march(seconds: float, horse: bool = false) -> void:
+	"""Row PW part 3 (the user: "sound when they move too think of a human
+	playing game"): a march is heard for as long as it is seen — the column's
+	tramp, or the trot when every marcher is cavalry. The cue is the order's
+	own (`RESULT_CUES`), so its throttle makes the order's sound and the
+	march's ONE sound; the enemy's pieces, played on the map after End Turn,
+	sound the same way (they marched under a 0.65-s cue at −12 dB)."""
+	var inst := _inst()
+	if inst == null:
+		return
+	inst._play_cue("horse_trot" if horse else "order_march", maxf(seconds, 0.6))
 
 
 static func hover() -> void:

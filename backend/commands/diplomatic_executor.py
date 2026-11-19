@@ -6516,7 +6516,7 @@ class DiplomaticExecutor:
                              "action": "territory_yes"},
                             {"label": "No territory — offer gold", "description": "Skip territory, move to gold.",
                              "action": "territory_no_gold"},
-                            {"label": "Offer Action Points", "description": "Skip to AP offering.",
+                            {"label": "Offer actions", "description": "Skip to offering one of your actions each turn.",
                              "action": "territory_no_ap"},
                         ],
                         "context": context,
@@ -6684,7 +6684,7 @@ class DiplomaticExecutor:
                     "options": [
                         {"label": "Offer gold", "description": "Move to gold terms.",
                          "action": "territory_no_gold"},
-                        {"label": "Offer Action Points", "description": "Skip to AP offering.",
+                        {"label": "Offer actions", "description": "Skip to offering one of your actions each turn.",
                          "action": "territory_no_ap"},
                         {"label": "Done", "description": "Proceed with what we have.",
                          "action": "skip_ap"},
@@ -7646,8 +7646,8 @@ class DiplomaticExecutor:
                 from backend.game_logic.vassal import (
                     rebellion_popup_for_dialogue,
                 )
-                _refusal = (f"Insufficient AP. Showing the flag in {_court} "
-                            f"costs 2 AP, you have {int(ctx.world.actions_remaining)}.")
+                _refusal = (f"Not enough actions. Showing the flag in {_court} "
+                            f"costs 2 actions, you have {int(ctx.world.actions_remaining)}.")
                 # WO-32 (SR-2c): the sibling arm — a refused Garrison kept
                 # the popup slot and the rail row but popped the dialogue,
                 # which is what kills the decision.
@@ -7677,7 +7677,7 @@ class DiplomaticExecutor:
                 "message": (
                     f"The flag is shown in {_court}: loyalty "
                     f"{int(old_loyalty)} → {int(vassal_state['loyalty'])} "
-                    f"(2 AP spent). {_tail}"
+                    f"(2 actions spent). {_tail}"
                 ),
                 "action_info": ctx.world.get_action_info(_flag_spent),
             }
@@ -8040,13 +8040,13 @@ class DiplomaticExecutor:
             "type": "terms_guidance",
             "target_nation": target_nation,
             "talleyrand_text": (
-                "Offering an Action Point is extraordinary — an entire extra action each turn. "
+                "Offering one of your actions is extraordinary — an entire extra action for them each turn. "
                 "Worth 18 acceptance points, more than ceding a province."
             ),
             "options": [
-                {"label": "Offer the AP", "description": "Add 1 AP per turn to the offer.",
+                {"label": "Offer the action", "description": "Add 1 of your actions each turn to the offer.",
                  "action": "offer_ap"},
-                {"label": "Too costly", "description": "Skip AP and finalize.",
+                {"label": "Too costly", "description": "Leave the action out and finish.",
                  "action": "skip_ap"},
             ],
             "context": context,
@@ -8094,7 +8094,7 @@ class DiplomaticExecutor:
             elif stype == "gold_per_turn":
                 parts.append(f"Offer {int(s.get('value', 0))} gold/turn")
             elif stype == "ap_per_turn":
-                parts.append(f"Offer {int(s.get('value', 0))} AP/turn")
+                parts.append(f"Offer {_plural(int(s.get('value', 0)), 'action')} a turn")
         summary = "; ".join(parts) if parts else "No concessions"
 
         new_dialogue = {

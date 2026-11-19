@@ -2133,7 +2133,7 @@ class TestAWordsPriceInTheClient:
         assert 'return "free" if points <= 0 else plural(points, "point")' in tail
         # the review (lane 5): an order taken at no action is "free" on the
         # chip, as on the card and the map's badge (`tests/test_ba4_the_review.py`)
-        assert 'return str(ap) + " AP"' in tail
+        assert 'return plural(ap, "action")' in tail
         card = _gd("order_confirm_card.gd")
         assert "Utils.quote_price(q)" in _gd_func(card, "price_of")
         assert 'lines.append("[b]" + price_of(q) + "[/b] · " + _clock(q))' in card
@@ -2143,9 +2143,9 @@ class TestAWordsPriceInTheClient:
         assert "Utils.quote_price_tail(b)" in _gd_func(panel, "_bring_label")
         # the one chip that still prints its actions itself is the army's (the
         # Staff's order is never a word of a day)
-        assert _gd_func(panel, "_quote_label").count('+ " AP"') == 1
-        assert '+ " AP"' not in _gd_func(panel, "_bring_label")
-        assert '+ " AP"' not in _gd_func(card, "bring_label")
+        assert _gd_func(panel, "_quote_label").count('Utils.plural(int(q.get("ap", 0)), "action")') == 1
+        assert '" AP"' not in _gd_func(panel, "_bring_label")
+        assert '" AP"' not in _gd_func(card, "bring_label")
 
     def test_the_quote_gives_the_client_what_it_prints(self, table):
         world, _day, ney, mack, _davout = _a_day_with_a_second_corps(table)

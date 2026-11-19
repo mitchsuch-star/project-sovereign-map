@@ -163,7 +163,7 @@ class TestPetitionAffordability:
         assert refresh_petition_affordability({}, _APWorld(4)) == {}
 
     def test_every_priced_option_in_jealousy_declares_ap_cost(self):
-        """Any arm with an 'N AP' cost_note must carry ap_cost, or the
+        """Any arm with an 'N action(s)' cost_note must carry ap_cost, or the
         refresher cannot re-derive it and the arm silently stays dead."""
         path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -171,12 +171,12 @@ class TestPetitionAffordability:
         )
         with open(path, encoding="utf-8") as fh:
             src = fh.read()
-        priced = re.findall(r'"cost_note":\s*(?:f?"[^"]*AP[^"]*"|f"\{[A-Z_]+\} AP")', src)
+        priced = re.findall(r'"cost_note":\s*(?:_actions\([^)]*\)|"\d+ actions?")', src)
         assert priced, "expected priced petition arms to exist"
         # Every priced literal must be followed by an ap_cost within the dict.
         for match in re.finditer(r'\{"id":.*?\}', src, re.S):
             body = match.group(0)
-            if re.search(r'"cost_note":\s*f?"[^"]*AP', body) or '{CONFRONT_PROMISE_AP} AP' in body:
+            if re.search(r'"cost_note":\s*(?:_actions\(|"\d+ actions?")', body):
                 assert '"ap_cost"' in body, (
                     f"priced petition option lacks ap_cost:\n{body[:260]}"
                 )

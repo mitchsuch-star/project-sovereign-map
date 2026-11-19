@@ -336,12 +336,96 @@ func _draw_flashes(xform: Transform2D) -> void:
 		_draw_ellipse(c, r, r * 0.62, ring, 3.0)
 
 
+# Row PW part 3 (November 19, 2026): the trail a march leaves. A piece that
+# walks is followed by a line in its nation's colour, drawn as he goes and
+# kept a few seconds after he is set down — where he came from stays on the
+# map after the motion is over (the enemy's moves most of all: several pieces
+# walk at once, and the eye cannot follow them all). WORLD points.
+const TRAIL_LINGER_S := 3.2
+const TRAIL_WIDTH := 3.0
+var _trails: Array = []          # {points, color, from_msec, march_s}
+
+
+func add_trail(points_world: Array, color: Color, march_seconds: float) -> void:
+	if points_world.size() < 2:
+		return
+	_trails.append({"points": points_world.duplicate(), "color": color,
+		"from_msec": Time.get_ticks_msec(), "march_s": maxf(march_seconds, 0.05)})
+	if _trails.size() > 48:
+		_trails = _trails.slice(_trails.size() - 48)
+	queue_redraw()
+
+
+func trail_count() -> int:
+	return _trails.size()
+
+
+func clear_trails() -> void:
+	_trails = []
+	queue_redraw()
+
+
+func _draw_trails(xform: Transform2D) -> void:
+	var now := Time.get_ticks_msec()
+	for t in _trails:
+		var age: float = float(now - int(t["from_msec"])) / 1000.0
+		var march_s: float = float(t["march_s"])
+		if age >= march_s + TRAIL_LINGER_S:
+			continue
+		var pts := PackedVector2Array()
+		for p in t["points"]:
+			pts.append(xform * (p as Vector2))
+		# how far the walker has come
+		var shown := _trail_head(pts, clampf(age / march_s, 0.0, 1.0))
+		if shown.size() < 2:
+			continue
+		var fade: float = 1.0 if age <= march_s else clampf(1.0 - (age - march_s) / TRAIL_LINGER_S, 0.0, 1.0)
+		var tint: Color = (t["color"] as Color).lightened(0.35)
+		draw_polyline(shown, Color(GHOST_SHADOW, GHOST_SHADOW.a * fade), TRAIL_WIDTH + 2.5, true)
+		for i in range(shown.size() - 1):
+			draw_dashed_line(shown[i], shown[i + 1], Color(tint, 0.95 * fade), TRAIL_WIDTH, 6.0, true, true)
+		draw_circle(shown[0], 5.0, Color(GHOST_SHADOW, GHOST_SHADOW.a * fade))
+		draw_circle(shown[0], 3.5, Color(tint, 0.95 * fade))
+		if age > march_s:
+			_draw_arrow_head(shown[shown.size() - 2], shown[shown.size() - 1], Color(tint, 0.95 * fade))
+
+
+static func _trail_head(pts: PackedVector2Array, share: float) -> PackedVector2Array:
+	"""The first `share` (0..1) of a road, by length."""
+	var out := PackedVector2Array()
+	if pts.size() < 2:
+		return out
+	var total := 0.0
+	for i in range(pts.size() - 1):
+		total += pts[i].distance_to(pts[i + 1])
+	var want := total * share
+	out.append(pts[0])
+	for i in range(pts.size() - 1):
+		var leg := pts[i].distance_to(pts[i + 1])
+		if leg <= want:
+			out.append(pts[i + 1])
+			want -= leg
+		else:
+			if leg > 0.0 and want > 0.0:
+				out.append(pts[i].lerp(pts[i + 1], want / leg))
+			break
+	return out
+
+
 func _process(_delta: float) -> void:
 	if _renderer == null or _renderer.map_viewport == null:
 		return
 	if not _flashes.is_empty():
 		if float(Time.get_ticks_msec() - _flash_from_msec) / 1000.0 >= FLASH_SECONDS:
 			_flashes = []
+		queue_redraw()
+	if not _trails.is_empty():
+		var now := Time.get_ticks_msec()
+		var kept: Array = []
+		for t in _trails:
+			if float(now - int(t["from_msec"])) / 1000.0 < float(t["march_s"]) + TRAIL_LINGER_S:
+				kept.append(t)
+		_trails = kept
 		queue_redraw()
 	if _rings.is_empty() and _ghost_world.is_empty() and _arrows.is_empty() \
 			and _hover_ring.is_empty():
@@ -356,6 +440,7 @@ func _draw() -> void:
 	var xform := _projection()
 	_drawn_xform = xform
 	_draw_arrows()
+	_draw_trails(xform)      # row PW part 3: where the marching pieces came from
 	_draw_flashes(xform)     # row PW: the provinces that changed hands
 	var zoom: float = xform.get_scale().x
 	if not _hover_ring.is_empty():

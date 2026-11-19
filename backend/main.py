@@ -32,6 +32,7 @@ from fastapi.responses import JSONResponse  # WS-1: the foreign caller's 403
 from pydantic import BaseModel, Field  # noqa: F401
 
 from backend import errors as _errors  # CODE-3: `report` is a local name below
+from backend.commands import take_back as _take_back  # row PW part 3: the last order, taken back
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.commands.dialogue_routing import (
@@ -236,6 +237,7 @@ def _set_active_world(new_world: WorldState) -> WorldState:
     world = new_world
     game_state["world"] = new_world
     _bump_state_epoch()   # UI-6: the readback's cache never outlives a swap
+    _take_back.new_board()   # row PW part 3: a swapped-in world has nothing to take back
     # WS-11: a campaign the server holds rolls its battles on its own seed.
     from backend.game_logic.campaign_variance import serve_campaign
     serve_campaign(new_world)
@@ -794,6 +796,9 @@ def build_base_response(world, success: bool = True, message: str = "",
         # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): the lord's authority — the
         # chip's ONE key: {value, label, grip, presence, moves[≤5]}, ints.
         "authority": _standing.payload(world, world.player_nation),
+        # Row PW part 3: whether the last order can be taken back — on every
+        # reply, so the button never offers an order that now stands.
+        "undo": _take_back.offer(world),
         # Diplomatic top-bar fields — present in EVERY gameplay response
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
         "max_diplomatic_points": _dp_ceiling(world),
@@ -3234,6 +3239,8 @@ async def serialize_state_mutations(request: Request, call_next):
         _POSTS_IN_FLIGHT += 1
         try:
             async with get_state_lock():
+                if request.url.path not in _take_back.KEEPING_POSTS:
+                    _take_back.forget()   # row PW part 3: anything else done closes the take-back
                 try:
                     return await call_next(request)
                 finally:
@@ -3411,6 +3418,9 @@ def test_connection():
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": _displayed_threat(world),
+        # Row PW part 3: the Take back chip's state at boot too (a HUD field,
+        # never a modal carrier — a reconnect keeps the chip honest)
+        "undo": _take_back.offer(world),
         # AU-1: the chip's key at boot too (the connection test feeds the top bar
         # before the first command; this GET does not pass build_base_response)
         "authority": __import__("backend.game_logic.standing", fromlist=["payload"]).payload(
@@ -3552,8 +3562,53 @@ class CommandContext:
     _reissue_flags: Any = field(init=False)
 
 
+def _keeps_the_take_back(fn):
+    """Row PW part 3 (`backend/commands/take_back.py`): the board is marked
+    before a command runs and the order judged after its reply is built — kept
+    for a take-back, or left standing with the reason. A typed `undo` takes
+    the last order back where one is kept (else it falls through to Berthier,
+    who says why it stands). A decorator, as the transcript's is: the driver
+    keeps its pipeline under its own name."""
+    @functools.wraps(fn)
+    def _kept(request: CommandRequest):
+        typed = str(getattr(request, "command", "") or "")
+        if _take_back.is_take_back_line(typed) and _take_back.offer(world)["available"]:
+            return _take_back_reply()
+        before = _take_back.mark(world)
+        response = fn(request)
+        _take_back.settle(world, before, response, typed)
+        if isinstance(response, dict):
+            response["undo"] = _take_back.offer(world)
+        return response
+    return _kept
+
+
+def _take_back_reply() -> dict:
+    """The reply of a take-back (the button's `POST /undo` and the typed
+    `undo`): the board as it stood before the last order."""
+    result = _take_back.take_back(world)
+    _bump_state_epoch()
+    response = build_base_response(
+        world, success=bool(result["ok"]), message=result["message"],
+        include_popup_passthroughs=False,   # the board put back raises nothing; a waiting popup waits
+        action_info={"cost": 0, "remaining": int(world.actions_remaining),
+                     "turn_advanced": False, "new_turn": None})
+    response["taken_back"] = bool(result["ok"])
+    response["undo"] = _take_back.offer(world)
+    return response
+
+
+@app.post("/undo")
+def undo_last_order():
+    """Row PW part 3: take the last order back (the Take back button, Ctrl+Z)."""
+    if world is None:
+        return {"success": False, "message": "No campaign is running."}
+    return _take_back_reply()
+
+
 @app.post("/command")
 @_records_transcript
+@_keeps_the_take_back
 def execute_command(request: CommandRequest):
     """Execute a game command and return result; every road returns a response dict.
 

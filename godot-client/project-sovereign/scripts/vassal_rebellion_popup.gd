@@ -45,7 +45,7 @@ func show_rebellion(data: Dictionary):
 	var loyalty = data.get("loyalty", 0)
 	var invest_cost = data.get("invest_cost_dp", 1)
 	var invest_effect = data.get("invest_effect", "Loyalty +15")
-	var garrison_effect = data.get("garrison_effect", "%d AP → Loyalty +10 now. No corps moves." % int(data.get("garrison_ap_cost", 2)))
+	var garrison_effect = data.get("garrison_effect", "%s → Loyalty +10 now. No corps moves." % Utils.plural(int(data.get("garrison_ap_cost", 2)), "action"))
 	var accept_effect = data.get("accept_effect", "Rebellion may occur")
 
 	# Session UI-2: the vassal's flag over the card; the heading in the title
