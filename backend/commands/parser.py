@@ -155,6 +155,32 @@ _RETREAT_HEAD_RE = re.compile(r"\b(?:retreat|fall\s+back|withdraw|retire|pull\s+
                               re.IGNORECASE)
 
 
+def _head_carries_its_arrival(first: str) -> bool:
+    """UI6-X73: `first` already holds a fused arrival — a boundary inside it
+    ("then", ";", "and", a comma before a verb) whose tail the fuse rule took
+    ("march to Lorraine then attack Mack"). A march carries ONE arrival."""
+    for pattern in (_SEQUEL_SPLIT_RE, _SEMICOLON_SPLIT_RE, _AND_VERB_SPLIT_RE,
+                    _COMMA_VERB_SPLIT_RE):
+        for inner in pattern.finditer(first):
+            head, tail = first[:inner.start()].strip().rstrip(',;'), first[inner.end():].strip()
+            if head and tail and _tail_fuses_onto_head(head, tail):
+                return True
+    return False
+
+
+def _third_order_behind_the_arrival(command_text: str, first_match):
+    """UI6-X73: `(head, third)` when an `and <verb>` boundary at or after
+    `first_match` follows a head that ALREADY carries its arrival — the head
+    keeps its march and its one arrival, the third order rides the relay —
+    else None (the two-clause arrival idiom, whole)."""
+    for match in _AND_VERB_SPLIT_RE.finditer(command_text, first_match.start()):
+        first = command_text[:match.start()].strip().rstrip(',;')
+        tail = command_text[match.end():].strip()
+        if first and tail and _head_carries_its_arrival(first):
+            return (first, tail)
+    return None
+
+
 def _tail_fuses_onto_head(first: str, tail: str) -> bool:
     """The ONE fuse rule the three split gates read: an attack tail onto a
     head that can carry an arrival (CR-7-1), and — CC-4 / D7 — an arrival
@@ -2273,17 +2299,68 @@ class CommandParser:
         return {"error": error, "suggestion": None, "kind": "arrival_charge",
                 "unknown_name": None, "candidates": []}
 
+    def _with_if_thens(self, result: Dict, exact: Dict, world, typed_text: str) -> Dict:
+        """Row IC (IC-9): `result` with its if-thens (`if_thens`), or — when a
+        line of the typed order cannot be carried — the free refusal that
+        names each such line and carries the line as understood."""
+        from backend.commands import if_thens as IT
+        command = result.get("command") if isinstance(result.get("command"), dict) else {}
+        marshal = world.get_marshal(str(command.get("marshal") or "")) if world is not None else None
+        order_type = result.get("strategic_type") if result.get("is_strategic") else None
+        kept, refused = IT.settle(world, marshal, order_type, exact.get("lines") or [])
+        not_taken = [{"clause": clause, "why": why} for clause, why in exact.get("unread") or []]
+        not_taken += [{"clause": str(line.get("clause") or IT.describe(line, humanize_entity_name)),
+                       "why": why} for line, why in refused]
+        if not not_taken:
+            if kept:
+                result["if_thens"] = kept
+            return result
+        understood = IT.restate(exact["address"], exact["order"], kept, humanize_entity_name)
+        named = "; ".join(f"'{row['clause']}' — {row['why']}" for row in not_taken)
+        part = "part" if len(not_taken) == 1 else "parts"
+        return {
+            "success": False,
+            "error": (f"Not sent, Sire — {'one' if len(not_taken) == 1 else len(not_taken)} "
+                      f"{part} of that order {'was' if len(not_taken) == 1 else 'were'} not "
+                      f"taken: {named}. What I understood is: '{understood}' — send that, "
+                      f"or change the line. Nothing was spent."),
+            "suggestion": None,
+            "kind": "if_then",
+            "unknown_name": None,
+            "candidates": [],
+            "raw_input": typed_text,
+            "understood": understood,
+            "not_taken": not_taken,
+            "partial_marshal": command.get("marshal"),
+        }
+
     @staticmethod
     def _compound_pronoun_refusal(command_text: str, game_state) -> Optional[Dict]:
         """UI6-X43 / X54: the free refusal for a pronoun behind a COMPOUND
         subject ("Ney, Mack and Kutuzov are attacking so attack him"): it
         names every man it read and the verb, spends nothing and relays
         nothing. None when the line has no such subject."""
-        _compound = compound_pronoun_reading(
-            command_text, foe_names_for_guards(game_state, text=command_text),
-            _player_marshal_names(game_state))
+        _foes = foe_names_for_guards(game_state, text=command_text)
+        _ours = _player_marshal_names(game_state)
+        _compound = compound_pronoun_reading(command_text, _foes, _ours)
         if _compound is None:
-            return None
+            # UI6-X74 (row IC, IC-8): a list of OUR men alone ("Ney, Davout and
+            # Soult are marching so attack him") - the pronoun stands for no
+            # enemy; the line was read as Ney's march and asked "Where shall
+            # Ney march?". Refused free, naming what was read.
+            _mine = compound_pronoun_reading(command_text, _foes, _ours, ours_only=True)
+            if _mine is None:
+                return None
+            _shown, _pron, _verb = _mine
+            _listed = (", ".join(_shown[:-1]) + " and " + _shown[-1])
+            return {
+                "error": (f"'{_pron}' names no enemy, Sire — {_listed} are our own. "
+                          f"Name the enemy to {_verb}. Nothing has been relayed."),
+                "suggestion": None,
+                "kind": "compound_pronoun",
+                "unknown_name": None,
+                "candidates": [],
+            }
         _shown, _pron, _verb = _compound
         _both = " and ".join(_shown) if _pron == "them" else (
             ", ".join(_shown[:-1]) + " or " + _shown[-1])
@@ -2959,7 +3036,8 @@ class CommandParser:
             # blank is same-length, and `split()` drops it.
             _scan_text, _ = strip_reason_clauses(
                 command_text, foes=foe_names_for_guards(
-                    game_state, names=known_enemies, text=command_text))   # UI6-X10
+                    game_state, names=known_enemies, text=command_text),   # UI6-X10
+                friends=_player_marshal_names(game_state))                # UI6-X70
             # SF7-X10 (Score Finish Step 7 slice 5b): the CONDITION clause
             # too — `Ney, fall back while Mack advances` (and `before …`,
             # and the trailing `in case …` precaution) retreated correctly
@@ -3095,6 +3173,26 @@ class CommandParser:
         # `then` form fused. A head that cannot carry an arrival ("fortify
         # and attack Mack") still splits, as before.
         if _tail_fuses_onto_head(first, tail):   # CR-7-1 + CC-4 / D7
+            # UI6-X73 (row IC, IC-8): the fusion is judged against a head that
+            # may ALREADY carry its arrival. "march to Lorraine then attack
+            # Mack and charge Mack" / "... and fortify" read the third order as
+            # the arrival's a second time and dropped it without a word. One
+            # arrival a march: what lies behind a fused arrival is a THIRD
+            # order — the relay's, named in its note, never dropped.
+            third = _third_order_behind_the_arrival(command_text, match)
+            if third is not None:
+                # The evidence rule above, for the third clause: it must be an
+                # order the fast layer reads, and never the arrival's own
+                # attack said twice ("... then attack Mack and destroy him").
+                # A CHARGE is its own gated order (UI6-X41 / X56), never emphasis.
+                third_parse = self.llm.fast_parse(third[1], game_state)
+                if third_parse.action == "unknown":
+                    return None
+                if third_parse.action == "attack":
+                    said = str(third_parse.target or "").strip().lower()
+                    if not said or said in third[0].lower():
+                        return None
+                return third
             return None
         # DD0-18 (a) (S4 part 4, October 11, 2026): "break camp and march to
         # Bohemia" / "strike camp and march" is ONE order — the march (D10's
@@ -3297,6 +3395,55 @@ class CommandParser:
         # trailing name the man the order is about. The typed text is never
         # spliced: the line below is COMPOSED from the Reading's spans. Rules
         # SYSTEMS_REFERENCE.md §104; the stages ride the trace as `reading`.
+        # Row IC, Session 2 (IC-9) — EXACT ORDERS, read FIRST. CC-4 / D8's
+        # standing contingency ("Ney, if Mack advances fall back to Bohemia"
+        # is a HOLD where he stands that watches and fires) grown into a LIST
+        # of if-thens: "Soult, hold Lorraine. If attacked, dig in. If
+        # outnumbered, fall back on Champagne." The if-thens are read off the
+        # line (`if_thens.read` — the word table's eight ifs and five thens)
+        # and the ORDER's own words are what every reader below sees ("Soult,
+        # hold Lorraine"; "Ney, hold" when the line is only if-thens), so the
+        # clause guard never meets an `if` this grammar took — and still
+        # refuses every other conditional shape. It runs before THE READING
+        # peels asides and rhetoric: a line's own words ("attack whatever the
+        # odds") are part of the if-then, not an aside. (A second read below
+        # catches a line whose ADDRESS the peelers had to restate first.)
+        from backend.commands import if_thens as _if_thens
+        _enemies = ([m.name for m in world.marshals.values()
+                     if m.nation != world.player_nation]
+                    if world is not None else [])
+        _regions = list(getattr(world, "regions", {}) or {})
+        _b = command_text
+        # IC-8: the NEW task words ("keep Lorraine", "stay with Ney") and a
+        # march's "then dig in", restated as the table words they mean.
+        command_text = _if_thens.restate_task_words(
+            command_text, _player_marshal_names(game_state), _regions)
+        _ptrace.note("parser", "restate_task_words", _b, command_text)
+        # IC-8 (§8.3, "what the line refuses"): a leading "first" is dropped
+        # so the relay gives the first order and offers the second ("Murat,
+        # first take Swabia then support Soult" gave the SECOND); a stretch of
+        # country and "their main army" are refused free, with the nearest
+        # real sentences offered ("hold between Munich and Vienna" marched him
+        # to hold "Between Munich"; "attack their main army" attacked Maine).
+        from backend.commands import task_line as _task_line
+        command_text = _task_line.drop_leading_first(
+            command_text, _player_marshal_names(game_state))
+        _task_words_restated = command_text != _b
+        _no_task = _task_line.refusal(world, command_text,
+                                      _player_marshal_names(game_state), _regions)
+        if _no_task is not None:
+            _ptrace.decide("parser", "task_line", _no_task["error"][:120])
+            return {"success": False, "error": _no_task["error"], "suggestion": None,
+                    "raw_input": typed_text, "kind": "task_line",
+                    "unknown_name": None, "candidates": [],
+                    "short": _no_task["short"], "offers": list(_no_task["offers"]),
+                    "mode": self._failure_road(None)}
+        _b = command_text
+        _exact = _if_thens.read(
+            command_text, _player_marshal_names(game_state), _enemies, _regions)
+        if _exact is not None:
+            command_text = f"{_exact['address']}, {_exact['order']}"
+        _ptrace.note("parser", "read_if_thens", _b, command_text)
         from backend.ai import reading as _reading
         _read = _reading.read(command_text, _friends, _foes, _places,
                               list(_lc._extract_known_nations(game_state).values()))
@@ -3356,21 +3503,39 @@ class CommandParser:
         # The premise ("if Mack is still in Swabia, …") is read in main.py,
         # which holds the world to check it against.
         from backend.ai.condition_grammar import (
-            HALT_TAIL_NOTE, extract_contingency, rewrite_engagement_support,
+            HALT_TAIL_NOTE, rewrite_engagement_support,
             strip_arrival_idiom, strip_halt_tail)
         _rewritten = False
-        # CC-4 / D8: the standing contingency — "Ney, if Mack advances fall
-        # back to Bohemia" is a HOLD where he stands that watches and fires —
-        # restated as "Ney, hold" before ANY reader, so the clause guard never
-        # sees this `if` (and still refuses every other conditional shape).
+        # Row IC (IC-9): the exact order's SECOND read — a line whose
+        # address the peelers above had to restate first ("Tell Soult to hold
+        # Lorraine. If attacked, dig in.") — where CC-4 / D8's extractor
+        # stood. A line the first read took is already its own order.
+        if _exact is None:
+            _b = command_text
+            _exact = _if_thens.read(
+                command_text, _player_marshal_names(game_state), _enemies, _regions)
+            if _exact is not None:
+                command_text = f"{_exact['address']}, {_exact['order']}"
+            _ptrace.note("parser", "read_if_thens_again", _b, command_text)
+        _contingency = _exact is not None or _task_words_restated
+        # IC-8 (§8.3 "How bold"): the how-bold words are READ and SET ASIDE —
+        # one that trails a name is taken out of the order's own words before
+        # any reader ("hold Rhineland carefully" held the province "Rhineland
+        # Carefully"), and every one found is recorded for the read-back's
+        # "Not taken" row. An if-then's own "whatever the odds" was read above
+        # and is no longer in these words.
         _b = command_text
-        _enemies = ([m.name for m in world.marshals.values()
-                     if m.nation != world.player_nation]
-                    if world is not None else [])
-        command_text, _contingency = extract_contingency(
-            command_text, _player_marshal_names(game_state), _enemies,
-            list(getattr(world, "regions", {}) or {}))
-        _ptrace.note("parser", "extract_contingency", _b, command_text)
+        command_text, _risk_words = _if_thens.set_aside_risk_words(
+            command_text, list(_player_marshal_names(game_state)) + _enemies + _regions)
+        _risk_set_aside = command_text != _b
+        _ptrace.note("parser", "set_aside_risk_words", _b, command_text)
+        # … and a LOOSE TIME ("through the winter", "for two weeks", "as long
+        # as it takes") the same way: the words were dropped and the order
+        # given with no limit; the read-back names them and offers "for 3 turns".
+        _b = command_text
+        command_text, _loose_time = _task_line.set_aside_loose_time(command_text)
+        _risk_set_aside = _risk_set_aside or command_text != _b
+        _ptrace.note("parser", "set_aside_loose_time", _b, command_text)
         # the fresh census (Oct 3, 2026): "hit Mack" is an attack when Mack is
         # a foe the parser knows; "send Murat after Mack" is Murat's pursuit.
         _b = command_text
@@ -3410,12 +3575,38 @@ class CommandParser:
         # too, as NP-1's normalisation does — the executor's addressee gate
         # reads `raw_command`, and 'Pledge France' is no officer of ours.)
         _rewritten = bool(_arr or _friend or _halt_tail or _guard_changed
-                          or _emphasis_stripped or _dd0_fired or _contingency)
+                          or _emphasis_stripped or _dd0_fired or _contingency
+                          or _risk_set_aside)
         result = self._parse_text(command_text, game_state, world)
-        # CC-4 / D8: the contingency rides the HOLD it was restated as.
-        if (_contingency and isinstance(result, dict) and result.get("success")
-                and result.get("strategic_type") == "HOLD"):
-            result["contingency"] = _contingency
+        # Row IC (IC-9): the if-thens ride the standing order they were typed
+        # with — settled against the man and the order (three lines for a
+        # marshal who follows orders to the letter, one on a hold for anyone
+        # else; one attack line; no repeats). A line this order cannot carry
+        # is NEVER dropped in silence: the whole line is refused free, naming
+        # it, with the line as understood offered back (`understood`).
+        if _exact is not None and isinstance(result, dict) and result.get("success"):
+            result = self._with_if_thens(result, _exact, world, typed_text)
+        # IC-8: the how-bold words the order carried ride the parse for the
+        # read-back to name — never on a posture order, whose own word it is.
+        if (_risk_words and isinstance(result, dict) and result.get("success")
+                and isinstance(result.get("command"), dict)
+                and result["command"].get("marshal")
+                and result["command"].get("action") != "stance_change"):
+            result["risk_words"] = list(_risk_words)
+        # IC-7: "attack <him>, held back" — the attack, without the glorious
+        # charge (`combat_executor._execute_attack` reads the flag; the words
+        # are the word table's).
+        if (isinstance(result, dict) and result.get("success")
+                and isinstance(result.get("command"), dict)
+                and result["command"].get("action") == "attack"
+                and result["command"].get("marshal") and result["command"].get("target")
+                and not result.get("is_strategic")
+                and _if_thens.held_back_in(typed_text, _enemies)):
+            result["command"]["held_back"] = True
+        if (_loose_time and isinstance(result, dict) and result.get("success")
+                and isinstance(result.get("command"), dict)
+                and result["command"].get("marshal")):
+            result["loose_time"] = list(_loose_time)
         # DD0-19 (S4 part 4, October 11, 2026): a bare Cabinet verb at the
         # head of a DIPLOMATIC parse ("Approach Bavaria about tightening our
         # alliance") is the order's own head, never an addressee the gate may
@@ -3890,6 +4081,16 @@ class CommandParser:
                     "ambiguity": llm_result.get("ambiguity", 5),
                     "mode": llm_result.get("mode", "mock"),
                 }
+                # WS-12 (row IC, IC-8): a live answer carries the FAST parser's
+                # own numbers beside the model's; the executor reads only these.
+                for _fast in ("fast_ambiguity", "fast_strategic_score"):
+                    if _fast in llm_result:
+                        result[_fast] = llm_result[_fast]
+                # IC-V1 (row IC, IC-8): the clauses the condition guard blanked
+                # without refusing — the read-back names each before the order
+                # goes (`parse_preview`); nothing here reads them to act.
+                if llm_result.get("blanked_clauses"):
+                    result["blanked_clauses"] = [dict(b) for b in llm_result["blanked_clauses"]]
                 if llm_result.get("llm_error"):
                     result["llm_error"] = True  # CR-3(c)
 
@@ -3962,7 +4163,8 @@ class CommandParser:
                     # the action chain read a HOLD.
                     strategic_text, _ = strip_reason_clauses(
                         strategic_text, foes=foe_names_for_guards(
-                            game_state, text=strategic_text))   # UI6-X10
+                            game_state, text=strategic_text),   # UI6-X10
+                        friends=_player_marshal_names(game_state))   # UI6-X70
                     strategic_text, _ = strip_deferred_clauses(strategic_text)
                     # CR-7-5: the clause guard's HAND-OFF. The handed-off
                     # span is blanked SAME-LENGTH for the strategic layer

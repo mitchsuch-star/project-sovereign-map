@@ -1034,6 +1034,13 @@ def update_literal_hold_counters(world) -> None:
                          or getattr(order, "command_type", "") == "HOLD")
             if marshal.name in engaged_names:
                 sidelined = False
+            # Row IC, Session 2 (IC-9; INDEPENDENT_COMMAND_SPEC §7): a LIVE
+            # EXACT ORDER is real work — a hold that still carries an if-then
+            # he is to answer is no man left out. (A hold whose lines are all
+            # used is a plain hold again; the desk offers to renew them.)
+            if order is not None and any(
+                    not line.get("used") for line in (getattr(order, "if_thens", None) or [])):
+                sidelined = False
             # VP-M1 (GE-D1): a WOUNDED man is not sidelined — he is not fit
             # to be sent; the counter neither climbs nor resets on him.
             from backend.game_logic.fortunes_of_war import is_wounded as _is_wounded
@@ -5077,6 +5084,14 @@ def process_turn(world) -> List[Dict]:
         if not _is_standing(marshal):
             marshal.jealousy_autonomous_warned = False
             continue
+        # IC-V3 (row IC, Session 2 — the review of November 20, 2026): a man
+        # in the trust crisis's three turns ("acting independently") already
+        # acts by himself as the turn ends. Warned and jealous too, he struck
+        # BEFORE the enemy moved and was moved again after it — two battles in
+        # one end of turn. His one act is the independent one: no warning.
+        if acts_independently(marshal):
+            marshal.jealousy_autonomous_warned = False
+            continue
         # Slice-17 review round: a FORTIFIED marshal cannot attack at all
         # (the executor refuses him: "order 'unfortify' first"), so warning
         # that he will go on his own initiative promised a battle the
@@ -5336,6 +5351,14 @@ def _warned_retarget_clause(world, warned, enemy, region) -> str:
                                   past=True)
 
 
+def acts_independently(marshal) -> bool:
+    """IC-V3: he is in the trust crisis's three turns of acting by himself
+    (`Marshal.autonomous`). ONE reader for the two jealousy seams — the row
+    that replaces those three turns (the task to prove himself, row IC's own
+    session) re-seats it on that state."""
+    return bool(getattr(marshal, "autonomous", False))
+
+
 def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
     """Fire warned autonomous attacks for PLAYER-nation jealous aggressive
     marshals (TurnManager.end_turn, before the enemy phase). Any player
@@ -5358,6 +5381,10 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         if not getattr(marshal, "jealous_of", None) or not _is_standing(marshal):
             continue
         if marshal.personality != "aggressive":
+            continue
+        # IC-V3: … and a warning that stood when the three turns began fires
+        # no strike (the flag is already spent above; nothing is said).
+        if acts_independently(marshal):
             continue
         target_info = find_autonomous_attack_target(world, marshal)
         if target_info is None:

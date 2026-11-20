@@ -171,6 +171,12 @@ def _row_from_reading(name: str, line: str, reading: Dict[str, Any]) -> Dict[str
                  if p.get("role") in ("warn", "note") and str(p.get("text") or "")
                  and str(p.get("text")) != "he may object"
                  and not str(p.get("text")).startswith("replaces ")]
+        # Row IC, Session 2 (IC-8): what his line TOOK (a condition, an
+        # if-then) and what it did NOT take, as the read-back says them.
+        notes += [str(p.get("text") or "") for p in parts
+                  if p.get("role") == "taken" and str(p.get("text") or "")]
+        notes += ["not taken: " + str(p.get("text") or "") for p in parts
+                  if p.get("role") == "nottaken" and str(p.get("text") or "")]
         quote = reading.get("_quote")
         if isinstance(quote, dict):
             for key in _RIDERS:
@@ -503,7 +509,7 @@ def readback(world, text: str, out: Dict[str, Any], readers: Dict[str, Any]) -> 
     if found is None:
         return None
     try:
-        if pp._pending_question(world, text):
+        if pp._pending_question(world, text, readers.get("interrupt_reader")):
             return None      # a standing question takes the line: the ordinary reading says so
         parse_text = text
         if found["kind"] == "army":

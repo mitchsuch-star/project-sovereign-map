@@ -291,6 +291,18 @@ def _order_refusals(world, marshal) -> Dict:
         return {}
 
 
+def _button_state(world, marshal) -> Dict:
+    """Row IC, Session 2 (IC-7): `state_probe.button_prices` / `button_refusals`
+    (display-only reads) — the posture, square and "stay put" buttons."""
+    try:
+        from backend.commands.state_probe import button_prices, button_refusals
+        return {"prices": button_prices(world, marshal),
+                "refusals": button_refusals(world, marshal)}
+    except Exception as exc:
+        report(exc, "world_state._button_state: backend.commands.state_probe")
+        return {"prices": {}, "refusals": {}}
+
+
 def _order_prices(world, marshal) -> Dict:
     """CF-6: `state_probe.order_prices` (a display-only read) — the figure
     each chip's label prints beside the verb."""
@@ -12249,6 +12261,14 @@ class WorldState:
                         # Hold / Garrison chips price themselves as the
                         # executor will charge ("Hold (2 AP)").
                         "order_prices": _order_prices(self, m),
+                        # Row IC, Session 2 (IC-7): the simple orders that
+                        # had no button — a posture, the square, "stay put" —
+                        # priced and refused by the executor's own readers;
+                        # and whether he was told to stay put THIS turn (the
+                        # End Turn list and the idle cycle pass him by).
+                        "buttons": _button_state(self, m),
+                        "stay_put": bool(getattr(m, "stay_put_turn", None) is not None
+                                         and int(m.stay_put_turn) == int(self.current_turn)),
                         # CC-5 "The war table" (Oct 17, 2026): his standing
                         # order's REMAINING road, where it is bound and its
                         # clock — the map's order arrow. Derived from the
@@ -16590,6 +16610,26 @@ class WorldState:
             if getattr(marshal, 'counter_punch_ready', False):
                 marshal.counter_punch_ready = False
                 debug_print(f"  [COUNTER-PUNCH MASTERY EXPIRED] {marshal.name}'s counter-punch mastery bonus has passed")
+
+        # ════════════════════════════════════════════════════════════
+        # GRD-33 (row IC, IC-8): THE LITERAL MARSHAL'S BUFF EXPIRES WITH THE
+        # TURN. The crisp-order buff (`_apply_grouchy_ambiguity_buff`) is for
+        # the turn it was given in — it covers the enemy's phase behind it and
+        # is gone at dawn, never banked for a battle turns later (Iron
+        # Resolve's no-banking rule, one marshal over). Only the player's
+        # literal marshals carry it (the courts' marshals are scored by the
+        # AI's own formula and spend theirs in the act that set it).
+        # ════════════════════════════════════════════════════════════
+        from backend.commands.meta_executor import the_literal_buff_expires_with_the_turn
+        if the_literal_buff_expires_with_the_turn():
+            for marshal in self.marshals.values():
+                if (getattr(marshal, "personality", "") == "literal"
+                        and marshal.nation == self.player_nation
+                        and (getattr(marshal, "strategic_combat_bonus", 0)
+                             or getattr(marshal, "strategic_defense_bonus", 0))):
+                    marshal.strategic_combat_bonus = 0
+                    marshal.strategic_defense_bonus = 0
+                    debug_print(f"  [LITERAL BUFF EXPIRED] {marshal.name}'s crisp-order buff has passed")
 
         # ════════════════════════════════════════════════════════════
         # PRECISION EXECUTION COUNTDOWN (Phase 5.2 - Grouchy/Literal)

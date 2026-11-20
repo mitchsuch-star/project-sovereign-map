@@ -432,7 +432,9 @@ class TestTheRows:
     def test_the_order_of_the_list_is_the_design_s(self):
         assert [name for name, _reader in today.READERS] == [
             "last_stand", "battle_days", "lapses", "treasury", "peril", "danger", "strike",
-            "take", "reach_and_idle", "restless", "congress", "law", "commission"]
+            "take", "reach_and_idle", "restless",
+            "exact_orders",      # row IC, Session 2 (IC-9): if-thens used up, or struck
+            "congress", "law", "commission"]
 
     def test_a_last_stand_and_a_day_of_battle_lead(self, world, monkeypatch):
         from backend.commands import strategic

@@ -1,6 +1,22 @@
 """Row IC — the review of "on his own" (November 20, 2026): the four defects
-the review found in the SHIPPED game, each a strict-xfail pin that turns red
-the day its fix lands, so the row must close with it.
+the review found in the SHIPPED game. Each was filed as a strict-xfail pin
+that turns red the day its fix lands, so the row had to close with it — and
+all four landed the same day, in row IC's Session 2 (buttons for orders, the
+line for tasks, exact orders): every pin below is a plain behaviour test now.
+
+  IC-V1, IC-V2  the read-back's rows — `tests/test_ic8_the_line.py` holds the
+                full behaviour (Taken, Not taken, the line as understood, the
+                typed gate).
+  IC-V3         a guard on the two jealousy seams (`jealousy.acts_independently`).
+                The three turns themselves — the trust crisis's "Grant
+                Autonomy" — are replaced by a task to prove himself in row
+                IC's own next session (Session 2b: row IC2-D1, the strict
+                xfail at the foot of this file; INDEPENDENT_COMMAND_SPEC
+                §6.11, §15); these two tests are then re-seated on that state.
+  IC-V4         the one client table — `tests/test_ic7_the_buttons.py` holds
+                the buttons' behaviour, server and client.
+
+The rows as they were filed:
 
 The design is `docs/INDEPENDENT_COMMAND_SPEC.md` version 6 (§1.3's November 20
 list, §6.11, §8); the ledger `docs/BUG_FIXES.md` §"Row IC — the review of 'on
@@ -48,15 +64,6 @@ REPO = Path(__file__).resolve().parents[1]
 SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 SCENARIO_PATH = (REPO / "godot-client" / "project-sovereign" / "assets" / "maps"
                  / "europe_1805.json")
-
-_V1 = ("IC-V1 (owner IC-8): a one-word condition is dropped without a word — the read-back's "
-       "'not taken' row must name it")
-_V2 = ("IC-V2 (owner IC-8): the read-back shows no condition and no if-then before the order is "
-       "sent")
-_V3 = ("IC-V3 (owner IC-9): a man acting independently is warned and strikes, then the enemy's "
-       "logic acts for him again — two acts in one end of turn")
-_V4 = ("IC-V4 (owner IC-7): the simple orders without a button get one, seated in one client "
-       "table SIMPLE_ORDER_BUTTONS")
 
 
 def _quiet():
@@ -111,7 +118,6 @@ class TestICV1AOneWordConditionIsNeverDroppedInSilence:
         assert reading.get("action") == "retreat"
         assert _head(reading).startswith("Ney")
 
-    @pytest.mark.xfail(strict=True, reason=_V1)
     def test_the_read_back_names_the_clause_it_did_not_take(self, preview):
         reading = preview("Ney, retreat if outnumbered")
         assert "outnumbered" in _parts_text(reading).lower(), (
@@ -128,12 +134,10 @@ class TestICV2TheReadBackShowsTheConditionAndTheIfThen:
         contingency = preview("Ney, if Mack advances, fall back to Lorraine")
         assert contingency.get("success") and contingency.get("action") == "hold"
 
-    @pytest.mark.xfail(strict=True, reason=_V2)
     def test_a_taken_condition_is_shown_before_the_order_goes(self, preview):
         text = _parts_text(preview("Davout, hold Franconia until Ney arrives")).lower()
         assert "until" in text and "ney" in text
 
-    @pytest.mark.xfail(strict=True, reason=_V2)
     def test_a_taken_if_then_is_shown_before_the_order_goes(self, preview):
         text = _parts_text(preview("Ney, if Mack advances, fall back to Lorraine")).lower()
         assert "lorraine" in text and "mack" in text
@@ -174,7 +178,6 @@ class TestICV3AManActingIndependentlyActsOnce:
             fired = J.process_autonomous_attacks(world, CommandExecutor(), {"world": world})
         assert fired, "the premise: the warned strike fires for a man with no other state"
 
-    @pytest.mark.xfail(strict=True, reason=_V3)
     def test_a_man_acting_independently_is_never_warned(self, world1805):
         from backend.game_logic import jealousy as J
         world, ney = _warned_ney(world1805, autonomous=True)
@@ -183,7 +186,6 @@ class TestICV3AManActingIndependentlyActsOnce:
             J.process_turn(world)
         assert not ney.jealousy_autonomous_warned
 
-    @pytest.mark.xfail(strict=True, reason=_V3)
     def test_a_man_acting_independently_makes_no_jealous_strike(self, world1805):
         from backend.commands.executor import CommandExecutor
         from backend.game_logic import jealousy as J
@@ -209,9 +211,54 @@ class TestICV4EverySimpleOrderHasAButton:
         codex = (SCRIPTS / "codex_view.gd").read_text(encoding="utf-8")
         assert "_footer.text" in codex
 
-    @pytest.mark.xfail(strict=True, reason=_V4)
     def test_the_simple_orders_sit_in_one_client_table(self):
         assert "SIMPLE_ORDER_BUTTONS" in _client_sources(), (
             "IC-7's landing: chase, the one-action stand, scout a named province, posture, square, "
             "bombard, a charge you start, stay put, a march's 'then', and the group's attack, "
             "support, fall back and garrison — one table (INDEPENDENT_COMMAND_SPEC §8.1)")
+
+
+# ═══════════ handed to its own session: the task to prove himself (IC2-D1) ═══
+#
+# Row IC's Session 2 landed the buttons, the line for tasks and exact orders,
+# and at its checkpoint took the plan's decided fork ("the session cannot hold
+# all three slices at the standard: … hand IC-9 to its own session the same
+# day"): the trust crisis's "Grant Autonomy" is replaced by a TASK TO PROVE
+# HIMSELF — and `TurnManager._process_autonomous_marshals` / `_end_autonomy`
+# deleted — in row IC's Session 2b (`docs/BUG_FIXES.md` §"Row IC, Session 2",
+# row IC2-D1; INDEPENDENT_COMMAND_SPEC §6.11 and §15; `PRE_DEPLOY_PLAN.md` §2
+# row IC). Until then the audience offers what it offered, and IC-V3's guard
+# keeps a man in those three turns to one act a turn.
+#
+# The two pins are strict xfails: they turn red the day the trial lands, so
+# the row must close with them.
+
+_IC2_D1 = ("IC2-D1 (owner row IC Session 2b, slice IC-9's second half): the trust crisis's "
+           "'Grant Autonomy' is replaced by a task to prove himself and the old engine deleted")
+
+
+class TestIC2D1TheTrialReplacesGrantAutonomy:
+
+    @staticmethod
+    def _options(world1805):
+        from backend.commands.disobedience import DisobedienceSystem
+        with _quiet():
+            world = WorldState.from_dict(world1805.to_dict())
+            return DisobedienceSystem()._get_available_redemption_options(
+                world.marshals["Ney"], world)
+
+    def test_the_audience_has_answers_for_a_man_whose_trust_has_broken(self, world1805):
+        """The premise — green today and after the trial lands."""
+        options = self._options(world1805)
+        assert options and all(option.get("id") for option in options)
+
+    @pytest.mark.xfail(strict=True, reason=_IC2_D1)
+    def test_the_audience_offers_a_task_to_prove_himself_and_no_autonomy(self, world1805):
+        ids = [option["id"] for option in self._options(world1805)]
+        assert "grant_autonomy" not in ids and "trial" in ids
+
+    @pytest.mark.xfail(strict=True, reason=_IC2_D1)
+    def test_no_french_marshal_is_moved_by_the_enemys_logic(self):
+        from backend.game_logic.turn_manager import TurnManager
+        assert not hasattr(TurnManager, "_process_autonomous_marshals")
+        assert not hasattr(TurnManager, "_end_autonomy")

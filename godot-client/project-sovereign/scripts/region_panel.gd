@@ -2067,6 +2067,38 @@ func _march_here_section() -> String:
 				out += "\n" + Utils.HEAD_OPEN + "ATTACK " \
 					+ str(row.get("enemy_shown", "")).to_upper() + Utils.HEAD_CLOSE + "\n"
 				out += _quote_rows(ordinary)
+	# Row IC, Session 2 (IC-7): "Look at it" — our corps that can scout this
+	# province from where they stand (the backend's `look` rows).
+	out += _look_rows(_quotes.get("look", []))
+	return out
+
+
+func _look_rows(rows) -> String:
+	"""Row IC, Session 2 (IC-7): a chip per corps of ours that can look into
+	this province — "Davout · 1 action" sends `Davout, scout <province>` down
+	the same road as a typed order; one whose state refuses the scout is
+	dimmed beside the game's own reason. "" when no corps is within reach."""
+	if not (rows is Array) or (rows as Array).is_empty():
+		return ""
+	var chips := []
+	var dimmed := []
+	for r in rows:
+		if not (r is Dictionary) or str(r.get("command", "")) == "":
+			continue
+		var ap := int(r.get("ap", 0))
+		var label := str(r.get("shown", "")) + " · " + ("free" if ap <= 0 else Utils.plural(ap, "action"))
+		if bool(r.get("ok", false)):
+			chips.append(Utils.bb_button_chip("do:" + str(r.get("command", "")), label, Utils.COLOR_GOLD,
+				_CHIP_BG, "", "He scouts it from " + str(r.get("from", "")) + "."))
+		else:
+			dimmed.append([str(r.get("shown", "")), str(r.get("refusal", ""))])
+	if chips.is_empty() and dimmed.is_empty():
+		return ""
+	var out := _march_caption("LOOK AT IT", "a corps within reach scouts the province from where it stands")
+	if not chips.is_empty():
+		out += _chip_row(chips) + "\n"
+	if not dimmed.is_empty():
+		out += _dimmed_chips(dimmed) + "\n"
 	return out
 
 

@@ -301,7 +301,8 @@ def _derive_strategic_order_summary(marshal, current_turn=None, world=None) -> s
         # CC-4 / D7: what the march does on arrival.
         verb = getattr(order, "arrival_verb", None)
         then = f" — then {verb}" if verb else ""
-        return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left){then}"
+        return (f"{get_strategic_display(cmd)} {target} ({turns_left} turns left){then}"
+                f"{_if_then_tail(order)}")      # row IC (IC-9): a literal man's march
     if cmd == "PURSUE":
         fate = _road.quarry_fate(world, order) if world is not None else None
         if fate:
@@ -317,15 +318,26 @@ def _derive_strategic_order_summary(marshal, current_turn=None, world=None) -> s
             return f"Follow {target} (standing)"
         return f"{get_strategic_display(cmd)} {target} (active)"
     if cmd == "HOLD":
-        # CC-4 / D8: the watch a standing contingency keeps.
-        contingency = getattr(order, "contingency", None)
-        if contingency:
-            from backend.ai.condition_grammar import describe_contingency
-            from backend.display_names import humanize_entity_name
-            return (f"{get_strategic_display(cmd)} at {target} — "
-                    f"{describe_contingency(contingency, humanize_entity_name)}")
-        return f"{get_strategic_display(cmd)} at {target}"
+        # CC-4 / D8, then row IC (IC-9): the if-thens the hold still carries
+        # ("Hold at Lorraine — if he is attacked, dig in; … (2 of 3 left)").
+        return f"{get_strategic_display(cmd)} at {target}{_if_then_tail(order)}"
     return f"{get_strategic_display(cmd)} {target}"
+
+
+def _if_then_tail(order) -> str:
+    """Row IC (IC-9): " — <each unused if-then> (2 of 3 left)" for an order
+    that carries if-thens, "" otherwise. A list whose lines are all used says
+    so ("its if-thens are used")."""
+    from backend.commands import if_thens as _if_thens
+    from backend.display_names import humanize_entity_name
+    if not _if_thens.lines(order):
+        return ""
+    live = _if_thens.unused(order)
+    if not live:
+        return " — its if-thens are used"
+    said = "; ".join(_if_thens.describe(line, humanize_entity_name) for line in live)
+    left = _if_thens.left_words(order) if len(_if_thens.lines(order)) > 1 else ""
+    return f" — {said}" + (f" ({left})" if left else "")
 
 
 def _derive_unit_type(marshal) -> str:
@@ -1839,9 +1851,13 @@ def _derive_condition_text(order, world, location=None) -> str:
                         f"the pursuit ends at the turn's end")
             return "tracking"
         if order.command_type == "HOLD":
-            # CC-4 / D8: a contingency's hold lasts until it fires.
-            if getattr(order, "contingency", None):
-                return "until it fires"
+            # CC-4 / D8, then row IC (IC-9): a hold with a live if-then that
+            # moves him (or sends him to fight) lasts until it fires.
+            from backend.commands import if_thens as _if_thens
+            ending = [line for line in _if_thens.unused(order)
+                      if line.get("then") in ("attack", "fall_back", "march")]
+            if ending:
+                return "until it fires" if len(_if_thens.unused(order)) == 1 else "until an if-then moves him"
             return "indefinite"
         if order.command_type == "SUPPORT":
             # CC-X19: a fallen friend is said, not "active".

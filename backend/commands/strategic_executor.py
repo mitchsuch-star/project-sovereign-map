@@ -451,9 +451,12 @@ def order_from_parsed(parsed_command, *, strategic_type, target, target_type,
         # CC-4 / D7: what the march does on arrival ("then fortify").
         arrival_verb=(parsed.get("arrival_verb")
                       if strategic_type == "MOVE_TO" else None),
-        # CC-4 / D8: the HOLD's standing contingency ("if Mack advances …").
-        contingency=(dict(parsed["contingency"])
-                     if strategic_type == "HOLD" and parsed.get("contingency") else None),
+        # CC-4 / D8, then row IC (IC-9): the order's if-thens ("if Mack
+        # advances …"), each stamped with the turn it was written (a line is
+        # live from the turn after) and unused. The parser settled which lines
+        # this man's order of this type takes (`if_thens.settle`).
+        if_thens=[{**dict(line), "used": False, "written": int(world.current_turn)}
+                  for line in (parsed.get("if_thens") or []) if isinstance(line, dict)],
         objection_resolved=objection_resolved,
     )
 
@@ -1651,26 +1654,31 @@ class StrategicExecutor:
             ctx.target_type = "region"
             ctx._hold_placed_by_the_game = True
 
-        # ── CC-4 / D8: a contingency's fall-back must have a road ─────
-        # (refused now, free, rather than failing when Mack is at the door)
-        _contingency = (ctx.parsed_command.get("contingency")
-                        if ctx.strategic_type == "HOLD" else None)
-        if _contingency and _contingency.get("then") == "fall_back":
+        # ── CC-4 / D8, then row IC (IC-9): an if-then that moves him must
+        # have a road (refused now, free, rather than failing when Mack is at
+        # the door). Read for a HOLD, where he will stand when it fires; a
+        # march's lines are judged from wherever he then is.
+        for _line in (ctx.parsed_command.get("if_thens") or []
+                      if ctx.strategic_type == "HOLD" else []):
+            if _line.get("then") not in ("fall_back", "march"):
+                continue
             from backend.commands.strategic import march_road
-            _place = str(_contingency.get("to") or "")
-            if _place == ctx.marshal.location:
+            _place = str(_line.get("to") or "")
+            _verb = "fall back" if _line.get("then") == "fall_back" else "march"
+            _stands_at = ctx.target if ctx.target and ctx.target != "generic" else ctx.marshal.location
+            if _place == _stands_at:
                 return {
                     "success": False,
                     "message": (f"{ctx.marshal.name} already stands at {_place}, Sire — name "
-                                f"the province he should fall back to. Nothing spent."),
+                                f"the province he should {_verb} to. Nothing spent."),
                     "variable_action_cost": 0,
                 }
             _road, _refusal, _kind = march_road(ctx.world, ctx.marshal, _place)
-            if _refusal is not None or not _road:
+            if _place != ctx.marshal.location and (_refusal is not None or not _road):
                 _why = str((_refusal or {}).get("message") or f"there is no road to {_place}")
                 return {
                     "success": False,
-                    "message": (f"{ctx.marshal.name} could not fall back to {_place} when it "
+                    "message": (f"{ctx.marshal.name} could not {_verb} to {_place} when it "
                                 f"fires — {_why} Nothing spent."),
                     "variable_action_cost": 0,
                 }
@@ -2361,10 +2369,10 @@ class StrategicExecutor:
             ctx.parsed_command, strategic_type=ctx.strategic_type,
             target=ctx.target, target_type=ctx.target_type, world=ctx.world,
             path=ctx.path, condition=ctx.condition, snapshot=ctx.snapshot)
-        # CC-4 / D8: the contingency's note, read while the order it replaces
-        # is still his (a march it stops is named).
-        from backend.commands.strategic import contingency_issue_note
-        ctx.contingency_note = contingency_issue_note(
+        # CC-4 / D8, then row IC (IC-9): the if-thens' note, read while the
+        # order it replaces is still his (a march it stops is named).
+        from backend.commands.strategic import if_then_issue_note
+        ctx.contingency_note = if_then_issue_note(
             ctx.world, ctx.marshal, ctx.order, replaced=ctx.marshal.strategic_order)
         # CR-7-4 item 5: `until the battle is won` read the MARSHAL-scoped
         # `last_combat_result`, which a battle fought BEFORE this order left
@@ -2408,8 +2416,14 @@ class StrategicExecutor:
             return f" Arrives and holds {marshal.location}."
         done = run_arrival_verb(self._executor, marshal, ctx.world, ctx.game_state)
         if marshal.strategic_order is order:
+            from backend.commands import if_thens as _if_thens
+            _carried = _if_thens.unused(order)
             marshal.strategic_order = None   # the march is carried out
             clear_order_bound_interrupt(marshal)   # NPC-2: its question goes with it
+            if _carried:
+                # (the review, S4) a march's if-thens stay with him: he holds
+                # where he arrived, with the lines still unused.
+                install_arrival_hold(marshal, ctx.world, order.original_command, carried=_carried)
         if done is None:
             return ""
         if done["ok"]:
@@ -2945,6 +2959,10 @@ class StrategicExecutor:
                 )
         else:
             ctx.msg = f"{ctx.marshal.name} received the order to {order_verb_display(ctx.strategic_type)}.{ctx.first_step_msg}"
+        # Row IC (IC-9): a literal man's march, pursuit or support may carry
+        # if-thens too — said at the order, as the hold says its own above.
+        if ctx.strategic_type != "HOLD":
+            ctx.msg += (getattr(ctx, "contingency_note", "") or "")
         return _NEXT_STAGE
 
     def _strategic_cost_and_reply(self, ctx: StrategicCommandContext):

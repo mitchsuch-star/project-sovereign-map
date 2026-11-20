@@ -1,10 +1,10 @@
 {
  "_note": "Row IC, the directive — step 0. Every line to several corps in the committed playtest scripts and the golden corpus, with how backend/commands/directive.py reads it on the shipped 1805 board. Written by tools/_ic_directive_census.py; compared by tests/test_ic4_the_directive.py::TestTheCensus.",
  "counts": {
-  "lines": 263,
+  "lines": 269,
   "by_takes": {
    "fan_out": 23,
-   "none": 231,
+   "none": 237,
    "one_order": 9
   }
  },
@@ -196,6 +196,16 @@
   },
   {
    "source": "parser_golden_corpus.json",
+   "line": "Murat, first take Swabia then support Soult",
+   "kind": null,
+   "names": [],
+   "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
    "line": "Murat, ride to Lannes' aid",
    "kind": null,
    "names": [],
@@ -281,6 +291,16 @@
   },
   {
    "source": "parser_golden_corpus.json",
+   "line": "Ney, as soon as Davout arrives, march to Swabia",
+   "kind": null,
+   "names": [],
+   "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
    "line": "Ney, attack Davout",
    "kind": null,
    "names": [],
@@ -291,7 +311,27 @@
   },
   {
    "source": "parser_golden_corpus.json",
+   "line": "Ney, attack Mack when Davout arrives",
+   "kind": null,
+   "names": [],
+   "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
    "line": "Ney, attack Mack; Davout, support Soult",
+   "kind": null,
+   "names": [],
+   "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
+   "line": "Ney, attack their main army",
    "kind": null,
    "names": [],
    "rest": "",
@@ -511,6 +551,16 @@
   },
   {
    "source": "parser_golden_corpus.json",
+   "line": "Soult, hold. If Ney is attacked next to you, join his battle.",
+   "kind": null,
+   "names": [],
+   "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
    "line": "Soult, march in support of Ney",
    "kind": null,
    "names": [],
@@ -532,6 +582,16 @@
   {
    "source": "parser_golden_corpus.json",
    "line": "Soult, march to the aid of Ney",
+   "kind": null,
+   "names": [],
+   "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
+   "line": "Soult, stay with Ney",
    "kind": null,
    "names": [],
    "rest": "",

@@ -147,9 +147,12 @@ class TestTheLines:
         # day's block, `battle_day.block`). Twelve since row IC's desk
         # (November 19, 2026): the three lines at the head of the command desk
         # are named once (attached to the `desk` payload, `today.desk`).
+        # Thirteen since row IC's Session 2 (November 20, 2026): the first
+        # task typed on the command line says what a task is and what the
+        # line will tell you (attached to `GET /task_presets`).
         assert FO.SCREENS == ("cabinet", "designs", "formables", "settlement", "separate_peace",
                               "laws", "admiralty_camp", "moment_letter", "affair_letter",
-                              "correspondence", "battle_day", "desk")
+                              "correspondence", "battle_day", "desk", "task")
         for screen, line in _every_line(world):
             assert line, screen
             assert len(line) <= FO.LINE_CAP, (screen, len(line), line)

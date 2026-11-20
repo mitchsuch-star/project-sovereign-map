@@ -2733,11 +2733,18 @@ class CombatExecutor:
     # Adjacent marshals physically relocate to the battle region before combat.
     # ════════════════════════════════════════════════════════════════════════════════
 
-    def _is_reinforcement_eligible(self, marshal, primary, battle_region, nation, world):
+    def _is_reinforcement_eligible(self, marshal, primary, battle_region, nation, world,
+                                   written_join: bool = False):
         """Check all 11 eligibility rules for adjacent reinforcement.
 
         A marshal can reinforce if ALL conditions are met.
         Rules are from MULTI_MARSHAL_SPEC §7 + amendments.
+
+        Row IC, Session 2 (IC-9): `written_join` — he carries the exact order
+        "if <primary> is attacked next to him, join his battle" and it is live
+        (`if_thens.join_line`). The two rules that keep a man on his post
+        (Rule 7 fortified, Rule 8 on HOLD) do not hold him then: the Emperor
+        wrote that he should go, and a hold is where such a line is written.
         """
         region = world.get_region(battle_region)
         if not region:
@@ -2803,10 +2810,10 @@ class CombatExecutor:
         if getattr(marshal, 'retreat_recovery', 0) != 0:
             return False
         # Rule 7: NOT fortified
-        if getattr(marshal, 'fortified', False):
+        if getattr(marshal, 'fortified', False) and not written_join:
             return False
         # Rule 8: NOT on HOLD (SFR-D5: any man on his hold's post)
-        if holds_a_post(marshal):
+        if holds_a_post(marshal) and not written_join:
             return False
         # Rule 9: NOT engaged (no enemy in their region)
         marshal_region_enemies = [
@@ -5295,7 +5302,7 @@ class CombatExecutor:
                                 self._ARRIVAL_VARIANCE))
 
     def _calculate_reinforcements(self, primary, defender, battle_region, nation, world,
-                                  rng=None):
+                                  rng=None, attacked: bool = False):
         """Check adjacent marshals for reinforcement arrival.
 
         Returns list of result dicts with arrival/failure info.
@@ -5305,9 +5312,19 @@ class CombatExecutor:
         WS-11: `rng` — the battle's own stream — feeds the arrival roll and
         the fumble on a rolled campaign seed; None keeps both on the module
         `random` and the calls below in their old shape.
+
+        Row IC, Session 2 (IC-9): `attacked` — `primary` is the side that was
+        ATTACKED. A friend next to him who carries the exact order "if
+        <primary> is attacked next to him, join his battle" (`if_thens.
+        join_line`) answers the guns by that written word: he rolls as a man
+        with a support order does (the Grouchy rule lets a literal man march,
+        +10 on the score, the lower bar), a man on his post or in his works is
+        not held back, and the line is USED whether he arrives or not.
         """
         import random
+        from backend.commands import if_thens as _if_thens
 
+        attacked = bool(attacked or getattr(self, "_reinforcing_the_attacked", False))
         _dice = rng if rng is not None else random
         _rng_kw = {"rng": rng} if rng is not None else {}
 
@@ -5318,16 +5335,24 @@ class CombatExecutor:
 
         # Find eligible adjacent marshals
         candidates = []
+        join_lines: Dict[str, Dict] = {}
         for m in world.marshals.values():
-            if not self._is_reinforcement_eligible(m, primary, battle_region, nation, world):
+            _join = _if_thens.join_line(world, m, primary) if attacked else None
+            if not self._is_reinforcement_eligible(m, primary, battle_region, nation, world,
+                                                   written_join=_join is not None):
                 continue
             candidates.append(m)
+            if _join is not None:
+                join_lines[m.name] = _join
 
         for candidate in candidates:
+            _join = join_lines.get(candidate.name)
+            if _join is not None:
+                _join["used"] = True      # used is used, whether he arrives or not (§12)
             # ═══ THE GROUCHY RULE ═══
             # Check personality BEFORE calculating arrival score
             if candidate.personality == "literal":
-                has_relevant_order = False
+                has_relevant_order = _join is not None
                 order = getattr(candidate, 'strategic_order', None)
                 if order:
                     if (order.command_type == "SUPPORT"
@@ -5359,10 +5384,12 @@ class CombatExecutor:
 
             # ═══ ARRIVAL SCORE ═══
             score = self._calculate_arrival_score(candidate, primary, world, **_rng_kw)
+            if _join is not None:
+                score += 10      # the written word's own weight (the SUPPORT bonus)
 
             # ═══ VARIABLE THRESHOLD (A-I4) ═══
             order = getattr(candidate, 'strategic_order', None)
-            has_explicit_order = False
+            has_explicit_order = _join is not None
             if order is not None:
                 if order.command_type == "SUPPORT" and order.target == primary.name:
                     has_explicit_order = True
@@ -5476,8 +5503,11 @@ class CombatExecutor:
                 "has_explicit_order": has_explicit_order,
                 # which written order it was, in its own name ("SUPPORT" or
                 # "PURSUE"; "" for none): Act I's plan names it (BA2-X13)
-                "order_type": (str(getattr(order, "command_type", "") or "")
+                "order_type": ("IF_THEN" if _join is not None else
+                               str(getattr(order, "command_type", "") or "")
                                if has_explicit_order else ""),
+                # Row IC (IC-9): he came (or tried) by his exact order
+                "joined_by_line": _join is not None,
                 # SR-7d: the doctrine that moved his bar (RV-16 copy), the
                 # unshifted bar, and whether the strength decided his arrival
                 "doctrine": _doctrine_name,
@@ -9056,6 +9086,17 @@ class CombatExecutor:
         # AI (non-player nation) auto-charges at 3+ without popup
         # Skip if called from restrain response (skip_reckless_popup=True)
         # ════════════════════════════════════════════════════════════
+        # Row IC, Session 2 (IC-7): "attack <him>, held back" — the restraint
+        # the player STARTS: the answer "restrain" to the question this attack
+        # would ask, given beforehand. It stands only where that question
+        # would be asked (`tactical_executor.restrain_refusal`); anywhere else
+        # the flag changes nothing and the attack goes as an attack.
+        if (not ctx.skip_reckless_popup and isinstance(ctx.command, dict)
+                and ctx.command.get("held_back")):
+            from backend.commands.tactical_executor import restrain_refusal
+            _foe = ctx.target if isinstance(ctx.target, str) else getattr(ctx.target, "name", "")
+            if not restrain_refusal(ctx.world, ctx.marshal, _foe)[0]:
+                ctx.skip_reckless_popup = True
         if ctx.marshal.is_reckless_cavalry and not ctx.skip_reckless_popup:
             recklessness = getattr(ctx.marshal, 'recklessness', 0)
             is_player = ctx.marshal.nation == ctx.world.player_nation
@@ -10581,10 +10622,19 @@ class CombatExecutor:
             ctx.marshal, ctx.enemy_marshal, ctx.battle_region_name, ctx.marshal.nation, ctx.world,
             **_rng_kw
         )
-        ctx.defender_reinforcements = self._calculate_reinforcements(
-            ctx.enemy_marshal, ctx.marshal, ctx.battle_region_name, ctx.enemy_marshal.nation, ctx.world,
-            **_rng_kw
-        )
+        # Row IC (IC-9): the defender is the side that was ATTACKED — a friend
+        # next to him who carries "if <he> is attacked next to him, join his
+        # battle" answers by that written word. Said through a flag on the
+        # executor, not a new argument at this call: the doctrine census and
+        # the suite's stand-ins wrap this method with its five-argument shape.
+        self._reinforcing_the_attacked = True
+        try:
+            ctx.defender_reinforcements = self._calculate_reinforcements(
+                ctx.enemy_marshal, ctx.marshal, ctx.battle_region_name, ctx.enemy_marshal.nation,
+                ctx.world, **_rng_kw
+            )
+        finally:
+            self._reinforcing_the_attacked = False
 
         # Process arrivals — BEFORE coordination context (A-C2)
         ctx.arrived_names = set()
@@ -10642,6 +10692,21 @@ class CombatExecutor:
                             # countable as an adjacent ally for +2% attack bonus.
                             ctx.artillery_reinforced_adjacent.append(ctx.arriving)
                         else:
+                            if ctx.result.get("joined_by_line"):
+                                # Row IC (IC-9): he leaves his post by his
+                                # exact order — out of his works, no longer
+                                # "immovable"; his hold stands, and walks him
+                                # back to his post when the battle is done.
+                                ctx.arriving.fortified = False
+                                ctx.arriving.defense_bonus = 0
+                                ctx.arriving.turns_fortified = 0
+                                ctx.arriving.holding_position = False
+                                ctx.arriving.hold_region = ""
+                                # (the review, S1) joining is his ONE thing
+                                # this turn: his other lines sleep until the
+                                # next — he joined and was then marched off
+                                # by "if outnumbered" the same end of turn.
+                                ctx.arriving.last_ordered_turn = int(ctx.world.current_turn)
                             ctx.arriving.location = ctx.battle_region_name
                             # MC-1c: direct assignment bypasses move_to —
                             # marching to the guns uncoils Iron Resolve.
@@ -13408,41 +13473,16 @@ class CombatExecutor:
         if error:
             return error
 
-        # Already in square
-        if getattr(marshal, 'square_formation', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already in square formation."
-            }
-
-        # Infantry only — cavalry and artillery cannot form square
-        if getattr(marshal, 'cavalry', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name}'s cavalry cannot form an infantry square!"
-            }
-        if getattr(marshal, 'artillery', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name}'s artillery cannot form an infantry square!"
-            }
-
-        # Cannot form square while broken/retreating
-        if getattr(marshal, 'broken', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name}'s troops are broken and cannot form square."
-            }
-        if getattr(marshal, 'retreating', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is retreating and cannot form square."
-            }
-        if getattr(marshal, 'retreat_recovery', 0) > 0:
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot form square."
-            }
+        # Already in square; infantry only (no cavalry, no artillery); never
+        # while broken, retreating, recovering or drilling — ONE reader with
+        # the executor's pre-validation and the "Form square" button (row IC,
+        # IC-7: `tactical_executor.square_refusal`). Refused BEFORE the works
+        # are left: a drilling man used to abandon his fortification and then
+        # be refused the square.
+        from backend.commands.tactical_executor import square_refusal
+        _no_square = square_refusal(marshal)[0]
+        if _no_square:
+            return {"success": False, "message": _no_square}
 
         # Mutual exclusion: square ↔ fortify — forming square auto-breaks fortification
         fortify_break_msg = ""
@@ -13453,13 +13493,6 @@ class CombatExecutor:
             fortify_break_msg = (
                 f"[{marshal.name} abandons fortified position (+{old_bonus}% defense) to form square]\n"
             )
-
-        # Cannot form square while drilling
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is drilling and cannot form square."
-            }
 
         # Form square
         marshal.square_formation = True

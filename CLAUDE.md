@@ -33,12 +33,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); PW ✅ Nov 18–19 (§227–§228); IC desk + directives ✅ Nov 19 (§229–§230); IC v6 design ✅ Nov 20; IC-2…IC-4, then H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); PW ✅ Nov 18–19 (§227–§228); IC desk + directives ✅ Nov 19 (§229–§230); IC v6, Session 2 ✅ Nov 20 (§231); IC-2b…IC-4, then H**.
 
 **▶ LIVE STATE (Nov 20, 2026).** Last three rows:
-- **Row IC review (Nov 20) — `docs/INDEPENDENT_COMMAND_SPEC.md` v6: "Grant Autonomy" out for a task to prove himself (§6.11), simple orders buttons / tasks typed (§8), men differ with no dice (§6.7); IC-V1…V4 filed; NEXT: row IC Session 2** (§15).
-- **Row IC directives (Nov 19) — one list for an order to several corps (`directive.py`), named armies, war goals** (§230).
-- **Row IC (Nov 19) — the desk (`today.py`)** (§229).
+- **Row IC Session 2 (Nov 20) — a button for every simple order, the typed line's read-back, exact orders (if-thens) (§231); the trial handed on (IC2-D1); NEXT: row IC Session 2b**.
+- **Row IC review (Nov 20) — spec v6: no "Grant Autonomy" (§6.11), buttons / typed tasks (§8), men differ (§6.7)** (§15).
+- **Row IC directives (Nov 19) — one list for an order to several corps, named armies, war goals** (§230).
 
 **Open with the user:** none (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`); the certificate is a purchase.
 
@@ -100,7 +100,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/game_logic/first_open.py` | S14d first-open lines: the store, `line_for`, `with_line`, `mark_seen` (`docs/TABLE_LESSON_SPEC.md`) |
 | `backend/commands/directive.py` | Row IC directives: an order to several corps as ONE list — `address`, `quote` (rows = `parse_preview.read_one`), `stale`, `give` (the overcharge guard); `/command` `list_first`/`members`/`expect_ap`; `GET /directive_quote` (§230) |
 | `backend/game_logic/armies.py`, `war_goals.py`; `commands/directive_executor.py` | Named armies (`world.armies`, action `army`) and war goals (`world.war_goals`, action `set_war_goal`): free, saved only when non-empty (§230) |
-| `backend/game_logic/today.py`, `threats.py` | Row IC the desk: the `desk` key (THE PEACE / THE WAR / TO DECIDE), what a seen enemy can reach (`docs/INDEPENDENT_COMMAND_SPEC.md`, §229) |
+| `backend/game_logic/today.py`, `threats.py` | Row IC the desk: the `desk` key (THE PEACE / THE WAR / TO DECIDE), what a seen enemy can reach (§229) |
+| `commands/if_thens.py`, `task_line.py`, `task_presets.py`; `ai/word_table.py` | Row IC Session 2 (§231): exact orders, the typed line's refusals, ready tasks, the word table (→ `gen_task_words`); client `simple_orders.gd` |
 | `backend/game_logic/standing.py` | AU-1 the books of authority: ONE writer `move` with a cause, the quote, the floors (`refusal` 60, `ai_refusal`), `spend`/`regrow`, `payload`, the dent, `courts_move` (`docs/AUTHORITY_CURRENCY_SPEC.md` §5) |
 | `backend/game_logic/precedence.py` | Row MC the Order of the Marshalate: precedence, the book of incidents, renown, titles of victory, the two-way bonds, the account, the claim |
 | `backend/game_logic/crowns.py` | DY-6/7 the crowns: the `crown` block, the king, the Alarm, recognition (`DYNAMISM_SPEC.md` §6) |
@@ -186,7 +187,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Artillery / bombardment | `marshal.py` (artillery flag), `combat.py` (cavalry counter, fort degradation), `combat_executor.py` (_execute_bombardment, _distribute_casualties), `enemy_ai.py` (_score_artillery_position) |
 | Top bar / screen system | `top_bar.gd` (controller), `main.gd` (_on_screen_changed, _is_modal_dialog_open, _is_screen_open, _is_hotkey_blocked), `docs/TOP_BAR_SPEC.md` |
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
-| On his own, typed tasks, the trust crisis's audience | `INDEPENDENT_COMMAND_SPEC.md` v6 §6.7, §6.11, §8 FIRST, `disobedience.py`, `turn_manager.py` (`_process_autonomous_marshals`), `parse_preview.py`, `condition_grammar.py`, `tests/test_ic_review_pins.py` |
+| On his own, the trust crisis's audience | `INDEPENDENT_COMMAND_SPEC.md` v6 §6.7, §6.11 FIRST, `disobedience.py`, `turn_manager.py`, `tests/test_ic_review_pins.py` |
+| Exact orders, the read-back's rows and gate, the simple-order buttons | SYSTEMS_REFERENCE §231 FIRST, `if_thens.py`, `parse_preview.py`, `simple_orders.gd` |
 | An order to several corps, named armies, war goals | SYSTEMS_REFERENCE §230 FIRST, `directive.py`, `group_orders.py` (`_run_members`, `_carry_out`), `main.py` (`_directive_road`), `armies.py`, `war_goals.py`, `order_confirm_card.gd`, `main.gd` ("Row IC, directives") |
 | The desk (TO DECIDE), the End Turn list, the danger mark | SYSTEMS_REFERENCE §229 FIRST, `today.py`, `threats.py`, `desk_lines.gd`, `turn_end_list.gd`, `main.gd` ("Row IC") |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |
@@ -222,7 +224,7 @@ For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
 2. Add `_execute_[action]()` in the appropriate sub-executor (see file reference table)
 3. Add to `valid_actions` list in `parser.py`
 4. Add cost to `_action_costs` in `world_state.py`
-5. Add keywords to mock parser in `llm_client.py` (search "ADD NEW ACTION KEYWORDS HERE" — do not trust line numbers), then **regenerate the addressee rule's verb set**: `python -m tools.gen_routed_order_words` (CX-R1 — `backend/ai/routed_order_words.py` is generated from the router's branches; the census in `tests/test_cx_r1_the_unbound_name_spends_nothing.py` fails until you do)
+5. Add keywords to mock parser in `llm_client.py` (search "ADD NEW ACTION KEYWORDS HERE" — do not trust line numbers), then **regenerate the addressee rule's verb set**: `python -m tools.gen_routed_order_words` (CX-R1 — `backend/ai/routed_order_words.py` is generated; its census in `tests/test_cx_r1_…` fails until you do). A TASK word goes in `word_table.py`; run `python -m tools.gen_task_words` first
 6. Add few-shot example in `prompt_builder.py` if complex
 7. If triggerable by objection, add to `objection_actions` — ⚠ **it is in `executor.py`, NOT `disobedience.py`** (corrected IQ1-2, Sept 13 2026; navigate by the symbol). A verb that is a PURCHASE rather than an order is deliberately absent from it (e.g. `purchase_levy`); record that judgement on the slice.
 8. Add to_dict/from_dict if new state fields needed

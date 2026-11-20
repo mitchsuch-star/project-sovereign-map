@@ -551,9 +551,10 @@ def _attach_nation_identity_overrides(response: dict, world) -> None:
 # enemy addressee (WO-1), and a reward whose object is one of our fallen
 # (CRT-2 / CQ-17, SR-3b) — both carry candidates=[], so without this arm
 # they fall through to the generic Berthier recovery.
-VERBATIM_PARSE_REFUSAL_KINDS = frozenset({"enemy_addressee", "fallen_recipient",
+VERBATIM_PARSE_REFUSAL_KINDS = frozenset({"task_line", "enemy_addressee", "fallen_recipient",
                                           "compound_pronoun", "arrival_charge",
-                                          "two_orders"})    # UI6-X43 / X56 / X65
+                                          "two_orders",     # UI6-X43 / X56 / X65
+                                          "if_then"})       # row IC (IC-9): a line not taken
 THE_COLOURS_KNOW_OUR_FRIENDS = True      # SF7-X26: each enemy-phase battle names its sides' standing toward the player, so an ally's victory is not printed as a defeat
 
 _QUESTION_STATES = frozenset({
@@ -1711,6 +1712,72 @@ def _interrupt_choice_from_text(cmd_lower: str, options) -> Optional[str]:
     return None
 
 
+def _interrupt_addressed_other(command_text: str, m, pending: dict, world) -> bool:
+    """The interrupt stage's own test of whether a typed line is NOT an answer
+    to `m`'s pending interrupt: it names another marshal of ours, its leading
+    address is not `m` (PC15-2 — whether or not that name still lives), or it
+    addresses `m` but names ground the interrupt is not about (PC15-2(b)).
+    WS-14: one function for stage 3 and for the read-back
+    (`_interrupt_reading`), so the row and Enter say the same thing."""
+    cmd_lower = command_text.strip().lower()
+    known_marshal_names = [
+        pm.name.lower() for pm in world.get_player_marshals()
+    ]
+    addressed_other = any(
+        name in cmd_lower
+        for name in known_marshal_names
+        if name != m.name.lower()
+    )
+    if not addressed_other:
+        from backend.ai.validation import _marshal_mentioned
+        from backend.commands.parser import (
+            _leading_addressed_token,
+        )
+        _addr_token = _leading_addressed_token(command_text)
+        if _addr_token and not _marshal_mentioned(
+                _addr_token, m.name):
+            addressed_other = True
+    if not addressed_other and _addressed_fresh_order_elsewhere(
+            command_text, cmd_lower, pending, world):
+        addressed_other = True
+    return addressed_other
+
+
+def _interrupt_reading(world, command_text: str) -> Optional[str]:
+    """WS-14 (row IC, IC-8): what stage 3 (`_command_interrupt_answer`) would
+    do with a typed line while a marshal's question waits — DETECTED, never
+    answered: the read-back's row, or None when the line goes on to the
+    ordinary road (it names another marshal, it is a fresh order elsewhere, it
+    is a conditional order, or it answers nothing the question offers). The
+    read-back said "A question stands — answer it first" of EVERY line, while
+    Enter let an order to another marshal through. A standing hard stop is
+    the caller's row (it outranks the interrupt — SF5-X2)."""
+    from backend.display_names import humanize_entity_name
+    if (A_HARD_STOP_OUTRANKS_AN_INTERRUPT
+            and world.dialogue_manager.is_hard_stop()):
+        return None
+    for m in world.get_player_marshals():
+        pending = getattr(m, "pending_interrupt", None)
+        if not pending:
+            continue
+        if _interrupt_addressed_other(command_text, m, pending, world):
+            continue
+        options = pending.get("options", [])
+        choice = _interrupt_choice_from_text(command_text.strip().lower(), options)
+        if not choice:
+            continue
+        shown = humanize_entity_name(m.name)
+        if A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:
+            from backend.commands.dialogue_routing import line_asks_a_question
+            if line_asks_a_question(
+                    command_text, [{"action": o, "label": o} for o in options]):
+                return f"{shown}’s question stands — a question is not an answer"
+        if _line_is_a_contingency(command_text, world):
+            continue
+        return f"{shown}’s question stands — this line answers it"
+    return None
+
+
 def _line_is_a_contingency(command_text: str, world) -> bool:
     """CC-X21: True when the line carries a condition the clause guard does
     not blank — one it refuses, CR-7-5's hand-off, or D8's standing
@@ -1721,7 +1788,16 @@ def _line_is_a_contingency(command_text: str, world) -> bool:
     verdict = strip_condition_clauses_with_handoff(
         command_text, friendly_names=friendly,
         roster_names=list(getattr(world, "marshals", {}) or {}))
-    return bool(verdict.refuse or verdict.handoff)
+    if verdict.refuse or verdict.handoff:
+        return True
+    # Row IC (IC-9): an exact order — a line carrying if-thens ("Ney, if
+    # attacked, attack") — is a conditional order too, though its one-word
+    # condition slips under the guard's floor.
+    from backend.commands import if_thens as _if_thens
+    return _if_thens.read(
+        command_text, friendly,
+        [m.name for m in world.marshals.values() if m.nation != world.player_nation],
+        list(getattr(world, "regions", {}) or {})) is not None
 
 
 def _addressed_fresh_order_elsewhere(command_text: str, cmd_lower: str,
@@ -3352,6 +3428,14 @@ class CommandRequest(BaseModel):
     members: list[str] | None = None
     expect_ap: int | None = None
     click: bool = False
+    # Row IC, Session 2 (IC-8; INDEPENDENT_COMMAND_SPEC §8.4): the line was
+    # TYPED in the command window — set by the client's command line alone
+    # (never a button, a chip, a card, a relayed tail; never a script, the
+    # band or the series). A typed line whose order would go out without a
+    # part that changes what he does ("retreat if outnumbered") is refused
+    # free with the line as understood (`parse_preview.typed_gate`). Without
+    # it `/command` behaves as it did.
+    typed: bool = False
     # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
     # (`settlement_terms` / `selected_target_nation` /
     # `covered_enemy_participants`) are removed with the freeform editor
@@ -3954,32 +4038,15 @@ def _command_interrupt_answer(ctx: CommandContext):
             # name still lives — any explicit address that is not THIS
             # marshal falls through to the parser (where the CR-2 /
             # PC15-4 guards own the unknown/fallen-name reply).
-            known_marshal_names = [
-                pm.name.lower() for pm in world.get_player_marshals()
-            ]
-            addressed_other = any(
-                name in cmd_lower
-                for name in known_marshal_names
-                if name != m.name.lower()
-            )
-            if not addressed_other:
-                from backend.ai.validation import _marshal_mentioned
-                from backend.commands.parser import (
-                    _leading_addressed_token,
-                )
-                _addr_token = _leading_addressed_token(ctx.command_text)
-                if _addr_token and not _marshal_mentioned(
-                        _addr_token, m.name):
-                    addressed_other = True
             # PC15-2(b): the command explicitly addresses the
             # interrupt's OWN marshal but names ground the interrupt is
             # not about — a fresh ORDER, not an answer ('Davout, march
             # to London' was consumed as a cannon-fire "investigate").
             # Bare un-addressed answers ("press on") keep the current
-            # behaviour.
-            if not addressed_other and _addressed_fresh_order_elsewhere(
-                    ctx.command_text, cmd_lower, pending, world):
-                addressed_other = True
+            # behaviour. (WS-14: the test itself is `_interrupt_addressed_
+            # other`, shared with the read-back so the two cannot drift.)
+            addressed_other = _interrupt_addressed_other(
+                ctx.command_text, m, pending, world)
             if addressed_other:
                 # Command is for a different marshal — let it parse
                 # normally. Clear a STALE informational interrupt, but
@@ -4373,7 +4440,63 @@ def _command_parse(ctx: CommandContext):
         _ptrace.note("main", "request_fields_override", _before_fields,
                      _ptrace.command_summary(ctx.parsed["command"]))
     print(f"[OK] Parsed: {ctx.parsed.get('command', {}).get('action', 'unknown')}")
+    # Row IC, Session 2 (IC-8): "Send what I understood" — the server's side.
+    # Before the history, a dialogue or the executor sees the line.
+    if getattr(ctx.request, "typed", False) and ctx.parsed.get("success"):
+        _held = _typed_line_gate(ctx)
+        if _held is not None:
+            return _held
     return _NEXT_STAGE
+
+
+def _conditional_offer(ctx: CommandContext) -> str:
+    """Row IC, Session 2 (IC-8): `parse_preview.conditional_offer` for the
+    line `/command` is refusing as a contingency — the built-in parser's
+    second read, never the model's. "" for none."""
+    from backend.commands import parse_preview as _pp
+    try:
+        with _pp.reading():
+            return _pp.conditional_offer(
+                world, ctx.parsed, str(ctx.request.command or "").strip(),
+                lambda line: _pp.mock_parse(world, line, get_llm_game_state, _STATE_EPOCH))
+    except Exception as _exc:
+        _errors.report(_exc, "main._conditional_offer")
+        return ""
+
+
+def _typed_line_gate(ctx: CommandContext):
+    """Row IC, Session 2 (IC-8; §8.4): a line TYPED in the command window whose
+    order would go out without a part that changes what he does — a one-word
+    condition under the guard's floor ("retreat if outnumbered"), a time limit
+    on an order that has none, a how-bold word — is not sent: the reply names
+    the part, carries the line as understood (`understood`, which the client
+    writes on the command line) and spends nothing. ONE reader with the
+    read-back's rows (`parse_preview.typed_gate`); the second read is the
+    built-in parser's, never the model's. None when nothing blocks."""
+    from backend.commands import parse_preview as _pp
+    try:
+        _typed = str(ctx.request.command or "").strip()
+        # a line that answers a standing question is that question's to read
+        if _pp._pending_question(world, _typed, _interrupt_reading):
+            return None
+        with _pp.reading():
+            verdict = _pp.typed_gate(
+                world, ctx.parsed, _typed,
+                lambda line: _pp.mock_parse(world, line, get_llm_game_state, _STATE_EPOCH))
+    except Exception as _exc:
+        _errors.report(_exc, "main._typed_line_gate")
+        return None
+    if verdict is None:
+        return None
+    _ptrace.decide("typed", "not_taken", verdict["understood"])
+    reply = build_base_response(
+        world, success=False, message=verdict["message"], refusal="not_taken",
+        free_action=True,
+        action_info={"cost": 0, "remaining": int(world.actions_remaining),
+                     "turn_advanced": False, "new_turn": None})
+    reply["understood"] = verdict["understood"]
+    reply["not_taken"] = verdict["not_taken"]
+    return reply
 
 
 def _command_history(ctx: CommandContext):
@@ -4462,7 +4585,7 @@ def _directive_readers() -> dict:
     return dict(llm_state=get_llm_game_state, epoch=_STATE_EPOCH,
                 lost_marshal_refusal=_addressed_lost_marshal_refusal, why_rx=None,
                 live_llm=None, unbound_addressee=executor._unbound_addressee,
-                premise_reader=None)
+                premise_reader=None, interrupt_reader=_interrupt_reading)
 
 
 def _free_reply(message: str, success: bool = False, **extra) -> dict:
@@ -5030,7 +5153,7 @@ def _command_ordinary_road(ctx: CommandContext):
                 "answer to us.")
             if ctx.parsed.get("suggestion"):
                 refusal_message += f" {ctx.parsed['suggestion']}"
-            return build_base_response(
+            _verbatim = build_base_response(
                 world, success=False, message=refusal_message,
                 action_info={
                     "cost": 0,
@@ -5038,6 +5161,17 @@ def _command_ordinary_road(ctx: CommandContext):
                     "turn_advanced": False,
                     "new_turn": None,
                 })
+            # Row IC (IC-8): a line with a part that was not taken carries the
+            # line AS UNDERSTOOD — the client writes it on the command line,
+            # so the next Enter sends exactly what is shown.
+            if ctx.parsed.get("understood"):
+                _verbatim["understood"] = str(ctx.parsed["understood"])
+                _verbatim["not_taken"] = list(ctx.parsed.get("not_taken") or [])
+            # … and a line that asked for what no order can be (§8.3) carries
+            # the nearest real sentences, for the client to offer.
+            if ctx.parsed.get("offers"):
+                _verbatim["offers"] = [str(o) for o in ctx.parsed["offers"] if o]
+            return _verbatim
 
         # ════════════════════════════════════════════════════════════
         # CR-2: UNKNOWN-NAME CLARIFICATION — a parse failure that
@@ -5138,6 +5272,12 @@ def _command_ordinary_road(ctx: CommandContext):
                         f"relayed. Give me the order for THIS turn and I shall "
                         f"carry it at once; a standing order I can hold is "
                         f"{_road}.\"")
+                    # Row IC, Session 2 (IC-8; §8.3): the exact order that
+                    # condition MEANS, when the word table reads it — the
+                    # read-back's fill-chip, said here in the same words.
+                    _meant = _conditional_offer(ctx)
+                    if _meant:
+                        refusal_msg += f" Did you mean: '{_meant}'?"
             elif ctx.parsed["refusal"] == "condition":
                 # CR-7-4: a condition the engine READ and cannot meet —
                 # an unmet referent, a hold of no turns, a turn behind
@@ -5800,7 +5940,8 @@ def _command_respond(ctx: CommandContext):
     #
     # REQUIRED FIELDS FROM parser.parse() - see parser.py docstring:
     #   - parsed["mode"]: "mock" or "live"
-    #   - parsed["strategic_score"]: 0-100 (controls morale/trust bonus)
+    #   - parsed["strategic_score"]: 0-100 (picks a line of feedback TEXT only —
+    #     WS-12: the model's number moves no morale, trust or attack)
     #   - parsed["ambiguity"]: 0-100 (controls clarity feedback)
     #
     # If these are missing, check parser.py return dict construction!
@@ -8197,7 +8338,14 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
                 if world.get_region(dest) is None:
                     return {"success": False, "message": f"Unknown province: {dest}"}
                 # (row PW: the click road — a province in reach is the move)
-                return {"success": True, "quote": march_quote(world, subject, dest, click=True)}
+                _dest_quote = march_quote(world, subject, dest, click=True)
+                # Row IC, Session 2 (IC-7): what he may do on arrival —
+                # the march card's small "then …" pick.
+                if _dest_quote.get("ok") and dest != subject.location:
+                    from backend.commands.order_quotes import march_thens
+                    _dest_quote["thens"] = _quote_alternatives(
+                        lambda read: march_thens(world, subject, dest, read))
+                return {"success": True, "quote": _dest_quote}
             if enemy:
                 foe = world.get_marshal(enemy)
                 player = world.player_nation
@@ -8206,7 +8354,14 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
                     for row in world.get_visible_enemies_in_region(foe.location, player))
                 if not seen or not world.is_at_war(player, foe.nation):
                     return {"success": False, "message": f"No enemy corps named {enemy} in sight."}
-                return {"success": True, "quote": attack_quote(world, subject, foe)}
+                _enemy_quote = attack_quote(world, subject, foe)
+                # Row IC, Session 2 (IC-7): the other simple orders against
+                # him — chase, bombard, charge, an attack held back — each
+                # its own line read by the read-back's reader.
+                from backend.commands.order_quotes import enemy_alts
+                _enemy_quote["alts"] = _quote_alternatives(
+                    lambda read: enemy_alts(world, subject, foe, read))
+                return {"success": True, "quote": _enemy_quote}
             if ally:
                 friend = world.get_marshal(ally)
                 if friend is None or friend.nation != world.player_nation:
@@ -8220,8 +8375,11 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
     if not region or world.get_region(region) is None:
         return {"success": False, "message": f"Unknown province: {region}", "region": region}
     try:
-        from backend.commands.order_quotes import march_quotes_for_region
+        from backend.commands.order_quotes import look_rows, march_quotes_for_region
         quoted = march_quotes_for_region(world, region)
+        # Row IC, Session 2 (IC-7): "Look at it" — our corps that can scout
+        # this province from where they stand.
+        quoted["look"] = look_rows(world, region)
         # Row BA (BA-3): a day of battle open on this field rides the panel's
         # one GET — the same block the table reads.
         from backend.game_logic import battle_day as _day
@@ -8234,6 +8392,20 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
         _errors.report(e, "main.get_march_quotes_endpoint: the quotes", every=True)
         return {"success": False, "region": region, "error": str(e),
                 **_errors.debug_fields(e, "main.get_march_quotes_endpoint: the quotes", DEBUG_MODE)}
+
+
+def _quote_alternatives(build) -> list:
+    """Row IC, Session 2 (IC-7): the rows of a card's alternative orders —
+    `build(read)` with the read-back's own reader (`parse_preview.read_one`,
+    the built-in parser, never the model), under the read-back's lock. A
+    failure costs the card its extra buttons, never the quote."""
+    from backend.commands import parse_preview as _pp
+    try:
+        with _pp.reading():
+            return list(build(lambda line: _pp.read_one(world, line, **_directive_readers())))
+    except Exception as _exc:
+        _errors.report(_exc, "main._quote_alternatives")
+        return []
 
 
 @app.get("/march_reach")
@@ -8358,11 +8530,56 @@ def get_parse_preview(line: str = ""):
             why_rx=_WHY_RX, live_llm=getattr(parser, "llm", None),
             posts_in_flight=_posts_in_flight,
             unbound_addressee=executor._unbound_addressee,
-            premise_reader=_premise_reading)
+            premise_reader=_premise_reading,
+            interrupt_reader=_interrupt_reading)
     except Exception as e:
         _errors.report(e, "main.get_parse_preview: the readback")
         return {"success": True, "kind": "none", "line": clipped, "parts": [],
                 "candidates": [], "epoch": int(_STATE_EPOCH)}
+
+
+@app.get("/task_presets")
+def get_task_presets(marshal: str = ""):
+    """Row IC, Session 2 (IC-8; INDEPENDENT_COMMAND_SPEC §8.2) — "Give him a
+    task…": ready sentences for one of the player's marshals, with real names
+    in them (`backend/commands/task_presets.py`). The first fills the command
+    line, the rest are chips; nothing is sent and nothing is spent. Every
+    sentence is read through the read-back here, and one that would be
+    refused, or would go out with a part not taken, is not offered. The
+    first-open line for a task rides the payload (`first_open`, screen
+    `task`). Player marshals only (the fog boundary)."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    try:
+        from backend.commands import parse_preview as _pp
+        from backend.commands import if_thens as _if_thens
+        from backend.commands import task_presets as _tp
+        from backend.display_names import humanize_entity_name as _hn
+        from backend.game_logic import first_open as _first_open
+        wanted = str(marshal or "").strip().lower()
+        man = next((m for m in world.get_player_marshals()
+                    if wanted in (m.name.lower(), _hn(m.name).lower())), None)
+        if man is None or int(getattr(man, "strength", 0) or 0) <= 0:
+            return {"success": False, "message": "No such marshal of ours in the field"}
+        rows = []
+        with _pp.reading():
+            for label, line in _tp.build(world, man):
+                reading = _pp.read_one(world, line, **_directive_readers())
+                if (reading.get("kind") != "order" or not reading.get("ok")
+                        or reading.get("understood")):
+                    continue
+                price = next((str(p.get("text") or "") for p in reading.get("parts") or []
+                              if p.get("role") == "cost"), "")
+                rows.append({"label": label, "line": line, "price": price,
+                             "ap": int(reading.get("ap", 0) or 0)})
+        payload = {"success": True, "marshal": man.name, "shown": _hn(man.name),
+                   "literal": getattr(man, "personality", "") == "literal",
+                   "if_thens": int(_if_thens.capacity(man)), "presets": rows}
+        _first_open.attach(payload, world, "task")
+        return payload
+    except Exception as e:
+        _errors.report(e, "main.get_task_presets")
+        return {"success": False, "message": "The staff has no ready orders for him"}
 
 
 @app.get("/diplomatic_preview")

@@ -25,6 +25,8 @@ class_name SelectionCard
 # =============================================================================
 
 const MarshalStateKit = preload("res://scripts/marshal_state.gd")
+# Row IC, Session 2 (IC-7): the ONE table of the simple orders that had no button.
+const SimpleOrders = preload("res://scripts/simple_orders.gd")
 
 signal verb_pressed(verb: String, marshal: String)
 signal cancel_order_pressed(marshal: String)
@@ -32,6 +34,10 @@ signal close_pressed
 signal take_pressed(marshal: String)   # row PW: "Take <province>" where he stands
 
 signal group_verb_pressed(verb: String)   # row IC, directives: "hold", "fortify" or "drill"
+# Row IC, Session 2: "Give him a task…" (the host asks the staff for ready
+# sentences) and a ready sentence chosen (the host writes it on the command line).
+signal task_pressed(marshal: String)
+signal task_line_pressed(line: String)
 signal name_army_pressed
 signal save_army_pressed(name: String)
 signal disband_army_pressed(name: String)
@@ -53,6 +59,10 @@ var _army_same := false
 var _group_button_texts: Array = []
 var _specs: Array = []
 var _buttons: Dictionary = {}   # slot (int) -> Button
+var _posture_open := false      # row IC, Session 2: the "Posture…" menu is showing
+var _tasks: Array = []          # … and the ready tasks the staff wrote for him
+var _tasks_for := ""
+var _hint_height := 0.0         # the hint's measured height: an opened menu stands in its place
 var _body: VBoxContainer = null
 # The host's room for the card (logical px; 0 = no cap) — the 32:9 right wing is
 # narrower than CARD_WIDTH, so main.gd sets it there (`_ui6_card_width_cap`).
@@ -75,6 +85,13 @@ func _init() -> void:
 
 func show_for(view: Dictionary, marshal: String, actions_left: int, hint_bbcode: String) -> void:
 	"""Raise the card on one marshal: `view` is a MarshalState view."""
+	if marshal != _marshal:
+		_posture_open = false
+	# (the review, C4) ready tasks are for the board they were written on:
+	# another man, or an action spent since, lets them go
+	if marshal != _tasks_for or actions_left != _actions_left:
+		_tasks = []
+		_tasks_for = ""
 	_marshal = marshal
 	_view = view.duplicate(true)
 	_actions_left = actions_left
@@ -84,10 +101,25 @@ func show_for(view: Dictionary, marshal: String, actions_left: int, hint_bbcode:
 	show()
 
 
+func show_tasks(marshal: String, presets: Array) -> void:
+	"""Row IC, Session 2 (IC-8): the ready tasks the staff wrote for `marshal`
+	(GET /task_presets) - a button each under his orders; pressing one writes
+	its sentence on the command line. Ignored if the card has moved on."""
+	if marshal == "" or marshal != _marshal or not _group.is_empty():
+		return
+	_tasks = presets.duplicate(true)
+	_tasks_for = marshal
+	_posture_open = false   # one menu at a time: it stands in the hint's place
+	_render()
+
+
 func show_group(names: Array, total_ap: int, in_hand: int, hint_bbcode: String) -> void:
 	"""The group face: who marches together and what it costs - no verb buttons."""
 	_marshal = ""
 	_view = {}
+	_tasks = []
+	_tasks_for = ""
+	_posture_open = false
 	_group = names.duplicate()
 	_group_total = total_ap
 	_group_in_hand = in_hand
@@ -101,6 +133,9 @@ func show_group(names: Array, total_ap: int, in_hand: int, hint_bbcode: String) 
 func hide_card() -> void:
 	_marshal = ""
 	_view = {}
+	_tasks = []
+	_tasks_for = ""
+	_posture_open = false
 	_group = []
 	_specs = []
 	_buttons = {}
@@ -148,16 +183,35 @@ func _render() -> void:
 	var compact := Utils.compact_view()
 	custom_minimum_size = Vector2(_card_width(compact), 0.0)
 	size.x = custom_minimum_size.x
+	var menu: Control = null
 	if _group.is_empty():
 		_specs = MarshalStateKit.order_specs(_view)
 		_body.add_child(_head_row(compact))
 		var ground := _ground_row(compact)
 		if ground != null:
 			_body.add_child(ground)
+		# Row IC, Session 2 (pressed in the real client at the first player's
+		# setup): the card stands on its bottom edge, so whatever makes it taller
+		# lifts every row above the new one out from under the cursor - with the
+		# menus added at the foot, "Posture" itself moved 84 px up as it was
+		# pressed, and a ready task slid under the cursor that had pressed "Give
+		# him a task…". So nothing that was pressed ever moves:
+		#   the READY TASKS stand above his orders (only his name is lifted);
+		#   the POSTURE menu stands in the hint's place, at least as tall as it.
+		# One of the two at a time (`_toggle_posture`, `show_tasks`).
+		if not _posture_open and not _tasks.is_empty() and _tasks_for == _marshal:
+			_body.add_child(_task_rows(compact))
 		_body.add_child(_order_row(compact))
+		_body.add_child(_simple_row(compact))
+		if _posture_open:
+			menu = _posture_row(compact)
 	else:
 		_body.add_child(_group_row(compact))
-	_body.add_child(_hint_label(compact))
+	if menu != null:
+		menu.custom_minimum_size.y = maxf(menu.custom_minimum_size.y, _hint_height)
+		_body.add_child(menu)
+	else:
+		_body.add_child(_hint_label(compact))
 	reset_size()
 
 
@@ -266,6 +320,8 @@ func _measure_rich(label: RichTextLabel, wrap_width: float, clip_to_card: bool) 
 	if clip_to_card:
 		w = 0.0   # the card's own width bounds it; the line clips at its edge
 	label.custom_minimum_size = Vector2(w, float(label.get_content_height()))
+	if str(label.name) == "Hint":
+		_hint_height = label.custom_minimum_size.y   # what an opened menu fills (`_render`)
 	reset_size()
 
 
@@ -297,7 +353,7 @@ func _slot_button(spec: Dictionary, compact: bool) -> Button:
 	var btn := Button.new()
 	var slot := int(spec["slot"])
 	var price := MarshalStateKit.price_text(int(spec["price"]))
-	var label := str(spec["label"])
+	var label := str(spec.get("card_label", spec["label"]))
 	btn.name = "Slot" + str(slot)
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -346,11 +402,199 @@ static func slot_words(label: String, price: int, slot: int) -> String:
 
 func _fire(spec: Dictionary) -> void:
 	AudioManager.play("click")
+	_put_menus_away()
 	var verb := str(spec["verb"])
 	if verb == "cancel":
 		cancel_order_pressed.emit(_marshal)
 	else:
 		verb_pressed.emit(verb, _marshal)
+
+
+# ------------------------------------------- row IC, Session 2: simple orders
+
+func _simple_row(compact: bool) -> Control:
+	"""The simple orders that had no button, under the seven slots: "Stand
+	here", "Stay put", "Posture…" and "Give him a task…" - the table's `card`
+	rows (simple_orders.gd). No digit: the slots keep 1 to 7."""
+	var flow := HFlowContainer.new()
+	flow.name = "SimpleRow"
+	flow.add_theme_constant_override("h_separation", 4)
+	flow.add_theme_constant_override("v_separation", 4)
+	for entry in SimpleOrders.rows("card"):
+		var id := str(entry["id"])
+		if id == "posture":
+			var mark := " ▾" if not _posture_open else " ▴"
+			flow.add_child(_simple_button("Simple_posture", _posture_face() + mark,
+				str(entry["tip"]), "", _toggle_posture))
+		elif id == "task":
+			flow.add_child(_simple_button("Simple_task", str(entry["label"]),
+				str(entry["tip"]), "", _emit_task))
+		else:
+			flow.add_child(_order_button(entry, compact))
+	return flow
+
+
+func _posture_row(_compact: bool) -> Control:
+	"""The "Posture…" menu: attacking, steady, defending - each with its price
+	- and the square. The game's own reason greys what he cannot take."""
+	var flow := HFlowContainer.new()
+	flow.name = "PostureRow"
+	flow.add_theme_constant_override("h_separation", 4)
+	flow.add_theme_constant_override("v_separation", 4)
+	for entry in SimpleOrders.rows("posture"):
+		var id := str(entry["id"])
+		# one of the two square buttons: the one that applies
+		if id == "form_square" and bool(_view.get("square", false)):
+			continue
+		if id == "break_square" and not bool(_view.get("square", false)):
+			continue
+		flow.add_child(_order_button(entry, false))
+	return flow
+
+
+func _posture_face() -> String:
+	"""The posture he is in, on the menu's own face: "Posture: steady"."""
+	var words := {"aggressive": "attacking", "neutral": "steady", "defensive": "defending"}
+	var stance := str(_view.get("stance", ""))
+	if words.has(stance):
+		return "Posture: " + str(words[stance])
+	return "Posture"
+
+
+func _order_button(entry: Dictionary, _compact: bool) -> Button:
+	"""One row of the table as a button: its words and its price on the face,
+	greyed with the game's own reason where the order would be refused."""
+	var price := SimpleOrders.price_of(entry, _view)
+	var reason := SimpleOrders.refusal_of(entry, _view)
+	var tip := str(entry.get("tip", ""))
+	var btn := _simple_button("Simple_" + str(entry["id"]),
+		SimpleOrders.face(str(entry["label"]), price), tip, reason,
+		_fire_line.bind(str(entry["line"])))
+	return btn
+
+
+func _simple_button(node_name: String, face: String, tip: String, reason: String,
+		on_press: Callable) -> Button:
+	var btn := Button.new()
+	btn.name = node_name
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.text = face
+	btn.disabled = reason != ""
+	if reason != "":
+		tip = (tip + " - " + reason) if tip != "" else reason
+	btn.tooltip_text = Utils.clean_tip(tip)
+	btn.pressed.connect(on_press)
+	return btn
+
+
+func _task_rows(compact: bool) -> Control:
+	"""The staff's ready tasks for him, a button each: its short words and its
+	price. Pressing one WRITES its sentence on the command line - nothing is
+	sent."""
+	var col := VBoxContainer.new()
+	col.name = "TaskRows"
+	col.add_theme_constant_override("separation", 3)
+	var wrap_w: float = maxf(_card_width(compact) - 24.0, 120.0)
+	col.add_child(_measured_rich("TaskHead",
+		"[color=#" + Utils.COLOR_INFO + "]Ready tasks - a press writes the sentence on the command line; change it or press Enter.[/color]",
+		wrap_w, true))
+	var index := 0
+	for preset in _tasks:
+		if not (preset is Dictionary):
+			continue
+		var line := str((preset as Dictionary).get("line", ""))
+		if line == "":
+			continue
+		var words := str((preset as Dictionary).get("label", line))
+		var price := str((preset as Dictionary).get("price", ""))
+		var btn := _simple_button("Task" + str(index), words + (" · " + price if price != "" else ""),
+			line, "", _emit_task_line.bind(line))
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		# (the review, C2) a long task wraps inside the card - it never widens it
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.clip_text = false
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.add_child(btn)
+		index += 1
+	return col
+
+
+func simple_buttons() -> Array:
+	"""The faces of the simple-order buttons now on the card, in order (a test
+	reader): the second row, then the posture menu and the ready tasks when open."""
+	var out: Array = []
+	if _body == null:
+		return out
+	for row_name in ["SimpleRow", "PostureRow", "TaskRows"]:
+		var row := _body.get_node_or_null(row_name)
+		if row == null:
+			continue
+		for child in row.get_children():
+			if child is Button:
+				out.append({"name": str(child.name), "text": (child as Button).text,
+					"disabled": (child as Button).disabled, "tip": (child as Button).tooltip_text})
+	return out
+
+
+func press_simple(node_name: String) -> bool:
+	"""Press a simple-order button by its node name (a test hand). False when
+	it is missing or greyed."""
+	if _body == null:
+		return false
+	for row_name in ["SimpleRow", "PostureRow", "TaskRows"]:
+		var row := _body.get_node_or_null(row_name)
+		if row == null:
+			continue
+		var btn := row.get_node_or_null(node_name)
+		if btn is Button:
+			if (btn as Button).disabled:
+				return false
+			(btn as Button).pressed.emit()
+			return true
+	return false
+
+
+func _fire_line(line: String) -> void:
+	if line == "" or _marshal == "":
+		return
+	AudioManager.play("click")
+	_put_menus_away()
+	verb_pressed.emit(line, _marshal)
+
+
+func _put_menus_away() -> void:
+	"""An order given from the card puts its menus away (the second look: a FREE
+	order - a fall back, a cancel - leaves his actions as they were, so the ready
+	tasks written for the board before it stayed above his orders)."""
+	_posture_open = false
+	_tasks = []
+	_tasks_for = ""
+
+
+func _toggle_posture() -> void:
+	AudioManager.play("click")
+	_posture_open = not _posture_open
+	if _posture_open:
+		_tasks = []   # one menu at a time
+		_tasks_for = ""
+	_render()
+
+
+func _emit_task() -> void:
+	AudioManager.play("click")
+	if not _tasks.is_empty() and _tasks_for == _marshal:
+		# a second press puts the ready tasks away (the hint returns)
+		_tasks = []
+		_tasks_for = ""
+		_render()
+		return
+	task_pressed.emit(_marshal)
+
+
+func _emit_task_line(line: String) -> void:
+	AudioManager.play("click")
+	task_line_pressed.emit(line)
 
 
 func _group_row(compact: bool) -> Control:
@@ -419,6 +663,11 @@ func _group_buttons_row(compact: bool) -> Control:
 		var word := str(verb).capitalize()
 		_add_group_button(flow, "Group" + word, word + "…", order_tip, compact,
 			_emit_group_verb.bind(str(verb)))
+	# Row IC, Session 2 (IC-7): the group's attack, support, fall back and
+	# garrison - the table's `group` rows (simple_orders.gd).
+	for entry in SimpleOrders.rows("group"):
+		_add_group_button(flow, "Group" + str(entry["verb"]).capitalize(), str(entry["label"]),
+			str(entry["tip"]), compact, _emit_group_verb.bind(str(entry["verb"])))
 	if _army_name == "":
 		_add_group_button(flow, "NameArmy", "Name this army…",
 			"Gives these corps a name, so one chip or one line (“Army of Italy, hold”) orders them all again. Free.",

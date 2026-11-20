@@ -496,6 +496,18 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/simple_orders.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://scripts/task_words.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scenes/map_renderer_base.gd"
     },
     {
@@ -727,5 +739,5 @@
       "path": "res://../../tools/ba4_mode_c_walk.gd"
     }
   ],
-  "timestamp": "2026-11-20T06:12:00Z"
+  "timestamp": "2026-11-20T22:30:06Z"
 }

@@ -1674,6 +1674,130 @@ def _field_marshals(world) -> List[Any]:
             if int(getattr(m, "strength", 0) or 0) > 0 and not getattr(m, "captured_by", "")]
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Row IC, Session 2 (IC-7) — A BUTTON FOR EVERY SIMPLE ORDER: the choices
+# BESIDE the one a card quotes.
+#
+# The card that opens on an enemy quoted the attack and nothing else: a
+# pursuit, the guns' bombardment, a horseman's charge and an attack held back
+# from it could only be typed. The card that opens on a province quoted the
+# march: what he does on arrival could only be typed. A province gave no way
+# to say "look into it". These are the rows of those buttons. Each row is the
+# order's own LINE read through the read-back's reader (`read` — the route
+# hands in `parse_preview.read_one`), so a button is priced, greyed and
+# worded exactly as the typed line would be, and what it sends is that line.
+# PURE: a reading spends nothing.
+# ═══════════════════════════════════════════════════════════════════════════
+ENEMY_ALTS = (
+    # (id, the button's words, the verb its line gives)
+    ("pursue", "Chase him", "pursue"),
+    ("bombard", "Bombard", "bombard"),
+    ("charge", "Charge him", "charge"),
+    ("held_back", "Attack, held back", "attack"),
+)
+MARCH_THENS = (
+    ("hold", "then hold"), ("fortify", "then dig in"), ("drill", "then drill"),
+    ("defend", "then stand"),
+)
+LOOK_ROWS_MAX = 4
+# A locked choice's reason, in the plainest words, where the read-back's own
+# are short for a line being typed and read as a riddle on a card (the blind
+# reading, three readers of three: "one victory as the attacker arms the
+# charge"). The read-back's words are older rows' and stay as they are.
+PLAIN_REFUSALS = {
+    "one victory as the attacker arms the charge": "he needs one victory as the attacker first",
+}
+
+
+def _alt_row(key: str, label: str, command: str, read) -> Dict[str, Any]:
+    """One alternative as the read-back reads its line: ``{id, label, command,
+    ok, ap, turns, refusal, note}`` — `refusal` the SHORT reason when the
+    line would be refused (the marshal's own name taken off its head)."""
+    reading = read(command) or {}
+    parts = [p for p in (reading.get("parts") or []) if isinstance(p, dict)]
+    ok = reading.get("kind") == "order" and bool(reading.get("ok"))
+    refusal = ""
+    if not ok:
+        refusal = str(reading.get("refusal") or "") or next(
+            (str(p.get("text") or "") for p in parts if p.get("role") in ("bad", "head")), "")
+        shown = str(reading.get("marshal") or "")
+        for lead in ((shown + " — ", shown + " ") if shown else ()):
+            if refusal.startswith(lead):
+                refusal = refusal[len(lead):]
+                break
+        refusal = refusal.strip() or "the order would be refused"
+        refusal = PLAIN_REFUSALS.get(refusal, refusal)
+    notes = [str(p.get("text") or "") for p in parts if p.get("role") in ("warn", "taken")]
+    return {"id": key, "label": label, "command": command, "ok": bool(ok),
+            "ap": int(reading.get("ap", 0) or 0), "turns": int(reading.get("turns", 0) or 0),
+            "refusal": refusal, "note": " · ".join(n for n in notes if n)}
+
+
+def enemy_alts(world, marshal, enemy, read) -> List[Dict[str, Any]]:
+    """The other simple orders against an enemy in sight: "Chase him" for any
+    corps; "Bombard" for a gun corps; "Charge him" for horse; "Attack, held
+    back" where his attack would ask "charge or restrain?" (a reckless
+    horseman at `tactical_executor.RESTRAIN_AT`). A row that would be refused
+    is kept, with its reason — a greyed button says why."""
+    from backend.commands.tactical_executor import RESTRAIN_AT
+    who = humanize_entity_name(marshal.name)
+    foe = humanize_entity_name(enemy.name)
+    rows = []
+    for key, label, verb in ENEMY_ALTS:
+        if key == "bombard" and not getattr(marshal, "artillery", False):
+            continue
+        if key == "charge" and not getattr(marshal, "cavalry", False):
+            continue
+        if key == "held_back" and not (
+                getattr(marshal, "is_reckless_cavalry", False)
+                and int(getattr(marshal, "recklessness", 0) or 0) == RESTRAIN_AT):
+            continue
+        if key == "held_back":
+            from backend.commands.tactical_executor import restrain_refusal
+            row = _alt_row(key, label, f"{who}, attack {foe}, held back", read)
+            short = restrain_refusal(world, marshal, enemy.name)[1]
+            if short and row["ok"]:
+                row.update(ok=False, refusal=short)
+            rows.append(row)
+            continue
+        rows.append(_alt_row(key, label, f"{who}, {verb} {foe}", read))
+    return rows
+
+
+def march_thens(world, marshal, dest: str, read) -> List[Dict[str, Any]]:
+    """What he may do on arrival — today's four arrival verbs — each the
+    march's own line with "then …" behind it, free with the march."""
+    who = humanize_entity_name(marshal.name)
+    place = humanize_entity_name(dest)
+    return [_alt_row("then:" + verb, label, f"{who}, march to {place} then {verb}", read)
+            for verb, label in MARCH_THENS]
+
+
+def look_rows(world, region: str) -> List[Dict[str, Any]]:
+    """Our field corps that can LOOK into `region` from where they stand —
+    within `movement_executor.scout_range`, nearest first — each with the
+    scout's price and the reason his state refuses it (`state_probe`, the
+    executor's own gates). A corps standing IN the province has slot 4."""
+    from backend.commands import state_probe as sp
+    from backend.commands.movement_executor import scout_range
+    rows = []
+    place = humanize_entity_name(region)
+    for marshal in world.get_field_marshals():
+        if marshal.nation != world.player_nation or int(getattr(marshal, "strength", 0) or 0) <= 0:
+            continue
+        gap = world.get_distance(marshal.location, region)
+        if not isinstance(gap, int) or gap < 1 or gap > int(scout_range(marshal)):
+            continue
+        shown = humanize_entity_name(marshal.name)
+        refusal = sp.order_state_refusal(world, marshal, "scout")
+        rows.append((gap, shown, {
+            "marshal": marshal.name, "shown": shown, "command": f"{shown}, scout {place}",
+            "label": f"{shown}: look at {place}", "ok": not refusal,
+            "ap": int(sp.order_price(world, marshal, "scout")), "refusal": str(refusal or ""),
+            "from": humanize_entity_name(marshal.location), "marches": int(gap)}))
+    return [row for _gap, _shown, row in sorted(rows, key=lambda r: (r[0], r[1]))][:LOOK_ROWS_MAX]
+
+
 def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
     """Every click order the province panel offers at `region`, quoted:
     `march` (each corps of ours standing elsewhere), `support` (one row per

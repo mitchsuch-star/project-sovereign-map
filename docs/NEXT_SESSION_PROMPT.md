@@ -1,10 +1,40 @@
-# NEXT SESSION PROMPT — Row IC, Session 2: buttons for orders, the line for tasks, exact orders (read the first block)
+# NEXT SESSION PROMPT — Row IC, Session 2b: the task to prove himself (read the first block)
 
-> **READ THIS FIRST — the next session is ROW IC's SESSION 2** (the section "## Row IC, Session 2 — the plan,
-> decided" below). Then row IC's Sessions 3 and 4, then **Session H, the deploy** (its section is kept below, with
-> the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2 (row IC, homed November 20, 2026, before S15).
+> **READ THIS FIRST — the next session is ROW IC's SESSION 2b** (the section "## Row IC, Session 2b — the task to
+> prove himself: the plan, decided" below). Then row IC's Sessions 3 and 4, then **Session H, the deploy** (its
+> section is kept below, with the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2 (row IC).
 >
-> Overwritten each time a session hands off. Current hand-over: **November 20, 2026 — ROW IC, THE REVIEW OF
+> Overwritten each time a session hands off. Current hand-over: **November 20, 2026 — ROW IC, SESSION 2: BUTTONS
+> FOR ORDERS, THE LINE FOR TASKS, EXACT ORDERS ✅ BUILT AND COMMITTED — NOT PUSHED (it waits for his word).** His
+> words: "make sure buttons exist for simpler things but typing is used for missions and excepts a wide array if
+> things". Built (`SYSTEMS_REFERENCE.md` §231; `BUG_FIXES.md` §"Row IC, Session 2"; `tests/test_ic7_the_buttons.py`,
+> `test_ic8_the_line.py`, `test_ic9_exact_orders.py`; the driven `TestRowIC7TheButtons`): **the buttons** — one
+> client table `SIMPLE_ORDER_BUTTONS` (`scripts/simple_orders.gd`), the card's second row (Stand here · Stay put ·
+> Posture · Give him a task…), the enemy card's other choices (Chase him, Bombard, Charge him, Attack held back), a
+> march's "then", the province's "Look at it", the group's Attack… / Support… / Fall back… / Garrison…; **the line
+> for tasks** — the word table (`backend/ai/word_table.py` → generated `task_words.py` / `task_words.gd`), the
+> read-back's rows (Taken · Not taken · He says · Enter sends), the typed gate (`typed: true`), what the line
+> refuses (`task_line.py`), the ready tasks (`GET /task_presets`); **exact orders** — `StrategicOrder.if_thens`
+> (`backend/commands/if_thens.py`: eight ifs, five thens, three lines for a literal man and one on a hold for the
+> others). Ten rows closed (UI6-X70, X73, X74, X75, WS-12 with GRD-33, WS-14, IC-V1 … IC-V4). **NOT built: the
+> trust crisis's "Grant Autonomy" replaced by a task to prove himself** — the plan's decided fork was taken at the
+> checkpoint; it is Session 2b (row IC2-D1, two strict-xfail pins).
+> **Its traps (fresh):** (1) a harness's client hides the reading under the command line (`UiSettings.get_readback`
+> defaults to off under a harness) — a walk that means to read it sets `DD_B_READBACK=1`; (2) the general's card
+> stands on its BOTTOM edge: whatever makes it taller lifts every row above the new one — add rows above what was
+> pressed, or in the hint's place; (3) the order card's headline is ONE clipped line, and an autowrap Label in it
+> made the card 1,400 px tall (a container reads a wrapping label at width 0) — long words go in the terms, which
+> wrap; (4) a standing order's mark on the map is pressed with the instrument's `click_mark <Marshal>` (pieces,
+> labels and the near-grab take the click almost everywhere else); (5) the map MOVES when a card opens — read every
+> place off the state, never a remembered pixel; (6) the attack's twenty stages are read from `_execute_attack`'s
+> source by a dozen tests — a new step goes INSIDE a stage, never around the loop; (7) a new marshal-order word
+> must bind to a NAME (the metamorphic ratchet), and `python -m tools.gen_task_words` then
+> `python -m tools.gen_routed_order_words` after any change to the word table; (8) the ledger's row tag is
+> `⟨SF step=… ⟩` (U+27E8 / U+27E9), not the brackets it looks like; (9) Bash heredocs mangle apostrophes and
+> backslashes — write files with the Write tool; (10) the broad suite's output is block-buffered: its file looks
+> stalled for minutes, the run is not.
+>
+> The hand-over before it: **November 20, 2026 — ROW IC, THE REVIEW OF
 > "ON HIS OWN": THE DESIGN'S VERSION 6 ✅ WRITTEN, COMMITTED AND PUSHED at his word ("commit and push these
 > with it").** His words: "review the new autonomous generla conmcept assure low authority autonomy isnt in
 > conflict even removing it if needed and make sure buttons exist for simpler things but typing is used for
@@ -199,7 +229,85 @@ say what is built and what is not.
 
 ---
 
-## Row IC, Session 2 — the plan, decided (November 20, 2026)
+## Row IC, Session 2b — the task to prove himself: the plan, decided (November 20, 2026)
+
+**What it is.** The half of IC-9 that Session 2 handed on at its checkpoint (ledger row **IC2-D1**, `BUG_FIXES.md`
+§"Row IC, Session 2"; `SYSTEMS_REFERENCE.md` §231.10): the trust crisis's "Grant Autonomy" replaced by **"Give him
+a task to prove himself"**, and the old engine deleted in the same commit. Everything it stands on is built:
+exact orders (`backend/commands/if_thens.py`, `StrategicOrder.if_thens`), the saved field
+`StrategicOrder.opening_take` (None today; nothing reads it yet), the read-back and the buttons.
+
+**Read first:** `docs/INDEPENDENT_COMMAND_SPEC.md` version 6 §6.11, §7, §12, §13 (the words census; R-INERT's one
+exception — the audience's arm), §15; `SYSTEMS_REFERENCE.md` §231; the strict-xfail pins
+`tests/test_ic_review_pins.py::TestIC2D1TheTrialReplacesGrantAutonomy`. Plan Mode first; verify every name below
+against the code before relying on it (the line numbers of the November 20 plan have moved).
+
+**Scope — one slice, one commit, one review, one measure:**
+
+1. **The proposal** (`backend/game_logic/trial.py`, new): `proposal(world, marshal)`, PURE — bold: take the
+   nearest enemy-held place France SEES within reach; careful: hold his province; literal: hold, and if
+   outnumbered fall back to his nearest held province; nothing in reach: hold where he stands. The bold man's take
+   is a HOLD whose saved `opening_take` the strategic pass runs on its first night — the take order as
+   `take_quote` builds it, at no cost, its battle reported in the strategic rows like a fired if-then; his hold
+   then stands where he ends.
+2. **The audience** (`backend/commands/disobedience.py`): the arm `trial` replaces `grant_autonomy`, ALWAYS offered
+   (the last field marshal too; the `/debug/trigger_redemption` no-world fallback too), its text the proposal in
+   full; `check_redemption_threshold`'s guard reads `trial`. Answering installs the exact order (free) and
+   `marshal.trial = {line, turns_left: 3, won, lost, taken, given}`; he takes no other order meanwhile (the
+   executor's block, replacing "acting independently"); **"Call him back"** (the cancel slot's face;
+   `_execute_cancel`) ends it, trust unchanged; the combat pipeline counts his battles won and lost (attacking or
+   defending) and defended places taken; after three turns the bands apply — spectacular (two battles won or a
+   defended place taken) +40 trust and +10 authority (`standing.move`, cause `spectacular_return`), good +25, none
+   +15, poor +5 — his order cleared, a morning line; the five-turn cooldown kept. A man on trial is never warned
+   and makes no jealous strike (IC-V3's guard `jealousy.acts_independently` is re-seated on the trial).
+3. **Old saves:** `Marshal.from_dict` parks the legacy autonomy values on a non-saved attribute;
+   `WorldState.from_dict` settles the man just before its `return` (the same bands on what he achieved) and writes
+   one line through `world.log_event` with a weight in the dispatch's priority table. A saved `pending_redemption`
+   whose options still name `grant_autonomy` has them rebuilt at load; the answer also accepts the old id as the
+   trial, so a standing question never sticks.
+4. **Deleted in the same commit:** `TurnManager._process_autonomous_marshals`, `_end_autonomy`, their call and
+   report keys (`turn_manager.py`, `main.py`); the debug arm `set_autonomy`, its help line, the `[AUTO]` tag,
+   `/debug/marshal_status`'s readout; the `grant_autonomy` arm, its words and `main.py`'s `autonomous` /
+   `autonomy_turns` reply keys; `meta_executor`'s INDEPENDENT COMMAND REPORT; `while_you_waited._own_way`, its seam
+   and its reader in `enemy_phase_dialog.gd`; `state_probe`'s "acting on his own authority"; the reads in
+   `war_council.py`, `enemy_ai.py`, `combat_executor.py`, `marshal_overview.py` (and the client's
+   `marshal_management.gd`). The fields `autonomous`, `autonomy_turns`, `autonomy_reason`, `autonomous_*` leave
+   the Marshal. `EnemyAI.decide_single_action` refuses a player-nation marshal.
+5. **Client:** `redemption_dialog.gd/.tscn` (AutonomyButton → TrialButton with the proposal), `main.gd` (the
+   "AUTONOMY GRANTED" banner → the task's line; the typed shortcut), `marshal_management.gd` (the flag → "On a
+   task to prove himself — 2 turns left").
+6. **The words census** (a test): "autonomy" / "independent command" on no marshals'-screen string (the vassal
+   scale exempt by name); "on his own" nowhere on them before Session 3 — the jealous strike says "without waiting
+   for orders", V2b says "refused your order".
+7. **Tests rewritten, never deleted:** `test_autonomy.py` (→ the trial), `test_redemption_v2b.py`,
+   `test_administrative_role.py` (last marshal → the trial), `test_wo41_redemption_survives_the_save.py`, and every
+   other file naming `grant_autonomy` or the old fields (about twenty: fa26, fa_slice14, fa_slice17_f,
+   fa_slice17_p2b, systems_audit_session2 / v2_session3, serialization, marshal_overview, ic3, endpoint_wiring,
+   response_pipeline, t3_5, bombardment, iq7_satellites, pt_b_silent_losses, vassal_recovery_lever, …).
+   `tools/playtest_driver.py` default `redemption: "trial"`; recorded digests are history and stay.
+
+**Saves:** `Marshal.trial` (new; `to_dict` / `from_dict` with `.get`, `SAVE_FORMAT_REFERENCE.md`, the enforcement
+test). The legacy autonomy keys are read once and dropped.
+
+**The measure:** the France band on the commanded arms with the driver's new answer, per seed, naming which
+campaigns met a trust crisis and how they moved (R-INERT's one exception); `BASELINE_SERIES` in the hook's run.
+**The reading:** §13's third version-6 question, in Session 2's form — "Why does Davout propose a different task
+to prove himself from Ney?" — on the audience's window at the user's setup (Interface Scale 1.8 on 5120 x 1377),
+the key written before any frame, three fresh readers.
+
+**Forks, decided now** (each one line to reverse): the trial's window cannot hold the proposal at his setup → the
+proposal wraps, the type never shrinks; a man with no enemy in sight and nothing to hold → "hold where he stands";
+the measure moves the band outside 23–28 on any commanded seed → say so per seed, and keep the shipped bands (the
+rewards are today's).
+
+**Done when:** IC2-D1 closed with its two pins promoted; the audience offers no autonomy arm; no French marshal is
+ever moved by the enemy's decision logic; an old save settles; the words census passes; `tools/defect_census.py
+--open` lists no IC row. STATUS line: *"ROW IC, SESSION 2b — THE TASK TO PROVE HIMSELF"*. Then Session 3
+(`docs/INDEPENDENT_COMMAND_SPEC.md` §15).
+
+---
+
+## Row IC, Session 2 — the plan as it was decided (November 20, 2026) — ✅ BUILT the same day, less item 3's trial (Session 2b, above)
 
 **Read first:** `docs/INDEPENDENT_COMMAND_SPEC.md` version 6 — §8 (all of it), §7, §6.11, §13 (R-INERT's one
 exception, the words census, R-READ's version-6 questions), §14's version-6 rows, §15's Session 2 table;

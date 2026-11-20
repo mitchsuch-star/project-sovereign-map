@@ -731,17 +731,86 @@ def second_commander_named(raw: str, world, addressee: Optional[str] = None):
     return found[0], found[1:]
 
 
+def bare_title_in_list(raw: str, world, addressee: Optional[str] = None):
+    """UI6-X75 (row IC, IC-8): "Ney, attack the Archduke and Mack" (or "...
+    Mack and the Archduke") — one segment of the order's list is a bare title
+    a commander of the roster bears, and another names a man in full.
+    `(title as typed, that man, title_first)`, or None. The list reader above
+    reads a title-first list as nothing (its first segment is no one man's full
+    name) and skips a later title, so the order fell on Mack and the Archduke
+    was never mentioned. Names only — never a place of anyone's."""
+    if world is None or not raw:
+        return None
+    read = _list_order_tail(raw)
+    if read is None:
+        return None
+    verb, tail = read
+    tail = re.split(r"[.!?()\"—–:]", tail, maxsplit=1)[0]
+    from backend.ai.clause_guards import PURPOSE_LEAD_RE
+    _purpose = PURPOSE_LEAD_RE.search(tail)
+    if _purpose is not None:
+        tail = tail[:_purpose.start()]
+    forms: Dict[str, object] = {}
+    borne = set()
+    for m in (getattr(world, "marshals", None) or {}).values():
+        shown = humanize_entity_name(m.name)
+        lead = shown.split()[0].lower() if len(shown.split()) > 1 else ""
+        if lead in _TITLE_WORDS:
+            borne.add(lead)
+        if m.name == addressee:
+            continue
+        for form in (m.name, shown):
+            forms.setdefault(str(form).lower(), m)
+    segments = _NAME_JOIN_RE.split(tail)[0::2]
+    if len(segments) < 2:
+        return None
+    title, title_at, man, man_at = "", -1, None, -1
+    for index, segment in enumerate(segments):
+        words = _segment_words(segment)
+        if index and words and words[0].lower() == verb:
+            words = words[1:]
+        if man is None:
+            found = _commander_in(words, forms)
+            if found is not None:
+                man, man_at = found, index
+                continue
+        if not title:
+            bare = [w for w in words if w.lower() != "the"]
+            if (bare and all(w.lower() in _TITLE_WORDS for w in bare)
+                    and bare[0].lower() in borne):
+                # (a title nobody on the roster bears is the unknown-name road's)
+                title, title_at = " ".join(w[:1].upper() + w[1:].lower() for w in bare), index
+    if not title or man is None:
+        return None
+    return title, man, title_at < man_at
+
+
 def second_name_note(raw: str, world, addressee: Optional[str] = None) -> str:
     """The sentence that says which names a list order read and which it did
     not act on ("Kutuzov, named after Mack, was not acted on — one order
     falls on one commander; give him a line of his own."), or "". Names
     only: nothing of where any of them stands."""
+    return " ".join(second_name_notes(raw, world, addressee))
+
+
+def second_name_notes(raw: str, world, addressee: Optional[str] = None) -> List[str]:
+    """`second_name_note`'s sentences, one a kind (the names dropped; a bare
+    title dropped — UI6-X75), for a reader that shows each one's head."""
     named = second_commander_named(raw, world, addressee)
+    # UI6-X75: a bare title in the list is named too, never dropped.
+    titled = bare_title_in_list(raw, world, addressee)
+    title_note = ""
+    if titled is not None:
+        title, man, before = titled
+        title_note = (f"The {title}, named {'before' if before else 'after'} "
+                      f"{humanize_entity_name(man.name)}, was not acted on — a title alone "
+                      f"names no one commander; give him a line of his own, by name.")
     if named is None:
-        return ""
+        return [title_note] if title_note else []
     first, others = named
     dropped = " and ".join(humanize_entity_name(o.name) for o in others)
     verb = "were" if len(others) > 1 else "was"
     pron = "them" if len(others) > 1 else "him"
-    return (f"{dropped}, named after {humanize_entity_name(first.name)}, {verb} not acted on "
+    note = (f"{dropped}, named after {humanize_entity_name(first.name)}, {verb} not acted on "
             f"— one order falls on one commander; give {pron} a line of his own.")
+    return [note] + ([title_note] if title_note else [])

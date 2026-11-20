@@ -150,6 +150,12 @@ func _init():
 		# report opens (a harness's default is off: its scripts read the report
 		# the moment the turn ends)
 		UiSettings._cfg.set_value("orders", "play_enemy_moves", true)
+	# Row IC, Session 2: `DD_B_READBACK=1` shows the reading under the command
+	# line as a player's game does (a harness's default is off - `UiSettings.
+	# get_readback` - so the walks before it read the line alone): the rows
+	# "Taken", "Not taken", "Enter sends" are what that walk is there to press.
+	if OS.get_environment("DD_B_READBACK") == "1":
+		UiSettings._cfg.set_value("display", "readback", true)
 	_run.call_deferred()
 
 
@@ -222,6 +228,10 @@ func _do(action: String) -> void:
 	var rest := words.substr(verb.length()).strip_edges()
 	if verb == "type":
 		await _act_type(rest, rec)
+	elif verb == "draft":
+		# Row IC, Session 2: the words typed on the command line and NOT sent -
+		# what a player sees before Enter (the read-back's rows under the line).
+		await _act_type(rest, rec, false)
 	elif verb == "click" or verb.begins_with("click#"):
 		var pick := 0
 		if verb.begins_with("click#"):
@@ -243,6 +253,24 @@ func _do(action: String) -> void:
 			_err(rec, "click_at wants two numbers: click_at <x> <y> (logical px)")
 		else:
 			await _act_click_at(Vector2(float(p[0]), float(p[1])), rec)
+	elif verb == "rightclick_at":
+		# Row IC, Session 2: the RIGHT button at a point - with a corps selected, a
+		# province's march card ("show me the order first").
+		var rp := rest.split(" ", false)
+		if rp.size() != 2 or not rp[0].is_valid_float() or not rp[1].is_valid_float():
+			_err(rec, "rightclick_at wants two numbers: rightclick_at <x> <y> (logical px)")
+		else:
+			await _act_click_at(Vector2(float(rp[0]), float(rp[1])), rec, false, true)
+	elif verb == "click_mark":
+		# Row IC, Session 2: a click on a standing order's mark on the map, at a
+		# point of it where the click IS the mark's - the map's own hover reading
+		# decides (a piece, a label or the near-grab of a piece takes the click
+		# everywhere else, and a mark often runs under a neighbour's label).
+		var at := _clear_point_on_mark(rest.strip_edges())
+		if at.x < 0.0:
+			_err(rec, "no clear point on %s's mark (no standing order on the map, or pieces cover it)" % rest)
+		else:
+			await _act_click_at(at, rec)
 	elif verb == "key":
 		await _act_key(rest, rec)
 	elif verb == "scroll":
@@ -364,7 +392,7 @@ func _do(action: String) -> void:
 
 # ── the actions ─────────────────────────────────────────────────────────────
 
-func _act_type(text: String, rec: Dictionary) -> void:
+func _act_type(text: String, rec: Dictionary, send: bool = true) -> void:
 	var main := _main()
 	var input: LineEdit = main.get("command_input") if main != null else null
 	if input == null or not input.is_visible_in_tree():
@@ -412,6 +440,13 @@ func _act_type(text: String, rec: Dictionary) -> void:
 		input.text = expected
 		input.caret_column = at + text.length()
 		how.append("typed by the line's own road (the keystrokes did not land)")
+	if not send:
+		# `draft`: the line stands as typed; wait past the read-back's rest
+		# (0.22 s) and its one GET, so the frame shows the reading
+		await _frames(60)
+		rec["typed"] = expected
+		rec["note"] = "typed, not sent" + ("; " + "; ".join(how) if not how.is_empty() else "")
+		return
 	var sent_before := _sent("/command")
 	await _push_key(KEY_ENTER, false, false, false, 0)
 	await _frames(3)
@@ -637,14 +672,14 @@ func _act_still(spec: String, rec: Dictionary) -> void:
 		else ("MOVED: %d change(s) in %d frames — %s" % [changes.size(), frames, ", ".join(PackedStringArray(moved.keys()))])
 
 
-func _act_click_at(at: Vector2, rec: Dictionary, ctrl: bool = false) -> void:
+func _act_click_at(at: Vector2, rec: Dictionary, ctrl: bool = false, right: bool = false) -> void:
 	var view := root.get_visible_rect().size
 	if at.x < 0 or at.y < 0 or at.x > view.x or at.y > view.y:
 		_err(rec, "(%d, %d) is off the screen (%d x %d logical px)" % [int(at.x), int(at.y), int(view.x), int(view.y)])
 		return
 	var under := _cover_at(at, null)
-	await _real_click(at, ctrl)
-	rec["note"] = "%sclicked at (%d, %d)%s" % ["ctrl-" if ctrl else "", int(at.x), int(at.y), (" on " + under) if under != "" else ""]
+	await _real_click(at, ctrl, right)
+	rec["note"] = "%sclicked at (%d, %d)%s" % ["ctrl-" if ctrl else ("right-" if right else ""), int(at.x), int(at.y), (" on " + under) if under != "" else ""]
 
 
 func _act_key(spec: String, rec: Dictionary) -> void:
@@ -744,15 +779,15 @@ func _motion(at: Vector2) -> void:
 	root.push_input(ev, true)
 
 
-func _real_click(at: Vector2, ctrl: bool = false) -> void:
+func _real_click(at: Vector2, ctrl: bool = false, right: bool = false) -> void:
 	_motion(at)
 	await _frames(3)
 	for pressed in [true, false]:
 		var ev := InputEventMouseButton.new()
-		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.button_index = MOUSE_BUTTON_RIGHT if right else MOUSE_BUTTON_LEFT
 		ev.ctrl_pressed = ctrl   # Row IC, directives: `ctrlclick` holds Ctrl
 		ev.pressed = pressed
-		ev.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+		ev.button_mask = (MOUSE_BUTTON_MASK_RIGHT if right else MOUSE_BUTTON_MASK_LEFT) if pressed else 0
 		ev.position = at
 		ev.global_position = at
 		root.push_input(ev, true)
@@ -1079,6 +1114,8 @@ func _state() -> Dictionary:
 	# Row IC: the provinces that wear the map's standing danger mark.
 	out["map_dangers"] = _map_dangers()
 	out["map_danger_names"] = _map_danger_names()
+	# Row IC, Session 2: where each standing order's mark stands (the arrow card's door).
+	out["order_marks"] = _order_marks()
 	# Row IC, directives: the order card's report, the provinces marked as goals
 	# (and the names they wear), the army chips on the marshal row.
 	out["directive_card"] = _directive_card()
@@ -1211,6 +1248,76 @@ func _directive_card() -> Dictionary:
 		if rep is Dictionary:
 			return rep
 	return {}
+
+
+func _order_marks() -> Array:
+	"""Row IC, Session 2: where each standing order's mark stands on screen -
+	{marshal, at: [x, y]} in logical px (the centre of its arrow's badge; a hold's
+	mark stands just below his feet) - so a walk can press it and read the card
+	that says what the order is ("... if he is attacked, dig in (2 of 2 left)")."""
+	var out: Array = []
+	var main := _main()
+	if main == null:
+		return out
+	var map_area = main.get("map_area")
+	if map_area == null or not is_instance_valid(map_area) or not map_area.has_method("screen_point_of_arrow"):
+		return out
+	var layer = map_area.get("order_layer")
+	if layer == null or not is_instance_valid(layer) or not layer.has_method("_arrow_geometry"):
+		return out
+	for geo in layer._arrow_geometry():
+		var who := str(geo.get("marshal", ""))
+		if who == "":
+			continue
+		var at: Vector2 = map_area.screen_point_of_arrow(who)
+		if at.x >= 0.0:
+			# `badge`: the mark's own box, [x, y, w, h] - a stack's label may stand
+			# over its middle, so a walk picks a point of the box that is clear
+			var box: Rect2 = geo.get("badge", Rect2())
+			box.position += (layer as CanvasItem).global_position
+			out.append({"marshal": who, "at": [int(at.x), int(at.y)], "badge": _r(box)})
+	return out
+
+
+func _clear_point_on_mark(who: String) -> Vector2:
+	"""Row IC, Session 2: a point (logical px) of `who`'s standing-order mark
+	where a click opens the order's card - read with the map's OWN hover logic
+	(`_refresh_hover_state`: the piece under the cursor, a label, the near-grab)
+	and its own arrow test; (-1, -1) for none. The hover is put back as it was."""
+	var none := Vector2(-1, -1)
+	var main := _main()
+	if main == null or who == "":
+		return none
+	var map_area = main.get("map_area")
+	if map_area == null or not is_instance_valid(map_area) or not ("mouse_position" in map_area) 			or not map_area.has_method("_refresh_hover_state") or not map_area.has_method("_order_arrow_under"):
+		return none
+	var layer = map_area.get("order_layer")
+	if layer == null or not is_instance_valid(layer) or not layer.has_method("_arrow_geometry"):
+		return none
+	var box := Rect2()
+	for geo in layer._arrow_geometry():
+		if str(geo.get("marshal", "")) == who:
+			box = geo.get("badge", Rect2())
+			box.position += (layer as CanvasItem).global_position
+	if box.size == Vector2.ZERO:
+		return none
+	var origin: Vector2 = (map_area as Control).global_position
+	var keep: Vector2 = map_area.mouse_position
+	var found := none
+	var cy := box.position.y + box.size.y * 0.5
+	var x := box.end.x - 6.0
+	while x > box.position.x + 4.0 and found.x < 0.0:
+		var local := Vector2(x, cy) - origin
+		map_area.mouse_position = local
+		map_area._refresh_hover_state()
+		var piece: Dictionary = map_area.get("hovered_marshal")
+		var force: Dictionary = map_area.get("hovered_fogged_force")
+		if piece.is_empty() and force.is_empty() and str(map_area._order_arrow_under(local)) == who:
+			found = Vector2(x, cy)
+		x -= 6.0
+	map_area.mouse_position = keep
+	map_area._refresh_hover_state()
+	return found
 
 
 func _map_goals() -> Array:

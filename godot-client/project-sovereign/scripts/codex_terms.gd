@@ -117,6 +117,20 @@ const ORDERS: Array = [
 	["Repair", "repair the fort", "Mends war damage or a damaged building; an administrative action."],
 ]
 
+# Row IC, Session 2 (IC-8): a TASK is typed — an order with a time limit, a
+# condition or an if-then. [what to say, what it becomes]. Every sentence is
+# one of the word table's examples (`task_words.gd` EXAMPLES), which the suite
+# runs through the real parser — so the page teaches nothing the game refuses.
+const TASKS: Array = [
+	["Davout, hold Lorraine for three turns.", "A hold with a time limit."],
+	["Davout, hold Lorraine until Ney arrives.", "A hold that ends when a friend arrives."],
+	["Murat, chase Mack until he is destroyed.", "A pursuit that ends with its quarry."],
+	["Soult, follow Ney.", "He goes where Ney goes, and to his guns."],
+	["Ney, march to Lorraine, then dig in.", "A march, and what he does on arrival (to dig in is to fortify)."],
+	["Soult, hold Lorraine. If attacked, dig in. If outnumbered, fall back to Champagne.",
+		"An exact order: he does each line once, by himself, when it comes true. Three lines for a marshal who follows orders to the letter; one for anyone else, on a hold."],
+]
+
 # Commands with no marshal. [command, what it does].
 const BARE: Array = [
 	["status", "Berthier's report of the war (“how is the war going”). Free."],
@@ -160,6 +174,7 @@ const FIXED_KEYS: Array = [
 	["Click a stack's label", "Where several corps stand together the label reads a name and how many more: click it for a list, and pick the corps you mean."],
 	["Click a corps, then an enemy", "A card shows the attack before it goes."],
 	["Click another of your corps", "Selects him instead (support him with a right click or a drag)."],
+	["The row under a corps's seven orders", "The simple orders with no number: Stand here (one action, this turn), Stay put (free), Posture (attacking, steady or defending, and the square) and Give him a task, which writes a ready sentence on the command line."],
 	["1 to 7, with a corps selected", "His card's orders on an empty line: Hold, Fortify (or Unfortify), Drill, Scout, Fall back, Garrison, Cancel order. A locked one only sounds; its reason is the button's hover."],
 	["Drag a corps", "The same as a click: drop it on a province, an enemy, or another of your corps to support him."],
 	["Ctrl-click several corps", "Then a province: they march together on one card."],

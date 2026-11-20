@@ -43,6 +43,9 @@ SCREENS: Tuple[str, ...] = (
     "cabinet", "designs", "formables", "settlement", "separate_peace",
     "laws", "admiralty_camp", "moment_letter", "affair_letter", "correspondence",
     "battle_day", "desk",
+    # Row IC, Session 2 (IC-8): the first task typed on the command line
+    # (`GET /task_presets`, the general's card: "Give him a task…").
+    "task",
 )
 LINE_CAP = 220
 KEY = "first_open"
@@ -193,6 +196,12 @@ def _line_desk(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
             "word now. Press a row and it takes you there.")
 
 
+def _line_task(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
+    return ("A task is typed, Sire: who, what and where — and, if you wish, for how long, "
+            "and what to do if something happens. Before anything is spent the line "
+            "says what it took and what it did not.")
+
+
 LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "cabinet": _line_cabinet,
     "designs": _line_designs,
@@ -206,6 +215,7 @@ LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "correspondence": _line_correspondence,
     "battle_day": _line_battle_day,
     "desk": _line_desk,
+    "task": _line_task,
 }
 
 

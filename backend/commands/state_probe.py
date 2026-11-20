@@ -301,6 +301,104 @@ def order_state_refusal(world, marshal, verb: str) -> str:
     return _battery_reason(world, marshal, action, verb) or _own_reason(world, marshal, verb)
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Row IC, Session 2 (IC-7) — THE BUTTONS THAT ARE NOT SCREEN VERBS.
+#
+# `VERBS` above prices the orders the screens already offered — and "Chase
+# him" (pursue), "Stand here" (defend) and "Look at …" (scout) read it as they
+# always could. These are the simple orders that had no button and are no
+# verb of that table: a POSTURE (stance), the SQUARE, and "stay put". Their
+# keys ride `tactical_state.button_prices` / `button_refusals` beside
+# `order_prices` / `order_refusals`; `VERBS` itself is untouched (its censuses
+# count it, and the completer treats a member as a typed verb).
+# ═══════════════════════════════════════════════════════════════════════════
+POSTURES = ("aggressive", "neutral", "defensive")
+BUTTONS = ("wait", "form_square", "break_square") + tuple(f"stance:{p}" for p in POSTURES)
+# what each button's order is to the executor's gates
+_BUTTON_ACTION = {"wait": "wait", "form_square": "form_square", "break_square": "break_square"}
+
+
+def _need_reason(world, need: int) -> str:
+    have = int(getattr(world, "actions_remaining", 0) or 0)
+    if need <= 0 or have >= need:
+        return ""
+    if have <= 0:
+        return "no military action left this turn"
+    return f"needs {need} actions — {have} left"
+
+
+def _posture(key: str):
+    from backend.models.marshal import Stance
+    return Stance(key.split(":", 1)[1])
+
+
+def button_price(world, marshal, key: str) -> int:
+    """What the button's order costs in military actions: a posture by its
+    steps (`tactical_executor.stance_change_cost` — to steady free, from
+    steady 1, across 2), the square its table price, "stay put" and breaking
+    square nothing. PURE."""
+    if marshal is None or key not in BUTTONS:
+        return 0
+    if key.startswith("stance:"):
+        from backend.commands.tactical_executor import stance_change_cost
+        from backend.models.marshal import Stance
+        return int(stance_change_cost(getattr(marshal, "stance", Stance.NEUTRAL), _posture(key)))
+    if key == "form_square":
+        return int(world.get_action_cost("form_square"))
+    return 0
+
+
+def button_refusal(world, marshal, key: str) -> str:
+    """The SHORT reason the button's order would be refused — "" when it would
+    go — in the order the executor meets its gates: the actions it costs, the
+    occupation lock, the pre-objection battery's state gates, then the order's
+    own reader (`tactical_executor.stance_refusal` / `square_refusal`, the
+    executor's). PURE."""
+    if marshal is None or key not in BUTTONS:
+        return ""
+    action = "stance_change" if key.startswith("stance:") else _BUTTON_ACTION[key]
+    if key == "break_square" and not getattr(marshal, "square_formation", False):
+        return "not in square"
+    reason = _need_reason(world, button_price(world, marshal, key))
+    if reason:
+        return reason
+    region = getattr(marshal, "occupation_region", None)
+    if region and action not in _OCCUPATION_ALLOWED:
+        return f"securing {region} — no other orders"
+    reason = _battery_reason(world, marshal, action, action)
+    if reason:
+        return reason
+    if key.startswith("stance:"):
+        from backend.commands.tactical_executor import stance_refusal
+        return stance_refusal(marshal, _posture(key))[1]
+    if key == "form_square":
+        from backend.commands.tactical_executor import square_refusal
+        return square_refusal(marshal)[1]
+    return ""
+
+
+def button_prices(world, marshal) -> Dict[str, int]:
+    """``{button: actions}`` for the player's marshal; empty with the lever down."""
+    if (not THE_SCREEN_READS_THE_STATE or marshal is None
+            or getattr(marshal, "nation", None) != getattr(world, "player_nation", None)):
+        return {}
+    return {key: button_price(world, marshal, key) for key in BUTTONS}
+
+
+def button_refusals(world, marshal) -> Dict[str, str]:
+    """``{button: short reason}`` for every button whose order would be
+    refused (a button that would go is absent). Player marshals only."""
+    if (not THE_SCREEN_READS_THE_STATE or marshal is None
+            or getattr(marshal, "nation", None) != getattr(world, "player_nation", None)):
+        return {}
+    out: Dict[str, str] = {}
+    for key in BUTTONS:
+        reason = button_refusal(world, marshal, key)
+        if reason:
+            out[key] = reason
+    return out
+
+
 def order_refusals(world, marshal) -> Dict[str, str]:
     """``{verb: short reason}`` for every screen verb the marshal's state or
     the turn's actions refuse (verbs that stand are absent). Player marshals

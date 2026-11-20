@@ -253,13 +253,25 @@ class TestParserBehaviour:
         held = run(board, "Ney, if Mack advances fall back to Lorraine")
         assert held.get("success") and held.get("strategic_type") == "HOLD", held
         assert held["command"]["action"] != "move", held
-        for text in ("Ney, if Mack advances, fortify",
+        # Row IC, Session 2 (IC-9, November 20, 2026 — the word table): three
+        # more of the filed lines are EXACT ORDERS now — a hold with an
+        # if-then, never the order carried out at once: "fortify" is the
+        # THEN "dig in", "when" and "should" read as "if", and a friend
+        # arriving is one of the eight ifs.
+        for text, then in (("Ney, if Mack advances, fortify", "dig_in"),
+                           ("Ney, when Davout arrives, attack", "attack"),
+                           ("Ney, should Mack advance, fortify", "dig_in")):
+            result = run(board, text)
+            assert result.get("success") and result.get("strategic_type") == "HOLD", text
+            assert [line["then"] for line in result.get("if_thens") or []] == [then], text
+        # ... and what no grammar holds is still refused, never executed now.
+        for text in ("Ney, if Mack advances, recruit infantry",
                      "if Mack advances, Ney should fall back to Lorraine",
                      "Ney, attack if Davout supports",
-                     "Ney, when Davout arrives, attack",
+                     "Ney, attack Mack when Davout arrives",
                      "Ney, move to Lorraine after Davout arrives",
                      "Ney, attack Mack once Davout arrives",
-                     "Ney, should Mack advance, fortify"):
+                     "Ney, should Mack advance, recruit infantry"):
             result = run(board, text)
             assert not result.get("success"), text
             assert result.get("refusal") == "conditional", text
@@ -457,9 +469,11 @@ class TestRefusalReachesThePlayer:
         # CC-4 / D8 (October 19, 2026): `… if Wellington advances fall back to
         # Paris` is a held contingency now; a then-clause it does not hold is
         # refused and taught BOTH standing forms.
+        # Row IC, Session 2: "…, fortify" is an exact order's "dig in" now;
+        # the refusal is pinned on a then-clause no if-then holds.
         data = endpoint.post(
             "/command",
-            json={"command": "Ney, if Wellington advances, fortify"}).json()
+            json={"command": "Ney, if Wellington advances, recruit infantry"}).json()
         assert data["success"] is False
         assert "contingency" in data["message"]
         assert "hold until" in data["message"]

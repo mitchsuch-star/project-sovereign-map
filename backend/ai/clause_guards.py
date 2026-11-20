@@ -655,15 +655,24 @@ def condition_marker_spans(text: str) -> List[Tuple[int, int]]:
 
 
 class ConditionGuardVerdict:
-    """What `strip_condition_clauses_with_handoff` decided, in full."""
-    __slots__ = ("text", "refuse", "handoff", "refusing_clause")
+    """What `strip_condition_clauses_with_handoff` decided, in full.
+
+    IC-V1 (row IC, IC-8): ``blanked`` lists every clause the guard blanked
+    WITHOUT refusing or handing off — ``{"clause", "marker", "kind"}``, kind
+    one of ``one_word`` (an elliptical clause under the two-word floor: "if
+    outnumbered", "unless attacked"), ``blank_only`` (`until` / `while` /
+    `before`) or ``precaution`` (a trailing "in case …"). The floor itself is
+    untouched: the order still stands without the clause — but the clause is no
+    longer dropped unseen; the read-back names it before anything is sent."""
+    __slots__ = ("text", "refuse", "handoff", "refusing_clause", "blanked")
 
     def __init__(self, text: str, refuse: bool, handoff: Optional[dict],
-                 refusing_clause: Optional[str]):
+                 refusing_clause: Optional[str], blanked: Optional[list] = None):
         self.text = text
         self.refuse = refuse
         self.handoff = handoff
         self.refusing_clause = refusing_clause
+        self.blanked = list(blanked or [])
 
     def __iter__(self):
         yield self.text
@@ -701,6 +710,7 @@ def strip_condition_clauses_with_handoff(
     applied = False
     handoff: Optional[dict] = None
     refusing_clause: Optional[str] = None
+    blanked: List[dict] = []
     marker_count = 0
     pos = 0
     while pos < len(text):
@@ -776,6 +786,17 @@ def strip_condition_clauses_with_handoff(
                 refuse = True
                 if refusing_clause is None:
                     refusing_clause = text[marker.start():clause_end].strip()
+            elif _clause_word_count(text, clause_start, clause_end) >= 1:
+                # IC-V1: under the floor — blanked, the order stands — and SAID
+                blanked.append({"clause": text[marker.start():clause_end].strip(),
+                                "marker": collapsed, "kind": "one_word",
+                                "span": (marker.start(), clause_end)})
+        elif _clause_word_count(text, clause_start, clause_end) >= 1 and not (
+                handoff is not None and handoff.get("span") == (marker.start(), clause_end)):
+            blanked.append({"clause": text[marker.start():clause_end].strip(),
+                            "marker": collapsed,
+                            "kind": "precaution" if precaution else "blank_only",
+                            "span": (marker.start(), clause_end)})
 
         for i in range(marker.start(), clause_end):
             chars[i] = " "
@@ -788,6 +809,9 @@ def strip_condition_clauses_with_handoff(
         if refusing_clause is None:
             refusing_clause = handoff["clause"]
         handoff = None
+    if handoff is not None:
+        # (the handed-off clause is TAKEN: it is no blanked one)
+        blanked = [b for b in blanked if b["span"] != tuple(handoff.get("span") or ())]
 
     inversion = _SHOULD_INVERSION_RE.search(text)
     if not inversion:
@@ -813,7 +837,8 @@ def strip_condition_clauses_with_handoff(
         handoff = None
 
     return ConditionGuardVerdict(
-        ("".join(chars) if applied else text), refuse, handoff, refusing_clause)
+        ("".join(chars) if applied else text), refuse, handoff, refusing_clause,
+        [] if refuse else blanked)
 
 
 def strip_condition_clauses(text: str) -> Tuple[str, bool]:
@@ -933,21 +958,54 @@ def _name_in_foes(subject: str, foes) -> bool:
     return any(low == str(f).strip().lower() for f in (foes or ()) if f)
 
 
-def _reason_pattern(foes) -> "re.Pattern":
+def _compound_members(foe_names, friends) -> Tuple[List[str], List[str]]:
+    """UI6-X70: the names a COMPOUND report subject may join besides the foes
+    - a marshal of ours ("Mack and Davout are marching") and a bare title a foe
+    bears ("Mack and the Archduke ...") - as ``(ours, titles)``, longest first,
+    none of them a foe's own form."""
+    foe_forms = {n.lower() for n in foe_names}
+    titles = sorted({n.split()[0] for n in foe_names
+                     if len(n.split()) > 1 and len(n.split()[0]) > 3
+                     and n.split()[0].lower() not in foe_forms}, key=len, reverse=True)
+    ours = sorted({str(n).strip() for n in (friends or ()) if n and str(n).strip()
+                   and str(n).strip().lower() not in foe_forms}, key=len, reverse=True)
+    return ours, titles
+
+
+def _reason_pattern(foes, friends=()) -> "re.Pattern":
     names = sorted({str(n).strip() for n in (foes or ()) if n and str(n).strip()},
                    key=len, reverse=True)
     subjects = [_REASON_PRONOUN, _REASON_THE_PARTY]
+    ours, titles = _compound_members(names, friends)
     if names:
         _one = (r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:"
                 + "|".join(re.escape(n) for n in names) + r")\b")
         # UI6-X54: a COMPOUND subject ("Mack and Kutuzov are marching so ...") is
         # one report clause too - read whole, never "Mack ... marching" with the
         # report's first name left on the line as the order's own.
-        subjects.append(_one + r"(?:" + _COMPOUND_JOIN + _one + r")+")
+        # UI6-X70 (row IC, IC-8): and so is one that joins a FRIEND or a bare
+        # TITLE to a foe ("Mack and Davout are marching", "Mack and the
+        # Archduke ...") - any member may be one of ours or a title, so long as
+        # a foe stands in the list (the lookahead); a list of foes alone reads
+        # exactly as it did.
+        _any = (r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:"
+                + "|".join(re.escape(n) for n in sorted(
+                    set(names) | set(ours) | set(titles), key=len, reverse=True)) + r")\b")
+        subjects.append(r"(?=(?:" + _any + _COMPOUND_JOIN + r")*" + _one + r")"
+                        + _any + r"(?:" + _COMPOUND_JOIN + _any + r")+")
         subjects.append(
             r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:"
             + "|".join(re.escape(n) for n in names)
             + r")(?:['’]s\s+\w+)?")
+    if len(ours) >= 2:
+        # UI6-X74's sibling: a list of OUR men alone is a report only with an
+        # auxiliary behind it ("Davout and Soult ARE marching so attack Mack").
+        # The bare verb stays what it is - an order to the men it lists ("Ney,
+        # Davout and Soult march to Lorraine" is the directive's) - and so does
+        # the infinitive of an order ("... are TO march to Lorraine").
+        _mine = r"(?:" + HONORIFIC + r")?(?:" + "|".join(re.escape(n) for n in ours) + r")\b"
+        subjects.append(_mine + r"(?:" + _COMPOUND_JOIN + _mine + r")+"
+                        + r"(?=\s+" + _REASON_AUX + r"\s+(?!to\b))")
     return re.compile(
         r"(?P<lead>\b" + _REASON_SUBORDINATOR + r"\s+|,\s*)"
         r"(?P<subj>" + "|".join(subjects) + r")\s+"
@@ -955,14 +1013,15 @@ def _reason_pattern(foes) -> "re.Pattern":
         re.IGNORECASE)
 
 
-def reason_clause_spans(text: str,
-                        foes: Iterable[str] = ()) -> List[Tuple[int, int]]:
+def reason_clause_spans(text: str, foes: Iterable[str] = (),
+                        friends: Iterable[str] = ()) -> List[Tuple[int, int]]:
     """Where the third-party reason clauses are, as ``(start, end)`` spans
     over the ORIGINAL string, each running from its lead to the clause end
-    (`negation_marker_spans`'s idiom)."""
+    (`negation_marker_spans`'s idiom). ``friends`` (UI6-X70) is the roster of
+    OUR marshals: a compound subject may join one of them to a foe."""
     if not text:
         return []
-    pattern = _reason_pattern(foes)
+    pattern = _reason_pattern(foes, friends)
     spans: List[Tuple[int, int]] = []
     pos = 0
     while pos < len(text):
@@ -1144,7 +1203,8 @@ _COMPOUND_BOUNDARY_RE = re.compile(
     r"\s+(?:so|therefore|thus|hence|then|and)\s+|[;,.]\s*", re.IGNORECASE)
 
 
-def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Iterable[str] = ()):
+def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Iterable[str] = (),
+                             ours_only: bool = False):
     """UI6-X43 / UI6-X54: "Ney, Kutuzov and Mack are coming so attack him" - a
     pronoun behind a COMPOUND subject has no single referent. Returns
     ``(names, pronoun, verb)`` - the names as typed, the pronoun (him / them)
@@ -1157,10 +1217,16 @@ def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Itera
     reaches the same refusal. The subject may join with and / & / with / plus,
     may carry a title alone ("the Archduke"), and may mix a friend with a foe
     (`friends` - the roster of ours - joins the list; a list with no foe in it
-    is not this rule's). A leading ADDRESS ("Ney,") is not a subject."""
+    is not this rule's). A leading ADDRESS ("Ney,") is not a subject.
+
+    UI6-X74 (row IC, IC-8): ``ours_only`` is the OTHER reading - a list of OUR
+    men alone behind an auxiliary ("Ney, Davout and Soult are marching so
+    attack him"): the pronoun stands for no enemy at all. The same triple, for
+    the same free refusal; never the bare verb (a list of ours before a bare
+    verb is an order to the men it names)."""
     foe_names = sorted({str(n).strip() for n in (foes or ()) if n and str(n).strip()},
                        key=len, reverse=True)
-    if not text or not foe_names:
+    if not text or (not foe_names and not ours_only):
         return None
     titles = {n.split()[0] for n in foe_names if len(n.split()) > 1 and len(n.split()[0]) > 3}
     foe_set = {n.lower() for n in foe_names} | {t.lower() for t in titles}
@@ -1174,8 +1240,10 @@ def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Itera
     if address is not None and address.group(1).lower() not in foe_set:
         start = address.end()
     one = (r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:" + "|".join(re.escape(n) for n in names) + r")\b")
+    # (ours alone: an auxiliary, and never the infinitive of an order - "are to attack")
+    pred = (_REASON_AUX + r"\s+(?!to\b)(?:not\s+|n[o']t\s+)?\w+") if ours_only else _REASON_PRED
     found = re.search(
-        r"(?P<list>" + one + r"(?:" + _COMPOUND_JOIN + one + r")+)\s+(?P<pred>" + _REASON_PRED + r")\b",
+        r"(?P<list>" + one + r"(?:" + _COMPOUND_JOIN + one + r")+)\s+(?P<pred>" + pred + r")\b",
         text[start:], re.IGNORECASE)
     if found is None:
         return None
@@ -1188,8 +1256,10 @@ def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Itera
             continue      # "Mack and Kutuzov, are attacking": the comma's "are" is no name
         if p and p.lower() not in {s.lower() for s in shown}:
             shown.append(" ".join(w[:1].upper() + w[1:] for w in p.split()))
-    if len(shown) < 2 or not any(s.lower() in foe_set for s in shown):
+    if len(shown) < 2:
         return None
+    if ours_only == any(s.lower() in foe_set for s in shown):
+        return None       # a foe in the list is the first reading's; none is the second's
     rest = text[start + found.end():]
     boundary = _COMPOUND_BOUNDARY_RE.search(rest)
     scope = rest[boundary.end():] if boundary else rest
@@ -1203,8 +1273,8 @@ def compound_pronoun_reading(text: str, foes: Iterable[str] = (), friends: Itera
     return shown, pronoun.group(1).lower(), verb.group(0).lower()
 
 
-def strip_reason_clauses(text: str,
-                         foes: Iterable[str] = ()) -> Tuple[str, bool]:
+def strip_reason_clauses(text: str, foes: Iterable[str] = (),
+                         friends: Iterable[str] = ()) -> Tuple[str, bool]:
     """Blank every third-party reason clause, preserving character positions.
 
     Returns ``(effective_text, reason_applied)``.
@@ -1219,7 +1289,7 @@ def strip_reason_clauses(text: str,
     """
     if not text:
         return text, False
-    spans = reason_clause_spans(text, foes)
+    spans = reason_clause_spans(text, foes, friends)
     if not spans:
         return text, False
     chars = list(text)

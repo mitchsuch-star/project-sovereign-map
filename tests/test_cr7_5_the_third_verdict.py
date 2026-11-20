@@ -96,15 +96,29 @@ class TestEightOfEight:
 class TestItFailsClosed:
 
     @pytest.mark.parametrize("text", [
-        "Ney, when Davout arrives, attack",          # PARSE-NEG's own pinned row
         "Ney, attack Mack when Davout arrives",
         "Ney, as soon as Davout arrives, march to Swabia",
-        "Ney, if Davout arrives, fall back to Lorraine",
+        "Ney, once Davout arrives, fall back to Lorraine",
     ])
     def test_only_a_hold_takes_the_hand_off(self, shipped, text):
         got = parse(text)
         assert got.get("success") is False, got
         assert got.get("refusal") == "conditional"
+
+    @pytest.mark.parametrize("text, then", [
+        ("Ney, when Davout arrives, attack", "attack"),          # PARSE-NEG's own pinned row
+        ("Ney, if Davout arrives, fall back to Lorraine", "fall_back"),
+    ])
+    def test_a_friends_arrival_with_an_answer_is_an_exact_order(self, shipped, text, then):
+        """Row IC, Session 2 (IC-9): "a named friend arrives" is one of the
+        eight ifs — the line is a HOLD that answers when he arrives, never the
+        hand-off (which is a hold UNTIL he arrives) and never the answer
+        carried out at once."""
+        got = parse(text)
+        assert got.get("success") and got.get("strategic_type") == "HOLD", got
+        assert not got.get("strategic_condition")
+        assert [(l["if"], l["friend"], l["then"]) for l in got["if_thens"]] == [
+            ("friend_arrives", "Davout", then)]
 
     @pytest.mark.parametrize("text", [
         "Davout, when Godot arrives, hold Lorraine",       # not on the board
@@ -237,7 +251,15 @@ class TestThePinnedRefusalsDoNotFlip:
     `parseneg-*` rows on both worlds: at most 3 may flip by contract;
     ZERO did here. CC-4 / D8 (October 19, 2026) flips ONE by ruling — the
     standing contingency is a held order now (`HELD_BY_D8`); the other six
-    stay refused."""
+    stay refused.
+
+    Row IC, Session 2 (IC-9, November 20, 2026) flips THREE more by the
+    user's ruling ("typing is used for missions and excepts a wide array if
+    things" — the word table, INDEPENDENT_COMMAND_SPEC §8.3): "fortify" is the
+    THEN "dig in", "when" and "should" read as "if", and a friend arriving is
+    one of the eight ifs. Each is a HOLD with an if-then — still never the
+    answer carried out on the turn it is typed, which is what PARSE-NEG
+    refused them for. The other four stay refused."""
 
     HELD_BY_D8 = "Ney, if Mack advances fall back to Lorraine"
 
@@ -245,21 +267,32 @@ class TestThePinnedRefusalsDoNotFlip:
         got = parse(self.HELD_BY_D8)
         assert got.get("success"), got
         assert got.get("strategic_type") == "HOLD", got
-        assert (got.get("contingency") or {}).get("to") == "Lorraine", got
+        assert (got.get("if_thens") or [{}])[0].get("to") == "Lorraine", got
 
-    SEVEN = [
+    HELD_BY_ROW_IC = [
         "Ney, if Mack advances, fortify",
+        "Ney, when Davout arrives, attack",
+        "Ney, should Mack advance, fortify",
+    ]
+    SEVEN = [
         "if Mack advances, Ney should fall back to Lorraine",
         "Ney, attack if Davout supports",
-        "Ney, when Davout arrives, attack",
         "Ney, move to Lorraine after Davout arrives",
         "Ney, attack Mack once Davout arrives",
-        "Ney, should Mack advance, fortify",
     ]
 
     def test_zero_of_seven_flip(self, shipped):
+        """Of PARSE-NEG's seven: three are exact orders now (held, below),
+        and the four left refuse as they always did."""
         flipped = [t for t in self.SEVEN if parse(t).get("success")]
         assert flipped == []
+
+    def test_the_three_row_ic_holds_are_holds_with_an_if_then(self, shipped):
+        for text in self.HELD_BY_ROW_IC:
+            got = parse(text)
+            assert got.get("success") and got.get("strategic_type") == "HOLD", (text, got)
+            assert len(got.get("if_thens") or []) == 1, (text, got)
+            assert got["command"]["action"] == "hold", (text, got)
 
     def test_every_parseneg_corpus_row_is_green_on_both_worlds(self):
         corpus = load_corpus()

@@ -265,7 +265,7 @@ func _render() -> void:
 			var out_orders: Dictionary = _page_orders(f)
 			bb = String(out_orders["bb"])
 			shown = int(out_orders["n"])
-			_footer.text = "Orders are typed in the command window (the key above opens it); the map's clicks give the same orders."
+			_footer.text = "Simple orders are buttons — on a general's card and on the map's cards (right-click a province to see a march's card first). A task — an order with a time limit, a condition or an if-then — is typed in the command window (the key above opens it)."
 		_:
 			var out_keys: Dictionary = _page_keys(f)
 			bb = String(out_keys["bb"])
@@ -330,6 +330,17 @@ func _page_orders(f: String) -> Dictionary:
 	if not rows_orders.is_empty():
 		bb += Utils.bb_section("Orders to a marshal") + Utils.bb_table(["Order", "Say", "What happens"], rows_orders, [], [2, 4, 6], _page_width) + "\n"
 		n += rows_orders.size()
+	# Row IC, Session 2 (IC-8): what you can tell a marshal — a task is typed.
+	var rows_tasks: Array = []
+	for entry in CodexTerms.TASKS:
+		var say: String = str(entry[0])
+		var becomes: String = str(entry[1])
+		if _hit(f, [say, becomes, "task condition if then until"]):
+			rows_tasks.append([_gold("“" + say + "”"), becomes])
+	if not rows_tasks.is_empty():
+		bb += Utils.bb_section("What you can tell a marshal — a task is typed") \
+			+ Utils.bb_table(["Say", "What it becomes"], rows_tasks, [], [5, 5], _page_width) + "\n"
+		n += rows_tasks.size()
 	var rows_bare: Array = []
 	for entry in CodexTerms.BARE:
 		var cmd: String = str(entry[0])

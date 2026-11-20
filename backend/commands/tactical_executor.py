@@ -224,6 +224,106 @@ _STANCE_WORDS = {
 }
 
 
+def stance_refusal(marshal, target_stance) -> tuple:
+    """Row IC, Session 2 (IC-7): why `<marshal>` cannot take the posture
+    `target_stance` — ``(sentence, short, reckless)``: the executor's own
+    sentence, the SHORT plain words a greyed button shows, and whether it is
+    his horsemen's blood (the reply then carries his recklessness). All empty
+    when he can. ONE reader: `_execute_stance_change` refuses with it and the
+    "Posture" buttons read it (`state_probe.button_refusal`), so a button
+    cannot offer what the order refuses. PURE."""
+    current = getattr(marshal, "stance", Stance.NEUTRAL)
+    if current == target_stance:
+        return (f"{marshal.name} is already in {target_stance.value.upper()} stance.",
+                "already in that posture", False)
+    if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+        return (f"{marshal.name} is engaged in drill exercises and cannot change stance.",
+                "drilling — no change of posture", False)
+    if getattr(marshal, "retreating", False) and target_stance == Stance.AGGRESSIVE:
+        return (f"{marshal.name} is recovering from retreat and cannot adopt aggressive stance.",
+                "recovering from a retreat — he cannot take the attacking posture", False)
+    can_use, block_reason = marshal.can_use_stance(target_stance.value)
+    if not can_use:
+        return (str(block_reason), "his horsemen's blood is up — they will not hold back", True)
+    return ("", "", False)
+
+
+RESTRAIN_AT = 3      # the recklessness at which his attack asks "charge or restrain?"
+
+
+def restrain_refusal(world, marshal, target_name: str) -> tuple:
+    """Row IC, Session 2 (IC-7): why an attack HELD BACK from the glorious
+    charge — "<marshal>, attack <enemy>, held back", the restraint the player
+    starts — cannot be held back: ``(sentence, short)``, both empty when it
+    can. It is the answer "restrain" to the question his attack would ask,
+    given beforehand, so it stands only where that question would be asked: a
+    reckless horseman at exactly `RESTRAIN_AT` (below it no charge is in
+    question — the attack goes as an attack; above it nothing holds him),
+    against an enemy at war with us, in our sight and within his reach, in a
+    state that could attack at all. ONE reader: the attack itself
+    (`CombatExecutor._execute_attack`, the `held_back` flag), the read-back
+    and the card's "Attack, held back". PURE."""
+    name = getattr(marshal, "name", "The marshal")
+    if not getattr(marshal, "is_reckless_cavalry", False):
+        return (f"{name} has no cavalry that would charge unasked — there is no charge to "
+                f"hold back. Order the attack.",
+                "no cavalry that would charge unasked — order the attack")
+    blood = int(getattr(marshal, "recklessness", 0) or 0)
+    if blood < RESTRAIN_AT:
+        return (f"{name}'s cavalry is not about to charge unasked — no charge is in question. "
+                f"Order the attack.", "his cavalry is not about to charge — order the attack")
+    if blood > RESTRAIN_AT:
+        return (f"{name}'s cavalry is past holding back — it will charge whatever it is told.",
+                "his cavalry is past holding back — it will charge")
+    foe = world.get_marshal(str(target_name or "")) if world is not None else None
+    seen = set()
+    if foe is not None:
+        try:
+            seen = {e.name for e in world.get_visible_enemies(marshal.nation)}
+        except Exception as exc:
+            report(exc, "tactical_executor.restrain_refusal: world.get_visible_enemies")
+    if (foe is None or foe.name not in seen or int(getattr(foe, "strength", 0) or 0) <= 0
+            or not world.is_at_war(marshal.nation, foe.nation)):
+        return ("Name an enemy in sight for him to attack, held back from the charge.",
+                "name an enemy in sight")
+    gap = world.get_distance(marshal.location, foe.location)
+    if not isinstance(gap, int) or gap > int(getattr(marshal, "movement_range", 1) or 1):
+        return (f"{foe.name} is beyond {name}'s reach.", "beyond his reach")
+    from backend.commands.state_probe import order_state_refusal
+    state = order_state_refusal(world, marshal, "attack")
+    if state:
+        return (f"{name} cannot attack: {state}.", state)
+    return ("", "")
+
+
+def square_refusal(marshal) -> tuple:
+    """Row IC, Session 2 (IC-7): why `<marshal>` cannot form square —
+    ``(sentence, short)``, both empty when he can. ONE reader: the executor's
+    pre-validation, `_execute_form_square` and the read-back refuse with it,
+    and the "Form square" button reads it. PURE."""
+    if getattr(marshal, "square_formation", False):
+        return (f"{marshal.name} is already in square formation.", "already in square")
+    if getattr(marshal, "cavalry", False):
+        return (f"{marshal.name}'s cavalry cannot form an infantry square!",
+                "cavalry cannot form an infantry square")
+    if getattr(marshal, "artillery", False):
+        return (f"{marshal.name}'s artillery cannot form an infantry square!",
+                "artillery cannot form an infantry square")
+    if getattr(marshal, "broken", False):
+        return (f"{marshal.name}'s troops are broken and cannot form square.",
+                "broken — he cannot form square")
+    if getattr(marshal, "retreating", False):
+        return (f"{marshal.name} is retreating and cannot form square.",
+                "retreating — he cannot form square")
+    if int(getattr(marshal, "retreat_recovery", 0) or 0) > 0:
+        return (f"{marshal.name} is recovering from retreat and cannot form square.",
+                "recovering from a retreat — he cannot form square")
+    if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+        return (f"{marshal.name} is drilling and cannot form square.",
+                "drilling — he cannot form square")
+    return ("", "")
+
+
 def stance_change_cost(current_stance, target_stance) -> int:
     """The actions a stance change takes: any → NEUTRAL free, NEUTRAL → either
     stance 1, DEFENSIVE ↔ AGGRESSIVE 2. ONE source — `_get_stance_change_cost`
@@ -977,38 +1077,16 @@ class TacticalExecutor:
 
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
 
-        # Check if already in target stance
-        if current_stance == target_stance:
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already in {target_stance.value.upper()} stance."
-            }
-
-        # Check if drilling (can't change stance while drilling)
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is engaged in drill exercises and cannot change stance."
-            }
-
-        # Check if retreating (can't change to aggressive while recovering)
-        if getattr(marshal, 'retreating', False) and target_stance == Stance.AGGRESSIVE:
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot adopt aggressive stance."
-            }
-
-        # ════════════════════════════════════════════════════════════
-        # CAVALRY RECKLESSNESS CHECK (Phase 3)
-        # High recklessness blocks defensive/neutral stances
-        # ════════════════════════════════════════════════════════════
-        can_use, block_reason = marshal.can_use_stance(target_stance.value)
-        if not can_use:
-            return {
-                "success": False,
-                "message": block_reason,
-                "recklessness": getattr(marshal, 'recklessness', 0)
-            }
+        # Already in it; drilling; recovering (no aggressive stance); and the
+        # CAVALRY RECKLESSNESS CHECK (Phase 3: high recklessness blocks the
+        # defensive and neutral stances) — ONE reader with the "Posture"
+        # buttons (row IC, IC-7: `stance_refusal`).
+        _sentence, _short, _reckless = stance_refusal(marshal, target_stance)
+        if _sentence:
+            _refused = {"success": False, "message": _sentence}
+            if _reckless:
+                _refused["recklessness"] = getattr(marshal, 'recklessness', 0)
+            return _refused
 
         # Calculate action cost
         action_cost = self._get_stance_change_cost(current_stance, target_stance)

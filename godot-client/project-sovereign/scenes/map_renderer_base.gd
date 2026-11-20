@@ -3866,6 +3866,9 @@ func order_arrow_label(info: Dictionary) -> String:
 	# CC-4: what the march does on arrival (D7), what the hold watches for (D8).
 	var then := str(info.get("then", ""))
 	var watch_who := str(info.get("watch_who", ""))
+	# Row IC, Session 2: the first line's own IF, in the backend's words ("if he
+	# is attacked · +1 more") - "if <whom> comes" was true of one IF only
+	var watch_short := str(info.get("watch_short", ""))
 	match str(info.get("kind", "")):
 		"march":
 			return dest + " · " + (clock if on_road else "arriving") + ((" · then " + then) if then != "" else "")
@@ -3876,7 +3879,8 @@ func order_arrow_label(info: Dictionary) -> String:
 				return "to hold " + dest + " · " + clock
 			var more := int(info.get("holds_for", 0))
 			return "holds " + dest + ((" · " + Utils.plural(more, "more turn")) if more > 0 else "") \
-				+ ((" · if " + watch_who + " comes") if watch_who != "" else "")
+				+ ((" · " + watch_short) if watch_short != ""
+					else ((" · if " + watch_who + " comes") if watch_who != "" else ""))
 		"support":
 			return "supports " + who + ((" · " + clock) if on_road else "")
 		"follow":

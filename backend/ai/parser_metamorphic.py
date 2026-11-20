@@ -117,6 +117,8 @@ def is_order_row(row: Dict) -> bool:
         return False
     if exp.get("arrival_verb") or exp.get("contingency"):   # CC-4: compound rows
         return False
+    if exp.get("if_thens") or exp.get("blanked_contains"):   # row IC: exact orders, named clauses
+        return False
     action = exp.get("action")
     if action not in ORDER_ACTIONS:
         return False

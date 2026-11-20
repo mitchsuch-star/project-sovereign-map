@@ -98,6 +98,11 @@ class ParseResult:
     # "clause": "…"}. The parser blanks the span for the strategic layer and
     # applies the condition; nothing here picks an action (GR6, §8 rule 3).
     condition_handoff: Optional[Dict[str, Any]] = None
+    # IC-V1 (row IC, IC-8): the clauses the condition guard blanked without
+    # refusing — ``[{"clause", "marker", "kind"}]`` (`clause_guards.
+    # ConditionGuardVerdict.blanked`). Read by the read-back, which names each
+    # one before the order goes; the order itself is unchanged by them.
+    blanked_clauses: Optional[List[Dict[str, Any]]] = None
 
     # Metadata
     confidence: float = 0.9
@@ -172,6 +177,8 @@ class ParseResult:
         # shape is unchanged for every ordinary parse.
         if self.condition_handoff:
             result["condition_handoff"] = self.condition_handoff
+        if self.blanked_clauses:
+            result["blanked_clauses"] = [dict(b) for b in self.blanked_clauses]
         if self.second_marshals:
             result["second_marshals"] = list(self.second_marshals)
         if self.standing_order:

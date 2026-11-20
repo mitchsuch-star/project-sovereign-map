@@ -2801,20 +2801,22 @@ class TestUI6X72ALoneMarchAsksWhereFree:
         assert "pursue the nearest foe" in _head(_preview(client, snap, "Ney, pursue"))
 
 
-_OPEN_S15 = ("OPEN — owner row IC Session 2, slice IC-8 (moved November 20, 2026 from Session H's head: "
-             "the read-back of typed tasks depends on it) by the sibling sweep's rule; "
-             "closes when this pin passes (strict)")
+# Row IC, Session 2 (IC-8, November 20, 2026): the four rows below were this
+# module's strict-xfail pins (OPEN, heading Session H, then moved to IC-8 — the
+# line for tasks' read-back depends on them). Each is fixed at its cause and
+# its pin promoted to a behaviour test, with the siblings the fix was swept for.
 
 
 class TestUI6X70ACompoundReportSubjectWithAFriendIsAReason:
-    """UI6-X70 OPEN (A19-S5, confirmed by both verifiers): "Ney, Mack and Davout
-    are marching so attack Mack" is refused free for the WRONG reason ("Mack is a
-    commander, not a province") - `clause_guards._reason_pattern` reads a compound
-    report subject of FOES only (UI6-X54), so a friend or a title in it leaves the
-    report on the line as a march. Done when the report clause is read whole (the
-    attack on Mack goes out, as the foe-only compound does) on both roads."""
+    """UI6-X70 (A19-S5, confirmed by both verifiers): "Ney, Mack and Davout are
+    marching so attack Mack" was refused free for the WRONG reason ("Mack is a
+    commander, not a province") - `clause_guards._reason_pattern` read a compound
+    report subject of FOES only (UI6-X54), so a friend or a title in it left the
+    report on the line as a march. FIXED (row IC, IC-8): a compound subject may
+    join one of ours or a bare title to a foe; the report clause is read whole
+    and the attack on Mack goes out, as the foe-only compound does, on both
+    roads."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     @pytest.mark.parametrize("line", ["Ney, Mack and Davout are marching so attack Mack",
                                       "Ney, Mack and the Archduke are marching so attack Mack"])
     def test_the_report_is_a_reason_not_a_march(self, road, line):
@@ -2823,30 +2825,86 @@ class TestUI6X70ACompoundReportSubjectWithAFriendIsAReason:
         assert "is a commander" not in reply["message"], reply["message"]
         assert "is a commander" not in _head(_preview(client, snap, line))
 
+    @pytest.mark.parametrize("line", ["Ney, Mack and Davout are marching so attack Mack",
+                                      "Ney, Mack and the Archduke are marching so attack Mack",
+                                      "Ney, Davout and Soult are marching so attack Mack"])
+    def test_the_attack_on_mack_goes_out_as_the_foe_only_compound_does(self, road, line):
+        client, snap = road
+        reply, moved, spent, _w = _send(client, snap, line)
+        assert reply.get("battle_report") and moved and spent == 1, reply["message"]
+        control, c_moved, c_spent, _w = _send(
+            client, snap, "Ney, Mack and Kutuzov are marching so attack Mack")
+        assert control.get("battle_report") and c_moved and c_spent == 1
+        pv = _preview(client, snap, line)
+        assert pv["kind"] == "order" and pv["action"] == "attack" and "Mack" in _head(pv), pv
+
+    def test_a_list_of_ours_before_a_bare_verb_or_an_infinitive_is_still_an_order(self, road):
+        """The friends-only arm needs an auxiliary: the directive's list and
+        the infinitive of an order are no report."""
+        client, snap = road
+        reply, moved, spent, _w = _send(client, snap, "Ney, Davout and Soult march to Lorraine")
+        assert "corps by corps" in reply["message"] and moved and spent > 0, reply["message"]
+        reply, moved, spent, _w = _send(client, snap, "Ney, Davout and Soult are to march to Lorraine")
+        assert "begins march to Lorraine" in reply["message"] and moved, reply["message"]
+
+    def test_the_pattern_reads_a_friend_and_a_title_beside_a_foe(self):
+        from backend.ai.clause_guards import strip_reason_clauses
+        foes, ours = ["Mack", "Kutuzov", "Archduke John"], ["Ney", "Davout", "Soult"]
+        for line in ("Ney, Mack and Davout are marching so attack Mack",
+                     "Ney, Mack and the Archduke are marching so attack Mack",
+                     "Ney, Davout and Mack are marching so attack Mack"):
+            text, applied = strip_reason_clauses(line, foes, ours)
+            assert applied and "marching" not in text and text.rstrip().endswith("so attack Mack"), text
+        # no friends handed in: the foe-only rule, exactly as before
+        text, applied = strip_reason_clauses("Ney, Mack and Davout are marching so attack Mack", foes)
+        assert not applied and text == "Ney, Mack and Davout are marching so attack Mack"
+        # ours alone need the auxiliary; a bare verb is the men's own order
+        assert strip_reason_clauses("Ney, Davout and Soult march to Lorraine", foes, ours)[1] is False
+        assert strip_reason_clauses("Ney, Davout and Soult are to march to Lorraine", foes, ours)[1] is False
+
 
 class TestUI6X73AThirdClauseIsNeverDroppedInSilence:
-    """UI6-X73 OPEN (A19-S8, pre-existing): "Murat, march to Lorraine then attack
-    Mack and charge Mack" runs the march carrying the attack and drops the third
-    order with no relay note - the and-split judges fusion against the already
-    fused head. Done when the third order is relayed or refused by name."""
+    """UI6-X73 (A19-S8, pre-existing): "Murat, march to Lorraine then attack Mack
+    and charge Mack" ran the march carrying the attack and dropped the third
+    order with no relay note - the and-split judged fusion against the already
+    fused head. FIXED (row IC, IC-8): one arrival a march; what lies behind a
+    fused arrival is a third order, relayed and named."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     @pytest.mark.parametrize("line, third", [
         ("Murat, march to Lorraine then attack Mack and charge Mack", "charge"),
-        ("Ney, march to Lorraine then attack Mack and fortify", "fortify")])
+        ("Ney, march to Lorraine then attack Mack and fortify", "fortify"),
+        ("Ney, march to Lorraine and attack Mack and fortify", "fortify"),
+        ("Murat, march to Lorraine then attack Mack and charge Kutuzov", "charge")])
     def test_the_third_order_is_named(self, road, line, third):
         client, snap = road
-        reply, _moved, _spent, _w = _send(client, snap, line)
+        reply, moved, spent, _w = _send(client, snap, line)
         assert third in reply["message"].lower(), reply["message"]
+        assert "waits behind it" in reply["message"], reply["message"]
+        assert "On arrival he attacks Mack" in reply["message"] and moved and spent == 2
+        pv = _preview(client, snap, line)
+        assert "a second order waits behind it" in _head(pv), pv
+
+    def test_the_arrivals_own_attack_said_twice_is_one_order(self, road):
+        client, snap = road
+        line = "Ney, march to Lorraine then attack Mack and destroy him"
+        reply, _moved, _spent, _w = _send(client, snap, line)
+        assert "waits behind it" not in reply["message"], reply["message"]
+        assert "On arrival he attacks Mack" in reply["message"], reply["message"]
+
+    def test_the_two_clause_idiom_is_whole(self, road):
+        client, snap = road
+        for line in ("Ney, march to Lorraine then attack Mack", "Ney, march to Lorraine and attack Mack",
+                     "Ney, march to Lorraine then fortify"):
+            reply, moved, spent, _w = _send(client, snap, line)
+            assert "waits behind it" not in reply["message"] and moved and spent == 2, reply["message"]
 
 
 class TestUI6X74AFriendOnlyReportSubjectAsksNoMarch:
-    """UI6-X74 OPEN (A19's first verifier, N2): "Ney, Davout and Soult are marching
-    so attack him" reads the report as Ney's march and asks "Where shall Ney
+    """UI6-X74 (A19's first verifier, N2): "Ney, Davout and Soult are marching so
+    attack him" read the report as Ney's march and asked "Where shall Ney
     march?" - free, but a question the line never asked; the pronoun stands for
-    no foe. Done when it is refused free naming what was read."""
+    no foe. FIXED (row IC, IC-8): refused free, naming what was read."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     def test_no_march_is_asked(self, road):
         client, snap = road
         line = "Ney, Davout and Soult are marching so attack him"
@@ -2854,18 +2912,63 @@ class TestUI6X74AFriendOnlyReportSubjectAsksNoMarch:
         assert "Where shall" not in reply["message"] and not moved and spent == 0, reply
         assert "Where to?" not in _head(_preview(client, snap, line))
 
+    def test_it_is_refused_free_naming_what_was_read(self, road):
+        client, snap = road
+        line = "Ney, Davout and Soult are marching so attack him"
+        reply, moved, spent, _w = _send(client, snap, line)
+        assert not reply.get("success") and not moved and spent == 0
+        assert "'him' names no enemy, Sire" in reply["message"], reply["message"]
+        assert "Davout and Soult are our own" in reply["message"]
+        assert "Nothing has been relayed" in reply["message"]
+        pv = _preview(client, snap, line)
+        assert pv["kind"] == "refusal" and "Davout and Soult" in _head(pv), pv
+
+    def test_the_two_readings_never_overlap(self):
+        from backend.ai.clause_guards import compound_pronoun_reading as read
+        foes, ours = ["Mack", "Kutuzov"], ["Ney", "Davout", "Soult"]
+        line = "Ney, Davout and Soult are marching so attack him"
+        assert read(line, foes, ours) is None
+        assert read(line, foes, ours, ours_only=True) == (["Davout", "Soult"], "him", "attack")
+        mixed = "Ney, Mack and Davout are marching so attack him"
+        assert read(mixed, foes, ours) == (["Mack", "Davout"], "him", "attack")
+        assert read(mixed, foes, ours, ours_only=True) is None
+        # the infinitive of an order, and the bare verb, are never this reading
+        assert read("Ney and Davout are to attack him", foes, ours, ours_only=True) is None
+        assert read("Ney, Davout and Soult march on him", foes, ours, ours_only=True) is None
+
 
 class TestUI6X75ATitleFirstListNamesTheTitle:
-    """UI6-X75 OPEN (A19's second verifier): "Ney, attack the Archduke and Mack"
-    with John out of sight attacks Mack and never mentions the Archduke - the list
+    """UI6-X75 (A19's second verifier): "Ney, attack the Archduke and Mack" with
+    John out of sight attacked Mack and never mentioned the Archduke - the list
     reader's first segment is a title no man in sight bears, so the whole list
-    reads as nothing. Done when the Archduke is named (the free ask, or the note
-    that he was not acted on), on both roads, naming no place of his."""
+    read as nothing. FIXED (row IC, IC-8): the Archduke is named in the note
+    that he was not acted on, on both roads, naming no place of his."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     def test_the_title_is_named(self, road):
         client, snap = road
         line = "Ney, attack the Archduke and Mack"
         reply, _moved, _spent, _w = _send(client, snap, line, tweak=_john_out_of_sight)
         assert "Archduke" in reply["message"], reply["message"][-300:]
         assert "Archduke" in _head(_preview(client, snap, line, tweak=_john_out_of_sight))
+
+    @pytest.mark.parametrize("line, where", [("Ney, attack the Archduke and Mack", "before"),
+                                             ("Ney, attack Mack and the Archduke", "after")])
+    def test_the_note_names_the_title_and_no_place_of_his(self, road, line, where):
+        client, snap = road
+        for tweak in (_john_out_of_sight, None):
+            reply, _moved, spent, world = _send(client, snap, line, tweak=tweak)
+            note = f"The Archduke, named {where} Mack, was not acted on"
+            assert note in reply["message"] and spent == 1, reply["message"][-300:]
+            tail = reply["message"][reply["message"].index(note):]
+            for man in ("ArchdukeJohn", "ArchdukeCharles"):
+                assert world.marshals[man].location not in tail, tail
+            assert note in _head(_preview(client, snap, line, tweak=tweak))
+
+    def test_a_title_nobody_bears_and_a_full_name_are_not_this_note(self, road):
+        from backend.commands.proper_name import bare_title_in_list
+        world = _board(road[1])
+        assert bare_title_in_list("Ney, attack the Admiral and Mack", world, "Ney") is None
+        assert bare_title_in_list("Ney, attack Archduke John and Mack", world, "Ney") is None
+        assert bare_title_in_list("Ney, attack the Archduke", world, "Ney") is None
+        title, man, before = bare_title_in_list("Ney, attack the Archduke and Mack", world, "Ney")
+        assert (title, man.name, before) == ("Archduke", "Mack", True)

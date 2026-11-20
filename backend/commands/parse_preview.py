@@ -118,6 +118,9 @@ def _base(line: str, epoch: int) -> Dict[str, Any]:
         "unknown": "", "candidates": [], "command": "",
         # Row IC: the line is an order to several corps — Enter opens its list.
         "directive": False,
+        # Row IC, Session 2 (IC-8): the line restated WITHOUT the parts that
+        # were not taken — what Enter sends while a "Not taken" row blocks.
+        "understood": "",
     }
 
 
@@ -363,25 +366,52 @@ def _simple(out: Dict[str, Any], kind: str, *parts) -> Dict[str, Any]:
     return out
 
 
-def _pending_question(world, text: str) -> Optional[str]:
+def _pending_question(world, text: str, interrupt_reader=None) -> Optional[str]:
     """The standing question a typed line would be taken by (`/command`'s
-    stages 2-4 and 9, DETECTED, never answered), or None."""
-    from backend.commands.clarification import CLARIFICATION_DIALOGUE_TYPE
+    stages 2-4 and 9, DETECTED, never answered), or None.
+
+    WS-14 (row IC, IC-8): it asks `/command`'s own readers. Berthier's
+    clarification "stands" only for a line that ANSWERS it or withdraws it
+    (`interpret_clarification_answer` — any other line lets the question go
+    and is read as the order it is, exactly as stage 2 does); a marshal's
+    interrupt stands only for a line stage 3 would take as its answer
+    (`interrupt_reader`, the route's `main._interrupt_reading`). Before, the
+    row called every line "this line answers it" / "answer it first" while
+    Enter carried a fresh order out. With no `interrupt_reader` handed in (a
+    caller outside the route) an interrupt that offers answers still claims
+    every line — the cautious reading."""
+    from backend.commands.clarification import (CLARIFICATION_DIALOGUE_TYPE,
+                                                interpret_clarification_answer)
     low = text.strip().lower()
     dm = getattr(world, "dialogue_manager", None)
     top = dm.peek() if dm is not None else None
     if (isinstance(top, dict) and top.get("type") == CLARIFICATION_DIALOGUE_TYPE
             and not low.startswith("cheat ")):
-        return "Berthier’s question stands — this line answers it"
+        answer = str(interpret_clarification_answer(top, text).get("kind") or "pass")
+        if answer == "cancel":
+            return "Berthier’s question stands — this line withdraws the order"
+        if answer == "command":
+            return "Berthier’s question stands — this line answers it"
+        # "pass": no answer — the question is let go and the line is read as
+        # the order it is (a clarification never blocks).
     if (getattr(world, "pending_objection", None) is not None
             or getattr(world, "pending_strategic_objection", None) is not None):
         return "A question stands — answer it first"
     if dm is not None and dm.is_hard_stop():
         return "A question stands — answer it first"
-    for m in world.get_player_marshals():
-        pending = getattr(m, "pending_interrupt", None)
-        if pending and pending.get("options"):
-            return "A question stands — answer it first"
+    if interrupt_reader is not None:
+        try:
+            taken = interrupt_reader(world, text)
+        except Exception as exc:
+            report(exc, "parse_preview._pending_question: the interrupt's reader")
+            taken = "A question stands — answer it first"
+        if taken:
+            return str(taken)
+    else:
+        for m in world.get_player_marshals():
+            pending = getattr(m, "pending_interrupt", None)
+            if pending and pending.get("options"):
+                return "A question stands — answer it first"
     if getattr(world, "pending_capture_choice", None) and low.split()[:1] and \
             low.split()[0] in ("plunder", "secure", "confiscate", "respect"):
         return "A question stands — answer it first"
@@ -679,12 +709,11 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
     # own pre-validation (`executor.py` FORM_SQUARE PRE-VALIDATION /
     # `_execute_form_square`) — it read as a priced order for a cavalryman.
     if action == "form_square":
-        if getattr(marshal, "square_formation", False):
-            return _refusal_reading(out, f"{shown} — already in square formation")
-        if getattr(marshal, "cavalry", False):
-            return _refusal_reading(out, f"{shown} — cavalry cannot form an infantry square")
-        if getattr(marshal, "artillery", False):
-            return _refusal_reading(out, f"{shown} — artillery cannot form an infantry square")
+        # (ONE reader with the executor and the button — row IC, IC-7)
+        from backend.commands.tactical_executor import square_refusal
+        _no_square = square_refusal(marshal)[1]
+        if _no_square:
+            return _refusal_reading(out, f"{shown} — {_no_square}")
     # UI6-X29: the guns' verb read as `/command` reads it — a marshal with no
     # guns cannot bombard (the executor's free refusal), whatever he is aimed at.
     if action == "attack" and not getattr(marshal, "artillery", False):
@@ -970,6 +999,471 @@ def _refusal_reading(out: Dict[str, Any], text: str) -> Dict[str, Any]:
     return out
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Row IC, Session 2 (IC-8; INDEPENDENT_COMMAND_SPEC §8.4) — TAKEN, NOT TAKEN.
+#
+# "Nothing typed is dropped in silence." The reading says, before anything is
+# spent, what the order TOOK beyond who-does-what (each condition, each
+# if-then, what a march does on arrival — IC-V2) and what it did NOT take
+# (a one-word condition under the clause guard's floor, a time limit on an
+# order that has none, a how-bold word — IC-V1), each quoted with the plain
+# reason. A part that would change what he does BLOCKS: the reading carries
+# the line restated without it (`understood`), Enter sends that line, and a
+# line typed past the reading is refused free by `/command` with the same
+# words (`typed_gate` — ONE reader for both roads). Filler blocks nothing.
+#
+# The order itself is untouched: every line here parses exactly as it did
+# (the guard's floor, the corpus pin `cr2-when-ready-then-retreat-not-split`).
+# ═══════════════════════════════════════════════════════════════════════════
+
+WHY_NO_CONDITION = "this order takes no condition; it would go out now"
+WHY_NO_CLOCK = "this order has no time limit; it is carried out once, now"
+WHY_NOT_HELD = "not an end this order can keep; it would go on until you change it"
+WHY_AS_WRITTEN = "an order is carried out as written, no more boldly and no more carefully"
+WHY_FILLER = "changes nothing; the order goes as written"
+WHY_OPEN_ENDED = "asks for no limit; the order stands until you change it"
+WHY_REASON = "taken as your reason, not as a condition; he acts now"
+# (the review, L3) a part that blocks, where no clean line could be restated
+WHY_TYPE_AGAIN = "this line is not sent as it stands — type the order again without that part"
+# what a march does on arrival, in the words its chips use (the review, W1)
+_ARRIVAL_WORDS = {"fortify": "dig in", "defend": "stand on the defensive"}
+_UNREAD_NOTE_RE = re.compile(r"^'(?P<clause>.+)' is not a clause I can hold\b")
+_OFFER_MARKERS = frozenset({"if", "unless", "when", "in case", "once", "as soon as"})
+
+
+def taken_rows(parsed: Dict) -> List[str]:
+    """IC-V2: what the parse TOOK beyond who-does-what — the condition, what a
+    march does on arrival, each if-then — in the words the order's own echo
+    and the Ledger say them (`condition_grammar.describe_condition`,
+    `if_thens.describe`). PURE."""
+    from backend.ai.condition_grammar import describe_condition
+    from backend.commands import if_thens as IT
+    rows: List[str] = []
+    if parsed.get("is_strategic"):
+        cond = parsed.get("strategic_condition")
+        if isinstance(cond, dict) and cond:
+            shown = dict(cond)
+            for key in ("until_marshal_arrives", "until_marshal_destroyed"):
+                if shown.get(key):
+                    shown[key] = humanize_entity_name(str(shown[key]))
+            said = describe_condition(shown)
+            if said:
+                rows.append(said)
+        verb = str(parsed.get("arrival_verb") or "")
+        if verb:
+            rows.append(f"then {_ARRIVAL_WORDS.get(verb, verb)} on arrival")
+    for line in parsed.get("if_thens") or []:
+        rows.append(IT.describe(line, humanize_entity_name))
+    return rows
+
+
+def not_taken_rows(world, parsed: Dict, text: str) -> List[Dict[str, Any]]:
+    """IC-V1: every part of the typed line this order did NOT take —
+    ``{"clause", "why", "blocks", "offer"}``: the words as typed, the plain
+    reason, whether it would change what he does (so the line is sent
+    restated without it), and — for a condition the word table knows — the
+    exact order it means (`if_thens.offer`), as a sentence to fill the line
+    with. PURE."""
+    from backend.ai import task_words as TW
+    from backend.ai.condition_grammar import TURNS_RE
+    from backend.commands import if_thens as IT
+    command = parsed.get("command") if isinstance(parsed.get("command"), dict) else {}
+    action = str(command.get("action") or "")
+    strategic = bool(parsed.get("is_strategic"))
+    held = bool(strategic and parsed.get("strategic_condition"))
+    marshal = world.get_marshal(str(command.get("marshal") or "")) if world is not None else None
+    rows: List[Dict[str, Any]] = []
+    seen: set = set()
+
+    def add(clause: str, why: str, blocks: bool, offer: str = "") -> None:
+        key = " ".join(str(clause or "").lower().split())
+        if not key or key in seen:
+            return
+        seen.add(key)
+        rows.append({"clause": " ".join(str(clause).split()), "why": why,
+                     "blocks": bool(blocks), "offer": offer})
+
+    order_words = "hold"
+    if strategic and parsed.get("strategic_type") == "HOLD" and command.get("target") \
+            and not parsed.get("target_placed_by_the_game"):
+        order_words = f"hold {humanize_entity_name(str(command.get('target')))}"
+    for blanked in parsed.get("blanked_clauses") or []:
+        clause = str((blanked or {}).get("clause") or "")
+        marker = str((blanked or {}).get("marker") or "")
+        low = " ".join(clause.lower().split())
+        if marker == "until":
+            if held:
+                continue                    # the grammar read it: it is TAKEN
+            if low.rstrip(".!") in TW.OPEN_ENDED:
+                add(clause, WHY_OPEN_ENDED, False)      # "until further orders"
+                continue
+            add(clause, WHY_NOT_HELD if strategic else WHY_NO_CLOCK, True)
+        elif low in TW.FILLER:
+            add(clause, WHY_FILLER, False)
+        elif marker in ("while", "before"):
+            add(clause, WHY_REASON, False)
+        else:
+            offer = ""
+            if marker in _OFFER_MARKERS and marshal is not None:
+                try:
+                    offer = IT.offer(world, marshal, clause,
+                                     "hold" if strategic and parsed.get("strategic_type") == "HOLD"
+                                     else action, order_words)
+                except Exception as exc:
+                    report(exc, "parse_preview.not_taken_rows: the offer")
+            add(clause, WHY_NO_CONDITION, True, offer)
+    # the strategic road's own unread clauses (CR-7-4's echo), said before the send
+    for note in parsed.get("condition_notes") or []:
+        unread = _UNREAD_NOTE_RE.match(str(note or ""))
+        if unread:
+            said = " ".join(unread.group("clause").lower().split()).rstrip(".!")
+            add(unread.group("clause"), WHY_OPEN_ENDED if said in TW.OPEN_ENDED else WHY_NOT_HELD,
+                said not in TW.OPEN_ENDED)
+    # a time limit on an order that has none ("Ney, fortify for 3 turns") —
+    # never one that belongs to a second order the relay holds (the review, L4)
+    if not strategic and marshal is not None and not parsed.get("dropped_sequel"):
+        for found in TURNS_RE.finditer(str(text or "").lower()):
+            add(str(text)[found.start():found.end()], WHY_NO_CLOCK, True)
+    for word in parsed.get("risk_words") or []:
+        add(str(word), WHY_AS_WRITTEN, True)
+    # a loose time ("through the winter", "for two weeks"): offered in turns
+    from backend.commands import task_line as TL
+    for phrase in parsed.get("loose_time") or []:
+        offer = ""
+        if strategic:
+            swapped = re.sub(r"\s+".join(re.escape(w) for w in str(phrase).split()),
+                             "for 3 turns", str(text or ""), count=1, flags=re.IGNORECASE)
+            offer = swapped if swapped != str(text or "") else ""
+        add(str(phrase), TL.WHY_LOOSE_TIME, True, offer)
+    # a tail no marshal's order carries ("… and build a fort")
+    if marshal is not None and not parsed.get("dropped_sequel") \
+            and action not in TL.FORBIDDEN_ACTIONS:
+        tail = TL.forbidden_tail(text)
+        if tail:
+            add(tail, TL.WHY_NOT_A_MARSHALS, True)
+    return rows
+
+
+def restate_without(text: str, clauses: List[str]) -> str:
+    """The typed line with `clauses` taken out, put right (`if_thens.tidy`) —
+    "" when a clause is not in the line as typed (nothing can be restated)."""
+    from backend.commands import if_thens as IT
+    out = str(text or "")
+    for clause in clauses:
+        words = [re.escape(w) for w in str(clause or "").split()]
+        if not words:
+            return ""
+        found = re.search(r"\s+".join(words), out, re.IGNORECASE)
+        if found is None:
+            return ""
+        out = out[:found.start()] + " " + out[found.end():]
+    return IT.tidy(out)
+
+
+def _parse_key(parsed: Dict) -> tuple:
+    """What a parse WILL DO, for comparing a line with its restated self."""
+    command = parsed.get("command") if isinstance(parsed.get("command"), dict) else {}
+    cond = parsed.get("strategic_condition") if parsed.get("is_strategic") else None
+    return (
+        bool(parsed.get("success")), str(command.get("marshal") or ""),
+        str(command.get("action") or ""), str(command.get("target") or ""),
+        str(parsed.get("strategic_type") or "") if parsed.get("is_strategic") else "",
+        tuple(sorted((str(k), str(v)) for k, v in (cond or {}).items())),
+        str(parsed.get("arrival_verb") or ""),
+        tuple((line.get("if"), line.get("who"), line.get("friend"), line.get("place"),
+               line.get("then"), line.get("to"), bool(line.get("any_odds")))
+              for line in parsed.get("if_thens") or []),
+    )
+
+
+def understood_line(world, parsed: Dict, text: str,
+                    parse_again: Optional[Callable[[str], Dict]]) -> tuple:
+    """``(the line as understood, the not-taken rows)``. The line is the typed
+    one restated without every BLOCKING part — and only when that line, read
+    again, is the same order with nothing left to block (`parse_again`);
+    otherwise it is "" and no row blocks (the order goes as it always did, and
+    the rows still say what was not taken)."""
+    rows = not_taken_rows(world, parsed, text)
+    blocking = [row for row in rows if row["blocks"]]
+    line = ""
+    if blocking and parse_again is not None:
+        line = restate_without(text, [row["clause"] for row in blocking])
+        if line:
+            try:
+                again = parse_again(line)
+            except Exception as exc:
+                report(exc, "parse_preview.understood_line: the second read")
+                again = {}
+            same = (isinstance(again, dict) and _parse_key(again) == _parse_key(parsed)
+                    and not any(row["blocks"] for row in not_taken_rows(world, again, line)))
+            if not same:
+                line = ""
+    # (the review, L3) No clean line to offer: the part STILL blocks — a typed
+    # line is held with "type the order again without that part" (it used to
+    # go out with the part dropped, which is what the rows exist to prevent).
+    # Only a reader with no second read at all (a nested reading) blocks nothing.
+    if not line and parse_again is None:
+        for row in rows:
+            row["blocks"] = False
+    return line, rows
+
+
+def conditional_offer(world, parsed: Dict, text: str,
+                      parse_again: Callable[[str], Dict]) -> str:
+    """§8.3 ("unless …" — offered back as the if-then it means): for a line
+    REFUSED as a contingency ("Ney, hold Rhineland unless Mack advances"),
+    the exact order that says it — "Ney, hold Rhineland. If Mack comes within
+    reach, fall back to Lorraine." — when the word table reads the condition,
+    his order can carry the line, and the sentence reads back as that order.
+    "" otherwise. PURE."""
+    from backend.commands import if_thens as IT
+    clause = str((parsed.get("refusal_detail") or {}).get("clause") or "").strip()
+    if not clause or world is None:
+        return ""
+    rest = restate_without(text, [clause])
+    if not rest:
+        return ""
+    try:
+        order = parse_again(rest)
+        command = order.get("command") if isinstance(order, dict) else None
+        if not isinstance(command, dict) or not order.get("success"):
+            return ""
+        marshal = world.get_marshal(str(command.get("marshal") or ""))
+        if marshal is None or getattr(marshal, "nation", None) != world.player_nation:
+            return ""
+        holds = bool(order.get("is_strategic")) and order.get("strategic_type") == "HOLD"
+        words = "hold"
+        if holds and command.get("target") and not order.get("target_placed_by_the_game"):
+            words = f"hold {humanize_entity_name(str(command.get('target')))}"
+        offer = IT.offer(world, marshal, clause,
+                         "hold" if holds else str(command.get("action") or ""), words)
+        if not offer:
+            return ""
+        again = parse_again(offer)
+        return offer if (isinstance(again, dict) and again.get("success")
+                         and again.get("if_thens")) else ""
+    except Exception as exc:
+        report(exc, "parse_preview.conditional_offer")
+        return ""
+
+
+def not_taken_text(row: Dict[str, Any]) -> str:
+    return f"‘{row.get('clause')}’ — {row.get('why')}"
+
+
+def typed_gate(world, parsed: Dict, text: str,
+               parse_again: Callable[[str], Dict]) -> Optional[Dict[str, Any]]:
+    """`/command`'s side of "Send what I understood": a line TYPED in the
+    command window whose order would go out without a part that changes what
+    he does is refused free, with the line as understood — ``{"message",
+    "understood", "not_taken"}`` — or None when nothing blocks. The same
+    reader as the reading's rows (`understood_line`). PURE."""
+    command = parsed.get("command") if isinstance(parsed, dict) else None
+    if not isinstance(command, dict) or not parsed.get("success") or not _an_order(command):
+        return None
+    line, rows = understood_line(world, parsed, text, parse_again)
+    blocking = [row for row in rows if row["blocks"]]
+    if not blocking:
+        return None
+    named = "; ".join(f"'{row['clause']}' — {row['why']}" for row in blocking)
+    one = len(blocking) == 1
+    offered = (f"What I understood is: '{line}' — send that, or change the line."
+               if line else "Type the order again without it.")
+    return {
+        "message": (f"Not sent, Sire — {'one part' if one else f'{len(blocking)} parts'} of that "
+                    f"order {'was' if one else 'were'} not taken: {named}. {offered} "
+                    f"Nothing was spent."),
+        "understood": line,
+        "not_taken": [{"clause": row["clause"], "why": row["why"]} for row in blocking],
+    }
+
+
+def _an_order(command) -> bool:
+    """The parse is an order to a marshal — or the one order that goes out
+    to them ALL at once with no list first, the general retreat ("everyone
+    retreat if outnumbered": IC-V1's sibling, found by the review's sweep —
+    the whole army fell back with the condition dropped unsaid)."""
+    return isinstance(command, dict) and bool(
+        command.get("marshal") or command.get("type") == "general_retreat")
+
+
+def _his_answer(world, parsed: Dict) -> str:
+    """The reading's "He says": a marshal who follows orders to the letter,
+    given if-thens, answers in his own voice (one picked line, no die)."""
+    command = parsed.get("command") if isinstance(parsed.get("command"), dict) else {}
+    marshal = world.get_marshal(str(command.get("marshal") or "")) if world is not None else None
+    if marshal is None or getattr(marshal, "personality", "") != "literal" \
+            or not parsed.get("if_thens"):
+        return ""
+    from backend.game_logic.marshal_voice import literal_exact_ack
+    return "“" + literal_exact_ack(marshal.name, int(getattr(world, "current_turn", 0) or 0)) + "”"
+
+
+def _with_task_rows(world, out: Dict[str, Any], parsed: Dict, text: str,
+                    parse_again: Optional[Callable[[str], Dict]]) -> Dict[str, Any]:
+    """An ORDER's reading with its TAKEN / NOT TAKEN / HE SAYS parts, the line
+    as understood, and the offers. Any other reading passes through."""
+    if (not isinstance(out, dict) or out.get("kind") != "order"
+            or not isinstance(parsed, dict) or not parsed.get("success")):
+        return out
+    # one man's order, read whole — or the general retreat, which goes out to
+    # every corps at once with no list first (`_an_order`)
+    to_all = not (parsed.get("command") or {}).get("marshal") and _an_order(parsed.get("command"))
+    if not ((out.get("ok") and out.get("marshal")) or to_all):
+        return out
+    try:
+        taken = taken_rows(parsed)
+        understood, missed = understood_line(world, parsed, text, parse_again)
+        answer = _his_answer(world, parsed)
+        # Row IC, Session 2 (IC-7): "attack <him>, held back" — the restraint
+        # the player starts. Taken where his attack would ask "charge or
+        # restrain?"; anywhere else the words change nothing, and say so.
+        command = parsed.get("command") if isinstance(parsed.get("command"), dict) else {}
+        if command.get("held_back"):
+            from backend.commands.tactical_executor import restrain_refusal
+            man = world.get_marshal(str(command.get("marshal") or ""))
+            short = restrain_refusal(world, man, str(command.get("target") or ""))[1] if man else ""
+            if short:
+                missed = list(missed) + [{"clause": "held back", "why": short, "blocks": False,
+                                          "offer": ""}]
+            else:
+                taken = list(taken) + ["held back from the charge"]
+    except Exception as exc:
+        report(exc, "parse_preview._with_task_rows")
+        return out
+    parts = list(out.get("parts") or [])
+    parts += [_part("taken", said) for said in taken]
+    # what the order's own echo would warn of AFTER the send ("Ney is already
+    # at Rhineland with him — that arm is met at the turn's end"), said before
+    for note in parsed.get("condition_notes") or []:
+        said = str(note or "").strip()
+        if said and " read as " not in said and not _UNREAD_NOTE_RE.match(said):
+            parts.append(_part("warn", said))
+    parts += [{"role": "nottaken", "text": not_taken_text(row), "blocks": bool(row["blocks"])}
+              for row in missed]
+    if not understood and any(row["blocks"] for row in missed):
+        parts.append({"role": "nottaken", "text": WHY_TYPE_AGAIN, "blocks": True})
+    if answer:
+        parts.append(_part("answer", answer))
+    out["parts"] = parts
+    if understood:
+        out["understood"] = understood
+    offers = []
+    for row in missed:
+        offer = str(row.get("offer") or "")
+        if not offer or offer in offers or parse_again is None:
+            continue
+        try:
+            again = parse_again(offer)
+        except Exception as exc:
+            report(exc, "parse_preview._with_task_rows: the offer's read")
+            continue
+        if (isinstance(again, dict) and again.get("success")
+                and (again.get("if_thens") or again.get("strategic_condition"))):
+            offers.append(offer)
+    if offers:
+        out["candidates"] = list(out.get("candidates") or []) + [
+            {"label": offer, "line": offer} for offer in offers]
+    # §8.2's word-chips: what the sentence could carry NEXT — only where
+    # nothing else is offered and nothing blocks (the line is settled).
+    if not understood and not out.get("candidates") and parse_again is not None:
+        try:
+            more = continuations(world, parsed, text, parse_again)
+        except Exception as exc:
+            report(exc, "parse_preview._with_task_rows: the word-chips")
+            more = []
+        if more:
+            out["candidates"] = more
+    return out
+
+
+CONTINUATIONS_MAX = 3
+
+
+def continuations(world, parsed: Dict, text: str,
+                  parse_again: Callable[[str], Dict]) -> List[Dict[str, str]]:
+    """Row IC, Session 2 (IC-8; §8.2 "Word-chips under the line write into the
+    sentence: until… · for N turns · if…"): for a STANDING order to one of
+    our marshals, the parts it could still carry, each a chip that writes its
+    words in place — ``[{"label": "+ for 3 turns", "line": "<the line> for 3
+    turns"}, …]``: a time limit and an "until" where the order has no
+    condition yet, and the NEXT if-then while his order may carry another
+    (three for a marshal who follows orders to the letter, one on a hold for
+    anyone else). Every line offered is read again and offered only when it
+    is taken with that part. PURE; nothing is sent by a chip."""
+    from backend.commands import if_thens as IT
+    from backend.commands import task_presets as TP
+    command = parsed.get("command") if isinstance(parsed.get("command"), dict) else {}
+    if not parsed.get("success") or not parsed.get("is_strategic") or world is None:
+        return []
+    marshal = world.get_marshal(str(command.get("marshal") or ""))
+    if marshal is None or getattr(marshal, "nation", None) != world.player_nation:
+        return []
+    kind = str(parsed.get("strategic_type") or "")
+    base = str(text or "").strip().rstrip(".!").strip()
+    if not base:
+        return []
+    out: List[Dict[str, str]] = []
+
+    def offer(label: str, line: str, taken) -> None:
+        if len(out) >= CONTINUATIONS_MAX:
+            return
+        again = parse_again(line)
+        if isinstance(again, dict) and again.get("success") and taken(again):
+            out.append({"label": label, "line": line})
+
+    def cond(p: Dict) -> Dict:
+        return p.get("strategic_condition") or {}
+
+    lines = list(parsed.get("if_thens") or [])
+    if not cond(parsed) and not lines and kind in ("HOLD", "PURSUE", "SUPPORT"):
+        offer("+ for 3 turns", base + " for 3 turns", lambda p: cond(p).get("max_turns") == 3)
+        friend = humanize_entity_name(TP._friend_beside(world, marshal)) if kind == "HOLD" else ""
+        if friend:
+            offer(f"+ until {friend} arrives", f"{base} until {friend} arrives",
+                  lambda p: bool(cond(p).get("until_marshal_arrives")))
+        if kind == "PURSUE":
+            offer("+ until he is destroyed", base + " until he is destroyed",
+                  lambda p: bool(cond(p).get("until_marshal_destroyed")))
+    if IT.carries(marshal, kind) and len(lines) < IT.capacity(marshal):
+        have = {str(line.get("if") or "") for line in lines}
+        safe = humanize_entity_name(TP._safe_ground(world, marshal))
+        for name, sentence in (("attacked", "If attacked, dig in."),
+                               ("outnumbered", f"If outnumbered, fall back to {safe}." if safe else "")):
+            if name in have or not sentence:
+                continue
+            offer("+ " + sentence.rstrip("."), f"{base}. {sentence}",
+                  lambda p, n=len(lines): len(p.get("if_thens") or []) == n + 1)
+            break       # one if-chip at a time: the next shows when this is taken
+    return out
+
+
+def _if_then_refused(out: Dict[str, Any], parsed: Dict, text: str,
+                     read_again: Callable[[str], Dict[str, Any]]) -> Dict[str, Any]:
+    """An exact order with a line that cannot be taken (the parser's free
+    refusal, kind `if_then`): the reading of the line AS UNDERSTOOD — its
+    head, its price, what it took — with each line that was not taken named
+    as a blocking row; Enter sends the understood line."""
+    understood = str(parsed.get("understood") or "")
+    rows = [r for r in (parsed.get("not_taken") or []) if isinstance(r, dict)]
+    named = "; ".join(not_taken_text(r) for r in rows) or "one part of that order was not taken"
+    base = None
+    try:
+        base = read_again(understood)
+    except Exception as exc:
+        report(exc, "parse_preview._if_then_refused: the understood line")
+    if not isinstance(base, dict) or base.get("kind") != "order" or not base.get("ok"):
+        return _refusal_reading(out, named)
+    base["line"] = text
+    parts = [p for p in (base.get("parts") or []) if isinstance(p, dict)]
+    answer = [p for p in parts if p.get("role") == "answer"]
+    parts = [p for p in parts if p.get("role") != "answer"]
+    parts += [{"role": "nottaken", "text": not_taken_text(r), "blocks": True} for r in rows]
+    base["parts"] = parts + answer
+    base["understood"] = understood
+    return base
+
+
 def _delegation_reading(out: Dict[str, Any], world, view: _View, parsed: Dict, deleg) -> Dict[str, Any]:
     from backend.commands import state_probe as sp
     from backend.commands.delegation import (delegation_is_unplaced,
@@ -1083,12 +1577,13 @@ def _collective_reading(out: Dict[str, Any], world, view: _View, head: Dict, par
 # ── the pipeline ─────────────────────────────────────────────────────────────
 
 def _read_line(world, text: str, out: Dict[str, Any], *, llm_state, epoch, lost_marshal_refusal,
-               why_rx, live_llm, unbound_addressee, premise_reader) -> Dict[str, Any]:
+               why_rx, live_llm, unbound_addressee, premise_reader,
+               interrupt_reader=None, _nested: bool = False) -> Dict[str, Any]:
     if getattr(world, "game_over", False) or not text.strip():
         return out
     if why_rx is not None and why_rx.match(text):
         return _simple(out, "meta", ("head", "‘why’ prints the last reading"), ("cost", "free"))
-    question = _pending_question(world, text)
+    question = _pending_question(world, text, interrupt_reader)
     if question:
         return _simple(out, "pending", ("head", question))
     # Stage 5: the carryover (pure) and the lost-marshal guard.
@@ -1121,8 +1616,36 @@ def _read_line(world, text: str, out: Dict[str, Any], *, llm_state, epoch, lost_
         out["would_consult_llm"] = True
         return _simple(out, "secretary",
                        ("head", "Berthier’s secretary reads this one — the price shows after you send"))
-    return _reading_of(out, world, parsed, text, reading, unbound_addressee,
-                       parser=parser, state=state)
+
+    def _parse_again(line: str) -> Dict:
+        with contextlib.redirect_stdout(io.StringIO()):
+            return parser.parse(line, state, world=world)
+
+    def _read_again(line: str) -> Dict[str, Any]:
+        return _read_line(world, line, _base(line, epoch), llm_state=llm_state, epoch=epoch,
+                          lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
+                          live_llm=live_llm, unbound_addressee=unbound_addressee,
+                          premise_reader=premise_reader, interrupt_reader=interrupt_reader,
+                          _nested=True)
+
+    # Row IC, Session 2 (IC-9): an exact order with a line that cannot be
+    # taken — the reading is of the line AS UNDERSTOOD, with what was not taken
+    # named, and Enter sends the understood line.
+    if (not _nested and not parsed.get("success") and parsed.get("kind") == "if_then"
+            and parsed.get("understood")):
+        return _if_then_refused(out, parsed, text, _read_again)
+    got = _reading_of(out, world, parsed, text, reading, unbound_addressee,
+                      parser=parser, state=state)
+    if (not _nested and isinstance(got, dict) and got.get("kind") == "refusal"
+            and parsed.get("refusal") == "conditional"):
+        # §8.3: a condition the line cannot hold is offered back as the
+        # exact order it means — a fill-chip, never sent.
+        offer = conditional_offer(world, parsed, text, _parse_again)
+        if offer:
+            got["candidates"] = list(got.get("candidates") or []) + [
+                {"label": offer, "line": offer}]
+        return got
+    return _with_task_rows(world, got, parsed, text, None if _nested else _parse_again)
 
 
 def _reading_of(out, world, parsed: Dict, text: str, reading: str, unbound_addressee,
@@ -1363,6 +1886,13 @@ def _failure_reading(out, world, view: _View, parsed: Dict, text: str) -> Dict[s
         return _unknown_reading(out, _typed_span(text, name), text, view)
     if parsed.get("kind") == "fallen_recipient":
         return _refusal_reading(out, "That reward goes to a man we have lost")
+    if parsed.get("kind") == "task_line":
+        # Row IC, Session 2 (IC-8, §8.3): a stretch of country, "their main
+        # army" — refused free, the nearest real sentences as fill-chips.
+        _refusal_reading(out, str(parsed.get("short") or "That is no order a marshal can carry"))
+        out["candidates"] = [{"label": str(line), "line": str(line)}
+                             for line in (parsed.get("offers") or []) if line]
+        return out
     if parsed.get("kind") in ("compound_pronoun", "arrival_charge", "two_orders"):
         # UI6-X43: `/command`'s free refusal, said the same way (names only).
         return _refusal_reading(out, error.replace(" Nothing has been relayed.", "")
@@ -1382,8 +1912,7 @@ def _second_names(world, text: str, out: Dict[str, Any]) -> Dict[str, Any]:
         return out
     from backend.commands import proper_name as pn
     man = world.get_marshal(str(out.get("marshal") or "")) if out.get("marshal") else None
-    note = pn.second_name_note(text, world, getattr(man, "name", None))
-    if note:
+    for note in pn.second_name_notes(text, world, getattr(man, "name", None)):
         out["parts"] = list(out.get("parts") or []) + [_part("warn", note.split(" — ")[0])]
     return out
 
@@ -1392,7 +1921,8 @@ def preview(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
             lost_marshal_refusal: Optional[Callable] = None, why_rx=None,
             live_llm=None, posts_in_flight: Optional[Callable[[], bool]] = None,
             unbound_addressee: Optional[Callable] = None,
-            premise_reader: Optional[Callable] = None) -> Dict[str, Any]:
+            premise_reader: Optional[Callable] = None,
+            interrupt_reader: Optional[Callable] = None) -> Dict[str, Any]:
     """The reading of `line` on `world` — see the module docstring. Never
     raises: a failure (a board changing under a stray read) is kind "none".
 
@@ -1418,7 +1948,7 @@ def preview(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
         readers = dict(llm_state=llm_state, epoch=epoch,
                        lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
                        live_llm=live_llm, unbound_addressee=unbound_addressee,
-                       premise_reader=premise_reader)
+                       premise_reader=premise_reader, interrupt_reader=interrupt_reader)
         # Row IC (the directive): a line addressed to several corps reads as
         # the list it will open — who, how many can go, what it costs — from
         # the list's own builder (ONE reader; `directive.readback`).
@@ -1441,7 +1971,8 @@ def preview(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
 def read_one(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
              lost_marshal_refusal: Optional[Callable] = None, why_rx=None,
              live_llm=None, unbound_addressee: Optional[Callable] = None,
-             premise_reader: Optional[Callable] = None) -> Dict[str, Any]:
+             premise_reader: Optional[Callable] = None,
+             interrupt_reader: Optional[Callable] = None) -> Dict[str, Any]:
     """Row IC (the directive): ONE line's reading — the pure core `/parse_preview`
     answers with — for a caller that makes several (the list of an order to
     several marshals reads each man's own line through this, so the list, the
@@ -1455,7 +1986,7 @@ def read_one(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
     return _read_line(world, text, out, llm_state=llm_state, epoch=epoch,
                       lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
                       live_llm=live_llm, unbound_addressee=unbound_addressee,
-                      premise_reader=premise_reader)
+                      premise_reader=premise_reader, interrupt_reader=interrupt_reader)
 
 
 @contextlib.contextmanager

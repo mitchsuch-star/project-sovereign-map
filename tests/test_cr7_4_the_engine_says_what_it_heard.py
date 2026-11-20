@@ -144,7 +144,10 @@ class TestTheRefusalNamesItsCause:
         about SOULT, and it names the standing order the engine holds for
         HIM. (The generic arm's own example happens to name Davout, which is
         why the sweep found a Davout-only pin inert.)"""
-        reply = run(shipped, "Ney, when Soult arrives, attack")
+        # Row IC, Session 2 (IC-9): "Ney, when Soult arrives, attack" is an
+        # exact order now (a hold that attacks when he arrives); the refusal
+        # is pinned on the form no grammar holds — the attack ordered NOW.
+        reply = run(shipped, "Ney, attack Mack when Soult arrives")
         assert reply.get("success") is False
         assert "until the enemy moves" not in reply["message"]
         assert "hold until Soult arrives" in reply["message"], reply["message"]
@@ -155,7 +158,9 @@ class TestTheRefusalNamesItsCause:
         # Lorraine` is HELD now (the standing contingency,
         # tests/test_cc4_chained_orders.py); the refusal arm is pinned on a
         # then-clause the contingency does not hold, and it teaches the form.
-        reply = run(shipped, "Ney, if Mack advances, fortify")
+        # Row IC, Session 2: "…, fortify" is "dig in" now; a then-clause no
+        # if-then holds keeps the refusal.
+        reply = run(shipped, "Ney, if Mack advances, recruit infantry")
         assert reply.get("success") is False
         assert "contingency" in reply["message"]
         assert "if Mack advances" in reply["message"]
@@ -400,4 +405,7 @@ class TestTheSweepIsUnmoved:
             # CR-7-9: the all-of progress beat names the arms still waited
             # for from the ONE sentence (`describe_condition(only_unmet=True)`).
             "backend/commands/strategic.py",
+            # Row IC, Session 2 (IC-V2): the read-back's "Taken" row says a
+            # condition BEFORE the send in that same ONE sentence.
+            "backend/commands/parse_preview.py",
         }, sorted(importers)

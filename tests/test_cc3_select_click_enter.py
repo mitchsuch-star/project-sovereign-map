@@ -246,6 +246,12 @@ class TestTheRoutes:
         with _quiet():
             a = client.get("/march_quotes", params={"marshal": m.name, "enemy": foe.name}).json()
             s = client.get("/march_quotes", params={"marshal": m.name, "ally": ally.name}).json()
+        # Row IC, Session 2 (IC-7): the route's enemy quote is the attack's own
+        # quote PLUS `alts` — the other simple orders against him (chase,
+        # bombard, charge, held back), each its own line read by the
+        # read-back's reader (`tests/test_ic7_the_buttons.py`).
+        alts = a["quote"].pop("alts")
+        assert alts and alts[0]["id"] == "pursue"
         assert a["quote"] == json.loads(json.dumps(attack_quote(w, w.get_marshal(m.name), foe)))
         assert s["quote"] == json.loads(json.dumps(support_quote(w, w.get_marshal(m.name), ally)))
 

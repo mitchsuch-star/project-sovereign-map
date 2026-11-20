@@ -2502,7 +2502,18 @@ class LLMClient:
 
         # Step 4: Return best result
         # _parse_with_live_provider handles validation and fallback internally
-        return llm_result.to_dict()
+        adopted = llm_result.to_dict()
+        if llm_result is not fast_result:
+            # WS-12 (row IC, IC-8): the fast parser's OWN numbers ride beside
+            # the live answer — the executor reads these, never the figures the
+            # model wrote (golden rule 6: the model never moves a number).
+            adopted["fast_ambiguity"] = int(fast_result.ambiguity)
+            adopted["fast_strategic_score"] = int(fast_result.strategic_score)
+            # IC-V1: the guard's blanked clauses are the fast parser's reading
+            # of the TEXT — the model never writes (or drops) a condition.
+            if fast_result.blanked_clauses and "blanked_clauses" not in adopted:
+                adopted["blanked_clauses"] = [dict(b) for b in fast_result.blanked_clauses]
+        return adopted
 
     def _should_fallback_to_llm(self, fast_result: ParseResult, game_state: Optional[Dict]) -> bool:
         """
@@ -2639,7 +2650,16 @@ class LLMClient:
             # Declined. `fast_result` is the local object the provider stamped,
             # so its llm_error is this retry's own API-failure signal.
             return None, bool(getattr(fast_result, "llm_error", False))
-        return retried.to_dict(), bool(getattr(retried, "llm_error", False))
+        adopted = retried.to_dict()
+        # Row IC, Session 2 (the review, L3): the forced re-parse is a LIVE
+        # answer too — the fast parser's own numbers and the clauses its guard
+        # blanked ride beside it, as they do on `parse_command`'s road (the
+        # model's own figures move nothing; nothing typed is dropped unseen).
+        adopted.setdefault("fast_ambiguity", fast_result.ambiguity)
+        adopted.setdefault("fast_strategic_score", fast_result.strategic_score)
+        if getattr(fast_result, "blanked_clauses", None) and "blanked_clauses" not in adopted:
+            adopted["blanked_clauses"] = [dict(b) for b in fast_result.blanked_clauses]
+        return adopted, bool(getattr(retried, "llm_error", False))
 
     def _parse_with_live_provider(
         self,
@@ -3085,12 +3105,24 @@ class LLMClient:
         a condition off a sentence that issued no order.
         """
         self._condition_handoff = None
+        self._blanked_clauses = None
         result = self._parse_with_mock_chain(command_text, game_state)
         handoff = self._condition_handoff
         self._condition_handoff = None
+        blanked = self._blanked_clauses
+        self._blanked_clauses = None
         if (handoff is not None and result is not None and result.matched
                 and result.action not in ("unknown", None) and not result.refusal):
             result.condition_handoff = handoff
+        # IC-V1 (row IC, IC-8): the clauses the guard blanked without refusing
+        # ride the same matched, order-bearing result — for the read-back to
+        # NAME ("Not taken: 'if outnumbered'"); the order is unchanged by them.
+        if (blanked and result is not None and result.matched
+                and result.action not in ("unknown", None) and not result.refusal):
+            result.blanked_clauses = [
+                {"clause": b["clause"], "marker": b["marker"], "kind": b["kind"]}
+                for b in blanked
+                if handoff is None or b.get("span") != tuple(handoff.get("span") or ())]
         return result
 
     def _parse_with_mock_chain(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
@@ -3293,6 +3325,7 @@ class LLMClient:
                     condition_refuses = True
                     _refusing_clause = _refusing_clause or _verdict.handoff["clause"]
             self._condition_handoff = condition_handoff
+            self._blanked_clauses = list(_verdict.blanked)   # IC-V1
             # CRT-1 (CQ-32 / CX5-L5-F1): THE REASON IS NOT THE ORDER. A
             # third-party reason clause — "as they attack", ", Mack is
             # attacking", "because the Austrians are storming the bridge"
@@ -3301,11 +3334,13 @@ class LLMClient:
             # verb is removed from what the chain below may read. Measured
             # before this line: `Ney, retreat as they attack` FOUGHT.
             _foes = foe_names_for_guards(game_state, text=guarded)   # UI6-X10
-            _reason_spans = reason_clause_spans(guarded, foes=_foes)
+            _reason_spans = reason_clause_spans(guarded, foes=_foes,
+                                                friends=_player_roster)   # UI6-X70
             _reason_clause = (guarded[_reason_spans[0][0]:_reason_spans[0][1]]
                               .strip(" ,") if _reason_spans else "")
             _b = guarded
-            guarded, reason_applied = strip_reason_clauses(guarded, foes=_foes)
+            guarded, reason_applied = strip_reason_clauses(
+                guarded, foes=_foes, friends=_player_roster)
             _ptrace.note("guards", "strip_reason_clauses", _b, guarded)
             # FA-7: "not YET" is not "not that". The guards above knew every
             # way to forbid an order and none to postpone one, so "Ney, delay

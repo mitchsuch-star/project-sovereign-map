@@ -55,6 +55,13 @@ VOCAB_PATHS = {
     "attack_vocabulary": REPO / "backend" / "ai" / "attack_vocabulary.py",
 }
 STRATEGIC_PATH = REPO / "backend" / "ai" / "strategic_parser.py"
+# Row IC, Session 2 (IC-8): the word table's generated lists. Its NEW task
+# words ("keep Lorraine", "stay with Ney") are restated as table words before
+# the keyword chain sees the line (`if_thens.restate_task_words`), so no
+# branch of the router names them — the harvest reads their verb-position
+# words from `TASK_VERBS`, or a new word would drop out of the addressee rule
+# without a sound.
+TASK_WORDS_PATH = REPO / "backend" / "ai" / "task_words.py"
 TARGET_PATH = REPO / "backend" / "ai" / "routed_order_words.py"
 
 # The router functions: the mock chain and the sub-routers it hands to.
@@ -366,7 +373,8 @@ def _stoplist() -> Set[str]:
 
 def harvest(router_source: Optional[str] = None,
             vocab_sources: Optional[Dict[str, str]] = None,
-            strategic_source: Optional[str] = None) -> Set[str]:
+            strategic_source: Optional[str] = None,
+            task_words_source: Optional[str] = None) -> Set[str]:
     """The routed order words, from the given sources (default: the live
     files). Pure over its inputs, so the census can hand it a mutated copy
     of the router and watch the vocabulary follow."""
@@ -377,6 +385,9 @@ def harvest(router_source: Optional[str] = None,
                          for name, path in VOCAB_PATHS.items()}
     if strategic_source is None:
         strategic_source = STRATEGIC_PATH.read_text(encoding="utf-8")
+    if task_words_source is None:
+        task_words_source = (TASK_WORDS_PATH.read_text(encoding="utf-8")
+                             if TASK_WORDS_PATH.exists() else "")
 
     modules = {"llm_client": _Module("llm_client", router_source)}
     for name, source in vocab_sources.items():
@@ -398,6 +409,14 @@ def harvest(router_source: Optional[str] = None,
         for sub in ast.walk(table):
             if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
                 harvester.strings.append(sub.value)
+
+    # Row IC, Session 2 (IC-8): the word table's new task words.
+    if task_words_source:
+        verbs = _Module("task_words", task_words_source).defs.get("TASK_VERBS")
+        if verbs is not None:
+            for sub in ast.walk(verbs):
+                if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
+                    harvester.strings.append(sub.value)
 
     stop = _stoplist()
     for constant in ADDRESSEE_CONSTANTS:

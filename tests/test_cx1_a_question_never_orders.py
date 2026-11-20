@@ -255,20 +255,31 @@ class TestTheOrdersThatMustStillMarch:
         assert footprint["turn"][1] == footprint["turn"][0] + 1, footprint
 
     def test_an_inverted_conditional_is_refused_not_answered(self):
-        """"Ney, should Mack advance, fortify" means "if Mack advances" — a
-        CONDITIONAL, which the condition guard refuses. The subject arm stands
-        down before a trailing clause so this reaches its own refusal rather
-        than becoming a question."""
+        """"Ney, should Mack advance, recruit infantry" means "if Mack
+        advances" — a CONDITIONAL, which the condition guard refuses. The
+        subject arm stands down before a trailing clause so this reaches its
+        own refusal rather than becoming a question.
+
+        Row IC, Session 2 (IC-9, November 20, 2026): the line this was filed
+        on — "…, fortify" — is an EXACT ORDER now ("should" reads as "if",
+        "fortify" as the answer "dig in": a hold that digs in when Mack comes
+        within reach). It is still never a question and never carried out on
+        the turn it is typed; the refusal is pinned on an answer no if-then
+        holds."""
         from backend.commands.parser import CommandParser
         from backend.ai.parser_eval import build_world, build_llm_game_state
         with _quiet():
             world = build_world("1805")
             state = build_llm_game_state(world)
             parser = CommandParser(use_real_llm=False)
-            result = parser.parse("Ney, should Mack advance, fortify",
+            result = parser.parse("Ney, should Mack advance, recruit infantry",
                                   state, world=world)
+            held = parser.parse("Ney, should Mack advance, fortify", state, world=world)
         assert not result.get("success")
         assert result.get("refusal") == "conditional", result.get("refusal")
+        assert held.get("success") and held.get("strategic_type") == "HOLD"
+        assert [line["then"] for line in held["if_thens"]] == ["dig_in"]
+        assert held["command"]["action"] == "hold" and not held["command"].get("question")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

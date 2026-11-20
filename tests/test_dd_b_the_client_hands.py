@@ -1372,7 +1372,9 @@ class TestRowPW3TheFinishingPass:
 
     def test_the_cards_orders_say_their_price_in_words(self, pw3_walk):
         faces = _pw_buttons(pw3_walk["select"])
-        assert "1 Hold · 1 action" in faces and "5 Fall back · free" in faces, faces
+        # row IC, Session 2 (IC-7): the slot says WHICH hold — the standing one —
+        # now that "Stand here" (the one-turn stand) is a button beside it
+        assert "1 Hold the ground · 1 action" in faces and "5 Fall back · free" in faces, faces
         assert not any(re.search(r"(?<![A-Za-z])AP(?![A-Za-z])", face) for face in faces), faces
 
     def test_the_counters_wear_their_words(self, pw3_walk):
@@ -1736,7 +1738,7 @@ class TestRowICDirectives:
         chip = walk["chip"]
         assert "The Army of Italy — Lannes, Murat" in _pw_said(chip)
         assert "Disband the Army of Italy" in _pw_buttons(chip)
-        assert "Hold…, Fortify… or Drill… first shows each corps' order and price" in _pw_said(chip)
+        assert "Each button first shows each corps' order and price" in _pw_said(chip)
         card = _ic_card(walk["hold"])
         assert card["who"] == "The Army of Italy: hold" and card["members"] == ["Lannes", "Murat"]
         assert not _ic_replies_with(walk["hold"], "group")                   # a list is no order
@@ -1753,6 +1755,262 @@ class TestRowICDirectives:
         assert card["title"] == "ORDERS FOR 3 OF 8 CORPS"
         assert card["who"].startswith("Go to Vienna — Ney, Davout"), card["who"]   # the order leads a long line
         assert _ic_card(walk["goal_esc"]) == {}
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Row IC, Session 2 — BUTTONS FOR ORDERS, THE LINE FOR TASKS, EXACT ORDERS
+# (November 20, 2026; `docs/SYSTEMS_REFERENCE.md` §231; IC-V4's driven class,
+# and the review's row IC2-R19: the client's half was pinned only by reading
+# its source). The real client at the first player's own setup — Interface
+# Scale 1.8 on 5120 x 1377 — with the reading under the command line shown as
+# his game shows it (`DD_B_READBACK=1`; a harness's default is off). Every
+# place is read off the state (the map moves when a card opens); nothing is
+# pressed at a remembered pixel.
+# ═════════════════════════════════════════════════════════════════════════════
+
+_IC2_EXACT = "Soult, hold Lorraine. If attacked, dig in. If outnumbered, fall back to Champagne."
+
+
+def _ic2_btn(state: dict, surface: str, starts: str) -> dict:
+    found = [b for b in _ic_on(state, surface) if str(b["text"]).startswith(starts)]
+    assert found, f"no control of {surface} starts {starts!r}: {[b['text'] for b in _ic_on(state, surface)]}"
+    return found[0]
+
+
+def _ic2_faces(state: dict) -> dict:
+    """The general's card: face -> rect."""
+    return {str(b["text"]): b["rect"] for b in _ic_on(state, "SelectionCard")}
+
+
+def _ic2_piece(state: dict, name: str) -> tuple:
+    row = next(m for m in state["map"] if str(m["text"]) == name)
+    return _centre_of(row["rect"])
+
+
+def _ic2_readback(state: dict) -> str:
+    """The reading under the command line, as drawn ("" for none)."""
+    for t in state.get("texts") or []:
+        text = str(t.get("text") or "")
+        if "Not taken:" in text or "Taken:" in text or "Enter sends:" in text:
+            return text
+    return ""
+
+
+def _ic2_card_lines(state: dict) -> str:
+    for s in state.get("surfaces") or []:
+        if isinstance(s, dict) and s.get("name") == "OrderConfirmCard":
+            return "\n".join(str(line) for line in s.get("lines") or [])
+    return ""
+
+
+def _ic2_order_card(state: dict) -> dict:
+    """The order card on any of its faces, read off the screen: its title, its
+    headline and everything it says ({} while it is shut). (`_ic_card` is the
+    list's own report — it is empty on the other faces.)"""
+    said = _ic2_card_lines(state)
+    if not said or "order_card" not in " ".join((state.get("open") or {}).get("popups") or []):
+        return {}
+    lines = said.split("\n")
+    return {"title": lines[0], "who": lines[1] if len(lines) > 1 else "", "said": said}
+
+
+@pytest.fixture(scope="module")
+def ic2_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        mp.setenv("DD_B_READBACK", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic2")
+    states: dict = {}
+    answered: list = []
+    try:
+        states["begin"] = _act(run, "click Begin")
+        # ── the general's card: the second row, the posture menu, the ready tasks
+        states["select"] = _act(run, "click Murat")
+        states["posture"] = _ic_press(run, _ic2_btn(states["select"], "SelectionCard", "Posture"))
+        states["posture_shut"] = _ic_press(run, _ic2_btn(states["posture"], "SelectionCard", "Posture"))
+        states["tasks"] = _ic_press(run, _ic2_btn(states["posture_shut"], "SelectionCard", "Give him a task"))
+        states["tasks_shut"] = _ic_press(run, _ic2_btn(states["tasks"], "SelectionCard", "Give him a task"))
+        # ── the card that opens on an enemy: "Chase him" beside the attack (F1)
+        x, y = _ic2_piece(states["tasks_shut"], "Mack")
+        states["enemy"] = _act(run, f"click_at {x} {y}")
+        _act(run, "key Escape")                                   # the card
+        states["let_go"] = _act(run, "key Escape")                # the selection
+        # ── the typed line: what it took, what it did not, what Enter sends (F2)
+        states["draft"] = _act(run, "draft Ney, retreat if outnumbered")
+        _act(run, "key Ctrl+A")
+        _act(run, "key Delete")
+        # a typed line sent before its reading is back: held, and filled as understood
+        states["gate"] = _act(run, "type Murat, scout Swabia boldly", meant="scout Murat")
+        states["gate_enter"] = _answer_chain(run, _act(run, "key Enter"), answered)
+        # ... and with the reading on show, Enter sends the line as understood
+        states["draft2"] = _act(run, "draft Bernadotte, defend carefully")
+        states["understood"] = _answer_chain(run, _act(run, "key Enter"), answered)
+        # ── an exact order: typed, given, and read off its mark on the map (F4)
+        states["exact"] = _answer_chain(run, _act(run, f"type {_IC2_EXACT}", meant="hold Soult"), answered)
+        assert [m["marshal"] for m in states["exact"]["order_marks"]] == ["Soult"]
+        states["standing"] = _act(run, "click_mark Soult")
+        states["standing_esc"] = _act(run, "key Escape")
+        # ── "Stand here": one press
+        select = _act(run, "click Davout")
+        states["stand_pressed"] = _ic_press(run, _ic2_btn(select, "SelectionCard", "Stand here"))
+        states["stand"] = _answer_chain(run, states["stand_pressed"], answered)
+        _act(run, "key Escape")
+        # ── the group face: Attack…, Support…, Fall back…, Garrison…
+        _act(run, "type form the Army of Italy with Lannes and Murat", meant="other: name an army")
+        _act(run, "key Escape")
+        states["army"] = _act(run, "click Army of Italy · 2 corps")
+        states["fall_back"] = _ic_press(run, _ic2_btn(states["army"], "SelectionCard", "Fall back"))
+        states["fall_back_esc"] = _act(run, "key Escape")
+        states["attack_pick"] = _ic_press(run, _ic2_btn(states["fall_back_esc"], "SelectionCard", "Attack"))
+        # a wrong click - one of ours - leaves the pick waiting, as its toast says (IC2-R21)
+        x, y = _ic2_piece(states["attack_pick"], "Bernadotte")
+        states["attack_wrong"] = _act(run, f"click_at {x} {y}")
+        x, y = _ic2_piece(states["attack_wrong"], "Mack")
+        states["attack_card"] = _act(run, f"click_at {x} {y}")
+        states["attack_esc"] = _act(run, "key Escape")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["answered"] = answered
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    states["run_dir"] = str(run)
+    return states
+
+
+class TestRowIC7TheButtons:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic2_walk):
+        assert "error" not in ic2_walk, ic2_walk.get("error")
+        return ic2_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        state = walk["select"]
+        assert state["ui_scale"]["window"] == pytest.approx(1.8)
+        assert state["factor"]["logical_size"] == [2844.0, 765.0]
+
+    def test_the_card_wears_the_simple_orders_under_its_seven(self, walk):
+        faces = list(_ic2_faces(walk["select"]))
+        assert faces[1:8] == [
+            "1 Hold the ground · 2 actions", "2 Fortify · 2 actions", "3 Drill · 1 action",
+            "4 Scout · 1 action", "5 Fall back · free", "6 Garrison · 2 actions", "7 Cancel order"]
+        assert faces[8:] == ["Stand here · 1 action", "Stay put · free", "Posture: steady ▾",
+                             "Give him a task…"]
+        assert not walk["select"].get("off_screen")
+
+    def test_the_posture_menu_opens_where_the_hint_stood_and_moves_nothing(self, walk):
+        """Pressed at his setup: with the menu added at the card's foot,
+        "Posture" itself moved 84 px up as it was pressed."""
+        before, opened = _ic2_faces(walk["select"]), _ic2_faces(walk["posture"])
+        opened["Posture: steady ▾"] = opened.pop("Posture: steady ▴")
+        for face, rect in before.items():
+            assert opened[face] == rect, face
+        menu = {str(b["text"]): bool(b.get("disabled")) for b in _ic_on(walk["posture"], "SelectionCard")
+                if str(b["text"]) not in before and not str(b["text"]).startswith("Posture")}
+        assert menu == {"Attacking · 1 action": False, "Steady · free": True,
+                        "Defending · 1 action": False, "Form square · 1 action": True}
+        steady = _ic2_btn(walk["posture"], "SelectionCard", "Steady")
+        assert "already in that posture" in str(steady.get("tooltip"))
+        assert _ic2_faces(walk["posture_shut"]) == before
+        assert not walk["posture"].get("off_screen")
+
+    def test_the_ready_tasks_stand_above_his_orders_and_write_nothing_unasked(self, walk):
+        before, opened = _ic2_faces(walk["select"]), _ic2_faces(walk["tasks"])
+        for face, rect in before.items():
+            if face != "×":                      # only his name's row is lifted
+                assert opened[face] == rect, face
+        tasks = [face for face in opened if face not in before]
+        assert tasks[0] == "Chase Mack · 2 actions" and 2 <= len(tasks) <= 4, tasks
+        top = min(opened[face][1] for face in tasks)
+        assert top + 37 * len(tasks) <= before["1 Hold the ground · 2 actions"][1], "above his orders"
+        assert "a press writes the sentence on the command line" in _pw_said(walk["tasks"])
+        assert (walk["tasks"].get("command_line") or {}).get("text") == "", "nothing written unasked"
+        assert "A task is typed, Sire" in _ic_log(walk["tasks"]), "the first-open line, once"
+        assert _ic2_faces(walk["tasks_shut"]) == before, "a second press puts them away"
+        assert not walk["tasks"].get("off_screen")
+
+    def test_the_enemy_card_offers_the_chase_beside_the_attack(self, walk):
+        card = _ic2_order_card(walk["enemy"])
+        assert card["title"] == "ORDERS FOR MURAT" and card["who"] == "Murat, attack Mack"
+        assert "Or another order — a chip sends it now, and this card closes:" in card["said"]
+        chips = [str(b["text"]) for b in _ic_on(walk["enemy"], "OrderConfirmCard")]
+        assert "Chase him · 2 actions" in chips, chips
+        assert not walk["enemy"].get("off_screen") and not _pw_panel_moves(walk["enemy"])
+
+    def test_the_reading_says_what_was_not_taken_and_what_enter_sends(self, walk):
+        reading = _ic2_readback(walk["draft"])
+        assert "Ney · fall back · free" in reading
+        assert "Not taken: ‘if outnumbered’ — this order takes no condition; it would go out now" in reading
+        assert "Enter sends: Ney, retreat" in reading
+        assert "Or press to write: [Ney, hold. If he is outnumbered, fall back to Lorraine.]" in reading
+        assert (walk["draft"].get("command_line") or {}).get("text") == "Ney, retreat if outnumbered"
+        assert _ic_actions(walk["draft"]) == "4/4", "typed, not sent: nothing spent"
+
+    def test_a_typed_line_sent_with_a_part_not_taken_is_held_and_filled(self, walk):
+        gate = walk["gate"]
+        assert "Not sent, Sire" in _ic_log(gate) and "'boldly'" in _ic_log(gate)
+        assert (gate.get("command_line") or {}).get("text") == "Murat, scout Swabia"
+        assert _ic_actions(gate) == "4/4"
+        assert _ic_actions(walk["gate_enter"]) == "3/4", "the next Enter sends what was shown"
+
+    def test_enter_sends_the_line_as_understood_and_says_so(self, walk):
+        assert "Enter sends: Bernadotte, defend" in _ic2_readback(walk["draft2"])
+        log = _ic_log(walk["understood"])
+        assert "You typed: Bernadotte, defend carefully" in log and "Sent as understood:" in log
+        assert "► Bernadotte, defend " in log + " "
+        assert "defend carefully" not in log.split("Sent as understood:")[1], "what was shown is what was sent"
+        assert _ic_actions(walk["understood"]) == "2/4"
+
+    def test_an_exact_order_is_given_and_its_mark_opens_what_it_says(self, walk):
+        log = _ic_log(walk["exact"])
+        assert ("Soult's exact orders — (1) if he is attacked, dig in; (2) if he is outnumbered, "
+                "fall back to Champagne.") in log
+        card = _ic2_order_card(walk["standing"])
+        assert card["title"] == "STANDING ORDER — SOULT" and card["who"] == "Soult holds Lorraine"
+        assert "His exact orders — 2 of 2 left:" in card["said"]
+        assert "1.  if he is attacked, dig in" in card["said"]
+        assert "2.  if he is outnumbered, fall back to Champagne" in card["said"]
+        # the blind reading: all three readers asked which line wins when two are true
+        assert "he carries out the first of them that is true" in card["said"]
+        assert not walk["standing"].get("off_screen") and not _pw_panel_moves(walk["standing"])
+        assert _ic2_order_card(walk["standing_esc"]) == {}
+
+    def test_stand_here_is_one_press(self, walk):
+        assert "► Davout, defend" in _ic_log(walk["stand_pressed"])
+        assert _ic_actions(walk["stand"]) == "0/4"
+
+    def test_the_group_face_offers_attack_support_fall_back_and_garrison(self, walk):
+        faces = [str(b["text"]) for b in _ic_on(walk["army"], "SelectionCard")]
+        for face in ("Attack…", "Support…", "Fall back…", "Garrison…"):
+            assert face in faces, faces
+        listed = _ic_card(walk["fall_back"])
+        assert listed["visible"] is True and listed["mode"] == "directive"
+        assert [row["marshal"] for row in listed["rows"]] == ["Lannes", "Murat"]
+        _ic_still_and_on_screen(walk["fall_back"])
+        # "Attack…" waits for the enemy: a click on one of ours opens nothing and
+        # asks again (the second look: the pick used to be let go by it, and the
+        # next click opened the group's march list) ...
+        assert _ic2_order_card(walk["attack_wrong"]) == {} and _ic_card(walk["attack_wrong"]) == {}
+        assert "Click an enemy corps in sight to attack." in _pw_said(walk["attack_wrong"])
+        # ... and the click on the enemy opens the LEAD's attack card
+        lead = _ic2_order_card(walk["attack_card"])
+        assert lead["title"] == "ORDERS FOR LANNES" and lead["who"] == "Lannes, attack Mack"
+        assert _ic2_order_card(walk["attack_esc"]) == {}
+
+    @pytest.mark.xfail(strict=True, reason=(
+        "IC2-N1 (owner Session H, S15): at the first player's setup the command line shows about "
+        "twenty characters of a typed line — the rest scrolls out of the box"))
+    def test_the_command_line_shows_the_task_being_typed(self, walk):
+        """The blind reading's three readers, each unasked: the box read "retreat
+        if outnumbered" — "Ney," had scrolled out. Forty characters is a short
+        task ("Soult, hold Lorraine. If attacked, dig in.")."""
+        box = (walk["draft"].get("command_line") or {})["rect"]
+        assert box[2] >= 360, f"the command line is {box[2]} px wide at his setup"
 
     def test_the_run_met_no_script_error(self, walk):
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

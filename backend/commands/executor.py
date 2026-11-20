@@ -2651,21 +2651,13 @@ class CommandExecutor:
                 # Aggressive infantry only — cavalry (Ney) blocked by pre-validation. Future 1805 marshals.
                 # ═══════════════════════════════════════════════════════════
                 if action == 'form_square':
-                    if getattr(marshal, 'square_formation', False):
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name} is already in square formation."
-                        }
-                    if getattr(marshal, 'cavalry', False):
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name}'s cavalry cannot form an infantry square!"
-                        }
-                    if getattr(marshal, 'artillery', False):
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name}'s artillery cannot form an infantry square!"
-                        }
+                    # (already in square, cavalry, artillery — and the state
+                    # arms `_execute_form_square` met after the objection: ONE
+                    # reader with the "Form square" button, row IC IC-7)
+                    from backend.commands.tactical_executor import square_refusal
+                    _no_square = square_refusal(marshal)[0]
+                    if _no_square:
+                        return {"success": False, "message": _no_square}
 
                 # ═══════════════════════════════════════════════════════════
                 # FRIENDLY-TARGET CHECK — Validation BEFORE objection
@@ -3124,35 +3116,38 @@ class CommandExecutor:
         return None
 
     def _exec_bonuses_and_clarification(self, st: "_ExecState") -> Optional[Dict]:
-        """The strategic bonuses, the literal marshal's buff and his clarification."""
+        """The literal marshal's buff and his clarification.
+
+        WS-12 (ruled November 17, 2026 under the user's delegation; built in
+        row IC's IC-8): THE MODEL'S NUMBER MOVES NOTHING (golden rule 6). In a
+        live parse the score the model wrote for the line used to set morale,
+        trust and a banked attack bonus on the player's marshal here, before
+        the order was dispatched — so a line then refused for free kept them
+        and could be sent again. That bonus is retired. What is left reads the
+        FAST parser's own deterministic numbers (`fast_ambiguity`,
+        `fast_strategic_score` — stamped where a live answer is adopted,
+        `llm_client.parse_command`): the literal marshal's buff for a crisp
+        order, its precision arm, and his clarification. In a mock parse the
+        parse's own numbers ARE the fast parser's. (The courts' marshals are
+        scored by `enemy_ai.calculate_ai_strategic_score`, a formula.)"""
         world, parsed_command, command, action = st.world, st.parsed_command, st.command, st.action
         is_player_action_check, is_strategic_execution, marshal_name = st.is_player_action_check, st.is_strategic_execution, st.marshal_name
 
-        # ============================================================
-        # STRATEGIC BONUSES: Apply morale/trust/combat bonuses (Phase 5)
-        # Only for player actions, only in non-mock mode
-        # ============================================================
-
-        # Define combat actions that get strategic_combat_bonus
-        COMBAT_ACTIONS = ["attack", "charge"]
-
-        # Check if we should apply bonuses
-        mode = parsed_command.get("mode", "mock")
-        strategic_score = parsed_command.get("strategic_score", 0)
-
-        # Only apply for non-mock, player actions with a marshal
-        if mode != "mock" and is_player_action_check and marshal_name:
-            marshal = world.get_marshal(marshal_name)
-            if marshal and marshal.nation == world.player_nation:
-                from backend.ai.feedback import apply_strategic_bonuses
-                is_combat_action = action in COMBAT_ACTIONS
-                apply_strategic_bonuses(marshal, strategic_score, is_combat_action)
+        live = parsed_command.get("mode", "mock") != "mock"
+        if live:
+            # A live answer with no fast numbers beside it (a caller that built
+            # the dict by hand) reads as a line the fast parser could not read:
+            # no buff, never the model's own figure.
+            strategic_score = parsed_command.get("fast_strategic_score", 0)
+            ambiguity = parsed_command.get("fast_ambiguity", 75)
+        else:
+            strategic_score = parsed_command.get("strategic_score", 0)
+            ambiguity = parsed_command.get("ambiguity", 50)
 
         # ============================================================
         # GROUCHY AMBIGUITY COMBAT BUFF (Phase 5.2)
         # Literal marshals get combat bonuses from clear orders
         # ============================================================
-        ambiguity = parsed_command.get("ambiguity", 50)
         if is_player_action_check and marshal_name:
             marshal_obj = world.get_marshal(marshal_name)
             if marshal_obj and getattr(marshal_obj, 'personality', '') == 'literal':
@@ -3166,9 +3161,14 @@ class CommandExecutor:
         if not is_strategic_execution and marshal_name:
             cl_marshal = world.get_marshal(marshal_name)
             if cl_marshal and getattr(cl_marshal, 'personality', '') == 'literal':
-                cl_ambiguity = parsed_command.get("ambiguity", 5)
+                cl_ambiguity = (parsed_command.get("fast_ambiguity", 75) if live
+                                else parsed_command.get("ambiguity", 5))
                 cl_is_strategic = parsed_command.get("is_strategic", False)
-                if cl_ambiguity > 60 and cl_is_strategic:
+                # (WS-12: and only where there is a reading to confirm — the
+                # question quotes `interpreted_target`; with none it had asked
+                # "I understand None, Sire. Is this correct?")
+                if (cl_ambiguity > 60 and cl_is_strategic
+                        and (not live or parsed_command.get("interpreted_target"))):
                     interpreted = parsed_command.get("interpreted_target")
                     reason = parsed_command.get("interpretation_reason", "unclear")
                     alternatives = parsed_command.get("alternatives", [])
@@ -3661,8 +3661,13 @@ class CommandExecutor:
         # the likeliest to object) was the one the stand-down could not
         # reach. A REFUSED order still does not count, and the warning's
         # copy no longer promises that it does: nothing reached him.
+        # Row IC, Session 2 (IC-7): "stay put" is no order that reaches him —
+        # it quiets his "no orders" row and stands no warned strike down
+        # (INDEPENDENT_COMMAND_SPEC §8.1; a free word used to call the strike
+        # off every turn).
         if (is_player_action and marshal_name
                 and not command.get("_jealousy_autonomous")
+                and action != "wait"
                 and (result.get("success")
                      or result.get("pending_objection"))):
             _warned_marshal = world.get_marshal(marshal_name)
@@ -3675,6 +3680,15 @@ class CommandExecutor:
                 if _stand_down:
                     result["message"] = (result.get("message", "")
                                          + "\n" + _stand_down)
+
+        # Row IC, Session 2 (IC-9) — ONE THING A TURN: a man given an order
+        # BY HAND today lets the if-thens of his standing order sleep this
+        # turn (§7). Today's order is one that reached him and was carried
+        # out — never the game's own carrying-out of a standing order, a
+        # read, or "stay put".
+        if is_player_action:
+            from backend.commands import if_thens as _if_thens
+            _if_thens.ordered_by_hand(world, marshal_name, action, command, result)
 
         # FIX: Prepend mild objection message if there was one.
         # Creative audit July 19 2026: the two strings were butted together with
@@ -3776,6 +3790,15 @@ class CommandExecutor:
             return self._tactical._execute_defend(marshal, world, game_state)
         elif action == "wait":
             # Wait is a free action - marshal passes turn
+            # Row IC, Session 2 (IC-7): "Stay put" — the player's own word to
+            # one of his marshals quiets that man's "no orders" row for THIS
+            # turn (`today.is_idle`, the End Turn list). It is no work for a
+            # literal man's restlessness and stands no warning down.
+            if (not is_strategic_execution and marshal is not None
+                    and marshal.nation == getattr(world, "player_nation", None)
+                    and not command.get("_jealousy_autonomous")
+                    and not command.get("_autonomous_execution")):
+                marshal.stay_put_turn = int(world.current_turn)
             return self._tactical._execute_wait(marshal, world, game_state)
         elif action == "move":
             # ESP-EV-4 family: the raw typed order rides through so a

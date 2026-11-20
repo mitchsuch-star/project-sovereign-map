@@ -418,8 +418,15 @@ def _tick():
 
 
 def _as_if_given_yesterday(name):
-    order = M.world.get_marshal(name).strategic_order
+    """The order as if it had been given the turn before — and its if-thens
+    as if written then (row IC, IC-9: a line is live from the turn AFTER it
+    is written; the man was given no order by hand today)."""
+    marshal = M.world.get_marshal(name)
+    order = marshal.strategic_order
     order.issued_turn = int(M.world.current_turn) - 1
+    for line in order.if_thens:
+        line["written"] = int(M.world.current_turn) - 1
+    marshal.last_ordered_turn = int(M.world.current_turn) - 1
     return order
 
 
@@ -541,7 +548,7 @@ class TestCCX20TheVerbIsPartOfTheOrder:
         assert "already carrying out" in (same.get("message") or "")
         other = run(shipped, "Ney, if Mack advances fall back to Brabant")
         assert "already carrying out" not in (other.get("message") or ""), other.get("message")
-        assert M.world.get_marshal("Ney").strategic_order.contingency["to"] == "Brabant"
+        assert M.world.get_marshal("Ney").strategic_order.if_thens[0]["to"] == "Brabant"
 
 
 class TestCCX22AMoveWithAVerbIsTheMarch:
@@ -619,7 +626,14 @@ class TestD6TheContradictionIsAskedFirst:
 class TestD8TheStandingContingency:
     """D8: `Ney, if Mack advances fall back to Lorraine` — a HOLD where he
     stands that watches its province and the neighbours we SEE, and fires
-    at no cost at the turn's end."""
+    at no cost at the turn's end.
+
+    Row IC, Session 2 (IC-9): the single contingency is the FIRST of a list
+    of if-thens (`StrategicOrder.if_thens`; `backend/commands/if_thens.py`),
+    and a line is live from the turn AFTER it is written
+    (INDEPENDENT_COMMAND_SPEC §7) — so the pins that fire it stand the order
+    a turn back first (`_as_if_given_yesterday`), and the issuing turn's own
+    silence is pinned beside them."""
 
     def test_it_is_issued_as_a_watching_hold(self, shipped):
         world = M.world
@@ -627,16 +641,32 @@ class TestD8TheStandingContingency:
         ap = world.actions_remaining
         reply = run(shipped, "Ney, if Mack advances fall back to Lorraine")
         assert reply.get("success") is True, reply.get("message")
-        assert "watches Rhineland and its neighbours" in reply["message"]
-        assert "Mack is within reach already, at Swabia" in reply["message"]
+        assert ("Ney's exact order — if Mack comes within reach, fall back to Lorraine"
+                in reply["message"]), reply["message"]
+        assert "from next turn on" in reply["message"]
+        assert "That is true already" in reply["message"]
         order = M.world.get_marshal("Ney").strategic_order
         assert order.command_type == "HOLD" and order.target == "Rhineland"
-        assert order.contingency == {"who": "Mack", "then": "fall_back", "to": "Lorraine",
-                                     "clause": "Ney, if Mack advances fall back to Lorraine"}
+        assert len(order.if_thens) == 1
+        line = order.if_thens[0]
+        assert {k: line[k] for k in ("if", "who", "then", "to", "used")} == {
+            "if": "enemy_near", "who": "Mack", "then": "fall_back", "to": "Lorraine", "used": False}
+        assert line["clause"] == "if Mack advances fall back to Lorraine"
+        assert line["written"] == int(M.world.current_turn)
         assert M.world.actions_remaining == ap - price
+
+    def test_nothing_fires_on_the_turn_it_is_written(self, shipped):
+        """Row IC (IC-9): a line arms one turn after it is written."""
+        run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        rows = _row(_tick(), "Ney")
+        ney = M.world.get_marshal("Ney")
+        assert ney.location == "Rhineland" and ney.strategic_order is not None
+        assert not any(r.get("action") == "contingency_fired" for r in rows), rows
+        assert ney.strategic_order.if_thens[0]["used"] is False
 
     def test_a_seen_approach_fires_the_fall_back_free(self, shipped):
         run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        _as_if_given_yesterday("Ney")
         ap = M.world.actions_remaining
         rows = _row(_tick(), "Ney")
         ney = M.world.get_marshal("Ney")
@@ -648,18 +678,20 @@ class TestD8TheStandingContingency:
     def test_never_on_a_fogged_province(self, shipped):
         from backend.models.intel import UNKNOWN
         run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        _as_if_given_yesterday("Ney")
         M.world.get_region_intel("Swabia").visibility = UNKNOWN
         _tick()
         order = M.world.get_marshal("Ney").strategic_order
         assert M.world.get_marshal("Ney").location == "Rhineland"
-        assert order is not None and order.contingency
+        assert order is not None and order.if_thens and not order.if_thens[0]["used"]
 
     def test_only_the_named_man_fires_it(self, shipped):
         reply = run(shipped, "Ney, if Kutuzov advances fall back to Lorraine")
         assert reply.get("success") is True, reply.get("message")
+        _as_if_given_yesterday("Ney")
         _tick()
         assert M.world.get_marshal("Ney").location == "Rhineland"
-        assert M.world.get_marshal("Ney").strategic_order.contingency["who"] == "Kutuzov"
+        assert M.world.get_marshal("Ney").strategic_order.if_thens[0]["who"] == "Kutuzov"
 
     def test_a_fortified_holder_leaves_his_works(self, shipped):
         from backend.models.marshal import Stance
@@ -667,21 +699,47 @@ class TestD8TheStandingContingency:
         ney.fortified, ney.defense_bonus, ney.stance = True, 0.1, Stance.DEFENSIVE
         reply = run(shipped, "Ney, if Mack advances fall back to Lorraine")
         assert "leaves his works" in reply["message"]
+        _as_if_given_yesterday("Ney")
         rows = _row(_tick(), "Ney")
         ney = M.world.get_marshal("Ney")
         assert ney.location == "Lorraine" and ney.fortified is False
         assert any("leaves his works and falls back" in (r.get("message") or "") for r in rows), rows
 
     def test_the_attack_arm_fights(self, shipped):
+        """Row IC (IC-9, §7): "attack" means attack if NOT outnumbered — Ney's
+        24,000 wait on Mack's larger corps; "attack whatever the odds" is its
+        own choice, and fights."""
         import random
         random.seed(1805)
         mack = M.world.get_marshal("Mack")
         before = mack.strength
-        run(shipped, "Ney, if the enemy comes within reach, attack")
+        run(shipped, "Ney, if the enemy comes within reach, attack whatever the odds")
+        _as_if_given_yesterday("Ney")
         rows = _row(_tick(), "Ney")
         assert any(r.get("action") == "contingency_fired" for r in rows), rows
         assert M.world.get_marshal("Mack").strength < before
         assert M.world.get_marshal("Ney").strategic_order is None
+
+    def test_a_plain_attack_line_waits_while_he_is_outnumbered(self, shipped):
+        import random
+        random.seed(1805)
+        mack = M.world.get_marshal("Mack")
+        before = int(mack.strength)
+        assert before > int(M.world.get_marshal("Ney").strength)
+        run(shipped, "Ney, if the enemy comes within reach, attack")
+        _as_if_given_yesterday("Ney")
+        rows = _row(_tick(), "Ney")
+        ney = M.world.get_marshal("Ney")
+        assert not any(r.get("action") == "contingency_fired" for r in rows), rows
+        assert int(mack.strength) == before and ney.strategic_order is not None
+        assert ney.strategic_order.if_thens[0]["used"] is False      # the line waits, unused
+        # ... and fights the day he is no longer outnumbered — as France KNOWS it:
+        # Swabia is seen in part, so Mack is read at the middle of his band
+        # ("small force", 5,000 to 14,999), never at his true strength
+        mack.strength = 9000
+        M.world.calculate_visibility()
+        rows = _row(_tick(), "Ney")
+        assert any(r.get("action") == "contingency_fired" for r in rows), rows
 
     def test_a_fall_back_with_no_road_breaks_and_keeps_his_works(self, shipped, monkeypatch):
         from backend.models.marshal import Stance
@@ -689,6 +747,7 @@ class TestD8TheStandingContingency:
         ney = M.world.get_marshal("Ney")
         ney.fortified, ney.defense_bonus, ney.stance = True, 0.1, Stance.DEFENSIVE
         run(shipped, "Ney, if Mack advances fall back to Lorraine")
+        _as_if_given_yesterday("Ney")
         monkeypatch.setattr(road_law, "march_road",
                             lambda *a, **k: ([], {"message": "the road is closed."}, "road"))
         rows = _row(_tick(), "Ney")
@@ -748,7 +807,7 @@ class TestCCX21AContingencyIsNoAnswer:
         assert not reply.get("battle_report"), reply.get("message")
         assert M.world.get_marshal("Mack").strength == mack
         assert ney.strategic_order.command_type == "HOLD"
-        assert ney.strategic_order.contingency["then"] == "attack"
+        assert ney.strategic_order.if_thens[0]["then"] == "attack"
         assert not ney.pending_interrupt
         assert "This stops his march to Bohemia" in reply["message"]
 
@@ -831,7 +890,7 @@ class TestD8TheContingencysAttackIsAnOrderSeam:
     breaks with the executor's own reason (FA-14's rule)."""
 
     def test_a_refused_attack_breaks_the_hold_with_its_reason(self, shipped, monkeypatch):
-        run(shipped, "Ney, if the enemy comes within reach, attack")
+        run(shipped, "Ney, if the enemy comes within reach, attack whatever the odds")
         executor_type = type(M.executor)
         real = executor_type.execute
 
@@ -842,6 +901,7 @@ class TestD8TheContingencysAttackIsAnOrderSeam:
             return real(self, command, game_state)
         monkeypatch.setattr(executor_type, "execute", refuse_the_strike)
         mack = M.world.get_marshal("Mack").strength
+        _as_if_given_yesterday("Ney")
         rows = _row(_tick(), "Ney")
         row = next(r for r in rows if r.get("action") == "contingency_refused")
         assert "cannot attack: the bridge is down." in row["message"], row

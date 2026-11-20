@@ -73,7 +73,11 @@ class TestTheKeysExist:
         # CC-4 (October 19, 2026) adds two: `arrival_verb` (D7) and
         # `contingency` (D8).
         assert {"arrival_verb", "contingency"} <= ALLOWED_EXPECTED_KEYS
-        assert len(ALLOWED_EXPECTED_KEYS) == 17
+        # Row IC, Session 2 (November 20, 2026) adds two: `if_thens` (IC-9, an
+        # exact order's lines) and `blanked_contains` (IC-V1, a clause the
+        # guard blanked and the read-back names).
+        assert {"if_thens", "blanked_contains"} <= ALLOWED_EXPECTED_KEYS
+        assert len(ALLOWED_EXPECTED_KEYS) == 19
 
 
 class TestTheDoneWhen:

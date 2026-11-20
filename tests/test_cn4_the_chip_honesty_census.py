@@ -1187,6 +1187,17 @@ REVIEWED = {
         "the bring row's own command; sent and the muster read after it (BA-2)",
     ("order_confirm_card.gd", '"do:" + str(b.get("command", ""))'):
         "the same rows on the attack's card; the press is handed to main.gd's own send road (BA-2)",
+    # Row IC, Session 2 (IC-7, November 20, 2026): a button for every simple
+    # order. Each chip carries a row's own `command` — the order's line as the
+    # read-back reads it (`order_quotes.enemy_alts` / `march_thens` /
+    # `look_rows`), so the chip and the typed line are one reader; a row the
+    # game would refuse is `bb_chip_disabled` beside the game's own reason.
+    # Driven by `tests/test_ic7_the_buttons.py` (every ok row is taken by the
+    # command road at the price it names; every refused row is refused).
+    ("order_confirm_card.gd", '"do:" + str(a.get("command", ""))'):
+        "the card's other simple orders and a march's 'then' — the row's own line (IC-7)",
+    ("region_panel.gd", '"do:" + str(r.get("command", ""))'):
+        "'Look at it' — the row's own scout line, priced and refused by the state probe (IC-7)",
     # Row BA, BA-3 (November 15, 2026): the day's chips. Each carries the
     # block's own `command` (an order the game already has, quoted by
     # `battle_day.the_offer` from `order_quotes`) or its word; a dim chip has no

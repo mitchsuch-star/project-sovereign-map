@@ -415,12 +415,16 @@ class TestTheBareComma:
         assert reply.get("dropped_sequel") is None
 
     def test_a_refused_whole_sentence_is_not_split(self, shipped):
-        """`should Mack advance, fortify` is the inversion the guards refuse;
-        splitting it would execute a clause of a conditional order."""
-        reply = run(shipped, "Ney, should Mack advance, fortify")
+        """`should Mack advance, recruit infantry` is the inversion the guards
+        refuse; splitting it would execute a clause of a conditional order.
+        (Row IC, Session 2: "…, fortify" is an exact order's "dig in" now — a
+        hold that digs in LATER, still never a fortify carried out today.)"""
+        reply = run(shipped, "Ney, should Mack advance, recruit infantry")
         assert reply.get("success") is False
-        assert M.world.get_marshal("Ney").fortified is False
         assert reply.get("dropped_sequel") is None
+        held = run(shipped, "Ney, should Mack advance, fortify")
+        assert held.get("success") and M.world.get_marshal("Ney").fortified is False
+        assert held.get("dropped_sequel") is None
 
     def test_a_leading_filler_is_not_a_head(self, shipped):
         """FA-R3's own pin, re-taken: `Ney, wait, march to Lorraine` is a

@@ -62,6 +62,7 @@ var _standing: Dictionary = {}       # the arrow's: {marshal, shown, info, ap_le
 # The screen rects the card stands clear of (the selected corps' ring and
 # ghost road, the selection's strip) — GLOBAL, logical px.
 var _avoid: Array = []
+const SimpleOrders = preload("res://scripts/simple_orders.gd")   # row IC, Session 2: the one table's tips
 const CARD_WIDTH := 560.0
 const CARD_EDGE := 12.0
 # Session UI-6 (November 13, 2026): the card never takes more than this share
@@ -281,7 +282,16 @@ func open_standing_card(marshal: String, shown: String, info: Dictionary, ap_lef
 	_standing = {"marshal": marshal, "shown": shown, "info": info.duplicate(true), "ap_left": ap_left}
 	_avoid = avoid.duplicate()
 	title_label.text = "STANDING ORDER — " + shown.to_upper()
-	command_label.text = standing_headline(shown, info)
+	# Row IC, Session 2 (pressed in the real client at the first player's
+	# setup): the headline is ONE clipped line, and an exact order's if-thens
+	# are the order itself - "Soult holds Lorraine — if he is attacked, dig in;
+	# if he is outnumbered, fall …" was cut at the card's edge. The headline
+	# says the order; its if-thens stand in the terms, which wrap, a line each
+	# (`_standing_terms`). The whole sentence stays the hover.
+	var bare := info.duplicate(true)
+	bare["watch"] = ""
+	command_label.text = standing_headline(shown, bare)
+	command_label.tooltip_text = standing_headline(shown, info)
 	var cancel_ap := int(info.get("cancel_ap", 1))
 	send_button.text = "Cancel order  (%s)" % ("free" if cancel_ap <= 0 else Utils.plural(cancel_ap, "action"))
 	terms_label.text = _standing_terms(info, ap_left)
@@ -301,11 +311,18 @@ static func standing_headline(shown: String, info: Dictionary) -> String:
 	# backend's own words (`order_road.then` / `order_road.watch`).
 	var then := str(info.get("then", ""))
 	var watch := str(info.get("watch", ""))
+	# Row IC, Session 2 (IC-9): an exact order's if-thens, and how many are
+	# still unused ("2 of 3 left") — on a hold, and on a literal man's march,
+	# pursuit or support too.
+	var left := str(info.get("watch_left", ""))
+	if watch != "" and left != "":
+		watch += " (" + left + ")"
 	match str(info.get("kind", "")):
 		"march":
-			return shown + " marches to " + dest + ((", then " + str(_THEN_DONE.get(then, then))) if then != "" else "")
+			return shown + " marches to " + dest + ((", then " + str(_THEN_DONE.get(then, then))) if then != "" else "") \
+				+ ((" — " + watch) if watch != "" else "")
 		"pursue":
-			return shown + " pursues " + who
+			return shown + " pursues " + who + ((" — " + watch) if watch != "" else "")
 		"hold":
 			return shown + " holds " + dest + ((" — " + watch) if watch != "" else "")
 		"support":
@@ -317,6 +334,24 @@ static func standing_headline(shown: String, info: Dictionary) -> String:
 
 func _standing_terms(info: Dictionary, ap_left: int) -> String:
 	var lines := PackedStringArray()
+	# Row IC, Session 2: the order's if-thens still unused, a line each, and how
+	# many are left - in the backend's own words (`order_road.watch`).
+	var watch := str(info.get("watch", ""))
+	if watch != "":
+		var left := str(info.get("watch_left", ""))
+		var parts := watch.split("; ")
+		var many := parts.size() > 1
+		lines.append("[b]" + ("His exact orders — " + left + ":" if left != "" else "His exact order:") + "[/b]")
+		var n := 0
+		for part in parts:
+			n += 1
+			lines.append("  " + ((str(n) + ".  ") if many else "•  ") + str(part))
+		# (the blind reading: all three readers asked which line wins when two are
+		# true) the rule, in the order's own confirmation's words
+		lines.append("[color=#" + Utils.COLOR_INFO + "]"
+			+ ("As a turn ends he carries out the first of them that is true — by himself, at no cost, each once."
+				if many else "As a turn ends he carries it out if it is true — by himself, at no cost, once.")
+			+ "[/color]")
 	var road = info.get("road", [])
 	var turns := int(info.get("turns", 0))
 	if bool(info.get("halted", false)):
@@ -1064,6 +1099,7 @@ func _terms(q: Dictionary) -> String:
 		if why == "":
 			why = "the order cannot be given"
 		lines.append("[color=#" + Utils.COLOR_ERROR + "]Refused — " + why + "[/color]")
+		lines.append_array(_alt_lines(q))   # row IC, Session 2: another order may still go
 		return "\n".join(lines)
 	if bool(q.get("already", false)):
 		lines.append("[b]No cost[/b] — " + str(q.get("note", "he is already carrying out that order.")))
@@ -1138,7 +1174,52 @@ func _terms(q: Dictionary) -> String:
 	var terms_text := str(q.get("terms", ""))
 	if terms_text != "":
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + terms_text + "[/color]")
+	lines.append_array(_alt_lines(q))
 	return "\n".join(lines)
+
+
+# ── Row IC, Session 2 (IC-7): a button for every simple order, on the card ──
+# The card that opens on an enemy quoted the attack and nothing else; the card
+# that opens on a province quoted the march. The quote now carries the OTHER
+# simple orders (`alts`: chase him, bombard, charge him, the attack held back)
+# and what a march may do on arrival (`thens`: then hold, then dig in, then
+# drill, then stand) — each row the order's own line as the read-back reads it
+# (`backend/commands/order_quotes.py`; the client's table is simple_orders.gd).
+# A chip sends that line at once down the card's own road and the card closes;
+# a row the game would refuse is dimmed beside the game's own reason.
+const ALT_LEAD := "Or another order — a chip sends it now, and this card closes:"
+const THEN_LEAD := "Or march and, on arrival — a chip sends the march with it:"
+
+
+func _alt_lines(q: Dictionary) -> PackedStringArray:
+	var lines := PackedStringArray()
+	var info := "[color=#" + Utils.COLOR_INFO + "]"
+	for key in ["alts", "thens"]:
+		var rows = q.get(key, [])
+		if not (rows is Array) or (rows as Array).is_empty():
+			continue
+		var chips := PackedStringArray()
+		for a in rows:
+			if not (a is Dictionary) or str(a.get("command", "")) == "":
+				continue
+			var label := str(a.get("label", ""))
+			# a march's "then" is free with the march: its price is the card's own
+			if key == "alts":
+				label += " · " + _price(int(a.get("ap", 0)))
+			# the chip's hover says what its order DOES, in the one table's words
+			# (the blind reading: "Chase him" did not say what chasing is)
+			var tip := str(SimpleOrders.row(str(a.get("id", "")).get_slice(":", 0)).get("tip", ""))
+			if bool(a.get("ok", false)):
+				chips.append(Utils.bb_button_chip("do:" + str(a.get("command", "")), label,
+					Utils.COLOR_GOLD, BRING_CHIP_BG, "", tip))
+			else:
+				chips.append(Utils.bb_chip_disabled(str(a.get("label", "")), "", str(a.get("refusal", "")))
+					+ " " + info + str(a.get("refusal", "")) + "[/color]")
+		if chips.is_empty():
+			continue
+		lines.append(info + (ALT_LEAD if key == "alts" else THEN_LEAD) + "[/color]")
+		lines.append("  " + "  ".join(chips))
+	return lines
 
 
 # ── Row BA, BA-2 (November 14, 2026): the plan of battle on the attack's card ──

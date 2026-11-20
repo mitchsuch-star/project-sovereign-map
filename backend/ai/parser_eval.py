@@ -81,6 +81,11 @@ ALLOWED_EXPECTED_KEYS = {
     # CC-4: the arrival verb ("march to X then fortify", D7) and the standing
     # contingency ("if Mack advances, fall back to Bohemia", D8).
     "arrival_verb", "contingency",
+    # Row IC, Session 2: `if_thens` — an exact order's lines, each compared on
+    # what it does (IC-9; `contingency` stays the FIRST line's who/then/to);
+    # `blanked_contains` — a clause the condition guard blanked without
+    # refusing, which the read-back names (IC-V1).
+    "if_thens", "blanked_contains",
 }
 ALLOWED_DIPLO_KEYS = {
     "action", "proposal_type", "target_nation", "mission_type", "tone",
@@ -230,11 +235,29 @@ def evaluate_entry(parser, entry: Dict, world_key: str, world,
     if "arrival_verb" in expected:
         actual = result.get("arrival_verb") if result.get("is_strategic") else None
         check("arrival_verb", actual, expected["arrival_verb"])
+    # Row IC (IC-9): the single contingency became the FIRST of a list of
+    # if-thens; `contingency` reads that first line as it always did, and
+    # `if_thens` compares every line on what it does (a key a row leaves out
+    # of a line is not compared).
+    lines = (result.get("if_thens") or []) if result.get("is_strategic") else []
     if "contingency" in expected:
-        got = result.get("contingency") if result.get("is_strategic") else None
+        got = lines[0] if lines else None
         actual = ({k: got.get(k) for k in ("who", "then", "to")}
                   if isinstance(got, dict) else None)
         check("contingency", actual, expected["contingency"])
+    if "if_thens" in expected:
+        wanted = expected["if_thens"] or []
+        actual = [{k: line.get(k) for k in want} for line, want in zip(lines, wanted)]
+        if len(lines) != len(wanted):
+            mismatches.append(f"if_thens: {len(lines)} line(s) read, {len(wanted)} expected")
+        else:
+            check("if_thens", actual, wanted)
+    if "blanked_contains" in expected:
+        blanked = " | ".join(str(b.get("clause") or "")
+                             for b in (result.get("blanked_clauses") or []))
+        if str(expected["blanked_contains"]).lower() not in blanked.lower():
+            mismatches.append(
+                f"blanked_contains: {expected['blanked_contains']!r} not in {blanked!r}")
     if "warning_contains" in expected:
         warning = result.get("warning") or ""
         if expected["warning_contains"].lower() not in warning.lower():

@@ -131,6 +131,11 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	"res://scripts/desk_lines.gd",
 	"res://scripts/turn_end_list.gd",
 	"res://scripts/map_key.gd",
+	# Row IC, Session 2 (November 20, 2026): the ONE table of the simple orders
+	# that had no button (IC-V4), and the word table's generated lists for the
+	# typed line (both loaded by path).
+	"res://scripts/simple_orders.gd",
+	"res://scripts/task_words.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not

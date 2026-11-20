@@ -36,7 +36,10 @@ const PORTRAIT_EXTS := [".jpg", ".png", ".jpeg", ".webp"]
 ## while he is fortified. Slot 7 cancels his standing order (the arrow card's
 ## own road, POST /cancel_order); it is locked while he has none.
 const SLOTS := [
-	{"slot": 1, "verb": "hold", "label": "Hold", "glyph": "defense"},
+	# (row IC, Session 2: on the general's card the Hold slot reads "Hold the
+	# ground" beside the one-action "Stand here" — `card_label`; every other
+	# surface keeps "Hold")
+	{"slot": 1, "verb": "hold", "label": "Hold", "glyph": "defense", "card_label": "Hold the ground"},
 	{"slot": 2, "verb": "fortify", "label": "Fortify", "glyph": "garrison",
 		"alt_verb": "unfortify", "alt_label": "Unfortify"},
 	{"slot": 3, "verb": "drill", "label": "Drill", "glyph": "drum"},
@@ -116,6 +119,12 @@ static func from_board(entry: Dictionary, row: Dictionary = {}) -> Dictionary:
 		"location": location,
 		"prices": _dict_of(ts.get("order_prices", {})),
 		"refusals": _dict_of(ts.get("order_refusals", {})),
+		# Row IC, Session 2 (IC-7): the simple orders that are no screen verb
+		# (a posture, the square, "stay put") with the game's own prices and
+		# refusals; his posture; and whether he was told to stay put this turn.
+		"buttons": _dict_of(ts.get("buttons", {})),
+		"stance": str(ts.get("stance", "")),
+		"stay_put": bool(ts.get("stay_put", false)),
 	}
 
 
@@ -129,6 +138,9 @@ static func is_idle(view: Dictionary) -> bool:
 	if str(view.get("order_type", "")) != "":
 		return false
 	if bool(view.get("fortified", false)) or bool(view.get("drilling", false)):
+		return false
+	# Row IC, Session 2 (IC-7): told to "stay put" this turn - not idle today.
+	if bool(view.get("stay_put", false)):
 		return false
 	return not bool(view.get("square", false))
 
@@ -216,6 +228,7 @@ static func order_specs(view: Dictionary) -> Array:
 			locked = true
 		out.append({
 			"slot": int(slot["slot"]),
+			"card_label": str(slot.get("card_label", label)),
 			"verb": verb,
 			"label": label,
 			"glyph": str(slot["glyph"]),

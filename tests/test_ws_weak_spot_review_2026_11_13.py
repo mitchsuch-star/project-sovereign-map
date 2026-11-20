@@ -23,7 +23,9 @@ Fixed here, each with its behaviour test:
 
 Filed OPEN, heading Session H (S15): WS-10 … WS-15 and WS-R — strict-xfail
 pins that turn red the day the behaviour lands, so the row closes with it.
-(WS-11 landed November 14, 2026 with row BA's first session; its pin passes.)
+(WS-11 landed November 14, 2026 with row BA's first session; its pin passes.
+WS-12 and WS-14 landed November 20, 2026 with row IC's Session 2 — IC-8; their
+pins pass, and their behaviour is `tests/test_ic8_the_line.py`.)
 """
 from __future__ import annotations
 
@@ -51,9 +53,10 @@ SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 _OPEN_S15 = ("OPEN — heads Session H (S15) by rule 10's sibling sweep "
              "(BUG_FIXES.md §WS); this pin turns red the day the behaviour lands")
 # WS-12 and WS-14 moved November 20, 2026 from Session H's head to row IC's IC-8 (the review of
-# "on his own": the read-back of typed tasks depends on them — INDEPENDENT_COMMAND_SPEC.md §8.7).
-_OPEN_IC8 = ("OPEN — owner row IC Session 2, slice IC-8 (moved from Session H's head November 20, "
-             "2026; BUG_FIXES.md §WS); this pin turns red the day the behaviour lands")
+# "on his own": the read-back of typed tasks depends on them — INDEPENDENT_COMMAND_SPEC.md §8.7)
+# and were FIXED there the same day (row IC, Session 2): their strict-xfail pins turned red the day
+# the behaviour landed, as they said they would, and are re-seated below as passes. The behaviour
+# tests are `tests/test_ic8_the_line.py` (`TestWS12…`, `TestGRD33…`, `TestWS14…`).
 
 
 def _gd(name: str) -> str:
@@ -581,10 +584,12 @@ class TestWS11ABattleIsRolledAgainByLoading:
 
 class TestWS12AModelsNumberMovesAMarshal:
     """Golden Rule 6: in a live-model parse, the `strategic_score` the model
-    wrote sets morale, trust and a banked attack bonus on the player's marshal
-    before the order is dispatched — and a line refused for free keeps them."""
+    wrote set morale, trust and a banked attack bonus on the player's marshal
+    before the order was dispatched — and a line refused for free kept them.
+    FIXED in row IC's Session 2 (IC-8, November 20, 2026; ruled November 17):
+    the bonus is retired and the literal marshal's buff reads the fast parser's
+    own numbers — behaviour pinned in `tests/test_ic8_the_line.py`."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_IC8)
     def test_no_number_the_model_wrote_moves_a_marshal(self):
         src = inspect.getsource(CommandExecutor._exec_bonuses_and_clarification)
         assert "apply_strategic_bonuses" not in src
@@ -603,11 +608,12 @@ class TestWS13OutnumberedIsReadOnTheTwoLeads:
 
 
 class TestWS14TheReadbackOverclaimsAStandingQuestion:
-    """While Berthier's clarification stands, the readback calls EVERY line
+    """While Berthier's clarification stood, the readback called EVERY line
     "this line answers it"; `/command` passes a line that is no answer on to
-    the ordinary road and carries it out."""
+    the ordinary road and carries it out. FIXED in row IC's Session 2 (IC-8,
+    November 20, 2026): the readback asks `/command`'s own readers — behaviour
+    pinned in `tests/test_ic8_the_line.py`."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_IC8)
     def test_a_fresh_order_is_not_called_an_answer(self):
         from backend.commands import parse_preview as pp
         from backend.commands.clarification import CLARIFICATION_DIALOGUE_TYPE

@@ -117,11 +117,18 @@ def _own_field_corps(world) -> List[Any]:
             and not getattr(m, "captured_by", "") and getattr(m, "location", None)]
 
 
-def is_idle(marshal) -> bool:
+def is_idle(marshal, turn: Optional[int] = None) -> bool:
     """A corps with nothing to do — no standing order, no works, no drill, no
     square: the client's own reading (`main.gd::_idle_marshals`, the End Turn
-    gate's idle line), said once here so the two cannot part."""
+    gate's idle line), said once here so the two cannot part.
+
+    Row IC, Session 2 (IC-7): a man told to "stay put" on turn `turn` is not
+    idle on that turn — the player has answered for him (the next turn he is
+    again)."""
     if bool(getattr(marshal, "in_strategic_mode", False)) or getattr(marshal, "strategic_command_type", None):
+        return False
+    stayed = getattr(marshal, "stay_put_turn", None)
+    if turn is not None and stayed is not None and int(stayed) == int(turn):
         return False
     return not (bool(getattr(marshal, "fortified", False)) or bool(getattr(marshal, "drilling", False))
                 or bool(getattr(marshal, "drilling_locked", False))
@@ -563,7 +570,8 @@ def _rows_take(world, have) -> List[Dict[str, Any]]:
 
 def idle_corps(world) -> List[Any]:
     """Our field corps with nothing to do, in the roster's order (`is_idle`)."""
-    return [m for m in _own_field_corps(world) if is_idle(m)]
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    return [m for m in _own_field_corps(world) if is_idle(m, turn)]
 
 
 def _rows_reach_and_idle(world, have) -> List[Dict[str, Any]]:
@@ -740,6 +748,65 @@ def _rows_restless(world, have) -> List[Dict[str, Any]]:
     return rows
 
 
+def order_words(order) -> str:
+    """A standing order's own words, as the typed line takes them back ("hold
+    Lorraine", "march to Lorraine", "pursue Mack", "support Ney")."""
+    kind = str(getattr(order, "command_type", "") or "")
+    target = humanize_entity_name(str(getattr(order, "target", "") or ""))
+    if kind == "HOLD":
+        return f"hold {target}".strip()
+    if kind == "MOVE_TO":
+        return f"march to {target}"
+    if kind == "PURSUE":
+        return f"pursue {target}"
+    if kind == "SUPPORT":
+        return f"{'follow' if getattr(order, 'standing_follow', False) else 'support'} {target}"
+    return "hold"
+
+
+def _rows_exact_orders(world, have) -> List[Dict[str, Any]]:
+    """Row IC, Session 2 (IC-9; INDEPENDENT_COMMAND_SPEC §7, §12): a standing
+    order's IF-THENS that want the player's word —
+
+    * a line that can no longer be carried out (a friend gone, a place to fall
+      back on lost) is STRUCK: "his orders are broken", flagged at once;
+    * every line used and the order still standing: he stands, and the row
+      offers to renew them at the order's own price.
+
+    Either row's door opens his card and WRITES the order's sentence on the
+    command line (`line`) — a door never sends an order (§229)."""
+    from backend.commands import if_thens
+    from backend.display_names import actions_words
+    rows = []
+    for m in _own_field_corps(world):
+        order = getattr(m, "strategic_order", None)
+        lines = if_thens.lines(order)
+        if not lines:
+            continue
+        shown = humanize_entity_name(m.name)
+        struck = [line for line in lines if line.get("struck")]
+        live = if_thens.unused(order)
+        kept = [line for line in lines if not line.get("struck")]
+        sentence = if_thens.restate(shown, order_words(order), kept or lines)
+        if struck:
+            why = str(struck[0].get("struck") or "")
+            rows.append(_row(
+                f"orders_broken:{m.name}", TIER_BITES,
+                _fit([f"{shown}'s orders are broken — {why}. Give them again.",
+                      f"{shown}'s orders are broken — give them again."]),
+                {"kind": "marshal", "marshal": m.name, "line": sentence},
+                more=(f"{shown}'s orders are broken: "
+                      f"'{if_thens.describe(struck[0])}' can no longer be carried out — {why}.")))
+        elif not live:
+            price = actions_words(int(m.strategic_order_ap(order_type=order.command_type)))
+            rows.append(_row(
+                f"orders_used:{m.name}", TIER_WASTES,
+                _fit([f"{shown} has used his if-thens and stands — renew them ({price}).",
+                      f"{shown} has used his if-thens — renew them ({price})."]),
+                {"kind": "marshal", "marshal": m.name, "line": sentence}))
+    return rows
+
+
 def _rows_congress(world, have) -> List[Dict[str, Any]]:
     from backend.game_logic import congress
     if not congress.armed(world):
@@ -811,6 +878,7 @@ READERS: List[tuple] = [
     ("take", _rows_take),
     ("reach_and_idle", _rows_reach_and_idle),
     ("restless", _rows_restless),
+    ("exact_orders", _rows_exact_orders),
     ("congress", _rows_congress),
     ("law", _rows_law),
     ("commission", _rows_commission),

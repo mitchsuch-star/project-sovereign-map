@@ -356,6 +356,17 @@ THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER = True
 OBJECTION_CANCEL_WORDS = frozenset({"cancel", "withdraw"})
 
 
+def the_literal_buff_expires_with_the_turn() -> bool:
+    """GRD-33 (ruled November 17, 2026 under the user's delegation — "it
+    expires at the turn's end (Iron Resolve's no-banking)"; built in row IC's
+    IC-8 with WS-12, the same code): the literal marshal's ambiguity buff
+    (`strategic_combat_bonus` / `strategic_defense_bonus`, +5 to +15%) is
+    cleared as the turn advances. Before, a literal man ordered "fortify"
+    crisply kept +15% attack until his next attack, however many turns later,
+    and kept it through a rout. One line to reverse: return False."""
+    return True
+
+
 class MetaExecutor:
     """Handles meta-game actions: end_turn, status, help, debug, cheat, objection responses."""
 
@@ -839,6 +850,11 @@ class MetaExecutor:
         Apply combat buff to literal marshals based on order clarity.
         Phase 5.2: Ambiguity thresholds → combat bonus on attack AND defense.
         Also triggers Precision Execution if conditions met.
+
+        WS-12: `ambiguity` and `strategic_score` are the FAST parser's own
+        (the caller's rule) — never a number a model wrote. GRD-33: the buff
+        is for the turn it is given in (`the_literal_buff_expires_with_the_
+        turn`; `WorldState._process_tactical_states` clears it).
         """
         COMBAT_ACTIONS = ["attack", "charge", "defend", "fortify"]
 
@@ -3163,6 +3179,10 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         elif action == "wait":
             marshal = world.get_marshal(marshal_name)
             if marshal:
+                # Row IC, Session 2 (IC-7): "Stay put" that he first objected
+                # to and was then told to do — the player's own word still.
+                if marshal.nation == getattr(world, "player_nation", None):
+                    marshal.stay_put_turn = int(world.current_turn)
                 result = self._executor._tactical._execute_wait(marshal, world, game_state)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
@@ -3237,6 +3257,10 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
 
+        # Row IC, Session 2 (the review, S3): an order carried out AFTER his
+        # objection is an order given by hand too — his if-thens sleep this turn.
+        from backend.commands import if_thens as _if_thens
+        _if_thens.ordered_by_hand(world, marshal_name, action, command, result)
         return result
 
     def _execute_cheat(self, command: Dict, game_state: Dict) -> Dict:

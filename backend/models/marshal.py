@@ -195,14 +195,23 @@ class StrategicOrder:
     # None on every other order and in every older save.
     arrival_verb: Optional[str] = None
 
-    # CC-4 / D8 (S13c part 4): a STANDING CONTINGENCY on a HOLD — "Ney, if
-    # Mack advances fall back to Bohemia" / "… if the enemy comes within
-    # reach, attack": {"who": <enemy marshal> | None (any enemy at war),
-    # "then": "fall_back" | "attack", "to": <province> | None, "clause":
-    # the words typed}. Watched at the strategic phase (the hold province
-    # and its neighbours, seen ones only), fired free (`strategic.
-    # contingency_trigger`). None on every other order and older save.
-    contingency: Optional[Dict] = None
+    # Row IC, Session 2 (IC-9) — EXACT ORDERS: the IF-THENS the order carries
+    # ("Soult, hold Lorraine. If attacked, dig in. If outnumbered, fall back
+    # on Champagne."). A list of lines, in the order typed — each
+    # {"if", "who", "friend", "place", "then", "to", "any_odds", "clause",
+    # "used", "written"} (`backend/commands/if_thens.py` is the grammar, the
+    # rules and the triggers). Three at most for a literal marshal's standing
+    # order; one, on a hold, for anyone else's. Read after the enemy has
+    # moved, from the turn after `written`, each line once (`used`). It
+    # REPLACES CC-4 / D8's single `contingency` ({who, then, to, clause}):
+    # an older save's contingency loads as a one-line list (`from_dict`).
+    if_thens: List[Dict] = field(default_factory=list)
+
+    # Row IC, Session 2 (IC-9): the place a bold man on a TASK TO PROVE HIMSELF
+    # takes on the order's first night — the take order as the card builds it
+    # ("<Marshal>, attack <Province>"), run once by the strategic pass at no
+    # cost, then cleared. None on every other order and in every older save.
+    opening_take: Optional[str] = None
 
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
@@ -233,7 +242,8 @@ class StrategicOrder:
             "condition_progress": list(self.condition_progress or []),
             "standing_follow": bool(self.standing_follow),
             "arrival_verb": self.arrival_verb,
-            "contingency": dict(self.contingency) if self.contingency else None,
+            "if_thens": [dict(line) for line in (self.if_thens or [])],
+            "opening_take": self.opening_take,
         }
 
     @classmethod
@@ -242,6 +252,20 @@ class StrategicOrder:
         condition = None
         if data.get("condition"):
             condition = StrategicCondition.from_dict(data["condition"])
+        # Row IC (IC-9): the if-thens; a save from before the list carries
+        # CC-4 / D8's single contingency, which loads as its one line —
+        # already live (it was written before the save).
+        if_thens = [dict(line) for line in (data.get("if_thens") or [])
+                    if isinstance(line, dict)]
+        legacy = data.get("contingency")
+        if not if_thens and isinstance(legacy, dict) and legacy:
+            if_thens = [{
+                "if": "enemy_near", "who": legacy.get("who") or None, "friend": None,
+                "place": None,
+                "then": "attack" if legacy.get("then") == "attack" else "fall_back",
+                "to": legacy.get("to") or None, "any_odds": False,
+                "clause": str(legacy.get("clause") or ""), "used": False, "written": None,
+            }]
         return cls(
             command_type=data["command_type"],
             target=data["target"],
@@ -269,7 +293,8 @@ class StrategicOrder:
             condition_progress=list(data.get("condition_progress") or []),
             standing_follow=bool(data.get("standing_follow", False)),
             arrival_verb=data.get("arrival_verb"),
-            contingency=(dict(data["contingency"]) if data.get("contingency") else None),
+            if_thens=if_thens,
+            opening_take=data.get("opening_take"),
         )
 
 
@@ -573,6 +598,16 @@ class Marshal:
         # invisible to `test_serialization_enforcement`, which filters them —
         # the A10 class this file's own header documents as closed.
         self.acted_this_turn: bool = False
+        # Row IC, Session 2 (IC-9): the turn he was last given an order BY
+        # HAND (never the game's own carrying-out of a standing order, never
+        # "stay put"). "One thing a turn": on that turn the if-thens of his
+        # standing order sleep (`strategic._if_thens_pass`). None = never.
+        self.last_ordered_turn: Optional[int] = None
+        # Row IC, Session 2 (IC-7): the turn he was told to STAY PUT — it
+        # quiets his "no orders" row for that turn only (the desk, the End
+        # Turn list, the idle badge). It is no work for a literal man's
+        # restlessness and stands no warned strike down. None = never.
+        self.stay_put_turn: Optional[int] = None
         self.last_combat_turn: Optional[int] = None
         self.last_combat_result: Optional[str] = None  # "victory", "defeat", "stalemate"
         self.last_combat_location: Optional[str] = None
@@ -2054,6 +2089,8 @@ class Marshal:
             # ═══════ COMBAT TRACKING ═══════
             "in_combat_this_turn": self.in_combat_this_turn,
             "acted_this_turn": self.acted_this_turn,
+            "last_ordered_turn": self.last_ordered_turn,
+            "stay_put_turn": self.stay_put_turn,
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
             "last_combat_location": self.last_combat_location,
@@ -2303,6 +2340,8 @@ class Marshal:
         # ═══════ COMBAT TRACKING ═══════
         marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)
         marshal.acted_this_turn = bool(data.get("acted_this_turn", False))
+        marshal.last_ordered_turn = data.get("last_ordered_turn")
+        marshal.stay_put_turn = data.get("stay_put_turn")
         marshal.last_combat_turn = data.get("last_combat_turn")
         marshal.last_combat_result = data.get("last_combat_result")
         marshal.last_combat_location = data.get("last_combat_location")

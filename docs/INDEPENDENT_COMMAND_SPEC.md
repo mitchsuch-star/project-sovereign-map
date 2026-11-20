@@ -1495,17 +1495,46 @@ and the line before judgement, exact orders before the audience's trial can repl
 replacement before "on his own" exists — so the shipped game never holds both. Nothing is dropped; the slices
 are renumbered IC-7 … IC-15.*
 
-### Session 2 — Buttons for orders, the line for tasks, exact orders (nothing yet chooses for itself)
+### Session 2 — Buttons for orders, the line for tasks, exact orders (nothing yet chooses for itself) — ✅ BUILT November 20, 2026, less the trial (Session 2b below)
 
 | Slice | What | Done when | Tests |
 |---|---|---|---|
 | **IC-7** | The buttons (§8.1): chase, the one-action stand, scout a named province, posture, square, bombard, a charge or restraint you start, stay put, a march's "then", the group's attack, support, fall back and garrison; `SIMPLE_ORDER_BUTTONS`; the Help's Orders page and the boot help made true | Every order of §8.1 is one click with its price on its face, pressed in the real client at the user's setup; IC-V4 closed | `tests/test_ic7_the_buttons.py`; driven `TestRowIC7TheButtons`; the pin `TestICV4…` promoted |
 | **IC-8** | The line for tasks (§8.2–§8.5): the word table and its generated lists, the chips, the filled line, the read-back's four rows, the refusals with the nearest sentence; first, the typed road's open defects — UI6-X70, X73, X74, X75, WS-14, WS-12 with GRD-33, IC-V1, IC-V2 | Every "today" and "IC-8" line of §8.3's examples reads back as written, with no key; nothing is spent before Give; a part that changes what he does is never dropped in silence | `tests/test_ic8_the_line.py`; the golden corpus (a row per part); the pins of the rows it closes promoted |
-| **IC-9** | Exact orders (§7): three if-thens for a literal man, one for the others, the six new ifs and three new answers, each used once, the renew row; **the audience's task to prove himself** replacing "Grant Autonomy" — the old arm, its engine and its words deleted in the same commit, old saves settled; IC-V3 closed with the engine | §7's rules hold on every if-then; the audience offers no autonomy arm; no French marshal is ever moved by the enemy's decision logic; the words census passes | `tests/test_ic9_exact_orders.py`; the rewritten `test_autonomy.py`, `test_redemption_v2b.py`, `test_administrative_role.py`, `test_wo41_redemption_survives_the_save.py` |
+| **IC-9**, first half | Exact orders (§7): three if-thens for a literal man, one for the others, the six new ifs and three new answers, each used once, the renew row — **✅ built** | §7's rules hold on every if-then | `tests/test_ic9_exact_orders.py` |
 
 Measure: R-INERT on every arm but the audience's (the France band re-read with the driver's new answer, per seed);
 R-READ for the buttons and the line (§13's version-6 questions). STATUS line: *"ROW IC, SESSION 2 — BUTTONS FOR
 ORDERS, THE LINE FOR TASKS, EXACT ORDERS"*.
+
+**The landing record (November 20, 2026; the rules `SYSTEMS_REFERENCE.md` §231; the ledger `BUG_FIXES.md` §"Row
+IC, Session 2").** IC-7, IC-8 and exact orders landed in one commit; IC-V1 … IC-V4, UI6-X70 / X73 / X74 / X75,
+WS-12 with GRD-33 and WS-14 are closed, each pin promoted. What was built differs from the tables above in these
+ways, each one line to reverse: (1) a line of an exact order that cannot be taken refuses the WHOLE typed line,
+free, with the line as understood — never a silent drop; (2) "Send what I understood" is Enter itself: while a
+part that changes what he does is not taken, the reading says "Enter sends: …" and Enter sends that line (a typed
+line sent before its reading is back is held free and written back as understood); (3) the read-back's rows are
+labelled Taken / Not taken / He says / Enter sends, and its price stays the first line; (4) a joiner by his line
+keeps his hold and walks home; (5) an attack by several is one battle — the group's "Attack…" opens the lead's
+card; (6) "Attack, held back" rides the attack order, and only where the charge question would be asked; (7) the
+ready tasks ("Give him a task…") are buttons on his card — the line is never written unasked; the word-chips are
+the read-back's own fill chips. Pressed in the real client at the first player's setup, which moved five things
+(§231.9). **The measure and the reading:** see §231.9. **Not built: the audience's task to prove himself** —
+Session 2b, next.
+
+### Session 2b — The task to prove himself (the half of IC-9 handed on at Session 2's checkpoint)
+
+| Slice | What | Done when | Tests |
+|---|---|---|---|
+| **IC-9**, second half (ledger row **IC2-D1**) | **The audience's task to prove himself** replacing "Grant Autonomy" (§6.11) — his own proposal by nature, as an exact order for three turns, today's rewards; "Call him back"; the old arm, its engine (`TurnManager._process_autonomous_marshals`, `_end_autonomy`) and its words deleted in the same commit; old saves settled; IC-V3's guard re-seated on the trial | The audience offers no autonomy arm; no French marshal is ever moved by the enemy's decision logic; the words census passes | The strict-xfail pins `tests/test_ic_review_pins.py::TestIC2D1TheTrialReplacesGrantAutonomy` promoted; the rewritten `test_autonomy.py`, `test_redemption_v2b.py`, `test_administrative_role.py`, `test_wo41_redemption_survives_the_save.py` |
+
+Measure: R-INERT's one exception — the audience's arm (the France band re-read with the driver's new answer, per
+seed). R-READ: §13's third version-6 question, on the audience's window. STATUS line: *"ROW IC, SESSION 2b — THE
+TASK TO PROVE HIMSELF"*. The plan, decided: `docs/NEXT_SESSION_PROMPT.md`. *Why it was handed on:* Session 2's
+plan fixed the fork beforehand — "the session cannot hold all three slices at the standard: land IC-7 and IC-8,
+and hand IC-9 to its own session"; exact orders were built and tested at the checkpoint and landed, the trial
+(four test files rewritten, about twenty touched) was not started. Nothing is half-built: the audience offers what
+it offered, and the shipped game never holds both "Grant Autonomy" and "on his own" (Session 3 follows 2b).
 
 ### Session 3 — On his own
 
@@ -1529,7 +1558,7 @@ OWN"*.
 
 STATUS line: *"ROW IC, SESSION 4 — THE VOICE AND THE OTHER SIDE OF THE HILL — ROW IC COMPLETE"*.
 
-**Where the row sits against the deploy.** All three sessions run before the deploy session (Session H) — the
+**Where the row sits against the deploy.** All of its sessions (2b, 3 and 4 remain) run before the deploy session (Session H) — the
 pattern of rows BA, OC and PW, and the user's standing rule that content is not cut or pushed back to protect a
 date. *Version 6: until November 20 no record had homed them (the STATUS line said only "later sessions of the
 row"); they are now a row of `PRE_DEPLOY_PLAN.md` §2, and `docs/NEXT_SESSION_PROMPT.md` opens Session 2.* This

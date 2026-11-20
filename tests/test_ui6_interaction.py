@@ -370,8 +370,11 @@ class TestTheReadback:
         assert "command_input.text = line" in meta and "_resume_editing()" in meta
         for never in ("send_command", "_execute_command", "_on_reward_command"):
             assert never not in meta, never
+        # row IC, Session 2: the links are built by ONE helper — the first line's
+        # chips and, while a part of the line blocks, the "Or press to write:" line
         chips = _func(MAIN, "_readback_chips")
-        assert '"[url=fill:%d]%s[/url]"' in chips
+        assert "_readback_chip_links(resp)" in chips
+        assert '"[url=fill:%d]%s[/url]"' in _func(MAIN, "_readback_chip_links")
 
     def test_the_harnesses_lack_nothing_the_client_asks(self):
         """A stub without the readback's two calls is guarded (has_method): the

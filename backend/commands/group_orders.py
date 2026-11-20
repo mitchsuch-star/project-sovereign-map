@@ -691,6 +691,12 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
 # leads and the muster calls the others (`parser.SECOND_NAME_SUPPORT_ACTIONS`):
 # his attack, charge, bombardment or pursuit is never fanned out to a list.
 LIST_KEEPS_ONE_BATTLE = frozenset({"attack", "charge", "pursue", "bombard"})
+# Row IC, Session 2 (IC-7): the verbs only a NAMED address fans out — a list
+# of names, a named army, a group sent from the map. "Ney, Davout and Soult,
+# fall back" is each man's own fall back, on the one list (the group face's
+# "Fall back…"); "everyone retreat" stays the GENERAL retreat it always was
+# (`GROUPABLE_ACTIONS` is untouched, so the collective road never sees it).
+NAMED_ONLY = frozenset({"retreat"})
 
 
 def build(world, parser, llm_game_state, command_text: str, parsed: Dict, *,
@@ -840,7 +846,7 @@ def _build_named(world, parser, llm_game_state, command_text: str, parsed: Dict,
     if p_type:
         if p_type not in GROUPABLE_STRATEGIC:
             return None
-    elif not cancel and p_action not in GROUPABLE_ACTIONS:
+    elif not cancel and p_action not in GROUPABLE_ACTIONS and p_action not in NAMED_ONLY:
         return None
     target = str(p_cmd.get("target") or "")
     leader = _leader_name(world, probe) if p_type in ("SUPPORT", "PURSUE") else ""

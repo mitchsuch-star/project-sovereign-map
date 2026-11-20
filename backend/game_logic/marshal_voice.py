@@ -53,8 +53,22 @@ LITERAL_NO_MARCH: List[str] = [
 ]
 
 
+# ── Row IC, Session 2 (IC-9): his answer to an EXACT ORDER, on the read-back ──
+LITERAL_EXACT: List[str] = [
+    "To the letter, Sire — each line once, and no more.",
+    "Exactly as written, Sire. I will not improve on it.",
+    "As written, Sire: no more and no less.",
+]
+
+
 def _pick(bank: List[str], key: int) -> str:
     return bank[key % len(bank)]
+
+
+def literal_exact_ack(name: str, turn: int) -> str:
+    """The read-back's "He says" for a literal marshal given if-thens — one
+    line, picked by the man and the turn (never a die)."""
+    return _pick(LITERAL_EXACT, sum(ord(c) for c in str(name or "")) + int(turn))
 
 
 def _clean_order_text(order_text: str) -> str:

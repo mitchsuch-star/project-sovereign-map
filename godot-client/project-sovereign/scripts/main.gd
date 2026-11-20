@@ -378,6 +378,10 @@ var _last_relay_fill := ""
 # re-offers the refused order on the relay's keys, which the fill above
 # already handles. Stashed like the relay, raised at control return.
 var pending_remedy_command := ""
+# Row IC, Session 2 (IC-8) — "Send what I understood": the line as the backend
+# understood it, handed back with a typed line it held; written on the command
+# line at control return (the relay's idiom), never sent.
+var pending_understood_command := ""
 # CC-0 "The line is the player's" (October 15, 2026). An order OFFERED to the
 # line — a dispatch TODAY chip, the tutor, a relay arriving over a draft —
 # never overwrites what the player is typing. It waits at the head of the
@@ -3511,6 +3515,10 @@ func _execute_command():
 	# nothing on the line (nor an armed end turn) goes beneath it.
 	if _order_card_open():
 		return
+	# Row IC, Session 2 (IC-8; "Send what I understood"): the reading on screen
+	# may carry the line WITHOUT a part that was not taken - read before the
+	# reading is let go.
+	var understood := _readback_understood(command_input.text.strip_edges())
 	_readback_cancel()     # Session UI-6: the line goes, and its reading with it
 	_card_sent_for = ""    # Session UI-6 (N4): a typed line never moves the selection on
 	var command = command_input.text.strip_edges()
@@ -3550,6 +3558,14 @@ func _execute_command():
 	_offered_command = ""
 	_clear_order_selection()   # CC-3: and a selected corps — a send lets him go
 	_ui5_close_log()   # Session UI-6: a send folds the bar's log (a reply of more than a line reopens it)
+
+	# Row IC, Session 2 (IC-8): while a "Not taken" row stood, what goes is the
+	# line as understood - and the log says so, with what was typed.
+	if understood != "" and understood != command:
+		add_output("")
+		add_output("[color=#" + Utils.COLOR_INFO + "]You typed: " + Utils.humanize_nation_keys_in_text(command)
+			+ " — a part of it was not taken. Sent as understood:[/color]")
+		command = understood
 
 	# Add to history before clearing
 	_add_to_history(command)
@@ -3623,6 +3639,10 @@ func _execute_command():
 	# LIST, not carried out — kept here so a Cancel puts it back on the line.
 	_directive_typed_line = command
 	# Send to backend
+	# Row IC, Session 2 (IC-8): this line was TYPED in the command window - the
+	# one sender that says so (a stand-in client without the flag sends as before)
+	if "typed_line" in api_client:
+		api_client.typed_line = true
 	api_client.send_command(command, _on_command_result, relayed)
 
 # ════════════════════════════════════════════════════════════
@@ -5540,6 +5560,37 @@ func _stash_relay(response: Dictionary) -> void:
 	pending_relay_command = str(relay) if relay is String and relay != "" else ""
 
 
+func _stash_understood(response: Dictionary) -> void:
+	"""Row IC, Session 2 (IC-8): a typed line the backend HELD because a part of
+	it was not taken (`refusal: not_taken`, or an exact order's line that could
+	not be carried) comes back with the line as understood. Every response
+	resets it."""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var line = response.get("understood")
+	pending_understood_command = str(line) if line is String and line != "" \
+		and not bool(response.get("success", false)) else ""
+
+
+func _fill_pending_understood() -> void:
+	"""… and it is written on the command line when control returns - an empty
+	line only (the line is the player's), never sent: the next Enter sends
+	exactly what is shown."""
+	if pending_understood_command == "":
+		return
+	if _chip_command_in_flight or command_input == null or not command_input.editable:
+		return
+	var cmd := pending_understood_command
+	pending_understood_command = ""
+	if command_input.text.strip_edges() != "":
+		_offer_beside_line(cmd, false)
+		return
+	command_input.text = cmd
+	command_input.caret_column = cmd.length()
+	_refresh_suggestions()
+	_readback_sync()   # the line as understood is read
+
+
 func _stash_remedy(response: Dictionary) -> void:
 	"""CF-4: remember a refusal's one-verb remedy (`remedy_command`). Every
 	response resets it — the key is absent on every reply but the refusal
@@ -6152,6 +6203,7 @@ func _stash_pending_surfaces(response) -> void:
 	_stash_deferred_dialogue(response)  # FA slice 3 review round
 	_stash_petition(response)  # FA slice 6 (FA-5)
 	_stash_relay(response)  # CR-7-3
+	_stash_understood(response)  # row IC, Session 2 (IC-8)
 	_stash_remedy(response)  # CF-4
 	_stash_ending(response)  # GE-2
 
@@ -6174,6 +6226,7 @@ func _clear_pending_surfaces() -> void:
 	pending_petition_data = null
 	pending_capture_response = null
 	pending_relay_command = ""
+	pending_understood_command = ""  # row IC, Session 2
 	pending_remedy_command = ""  # CF-4
 	pending_ending_queue.clear()
 	_pending_envoy_digest_turn = -1
@@ -8224,6 +8277,8 @@ func set_input_enabled(enabled: bool):
 		# every control-return arm (success, objection answer, interrupt
 		# answer, clarification reissue) passes through here.
 		_fill_pending_relay()
+		# Row IC, Session 2 (IC-8): a held typed line's "as understood".
+		_fill_pending_understood()
 		# CF-4: a refusal's remedy goes to the ↳ offer slot at the same
 		# chokepoint.
 		_fill_pending_remedy()
@@ -11275,6 +11330,9 @@ var _directive_waiting := 0   # row IC: the serial of a list asked for and not y
 # sooner opens once, fully formed (a card that grows as its rows arrive bobs).
 const DIRECTIVE_READING_DELAY_S := 0.35
 var _group_from_army := ""
+# Row IC, Session 2 (IC-7): the group face's "Attack…" / "Support…" is waiting
+# for its click ("attack" / "support"; "" = no pick pending).
+var _group_pick := ""
 var _ic_armies: Array = []
 var _ic_enemies_known: Array = []
 
@@ -11358,6 +11416,7 @@ func _select_marshal(key: String) -> void:
 	_order_marshal = key
 	_order_group = []
 	_group_from_army = ""   # row IC
+	_group_pick = ""   # (the review, C3) one corps selected: no group pick is waiting
 	if map_area and map_area.has_method("set_order_group"):
 		map_area.set_order_group([])
 	_order_reach = {}
@@ -11445,6 +11504,7 @@ func _clear_order_selection() -> void:
 	_order_go_pending = ""   # row PW: a click that waited on a quote waits no more
 	_order_card_wait = ""
 	_group_from_army = ""   # row IC: and the army it was picked from
+	_group_pick = ""   # row IC, Session 2: and a pick that was waiting
 	if _order_dwell != null:
 		_order_dwell.stop()
 	if map_area and map_area.has_method("clear_order_selection"):
@@ -11522,6 +11582,13 @@ func _order_click(region: String, marshal_key: String, via_right := false) -> vo
 		return
 	if key.begins_with("pick:"):
 		_select_marshal(key.substr(5))
+		return
+	# Row IC, Session 2 (IC-7): the RIGHT click on a province is "show me the
+	# order first" - the march's card, where its price and "then hold · then dig
+	# in · then drill · then stand" stand (the card's `thens`). The LEFT click
+	# still sends a plain march at once (row PW). One line to reverse.
+	if via_right and key.begins_with("dest:"):
+		_open_order_card(key)
 		return
 	_order_go(key)
 
@@ -12151,6 +12218,9 @@ func _idle_marshals() -> Array:
 		if (bool(ts.get("fortified", false)) or bool(ts.get("drilling", false))
 				or bool(ts.get("drilling_locked", false)) or bool(ts.get("square_formation", false))):
 			continue
+		# Row IC, Session 2 (IC-7): told to "stay put" this turn - not idle today
+		if bool(ts.get("stay_put", false)):
+			continue
 		out.append(k)
 	return out
 
@@ -12212,6 +12282,7 @@ func _set_order_group(members: Array) -> void:
 	_order_serial += 1
 	_order_go_pending = ""   # (PW-R17)
 	_order_card_wait = ""
+	_group_pick = ""   # (the review, C3) a new group: no pick is waiting
 	_directive_waiting = 0   # row IC: a new group lets an old group's list go
 	_order_marshal = ""
 	_order_reach = {}
@@ -12240,6 +12311,12 @@ func _group_click(region: String) -> void:
 		return   # nothing acts while a command is on the wire
 	if region == "":
 		_clear_order_selection()
+		return
+	# Row IC, Session 2 (IC-7): the click that follows "Attack…" / "Support…"
+	if _group_pick != "":
+		var pick := _group_pick
+		_group_pick = ""
+		_group_pick_resolve(pick, region, _last_click_target_key())
 		return
 	_open_group_card(region)
 
@@ -15282,11 +15359,13 @@ func _ui6_dim(text: String) -> String:
 
 const SelectionCardScript := preload("res://scripts/selection_card.gd")
 # The group face's hint: its title names the corps, its sum line the price.
-# (row IC, directives: what Hold… / Fortify… / Drill… open is said before the press —
-# the blind reading's three readers each asked what the "…" would ask next)
-const GROUP_CARD_HINT := ("Hold…, Fortify… or Drill… first shows each corps' order and price — nothing "
-	+ "is spent until you Give. To march them instead, click a province. Ctrl-click a marshal to add or "
-	+ "drop him; Esc unselects them.")
+# (row IC, directives: what a button with "…" opens is said before the press —
+# the blind reading's three readers each asked what the "…" would ask next.
+# Row IC, Session 2: seven such buttons now - the sentence names none, and says
+# what the two that need a target ask for.)
+const GROUP_CARD_HINT := ("Each button first shows each corps' order and price — nothing is spent until "
+	+ "you Give; Attack… and Support… first ask you to click the enemy or the friend. To march them "
+	+ "instead, click a province. Ctrl-click a marshal to add or drop him; Esc unselects them.")
 const WING_INSET := 4.0              # the wing's frame inside the right column (the war list stands 8 in)
 const WING_FRAME_DRAWN := false     # the interim reading: the empty full-height frame is not drawn
 const WING_TOP_GAP := 2.0            # under the top bar's strip, enclosing the rail's slot (6 under it)
@@ -15340,7 +15419,9 @@ func _ui6_build_selection_card() -> void:
 	_selection_card.take_pressed.connect(_pw_take_where_he_stands)   # row PW
 	# Row IC, directives: the group face's orders (each opens the list) and its army
 	for pair in [["group_verb_pressed", _on_group_verb], ["name_army_pressed", _on_name_army],
-			["save_army_pressed", _on_save_army], ["disband_army_pressed", _on_disband_army]]:
+			["save_army_pressed", _on_save_army], ["disband_army_pressed", _on_disband_army],
+			# Row IC, Session 2: "Give him a task…" and a ready task chosen
+			["task_pressed", _on_selection_task], ["task_line_pressed", _write_on_the_line]]:
 		if _selection_card.has_signal(str(pair[0])):
 			_selection_card.connect(str(pair[0]), pair[1])
 	# its size settles after its labels measure themselves: the slot follows
@@ -15428,6 +15509,53 @@ func _on_selection_verb(verb: String, marshal: String) -> void:
 	_card_sent_for = marshal
 	_card_sent_stays = false
 	_on_reward_command(marshal + ", " + verb)
+
+
+func _on_selection_task(marshal: String) -> void:
+	"""Row IC, Session 2 (IC-8): "Give him a task…" - the staff writes ready
+	sentences for him with real names (`GET /task_presets`, read-only). Each
+	is a button on his card; a press writes its sentence on the command line.
+	Nothing is written unasked and nothing is sent. (The review, C1: the first
+	sentence used to be written at once - and writing on the line lets the
+	selection go, so the card closed with the other tasks unread.)"""
+	if marshal == "" or api_client == null or not api_client.has_method("get_task_presets"):
+		return
+	api_client.get_task_presets(marshal, func(response): _on_task_presets(marshal, response))
+
+
+func _on_task_presets(marshal: String, response) -> void:
+	# (the second look) an answer that comes back after the card has moved on to
+	# another man is dropped whole - it used to print its first-open line, and
+	# mark it seen, for a list nobody was shown
+	if _selection_card == null or not _selection_card.has_method("current_marshal") \
+			or str(_selection_card.current_marshal()) != marshal:
+		return
+	if typeof(response) != TYPE_DICTIONARY or not bool(response.get("success", false)):
+		ToastLayer.say("The staff has no ready task for him.", "")
+		return
+	var presets = response.get("presets", [])
+	if not (presets is Array) or (presets as Array).is_empty():
+		ToastLayer.say("The staff has no ready task for him.", "")
+		return
+	var fo = response.get("first_open")
+	if fo is Dictionary and str((fo as Dictionary).get("line", "")) != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]" + str((fo as Dictionary).get("line", "")) + "[/color]")
+		_on_first_open_seen(str((fo as Dictionary).get("screen", "task")))
+	if _selection_card != null and _selection_card.has_method("show_tasks"):
+		_selection_card.show_tasks(marshal, presets)
+
+
+func _write_on_the_line(line: String) -> void:
+	"""A sentence written on the command line for the player to send or change
+	(a ready task, a desk row's order) - the read-back's fill idiom: the caret
+	at its end, the line read back, nothing sent."""
+	if line.strip_edges() == "" or command_input == null or not command_input.editable:
+		return
+	command_input.text = line
+	command_input.caret_column = line.length()
+	command_input.grab_focus()
+	_resume_editing()
+	_on_command_text_changed(command_input.text)
 
 
 func _on_selection_cancel(marshal: String) -> void:
@@ -15920,6 +16048,10 @@ func _readback_render(resp: Dictionary) -> void:
 			var words := str((part as Dictionary).get("text", "")).strip_edges()
 			if words == "":
 				continue
+			# Row IC, Session 2 (IC-8): what the line TOOK, what it did NOT
+			# take and his answer are drawn on their own labelled lines below
+			if role == "taken" or role == "nottaken" or role == "answer":
+				continue
 			if compact and words == "he may object":
 				words = "may object"
 			if role == "note":
@@ -15933,11 +16065,71 @@ func _readback_render(resp: Dictionary) -> void:
 	if kind == "cabinet":
 		body = "[url=cabinet:open]" + body + "[/url]"   # the Cabinet's door, as F1 opens it
 	_readback_last = resp
-	_readback_row.text = Utils.bbcode_color(glyph, glyph_hex) + " " + body + _readback_chips(resp, ask)
+	_readback_row.text = (Utils.bbcode_color(glyph, glyph_hex) + " " + body + _readback_chips(resp, ask)
+		+ _readback_task_lines(resp))
 	_readback_row.tooltip_text = Utils.clean_tip(" · ".join(notes))
 	_readback_row.modulate.a = 1.0
 	_readback_row.visible = true
 	_readback_fit_now.call_deferred()
+
+
+func _readback_task_lines(resp: Dictionary) -> String:
+	"""Row IC, Session 2 (IC-8; the read-back's rows): under the reading's first
+	line (who, what, the price) - "Taken" (each condition, each if-then, what a
+	march does on arrival), "Not taken" (the part quoted, with the plain
+	reason - never folded), "He says" (his own line), and, while a part that
+	was not taken would change what he does, "Enter sends" with the line as
+	understood. "" for a plain order: its reading stays one line."""
+	var taken := PackedStringArray()
+	var missed := PackedStringArray()
+	var says := ""
+	var parts = resp.get("parts", [])
+	if parts is Array:
+		for part in parts:
+			if not (part is Dictionary):
+				continue
+			var role := str((part as Dictionary).get("role", ""))
+			var words := _ui6_bb_escape(str((part as Dictionary).get("text", "")).strip_edges())
+			if words == "":
+				continue
+			if role == "taken":
+				taken.append(words)
+			elif role == "nottaken":
+				missed.append(words)
+			elif role == "answer":
+				says = words
+	var out := ""
+	var pad := "\n    "
+	if not taken.is_empty():
+		out += pad + Utils.bbcode_color("Taken: ", Utils.COLOR_INFO) \
+			+ Utils.bbcode_color(" · ".join(taken), Utils.COLOR_TEXT)
+	if not missed.is_empty():
+		out += pad + Utils.bbcode_color("Not taken: " + " · ".join(missed), Utils.COLOR_WARNING)
+	if says != "":
+		out += pad + Utils.bbcode_color("He says: ", Utils.COLOR_INFO) + Utils.bbcode_color(says, Utils.COLOR_TEXT)
+	var understood := str(resp.get("understood", "")).strip_edges()
+	if understood != "":
+		out += pad + Utils.bbcode_color("Enter sends: ", Utils.COLOR_INFO) \
+			+ Utils.bbcode_color(_ui6_bb_escape(understood), Utils.COLOR_GOLD)
+		# (pressed in the real client) the order the dropped words MEANT stands on
+		# its own line, said for what it is - at the end of the first line, in
+		# brackets, nothing said what it was
+		var offered := _readback_chip_links(resp)
+		if offered != "":
+			# (the blind reading: "it is not clear whether I can click it") a press
+			# writes it on the line - nothing is sent
+			out += pad + Utils.bbcode_color("Or press to write: ", Utils.COLOR_INFO) + offered
+	return out
+
+
+func _readback_understood(line: String) -> String:
+	"""Row IC, Session 2 (IC-8): the line AS UNDERSTOOD, when the reading on
+	screen is of exactly `line` and carries one - what Enter then sends."""
+	if line == "" or _readback_last.is_empty() or _readback_row == null or not _readback_row.visible:
+		return ""
+	if str(_readback_last.get("line", "")).strip_edges() != line:
+		return ""
+	return str(_readback_last.get("understood", "")).strip_edges()
 
 
 func _readback_part_hex(role: String, ask: bool) -> String:
@@ -15955,6 +16147,19 @@ func _readback_part_hex(role: String, ask: bool) -> String:
 func _readback_chips(resp: Dictionary, ask: bool) -> String:
 	"""The reading's candidates as links — `fill:N` FILLS the line with
 	candidate N's whole line; it never sends."""
+	# Row IC, Session 2: while a part of the line blocks, the offers stand on
+	# their own line below "Enter sends" (`_readback_task_lines`)
+	if str(resp.get("understood", "")).strip_edges() != "":
+		return ""
+	var links := _readback_chip_links(resp)
+	if links == "":
+		return ""
+	return (" " + Utils.bbcode_color("—", Utils.COLOR_INFO) + " " + links
+		+ (Utils.bbcode_color("?", Utils.COLOR_WARNING) if ask else ""))
+
+
+func _readback_chip_links(resp: Dictionary) -> String:
+	"""The candidates as `fill:N` links, a space between them ("" for none)."""
 	var cands = resp.get("candidates", [])
 	if not (cands is Array) or (cands as Array).is_empty():
 		return ""
@@ -15968,10 +16173,7 @@ func _readback_chips(resp: Dictionary, ask: bool) -> String:
 			continue
 		links.append("[url=fill:%d]%s[/url]" % [i, Utils.bbcode_color(
 			"[lb]" + _ui6_bb_escape(label) + "[rb]", Utils.COLOR_GOLD)])
-	if links.is_empty():
-		return ""
-	return (" " + Utils.bbcode_color("—", Utils.COLOR_INFO) + " " + " ".join(links)
-		+ (Utils.bbcode_color("?", Utils.COLOR_WARNING) if ask else ""))
+	return " ".join(links)
 
 
 func _readback_fit_now() -> void:
@@ -16534,6 +16736,12 @@ func _ic_open_door(door: Dictionary, _row_id: String = "") -> void:
 	match str(door.get("kind", "")):
 		"marshal":
 			_ic_go_to_marshal(str(door.get("marshal", "")))
+			# Row IC, Session 2 (IC-9): a row about his exact order ("his
+			# if-thens are used — renew them") also WRITES the order's
+			# sentence on an empty command line - a door never sends.
+			if str(door.get("line", "")) != "" and command_input != null \
+					and command_input.text.strip_edges() == "":
+				_write_on_the_line(str(door.get("line", "")))
 		"region":
 			_ic_go_to_region(str(door.get("region", "")))
 		"day":
@@ -16704,9 +16912,43 @@ func _ic_group_army_on_card() -> void:
 func _on_group_verb(verb: String) -> void:
 	"""The group face's Hold / Fortify / Drill: the LIST of that order for the
 	group, on the card — nothing is spent until Give."""
+	_group_pick = ""   # (the review, C3) another verb pressed: the old pick is let go
 	if _order_group.size() < 2 or not _order_input_ready() or verb == "":
 		return
+	# Row IC, Session 2 (IC-7): "Attack…" and "Support…" need their object -
+	# the next click on the map names it (`_group_click`).
+	if verb == "attack" or verb == "support":
+		_group_pick = verb
+		ToastLayer.say("Now click the enemy to attack." if verb == "attack"
+			else "Now click the corps they are to support.", "")
+		return
 	_open_directive_line(_ic_group_address(_order_group) + ", " + verb, false)
+
+
+func _group_pick_resolve(pick: String, region: String, piece_key: String) -> void:
+	"""Row IC, Session 2 (IC-7): the click after the group's "Attack…" or
+	"Support…". An attack by several is ONE battle - the first corps leads and
+	the muster calls the others - so the LEAD's attack card opens (it says who
+	will answer the guns). A support is each man's own order: the list."""
+	var target := _order_target_key(region, piece_key)
+	if pick == "attack":
+		if not target.begins_with("enemy:"):
+			# (the second look) the pick still waits: the toast asks for another click,
+			# and the next click used to open the group's march list instead
+			_group_pick = pick
+			ToastLayer.say("Click an enemy corps in sight to attack.", "")
+			return
+		var lead := str(_order_group[0])
+		_select_marshal(lead)
+		if _order_marshal == lead:
+			_open_order_card(target)
+		return
+	if piece_key == "" or not _own_field_marshal(piece_key) or _order_group.has(piece_key):
+		_group_pick = pick   # (the second look) ... and so here
+		ToastLayer.say("Click another of your corps for them to support.", "")
+		return
+	_open_directive_line(_ic_group_address(_order_group) + ", support "
+		+ Utils.humanize_entity_name(piece_key), false)
 
 
 func _ic_group_address(keys: Array) -> String:
@@ -16812,4 +17054,3 @@ func _ic_enemies_of(response) -> Array:
 			if c != "" and not out.has(c):
 				out.append(c)
 	return out
-

@@ -35,10 +35,6 @@ from backend.models.world_state import WorldState  # noqa: E402
 
 SCENARIO = REPO / "godot-client/project-sovereign/assets/maps/europe_1805.json"
 
-_H = ("RULED November 17, 2026 (BA-6) — HOMED at Session H's head "
-      "(docs/audits/OPEN_CALLS_RULED_2026_11_17.md §3), moved with WS-12 on November 20, 2026 to "
-      "row IC's IC-8; this pin turns red the day it lands")
-
 
 def _seam_up(module: str, name: str) -> bool:
     fn = getattr(importlib.import_module(module), name, None)
@@ -724,6 +720,8 @@ class TestSessionHsHead:
         `tests/test_pw2_the_typed_road.py::TestGRD16TheNearestOfYourOwnMarshals`."""
         assert _seam_up("backend.commands.executor", "a_marshal_typo_is_offered_the_nearest_own_name")
 
-    @pytest.mark.xfail(strict=True, reason=_H)
     def test_grd33_the_literal_buff_expires_with_the_turn(self):
+        """BUILT November 20, 2026 (row IC, Session 2, IC-8 — with WS-12, the same code): the
+        strict-xfail turned red the day the seam landed, as it said it would, and is re-seated as a
+        pass. Its behaviour: `tests/test_ic8_the_line.py::TestGRD33TheLiteralBuffExpiresWithTheTurn`."""
         assert _seam_up("backend.commands.meta_executor", "the_literal_buff_expires_with_the_turn")

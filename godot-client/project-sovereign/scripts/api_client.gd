@@ -232,6 +232,14 @@ func respond_to_mailbox_item(mailbox_id: int, choice: String, callback: Callable
 
 # --- POST endpoints ---
 
+# Row IC, Session 2 (IC-8): the NEXT `send_command` is a line TYPED in the
+# command window. Set by `main._execute_command` alone, right before its send,
+# and spent by that send — never by a button, a chip, a card or a relayed
+# fill. The backend holds a typed line whose order would go out without a part
+# that changes what he does, and hands back the line as understood.
+var typed_line := false
+
+
 func send_command(command: String, callback: Callable, relayed: bool = false):
 	# CR-7-3: `relayed` marks a compound order's tail sent back unchanged from
 	# the relay fill; the backend records it on the command history (the
@@ -240,6 +248,9 @@ func send_command(command: String, callback: Callable, relayed: bool = false):
 	var body := {"command": command}
 	if relayed:
 		body["relayed"] = true
+	if typed_line:
+		body["typed"] = true
+	typed_line = false
 	# Row IC, directives (November 19, 2026): every order the client sends asks
 	# to SEE the list first when it is addressed to several corps — the server
 	# carries out an order to one man as before, and answers an order to
@@ -258,6 +269,12 @@ func send_directive(line: String, members: Array, expect_ap: int, click: bool, c
 	if click:
 		body["click"] = true
 	_send_post("/command", body, callback)
+
+
+func get_task_presets(marshal_name: String, callback: Callable):
+	"""Row IC, Session 2 (IC-8): "Give him a task…" — the staff's ready
+	sentences for one of our marshals, read-only (`GET /task_presets`)."""
+	_send_get("/task_presets?marshal=" + marshal_name.uri_encode(), callback)
 
 
 func get_directive_quote(line: String, click: bool, callback: Callable):

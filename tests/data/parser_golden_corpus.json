@@ -4150,14 +4150,14 @@
     },
     {
       "id": "parseneg-conditional-refuses",
-      "utterance": "Ney, if Mack advances, fortify",
+      "utterance": "Ney, if Mack advances, recruit infantry",
       "world": "1805",
       "expected": {
         "success": false,
         "not_action": "move"
       },
-      "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 7; re-seated CC-4 / D8 (October 19, 2026)",
-      "notes": "Marched to Lorraine immediately at 0.95 — the highest confidence in the whole filed set, on a sentence whose entire meaning is the condition. CC-4 / D8: the filed line ('Ney, if Mack advances fall back to Lorraine') is the standing contingency now — a HOLD that watches (row cc4-contingency-fall-back); this row keeps the refusal on a then-clause the contingency does not hold."
+      "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 7; re-seated CC-4 / D8 (October 19, 2026); re-seated row IC Session 2 (November 20, 2026)",
+      "notes": "Marched to Lorraine immediately at 0.95 — the highest confidence in the whole filed set, on a sentence whose entire meaning is the condition. CC-4 / D8: the filed line ('Ney, if Mack advances fall back to Lorraine') is the standing contingency now — a HOLD that watches (row cc4-contingency-fall-back). Row IC (IC-9, the word table): '…, fortify' is an exact order's 'dig in' now (row ic9-if-then-fortify-is-dig-in); this row keeps the refusal on a then-clause no if-then holds (recruit)."
     },
     {
       "id": "cc4-arrival-verb-fortify",
@@ -4292,15 +4292,20 @@
       "notes": "The legacy roster and map."
     },
     {
-      "id": "cc4-contingency-when-stays-refused",
+      "id": "ic9-when-reads-as-if",
       "utterance": "Ney, when Mack advances fall back to Lorraine",
       "world": "1805",
       "expected": {
-        "success": false,
-        "not_action": "move"
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "contingency": {
+          "who": "Mack",
+          "then": "fall_back",
+          "to": "Lorraine"
+        }
       },
-      "source": "CC-4 (S13c part 4, October 19, 2026) — D8's fence",
-      "notes": "Only 'if' opens the contingency; 'when' / 'once' / 'in case' stay refused (PARSE-NEG)."
+      "source": "CC-4 (S13c part 4, October 19, 2026) — D8's fence; FLIPPED by row IC Session 2 (IC-9, November 20, 2026 — the user's ruling: the line takes a wide array of wordings)",
+      "notes": "Was cc4-contingency-when-stays-refused ('Only if opens the contingency'). The word table (INDEPENDENT_COMMAND_SPEC §8.3): 'when', 'should' and 'in case' read as 'if'. 'once' and 'as soon as' stay the clause guard's (row cc4-contingency-once-stays-refused)."
     },
     {
       "id": "cc4-contingency-once-stays-refused",
@@ -4311,7 +4316,7 @@
         "not_action": "move"
       },
       "source": "CC-4 (S13c part 4, October 19, 2026) — D8's fence",
-      "notes": "See cc4-contingency-when-stays-refused."
+      "notes": "Only if / when / should / in case open an if-then (row ic9-when-reads-as-if); 'once' and 'as soon as' stay refused (PARSE-NEG)."
     },
     {
       "id": "cc4-contingency-unknown-place-refused",
@@ -4326,13 +4331,14 @@
     },
     {
       "id": "parseneg-when-clause-refuses",
-      "utterance": "Ney, when Davout arrives, attack",
-      "world": "any",
+      "utterance": "Ney, attack Mack when Davout arrives",
+      "world": "1805",
       "expected": {
         "success": false,
         "not_action": "attack"
       },
-      "source": "PARSE-NEG — found by the evaluation"
+      "source": "PARSE-NEG — found by the evaluation; re-seated row IC Session 2 (November 20, 2026)",
+      "notes": "The filed line ('Ney, when Davout arrives, attack') is an exact order now — a hold that attacks when the friend arrives (row ic9-if-a-friend-arrives-attack). This row keeps the refusal on the form no grammar holds: an attack ordered NOW with a trailing condition must never fight at once."
     },
     {
       "id": "parseneg-after-clause-refuses",
@@ -4378,10 +4384,11 @@
       "world": "any",
       "expected": {
         "success": true,
-        "action": "retreat"
+        "action": "retreat",
+        "blanked_contains": "if outnumbered"
       },
-      "source": "PARSE-NEG — pinned as ACCEPTED behaviour, not as ideal",
-      "notes": "The elliptical floor cuts both ways: 'if outnumbered' is one word, so this retreats now. Recorded deliberately so the trade-off is visible rather than discovered later. A real conditional-order system is CR-6/CR-7 scope."
+      "source": "PARSE-NEG — pinned as ACCEPTED behaviour, not as ideal; re-seated row IC Session 2 (IC-V1, November 20, 2026)",
+      "notes": "The elliptical floor cuts both ways: 'if outnumbered' is one word, so the PARSE still reads a retreat (the floor is load-bearing: cr2-when-ready-then-retreat-not-split). IC-V1: the clause is no longer dropped in silence — the guard records it (`blanked_clauses`), the read-back's 'Not taken' row quotes it before anything is sent, and a typed line is held at Enter with the line as understood ('Ney, retreat') offered back. The real conditional order is the exact order (row IC, IC-9): 'Ney, hold. If outnumbered, fall back on Lorraine.'"
     },
     {
       "id": "parseneg-go-to-region",
@@ -6134,14 +6141,14 @@
     },
     {
       "id": "cr7-handoff-needs-a-hold",
-      "utterance": "Ney, when Davout arrives, attack",
+      "utterance": "Ney, as soon as Davout arrives, march to Swabia",
       "world": "1805",
       "expected": {
         "success": false,
-        "not_action": "attack"
+        "not_action": "move"
       },
-      "source": "CR-7-5 fail-closed control (the PARSE-NEG row parseneg-when-clause-refuses, re-pinned beside its twin)",
-      "notes": "The hand-off fires ONLY onto a HOLD; an attack behind a friendly arrival stays refused."
+      "source": "CR-7-5 fail-closed control (the PARSE-NEG row parseneg-when-clause-refuses, re-pinned beside its twin); re-seated row IC Session 2 (November 20, 2026)",
+      "notes": "The hand-off fires ONLY onto a HOLD; a march behind a friendly arrival stays refused. (The filed twin, 'Ney, when Davout arrives, attack', is an exact order now — row ic9-if-a-friend-arrives-attack; 'as soon as' is no if-word.)"
     },
     {
       "id": "cr7-negated-condition-refuses-too",
@@ -9264,6 +9271,297 @@
       },
       "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
       "notes": "RE-SEATED: 'set war goal' was a second spelling of the war PURPOSE (a Cabinet act); it means the war goal now. The purpose keeps 'set war purpose', 'war purpose', 'set objective', 'declare purpose'."
+    },
+    {
+      "id": "ic9-if-then-fortify-is-dig-in",
+      "utterance": "Ney, if Mack advances, fortify",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "if_thens": [
+          {
+            "if": "enemy_near",
+            "who": "Mack",
+            "then": "dig_in"
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9, November 20, 2026) — the word table's THEN 'dig in'",
+      "notes": "Was parseneg-conditional-refuses's filed line. An exact order: he holds where he stands and digs in when Mack comes within reach."
+    },
+    {
+      "id": "ic9-if-a-friend-arrives-attack",
+      "utterance": "Ney, when Davout arrives, attack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "if_thens": [
+          {
+            "if": "friend_arrives",
+            "friend": "Davout",
+            "then": "attack"
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9) — the IF 'a named friend arrives'",
+      "notes": "Was parseneg-when-clause-refuses / cr7-handoff-needs-a-hold: refused so the attack could not fight on the turn it was typed. It is a HOLD now, and the attack waits for Davout — the conditional order the refusal asked for."
+    },
+    {
+      "id": "ic9-three-lines-for-a-literal-man",
+      "utterance": "Soult, hold Lorraine. If attacked, dig in. If outnumbered, fall back on Champagne.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "if_thens": [
+          {
+            "if": "attacked",
+            "then": "dig_in"
+          },
+          {
+            "if": "outnumbered",
+            "then": "fall_back",
+            "to": "Champagne"
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9) — INDEPENDENT_COMMAND_SPEC §8.3's example",
+      "notes": "A marshal who follows orders to the letter takes up to three if-thens on any standing order."
+    },
+    {
+      "id": "ic9-a-second-line-is-not-taken-for-another-man",
+      "utterance": "Ney, hold Lorraine. If attacked, dig in. If outnumbered, fall back on Champagne.",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "Ney's orders carry one if-then"
+      },
+      "source": "Row IC Session 2 (IC-9) — §12: a non-literal man is given two if-thens",
+      "notes": "The second line is not taken and the line is refused free, with the line as understood offered back ('Ney, hold Lorraine. If he is attacked, dig in.')."
+    },
+    {
+      "id": "ic9-join-his-battle",
+      "utterance": "Soult, hold. If Ney is attacked next to you, join his battle.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "HOLD",
+        "if_thens": [
+          {
+            "if": "friend_attacked",
+            "friend": "Ney",
+            "then": "join"
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9) — the THEN 'join his battle'",
+      "notes": "The arrival roll, as an if-then."
+    },
+    {
+      "id": "ic9-a-place-falls-march",
+      "utterance": "Davout, hold Franconia. If Munich falls, march to Munich.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Franconia",
+        "if_thens": [
+          {
+            "if": "place_falls",
+            "place": "Munich",
+            "then": "march",
+            "to": "Munich"
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9) — the IF 'a named place falls', the THEN 'march to'",
+      "notes": ""
+    },
+    {
+      "id": "ic9-should-and-whatever-the-odds",
+      "utterance": "Soult, hold Lorraine. Should Mack advance, attack whatever the odds.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "HOLD",
+        "if_thens": [
+          {
+            "if": "enemy_near",
+            "who": "Mack",
+            "then": "attack",
+            "any_odds": true
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9) — 'should' reads as 'if'; 'attack whatever the odds' is its own choice",
+      "notes": ""
+    },
+    {
+      "id": "ic9-in-case-surrounded",
+      "utterance": "Soult, hold Lorraine. In case you are surrounded, fall back to Champagne.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "HOLD",
+        "if_thens": [
+          {
+            "if": "surrounded",
+            "then": "fall_back",
+            "to": "Champagne"
+          }
+        ]
+      },
+      "source": "Row IC Session 2 (IC-9) — 'in case' reads as 'if'; the IF 'he is being surrounded'",
+      "notes": ""
+    },
+    {
+      "id": "ic9-attack-on-outnumbered-is-not-taken",
+      "utterance": "Soult, hold Lorraine. If outnumbered, attack.",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "not outnumbered"
+      },
+      "source": "Row IC Session 2 (IC-9) — §7: 'attack' means attack if not outnumbered",
+      "notes": ""
+    },
+    {
+      "id": "ic8-keep-is-hold",
+      "utterance": "Davout, keep Lorraine",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "action": "hold",
+        "strategic_type": "HOLD",
+        "target": "Lorraine"
+      },
+      "source": "Row IC Session 2 (IC-8) — the word table's new task word 'keep'",
+      "notes": "Only before a province: 'keep an eye on Swabia' stays a scout (row ic8-keep-an-eye-is-still-a-scout)."
+    },
+    {
+      "id": "ic8-keep-an-eye-is-still-a-scout",
+      "utterance": "Ney, keep an eye on Swabia",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "scout"
+      },
+      "source": "Row IC Session 2 (IC-8) — the collision the new word 'keep' must not make",
+      "notes": ""
+    },
+    {
+      "id": "ic8-stay-with-is-follow",
+      "utterance": "Soult, stay with Ney",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "Row IC Session 2 (IC-8) — the word table's new task word 'stay with'",
+      "notes": "The support that stands ('follow'): he marches where Ney marches."
+    },
+    {
+      "id": "ic8-then-dig-in-is-then-fortify",
+      "utterance": "Ney, march to Lorraine then dig in",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Lorraine",
+        "arrival_verb": "fortify",
+        "dropped_sequel": null
+      },
+      "source": "Row IC Session 2 (IC-8) — the word table: a march's 'then dig in' reads as 'then fortify'",
+      "notes": "Before, the tail was split off and told 'give it when he arrives'."
+    },
+    {
+      "id": "ic8-how-bold-word-is-set-aside",
+      "utterance": "Ney, hold Rhineland carefully",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "hold",
+        "strategic_type": "HOLD",
+        "target": "Rhineland"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 'How bold': read and set aside",
+      "notes": "Held the province 'Rhineland Carefully' before: the strategic table took the word for part of the name. The word rides the parse as `risk_words` and the read-back names it under 'Not taken'."
+    },
+    {
+      "id": "ic8-how-bold-word-behind-an-enemy",
+      "utterance": "Ney, attack Mack only at good odds",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 'How bold': read and set aside",
+      "notes": "The attack goes as written; 'only at good odds' is named as not taken."
+    },
+    {
+      "id": "ic8-loose-time-is-set-aside",
+      "utterance": "Ney, hold Rhineland through the winter",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "hold",
+        "strategic_type": "HOLD",
+        "target": "Rhineland"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 'seasons, weeks, as long as it takes'",
+      "notes": "The words swallowed the place before (a hold where he stood). They ride the parse as `loose_time`; the read-back offers 'for 3 turns'."
+    },
+    {
+      "id": "ic8-a-stretch-is-refused",
+      "utterance": "Davout, hold between Munich and Vienna",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "not the country between two"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 'a river line or a stretch'",
+      "notes": "Marched him to hold a province called 'Between Munich' before."
+    },
+    {
+      "id": "ic8-their-main-army-is-refused",
+      "utterance": "Ney, attack their main army",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "Name its commander"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 'their main army'",
+      "notes": "Read as an attack on the province of Maine before."
+    },
+    {
+      "id": "ic8-first-then-keeps-the-first-order",
+      "utterance": "Murat, first take Swabia then support Soult",
+      "world": "1805",
+      "expected": {
+        "marshal": "Murat",
+        "action": "attack",
+        "target": "Swabia",
+        "dropped_sequel": "support Soult"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 'a second task in one sentence'",
+      "notes": "Gave the SECOND order and dropped the first before. One order at a time: the relay gives the first and offers the second."
+    },
+    {
+      "id": "ic8-hold-the-line-is-still-a-hold",
+      "utterance": "Ney, hold the line",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "hold",
+        "strategic_type": "HOLD"
+      },
+      "source": "Row IC Session 2 (IC-8) — §8.3 — the guard beside 'a river line'",
+      "notes": "Only a NAMED line ('the line of the Inn') is a stretch; the plain idiom holds."
     }
   ]
 }

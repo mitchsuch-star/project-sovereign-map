@@ -1,0 +1,59 @@
+{
+ "_note": "Row IC, Session 2 (buttons for orders, the line for tasks, exact orders) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row, and the trust crises that came up. Arm 0 holds GRD-33's seam down through the driver's --seam and must be the standing band (26 / 27 / 28); arm ALL is the shipped tree. Written by tools/_ic2_measure.py (a chain run ALONE).",
+ "arm_0_is_the_standing_band": true,
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 28,
+    "status": "completed",
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.commands.meta_executor:the_literal_buff_expires_with_the_turn=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 26,
+    "status": "completed",
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 28,
+    "status": "completed",
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "seams_down": []
+  }
+ },
+ "band": [
+  23,
+  28
+ ],
+ "standing": {
+  "CMD-A": 27,
+  "CMD-H": 26,
+  "CMD-M": 28
+ }
+}
