@@ -74,7 +74,8 @@ class ApiStub extends Node:
 	func get_march_reach(m, _cb = null): calls.append("march_reach:" + str(m))
 	func get_order_quote(m, kind, target, _cb = null):
 		calls.append("order_quote:%s|%s|%s" % [str(m), str(kind), str(target)])
-	func get_group_quotes(_names, _dest, _cb = null): calls.append("group_quotes")
+	func get_directive_quote(_line, _click, _cb = null): calls.append("directive_quote")   # row IC
+	func send_directive(_l, _m, _e, _c, _cb = null): calls.append("directive")
 
 
 var _frames := 0

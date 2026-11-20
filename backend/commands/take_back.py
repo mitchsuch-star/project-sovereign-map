@@ -60,6 +60,15 @@ ORDER_KEYS = frozenset({
     "marshals", "regions", "intel",
     "strategic_orders", "notifications",
     "last_order_of_the_day",
+    # Row IC, directives: an army formed or disbanded and a war's goal set are
+    # the player's own bookkeeping — an order's books, taken back with it.
+    "armies", "war_goals",
+    # Row IC (the sibling of "one order to several is one Take-back unit"): a
+    # small concern a marshal VOICES as he takes an order (no popup, no answer
+    # asked — the turn's list of them, read only as the turn ends) is that
+    # order's own; before this the remark alone made the order stand. A
+    # concern that asks a question is a question, and still stands.
+    "mild_concerns_this_turn",
 })
 # Asked or answered: nothing an order changes, and nothing to take back — the
 # log of what was typed, the counsel's memory, and help's own bookkeeping (a
@@ -179,6 +188,11 @@ def _verdict(world, before: Dict[str, Any], response: Dict[str, Any]) -> str:
     """"" when the order just run can be taken back, "inert" when the command
     changed nothing an order changes, else the key of `WHY` that says why it
     stands."""
+    # Row IC, the directive: a request that only ASKED for the list of an order
+    # to several corps (`directive` on the reply, nothing carried out — no
+    # `group`) is no order at all: the kept orders stay kept.
+    if response.get("directive") and not response.get("group"):
+        return "inert"
     snapshot = before["snapshot"]
     after = world.to_dict()
     changed = {key for key in _changed_keys(snapshot, after) if not _inert(key)}

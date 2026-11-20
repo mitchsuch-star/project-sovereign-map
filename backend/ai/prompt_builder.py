@@ -318,6 +318,30 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 5,
         },
     },
+    # Row IC, directives: the staff's two free books — no marshal is ordered;
+    # the army's or the goal's own name rides `target`.
+    {
+        "input": "form the Army of Italy with {m1} and {m2}",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "army",
+            "target": "Army of Italy",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
+    {
+        "input": "the war goal is {region}",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "set_war_goal",
+            "target": "{region}",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",

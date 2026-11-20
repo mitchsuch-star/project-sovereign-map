@@ -85,6 +85,7 @@ _VERB_WORDS = {
     "grant_dotation": "endow", "build_fleet": "lay down ships",
     "set_fleet_posture": "set the fleet's posture",
     "naval_diversion": "order the diversion", "enact_law": "enact a law",
+    "army": "name an army", "set_war_goal": "name the war goal",
     "repeal_law": "repeal a law",
 }
 _STRATEGIC_VERBS = {"MOVE_TO": "march", "PURSUE": "pursue", "HOLD": "hold"}
@@ -115,6 +116,8 @@ def _base(line: str, epoch: int) -> Dict[str, Any]:
         "refusal": "", "turns": 0, "objection": "none", "replaces": "",
         "asks_first": False, "would_consult_llm": False, "slot": "",
         "unknown": "", "candidates": [], "command": "",
+        # Row IC: the line is an order to several corps — Enter opens its list.
+        "directive": False,
     }
 
 
@@ -661,6 +664,27 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
             if not held:
                 return _refusal_reading(
                     out, f"{shown} — no foe in sight to charge at {humanize_entity_name(entity)}")
+    # Row IC (found by the directive's fuzz): a scout beyond his reach is
+    # refused free by `_execute_scout` ("Bern is too far to scout") — ONE
+    # source, `movement_executor.scout_range`; it read as a priced order.
+    if action == "scout" and kind == "province" and not parsed.get("is_strategic"):
+        from backend.commands.movement_executor import scout_range
+        _gap = world.get_distance(marshal.location, entity)
+        _reach = int(scout_range(marshal))
+        if isinstance(_gap, int) and _gap > _reach:
+            return _refusal_reading(
+                out, f"{shown} — {humanize_entity_name(entity)} is too far to scout "
+                     f"(he scouts within {_reach} marches)")
+    # Row IC (found by the directive's fuzz): `form_square` meets the executor's
+    # own pre-validation (`executor.py` FORM_SQUARE PRE-VALIDATION /
+    # `_execute_form_square`) — it read as a priced order for a cavalryman.
+    if action == "form_square":
+        if getattr(marshal, "square_formation", False):
+            return _refusal_reading(out, f"{shown} — already in square formation")
+        if getattr(marshal, "cavalry", False):
+            return _refusal_reading(out, f"{shown} — cavalry cannot form an infantry square")
+        if getattr(marshal, "artillery", False):
+            return _refusal_reading(out, f"{shown} — artillery cannot form an infantry square")
     # UI6-X29: the guns' verb read as `/command` reads it — a marshal with no
     # guns cannot bombard (the executor's free refusal), whatever he is aimed at.
     if action == "attack" and not getattr(marshal, "artillery", False):
@@ -772,6 +796,30 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
             quote = oq.support_quote(world, marshal, entity)
         elif verb == "follow" and kind == "friendly":
             quote = oq.follow_quote(world, marshal, entity)
+        elif verb == "move" and kind == "province" and not parsed.get("is_strategic"):
+            # Row IC (found by the directive's fuzz — the list reads each man's
+            # line through this reader): a typed `move` meets the executor's
+            # own gates here too (`MovementExecutor.move_refusal_probe`: "X is
+            # already in Y", engaged …), and a province beyond his reach is the
+            # MARCH one verb over (`_execute_move`'s auto-upgrade — the
+            # march's road, clock and price). The reading priced every `move`
+            # as the one-action step, so "Massena, move to Lorraine" read 1
+            # action and was charged 2.
+            from backend.commands.movement_executor import MovementExecutor
+            _there = world.get_region(entity)
+            _stopped = (MovementExecutor.move_refusal_probe(world, marshal, _there, entity)
+                        if _there is not None else None)
+            if _stopped is not None:
+                _said = _first_sentence(str(_stopped.get("message") or "the move is refused"))
+                for _lead in (marshal.name + " ", shown + " "):
+                    if _said.startswith(_lead):
+                        _said = _said[len(_lead):]
+                        break
+                return _refusal_reading(out, f"{shown} — {_said.rstrip('.')}")
+            _far = world.get_distance(marshal.location, entity)
+            if isinstance(_far, int) and _far > max(1, int(getattr(marshal, "movement_range", 1) or 1)):
+                quote = oq.march_quote(world, marshal, entity)
+                out["_marches"] = True
         if quote is not None:
             if not quote.get("ok"):
                 return _refusal_reading(out, f"{shown} — {_first_sentence(quote.get('refusal') or 'the order is refused')}")
@@ -783,6 +831,11 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
             objection = str(quote.get("objection") or "none")
             replaces = str(quote.get("replaces") or "")
             out["command"] = str(quote.get("command") or "")
+            # Row IC (the directive's list): the quote itself rides beside the
+            # reading for `read_one`'s callers — its riders (the contact, the
+            # camp, the pay …) are the list's notes. `preview` drops the key:
+            # the wire's whitelist is unchanged.
+            out["_quote"] = quote
         elif verb == "hold" and kind in ("province", "enemy", "friendly"):
             # UI6-X20: a HOLD is a march-and-hold to its province — the
             # province named, or the province of a commander in sight (the
@@ -860,6 +913,8 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
         parts.append(_part("cost", _cost_text(ap, pool, free or ap == 0)))
     if turns >= 1:
         parts.append(_part("turns", _turns_text(turns)))
+    if out.pop("_marches", False):
+        parts.append(_part("note", "too far for one move — he marches there"))
     if out["objection"] == "possible":
         parts.append(_part("warn", "he may object"))
     # The arrival's object: a name on no roster, or a man out of sight
@@ -1097,6 +1152,8 @@ def _reading_of(out, world, parsed: Dict, text: str, reading: str, unbound_addre
         return _simple(out, "cabinet", ("head", "Diplomacy is the Cabinet’s (F1)"))
     if action in ("debug", "cheat", "meta_command", "unknown", ""):
         return out
+    if action in ("army", "set_war_goal"):
+        return _staff_book_reading(out, world, action, reading)
     target = str(command.get("target") or "")
     marshal_name = str(command.get("marshal") or "")
     # The executor's order: the unbound-addressee rule (CX-R1 — a named
@@ -1222,6 +1279,58 @@ def _reading_of(out, world, parsed: Dict, text: str, reading: str, unbound_addre
     return _order_reading(out, world, view, parsed, reading if reading != text else text)
 
 
+def _staff_book_reading(out: Dict[str, Any], world, action: str, text: str) -> Dict[str, Any]:
+    """Row IC, directives: how a line of the staff's two free books reads — a
+    named army (form · add · remove · disband) or the goal of a war — from the
+    readers their executor uses (`armies.read_order`, `war_goals.read_order`),
+    with the refusal the game would give (a name that cannot be an army's; a
+    goal that is no enemy's place). Nothing is written."""
+    out.update(action=action, pool="none", free=True, ap=0)
+    if action == "army":
+        from backend.game_logic import armies
+        order = armies.read_order(world, text)
+        if order is None:
+            return _simple(out, "order", ("head", "The roll of an army"), ("cost", "free"))
+        name, op = str(order.get("name") or ""), str(order.get("op") or "")
+        if op == "list":
+            return _simple(out, "meta", ("head", "Your armies"), ("cost", "costs nothing"))
+        kept = armies.find(world, name)
+        if op in ("add", "remove", "disband") and kept is None:
+            return _refusal_reading(out, f"There is no army called ‘{name}’")
+        if op == "form" and kept is None:
+            why = armies.name_refusal(world, name)
+            if why:
+                return _refusal_reading(out, why.rstrip("."))
+        good, bad = armies._resolve(world, list(order.get("who") or []))
+        if bad and op in ("form", "add"):
+            return _refusal_reading(out, f"{', '.join(bad)} — not yours to put in an army")
+        who = ", ".join(humanize_entity_name(n) for n in good)
+        shown = kept or name
+        head = {"form": f"Form the {shown} · {who}" if kept is None else f"The {shown} now holds · {who}",
+                "add": f"Add {who} to the {shown}", "remove": f"Remove {who} from the {shown}",
+                "disband": f"Disband the {shown}"}.get(op, "The roll of an army")
+        out.update(ok=True)
+        return _simple(out, "order", ("head", head), ("cost", "free"))
+    from backend.game_logic import war_goals
+    goal = war_goals.read_order(text)
+    if goal is None:
+        return _simple(out, "order", ("head", "The goal of a war"), ("cost", "free"))
+    if goal.get("op") == "clear":
+        if not war_goals.store(world):
+            return _refusal_reading(out, "No war goal is set")
+        out.update(ok=True)
+        return _simple(out, "order", ("head", "Clear the war goal"), ("cost", "free"))
+    kind, named, _court, refused = war_goals.aim(world, str(goal.get("what") or ""))
+    if refused:
+        # the order's own refusal, in one short clause (its first sentence, no "Sire")
+        short = _first_sentence(refused.split(" — ")[0].replace(", Sire", "")).rstrip(".")
+        return _refusal_reading(out, short)
+    shown = humanize_entity_name(named) + ("’s army" if kind == "army" else "")
+    out.update(ok=True, target=humanize_entity_name(named),
+               target_kind="province" if kind == "place" else "enemy")
+    return _simple(out, "order", ("head", f"The war goal · {shown}"), ("cost", "free"))
+
+
 def _reason_copy(world, clause) -> str:
     """UI6-X18: the reason refusal's short words, from what its clause is
     about (`llm_client.reason_clause_subject`, `/command`'s own reader) —
@@ -1306,14 +1415,72 @@ def preview(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
         return _simple(out, "busy")
     token = _ptrace._TRACE.set(None)
     try:
-        return _second_names(world, text, _read_line(
-            world, text, out, llm_state=llm_state, epoch=epoch,
-            lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
-            live_llm=live_llm, unbound_addressee=unbound_addressee,
-            premise_reader=premise_reader))
+        readers = dict(llm_state=llm_state, epoch=epoch,
+                       lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
+                       live_llm=live_llm, unbound_addressee=unbound_addressee,
+                       premise_reader=premise_reader)
+        # Row IC (the directive): a line addressed to several corps reads as
+        # the list it will open — who, how many can go, what it costs — from
+        # the list's own builder (ONE reader; `directive.readback`).
+        from backend.commands import directive as _directive
+        several = _directive.readback(world, text, out, readers)
+        if several is not None:
+            return several
+        reading = _second_names(world, text, read_one(world, text, **readers))
+        for private in ("_quote", "_marches"):
+            reading.pop(private, None)
+        return reading
     except Exception as exc:
         report(exc, "parse_preview.preview: the readback")
         return _base(text, epoch)
     finally:
         _ptrace._TRACE.reset(token)
         _LOCK.release()
+
+
+def read_one(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
+             lost_marshal_refusal: Optional[Callable] = None, why_rx=None,
+             live_llm=None, unbound_addressee: Optional[Callable] = None,
+             premise_reader: Optional[Callable] = None) -> Dict[str, Any]:
+    """Row IC (the directive): ONE line's reading — the pure core `/parse_preview`
+    answers with — for a caller that makes several (the list of an order to
+    several marshals reads each man's own line through this, so the list, the
+    read-back and the price check are one reader). The caller holds
+    `reading()`. Besides the wire's keys the dict may carry `_quote` (the
+    order's own quote, for its riders); never raises past its own report."""
+    text = str(line or "")[:500]
+    out = _base(text, epoch)
+    if world is None:
+        return out
+    return _read_line(world, text, out, llm_state=llm_state, epoch=epoch,
+                      lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
+                      live_llm=live_llm, unbound_addressee=unbound_addressee,
+                      premise_reader=premise_reader)
+
+
+@contextlib.contextmanager
+def reading(wait_s: float = 2.0):
+    """Hold the read-back's lock (its mock-only parser is ONE instance with
+    per-parse state) and mute the parse trace while a caller makes its
+    readings — a request's own trace is put back as it stood on the way out.
+    Yields whether the lock was taken (a caller under the state lock always
+    gets it; the readings are made either way)."""
+    took = _LOCK.acquire(timeout=wait_s)
+    token = _ptrace._TRACE.set(None)
+    try:
+        yield took
+    finally:
+        _ptrace._TRACE.reset(token)
+        if took:
+            _LOCK.release()
+
+
+def mock_parse(world, line: str, llm_state: Callable[[], Dict], epoch: int = 0) -> Dict[str, Any]:
+    """`line` read by the built-in reader alone — never the model (the list's
+    probe on the read-only road). The caller holds `reading()`."""
+    state = _llm_state(world, llm_state, epoch)
+    parser = _preview_parser()
+    parser.llm.live = None
+    parser.llm.would_consult = False
+    with contextlib.redirect_stdout(io.StringIO()):
+        return parser.parse(str(line or "")[:500], state, world=world)

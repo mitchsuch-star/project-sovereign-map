@@ -3847,6 +3847,9 @@ func _refresh_order_arrows() -> void:
 	# names arrived before the map knew where its provinces stand).
 	if not _danger_regions.is_empty():
 		set_danger_regions(_danger_regions)
+	# Row IC, directives: so are the war goals' gold rings.
+	if not _goal_regions.is_empty():
+		set_goal_regions(_goal_regions)
 
 
 func order_arrow_label(info: Dictionary) -> String:
@@ -4044,13 +4047,52 @@ func set_danger_regions(names: Array) -> void:
 	# the map's names dodge each mark and its plate (a nation's name under the
 	# plate hid half of both — seen in the real client)
 	if map_label_layer != null and map_label_layer.has_method("set_mark_boxes") \
-			and order_layer.has_method("danger_mark_boxes"):
-		map_label_layer.set_mark_boxes(order_layer.danger_mark_boxes())
+			and order_layer.has_method("mark_boxes"):
+		# Row IC, directives: the goal ring's boxes join the danger marks' (one list for the label layer)
+		map_label_layer.set_mark_boxes(order_layer.mark_boxes())
 
 
 func danger_regions() -> Array:
 	"""The provinces marked as in danger now (read by the driven tests)."""
 	return _danger_regions.duplicate()
+
+
+# Row IC, directives (November 19, 2026): the war goals' gold rings. The
+# caller (`main.gd`) passes ONLY the rings to draw, each {"region", "label"}.
+var _goal_regions: Array = []
+
+
+func set_goal_regions(goals: Array) -> void:
+	"""Each goal's province wears a gold ring and its label
+	(`map_order_layer.set_goals`) — a name the sheet does not carry is
+	skipped; [] clears them."""
+	_goal_regions = goals.duplicate()
+	if order_layer == null or not order_layer.has_method("set_goals"):
+		return
+	var positions = _get_active_region_positions()
+	var points: Array = []
+	var labels: Array = []
+	for g in goals:
+		if not (g is Dictionary):
+			continue
+		var n := str((g as Dictionary).get("region", ""))
+		if n != "" and positions.has(n):
+			points.append(positions[n])
+			labels.append(str((g as Dictionary).get("label", "")))
+	order_layer.set_goals(points, labels)
+	# the map's names dodge the rings too (one list with the danger marks)
+	if map_label_layer != null and map_label_layer.has_method("set_mark_boxes") \
+			and order_layer.has_method("mark_boxes"):
+		map_label_layer.set_mark_boxes(order_layer.mark_boxes())
+
+
+func goal_regions() -> Array:
+	"""The provinces ringed as war goals now (read by the driven tests)."""
+	var out: Array = []
+	for g in _goal_regions:
+		if g is Dictionary and str((g as Dictionary).get("region", "")) != "":
+			out.append(str((g as Dictionary)["region"]))
+	return out
 
 
 # ═══ Row PW part 2 (November 18, 2026): the enemy's moves, played on the map ═══

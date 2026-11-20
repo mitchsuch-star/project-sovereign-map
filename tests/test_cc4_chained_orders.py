@@ -320,7 +320,26 @@ class TestCCX17EveryNameIsRelayedInTurn:
     relay carried one tail ("Davout, fortify") and the third man was only
     named ("Soult needs his own order")."""
 
-    def test_the_line_carries_the_rest_and_each_enter_hands_one_on(self, shipped):
+    def test_a_named_list_is_one_order_to_them_all(self, shipped):
+        """RE-SEATED by row IC, the directive (November 19, 2026 — the user's
+        ruling "One list for all"): a list of names with an order each man can
+        take goes to EVERY man named as one order — nothing is handed back
+        for a second Enter. The relay's chain is pinned with the seam down,
+        in the test below (its rule stands for an attack: the two after it)."""
+        M.world.actions_remaining = 12   # enough for three fortifies from neutral
+        reply = run(shipped, "Napoleon, Davout and Soult, fortify")
+        for name in ("Napoleon", "Davout", "Soult"):
+            assert M.world.get_marshal(name).fortified is True, name
+        assert "relay_command" not in reply and not reply.get("dropped_sequel")
+        assert "waits behind it" not in (reply.get("message") or "")
+        rows = (reply.get("group") or {}).get("rows") or []
+        assert [(r["marshal"], r["sent"]) for r in rows] == [
+            ("Napoleon", True), ("Davout", True), ("Soult", True)]
+        assert reply["action_info"]["cost"] == sum(r["ap"] for r in rows)
+
+    def test_the_line_carries_the_rest_and_each_enter_hands_one_on(self, shipped, monkeypatch):
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         M.world.actions_remaining = 12   # enough for three fortifies from neutral
         first = run(shipped, "Napoleon, Davout and Soult, fortify")
         assert M.world.get_marshal("Napoleon").fortified is True

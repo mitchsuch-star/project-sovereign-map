@@ -651,7 +651,7 @@ func _ready():
 		# CC-5 "The war table": the same card for an arrow and for a group.
 		order_card.standing_cancel_requested.connect(_on_standing_cancel_requested)
 		order_card.standing_change_requested.connect(_on_standing_change_requested)
-		order_card.group_send_requested.connect(_on_group_send_requested)
+		order_card.directive_give_requested.connect(_send_directive)   # row IC: the list's Give, ONE request
 		order_card.bring_requested.connect(_on_order_card_bring)   # row BA, BA-2
 		order_card.take_requested.connect(_on_order_card_take)     # row PW
 	dialog_manager.modal_shown.connect(_on_modal_shown)
@@ -1136,6 +1136,7 @@ func _on_connection_test(response):
 		# the same `desk` every reply does); its first-open line waits for the
 		# boot help below.
 		_ic_take_desk(response, false)
+		_ic_take_armies(response)   # row IC, directives: a loaded campaign's armies, from the first frame
 
 		# N4i: Initialize war status HUD on game start
 		_process_active_wars(response)
@@ -3618,6 +3619,9 @@ func _execute_command():
 	# first line; `set_input_enabled(false)` above closed the last one).
 	_begin_reply()
 
+	# Row IC, directives: a line addressed to several corps comes back as its
+	# LIST, not carried out — kept here so a Cancel puts it back on the line.
+	_directive_typed_line = command
 	# Send to backend
 	api_client.send_command(command, _on_command_result, relayed)
 
@@ -3687,7 +3691,6 @@ const DIPLO_FAMILY_KEYWORDS = [
 	"war purpose",
 	"set objective",
 	"declare purpose",
-	"set war goal",
 	"declare war on",
 	"declare war against",
 	"go to war with",
@@ -4298,10 +4301,31 @@ func _route_response_ui(response: Dictionary, routes: Array, before_modal: Calla
 			print("RESPONSE ROUTE MATCHED: ", route.get("id", "unknown"))
 		if before_modal.is_valid() and bool(route.get("result_first", false)):
 			before_modal.call(response)
+		else:
+			_say_the_group_before_its_question(response)
 		call(show_method, response)
 		_process_active_wars(response)
 		return true
 	return false
+
+
+func _say_the_group_before_its_question(response: Dictionary) -> void:
+	"""Row IC, directives: an order to several corps that stopped at one man's
+	question — its head, who went and who waits behind him — said in the log
+	BEFORE his window, which carries only his question (without this the rest
+	of the order's result was never shown: the CC harness's walk found it).
+	The server's own words (`group.said`); a route that renders the whole
+	result first (`result_first`) never comes here."""
+	var group = response.get("group", null)
+	if not (group is Dictionary) or not bool((group as Dictionary).get("asked", false)):
+		return
+	var said := str((group as Dictionary).get("said", "")).strip_edges()
+	if said == "":
+		return
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + Utils.humanize_nation_keys_in_text(said) + "[/color]")
+	var info = response.get("action_info", null)
+	if info is Dictionary:
+		_show_action_cost(info)
 
 
 func _render_own_result(response: Dictionary) -> void:
@@ -5800,6 +5824,10 @@ func _pw_shut_the_stack_list() -> void:
 
 func _on_command_result(response):
 	"""Handle command execution result."""
+	# Row IC, directives: the line typed for THIS reply (the requests go one at
+	# a time), handed to the list reader below and nowhere else.
+	var typed_line := _directive_typed_line
+	_directive_typed_line = ""
 	_pw_shut_the_stack_list()
 	# NA-6b: stash a Proclamation BEFORE any routing or early return — the
 	# backend already popped it off the PopupQueue, so anything that drops
@@ -5945,6 +5973,12 @@ func _on_command_result(response):
 
 	# Re-enable input
 	set_input_enabled(true)
+
+	# Row IC, directives: a reply that is the LIST of an order to several corps
+	# (`directive`, nothing carried out) stands on the card — nothing is
+	# printed but the reason a list was drawn again.
+	if _directive_reply(response, typed_line):
+		return
 
 	# Settlement reopen signal: backend asks the UI to re-open the settlement
 	# review (e.g. after a stale active_pair_changed / proposer_leader_changed,
@@ -7933,6 +7967,7 @@ func _sync_response_hud(response: Dictionary):
 	if notification_bar and response.has("notifications"):
 		notification_bar.update_notifications(response.notifications)
 	_ic_take_desk(response)   # row IC: THE PEACE, THE WAR, TO DECIDE ride every reply
+	_ic_take_armies(response)   # row IC, directives: the named armies, for the chips
 
 
 func _signed_number(value: int) -> String:
@@ -11226,8 +11261,22 @@ const ORDER_DWELL_SEC := 0.15
 # lines go, and the corps `.` visited last.
 var _order_group: Array = []
 var _group_card_dest := ""
-var _group_run: Dictionary = {}
 var _idle_cursor := ""
+# Row IC, directives (November 19, 2026): the line the player typed while its
+# LIST stands on the card (put back on the line if he cancels), the serial a
+# list's read belongs to (a late answer for a list let go is dropped), the
+# army a group was last picked from (the selection card offers "Save as"),
+# and the armies the last reply carried (the chips beside the marshals').
+var _directive_typed_line := ""
+var _directive_card_typed := ""
+var _directive_serial := 0
+var _directive_waiting := 0   # row IC: the serial of a list asked for and not yet shown
+# A list slow to come shows the "reading" card after this wait; one that comes
+# sooner opens once, fully formed (a card that grows as its rows arrive bobs).
+const DIRECTIVE_READING_DELAY_S := 0.35
+var _group_from_army := ""
+var _ic_armies: Array = []
+var _ic_enemies_known: Array = []
 
 
 func _order_input_ready() -> bool:
@@ -11305,8 +11354,10 @@ func _select_marshal(key: String) -> void:
 	# sent him there with no click.
 	_order_go_pending = ""
 	_order_card_wait = ""
+	_directive_waiting = 0   # row IC: a list on its way belongs to the selection it was asked for
 	_order_marshal = key
 	_order_group = []
+	_group_from_army = ""   # row IC
 	if map_area and map_area.has_method("set_order_group"):
 		map_area.set_order_group([])
 	_order_reach = {}
@@ -11379,6 +11430,7 @@ func _reread_order_selection() -> void:
 func _clear_order_selection() -> void:
 	"""Let the selection go — the ring, the tint, the ghost, the strip, and a
 	card still open (shut, nothing sent)."""
+	_directive_waiting = 0   # row IC: a list still on its way is let go with it
 	var card_open := _order_card_open()
 	if _order_marshal == "" and not card_open and _order_group.is_empty():
 		return
@@ -11392,12 +11444,21 @@ func _clear_order_selection() -> void:
 	_order_card_key = ""
 	_order_go_pending = ""   # row PW: a click that waited on a quote waits no more
 	_order_card_wait = ""
+	_group_from_army = ""   # row IC: and the army it was picked from
 	if _order_dwell != null:
 		_order_dwell.stop()
 	if map_area and map_area.has_method("clear_order_selection"):
 		map_area.clear_order_selection()
 	if card_open:
 		order_card.close_card()
+		# Row IC, directives (the review): a list shut under a let-go selection
+		# is said in the log, and the typed line it held is let go with it.
+		_directive_card_typed = ""
+		if order_card.has_method("given_up_words"):
+			var shut := str(order_card.given_up_words())
+			if shut != "":
+				add_output("[color=#" + Utils.COLOR_INFO + "]Not given: " + Utils.humanize_nation_keys_in_text(shut)
+					+ " — nothing was spent.[/color]")
 		_update_war_panel_visibility()
 	_render_order_strip()
 	_ui6_mark_selected()   # Session UI-6: and the marshal row lets him go
@@ -11766,11 +11827,30 @@ func _on_order_card_line(command: String) -> void:
 
 
 func _on_order_card_cancel() -> void:
-	"""[Cancel] / Esc on the card: back to the selection — nothing sent."""
+	"""[Cancel] / Esc on the card: back to the selection — nothing sent. Row IC:
+	a list drawn from a TYPED line puts the line back where it was written."""
 	_order_card_key = ""
+	_directive_waiting = 0   # row IC: Esc on the reading card lets the list on its way go too
 	_update_war_panel_visibility()
 	if map_area and map_area.has_method("rearm_order_hover"):
 		map_area.rearm_order_hover()
+	var typed := _directive_card_typed
+	_directive_card_typed = ""
+	# Row IC, directives (the blind reading 2: "whether the earlier order was
+	# given or only drafted was unclear"): a list let go says so in the log.
+	if order_card != null and order_card.has_method("given_up_words"):
+		var words := str(order_card.given_up_words())
+		if words != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]Not given: " + Utils.humanize_nation_keys_in_text(words)
+				+ " — nothing was spent." + (" Your line is back below: change it, or press Enter to see the list again."
+					if typed != "" else "") + "[/color]")
+	if typed != "" and command_input != null and order_card != null and str(order_card.mode()) == "directive":
+		command_input.text = typed
+		if command_input.editable:
+			command_input.grab_focus()
+			_resume_editing()
+			command_input.caret_column = command_input.text.length()
+		_refresh_draft_glow()
 
 
 func _send_map_order(command: String) -> void:
@@ -12132,6 +12212,7 @@ func _set_order_group(members: Array) -> void:
 	_order_serial += 1
 	_order_go_pending = ""   # (PW-R17)
 	_order_card_wait = ""
+	_directive_waiting = 0   # row IC: a new group lets an old group's list go
 	_order_marshal = ""
 	_order_reach = {}
 	_order_quotes = {}
@@ -12164,143 +12245,147 @@ func _group_click(region: String) -> void:
 
 
 func _open_group_card(region: String) -> void:
-	if order_card == null:
+	"""Row IC, directives: a Ctrl-click group sent to a province — the LIST of
+	its march (each man's own plain order, as his single click sends it: a move
+	next door is the one-action move), on the card, before anything is spent."""
+	if order_card == null or _order_group.size() < 2:
 		return
 	_group_card_dest = region
 	var names := PackedStringArray()
 	for key in _order_group:
 		names.append(Utils.humanize_entity_name(str(key)))
-	order_card.open_group_card("ORDERS FOR %d CORPS" % _order_group.size(), region,
-		"Reading the roads to " + region + " for " + ", ".join(names) + "…", _order_card_avoid())
-	_update_war_panel_visibility()
-	if api_client != null and api_client.has_method("get_group_quotes"):
-		var serial := _order_serial
-		api_client.get_group_quotes(_order_group, region,
-			func(response): _on_group_quotes(serial, region, response))
+	_open_directive_line(_ic_group_address(_order_group) + ", march to " + region, true,
+		"Reading the roads to " + region + " for " + ", ".join(names) + "…")
 
 
-func _on_group_quotes(serial: int, region: String, response) -> void:
-	if serial != _order_serial or region != _group_card_dest:
-		return   # the answer for a group already let go
-	if not _order_card_open() or str(order_card.mode()) != "group":
+func _open_directive_line(line: String, click: bool, reading: String = "") -> void:
+	"""Row IC, directives: the LIST of an order to several corps for a line the
+	client composed (a group's march or Hold / Fortify / Drill, a TO DECIDE
+	row): the card stands at once on "reading", and fills when the list
+	arrives (`GET /directive_quote` — read-only, nothing spent)."""
+	if order_card == null or api_client == null or line.strip_edges() == "" \
+			or not api_client.has_method("get_directive_quote"):
 		return
-	var quotes = response.get("quotes", []) if response is Dictionary else []
-	if not (response is Dictionary) or not bool(response.get("success", false)):
-		quotes = []
-	order_card.show_group(quotes if quotes is Array else [],
-		int(response.get("ap_left", actions_remaining)) if response is Dictionary else int(actions_remaining))
-	order_card.set_avoid(_order_card_avoid())
+	_directive_serial += 1
+	_directive_card_typed = ""
+	var serial := _directive_serial
+	_directive_waiting = serial
+	var comma := line.rfind(", ")
+	var order := line.substr(comma + 2) if comma >= 0 else line
+	var placeholder := {"who": "", "order": order, "rows": [], "reading": true,
+		"count": maxi(2, _order_group.size()), "have": int(actions_remaining),
+		"note": reading if reading != "" else "Reading each corps' order and its price…"}
+	get_tree().create_timer(DIRECTIVE_READING_DELAY_S).timeout.connect(
+		_directive_show_reading.bind(serial, placeholder))
+	api_client.get_directive_quote(line, click, func(response): _on_directive_quote(serial, response))
 
 
-func _on_group_send_requested(lines: Array, held: Array) -> void:
-	_update_war_panel_visibility()
-	_send_group_orders(lines, held)
-
-
-func _send_group_orders(lines: Array, held: Array) -> void:
-	"""The group card's Send: its lines go down the TYPED road one at a time
-	(`_send_map_order`'s steps), each answered before the next is sent; the
-	run STOPS at the first question (an objection, a contact, any popup) or
-	refusal and says how far it got ("2 of 3 sent — Lannes refused: …")."""
-	if lines.is_empty() or _chip_command_in_flight:
+func _directive_show_reading(serial: int, placeholder: Dictionary) -> void:
+	"""The list is slow to come: the card stands on "reading" meanwhile."""
+	if serial != _directive_serial or serial != _directive_waiting or _order_card_open() \
+			or _is_modal_dialog_open():
 		return
-	if not command_input.editable:
+	order_card.open_directive(placeholder, _order_card_avoid())
+	_update_war_panel_visibility()
+
+
+func _on_directive_quote(serial: int, response) -> void:
+	if serial != _directive_serial or serial != _directive_waiting:
+		return   # the answer for a list already let go
+	_directive_waiting = 0
+	var reading := _order_card_open() and str(order_card.mode()) == "directive"
+	if not reading and (_order_card_open() or _is_modal_dialog_open()):
+		return   # another window took the place meanwhile
+	if response is Dictionary and bool(response.get("success", false)) and response.get("directive") is Dictionary:
+		order_card.open_directive(response.get("directive"), _order_card_avoid())
+		_update_war_panel_visibility()
+		return
+	var said := str(response.get("message", "")) if response is Dictionary else ""
+	if said == "":
+		said = "The list could not be read, Sire — nothing was sent."
+	order_card.open_directive({"who": "", "order": "", "rows": [], "count": maxi(2, _order_group.size()),
+		"have": int(actions_remaining), "sendable": false, "note": said}, _order_card_avoid())
+	_update_war_panel_visibility()
+
+
+func _directive_reply(response, typed_line: String = "") -> bool:
+	"""Row IC, directives: a reply that is the LIST of an order to several
+	corps (`directive`, and no `group` — nothing was carried out) opens the
+	card; True when it did. Its message — a list drawn again because the one
+	answered no longer held — is said in the log and above the rows."""
+	if not (response is Dictionary):
+		return false
+	var listing = (response as Dictionary).get("directive", null)
+	if not (listing is Dictionary) or (listing as Dictionary).is_empty() \
+			or (response as Dictionary).get("group") is Dictionary or order_card == null:
+		return false
+	_directive_card_typed = typed_line   # a Cancel puts the typed line back
+	var note := str((response as Dictionary).get("message", "")).strip_edges()
+	if note != "":
+		add_output("[color=#" + Utils.COLOR_WARNING + "]" + note + "[/color]")
+	_directive_serial += 1
+	order_card.open_directive(listing, _order_card_avoid(), note)
+	_update_war_panel_visibility()
+	return true
+
+
+func _send_directive(line: String, members: Array, expect_ap: int, click: bool) -> void:
+	"""Row IC, directives: the list's [Give the order] — ONE request (one
+	Take-back unit) down the typed road's steps: the wire guard, the end-turn
+	latch retired, the echo, the in-flight latch."""
+	if line == "" or members.is_empty() or api_client == null:
+		return
+	if _chip_command_in_flight or not command_input.editable:
+		# (the review) the list stays up: Give is pressed again once the rider is back
 		add_output("[color=#" + Utils.COLOR_ERROR
-			+ "]The despatch rider has not yet returned, Sire — one moment.[/color]")
+			+ "]The despatch rider has not yet returned, Sire — one moment; the list stands.[/color]")
 		return
+	if order_card != null and order_card.has_method("close_given"):
+		order_card.close_given()
+	var typed := _directive_card_typed
+	_directive_card_typed = ""
+	_directive_typed_line = typed   # a list drawn again on the reply puts the typed line back on its Cancel
+	_card_sent_for = ""
 	_clear_order_selection()
-	_group_run = {"lines": lines.duplicate(true), "i": 0, "sent": [],
-		"held": held.duplicate(true), "total": lines.size() + held.size()}
-	_send_group_line()
-
-
-func _send_group_line() -> void:
-	var lines: Array = _group_run.get("lines", [])
-	var i := int(_group_run.get("i", 0))
-	if i >= lines.size():
-		_finish_group_run("", "")
-		return
-	var command := str((lines[i] as Dictionary).get("command", ""))
-	if command == "" or not command_input.editable or _chip_command_in_flight:
-		_finish_group_run(str((lines[i] as Dictionary).get("shown", "")), "could not be sent")
-		return
+	_update_war_panel_visibility()
 	_chip_command_in_flight = true
-	_add_to_history(command)
+	if typed == "":
+		_add_to_history(line)   # a typed line is in the history already
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	# A click group's line is composed ("Ney and Davout, march to Lorraine") and
+	# each man takes his own click order — the echo says "go to", as the list does.
+	var said := line.replace(", march to ", ": go to ") if click else line
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(said)
+		+ " — " + str(members.size()) + " corps[/color]")
 	AudioManager.play("quill_flick")
 	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
 	AudioManager.start_scribble()
 	if tutorial_overlay:
-		tutorial_overlay.note_sent(command)
-	api_client.send_command(command, _on_group_line_result)
+		tutorial_overlay.note_sent(line)
+	api_client.send_directive(line, members, expect_ap, click, _on_directive_result)
 
 
-func _on_group_line_result(response) -> void:
+func _on_directive_result(response) -> void:
 	_chip_command_in_flight = false
-	_on_command_result(response)
-	if _group_run.is_empty():
-		return
-	var lines: Array = _group_run["lines"]
-	var i := int(_group_run["i"])
-	var shown := str((lines[i] as Dictionary).get("shown", ""))
-	if not (response is Dictionary) or not bool(response.get("success", false)):
-		_finish_group_run(shown, "refused: " + _group_reason(response))
-		return
-	if not command_input.editable or _is_modal_dialog_open():
-		# A question rides the reply — an objection, a first-step contact,
-		# any popup: the rest wait for no one (nothing is held — CR-7-8).
-		_finish_group_run(shown, "asks you first")
-		return
-	(_group_run["sent"] as Array).append(shown)
-	_group_run["i"] = i + 1
-	if i + 1 < lines.size():
-		_send_group_line.call_deferred()
-	else:
-		_finish_group_run("", "")
+	_on_command_result(response)   # a list that no longer held comes back as one (`_directive_reply`)
 
 
-func _group_reason(response) -> String:
-	"""The refusal's first sentence, plain."""
-	var text := str(response.get("message", "")) if response is Dictionary else ""
-	text = text.strip_edges().split("\n")[0].strip_edges()
-	var stop := text.find(". ")
-	if stop > 20:
-		text = text.substr(0, stop + 1)
-	return text if text != "" else "the order was not taken"
+func directive_report() -> Dictionary:
+	"""The list on the card — read by the CC harness and the instrument."""
+	if order_card == null or not order_card.has_method("directive_report"):
+		return {}
+	return order_card.directive_report()
 
 
-func _finish_group_run(stopped_at: String, why: String) -> void:
-	"""The run's account — how far it got, who stopped it and why, what was
-	not sent, and who stayed by the card's own word."""
-	if _group_run.is_empty():
-		return
-	var lines: Array = _group_run.get("lines", [])
-	var sent: Array = _group_run.get("sent", [])
-	var text := "%d of %d sent" % [sent.size(), int(_group_run.get("total", lines.size()))]
-	if stopped_at != "":
-		text += " — " + stopped_at + " " + why
-		var rest := PackedStringArray()
-		for k in range(int(_group_run.get("i", 0)) + 1, lines.size()):
-			rest.append(str((lines[k] as Dictionary).get("shown", "")))
-		if not rest.is_empty():
-			text += "; not sent: " + ", ".join(rest)
-	var held := PackedStringArray()
-	for h in _group_run.get("held", []):
-		if h is Dictionary:
-			held.append(str(h.get("shown", "")) + " (" + str(h.get("reason", "")) + ")")
-	if not held.is_empty():
-		text = text.trim_suffix(".") + ". Stayed: " + "; ".join(held)
-	if not (text.ends_with(".") or text.ends_with("!") or text.ends_with("?")):
-		text += "."   # a refusal's own sentence already ends itself
-	_group_run = {}
-	add_output("[color=#" + Utils.COLOR_GOLD + "]" + text + "[/color]")
-
-
-func group_run_report() -> Dictionary:
-	"""The sequencer's state — read by the CC harness."""
-	return _group_run.duplicate(true)
+func _ic_names_line(keys: Array) -> String:
+	"""The roster keys as a list of names the server reads ("Ney, Davout and Soult")."""
+	var names: Array = []
+	for key in keys:
+		names.append(str(key))
+	if names.size() <= 1:
+		return "".join(PackedStringArray(names))
+	return ", ".join(PackedStringArray(names.slice(0, names.size() - 1))) + " and " + str(names[-1])
 
 
 func _build_order_strip() -> void:
@@ -12409,8 +12494,10 @@ func _group_strip_text() -> String:
 		total += int(prices.get("march", 0)) if prices is Dictionary else 0
 	var text := ("[b]" + ", ".join(names) + "[/b] — " + str(_order_group.size())
 		+ " corps selected — click a province: march together · Ctrl-click a marshal: add or drop him · Esc cancels")
-	text += ("\n[color=#" + Utils.COLOR_INFO + "]A march for them all costs " + Utils.plural(total, "action")
-		+ " of " + str(actions_remaining) + " in hand · the card names each corps' road and price[/color]")
+	# Row IC, directives: "up to" — a province next door is each man's one-action
+	# move on the click road; the list names each corps' order and price first.
+	text += ("\n[color=#" + Utils.COLOR_INFO + "]A march for them all costs up to " + Utils.plural(total, "action")
+		+ " of " + str(actions_remaining) + " in hand · the list names each corps' order and price first[/color]")
 	return text
 
 
@@ -14610,6 +14697,8 @@ func _ui6_build_desk() -> void:
 	_marshal_row.marshal_double_pressed.connect(_on_marshal_chip_opened)
 	_marshal_row.more_pressed.connect(_on_marshal_row_more)
 	_marshal_row.idle_pressed.connect(_on_marshal_row_idle)
+	if _marshal_row.has_signal("army_pressed"):
+		_marshal_row.connect("army_pressed", _on_army_chip_pressed)   # row IC: an army's chip
 	# the bar's second row, under the line
 	_bar_row = HBoxContainer.new()
 	_bar_row.name = "BarStatusRow"
@@ -15069,13 +15158,18 @@ func _ui6_refresh_marshal_row() -> void:
 	if _marshal_row == null or not is_instance_valid(_marshal_row):
 		return
 	_marshal_row.set_rows(_ui6_marshal_rows())
+	if _marshal_row.has_method("set_armies"):
+		_marshal_row.set_armies(_ic_armies)   # row IC: the named armies, first on the row
 	_ui6_mark_selected()
 
 
 func _ui6_mark_selected() -> void:
-	"""The selection changed: his chip wears the bright rim (a group: none)."""
+	"""The selection changed: his chip wears the bright rim (a group: none —
+	row IC: a group that is exactly an army lights the army's chip)."""
 	if _marshal_row != null and is_instance_valid(_marshal_row):
 		_marshal_row.set_selected(_order_marshal)
+		if _marshal_row.has_method("set_selected_army"):
+			_marshal_row.set_selected_army(_ic_army_matching(_order_group))
 
 
 func _on_marshal_chip_pressed(key: String) -> void:
@@ -15188,7 +15282,11 @@ func _ui6_dim(text: String) -> String:
 
 const SelectionCardScript := preload("res://scripts/selection_card.gd")
 # The group face's hint: its title names the corps, its sum line the price.
-const GROUP_CARD_HINT := "Click a province: march together · Ctrl-click a marshal: add or drop him · Esc cancels"
+# (row IC, directives: what Hold… / Fortify… / Drill… open is said before the press —
+# the blind reading's three readers each asked what the "…" would ask next)
+const GROUP_CARD_HINT := ("Hold…, Fortify… or Drill… first shows each corps' order and price — nothing "
+	+ "is spent until you Give. To march them instead, click a province. Ctrl-click a marshal to add or "
+	+ "drop him; Esc unselects them.")
 const WING_INSET := 4.0              # the wing's frame inside the right column (the war list stands 8 in)
 const WING_FRAME_DRAWN := false     # the interim reading: the empty full-height frame is not drawn
 const WING_TOP_GAP := 2.0            # under the top bar's strip, enclosing the rail's slot (6 under it)
@@ -15240,6 +15338,11 @@ func _ui6_build_selection_card() -> void:
 	_selection_card.cancel_order_pressed.connect(_on_selection_cancel)
 	_selection_card.close_pressed.connect(_clear_order_selection)
 	_selection_card.take_pressed.connect(_pw_take_where_he_stands)   # row PW
+	# Row IC, directives: the group face's orders (each opens the list) and its army
+	for pair in [["group_verb_pressed", _on_group_verb], ["name_army_pressed", _on_name_army],
+			["save_army_pressed", _on_save_army], ["disband_army_pressed", _on_disband_army]]:
+		if _selection_card.has_signal(str(pair[0])):
+			_selection_card.connect(str(pair[0]), pair[1])
 	# its size settles after its labels measure themselves: the slot follows
 	_selection_card.resized.connect(_queue_fit_map_controls)
 	_selection_card.visibility_changed.connect(_queue_fit_map_controls)
@@ -15264,6 +15367,7 @@ func _ui6_show_selection_card(hint: String) -> bool:
 	_ui6_card_width_cap()
 	if _order_group.size() >= 2:
 		_selection_card.show_group(_order_group, _ui6_group_total(), int(actions_remaining), GROUP_CARD_HINT)
+		_ic_group_army_on_card()   # row IC: Name this army / Save as / Disband
 		return true
 	if _order_marshal == "":
 		return false
@@ -16183,6 +16287,15 @@ func _ic_take_desk(response, say_line: bool = true) -> void:
 			_ic_danger_warned.erase(region_name)
 	if map_area != null and map_area.has_method("set_danger_regions"):
 		map_area.set_danger_regions(_ic_danger_regions())
+	# Row IC, directives: the wars' goals — the map's gold ring, the province
+	# panel's "Make this the war goal" (the courts we are fighting).
+	if map_area != null and map_area.has_method("set_goal_regions"):
+		map_area.set_goal_regions(_ic_goal_rings())
+	var enemies := _ic_enemies_of(response)
+	if not enemies.is_empty() or (response as Dictionary).has("active_wars"):
+		_ic_enemies_known = enemies
+	if region_panel != null and region_panel.has_method("set_war_goal_context"):
+		region_panel.set_war_goal_context(_ic_goals(), _ic_enemies_known)
 	if say_line:
 		_ic_say_first_line()
 
@@ -16199,6 +16312,11 @@ func _ic_forget_the_board() -> void:
 		_turn_end_list.hide_list()
 	if map_area != null and map_area.has_method("set_danger_regions"):
 		map_area.set_danger_regions([])
+	if map_area != null and map_area.has_method("set_goal_regions"):
+		map_area.set_goal_regions([])   # row IC
+	_ic_armies = []
+	_ic_enemies_known = []
+	_group_from_army = ""
 
 
 func _ic_say_first_line() -> void:
@@ -16434,6 +16552,10 @@ func _ic_open_door(door: Dictionary, _row_id: String = "") -> void:
 			_on_tutorial_open_cabinet(str(door.get("opponent", "")))
 		"court":
 			_on_tutorial_open_cabinet(str(door.get("nation", "")))
+		"directive":
+			# Row IC, directives: "N corps can march on Vienna, your war goal —
+			# see the list" — the list, filled in; nothing is sent until Give.
+			_open_directive_line(str(door.get("line", "")), bool(door.get("click", false)))
 	# A door that opened no window hands the keyboard back to the line (a
 	# focused row would swallow the next typed letter as a hotkey).
 	if not _is_modal_dialog_open() and not _is_screen_open() and command_input != null \
@@ -16473,3 +16595,221 @@ func _ic_go_to_region(region_name: String) -> void:
 		_clear_order_selection()
 	_on_show_on_map_requested(region_name)
 	_on_map_region_clicked(region_name, true)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Row IC, directives (November 19, 2026) — named armies and the war goal
+# ════════════════════════════════════════════════════════════════════════════
+
+func _ic_take_armies(response) -> void:
+	"""A reply's `armies` (absent = none): the chips beside the marshals'."""
+	if not (response is Dictionary):
+		return
+	var raw = (response as Dictionary).get("armies", [])
+	_ic_armies = raw if raw is Array else []
+	if _marshal_row != null and is_instance_valid(_marshal_row) and _marshal_row.has_method("set_armies"):
+		_marshal_row.set_armies(_ic_armies)
+	_ui6_mark_selected()
+
+
+func _ic_army_row(army_name: String) -> Dictionary:
+	for row in _ic_armies:
+		if row is Dictionary and str(row.get("name", "")) == army_name:
+			return row
+	return {}
+
+
+func _ic_army_field_members(army_name: String) -> Array:
+	"""The army's men standing in the field on the last board, in its order."""
+	var out: Array = []
+	var members = _ic_army_row(army_name).get("members", [])
+	if members is Array:
+		for key in members:
+			if _own_field_marshal(str(key)):
+				out.append(str(key))
+	return out
+
+
+func _ic_army_matching(keys: Array) -> String:
+	"""The army whose men in the field are exactly `keys` (two or more), or ""."""
+	if keys.size() < 2:
+		return ""
+	for row in _ic_armies:
+		if not (row is Dictionary):
+			continue
+		var field := _ic_army_field_members(str(row.get("name", "")))
+		if field.size() != keys.size():
+			continue
+		var same := true
+		for key in keys:
+			if not field.has(str(key)):
+				same = false
+				break
+		if same:
+			return str(row.get("name", ""))
+	return ""
+
+
+func _on_army_chip_pressed(army_name: String) -> void:
+	"""An army's chip: its corps in the field are selected — two or more as a
+	group (the card's group face: Hold, Fortify, Drill, or a click on a
+	province), one alone as his own selection. With a draft on the line the
+	chip writes the army's name at the caret, as a marshal's chip writes his."""
+	if command_input == null:
+		return
+	if command_input.text.strip_edges() != "":
+		var at: int = int(command_input.caret_column)
+		command_input.text = command_input.text.substr(0, at) + army_name + command_input.text.substr(at)
+		command_input.caret_column = at + army_name.length()
+		command_input.grab_focus()
+		_resume_editing()
+		_refresh_draft_glow()
+		return
+	if not _order_input_ready():
+		return
+	var members := _ic_army_field_members(army_name)
+	if members.is_empty():
+		add_output("[color=#" + Utils.COLOR_WARNING + "]No corps of the " + army_name
+			+ " is in the field, Sire.[/color]")
+		return
+	if members.size() == 1:
+		_select_marshal(str(members[0]))
+	else:
+		_group_from_army = army_name
+		_set_order_group(members)
+		_group_from_army = army_name   # (kept past the group's own refresh)
+		_ic_group_army_on_card()
+	if map_area != null and map_area.has_method("focus_on_marshal"):
+		map_area.focus_on_marshal(str(members[0]))
+
+
+func _ic_group_army_on_card() -> void:
+	"""The selection card's army buttons for the group held now: "Disband" when
+	it is exactly an army, "Save as" when it was picked from one and changed,
+	else "Name this army…"."""
+	if _selection_card == null or not is_instance_valid(_selection_card) \
+			or not _selection_card.has_method("set_group_army"):
+		return
+	var exact := _ic_army_matching(_order_group)
+	if exact != "":
+		_selection_card.set_group_army(exact, true)
+	elif _group_from_army != "" and not _ic_army_row(_group_from_army).is_empty():
+		_selection_card.set_group_army(_group_from_army, false)
+	else:
+		_selection_card.set_group_army("", false)
+	if _marshal_row != null and is_instance_valid(_marshal_row) and _marshal_row.has_method("set_selected_army"):
+		_marshal_row.set_selected_army(exact)
+
+
+func _on_group_verb(verb: String) -> void:
+	"""The group face's Hold / Fortify / Drill: the LIST of that order for the
+	group, on the card — nothing is spent until Give."""
+	if _order_group.size() < 2 or not _order_input_ready() or verb == "":
+		return
+	_open_directive_line(_ic_group_address(_order_group) + ", " + verb, false)
+
+
+func _ic_group_address(keys: Array) -> String:
+	"""Who a composed line is for: the army's name when the group is exactly an
+	army in the field ("Army of Italy" — the list is titled by it and the reply
+	names it), else the men by name ("Ney, Davout and Soult")."""
+	var exact := _ic_army_matching(keys)
+	return exact if exact != "" else _ic_names_line(keys)
+
+
+func _ic_group_place(keys: Array) -> String:
+	"""The province most of the group stands in (the first among equals)."""
+	var counts := {}
+	var best := ""
+	for key in keys:
+		var place := str(_marshal_entry(str(key)).get("location", ""))
+		if place == "":
+			continue
+		counts[place] = int(counts.get(place, 0)) + 1
+		if best == "" or int(counts[place]) > int(counts[best]):
+			best = place
+	return best
+
+
+func _on_name_army() -> void:
+	""""Name this army…": the order that forms it is written on the line with
+	its name selected — Enter forms it, typing replaces the name first (free)."""
+	if _order_group.size() < 2 or command_input == null or not command_input.editable:
+		return
+	var keys := _order_group.duplicate()
+	var place := _ic_group_place(keys)
+	var army_name := ("Army of " + place) if place != "" else "Army of the Emperor"
+	var line := "form the " + army_name + " with " + _ic_names_line(keys)
+	_clear_order_selection()
+	command_input.text = line
+	command_input.grab_focus()
+	_resume_editing()
+	var start := line.find(army_name)
+	command_input.select(start, start + army_name.length())
+	command_input.caret_column = start + army_name.length()
+	_refresh_draft_glow()
+
+
+func _on_save_army(army_name: String) -> void:
+	""""Save as <army>": the army becomes exactly these corps (free; Take back undoes it)."""
+	if army_name == "" or _order_group.size() < 2 or _chip_command_in_flight or not _order_input_ready():
+		return
+	_on_reward_command("form the " + army_name + " with " + _ic_names_line(_order_group))
+
+
+func _on_disband_army(army_name: String) -> void:
+	""""Disband <army>": the army is dissolved; its corps keep their orders (free; Take back undoes it)."""
+	if army_name == "" or _chip_command_in_flight or not _order_input_ready():
+		return
+	_on_reward_command("disband the " + army_name)
+
+
+func _ic_goals() -> Array:
+	"""The desk's war goals ([] when none is set)."""
+	var raw = _ic_desk.get("goals", [])
+	return raw if raw is Array else []
+
+
+func _ic_goal_rings() -> Array:
+	"""The goals the map rings: still to be won, and placed (the fog keeps an
+	army's province where we cannot see him — the server leaves it blank)."""
+	var out: Array = []
+	for goal in _ic_goals():
+		if not (goal is Dictionary) or str(goal.get("status", "")) != "open":
+			continue
+		var region := str(goal.get("region", ""))
+		if region == "":
+			continue
+		out.append({"region": region, "label": "War goal: " + str(goal.get("shown", region))})
+	return out
+
+
+func _ic_enemies_of(response) -> Array:
+	"""The courts we are at war with, read off the reply's war rows (every court
+	of a shared war). [] when the reply carries no war rows."""
+	var out: Array = []
+	if not (response is Dictionary):
+		return out
+	var wars_block = (response as Dictionary).get("active_wars", {})
+	var wars = wars_block.get("wars", []) if wars_block is Dictionary else []
+	if not (wars is Array):
+		return out
+	for w in wars:
+		if not (w is Dictionary) or str(w.get("status", "")) != "war":
+			continue
+		var courts: Array = []
+		courts.append(str(w.get("opponent", "")))
+		var opponents = w.get("opponents", [])
+		if opponents is Array:
+			courts.append_array(opponents)
+		var members = w.get("coalition_member_rows", [])
+		if members is Array:
+			for m in members:
+				if m is Dictionary:
+					courts.append(str(m.get("opponent", "")))
+		for court in courts:
+			var c := str(court)
+			if c != "" and not out.has(c):
+				out.append(c)
+	return out
+

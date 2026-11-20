@@ -9,6 +9,13 @@ click opens ONE card with a line per corps, the actions summed against the
 pool, and Send goes corps by corps down the typed road, stopping at the first
 question or refusal.
 
+RE-SEATED by row IC, the directive (November 19, 2026): the group card's
+sequencer is gone. A province click with a group held opens the LIST — ONE
+read-only GET (`/directive_quote`, `click=1`: each man's own click order) —
+and Give is ONE request (`/command` with `members` and `expect_ap`), one
+Take-back unit; the server stops the run at the first question and names who
+waits, and a list that no longer holds is drawn again with nothing spent.
+
 The pins:
 
 * THE REMAINING ROAD rides the player-only `tactical_state` (`order_road`,
@@ -29,15 +36,16 @@ The pins:
   and the relay count the arrow's road.
 * THE GROUP'S QUOTES (`GET /march_quotes?marshals=…&dest=…`) are each
   member's own `march_quote`; read-only.
-* THE NAMED LIST IS CQ-8's RELAY, NOT THE FAN-OUT — verified at the part's
-  head: `Ney, Davout and Soult, fortify` spends Ney's order only (the
-  second name relayed for the seal, never spent). So the group card's Send
-  cannot be that one line; it is the sequencer (the landing record,
-  `SYSTEMS_REFERENCE.md` §129).
+* THE NAMED LIST WAS CQ-8's RELAY, NOT THE FAN-OUT — verified at the part's
+  head: `Ney, Davout and Soult, fortify` spent Ney's order only (the second
+  name relayed for the seal, never spent), so the group card's Send was a
+  sequencer (`SYSTEMS_REFERENCE.md` §129). Row IC turned the seam
+  (`directive.a_named_list_is_one_directive`): the named list is now one
+  order to every man named (§230); the relay's rule is pinned with it down.
 * THE CLIENT, DRIVEN (`tools/cc_client_harness.gd`): an arrow for every
   standing order and none for an enemy, the arrow card's Cancel through
   `/cancel_order` and its Change selecting him, the idle cycle skipping the
-  busy, the group card's sum and its stop rule. SKIPS when the engine is
+  busy, the group's list, its sum and its one Give. SKIPS when the engine is
   absent — and a skip is not a pass.
 """
 
@@ -46,6 +54,7 @@ import io
 import json
 import os
 import random
+import re
 import subprocess
 
 import pytest
@@ -436,12 +445,18 @@ class TestTheNamedListIsCQ8sRelay:
     is handed back for the seal, never spent. So one typed line cannot carry
     the group card's sealed orders, and its Send is the sequencer."""
 
-    def test_only_the_first_named_corps_is_spent(self, client):
+    def test_only_the_first_named_corps_is_spent(self, client, monkeypatch):
         """The Emperor first (a sovereign never objects, so his order is
         simply spent). RE-SEATED by CC-X17 (S13c part 4, October 19, 2026):
         the relay used to carry ONE tail, "Davout, fortify", and Soult was
         only named; it carries every further name now — each Enter gives the
-        first of them his order and hands the rest back. Still never spent."""
+        first of them his order and hands the rest back. Still never spent.
+
+        Row IC, the directive (November 19, 2026): this is the relay's rule
+        with `directive.a_named_list_is_one_directive` DOWN; up — as shipped —
+        a named list is one order to every man named (the test below)."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         C.boot()
         r = _post(client, "Napoleon, Davout and Soult, fortify")
         w = M.world
@@ -451,6 +466,18 @@ class TestTheNamedListIsCQ8sRelay:
         assert r.get("relay_command") == "Davout and Soult, fortify"
         assert "The order goes to the army" not in (r.get("message") or "")
         assert not (r.get("group") or {}).get("members")
+
+    def test_a_named_list_goes_to_every_man_named(self, client):
+        """Row IC, the directive: one typed line now carries the whole group's
+        orders — the fan-out the collective words take, to the men named."""
+        C.boot()
+        M.world.actions_remaining = 12
+        r = _post(client, "Napoleon, Davout and Soult, fortify")
+        w = M.world
+        assert all(w.get_marshal(n).fortified for n in ("Napoleon", "Davout", "Soult"))
+        assert "relay_command" not in r
+        assert "The order goes to Napoleon, Davout and Soult" in (r.get("message") or "")
+        assert (r.get("group") or {}).get("members") == ["Napoleon", "Davout", "Soult"]
 
 
 # ═══ the source pins ════════════════════════════════════════════════════════
@@ -477,14 +504,23 @@ class TestTheClientsRoads:
             "_api_client_ref.cancel_strategic_order(marshal_name, _on_cancel_result)")
         assert src.count("api_client.cancel_strategic_order(") == 1
 
-    def test_each_group_line_goes_down_the_typed_road(self):
-        body = _func(_src(MAIN_GD), "_send_group_line")
-        for step in ("_add_to_history(command)", "_retire_line_latches()",
-                     "set_input_enabled(false)",
-                     "api_client.send_command(command, _on_group_line_result)"):
+    def test_the_lists_give_goes_down_the_typed_road(self):
+        """RE-SEATED by row IC: the group card's sequencer (`_send_group_line`)
+        is gone; the list's Give is ONE request down the typed road's steps."""
+        src = _src(MAIN_GD)
+        body = _func(src, "_send_directive")
+        for step in ("if _chip_command_in_flight or not command_input.editable:", "_add_to_history(line)",
+                     "_retire_line_latches()", "set_input_enabled(false)", "order_card.close_given()",
+                     "api_client.send_directive(line, members, expect_ap, click, _on_directive_result)"):
             assert step in body, step
-        result = _func(_src(MAIN_GD), "_on_group_line_result")
-        assert result.index("_on_command_result(response)") < result.index("_send_group_line.call_deferred()")
+        assert body.index("_retire_line_latches()") < body.index("api_client.send_directive(")
+        # (the review) the card shuts only once the guard has let the Give through
+        guard = body.index("if _chip_command_in_flight or not command_input.editable:")
+        assert guard < body.index("order_card.close_given()") < body.index("api_client.send_directive(")
+        assert "_on_command_result(response)" in _func(src, "_on_directive_result")
+        for gone in ("func _send_group_line(", "func _on_group_line_result(", "func _send_group_orders(",
+                     "func _finish_group_run(", "func group_run_report("):
+            assert gone not in src, gone
 
     def test_the_arrow_answers_only_an_empty_line(self):
         body = _func(_src(MAIN_GD), "_arrow_may_take_a_click")
@@ -580,13 +616,14 @@ def _cc5_block(client):
            "after_cancels": after}
 
     # The group: two clean marches beside Ney, whose road meets Mack on its
-    # first step (he asks — the question that stops the run).
+    # first step (he asks — the question that stops the run). The click road's
+    # quotes (row PW: a province next door is the move): the list's own.
     _table(client, cancels=2)
     w = M.world
     others = [k for k in idle if k != "Ney"]
     found = None
     for dest in sorted(w.regions):
-        quotes = {k: march_quote(w, w.get_marshal(k), dest) for k in idle}
+        quotes = {k: march_quote(w, w.get_marshal(k), dest, click=True) for k in idle}
         clean = [k for k in others if quotes[k]["ok"] and not quotes[k]["already"]
                  and not quotes[k]["contact"] and quotes[k]["objection"] == "none"
                  and quotes[k]["turns"] >= 1]   # still on the road after the first step
@@ -599,35 +636,56 @@ def _cc5_block(client):
     dest, x, y = found
     cc5["toggle_members"] = [x, "Ney", y]
 
-    def quotes_for(members):
+    def line_for(members):
+        """The line the client composes for a group sent to `dest`
+        (`main.gd::_open_group_card`: the keys as a list, then the march)."""
+        return ", ".join(members[:-1]) + " and " + members[-1] + ", march to " + dest
+
+    def listing_for(members):
+        """The list the card asks for (`GET /directive_quote`, click=1)."""
         with _quiet():
-            return client.get("/march_quotes", params={"marshals": ",".join(members),
-                                                       "dest": dest}).json()
+            reply = client.get("/directive_quote", params={"line": line_for(members), "click": "1"}).json()
+        assert reply.get("success"), reply.get("message")
+        return reply
 
-    def command(key):
-        return march_quote(M.world, M.world.get_marshal(key), dest)["command"]
+    def give(reply):
+        """The card's Give with its default ticks: ONE request, the ticked men in
+        the list's order and the total the card shows."""
+        listing = reply["directive"]
+        ticked = [r["marshal"] for r in listing["rows"] if r["ticked"]]
+        with _quiet():
+            return client.post("/command", json={
+                "command": listing["line"], "members": ticked, "expect_ap": listing["total"],
+                "click": True, "list_first": True}).json()
 
-    # w7 — the real run: X marches, Ney asks; Y is never sent.
-    _table(client, cancels=2)
-    q7 = quotes_for([x, "Ney", y])
-    r1, r2 = _post(client, command(x)), _post(client, command("Ney"))
-    assert r1.get("success") and not _asks(r1), r1.get("message")
-    assert _asks(r2), ("Ney's march did not ask", r2.get("message"))
-    cc5["w7"] = {"members": [x, "Ney", y], "dest": dest, "quotes": q7, "replies": [r1, r2], "ap": 4}
-    # w8 — the second line refused on the wire (his works begun since the quote).
-    _table(client, cancels=2)
-    q8 = quotes_for([x, y])
-    r1 = _post(client, command(x))
-    M.world.get_marshal(y).fortified = True
-    r2 = _post(client, command(y))
-    assert r1.get("success") and r2.get("success") is False, r2.get("message")
-    cc5["w8"] = {"members": [x, y], "dest": dest, "quotes": q8, "replies": [r1, r2], "ap": 4}
+    def run(members, before_give=None):
+        _table(client, cancels=2)
+        q = listing_for(members)
+        if before_give is not None:
+            before_give()
+        return q, give(q)
+
+    # w7 — the real order: X marches, Ney asks; Y waits behind his question.
+    q7, r7 = run([x, "Ney", y])
+    assert [r["marshal"] for r in q7["directive"]["rows"]] == [x, "Ney", y]
+    assert all(r["ticked"] for r in q7["directive"]["rows"])
+    assert _asks(r7), ("Ney's march did not ask", r7.get("message"))
+    assert M.world.get_marshal(x).strategic_order is not None
+    assert M.world.get_marshal(y).strategic_order is None
+    cc5["w7"] = {"members": [x, "Ney", y], "dest": dest, "line": line_for([x, "Ney", y]),
+                 "quote": q7, "reply": r7, "ap": 4}
+    # w8 — the list no longer holds (his works begun since it was drawn): drawn
+    # again, nothing spent, nothing sent.
+    q8, r8 = run([x, y], before_give=lambda: setattr(M.world.get_marshal(y), "fortified", True))
+    assert r8.get("directive_stale") is True and r8.get("directive"), r8.get("message")
+    assert M.world.actions_remaining == 4 and M.world.get_marshal(x).strategic_order is None
+    cc5["w8"] = {"members": [x, y], "dest": dest, "line": line_for([x, y]), "quote": q8, "reply": r8, "ap": 4}
     # w9 — both go.
-    _table(client, cancels=2)
-    q9 = quotes_for([x, y])
-    r1, r2 = _post(client, command(x)), _post(client, command(y))
-    assert r1.get("success") and r2.get("success") and not _asks(r2)
-    cc5["w9"] = {"members": [x, y], "dest": dest, "quotes": q9, "replies": [r1, r2], "ap": 4}
+    q9, r9 = run([x, y])
+    assert r9.get("success") and not _asks(r9), r9.get("message")
+    assert all(M.world.get_marshal(k).strategic_order is not None for k in (x, y))
+    cc5["w9"] = {"members": [x, y], "dest": dest, "line": line_for([x, y]), "quote": q9, "reply": r9, "ap": 4,
+                 "slow": True}   # the harness holds the list past the reading card's wait
     return cc5
 
 
@@ -792,46 +850,74 @@ class TestTheGroup:
         assert driven["w6b_after_map_esc"] == []
         assert driven["w6b_pause_open"] is False           # the ladder took ONE step
 
-    def test_one_card_a_line_per_corps_the_sum_against_the_pool(self, driven):
+    def test_one_list_a_row_per_corps_the_sum_against_the_pool(self, driven):
+        """Row IC: the province click stands the card at once ("reading") and
+        asks ONE read-only GET; the server's list fills it — a row a corps in
+        the group's order, ticked while the actions last, the total against
+        the actions in hand, and Give."""
         run = _cc5(driven)["w7"]
-        assert driven["w7_card_mode"] == "group"
-        assert driven["w7_asked"] == ["group_quotes:%s|%s" % (",".join(run["members"]), run["dest"])]
-        quotes = run["quotes"]["quotes"]
-        assert [q["command"] for q in quotes] == [ln["command"] for ln in driven["w7_lines"]]
-        total = sum(q["ap"] for q in quotes)
-        assert f"{total} actions of {run['quotes']['ap_left']} in hand" in driven["w7_terms"]
-        assert driven["w7_send_label"] == "Send 3 orders  (Enter)"
-        for q in quotes:
-            assert humanize_entity_name(q["marshal"]) in driven["w7_terms"]
-        assert "asks your orders" in driven["w7_terms"]      # Ney's contact, said before Send
+        listing = run["quote"]["directive"]
+        assert driven["w7_card_before_answer"] is False      # it opens once, fully formed (no bob)
+        assert driven["w7_card_mode"] == "directive"
+        assert driven["w7_asked"] == ["directive_quote:%s|click" % run["line"]]
+        rep = driven["w7_report"]
+        assert rep["visible"] is True and rep["reading"] is False
+        assert rep["title"] == "ORDERS FOR 3 CORPS"
+        assert [r["marshal"] for r in rep["rows"]] == [r["marshal"] for r in listing["rows"]] == run["members"]
+        assert rep["members"] == [r["marshal"] for r in listing["rows"] if r["ticked"]] == run["members"]
+        total = listing["total"]
+        assert rep["total"] == total and rep["have"] == 4 and rep["line"] == listing["line"]
+        price = f"{total} action{'s' if total != 1 else ''}"
+        adds = " + ".join(str(r["ap"]) for r in listing["rows"] if r["ticked"])   # how it adds up
+        assert f"Cost: {price} ({adds}) of the 4 in hand — 3 corps go, each on his own order." in rep["total_text"]
+        assert rep["give_text"] == "Give the order  (Enter)" and rep["give_disabled"] is False
+        for row in rep["rows"]:                              # the row's words, bbcode off
+            plain = re.sub(r"\[/?[^\]]+\]", "", row["text"])
+            assert plain.startswith(humanize_entity_name(row["marshal"]) + " · "), row
+        ney = next(r for r in rep["rows"] if r["marshal"] == "Ney")
+        assert "asks your orders" in ney["text"]             # Ney's contact, said before Give
 
-    def test_send_goes_one_line_at_a_time_and_stops_at_a_question(self, driven):
+    def test_give_is_one_request_and_a_question_stops_the_rest(self, driven):
         run = _cc5(driven)["w7"]
-        cmds = [q["command"] for q in run["quotes"]["quotes"]]
-        trace = driven["w7_trace"]
-        assert trace[0]["on_wire"] == [cmds[0]]              # one at a time
-        assert trace[1]["on_wire"] == [cmds[1]]
-        assert driven["w7_sent"] == ["send:" + cmds[0], "send:" + cmds[1]]
-        assert driven["w7_left_on_wire"] == 0               # the third never went
+        listing = run["quote"]["directive"]
+        assert driven["w7_given"] == ["directive:%s|%s|%d|click" % (
+            listing["line"], ",".join(run["members"]), listing["total"])]
+        assert driven["w7_sent"] == []                       # no corps' line sent on its own
+        assert driven["w7_input_while_out"] is False         # on the wire like any order
+        assert driven["w7_card_while_out"] is False
+        assert driven["w7_latch"] is False                   # a send retires the armed end turn
+        assert driven["w7_left_on_wire"] == 0
         assert driven["w7_modal"] is True                    # Ney's question stands
         y = humanize_entity_name(run["members"][2])
-        assert f"1 of 3 sent — Ney asks you first; not sent: {y}." in driven["w7_tail"]
-        assert driven["w7_run_after"] == {}
-        assert driven["w7_latch"] is False
+        assert f"The order waits for {y} behind Ney's question." in driven["w7_tail"]
+        assert driven["w7_card_after"] == {}                 # the list given is let go
 
-    def test_a_refusal_on_the_wire_stops_the_run_and_names_why(self, driven):
+    def test_a_list_that_no_longer_holds_is_drawn_again_and_nothing_is_spent(self, driven):
         run = _cc5(driven)["w8"]
-        y = humanize_entity_name(run["members"][1])
-        assert len(driven["w8_sent"]) == 2
-        reason = run["replies"][1]["message"].strip().split("\n")[0]
-        line = next(ln for ln in driven["w8_tail"].splitlines() if ln.startswith("1 of 2 sent"))
-        assert line.startswith(f"1 of 2 sent — {y} refused: ")
-        assert reason.split(". ")[0] in line
-        assert not line.endswith("..")          # the refusal's own full stop, not two
+        y = run["members"][1]
+        assert len(driven["w8_given"]) == 1 and driven["w8_sent"] == []
+        after = driven["w8_card_after"]
+        assert after["visible"] is True and after["mode"] == "directive"
+        row = next(r for r in after["rows"] if r["marshal"] == y)
+        assert row["ok"] is False and row["ticked"] is False   # he will not go, and why
+        assert row["text"] and row["text"] == next(
+            r["why"] for r in run["reply"]["directive"]["rows"] if r["marshal"] == y)
+        assert "can no longer take this order" in driven["w8_tail"]
+        assert "Nothing was sent — here is the list as it stands now." in driven["w8_tail"]
+        assert driven["w8_ap_after"] == 4                    # nothing spent
 
-    def test_all_sent(self, driven):
-        assert len(driven["w9_sent"]) == 2
-        assert "2 of 2 sent." in driven["w9_tail"]
+    def test_a_list_slow_to_come_shows_the_reading_card_first(self, driven):
+        """Only a list slower than `DIRECTIVE_READING_DELAY_S` stands the card on "reading" first."""
+        assert driven["w9_card_before_answer"] is False
+        reading = driven["w9_reading"]
+        assert reading["visible"] is True and reading["reading"] is True and reading["give_disabled"] is True
+        assert driven["w9_report"]["reading"] is False and driven["w9_report"]["members"] == _cc5(driven)["w9"]["members"]
+
+    def test_all_given(self, driven):
+        run = _cc5(driven)["w9"]
+        assert len(driven["w9_given"]) == 1 and driven["w9_sent"] == []
+        names = " and ".join(humanize_entity_name(k) for k in run["members"])
+        assert f"The order goes to {names}, corps by corps" in driven["w9_tail"]
         assert driven["w9_modal"] is False
 
     def test_two_orders_bound_for_one_province_keep_their_badges_apart(self, driven):

@@ -3123,7 +3123,7 @@ class LLMClient:
                          player_roster=_player_roster,
                          addressed_marshal=_addressed_marshal)
         for _stage in (self._chain_cheat, self._chain_first_contact,
-                       self._chain_guards, self._chain_cabinet,
+                       self._chain_guards, self._chain_staff_books, self._chain_cabinet,
                        self._chain_question, self._chain_bind_marshal,
                        self._chain_meta, self._chain_read_action,
                        self._chain_read_target, self._chain_read_slots):
@@ -3413,6 +3413,40 @@ class LLMClient:
         st.shared_question, st.guarded = _shared_question, guarded
         return None
 
+    def _chain_staff_books(self, st: "_ChainState") -> Optional[ParseResult]:
+        """Row IC, directives: the staff's two free books — a named army (form · add · remove · disband) and the goal of a war."""
+        # Read BEFORE the Cabinet's routes: an army's name may hold a court's
+        # or a province's ("Army of Italy"), and "war goal" stood among the war
+        # PURPOSE's keywords. Each reader is anchored on the whole line and is
+        # the one its executor fills the order from
+        # (`armies.read_order` / `war_goals.read_order`), so the words that
+        # choose the action are the words that carry it. A question and a
+        # negated line are never these.
+        if st.shared_question or st.negation_applied or st.stand_down:
+            return None
+        world = (st.game_state or {}).get("world") if isinstance(st.game_state, dict) else None
+        text = st.original_text or st.command_text
+        from backend.game_logic import armies as _armies
+        from backend.game_logic import war_goals as _war_goals
+        roll = _armies.read_order(world, text) if world is not None else None
+        if roll is not None:
+            action = "army"
+            return ParseResult(
+                matched=True, command_type="tactical", marshals=[], action=action,
+                target=str(roll.get("name") or "") or None, ambiguity=5, strategic_score=0,
+                interpretation=f"The roll of an army: {roll['op']} {roll.get('name') or ''}".strip(),
+                confidence=0.95, mode="mock", key_source=self.key_source, raw_command=text)
+        goal = _war_goals.read_order(text) if _war_goals.a_war_has_a_goal() else None
+        if goal is not None:
+            action = "set_war_goal"
+            return ParseResult(
+                matched=True, command_type="tactical", marshals=[], action=action,
+                target=str(goal.get("what") or goal.get("court") or "") or None,
+                ambiguity=5, strategic_score=0,
+                interpretation=f"The goal of a war: {goal['op']}",
+                confidence=0.95, mode="mock", key_source=self.key_source, raw_command=text)
+        return None
+
     def _chain_cabinet(self, st: "_ChainState") -> Optional[ParseResult]:
         """The Cabinet routes: the war purpose, the bargain, the settlement, the Congress, the laws, the desks, Talleyrand and the state verbs."""
         command_text, command_lower, game_state = st.command_text, st.command_lower, st.game_state
@@ -3427,9 +3461,12 @@ class LLMClient:
         # ════════════════════════════════════════════════════════════
         # WPS-A: Set war purpose keywords. Check before the generic diplomat
         # route so "Talleyrand, set war purpose..." keeps the objective fields.
+        # (Row IC, directives: "set war goal" left this list — the war GOAL is
+        # the army's aim, the staff's own book, read above; the PURPOSE keeps
+        # its four spellings.)
         _war_purpose_keywords = [
             "set war purpose", "war purpose", "set objective",
-            "declare purpose", "set war goal",
+            "declare purpose",
         ]
         if any(kw in command_lower for kw in _war_purpose_keywords):
             return self._parse_set_war_purpose(command_text, command_lower)

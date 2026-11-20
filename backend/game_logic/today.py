@@ -298,8 +298,16 @@ def war(world, wars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         title = str(w.get("war_title") or "")
         who = str(w.get("war_roster_display") or w.get("opponent_display") or w.get("opponent") or "")
         name = f"{title} ({who})" if title and who and who not in title else (title or f"War with {who}")
-        parts.append({"opponent": str(w.get("opponent") or ""), "text": f"{name}: {_purpose_words(w)}",
-                      "hint": str(w.get("objective_hint") or w.get("war_title_line") or "")})
+        part = {"opponent": str(w.get("opponent") or ""), "text": f"{name}: {_purpose_words(w)}",
+                "hint": str(w.get("objective_hint") or w.get("war_title_line") or "")}
+        # Row IC, directives: the goal the player named for this war, said
+        # after its purpose ("… — your war goal: Vienna"). A war with none reads as it
+        # did, to the byte.
+        goal = _goal_words(world, w)
+        if goal:
+            part["text"] += f" — {goal}"
+            part["goal"] = goal
+        parts.append(part)
     text = " · ".join(p["text"] for p in parts)
     if len(rows) > WARS_SHOWN:
         text += f" · +{len(rows) - WARS_SHOWN} more"
@@ -307,6 +315,16 @@ def war(world, wars: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
                hint=" ".join(p["hint"] for p in parts if p["hint"]),
                door={"kind": "war", "opponent": parts[0]["opponent"]})
     return out
+
+
+def _goal_words(world, war_row: Dict[str, Any]) -> str:
+    """Row IC, directives: "your war goal: Vienna" for a war that has one, else ""
+    (`war_goals.goal_of` — nothing is read on a board with no goal set)."""
+    if not getattr(world, "war_goals", None):
+        return ""
+    from backend.game_logic import war_goals
+    found = war_goals.goal_of(world, war_row)
+    return war_goals.words(world, found[0], found[1]) if found else ""
 
 
 def _pressing_want(world) -> Optional[Dict[str, Any]]:
@@ -562,6 +580,17 @@ def _rows_reach_and_idle(world, have) -> List[Dict[str, Any]]:
     idle = idle_corps(world)
     if not idle:
         return []
+    # Row IC, directives — ONLY where the player has named a war goal: the
+    # corps with no orders that can be sent at it stand FIRST, as ONE order
+    # ("8 corps with no orders can march on Vienna, your war goal — see the
+    # list"), whose door opens the list filled in. It is the player's own
+    # stated aim, so it leads the rows about corps with nothing to do; the
+    # reach rows below still say what stands beside them. With no goal set
+    # nothing here runs and the rows are what they were.
+    goal_rows: List[Dict[str, Any]] = []
+    aimed: set = set()
+    if getattr(world, "war_goals", None):
+        goal_rows, aimed = _rows_goal(world, have, idle)
     rows: List[Dict[str, Any]] = []
     named: set = set()
     ready = [m for m in idle if _can_attack(world, m)]
@@ -601,7 +630,7 @@ def _rows_reach_and_idle(world, have) -> List[Dict[str, Any]]:
                              {"kind": "marshal", "marshal": beside[0].name},
                              more=f"No orders: {every}." if len(beside) > 1 else ""))
             named.update(m.name for m in beside)
-    rest = [m for m in idle if m.name not in named]
+    rest = [m for m in idle if m.name not in named and m.name not in aimed]
     if rest:
         shown = [humanize_entity_name(m.name) for m in rest]
         more = "more " if rows else ""
@@ -611,7 +640,56 @@ def _rows_reach_and_idle(world, have) -> List[Dict[str, Any]]:
             text = _fit([f"{len(rest)} {more}corps have no orders: {_names(shown)}.",
                          f"{len(rest)} {more}corps have no orders."])
         rows.append(_row("idle", TIER_WASTES, text, {"kind": "idle"}))
-    return rows
+    return goal_rows + rows
+
+
+def _rows_goal(world, have, idle: List[Any]) -> tuple:
+    """Row IC, directives: one row a war goal still to be won — the idle corps
+    that can be sent at it, as one order. Returns ``(rows, the names it
+    took)``. A place: "march to <place>" by each man's own plain order (the
+    click road's — a move next door is the move); an army: "pursue <him>",
+    only where the staff knows where he stands. One corps alone is his own
+    row (the door selects him); two or more open the list."""
+    from backend.game_logic import war_goals
+    from backend.game_logic.war_status import build_active_wars
+    wars = have.get("wars") if isinstance(have.get("wars"), dict) else None
+    if wars is None:
+        wars = build_active_wars(world)
+    rows: List[Dict[str, Any]] = []
+    taken: set = set()
+    for goal in war_goals.payload(world, wars):
+        if goal["status"] != "open":
+            continue
+        free = [m for m in idle if m.name not in taken]
+        names, order = war_goals.marchers(world, goal, free)
+        if not names:
+            continue
+        taken.update(names)
+        shown = [humanize_entity_name(n) for n in names]
+        verb = "close on" if goal["kind"] == "army" else "march on"
+        what = f"{goal['shown']}, your war goal"
+        if len(names) == 1:
+            text = _fit([f"{shown[0]} has no orders and can {verb} {what}.",
+                         f"{shown[0]} can {verb} {what}."])
+            rows.append(_row(f"goal:{goal['court']}", TIER_WASTES, text,
+                             {"kind": "marshal", "marshal": names[0]}))
+            continue
+        # Directives' blind reading 1 (two readers of three): "8 corps with no
+        # orders can march on Vienna" stood above "7 corps of yours have no
+        # orders and Mack is within one march" — the same idle corps, counted
+        # two ways. Where every corps with no orders can go, the row says so
+        # without a count (the list counts them; the hover names them).
+        whose = "Your corps" if len(names) == len(free) else f"{len(names)} of your corps"
+        # "press to list them" since the directives' blind reading 2: two
+        # readers of three took "see the list" for the marshal roster.
+        text = _fit([f"{whose} with no orders can {verb} {what} — press to list them.",
+                     f"{whose} can {verb} {what} — press to list them.",
+                     f"{whose} can {verb} your war goal — press to list them."])
+        line = (", ".join(names[:-1]) + " and " + names[-1]) + ", " + order
+        rows.append(_row(f"goal:{goal['court']}", TIER_WASTES, text,
+                         {"kind": "directive", "line": line, "click": True},
+                         more=f"No orders: {', '.join(shown)}."))
+    return rows, taken
 
 
 def _rows_strike(world, have) -> List[Dict[str, Any]]:
@@ -786,6 +864,8 @@ def desk(world, wars: Optional[Dict[str, Any]] = None,
     if _guarded("tutorial_state.is_school_world", lambda: _in_school(world), False):
         return None
     have = dict(have or {})
+    if wars is not None:
+        have.setdefault("wars", wars)      # the readers read the wars the envelope built
     blank = {"text": "", "hint": "", "door": {}}
     rows = _guarded("decide", lambda: decide(world, have), [])
     out: Dict[str, Any] = {
@@ -802,7 +882,22 @@ def desk(world, wars: Optional[Dict[str, Any]] = None,
     line = _guarded("first_open", lambda: _first_open_line(world, rows), "")
     if line:
         out["first_open"] = {"screen": "desk", "line": line}
+    # Row IC, directives: the wars' goals, for the map's gold ring and the war
+    # popup — the key rides only when a goal is set (a board with none carries
+    # the payload it always did).
+    if getattr(world, "war_goals", None):
+        goals = _guarded("goals", lambda: _goals(world, wars), [])
+        if goals:
+            out["goals"] = goals
     return out
+
+
+def _goals(world, wars: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    from backend.game_logic import war_goals
+    if wars is None:
+        from backend.game_logic.war_status import build_active_wars
+        wars = build_active_wars(world)
+    return war_goals.payload(world, wars)
 
 
 def _ended(world) -> bool:

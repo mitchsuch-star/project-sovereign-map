@@ -1735,7 +1735,36 @@ def _answer_marshal_options(world, marshal_name: str) -> str:
             by_reason.setdefault(why, []).append(said)
         head += " Refused today: " + "; ".join(
             f"{', '.join(saids)} — {why}" for why, saids in by_reason.items()) + "."
-    return head
+    return head + _goal_clause(world, me, shown)
+
+
+def _goal_clause(world, me, shown: str) -> str:
+    """Row IC, directives: where the player has named a war goal — and only
+    then — the order that closes on it, priced as his march is ("He can march
+    on Vienna, your war goal: 'Ney, march to Vienna' (2 actions)."). The
+    march's own readers decide (`war_goals.marchers`); '' with no goal set,
+    for a goal already won, or where he cannot go."""
+    if not getattr(world, "war_goals", None):
+        return ""
+    try:
+        from backend.commands.state_probe import order_price
+        from backend.game_logic import war_goals
+        from backend.game_logic.war_status import build_active_wars
+        for goal in war_goals.payload(world, build_active_wars(world)):
+            if goal.get("status") != "open":
+                continue
+            names, order = war_goals.marchers(world, goal, [me])
+            if not names:
+                continue
+            verb = "pursue" if goal.get("kind") == "army" else "march"
+            ap = int(order_price(world, me, verb))
+            price = "free" if ap == 0 else _plural(ap, "action")
+            closes = "close on" if goal.get("kind") == "army" else "march on"
+            return (f" He can {closes} {goal['shown']}, your war goal: "
+                    f"'{shown}, {order}' ({price}).")
+    except Exception as exc:
+        report(exc, "state_desk._goal_clause")
+    return ""
 
 
 def _refusal_sentence(shown: str, said: str, why: str) -> str:

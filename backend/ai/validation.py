@@ -134,6 +134,11 @@ VALID_ACTIONS: Set[str] = {
     # VP-1 (S14b part 3): an Act of the Empire — gold + 1 admin action, once;
     # its one player road is the road page's Decree row
     "decree_act",
+    # Row IC, directives (November 19, 2026) — the staff's two free books, no
+    # marshal: a named army (form · add · remove · disband) and the goal the
+    # player sets for a war (never the war's PURPOSE — that is `set_war_purpose`).
+    "army",          # "form the Army of Italy with Ney and Lannes"
+    "set_war_goal",  # "the war goal is Vienna" / "clear the war goal"
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -204,6 +209,9 @@ META_ACTIONS: Set[str] = {
     "proclaim_design",
     # VP-1 (S14b part 3) — so is an Act of the Empire.
     "decree_act",
+    # Row IC, directives — the player's own bookkeeping. No marshal needed.
+    "army",
+    "set_war_goal",
 }
 
 # FA slice 7 (FA-N9): ONE list. parser.py kept a THIRD hand-copied "needs no

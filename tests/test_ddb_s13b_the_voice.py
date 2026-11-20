@@ -312,10 +312,21 @@ class TestDDB47:
             "Ney, attack Mack and Davout support him", gs) == (
             "Ney, attack Mack", "Davout support him")
 
-    def test_the_named_list_still_relays_its_second_man(self, client):
-        """CQ-8 / CC-X17: "Ney and Davout, fortify" hands Davout's order back."""
+    def test_the_named_list_still_relays_its_second_man(self, client, monkeypatch):
+        """CQ-8 / CC-X17: "Ney and Davout, fortify" hands Davout's order back. RE-SEATED by row IC,
+        the directive (November 19, 2026): the relay's reading with
+        `directive.a_named_list_is_one_directive` DOWN; up — as shipped — the named list is one
+        order to both men (the test below)."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         reply = _say(client, "Ney and Davout, fortify")
         assert "Davout's own waits behind it" in reply
+
+    def test_the_named_list_is_one_order_to_both(self, client):
+        """Row IC, the directive: the same line orders Ney and Davout as one order."""
+        reply = _say(client, "Ney and Davout, fortify")
+        assert "The order goes to Ney and Davout, corps by corps" in reply, reply
+        assert "waits behind it" not in reply
 
 
 # ═══════════════════════════════════════════════════════════════════════════

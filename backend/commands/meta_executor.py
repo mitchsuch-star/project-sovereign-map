@@ -1214,6 +1214,20 @@ STRATEGIC COMMANDS (multi-turn; 2 actions, support 1 action):
   everyone   - "everyone fortify", "all marshals march to Swabia" - the
                order goes to every corps that can take it, in turn, each
                at its own price; a marshal who objects asks you himself
+  several    - "Ney, Lannes and Murat, march to Swabia" - the same, to the men
+               you name. Any order to several first shows ONE list: each
+               man's order, its price, who will not go and why. Untick a
+               man to leave him out; Give sends it, Esc spends nothing, and
+               Take back undoes the whole order at once.
+  armies     - "form the Army of Italy with Massena and Ney" - a name for a
+               group of corps (free); "add Lannes to the Army of Italy",
+               "remove Ney from the Army of Italy",
+               "disband the Army of Italy". Then "Army of Italy,
+               hold" - or press its chip beside your marshals to select them.
+  war goal   - "the war goal is Vienna" / "make Mack the war goal" /
+               "clear the war goal" (free): the place or the army a war
+               aims at. The desk names it, the map rings it in gold, and
+               the desk offers the march on it as one list.
   the army   - with the Grand Quartier General in force: "the army
                marches on Swabia", "everyone follow Napoleon" - ONE order,
                2 actions, every corps within two provinces of the Emperor, while
@@ -3024,7 +3038,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             command["_arm_paid"] = True
 
         # Check action economy
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "bind_to_war", "recognition_sweetener"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "bind_to_war", "recognition_sweetener", "army", "set_war_goal"]
         action_costs_point = action not in free_actions
 
         # THE THIRD AP GATE — and the one a cautious marshal's counter-punch

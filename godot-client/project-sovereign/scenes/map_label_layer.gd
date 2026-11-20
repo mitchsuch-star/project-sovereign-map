@@ -711,7 +711,7 @@ func _draw_label_tier(spec: Dictionary, xform: Transform2D, avoid: Array, ui_rec
 			# up, and the laid-out furniture too, which never moved for it;
 			# dropped when the nudge would exceed the readable budget.
 			var nudged = _nudge_clear(Rect2(center - text_size / 2.0, text_size),
-					avoid + ui_rects + guard)
+					avoid + ui_rects + guard, true)
 			if nudged == null:
 				continue
 			label_rect = nudged
@@ -736,11 +736,24 @@ func _draw_label_tier(spec: Dictionary, xform: Transform2D, avoid: Array, ui_rec
 		)
 
 
-func _nudge_clear(label_rect: Rect2, avoid_rects: Array):
-	"""Return the label rect shifted up until it clears every avoid rect,
-	or null when clearing it would exceed the nudge budget."""
+func _nudge_clear(label_rect: Rect2, avoid_rects: Array, allow_down: bool = false):
+	"""Return the label rect shifted up until it clears every avoid rect — or,
+	with `allow_down` and when that would exceed the nudge budget, shifted DOWN
+	under them — or null when neither clears within the budget. (Row IC,
+	directives, pressed in the real client: "AUSTRIA" stood just under Vienna's
+	goal plate and was dropped, an up-nudge past the budget. Only the draw
+	pass, which dodges the panels and the marks, allows it; a name the
+	up-nudge places moves exactly as before.)"""
 	if avoid_rects.is_empty():
 		return label_rect
+	var up = _nudge_one_way(label_rect, avoid_rects, -1.0)
+	if up != null or not allow_down:
+		return up
+	return _nudge_one_way(label_rect, avoid_rects, 1.0)
+
+
+func _nudge_one_way(label_rect: Rect2, avoid_rects: Array, way: float):
+	"""`way` -1: above each rect it meets; +1: below. Null past the budget."""
 	var rect := label_rect
 	var max_nudge: float = rect.size.y * MAX_AVOID_NUDGE_FONT_HEIGHTS
 	# Two passes: a nudge that clears one rect can land on another.
@@ -749,10 +762,13 @@ func _nudge_clear(label_rect: Rect2, avoid_rects: Array):
 		for avoid_rect in avoid_rects:
 			if rect.intersects(avoid_rect):
 				collided = true
-				rect.position.y = avoid_rect.position.y - rect.size.y - AVOID_RECT_PADDING
+				if way < 0.0:
+					rect.position.y = avoid_rect.position.y - rect.size.y - AVOID_RECT_PADDING
+				else:
+					rect.position.y = avoid_rect.end.y + AVOID_RECT_PADDING
 		if not collided:
 			return rect
-		if label_rect.position.y - rect.position.y > max_nudge:
+		if (label_rect.position.y - rect.position.y) * -way > max_nudge:
 			return null
 	for avoid_rect in avoid_rects:
 		if rect.intersects(avoid_rect):

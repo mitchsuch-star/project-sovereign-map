@@ -1,50 +1,46 @@
-# NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk) — AFTER row IC's second commit, directives (read the first block)
+# NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk) — row IC's two commits are built (read the first block)
 
-> **READ THIS FIRST — the next session is NOT the deploy. It is ROW IC's SECOND COMMIT: DIRECTIVES** (the
-> user's rulings in Plan Mode, November 19, 2026: "One list for all", "Yes, named armies", "Desk, then
-> directives" — two commits, each with its own review and test run; the first landed, below). The prompt for it
-> is the section "## Row IC, the second commit — directives" further down; Session H follows it.
+> **READ THIS FIRST — the next session is SESSION H, THE DEPLOY** (the section "## Session H" below, with the
+> lines that overrule it). Row IC — the user's two approved commits, "Desk, then directives" — is complete.
 >
-> Overwritten each time a session hands off. Current hand-over: **November 19, 2026 — ROW IC, THE DESK
-> ✅ BUILT AND COMMITTED (the first of the two commits he approved; NOT pushed — the push is his to call:
-> `git status -sb` says how far master is ahead).** His words: "do research on top 4 ways to make the game more
-> user friendly and fun", "you can have x autonomous marsahls and as you increas etech you get kmore up to x
-> and typing talsk to them!", "design this and the four fun items make design incredible", "make sure you canb
-> give high level derictes too and make it robust plan it now". Built (`SYSTEMS_REFERENCE.md` §229;
-> `BUG_FIXES.md` §IC — 31 rows, none open; `tests/test_ic1_the_desk.py`, `test_ic2_the_turns_end.py`,
-> `test_ic3_what_was_hidden.py`; the driven `TestRowICTheDesk`): **the `desk` key** on every reply and at boot
-> (`backend/game_logic/today.py` — THE PEACE, THE WAR, TO DECIDE; rows of one sentence, each with ONE door);
-> **what a seen enemy can reach** (`threats.py` — `in_danger`, `stands_in_the_way`, `can_walk_in`); the card at
-> the map's corner (`scripts/desk_lines.gd`) and **the list when End Turn stops** (`scripts/turn_end_list.gd`,
-> `main.gd`'s section "Row IC"); the map's danger mark with its province's name; the report's "You were
-> warned" / "out of your sight"; the menu's steer to the School of War; a marshal who acted without orders
-> named in the report. **Display only, with ONE rule narrowed:** with no action left End Turn no longer stops
-> for corps with no orders. **Its three blind readings** (`docs/audits/ic_client/README.md`): 21/21, 27/27,
-> 6/6 — nine fresh readers; ten levers built from what they said confused them; the last four were pressed in
-> the real client and pinned, not re-read. The readers' still-unclear list there (which provinces are the 35;
-> how the Congress is summoned; Actions / Admin / Authority / Threat; the dots on the portraits) is a worklist
-> for the deploy session's reading. **Its review:** three reviewers, sixteen rows, thirteen fixed, three closed
-> with evidence.
-> **The desk's traps (fresh):** (1) the province panel has ONE door (S14G-X66's census counts
-> `.show_region(` lines) — a new road to it goes through `_on_map_region_clicked(region_name, true)`; (2) a
-> new first-open screen moves two pins — `first_open.SCREENS` (BA-4's read its last element) and
-> `MODDING_FORMAT.md`'s `first_opens` row — and owes `SAVE_FORMAT_REFERENCE.md`'s row its id; a new
-> `top_bar.close_all_screens()` site joins UXR-D4's `CLOSE_SITES`; (3) a wrapping Button or Label has NO true
-> height until it has been laid out at its width — measure a frame later, never in the frame it was built;
-> (4) a show-then-hide inside one deferred fit raises the signals that queue the next fit, for ever — write a
-> panel's showing ONCE a fit; (5) the map's nation-tier names dodge only screen rects — a mark drawn by the
-> order layer hands its box to `map_label_layer.set_mark_boxes`; (6) a door must NOT end End Turn's wait
-> (`_on_envoy_clicked`'s rule: armed and visible is one state); (7) Bash heredocs mangle backslashes AND a
-> Python write run in the same batch as other tool calls twice failed with Errno 22 (nothing was truncated) —
-> write patch scripts with the Write tool, as raw strings, and run them alone; (8) tell blind readers what
-> happened BETWEEN two frames, or they read the difference as a fault; (9) "Davout, march to Lorraine" then
-> "Ney, march to Lorraine" on turn 1 leaves Rhineland open beside Mack on every seed — the desk's walk uses it;
-> (10) "objective" already means the war's PURPOSE (`war_status`) — the second commit's per-war target is the
-> "war goal" (the design's §9), never "objective".
+> Overwritten each time a session hands off. Current hand-over: **November 19, 2026 — ROW IC, THE SECOND
+> COMMIT: DIRECTIVES ✅ BUILT AND COMMITTED (NOT pushed — the push is his to call: `git status -sb` says how far
+> master is ahead; the desk and row PW part 3 before it were pushed November 19 at his word, "Push both").** His
+> rulings in Plan Mode: "One list for all", "Yes, named armies", "Desk, then directives". Built
+> (`SYSTEMS_REFERENCE.md` §230; `BUG_FIXES.md` §IC directives — none open; `tests/test_ic4_the_directive.py`,
+> `test_ic5_named_armies.py`, `test_ic6_the_war_goal.py`; the driven `TestRowICDirectives`): **the directive**
+> (`backend/commands/directive.py` — `address`, `quote`, `stale`, `give`; `/command` with `list_first` = the ask,
+> `members` + `expect_ap` = the give, refused free and drawn again when it no longer holds, a man charged more
+> than his row putting the board back; `GET /directive_quote`; one Take-back unit); **named armies**
+> (`world.armies`, the free action `army`, the chip, "Army of Italy, hold"); **the war goal** (`world.war_goals`,
+> the free action `set_war_goal`, THE WAR line's "your war goal", the gold ring, the TO DECIDE row that opens the
+> march as one list). **A typed list of names now orders every man named** (ruling 1 — the seam
+> `directive.a_named_list_is_one_directive`; the relay's rule is pinned with it down). **Its four blind readings**
+> (`docs/audits/ic_client/directives/README.md`): 21/21, 28/30 (NOT met — "see the list" read as the roster;
+> built out), 15/15, 12/12 — twelve fresh readers; sixteen levers built from what they said confused them. **Its
+> review:** see the ledger. **Inert where unused:** the byte-identity series and the France band reproduce.
+> **The directives' traps (fresh):** (1) every `/command` the client sends carries `list_first` — a test or tool
+> that posts without it has the order carried out at once, with no list (scripts, the band and the series do), so the client's road and the
+> scripts' road differ for lines to several; read `main._directive_road`'s docstring; (2) a group stopped by a
+> question pops the list's prices off the stash (the men who wait go on later at their own price): anything
+> built after the run must read the prices kept before it (`group_orders._carry_out`'s `shown_prices`); (3) the
+> order card is a CanvasLayer — a reader of its `visible` must read it by name (`card.get("visible")`), not as a
+> CanvasItem; (4) the card's room is reckoned from UNDER the top bar — two edges of the whole height is 26 px too
+> much at 765; (5) a card that opens on a placeholder and fills grows under the eye: open once, when the data
+> lands, and show the placeholder only after a delay; (6) the map's draw pass may now step a displaced name BELOW
+> a mark (`map_label_layer._nudge_clear(…, allow_down)`); the layout pass never does; (7) blind readers take the
+> question's words as literally as the screen's — "every corps of the Army of Italy" drew hedges about the other
+> six marshals; and a hint's first sentence primes every answer after it; (8) the Bash tool mangles heredocs
+> with backslashes or quotes — write scripts with the Write tool and run them alone (it bit twice again).
+>
+> The hand-over before it: **November 19, 2026 — ROW IC, THE DESK ✅ BUILT AND COMMITTED, and PUSHED November 19
+> at his word ("Push both")** (`SYSTEMS_REFERENCE.md` §229; `BUG_FIXES.md` §IC — 31 rows, none open): the `desk`
+> key (THE PEACE, THE WAR, TO DECIDE), what a seen enemy can reach, the card at the map's corner, the list when
+> End Turn stops, the danger mark, the menu's steer to the School of War. Its traps are kept in §229 and in its
+> landing record (`docs/INDEPENDENT_COMMAND_SPEC.md` §15).
 >
 > The hand-over before it: **November 19, 2026 — ROW PW PART 3, "THE
-> FINISHING PASS" ✅ BUILT AND COMMITTED (on his word; NOT pushed — the push is his to call:
-> `git status -sb` says how far master is ahead).** His words: "fix these the general
+> FINISHING PASS" ✅ BUILT AND COMMITTED (on his word; pushed November 19 at his word, "Push both").** His words: "fix these the general
 > game ux and perhaps animate pieces moving and make sure the game isnt clunky or wierd to play … dont ask me
 > questions use reason", then "sound when they move too think of a human playing game, also evaluate the
 > utility of the parser and typed commands". Built (`SYSTEMS_REFERENCE.md` §228; `BUG_FIXES.md` §PW part 3;
@@ -114,8 +110,9 @@
 
 **FIRST — in this order:**
 
-0. `git log`: row PW is TWO commits (part 1, part 2), each made through the hook and PUSHED at the user's
-   word; each part's one review ran before its commit (`BUG_FIXES.md` §PW). Read `STATUS.md` ▶ NEXT UP first.
+0. `git log`: row IC is TWO commits — the desk (pushed November 19 at the user's word, "Push both")
+   and directives (committed through the hook, NOT pushed until he says so); row PW is TWO commits
+   (part 1, part 2), each made through the hook and PUSHED at the user's word; each part's one review ran before its commit (`BUG_FIXES.md` §PW). Read `STATUS.md` ▶ NEXT UP first.
 1. **SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
    `DYNAMISM_SPEC.md` §7). Its head's open rows — each a defect with a strict-xfail pin, none a call:
    **WS-10** (the war room keeps the bare digits; a docked ledger's tabs move to Alt+1–8 and its lead line says
@@ -167,114 +164,14 @@ say what is built and what is not.
 
 ---
 
-## Row IC, the second commit — directives (THE NEXT SESSION; Session H follows it)
+## Row IC, the second commit — directives ✅ BUILT November 19, 2026
 
-**The prompt:**
-
-> Build row IC's second commit — DIRECTIVES — from the plan I approved on November 19, 2026 (copied below) and
-> `docs/INDEPENDENT_COMMAND_SPEC.md`. Plan Mode first, to re-read the plan against the code as it stands after
-> the desk landed (`SYSTEMS_REFERENCE.md` §229). Three parts, one commit: (a) ONE road for every order to
-> several marshals — "Everyone, on Vienna", "Ney, Lannes and Murat, march to Ulm", a named army, a Ctrl-selected
-> group — shown as ONE list first (each man's order, its price, whether he may object) and sent on one
-> confirmation, as one Take-back unit; (b) named armies ("Army of Italy, hold"); (c) a war goal for each war
-> (call it the war goal — "objective" already means the war's purpose). The list is the truth: what is shown is
-> what is done, the price charged is the total shown, an unticked row is never touched. Nothing changes for a
-> player who types no such line (the byte-identity series and the France band must reproduce). Press it in the
-> real client at Interface Scale 1.8 on a 5120-wide window; write the blind reading's questions and answer key
-> before any frame is shot, and ask each reader what confused him; one review before the commit; the full suite;
-> the records. Commit through the hook; do not push unless I say so. Then stop for my review.
-
-**What the desk already gives it:** a TO DECIDE row is a door (`{kind, …}`, `main.gd::_ic_open_door`) — the
-plan's "N corps can advance on Vienna — review the directive" row opens the directive card through a new door
-kind; the reach row already counts the corps beside an enemy and names them in its hover; `desk.war.parts`
-carries each war's opponent for the war goal's line; the End Turn list is the model for a list of rows with
-doors (`scripts/turn_end_list.gd`).
-
-### The approved plan for it, copied verbatim (Plan Mode, November 19, 2026)
-
-**Step 0 — census.** List every collective or named-list line in `tools/playtest_scripts/*.json` and the
-fixtures (`tests/data/directive_lines_census.json`). The commanded arms were checked: single-marshal lines only.
-
-#### 2a. One road for every order to several marshals
-
-- New `backend/commands/directive.py` (pure): `address()` — who is addressed: "everyone", "… at <province>",
-  a list of names, a named army, an explicit selection; `rows()`; `quote()`.
-- **One shared reader.** The pure reading behind `/parse_preview` is factored into `parse_preview.read_one`;
-  `/parse_preview`, the new `GET /directive_quote`, and the cost check all call it, so they cannot drift.
-- `group_orders.py`: `try_collective` / `_run_members` take an optional `members` list (the ticked names, in the
-  order shown). The response gains `group.rows: [{marshal, sent, line, why}]`; the text lines do not change.
-  The waiting remainder after a question is the narrowed list. The Staff's single price applies only when every
-  corps it covers is ticked.
-- Seam `a_named_list_is_one_directive()`: up, a named list fans out through the same road instead of first man
-  plus hand-back. Attack stays one battle (the first man leads, the muster calls the others), as today.
-- `/command` gains optional `members` and `expect_ap`: if the price would differ from the list you saw, the
-  server refuses and returns a fresh list. Without them it behaves as today, so tests and scripts are untouched.
-- Client: `order_confirm_card.gd`'s group face becomes the directive card — a tick per row, "Not taken: …", the
-  total against actions in hand, Give = Enter, Cancel = Esc. It opens from a typed line (Enter), from
-  Ctrl-selected corps, from an army chip, and from a TO DECIDE row. **One request, one Take-back unit**
-  (today the march card sends N requests).
-
-#### 2b. Named armies
-
-- `world.armies` (saved; in the take-back's `ORDER_KEYS`). One free action, `army`: form · add · remove ·
-  disband — through CLAUDE.md's twelve-step "adding a new action" list.
-- A marshal is in one army at most. A name cannot collide with a marshal, nation, province or collective word.
-  Dead or captured men drop out; an empty army dissolves and says so. No bonus, no cost, no new mechanic.
-- "Army of Italy, hold" addresses it. Army chips beside the marshal chips select its members; a chip names the
-  current selection.
-
-#### 2c. The objective
-
-- `world.war_objectives` (saved; in `ORDER_KEYS`). One free action, `set_objective`: a place or an enemy army,
-  per war. Shown on the desk's WAR line and as a ring on the map.
-- Only when you have **set** one: Berthier's "what can I do" offers the march that closes on it, and TO DECIDE
-  offers "N corps can advance on Vienna — review the directive", which opens the list filled in.
-- Unset: no code path changes.
-
-#### Tests and proof for commit 2
-
-- `tests/test_ic4_the_directive.py`, `tests/test_ic5_named_armies.py`, `tests/test_ic6_the_objective.py`.
-- **The list is the truth:** the rows shown equal what the server does for the ticked rows; the price charged
-  equals the total shown; unticked rows are never touched; a refused row costs nothing and is reported; a
-  question stops the run and the waiting rows are named, never dropped; one directive is one Take-back unit.
-- **Fuzz:** random directives (who × what × members) through quote and command — no exception, row count equals
-  members, cost never exceeds the pool.
-- Army rules; old saves load; names that collide are refused.
-- **Inert:** no army formed, no objective set, no named list typed → the byte-identity series and the France
-  band (`tools/_ba1_band_measure.py`) reproduce.
-- Driven at your setup: the card fits; Enter and Esc work; an army chip selects its men.
-- Blind reading: "What happens if you press Give?" · "What will it cost?" · "Who will not go, and why?" ·
-  "How do you tell the Army of Italy to hold?"
+Built from the plan the user approved in Plan Mode ("One list for all", "Yes, named armies", "Desk, then
+directives"); its record is the landing record in `docs/INDEPENDENT_COMMAND_SPEC.md` §15, the rules
+`SYSTEMS_REFERENCE.md` §230, the ledger `BUG_FIXES.md` §IC directives, the readings
+`docs/audits/ic_client/directives/README.md`.
 
 ---
-
-#### Pins that must be re-seated (named now, so none is a surprise)
-
-- **Named-list relay** (ruling 1 changes it): `tests/test_crt11_the_second_name_is_heard.py`,
-  `tests/test_cc4_chained_orders.py` (TestCCX17), `tests/test_cc5_the_war_table.py`.
-- **The march group card** sends one request, not N: `tests/test_cc5_the_war_table.py`.
-- **The map key's list of 12 kinds** gains one: `tests/test_pw3_the_finishing_pass.py`.
-- **First-open lines** go from 11 to 12.
-- **The menu's prominence**: `tests/test_ui6_end_menu_mailbox.py`, `tests/test_ui_gilt4_levers.py`.
-- `/test` must carry `desk`: `tests/test_s14f_the_remeasure_rows.py`.
-- The golden corpus and the routed-order-words census (`python -m tools.gen_routed_order_words`) for `army` and
-  `set_objective`.
-
-**Left alone on purpose:** `_execute_end_turn`'s order and printed text; `DESK_KEY_WORDS`; the Esc ladder (no new
-rung); `Keys.canonical` (no new key).
-
-#### Risks, and how each is defused
-
-| Risk | Defused by |
-|---|---|
-| The desk makes the command window too tall at your setup | A height budget; rows fold into "+n more"; the driven test is the judge |
-| A reading writes something and closes Take back | The purity test; no saved key in commit 1 |
-| The desk and End Turn disagree | One backend source; a parity test |
-| A stale list overspends | `expect_ap`: the server refuses and re-quotes |
-| The quote and the act drift apart | One shared reader |
-| An army name shadows a province or a marshal | Refused at creation; armies are matched last |
-| Scripts or measures change behaviour | Seams, one per rule; the census; the series and the band re-run |
-| A fog leak | Player-facing reads only; a fogged-enemy test per reading |
 
 ## Session H: S15 the deploy (the prompt as it stood on November 13–14, 2026 — read it with the lines above; rows BA's and OC's lines overrule it where they differ)
 

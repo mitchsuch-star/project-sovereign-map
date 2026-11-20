@@ -187,15 +187,6 @@ func get_order_quote(marshal_name: String, kind: String, target: String, callbac
 	_send_get("/march_quotes?marshal=" + marshal_name.uri_encode() + "&" + kind
 		+ "=" + target.uri_encode(), callback)
 
-func get_group_quotes(marshal_names: Array, dest: String, callback: Callable):
-	"""CC-5 group orders: every member's march to `dest`, in the group's
-	order — the one card a Ctrl-click group opens (a read-only GET)."""
-	var names := PackedStringArray()
-	for n in marshal_names:
-		names.append(str(n))
-	_send_get("/march_quotes?marshals=" + ",".join(names).uri_encode() + "&dest="
-		+ dest.uri_encode(), callback)
-
 func get_parse_preview(line: String, callback: Callable) -> void:
 	"""Session UI-6 "the readback": how `line` WOULD be read — the marshal, the
 	verb, the target, the price, or why it would be refused — before Enter.
@@ -249,7 +240,35 @@ func send_command(command: String, callback: Callable, relayed: bool = false):
 	var body := {"command": command}
 	if relayed:
 		body["relayed"] = true
+	# Row IC, directives (November 19, 2026): every order the client sends asks
+	# to SEE the list first when it is addressed to several corps — the server
+	# carries out an order to one man as before, and answers an order to
+	# several with its list (`directive`; nothing spent, nothing written).
+	body["list_first"] = true
 	_send_post("/command", body, callback)
+
+
+func send_directive(line: String, members: Array, expect_ap: int, click: bool, callback: Callable):
+	"""Row IC, directives: the list's [Give the order] — ONE request: the
+	line, the ticked men in the list's order and the total the player saw.
+	The server draws the list again and refuses one that no longer holds
+	(sent back drawn afresh, nothing spent)."""
+	var body := {"command": line, "members": members, "expect_ap": int(expect_ap),
+		"list_first": true}
+	if click:
+		body["click"] = true
+	_send_post("/command", body, callback)
+
+
+func get_directive_quote(line: String, click: bool, callback: Callable):
+	"""Row IC, directives: the LIST of an order to several corps, read-only
+	(`GET /directive_quote`) — a group selected on the map, its Hold / Fortify
+	/ Drill, a TO DECIDE row. `click` = each man's own plain order, as his
+	single click would send it."""
+	var path := "/directive_quote?line=" + line.uri_encode()
+	if click:
+		path += "&click=1"
+	_send_get(path, callback)
 
 
 func take_back_last_order(callback: Callable):

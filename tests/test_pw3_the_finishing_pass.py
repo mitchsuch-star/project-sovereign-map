@@ -573,7 +573,9 @@ class TestTheMapHasAKey:
         # Thirteen since row IC's desk (November 19, 2026): the standing mark on a province
         # an enemy in sight can walk into (`tests/test_ic2_the_turns_end.py`).
         assert kinds == ["piece", "name", "fog", "garrison", "sail", "port", "sea", "land", "flash",
-                         "danger", "reach", "arrow", "trail"]
+                         "danger", "reach", "arrow", "trail",
+                         # Row IC, directives: the war goal's gold ring.
+                         "goal"]
         words = " ".join(text for _s, _k, text in entries)
         for said in ("fog of war", "12k = 12,000", "ships of the line", "A red anchor: a port under blockade.",
                      "A gold border marks a capital.", "this turn, 1 turn, 2–3 turns, 4 or more"):

@@ -1566,3 +1566,193 @@ class TestRowICTheDesk:
         assert any("A province of yours with nothing strong enough to hold it" in line
                    for line in key[0]["lines"]), key[0]["lines"]
         assert not walk["ic_key"].get("off_screen")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# Row IC, the second commit — DIRECTIVES (November 19, 2026) — pressed in the real
+# client at the first player's own setup (Interface Scale 1.8 on 5120 x 1377): an
+# order to several corps is ONE list before anything is spent (typed, or a group
+# Ctrl-clicked and sent by a click on a province), given as ONE request and taken
+# back as one; a named army's chip selects its corps and its card's Hold lists them
+# by the army's name; a war goal is named on the desk, ringed on the map, and its
+# row opens the march as one list that fits the screen. (The rule and the sources:
+# `tests/test_ic4_the_directive.py`, `tests/test_ic5_named_armies.py`,
+# `tests/test_ic6_the_war_goal.py`; the blind readings: `docs/audits/ic_client/directives/`.)
+# The two Ctrl-clicks fall on Ney's and Davout's pieces at Rhineland and the click on
+# Lorraine, at this setup's boot camera; a moved map fails the group's own pin first.
+# ═════════════════════════════════════════════════════════════════════════════
+
+_IC_LINE = "Ney, Davout, Soult and Lannes, march to Lorraine"
+
+
+@pytest.fixture(scope="module")
+def ic_dir_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        run, sup = _start_engine_run(tmp_path_factory, "ic_dir")
+    states: dict = {}
+    try:
+        states["begin"] = _act(run, "click Begin")
+        states["typed"] = _act(run, f"type {_IC_LINE}", meant="move Ney")
+        states["down"] = _act(run, "key Down")
+        states["untick"] = _act(run, "key Space")
+        states["retick"] = _act(run, "key Space")
+        states["esc"] = _act(run, "key Escape")
+        states["again"] = _act(run, "key Enter")              # the line Esc put back: the list again
+        states["give"] = _act(run, "key Enter")
+        states["take_back"] = _act(run, "click Take back")
+        states["ctrl_ney"] = _act(run, "ctrlclick_at 1642 248")
+        states["group"] = _act(run, "ctrlclick_at 1684 246")
+        states["sent_to"] = _act(run, "click_at 1544 342")
+        states["group_give"] = _act(run, "key Enter")
+        states["group_back"] = _act(run, "click Take back")
+        states["army"] = _act(run, "type form the Army of Italy with Lannes and Murat", meant="other: name an army")
+        _act(run, "key Escape")
+        states["chip"] = _act(run, "click Army of Italy · 2 corps")
+        states["hold"] = _act(run, "click Hold…")
+        states["hold_esc"] = _act(run, "key Escape")
+        _act(run, "key Escape")                                # the group let go
+        states["goal"] = _act(run, "type the war goal is Vienna", meant="other: set the war goal")
+        row = next(b for b in _ic_on(states["goal"], "DeskCard")
+                   if str(b["text"]).startswith("1. Your corps with no orders can march on Vienna"))
+        states["goal_row"] = _ic_press(run, row)
+        states["goal_esc"] = _act(run, "key Escape")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    states["run_dir"] = str(run)
+    return states
+
+
+def _ic_log(state: dict) -> str:
+    return " ".join(state.get("terminal_new") or [])
+
+
+def _ic_card(state: dict) -> dict:
+    return state.get("directive_card") or {}
+
+
+def _ic_replies_with(state: dict, key: str) -> list:
+    return [r for r in state.get("responses") or [] if key in (r.get("keys") or [])]
+
+
+def _ic_actions(state: dict) -> str:
+    """The desk's actions counter as it reads ("4/4")."""
+    texts = [str(t.get("text") or "") for t in state.get("texts") or []]
+    for i, text in enumerate(texts):
+        if text == "Actions" and i + 1 < len(texts):
+            return texts[i + 1]
+    return ""
+
+
+def _ic_still_and_on_screen(state: dict) -> None:
+    card = _ic_card(state)
+    width, height = state["factor"]["logical_size"]
+    x, y, w, h = card["rect"]
+    assert x >= 0 and y >= 0 and x + w <= width and y + h <= height, (card["rect"], width, height)
+    assert not _pw_panel_moves(state), _pw_panel_moves(state)
+    assert not state.get("off_screen"), state.get("off_screen")
+
+
+class TestRowICDirectives:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic_dir_walk):
+        assert "error" not in ic_dir_walk, ic_dir_walk.get("error")
+        return ic_dir_walk
+
+    def test_a_line_to_several_shows_one_list_first_and_spends_nothing(self, walk):
+        typed = walk["typed"]
+        card = _ic_card(typed)
+        assert card["visible"] is True and card["mode"] == "directive"
+        assert card["title"] == "ORDERS FOR 2 OF 4 CORPS"
+        assert card["who"] == "Ney, Davout, Soult and Lannes: march to Lorraine"
+        assert [r["marshal"] for r in card["rows"]] == ["Ney", "Davout", "Soult", "Lannes"]
+        assert card["members"] == ["Ney", "Davout"] and card["total"] == 4 and card["have"] == 4
+        assert card["line"] == _IC_LINE and card["give_disabled"] is False
+        soult = next(r for r in card["rows"] if r["marshal"] == "Soult")
+        assert soult["ok"] is False and soult["text"] == "already stands at Lorraine"
+        said = card["total_text"]
+        assert "Cost: 4 actions (2 + 2) of the 4 in hand — 2 corps go, each on his own order." in said
+        assert "Lannes is not ticked: he needs 2 actions, and the ticked corps leave none." in said
+        assert "undoes them all and gives their actions back" in _pw_said(typed)
+        assert _ic_actions(typed) == "4/4"                                # nothing spent
+        assert _ic_replies_with(typed, "directive") and not _ic_replies_with(typed, "group")
+
+    def test_the_list_fits_and_stands_still(self, walk):
+        for key in ("typed", "sent_to", "hold", "goal_row"):
+            _ic_still_and_on_screen(walk[key])
+
+    def test_its_keys_move_tick_and_untick(self, walk):
+        assert _ic_card(walk["down"])["cursor"] == "Davout"
+        untick = _ic_card(walk["untick"])
+        assert untick["members"] == ["Ney"] and untick["total"] == 2
+        assert untick["title"] == "ORDERS FOR 1 OF 4 CORPS"
+        assert "Cost: 2 actions of the 4 in hand — 1 corps goes, on his own order." in untick["total_text"]
+        assert _ic_card(walk["retick"])["members"] == ["Ney", "Davout"]
+
+    def test_esc_spends_nothing_says_so_and_puts_the_line_back(self, walk):
+        esc = walk["esc"]
+        assert _ic_card(esc) == {}
+        assert (esc.get("command_line") or {}).get("text") == _IC_LINE
+        assert ("Not given: Ney, Davout, Soult and Lannes: march to Lorraine — nothing was spent. Your line "
+                "is back below: change it, or press Enter to see the list again.") in _ic_log(esc)
+        assert not _ic_replies_with(esc, "group") and _ic_actions(esc) == "4/4"
+
+    def test_give_is_one_request_and_take_back_undoes_it_whole(self, walk):
+        assert _ic_card(walk["again"])["members"] == ["Ney", "Davout"]       # Enter: the list again
+        give = walk["give"]
+        assert len(_ic_replies_with(give, "group")) == 1                     # ONE request
+        log = _ic_log(give)
+        assert ("The order goes to Ney and Davout, corps by corps — 2 corps, 4 actions for the 4 in hand: "
+                "'march to Lorraine'.") in log
+        assert "Ney begins march to Lorraine." in log and "Davout begins march to Lorraine." in log
+        assert _ic_actions(give) == "0/4"
+        back = walk["take_back"]
+        assert "Taken back: “Ney, Davout, Soult and Lannes, march to Lorraine”." in _ic_log(back)
+        assert _ic_actions(back) == "4/4"
+
+    def test_a_ctrl_click_group_sent_by_a_click_lists_each_mans_move(self, walk):
+        group = walk["group"]
+        said = _pw_said(group)
+        assert "Ney, Davout" in said, "the two Ctrl-clicks did not gather Ney and Davout (has the map moved?)"
+        assert "sending them costs up to 4 actions · you have 4" in said
+        assert {"Hold…", "Fortify…", "Drill…", "Name this army…"} <= set(_pw_buttons(group))
+        card = _ic_card(walk["sent_to"])
+        assert card["who"] == "Ney and Davout: go to Lorraine" and card["total"] == 2
+        assert all("move to Lorraine — arrives now · 1 action" in r["text"] for r in card["rows"])
+        give = walk["group_give"]
+        assert len(_ic_replies_with(give, "group")) == 1
+        assert "► Ney and Davout: go to Lorraine — 2 corps" in _ic_log(give)
+        assert "'go to Lorraine'." in _ic_log(give)
+        assert _ic_actions(walk["group_back"]) == "4/4"
+
+    def test_an_armys_chip_selects_its_corps_and_its_hold_lists_them_by_name(self, walk):
+        assert walk["army"]["army_chips"] == ["Army of Italy"]
+        assert "The Army of Italy is formed: Lannes and Murat." in _ic_log(walk["army"])
+        chip = walk["chip"]
+        assert "The Army of Italy — Lannes, Murat" in _pw_said(chip)
+        assert "Disband the Army of Italy" in _pw_buttons(chip)
+        assert "Hold…, Fortify… or Drill… first shows each corps' order and price" in _pw_said(chip)
+        card = _ic_card(walk["hold"])
+        assert card["who"] == "The Army of Italy: hold" and card["members"] == ["Lannes", "Murat"]
+        assert not _ic_replies_with(walk["hold"], "group")                   # a list is no order
+        assert "Not given: The Army of Italy: hold — nothing was spent." in _ic_log(walk["hold_esc"])
+
+    def test_the_war_goal_is_named_ringed_and_its_row_opens_a_list_that_fits(self, walk):
+        goal = walk["goal"]
+        assert "The goal of the war with the Third Coalition is now Vienna." in _ic_log(goal)
+        war = next(str(b["text"]) for b in _ic_on(goal, "DeskCard") if str(b["text"]).startswith("THE WAR — "))
+        assert war.endswith("— your war goal: Vienna."), war
+        assert goal["map_goals"] == ["Vienna"] and goal["map_goal_names"] == ["War goal: Vienna"]
+        assert any(str(m.get("text")) == "Austria" for m in goal.get("map") or []), "the plate hid AUSTRIA"
+        card = _ic_card(walk["goal_row"])
+        assert card["title"] == "ORDERS FOR 3 OF 8 CORPS"
+        assert card["who"].startswith("Go to Vienna — Ney, Davout"), card["who"]   # the order leads a long line
+        assert _ic_card(walk["goal_esc"]) == {}
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

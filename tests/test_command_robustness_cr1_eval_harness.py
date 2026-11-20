@@ -72,6 +72,9 @@ MOCK_REACHABLE_ACTIONS = [
     "proclaim_design",
     # VP-1 (S14b part 3): the road page's Decree.
     "decree_act",
+    # Row IC, directives: the staff's two free books — a named army and the
+    # goal of a war (read ahead of the Cabinet's routes).
+    "army", "set_war_goal",
 ]
 
 

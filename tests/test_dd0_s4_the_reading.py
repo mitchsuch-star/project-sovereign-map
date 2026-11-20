@@ -429,10 +429,21 @@ class TestTheSixteenOpenRows:
         reply = _post(client, "Ney, stop chasing John")
         assert _parsed(reply).get("action") == "cancel"
 
-    def test_d25_the_second_man_is_named_and_offered(self, client):
+    def test_d25_the_second_man_is_named_and_offered(self, client, monkeypatch):
+        """RE-SEATED by row IC, the directive (November 19, 2026): the relay's reading with
+        `directive.a_named_list_is_one_directive` DOWN; up — as shipped — the named list is one
+        order to both men (the test below)."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         reply = _post(client, "Lannes and Murat, scout Tyrol")
         assert "Murat, scout Tyrol" in reply["message"]
         assert reply.get("dropped_sequel") == "Murat, scout Tyrol"
+
+    def test_d25_the_named_list_is_one_order_to_both(self, client):
+        """Row IC, the directive: "Lannes and Murat, scout Tyrol" orders both — no second Enter."""
+        reply = _post(client, "Lannes and Murat, scout Tyrol")
+        assert "The order goes to Lannes and Murat, corps by corps" in reply["message"], reply["message"]
+        assert not reply.get("dropped_sequel")
 
     @pytest.mark.parametrize("line,target", [
         ("Soult, take Lyonnais back from Paget", "Lyonnais"),

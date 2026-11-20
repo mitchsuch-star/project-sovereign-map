@@ -498,6 +498,12 @@ class TestWorldStateSerializationEnforcement:
         # here so the census reads both keys.
         world.marshal_ledger = {"Davout|Ney": {"incidents": [], "won": 1, "lost": 0}}
         world.marshal_accounts = [{"lead": "Ney", "others": ["Davout"], "place": "Swabia", "turn": 4}]
+        # Row IC, directives: the named armies and the wars' goals are written
+        # ONLY when they hold something (the same precedent) — populated here
+        # so the census reads both keys (`tests/test_ic5_named_armies.py` and
+        # `tests/test_ic6_the_war_goal.py` pin both halves).
+        world.armies = {"Army of Italy": {"members": ["Ney", "Davout"], "formed_turn": 3}}
+        world.war_goals = {"Austria": {"kind": "place", "target": "Vienna", "turn": 4}}
 
         instance_attrs = get_instance_attributes(world)
         serialized_keys = get_serialized_keys(world)

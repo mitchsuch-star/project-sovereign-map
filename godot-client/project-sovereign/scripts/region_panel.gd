@@ -367,6 +367,57 @@ func _on_explanations_switched() -> void:
 	_render_keeping_scroll()
 
 
+# Row IC, directives: the desk's war goals and the courts the player fights,
+# handed in by main.gd on every reply (set_war_goal_context).
+var _war_goals: Array = []
+var _war_enemies: Array = []
+
+
+func set_war_goal_context(goals: Array, enemies: Array) -> void:
+	"""Row IC, directives: store the desk's goal rows and the courts we are at war
+	with; an open panel redraws, the reader's scroll kept."""
+	_war_goals = goals.duplicate()
+	_war_enemies = enemies.duplicate()
+	_render_keeping_scroll()
+
+
+func _open_place_goal_here() -> Dictionary:
+	"""The open goal of kind "place" that names this province, else {}."""
+	for g in _war_goals:
+		if g is Dictionary and str(g.get("kind", "")) == "place" \
+				and str(g.get("status", "")) == "open" and str(g.get("target", "")) == _region:
+			return g
+	return {}
+
+
+func _war_goal_row(controller: String) -> String:
+	"""Row IC, directives: "Make this the war goal" on an enemy's province with no
+	open place goal on it; "Your war goal" and "Clear the war goal" where one is
+	named. Nothing for our own, a neutral's, or a court we are not fighting."""
+	var goal := _open_place_goal_here()
+	var folded := Utils.explanations_folded()
+	if not goal.is_empty():
+		var court := Utils.display_nation_name(str(goal.get("court", "")))
+		var clear_tip := "The war with " + court + " will have no goal. Free."
+		var clear_chip := Utils.bb_button_chip("goalclear:" + str(goal.get("court", "")), "Clear the war goal",
+				Utils.COLOR_WARNING, _CHIP_BG, "", clear_tip if folded else "")
+		var row := "[color=#" + Utils.COLOR_GOLD + "]Your war goal[/color]   " + clear_chip
+		if not folded:
+			row += "  [color=#" + Utils.COLOR_INFO + "]" + clear_tip + "[/color]"
+		return row + "\n"
+	if controller == _PLAYER_NATION or not (controller in _war_enemies):
+		return ""
+	var court_name := Utils.display_nation_name(controller)
+	var make_tip := "Names " + _region + " as the goal of the war with " + court_name \
+		+ ": the desk names it, the map rings it in gold, and the desk offers the march on it as one list. Free."
+	var make_chip := Utils.bb_button_chip("goal:" + _region, "Make this the war goal",
+			Utils.COLOR_GOLD, _CHIP_BG, "", make_tip if folded else "")
+	var make_row := make_chip
+	if not folded:
+		make_row += "  [color=#" + Utils.COLOR_INFO + "]" + make_tip + "[/color]"
+	return make_row + "\n"
+
+
 func close_panel() -> void:
 	if visible:
 		AudioManager.play("back")
@@ -393,6 +444,16 @@ func _on_meta_clicked(meta):
 		var command = meta_str.substr("do:".length())
 		if command != "":
 			region_command.emit(command)
+	elif meta_str.begins_with("goalclear:"):
+		# Row IC, directives: "clear the war goal against <court>" (free)
+		var goal_court := meta_str.substr("goalclear:".length())
+		if goal_court != "":
+			region_command.emit("clear the war goal against " + goal_court)
+	elif meta_str.begins_with("goal:"):
+		# Row IC, directives: "the war goal is <province>" (free)
+		var goal_region := meta_str.substr("goal:".length())
+		if goal_region != "":
+			region_command.emit("the war goal is " + goal_region)
 	elif meta_str.begins_with("negotiate:"):
 		var nation = meta_str.substr("negotiate:".length())
 		if nation != "":
@@ -532,6 +593,8 @@ func _render() -> void:
 	# directly under the title line (and, since UXR3-79, the land's note),
 	# once the rows are known (below); the province's figures, its forces
 	# and its sea follow it.
+	# Row IC, directives: the war goal's chip stands at the province's head.
+	bbcode += _war_goal_row(controller)
 	var actions_at := bbcode.length()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	# Session UI-3: the line stands behind an ⓘ ("Fold, a switch restores"); On

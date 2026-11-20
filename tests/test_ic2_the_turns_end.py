@@ -28,7 +28,9 @@ CLIENT = REPO / "godot-client" / "project-sovereign"
 SCRIPTS = CLIENT / "scripts"
 SCENES = CLIENT / "scenes"
 
-DOOR_KINDS = ("marshal", "region", "day", "envoys", "ledger", "congress", "generals", "idle", "war", "court")
+# (+ "directive": row IC's second commit — a row that opens the LIST of an order to several corps)
+DOOR_KINDS = ("marshal", "region", "day", "envoys", "ledger", "congress", "generals", "idle", "war", "court",
+              "directive")
 
 
 def _quiet():
@@ -411,7 +413,8 @@ class TestTheMapsMark:
         assert "shown.append(str(n))" in seat                      # each mark wears its province's name
         # … and the map's names dodge the mark and its plate (seen in the real client: the
         # "Rhineland" plate stood over the name HESSE) — both tiers, as they dodge a UI panel
-        assert "map_label_layer.set_mark_boxes(order_layer.danger_mark_boxes())" in seat
+        # Row IC, directives: the goal ring's boxes join the danger marks' (one list for the label layer)
+        assert "map_label_layer.set_mark_boxes(order_layer.mark_boxes())" in seat
         labels = _src(SCENES / "map_label_layer.gd")
         assert "_draw_label_tier(spec, xform, avoid, _local_ui_avoid_rects() + _mark_rects(xform), guard, fresh)" in labels
         assert "func set_mark_boxes(boxes: Array) -> void:" in labels
@@ -424,7 +427,9 @@ class TestTheMapsMark:
     def test_the_key_names_it(self):
         key = _src(SCRIPTS / "map_key.gd")
         entries = re.findall(r'^\t\["([A-Z ]+)", "(\w+)", "', key, re.M)
-        assert len(entries) == 13
+        # Fourteen since row IC's directives: the war goal's gold ring ("goal", in ORDERS).
+        assert len(entries) == 14
+        assert ("ORDERS", "goal") in entries
         assert ("THE LAND", "danger") in entries
         assert '"danger":' in key.split("func _draw() -> void:")[1]
         words = next(line for line in key.split("\n") if '"danger", "' in line)

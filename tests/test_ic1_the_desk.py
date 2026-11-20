@@ -28,7 +28,9 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
 SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 
-DOOR_KINDS = {"marshal", "region", "day", "envoys", "ledger", "congress", "generals", "idle", "war", "court"}
+# (+ "directive": row IC's second commit — a row that opens the LIST of an order to several corps)
+DOOR_KINDS = {"marshal", "region", "day", "envoys", "ledger", "congress", "generals", "idle", "war", "court",
+              "directive"}
 
 
 def _quiet():

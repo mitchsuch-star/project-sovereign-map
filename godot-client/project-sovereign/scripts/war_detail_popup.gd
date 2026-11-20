@@ -1190,6 +1190,13 @@ func _account_body(w: Dictionary, lead_line: String) -> String:
 	var objective_hint := str(w.get("objective_hint", ""))
 	if objective_hint != "":
 		body += info + objective_hint + "[/color]\n"
+	# Row IC, directives: the goal the Emperor named for this war ("your war
+	# goal: Vienna"), the desk's own words; absent on a war with none.
+	var war_goal := str(w.get("war_goal", ""))
+	if war_goal != "":
+		# "the map rings it" only where the map does (an open goal, its place seen)
+		body += war_goal.left(1).to_upper() + war_goal.substr(1) \
+			+ (" — the map rings it in gold." if bool(w.get("war_goal_ringed", false)) else ".") + "\n"
 	var enemy_objective = w.get("enemy_objective", null)
 	if enemy_objective is Dictionary:
 		body += "Enemy Objective: " + str(enemy_objective.get("type_display", "Objective")) + "\n"

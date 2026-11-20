@@ -316,11 +316,24 @@ class TestW3TheBasicForms:
         assert CG.is_question("can Ney attack Mack", ["Ney", "Mack"])
         assert not CG.is_question("could Ney please fortify", ["Ney"])
 
-    def test_the_collective_march_relays_the_rest(self, shipped):
+    def test_the_collective_march_relays_the_rest(self, shipped, monkeypatch):
+        """RE-SEATED by row IC, the directive (November 19, 2026): the relay's reading with
+        `directive.a_named_list_is_one_directive` DOWN; up — as shipped — the list closed by a
+        collective word is one order to every man named (the test below)."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         client, world = shipped
         reply = post(client, "Ney, Davout, Soult: everyone converge on Swabia")
         assert "One order at a time" in reply["message"]
         assert reply.get("dropped_sequel") == "Davout, Soult: converge on Swabia"
+
+    def test_the_collective_march_goes_to_every_man_named(self, shipped):
+        """Row IC, the directive: the same line is one order to Ney, Davout and Soult."""
+        client, world = shipped
+        reply = post(client, "Ney, Davout, Soult: everyone converge on Swabia")
+        assert "The order goes to Ney, Davout and Soult, corps by corps" in reply["message"], reply["message"]
+        assert not reply.get("dropped_sequel")
+        assert [r["marshal"] for r in (reply.get("group") or {}).get("rows") or []][:3] == ["Ney", "Davout", "Soult"]
 
     def test_keep_an_eye_on_is_a_scout(self, shipped):
         client, world = shipped

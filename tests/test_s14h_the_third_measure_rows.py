@@ -6384,16 +6384,23 @@ class TestS14GX48:
     def test_the_card_reads_them_in_its_terms_and_its_group_rows(self):
         src = (_R11_SCRIPTS / "order_confirm_card.gd").read_text(encoding="utf-8")
         terms = self._func(src, "_terms")
-        group = self._func(src, "show_group")
         for key in ("guard", "front", "terms"):
             assert f'q.get("{key}", "")' in terms, key
-            assert f'q.get("{key}", "")' in group, key
         # after the pay line, in the warning colour, and a line only when non-empty
         assert terms.index('q.get("pay", "")') < terms.index('q.get("guard", "")') \
             < terms.index('q.get("front", "")') < terms.index('q.get("terms", "")')
         assert 'lines.append("[color=#" + Utils.COLOR_WARNING + "]" + guard + "[/color]")' in terms
-        assert 'lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + terms_row + "[/color]")' in group
-        for ln in (terms + group).splitlines():
+        # RE-SEATED by row IC, directives (November 19, 2026): the CC-5 group card
+        # (`show_group`) is gone — an order to several corps is the LIST card, whose
+        # rows print the server's notes in the warning colour, one a line; the
+        # server folds the same riders into each row (`directive._RIDERS`), in the
+        # order the single card prints them.
+        rows = self._func(src, "directive_row_text")
+        assert 'r.get("notes", [])' in rows and "Utils.COLOR_WARNING" in rows
+        from backend.commands import directive
+        riders = list(directive._RIDERS)
+        assert riders.index("pay") < riders.index("guard") < riders.index("front") < riders.index("terms")
+        for ln in (terms + rows).splitlines():
             assert not ln.startswith("  "), repr(ln)               # GDScript uses TABS
 
     def test_the_panel_reads_them_in_its_notes_and_its_army_rows(self):

@@ -269,6 +269,7 @@ func report() -> Dictionary:
 		"arrows": arrows_report(),
 		"arrow_hover": _arrow_hover,
 		"arrows_dimmed": _arrow_dimmed,
+		"goals": _goals.size(),          # row IC, directives: the war goals' gold rings
 		"dangers": _dangers.size(),      # row IC: the provinces marked as in danger
 	}
 
@@ -398,6 +399,80 @@ func _draw_dangers(xform: Transform2D) -> void:
 				_draw_badge_in(box, label, Utils.cv(DANGER_COLOR), BADGE_FONT_PX, BADGE_BG, false)
 
 
+# Row IC, directives (November 19, 2026): the war goal's gold ring. A province
+# the player named as a war's goal (the backend's `desk.goals`) wears a gilt
+# ring on its seat and a small name plate BELOW it — below, so a danger
+# triangle and its plate (which stand above the province) are never hidden
+# when both mark one province. Screen-fixed size. WORLD points.
+const GOAL_COLOR := Color(0.96, 0.80, 0.36, 1.0)
+const GOAL_SHADOW := Color(0.08, 0.06, 0.04, 0.78)
+const GOAL_RX := 18.0            # the ring's half width, px
+const GOAL_RY := 11.0            # its half height, px
+const GOAL_PLATE_GAP := 4.0      # px between the ring's foot and the plate
+var _goals: Array = []
+var _goal_names: Array = []      # each ring's label, in the points' order
+
+
+func set_goals(points_world: Array, labels: Array) -> void:
+	"""The war goals' provinces as WORLD points (the renderer resolves the
+	names), with each ring's label in the same order; empty arrays clear."""
+	if points_world == _goals and labels == _goal_names:
+		return
+	_goals = points_world.duplicate()
+	_goal_names = labels.duplicate()
+	queue_redraw()
+
+
+func goal_count() -> int:
+	return _goals.size()
+
+
+func goal_names() -> Array:
+	"""The labels the rings wear now (read by the driven tests)."""
+	return _goal_names.duplicate()
+
+
+func _goal_plate_size(label: String) -> Vector2:
+	var font: Font = ThemeDB.fallback_font
+	if font == null or label == "":
+		return Vector2.ZERO
+	return font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, BADGE_FONT_PX) + BADGE_PAD * 2.0
+
+
+func goal_mark_boxes() -> Array:
+	"""Each ring's box for the map's names to dodge: [{at: the WORLD point,
+	rect: the ring and its plate in px FROM the projected point}]."""
+	var out: Array = []
+	for i in range(_goals.size()):
+		var label: String = str(_goal_names[i]) if i < _goal_names.size() else ""
+		var plate := _goal_plate_size(label)
+		var half_w: float = maxf(GOAL_RX + 3.0, plate.x * 0.5)
+		var bottom: float = GOAL_RY + 3.0
+		if plate != Vector2.ZERO:
+			bottom = GOAL_RY + GOAL_PLATE_GAP + plate.y
+		out.append({"at": _goals[i], "rect": Rect2(-half_w, -GOAL_RY - 3.0,
+				half_w * 2.0, bottom + GOAL_RY + 3.0)})
+	return out
+
+
+func mark_boxes() -> Array:
+	"""Every standing mark's box (the dangers' and the goals') — ONE list for
+	the label layer."""
+	return danger_mark_boxes() + goal_mark_boxes()
+
+
+func _draw_goals(xform: Transform2D) -> void:
+	for i in range(_goals.size()):
+		var c: Vector2 = xform * (_goals[i] as Vector2)
+		_draw_ellipse(c, GOAL_RX, GOAL_RY, GOAL_SHADOW, 5.5)
+		_draw_ellipse(c, GOAL_RX, GOAL_RY, GOAL_COLOR, 2.8)
+		var label: String = str(_goal_names[i]) if i < _goal_names.size() else ""
+		if label != "":
+			var plate := _goal_plate_size(label)
+			var box := Rect2(c + Vector2(-plate.x * 0.5, GOAL_RY + GOAL_PLATE_GAP), plate)
+			_draw_badge_in(box, label, GOAL_COLOR, BADGE_FONT_PX, BADGE_BG, false)
+
+
 func _draw_flashes(xform: Transform2D) -> void:
 	if _flashes.is_empty():
 		return
@@ -507,7 +582,7 @@ func _process(_delta: float) -> void:
 		_trails = kept
 		queue_redraw()
 	if _rings.is_empty() and _ghost_world.is_empty() and _arrows.is_empty() \
-			and _hover_ring.is_empty() and _dangers.is_empty():
+			and _hover_ring.is_empty() and _dangers.is_empty() and _goals.is_empty():
 		return
 	if _projection() != _drawn_xform:
 		queue_redraw()
@@ -522,6 +597,7 @@ func _draw() -> void:
 	_draw_trails(xform)      # row PW part 3: where the marching pieces came from
 	_draw_flashes(xform)     # row PW: the provinces that changed hands
 	_draw_dangers(xform)     # row IC: the provinces an enemy in sight can walk into
+	_draw_goals(xform)       # row IC, directives: the war goals' gold rings
 	var zoom: float = xform.get_scale().x
 	if not _hover_ring.is_empty():
 		# Row PW: under the selection's ring, thinner — "a click picks him".

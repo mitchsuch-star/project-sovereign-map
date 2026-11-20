@@ -178,6 +178,13 @@ class TestParity:
             if ref.get("success") and own:
                 if pre["kind"] not in ("order", "refusal", "unknown_name", "delegation"):
                     mismatches.append((line, "order", pre["kind"]))
+                elif pre["kind"] == "order" and pre.get("directive"):
+                    # Row IC: a line to several corps ("Ney and Davout fortify")
+                    # reads as the list it will open — it names every man, so
+                    # no ONE marshal is its reading; the order must still be
+                    # the parse's own.
+                    if pre["action"] != cmd.get("action"):
+                        mismatches.append((line, cmd.get("action"), pre["action"]))
                 elif pre["kind"] == "order" and (
                         pre["marshal"] != humanize_entity_name(cmd["marshal"])
                         or pre["action"] != cmd.get("action")):

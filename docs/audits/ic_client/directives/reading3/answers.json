@@ -1,0 +1,59 @@
+{
+ "note": "Reading 3: the three fresh readers' answers and what confused them, as returned.",
+ "readers": [
+  {
+   "q6": "In Frame A, the Army of Italy (Lannes and Murat) has a small box with a \"Hold...\" button. Press it, then click a province. It first shows each corps' order and price, and nothing is spent until I press Give. It only covers the two corps in the Army of Italy (Lannes, Murat). It does not cover \"every corps\". The panel does not show how to order all eight marshals to hold at once, except that the log says \"every command\" and \"Army of Italy, hold\". I cannot tell whether any command covers every corps.",
+   "q10": "Frame G's desk item 1 says \"Your corps with no orders can march on Vienna, your war goal — press to list them.\" So the corps with no orders can march. I would see them by pressing that line, which lists them. The screenshot shows only the prompt, not the list, so I cannot tell exactly which marshals are included. Eight marshals appear in the left column, and Frame G shows no orders given to any of them.",
+   "q11": "Two. The box is titled \"Orders for 2 of 4 corps\". Ney and Davout are ticked. Lannes is unticked because there are not enough actions, and Soult will not go because he already stands at Lorraine. The cost is 4 actions for the 2 corps.",
+   "q12": "No. The log in Frame C says \"Not given: Ney, Davout, Soult and Lannes: march to Lorraine — nothing was spent.\" Actions still show 4/4.",
+   "q13": "The war is with the Third Coalition (Britain, Austria and Russia), and it is fought \"to hold the homeland\". My own goal in it is Vienna, which Frame G calls the war goal. The map rings Vienna in gold and labels it \"War goal: Vienna\". The wider aim is to win the peace: hold 45 titled provinces for 12 turns, then summon the Congress of Paris. I hold 35 of them.",
+   "confused": [
+    "The L box title says 'Orders for 2 of 4 corps', yet the line under it names four marshals (Ney, Davout, Soult, Lannes). It took me a moment to see that two are ticked, one is unticked for lack of actions, and one is already there.",
+    "Lannes is unticked 'not enough actions are left', while the cost line says '4 actions (2 + 2) of the 4 in hand'. I could not tell why the actions run out when the 4 are still there.",
+    "Ney and Lannes carry a warning in yellow that he 'will drop this order for any battle within two provinces in a war of ours'. I could not tell what counts as such a battle, or whether it applies to Davout as well.",
+    "The log in Frame C still shows the typed text 'nes, march to Lorraine' in the input box after Esc. I could not tell whether it is a leftover or a pending command.",
+    "In Frame A the Army of Italy box says 'sending them costs up to 4 actions · you have 4'. I could not tell how this is worked out for two corps, or whether Hold costs actions at all.",
+    "In Frame A I cannot tell how to give a hold order to every corps rather than only the two in the Army of Italy.",
+    "The war panel at the top right of Frame G says 'War with the Third Coalition The war: even' and is cut off, with a slider at 0. I could not tell what 'even' or the slider means.",
+    "In Frame G item 1 offers a list of corps that can march on Vienna, but the list itself is not shown, so I cannot tell which corps or how many.",
+    "The red 'Threat 67' and the '45 sail · BLOCKADED' markers are not explained on screen. I cannot tell what they require of me."
+   ]
+  },
+  {
+   "q6": "In Frame A, the Army of Italy (Lannes and Murat) has a small box with a \"Hold...\" button. Pressing it should show each corps' order and price first, and nothing is spent until you press Give. That covers only those 2 corps. The other six marshals (Ney, Davout, Soult, Massena, Bernadotte, Napoleon) are not in that army. I see no single \"all corps hold\" button, so I cannot tell how to hold every corps of the Army of Italy beyond using Hold... and then Give. The screenshot does not show Hold being pressed.",
+   "q10": "In Frame G, the \"To decide\" list has item 1: \"Your corps with no orders can march on Vienna, your war goal - press to list them.\" So the corps with no orders can march on Vienna. I would press that line to see them listed. The screenshot does not show the list itself, so I cannot tell which corps are on it. The left roster shows 8 marshals and the notes say 7 corps have no orders, but that does not tell me which of them can reach Vienna.",
+   "q11": "Two corps get an order. The title reads \"Orders for 2 of 4 corps\". Ney and Davout are ticked and go to Lorraine, at 2 actions each (4 actions in all). Lannes is unticked because not enough actions are left. Soult will not go because he already stands at Lorraine.",
+   "q12": "No. The log in Frame C says \"Not given: Ney, Davout, Soult and Lannes: march to Lorraine - nothing was spent.\" Actions still read 4/4, so Esc cancelled the box.",
+   "q13": "The war is the one with the Third Coalition (Britain, Austria and Russia), and its stated purpose is \"to hold the homeland\". The war goal is Vienna, shown by a gold ring on the map labelled \"War goal: Vienna\", and the log says the war with Austria now has Vienna as its goal. My own larger goal is the peace. I must hold 45 titled provinces (homeland, lands a treaty gave me, and conquests) for 12 turns, then summon the Congress of Paris. I hold 35 now. I cannot tell whether taking Vienna would raise the count to 45.",
+   "confused": [
+    "Frame L: Lannes is unticked, and the box says not enough actions are left for him (4 in hand, 2 per corps). The title says 2 of 4 corps while the summary line names Ney, Davout, Soult and Lannes. It took me a moment to see that Soult is excluded because he is already at Lorraine.",
+    "Frame L: Ney's and Lannes's rows say they will drop the order for any battle within two provinces in a war of ours. I could not tell whether that is a risk to me or a feature.",
+    "Frame A: the Army of Italy box says sending them costs up to 4 actions, but I could not tell whether Hold costs actions or is free. I also could not tell whether Hold... applies to the whole army or needs a province clicked first.",
+    "Frame A: the roster shows Lannes and Murat in the Army of Italy, but only a bar labelled 'Army of Italy - 2 corps' marks this. I could not tell whether that bar is a button or just a label.",
+    "Frame G: the list says corps 'can march on Vienna', but it does not name them or say how far away they are. The map shows Vienna far from my armies, so I could not tell what 'can' means.",
+    "Frame C: the text box at the bottom left still holds the typed text 'nes, march to Lorraine' after the order was cancelled. I could not tell whether that text is a leftover or whether the order is still pending.",
+    "Frame G: The war goal of Vienna is 'the war with Austria' in the log, but the Active Wars panel only lists the Third Coalition. I could not tell how the two relate.",
+    "All frames: the top bar shows Threat 67 and '45 sail - BLOCKADED', and the map shows unlabelled numbers such as 12k, 25k and 100. I could not tell what these mean."
+   ]
+  },
+  {
+   "q6": "In Frame A I would first form the Army of Italy (Lannes and Murat), then press its chip so both are selected. A box titled \"The Army of Italy — Lannes, Murat\" appears with a \"Hold...\" button. Pressing it should first show each corps' order and price, and nothing is spent until I press Give. A province click would send them there instead. Frame A only shows the formation and the box, not the hold order being given. I can see the Army of Italy has only 2 corps (Lannes and Murat), not every one of the 8 marshals. So \"every corps of the Army of Italy\" is those two. I cannot tell what a Hold order actually costs, or what the Hold preview looks like, because it was not pressed.",
+   "q10": "Frame G says \"Your corps with no orders can march on Vienna, your war goal — press to list them.\" That is item 1 under \"TO DECIDE — 3 matters\" in the box at the top left of the map. I would press that line to get the list. The text does not name which corps can march, and does not give a number. The list itself is not shown, so I cannot tell which corps are on it. The ring on the map marks Vienna as \"War goal: Vienna\".",
+   "q11": "Two. The title says \"Orders for 2 of 4 corps\". Ney and Davout are ticked. Lannes is not ticked because not enough actions are left (4 actions in hand, 2 per corps). Soult will not go because he already stands at Lorraine. Cost is 4 actions in total.",
+   "q12": "No. The log in Frame C says \"Not given: Ney, Davout, Soult and Lannes: march to Lorraine — nothing was spent.\" The Actions counter still shows 4/4, which agrees. Esc cancelled the box.",
+   "q13": "The war is the war with the Third Coalition (Britain, Austria and Russia). Its stated aim is \"to hold the homeland\". My own war goal in it is Vienna. The map rings Vienna as \"War goal: Vienna\", and the log says the goal of the war with Austria is now Vienna. The larger aim is the peace: hold 45 titled provinces for 12 turns, then summon the Congress of Paris. I hold 35 now. I cannot tell what taking Vienna would give me, or whether it counts toward the 45 provinces.",
+   "confused": [
+    "In Frame L the title says 'Orders for 2 of 4 corps' but the line above it names four (Ney, Davout, Soult and Lannes). It took me a moment to see that Soult drops out because he is already at Lorraine and Lannes drops out for lack of actions.",
+    "In Frame L, Ney and Lannes carry a yellow warning: 'He will drop this order for any battle within two provinces in a war of ours.' I cannot tell which battle this refers to, or whether Davout has the same risk, since his row has no warning.",
+    "In Frame A the box says 'sending them costs up to 4 actions' and 'you have 4'. I cannot tell whether Hold costs actions, since the price only shows after pressing Hold.",
+    "In Frame A the roster still shows all 8 marshals, including Lannes and Murat, with an 'Army of Italy · 2 corps' bar above them. I cannot tell whether Lannes and Murat are still separately selectable, or whether the other 6 can still get orders.",
+    "In Frame A and Frame C the 'TO DECIDE' box says '7 corps of yours have no orders', yet only 8 marshals are listed and the Army of Italy has 2 corps. I cannot tell how that count relates to the roster.",
+    "In Frame G, item 1 says 'Your corps with no orders can march on Vienna' with no count and no names, so I cannot tell which corps would be listed or how many.",
+    "The Active Wars panel says 'War with the Third Coalition The war: even', and the text is cut off. The slider shows 0 between a British flag and a French flag. I cannot tell what the slider measures, or what 'Make peace' would do.",
+    "The top bar shows '45 sail · BLOCKADED' in red and Threat 67 with a small red bar. I cannot tell what these mean for my choices.",
+    "In Frame L, the first yellow-bordered row (Ney) looks highlighted, but I cannot tell whether that is only the cursor or a selection.",
+    "In Frame C, the typing box at the bottom left holds the cut-off text 'nes, march to Lorraine' after the order was cancelled. I cannot tell whether that text will be sent again."
+   ]
+  }
+ ]
+}

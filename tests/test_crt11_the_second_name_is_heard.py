@@ -396,6 +396,30 @@ class TestTheSecondNameIsRelayed:
         monkeypatch.setattr("backend.commands.executor.apply_mood_variance",
                             lambda concern: concern)
         client, world = shipped
+        # Row IC, the directive (November 19, 2026 — the user's ruling "One
+        # list for all"): a list of names with an order each man can take is
+        # ONE order to them all, on the collective's own road — so the second
+        # man WAITS BEHIND the lead's question (`group_orders._pending_group`)
+        # and goes on when it is answered; nothing rides the relay. Re-seated
+        # consciously: the relay's own reading is pinned with the seam down,
+        # in the test below.
+        reply = post(client, "Ney and Soult, fortify")
+        message = str(reply.get("message") or "")
+        assert reply.get("relay_kind") is None and "relay_command" not in reply
+        assert "The order waits for Soult behind Ney's question." in message
+        assert "Soult's own waits behind it." not in message
+        assert world.actions_remaining == 4
+        rows = {r["marshal"]: r for r in reply["group"]["rows"]}
+        assert rows["Ney"].get("asked") and not rows["Ney"]["sent"]
+        assert not rows["Soult"]["sent"] and "question" in rows["Soult"]["why"]
+
+    def test_the_seam_down_a_parallel_order_rides_the_relay_as_it_did(self, shipped, monkeypatch):
+        """The directive's seam down: the relay's reading, exactly as CQ-8 left it."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
+        monkeypatch.setattr("backend.commands.executor.apply_mood_variance",
+                            lambda concern: concern)
+        client, world = shipped
         reply = post(client, "Ney and Soult, fortify")
         message = str(reply.get("message") or "")
         assert reply.get("relay_kind") == "question"

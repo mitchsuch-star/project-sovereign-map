@@ -28,6 +28,8 @@ signal marshal_pressed(key: String)
 signal marshal_double_pressed(key: String)
 signal more_pressed()
 signal idle_pressed()
+# Row IC, directives: a named army's chip - the host selects that army's corps.
+signal army_pressed(name: String)
 
 const MarshalKit := preload("res://scripts/marshal_state.gd")
 
@@ -45,6 +47,7 @@ const GAP := 4.0
 const PAD := 6.0
 const GRID_ROWS := 6
 const GRID_COLUMNS := 2
+const ARMY_H := 30.0         # Row IC, directives: an army chip (a button with its name and corps)
 
 var _mode := "row"
 var _rows: Array = []        # [{key, view, status}], the idle first
@@ -55,6 +58,10 @@ var _more: Button = null
 var _idle_chip: Button = null
 var _hush := ""              # a double-click's key: its release must not select him again
 var _laying_out := false
+var _armies: Array = []      # Row IC, directives: [{name, members, members_shown, in_field}]
+var _army_signature := ""
+var _selected_army := ""
+var _army_chips: Array = []  # [Button], in _armies order
 
 
 func _init() -> void:
@@ -110,6 +117,41 @@ func set_selected(key: String) -> void:
 			_dress(chip)
 
 
+func set_armies(rows: Array) -> void:
+	"""Row IC, directives: the named armies, as [{name, members, members_shown,
+	in_field}]; an empty Array when there are none. A reply that changes nothing
+	rebuilds nothing."""
+	var clean: Array = []
+	for r in rows:
+		if r is Dictionary and str(r.get("name", "")) != "":
+			clean.append(r)
+	var sig := _army_signature_of(clean)
+	if sig == _army_signature:
+		return
+	_army_signature = sig
+	_armies = clean
+	_rebuild()
+
+
+func set_selected_army(army_name: String) -> void:
+	"""The army the map's selected group is exactly ("" for none) wears the bright rim."""
+	if army_name == _selected_army:
+		return
+	_selected_army = army_name
+	for chip in _army_chips:
+		if is_instance_valid(chip):
+			_dress_army(chip)
+
+
+func shown_armies() -> Array:
+	"""The names whose army chips stand visible now (read by the harness)."""
+	var out: Array = []
+	for chip in _army_chips:
+		if is_instance_valid(chip) and chip.visible:
+			out.append(str(chip.get_meta("army", "")))
+	return out
+
+
 func idle_count() -> int:
 	var n := 0
 	for r in _rows:
@@ -133,6 +175,9 @@ func _rebuild() -> void:
 	for chip in _chips:
 		_drop(chip)
 	_chips.clear()
+	for achip in _army_chips:
+		_drop(achip)
+	_army_chips.clear()
 	_drop(_more)
 	_more = null
 	_drop(_idle_chip)
@@ -144,6 +189,10 @@ func _rebuild() -> void:
 			add_child(_idle_chip)
 	else:
 		var grid := _mode == "grid"
+		for a in _armies:
+			var achip := _make_army_chip(a)
+			add_child(achip)
+			_army_chips.append(achip)
 		for r in _rows:
 			var chip := _make_chip(r, grid)
 			add_child(chip)
@@ -271,6 +320,66 @@ func _state_mark(st: Dictionary) -> Control:
 	return g
 
 
+func _make_army_chip(a: Dictionary) -> Button:
+	"""Row IC, directives: one army's chip - its name and its corps in the field."""
+	var army_name := str(a.get("name", ""))
+	var in_field := int(a.get("in_field", 0))
+	var b := Button.new()
+	b.name = "Army_" + army_name
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.theme_type_variation = &"CaptionButton"
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.clip_contents = true
+	# "· 2 corps" (the directives' blind reading 1: "Army of Italy · 2" read as a
+	# heading, not a chip, to one reader of three)
+	b.text = "%s · %d corps" % [army_name, in_field]
+	b.set_meta("army", army_name)
+	if in_field <= 0:
+		b.disabled = true
+		b.modulate = Color(1, 1, 1, 0.5)
+		b.tooltip_text = "No corps of the %s is in the field." % army_name
+	else:
+		var names := PackedStringArray()
+		for m in a.get("members_shown", []):
+			names.append(str(m))
+		var who := ""
+		if names.size() == 1:
+			who = names[0]
+		elif names.size() > 1:
+			who = ", ".join(names.slice(0, names.size() - 1)) + " and " + names[names.size() - 1]
+		b.tooltip_text = ("The %s: %s. Press to select its corps — then click a province to send them,"
+			+ " or use the card's Hold, Fortify or Drill.") % [army_name, who]
+	b.pressed.connect(_on_army_pressed.bind(army_name))
+	_dress_army(b)
+	return b
+
+
+func _dress_army(b: Button) -> void:
+	var picked := str(b.get_meta("army", "")) == _selected_army and _selected_army != ""
+	var rim := Color(Utils.UI_GOLD, 0.6)
+	var fill := Color(Utils.UI_PANEL_BG, 0.82)
+	var ink: Color = Utils.UI_GOLD
+	var width := 1
+	if picked:
+		rim = Utils.UI_GOLD_BRIGHT
+		fill = Utils.UI_ACTIVE_TAB_BG
+		ink = Utils.UI_GOLD_BRIGHT
+		width = 2
+	b.add_theme_stylebox_override("normal", _box(fill, rim, width))
+	b.add_theme_stylebox_override("disabled", _box(fill, rim, width))
+	b.add_theme_stylebox_override("hover", _box(Color(Utils.UI_GOLD, 0.24), Utils.UI_GOLD_BRIGHT, width))
+	b.add_theme_stylebox_override("pressed", _box(Utils.UI_ACTIVE_TAB_BG, Utils.UI_GOLD_BRIGHT, 2))
+	b.add_theme_stylebox_override("hover_pressed", _box(Utils.UI_ACTIVE_TAB_BG, Utils.UI_GOLD_BRIGHT, 2))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, ink)
+
+
+func _on_army_pressed(army_name: String) -> void:
+	army_pressed.emit(army_name)
+
+
 func _make_more_chip() -> Button:
 	var b := Button.new()
 	b.name = "MoreChip"
@@ -352,11 +461,22 @@ func _layout() -> void:
 
 func _layout_row() -> void:
 	"""One line: the chips that fit the width, then "+N" for the rest."""
-	visible = not _chips.is_empty()
+	visible = not _chips.is_empty() or not _army_chips.is_empty()
 	if not visible:
 		custom_minimum_size = Vector2.ZERO
 		return
 	var room := size.x
+	# Row IC, directives: the armies stand first and are never pushed into "+N"
+	# (one that cannot fit the width is hidden; the row never widens).
+	var ax := 0.0
+	for achip in _army_chips:
+		var aw := ceilf(achip.get_combined_minimum_size().x)
+		achip.visible = ax + aw <= room or ax == 0.0
+		if achip.visible:
+			achip.position = Vector2(ax, 0.0)
+			achip.size = Vector2(aw if ax > 0.0 else minf(aw, maxf(room, 0.0)), ROW_H)
+			ax += aw + GAP
+	room = maxf(room - ax, 0.0)
 	var widths: Array = []
 	var total := 0.0
 	for chip in _chips:
@@ -373,7 +493,7 @@ func _layout_row() -> void:
 			used += float(widths[shown]) + GAP
 			shown += 1
 	custom_minimum_size = Vector2(_more_width(_chips.size()), ROW_H)
-	var x := 0.0
+	var x := ax
 	for i in _chips.size():
 		var chip: Button = _chips[i]
 		chip.visible = i < shown
@@ -387,24 +507,39 @@ func _layout_row() -> void:
 func _layout_grid() -> void:
 	"""Two columns of likenesses, at most GRID_ROWS rows; past that the last
 	cell is "+N"."""
-	visible = not _chips.is_empty()
+	visible = not _chips.is_empty() or not _army_chips.is_empty()
 	if not visible:
 		custom_minimum_size = Vector2.ZERO
 		return
-	var cap := GRID_ROWS * GRID_COLUMNS
+	# Row IC, directives: army chips stand at the top as full-width rows; the
+	# marshal grid below gives up as many rows as they take, so the column's
+	# room is kept.
+	var top := 0.0
+	for achip in _army_chips:
+		achip.visible = true
+		achip.position = Vector2(0.0, top)
+		achip.size = Vector2(maxf(size.x, 0.0), ARMY_H)
+		top += ARMY_H + GAP
+	var taken := ceili(top / (GRID_H + GAP))
+	var cap := maxi(GRID_ROWS - taken, 1) * GRID_COLUMNS
 	var n := _chips.size()
 	var shown := n if n <= cap else cap - 1
 	var cells := shown + (1 if shown < n else 0)
 	var rows := ceili(float(cells) / float(GRID_COLUMNS))
-	custom_minimum_size = Vector2(0.0, float(rows) * GRID_H + float(maxi(rows - 1, 0)) * GAP)
+	var grid_h := 0.0
+	if rows > 0:
+		grid_h = float(rows) * GRID_H + float(rows - 1) * GAP
+	elif top > 0.0:
+		top -= GAP
+	custom_minimum_size = Vector2(0.0, top + grid_h)
 	var cw := floorf((size.x - GAP * float(GRID_COLUMNS - 1)) / float(GRID_COLUMNS))
 	for i in n:
 		var chip: Button = _chips[i]
 		chip.visible = i < shown
 		if i < shown:
-			chip.position = _cell(i, cw)
+			chip.position = _cell(i, cw) + Vector2(0.0, top)
 			chip.size = Vector2(cw, GRID_H)
-	_place_more(n - shown, Rect2(_cell(shown, cw), Vector2(cw, GRID_H)))
+	_place_more(n - shown, Rect2(_cell(shown, cw) + Vector2(0.0, top), Vector2(cw, GRID_H)))
 
 
 func _layout_idle() -> void:
@@ -535,4 +670,14 @@ static func _signature_of(rows: Array) -> String:
 		var view := _view_of(r)
 		parts.append(str(r.get("key", "")) + ":" + str(st.get("key", "")) + ":"
 			+ str(st.get("detail", "")) + ":" + str(int(view.get("strength", 0))))
+	return ";".join(parts)
+
+
+static func _army_signature_of(rows: Array) -> String:
+	var parts := PackedStringArray()
+	for r in rows:
+		var shown := PackedStringArray()
+		for m in r.get("members_shown", []):
+			shown.append(str(m))
+		parts.append(str(r.get("name", "")) + ":" + str(int(r.get("in_field", 0))) + ":" + ",".join(shown))
 	return ";".join(parts)

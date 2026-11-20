@@ -59,8 +59,10 @@ const TERMS: Array = [
 	["The last hour", "A corps that marches to a battle rolls to arrive in time. A roll won by five points or fewer brings it up at the last hour, with three-quarters of its weight in the fighting; this holds for both sides. The muster shows each corps's chance of arriving and counts a last-hour arrival in the figures it prints."],
 	["Le Moniteur (the Gazette)", "The periodical of the capital: a printed issue every few turns, with a back-issue archive you can page through. It tells the war, the courts and the army as the paper saw them."],
 	["Marshal recruitment", "A court with a bench of candidates may commission a new marshal for his price in gold, one administrative action and a first corps of 5,000 men from the infantry pool. He arrives at the capital."],
+	["Named army", "A name you give a group of your corps — “form the Army of Italy with Massena and Ney” — so one chip or one line orders them all again (“Army of Italy, hold”). Its chip stands beside your marshals: press it to select its corps. A marshal is in one army at most; one who falls or is taken leaves it; an army with nobody left is dissolved. It costs nothing and changes no battle."],
 	["Morale", "A corps's will to fight, changed by battle in both victory and defeat according to its casualties. A corps whose morale falls to 25 is forced to retreat."],
 	["News of a battle", "A battle shows you its province in full only when you fought in it or it was fought on your own soil. A great battle between other crowns, or an ally's battle in a war you share, reaches you as news instead: the crowns, the province and how the day ended — a great battle's two commanders by name — and never a figure. Le Moniteur prints it, and a great one forces a special edition."],
+	["Orders to several corps", "Any order to more than one marshal — “everyone, fortify”, “Ney, Lannes and Murat, march to Swabia”, a named army, or corps you Ctrl-click and send — first shows ONE list: each man's order, its price, whether he may object, who will not go and why, and the total against the actions you have. Untick a man to leave him out; Give sends the ticked orders as one, and Take back undoes them all. An attack stays one battle: the first man leads and the rest are called to it."],
 	["Objection", "A marshal weighs each order against his nature, his trust in you and the situation, and may object. You may trust his counsel, insist, or take a compromise. Trusting raises his trust; insisting lowers it, and a man at low trust objects more."],
 	["Peace terms (the settlement table)", "How a war ends. Terms are drawn up with guided suggestions, not typed, and each court's willingness to accept reads the war score and its relations to you. A high war score with the enemy's capital in hand allows dictated terms."],
 	["Personality", "Each marshal is Aggressive, Cautious or Literal, and it colours his combat, his objections and his defiance. Literal men follow the letter and never defy."],
@@ -80,6 +82,7 @@ const TERMS: Array = [
 	["Vassal (client)", "A court bound to a lord. The lord takes tribute, and the vassal joins the lord's wars. Its loyalty rises and falls each turn; investing (1 DP and 200 gold) adds 10, and at zero the vassal rebels and goes to war with its lord."],
 	["Vindication", "A marshal's track record: when events prove him right to have objected, he is bolder next time (up to 1.15 times), and proved wrong he is more timid (0.85 times)."],
 	["War exhaustion", "A court's weariness with war, rising each turn at war and falling at peace; the loser of a battle takes more. It slows manpower, and a worn coalition member grows readier to negotiate."],
+	["War goal", "What a war aims at — a place to take, or an enemy army to beat — named by you and free: “the war goal is Vienna”, or “Make this the war goal” on a province of a court you are fighting. The desk names it, the map rings it in gold, and the desk offers the march on it as one list. It is not the war's purpose (the terms you would fight for at the peace table)."],
 	["War score", "A running measure of a war from -100 to +100: battles won, provinces held and capitals taken raise it. The higher you stand, the more the peace table will bear; at 70 with the enemy's capital in hand even harsh terms can be dictated."],
 	["What told", "Under the headline of a battle your marshal led, the table names the one thing that weighed most for the side that did better, by a fixed rule: numbers, when the men committed stood 5 to 4 or better; else the largest named advantage of 10 points or more in the battle's own report (the ground, works, a dug-in line, the guns); else the dice, when the throw stood 3 or more from seven; else it was an even fight. Each clash of a day of battle says it in its own line, and the clash that decides a day is named. The dice on the table are the attacker's throw: the table names him."],
 	["White peace", "A peace with no terms: nobody pays and nothing is demanded. Who keeps which occupied province is listed on the peace table, under THIS DEAL, before you sign."],
@@ -97,6 +100,8 @@ const ORDERS: Array = [
 	["Support", "Davout, support Ney", "A standing order to march to an ally's side. It costs one action."],
 	["Hold", "Ney, hold position", "A standing order to stay put."],
 	["Cancel", "cancel", "Halts a standing order. It costs one action."],
+	["Several", "Ney, Lannes and Murat, march to Swabia", "The same order to each man named (or “everyone, fortify”). A list shows each man's order and price first; Give sends it as one order."],
+	["Army", "Army of Italy, hold", "The same order to every corps of a named army (see “form the Army of …”)."],
 	["Scout", "Ney, scout Swabia", "Lights up a province for two turns."],
 	["Defend", "Soult, defend", "Takes a defensive stance where he stands."],
 	["Wait", "Ney, wait", "Does nothing, for free."],
@@ -119,6 +124,8 @@ const BARE: Array = [
 	["economy", "The treasury: income, upkeep and the breakdown (“show me the treasury”). Free."],
 	["help", "The list of commands (“commands”). Free."],
 	["what can I do", "Berthier names the orders the board takes today. Free."],
+	["form the Army of Italy with Ney and Lannes", "Names a group of corps; its chip appears beside your marshals. “add Murat to …”, “remove Ney from …”, “disband the Army of Italy”. Free."],
+	["the war goal is Vienna", "Names what a war aims at (“make Mack the war goal”; “clear the war goal”). Free."],
 ]
 
 # Questions to Berthier: free, they cost no action. [question, what it answers].

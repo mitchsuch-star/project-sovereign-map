@@ -31,6 +31,11 @@ signal cancel_order_pressed(marshal: String)
 signal close_pressed
 signal take_pressed(marshal: String)   # row PW: "Take <province>" where he stands
 
+signal group_verb_pressed(verb: String)   # row IC, directives: "hold", "fortify" or "drill"
+signal name_army_pressed
+signal save_army_pressed(name: String)
+signal disband_army_pressed(name: String)
+
 const CARD_WIDTH := 440.0
 const CARD_MIN_WIDTH := 280.0
 const COMPACT_BAND_SHARE := 0.9
@@ -43,6 +48,9 @@ var _hint := ""
 var _group: Array = []
 var _group_total := 0
 var _group_in_hand := 0
+var _army_name := ""            # row IC, directives: the army the group came from ("" = none)
+var _army_same := false
+var _group_button_texts: Array = []
 var _specs: Array = []
 var _buttons: Dictionary = {}   # slot (int) -> Button
 var _body: VBoxContainer = null
@@ -83,6 +91,8 @@ func show_group(names: Array, total_ap: int, in_hand: int, hint_bbcode: String) 
 	_group = names.duplicate()
 	_group_total = total_ap
 	_group_in_hand = in_hand
+	_army_name = ""   # row IC: main names the army right after, via set_group_army
+	_army_same = false
 	_hint = hint_bbcode
 	_render()
 	show()
@@ -353,17 +363,126 @@ func _group_row(compact: bool) -> Control:
 	var shown := PackedStringArray()
 	for n in _group:
 		shown.append(Utils.humanize_entity_name(str(n)))
-	var names_label := _title(", ".join(shown))
+	# Row IC, directives (pressed in the real client): a group that is exactly an
+	# army is titled by it — the chip lit beside the marshals named it, the card
+	# did not.
+	var heading := ", ".join(shown)
+	if _army_name != "" and _army_same:
+		heading = "The " + _army_name + " — " + heading
+	var names_label := _title(heading)
 	names_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	names_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	names_label.custom_minimum_size = Vector2(80.0, 0.0)
 	top.add_child(names_label)
 	top.add_child(_close_button())
-	var line := "march together · " + str(_group_total) + " of " + str(_group_in_hand) + " actions in hand"
+	# Row IC, directives: "up to" — a province next door is each man's one-action
+	# move (the click road's rule since row PW), so a march's price is the most.
+	# In plain words since the directives' blind reading 1, where all three
+	# readers could not read "march together · up to 4 of 4 actions in hand".
+	var line := ("sending them costs up to " + Utils.plural(_group_total, "action")
+		+ " · you have " + str(_group_in_hand))
 	if _group_total > _group_in_hand:
 		line = "[color=#" + Utils.COLOR_WARNING + "]" + line + "[/color]"
 	col.add_child(_measured_rich("GroupSum", Utils.bb_glyph("actions", 16) + " " + line, 0.0, true))
+	# Row IC, directives: the group's orders and its army (the buttons are built
+	# by helpers below, so this body holds none itself).
+	col.add_child(_group_buttons_row(compact))
 	return col
+
+
+# Row IC, directives: the group face's orders and army buttons. Each order opens
+# ONE list of every corps' order and price first; nothing is spent until "Give".
+func set_group_army(army_name: String, same: bool) -> void:
+	"""Main calls this right after show_group. "" = a plain group (offer to name
+	it); a name and same = exactly that army in the field (offer to disband it);
+	a name and not same = picked from an army, then changed (offer to save over
+	it, or to name a new one)."""
+	_army_name = army_name
+	_army_same = same
+	if not _group.is_empty() and visible:
+		_render()
+
+
+func group_buttons() -> Array:
+	"""The texts of the group face's buttons, in order (a test reader)."""
+	return _group_button_texts.duplicate()
+
+
+func _group_buttons_row(compact: bool) -> Control:
+	var flow := HFlowContainer.new()
+	flow.name = "GroupButtons"
+	flow.add_theme_constant_override("h_separation", 4)
+	flow.add_theme_constant_override("v_separation", 4)
+	_group_button_texts = []
+	var order_tip := "Shows the list of each corps' order and its price first — nothing is spent until you press Give."
+	for verb in ["hold", "fortify", "drill"]:
+		var word := str(verb).capitalize()
+		_add_group_button(flow, "Group" + word, word + "…", order_tip, compact,
+			_emit_group_verb.bind(str(verb)))
+	if _army_name == "":
+		_add_group_button(flow, "NameArmy", "Name this army…",
+			"Gives these corps a name, so one chip or one line (“Army of Italy, hold”) orders them all again. Free.",
+			compact, _emit_name_army)
+	elif _army_same:
+		_add_group_button(flow, "DisbandArmy", "Disband the " + _army_name,
+			"The " + _army_name + " is dissolved; its corps keep their orders and stand where they are. Free.",
+			compact, _emit_disband)
+	else:
+		_add_group_button(flow, "SaveArmy", "Save as " + _army_name,
+			"The " + _army_name + " becomes exactly these corps. Free.", compact, _emit_save)
+		_add_group_button(flow, "NameNewArmy", "Name a new army…",
+			"Gives these corps a new name, so one chip or one line orders them all again. Free.",
+			compact, _emit_name_army)
+	return flow
+
+
+func _add_group_button(flow: Control, node_name: String, face: String, tip: String,
+		compact: bool, on_press: Callable) -> void:
+	var btn := Button.new()
+	btn.name = node_name
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	# The short view keeps its room: a short face, the full words on the hover.
+	btn.text = face
+	if compact:
+		btn.text = _short_face(node_name, face)
+		if btn.text != face:
+			tip = face + " — " + tip
+	btn.tooltip_text = Utils.clean_tip(tip)
+	btn.pressed.connect(on_press)
+	flow.add_child(btn)
+	_group_button_texts.append(btn.text)
+
+
+func _short_face(node_name: String, face: String) -> String:
+	match node_name:
+		"NameArmy", "NameNewArmy":
+			return "Name…"
+		"DisbandArmy":
+			return "Disband"
+		"SaveArmy":
+			return "Save"
+	return face
+
+
+func _emit_group_verb(verb: String) -> void:
+	AudioManager.play("click")
+	group_verb_pressed.emit(verb)
+
+
+func _emit_name_army() -> void:
+	AudioManager.play("click")
+	name_army_pressed.emit()
+
+
+func _emit_save() -> void:
+	AudioManager.play("click")
+	save_army_pressed.emit(_army_name)
+
+
+func _emit_disband() -> void:
+	AudioManager.play("click")
+	disband_army_pressed.emit(_army_name)
 
 
 func _hint_label(compact: bool) -> Control:

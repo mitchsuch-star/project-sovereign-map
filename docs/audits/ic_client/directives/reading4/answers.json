@@ -1,0 +1,54 @@
+{
+ "note": "Reading 4: the three fresh readers' answers and what confused them, as returned.",
+ "readers": [
+  {
+   "q6": "Frame A shows a small box \"The Army of Italy — Lannes, Murat\" with buttons Hold..., Fortify..., Drill... and Disband. I would press Hold... . The box says that shows each corps' order and price first, and nothing is spent until I Give. I could also type \"Army of Italy, hold\" in the text line, as the log suggests. The box says sending them costs up to 4 actions and I have 4.",
+   "q8": "Lannes is unticked because the order costs 2 actions each. Ney and Davout, who are ticked, already use all 4 actions in hand. Soult is excluded because he already stands at Lorraine. To send Lannes, I would untick Ney or Davout by clicking his row, or by using Up/Down and Space, and then tick Lannes. Then I would press Give the order (Enter).",
+   "q12": "No order was given. The log says \"Not given: Ney, Davout, Soult and Lannes: march to Lorraine — nothing was spent.\" The box at the bottom left holds my typed line again, shown cut off as \"nes, march to Lorraine\". The log says I can change it, or press Enter to see the list again.",
+   "q14": "The player set a goal for the war with the Third Coalition (Britain + Austria + Russia). The goal is Vienna. The desk text says \"your war goal: Vienna.\" The map rings Vienna in gold with the label \"War goal: Vienna\", and the log says \"The goal of the war with the Third Coalition is now Vienna.\"",
+   "confused": [
+    "Frame L: Ney and Lannes both say 'He will drop this order for any battle within two provinces in a war of ours', but Davout does not. I could not tell why. It may be because the line only shows on some rows.",
+    "Frame L: the title says 'Orders for 2 of 4 corps' and the line under it names four corps. Soult is excluded as already at Lorraine, and Lannes is unticked. It took me a moment to see that only 2 can actually go.",
+    "Frame L: the Cost line says '4 actions (2 + 2) of the 4 in hand', yet Lannes needs 2 actions that are not available. I only understood this from the grey note below it.",
+    "Frame C: the text box at the bottom left shows a cut-off fragment 'nes, march to Lorraine'. The box is too narrow to show the whole line, so I cannot tell the full text from the screenshot. The Frame C1 close-up shows the same fragment.",
+    "Frame A: the Army of Italy box says 'sending them costs up to 4 actions'. I could not tell whether Hold costs actions, since the box also says nothing is spent until I Give.",
+    "Frame A: I could not tell whether the 'Army of Italy' bar above the marshal list is a button, or what it does when pressed. The log mentions a 'chip' beside the marshals. I did not clearly see one next to Lannes and Murat, only the bar.",
+    "Frames C, A and G: I could not read what the long text in the Active Wars panel ('War with the Third Coalition The war: even') says. It is cut off, and the slider at 0 has no explanation on screen.",
+    "Frame G: the marshals' dots (white circles beside each name) have no stated meaning that I could see.",
+    "Frame G: I could not tell which of my corps are able to march on Vienna. The list is only said to open when pressed, and no screenshot shows it."
+   ]
+  },
+  {
+   "q6": "Select the Army of Italy and press its \"Hold...\" button in the small box (or type \"Army of Italy, hold\"). Hold... first shows each corps' order and price, and nothing is spent until you press Give. The box says sending them costs up to 4 actions, and you have 4.",
+   "q8": "Lannes is unticked because he needs 2 actions, and the two ticked corps (Ney and Davout) already use up the 4 actions in hand. To send him, untick Ney or Davout (click that row, or use Up/Down and Space) and tick Lannes. Then press Give the order (Enter).",
+   "q12": "No order was given. The log says \"Not given: Ney, Davout, Soult and Lannes: march to Lorraine — nothing was spent.\" The box at the bottom left holds the typed line again, which reads \"...nes, march to Lorraine\". The start is cut off, and I take it to be the full command \"Ney, Davout, Soult and Lannes, march to Lorraine\". The log says the player can change it or press Enter to see the list again.",
+   "q14": "The war with the Third Coalition (Britain + Austria + Russia). The goal is Vienna. The log says \"the war goal is Vienna\", the desk text says \"your war goal: Vienna\", and the map shows a gold ring labelled \"War goal: Vienna\" in Austria.",
+   "confused": [
+    "In Frame L, the box is titled \"Orders for 2 of 4 corps\" and the subtitle names four marshals. Soult is listed only under \"Will not go\" (already at Lorraine), with no row of his own. I could not tell at first that 2 of 4 meant Ney and Davout.",
+    "In Frame L, Ney and Lannes carry a yellow warning, \"He will drop this order for any battle within two provinces in a war of ours.\" Davout has none. I could not tell why, or what a battle within two provinces does to the march.",
+    "In Frame C, the box at the bottom left shows only the tail of the retyped line, \"nes, march to Lorraine\". I could not read the whole line in that frame.",
+    "In Frame C, the log says to press Enter to see the list again. I could not tell whether Enter re-sends the order or only reopens the list box.",
+    "In Frame A, the box says \"sending them costs up to 4 actions · you have 4\". It does not say whether Hold costs actions. Its text says nothing is spent until you Give, and the price is shown first, so I cannot tell the Hold cost.",
+    "In Frame A, the Army of Italy chip is the same width as the left column but does not show clearly what it does. The log says pressing it selects its men. Lannes and Murat show no visible selected state in the marshal list, though two gold rings appear on the map.",
+    "In Frame G, the TO DECIDE list gained a new item, \"Your corps with no orders can march on Vienna\". I could not tell how a goal differs from an actual order, because the goal only adds a ring and a prompt.",
+    "In every frame, the Active Wars panel shows a slider at 0 with the text \"The war: even\". The war goal is not shown there, and I could not tell what the slider measures."
+   ]
+  },
+  {
+   "q6": "Select the Army of Italy (the small box titled \"The Army of Italy — Lannes, Murat\") and press its \"Hold...\" button. The box says Hold, Fortify or Drill first shows each corps' order and price, and nothing is spent until you press Give. The box also says you could type \"Army of Italy, hold\" in the text line. Sending them would cost up to 4 actions, and you have 4.",
+   "q8": "Lannes is unticked because he needs 2 actions, and the two ticked corps (Ney and Davout) already use all 4 actions in hand. The box says to untick one of them (click his row, or use Up/Down and Space) so Lannes can go in that corps' place. The box does not say whether Lannes could be added on top by getting more actions. Soult is also left out, but for a different reason: he already stands at Lorraine.",
+   "q12": "No order was given. The log says \"Not given: Ney, Davout, Soult and Lannes: march to Lorraine — nothing was spent.\" The box at the bottom left holds my typed line again, shown cut off as \"nes, march to Lorraine\". The log says the line is back there so I can change it, or press Enter to see the list again.",
+   "q14": "The player set a goal for the war with the Third Coalition (Britain, Austria and Russia), and the goal is Vienna. The log says \"the war goal is Vienna\" and \"The goal of the war with the Third Coalition is now Vienna.\" The top-left box now reads \"your war goal: Vienna\", and the map has a gold ring labelled \"War goal: Vienna\" in Austria.",
+   "confused": [
+    "Frame L: the box title says \"Orders for 2 of 4 corps\", but the subtitle names four marshals (Ney, Davout, Soult and Lannes). Only Ney and Davout are ticked, and Soult is listed under \"Will not go\" with no checkbox. I could tell why Lannes and Soult are out, but the \"4 corps\" count did not match the four names in the subtitle.",
+    "Frame L: the yellow line \"He will drop this order for any battle within two provinces in a war of ours\" appears under Ney and Lannes but not under Davout. I could not tell why Davout has no such warning, or what dropping the order would do.",
+    "Frame L: the text says Lannes needs 2 actions and the ticked corps \"leave none\", yet the header says \"Cost: 4 actions (2 + 2) of the 4 in hand\". I could not tell whether more actions could be gained some other way, so the only way I saw to send Lannes was to untick someone.",
+    "Frame C: the text field shows only the tail of my line (\"nes, march to Lorraine\") because the field is narrow. I could not see the full text in the field itself and had to read the log to know what it was.",
+    "Frame A: the Army of Italy box says \"sending them costs up to 4 actions\". I could not tell what Hold itself would cost, or whether hold costs less than marching, since the price only shows after pressing Hold.",
+    "Frame A: the log suggests saying \"Army of Italy, hold\", but I could not tell whether that is typed in the bottom-left field or whether the button is the intended way. The field was empty and said \"Esc: menu · click to type\".",
+    "Frame G: the top-left box says \"to hold the homeland — your war goal: Vienna\". I could not tell whether \"hold the homeland\" and \"war goal\" are two separate aims or one, or what happens if the goal is reached.",
+    "Frame G: the screenshot does not show who set the goal or how. I only know the log line \"the war goal is Vienna\", which looks like a typed command, so I could not tell if the player typed it or clicked something."
+   ]
+  }
+ ]
+}

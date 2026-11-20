@@ -336,6 +336,10 @@ CAMPAIGN_LOG_TYPES = {
     "marshal_bond",
     "title_in_the_gift",
     "title_conferred",
+    # Row IC, directives: a named army formed, changed or dissolved, and the
+    # goal the Emperor names for a war (191 -> 193, flipped consciously)
+    "army_roster",
+    "war_goal",
     # PL-14: Ultimatum events
     "ultimatum_issued",
     "ultimatum_accepted",
@@ -701,6 +705,8 @@ CATEGORY_MAP = {
     "marshal_bond": "command",
     "title_in_the_gift": "command",
     "title_conferred": "command",
+    "army_roster": "command",
+    "war_goal": "command",
     # PL-14: Ultimatum events
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
@@ -829,6 +835,7 @@ LOG_TIER_NOTABLE = frozenset({
 })
 
 LOG_TIER_ROUTINE = frozenset({
+    "army_roster", "war_goal",      # row IC: the staff's own books
     "ai_ai_proposal_refused", "ai_proposal_accepted",
     "ai_proposal_counter_failed", "ai_proposal_rejected",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected", "ai_ultimatum_void",
@@ -3877,6 +3884,14 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         sign = "+" if change > 0 else ""
         label_str = f" ({new_label})" if new_label else ""
         return f"{marshal} → {toward}: {sign}{change}{label_str}"
+
+    if ctx.event_type == "army_roster":
+        # Row IC: the roll's own sentence (armies.form / add / remove / disband / prune)
+        return str(ctx.event.get("line") or "").strip() or "The roll of an army was changed"
+
+    if ctx.event_type == "war_goal":
+        # Row IC: the sentence the staff wrote when the goal was named or dropped
+        return str(ctx.event.get("line") or "").strip() or "The goal of a war was named"
 
     if ctx.event_type == "marshal_bond":
         # Row MC: the book's own sentence (precedence.bond_line), written at the move

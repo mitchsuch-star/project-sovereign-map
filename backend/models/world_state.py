@@ -2278,6 +2278,10 @@ class WorldState:
             "set_fleet_posture": 1,
             "naval_expedition": 2,
             "naval_diversion": 1,
+            # Row IC, directives: the player's own bookkeeping — a named army
+            # and a war's goal cost nothing (no action, no gold).
+            "army": 0,
+            "set_war_goal": 0,
         }
 
         # ============================================================
@@ -2465,6 +2469,14 @@ class WorldState:
         # Empty for every ordinary battle; written to a save ONLY when it
         # holds something, so an ordinary save is byte for byte what it was.
         self.battle_days: Dict[str, Any] = {}
+        # Row IC, directives (`backend/game_logic/armies.py`, `war_goals.py`):
+        # the player's named armies ({name: {"members": [...], "formed_turn"}})
+        # and the goal he set for a war ({court: {"kind", "target", "turn"}}).
+        # No bonus, no cost, no rule reads them. Each is written to a save
+        # ONLY when it holds something (an ordinary save is byte for byte what
+        # it was); an old save reads none.
+        self.armies: Dict[str, Dict[str, Any]] = {}
+        self.war_goals: Dict[str, Dict[str, Any]] = {}
         # Row MC (`backend/game_logic/precedence.py`): the book of incidents
         # between marshals ({"A|B": {incidents, won, lost}}) and the accounts
         # waiting for the Emperor's word. Written to a save only when held.
@@ -4181,6 +4193,12 @@ class WorldState:
             # fall through to the normal removal rather than leave a
             # zombie 0-strength marshal on the map.
         self.marshals.pop(marshal.name, None)
+        # Row IC, directives: a man who leaves the roster leaves his army too
+        # (an army left with nobody is dissolved, and the campaign log says
+        # so) — nothing runs on a board with no army.
+        if self.armies:
+            from backend.game_logic import armies as _armies
+            _armies.roll_call(self)
         # His grievance dies with him. The per-turn reward pass iterates
         # `self.marshals.values()`, so once he is out of that dict NOTHING can
         # ever retire his rail rows — measured: a HIGH "Marshal Ney grows
@@ -4256,6 +4274,12 @@ class WorldState:
         if getattr(marshal, "captured_by", "") or getattr(marshal, "is_sovereign", False):
             return False
         self.marshals.pop(marshal.name, None)
+        # Row IC, directives: a man who leaves the roster leaves his army too
+        # (an army left with nobody is dissolved, and the campaign log says
+        # so) — nothing runs on a board with no army.
+        if self.armies:
+            from backend.game_logic import armies as _armies
+            _armies.roll_call(self)
         from backend.game_logic.dotation import dismiss_reward_notices
         dismiss_reward_notices(self, marshal)
         from backend.notifications import dismiss_marshal_ask
@@ -6752,6 +6776,12 @@ class WorldState:
         # The captured state: off the map, held at the captor's capital.
         marshal.captured_by = captor_nation
         marshal.captured_turn = int(self.current_turn)
+        # Row IC, directives: a prisoner leaves his army too
+        # (an army left with nobody is dissolved, and the campaign log says
+        # so) — nothing runs on a board with no army.
+        if self.armies:
+            from backend.game_logic import armies as _armies
+            _armies.roll_call(self)
         marshal.strength = 0
         marshal.pending_interrupt = None
         # PC-9: the "is cornered — decide his fate" rail notice is an ASK.
@@ -9903,6 +9933,9 @@ class WorldState:
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
             "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation), **({"battle_days": copy.deepcopy(self.battle_days)} if self.battle_days else {}), **({"marshal_ledger": copy.deepcopy(self.marshal_ledger)} if self.marshal_ledger else {}), **({"marshal_accounts": copy.deepcopy(self.marshal_accounts)} if self.marshal_accounts else {}),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock); BA-3: the open days of battle, only when there is one
+            # Row IC, directives: the named armies and the wars' goals, each only when held.
+            **({"armies": copy.deepcopy(self.armies)} if self.armies else {}),
+            **({"war_goals": copy.deepcopy(self.war_goals)} if self.war_goals else {}),
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -10525,6 +10558,20 @@ class WorldState:
         world.marshal_ledger = copy.deepcopy(_book) if isinstance(_book, dict) else {}
         _accounts = data.get("marshal_accounts")
         world.marshal_accounts = copy.deepcopy(_accounts) if isinstance(_accounts, list) else []
+        # Row IC, directives: the named armies and the wars' goals; an old save
+        # reads none (each row is a plain dict, rebuilt key by key).
+        _armies = data.get("armies")
+        world.armies = ({str(_k): {"members": [str(_n) for _n in ((_v or {}).get("members") or [])],
+                                   "formed_turn": int((_v or {}).get("formed_turn", 0) or 0)}
+                         for _k, _v in _armies.items() if isinstance(_v, dict)}
+                        if isinstance(_armies, dict) else {})
+        _goals = data.get("war_goals")
+        world.war_goals = ({str(_k): {"kind": str((_v or {}).get("kind") or "place"),
+                                      "target": str((_v or {}).get("target") or ""),
+                                      "turn": int((_v or {}).get("turn", 0) or 0)}
+                            for _k, _v in _goals.items()
+                            if isinstance(_v, dict) and (_v or {}).get("target")}
+                           if isinstance(_goals, dict) else {})
         # S14E-35: the last battle each court fought; an old save without the
         # key reads as today (empty = the marshals' own stamps alone).
         _last_battles: Dict[str, int] = {}
@@ -12976,6 +13023,13 @@ class WorldState:
         self._pending_relay = None
         # AO: the army's waiting members never cross a turn boundary either.
         self._pending_group = None
+        # Row IC, directives: as the turn begins the armies are called over and
+        # the wars' goals re-read (a man gone over to another court drops out;
+        # a goal the peace has closed is dropped). Nothing runs — and nothing
+        # is written — on a board with no army and no goal.
+        if self.armies or self.war_goals:
+            from backend.game_logic import armies as _armies
+            _armies.roll_call(self)
         # CF-4: nor does the order a remedy answered (`remedy.py`).
         self._pending_remedy = None
         self._last_advanced_turn = self.current_turn

@@ -153,6 +153,8 @@ GROUPABLE_ACTIONS = frozenset({
     "form_square", "garrison",
 })
 GROUPABLE_STRATEGIC = frozenset({"MOVE_TO", "SUPPORT", "HOLD", "PURSUE"})
+# The groupable verbs the executor never prices (its `free_actions`).
+_NEVER_PRICED = frozenset({"wait"})
 ARMY_STRATEGIC = frozenset({"MOVE_TO", "SUPPORT", "PURSUE"})
 
 _THIRD_PERSON = {
@@ -191,17 +193,24 @@ def collective_head(text: str, places=None) -> Optional[Dict[str, str]]:
         tail = (m.group("tail") or "").strip()
         at, tail = _peel_place(tail, places)
         rest = (m.group("verb").strip() + (" " + tail.strip() if tail.strip() else "")).strip()
-    words = rest.split()
-    if words:
-        first = words[0].lower()
-        if first in _THIRD_PERSON:
-            words[0] = _THIRD_PERSON[first]
-        rest = " ".join(words)
-    rest = re.sub(r"^(march|move|advance|head)\s+(?:on|upon|for|towards?)\s+", r"\1 to ", rest, flags=re.I)
+    rest = second_person(rest)
     head = {"who": m.group("who"), "rest": rest}
     if at is not None:
         head["at"] = at
     return head
+
+
+def second_person(rest: str) -> str:
+    """The order's words after an address, in the second person: "marches on
+    Swabia" -> "march to Swabia" (the collective head's own normalising, said
+    once — a list of names and a named army read the same; row IC)."""
+    words = str(rest or "").split()
+    if words:
+        first = words[0].lower()
+        if first in _THIRD_PERSON:
+            words[0] = _THIRD_PERSON[first]
+    rest = " ".join(words)
+    return re.sub(r"^(march|move|advance|head)\s+(?:on|upon|for|towards?)\s+", r"\1 to ", rest, flags=re.I)
 
 
 def question_pending(world) -> bool:
@@ -285,6 +294,21 @@ def _probe_verb(action: str, strategic_type: Optional[str], rest: str) -> str:
 def _price(world, marshal, action: str, strategic_type: Optional[str]) -> int:
     if strategic_type:
         return int(marshal.strategic_order_ap(order_type=strategic_type))
+    if action in _NEVER_PRICED:
+        # Row IC (IC-D2, found by the directive's fuzz): the executor never
+        # prices these (`executor.py`'s `free_actions`) — "everyone, wait" with
+        # no action left said "the pool is spent" of an order that is free,
+        # and its head counted an action a corps.
+        return 0
+    if action in ("fortify", "defend"):
+        # Row IC (IC-D10, rule 10's sibling of S14G-X167, found by the war-table
+        # walk): a fortify from NEUTRAL (a defend from AGGRESSIVE) costs two —
+        # the stance first — and the head said one ("2 corps, 2 actions" of an
+        # order that spent four), and the pool check let a man go whom the
+        # executor then refused for want of the second action. The one source
+        # the chips, the cards and the list read (`state_probe._cost`).
+        from backend.commands.state_probe import _cost
+        return int(_cost(world, marshal, action, None))
     try:
         return int(world.get_action_cost(action))
     except Exception as exc:
@@ -327,15 +351,43 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
     spent = 0
     refused: List[Tuple[str, str]] = []   # UI6-X26: (corps, why) - the order was NOT taken
     members: List[str] = list(stash["members"])
+    # Row IC (the directive): every member's outcome as a row — {marshal, sent,
+    # line, why, ap} — for the reply's `group.rows` (the list is the truth:
+    # what was shown is what is reported); `quoted` is each man's price as the
+    # list showed it (a give alone carries it), checked as he is charged.
+    rows: List[Dict[str, Any]] = []
+    quoted: Dict[str, int] = stash.get("quoted") or {}
+    named = stash.get("kind") in ("list", "army")
+
+    def _not_sent(who: str, sent_line: str, why: str) -> None:
+        rows.append({"marshal": who, "sent": False, "line": sent_line, "why": why, "ap": 0})
+
     while members:
         name = members[0]
         marshal = world.get_marshal(name)
         if marshal is None or int(getattr(marshal, "strength", 0) or 0) <= 0:
             members.pop(0)
+            if named:
+                # A man NAMED (a list, an army) who cannot take an order is
+                # said; the collective words skip him in silence, as before.
+                lines.append(f"{_display(name)} — not in the field.")
+                refused.append((name, ""))
+                _not_sent(name, "", "not in the field")
             continue
         verb = _probe_verb(action, strategic_type, rest)
+        line = f"{name}, {rest}"
+        own_price: Optional[int] = None
+        if stash.get("click"):
+            # A group sent by a click on a province: each man's own plain order,
+            # as his single click sends it (`order_quotes.march_quote(click=True)`
+            # — a move where the plain move takes it, else the march).
+            clicked = click_line(world, marshal, strategic_type, stash.get("target"))
+            if clicked is not None:
+                line, verb, own_price = clicked
         if not army:
-            price = _price(world, marshal, action, strategic_type)
+            if own_price is None and name in quoted:
+                own_price = int(quoted[name])      # the price his row showed
+            price = own_price if own_price is not None else _price(world, marshal, action, strategic_type)
             if int(getattr(world, "actions_remaining", 0) or 0) < price:
                 break
         reason = order_state_refusal(world, marshal, verb) if verb in _probe_verbs() else ""
@@ -343,6 +395,7 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             members.pop(0)
             lines.append(f"{_display(name)} — {reason}.")
             refused.append((name, ""))
+            _not_sent(name, line, reason)
             continue
         if army and band == "heard":
             # 50–69: a marshal who WOULD object refuses the Staff's word.
@@ -352,19 +405,22 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
                 lines.append(f"{_display(name)} will not march on the Staff's word — "
                              f"he answers you in person; order him yourself.")
                 refused.append((name, ""))
+                _not_sent(name, line, "will not march on the Staff's word — order him yourself")
                 continue
         members.pop(0)
-        line = f"{name}, {rest}"
         try:
             parsed = parser.parse(line, llm_game_state, world=world)
         except Exception as exc:
             report(exc, "group_orders._run_members: parser.parse")
             lines.append(f"{_display(name)} — the order could not be read for him.")
             refused.append((name, ""))
+            _not_sent(name, line, "the order could not be read for him")
             continue
         if not parsed.get("success"):
-            lines.append(f"{_display(name)} — {_first_sentence(parsed.get('error') or parsed.get('message') or 'the order could not be read for him')}")
+            _why = _first_sentence(parsed.get('error') or parsed.get('message') or 'the order could not be read for him')
+            lines.append(f"{_display(name)} — {_why}")
             refused.append((name, ""))
+            _not_sent(name, line, _why)
             continue
         command = parsed.get("command") or {}
         if army:
@@ -380,28 +436,76 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             report(exc, "group_orders._run_members: executor.execute", every=True)
             lines.append(f"{_display(name)} — the order failed for him.")
             refused.append((name, ""))
+            _not_sent(name, line, "the order failed for him")
             continue
         if isinstance(result, dict) and result.get("events"):
             events.extend(result.get("events") or [])
+        cost = 0
         if isinstance(result, dict) and isinstance(result.get("action_info"), dict):
-            spent += int(result["action_info"].get("cost") or 0)
+            cost = int(result["action_info"].get("cost") or 0)
+            spent += cost
+        if name in quoted and cost > int(quoted[name]):
+            # The list is the truth: a man charged MORE than his row said is
+            # never let stand — the give's caller puts the board back.
+            raise Overcharge(name, cost, int(quoted[name]))
         if _result_carries_question(result):
             stash["members"] = members
             stash["lines"] = list(stash.get("lines", [])) + lines
             stash["events"] = list(stash.get("events", [])) + events
+            # (the list's prices were for the board as it stood: the men who
+            # wait go on a board the answer has changed, at their own price)
+            stash.pop("quoted", None)
             world._pending_group = stash
+            rows.append({"marshal": name, "sent": False, "line": line, "asked": True,
+                         "why": "asks you first", "ap": int(cost)})
+            for waiter in members:
+                _not_sent(waiter, "", f"waits behind {_display(name)}'s question")
             return {"lines": lines, "question": result, "events": events, "waiting": members,
-                    "asker": name, "spent": spent, "refused": refused}
+                    "asker": name, "spent": spent, "refused": refused, "rows": rows}
         said = _first_sentence(result.get("message", ""))
         if isinstance(result, dict) and result.get("success") is False:
             refused.append((name, said))
+            _not_sent(name, line, said)
+        else:
+            rows.append({"marshal": name, "sent": True, "line": line, "why": "", "ap": int(cost)})
         if army and band == "carries" and _would_object(
                 world, marshal, strategic_type, parsed_target=stash.get("target"), rest=rest):
             said += " (He had his doubts; the Staff's order carries.)"
         lines.append(_member_line(name, said))
     world._pending_group = None
+    for waiter in members:
+        _not_sent(waiter, "", "the actions were spent before him")
     return {"lines": lines, "question": None, "events": events, "waiting": members, "asker": "",
-            "spent": spent, "refused": refused}
+            "spent": spent, "refused": refused, "rows": rows}
+
+
+class Overcharge(Exception):
+    """Row IC (the directive): a member was charged more than the list said."""
+
+    def __init__(self, marshal: str, charged: int, quoted: int):
+        super().__init__(f"{marshal} was charged {charged} where the list said {quoted}")
+        self.marshal, self.charged, self.quoted = marshal, int(charged), int(quoted)
+
+
+def click_line(world, marshal, strategic_type: Optional[str], target) -> Optional[Tuple[str, str, int]]:
+    """``(line, verb, price)`` for a corps of a group sent by a CLICK on a
+    province: the order his own single click would send — the plain move
+    where the move takes it, else the march (`order_quotes.march_quote(
+    click=True)`, row PW's rule) — or None where the click road has nothing
+    of its own to say (another order type, a place that is no province, an
+    order the quote refuses: the typed line's own reading then speaks)."""
+    if strategic_type != "MOVE_TO" or not target or world.get_region(str(target)) is None:
+        return None
+    try:
+        from backend.commands import order_quotes as Q
+        quote = Q.march_quote(world, marshal, str(target), click=True)
+    except Exception as exc:
+        report(exc, "group_orders.click_line: order_quotes.march_quote")
+        return None
+    if not quote.get("ok") or quote.get("already") or not quote.get("command"):
+        return None
+    verb = "move" if str(quote.get("kind") or "") == "move" else "march"
+    return str(quote["command"]), verb, int(quote.get("ap", 0) or 0)
 
 
 def _member_line(name: str, said: str) -> str:
@@ -460,8 +564,13 @@ def _column_detour_clause(world, stash: Dict[str, Any], names: List[str]) -> str
         return ""
 
 
-def _head_line(world, stash: Dict[str, Any], names: List[str], have: Optional[int] = None) -> str:
+def _head_line(world, stash: Dict[str, Any], names: List[str], have: Optional[int] = None,
+               quoted: Optional[Dict[str, int]] = None) -> str:
     rest = stash["rest"]
+    if stash.get("click") and stash.get("strategic_type") == "MOVE_TO" and stash.get("target"):
+        # Row IC: a group sent by a click — each man's own click order (a move
+        # next door, a march beyond); the head says neither, as the list does.
+        rest = f"go to {_display(str(stash['target']))}"
     n = len(names)
     if stash.get("army"):
         line = (f"The Grand Quartier Général carries the Emperor's order — {ARMY_ORDER_AP} actions, "
@@ -477,24 +586,46 @@ def _head_line(world, stash: Dict[str, Any], names: List[str], have: Optional[in
             line += " " + stash["note"]
         return line
     total = 0
+    if quoted is None:
+        quoted = stash.get("quoted") or {}
     for name in names:
         m = world.get_marshal(name)
-        if m is not None:
+        if name in quoted:
+            total += int(quoted[name])      # row IC: the price the list showed
+        elif m is not None:
             total += _price(world, m, stash["action"], stash.get("strategic_type"))
     if have is None:
         have = int(getattr(world, "actions_remaining", 0) or 0)
     if stash.get("cancel"):
         # S14E-X143: the recall's own head - what it recalls and what it costs
         # (each corps' cancel is the ordinary one: the price is its own).
+        if stash.get("kind") in ("list", "army"):
+            return (f"The standing orders of {_whom(stash)} are recalled, corps by corps — "
+                    f"{n} corps, {total} action{'s' if total != 1 else ''} for the {have} in hand.")
         return (f"Every standing order is recalled, corps by corps — {n} corps, "
                 f"{total} action{'s' if total != 1 else ''} for the {have} in hand.")
     # T0-C (CMDFEEL-5): the corps at a named province, when the order named one.
-    whom = (f"the corps at {_display(stash['at'])}" if stash.get("at") else "the army")
+    whom = _whom(stash)
     line = (f"The order goes to {whom}, corps by corps — {n} corps, {total} action"
             f"{'s' if total != 1 else ''} for the {have} in hand: '{rest}'.")
     if stash.get("note"):
         line += " " + stash["note"]
     return line
+
+
+def _whom(stash: Dict[str, Any]) -> str:
+    """Who the order goes to, in the head's words: the army (the collective
+    words), the corps at a province, the men a list named ("Ney, Lannes and
+    Murat"), or a named army ("the Army of Italy") — row IC."""
+    kind = stash.get("kind")
+    if kind == "army" and stash.get("army_name"):
+        return f"the {stash['army_name']}"
+    if kind == "list":
+        shown = [_display(n) for n in (stash.get("who") or stash.get("members") or [])]
+        if len(shown) <= 1:
+            return shown[0] if shown else "the corps named"
+        return ", ".join(shown[:-1]) + " and " + shown[-1]
+    return f"the corps at {_display(stash['at'])}" if stash.get("at") else "the army"
 
 
 def _waiting_line(waiting: List[str]) -> str:
@@ -505,7 +636,12 @@ def _waiting_line(waiting: List[str]) -> str:
             f"with tomorrow's actions, or name the corps that matter most.")
 
 
-def _compose(stash: Dict[str, Any], run: Dict[str, Any], head: str, *, resumed: bool) -> str:
+def _compose(stash: Dict[str, Any], run: Dict[str, Any], head: str, *, resumed: bool,
+             with_question: bool = True) -> str:
+    """The order's reply in words: the head, each man's line, then the
+    question that stopped it and who waits behind it — or, `with_question`
+    False (row IC), everything but the question's own words (`group.said`:
+    the client says it before the question's window)."""
     parts: List[str] = []
     if not resumed:
         parts.append(head)
@@ -514,7 +650,8 @@ def _compose(stash: Dict[str, Any], run: Dict[str, Any], head: str, *, resumed: 
     if q is not None:
         asker = _display(run.get("asker") or "")
         msg = str(q.get("message") or "")
-        parts.append(msg)
+        if with_question:
+            parts.append(msg)
         rest_names = run.get("waiting") or []
         if rest_names:
             parts.append(f"The order waits for {', '.join(_display(n) for n in rest_names)} "
@@ -542,6 +679,36 @@ def try_collective(world, game_state, parser, executor, llm_game_state,
 
 def _try_collective(world, game_state, parser, executor, llm_game_state,
                     command_text: str, parsed: Dict) -> Optional[Dict[str, Any]]:
+    built = build(world, parser, llm_game_state, command_text, parsed)
+    if built is None:
+        return None
+    if built[0] == "result":
+        return built[1]
+    return _carry_out(world, game_state, parser, executor, llm_game_state, built[1])
+
+
+# The orders a LIST of names keeps on today's road — one battle, the first man
+# leads and the muster calls the others (`parser.SECOND_NAME_SUPPORT_ACTIONS`):
+# his attack, charge, bombardment or pursuit is never fanned out to a list.
+LIST_KEEPS_ONE_BATTLE = frozenset({"attack", "charge", "pursue", "bombard"})
+
+
+def build(world, parser, llm_game_state, command_text: str, parsed: Dict, *,
+          address: Optional[Dict[str, Any]] = None, click: bool = False
+          ) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """The order to several corps as the fan-out will run it — ``("stash",
+    stash)`` — or the free answer that stands in its place — ``("result",
+    result)`` — or None when the line is no order to several that the fan-out
+    takes (the ordinary road then speaks).
+
+    `address` is `directive.address`'s reading of who the line names (row IC):
+    a LIST of names or a named ARMY is built from it (a list's parse names its
+    first man, so "no marshal named" is no test of it); without one — and for
+    the collective words — this is the collective road exactly as AO landed
+    it. PURE: nothing is written to the world (the read-only quote calls it
+    with the built-in reader)."""
+    if (address or {}).get("kind") in ("list", "army"):
+        return _build_named(world, parser, llm_game_state, command_text, parsed, address, click)
     command = (parsed or {}).get("command") or {}
     if command.get("marshal") or not parsed.get("success"):
         return None
@@ -549,8 +716,8 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
     # standing order (the verb may come first: "stop everyone").
     if (str(command.get("action") or "") == "cancel" and not parsed.get("is_strategic")
             and (is_collective_cancel(command_text) or collective_head(command_text) is not None)):
-        return _collective_cancel(world, game_state, parser, executor, llm_game_state,
-                                  command_text)
+        stash = _collective_cancel(world, command_text)
+        return ("stash", stash) if stash is not None else None
     head = collective_head(command_text, places=list(getattr(world, "regions", {}) or {}))
     if head is None:
         return None
@@ -568,11 +735,11 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
         field = [m for m in field
                  if str(getattr(m, "location", "") or "").lower() == str(at).lower()]
         if not field:
-            return {
+            return ("result", {
                 "success": False,
                 "message": f"No corps of ours stands at {_display(at)}, Sire — nothing spent.",
                 "variable_action_cost": 0,
-            }
+            })
     if not field:
         return None
     rest = head["rest"]
@@ -599,35 +766,99 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
         "members": members, "turn": int(getattr(world, "current_turn", 0) or 0),
         "army": False, "band": None, "note": "", "lines": [], "events": [],
         "raw": command_text, "at": at or "",
+        # Row IC (the directive's list): every corps the words address, before
+        # the Staff narrows `members` to its column.
+        "kind": "at" if at else "everyone", "addressed": list(members),
     }
     army_refusal = ""
     if p_type in ARMY_STRATEGIC:
         army_refusal = _army_gate(world, stash, field, leader)
         if army_refusal:
             stash["note"] = army_refusal
-    return _carry_out(world, game_state, parser, executor, llm_game_state, stash)
+    return ("stash", stash)
 
 
-def _collective_cancel(world, game_state, parser, executor, llm_game_state,
-                       command_text: str) -> Optional[Dict[str, Any]]:
+def _collective_cancel(world, command_text: str) -> Optional[Dict[str, Any]]:
     """S14E-X143: "everyone stop" recalls EVERY standing order, corps by corps,
     each as the ordinary `cancel` (one road, its own price, its own trust) -
     where the parsed cancel carried no name and recalled the FIRST corps with
     an order, at one action, in a reply that said only his. None when fewer
     than two corps hold an order: the ordinary road recalls that one (or
-    says there is none) exactly as before."""
+    says there is none) exactly as before. Returns the stash (row IC: the
+    caller carries it out, or lists it first)."""
     standing = [m.name for m in world.get_player_marshals()
                 if getattr(m, "strategic_order", None) is not None
                 and int(getattr(m, "strength", 0) or 0) > 0]
     if len(standing) < 2:
         return None
-    stash: Dict[str, Any] = {
+    return {
         "rest": "cancel", "action": "cancel", "strategic_type": None, "target": "",
         "members": standing, "turn": int(getattr(world, "current_turn", 0) or 0),
         "army": False, "band": None, "note": "", "lines": [], "events": [],
         "raw": command_text, "cancel": True,
+        "kind": "everyone", "addressed": list(standing),
     }
-    return _carry_out(world, game_state, parser, executor, llm_game_state, stash)
+
+
+def _build_named(world, parser, llm_game_state, command_text: str, parsed: Dict,
+                 address: Dict[str, Any], click: bool
+                 ) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Row IC: the stash of an order to a LIST of names ("Ney, Lannes and
+    Murat, march to Ulm") or to a named ARMY ("Army of Italy, hold") — the same
+    fan-out the collective words take, to the men named. None where the order
+    is not one the fan-out takes (an attack is one battle: the first man leads
+    and the muster calls the others — the road it had). The Staff's single
+    order is the collective's alone: the men named each go at their own price."""
+    kind = str(address.get("kind") or "")
+    names = [str(n) for n in (address.get("names") or [])]
+    rest = second_person(str(address.get("rest") or "").strip())
+    if not names or not rest:
+        return None
+    field = {m.name for m in _field_marshals(world)}
+    lead = next((n for n in names if n in field), None)
+    if lead is None:
+        who = (f"The {address.get('army')}" if kind == "army" else "None of the men you named")
+        tail = "has no corps" if kind == "army" else "stands"
+        return ("result", {"success": False, "variable_action_cost": 0,
+                           "message": f"{who} {tail} in the field to take an order, Sire — nothing spent."})
+    # The probe: how the first man in the field reads the line (the parse the
+    # command already made, where it is his).
+    command = (parsed or {}).get("command") or {}
+    probe = parsed if (parsed or {}).get("success") and command.get("marshal") == lead else None
+    if probe is None:
+        probe = parser.parse(f"{lead}, {rest}", llm_game_state, world=world)
+    if not probe.get("success"):
+        return None
+    p_cmd = probe.get("command") or {}
+    p_action = str(p_cmd.get("action") or "")
+    p_type = probe.get("strategic_type") if probe.get("is_strategic") else None
+    cancel = p_action == "cancel" and not p_type
+    if kind == "list" and not click and (p_type == "PURSUE" or p_action in LIST_KEEPS_ONE_BATTLE):
+        # (a group sent from the map or the desk — `click` — is each man's own
+        # order by its nature: its pursuit fans out, as "everyone pursue Mack" does)
+        return None
+    if p_type:
+        if p_type not in GROUPABLE_STRATEGIC:
+            return None
+    elif not cancel and p_action not in GROUPABLE_ACTIONS:
+        return None
+    target = str(p_cmd.get("target") or "")
+    leader = _leader_name(world, probe) if p_type in ("SUPPORT", "PURSUE") else ""
+    members = [n for n in names if n != leader]
+    if not members:
+        return None
+    stash: Dict[str, Any] = {
+        "rest": "cancel" if cancel else rest, "action": p_action, "strategic_type": p_type,
+        "target": target, "members": members,
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+        "army": False, "band": None, "note": "", "lines": [], "events": [],
+        "raw": command_text, "at": "",
+        "kind": kind, "addressed": list(members), "who": list(members),
+        "army_name": str(address.get("army") or ""), "click": bool(click),
+    }
+    if cancel:
+        stash["cancel"] = True
+    return ("stash", stash)
 
 
 def _carry_out(world, game_state, parser, executor, llm_game_state,
@@ -644,6 +875,18 @@ def _carry_out(world, game_state, parser, executor, llm_game_state,
     # answer, free (as the single order says it).
     have = int(getattr(world, "actions_remaining", 0) or 0)
     original = list(stash["members"])
+    # Row IC: the prices the list showed, kept for the head (a question pops
+    # them off the stash: the men who wait go on later at their own price).
+    shown_prices = dict(stash.get("quoted") or {}) or None
+    if shown_prices is None and not stash.get("army"):
+        # IC-D10: each man's price as the order FINDS him, read before the run —
+        # a fortify from NEUTRAL costs two, and once he has dug in he stands
+        # DEFENSIVE, where the table says one (the head is built after the run).
+        shown_prices = {}
+        for name in original:
+            marshal = world.get_marshal(name)
+            if marshal is not None:
+                shown_prices[name] = _price(world, marshal, stash["action"], stash.get("strategic_type"))
     run = _run_members(world, game_state, parser, executor, llm_game_state, stash)
     refused = list(run.get("refused") or [])
     refused_names = {n for n, _why in refused}
@@ -662,12 +905,13 @@ def _carry_out(world, game_state, parser, executor, llm_game_state,
                 reason += " Nothing spent."
             return {"success": False, "message": reason,
                     "variable_action_cost": 0, "group": {"army": stash["army"], "members": [],
-                                                         "asked": False}}
+                                                         "asked": False,
+                                                         "rows": _rows_of(stash, run)}}
         head_line = ("No corps takes the order, Sire — nothing spent: "
                      f"'{stash['rest']}'.")
         head_spent = 0
     else:
-        head_line = _head_line(world, stash, took if refused else original, have)
+        head_line = _head_line(world, stash, took if refused else original, have, quoted=shown_prices)
         head_spent = (world.spend_actions("strategic", ARMY_ORDER_AP)["action_cost"]
                       if stash["army"] else 0)
     stash["head"] = head_line
@@ -675,18 +919,37 @@ def _carry_out(world, game_state, parser, executor, llm_game_state,
     q = run.get("question")
     result: Dict[str, Any] = {"success": True, "message": message,
                               "group": {"army": stash["army"], "members": stash["members"],
-                                        "asked": bool(q)},
+                                        "asked": bool(q),
+                                        # Row IC: every row of the order, as it went.
+                                        "rows": _rows_of(stash, run)},
                               "events": run.get("events") or []}
     if q is not None:
         for key, value in q.items():
             if key in ("message", "new_state", "events"):
                 continue
             result[key] = value
+        # Row IC: who went and who waits, without the question's own words —
+        # said by the client BEFORE the question's window (which carries only
+        # the question); without it the rest of the order's result was lost.
+        result["group"]["said"] = _compose(stash, run, head_line, resumed=False, with_question=False)
     # ACH-1: the whole order's price — the Staff's charge and every corps'
     # own reply — where it said 0 while the corps spent the pool.
     result["action_info"] = world.get_action_info(head_spent + int(run.get("spent") or 0))
     result["action_summary"] = world.get_action_summary()
     return result
+
+
+def _rows_of(stash: Dict[str, Any], run: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Row IC: the reply's rows — each man the run reached (`{marshal, sent,
+    line, why, ap}`), then the men the list held back with their reasons
+    (`stash["left_out"]`: not ticked, beyond the Staff's reach). Every number
+    an int (Golden Rule 2)."""
+    rows = [dict(r, ap=int(r.get("ap", 0) or 0)) for r in (run.get("rows") or [])]
+    seen = {r["marshal"] for r in rows}
+    for name, why in (stash.get("left_out") or []):
+        if name not in seen:
+            rows.append({"marshal": str(name), "sent": False, "line": "", "why": str(why), "ap": 0})
+    return rows
 
 
 def _army_gate(world, stash: Dict[str, Any], field: List[Any], leader: str) -> str:

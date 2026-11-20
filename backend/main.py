@@ -753,6 +753,20 @@ def _desk(world, envelope=None):
         return None
 
 
+def _named_armies(world):
+    """Row IC, directives: the armies the player has named, as the client
+    draws their chips (`armies.payload`) — [] when none (nothing is read on a
+    board with no army)."""
+    if not getattr(world, "armies", None):
+        return []
+    try:
+        from backend.game_logic import armies as _armies_mod
+        return _armies_mod.payload(world)
+    except Exception as exc:
+        _errors.report(exc, "main._named_armies: armies.payload")
+        return []
+
+
 def _end_turn_peril_warning(world):
     """S14E-X31: the end-turn gate's second clause - a corps sharing its
     province with an enemy force at `PERIL_RATIO` times its strength or more
@@ -880,6 +894,12 @@ def build_base_response(world, success: bool = True, message: str = "",
     # key on every reply, built from the wars this envelope already holds (a
     # pure read; null with the seam down).
     response["desk"] = _desk(world, response)
+    # Row IC, directives: the player's named armies, for the chips beside the
+    # marshals' — the key rides only while an army exists (absent = none), so
+    # a board that never formed one carries the envelope it always did.
+    _armies = _named_armies(world)
+    if _armies:
+        response["armies"] = _armies
     response.update(extra)
     # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): a line of authority crossed by ANY
     # write since the last response rides this one (the tracker's queue, read
@@ -1261,6 +1281,10 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "victory",
     "ending",
     "endings_recorded",
+    # Row IC, the directive: how an order to several corps went, row by row
+    # (`group.rows`), so the client and a test can set what was shown beside
+    # what was done.
+    "group",
 )
 
 
@@ -3220,7 +3244,10 @@ def _foreign_caller(headers) -> bool:
 # word's lend on the pool (`battle_day.lending`: stamped and put back), and
 # it lets the enemy answer a day that awaits him. Unlocked, it could cross a
 # command and leave the lend on the pool for good.
-_LOCKED_READS = frozenset({"/parse_preview", "/march_quotes", "/battle_day"})
+_LOCKED_READS = frozenset({"/parse_preview", "/march_quotes", "/battle_day",
+                           # Row IC: the list of an order to several corps is read under
+                           # the same lock (its readers are the read-back's and the quotes').
+                           "/directive_quote"})
 # The POSTs holding the state lock or waiting for it (`_posts_in_flight`).
 _POSTS_IN_FLIGHT = 0
 
@@ -3313,6 +3340,18 @@ class CommandRequest(BaseModel):
     # (the counsel's lever) opens the table with the payment the counsel quoted
     # staged — the offer row opens at that sum, not at its default.
     gold_offer: int | None = None
+    # Row IC, the directive (`backend/commands/directive.py`): an order to
+    # SEVERAL marshals is shown as one list first. `list_first` — the client
+    # asks: a line addressed to several is not carried out, the reply is the
+    # list (`directive`). `members` — the give: the ticked men, in the order
+    # the list showed them; `expect_ap` — the total the player saw (a list
+    # that no longer holds is refused and re-drawn, nothing spent). `click` —
+    # the group was sent by a click on the map (each man's own plain order).
+    # Without them `/command` behaves as it did: tests and scripts are untouched.
+    list_first: bool = False
+    members: list[str] | None = None
+    expect_ap: int | None = None
+    click: bool = False
     # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
     # (`settlement_terms` / `selected_target_nation` /
     # `covered_enemy_participants`) are removed with the freeform editor
@@ -3483,6 +3522,9 @@ def test_connection():
     # Row IC: the desk's three lines from the first frame (a HUD field, never a
     # modal carrier — the same builder every POST envelope carries).
     response["desk"] = _desk(world, response)
+    _armies = _named_armies(world)      # row IC: a loaded campaign's armies, from the first frame
+    if _armies:
+        response["armies"] = _armies
     # S14E-X154 (XP2's sweep): the formed-nation overrides ride this door too -
     # `api_client._adopt_formation_overrides` reads them off every 200 body,
     # and a plain entry to a campaign with a formed nation is the one road
@@ -3583,6 +3625,11 @@ class CommandContext:
     _stamp_remedy: Any = field(init=False)
     # DDB-R1: an answered clarification's option flags, merged into the parse
     _reissue_flags: Any = field(init=False)
+    # Row IC, the directive: a named army's address, read off the line before
+    # the parse (`directive.address`); and the history entry held back while a
+    # line may only be ASKING for its list (written if it is carried out).
+    _army_address: Any = field(init=False)
+    _held_history: Any = field(init=False)
 
 
 def _keeps_the_take_back(fn):
@@ -4252,7 +4299,33 @@ def _command_parse(ctx: CommandContext):
         # TURN-4 (T0-A): the premise split must never cost the command — and a
         # recurring failure here was a stdout line nobody read.
         _errors.report(_exc, "main._command_parse: the premise split")
-    ctx.parsed = parser.parse(ctx.command_text, ctx.llm_game_state, world=world)
+    # Row IC, the directive: a line that opens with the name of an army the
+    # player has formed ("Army of Italy, hold") is read as addressed to its
+    # men BEFORE the parse — the bare word "army" already means every corps,
+    # and no other reader knows a saved name. The parse is then of the order
+    # as its first man in the field reads it (the collective's own probe).
+    # Nothing here runs on a board with no army.
+    ctx._army_address = None
+    _parse_text = ctx.command_text
+    if getattr(world, "armies", None):
+        from backend.commands import directive as _directive
+        _addr = _directive.address(world, ctx.command_text)
+        if _addr is not None and _addr.get("kind") == "army":
+            ctx._army_address = _addr
+            _in_field = {m.name for m in world.get_field_marshals()}
+            _lead = next((n for n in _addr.get("names") or [] if n in _in_field), None)
+            if _lead is None:
+                return build_base_response(
+                    world, success=False, free_action=True,
+                    message=(f"The {_addr['army']} has no corps in the field to take an "
+                             "order, Sire — nothing spent."),
+                    action_info={"cost": 0, "remaining": int(world.actions_remaining),
+                                 "turn_advanced": False, "new_turn": None})
+            from backend.commands.group_orders import second_person as _second_person
+            _parse_text = f"{_lead}, {_second_person(_addr['rest'])}"
+            _ptrace.note("directive", "army_address", ctx.command_text, _parse_text,
+                         army=_addr["army"])
+    ctx.parsed = parser.parse(_parse_text, ctx.llm_game_state, world=world)
     # FA-39: record the PLAYER's own parse. Deliberately NOT the CR-5
     # delegation re-issues further down — those re-parse a sentence the
     # ENGINE composed and clobber `parsed`, so stamping them would
@@ -4355,8 +4428,159 @@ def _command_history(ctx: CommandContext):
         }
         if getattr(ctx.request, "relayed", False):
             _history_entry["relayed"] = True  # CR-7-8 re-open instrument
-        world.add_to_command_history(_history_entry)
+        # Row IC, the directive: a line that may only be ASKING for its list
+        # (`list_first`, no `members`, addressed to several) writes no history
+        # until it is carried out — the entry is held and written by the road
+        # that runs it (`_directive_road`), or dropped with the ask.
+        ctx._held_history = None
+        if _may_only_ask_for_its_list(ctx):
+            ctx._held_history = _history_entry
+        else:
+            world.add_to_command_history(_history_entry)
     return _NEXT_STAGE
+
+
+def _may_only_ask_for_its_list(ctx: CommandContext) -> bool:
+    """Row IC: the request asks to see the list first and the line is addressed
+    to several corps (pure — `directive.address` reads the words)."""
+    if not getattr(ctx.request, "list_first", False) or getattr(ctx.request, "members", None) is not None:
+        return False
+    if getattr(ctx, "_army_address", None) is not None:
+        return True
+    try:
+        from backend.commands import directive as _directive
+        return _directive.address(world, ctx.command_text) is not None
+    except Exception as exc:
+        _errors.report(exc, "main._may_only_ask_for_its_list")
+        return False
+
+
+def _directive_readers() -> dict:
+    """Row IC: the read-back's own readers, as the list of an order to several
+    corps reads each man's line (`parse_preview.read_one`). Never the model:
+    the lines are the staff's canonical ones."""
+    return dict(llm_state=get_llm_game_state, epoch=_STATE_EPOCH,
+                lost_marshal_refusal=_addressed_lost_marshal_refusal, why_rx=None,
+                live_llm=None, unbound_addressee=executor._unbound_addressee,
+                premise_reader=None)
+
+
+def _free_reply(message: str, success: bool = False, **extra) -> dict:
+    """Row IC: a reply of the directive road that carried nothing out (the
+    list asked for, a list that no longer held, a give that cannot be one).
+    It drains nothing: a letter or a notice waiting in the queue rides the
+    next real reply — asking for a list changes nothing."""
+    return build_base_response(
+        world, success=success, message=message,
+        include_popup_passthroughs=False, queue_informational_notices=False,
+        drain_draft_notices=False,
+        action_info={"cost": 0, "remaining": int(world.actions_remaining),
+                     "turn_advanced": False, "new_turn": None},
+        **extra)
+
+
+def _directive_road(ctx: CommandContext):
+    """Row IC, the directive (`backend/commands/directive.py`) — an order to
+    SEVERAL marshals. Called by `_command_ordinary_road` where the collective
+    road stood. Returns a response dict (the list that was asked for; a list
+    that no longer holds; a give that cannot be one), `_NEXT_STAGE` when
+    `ctx.result` now holds the order as it was carried out, or None when the
+    line is no such order (the ordinary road goes on).
+
+    * no new field on the request: the collective words fan out as AO landed
+      them, and — with `a_named_list_is_one_directive` up — so does a list of
+      names or a named army;
+    * `list_first`, no `members`: nothing is carried out — the reply is the
+      list (`directive`), and the held history entry is dropped;
+    * `members`: the list is drawn afresh and checked against what the player
+      answered, then the ticked rows are carried out as one order. A request
+      with `members` NEVER falls through to the ordinary executor."""
+    from backend.commands import directive as _directive
+    from backend.commands import group_orders as _group
+    request = ctx.request
+    members = getattr(request, "members", None)
+    members = [str(m) for m in members] if members is not None else None
+    asks = bool(getattr(request, "list_first", False)) and members is None
+
+    def _keep_history():
+        if getattr(ctx, "_held_history", None) is not None:
+            world.add_to_command_history(ctx._held_history)
+            ctx._held_history = None
+
+    found = getattr(ctx, "_army_address", None) or _directive.address(world, ctx.command_text)
+    built = None
+    if found is not None:
+        built = _group.build(world, parser, ctx.llm_game_state, ctx.command_text, ctx.parsed,
+                             address=found, click=bool(getattr(request, "click", False)))
+    if built is None:
+        if members is not None:
+            return _free_reply(
+                "That order cannot be given to several corps as one list, Sire — nothing was "
+                "sent. Give it to one marshal, or say it again.")
+        _keep_history()
+        return None
+    if built[0] == "result":
+        _keep_history()
+        ctx.result = built[1]
+        _ptrace.decide("executor", "collective", _ptrace.result_summary(ctx.result))
+        return _NEXT_STAGE
+    stash = built[1]
+    several = len(stash.get("addressed") or stash.get("members") or []) > 1
+    if asks and several:
+        listing = _directive.quote(world, stash, _directive_readers())
+        _ptrace.decide("directive", "asked", {"rows": len(listing["rows"]), "total": listing["total"]})
+        return _free_reply("", success=True, directive=listing, variable_action_cost=0)
+    _keep_history()
+    if members is not None:
+        listing = _directive.quote(world, stash, _directive_readers())
+        why = _directive.stale(listing, members, getattr(request, "expect_ap", None))
+        if why:
+            _ptrace.decide("directive", "stale", why[:120])
+            return _free_reply(
+                f"{why} Nothing was sent — here is the list as it stands now.",
+                directive=listing, directive_stale=True, variable_action_cost=0)
+        status, payload = _directive.give(world, game_state, parser, executor,
+                                          ctx.llm_game_state, stash, listing, members)
+        if status == "undone":
+            _bump_state_epoch()
+            fresh = _directive.quote(world, stash, _directive_readers())
+            return _free_reply(
+                "That order would have cost more than the list said, so nothing was done — "
+                "the board stands as it did. Here is the list again.",
+                directive=fresh, directive_stale=True, variable_action_cost=0)
+        ctx.result = payload
+    else:
+        ctx.result = _group._carry_out(world, game_state, parser, executor,
+                                       ctx.llm_game_state, stash)
+    if stash.get("kind") == "list":
+        _the_list_went_as_one(ctx, found)
+    _ptrace.decide("executor", "collective", _ptrace.result_summary(ctx.result))
+    return _NEXT_STAGE
+
+
+def _the_list_went_as_one(ctx: CommandContext, found: dict) -> None:
+    """Row IC: a list of names fanned out as ONE order — the parser's reading
+    of it as "the first man, the rest handed back" is let go, so the relay
+    (`_command_riders`) cannot also hand a man his order a second time and the
+    parser's "X's own waits behind it" is not said of an order already given."""
+    if not isinstance(ctx.parsed, dict):
+        return
+    for key in ("dropped_sequel", "dropped_sequel_kind", "second_marshal",
+                "second_marshal_lead", "second_marshal_others", "second_marshal_supports"):
+        ctx.parsed.pop(key, None)
+    warning = str(ctx.parsed.get("warning") or "")
+    if warning:
+        try:
+            from backend.commands.parser import second_name_note
+            names = [str(n) for n in (found.get("names") or [])]
+            said = second_name_note({"first": names[0], "second": names[1], "others": names[2:]}) \
+                if len(names) >= 2 else ""
+        except Exception as exc:
+            _errors.report(exc, "main._the_list_went_as_one: the parser's note")
+            said = ""
+        if said and said in warning:
+            warning = warning.replace(said, "").strip()
+        ctx.parsed["warning"] = warning or None
 
 
 def _command_delegation(ctx: CommandContext):
@@ -5127,14 +5351,14 @@ def _command_ordinary_road(ctx: CommandContext):
         # "all marshals march to Swabia", "the army marches on Swabia" — goes
         # to every corps that can take it, corps by corps or (with the Staff
         # in force) as ONE order. Each member line walks this same road.
-        from backend.commands import group_orders as _group
-        _collective = _group.try_collective(
-            world, game_state, parser, executor, ctx.llm_game_state,
-            ctx.command_text, ctx.parsed)
-        if _collective is not None:
-            ctx.result = _collective
-            _ptrace.decide("executor", "collective", _ptrace.result_summary(ctx.result))
-            return _NEXT_STAGE
+        # Row IC, the directive (November 19, 2026): the same road now takes a
+        # list of names and a named army, shows the list first when the client
+        # asks (`list_first`), and carries out the ticked rows (`members`) as
+        # ONE order. With none of the new request fields the collective words
+        # go exactly as they did (`group_orders.build` + `_carry_out`).
+        _several = _directive_road(ctx)
+        if _several is not None:
+            return _several
         # D6 (CC-4, the user's call of October 19, 2026): a head that would
         # leave the corps standing with a tail that attacks or marches is
         # ASKED FIRST, nothing spent — the line in the order that works is
@@ -5157,6 +5381,24 @@ def _command_ordinary_road(ctx: CommandContext):
         # that is a word of an open day of battle is lent its actions)
         ctx.result = _execute_through_the_day(ctx.parsed)
         _ptrace.decide("executor", "result", _ptrace.result_summary(ctx.result))
+        # Row IC: an order to a named army that the fan-out does not take (an
+        # attack is ONE battle) went to the army's first man in the field —
+        # the reply says so, so the player is never left to guess who moved.
+        _army = getattr(ctx, "_army_address", None)
+        if _army is not None and isinstance(ctx.result, dict):
+            _lead = str((ctx.parsed.get("command") or {}).get("marshal") or "")
+            if _lead:
+                from backend.display_names import humanize_entity_name as _shown_name
+                # (the review: "… took it" was said of an order refused, or still
+                # waiting on his question — said only of one carried out)
+                _took = (ctx.result.get("success") is not False
+                         and not _result_carries_question(ctx.result))
+                _who = (f"{_shown_name(_lead)} took it." if _took
+                        else f"it was for {_shown_name(_lead)} alone.")
+                ctx.result["message"] = (
+                    f"{(ctx.result.get('message') or '').strip()}\n\n"
+                    f"(The {_army['army']}: this is one man's order, not one for each corps — "
+                    f"{_who})").strip()
     return _NEXT_STAGE
 
 
@@ -8013,6 +8255,56 @@ def get_march_reach_endpoint(marshal: str = ""):
         _errors.report(e, "main.get_march_reach_endpoint: the reach", every=True)
         return {"success": False, "error": str(e),
                 **_errors.debug_fields(e, "main.get_march_reach_endpoint: the reach", DEBUG_MODE)}
+
+
+@app.get("/directive_quote")
+def get_directive_quote_endpoint(line: str = "", click: str = ""):
+    """Row IC, the directive: THE LIST of an order to several marshals — who it
+    goes to, each man's order, its price, whether he may object, who will not
+    go and why, and the total against the actions in hand
+    (`backend/commands/directive.py::quote`). For the openers that are not a
+    typed line: a group selected on the map and sent to a province (`click=1`:
+    each man's own plain order, as his single click sends it), a selected
+    group's Hold / Fortify / Drill, a TO DECIDE row. READ-ONLY — it carries
+    out nothing, spends nothing, casts no die and never calls the model; a
+    typed line gets the same list from `/command` with `list_first`."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    text = str(line or "")[:500]
+    try:
+        from backend.commands import directive as _directive
+        from backend.commands import group_orders as _group
+        from backend.commands import parse_preview as _pp
+        readers = _directive_readers()
+        with _pp.reading():
+            found = _directive.address(world, text)
+            if found is None:
+                return {"success": False, "message": "That is an order for one marshal, not for several."}
+            parse_text = text
+            if found.get("kind") == "army":
+                in_field = {m.name for m in world.get_field_marshals()}
+                lead = next((n for n in found.get("names") or [] if n in in_field), None)
+                if lead is None:
+                    return {"success": False,
+                            "message": f"The {found['army']} has no corps in the field to take an order."}
+                parse_text = f"{lead}, {_group.second_person(found['rest'])}"
+            parsed = _pp.mock_parse(world, parse_text, get_llm_game_state, _STATE_EPOCH)
+            built = _group.build(world, _pp._preview_parser(),
+                                 _pp._llm_state(world, get_llm_game_state, _STATE_EPOCH),
+                                 text, parsed, address=found,
+                                 click=str(click).strip().lower() in ("1", "true", "yes"))
+            if built is None:
+                return {"success": False,
+                        "message": ("That order is not one several corps take together — "
+                                    "give it to one marshal.")}
+            if built[0] == "result":
+                return {"success": False, "message": str(built[1].get("message") or "")}
+            listing = _directive._quote_locked(world, built[1], readers)
+        return {"success": True, "directive": listing}
+    except Exception as e:
+        _errors.report(e, "main.get_directive_quote_endpoint: the list", every=True)
+        return {"success": False, "error": str(e),
+                **_errors.debug_fields(e, "main.get_directive_quote_endpoint: the list", DEBUG_MODE)}
 
 
 def _posts_in_flight() -> bool:

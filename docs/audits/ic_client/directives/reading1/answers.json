@@ -1,0 +1,71 @@
+{
+ "note": "The three readers' answers and what confused them, as returned (Sonnet, fresh, frames only).",
+ "readers": [
+  {
+   "q1": "Pressing \"Give the order\" sends the ticked orders as one. Ney and Davout, the two ticked corps, each get \"march to Lorraine\" (2 actions each). Lannes is shown unticked, so he gets nothing. Soult is excluded because he is already at Lorraine.",
+   "q2": "It costs 4 actions out of the 4 in hand (2 corps at 2 actions each), which uses all of them. The top bar shows Actions 4/4, so you can afford it, but you would have none left afterward. No gold cost is shown.",
+   "q3": "Soult will not go, because he already stands at Lorraine. Lannes is also not going, but only because his box is unticked. He is not listed under \"Will not go\". Ney (and Lannes) carry a warning that they will drop the order for any battle within two provinces in a war of ours. That affects what they do later, not whether they go now.",
+   "q4": "Untick his box by clicking his row, or by using Up/Down to reach it and pressing Space. Davout's row is currently ticked, so one click would untick it.",
+   "q5": "Use \"Take back\" (Ctrl+Z), which is the button at the bottom of the map. The box says it undoes all the sent orders at once, so that would be the whole group (Ney and Davout's marches). I cannot tell from the screenshots whether it also refunds the 4 actions. I also cannot tell whether it reverses anything beyond this one batch.",
+   "q6": "Click the \"Hold...\" button in the \"The Army of Italy — Lannes, Murat\" box at the lower left of the map. The \"Army of Italy · 2\" chip in the left column selects those men. The log also says you can say \"Army of Italy, hold\". I cannot tell what the \"...\" on Hold opens (perhaps a choice of where or how). I also cannot tell whether Army of Italy has only Lannes and Murat, since the screen lists just those two.",
+   "q7": "The war goal is Vienna. The log says \"the war goal is Vienna\", and the war panel reads \"goal: Vienna\". On the map, Vienna is marked by a gold ring labelled \"War goal: Vienna\" in the Austria region, to the east-northeast of Bavaria, near the middle of the Austria territory.",
+   "confused": [
+    "Lannes's row in the order box is unticked yet still shows 'march to Lorraine' and a drop-order warning. It is not in 'Will not go', so I cannot tell why he is unticked (my choice, a default, or something else).",
+    "The cost line says '4 actions of the 4 in hand — 2 corps go, each on his own order'. I cannot tell whether the cost is 4 because each corps pays 2, or why marching to Lorraine takes 2 actions.",
+    "In Frame A, the 'Army of Italy' box says 'march together · up to 4 of 4 actions in hand'. I cannot tell whether that means a group march would use all 4 actions or just caps it.",
+    "Hold..., Fortify... and Drill... all have an ellipsis. I cannot tell what a second step would ask me, or whether Hold applies to the whole Army of Italy or needs a selection first.",
+    "The 'Take back' button is greyed out in Frame L and active in Frame A and G. I assume that is because no orders had been given yet in L, but the screenshots do not say so.",
+    "The 'To decide' panel says '7 corps have no orders' in Frame L, while the first item in Frame G says '8 corps with no orders can march on Vienna'. I cannot tell why the counts differ or what changed between the frames.",
+    "Many map markers show '?' or a number with no explanation (for example 12k, 25k, 45, 100, 30, 15). I cannot tell what each stands for, and I cannot tell which markers are mine and which belong to the enemy.",
+    "The 'Active wars' panel text is cut off ('The war: even…'), and the slider with a 0 on it is unexplained. I cannot tell what the slider measures or what the 'Make peace' button would do.",
+    "The status bar shows '45 sail · BLOCKADED' and 'Threat 66' without explanation. I cannot tell what the blockade costs me or what the threat number means.",
+    "The Peace goal says 'hold 45 titled provinces... You hold 35', and the War line says 'to hold the homeland — goal: Vienna'. I cannot tell how the Peace goal relates to the war goal, or whether taking Vienna counts toward the 45."
+   ]
+  },
+  {
+   "q1": "Ney and Davout, the two ticked corps, each receive a separate order to march to Lorraine (2 actions each). Lannes is shown unticked, so he is not included. Soult is listed as not going.",
+   "q2": "It costs 4 actions out of the 4 in hand, so I can afford it, but it uses all of them. Gold and recruits are not charged for it on this screen. The top bar shows Actions 4/4.",
+   "q3": "Soult will not go because he already stands at Lorraine. Lannes also will not go, but only because his box is unticked. Ney and Lannes carry a warning that they will drop the order for any battle within two provinces in a war of ours. That is a caveat and does not stop them going.",
+   "q4": "Untick Davout's box. I can click his row, or move to it with Up/Down and press Space. The box says this is how to leave a corps out.",
+   "q5": "Use \"Take back\" (Ctrl+Z). The dialog says it undoes the ticked orders as one, all of them together. I take that to mean both marches, Ney's and Davout's, and that the 4 actions come back. The text does not say outright that the actions are refunded. It also does not say whether Take back would reach orders given before this one.",
+   "q6": "The \"Army of Italy\" group (Lannes and Murat) has a panel with a \"Hold...\" button, so I would click that. The chat log also says I can say \"Army of Italy, hold\". The \"...\" on the button suggests a further prompt, perhaps to pick a province or confirm. I cannot tell what that prompt asks. I also cannot tell whether \"every corps\" means only the two in this army.",
+   "q7": "The war goal is Vienna, in the war with the Third Coalition (Britain, Austria and Russia). On the map it is a gold ring in Austria, labelled \"War goal: Vienna\", to the east of Bavaria and north-east of Massena's army. Frame G shows the goal. Frames L and A show the war with no goal named.",
+   "confused": [
+    "In Frame L, Ney and Lannes have a yellow warning that they will drop the order for any battle within two provinces in a war of ours. Davout has no such line. I could not tell why they differ, or what the warning means in practice.",
+    "In Frame L, the ticks and the cost do not match. The title says 4 corps, and the list shows three rows, with Lannes unticked. The cost line says 2 corps go for 4 actions. I could not tell whether Lannes would have cost extra if ticked, or whether Soult counts among the four.",
+    "The cost line says '4 actions of the 4 in hand'. I could not tell whether that leaves any actions for the Army of Italy order or other orders this turn.",
+    "In Frame L, the panel on the left reads 'Your marshals await your orders'. The list on the left of Frame A shows the same marshals. I could not tell what the small white dot beside each name means.",
+    "In Frame A, Lannes and Murat form the Army of Italy. The panel says 'march together · up to 4 of 4 actions in hand'. I could not tell what 'up to 4' means, or whether that is a cost.",
+    "The 'Hold...', 'Fortify...' and 'Drill...' buttons end in '...' and I could not tell what they do once clicked. I also could not tell what 'Drill' does.",
+    "In Frame A, the 'Take back' button is dimmed in Frame L and bright in A and G. I assume it only works once an order has been given. I could not tell how far back it reaches.",
+    "In Frame L, the top bar shows 'Threat 66' and '45 sail · BLOCKADED'. I could not tell what these mean or whether they affect the orders.",
+    "The map shows many '?' markers and numbers such as 12k, 25k and 100 without any key. I could not tell what each stands for.",
+    "In Frame G, the notice list says 'THE PEACE... hold 45 titled provinces... You hold 35.' I could not tell whether the Vienna goal helps with that target.",
+    "In Frame G, the top box says 8 corps with no orders can march on Vienna, but the 7 corps in item 2 are a different number. I could not tell whether these overlap, and what 'see the list' refers to."
+   ]
+  },
+  {
+   "q1": "Ney and Davout, the two ticked rows, each get an order to march to Lorraine (2 actions each). Lannes' box is not ticked, so he gets nothing. The title says \"4 corps\", but only the ticked ones are sent.",
+   "q2": "It costs 4 actions out of the 4 in hand. The top bar and left panel show Actions 4/4, so I can afford it, but it uses up every action this turn.",
+   "q3": "Soult will not go, because he already stands at Lorraine. Lannes also will not go, but only because his box is unticked. The box does not list him under \"Will not go\".",
+   "q4": "Untick Davout's checkbox. I can click his row, or move to it with Up/Down and press Space. Then I would press Give the order.",
+   "q5": "Press \"Take back\" (Ctrl+Z), which sits at the bottom of the map. The box says it undoes all the ticked orders sent together as one. That means both marches to Lorraine, Ney's and Davout's. I cannot tell from the screenshots whether the 4 actions are refunded, or whether it reverses anything beyond that order.",
+   "q6": "In Frame A the Army of Italy (Lannes, Murat) is selected. Its panel has a \"Hold...\" button, and the log text says to say \"Army of Italy, hold\". Either would order that army to hold. The \"Hold...\" label has an ellipsis, so it probably asks for a follow-up choice. I cannot tell from the screenshots whether this reaches every corps. The panel names only Lannes and Murat, and the other six marshals are not in the army. The text \"Army of Italy · 2\" suggests two members. So I cannot tell how to hold every corps in the army, or whether the army has more than those two.",
+   "q7": "The goal is Vienna. The desk text reads \"to hold the homeland — goal: Vienna\". On the map, a gold ring in Austria, in the east of the map, is labelled \"War goal: Vienna\". The log line says \"The goal of the war with Austria is now Vienna\".",
+   "confused": [
+    "In Frame L, Lannes' row shows the 'will drop this order' warning but his box is unticked, and the title still says 'Orders for 4 corps'. I could not tell whether he is excluded by default or why. Only Soult is listed under 'Will not go'.",
+    "The cost line says '4 actions ... 2 corps go, each on his own order', yet each row says '2 actions'. I assume that means 2 corps times 2 actions, but I cannot be certain.",
+    "The warning 'He will drop this order for any battle within two provinces in a war of ours' is unclear. I could not tell whether he leaves the march to fight, stops marching, or what exactly happens.",
+    "Whether Take back (Ctrl+Z) refunds actions, and exactly what it reverses, is not stated. In Frame L the Take back button is greyed out, and in Frames A and G it is lit.",
+    "In Frame A, 'Hold...', 'Fortify...' and 'Drill...' have ellipses. I could not tell what follow-up they ask for, or whether Hold applies to the whole army or needs a target. The panel also shows 'march together · up to 4 of 4 actions in hand', which I could not interpret.",
+    "The left panel says 'Army of Italy · 2' and the panel names only Lannes and Murat. The 'form the Army of Italy' log line says to press 'its chip' to select its men, but I did not see a chip beside the marshals. I could not tell how an army relates to the corps list.",
+    "The map has many unexplained markers: '?' boxes, numbers in circles (100, 45, 12, 30), '10k', '12k', '25k', and anchor icons. I could not tell what any of them mean.",
+    "The top bar shows '45 sail · BLOCKADED' and 'Threat 66'. I could not tell what these do or whether they matter for the orders.",
+    "The 'peace' goal asks to hold 45 provinces and says I hold 35. I could not tell how that relates to the war goal of Vienna, or how Vienna fits with 'hold the homeland'.",
+    "In Frame G, 'Vienna' is a ring in Austria with no obvious province name. I could not tell whether the ring marks the city or the whole province.",
+    "The 'To decide' list changed from 2 to 3 matters between frames. The new item says 8 corps could march on Vienna. I could not tell if those 8 corps include the ones already ordered to Lorraine.",
+    "In Frame L, I could not tell why Lorraine is a destination, or whether it is on the way to anything."
+   ]
+  }
+ ]
+}

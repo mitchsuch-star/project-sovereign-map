@@ -32,6 +32,8 @@
 #                      `click + gold`, `click - on the Britain gold line`
 #   click_at <x> <y>   a real click at logical px (the state's `factor` says
 #                      how a view-JPEG pixel converts)
+#   ctrlclick <words>  `click`, with Ctrl held on the mouse press and release
+#   ctrlclick_at <x> <y>  `click_at`, with Ctrl held
 #   key <K>            Escape, Enter, T, Alt+T, F1, Ctrl+A …
 #   scroll <x> <y> up|down <n>
 #   look               no action, a fresh frame
@@ -225,6 +227,16 @@ func _do(action: String) -> void:
 		if verb.begins_with("click#"):
 			pick = int(verb.substr(6))
 		await _act_click_words(rest, pick, rec)
+	elif verb == "ctrlclick":
+		# Row IC, directives: `click` with Ctrl held (a Ctrl-click ticks a marshal
+		# into an order, or sends it to the standing list).
+		await _act_click_words(rest, 0, rec, true)
+	elif verb == "ctrlclick_at":
+		var cp2 := rest.split(" ", false)
+		if cp2.size() != 2 or not cp2[0].is_valid_float() or not cp2[1].is_valid_float():
+			_err(rec, "ctrlclick_at wants two numbers: ctrlclick_at <x> <y> (logical px)")
+		else:
+			await _act_click_at(Vector2(float(cp2[0]), float(cp2[1])), rec, true)
 	elif verb == "click_at":
 		var p := rest.split(" ", false)
 		if p.size() != 2 or not p[0].is_valid_float() or not p[1].is_valid_float():
@@ -316,7 +328,7 @@ func _do(action: String) -> void:
 		_quitting = true
 		rec["note"] = "the engine quits" + (" (idle)" if rest == "idle" else "")
 	else:
-		_err(rec, "unknown action %s — the actions: type, click, click#N, click_at, clickshots, hover, key, scroll, still, look, endturn_skip" % verb)
+		_err(rec, "unknown action %s — the actions: type, click, click#N, ctrlclick, click_at, ctrlclick_at, clickshots, hover, key, scroll, still, look, endturn_skip" % verb)
 	var t1 := Time.get_ticks_msec()
 	_settle_moves = []
 	_settle_frame = 0
@@ -410,7 +422,7 @@ func _act_type(text: String, rec: Dictionary) -> void:
 	rec["note"] = "typed and Enter" + ("; " + "; ".join(how) if not how.is_empty() else "")
 
 
-func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
+func _act_click_words(words: String, pick: int, rec: Dictionary, ctrl: bool = false) -> void:
 	if words == "":
 		_err(rec, "click wants the words on the control")
 		return
@@ -451,7 +463,7 @@ func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
 	rec["pressed"] = _describe([c])[0]
 	if bool(c.get("disabled", false)):
 		# A player can click a disabled control: nothing happens. Say so.
-		await _real_click(_centre(c))
+		await _real_click(_centre(c), ctrl)
 		rec["note"] = "the control is disabled; the click did nothing" + \
 				(" (its reason: %s)" % c["tooltip"] if str(c.get("tooltip", "")) != "" else "")
 		return
@@ -473,7 +485,7 @@ func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
 		node.gui_input.connect(on_input)
 	var at := _centre(c)
 	var cover := _cover_at(at, node)
-	await _real_click(at)
+	await _real_click(at, ctrl)
 	if is_instance_valid(node):
 		if node is BaseButton:
 			if (node as BaseButton).pressed.is_connected(on_pressed):
@@ -483,7 +495,7 @@ func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
 		elif node.gui_input.is_connected(on_input):
 			node.gui_input.disconnect(on_input)
 	if bool(hit["pressed"]) or not is_instance_valid(node):
-		rec["note"] = "clicked at (%d, %d)" % [int(at.x), int(at.y)]
+		rec["note"] = "%sclicked at (%d, %d)" % ["ctrl-" if ctrl else "", int(at.x), int(at.y)]
 		return
 	# The click did not reach it: record what took it, then press it by its
 	# own road so the run goes on — the fallback is itself a finding.
@@ -625,14 +637,14 @@ func _act_still(spec: String, rec: Dictionary) -> void:
 		else ("MOVED: %d change(s) in %d frames — %s" % [changes.size(), frames, ", ".join(PackedStringArray(moved.keys()))])
 
 
-func _act_click_at(at: Vector2, rec: Dictionary) -> void:
+func _act_click_at(at: Vector2, rec: Dictionary, ctrl: bool = false) -> void:
 	var view := root.get_visible_rect().size
 	if at.x < 0 or at.y < 0 or at.x > view.x or at.y > view.y:
 		_err(rec, "(%d, %d) is off the screen (%d x %d logical px)" % [int(at.x), int(at.y), int(view.x), int(view.y)])
 		return
 	var under := _cover_at(at, null)
-	await _real_click(at)
-	rec["note"] = "clicked at (%d, %d)%s" % [int(at.x), int(at.y), (" on " + under) if under != "" else ""]
+	await _real_click(at, ctrl)
+	rec["note"] = "%sclicked at (%d, %d)%s" % ["ctrl-" if ctrl else "", int(at.x), int(at.y), (" on " + under) if under != "" else ""]
 
 
 func _act_key(spec: String, rec: Dictionary) -> void:
@@ -732,12 +744,13 @@ func _motion(at: Vector2) -> void:
 	root.push_input(ev, true)
 
 
-func _real_click(at: Vector2) -> void:
+func _real_click(at: Vector2, ctrl: bool = false) -> void:
 	_motion(at)
 	await _frames(3)
 	for pressed in [true, false]:
 		var ev := InputEventMouseButton.new()
 		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.ctrl_pressed = ctrl   # Row IC, directives: `ctrlclick` holds Ctrl
 		ev.pressed = pressed
 		ev.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
 		ev.position = at
@@ -1066,6 +1079,12 @@ func _state() -> Dictionary:
 	# Row IC: the provinces that wear the map's standing danger mark.
 	out["map_dangers"] = _map_dangers()
 	out["map_danger_names"] = _map_danger_names()
+	# Row IC, directives: the order card's report, the provinces marked as goals
+	# (and the names they wear), the army chips on the marshal row.
+	out["directive_card"] = _directive_card()
+	out["map_goals"] = _map_goals()
+	out["map_goal_names"] = _map_goal_names()
+	out["army_chips"] = _army_chips()
 	out["turn_end"] = _turn_end_rects()
 	out["open"] = _open_surfaces()
 	var fo: Control = root.gui_get_focus_owner()
@@ -1175,6 +1194,56 @@ func _map_dangers() -> Array:
 	var map_area = main.get("map_area")
 	if map_area != null and map_area.has_method("danger_regions"):
 		return map_area.danger_regions()
+	return []
+
+
+func _directive_card() -> Dictionary:
+	"""Row IC, directives: the order card's own report (`directive_report()`),
+	as it returns it; {} while the card is absent, hidden or has no report."""
+	var main := _main()
+	if main == null:
+		return {}
+	var card = main.get("order_card")
+	# (the card is a CanvasLayer — a Node, not a CanvasItem — so its `visible` is read by name)
+	if card != null and is_instance_valid(card) and bool(card.get("visible")) \
+			and card.has_method("directive_report"):
+		var rep = card.directive_report()
+		if rep is Dictionary:
+			return rep
+	return {}
+
+
+func _map_goals() -> Array:
+	"""Row IC, directives: the provinces the map marks as goals."""
+	var main := _main()
+	if main == null:
+		return []
+	var map_area = main.get("map_area")
+	if map_area != null and is_instance_valid(map_area) and map_area.has_method("goal_regions"):
+		return map_area.goal_regions()
+	return []
+
+
+func _map_goal_names() -> Array:
+	"""Row IC, directives: the names the goal marks wear (the order layer's list)."""
+	var main := _main()
+	if main == null:
+		return []
+	var map_area = main.get("map_area")
+	var layer = map_area.get("order_layer") if map_area != null and is_instance_valid(map_area) else null
+	if layer != null and is_instance_valid(layer) and layer.has_method("goal_names"):
+		return layer.goal_names()
+	return []
+
+
+func _army_chips() -> Array:
+	"""Row IC, directives: the army chips standing on the marshal row."""
+	var main := _main()
+	if main == null:
+		return []
+	var row = main.get("_marshal_row")
+	if row != null and is_instance_valid(row) and row.has_method("shown_armies"):
+		return row.shown_armies()
 	return []
 
 

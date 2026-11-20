@@ -100,7 +100,9 @@ class TestTheFaces:
         render = _func("_render")
         assert "if _group.is_empty():" in render
         group = _func("_group_row")
-        assert "march together" in group
+        # (in plain words since row IC's directives reading: "march together · up to 4 of 4 actions
+        # in hand" was read by none of three readers)
+        assert '"sending them costs up to "' in group
         assert "_slot_button" not in group and "Button.new()" not in group
 
     def test_status_badge_uses_the_kit(self):

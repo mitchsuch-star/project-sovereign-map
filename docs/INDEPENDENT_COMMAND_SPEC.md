@@ -1,11 +1,11 @@
 # On His Own — the Emperor's desk, his marshals' judgement, and exact orders (row IC)
 
-> **Status: DESIGN, version 5 — November 19, 2026 — and SESSION 1's FIRST COMMIT IS BUILT: THE DESK (§4, §5,
-> §11's menu steer), the same day.** It is display only: no rule of the game changed but one, narrowed (with no
-> action left, End Turn no longer stops for corps with no orders). What was built, how it differs from §4–§5 as
-> written, and its three blind readings are in §15's landing record; the rules are `SYSTEMS_REFERENCE.md` §229,
-> the ledger `BUG_FIXES.md` §IC. **Nothing else here is built** — not directives, not a marshal on his own, not
-> exact orders, not the enemy's war plans.
+> **Status: DESIGN, version 5 — November 19, 2026 — and BOTH COMMITS the user approved are BUILT, the same day:
+> THE DESK (§4, §5, §11's menu steer; pushed November 19 at his word, "Push both") and DIRECTIVES (one list for
+> every order to several marshals, named armies, the war goal of §9 — slices IC-4 … IC-6).** What was built, how
+> each differs from the design as written, and their blind readings are in §15's two landing records; the rules
+> are `SYSTEMS_REFERENCE.md` §229 and §230, the ledger `BUG_FIXES.md` §IC and §IC directives. **Nothing else here
+> is built** — not a marshal on his own, not exact orders, not "take the war goal", not the enemy's war plans.
 >
 > **The user's rulings in Plan Mode (November 19, 2026), which amend this document:** (1) any order to several
 > marshals shows ONE list first — each man's order, its price, whether he may object — and is sent on one
@@ -872,13 +872,52 @@ tests, not put to a fourth reading. What the readers still could not tell is lis
 serious fault; sixteen rows — thirteen fixed, three closed with their evidence.
 
 **The pause** this section asks for stands: the second commit (directives) was NOT started in this session.
+**Pushed** November 19, 2026, at the user's word ("Push both" — this commit and row PW part 3's).
+
+#### Session 1's second commit — DIRECTIVES — landing record (November 19, 2026)
+
+The user's rulings in Plan Mode: "One list for all", "Yes, named armies", "Desk, then directives". Built
+(`SYSTEMS_REFERENCE.md` §230 is the rule; `BUG_FIXES.md` §IC directives the ledger, none open), as three
+slices the approved plan numbered **IC-4 … IC-6** — the later sessions' slices below keep their content and
+take the next numbers (IC-7 … IC-14):
+
+- **IC-4 — the directive** (`backend/commands/directive.py`): any order to several marshals — the collective
+  words, a list of names, a named army, a Ctrl-clicked group sent to a province — is ONE list before anything
+  is spent (each man's order, its price, whether he may object, who will not go and why, the total against the
+  actions in hand), given on one confirmation as ONE request and taken back as one. Tests
+  `tests/test_ic4_the_directive.py` (with a fuzz).
+- **IC-5 — named armies** (`backend/game_logic/armies.py`): form · add · remove · disband, free; the chip;
+  "Army of Italy, hold". Tests `tests/test_ic5_named_armies.py`.
+- **IC-6 — the war goal** (`backend/game_logic/war_goals.py`; §9's naming and showing half): set and clear,
+  free; THE WAR line, the gold ring, the war's window, and a TO DECIDE row that opens the march on it as one
+  list. Tests `tests/test_ic6_the_war_goal.py`.
+- Driven in the real client at the first player's setup: `tests/test_dd_b_the_client_hands.py::TestRowICDirectives`.
+
+**Where it differs from the design as written, and why:**
+
+| The design said | What was built | Why |
+|---|---|---|
+| A directive is "high-level" — an order the marshals carry out in their own way. | Each man's OWN order, as the game would carry it out for him alone, shown row by row; nobody improvises. | The user's ruling "One list for all": what is shown is what is done. A marshal's own judgement belongs to "on his own" (§6), not built. |
+| §9: "take the war goal" — changing the goal turns every man who serves it. | The goal is named, shown and offered as one list; nobody serves it by standing order. | Serving a goal is a standing order of "on his own"; it stays with IC-10 (§15, Session 3). |
+| A group sent by a click marches. | Each man takes his own click order — a move next door at one action, a march beyond — and the head says "go to". | Row PW's click rule for a single corps; a group charged the two-action march to all. |
+| (not in the design) | The war's purpose and the player's goal are told apart in words ("— your war goal: Vienna"). | Blind reading 2: "to hold the homeland — goal: Vienna" read as one aim. |
+
+**The blind readings** (`docs/audits/ic_client/directives/README.md`; questions and key written before each
+reading's frames): reading 1 MET 21/21, reading 2 NOT MET 28/30, reading 3 MET 15/15, reading 4 MET 12/12 —
+twelve fresh readers, 76 of 78; sixteen levers built from what they said confused them.
+
+**The review before the commit:** three readers by lane and a skeptic for each; sixteen rows (IC-R17 …
+IC-R32), every one fixed — among them "Army of Italy, disband" read as an order to its first man, the desk
+plotting every idle corps' road on every reply, and a fog leak of an unseen commander's fall.
+
+**Inert where unused:** the byte-identity series and the France band (26 / 27 / 28, `tools/_ic_band_2026_11_19.json`).
 
 ### Session 2 — On his own
 
 | Slice | What | Done when | Tests |
 |---|---|---|---|
-| **IC-4** | The order, the pure reading, the pass, "Tonight", the card, the count and its law, the morning block (lines by nature) | An order can be given by card; "Tonight" equals the act on every path of the life table; the count holds; the Staff raises it | `tests/test_ic4_on_his_own.py` (each task; each state and its way out; one thing a turn; the purity test; the count; serialization); driven `TestRowIC4InTheClient` |
-| **IC-5** | Talking: open lines, ask, change, today's order, recall, withdraw; the read-back rule | Every line of §8 works with no key; nothing is spent before the read-back is confirmed | `tests/test_ic5_talking.py`; rows in the golden corpus |
+| **IC-7** | The order, the pure reading, the pass, "Tonight", the card, the count and its law, the morning block (lines by nature) | An order can be given by card; "Tonight" equals the act on every path of the life table; the count holds; the Staff raises it | `tests/test_ic7_on_his_own.py` (each task; each state and its way out; one thing a turn; the purity test; the count; serialization); driven `TestRowIC7InTheClient` |
+| **IC-8** | Talking: open lines, ask, change, today's order, recall, withdraw; the read-back rule | Every line of §8 works with no key; nothing is spent before the read-back is confirmed | `tests/test_ic8_talking.py`; rows in the golden corpus |
 
 Measure: one sweep with arms — as today; N 1; N 2 at the start; N by the ladder — on the three commanded seeds.
 R-INERT, R-TRUE, R-BAND, R-FUN; R-READ for "on his own". STATUS line: *"ROW IC, SESSION 2 — ON HIS OWN"*.
@@ -887,9 +926,9 @@ R-INERT, R-TRUE, R-BAND, R-FUN; R-READ for "on his own". STATUS line: *"ROW IC, 
 
 | Slice | What | Done when | Tests |
 |---|---|---|---|
-| **IC-6** | Exact orders for France's literal men | Three if-thens; one attack line at most; each used once; one thing a turn; an uncovered case is a row, not a stop | `tests/test_ic6_exact_orders.py` |
-| **IC-7** | The war goal; "take the war goal" | Changing the goal turns every man who serves it, at its price | `tests/test_ic7_the_war_goal.py` |
-| **IC-8** | The voice: each marshal's shipped ability as his personal line; authored odds; the new lines; "said lately"; the portrait; `docs/MARSHAL_VOICE_BIBLE.md`; rule 11's wording; the lesson's two cards | No line twice in a man's last three; three readers tell two marshals apart from their lines alone | `tests/test_ic8_every_man_his_own_line.py` |
+| **IC-9** | Exact orders for France's literal men | Three if-thens; one attack line at most; each used once; one thing a turn; an uncovered case is a row, not a stop | `tests/test_ic9_exact_orders.py` |
+| **IC-10** | The war goal; "take the war goal" | Changing the goal turns every man who serves it, at its price | `tests/test_ic10_the_war_goal.py` |
+| **IC-11** | The voice: each marshal's shipped ability as his personal line; authored odds; the new lines; "said lately"; the portrait; `docs/MARSHAL_VOICE_BIBLE.md`; rule 11's wording; the lesson's two cards | No line twice in a man's last three; three readers tell two marshals apart from their lines alone | `tests/test_ic11_every_man_his_own_line.py` |
 
 STATUS line: *"ROW IC, SESSION 3 — EXACT ORDERS, THE WAR GOAL AND THE VOICE"*.
 
@@ -897,9 +936,9 @@ STATUS line: *"ROW IC, SESSION 3 — EXACT ORDERS, THE WAR GOAL AND THE VOICE"*.
 
 | Slice | What | Done when | Tests |
 |---|---|---|---|
-| **IC-9** | War plans; enemy literal marshals under exact orders | Each court at war draws a plan; a planned literal marshal has one master; his if-thens read his own nation's sight | `tests/test_ic9_the_war_plan.py`; a fog census pin for every enemy if-then |
-| **IC-10** | Natures public; the spy's report; captured orders | Nothing is shown that was not learned; knowledge ages by time only | `tests/test_ic10_what_you_learn.py` |
-| **IC-11** | The hunt, as an arm; the closing measure and readings; the records | Every rule of §13 is met on the final tree, or the report says which was not | `tests/test_ic11_the_hunt.py` |
+| **IC-12** | War plans; enemy literal marshals under exact orders | Each court at war draws a plan; a planned literal marshal has one master; his if-thens read his own nation's sight | `tests/test_ic12_the_war_plan.py`; a fog census pin for every enemy if-then |
+| **IC-13** | Natures public; the spy's report; captured orders | Nothing is shown that was not learned; knowledge ages by time only | `tests/test_ic13_what_you_learn.py` |
+| **IC-14** | The hunt, as an arm; the closing measure and readings; the records | Every rule of §13 is met on the final tree, or the report says which was not | `tests/test_ic14_the_hunt.py` |
 
 STATUS line: *"ROW IC, SESSION 4 — THE OTHER SIDE OF THE HILL — ROW IC COMPLETE"*.
 
@@ -1057,7 +1096,7 @@ ledgers with every finding and its ruling.
 
 ## §20 Records, and the next session's prompt
 
-**WRITTEN at the close of Session 1's first commit (November 19, 2026)** — STATUS's entry and NEXT UP line, CLAUDE.md's live state, `SYSTEMS_REFERENCE.md` §229, `BUG_FIXES.md` §IC. The paragraph below is the record of why they waited. **Not written in the design session, on purpose.** `docs/STATUS.md` holds exactly seven session entries and its pin
+**WRITTEN at the close of Session 1's first commit (November 19, 2026)** — STATUS's entry and NEXT UP line, CLAUDE.md's live state, `SYSTEMS_REFERENCE.md` §229, `BUG_FIXES.md` §IC; and at the close of its second (directives, the same day) — §230, `BUG_FIXES.md` §IC directives, STATUS, CLAUDE.md, `SAVE_FORMAT_REFERENCE.md` (`armies`, `war_goals`), `docs/NEXT_SESSION_PROMPT.md`. The paragraph below is the record of why they waited. **Not written in the design session, on purpose.** `docs/STATUS.md` holds exactly seven session entries and its pin
 allows seven. `CLAUDE.md` is one byte under its size cap. Both carry pins that cost a full run of the suite, and
 the working tree holds the user's uncommitted work. The routing lines for row IC are written at the close of
 Session 1, with the trims they need. Until then this file, the folder `docs/audits/ic_focus_groups/` and the

@@ -47,6 +47,8 @@ const ENTRIES := [
 	["ORDERS", "reach", "With a corps selected, each province shows how long he needs to get there: this turn, 1 turn, 2–3 turns, 4 or more. Dark = he cannot reach it."],
 	["ORDERS", "arrow", "A standing order: the road a corps is marching. Red: he is pursuing. Blue: he is supporting. Click the line to change or cancel it."],
 	["ORDERS", "trail", "The road a corps has just walked — yours when you send it, the enemy's after you end the turn."],
+	# Row IC, directives: the war goal's gold ring.
+	["ORDERS", "goal", "A gold ring: the goal you set for a war — a place to take, or an enemy army to beat. Set it from a province's panel, or type “the war goal is Vienna”."],
 ]
 
 var _columns_box: HBoxContainer = null
@@ -190,6 +192,8 @@ class MapKeySample extends Control:
 	const SHADOW := Color(0.08, 0.06, 0.04, 0.75)
 	const PORT_RED := Color(0.85, 0.25, 0.25, 0.95)
 	const DANGER := Color(0.93, 0.36, 0.28, 0.98)       # row IC: `map_order_layer.DANGER_COLOR`
+	const GOAL := Color(0.96, 0.80, 0.36, 1.0)          # row IC, directives: `map_order_layer.GOAL_COLOR`
+	const GOAL_SHADE := Color(0.08, 0.06, 0.04, 0.78)   # … and `GOAL_SHADOW`
 	var kind := ""
 
 	func _ready() -> void:
@@ -274,6 +278,15 @@ class MapKeySample extends Control:
 				draw_colored_polygon(tri, DANGER)
 				draw_line(c4 + Vector2(0, -5.0), c4 + Vector2(0, 2.5), Color(0.99, 0.95, 0.88), 2.4, true)
 				draw_circle(c4 + Vector2(0, 6.0), 1.5, Color(0.99, 0.95, 0.88))
+			"goal":
+				# the order layer's own ring (`map_order_layer._draw_goals`)
+				var c5 := Vector2(w / 2.0, h / 2.0)
+				var ring_pts := PackedVector2Array()
+				for s in range(41):
+					var ang := TAU * float(s) / 40.0
+					ring_pts.append(c5 + Vector2(cos(ang) * 18.0, sin(ang) * 11.0))
+				draw_polyline(ring_pts, GOAL_SHADE, 5.5, true)
+				draw_polyline(ring_pts, GOAL, 2.8, true)
 			"reach":
 				var side_px := 12.0
 				for i in range(REACH.size()):

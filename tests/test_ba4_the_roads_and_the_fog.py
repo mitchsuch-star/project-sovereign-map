@@ -527,7 +527,12 @@ class TestAQuoteNamesTheMenItsFirstMarchCosts:
         card = (scripts / "order_confirm_card.gd").read_text(encoding="utf-8")
         assert 'var march_cost := str(q.get("march_cost", ""))' in panel
         assert '["march_cost", "detour", "guard", "front", "terms"]' in panel
-        assert card.count('q.get("march_cost", "")') == 2, "the order card and the group card"
+        # Re-seated November 19, 2026 (row IC, directives): the group card is gone;
+        # the LIST card prints the server's notes, and the server folds the first
+        # march's cost into each row (`directive._RIDERS`).
+        assert card.count('q.get("march_cost", "")') == 1, "the order card"
+        from backend.commands import directive
+        assert "march_cost" in directive._RIDERS
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -2067,7 +2072,7 @@ class TestNewsOfABattleAbroad:
             assert kind in campaign_log.CAMPAIGN_LOG_TYPES
         # 188 at BA-4; 191 since row MC (Nov 17, 2026) added `marshal_bond`, `title_in_the_gift`
         # and `title_conferred` (precedence.py)
-        assert len(campaign_log.CAMPAIGN_LOG_TYPES) == 191
+        assert len(campaign_log.CAMPAIGN_LOG_TYPES) == 193  # 191->193 flipped consciously: row IC, directives (Nov 19, 2026) adds `army_roster` - a named army formed, changed or dissolved (armies.py) - and `war_goal` - the goal the Emperor names for a war, or drops (war_goals.py); no inert type retired in exchange
 
 
 # ════════════════════════════════════════════════════════════════════════

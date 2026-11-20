@@ -2067,6 +2067,9 @@ class CommandParser:
             "proclaim_design",
             # VP-1 (S14b part 3): the road page's Decree — gold + 1 admin
             "decree_act",
+            # Row IC, directives: the staff's two free books — no marshal
+            "army",          # "form the Army of Italy with Ney and Lannes"
+            "set_war_goal",  # "the war goal is Vienna" / "clear the war goal"
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

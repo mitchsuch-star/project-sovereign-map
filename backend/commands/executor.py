@@ -50,6 +50,7 @@ from backend.commands.tactical_executor import TacticalExecutor
 from backend.commands.movement_executor import MovementExecutor
 from backend.commands.naval_executor import NavalExecutor
 from backend.commands.reforms_executor import ReformsExecutor
+from backend.commands.directive_executor import DirectiveExecutor
 from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 from backend.errors import report
@@ -645,6 +646,7 @@ class CommandExecutor:
         self._movement = MovementExecutor(self)
         self._naval = NavalExecutor(self)
         self._reforms = ReformsExecutor(self)  # SR-5r RF-1: the laws
+        self._directive = DirectiveExecutor(self)  # row IC: named armies, the war goal
         self._meta = MetaExecutor(self)
         print("Command Executor initialized")
 
@@ -1829,7 +1831,9 @@ class CommandExecutor:
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
         # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "bind_to_war", "recognition_sweetener"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "bind_to_war", "recognition_sweetener",
+                        # Row IC, directives: a named army and a war's goal are free
+                        "army", "set_war_goal"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -3445,6 +3449,14 @@ class CommandExecutor:
             result = self._naval._execute_naval_expedition(command, game_state)
         elif action == "naval_diversion":
             result = self._naval._execute_naval_diversion(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # ROW IC, DIRECTIVES — the staff's two free books (no marshal, no
+        # action, nobody to object): a named army and the goal of a war
+        # ════════════════════════════════════════════════════════════
+        elif action == "army":
+            result = self._directive._execute_army(command, game_state)
+        elif action == "set_war_goal":
+            result = self._directive._execute_set_war_goal(command, game_state)
         # ════════════════════════════════════════════════════════════
         # SR-5r THE LAWS (docs/REFORMS_SPEC.md §2) — acts of state
         # ════════════════════════════════════════════════════════════

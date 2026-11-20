@@ -95,14 +95,31 @@ class ApiStub extends Node:
 		var key := "order_quote:%s|%s|%s" % [str(m), str(kind), str(target)]
 		calls.append(key)
 		held[key] = cb
-	# CC-5: the group card's one GET, held under "group_quotes:<a,b,c>|<dest>".
-	func get_group_quotes(names, dest, cb = null):
-		var keys := PackedStringArray()
-		for n in names:
-			keys.append(str(n))
-		var key := "group_quotes:%s|%s" % [",".join(keys), str(dest)]
+	# Row IC, the directive (November 19, 2026; it replaced CC-5's group
+	# quotes): the list's ONE read-only GET, held under
+	# "directive_quote:<line>|click" ("|line" for a composed line) …
+	func get_directive_quote(line, click, cb = null):
+		var key := "directive_quote:%s|%s" % [str(line), "click" if click else "line"]
 		calls.append(key)
 		held[key] = cb
+	# … and its Give: ONE request, recorded with all it carries, its callback
+	# HELD until the scenario answers it with the real backend's reply.
+	var held_directives: Array = []
+	func send_directive(line, members, expect_ap, click, cb = null):
+		var names := PackedStringArray()
+		for m in members:
+			names.append(str(m))
+		calls.append("directive:%s|%s|%d|%s" % [str(line), ",".join(names), int(expect_ap),
+			"click" if click else "line"])
+		held_directives.append(cb)
+	func answer_directive(payload) -> bool:
+		if held_directives.is_empty():
+			return false
+		var cb = held_directives.pop_front()
+		if cb is Callable:
+			(cb as Callable).call(payload)
+			return true
+		return false
 	func answer(key: String, payload) -> bool:
 		var cb = held.get(key, null)
 		held.erase(key)
@@ -1238,8 +1255,9 @@ func _read_restored_terminal() -> void:
 # The spec's "cc5" block carries a REAL board with standing orders of ours
 # and busy corps, and the real backend's replies the scenarios answer the
 # held requests with: the arrow card's cancel and the Orders tab's (POST
-# /cancel_order, in sequence on one world), the group's quotes (GET
-# /march_quotes?marshals=…) and its lines' own replies (POST /command).
+# /cancel_order, in sequence on one world), the group's LIST (GET
+# /directive_quote, click=1 — row IC) and its Give's one reply (POST /command
+# with `members` and `expect_ap`).
 
 func _wait_frames(n: int) -> void:
 	for _i in range(n):
@@ -1332,8 +1350,10 @@ func _gather(members: Array) -> void:
 
 
 func _group_send(cc5: Dictionary, run: Dictionary, tag: String) -> void:
-	"""One group run: gather, click the province, answer the card's GET, press
-	Enter, then answer each line as it is sent — the replies in `run`."""
+	"""One group run (row IC, the directive): gather, click the province — the
+	card stands at once on "reading" and asks ONE read-only GET — answer it with
+	the server's list, press Enter — ONE request carrying the ticked men and the
+	total shown — and answer that with the server's reply."""
 	var members: Array = run["members"]
 	var dest := str(run["dest"])
 	var card = _card()
@@ -1346,37 +1366,35 @@ func _group_send(cc5: Dictionary, run: Dictionary, tag: String) -> void:
 	_out[tag + "_strip"] = str(_main.call("order_strip_text"))
 	var n: int = _api.calls.size()
 	_click(dest)
+	# The list opens ONCE, fully formed, when it arrives (a card that grew as
+	# its rows came bobbed); only a list slow to come shows the reading card.
+	_out[tag + "_card_before_answer"] = bool(card.visible)
+	_out[tag + "_asked"] = _calls_since(n, "directive_quote:")
+	if bool(run.get("slow", false)):
+		await create_timer(0.6).timeout   # past main.gd's DIRECTIVE_READING_DELAY_S
+		_out[tag + "_reading"] = (card.call("directive_report") as Dictionary).duplicate(true)
+	_api.answer("directive_quote:%s|click" % str(run["line"]), run["quote"])
+	await _wait_frames(2)
 	_out[tag + "_card_mode"] = str(card.call("mode"))
-	_out[tag + "_asked"] = _calls_since(n, "group_quotes:")
-	var key := "group_quotes:%s|%s" % [",".join(PackedStringArray(members.map(func(k): return str(k)))), dest]
-	_api.answer(key, run["quotes"])
-	_out[tag + "_lines"] = card.call("group_lines")
-	var terms = card.get("terms_label")
-	_out[tag + "_terms"] = str(terms.get_parsed_text()) if terms != null else ""
-	_out[tag + "_send_label"] = str((card.get("send_button") as Button).text)
+	_out[tag + "_report"] = (card.call("directive_report") as Dictionary).duplicate(true)
 	_main.set("_awaiting_end_turn_confirmation", true)
-	var sent_before := _sends().size()
-	_api.held_sends.clear()
+	n = _api.calls.size()
 	_key(KEY_ENTER)
-	var trace: Array = []
-	var replies: Array = run["replies"]
-	for i in range(replies.size()):
-		await _wait_frames(2)
-		var on_wire: Array = []
-		for h in _api.held_sends:
-			on_wire.append(str(h[0]))
-		trace.append({"on_wire": on_wire, "run": _main.call("group_run_report").duplicate(true)})
-		if _api.held_sends.is_empty():
-			break
-		_api.answer_send(replies[i])
-	await _wait_frames(3)
-	_out[tag + "_trace"] = trace
-	_out[tag + "_sent"] = _sends().slice(sent_before)
-	_out[tag + "_left_on_wire"] = _api.held_sends.size()
+	await _wait_frames(1)
+	_out[tag + "_given"] = _calls_since(n, "directive:")
+	_out[tag + "_sent"] = _calls_since(n, "send:")
+	_out[tag + "_input_while_out"] = bool(_line().editable)
 	_out[tag + "_latch"] = bool(_main.get("_awaiting_end_turn_confirmation"))
+	_out[tag + "_card_while_out"] = bool(card.visible)
+	_api.answer_directive(run["reply"])
+	await _wait_frames(3)
+	_out[tag + "_left_on_wire"] = _api.held_directives.size()
 	_out[tag + "_modal"] = bool(_main.call("_is_modal_dialog_open"))
-	_out[tag + "_run_after"] = _main.call("group_run_report")
+	_out[tag + "_card_after"] = (card.call("directive_report") as Dictionary).duplicate(true)
+	_out[tag + "_ap_after"] = int(_main.get("actions_remaining"))
 	_out[tag + "_tail"] = _terminal_tail(1400)
+	if card.visible:
+		card.call("_on_cancel")   # a list drawn again: let it go before the next run
 	# The arrows the run left standing — and whether any two badges print on
 	# one spot (orders bound for one province step their badges apart).
 	var layer = _map().get("order_layer")
@@ -1398,6 +1416,7 @@ func _group_send(cc5: Dictionary, run: Dictionary, tag: String) -> void:
 	_main.set("_chip_command_in_flight", false)
 	_main.call("set_input_enabled", true)
 	_api.held_sends.clear()
+	_api.held_directives.clear()
 
 
 func _run_cc5() -> void:
@@ -1551,8 +1570,9 @@ func _run_cc5() -> void:
 	if pause != null and pause.visible:
 		pause.call("close_menu")
 
-	# w7 / w8 / w9 — the group card and its Send: a real run that stops at a
-	# question, a line refused on the wire, and a run that sends them all.
+	# w7 / w8 / w9 — the group's list and its Give (row IC): a real order that
+	# stops at a question, a list that no longer holds (drawn again, nothing
+	# spent), and an order that goes to them all.
 	for tag in ["w7", "w8", "w9"]:
 		if cc5.has(tag):
 			await _group_send(cc5, cc5[tag], tag)

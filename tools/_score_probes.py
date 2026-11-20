@@ -1584,7 +1584,12 @@ BOARD_GATE_RX = re.compile(
     # DD0-18 (b) (S4 part 4, October 11, 2026): the Cabinet's refusal of a
     # war on our own satellite — a string new this part (grepped: in no
     # committed record but the part-4 re-reads).
-    r"is our own vassal",
+    r"is our own vassal|"
+    # Row IC, directives (November 19, 2026): the two books' refusals of a line
+    # read right — an army that has not been formed, a war goal not set (the
+    # help teaches "disband the Army of Italy" and "clear the war goal").
+    # Grepped first: in no committed record, so every record re-reads identical.
+    r"There is no army called|No war goal is set",
     re.I,
 )
 # ALREADY_HELD_RX: DD-B's third measure (October 26, 2026): the sea road's

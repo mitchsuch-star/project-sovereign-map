@@ -1572,4 +1572,6 @@ class TestTheReportIsTheEnemysMoves:
         names = re.findall(r'^\t\["([^"]+)",', terms.split("const ORDER_GRAMMAR", 1)[0], flags=re.M)
         at = names.index("The enemy's moves")
         assert names[at - 1] == "Ending a war" and names[at + 1] == "Expedition"
-        assert len(names) == 61
+        # 61 -> 64 (row IC, directives, November 19, 2026): "Named army",
+        # "Orders to several corps" and "War goal" joined the glossary.
+        assert len(names) == 64

@@ -14,10 +14,14 @@ extends PopupBase
 #     road and clock, and [Cancel order (1 AP)] (POST /cancel_order — the
 #     price and the trust it costs are the backend's) [Change (Enter)]
 #     (selects him: CC-3) [Close (Esc)]. Enter is the harmless answer.
-#   * the GROUP card — a Ctrl-click group sent to one province: a line per
-#     corps, each its own quote (`GET /march_quotes?marshals=…`), the taken
-#     lines' actions summed against the pool, and [Send N orders (Enter)]
-#     [Cancel (Esc)].
+#   * the LIST card (row IC, directives, November 19, 2026 — it replaced the
+#     CC-5 group card, which sent one request a corps) — any order to SEVERAL
+#     corps: a typed collective line, a list of names, a named army, a
+#     Ctrl-click group sent to a province, a TO DECIDE row. One row a corps
+#     with a tick, each man's order, its price, whether he may object; who
+#     will not go and why; the total against the actions in hand; and
+#     [Give the order (Enter)] [Cancel (Esc)]. Give is ONE request and one
+#     Take-back unit; every row is the server's (`backend/commands/directive.py`).
 #
 # MODAL (dialog_manager-registered, layer 123): while it is up it takes EVERY
 # key in `_input` — Enter answers, Esc cancels, and nothing else reaches the
@@ -32,7 +36,10 @@ signal cancelled
 # CC-5
 signal standing_cancel_requested(marshal: String)
 signal standing_change_requested(marshal: String)
-signal group_send_requested(lines: Array, held: Array)
+# Row IC, directives: the list's Give — the line to send back, the ticked men
+# in the list's order, the total the player saw, and whether the group came
+# from a click on the map (each man's own plain order).
+signal directive_give_requested(line: String, members: Array, expect_ap: int, click: bool)
 # Row BA, BA-2: a `bring` chip on an attack's card — the order that brings a
 # corps standing by, sent at once (the card closes; the lead is selected again).
 signal bring_requested(command: String)
@@ -49,10 +56,9 @@ signal take_requested(province: String)
 
 var _quote: Dictionary = {}
 # CC-5: which face the card wears — "order" (CC-3), "standing" (an arrow's),
-# "group" (a Ctrl-click group's).
+# "directive" (row IC: the list of an order to several corps).
 var _mode := "order"
 var _standing: Dictionary = {}       # the arrow's: {marshal, shown, info, ap_left}
-var _group_plan: Dictionary = {}     # the group's: {send, held, total, ap_left, dest}
 # The screen rects the card stands clear of (the selected corps' ring and
 # ghost road, the selection's strip) — GLOBAL, logical px.
 var _avoid: Array = []
@@ -80,14 +86,21 @@ func _wear(mode: String) -> void:
 	_mode = mode
 	if _force_box != null and is_instance_valid(_force_box):
 		_force_box.visible = false
-	line_button.visible = mode != "group"
+	# Row IC, directives: the list's face has no "Put in line" (Give sends the
+	# ticked rows as one order) and stands its rows where the terms stand.
+	var listing := mode == "directive"
+	line_button.visible = not listing
+	terms_label.visible = not listing
+	if not listing:
+		_free_directive()
+	command_label.tooltip_text = ""
 	match mode:
 		"standing":
 			send_button.text = "Cancel order"
 			line_button.text = "Change  (Enter)"
 			cancel_button.text = "Close  (Esc)"
-		"group":
-			send_button.text = "Send  (Enter)"
+		"directive":
+			send_button.text = DIR_GIVE
 			cancel_button.text = "Cancel  (Esc)"
 		_:
 			send_button.text = "Send  (Enter)"
@@ -101,7 +114,7 @@ func open_card(quote: Dictionary, title: String, reading: String, avoid: Array =
 	where it hides least of `avoid` (the road it confirms)."""
 	_wear("order")
 	_standing = {}
-	_group_plan = {}
+	_dir = {}
 	title_label.text = title
 	_avoid = avoid.duplicate()
 	if quote.is_empty():
@@ -264,7 +277,7 @@ func open_standing_card(marshal: String, shown: String, info: Dictionary, ap_lef
 	and clock, and what cancelling it costs — [Cancel order] [Change]."""
 	_wear("standing")
 	_quote = {}
-	_group_plan = {}
+	_dir = {}
 	_standing = {"marshal": marshal, "shown": shown, "info": info.duplicate(true), "ap_left": ap_left}
 	_avoid = avoid.duplicate()
 	title_label.text = "STANDING ORDER — " + shown.to_upper()
@@ -334,122 +347,493 @@ func standing_marshal() -> String:
 	return str(_standing.get("marshal", "")) if _mode == "standing" else ""
 
 
-# ── CC-5: the group's card ─────────────────────────────────────────────────
+# ── Row IC, directives: the list of an order to several corps ──────────────
+# The user's ruling (Plan Mode, November 19, 2026): "One list for all" — any
+# order to several marshals is shown as ONE list before anything is spent:
+# who it goes to, each man's order, its price, whether he may object, who will
+# not go and why, the total against the actions in hand. A tick per man who
+# can go; [Give the order] sends the ticked rows as ONE order (one request,
+# one Take-back unit); [Cancel] spends nothing. Every word on it is the
+# server's (`/directive_quote`, or `/command` with `list_first` —
+# `backend/commands/directive.py`): the card composes no order and prices
+# nothing of its own. The total for a changed set of ticks is the rows' own
+# figures summed — the Staff's one price only for its whole column, the
+# server's own rule (`directive.total_for`) — and the server refuses a give
+# whose total is not the one shown.
 
-func open_group_card(title: String, dest: String, reading: String, avoid: Array = []) -> void:
-	"""A Ctrl-click group sent to `dest` — raised while its quotes are read;
-	`show_group` fills it."""
-	_wear("group")
+const DIR_GIVE := "Give the order  (Enter)"
+const DIR_HELP := ("Untick a corps to leave him out — click his row, or Up/Down and Space. "
+	+ "Give sends the ticked orders as one; Take back (Ctrl+Z) undoes them all and gives their actions back. "
+	+ "A marshal who objects asks you himself, and the rest wait behind his question.")
+const DIR_ROW_PAD := 4.0           # a row's own margin (the keyboard's frame)
+const DIR_ROW_GAP := 4
+const DIR_SCROLLBAR_W := 14.0      # the room a shown scrollbar takes from the rows' words
+const DIR_TICK_GAP := 8.0
+
+var _dir: Dictionary = {}          # the list as the server drew it
+var _dir_ticks: Dictionary = {}    # marshal key -> ticked
+var _dir_pick: Array = []          # the keys of the rows that can go, in the list's order
+var _dir_cursor := 0               # index into _dir_pick: the keyboard's row
+var _dir_box: VBoxContainer = null
+var _dir_scroll: ScrollContainer = null
+var _dir_rows: VBoxContainer = null
+var _dir_row_nodes: Dictionary = {}  # marshal key -> his row (PanelContainer)
+var _dir_sum: RichTextLabel = null
+var _given_up := ""                # the headline of the list last let go (Cancel / Esc)
+
+
+func given_up_words() -> String:
+	"""The list just let go, in its headline's words — "" after any other
+	answer (read once by main's cancel handler)."""
+	var words := _given_up
+	_given_up = ""
+	return words
+
+
+func open_directive(listing: Dictionary, avoid: Array = [], note: String = "") -> void:
+	"""Raise the card on the LIST of an order to several corps — `listing` is
+	the server's `directive` ({kind, who, order, line, click, rows, total,
+	have, staff, sendable, note}); while it is being read, a placeholder
+	({who, order, count, reading: true, note}). `note` is said above the rows
+	(why the list was drawn again)."""
+	_wear("directive")
 	_quote = {}
 	_standing = {}
-	_group_plan = {"dest": dest, "send": [], "held": [], "total": 0, "ap_left": 0}
 	_avoid = avoid.duplicate()
-	title_label.text = title
-	command_label.text = "March to " + dest
-	terms_label.text = "[color=#" + Utils.COLOR_INFO + "]" + reading + "[/color]"
-	send_button.disabled = true
+	_dir = listing.duplicate(true)
+	_dir_ticks = {}
+	_dir_pick = []
+	var rows: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
+	for r in rows:
+		if not (r is Dictionary):
+			continue
+		var key := str(r.get("marshal", ""))
+		if bool(r.get("ok", false)) or bool(r.get("covered", false)):
+			_dir_pick.append(key)
+			_dir_ticks[key] = bool(r.get("ticked", false))
+	_dir_cursor = 0
+	# A list still being read, or one that could not be read, carries no rows to
+	# count — its title says no number (the review: "ORDERS FOR 2 CORPS" stood
+	# over a list of five while it was read).
+	title_label.text = ("ORDERS FOR %d CORPS" % rows.size()) if not rows.is_empty() else "ORDERS FOR SEVERAL CORPS"
+	var who := str(_dir.get("who", ""))
+	var order := str(_dir.get("order", ""))
+	command_label.text = directive_headline(who, order, _headline_room())
+	command_label.tooltip_text = (who + ": " + order) if (who != "" and order != "") else (who + order)
 	cancel_button.disabled = false
+	_build_directive(note)
 	_raise()
+	refit.call_deferred()   # the rows' words re-wrap first
 
 
-static func group_plan(quotes: Array, ap_left: int) -> Dictionary:
-	"""Which lines go: each corps' own quote, in the group's order — a taken
-	line goes while the pool can pay it; a refused line, a man already
-	there or already on that march, and a line the pool cannot pay stay
-	(named). The sum is the taken lines' own prices."""
-	var send: Array = []
-	var held: Array = []
-	var total := 0
-	var left := ap_left
-	for q in quotes:
-		if not (q is Dictionary):
+func directive_headline(who: String, order: String, room: float) -> String:
+	"""Who and what: "Ney, Davout and Soult: march to Lorraine". When that does
+	not fit the line (`room` px; the label trims with "…"), the ORDER leads —
+	"Go to Vienna — Ney, Davout, Soult, …" — so a cut takes names the rows list
+	anyway, never the order (pressed in the real client: eight names left
+	"…" where "go to Vienna" stood)."""
+	if who == "" or order == "":
+		return who + order
+	var plain := who + ": " + order
+	if room <= 0.0 or _text_width(plain) <= room:
+		return plain
+	return order.left(1).to_upper() + order.substr(1) + " — " + who
+
+
+func _text_width(text: String) -> float:
+	var font: Font = command_label.get_theme_font("font")
+	if font == null:
+		return 0.0
+	return font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		command_label.get_theme_font_size("font_size")).x
+
+
+func _headline_room() -> float:
+	"""The headline's width on the card as `refit` will make it (the card's
+	width less the frame's margins)."""
+	var panel: PanelContainer = $PanelContainer
+	var frame: StyleBox = panel.get_theme_stylebox("panel")
+	var view := panel.get_viewport_rect().size
+	var band := Utils.hud_band(view)
+	var w := minf(minf(CARD_WIDTH, (band.y - band.x) * BAND_SHARE), maxf(160.0, view.x - 2.0 * CARD_EDGE))
+	return maxf(160.0, w) - (frame.get_minimum_size().x if frame != null else 40.0)
+
+
+func _build_directive(note: String) -> void:
+	"""The list's nodes: a note, the rows in a scroll (those who can go with a
+	tick; then who will not go, and why), the sum and the help."""
+	_free_directive()
+	var vb: VBoxContainer = $PanelContainer/VBox
+	_dir_box = VBoxContainer.new()
+	_dir_box.name = "DirectiveBox"
+	_dir_box.add_theme_constant_override("separation", 6)
+	vb.add_child(_dir_box)
+	vb.move_child(_dir_box, command_label.get_index() + 1)
+	var reading := bool(_dir.get("reading", false))
+	var said := note.strip_edges()
+	if said == "" and (reading or not bool(_dir.get("sendable", true))):
+		said = str(_dir.get("note", "")).strip_edges()
+	if said != "":
+		var tone: String = Utils.COLOR_INFO if reading else Utils.COLOR_WARNING
+		_dir_label("DirectiveNote", "[color=#" + tone + "]" + said + "[/color]", _dir_box)
+	_dir_scroll = ScrollContainer.new()
+	_dir_scroll.name = "DirectiveRows"
+	_dir_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# UI6-X22: a scroll whose child's width follows its bar can flip forever in
+	# one frame — the bar's room is reserved (the rows' words already leave it).
+	_dir_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE
+	_dir_box.add_child(_dir_scroll)
+	_dir_rows = VBoxContainer.new()
+	_dir_rows.name = "Rows"
+	_dir_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_dir_rows.add_theme_constant_override("separation", DIR_ROW_GAP)
+	_dir_scroll.add_child(_dir_rows)
+	_dir_row_nodes = {}
+	var stays := PackedStringArray()
+	var rows: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
+	for r in rows:
+		if not (r is Dictionary):
 			continue
-		var shown := str(q.get("shown", q.get("marshal", "")))
-		if not bool(q.get("ok", false)):
-			held.append({"shown": shown, "reason": str(q.get("refusal", "the order cannot be given"))})
-		elif bool(q.get("already", false)):
-			held.append({"shown": shown, "reason": "already on that march"})
-		elif int(q.get("ap", 0)) > left:
-			held.append({"shown": shown, "reason": "the pool is spent before him (needs %s)"
-				% Utils.plural(int(q.get("ap", 0)), "action")})
+		var key := str(r.get("marshal", ""))
+		if _dir_pick.has(key):
+			var row := _dir_row(r)
+			_dir_rows.add_child(row)
+			_dir_row_nodes[key] = row
 		else:
-			send.append({"marshal": str(q.get("marshal", "")), "shown": shown,
-				"command": str(q.get("command", "")), "ap": int(q.get("ap", 0))})
-			total += int(q.get("ap", 0))
-			left -= int(q.get("ap", 0))
-	return {"send": send, "held": held, "total": total, "ap_left": ap_left}
+			stays.append("[b]" + str(r.get("shown", key)) + "[/b] — " + str(r.get("why", "")))
+	if not stays.is_empty():
+		_dir_label("WillNotGo", "[color=#" + Utils.COLOR_ERROR + "]Will not go:[/color]\n"
+			+ "\n".join(stays), _dir_rows)
+	_dir_sum = _dir_label("DirectiveSum", "", _dir_box)
+	if not reading:
+		_dir_label("DirectiveHelp", "[color=#" + Utils.COLOR_INFO + "]" + DIR_HELP + "[/color]", _dir_box)
+	_paint_directive()
 
 
-func show_group(quotes: Array, ap_left: int) -> void:
-	var plan := group_plan(quotes, ap_left)
-	plan["dest"] = str(_group_plan.get("dest", ""))
-	_group_plan = plan
-	var lines := PackedStringArray()
-	for q in quotes:
-		if not (q is Dictionary):
+func _dir_label(node_name: String, bbcode: String, parent: Control) -> RichTextLabel:
+	var label := RichTextLabel.new()
+	label.name = node_name
+	label.bbcode_enabled = true
+	label.scroll_active = false
+	label.fit_content = false
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.text = bbcode
+	parent.add_child(label)
+	return label
+
+
+func _dir_row(r: Dictionary) -> PanelContainer:
+	"""One man who can go: his tick and his order in words. A click anywhere on
+	the row ticks or unticks him (the tick itself too)."""
+	var key := str(r.get("marshal", ""))
+	var shown := str(r.get("shown", key))
+	var row := PanelContainer.new()
+	row.name = "Row_" + key
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row.tooltip_text = "Click to tick or untick " + shown + "."
+	row.gui_input.connect(_on_dir_row_input.bind(key))
+	var line := HBoxContainer.new()
+	line.name = "Line"
+	line.mouse_filter = Control.MOUSE_FILTER_PASS
+	line.add_theme_constant_override("separation", int(DIR_TICK_GAP))
+	row.add_child(line)
+	var tick := CheckBox.new()
+	tick.name = "Tick"
+	tick.focus_mode = Control.FOCUS_NONE
+	tick.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	tick.button_pressed = bool(_dir_ticks.get(key, false))
+	tick.tooltip_text = row.tooltip_text
+	tick.toggled.connect(_on_dir_ticked.bind(key))
+	line.add_child(tick)
+	var words := _dir_label("Words", directive_row_text(r, false), line)
+	words.mouse_filter = Control.MOUSE_FILTER_PASS
+	return row
+
+
+static func directive_row_text(r: Dictionary, staff_carries: bool) -> String:
+	"""One row in words: "Ney · march to Lorraine · 2 actions · arrives in 2
+	turns · he may object", then what he replaces and the order's own notes
+	(the server's), each on its line. Under the Staff's one order a covered
+	man's own price gives way to it."""
+	var shown := str(r.get("shown", r.get("marshal", "")))
+	var parts := PackedStringArray(["[b]" + shown + "[/b]"])
+	var says := str(r.get("says", ""))
+	if says != "":
+		parts.append(says)
+	parts.append("in the Staff's one order" if staff_carries else _price(int(r.get("ap", 0))))
+	var turns := int(r.get("turns", 0))
+	if turns >= 1:
+		parts.append("arrives in " + Utils.plural(turns, "turn"))
+	var text := " · ".join(parts)
+	if str(r.get("objection", "none")) == "possible":
+		text += " · [color=#" + Utils.COLOR_WARNING + "]he may object[/color]"
+	var replaces := str(r.get("replaces", ""))
+	if replaces != "":
+		text += "\n[color=#" + Utils.COLOR_GOLD + "]Replaces " + replaces + ".[/color]"
+	var notes = r.get("notes", [])
+	if notes is Array:
+		for n in notes:
+			var noted := str(n).strip_edges()
+			if noted != "":
+				text += "\n[color=#" + Utils.COLOR_WARNING + "]" + noted + "[/color]"
+	return text
+
+
+func _paint_directive() -> void:
+	"""The ticks, the keyboard's row, each row's price, the sum and Give — as
+	the ticks stand now."""
+	if _dir_box == null or not is_instance_valid(_dir_box):
+		return
+	var members := directive_members()
+	var total := directive_total()
+	var have := int(_dir.get("have", 0))
+	var rides := _rides_staff(members)
+	var reading := bool(_dir.get("reading", false))
+	# The title counts the corps the order goes to as the ticks stand (the
+	# blind reading 2, all three readers: "ORDERS FOR 4 CORPS" while two go).
+	var named := (_dir.get("rows", []) as Array).size() if _dir.get("rows") is Array else 0
+	if not reading and named > 0:
+		title_label.text = ("ORDERS FOR %d CORPS" % named) if members.size() >= named \
+			else ("ORDERS FOR %d OF %d CORPS" % [members.size(), named])
+	var rows_by: Dictionary = {}
+	var rows: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
+	for r in rows:
+		if r is Dictionary:
+			rows_by[str(r.get("marshal", ""))] = r
+	for i in range(_dir_pick.size()):
+		var key := str(_dir_pick[i])
+		var row = _dir_row_nodes.get(key)
+		if row == null or not is_instance_valid(row):
 			continue
-		var shown := str(q.get("shown", q.get("marshal", "")))
-		if not bool(q.get("ok", false)):
-			lines.append("[color=#" + Utils.COLOR_ERROR + "]" + shown + " — refused: "
-				+ str(q.get("refusal", "")) + "[/color]")
-			continue
-		if bool(q.get("already", false)):
-			lines.append(shown + " — already on that march")
-			continue
-		var row := "[b]" + shown + "[/b] · " + _price(int(q.get("ap", 0))) + " · " + _clock(q)
-		if str(q.get("objection", "none")) == "possible":
-			row += " · [color=#" + Utils.COLOR_WARNING + "]he may object[/color]"
-		lines.append(row)
-		var contact := str(q.get("contact", ""))
-		if contact != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + contact + "[/color]")
-		var camp_row := str(q.get("camp", ""))
-		if camp_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + camp_row + "[/color]")
-		var departs_row := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
-		if departs_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + departs_row + "[/color]")
-		var march_cost_row := str(q.get("march_cost", ""))   # BA2-X21: the men the order's first march costs
-		if march_cost_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + march_cost_row + "[/color]")
-		var detour_row := str(q.get("detour", ""))   # S14E-22: the detour round a road the diplomacy shuts
-		if detour_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + detour_row + "[/color]")
-		var pay_row := str(q.get("pay", ""))   # S14E-X67: the campaign pay the destination draws
-		if pay_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + pay_row + "[/color]")
-		var guard_row := str(q.get("guard", ""))   # S14G-11: the guarded ground the road crosses (the Ansbach trap's price)
-		if guard_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + guard_row + "[/color]")
-		var front_row := str(q.get("front", ""))   # S14G-7: the front the destination is (an ally's province whose war a truce of ours leaves running)
-		if front_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + front_row + "[/color]")
-		var terms_row := str(q.get("terms", ""))   # S14G-2 / S14G-3: what the standing order does once taken
-		if terms_row != "":
-			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + terms_row + "[/color]")
-	var send: Array = plan["send"]
-	var sum_line := "[b]" + Utils.plural(int(plan["total"]), "action") + " of " + str(ap_left) + " in hand[/b]"
-	if send.is_empty():
-		sum_line += " — no order can go."
+		var tick := (row as Node).get_node_or_null("Line/Tick") as CheckBox
+		if tick != null:
+			tick.set_pressed_no_signal(bool(_dir_ticks.get(key, false)))
+		var words := (row as Node).get_node_or_null("Line/Words") as RichTextLabel
+		if words != null and rows_by.has(key):
+			var r: Dictionary = rows_by[key]
+			words.text = directive_row_text(r, rides and bool(r.get("covered", false)))
+		(row as PanelContainer).add_theme_stylebox_override("panel", _dir_row_style(i == _dir_cursor))
+	var sum := ""
+	var staff = _dir.get("staff", null)
+	if reading or named == 0:
+		sum = ""   # still reading, or the list could not be read (its note says so)
+	elif _dir_pick.is_empty():
+		sum = "[color=#" + Utils.COLOR_ERROR + "]No corps can take this order today — nothing can be sent.[/color]"
+	elif members.is_empty():
+		sum = "[color=#" + Utils.COLOR_WARNING + "]No corps is ticked — tick at least one to give the order.[/color]"
+	elif total > have:
+		sum = ("[color=#" + Utils.COLOR_ERROR + "][b]Cost: " + _price(total) + "[/b]" + _dir_breakdown(members, rows_by)
+			+ " — only " + str(have) + " in hand. Untick a corps.[/color]")
+	elif rides:
+		sum = (_cost_words(total, have) + " — the Grand Quartier Général carries the whole column ("
+			+ str(members.size()) + " corps) as one order.")
 	else:
-		sum_line += " — " + Utils.plural(send.size(), "order") + " go, corps by corps"
-		var stays := PackedStringArray()
-		for h in plan["held"]:
-			stays.append(str(h["shown"]))
-		sum_line += ("; " + ", ".join(stays) + " stay" + ("s" if stays.size() == 1 else "") + ".") if not stays.is_empty() else "."
-	lines.append("")
-	lines.append("[color=#" + Utils.COLOR_GOLD + "]" + sum_line + "[/color]")
-	lines.append("[color=#" + Utils.COLOR_INFO + "]Send stops at the first question or refusal and says how far it got.[/color]")
-	terms_label.text = "\n".join(lines)
-	send_button.text = ("Send %s  (Enter)" % Utils.plural(send.size(), "order")) if not send.is_empty() else "Nothing to send"
-	send_button.disabled = send.is_empty()
+		sum = _cost_words(total, have, _dir_breakdown(members, rows_by)) + (
+			" — 1 corps goes, on his own order." if members.size() == 1
+			else " — " + str(members.size()) + " corps go, each on his own order.")
+	# Directives' blind reading 1 (all three readers): a man who could go stood
+	# unticked with no word why. Where ticking him would cost more than is left,
+	# the card says so.
+	var short := PackedStringArray()
+	if not reading and not rides:
+		for key in _dir_pick:
+			var r = rows_by.get(str(key))
+			if not bool(_dir_ticks.get(str(key), false)) and r is Dictionary and bool(r.get("ok", false)) \
+					and total + int(r.get("ap", 0)) > have:
+				short.append(str(r.get("shown", key)))
+	if not short.is_empty() and sum != "":
+		# Who takes the actions, and what is left (the blind reading 3: "not
+		# enough actions are left" read beside "4 of the 4 in hand" as if 4 were
+		# still there).
+		var left := maxi(0, have - total)
+		var leave := "leave none" if left == 0 else ("leave only " + _price(left))
+		var why := ""
+		if short.size() == 1:
+			var need := 0
+			for key in _dir_pick:
+				var row = rows_by.get(str(key))
+				if row is Dictionary and str(row.get("shown", key)) == short[0]:
+					need = int(row.get("ap", 0))
+			why = (short[0] + " is not ticked: he needs " + _price(need) + ", and the ticked corps " + leave
+				+ ". Untick one of them to send him instead.")
+		else:
+			why = (_and_names(short) + " are not ticked: the ticked corps " + leave
+				+ ". Untick one of them to send one of these instead.")
+		sum += "\n[color=#" + Utils.COLOR_INFO + "]" + why + "[/color]"
+		if staff is Dictionary and not (staff as Dictionary).is_empty():
+			var covers = (staff as Dictionary).get("covers", [])
+			var column: int = (covers as Array).size() if covers is Array else 0
+			sum += (" Tick the whole column (" + str(column) + " corps) and the Grand Quartier Général carries"
+				+ " them all for " + _price(int((staff as Dictionary).get("ap", 0))) + ".")
+	if _dir_sum != null and is_instance_valid(_dir_sum):
+		_dir_sum.text = sum
+		_dir_sum.visible = sum != ""
+	send_button.text = DIR_GIVE if not members.is_empty() else "Nothing to give"
+	send_button.disabled = reading or members.is_empty() or total > have
 	if visible:
 		refit.call_deferred()
 
 
-func group_lines() -> Array:
-	"""The lines Send would carry, in order — read by the CC harness."""
-	return (_group_plan.get("send", []) as Array).duplicate(true) if _mode == "group" else []
+static func _cost_words(total: int, have: int, breakdown: String = "") -> String:
+	if total <= 0:
+		return "[b]It costs nothing[/b]"
+	return "[b]Cost: " + _price(total) + "[/b]" + breakdown + " of the " + str(have) + " in hand"
+
+
+static func _dir_breakdown(members: Array, rows_by: Dictionary) -> String:
+	"""How the cost adds up — " (2 + 2)" — for two to eight corps at their own
+	prices (directives' blind reading 1: "4 actions — 2 corps go" left two
+	readers unsure it was two times two). "" for one corps, or more than eight."""
+	if members.size() < 2 or members.size() > 8:
+		return ""
+	var parts := PackedStringArray()
+	for key in members:
+		var r = rows_by.get(str(key))
+		parts.append(str(int(r.get("ap", 0)) if r is Dictionary else 0))
+	return " (" + " + ".join(parts) + ")"
+
+
+static func _and_names(names: PackedStringArray) -> String:
+	if names.size() <= 1:
+		return "".join(names)
+	return ", ".join(names.slice(0, names.size() - 1)) + " and " + names[names.size() - 1]
+
+
+func _dir_row_style(on: bool) -> StyleBox:
+	"""The keyboard's row wears a faint gilt frame; the others an empty one of
+	the same margins (no row jumps when the frame moves)."""
+	if on:
+		var lit := StyleBoxFlat.new()
+		lit.bg_color = Color(Utils.UI_GOLD, 0.12)
+		lit.border_color = Color(Utils.UI_GOLD, 0.55)
+		lit.set_border_width_all(1)
+		lit.set_corner_radius_all(3)
+		lit.set_content_margin_all(DIR_ROW_PAD)
+		return lit
+	var plain := StyleBoxEmpty.new()
+	plain.set_content_margin_all(DIR_ROW_PAD)
+	return plain
+
+
+func directive_members() -> Array:
+	"""The ticked men, in the order the list shows them."""
+	var out: Array = []
+	for key in _dir_pick:
+		if bool(_dir_ticks.get(str(key), false)):
+			out.append(str(key))
+	return out
+
+
+func _rides_staff(members: Array) -> bool:
+	"""Exactly the Staff's column is ticked: its one price carries them."""
+	var staff = _dir.get("staff", null)
+	if not (staff is Dictionary) or (staff as Dictionary).is_empty() or members.is_empty():
+		return false
+	var covers = (staff as Dictionary).get("covers", [])
+	if not (covers is Array) or (covers as Array).size() != members.size():
+		return false
+	for key in covers:
+		if not members.has(str(key)):
+			return false
+	return true
+
+
+func directive_total() -> int:
+	"""What giving the order to the ticked men costs, by the list's own figures:
+	the Staff's one price for exactly its column, else each man's own (the
+	server's `directive.total_for`)."""
+	var members := directive_members()
+	if _rides_staff(members):
+		return int((_dir.get("staff") as Dictionary).get("ap", 0))
+	var total := 0
+	var rows: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
+	for r in rows:
+		if r is Dictionary and members.has(str(r.get("marshal", ""))):
+			total += int(r.get("ap", 0))
+	return total
+
+
+func _move_dir_cursor(step: int) -> void:
+	if _dir_pick.is_empty():
+		return
+	_dir_cursor = clampi(_dir_cursor + step, 0, _dir_pick.size() - 1)
+	_paint_directive()
+	_show_dir_cursor.call_deferred()
+
+
+func _show_dir_cursor() -> void:
+	if _dir_scroll == null or not is_instance_valid(_dir_scroll) or _dir_pick.is_empty():
+		return
+	var row = _dir_row_nodes.get(str(_dir_pick[clampi(_dir_cursor, 0, _dir_pick.size() - 1)]))
+	if row != null and is_instance_valid(row):
+		_dir_scroll.ensure_control_visible(row)
+
+
+func _toggle_dir(key: String) -> void:
+	if not _dir_pick.has(key) or bool(_dir.get("reading", false)):
+		return
+	_dir_ticks[key] = not bool(_dir_ticks.get(key, false))
+	_dir_cursor = _dir_pick.find(key)
+	AudioManager.play("click")
+	_paint_directive()
+
+
+func _on_dir_ticked(pressed: bool, key: String) -> void:
+	if not _dir_pick.has(key):
+		return
+	_dir_ticks[key] = pressed
+	_dir_cursor = _dir_pick.find(key)
+	AudioManager.play("click")
+	_paint_directive()
+
+
+func _on_dir_row_input(event: InputEvent, key: String) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_toggle_dir(key)
+		get_viewport().set_input_as_handled()
+
+
+func _free_directive() -> void:
+	if _dir_box != null and is_instance_valid(_dir_box):
+		if _dir_box.get_parent() != null:
+			_dir_box.get_parent().remove_child(_dir_box)
+		_dir_box.queue_free()
+	_dir_box = null
+	_dir_scroll = null
+	_dir_rows = null
+	_dir_row_nodes = {}
+	_dir_sum = null
+
+
+func directive_report() -> Dictionary:
+	"""The list as it stands on the card — read by the driven instrument
+	(`tools/dd_b_client.gd`); {} when the card wears another face."""
+	if _mode != "directive" or _dir.is_empty():
+		return {}
+	var rows: Array = []
+	var src: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
+	for r in src:
+		if not (r is Dictionary):
+			continue
+		var key := str(r.get("marshal", ""))
+		var can_go := _dir_pick.has(key)
+		rows.append({"marshal": key, "shown": str(r.get("shown", key)), "ok": can_go,
+			"ticked": bool(_dir_ticks.get(key, false)),
+			"text": directive_row_text(r, false) if can_go else str(r.get("why", ""))})
+	var rect := placed_rect()
+	return {
+		"visible": visible, "mode": _mode, "title": title_label.text, "who": command_label.text,
+		"cursor": str(_dir_pick[clampi(_dir_cursor, 0, _dir_pick.size() - 1)]) if not _dir_pick.is_empty() else "",
+		"rows": rows, "members": directive_members(), "total": directive_total(),
+		"have": int(_dir.get("have", 0)), "line": str(_dir.get("line", "")),
+		"reading": bool(_dir.get("reading", false)),
+		"total_text": _dir_sum.get_parsed_text() if (_dir_sum != null and is_instance_valid(_dir_sum)) else "",
+		"give_text": send_button.text, "give_disabled": send_button.disabled,
+		"rect": [rect.position.x, rect.position.y, rect.size.x, rect.size.y],
+	}
 
 
 func mode() -> String:
@@ -482,8 +866,19 @@ func refit() -> void:
 	w = maxf(w, 160.0)
 	_fit_buttons(w)
 	panel.custom_minimum_size = Vector2(w, 0.0)
-	var h := minf(_content_height(w, view.y), maxf(120.0, view.y - 2.0 * CARD_EDGE))
 	var top := Utils.TOP_BAR_HEIGHT + Utils.top_bar_growth() + CARD_EDGE
+	# Row IC, directives (pressed in the real client): the room is from under the
+	# top bar to the screen's foot — the card never stands above `top`, so a
+	# budget of the whole height less two edges let an eight-corps list run 26 px
+	# past the bottom of a 765-px view.
+	var avail := maxf(120.0, view.y - top - CARD_EDGE)
+	var h := minf(_content_height(w, avail), avail)
+	if _mode == "directive" and _dir_scroll != null and is_instance_valid(_dir_scroll):
+		# The container's own minimum can exceed the measure by a few px (a
+		# label's line, a separator): the rows' scroll gives that room back.
+		var real := panel.get_combined_minimum_size().y
+		if real > h + 0.5:
+			_dir_scroll.custom_minimum_size.y = maxf(48.0, _dir_scroll.custom_minimum_size.y - (real - h))
 	var mid_y := clampf((view.y - h) / 2.0, top, maxf(top, view.y - h - CARD_EDGE))
 	var spots := [
 		Vector2((view.x - w) / 2.0, mid_y),
@@ -511,19 +906,25 @@ func refit() -> void:
 	panel.offset_bottom = panel.offset_top + h
 
 
-func _content_height(w: float, view_h: float) -> float:
+func _content_height(w: float, avail: float) -> float:
 	"""The card's height at width `w`, measured now — and the terms' room
 	set: the terms laid out at the inner width (a container's minimum before
 	its first layout reads a wrapping label at width 0 — a card 1,483 px
 	tall), every other row at its own minimum, the separations and the
 	panel's margins. The terms are BOUNDED (UXR-2's scroll rule): their
-	height is the text's, capped at the room the viewport leaves — longer
-	terms scroll inside the label."""
+	height is the text's, capped at the room `avail` leaves (the height from
+	under the top bar to the screen's foot) — longer terms scroll inside the
+	label."""
 	var panel: PanelContainer = $PanelContainer
 	var box: VBoxContainer = $PanelContainer/VBox
 	var frame: StyleBox = panel.get_theme_stylebox("panel")
 	var margins: Vector2 = frame.get_minimum_size() if frame != null else Vector2(40, 32)
-	terms_label.size = Vector2(maxf(40.0, w - margins.x), terms_label.size.y)
+	var inner := maxf(40.0, w - margins.x)
+	terms_label.size = Vector2(inner, terms_label.size.y)
+	# Row IC, directives: the list's rows are the bounded part on its face (the
+	# terms' rule): its note, sum and help at their own height, the rows in a
+	# scroll capped at the room the viewport leaves.
+	var listing := _mode == "directive" and _dir_box != null and is_instance_valid(_dir_box)
 	var others := margins.y
 	var rows := 0
 	for child in box.get_children():
@@ -531,13 +932,72 @@ func _content_height(w: float, view_h: float) -> float:
 		if c == null or not c.visible:
 			continue
 		rows += 1
-		if c != terms_label:
+		if listing and c == _dir_box:
+			others += _dir_fixed_height(inner)
+		elif c != terms_label:
 			others += c.get_combined_minimum_size().y
 	others += float(box.get_theme_constant("separation")) * maxf(0.0, float(rows - 1))
-	var room := maxf(48.0, view_h - 2.0 * CARD_EDGE - others)
+	var room := maxf(48.0, avail - others)
+	if listing:
+		var rows_h := minf(_dir_rows_height(inner), room)
+		_dir_scroll.custom_minimum_size = Vector2(0.0, rows_h)
+		return others + rows_h
 	var terms_h := minf(float(terms_label.get_content_height()), room)
 	terms_label.custom_minimum_size = Vector2(0.0, terms_h)
 	return others + terms_h
+
+
+func _size_rich(label: RichTextLabel, width: float) -> float:
+	"""A wrapping label's true height at `width`, set as its minimum (a label
+	reads its height only once it has a width — the card's terms' rule)."""
+	label.size = Vector2(maxf(40.0, width), label.size.y)
+	var h := float(label.get_content_height())
+	label.custom_minimum_size = Vector2(0.0, h)
+	return h
+
+
+func _dir_fixed_height(inner: float) -> float:
+	"""The list's parts outside its scroll (its note, its sum, its help)."""
+	var h := 0.0
+	var count := 0
+	for child in _dir_box.get_children():
+		var c := child as Control
+		if c == null or not c.visible:
+			continue
+		count += 1
+		if c == _dir_scroll:
+			continue
+		if c is RichTextLabel:
+			h += _size_rich(c as RichTextLabel, inner)
+		else:
+			h += c.get_combined_minimum_size().y
+	return h + float(_dir_box.get_theme_constant("separation")) * maxf(0.0, float(count - 1))
+
+
+func _dir_rows_height(inner: float) -> float:
+	"""The rows' whole height at the card's width (each row its tick and its
+	words, wrapped; then who will not go)."""
+	if _dir_rows == null or not is_instance_valid(_dir_rows):
+		return 0.0
+	var text_w := inner - DIR_SCROLLBAR_W
+	var h := 0.0
+	var count := 0
+	for child in _dir_rows.get_children():
+		var c := child as Control
+		if c == null or not c.visible:
+			continue
+		count += 1
+		if c is RichTextLabel:
+			h += _size_rich(c as RichTextLabel, text_w)
+			continue
+		var tick := c.get_node_or_null("Line/Tick") as Control
+		var words := c.get_node_or_null("Line/Words") as RichTextLabel
+		var tick_size: Vector2 = tick.get_combined_minimum_size() if tick != null else Vector2(24.0, 24.0)
+		var words_h := 0.0
+		if words != null:
+			words_h = _size_rich(words, text_w - tick_size.x - DIR_TICK_GAP - 2.0 * DIR_ROW_PAD)
+		h += maxf(words_h, tick_size.y) + 2.0 * DIR_ROW_PAD
+	return h + float(DIR_ROW_GAP) * maxf(0.0, float(count - 1))
 
 
 func _fit_buttons(w: float) -> void:
@@ -570,13 +1030,24 @@ func is_sendable() -> bool:
 	return visible and not send_button.disabled
 
 
+func close_given() -> void:
+	"""Row IC, directives: the host took the list's Give — the card shuts and
+	the list is let go (a list drawn again arrives as a new one)."""
+	_close_quietly()
+	_free_directive()
+	_dir = {}
+
+
 func close_card() -> void:
-	"""Shut the card WITHOUT an answer (the selection was let go under it)."""
+	"""Shut the card WITHOUT an answer (the selection was let go under it). A
+	list shut so is remembered for main's "Not given" (`given_up_words`)."""
+	_given_up = command_label.text if (_mode == "directive" and not _dir.is_empty() and visible) else ""
 	_quote = {}
 	_standing = {}
-	_group_plan = {}
+	_dir = {}
 	if visible:
 		close_popup()
+	_free_directive()
 
 
 func _set_buttons(can_send: bool, can_line: bool) -> void:
@@ -827,10 +1298,23 @@ func _input(event: InputEvent) -> void:
 				_on_line()        # the arrow card's Enter is Change — never the cancel
 			elif not send_button.disabled:
 				_on_send()
+			elif _mode == "directive":
+				AudioManager.play("error")   # row IC: nothing ticked, or more than in hand — the list stays
 			else:
 				_on_cancel()   # a refused order's Enter only closes the card
 		KEY_ESCAPE:
 			_on_cancel()
+		# Row IC, directives: the list's own keys — Up/Down move the keyboard's
+		# row, Space ticks or unticks it.
+		KEY_UP:
+			if _mode == "directive":
+				_move_dir_cursor(-1)
+		KEY_DOWN:
+			if _mode == "directive":
+				_move_dir_cursor(1)
+		KEY_SPACE:
+			if _mode == "directive" and not _dir_pick.is_empty():
+				_toggle_dir(str(_dir_pick[clampi(_dir_cursor, 0, _dir_pick.size() - 1)]))
 
 
 func _on_send() -> void:
@@ -842,13 +1326,19 @@ func _on_send() -> void:
 			_close_quietly()
 			standing_cancel_requested.emit(who)
 			return
-		"group":
-			var lines := group_lines()
-			var held: Array = (_group_plan.get("held", []) as Array).duplicate(true)
-			if lines.is_empty():
+		"directive":
+			# Row IC: the ticked men, in the list's order, and the total shown —
+			# ONE request (the server checks both against the list it draws again).
+			var members := directive_members()
+			if members.is_empty():
 				return
-			_close_quietly()
-			group_send_requested.emit(lines, held)
+			var line := str(_dir.get("line", ""))
+			var total := directive_total()
+			var click := bool(_dir.get("click", false))
+			# The host accepts the Give and shuts the card (`close_given`); a Give
+			# it must refuse (a command still on the wire) leaves the list up —
+			# the review: the list was dropped before the guard could refuse it.
+			directive_give_requested.emit(line, members, total, click)
 			return
 	var cmd := command()
 	if cmd == "":
@@ -876,8 +1366,12 @@ func _close_quietly() -> void:
 
 
 func _on_cancel() -> void:
+	# Row IC, directives: what a list let go was ("Not given: …" in the log —
+	# the blind reading 2), read by main right after `cancelled`.
+	_given_up = command_label.text if (_mode == "directive" and not _dir.is_empty()) else ""
 	_quote = {}
 	_standing = {}
-	_group_plan = {}
+	_dir = {}
 	close_popup()
+	_free_directive()
 	cancelled.emit()

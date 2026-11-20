@@ -765,6 +765,24 @@ def build_active_wars(world) -> Dict[str, Any]:
         row["settlement_tier_display"] = table["tier_display"]
         row["settlement_tier_side"] = _tier_side(int(table["pressure"]))
 
+    # Row IC, directives: the goal the player named for a war, in the desk's
+    # words ("your war goal: Vienna"), for the war's popup — the key rides only on a
+    # war that has one (a board with no goal set carries the rows it did).
+    if getattr(world, "war_goals", None):
+        try:
+            from backend.game_logic import war_goals as _war_goals
+            for row in wars:
+                if row.get("status") != "war":
+                    continue
+                found = _war_goals.goal_of(world, row)
+                if found is not None:
+                    row["war_goal"] = _war_goals.words(world, found[0], found[1])
+                    # (the review: the popup said "the map rings it" of a goal
+                    # taken, and of an army the fog hides — rung only where drawn)
+                    row["war_goal_ringed"] = _war_goals.ringed(world, found[0], found[1])
+        except Exception as exc:
+            report(exc, "war_status.build_active_wars: the war goal")
+
     # UI-5: which side of the war's instance the player's realm stands on
     # ("attackers" | "defenders" | "" - a truce row or no instance), the
     # pattern `_tier_side`'s callers read; the war card's side badge.

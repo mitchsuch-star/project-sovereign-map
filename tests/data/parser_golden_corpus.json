@@ -9155,6 +9155,115 @@
       },
       "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
       "notes": "CMDFEEL-1's parse (unchanged); the executor's reply now names the second leg, and the null march (to the province he stands in) is refused free."
+    },
+    {
+      "id": "ic5-army-form",
+      "utterance": "form the Army of Italy with Massena and Ney",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "army",
+        "target": "Army of Italy"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "The free action `army`: a named army is formed of the player's own marshals. No marshal is ordered (the names are the army's roll, read by armies.read_order off the line)."
+    },
+    {
+      "id": "ic5-army-add",
+      "utterance": "add Lannes to the Army of Italy",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "army",
+        "target": "Army of Italy"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "`army`, the add verb."
+    },
+    {
+      "id": "ic5-army-remove",
+      "utterance": "remove Ney from the Army of Italy",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "army",
+        "target": "Army of Italy"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "`army`, the remove verb."
+    },
+    {
+      "id": "ic5-army-disband",
+      "utterance": "disband the Army of Italy",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "army",
+        "target": "Army of Italy"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "`army`, the disband verb."
+    },
+    {
+      "id": "ic5-form-square-is-no-army",
+      "utterance": "Ney, form square",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "form_square",
+        "not_action": "army"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "The collision the army's reader must never make: `form` is the square's verb; an army's name must hold the word 'army' and its roll at least one marshal."
+    },
+    {
+      "id": "ic6-war-goal-is-a-place",
+      "utterance": "the war goal is Vienna",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "set_war_goal",
+        "target": "Vienna"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "The free action `set_war_goal`: the army's aim for a war (a place a court at war with us holds). Not the war's PURPOSE."
+    },
+    {
+      "id": "ic6-war-goal-is-an-army",
+      "utterance": "make Mack the war goal",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "set_war_goal",
+        "target": "Mack"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "`set_war_goal`: an enemy army, named by its commander."
+    },
+    {
+      "id": "ic6-war-goal-cleared",
+      "utterance": "clear the war goal",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "set_war_goal"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "`set_war_goal`, the clear form."
+    },
+    {
+      "id": "ic6-set-war-goal-is-no-purpose",
+      "utterance": "set war goal Vienna",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "set_war_goal",
+        "not_action": "set_war_purpose",
+        "target": "Vienna"
+      },
+      "source": "Row IC, directives (November 19, 2026; SYSTEMS_REFERENCE.md §230; tests/test_ic5_named_armies.py, tests/test_ic6_the_war_goal.py)",
+      "notes": "RE-SEATED: 'set war goal' was a second spelling of the war PURPOSE (a Cabinet act); it means the war goal now. The purpose keeps 'set war purpose', 'war purpose', 'set objective', 'declare purpose'."
     }
   ]
 }

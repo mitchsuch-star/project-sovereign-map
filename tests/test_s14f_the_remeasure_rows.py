@@ -6171,7 +6171,11 @@ class TestS14EX56:
     def test_the_four_readers_print_the_field(self):
         card = (_RXO_REPO / "godot-client" / "project-sovereign" / "scripts"
                 / "order_confirm_card.gd").read_text(encoding="utf-8")
-        assert card.count('q.get("departs", "")') == 2
+        # Re-seated by row IC, directives (Nov 19, 2026): the group card is gone; the LIST folds the
+        # order's riders into each row's notes on the server (`directive._RIDERS`).
+        assert card.count('q.get("departs", "")') == 1
+        from backend.commands import directive
+        assert "departs" in directive._RIDERS
         panel = (_RXO_REPO / "godot-client" / "project-sovereign" / "scripts"
                  / "region_panel.gd").read_text(encoding="utf-8")
         assert 'q.get("departs", "")' in panel
@@ -15654,7 +15658,13 @@ class TestS14EX143:
         assert str(reply.get("message") or "") == "Ney halts his march and awaits new orders.", reply
         assert [m.name for m in w.get_player_marshals() if m.strategic_order is not None] == ["Lannes"]
 
-    def test_the_list_address_recalls_the_first_and_relays_the_second(self, _w10_client, _w10_world):
+    def test_the_list_address_recalls_the_first_and_relays_the_second(self, _w10_client, _w10_world,
+                                                                       monkeypatch):
+        """RE-SEATED by row IC, the directive (November 19, 2026): the relay's
+        rule with `directive.a_named_list_is_one_directive` DOWN; up — as
+        shipped — the named list recalls every man named (the test below)."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         w = _w10_world
         _w10_three_orders(_w10_client, w)
         reply = _w10_say(_w10_client, "Ney and Davout stop")
@@ -15665,6 +15675,20 @@ class TestS14EX143:
         assert reply.get("dropped_sequel") == "Davout, stop", reply.get("dropped_sequel")
         assert w.get_marshal("Ney").strategic_order is None
         assert w.get_marshal("Davout").strategic_order is not None   # his own waits for the seal
+
+    def test_the_list_address_recalls_every_man_named(self, _w10_client, _w10_world):
+        """Row IC, the directive: the named list is one order — each man named
+        recalls his own at the cancel's own price; a man not named keeps his."""
+        w = _w10_world
+        _w10_three_orders(_w10_client, w)
+        reply = _w10_say(_w10_client, "Ney and Davout stop")
+        text = str(reply.get("message") or "")
+        assert reply.get("success") is True, text
+        assert "The standing orders of Ney and Davout are recalled, corps by corps" in text, text
+        assert w.get_marshal("Ney").strategic_order is None
+        assert w.get_marshal("Davout").strategic_order is None
+        assert w.get_marshal("Lannes").strategic_order is not None
+        assert not reply.get("dropped_sequel") and "relay_command" not in reply
 
     def test_the_golden_corpus_holds_the_rows(self):
         corpus = json.loads((Path(__file__).parent / "data" / "parser_golden_corpus.json")
@@ -18082,9 +18106,14 @@ class TestS14EX174:
                     "second_marshal_lead", "second_marshal_others", "warning"):
             assert a.get(key) == b.get(key), (key, a, b)
 
-    def test_the_second_man_is_heard_on_the_endpoint(self, _w15_client, _w15_world):
+    def test_the_second_man_is_heard_on_the_endpoint(self, _w15_client, _w15_world, monkeypatch):
         """Davout takes the fortify; Lannes's own order is on the line with
-        its note -- not dropped in silence."""
+        its note -- not dropped in silence. RE-SEATED by row IC, the directive
+        (November 19, 2026): the relay's reading with the directive's seam
+        DOWN; up -- as shipped -- the named list is one order to both men (the
+        test below)."""
+        from backend.commands import directive as DV
+        monkeypatch.setattr(DV, "a_named_list_is_one_directive", lambda: False)
         for line in ("Davout and Lannes fortify", "Davout and Lannes, fortify"):
             w = _w15_world
             w.get_marshal("Davout").fortified = False
@@ -18095,6 +18124,25 @@ class TestS14EX174:
             assert "You named Lannes beside Davout" in str(reply.get("message") or ""), (line, reply.get("message"))
             w.get_marshal("Davout").fortified = False
             w.get_marshal("Davout").stance = type(w.get_marshal("Davout").stance).NEUTRAL
+
+    def test_the_named_list_goes_to_both_on_the_endpoint(self, _w15_client, _w15_world):
+        """Row IC, the directive: the comma form and the comma-less form are one
+        order to both men -- no relay, no second Enter. (Davout and Soult: an
+        aggressive Lannes may object to digging in, and his question would stop
+        the order -- `test_ic4_the_directive.py` pins that road.)"""
+        for line in ("Davout and Soult fortify", "Davout and Soult, fortify"):
+            w = _w15_world
+            w.actions_remaining = 4
+            reply = _w15_say(_w15_client, line)
+            text = str(reply.get("message") or "")
+            assert reply.get("success") is True, (line, text)
+            assert "relay_command" not in reply, (line, reply.get("relay_command"))
+            assert "The order goes to Davout and Soult, corps by corps" in text, (line, text)
+            assert (reply.get("group") or {}).get("members") == ["Davout", "Soult"], line
+            for name in ("Davout", "Soult"):
+                assert w.get_marshal(name).fortified is True, (line, name)
+                w.get_marshal(name).fortified = False
+                w.get_marshal(name).stance = type(w.get_marshal(name).stance).NEUTRAL
 
     def test_the_splitter_itself(self, _w15_board):
         from backend.commands.parser import _split_second_name

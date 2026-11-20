@@ -96,14 +96,14 @@ class ApiStub extends Node:
 		var key := "order_quote:%s|%s|%s" % [str(m), str(kind), str(target)]
 		calls.append(key)
 		held[key] = cb
-	# CC-5: the group card's one GET, held under "group_quotes:<a,b,c>|<dest>".
-	func get_group_quotes(names, dest, cb = null):
-		var keys := PackedStringArray()
-		for n in names:
-			keys.append(str(n))
-		var key := "group_quotes:%s|%s" % [",".join(keys), str(dest)]
+	# Row IC, the directive (it replaced CC-5's group quotes): the list's one
+	# GET, held under "directive_quote:<line>"; its Give recorded, never answered.
+	func get_directive_quote(line, _click, cb = null):
+		var key := "directive_quote:" + str(line)
 		calls.append(key)
 		held[key] = cb
+	func send_directive(line, _members, _expect_ap, _click, _cb = null):
+		calls.append("directive:" + str(line))
 	func answer(key: String, payload) -> bool:
 		var cb = held.get(key, null)
 		held.erase(key)

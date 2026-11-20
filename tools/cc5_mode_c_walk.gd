@@ -249,18 +249,25 @@ func _walk() -> void:
 		await _click(p)
 		await _settle()
 		await _frames(4)
-		var terms := str(card.get("terms_label").get_parsed_text()) if card.visible else ""
-		var lines: Array = card.call("group_lines") if card.visible else []
-		if lines.size() == 2 and not ("asks" in terms) and not ("may object" in terms) \
-				and not ("arrives this turn" in terms):
+		# Row IC, the directive: the card is the group's LIST (its own report).
+		var rep: Dictionary = card.call("directive_report") if card.visible else {}
+		var rows: Array = rep.get("rows", []) if rep.get("rows") is Array else []
+		var terms := ""
+		var going := 0
+		for r in rows:
+			terms += str(r.get("text", "")) + "\n"
+			if bool(r.get("ok", false)):
+				going += 1
+		if going == 2 and not ("asks" in terms) and not ("may object" in terms) \
+				and not ("arrives now" in terms):
 			dest = str(row[1])
 			break
 		if card.visible:
 			await _key(KEY_ESCAPE)   # the card's Esc: back to the group
 	_out["dest"] = dest
-	await _shot("2_group_card", "the click on %s: ONE card, a line per corps" % dest)
+	await _shot("2_group_card", "the click on %s: ONE list, a row per corps" % dest)
 
-	# 3 — Enter: the lines go one at a time; the account.
+	# 3 — Enter: ONE order to both (row IC); the account.
 	await _key(KEY_ENTER)
 	for _i in range(4):
 		await _settle()
