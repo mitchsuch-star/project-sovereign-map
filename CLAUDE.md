@@ -33,12 +33,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); PW ✅ Nov 18–19 (§227–§228); IC ✅ Nov 19 (§229–§230); H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6 ✅ Nov 11–13 (§207–§217); BA-1–BA-6, MC ✅ Nov 14–17 (§219–§225); OC ✅ Nov 18 (§226); PW ✅ Nov 18–19 (§227–§228); IC desk + directives ✅ Nov 19 (§229–§230); IC v6 design ✅ Nov 20; IC-2…IC-4, then H**.
 
-**▶ LIVE STATE (Nov 19, 2026).** Last three rows:
-- **Row IC directives (Nov 19) — one list for an order to several corps (`directive.py`), named armies, war goals; NEXT: Session H** (§230).
+**▶ LIVE STATE (Nov 20, 2026).** Last three rows:
+- **Row IC review (Nov 20) — `docs/INDEPENDENT_COMMAND_SPEC.md` v6: "Grant Autonomy" out for a task to prove himself (§6.11), simple orders buttons / tasks typed (§8), men differ with no dice (§6.7); IC-V1…V4 filed; NEXT: row IC Session 2** (§15).
+- **Row IC directives (Nov 19) — one list for an order to several corps (`directive.py`), named armies, war goals** (§230).
 - **Row IC (Nov 19) — the desk (`today.py`)** (§229).
-- **Row PW3 (Nov 19) — undo (`take_back.py`), the march, a map key** (§228).
 
 **Open with the user:** none (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`); the certificate is a purchase.
 
@@ -186,6 +186,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Artillery / bombardment | `marshal.py` (artillery flag), `combat.py` (cavalry counter, fort degradation), `combat_executor.py` (_execute_bombardment, _distribute_casualties), `enemy_ai.py` (_score_artillery_position) |
 | Top bar / screen system | `top_bar.gd` (controller), `main.gd` (_on_screen_changed, _is_modal_dialog_open, _is_screen_open, _is_hotkey_blocked), `docs/TOP_BAR_SPEC.md` |
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
+| On his own, typed tasks, the trust crisis's audience | `INDEPENDENT_COMMAND_SPEC.md` v6 §6.7, §6.11, §8 FIRST, `disobedience.py`, `turn_manager.py` (`_process_autonomous_marshals`), `parse_preview.py`, `condition_grammar.py`, `tests/test_ic_review_pins.py` |
 | An order to several corps, named armies, war goals | SYSTEMS_REFERENCE §230 FIRST, `directive.py`, `group_orders.py` (`_run_members`, `_carry_out`), `main.py` (`_directive_road`), `armies.py`, `war_goals.py`, `order_confirm_card.gd`, `main.gd` ("Row IC, directives") |
 | The desk (TO DECIDE), the End Turn list, the danger mark | SYSTEMS_REFERENCE §229 FIRST, `today.py`, `threats.py`, `desk_lines.gd`, `turn_end_list.gd`, `main.gd` ("Row IC") |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |

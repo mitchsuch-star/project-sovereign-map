@@ -2873,8 +2873,11 @@ class TestTheRecordsSayWhatLanded:
         brief = (REPO / "docs" / "NEXT_SESSION_PROMPT.md").read_text(encoding="utf-8")
         # (row BA, BA-6 handed over to row OC — the rulings built — and row OC to Session H; the
         # brief reads the gate against row OC's records, and BA-6's, BA-5's and BA-4's stay as the
-        # games before)
-        assert brief.startswith("# NEXT SESSION PROMPT — Session H")
+        # games before. Row IC's review of November 20, 2026 put row IC's Sessions 2–4 ahead of
+        # Session H — `PRE_DEPLOY_PLAN.md` §2 row IC — so the brief opens on row IC's Session 2 and
+        # keeps Session H's section, its head and its gate files after it.)
+        assert brief.startswith("# NEXT SESSION PROMPT — ")
+        assert "**Then SESSION H — S15 THE DEPLOY**" in brief
         assert "## Session H: S15 the deploy" in brief
         for name in ("_oc_band_2026_11_18.json", "_dy_signature_oc_all_2026_11_18.json",
                      "_oc_all_census_2026_11_18.json", "_oc_chain_d_2026_11_18.json",

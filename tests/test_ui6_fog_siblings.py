@@ -2801,7 +2801,8 @@ class TestUI6X72ALoneMarchAsksWhereFree:
         assert "pursue the nearest foe" in _head(_preview(client, snap, "Ney, pursue"))
 
 
-_OPEN_S15 = ("OPEN — owner Session H (S15, the deploy) by the sibling sweep's rule; "
+_OPEN_S15 = ("OPEN — owner row IC Session 2, slice IC-8 (moved November 20, 2026 from Session H's head: "
+             "the read-back of typed tasks depends on it) by the sibling sweep's rule; "
              "closes when this pin passes (strict)")
 
 

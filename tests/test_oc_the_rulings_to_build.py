@@ -36,7 +36,8 @@ from backend.models.world_state import WorldState  # noqa: E402
 SCENARIO = REPO / "godot-client/project-sovereign/assets/maps/europe_1805.json"
 
 _H = ("RULED November 17, 2026 (BA-6) — HOMED at Session H's head "
-      "(docs/audits/OPEN_CALLS_RULED_2026_11_17.md §3); this pin turns red the day it lands")
+      "(docs/audits/OPEN_CALLS_RULED_2026_11_17.md §3), moved with WS-12 on November 20, 2026 to "
+      "row IC's IC-8; this pin turns red the day it lands")
 
 
 def _seam_up(module: str, name: str) -> bool:

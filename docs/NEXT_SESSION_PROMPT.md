@@ -1,11 +1,40 @@
-# NEXT SESSION PROMPT — Session H: S15 the deploy (the user's own walk) — row IC's two commits are built (read the first block)
+# NEXT SESSION PROMPT — Row IC, Session 2: buttons for orders, the line for tasks, exact orders (read the first block)
 
-> **READ THIS FIRST — the next session is SESSION H, THE DEPLOY** (the section "## Session H" below, with the
-> lines that overrule it). Row IC — the user's two approved commits, "Desk, then directives" — is complete.
+> **READ THIS FIRST — the next session is ROW IC's SESSION 2** (the section "## Row IC, Session 2 — the plan,
+> decided" below). Then row IC's Sessions 3 and 4, then **Session H, the deploy** (its section is kept below, with
+> the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2 (row IC, homed November 20, 2026, before S15).
 >
-> Overwritten each time a session hands off. Current hand-over: **November 19, 2026 — ROW IC, THE SECOND
-> COMMIT: DIRECTIVES ✅ BUILT AND COMMITTED (NOT pushed — the push is his to call: `git status -sb` says how far
-> master is ahead; the desk and row PW part 3 before it were pushed November 19 at his word, "Push both").** His
+> Overwritten each time a session hands off. Current hand-over: **November 20, 2026 — ROW IC, THE REVIEW OF
+> "ON HIS OWN": THE DESIGN'S VERSION 6 ✅ WRITTEN, COMMITTED AND PUSHED at his word ("commit and push these
+> with it").** His words: "review the new autonomous generla conmcept assure low authority autonomy isnt in
+> conflict even removing it if needed and make sure buttons exist for simpler things but typing is used for
+> missions and excepts a wide array if things and also if army has differner personalities they arent all doing
+> same thing every turn etc full reveiw and u[pdates". The plan approved in Plan Mode. **No game code changed**:
+> the design (`docs/INDEPENDENT_COMMAND_SPEC.md` version 6 — §1.1 his three rulings, §1.3 what the code showed,
+> §6.7 how the men differ, §6.11 autonomy you grant, §8 buttons and typed tasks, §9.1 an army's task, §15 the
+> re-cut build, §16 D24–D31, §19.4 how the review ran), the ledger of every finding
+> (`docs/audits/ic_focus_groups/round4_review_ledger.md`), four defects filed with strict-xfail pins
+> (`BUG_FIXES.md` §"Row IC — the review of 'on his own'": IC-V1 a one-word condition dropped in silence, IC-V2 the
+> read-back shows no condition, IC-V3 a man in the trust crisis's three turns can fight twice in one end of turn,
+> IC-V4 the missing buttons; `tests/test_ic_review_pins.py`), seven typed-road rows moved from Session H's head to
+> IC-8 (UI6-X70, X73, X74, X75, WS-12 with GRD-33, WS-14), row IC homed in `PRE_DEPLOY_PLAN.md` §2 (the plan-homes
+> pin taught `IC-7` … `IC-15`), and the six stale "not pushed" record lines corrected. **What version 6 rules:**
+> the trust crisis's "Grant Autonomy" (three turns on the enemy's AI) is REMOVED by his consent and replaced by a
+> task to prove himself under exact orders with today's rewards; every simple order is a button; a task is a typed
+> sentence (the line opens filled with his proposal, chips write into it, a wide word table, a four-row read-back);
+> men differ in seven ways with no dice (a seeded "day's nerve" only if R-VARIETY is missed); an army's task puts
+> its commander on his own and the rest in support.
+> **Its traps (fresh):** (1) a quoted CAPITAL closing word in a ledger row (ACCEPTED, RETIRED, RE-HOMED, NOT TAKEN,
+> RULED …) makes `tools/defect_census.py` read an OPEN row as disposed or closed — quote in lower case; (2) a row
+> naming an id beside a closing word earns that id the census's "*" (informational; no test reads it); (3) the
+> review workflow failed on its last line (a variable named `P4`, returned as `p4`) — its resume RE-RAN the
+> panels, which turned out useful (two independent samples) but cost tokens; check a script's return names; (4)
+> `.venv` reads of the 1805 board need `SOVEREIGN_SCENARIO`/`SOVEREIGN_MAP`/`SOVEREIGN_SMOKE_START` popped (the
+> suite pins `none`); (5) a `cd` inside a Bash call moves the session's working directory — use absolute paths.
+>
+> The hand-over before it: **November 19, 2026 — ROW IC, THE SECOND
+> COMMIT: DIRECTIVES ✅ BUILT AND COMMITTED, and PUSHED November 20 at his word, "Push it" (the desk and row PW
+> part 3 before it were pushed November 19 at his word, "Push both").** His
 > rulings in Plan Mode: "One list for all", "Yes, named armies", "Desk, then directives". Built
 > (`SYSTEMS_REFERENCE.md` §230; `BUG_FIXES.md` §IC directives — none open; `tests/test_ic4_the_directive.py`,
 > `test_ic5_named_armies.py`, `test_ic6_the_war_goal.py`; the driven `TestRowICDirectives`): **the directive**
@@ -110,18 +139,24 @@
 
 **FIRST — in this order:**
 
-0. `git log`: row IC is TWO commits — the desk (pushed November 19 at the user's word, "Push both")
-   and directives (committed through the hook, NOT pushed until he says so); row PW is TWO commits
-   (part 1, part 2), each made through the hook and PUSHED at the user's word; each part's one review ran before its commit (`BUG_FIXES.md` §PW). Read `STATUS.md` ▶ NEXT UP first.
-1. **SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
+0. `git log`: the review of "on his own" is ONE commit (the design, the ledgers, the plan's row and the pins — no
+   game code), pushed November 20 at the user's word; before it row IC's two commits — the desk (pushed November 19,
+   "Push both") and directives (pushed November 20, "Push it") — and row PW's, each through the hook. Read
+   `STATUS.md` ▶ NEXT UP first, then the spec's §1.3, §6.11, §8 and §15.
+1. **ROW IC, SESSION 2** — the section "## Row IC, Session 2 — the plan, decided" below. Plan Mode first (the
+   user's standing rule); the plan is decided there, so the Plan-Mode draft is that plan made concrete — no question
+   is owed him.
+2. **Then row IC's Sessions 3 and 4** (the spec's §15: on his own; the voice and the other side of the hill), each
+   its own Plan-Mode session.
+3. **Then SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
    `DYNAMISM_SPEC.md` §7). Its head's open rows — each a defect with a strict-xfail pin, none a call:
    **WS-10** (the war room keeps the bare digits; a docked ledger's tabs move to Alt+1–8 and its lead line says
-   so — `TestWS10TwoSurfacesClaimTheBareDigits`), **WS-12 with GRD-33** (the live model's number moves
-   nothing; the literal marshal's buff reads the fast parser's own ambiguity and expires at the turn's end —
-   `TestWS12AModelsNumberMovesAMarshal`, `TestSessionHsHead::test_grd33_…`), **WS-14** (the readback's standing
-   question), **WS-R** (the readers' unconfirmed finds), **UI6-X70, X73, X74, X75** (the typed order road's
-   compound subjects; GRD-16, "Did you mean Ney?", was BUILT by row PW part 2), **PW3-D1** (row PW part 3: the
-   Cabinet's first page seats its courts in columns — `TestPW3D1TheCabinetsCourtListHasRoom`), and — CLOSED by row
+   so — `TestWS10TwoSurfacesClaimTheBareDigits`), **WS-R** (the readers' unconfirmed finds), **PW3-D1** (row PW
+   part 3: the Cabinet's first page seats its courts in columns — `TestPW3D1TheCabinetsCourtListHasRoom`); **moved
+   November 20, 2026 to row IC's IC-8** (the read-back of typed tasks depends on them): **WS-12 with GRD-33** (the
+   live model's number moves nothing — `TestWS12AModelsNumberMovesAMarshal`, `TestSessionHsHead::test_grd33_…`),
+   **WS-14** (the readback's standing question) and **UI6-X70, X73, X74, X75** (the typed order road's compound
+   subjects; GRD-16, "Did you mean Ney?", was BUILT by row PW part 2); and — CLOSED by row
    PW part 3, kept here as the record — **PW2-D1** (row PW part 2:
    no price a player acts on says "AP" — every tag on a chip, a button and a message reads "N actions",
    "1 action" or "free", its 251 pins re-seated and the chips re-read for fit at 1.0, 1.5, 1.8 and 2.0;
@@ -161,6 +196,79 @@ never `--no-verify`; no branches, no worktrees, no stash; nothing pushed unless 
 deferral without the user's word; the model never moves a number; subagents run on Sonnet or Haiku; play
 every new rule out before the long measure; one commit and one review a session. If it will not fit, stop and
 say what is built and what is not.
+
+---
+
+## Row IC, Session 2 — the plan, decided (November 20, 2026)
+
+**Read first:** `docs/INDEPENDENT_COMMAND_SPEC.md` version 6 — §8 (all of it), §7, §6.11, §13 (R-INERT's one
+exception, the words census, R-READ's version-6 questions), §14's version-6 rows, §15's Session 2 table;
+`BUG_FIXES.md` §"Row IC — the review of 'on his own'" (IC-V1 … IC-V4) and the rows moved there (UI6-X70, X73,
+X74, X75, WS-12, WS-14; GRD-33 in `DESIGN_REFINEMENT.md`); `tests/test_ic_review_pins.py`. Verify every line of
+§14 against the code before relying on it. Press everything in the real client at the user's setup (Interface
+Scale 1.8 on 5120 x 1377).
+
+**Scope — three slices, one commit, one review, one measure** (the user's "combine slices per session"):
+
+1. **IC-7, the buttons** (§8.1; closes IC-V4). Where each goes, decided:
+   - "Chase him" beside Attack on the order card that a click on an enemy opens — a new quote kind `pursue` through
+     `order_quotes`, priced as the standing PURSUE (2 actions; 1 for a literal man and the sovereign);
+   - the card's Hold slot becomes a pair: "Stand here · 1 action" (`defend`) and "Hold the ground · 2 actions";
+   - "Look at <province>" on a click on a province he can look into (the targeted `scout`);
+   - one "Posture" slot: stance, and form or break square where the executor allows it;
+   - "Bombard" beside Attack for a gun corps; "Charge" / "Restrain" on a reckless horseman's card;
+   - "Stay put" — free; quiets his "no orders" row for this turn only; never "engaged" for a literal man's
+     restlessness; never clears a warning;
+   - the march card's "then …" pick (hold · fortify · dig in);
+   - the group face's Attack…, Support…, Fall back…, Garrison… — each the directive's one list first.
+   One client table, `SIMPLE_ORDER_BUTTONS` (the pin's name): each row a verb, its label, its price word and where it
+   shows. The Help's Orders page footer (`codex_view.gd`) and the boot help say what is true.
+2. **IC-8, the line for tasks** (§8.2–§8.5; closes IC-V1, IC-V2 and the moved rows). **First** the typed road's
+   defects — UI6-X70, X73, X74, X75, WS-14, WS-12 with GRD-33 (as ruled November 17: the model's number moves
+   nothing; the literal man's buff expires at the turn's end), IC-V1 (name a one-word clause in the read-back's "not
+   taken" row; keep the two-word floor `cr2-when-ready-then-retreat-not-split` depends on; re-seat the corpus row
+   `parseneg-retreat-if-outnumbered-executes` to expect the note) and IC-V2 (the read-back's condition and if-then
+   from `describe_condition` / `describe_contingency`). **Then** the word table (one table in `backend/ai/`, its
+   lists generated into the parser like `tools/gen_routed_order_words`, a census test, a golden-corpus row per part);
+   the read-back's four rows ("Send what I understood" sends the restated line, shown); the refusals with the
+   nearest sentence written in (an unseen enemy and a name that does not exist read the same); "Give him a task…"
+   opening the line with ready sentences (in Session 2 the exact-order presets and today's standing orders with
+   their conditions — his own on-his-own proposal lands with Session 3); the chips.
+3. **IC-9, exact orders and the trial** (§7, §6.11; closes IC-V3). The list of if-thens (three for a literal man,
+   one for the others as today); the six new ifs and three new answers, deterministic, reading France's own sight;
+   each used once ("2 of 3 left"); the renew row; one thing a turn. Then the audience's **"Give him a task to prove
+   himself"** — his proposal by nature (bold: take the nearest enemy-held place France sees within reach; careful:
+   hold his province; literal: hold, and fall back on his nearest held province if outnumbered; nothing in reach:
+   hold where he stands), as an exact order for three turns; the bands (+40 trust and +10 authority / +25 / +15 /
+   +5; "spectacular" = two battles won or a defended place taken); "Call him back"; always offered; the five-turn
+   cooldown kept; an old save settles on load with a morning line. **Delete** `TurnManager._process_autonomous_marshals`,
+   `_end_autonomy`, the debug arm and the old arm (keep the `autonomous` fields only to read an old save); the words
+   census test; the playtest driver's default audience answer becomes the trial.
+
+**The measure** (one sweep, with arms): R-INERT on every arm but the audience's — with the buttons and the line
+unused, the byte-identity series and the France band reproduce; the audience's arm re-reads the band and names,
+per seed, which campaigns met a trust crisis and how they moved. **R-READ** for the buttons and the line: §13's
+three version-6 questions, the answer key written before any frame, three fresh readers, frames at his setup.
+
+**Forks, decided now** (each one line to reverse):
+- A button whose verb the executor refuses where it would show (stance, square, charge): greyed, with the
+  executor's own refusal as its hover — never a dead button.
+- The card cannot hold the new slots at his setup: the least-used fold behind "▸ more" (UI-3's fold idiom); the
+  type never shrinks.
+- Naming the one-word clause breaks `cr2-when-ready-then-retreat-not-split`: name it in the read-back only; the
+  parse's split keeps its floor.
+- The session cannot hold all three slices at the standard: land IC-7 and IC-8, and hand IC-9 to its own session
+  the same day — safe, because "on his own", the thing the old autonomy conflicts with, is not built before
+  Session 3. Say so in STATUS.
+- New saved fields (the if-then list, used lines, the trial's task, turns and score): `to_dict` / `from_dict` with
+  `.get` defaults, `SAVE_FORMAT_REFERENCE.md`, the enforcement test, and the take-back's `ORDER_KEYS` decided field
+  by field.
+
+**Done when:** the pins of IC-V1 … IC-V4 and of the moved rows are promoted to behaviour tests and green; §15's
+Session 2 done-whens hold; `tools/defect_census.py --open` lists none of those rows; the band is re-read; the
+reading meets its bar, or the report says which question it missed. One review before the commit (three readers by
+lane, each finding put to a skeptic). STATUS line: *"ROW IC, SESSION 2 — BUTTONS FOR ORDERS, THE LINE FOR TASKS,
+EXACT ORDERS"*. Then Session 3 (`docs/INDEPENDENT_COMMAND_SPEC.md` §15).
 
 ---
 

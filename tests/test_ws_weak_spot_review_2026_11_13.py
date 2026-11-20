@@ -50,6 +50,10 @@ SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 
 _OPEN_S15 = ("OPEN — heads Session H (S15) by rule 10's sibling sweep "
              "(BUG_FIXES.md §WS); this pin turns red the day the behaviour lands")
+# WS-12 and WS-14 moved November 20, 2026 from Session H's head to row IC's IC-8 (the review of
+# "on his own": the read-back of typed tasks depends on them — INDEPENDENT_COMMAND_SPEC.md §8.7).
+_OPEN_IC8 = ("OPEN — owner row IC Session 2, slice IC-8 (moved from Session H's head November 20, "
+             "2026; BUG_FIXES.md §WS); this pin turns red the day the behaviour lands")
 
 
 def _gd(name: str) -> str:
@@ -580,7 +584,7 @@ class TestWS12AModelsNumberMovesAMarshal:
     wrote sets morale, trust and a banked attack bonus on the player's marshal
     before the order is dispatched — and a line refused for free keeps them."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
+    @pytest.mark.xfail(strict=True, reason=_OPEN_IC8)
     def test_no_number_the_model_wrote_moves_a_marshal(self):
         src = inspect.getsource(CommandExecutor._exec_bonuses_and_clarification)
         assert "apply_strategic_bonuses" not in src
@@ -603,7 +607,7 @@ class TestWS14TheReadbackOverclaimsAStandingQuestion:
     "this line answers it"; `/command` passes a line that is no answer on to
     the ordinary road and carries it out."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
+    @pytest.mark.xfail(strict=True, reason=_OPEN_IC8)
     def test_a_fresh_order_is_not_called_an_answer(self):
         from backend.commands import parse_preview as pp
         from backend.commands.clarification import CLARIFICATION_DIALOGUE_TYPE
