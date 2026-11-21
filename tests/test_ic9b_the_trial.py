@@ -1624,6 +1624,141 @@ EXEMPT_BY_NAME = {
     ("backend/game_logic/combat.py", " on his own numbers — his own "):
         "'at unfavorable odds on his own numbers — his own 26k against 60k' (PT-D1, DDB-36)",
 }
+# (5) Row IC, Session 3 (November 21, 2026): "on his own" — the reserved words
+# of a man YOU set on his own (INDEPENDENT_COMMAND_SPEC §0's table) — taught BY
+# NAME, string by string, as the census reads it (whole, whitespace folded).
+# The pattern is NOT widened: a new string that says "on his own" fails here
+# until it is read and added, and every entry must still stand
+# (`test_every_exemption_names_a_string_that_is_there`). Exempt for that word only.
+SET_BY_YOU = {
+    ('backend/ai/own_words.py',
+     'on his own'):
+        "a mark of judgement the typed line takes ('on his own' typed of him)",
+    ('backend/commands/parse_preview.py',
+     'how boldly he goes is his own only on a task on his own, and {}'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/parse_preview.py',
+     'on his own — once given, {} of the {} you may have (laws raise it)'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/parse_preview.py',
+     'on his own — {}'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/parse_preview.py',
+     '{} cannot be set on his own: {}.'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/parse_preview.py',
+     '{} is not on his own — there is no task of his to change.'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/parse_preview.py',
+     '{} · on his own'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/parse_preview.py',
+     '{} · on his own: {}'):
+        'the read-back of a task on his own (§8.4)',
+    ('backend/commands/task_presets.py',
+     'On his own: {} — his idea'):
+        'his own proposal, offered on his card (§6.9)',
+    ('backend/game_logic/dispatch.py',
+     'On his own ({}) — asks for your word: {}.'):
+        "the morning's status of a man on his own (§6.9)",
+    ('backend/game_logic/dispatch.py',
+     'On his own: {}.'):
+        "the morning's status of a man on his own (§6.9)",
+    ('backend/game_logic/jealousy.py',
+     'He cannot be set on his own now: {}.'):
+        "the petition's Give him a front: his proposal on the line, or why not (§6.9)",
+    ('backend/game_logic/jealousy.py',
+     '{} straightens. "You will not regret it, Sire." His own proposal is written on your command line — press Enter to set him on his own, or change it first.'):
+        "the petition's Give him a front: his proposal on the line, or why not (§6.9)",
+    ('backend/game_logic/own_order.py',
+     'Setting {} on his own takes {} action{}; you have {}. Nothing was spent.'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     'a task on his own is to take a place, chase an army, hold ground or support a friend'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     'is on his own'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     'only a bold or a careful marshal can be set on his own'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     'set on his own while I stood by with no order'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     '{} cannot be set on his own: {}.'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     '{} follows orders to the letter — he takes exact orders, never a task on his own'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     '{} is not on his own'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     '{} is not on his own — set him on his own first.'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     '{} is not on his own.'):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     "{}'s task on his own is over: {}."):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/own_order.py',
+     "{}'s trust in you is {} — he needs {} to be trusted on his own"):
+        'the module of a man on his own (§6)',
+    ('backend/game_logic/reforms.py',
+     '+{} marshal{} you may set on his own'):
+        'the law effect that raises the count (§6.4)',
+    ('backend/game_logic/today.py',
+     'Set him on his own'):
+        "the desk's rows of a man on his own (§4)",
+    ('backend/game_logic/today.py',
+     'You could set {} on his own.'):
+        "the desk's rows of a man on his own (§4)",
+    ('backend/game_logic/today.py',
+     '{} is {} marches from you — you could set him on his own ({}).'):
+        "the desk's rows of a man on his own (§4)",
+    ('backend/game_logic/today.py',
+     '{} is {} marches from you — you could set him on his own.'):
+        "the desk's rows of a man on his own (§4)",
+    ('backend/game_logic/today.py',
+     '{}, on his own, asks for your word.'):
+        "the desk's rows of a man on his own (§4)",
+    ('backend/game_logic/today.py',
+     '{}, on his own, asks for your word: {}.'):
+        "the desk's rows of a man on his own (§4)",
+    ('backend/game_logic/today.py',
+     '{}, on his own, asks for your word: {}. Carry on (free), give him a new task, or stand him down (free).'):
+        "the desk's rows of a man on his own (§4)",
+    ('godot-client/project-sovereign/assets/maps/europe_1805.json',
+     "Berthier's headquarters grown into a true general staff: one more order carried each day, and one more marshal you may set on his own."):
+        'the laws that raise the count (§6.4)',
+    ('godot-client/project-sovereign/assets/maps/europe_1805.json',
+     'Officers who carry your intentions to distant commands: one more marshal you may set on his own. Needs the Grand Quartier Général.'):
+        'the laws that raise the count (§6.4)',
+    ('godot-client/project-sovereign/assets/maps/tutorial_1805.json',
+     "Berthier's headquarters grown into a true general staff: one more order carried each day, and one more marshal you may set on his own."):
+        "the School's copy of France's laws",
+    ('godot-client/project-sovereign/assets/maps/tutorial_1805.json',
+     'Officers who carry your intentions to distant commands: one more marshal you may set on his own. Needs the Grand Quartier Général.'):
+        "the School's copy of France's laws",
+    ('godot-client/project-sovereign/scripts/marshal_state.gd',
+     'On his own'):
+        'his badge (§12: a shape and a word)',
+    ('godot-client/project-sovereign/scripts/marshal_state.gd',
+     'On his own:'):
+        'his badge (§12: a shape and a word)',
+    ('godot-client/project-sovereign/scripts/selection_card.gd',
+     'Ends his task on his own:'):
+        'his card (§8.1, §8.6)',
+    ('godot-client/project-sovereign/scripts/selection_card.gd',
+     ']On his own:'):
+        'his card (§8.1, §8.6)',
+    ('godot-client/project-sovereign/scripts/turn_end_list.gd',
+     'On his own. Press to go to him — to order it yourself, or to stand him down.'):
+        "the End Turn list's Tonight rows (§5)",
+}
+
 # (4) ONE-WORD labels of the vassals' scale (read since the review widened the
 # census to a label standing alone) — exempt only as the WHOLE string:
 EXEMPT_LABELS = {
@@ -1798,6 +1933,8 @@ def _census(rows):
                     continue
                 if (rel, part.strip()) in EXEMPT_LABELS:
                     continue
+                if word == "on his own" and (rel, " ".join(part.split())) in SET_BY_YOU:
+                    continue
                 if word == "autonomy" and (rel in VASSAL_SCALE_FILES
                                            or VASSAL_SCALE_NAMES.search(part)):
                     continue
@@ -1870,6 +2007,13 @@ class TestTheWordsCensus:
             assert reason, (rel, phrase)
             text = texts.setdefault(rel, (REPO / rel).read_text(encoding="utf-8"))
             assert phrase in text, f"{rel} no longer says {phrase!r} — drop the exemption"
+        # row IC, Session 3: each string of a man you set is still read where it is taught
+        prose = {}
+        for rel_p, _n, value in _all_prose():
+            for part in str(value).split("\n"):
+                prose.setdefault(rel_p, set()).add(" ".join(part.split()))
+        for (rel, text), reason in SET_BY_YOU.items():
+            assert reason and text in prose.get(rel, set()), f"{rel} no longer says {text!r} — drop it"
         for (rel, label), reason in EXEMPT_LABELS.items():
             assert reason and f'"{label}"' in (REPO / rel).read_text(encoding="utf-8"), (rel, label)
         for rel in VASSAL_SCALE_FILES:

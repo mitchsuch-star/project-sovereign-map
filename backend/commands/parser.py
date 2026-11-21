@@ -625,6 +625,62 @@ def _is_telegraph_head(first: str, game_state) -> bool:
     return any(str(p).lower() == typed for p in places)
 
 
+def _own_names(world) -> list:
+    """Row IC, Session 3: the names of our men on their own."""
+    if world is None:
+        return []
+    try:
+        from backend.game_logic import own_order as _own
+        return [m.name for m in _own.men(world)]
+    except Exception as exc:
+        report(exc, "parser._own_names")
+        return []
+
+
+def _attach_own(result, world, marks, risk_words, second):
+    """Row IC, Session 3 (§8.2): the parse of a task ON HIS OWN carries `own` —
+    {kind: "give", task, target, risk, second, marks}. ON HIS OWN when the line
+    says so (a mark of judgement — then always, and a man who cannot be set is
+    told why), or when a how-bold word rides a task to a bold or careful man
+    who may be set on his own now (else the word stays "Not taken", as for an
+    exact order, and the read-back says why)."""
+    if not (isinstance(result, dict) and result.get("success") and world is not None
+            and hasattr(world, "get_marshal") and hasattr(world, "get_region")):
+        return result
+    command = result.get("command") if isinstance(result.get("command"), dict) else None
+    if not command or not command.get("marshal"):
+        return result
+    from backend.ai import task_words as _tw
+    from backend.game_logic import own_order as _own
+    words = [str(w).lower() for w in (risk_words or [])]
+    step = 0
+    for word in words:
+        if word in _tw.BOLDER_WORDS:
+            step = 1
+        elif word in _tw.CAREFUL_WORDS:
+            step = -1
+    task, target = _own.task_of_parse(world, result)
+    marshal = world.get_marshal(str(command.get("marshal")))
+    if marshal is None:
+        return result
+    if not marks:
+        # a how-bold word alone makes a STANDING task his own (or a take of a
+        # place) — never a one-turn attack on a man ("Ney, attack Mack only at
+        # good odds" stays the attack, the words not taken)
+        if not words or not task:
+            return result
+        if not result.get("is_strategic") and task != "take":
+            return result
+        if _own.why_not(world, marshal, task, replacing=_own.on_his_own(marshal)):
+            return result
+    result["own"] = {"kind": "give", "task": task, "target": target, "risk": step,
+                     "second": second or "", "marks": list(marks or []), "words": words}
+    if words:
+        result["own_risk_words"] = words
+        result.pop("risk_words", None)
+    return result
+
+
 def _player_marshal_names(game_state) -> list:
     world = (game_state or {}).get("world")
     player = getattr(world, "player_nation", None)
@@ -3362,6 +3418,27 @@ class CommandParser:
         _sovereign = _find_player_sovereign(world if world is not None
                                             else (game_state or {}).get("world")
                                             if isinstance(game_state, dict) else None)
+        # Row IC, Session 3 (IC-10, §8.6): a QUESTION to a man ("Ney, what
+        # will you do?") and the words that change the task of a man on his
+        # own ("Ney, more risk", "stand down", "carry on") are read first, as
+        # their own parse; then the marks of judgement ("on your own", "as you
+        # see fit") and a hold's second province are set aside before any
+        # reader can make them part of a place (`backend/ai/own_words.py`).
+        from backend.ai import own_words as _own_words
+        _own_world = world if world is not None else (
+            game_state.get("world") if isinstance(game_state, dict) else None)
+        _own_regions = list(getattr(_own_world, "regions", {}) or {})
+        _own_line = _own_words.read_line(command_text, _friends, _own_regions,
+                                         _own_names(_own_world))
+        if _own_line is not None:
+            _ptrace.decide("parser", "own_words", str(_own_line.get("own") or
+                                                      (_own_line.get("command") or {}).get("question")))
+            return _own_line
+        _b = command_text
+        command_text, _own_marks = _own_words.set_aside_marks(command_text)
+        command_text, _own_second = _own_words.two_provinces(command_text, _own_regions,
+                                                             marked=bool(_own_marks))
+        _ptrace.note("parser", "own_words_set_aside", _b, command_text)
         # UI6-X54: a pronoun behind a COMPOUND subject has no single referent
         # whatever the joiner or the verb - read on the typed line BEFORE any
         # split, rewrite or binding can carry the man in sight in its place.
@@ -3593,6 +3670,10 @@ class CommandParser:
                 and result["command"].get("marshal")
                 and result["command"].get("action") != "stance_change"):
             result["risk_words"] = list(_risk_words)
+        # Row IC, Session 3: a task ON HIS OWN — the line said so, or it
+        # carries a how-bold word to a bold or careful man who may be set on
+        # his own (`_attach_own`); its how-bold words are then TAKEN.
+        result = _attach_own(result, _own_world, _own_marks, _risk_words, _own_second)
         # IC-7: "attack <him>, held back" — the attack, without the glorious
         # charge (`combat_executor._execute_attack` reads the flag; the words
         # are the word table's).

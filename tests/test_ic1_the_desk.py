@@ -30,7 +30,8 @@ SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 
 # (+ "directive": row IC's second commit — a row that opens the LIST of an order to several corps)
 DOOR_KINDS = {"marshal", "region", "day", "envoys", "ledger", "congress", "generals", "idle", "war", "court",
-              "directive"}
+              "directive",
+              "line"}   # row IC, Session 3: a row that writes a ready line (his proposal on his own)
 
 
 def _quiet():
@@ -173,6 +174,11 @@ class TestTheOneKey:
             assert 0 < len(row["text"]) <= today.ROW_CAP, (len(row["text"]), row["text"])
             assert row["text"].endswith((".", "…", "?")), row["text"]
             assert row["door"].get("kind") in DOOR_KINDS, row
+            # Row IC, Session 3 (§4): the jealous man's row alone may carry
+            # its two doors — [Give him an order] [Set him on his own].
+            for extra in row.get("doors") or []:
+                assert row["id"].startswith("strike:"), row
+                assert extra["door"].get("kind") in DOOR_KINDS and extra["label"], row
             assert "_" not in row["text"], row["text"]            # no internal key leaks into the words
         tiers = [row["tier"] for row in rows]
         assert tiers == sorted(tiers)                               # what bites, then what wastes, then what grows
@@ -432,9 +438,11 @@ class TestTheRows:
     def test_the_order_of_the_list_is_the_design_s(self):
         assert [name for name, _reader in today.READERS] == [
             "last_stand", "battle_days", "lapses", "treasury", "peril", "danger", "strike",
+            "own_asks",          # row IC, Session 3: a man on his own asks for your word
             "take", "reach_and_idle", "restless",
             "exact_orders",      # row IC, Session 2 (IC-9): if-thens used up, or struck
-            "congress", "law", "commission"]
+            "congress", "law", "commission",
+            "own_free"]          # row IC, Session 3: a place is free in the count
 
     def test_a_last_stand_and_a_day_of_battle_lead(self, world, monkeypatch):
         from backend.commands import strategic
@@ -647,13 +655,17 @@ class TestTheRows:
         monkeypatch.setattr(recruitment, "commission_counsel_need", lambda w, n: True)
         rows = today.decide(world)
         grows = [r for r in rows if r["tier"] == today.TIER_GROWS]
-        assert _ids(grows)[0] == "congress" and _ids(grows)[-1] == "commission"
+        # (row IC, Session 3: a place free in the count comes after the
+        # marshal to hire — the design's §4 item 3 — while one is free)
+        assert _ids(grows)[0] == "congress"
+        assert [i for i in _ids(grows) if not i.startswith("own_free:")][-1] == "commission"
         assert grows[0]["door"] == {"kind": "congress"}
         assert grows[0]["text"] == "You can summon the Congress of Paris now — the way to win; it cannot be undone."
         law = next(r for r in grows if r["id"].startswith("law:"))
         assert law["door"] == {"kind": "ledger", "tab": 7} and "gold" in law["text"]
-        assert grows[-1]["text"] == "You can commission Oudinot to lead a new corps (600 gold)."
-        assert grows[-1]["door"] == {"kind": "generals"}
+        hire = [r for r in grows if not r["id"].startswith("own_free:")][-1]
+        assert hire["text"] == "You can commission Oudinot to lead a new corps (600 gold)."
+        assert hire["door"] == {"kind": "generals"}
         assert rows[-len(grows):] == grows
 
     def test_a_marshal_is_urged_only_where_the_army_needs_one(self, world, monkeypatch):
@@ -723,7 +735,12 @@ class TestTheDeskAndTheGateAreOneList:
         assert asked == {"_army_warning_stands", "_ic_danger_warning_stands", "_ic_strike_warning_stands",
                          "_day_warning_stands", "_pw_take_warning_stands", "_ui5_idle_warning_stands",
                          "_treasury_goes_negative"}
-        assert gate.count("_show_lapse_confirmation()") == 6
+        # Row IC, Session 3: the seventh stop is the desk's own block — a man
+        # on his own whose night may become a great battle or takes him out
+        # of his area (`desk.own.tonight`), said once, not a TO DECIDE row
+        assert gate.count("_show_lapse_confirmation()") == 7
+        assert "not _own_tonight_stops().is_empty()" in gate
+        assert '_ic_desk.get("own", {})' in _func(_src("main.gd"), "_own_tonight_rows")
 
     def test_the_idle_reading_is_the_client_s_own(self, world):
         """`today.is_idle` and `main.gd::_idle_marshals` name the same corps: the client's

@@ -6766,6 +6766,23 @@ def _derive_marshal_status(marshal, world) -> tuple:
                    if _reach else "")
                 + _works)
 
+    # Row IC, Session 3: a man ON HIS OWN — his task, what he asks, and what
+    # he did last night (his saved record's line).
+    try:
+        from backend.game_logic import own_order as _own
+        _spec = _own.own(marshal)
+    except Exception as exc:
+        report(exc, "dispatch._derive_marshal_status: own_order")
+        _spec = None
+    if _spec is not None:
+        _words = _own.task_words(_spec)
+        if _spec.get("state") == "asks":
+            return ("awaiting_decision",
+                    f"On his own ({_words}) — asks for your word: "
+                    f"{(_spec.get('asks') or {}).get('why', '')}.")
+        _last = str((getattr(marshal, "own_record", None) or {}).get("said") or "")
+        return ("on_his_own", f"On his own: {_words}." + (f" Last night: {_last}." if _last else ""))
+
     if marshal.in_strategic_mode:
         order = marshal.strategic_order
         cmd = order.command_type

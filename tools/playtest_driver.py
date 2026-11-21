@@ -1799,6 +1799,36 @@ def reload_round_trip(transport, digest, answerer, name, turn, strict):
     drain(transport, digest, answerer, loaded, strict)
 
 
+def _own_policy_lines(wanted: int, at_start: int = 0) -> list:
+    """Row IC, Session 3: the typed lines that set men on their own up to
+    `wanted` (and the count) — his own proposal, the farthest from the Emperor
+    first. In-process only (reads the world the TestClient serves)."""
+    try:
+        import backend.main as _bm
+        from backend.game_logic import own_order as _own
+        world = _bm.world
+        if at_start > 0:
+            _own.COUNT_AT_START = int(at_start)     # the measure's "N 2 at the start" arm
+        free = min(int(wanted), _own.allowed(world)) - _own.count(world)
+        if free <= 0:
+            return []
+        emperor = next((m for m in world.get_player_marshals()
+                        if getattr(m, "personality", "") == "sovereign"), None)
+        rows = []
+        for m in world.get_player_marshals():
+            if _own.on_his_own(m) or _own.why_not(world, m):
+                continue
+            d = _own._distance(world, m.location, emperor.location) if emperor is not None else 0
+            rows.append((-(d or 0), m.name, m))
+        lines = []
+        for _d, _n, m in sorted(rows)[:free]:
+            lines.append(_own.proposal(world, m)["line"])
+        return lines
+    except Exception as exc:
+        print(f"[driver] --own: {exc}")
+        return []
+
+
 class Transport:
     """POST/GET against either an in-process TestClient or a live server.
 
@@ -5033,6 +5063,16 @@ def run(args):
         # BA-3: the days the enemy opened in his phase await us now.
         rounds.turn_head(current_turn)
 
+        # Row IC, Session 3 (`--own N`, the measure's arms; 0 = off, inert):
+        # set up to N marshals ON THEIR OWN — as many as the count allows —
+        # each with his own proposal typed as the player would, the man
+        # farthest from the Emperor first.
+        if int(getattr(args, "own", 0) or 0) > 0 and not getattr(args, "http", None):
+            for line in _own_policy_lines(int(args.own), int(getattr(args, "own_at_start", 0) or 0)):
+                response = transport.post("/command", {"command": line, "typed": True})
+                digest.command(line, response)
+                drain(transport, digest, answerer, response, args.strict)
+
         # SF-AGD-1: the turn's lines without the implicit end turn, read
         # ahead so the dialogue a line opens is HELD while the next line is
         # the script's own click on it.
@@ -6252,6 +6292,11 @@ def main():
                     choices=["", "trial", "administrative_role", "dismiss", "grant_autonomy"],
                     help="the audience's answer: trial = a task to prove himself (the default); "
                          "grant_autonomy is the retired word, read as trial")
+    ap.add_argument("--own", type=int, default=0,
+                    help="row IC, Session 3: set up to N marshals on their own (their own "
+                         "proposals), as many as the count allows; 0 = off")
+    ap.add_argument("--own-at-start", dest="own_at_start", type=int, default=0,
+                    help="row IC, Session 3: the measure's arm — the count at the start (1 unless set)")
     ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate", "buy"],
                     help="rotate cycles the enabled arms per petition kind (opt-in); AU-3a: buy "
                          "takes the arm priced in authority where it is open")

@@ -38,6 +38,10 @@ signal group_verb_pressed(verb: String)   # row IC, directives: "hold", "fortify
 # sentences) and a ready sentence chosen (the host writes it on the command line).
 signal task_pressed(marshal: String)
 signal task_line_pressed(line: String)
+# Row IC, Session 3: a man ON HIS OWN — a line written on the command line
+# (Ask him, Change his task) or sent at once (Carry on, Stand him down).
+signal own_write_pressed(line: String)
+signal own_send_pressed(line: String)
 signal name_army_pressed
 signal save_army_pressed(name: String)
 signal disband_army_pressed(name: String)
@@ -62,6 +66,7 @@ var _buttons: Dictionary = {}   # slot (int) -> Button
 var _posture_open := false      # row IC, Session 2: the "Posture…" menu is showing
 var _tasks: Array = []          # … and the ready tasks the staff wrote for him
 var _tasks_for := ""
+var _own_now := false           # row IC, Session 3: the man shown is on his own
 var _hint_height := 0.0         # the hint's measured height: an opened menu stands in its place
 var _body: VBoxContainer = null
 # The host's room for the card (logical px; 0 = no cap) — the 32:9 right wing is
@@ -186,6 +191,7 @@ func _render() -> void:
 	var menu: Control = null
 	if _group.is_empty():
 		_body.add_child(_head_row(compact))
+		_own_now = str(_dict_of_view_own().get("task", "")) != ""
 		# Row IC, Session 2b: on a task to prove himself his card carries NO
 		# order at all — what he is doing, his task as it was given, and that
 		# he cannot be called back. (The first blind reading: the card said "he
@@ -202,6 +208,12 @@ func _render() -> void:
 		var ground := _ground_row(compact)
 		if ground != null:
 			_body.add_child(ground)
+		# Row IC, Session 3: ON HIS OWN — his task, "Tonight", what he asks,
+		# and the four click twins of typed lines. He still takes today's
+		# orders (§6.3), so his order rows stand below as for any man.
+		var own_row := _own_row(compact)
+		if own_row != null:
+			_body.add_child(own_row)
 		# Row IC, Session 2 (pressed in the real client at the first player's
 		# setup): the card stands on its bottom edge, so whatever makes it taller
 		# lifts every row above the new one out from under the cursor - with the
@@ -280,6 +292,82 @@ func _trial_row(compact: bool) -> Control:
 		words += "\n[color=#" + Utils.COLOR_INFO + "]His task: \"" + line + "\"[/color]"
 	words += "\n[color=#" + Utils.COLOR_INFO + "]He takes no orders until it ends, and you cannot call him back.[/color]"
 	return _measured_rich("TrialLine", words, wrap_w, true)
+
+
+func _own_row(compact: bool) -> Control:
+	"""Row IC, Session 3: he is ON HIS OWN — the server's own words for his
+	task, what he will do tonight (the one reading the night itself uses), what
+	he asks of you, his odds — and four buttons, each the click twin of a typed
+	line: "Ask him" and "Change his task…" WRITE the line (asking is free and
+	his answer shows before Enter; a change costs 1 action), "Carry on" (when
+	he asks) and "Stand him down" SEND it (both free). Null for every other man."""
+	var own = _view.get("own", {})
+	if not (own is Dictionary) or str((own as Dictionary).get("task", "")) == "":
+		return null
+	var col := VBoxContainer.new()
+	col.name = "OwnRow"
+	col.add_theme_constant_override("separation", 4)
+	var wrap_w: float = maxf(_card_width(compact) - 24.0, 120.0)
+	var shown := Utils.humanize_entity_name(_marshal)
+	var task_words := str(own.get("words", ""))
+	var words := "[color=#" + Utils.COLOR_GOLD + "]On his own: " + task_words + "[/color]"
+	var state_words := str(own.get("state_words", ""))
+	if state_words != "":
+		words += "  [color=#" + Utils.COLOR_INFO + "](" + state_words + ")[/color]"
+	var tonight := str(own.get("tonight", "")).strip_edges()
+	if tonight != "":
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tonight:[/color] " + tonight + "."
+	var ahead := str(own.get("ahead", "")).strip_edges()
+	if ahead != "":
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tomorrow night, as things stand:[/color] " + ahead + "."
+	var help := str(own.get("help", "")).strip_edges()
+	if help != "":
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Every night:[/color] " + help + "."
+	var asks := str(own.get("asks", "")).strip_edges()
+	if asks != "":
+		words += "\n[color=#" + Utils.COLOR_WARNING + "]He asks for your word: " + asks + ".[/color]"
+	if not compact:
+		words += ("\n[color=#" + Utils.COLOR_INFO + "]He attacks only when the odds are " + str(own.get("odds", ""))
+			+ " (men of ours to theirs, as the battle forecast reckons them). An order you give him today"
+			+ " is carried out; his task goes on the next night.[/color]")
+	col.add_child(_measured_rich("OwnLine", words, wrap_w, true))
+	var flow := HFlowContainer.new()
+	flow.name = "OwnButtons"
+	flow.add_theme_constant_override("h_separation", 4)
+	flow.add_theme_constant_override("v_separation", 4)
+	flow.add_child(_simple_button("Own_ask", "Ask him",
+		"Writes \"" + shown + ", what will you do?\" on the command line. Asking is free; his answer shows before you press Enter.",
+		"", _emit_own_write.bind(shown + ", what will you do?")))
+	flow.add_child(_simple_button("Own_change", "Change his task…",
+		"Writes his task on the command line for you to change (more risk, less risk, another place). A change costs 1 action.",
+		"", _emit_own_write.bind(shown + ", " + task_words + " on your own.")))
+	if asks != "":
+		var carry := _simple_button("Own_carry", "Carry on · free",
+			"Tells him to carry on with his task. Free.", "",
+			_emit_own_send.bind(shown + ", carry on"))
+		carry.theme_type_variation = &"PrimaryButton"
+		flow.add_child(carry)
+	var price := str(own.get("stand_down", "free"))
+	flow.add_child(_simple_button("Own_stand", "Stand him down · " + price.split(",")[0],
+		"Ends his task on his own: " + price + ".", "",
+		_emit_own_send.bind(shown + ", stand down")))
+	col.add_child(flow)
+	return col
+
+
+func _dict_of_view_own() -> Dictionary:
+	var own = _view.get("own", {})
+	return own if own is Dictionary else {}
+
+
+func _emit_own_write(line: String) -> void:
+	AudioManager.play("click")
+	own_write_pressed.emit(line)
+
+
+func _emit_own_send(line: String) -> void:
+	AudioManager.play("click")
+	own_send_pressed.emit(line)
 
 
 func _no_orders_reason() -> String:
@@ -473,8 +561,12 @@ func _simple_row(compact: bool) -> Control:
 			flow.add_child(_simple_button("Simple_posture", _posture_face() + mark,
 				str(entry["tip"]), "", _toggle_posture))
 		elif id == "task":
-			flow.add_child(_simple_button("Simple_task", str(entry["label"]),
-				str(entry["tip"]), "", _emit_task))
+			# Row IC, Session 3 (the blind reading: "Give him a task…" beside
+			# "Change his task…" read as two roads): a man on his own changes
+			# his task from his own block.
+			if not _own_now:
+				flow.add_child(_simple_button("Simple_task", str(entry["label"]),
+					str(entry["tip"]), "", _emit_task))
 		else:
 			flow.add_child(_order_button(entry, compact))
 	return flow

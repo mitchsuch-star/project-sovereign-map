@@ -276,9 +276,12 @@ func _history():
 	_input.grab_focus()
 	_input.text = "Ney, attack Mack"
 	_input.caret_column = _input.text.length()
+	# Row IC, Session 3 (IC3-H2): the stopwatch starts BEFORE the line is handed
+	# over — stamped after, a busy machine's own handling time was taken off
+	# the rest and read 144 ms against a 220 ms debounce.
+	_typed_at = Time.get_ticks_msec()
 	_main.call("_on_command_text_changed", _input.text)
 	_out["r2_asked_at_once"] = _api.previews.size()
-	_typed_at = Time.get_ticks_msec()
 	_phase = "readback_type"
 
 
@@ -313,8 +316,8 @@ func _readback_type():
 	_api.previews.clear()
 	_input.text = "Nye, attack Mack"
 	_input.caret_column = _input.text.length()
+	_typed_at = Time.get_ticks_msec()   # IC3-H2: before the hand-over
 	_main.call("_on_command_text_changed", _input.text)
-	_typed_at = Time.get_ticks_msec()
 	_phase = "readback_asked"
 
 

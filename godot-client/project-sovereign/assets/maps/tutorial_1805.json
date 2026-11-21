@@ -188,9 +188,13 @@
           {
             "type": "actions",
             "value": 1
+          },
+          {
+            "type": "on_their_own",
+            "value": 1
           }
         ],
-        "says": "Berthier's headquarters grown into a true general staff: one more order carried each day."
+        "says": "Berthier's headquarters grown into a true general staff: one more order carried each day, and one more marshal you may set on his own."
       },
       {
         "id": "train_des_equipages",
@@ -268,6 +272,22 @@
           }
         ],
         "says": "The Civil Code carried into the client states binds them to the Empire: +1 loyalty a turn in every one."
+      },
+      {
+        "id": "aides_de_camp",
+        "name": "The Emperor's Aides-de-Camp",
+        "date": "the officers who carried the Emperor's intentions to his distant commands, 1805–15",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 100,
+        "requires_law": "grand_quartier_general",
+        "effects": [
+          {
+            "type": "on_their_own",
+            "value": 1
+          }
+        ],
+        "says": "Officers who carry your intentions to distant commands: one more marshal you may set on his own. Needs the Grand Quartier Général."
       }
     ]
   }

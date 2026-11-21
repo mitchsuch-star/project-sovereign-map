@@ -92,10 +92,23 @@ def build(world, marshal) -> List[Tuple[str, str]]:
                          f"{name}, hold {here}. If {friend} is attacked next to you, "
                          f"join his battle."))
         return rows[:MAX_PRESETS]
+    # Row IC, Session 3 (§6.9): a bold or careful man who may be set on his
+    # own offers HIS OWN proposal first — the task he would choose, on his own.
+    rows_own: List[Tuple[str, str]] = []
+    try:
+        from backend.game_logic import own_order as _own
+        if not _own.on_his_own(marshal) and not _own.why_not(world, marshal):
+            prop = _own.proposal(world, marshal)
+            spec = {"task": prop["task"], "target": prop["target"], "area": [prop["target"]]}
+            rows_own.append((f"On his own: {_own.task_words(spec)} — his idea", prop["line"]))
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "task_presets.build: his own proposal")
+        rows_own = []
     hold = ("Hold for three turns", f"{name}, hold {here} for 3 turns.")
     watch = ("Hold; if attacked, dig in", f"{name}, hold {here}. If attacked, dig in.")
     chase = (f"Chase {foe}", f"{name}, chase {foe} until he is destroyed.") if foe else None
     follow = (f"Follow {friend}", f"{name}, follow {friend}.") if friend else None
     order = ([hold, watch, follow, chase] if getattr(marshal, "personality", "") == "cautious"
              else [chase, hold, watch, follow])
-    return [row for row in order if row is not None][:MAX_PRESETS]
+    return (rows_own + [row for row in order if row is not None])[:MAX_PRESETS]

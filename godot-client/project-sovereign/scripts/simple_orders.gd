@@ -43,10 +43,10 @@ const SIMPLE_ORDER_BUTTONS := [
 	# ---- the general's card ------------------------------------------------
 	{"id": "stand", "where": "card", "label": "Stand here", "line": "defend",
 		"price": "probe:defend",
-		"tip": "He stands on the defensive where he is, for this turn. (Hold the ground is the standing order: it lasts until you change it.)"},
+		"tip": "He stands on the defensive where he is, for this turn: attacked, he fights from his ground. (Stay put does nothing at all; Hold the ground is the standing order: it lasts until you change it.)"},
 	{"id": "stay_put", "where": "card", "label": "Stay put", "line": "wait",
 		"price": "button:wait",
-		"tip": "He does nothing this turn and is not listed as waiting for orders. Next turn he is listed again."},
+		"tip": "He does nothing this turn, takes up no defence, and is not listed as waiting for orders; next turn he is listed again. (Stand here makes him defend where he is.)"},
 	{"id": "posture", "where": "card", "label": "Posture…", "line": "",
 		"price": "none",
 		"tip": "How he fights: attacking, steady or defending — and the square, for foot."},

@@ -993,6 +993,164 @@ def _riders(parts: List[Dict[str, str]], parsed: Dict) -> None:
         parts.append(_part("note", f"read ‘{m.group(1)}’ as {m.group(2)}"))
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Row IC, Session 3 (IC-10; INDEPENDENT_COMMAND_SPEC §8.4, §8.6) — ON HIS OWN.
+#
+# The user's words: "make this engaging make the typing really fun". As you
+# type a task to a man on his own the reading answers BEFORE anything is spent:
+# what it takes (on his own, the count, his odds as numbers — and how your
+# "boldly" moves them), what he would do TOMORROW NIGHT on the board as it
+# stands (the one pure reading the night itself uses — `own_order.read`), his
+# answer in his own voice (it changes with your words), the price, who takes
+# it ill, his objection and its cost. A question to him is answered here too,
+# free: the read-back already shows what he says.
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _with_word(text: str, word: str) -> str:
+    """The typed line with a word put where it belongs — before the closing
+    stop ("Ney, take Swabia on your own" + "boldly")."""
+    base = str(text or "").rstrip()
+    stop = ""
+    while base and base[-1] in ".!":
+        stop = base[-1] + stop
+        base = base[:-1].rstrip()
+    joint = ", " if base.lower().endswith(("own", "fit", "judgement", "judgment", "discretion")) else " "
+    return f"{base}{joint}{word}{stop or '.'}"
+
+
+def _without_marks(text: str) -> str:
+    from backend.ai.own_words import set_aside_marks
+    cleaned, _found = set_aside_marks(text)
+    return cleaned
+
+
+def _own_question_reading(out: Dict[str, Any], world, question: Dict) -> Dict[str, Any]:
+    from backend.game_logic import own_order as _own
+    name = str(question.get("subject") or "")
+    marshal = world.get_marshal(name) if name else None
+    if marshal is None:
+        return _simple(out, "question", ("head", "A question for Berthier"), ("cost", "costs nothing"))
+    shown = humanize_entity_name(marshal.name)
+    try:
+        said = _own.answer(world, marshal, str(question.get("kind") or "")[4:],
+                           str(question.get("place") or ""))
+    except Exception as exc:
+        report(exc, "parse_preview._own_question_reading")
+        said = {}
+    parts = [("head", f"A question for {shown}"), ("cost", "costs nothing")]
+    if said.get("says"):
+        parts.append(("answer", f"\u201c{said['says']}\u201d"))
+    out.update(marshal=shown)
+    return _simple(out, "question", *parts)
+
+
+def _own_reading(out: Dict[str, Any], world, parsed: Dict, text: str) -> Dict[str, Any]:
+    from backend.game_logic import own_order as _own
+    try:
+        r = _own.reading_of_parse(world, parsed)
+    except Exception as exc:
+        report(exc, "parse_preview._own_reading")
+        return _refusal_reading(out, "That task could not be read.")
+    shown = str(r.get("shown") or humanize_entity_name(str(r.get("marshal") or "")))
+    kind = str(r.get("kind") or "give")
+    out.update(marshal=shown, strategic=True)
+    if kind in ("stand_down", "carry_on", "risk"):
+        if not r.get("ok"):
+            return _refusal_reading(out, f"{shown} is not on his own — there is no task of his to change.")
+        marshal = world.get_marshal(str(r.get("marshal") or ""))
+        info = _own.payload(world, marshal) or {}
+        if kind == "stand_down":
+            out.update(kind="order", ok=True, ap=0, verb="stand down")
+            return _simple(out, "order", ("head", f"{shown} · stand down — his task ends"),
+                           ("cost", str(info.get("stand_down") or "free")),
+                           ("note", str(info.get("count") or "")))
+        if kind == "carry_on":
+            out.update(kind="order", ok=True, ap=0, verb="carry on")
+            asks = str(info.get("asks") or "")
+            return _simple(out, "order", ("head", f"{shown} · carry on with his task"),
+                           ("cost", "free"),
+                           ("taken", f"he asked: {asks}" if asks else "he is not waiting for your word"))
+        step = int((parsed.get("own") or {}).get("step", 0) or 0)
+        risk = max(-1, min(1, int(info.get("risk", 0) or 0) + step))
+        if risk == int(info.get("risk", 0) or 0):
+            return _refusal_reading(out, f"{shown} already goes in at {_own.needed_words(_own.needed(marshal, risk))}"
+                                         f" — one step is the most you can move him.")
+        if int(getattr(world, "actions_remaining", 0) or 0) < _own.CHANGE_PRICE:
+            return _refusal_reading(out, f"Changing {shown}'s task takes {_own.CHANGE_PRICE} action; none is left this turn.")
+        n = _own.needed(marshal, risk)
+        out.update(kind="order", ok=True, ap=_own.CHANGE_PRICE,
+                   verb="more risk" if step > 0 else "less risk")
+        return _simple(out, "order",
+                       ("head", f"{shown} · {'more' if step > 0 else 'less'} risk"),
+                       ("cost", _cost_text(_own.CHANGE_PRICE, "military", False)),
+                       ("taken", f"he will go in at {_own.needed_words(n)}"))
+    if not r.get("ok"):
+        why = str(r.get("why") or "no task he can take")
+        out.update(kind="refusal", ok=False, refusal=why)
+        out["parts"] = [_part("head", f"{shown} · on his own"),
+                        _part("bad", f"{shown} cannot be set on his own: {why}."),
+                        _part("cost", "free refusal")]
+        plain = _without_marks(text)
+        if plain and plain != text:
+            out["candidates"] = [{"label": "Give it as an exact order", "line": plain}]
+        return out
+    task_words = _own.task_words(r["spec"])
+    price = int(r.get("price", 2) or 2)
+    out.update(kind="order", ok=True, ap=price, verb=task_words.split(" ")[0],
+               target=str(r.get("target") or ""))
+    parts = [("head", f"{shown} · on his own: {task_words}"),
+             ("cost", _cost_text(price, "military", False) + (" — a change to his task" if r.get("changing") else ""))]
+    count = (f"on his own — once given, {int(r.get('count_after', 1))} of the "
+             f"{int(r.get('allowed', 1))} you may have (laws raise it)"
+             if not r.get("changing") else f"on his own — {r.get('count')}")
+    parts.append(("taken", count))
+    _tn = r.get("tonight") or {}
+    parts.append(("taken", f"he attacks only when the odds are {_tn.get('needed_words') or r.get('needed_words')}"))
+    if len(r.get("area") or []) == 2:
+        parts.append(("taken", "his area: " + " and ".join(humanize_entity_name(p) for p in r["area"])))
+    tonight = r.get("tonight") or {}
+    if tonight.get("line"):
+        parts.append(("tonight", (f"Tonight, as things stand: {tonight['line']}" if r.get("starts_tonight")
+                                  else f"His first night (tomorrow), as things stand: {tonight['line']}")))
+    if tonight.get("help"):
+        parts.append(("tonight", f"Every night: {tonight['help']}"))
+    if r.get("says"):
+        parts.append(("answer", f"\u201c{r['says']}\u201d"))
+    if r.get("objection"):
+        parts.append(("warn", f"he objects: {r['objection']} — giving it anyway costs "
+                              f"{int(r.get('objection_cost', 0))} of his trust"))
+    if r.get("slight"):
+        parts.append(("warn", f"{r['slight']} outranks him and has no order — he will resent it "
+                              f"(his regard for {shown} drops)"))
+    parts.append(("note", "he starts tomorrow night; you can stand him down for free"))
+    out["parts"] = [_part(role, t) for role, t in parts]
+    chips = []
+    risk = int(r.get("risk", 0) or 0)
+    if risk == 0:
+        chips.append({"label": "+ boldly (attacks at worse odds)", "line": _with_word(text, "boldly")})
+        chips.append({"label": "+ carefully (only at better odds)", "line": _with_word(text, "carefully")})
+    prop = r.get("proposal") or {}
+    if r.get("objection") and prop.get("line"):
+        chips.insert(0, {"label": "Take his advice", "line": str(prop["line"])})
+    if r.get("task") == "hold" and len(r.get("area") or []) == 1:
+        try:
+            from backend.game_logic.own_order import _near
+            here = str(r["area"][0])
+            for name in _near(world, here):
+                region = world.get_region(name)
+                if region is not None and getattr(region, "controller", None) == world.player_nation:
+                    base = str(text or "").rstrip(" .!")
+                    shown_here = humanize_entity_name(here)
+                    if shown_here in base:
+                        chips.append({"label": f"+ and {humanize_entity_name(name)} (a second province to hold)",
+                                      "line": base.replace(shown_here, f"{shown_here} and {humanize_entity_name(name)}", 1) + "."})
+                    break
+        except Exception as exc:
+            report(exc, "parse_preview._own_reading: the second province")
+    out["candidates"] = chips[:3]
+    return out
+
+
 def _refusal_reading(out: Dict[str, Any], text: str) -> Dict[str, Any]:
     out.update(kind="refusal", ok=False, refusal=str(text),
                parts=[_part("bad", text), _part("cost", "free refusal")])
@@ -1055,6 +1213,26 @@ def taken_rows(parsed: Dict) -> List[str]:
     for line in parsed.get("if_thens") or []:
         rows.append(IT.describe(line, humanize_entity_name))
     return rows
+
+
+def _why_not_bold(world, marshal, action: str, parsed: Dict) -> str:
+    """Row IC, Session 3: why a how-bold word was not taken — a man who could
+    be set on his own is told what stands in the way (the count, his trust),
+    so the line can be changed; anyone else hears that an exact order goes as
+    written."""
+    if marshal is None or world is None:
+        return WHY_AS_WRITTEN
+    try:
+        from backend.game_logic import own_order as _own
+        task, _target = _own.task_of_parse(world, parsed)
+        if not task or _own._nature(marshal) not in ("bold", "careful"):
+            return WHY_AS_WRITTEN
+        why = _own.why_not(world, marshal, task, replacing=_own.on_his_own(marshal))
+        if why:
+            return f"how boldly he goes is his own only on a task on his own, and {why}"
+    except Exception as exc:
+        report(exc, "parse_preview._why_not_bold")
+    return WHY_AS_WRITTEN
 
 
 def not_taken_rows(world, parsed: Dict, text: str) -> List[Dict[str, Any]]:
@@ -1125,7 +1303,7 @@ def not_taken_rows(world, parsed: Dict, text: str) -> List[Dict[str, Any]]:
         for found in TURNS_RE.finditer(str(text or "").lower()):
             add(str(text)[found.start():found.end()], WHY_NO_CLOCK, True)
     for word in parsed.get("risk_words") or []:
-        add(str(word), WHY_AS_WRITTEN, True)
+        add(str(word), _why_not_bold(world, marshal, action, parsed), True)
     # a loose time ("through the winter", "for two weeks"): offered in turns
     from backend.commands import task_line as TL
     for phrase in parsed.get("loose_time") or []:
@@ -1666,7 +1844,11 @@ def _reading_of(out, world, parsed: Dict, text: str, reading: str, unbound_addre
     if not parsed.get("success"):
         return _failure_reading(out, world, view, parsed, text)
     if command.get("question"):
+        if str((command.get("question") or {}).get("kind") or "").startswith("own_"):
+            return _own_question_reading(out, world, command["question"])
         return _simple(out, "question", ("head", "A question for Berthier"), ("cost", "costs nothing"))
+    if isinstance(parsed.get("own"), dict):
+        return _own_reading(out, world, parsed, text)
     if action in _REPORT_ACTIONS:
         return _simple(out, "meta", ("head", "A report from Berthier"), ("cost", "costs nothing"))
     if action == "end_turn":

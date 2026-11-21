@@ -1,5 +1,15 @@
 # On His Own — the Emperor's desk, his marshals' judgement, and exact orders (row IC)
 
+> **Status: SESSION 3 BUILT — November 21, 2026 ("on his own": IC-10 and IC-11).** The user's words for the
+> session: *"commit and push when done, make this engaging make the typing really fun for this on make sure ux
+> is good etc"* — with his direction of Session 2b at its head (*"they really do stuff and iunteract withe
+> achother and even help their friends your strategoic suggestions are just guidance"*). A bold or careful man
+> can now be set on his own; he acts first of all when the turn ends, what he will do is shown before ("Tonight"),
+> the men differ, work together and answer a friend's battle; typing a task is answered live in his own voice.
+> §15's landing record says what was built and how it differs; the rules `SYSTEMS_REFERENCE.md` §233. **IC-12 (an
+> army's task; "take the war goal") goes whole to a Session 3b** by the fork the approved plan decided
+> beforehand. Then Session 4.
+>
 > **Status: DESIGN, version 6 — amended in Session 2b's Plan Mode (November 20, 2026).** The user's words there,
 > verbatim: *"its good but he shouldnt take orders if its low trust and he does it for x turns then maybe you get
 > control unless hes on a roll etc. also make sure when you give genmrals autonomy they really do stuff and
@@ -1652,6 +1662,45 @@ line (`if_thens.join_line`), and the pickers that pass over a man who takes no o
 (`tests/test_ic9b_the_trial.py::TestTheWordsCensus`) holds "on his own" on NO screen today: this session must
 teach it the strings of a man you set.**
 
+**The landing record (November 21, 2026; the rules `SYSTEMS_REFERENCE.md` §233; the ledger `BUG_FIXES.md` §"Row
+IC, Session 3"; the reading `docs/audits/ic_client/session3/README.md`; the measure `tools/_ic3_measure.py`).**
+IC-10 and IC-11 landed in one commit — the order (`StrategicOrder.own`), the ONE pure reading and the pass
+(`backend/game_logic/own_order.py`), the count and its law (France's Staff carries `on_their_own`; the
+Emperor's Aides-de-Camp, `requires_law`), giving it by the line (`backend/ai/own_words.py`, the read-back's
+rows, his voice `own_voice.py`, the questions answered free), the exemptions, R-FRIENDS at the reinforcement
+seam, the life table, the desk's line and rows, the End Turn's "Tonight", the morning's block, his card, the
+petition's "Give him a front" (his proposal written on the line, §6.9), the men's seven ways. **What differs
+from the tables above, each one line to reverse (D37):** (1) the morning's block is the turn report's head
+"Your marshals on their own, last night" and his MARSHAL STATUS line, not a new dispatch section; (2) the End
+Turn list stops (a second press) only for a night that may become a great battle or steps outside his area,
+and prints every "Tonight" as you press; (3) "Give him a task…" offers his own proposal as the first ready
+task (Session 2's buttons, not a line written unasked); (4) the map marks him by the badge on his piece ("On
+his own") and his order's arrow — no separate replay mark; (5) three ways of waiting added when R-ACTS was
+first missed (a bold supporter strikes what threatens his friend; a careful man counter-attacks a force he has
+just beaten off; four quiet nights with no enemy near → he asks for work); (6) Davout still misses R-ACTS (60%
+of nights visible): his character, accepted; (7) the Aides' upkeep is 100, not 150 (France's whole slate stays
+inside the laws' band); (8) a target in reach and beyond his odds makes him ask after three nights running (the
+tables name two for a barred road only); (9) an ask stands three of the player's turns. **The measure** (30
+seeds × 20 turns, five men on their own; and the band on the three commanded seeds — both taken again after
+the review's fixes): R-INERT, R-BAND (every arm 23–28; N at the start stays 1), R-TRUE, R-TOGETHER and
+R-VARIETY met; R-ACTS met for four men of five; R-FRIENDS reported (51 rolls in 92 battles); R-FUN not measured
+by a scripted player — §233.9. **The reading:** two rounds of three fresh readers, 18 of 18 each; round 1's
+doubt on the trust tile and nine other confusions built out between them (IC3-H3). **The review:** three
+readers by lane, 23 rows fixed — its P1, a hand order that ended his task in silence (IC3-V1), now leaves the
+task standing as §6.3 says.
+
+### Session 3b — An army's task and "take the war goal" (IC-12 — handed on by the decided fork)
+
+| Slice | What | Done when | Tests |
+|---|---|---|---|
+| **IC-12** | An army's task (§9.1): "Army of Italy, take Swabia" → ONE list (the directive card): its commander on his own (the named commander, else the senior who qualifies; the count full → says so, offers to recall), every other man set to Support him (1 action each, not counted, each row his part), a man already on his own "not included"; below authority 50 the order is not heard and the list says so before Give. "Ney, take the war goal" — on his own, toward the goal; changing the goal turns every man who serves it, 1 action each | An army's task is one list, its commander on his own and the rest supporting; the war goal's task follows a changed goal at its price | `tests/test_ic12_an_armys_task.py`; a driven arm on the directive card |
+
+STATUS line: *"ROW IC, SESSION 3b — AN ARMY'S TASK"*; the ledger row `BUG_FIXES.md` IC3-D1. *Why it was handed
+on:* the approved plan's fork — "if IC-12 cannot be built at the standard, IC-10 and IC-11 land whole and IC-12
+goes to a Session 3b — nothing half-built"; the session spent its standard on the pass, the reading, the line,
+two rounds of the reading, the measure and the review. Nothing of IC-12 is in the game: no army's task is read,
+no war-goal task is offered.
+
 ### Session 4 — The voice, and the other side of the hill
 
 | Slice | What | Done when | Tests |
@@ -1710,6 +1759,7 @@ is sizing, not pressure: about three sessions. One line to reverse.
 | **D34** *(Session 2b — the builder's, each one line to reverse)* | The trial as built: his score reads his own battle record from when the task was given, plus defended places taken (a place nobody defended is said and earns nothing) · a bold man is not sent at a place France knows to outnumber him · an enemy on a friend's or a neutral's ground is driven out; an ally's ground is freed for that ally · the friend he helps is the weakest beside him, never a man he hates · a take runs once, on its announced night, never a night late · an old save is settled from its own rows, no parked field · the morning's line is a turn event told once · no order control on his card or his Generals page · the other answers' words stand on the window while they fit; at a compact view the proposal scrolls · the window sends back the proposal it showed · an order with no name on it passes over him and says so | `SYSTEMS_REFERENCE.md` §232.9; the pressing, the readings, the review and the measure |
 | **D35** *(Session 2b)* | A great battle's "Let him decide" stays for a lead on his task — the day's own rule, pressed by the player for one battle — and never brings up a man who is on his own task; a last stand is still the Emperor's to answer | Row BA's hand, said on the button; not the removed engine (§232.11) |
 | **D36** *(Session 2b's Plan Mode — the user's direction for Session 3)* | **A man on his own really acts, works with the others and helps his friends; your task to him is guidance.** He acts on most nights (R-ACTS); the men's acts name each other — a lead, a join, a cover — and never pile two attacks on one enemy (R-TOGETHER); every man, not Lannes alone, answers the battle of a friend attacked within his reach, never a man he hates (R-FRIENDS); the task names the aim and the area, and each night's act is his own choice inside it, shown under "Tonight" (D8 stands: he never improvises unseen) | The user's words (§1.1); each rule is written in §13 before any data |
+| **D37** *(Session 3 — the builder's, each one line to reverse)* | The order is a mode of the standing order the strategic pass skips · one module `own_order.py` · a join is never a second attack (the arrival roll brings him into the lead's one battle) · R-FRIENDS at the reinforcement seam, dug in or on his post, never a man he hates · his ways of waiting are real acts (look = the scout order, probe = a march inside his area) plus the three the first measure asked for · odds authored, read off the game's own forecast · the voice authored and keyed, never a die · nothing the night he is given · France's Staff carries the count, the Aides-de-Camp at 100 a turn · an order with no name on it treats him as an ordinary corps · today's hand order leaves his task standing · the End Turn list stops only for a may-become-great battle or a step out, and prints every Tonight · a target beyond his odds asks after three nights · an ask stands three of your turns · Davout's R-ACTS miss accepted as his character · IC-12 to Session 3b by the decided fork | `SYSTEMS_REFERENCE.md` §233.8 |
 
 ---
 

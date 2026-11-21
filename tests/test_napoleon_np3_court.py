@@ -258,7 +258,10 @@ class TestShadowPetition:
         jealousy.check_shadow_petitions(w, [])
         result = jealousy.handle_petition_response(w, "detach")
         assert result["success"] is True
-        assert "the order is yours to give" in result["message"]
+        # Row IC, Session 3 (§6.9): still counsel, nothing sent — a man who may
+        # be set on his own has his own proposal WRITTEN on the line
+        assert ("the order is yours to give" in result["message"]
+                or (result.get("write_line") and "press Enter" in result["message"]))
         assert w.pending_marshal_petition is None
 
     def test_stays_arm(self):

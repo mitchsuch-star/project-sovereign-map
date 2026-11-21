@@ -30,7 +30,8 @@ SCENES = CLIENT / "scenes"
 
 # (+ "directive": row IC's second commit — a row that opens the LIST of an order to several corps)
 DOOR_KINDS = ("marshal", "region", "day", "envoys", "ledger", "congress", "generals", "idle", "war", "court",
-              "directive")
+              "directive",
+              "line")   # row IC, Session 3: a row that writes his own proposal on the line
 
 
 def _quiet():

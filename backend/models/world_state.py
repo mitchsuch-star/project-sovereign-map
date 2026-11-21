@@ -314,6 +314,24 @@ def _trial_state(marshal):
         return None
 
 
+def _own_state(world, marshal):
+    """Row IC, Session 3: his task ON HIS OWN as his card says it
+    (`own_order.payload`), or None — and, for a man who is not, whether he may
+    be set on his own now (`can`) or why not (`why`), for "Give him a task…"."""
+    try:
+        from backend.game_logic import own_order
+        held = own_order.payload(world, marshal)
+        if held is not None:
+            return held
+        if marshal.nation != world.player_nation or own_order._nature(marshal) not in ("bold", "careful"):
+            return None
+        why = own_order.why_not(world, marshal)
+        return {"can": not why, "why": why, "count": own_order.count_words(world)}
+    except Exception as exc:
+        report(exc, "world_state._own_state: backend.game_logic.own_order")
+        return None
+
+
 def _order_prices(world, marshal) -> Dict:
     """CF-6: `state_probe.order_prices` (a display-only read) — the figure
     each chip's label prints beside the verb."""
@@ -12314,6 +12332,10 @@ class WorldState:
                         # on (his card's words, the turns left, the roll) —
                         # None for every other man. Player-only, like the rest.
                         "trial": _trial_state(m),
+                        # Row IC, Session 3: his task on his own (his card's
+                        # words, "Tonight", the stand-down's price) — or, for a
+                        # bold or careful man, whether he may be set on his own.
+                        "own": _own_state(self, m),
                     }
 
                     # Session 66: Relationships for tooltip display

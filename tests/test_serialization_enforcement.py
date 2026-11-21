@@ -60,7 +60,11 @@ def get_instance_attributes(obj: Any, *, private_exempt=None,
     holding the leaf classes hostage to it is how this stayed unfixed.
     """
     if is_dataclass(obj):
-        return {f.name for f in fields(obj)}
+        # Row IC, Session 3: a dataclass may declare a field kept only when
+        # held too (`StrategicOrder.own`) — the same narrow rule as below.
+        return {f.name for f in fields(obj)} - {
+            k for k in getattr(type(obj), "KEPT_ONLY_WHEN_HELD_FIELDS", ())
+            if not getattr(obj, k, None)}
     names = set(vars(obj).keys())
     # Row BA, BA-5 (November 17, 2026): a field its class DECLARES kept only
     # when held (`Marshal.KEPT_ONLY_WHEN_HELD_FIELDS` — `days`) is written by

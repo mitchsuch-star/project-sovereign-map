@@ -953,7 +953,9 @@ class TestTheTypedLinesClientHalf:
     def test_the_read_back_draws_its_rows_on_their_own_lines(self):
         main = _src("main.gd")
         render = _func(main, "_readback_render")
-        assert 'if role == "taken" or role == "nottaken" or role == "answer":\n\t\t\t\tcontinue' in render
+        # (row IC, Session 3: and "Tomorrow night" — the rows of a task on his own)
+        assert ('if role == "taken" or role == "nottaken" or role == "answer" or role == "tonight":'
+                '\n\t\t\t\tcontinue') in render
         assert "+ _readback_task_lines(resp))" in render
         rows = _func(main, "_readback_task_lines")
         for label in ('"Taken: "', '"Not taken: "', '"He says: "', '"Enter sends: "'):

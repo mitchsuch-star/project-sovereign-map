@@ -213,6 +213,16 @@ class StrategicOrder:
     # cost, then cleared. None on every other order and in every older save.
     opening_take: Optional[str] = None
 
+    # Row IC, Session 3 (IC-10): a task ON HIS OWN — {task, target, area, risk,
+    # state, given, paid, ring, last_seen, unseen, blocked, stepped_out, asks,
+    # acted, line, late} (`backend/game_logic/own_order.py` is the one module
+    # that writes it; `own_order.on_his_own` the one reader). None on every
+    # other order; serialized only while it holds a task (an order without one
+    # saves byte for byte what it saved before the field existed).
+    own: Optional[Dict] = None
+
+    KEPT_ONLY_WHEN_HELD_FIELDS = ('own',)
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -244,6 +254,7 @@ class StrategicOrder:
             "arrival_verb": self.arrival_verb,
             "if_thens": [dict(line) for line in (self.if_thens or [])],
             "opening_take": self.opening_take,
+            **({"own": dict(self.own)} if isinstance(self.own, dict) else {}),
         }
 
     @classmethod
@@ -295,6 +306,7 @@ class StrategicOrder:
             arrival_verb=data.get("arrival_verb"),
             if_thens=if_thens,
             opening_take=data.get("opening_take"),
+            own=(dict(data["own"]) if isinstance(data.get("own"), dict) else None),
         )
 
 
@@ -447,6 +459,15 @@ class Marshal:
         # one module that writes it; `trial.on_trial` the one reader of
         # "is he on it".
         self.trial: Optional[Dict] = None
+        # Row IC, Session 3 (IC-10/IC-11): ON HIS OWN. `own_odds` — his own
+        # figure, "our N to their 10", authored in the scenario file (0 = by
+        # nature: bold 7, careful 11; the validator clamps 3-20). `own_record`
+        # — his saved nights, kept across orders: {acts: the last three
+        # [act, place, turn], quiet, last ("won"/"lost"), said, tick_won,
+        # tick_lost} (`backend/game_logic/own_order.py` writes it). Both are
+        # KEPT_ONLY_WHEN_HELD_FIELDS.
+        self.own_odds: int = 0
+        self.own_record: Dict = {}
         self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
         self.redemption_cooldown_until: int = 0  # Turn when redemption can next fire (5-turn cooldown)
         # ── FA-S9-D1 / FA-71 (slice 14): the man at the desk ──────────────
@@ -938,6 +959,8 @@ class Marshal:
         'title_due',              # row MC: the title in the Emperor's gift
         'last_claim_turn',        # row MC: his last claim
         'trial',                  # row IC, Session 2b: the task to prove himself
+        'own_odds',               # row IC, Session 3: his own odds (authored)
+        'own_record',             # row IC, Session 3: his saved nights on his own
     )
     DAYS_KEPT = 6                 # BA-5: the last six pitched battles he led
 
@@ -2189,6 +2212,13 @@ class Marshal:
         # he is on one (a campaign that never met the audience saves no key).
         if isinstance(self.trial, dict):
             data["trial"] = dict(self.trial)
+        # Row IC, Session 3: his own odds and his saved nights on his own -
+        # written only while they hold something.
+        if self.own_odds:
+            data["own_odds"] = int(self.own_odds)
+        if self.own_record:
+            data["own_record"] = {k: (list(v) if isinstance(v, list) else v)
+                                  for k, v in self.own_record.items()}
         return data
 
     @classmethod
@@ -2248,6 +2278,13 @@ class Marshal:
         # older save → None (he is on no task).
         _trial = data.get("trial")
         marshal.trial = dict(_trial) if isinstance(_trial, dict) else None
+        # Row IC, Session 3: on his own. Absent in every older save (0 / {}).
+        try:
+            marshal.own_odds = int(data.get("own_odds", 0) or 0)
+        except (TypeError, ValueError):
+            marshal.own_odds = 0
+        _rec = data.get("own_record")
+        marshal.own_record = dict(_rec) if isinstance(_rec, dict) else {}
         # (An OLD save's six autonomy keys are not read here: a man saved in
         # the middle of the old three turns is settled by the WORLD's load,
         # which reads his saved row once — `trial.settle_legacy`, called at

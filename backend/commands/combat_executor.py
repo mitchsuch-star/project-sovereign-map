@@ -2920,9 +2920,14 @@ class CombatExecutor:
                 or getattr(candidate, 'retreat_recovery', 0) != 0 \
                 or getattr(candidate, 'retreated_this_turn', False):
             return False, "broken_recovering"
-        if getattr(candidate, 'fortified', False):
+        # Row IC, Session 3 (R-FRIENDS — shown = applied with
+        # `_is_reinforcement_eligible`): a man ON HIS OWN is not kept at his
+        # post by his works or his hold.
+        from backend.game_logic import own_order as _own_guns
+        _answers = _own_guns.answers_the_guns(candidate)
+        if getattr(candidate, 'fortified', False) and not _answers:
             return False, "fortified_static"
-        if holds_a_post(candidate):
+        if holds_a_post(candidate) and not _answers:
             return False, "holding_position"
         if getattr(candidate, 'drilling', False) \
                 or getattr(candidate, 'drilling_locked', False):
@@ -5338,8 +5343,14 @@ class CombatExecutor:
         join_lines: Dict[str, Dict] = {}
         for m in world.marshals.values():
             _join = _if_thens.join_line(world, m, primary) if attacked else None
+            # Row IC, Session 3 (R-FRIENDS, D36): a man ON HIS OWN answers a
+            # friend's battle next to him dug in or on his hold's post — the
+            # two rules that keep a man at his post do not hold him; the
+            # rule against a man he hates still does.
+            from backend.game_logic import own_order as _own_guns
             if not self._is_reinforcement_eligible(m, primary, battle_region, nation, world,
-                                                   written_join=_join is not None):
+                                                   written_join=(_join is not None
+                                                                 or _own_guns.answers_the_guns(m))):
                 continue
             candidates.append(m)
             if _join is not None:

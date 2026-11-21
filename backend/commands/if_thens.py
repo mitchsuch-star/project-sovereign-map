@@ -89,6 +89,8 @@ def ordered_by_hand(world, marshal_name, action, command, result) -> None:
         return
     if action in NON_ORDER_ACTIONS or action in ADMINISTRATIVE_ACTIONS or action == "wait":
         return
+    if action == "own_task":
+        return      # row IC, Session 3: "stand down", "carry on", "more risk" — no order today
     man = world.get_marshal(str(marshal_name)) if world is not None else None
     if man is not None and man.nation == getattr(world, "player_nation", None):
         man.last_ordered_turn = int(world.current_turn)

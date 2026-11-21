@@ -227,6 +227,9 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
 
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
+        # Row IC, Session 3: his task on his own (None for every other man) —
+        # the Generals page's badge reads it.
+        "own": _own_payload(world, marshal),
         # VP-M1 "The Fortunes of War": the wound and the turn it heals
         # (shown = applied — the executor reads the same field).
         "is_wounded": bool(_fortunes.is_wounded(marshal, world)),
@@ -691,6 +694,16 @@ def _build_current_status(marshal: Marshal) -> Dict[str, Any]:
         "trial": _trial_payload(marshal),
         "square_formation": bool(marshal.square_formation),
     }
+
+
+def _own_payload(world, marshal: Marshal):
+    from backend.game_logic import own_order
+    try:
+        return own_order.payload(world, marshal)
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "marshal_overview._own_payload")
+        return None
 
 
 def _trial_payload(marshal: Marshal):

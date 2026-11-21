@@ -49,6 +49,7 @@ var _top: HBoxContainer = null
 var _peace: Button = null
 var _fold: Button = null
 var _war: Button = null
+var _own: Button = null        # row IC, Session 3: "ON THEIR OWN — 1 of 2 · …"
 var _head: Button = null
 var _rows_box: VBoxContainer = null
 var _more: Button = null
@@ -74,6 +75,10 @@ func _init() -> void:
 	_top.add_child(_fold)
 	_war = _make_line("WarLine")
 	add_child(_war)
+	_own = _make_line("OwnLine")
+	_own.focus_mode = Control.FOCUS_NONE
+	_own.visible = false
+	add_child(_own)
 	_head = _make_line("DecideHead")
 	_head.focus_mode = Control.FOCUS_NONE
 	_head.pressed.connect(_on_more_pressed)
@@ -192,7 +197,8 @@ func texts() -> Dictionary:
 			"head": _head.text if _head.visible else "", "rows": shown,
 			"more": _more.text if _more.visible else "", "line": _line.text if one else "",
 			"legend": _legend.text if _legend.visible else "",
-			"mode": _mode, "folded": _folded}
+			"mode": _mode, "folded": _folded,
+			"own": _own.text if _own.visible else ""}
 
 
 func first_row_button() -> Button:
@@ -292,6 +298,7 @@ func _rebuild() -> void:
 	if one_line:
 		_more.visible = false
 		_legend.visible = false
+		_own.visible = false    # the review, IC3-V: the one-line desk carries no own line
 		_fill_one_line(peace_text, war_text, standing)
 		resized_by_content.emit()
 		return
@@ -302,6 +309,7 @@ func _rebuild() -> void:
 	_war.text = "THE WAR — " + war_text
 	_war.tooltip_text = str(war.get("hint", "")) if war is Dictionary else ""
 	_door_face(_war, _has_door(war))
+	_fill_own()
 	var limit := int(_desk.get("shown", 3))
 	var show_n := standing.size() if _expanded else mini(limit, standing.size())
 	_head.text = "TO DECIDE — %s · press one to go to it" % Utils.plural(standing.size(), "matter")
@@ -322,6 +330,27 @@ func _rebuild() -> void:
 		_more.text = "    show fewer"
 		_more.tooltip_text = "Show the first %d only" % limit
 	resized_by_content.emit()
+
+
+func _fill_own() -> void:
+	"""Row IC, Session 3 (§4): "ON THEIR OWN — 1 of 2 · tonight: Ney attacks
+	Mack at Swabia" while a man is on his own; every man's night on the hover."""
+	var own = _desk.get("own", {})
+	var tonight = own.get("tonight", []) if own is Dictionary else []
+	if not (own is Dictionary) or int(own.get("n", 0)) <= 0 or not (tonight is Array):
+		_own.visible = false
+		return
+	var first := ""
+	var all := PackedStringArray()
+	for r in tonight:
+		if r is Dictionary:
+			all.append(str(r.get("line", "")))
+			if first == "":
+				first = str(r.get("line", "")).trim_prefix("Tonight: ")
+	_own.text = "ON THEIR OWN — %d of the %d you may have · tonight: %s" % [int(own.get("n", 0)), int(own.get("of", 1)), first]
+	# (round 2 of the blind reading: "1 of 1" never said how to raise it)
+	_own.tooltip_text = "\n".join(all) + "\n\nThe laws raise the count: the Grand Quartier Général," + " then the Emperor's Aides-de-Camp, one more each."
+	_own.visible = not _one_line()
 
 
 func _make_row(index: int, row: Dictionary) -> Control:
@@ -349,6 +378,17 @@ func _make_row(index: int, row: Dictionary) -> Control:
 	b.pressed.connect(_on_row_pressed.bind(b))
 	b.gui_input.connect(_on_row_gui_input.bind(b))
 	holder.add_child(b)
+	# Row IC, Session 3 (§4): a row with more than one door (the jealous man's:
+	# [Give him an order] [Set him on his own]) shows each as a small button.
+	var doors = row.get("doors", [])
+	if doors is Array:
+		for d in doors:
+			if not (d is Dictionary) or str(d.get("label", "")) == "":
+				continue
+			var extra := _make_corner("Door_" + str(d.get("label", "")).replace(" ", "_"),
+				str(d.get("label", "")), str(d.get("label", "")))
+			extra.pressed.connect(func(): door_pressed.emit(d.get("door", {}), str(row.get("id", ""))))
+			holder.add_child(extra)
 	var x := _make_corner("SetAside", "×", "Set this aside for the turn (Delete on the row)")
 	x.pressed.connect(set_aside.bind(str(row.get("id", ""))))
 	holder.add_child(x)

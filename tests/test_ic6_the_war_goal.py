@@ -229,7 +229,10 @@ class TestTheDesk:
         assert desk["war"]["text"] == ("War with the Third Coalition (Britain + Austria + Russia): "
                                        "to hold the homeland.")
         assert all("goal" not in part for part in desk["war"]["parts"])
-        assert [row["id"] for row in desk["decide"]] == ["reach:Mack", "reach:ArchdukeJohn"]
+        # (row IC, Session 3: the design's first morning also says Masséna, far
+        # from the Emperor, could be set on his own — the last, a tier-3 row)
+        assert [row["id"] for row in desk["decide"]] == ["reach:Mack", "reach:ArchdukeJohn",
+                                                         "own_free:Massena"]
         assert all(row["door"]["kind"] != "directive" for row in desk["decide"])
 
     def test_the_war_line_names_it_and_the_map_gets_its_ring(self, client, world):
@@ -262,7 +265,8 @@ class TestTheDesk:
 
     def test_the_rows_about_an_enemy_beside_them_still_stand(self, client, world):
         desk = _say(client, "the war goal is Vienna")["desk"]
-        assert [row["id"] for row in desk["decide"]] == ["goal:Austria", "reach:Mack", "reach:ArchdukeJohn"]
+        assert [row["id"] for row in desk["decide"]] == ["goal:Austria", "reach:Mack", "reach:ArchdukeJohn",
+                                                         "own_free:Massena"]
 
     def test_one_corps_alone_is_his_own_row(self, client, world):
         _say(client, "the war goal is Vienna")

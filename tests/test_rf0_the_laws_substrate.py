@@ -79,7 +79,11 @@ class TestTheAuthoredCatalogue:
             # their cure as a SECOND clause (DOCTRINES_SPEC D-R4, RV-15) — the
             # actions clause leads, and nothing but a cure may follow it.
             assert s["effects"][0] == {"type": "actions", "value": 1}
-            assert all(c["type"] == "cures" for c in s["effects"][1:])
+            # Row IC, Session 3 (November 21, 2026): France's Staff carries the
+            # count of marshals on their own as its second clause (inert for a
+            # court: the courts set no man on his own).
+            assert all(c["type"] == "cures" or (court == "France" and c == {"type": "on_their_own", "value": 1})
+                       for c in s["effects"][1:])
         assert terms == {("gold", 9000, 300)}, "§5: one price for every court"
 
     def test_nothing_is_in_force_at_boot(self, scenario, world):

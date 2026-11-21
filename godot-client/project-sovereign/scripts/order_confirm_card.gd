@@ -433,6 +433,10 @@ var _dir_scroll: ScrollContainer = null
 var _dir_rows: VBoxContainer = null
 var _dir_row_nodes: Dictionary = {}  # marshal key -> his row (PanelContainer)
 var _dir_sum: RichTextLabel = null
+# Row IC, Session 3 (IC3-H1): where the card stood while the list was being
+# read — the list that replaces it opens THERE (x and top), so a slow reply
+# never makes the card jump across the screen. (-1, -1) = no anchor.
+var _dir_anchor := Vector2(-1.0, -1.0)
 var _given_up := ""                # the headline of the list last let go (Cancel / Esc)
 
 
@@ -450,6 +454,11 @@ func open_directive(listing: Dictionary, avoid: Array = [], note: String = "") -
 	have, staff, sendable, note}); while it is being read, a placeholder
 	({who, order, count, reading: true, note}). `note` is said above the rows
 	(why the list was drawn again)."""
+	# IC3-H1: the list that replaces a "reading" card keeps that card's place;
+	# any other opening picks its own.
+	var was_reading := visible and _mode == "directive" and bool(_dir.get("reading", false))
+	if not was_reading:
+		_dir_anchor = Vector2(-1.0, -1.0)
 	_wear("directive")
 	_quote = {}
 	_standing = {}
@@ -952,6 +961,14 @@ func refit() -> void:
 		if covered < least - 0.5:
 			least = covered
 			pick = spot
+	if _mode == "directive":
+		# IC3-H1: the list stands where its "reading" card stood — x and top
+		# kept (clamped into the view), whatever its new height.
+		if _dir_anchor.x >= 0.0:
+			pick = Vector2(clampf(_dir_anchor.x, CARD_EDGE, maxf(CARD_EDGE, view.x - w - CARD_EDGE)),
+				clampf(_dir_anchor.y, top, maxf(top, view.y - h - CARD_EDGE)))
+		elif bool(_dir.get("reading", false)):
+			_dir_anchor = pick
 	# Centre-anchored (the scene's, and `Utils.clamp_centered_panel`'s rule):
 	# the offsets are measured from the viewport's middle.
 	panel.offset_left = pick.x - view.x * 0.5
@@ -1090,6 +1107,7 @@ func close_given() -> void:
 	_close_quietly()
 	_free_directive()
 	_dir = {}
+	_dir_anchor = Vector2(-1.0, -1.0)
 
 
 func close_card() -> void:
@@ -1099,6 +1117,7 @@ func close_card() -> void:
 	_quote = {}
 	_standing = {}
 	_dir = {}
+	_dir_anchor = Vector2(-1.0, -1.0)
 	if visible:
 		close_popup()
 	_free_directive()

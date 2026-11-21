@@ -124,6 +124,9 @@ class TestTheCatalogue:
         # reformed"): R6 amended, the Porte's one-law deck — 27 laws, six decks.
         # T4-3 (session A, November 10, 2026): + the five crowns of 1806, one-row
         # promotion decks — no R6 deck, counted apart (32 laws, eleven decks).
+        # Row IC, Session 3 (November 21, 2026): the Emperor's Aides-de-Camp —
+        # one more marshal on his own, needing the Staff — closes France's deck
+        # (France 6 -> 7).
         decks = {c: rows for c, rows in scenario["reforms"].items()
                  if not c.startswith("_") and not all(R.is_promotion(r) for r in rows)}
         crowns = {c: rows for c, rows in scenario["reforms"].items()
@@ -132,7 +135,7 @@ class TestTheCatalogue:
             "Bavaria": 1, "Saxony": 1, "Hesse": 1, "Denmark": 1, "Sardinia": 1}
         assert set(decks) == set(R.REFORM_DECKS)
         assert {c: len(rows) for c, rows in decks.items()} == {
-            "France": 6, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5, "Ottoman": 1}
+            "France": 7, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5, "Ottoman": 1}
 
     def test_the_train_arrived_with_the_doctrines(self, scenario):
         """RE-SEATED by SR-7d "The Doctrines" (October 3, 2026): the pin that held the Train
@@ -163,8 +166,9 @@ class TestTheCatalogue:
 
     @pytest.mark.parametrize("court,expected", [
         # SR-7d "The Doctrines" (October 3, 2026): the Train second, beside the Staff it needs.
+        # Row IC, Session 3: the Aides-de-Camp LAST — nothing earlier moves.
         ("France", ["grand_quartier_general", "train_des_equipages", "artillery_reserve",
-                    "anticipated_class", "berlin_decree", "code_abroad"]),
+                    "anticipated_class", "berlin_decree", "code_abroad", "aides_de_camp"]),
         ("Britain", ["horse_guards_reforms", "orders_in_council", "militia_transfer",
                      "commissariat", "congreve_rockets"]),
     ])
@@ -589,6 +593,10 @@ class TestTheSinkAndTheReach:
         # SR-7d "The Doctrines" (October 3, 2026): REFORMS_SPEC §11 T2 re-run with the Train in
         # France's slate (DC-2) — 850 → 1,050 a turn, the share RF-2 forecast
         # at 45.3% measured on this archive; the band's top admits it.
-        assert slate == 1050
+        # Row IC, Session 3 (November 21, 2026): + the Aides-de-Camp's 100 a turn
+        # — 1,050 -> 1,150; its upkeep was set at 100, not the design's 150
+        # placeholder, so that the whole slate stays inside this band (49.6% on
+        # the archive; 150 would have read 51.8%).
+        assert slate == 1150
         share = slate / surplus
         assert 0.30 < share < 0.50, share

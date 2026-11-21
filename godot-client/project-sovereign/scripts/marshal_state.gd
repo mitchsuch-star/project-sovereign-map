@@ -90,6 +90,8 @@ static func from_overview(card: Dictionary) -> Dictionary:
 		"refusals": _dict_of(card.get("order_refusals", {})),
 		# Row IC, Session 2b: the task to prove himself he is on ({} for none)
 		"trial": _dict_of(card.get("trial", {})),
+		# Row IC, Session 3: his task on his own ({} for none)
+		"own": _dict_of(card.get("own", {})),
 	}
 
 
@@ -130,6 +132,10 @@ static func from_board(entry: Dictionary, row: Dictionary = {}) -> Dictionary:
 		# Row IC, Session 2b: the task to prove himself he is on — its words,
 		# the turns left, the reason every order is refused ({} for none).
 		"trial": _dict_of(ts.get("trial", {})),
+		# Row IC, Session 3: his task on his own — its words, "Tonight", what he
+		# asks, the stand-down's price ({} for none; for a bold or careful man
+		# who is not, whether he may be set)
+		"own": _dict_of(ts.get("own", {})),
 	}
 
 
@@ -180,6 +186,14 @@ static func status_of(view: Dictionary) -> Dictionary:
 		var said := str(on_task.get("status", ""))
 		return _badge("proving", "On a task", said if said != "" else "On a task to prove himself",
 			Utils.COLOR_WARNING, "trust", false)
+	# Row IC, Session 3: ON HIS OWN — a shape and a word, never colour alone
+	# (the command glyph; "On his own: take Swabia").
+	var own_task: Dictionary = _dict_of(view.get("own", {}))
+	if str(own_task.get("task", "")) != "":
+		var asks := str(own_task.get("asks", "")) != ""
+		return _badge("own", "On his own", "On his own: " + str(own_task.get("words", ""))
+			+ (" — asks for your word" if asks else ""),
+			Utils.COLOR_WARNING if asks else Utils.COLOR_GOLD, "command", false)
 	if order_type != "":
 		var key := str(_ORDER_KEYS.get(order_type, "marching"))
 		match key:
@@ -233,6 +247,9 @@ static func order_specs(view: Dictionary) -> Array:
 			elif not has_standing_order(view):
 				locked = true
 				reason = NO_STANDING_ORDER
+			elif str(_dict_of(view.get("own", {})).get("task", "")) != "":
+				# Row IC, Session 3: a man on his own is stood down FREE (§6.3)
+				price = 0
 			else:
 				price = int(prices.get("cancel", 1))
 		else:

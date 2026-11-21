@@ -1676,6 +1676,11 @@ def aggressive_interrupt_applies(world, marshal, order=_STANDING_ORDER) -> bool:
         return False
     standing = (getattr(marshal, "strategic_order", None)
                 if order is _STANDING_ORDER else order)
+    # Row IC, Session 3 (§6.5, D30): nor a task ON HIS OWN — the order in
+    # question, whether read off him or handed in (the End Turn reading and the
+    # desk pass his standing order itself).
+    if getattr(standing, "own", None) is not None:
+        return False
     from backend.game_logic.withdrawal import is_road_home_order
     return not is_road_home_order(standing)
 
@@ -2530,6 +2535,14 @@ class StrategicOrderProcessor:
 
             print(f"[STRATEGIC] {marshal.name}: {order.command_type} -> {order.target} "
                   f"(issued turn {getattr(order, 'issued_turn', '?')})")
+
+            # Row IC, Session 3 (IC-10): a task ON HIS OWN is carried out by
+            # its own pass, FIRST of all when the turn ends (`own_order.
+            # the_pass`, D6) — never here: no march of the order's own, no
+            # sally, no cannon-fire redirect, no stalemate question (D30). His
+            # if-thens were read above, on a night he waited.
+            if getattr(order, "own", None) is not None:
+                continue
 
             # CC-X9: a pursuit whose quarry is off the board ends NOW. The
             # issuing-turn skip below, the recovery / wound pauses and the
@@ -4075,6 +4088,9 @@ class StrategicOrderProcessor:
                     })
             if int(getattr(marshal, "last_ordered_turn", -1) or -1) == turn:
                 continue      # he was given an order by hand today: his lines sleep
+            from backend.game_logic import own_order as _own
+            if _own.acted_tonight(marshal, world):
+                continue      # row IC, Session 3: on his own, he acted tonight — one thing a turn
             hit = _if_thens.ready(world, marshal, order)
             if hit is not None:
                 readings.append((marshal, hit))
@@ -5556,6 +5572,12 @@ class StrategicOrderProcessor:
         # its own line: `if_thens.join_line`.)
         from backend.game_logic import trial as _trial
         if _trial.on_trial(marshal):
+            return None
+        # Row IC, Session 3 (§6.5, D30): a man ON HIS OWN does not leave his
+        # task for distant cannon fire (his own pass never reaches here; this
+        # guards every other reader of the gate).
+        from backend.game_logic import own_order as _own
+        if _own.on_his_own(marshal):
             return None
 
         # FA-D6 (slice 17, Phase 2): the treaty's road home is literal by

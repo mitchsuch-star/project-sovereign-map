@@ -1978,7 +1978,9 @@ func _figure_tiles(m: Dictionary) -> Array:
 	tiles.append({"glyph": "march", "figure": str(int(m.get("movement_range", 1))), "caption": "Range"})
 
 	var trust_val := int(m.get("trust_value", 70))
-	tiles.append({"glyph": "trust", "figure": str(trust_val), "caption": str(m.get("trust_label", "Neutral")),
+	# Row IC, Session 3 (IC3-H3, the blind reading: three readers of three took
+	# "Broken 18" for his corps): the tile says it is his TRUST in you.
+	tiles.append({"glyph": "trust", "figure": str(trust_val), "caption": "Trust: " + str(m.get("trust_label", "Neutral")).to_lower(),
 		"tone": _tone_color(_trust_hex(trust_val)), "meter": trust_val, "meter_max": 100})
 
 	var glory := int(m.get("glory", 0))

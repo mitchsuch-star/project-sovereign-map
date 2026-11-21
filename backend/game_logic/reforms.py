@@ -52,6 +52,7 @@ EFFECT_TYPES = (
     "cures",              # removes one named doctrine flaw (lands at DC-2)
     "force_limit",        # S14k G3: the force-limit floor rises to a tier's — world_state.force_limit_floor
     "rank",               # T4-3: the court's rank rises to a tier's — WorldState.get_power_tier
+    "on_their_own",       # row IC, Session 3: +1 to the marshals you may set on their own — own_order.allowed
 )
 # The types WIRED to their seam in this build. The validator refuses a row
 # whose effect is not wired: a law must do what it says the day it ships
@@ -64,6 +65,7 @@ WIRED_EFFECT_TYPES = (
     "cures",              # SR-7d DC-2: read at the doctrine's own seam (DOCTRINES_SPEC §3)
     "force_limit",        # S14k G3: read at `world_state.force_limit_floor` (K5's seam)
     "rank",               # T4-3: read at `WorldState.get_power_tier` (`rank_of_laws`)
+    "on_their_own",       # row IC, Session 3: read at `own_order.allowed` (the count, §6.4)
 )
 # RF-2: each wired type's clause parameters — what the validator checks (a
 # number inside a type is in-band; a new type or a new parameter is
@@ -85,6 +87,10 @@ CLAUSE_SHAPES = {
     "force_limit": {"tier": ("major", "secondary")},
     # T4-3 (DYNAMISM_SPEC.md §3c G6): no court rises to major by law.
     "rank": {"tier": ("secondary",)},
+    # Row IC, Session 3 (INDEPENDENT_COMMAND_SPEC §6.4): one more marshal you
+    # may set on his own — the Staff carries it, and the Emperor's
+    # Aides-de-Camp. Inert for a court: the courts set no man on his own (D4).
+    "on_their_own": {"value": ("int", 1, 1)},
 }
 CURRENCIES = ("gold", "authority")
 MAX_CLAUSES = 2                       # §4: at most two clauses per law
@@ -501,6 +507,22 @@ def _court_authority(world, nation: str) -> int:
     return int((getattr(world, "nation_authority", {}) or {}).get(nation, 0) or 0)
 
 
+def requires_law_refusal(world, nation: str, row) -> str:
+    """Row IC, Session 3: a law that needs another of the court's laws in force
+    first (`requires_law` — the Emperor's Aides-de-Camp need the Staff): "" when
+    it stands, else the plain reason."""
+    wanted = str((row or {}).get("requires_law") or "")
+    if not wanted:
+        return ""
+    needed_row = find_law(world, nation, wanted)
+    if needed_row is not None and is_in_force(needed_row):
+        return ""
+    name = display_name(row)
+    head = name[0].upper() + name[1:]
+    first = display_name(needed_row) if needed_row is not None else wanted
+    return f"{head} needs {first} in force first."
+
+
 def law_refusal(world, nation: str, law_id: str,
                 admin_actions: Optional[int] = None) -> str:
     """ONE predicate for the verb, its chip, the AI rung and the preview
@@ -525,6 +547,9 @@ def law_refusal(world, nation: str, law_id: str,
     grounds = grounds_refusal(world, nation, row)
     if grounds:
         return grounds
+    needs = requires_law_refusal(world, nation, row)
+    if needs:
+        return needs
     quote = restoration_price(world, nation, row)
     # S14E-X196 / S14E-D19: the PLAYER's gold is the chest (`_court_gold`);
     # the sentence says so where the coffers hold more than the chest.
@@ -997,6 +1022,10 @@ def effect_line(clause) -> str:
         return ""
     etype = clause.get("type")
     value = clause.get("value")
+    if etype == "on_their_own":
+        # Row IC, Session 3 (INDEPENDENT_COMMAND_SPEC §6.4)
+        n = int(value or 0)
+        return f"+{n} marshal{'s' if n != 1 else ''} you may set on his own"
     if etype == "actions":
         n = int(value or 0)
         return f"+{n} order{'s' if n != 1 else ''} of the day, from the next refill"

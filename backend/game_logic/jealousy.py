@@ -3844,14 +3844,29 @@ def _apply_shadow_choice(world, choice: str, context: Dict) -> Dict:
     if marshal is None:
         return {"success": True, "message": "The moment has passed."}
     if choice == "detach":
+        # Row IC, Session 3 (INDEPENDENT_COMMAND_SPEC §6.9, "Give him a front"):
+        # a man who may be set on his own has HIS OWN proposal written on the
+        # command line (`write_line` — the client writes it; nothing is sent or
+        # spent until the player presses Enter); one who may not hears why.
+        from backend.game_logic import own_order as _own
+        why_not = _own.why_not(world, marshal)
+        if not why_not:
+            line = str(_own.proposal(world, marshal).get("line") or "")
+            if line:
+                return {"success": True, "write_line": line,
+                        "message": (f"{marshal.name} straightens. \"You will not "
+                                    f"regret it, Sire.\" His own proposal is written "
+                                    f"on your command line — press Enter to set him "
+                                    f"on his own, or change it first.")}
         frontier = context.get("frontier") or _frontier_posting(world, marshal)
         posting = (f"March him to {frontier} and the front is his"
                    if frontier else
                    "Name him a front of his own when one opens")
+        cannot = (f" He cannot be set on his own now: {why_not}." if why_not else "")
         return {"success": True,
                 "message": (f"{marshal.name} straightens. \"You will not "
                             f"regret it, Sire.\" {posting} — the order is "
-                            f"yours to give.")}
+                            f"yours to give.{cannot}")}
     if choice == "stays":
         return {"success": True,
                 "message": (f"{marshal.name} bows and returns to his "
@@ -5361,9 +5376,13 @@ def on_his_task(marshal) -> bool:
     HIMSELF (`Marshal.trial`; `trial.on_trial` is the state's one reader).
     The two jealousy seams ask it here — such a man is never warned and makes
     no jealous strike. (Was `acts_independently`, on `Marshal.autonomous`:
-    the trust crisis's three turns on the enemy's logic, removed.)"""
+    the trust crisis's three turns on the enemy's logic, removed.)
+
+    Row IC, Session 3: and a man you set ON HIS OWN — he has work (§6.10):
+    never warned, no jealous strike (`own_order.on_his_own`)."""
+    from backend.game_logic import own_order as _own
     from backend.game_logic import trial as _trial
-    return _trial.on_trial(marshal)
+    return _trial.on_trial(marshal) or _own.on_his_own(marshal)
 
 
 def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:

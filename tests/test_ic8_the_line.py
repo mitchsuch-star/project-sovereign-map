@@ -551,10 +551,13 @@ class TestICV1TheReadBackNamesWhatItDidNotTake:
         ("Ney, defend until relieved", "until relieved", "WHY_NO_CLOCK", "Ney, defend"),
         ("Ney, hold Rhineland until the cows come home", "until the cows come home",
          "WHY_NOT_HELD", "Ney, hold Rhineland"),
-        ("Ney, hold Rhineland carefully", "carefully", "WHY_AS_WRITTEN", "Ney, hold Rhineland"),
+        # Row IC, Session 3: a how-bold word on a STANDING task to a bold or
+        # careful man now sets him on his own (`tests/test_ic10_on_his_own.py`);
+        # to a literal man, and on a one-turn attack, it is still not taken.
+        ("Soult, hold Lorraine carefully", "carefully", "WHY_AS_WRITTEN", "Soult, hold Lorraine"),
         ("Ney, attack Mack only at good odds", "only at good odds", "WHY_AS_WRITTEN",
          "Ney, attack Mack"),
-        ("Massena, hold Milan, boldly.", "boldly", "WHY_AS_WRITTEN", "Massena, hold Milan."),
+        ("Soult, hold Lorraine, boldly.", "boldly", "WHY_AS_WRITTEN", "Soult, hold Lorraine."),
     ])
     def test_a_part_that_would_change_what_he_does_blocks(self, road, line, clause, why,
                                                           understood):
@@ -604,7 +607,9 @@ class TestICV1TheReadBackNamesWhatItDidNotTake:
     def test_what_is_understood_reads_back_with_nothing_left_to_block(self, road):
         client, snap = road
         _board(snap)
-        for line in ("Ney, retreat if outnumbered", "Ney, hold Rhineland carefully",
+        # (row IC, Session 3: "Ney, hold Rhineland carefully" is a task on his own
+        # now — the literal man's line keeps the case of a how-bold word not taken)
+        for line in ("Ney, retreat if outnumbered", "Soult, hold Lorraine carefully",
                      "Ney, fortify for 3 turns",
                      "Ney, hold Rhineland. If attacked, dig in. If outnumbered, fall back on "
                      "Lorraine."):
@@ -674,7 +679,9 @@ class TestTheTypedLineIsNeverSentWithAPartMissing:
 
     def test_the_gate_and_the_reading_are_one_reader(self, road):
         client, snap = road
-        for line in ("Ney, retreat if outnumbered", "Ney, hold Rhineland carefully",
+        # (row IC, Session 3: "Ney, hold Rhineland carefully" is a task on his own
+        # now — the literal man's line keeps the case of a how-bold word not taken)
+        for line in ("Ney, retreat if outnumbered", "Soult, hold Lorraine carefully",
                      "Ney, fortify for 3 turns", "Ney, defend until relieved",
                      "Ney, hold Rhineland unless attacked", "Ney, attack Mack if possible",
                      "Ney, attack Mack", "Davout, hold Franconia until Ney arrives"):
@@ -716,8 +723,12 @@ class TestHowBoldIsReadAndSetAside:
         parsed = self._parse(world, "Ney, hold Rhineland carefully")
         assert parsed["success"] and parsed["strategic_type"] == "HOLD"
         assert parsed["command"]["target"] == "Rhineland"
-        assert parsed["risk_words"] == ["carefully"]
+        # row IC, Session 3: to a bold or careful man who may be set on his own
+        # the word is TAKEN — the task is his own, one step more careful
+        assert parsed["own_risk_words"] == ["carefully"] and parsed["own"]["risk"] == -1
         assert parsed["raw_input"] == "Ney, hold Rhineland carefully"
+        literal = self._parse(world, "Soult, hold Lorraine carefully")
+        assert literal["command"]["target"] == "Lorraine" and literal["risk_words"] == ["carefully"]
 
     def test_every_how_bold_word_of_the_table_is_read(self, world1805):
         from backend.ai import task_words as TW
@@ -725,7 +736,11 @@ class TestHowBoldIsReadAndSetAside:
         for word in tuple(TW.BOLDER_WORDS) + tuple(TW.CAREFUL_WORDS):
             parsed = self._parse(world, f"Ney, hold Rhineland {word}")
             assert parsed["success"] and parsed["command"]["target"] == "Rhineland", word
-            assert parsed["risk_words"] == [word], word
+            # row IC, Session 3: taken for a man who may be set on his own …
+            assert parsed["own_risk_words"] == [word], word
+            # … and set aside for a literal man
+            literal = self._parse(world, f"Soult, hold Lorraine {word}")
+            assert literal["risk_words"] == [word], word
 
     def test_a_posture_order_keeps_its_own_word(self, world1805):
         world = _fresh(world1805)
@@ -1104,11 +1119,16 @@ class TestGiveHimATask:
         _board(snap)
         ney = self._presets(client, "Ney")
         assert ney["literal"] is False and ney["if_thens"] == 1
+        # row IC, Session 3: a bold or careful man who may be set on his own
+        # is offered HIS OWN proposal first (`own_order.proposal`)
         assert [row["label"] for row in ney["presets"]] == [
-            "Chase Mack", "Hold for three turns", "Hold; if attacked, dig in", "Follow Soult"]
+            "On his own: hold Rhineland — his idea", "Chase Mack", "Hold for three turns",
+            "Hold; if attacked, dig in"]
         # a careful man's first sentence is the hold, a bold man's the chase
         davout = self._presets(client, "Davout")
-        assert davout["presets"][0]["line"] == "Davout, hold Rhineland for 3 turns."
+        # (row IC, Session 3: after his own proposal — on his own, he holds and digs in)
+        assert davout["presets"][0]["line"] == "Davout, hold Rhineland on your own."
+        assert davout["presets"][1]["line"] == "Davout, hold Rhineland for 3 turns."
 
     def test_every_preset_of_every_marshal_reads_back_clean_and_is_taken(self, road):
         client, snap = road

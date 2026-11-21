@@ -3922,6 +3922,12 @@ class StrategicExecutor:
             return {"success": False, "no_action_cost": True,
                     "message": _trial.refusal_words(marshal),
                     "trial": _trial.payload(marshal)}
+        # Row IC, Session 3 (§6.3): a man ON HIS OWN is stood down — free (the
+        # actions come back the turn it was given; 3 of his trust if you
+        # recall him in the middle of his task) — `own_order.stand_down`.
+        from backend.game_logic import own_order as _own
+        if _own.on_his_own(marshal) and marshal.nation == world.player_nation:
+            return _own.stand_down(world, marshal)
 
         if not marshal.in_strategic_mode and not getattr(marshal, 'pending_interrupt', None):
             # Graceful cancel — may be canceling from a clarification popup

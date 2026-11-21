@@ -203,7 +203,9 @@ class TestThePayload:
         assert staff["name"] == "The Grand Quartier Général"
         assert staff["date"].startswith("Berthier's")
         assert staff["says"].startswith("Berthier's headquarters")
-        assert staff["effects"] == ["+1 order of the day, from the next refill"]
+        # Row IC, Session 3 (November 21, 2026): and one more marshal on his own.
+        assert staff["effects"] == ["+1 order of the day, from the next refill",
+                                    "+1 marshal you may set on his own"]
         assert (staff["price"], staff["currency"], staff["upkeep"]) == (9000, "gold", 300)
         assert staff["price_words"] == "9,000 gold"
         assert staff["is_staff"] is True

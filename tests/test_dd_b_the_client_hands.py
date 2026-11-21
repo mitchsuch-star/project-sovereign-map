@@ -1927,7 +1927,10 @@ class TestRowIC7TheButtons:
             if face != "×":                      # only his name's row is lifted
                 assert opened[face] == rect, face
         tasks = [face for face in opened if face not in before]
-        assert tasks[0] == "Chase Mack · 2 actions" and 2 <= len(tasks) <= 4, tasks
+        # (row IC, Session 3: a man who may be set on his own is offered HIS
+        # OWN proposal first — §233.5; the ready tasks follow it)
+        assert tasks[0].startswith("On his own: ") and "his idea" in tasks[0], tasks
+        assert "Chase Mack · 2 actions" in tasks and 2 <= len(tasks) <= 4, tasks
         top = min(opened[face][1] for face in tasks)
         assert top + 37 * len(tasks) <= before["1 Hold the ground · 2 actions"][1], "above his orders"
         assert "a press writes the sentence on the command line" in _pw_said(walk["tasks"])
@@ -2271,6 +2274,94 @@ class TestRowIC9bTheAudienceAtTheCompactView:
     def test_the_task_is_given_from_there_too(self, walk):
         assert 'Ney has his task to prove himself: "Ney, take Bohemia and hold it."' in _ic_log(walk["given"])
         assert _ic2b_window(walk["given"]) == {}
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ═══════════════════════════ row IC, Session 3 — on his own ═════════════════
+# (`SYSTEMS_REFERENCE.md` §233; `docs/audits/ic_client/session3/README.md` —
+# the frames the blind reading read, taken by this same walk at the first
+# player's own setup)
+
+@pytest.fixture(scope="module")
+def ic3_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        mp.setenv("DD_B_READBACK", "1")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic3")
+    states: dict = {}
+    try:
+        states["begin"] = _act(run, "click Begin")
+        states["draft"] = _act(run, "draft Davout, hold Rhineland on your own", meant="hold Davout")
+        _act(run, "key ctrl+a")
+        _act(run, "key BackSpace")
+        states["given"] = _act(run, "type Masséna, hold Milan and Piedmont on your own", meant="hold Massena")
+        states["card"] = _act(run, "click Massena")
+        states["desk"] = _act(run, "key Escape")
+        states["asked"] = _act(run, "type Masséna, what will you do?", meant="other: a question")
+        states["stood_down"] = _act(run, "type Masséna, stand down", meant="other: stand down")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowIC10OnHisOwn:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic3_walk):
+        assert "error" not in ic3_walk, ic3_walk.get("error")
+        return ic3_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        state = walk["draft"]
+        assert state["ui_scale"]["window"] == pytest.approx(1.8)
+        assert state["factor"]["logical_size"] == [2844.0, 765.0]
+
+    def test_typing_a_task_is_answered_before_enter_and_spends_nothing(self, walk):
+        reading = _ic2_readback(walk["draft"])
+        assert "on his own: hold Rhineland" in reading, reading
+        assert "once given, 1 of the 1 you may have (laws raise it)" in reading
+        assert "he attacks only when the odds are our" in reading
+        assert "His first night (tomorrow), as things stand:" in reading
+        assert (walk["draft"].get("command_line") or {}).get("text") == "Davout, hold Rhineland on your own", \
+            "typed, not sent"
+        assert "is on his own" not in _ic_log(walk["draft"]), "nothing given by typing"
+
+    def test_giving_it_says_when_he_starts_and_charges_two_actions(self, walk):
+        log = _ic_log(walk["given"])
+        assert "on his own: hold Milan and Piedmont. He starts tomorrow night." in log, log
+        assert "On their own: 1 of the 1 you may have." in log
+        before, after = (int(_ic_actions(walk["begin"]).split("/")[0]),
+                         int(_ic_actions(walk["given"]).split("/")[0]))
+        assert before - after == 2
+
+    def test_his_card_says_tonight_and_offers_his_own_buttons(self, walk):
+        faces = list(_ic2_faces(walk["card"]))
+        said = _pw_said(walk["card"])
+        assert "On his own" in said and "Tonight:" in said
+        assert "Ask him" in faces and "Change his task…" in faces
+        assert any(f.startswith("Stand him down · free") for f in faces), faces
+        assert "Give him a task…" not in faces, "a man on his own changes his task instead"
+        assert not walk["card"].get("off_screen")
+
+    def test_the_desk_says_the_count_and_his_night(self, walk):
+        desk = [str(b.get("text") or "") for b in _ic_on(walk["desk"], "DeskCard")]
+        line = next((t for t in desk if t.startswith("ON THEIR OWN")), "")
+        assert "1 of the 1 you may have" in line and "tonight:" in line, desk
+
+    def test_asking_him_is_free_and_answered_in_his_voice(self, walk):
+        assert _ic_actions(walk["asked"]) == _ic_actions(walk["given"]), "a question spends nothing"
+        assert "Massena" in _ic_log(walk["asked"]) or "Masséna" in _ic_log(walk["asked"])
+
+    def test_standing_him_down_the_same_turn_gives_the_actions_back(self, walk):
+        assert "stands down and awaits your orders" in _ic_log(walk["stood_down"])
+        assert _ic_actions(walk["stood_down"]) == _ic_actions(walk["begin"])
 
     def test_the_run_met_no_script_error(self, walk):
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

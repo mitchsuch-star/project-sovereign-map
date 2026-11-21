@@ -542,7 +542,10 @@ def takers(world) -> List[Dict[str, Any]]:
     if int(getattr(world, "actions_remaining", 0) or 0) <= 0:
         return out
     player = _player(world)
+    from backend.game_logic import own_order as _own
     for m in _own_field_corps(world):
+        if _own.on_his_own(m):
+            continue        # row IC, Session 3: he takes it himself tonight ("Tonight" says so)
         region = world.get_region(m.location)
         if region is None or getattr(region, "controller", None) in (None, "", player):
             continue        # on our own ground: nothing to take (and nothing to read)
@@ -720,11 +723,86 @@ def _rows_strike(world, have) -> List[Dict[str, Any]]:
     for m in _own_field_corps(world):
         if getattr(m, "jealousy_autonomous_warned", False):
             shown = humanize_entity_name(m.name)
-            rows.append(_row(f"strike:{m.name}", TIER_BITES,
-                             _fit([f"{shown} may attack without waiting for orders when the turn ends — an order that reaches him stops it.",
-                                   f"{shown} may attack without waiting for orders when the turn ends — an order stops it.",
-                                   f"{shown} may attack without waiting for orders when the turn ends."]),
-                             {"kind": "marshal", "marshal": m.name}))
+            row = _row(f"strike:{m.name}", TIER_BITES,
+                       _fit([f"{shown} may attack without waiting for orders when the turn ends — an order that reaches him stops it.",
+                             f"{shown} may attack without waiting for orders when the turn ends — an order stops it.",
+                             f"{shown} may attack without waiting for orders when the turn ends."]),
+                       {"kind": "marshal", "marshal": m.name})
+            # Row IC, Session 3 (§4): the row's two doors — give him an
+            # order, or set him on his own (only while a place is free and
+            # he may be set; the line opens written with his own proposal).
+            row["doors"] = [{"label": "Give him an order", "door": {"kind": "marshal", "marshal": m.name}}]
+            line = _own_line(world, m)
+            if line:
+                row["doors"].append({"label": "Set him on his own",
+                                     "door": {"kind": "line", "line": line, "marshal": m.name}})
+            rows.append(row)
+    return rows
+
+
+def _own_line(world, marshal) -> str:
+    """Row IC, Session 3: his own proposal as a typed line, when he may be set
+    on his own now — "" otherwise."""
+    from backend.game_logic import own_order as _own
+    if _own.why_not(world, marshal):
+        return ""
+    return str(_own.proposal(world, marshal).get("line") or "")
+
+
+def _rows_own_asks(world, have) -> List[Dict[str, Any]]:
+    """Row IC, Session 3 (§4, §6.8): a man on his own who ASKS for your word
+    comes first (tier 1: carry on is free)."""
+    from backend.game_logic import own_order as _own
+    rows = []
+    for m in _own.men(world):
+        spec = _own.own(m) or {}
+        if spec.get("state") != "asks":
+            continue
+        shown = humanize_entity_name(m.name)
+        why = str((spec.get("asks") or {}).get("why") or "")
+        rows.append(_row(f"own_asks:{m.name}", TIER_BITES,
+                         _fit([f"{shown}, on his own, asks for your word: {why}.",
+                               f"{shown}, on his own, asks for your word.",
+                               f"{shown} asks for your word."]),
+                         {"kind": "marshal", "marshal": m.name},
+                         more=f"{shown}, on his own, asks for your word: {why}. Carry on (free), "
+                              f"give him a new task, or stand him down (free)."))
+    return rows
+
+
+def _rows_own_free(world, have) -> List[Dict[str, Any]]:
+    """Row IC, Session 3 (§4 item 3, "what could grow the empire" — after the
+    Congress, a law, a marshal to hire): a place is free in the count and a
+    bold or careful corps stands three or more marches from the Emperor — set
+    him on his own; the row writes his own proposal on the line (the first
+    morning of the design's §3: "Masséna in Milan is five marches from you")."""
+    from backend.game_logic import own_order as _own
+    rows: List[Dict[str, Any]] = []
+    if _own.count(world) >= _own.allowed(world):
+        return rows
+    emperor = next((m for m in _own_field_corps(world)
+                    if getattr(m, "personality", "") == "sovereign"), None)
+    if emperor is None:
+        return rows
+    best = None
+    for m in _own_field_corps(world):
+        if _own.on_his_own(m) or _own.why_not(world, m):
+            continue
+        d = _own._distance(world, m.location, emperor.location)
+        if d is None or d < 3:
+            continue
+        if best is None or (-d, m.name) < best[0]:
+            best = ((-d, m.name), m, d)
+    if best is not None:
+        _key, m, d = best
+        shown = humanize_entity_name(m.name)
+        line = _own_line(world, m)
+        if line:
+            rows.append(_row(f"own_free:{m.name}", TIER_GROWS,
+                             _fit([f"{shown} is {d} marches from you — you could set him on his own ({_own.count_words(world).lower()}).",
+                                   f"{shown} is {d} marches from you — you could set him on his own.",
+                                   f"You could set {shown} on his own."]),
+                             {"kind": "line", "line": line, "marshal": m.name}))
     return rows
 
 
@@ -884,6 +962,7 @@ READERS: List[tuple] = [
     ("peril", _rows_peril),
     ("danger", _rows_danger),
     ("strike", _rows_strike),
+    ("own_asks", _rows_own_asks),       # row IC, Session 3: a man on his own asks
     ("take", _rows_take),
     ("reach_and_idle", _rows_reach_and_idle),
     ("restless", _rows_restless),
@@ -891,6 +970,7 @@ READERS: List[tuple] = [
     ("congress", _rows_congress),
     ("law", _rows_law),
     ("commission", _rows_commission),
+    ("own_free", _rows_own_free),       # row IC, Session 3: a place free in the count
 ]
 
 
@@ -956,6 +1036,13 @@ def desk(world, wars: Optional[Dict[str, Any]] = None,
         "danger": [{"region": str(r["door"].get("region") or ""), "line": str(r["text"])}
                    for r in rows if str(r.get("id") or "").startswith("danger:")],
     }
+    # Row IC, Session 3 (§4, §5): "On their own: n of N" and each man's
+    # "Tonight" line — the desk's own line, and the End Turn list's head. The
+    # key rides only while a man is on his own (an unused feature changes no
+    # payload).
+    own_block = _guarded("own", lambda: _own_block(world), {})
+    if own_block.get("n"):
+        out["own"] = own_block
     line = _guarded("first_open", lambda: _first_open_line(world, rows), "")
     if line:
         out["first_open"] = {"screen": "desk", "line": line}
@@ -967,6 +1054,13 @@ def desk(world, wars: Optional[Dict[str, Any]] = None,
         if goals:
             out["goals"] = goals
     return out
+
+
+def _own_block(world) -> Dict[str, Any]:
+    from backend.game_logic import own_order as _own
+    n, of = _own.count(world), _own.allowed(world)
+    return {"line": f"On their own: {n} of {of}", "n": int(n), "of": int(of),
+            "tonight": _own.tonight_rows(world) if n else []}
 
 
 def _goals(world, wars: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:

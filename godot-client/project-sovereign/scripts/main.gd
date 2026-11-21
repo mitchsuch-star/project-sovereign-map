@@ -3209,6 +3209,11 @@ func _execute_end_turn():
 	if _ic_danger_warning_stands() or _ic_strike_warning_stands():
 		_show_lapse_confirmation()
 		return
+	# Row IC, Session 3 (§5): a man on his own whose night may become a great
+	# battle, or takes him outside his area — said once, a second press lets him.
+	if not _own_tonight_stops().is_empty():
+		_show_lapse_confirmation()
+		return
 	# Row BA, BA-3 (K12): a day of battle that still awaits our word.
 	if _day_warning_stands():
 		_show_lapse_confirmation()
@@ -3243,6 +3248,11 @@ func _pw_takers() -> Array:
 		var ts = entry.get("tactical_state", {})
 		var stands = ts.get("stands_on", {}) if ts is Dictionary else {}
 		if not (stands is Dictionary) or not bool(stands.get("ok", false)):
+			continue
+		# Row IC, Session 3: a man on his own takes it himself tonight — his
+		# "Tonight" says so; the gate does not urge an order of the player's.
+		var own_task = ts.get("own", {}) if ts is Dictionary else {}
+		if own_task is Dictionary and str((own_task as Dictionary).get("task", "")) != "":
 			continue
 		# Nothing holds it (one action takes it now), or only works do (one
 		# action begins the siege — the Carniola of the first playtest: three
@@ -3311,6 +3321,7 @@ func _send_end_turn():
 	_take_warned = false   # row PW: and "he can take it"
 	_day_warned = false   # BA-3 (K12): and the day of battle's
 	_ic_strike_warned.clear()   # row IC: and the man who may attack without orders
+	_own_tonight_warned.clear()   # row IC, Session 3: and the nights worth a second look
 	_ui5_end_turn_out = true   # the busy chip says "the courts of Europe move"
 	_set_open_envoys_prompt_visible(false)
 	# Add to history
@@ -3319,6 +3330,13 @@ func _send_end_turn():
 	# Display the command
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► end turn[/color]")
+	# Row IC, Session 3 (§5: "the list is always shown as you press"): what
+	# each marshal on his own does first of all as the turn ends — said here,
+	# as it happens, whether or not End Turn stopped for a second press.
+	for own_row in _own_tonight_rows():
+		var said := str(own_row.get("line", "")).strip_edges()
+		if said != "":
+			add_output("[color=#" + Utils.COLOR_COMMAND + "]  ◆ " + _ui6_bb_escape(said) + "[/color]")
 	AudioManager.play("end_turn")  # the drummer closes the day
 
 	# Disable input while processing
@@ -3484,6 +3502,10 @@ func _show_lapse_confirmation():
 	# orders — each named once (their own latches, set as they are read).
 	for ic_said in _ic_gate_sentences():
 		parts.append(ic_said)
+	# Row IC, Session 3: the nights worth a second look — each named once.
+	for own_row in _own_tonight_stops():
+		parts.append(str(own_row.get("line", "")) + ".")
+		_own_tonight_warned[str(own_row.get("marshal", ""))] = true
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
@@ -7300,6 +7322,9 @@ func _display_morning_dispatch(data: Dictionary):
 				"counter_punch":
 					# AAR-25: a free strike, open this turn only.
 					icon = "»"
+				"on_his_own":
+					# Row IC, Session 3: a man you set on his own.
+					icon = _status_mark("march", m_status, true)
 				_:
 					icon = _status_mark("hourglass", m_status)
 
@@ -9685,11 +9710,32 @@ func _show_strategic_reports(response):
 
 	# Log reports to output
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]--- Strategic Order Updates ---[/color]")
+	# Row IC, Session 3: the night of the marshals ON THEIR OWN comes first,
+	# under its own head — each line already names its man ("Ney attacks Mack
+	# at Swabia …"), so no name is put before it.
+	var own_rows: Array = []
+	var other_rows: Array = []
+	for report in reports:
+		if bool(report.get("own", false)):
+			own_rows.append(report)
+		else:
+			other_rows.append(report)
+	if not own_rows.is_empty():
+		add_output("[color=#" + Utils.COLOR_GOLD + "]--- Your marshals on their own, last night ---[/color]")
+	if not other_rows.is_empty() and not own_rows.is_empty():
+		reports = own_rows + other_rows
+	# (the review, IC3-V: initialised false — the ordinary rows print their own
+	# head on every turn, with or without a man on his own)
+	var heads_said := false
 	for report in reports:
 		var marshal_name = report.get("marshal", "")
 		var msg = report.get("message", "")
-		if msg:
+		if not heads_said and not bool(report.get("own", false)):
+			add_output("[color=#" + Utils.COLOR_GOLD + "]--- Strategic Order Updates ---[/color]")
+			heads_said = true
+		if msg and bool(report.get("own", false)):
+			add_output("[color=#" + Utils.COLOR_COMMAND + "]  ◆ " + str(msg) + "[/color]")
+		elif msg:
 			add_output("[color=#" + Utils.COLOR_INFO + "]" + marshal_name + ": " + msg + "[/color]")
 		# Log sally battle details to output
 		var battle_msg = report.get("battle_message", "")
@@ -12854,6 +12900,10 @@ func _on_marshal_audience_fetched(response: Dictionary):
 
 func _on_marshal_petition_result(response):
 	_on_command_result(response)
+	# Row IC, Session 3 (§6.9): "Give him a front" writes his own proposal on the
+	# command line — the read-back says the rest; nothing is sent.
+	if response is Dictionary and str((response as Dictionary).get("write_line", "")) != "":
+		_write_on_the_line(str((response as Dictionary).get("write_line", "")))
 	if top_bar and top_bar.screens.has("generals"):
 		var generals_screen = top_bar.screens["generals"]
 		if generals_screen and generals_screen.has_method("refresh_if_open"):
@@ -15463,7 +15513,9 @@ func _ui6_build_selection_card() -> void:
 	for pair in [["group_verb_pressed", _on_group_verb], ["name_army_pressed", _on_name_army],
 			["save_army_pressed", _on_save_army], ["disband_army_pressed", _on_disband_army],
 			# Row IC, Session 2: "Give him a task…" and a ready task chosen
-			["task_pressed", _on_selection_task], ["task_line_pressed", _write_on_the_line]]:
+			["task_pressed", _on_selection_task], ["task_line_pressed", _write_on_the_line],
+			# Row IC, Session 3: a man on his own — a line written, or sent
+			["own_write_pressed", _write_on_the_line], ["own_send_pressed", _pw_send_and_keep_him]]:
 		if _selection_card.has_signal(str(pair[0])):
 			_selection_card.connect(str(pair[0]), pair[1])
 	# its size settles after its labels measure themselves: the slot follows
@@ -16092,7 +16144,7 @@ func _readback_render(resp: Dictionary) -> void:
 				continue
 			# Row IC, Session 2 (IC-8): what the line TOOK, what it did NOT
 			# take and his answer are drawn on their own labelled lines below
-			if role == "taken" or role == "nottaken" or role == "answer":
+			if role == "taken" or role == "nottaken" or role == "answer" or role == "tonight":
 				continue
 			if compact and words == "he may object":
 				words = "may object"
@@ -16124,6 +16176,7 @@ func _readback_task_lines(resp: Dictionary) -> String:
 	understood. "" for a plain order: its reading stays one line."""
 	var taken := PackedStringArray()
 	var missed := PackedStringArray()
+	var nights := PackedStringArray()   # row IC, Session 3: what he would do (on his own)
 	var says := ""
 	var parts = resp.get("parts", [])
 	if parts is Array:
@@ -16140,15 +16193,25 @@ func _readback_task_lines(resp: Dictionary) -> String:
 				missed.append(words)
 			elif role == "answer":
 				says = words
+			elif role == "tonight":
+				nights.append(words)
 	var out := ""
 	var pad := "\n    "
 	if not taken.is_empty():
 		out += pad + Utils.bbcode_color("Taken: ", Utils.COLOR_INFO) \
 			+ Utils.bbcode_color(" · ".join(taken), Utils.COLOR_TEXT)
+	# Row IC, Session 3 (the user's "make the typing really fun"): what HE would
+	# do — "Tomorrow night, as things stand: Ney attacks Mack at Swabia …" —
+	# each on its own line, in the order's colour, before his answer.
+	for night in nights:
+		out += pad + Utils.bbcode_color(night, Utils.COLOR_COMMAND)
 	if not missed.is_empty():
 		out += pad + Utils.bbcode_color("Not taken: " + " · ".join(missed), Utils.COLOR_WARNING)
 	if says != "":
-		out += pad + Utils.bbcode_color("He says: ", Utils.COLOR_INFO) + Utils.bbcode_color(says, Utils.COLOR_TEXT)
+		var speaker := "He says: "
+		if str(resp.get("kind", "")) == "question" and str(resp.get("marshal", "")) != "":
+			speaker = str(resp.get("marshal", "")) + " says: "
+		out += pad + Utils.bbcode_color(speaker, Utils.COLOR_INFO) + Utils.bbcode_color(says, Utils.COLOR_TEXT)
 	var understood := str(resp.get("understood", "")).strip_edges()
 	if understood != "":
 		out += pad + Utils.bbcode_color("Enter sends: ", Utils.COLOR_INFO) \
@@ -16549,6 +16612,7 @@ func _ic_forget_the_board() -> void:
 	_ic_desk = {}
 	_ic_danger_warned.clear()
 	_ic_strike_warned.clear()
+	_own_tonight_warned.clear()
 	_ic_first_line_said = false
 	if _desk_lines != null and is_instance_valid(_desk_lines):
 		_desk_lines.set_desk({}, -1)
@@ -16574,6 +16638,33 @@ func _ic_say_first_line() -> void:
 	_ic_first_line_said = true
 	add_output("[color=#" + Utils.COLOR_INFO + "]" + str((fo as Dictionary).get("line", "")) + "[/color]")
 	_on_first_open_seen(str((fo as Dictionary).get("screen", "desk")))
+
+
+var _own_tonight_warned := {}   # row IC, Session 3: marshal -> true, the gate's latch (a turn)
+
+
+func _own_tonight_rows() -> Array:
+	"""Row IC, Session 3: the desk's "Tonight" rows — what each marshal on his
+	own will do when the turn ends (the backend's one reading)."""
+	var own = _ic_desk.get("own", {})
+	var rows = own.get("tonight", []) if own is Dictionary else []
+	var out: Array = []
+	if rows is Array:
+		for r in rows:
+			if r is Dictionary:
+				out.append(r)
+	return out
+
+
+func _own_tonight_stops() -> Array:
+	"""The "Tonight" rows End Turn stops for once (§5): an attack that may
+	become a great battle, or a step outside his area — not yet named this turn."""
+	var out: Array = []
+	for r in _own_tonight_rows():
+		if (bool(r.get("may_day", false)) or bool(r.get("step_out", false))) \
+				and not _own_tonight_warned.has(str(r.get("marshal", ""))):
+			out.append(r)
+	return out
 
 
 func _ic_rows() -> Array:
@@ -16655,7 +16746,12 @@ func _ic_show_turn_end_list() -> void:
 	for r in _ic_rows():
 		if int(r.get("tier", 3)) <= 2:
 			rows.append(r)
-	if rows.is_empty():
+	# Row IC, Session 3 (§5): what each marshal on his own does when the turn
+	# ends stands at the head of the list.
+	var tonight := _own_tonight_rows()
+	if _turn_end_list.has_method("set_tonight"):
+		_turn_end_list.set_tonight(tonight)
+	if rows.is_empty() and tonight.is_empty():
 		_turn_end_list.hide_list()
 		return
 	if bottom_left_ui == null or not bottom_left_ui.visible:
@@ -16806,6 +16902,13 @@ func _ic_open_door(door: Dictionary, _row_id: String = "") -> void:
 			# Row IC, directives: "N corps can march on Vienna, your war goal —
 			# see the list" — the list, filled in; nothing is sent until Give.
 			_open_directive_line(str(door.get("line", "")), bool(door.get("click", false)))
+		"line":
+			# Row IC, Session 3: "Set him on his own" — his card, and his own
+			# proposal WRITTEN on the line (the read-back says the rest); a
+			# door never sends.
+			if str(door.get("marshal", "")) != "":
+				_ic_go_to_marshal(str(door.get("marshal", "")))
+			_write_on_the_line(str(door.get("line", "")))
 	# A door that opened no window hands the keyboard back to the line (a
 	# focused row would swallow the next typed letter as a hotkey).
 	if not _is_modal_dialog_open() and not _is_screen_open() and command_input != null \

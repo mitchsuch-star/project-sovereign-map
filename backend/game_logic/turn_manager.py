@@ -324,6 +324,47 @@ def note_court_turn_failed(world, nation: str) -> None:
         _errors.report(exc, "turn_manager.note_court_turn_failed: the rail row")
 
 
+def _their_own_night(manager, game_state, resuming: bool) -> None:
+    """Row IC, Session 3 (IC-10; INDEPENDENT_COMMAND_SPEC §2 step 2, D6): FIRST
+    of all when the turn ends — before the Congress signs, before the offers
+    lapse, before the jealous strikes, before the enemy moves — every marshal
+    on his own does what "Tonight" said, highest rank first, or stays put and
+    says why (`own_order.the_pass`). Nothing on a resumed close (it ran once
+    already), nothing once the campaign has fallen, nothing where the server
+    holds no executor; with nobody on his own it touches nothing (R-INERT)."""
+    from backend.game_logic import own_order as _own
+    if resuming or not game_state or not hasattr(manager, "executor"):
+        return
+    try:
+        from backend.game_logic import game_end as _game_end
+        if _game_end.terminal_ending(manager.world) is not None:
+            return
+        _own.the_pass(manager.world, manager.executor, game_state)
+    except Exception as exc:
+        _errors.report(exc, "turn_manager._their_own_night: own_order.the_pass")
+
+
+def _their_own_close(world, reports) -> list:
+    """Row IC, Session 3: the night's rows of the men on their own join the
+    turn's report (first), and each man's life table moves on
+    (`own_order.close_of_turn`) — after the standing orders, before the
+    advance, beside the trial's own close."""
+    from backend.game_logic import own_order as _own
+    try:
+        return _own.close_of_turn(world, reports)
+    except Exception as exc:
+        _errors.report(exc, "turn_manager._their_own_close: own_order.close_of_turn")
+        return list(reports or [])
+
+
+def _their_mornings(world) -> list:
+    """The morning's lines of the men on their task to prove himself (row IC,
+    Session 2b) and of the men on their own (Session 3) — each told once."""
+    from backend.game_logic import own_order as _own
+    from backend.game_logic import trial as _trial
+    return list(_trial.morning_events(world)) + list(_own.morning_events(world))
+
+
 def _the_days_night(manager, game_state) -> list:
     """Row BA (BA-3): before the enemy's phase, every day of battle still open
     is played out with our silence (`battle_day.night_falls`). Returns the
@@ -421,6 +462,7 @@ class TurnManager:
         # march or grievance pass — each ran once already. The reply says so
         # (`resumed`, read by `meta_executor._execute_end_turn`).
         _resuming = bool(getattr(self.world, "_advance_failed", False))
+        _their_own_night(self, game_state, _resuming)   # row IC, Session 3: first of all (D6)
         # GE-3: every recognition the player won at the Congress's table this
         # turn is signed BEFORE the enemy phase and the advance move relations
         # (a signature holds for the sitting — `congress.take_the_signatures`;
@@ -716,7 +758,8 @@ class TurnManager:
                 # Row IC, Session 2b — the nightly count of every man on his
                 # task to prove himself (why here: `trial.close_of_turn`).
                 from backend.game_logic import trial as _trial
-                strategic_reports = _trial.close_of_turn(self.world, strategic_reports)
+                strategic_reports = _their_own_close(
+                    self.world, _trial.close_of_turn(self.world, strategic_reports))
             _jealousy_pass.process_turn(self.world)
 
         # ════════════════════════════════════════════════════════════
@@ -767,10 +810,9 @@ class TurnManager:
         # ════════════════════════════════════════════════════════════
         capital_alerts = self._check_capital_proximity()
         tactical_events.extend(capital_alerts)
-        # Row IC, Session 2b: how each task to prove himself went, told once.
+        # Row IC, Sessions 2b and 3: each task to prove himself, each night on his own.
         if not _fallen:
-            from backend.game_logic import trial as _trial_morning
-            tactical_events.extend(_trial_morning.morning_events(self.world))
+            tactical_events.extend(_their_mornings(self.world))
         for i, evt in enumerate(tactical_events):
             debug_print(f"  Event {i}: type={evt.get('type')}, has_message={bool(evt.get('message'))}")
 

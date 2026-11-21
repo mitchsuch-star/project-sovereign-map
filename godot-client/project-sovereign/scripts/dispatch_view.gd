@@ -497,6 +497,9 @@ func _on_dispatch_received(response):
 				"counter_punch":
 					# AAR-25: a free strike, open this turn only.
 					icon = "»"
+				"on_his_own":
+					# Row IC, Session 3: a man you set on his own.
+					icon = "*"
 				_:
 					icon = "-"
 

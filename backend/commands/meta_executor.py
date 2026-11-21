@@ -1082,6 +1082,20 @@ class MetaExecutor:
         # words `status`, `where is`, `who holds` and `how many men` zero
         # times. `help` typed on purpose still prints the reference.
         asked = (command or {}).get("question") or {}
+        # Row IC, Session 3 (§8.6): a question to a marshal — "what will you
+        # do?", "what do you see?", "can you take X?", "why did you…?" —
+        # answered FREE in his own voice from the one pure reading
+        # (`own_order.answer`); asking changes nothing in the game.
+        if str(asked.get("kind") or "").startswith("own_"):
+            _world = (game_state or {}).get("world")
+            _man = _world.get_marshal(str(asked.get("subject") or "")) if _world is not None else None
+            if _man is not None:
+                from backend.game_logic import own_order as _own
+                said = _own.answer(_world, _man, str(asked["kind"])[4:], str(asked.get("place") or ""))
+                from backend.display_names import humanize_entity_name as _hn
+                return {"success": True, "free_action": True, "question_answered": True,
+                        "message": f"{_hn(_man.name)}: \"{said.get('says') or ''}\"",
+                        "own_answer": said, "marshal": _man.name}
         if str(asked.get("kind") or "") == "unanswered":
             routed = self._route_unanswered_question(
                 str(asked.get("asked") or ""), game_state)

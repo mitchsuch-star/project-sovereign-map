@@ -95,7 +95,8 @@ MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}
 MARSHAL_OPTIONAL_FIELDS = {
     "personality", "nation", "movement_range", "tactical_skill",
     "skills", "ability", "cavalry", "artillery", "spawn_location", "morale",
-    "trust", "stance", "relationships", "biography"
+    "trust", "stance", "relationships", "biography",
+    "own_odds",     # row IC, Session 3: his own odds on his own ("our N to their 10"), 3-20
 }
 
 REGION_REQUIRED_FIELDS = {"name", "adjacent_regions"}
@@ -170,6 +171,12 @@ def validate_marshal(data: Dict[str, Any], path: str = "marshal") -> ValidationR
             )
 
     # Validate movement_range
+    if "own_odds" in data:
+        # Row IC, Session 3 (INDEPENDENT_COMMAND_SPEC §6.1): his own figure —
+        # he attacks at "our N to their 10" or better. Clamped 3-20.
+        _odds = data["own_odds"]
+        if not isinstance(_odds, int) or isinstance(_odds, bool) or not 3 <= _odds <= 20:
+            result.add_error(f"{path}.own_odds", "own_odds must be an integer from 3 to 20")
     if "movement_range" in data:
         if not isinstance(data["movement_range"], int):
             result.add_error(f"{path}.movement_range", f"Must be an integer, got {type(data['movement_range']).__name__}")
@@ -1397,6 +1404,7 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
             if isinstance(e, dict)} if isinstance(data.get("agendas"), dict) else {}
         seen_ids: Set[str] = set()
         staffs = []
+        needs_law = []      # row IC, Session 3: (path, law id) — checked after the deck
         for i, row in enumerate(rows):
             rp = f"{path}[{i}]"
             if not isinstance(row, dict):
@@ -1441,6 +1449,17 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                         result.add_error(
                             rp, f"requires_design {wanted!r} must be an "
                                 f"acquire_regions design with provinces")
+            if "requires_law" in row:
+                # Row IC, Session 3: a law that needs another of the court's
+                # own laws in force first (the Emperor's Aides-de-Camp need the
+                # Staff) — checked against the deck once every id is known.
+                wanted_law = row.get("requires_law")
+                if not isinstance(wanted_law, str) or not wanted_law.strip():
+                    result.add_error(rp, "requires_law must name a law id of the same court")
+                elif wanted_law == law_id:
+                    result.add_error(rp, "a law cannot require itself")
+                else:
+                    needs_law.append((rp, wanted_law))
             if "currency" in row and row.get("currency") not in CURRENCIES:
                 result.add_error(
                     rp, f"currency must be one of {CURRENCIES}, got "
@@ -1498,6 +1517,10 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                     else:
                         _validate_law_clause(result, cp, etype, clause,
                                              CLAUSE_SHAPES.get(etype) or {})
+        deck_ids = {str(r.get("id") or "") for r in rows if isinstance(r, dict)}
+        for rp_need, wanted_law in needs_law:
+            if wanted_law not in deck_ids:
+                result.add_error(rp_need, f"requires_law {wanted_law!r} is not a law of {court}'s deck")
         if court in GREAT_POWERS and len(staffs) != 1:
             result.add_error(
                 path, f"Exactly one Staff (the `actions` law) per great power — "

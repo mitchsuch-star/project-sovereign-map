@@ -1,12 +1,48 @@
-# NEXT SESSION PROMPT — Row IC, Session 3: on his own (read the first block)
+# NEXT SESSION PROMPT — Row IC, Session 3b: an army's task (read the first block)
 
-> **READ THIS FIRST — the next session is ROW IC's SESSION 3** (the section "## Row IC, Session 3 — on his own:
-> the plan, decided" below — **the user's direction stands at its head**). Then row IC's Session 4, then
+> **READ THIS FIRST — the next session is ROW IC's SESSION 3b** (the section "## Row IC, Session 3b — an army's
+> task: the plan, decided" below — the half of Session 3 its plan's decided fork handed on, row IC3-D1). Then row
+> IC's Session 4, then
 > **Session H, the deploy** (its section is kept below, with the lines that overrule it). The order is
 > `PRE_DEPLOY_PLAN.md` §2 (row IC).
 >
-> Overwritten each time a session hands off. Current hand-over: **November 20, 2026 — ROW IC, SESSION 2b: THE
-> TASK TO PROVE HIMSELF ✅ BUILT AND COMMITTED — NOT PUSHED (it waits for his word).** His words in its Plan Mode:
+> Overwritten each time a session hands off. Current hand-over: **November 21, 2026 — ROW IC, SESSION 3: ON HIS
+> OWN ✅ BUILT, COMMITTED AND PUSHED at his word ("commit and push when done").** His words: "make this engaging
+> make the typing really fun for this on make sure ux is good etc", with his direction of November 20 at the plan's
+> head (generals set on their own "really do stuff", work together, "help their friends"; orders are "just
+> guidance"). Built (`SYSTEMS_REFERENCE.md` §233; `BUG_FIXES.md` §"Row IC, Session 3"; the spec's §15 landing record
+> and D37; `backend/game_logic/own_order.py` — the ONE pure reading `read` / `tonight`, the pass `the_pass` FIRST of
+> all in `end_turn`, the life table `close_of_turn`; `own_voice.py`; `backend/ai/own_words.py`; the read-back's
+> `parse_preview._own_reading`; `tests/test_ic10_on_his_own.py`, `test_ic11_different_men.py`, the driven
+> `TestRowIC10OnHisOwn`; the measure `tools/_ic3_measure.py`): **IC-10 and IC-11** — the order
+> (`StrategicOrder.own`, a mode the strategic pass skips), the count (1 + the Staff + the new Aides-de-Camp law,
+> `requires_law`), giving it by the line with a live read-back in his voice, free questions, "Tonight" on his card,
+> the desk and End Turn, the men's own odds and habits, R-TOGETHER, R-FRIENDS at the reinforcement seam, the
+> petition's "Give him a front" writing his proposal. **IC-12 (an army's task; "take the war goal") was handed
+> on whole to Session 3b** by the plan's decided fork (row IC3-D1). The three follow-ups of Session 2b (IC3-H1 …
+> H3) are closed. The measure met R-INERT (26 / 27 / 28), R-BAND, R-TRUE, R-TOGETHER, R-VARIETY; R-ACTS 4 of 5
+> (Davout 60%, accepted as his character); the blind reading 18/18 twice; the review's 23 rows fixed — its P1, a
+> hand order that ended his task in silence, now leaves the task standing. Open: IC3-D1 (Session 3b) and IC3-N1
+> (Session H's head, three older-screen words, a strict-xfail pin).
+> **Its traps (fresh):** (1) **the executor's strategic override** (Phase 5.2-C: attack, move, defend, fortify,
+> drill, retreat by hand) sets ANY standing order aside — a new mode of the standing order must be taught to it,
+> or a hand order ends it in silence (IC3-V1); (2) a record that counts from a tick must set the tick when the
+> thing it counts begins — a new order — or an earlier order's battles read as last night's (IC3-V5); (3) the
+> screens' "Tonight" is cached on `own_order._board_key` — whatever `read` consults must be in that key
+> (`last_ordered_turn` and `reinforced_this_turn` were added late); (4) `world.get_visible_enemies_in_region`
+> returns ROWS, not marshals — read the player's sight through `ground._visible_foes`; (5) the words census teaches
+> "on his own" BY NAME: to regenerate its `SET_BY_YOU` table, blank it, ask `_census(_all_prose())` what it flags
+> and write each flagged string back with its reason (a new file needs a reason line, or the regeneration
+> stops); (6) `end_turn` stands at 494 of its 499 lines — a new step goes in a module helper beside
+> `_their_own_night`; (7) the measure: `DD_B_STAGE=1 tools/_ic3_measure.py --jobs 4` (≈ 3½ min) and `--band`
+> (≈ 15 min); an arm that changes how often a man ASKS moves R-VARIETY's raw repeat count — the measure counts
+> asks apart, as not his choice; (8) the driven walk's actions counter reads "" while the read-back is drawn —
+> read the command line's text instead; (9) Bash heredocs STILL mangle `\'` and `\n` in a Python patch (it bit
+> again) — write every script with the Write tool; (10) a review lane's report can arrive after the others —
+> wait for every lane before the records; (11) the full run takes 17 to 20 minutes at ten workers.
+>
+> The hand-over before it: **November 20, 2026 — ROW IC, SESSION 2b: THE
+> TASK TO PROVE HIMSELF ✅ BUILT AND COMMITTED, and PUSHED November 21 at his word ("Push it").** His words in its Plan Mode:
 > "its good but he shouldnt take orders if its low trust and he does it for x turns then maybe you get control
 > unless hes on a roll etc. also make sure when you give genmrals autonomy they really do stuff and iunteract
 > withe achother and even help their friends your strategoic suggestions are just guidance for ai" — and his two
@@ -209,14 +245,14 @@
 
 **FIRST — in this order:**
 
-0. `git log`: row IC's Session 2b is ONE commit (the task to prove himself; the old engine deleted) — NOT pushed
-   unless he has said so since; before it Session 2 (`cc7dc22b`, pushed November 20, "Push it"), the review of "on
-   his own" (`a2518541`, pushed), directives and the desk — each through the hook. Read `STATUS.md` ▶ NEXT UP
-   first, then the spec's §1.1 (his words of November 20, both sets), §6, §13 and §15.
-1. **ROW IC, SESSION 3** — the section "## Row IC, Session 3 — on his own: the plan, decided" below. Plan Mode
-   first (the user's standing rule); his direction heads the plan and its forks are decided there, so the
-   Plan-Mode draft is that plan made concrete against the code as it then stands. The section's head lists
-   three small finds of Session 2b's last night, each with a recommendation — filed and fixed first.
+0. `git log`: row IC's Session 3 is ONE commit (on his own — IC-10, IC-11), pushed at his word; before it
+   Session 2b (`e3f8cf26`, pushed November 21, "Push it"), Session 2 (`cc7dc22b`), the review of "on his own"
+   (`a2518541`), directives and the desk — each through the hook. Read `STATUS.md` ▶ NEXT UP first, then the
+   spec's §9.1 (an army's task), §15 (its table "Session 3b") and `SYSTEMS_REFERENCE.md` §230 (directives) and
+   §233 (on his own).
+1. **ROW IC, SESSION 3b** — the section "## Row IC, Session 3b — an army's task: the plan, decided" below. Plan
+   Mode first (the user's standing rule); the plan's forks are decided there, so the Plan-Mode draft is that plan
+   made concrete against the code as it then stands.
 2. **Then row IC's Session 4** (the spec's §15: the voice, and the other side of the hill), its own Plan-Mode
    session.
 3. **Then SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
@@ -225,7 +261,9 @@
    so — `TestWS10TwoSurfacesClaimTheBareDigits`), **WS-R** (the readers' unconfirmed finds), **PW3-D1** (row PW
    part 3: the Cabinet's first page seats its courts in columns — `TestPW3D1TheCabinetsCourtListHasRoom`), **IC2-N1** (row IC's
    Session 2: at his setup the command line shows about twenty characters of a typed task — the strict-xfail driven
-   pin `TestRowIC7TheButtons::test_the_command_line_shows_the_task_being_typed`); **moved
+   pin `TestRowIC7TheButtons::test_the_command_line_shows_the_task_being_typed`), **IC3-N1** (row IC's Session 3:
+   "actions" never explained where they are counted, the dashed chips not known to be buttons, "titled provinces"
+   unexplained — the strict-xfail pin `TestWhatTheSecondReadingSaidOfTheOlderScreens::test_n1_…`); **moved
    November 20, 2026 to row IC's IC-8 and ✅ FIXED there, in Session 2** (the read-back of typed tasks depends on them): **WS-12 with GRD-33** (the
    live model's number moves nothing — `TestWS12AModelsNumberMovesAMarshal`, `TestSessionHsHead::test_grd33_…`),
    **WS-14** (the readback's standing question) and **UI6-X70, X73, X74, X75** (the typed order road's compound
@@ -272,7 +310,54 @@ say what is built and what is not.
 
 ---
 
-## Row IC, Session 3 — on his own: the plan, decided (November 20, 2026)
+## Row IC, Session 3b — an army's task: the plan, decided (November 21, 2026)
+
+**What it is.** The half of Session 3 its plan's fork handed on whole (row IC3-D1; the spec's §9.1 and §15 table
+"Session 3b"). Session 3 built the man on his own; this builds the ARMY on its own and the war goal's task, on the
+same reading, the same pass and the same directive card. **The user's direction of November 20 stands over it**:
+generals on their own "really do stuff", work together, "help their friends"; the order is guidance.
+
+1. **An army's task** (§9.1): "Army of Italy, take Swabia" (and "…, hold …", "…, chase …") → ONE list on the
+   directive card (`directive.quote` → `order_confirm_card`), nothing spent before Give: its **commander** set on
+   his own with the task (the army's named commander, `armies.py`; else the senior of its men who may be set —
+   `own_order.why_not`); every other man **set to Support him** by today's standing SUPPORT order (1 action each,
+   not counted against "on their own"), each row his part — a literal man's row his exact line; a man already on
+   his own "not included — on his own: <his task>"; the count full → the list says so and offers to stand down the
+   lowest-ranked man on his own; below authority 50 the Staff's order to several is not heard and the list says so
+   before Give (read how §230's directive gate treats authority first). One Take-back unit.
+2. **"Take the war goal"** — "Ney, take the war goal" (and the army's form) sets him on his own with a take toward
+   the war's goal (`war_goals.py`); when the goal changes, every man serving it is turned — the change is a list
+   too, 1 action each, said before Give; a goal reached → the task becomes a hold, as a take done does.
+3. **Typing and the read-back:** the word table (`word_table.py` → `python -m tools.gen_task_words`, then
+   `python -m tools.gen_routed_order_words`) learns "the war goal"; the read-back's head names the list ("Army of
+   Italy · on its own: take Swabia · 6 actions") and the first night of the commander and of each supporter, as
+   `own_order.reading_of_parse` does for one man; a golden-corpus row per form.
+4. **The desk and the card:** the army's chip says "on its own"; the desk's ON THEIR OWN line counts the
+   commander once; his card says "commands the Army of Italy on its own".
+
+**The measure** (rules written before any data): R-INERT (the band 26 / 27 / 28 with no army's task); on 30
+seeds × 20 turns with one army's task — R-TRUE (Tonight equals every act, commander and supporters), R-TOGETHER
+(never two separate attacks; the supporters' lines name the commander on at least half of the shared nights);
+the band with an army's task on the three commanded seeds inside 23–28.
+
+**The reading** (three fresh readers, the key written first, at his setup): "You type 'Army of Italy, take
+Swabia'. Who goes on his own, and what do the others do?" · "What does it cost?" · "You change the war goal. What
+happens to Ney?"
+
+**Forks, decided now** (each one line to reverse): *a supporter cannot reach the commander* → his row says so and
+he is left out (he is not charged); *the commander is literal, or below trust 30* → the next who may be set
+commands, and the list says why; *the war goal is a province no man can reach* → "take the war goal" is refused
+free, with why; *the session cannot hold both halves at the standard* → the army's task lands whole and the war
+goal's task goes to its own session — nothing half-built.
+
+**Done when:** an army's task is one list with its commander on his own and the rest supporting; the war goal's
+task follows a changed goal at its price; the census passes; `tools/defect_census.py --open` lists no IC row but
+IC2-N1 and IC3-N1 (Session H's). STATUS line: *"ROW IC, SESSION 3b — AN ARMY'S TASK"*. Then Session 4 (the voice,
+and the other side of the hill).
+
+---
+
+## Row IC, Session 3 — on his own: the plan, decided (November 20, 2026) — ✅ BUILT November 21, 2026, less IC-12 (Session 3b, above)
 
 **The user's direction heads this session** (Session 2b's Plan Mode, November 20, 2026 — his words):
 

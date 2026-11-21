@@ -172,7 +172,9 @@ class TestAManOnHisTaskIsReported:
 
     def test_the_turn_hands_the_morning_its_lines(self):
         manager = (REPO / "backend" / "game_logic" / "turn_manager.py").read_text(encoding="utf-8")
-        assert "tactical_events.extend(_trial_morning.morning_events(self.world))" in manager
+        # (row IC, Session 3: the trial's lines and the nights on his own, told once)
+        assert "tactical_events.extend(_their_mornings(self.world))" in manager
+        assert "list(_trial.morning_events(world)) + list(_own.morning_events(world))" in manager
         assert "_trial.close_of_turn(self.world, strategic_reports)" in manager
         attach = (REPO / "backend" / "game_logic" / "while_you_waited.py").read_text(encoding="utf-8")
         body = attach[attach.index("def attach("):attach.index("def snapshot(")]

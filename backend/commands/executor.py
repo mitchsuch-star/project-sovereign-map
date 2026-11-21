@@ -1589,7 +1589,7 @@ class CommandExecutor:
         """The command body. Call `execute`, not this."""
         st = _ExecState(parsed_command=parsed_command, game_state=game_state)
         for _stage in (self._exec_head, self._exec_pending_gates, self._exec_meta,
-                       self._exec_action_economy, self._exec_name_and_place,
+                       self._exec_own, self._exec_action_economy, self._exec_name_and_place,
                        self._exec_objection_battery, self._exec_bonuses_and_clarification,
                        self._exec_dispatch, self._exec_charge):
             _result = _stage(st)
@@ -1800,6 +1800,33 @@ class CommandExecutor:
             # Unknown meta command — fall through to normal processing
         return None
 
+    def _exec_own(self, st: "_ExecState") -> Optional[Dict]:
+        """Row IC, Session 3 (IC-10): a task ON HIS OWN, and the words that change
+        it — "Ney, take Swabia on your own", "Ney, more risk", "Ney, stand down",
+        "Ney, carry on" (the parse's `own`, `backend/ai/own_words.py`). ONE
+        road: `own_order.from_parse` checks the man, the task, the count and
+        the price BEFORE anything moves (a refusal is free), gives it, and the
+        price is charged here — then the ordinary finish. Never for the
+        night's own acts (`_strategic_execution`), never for a court's man."""
+        own = st.parsed_command.get("own") if isinstance(st.parsed_command, dict) else None
+        command = st.early_command or st.parsed_command.get("command") or {}
+        if not isinstance(own, dict) or command.get("_strategic_execution") or st.is_ai_command:
+            return None
+        st.command = command
+        world = st.world
+        from backend.game_logic import own_order as _own
+        result = _own.from_parse(world, st.parsed_command, command)
+        action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+        if result.get("success") and not result.get("no_action_cost"):
+            need = int(result.get("variable_action_cost", 0) or 0)
+            if need > 0:
+                action_result = world.spend_actions("generic", need)
+        st.result, st.action_result = result, action_result
+        st.is_player_action = True
+        st.marshal_name = command.get("marshal")
+        st.mild_message = None
+        return self._exec_finish(st)
+
     def _exec_action_economy(self, st: "_ExecState") -> Optional[Dict]:
         """The action economy: the strategic flags, the free actions, the counter-punch waiver, the AP gates, the occupation and fortified checks."""
         world, parsed_command, command, action = st.world, st.parsed_command, st.command, st.action
@@ -2009,6 +2036,13 @@ class CommandExecutor:
                 # Military/tactical actions use CP pool
                 # Determine how many actions this command needs
                 required_actions = world.get_action_cost(action)
+                if action == "cancel":
+                    # Row IC, Session 3 (the review, IC3-V): a man ON HIS OWN
+                    # is stood down free — the typed cancel passes at 0 actions
+                    from backend.game_logic import own_order as _own_cancel
+                    _cancel_man = world.get_marshal(command.get("marshal", "") or "")
+                    if _cancel_man is not None and _own_cancel.on_his_own(_cancel_man):
+                        required_actions = 0
                 if (not is_strategic_execution and
                         parsed_command.get("is_strategic") and
                         parsed_command.get("strategic_type")):
@@ -2380,7 +2414,13 @@ class CommandExecutor:
                 # Override commands silently cancel active strategic orders
                 # Non-override commands execute alongside strategic orders
                 # ═══════════════════════════════════════════════════════════
-                if marshal.in_strategic_mode and not is_strategic_execution:
+                # Row IC, Session 3 (the review, IC3-V; INDEPENDENT_COMMAND_SPEC
+                # §6.3): today's order to a man ON HIS OWN is an ordinary order —
+                # his one thing this turn — and his task STANDS, resuming the
+                # next night (`own_order.read` keeps him still tonight).
+                from backend.game_logic import own_order as _own_override
+                if (marshal.in_strategic_mode and not is_strategic_execution
+                        and not _own_override.on_his_own(marshal)):
                     strategic_override_actions = [
                         "attack", "move", "defend", "fortify", "drill", "retreat"
                     ]

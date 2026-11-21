@@ -8635,6 +8635,13 @@ def get_task_presets(marshal: str = ""):
         payload = {"success": True, "marshal": man.name, "shown": _hn(man.name),
                    "literal": getattr(man, "personality", "") == "literal",
                    "if_thens": int(_if_thens.capacity(man)), "presets": rows}
+        # Row IC, Session 3: whether he may be set on his own, and why not.
+        from backend.game_logic import own_order as _own
+        if _own._nature(man) in ("bold", "careful"):
+            payload["own"] = {"can": not _own.why_not(world, man) and not _own.on_his_own(man),
+                              "on_his_own": _own.on_his_own(man),
+                              "why": _own.why_not(world, man, replacing=_own.on_his_own(man)),
+                              "count": _own.count_words(world)}
         _first_open.attach(payload, world, "task")
         return payload
     except Exception as e:
@@ -8989,6 +8996,15 @@ async def cancel_order(request: Request):
         if (_on_task is not None and _trial.on_trial(_on_task)
                 and _on_task.nation == world.player_nation):
             return _refusal_response(world, message=_trial.refusal_words(_on_task))
+        # Row IC, Session 3: a man ON HIS OWN is stood down free — before the
+        # actions check (it costs none) — on the typed road's own words.
+        from backend.game_logic import own_order as _own_cancel
+        if (_on_task is not None and _own_cancel.on_his_own(_on_task)
+                and _on_task.nation == world.player_nation
+                and not world.dialogue_manager.is_hard_stop()):
+            result = _own_cancel.stand_down(world, _on_task)
+            result["action_info"] = world.get_action_info(0)
+            return _build_result_response(result, world, drain_popups=False)
 
         # AP pre-check (matches typed cancel command flow)
         if world.actions_remaining <= 0:
