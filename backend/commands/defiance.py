@@ -234,7 +234,7 @@ BERTHIER_DEFIANCE_WRONG = [
 ]
 
 BERTHIER_DEFIANCE_INCONCLUSIVE = [
-    "{marshal} defied your order... and then stood idle. The army watched in bewildered silence.",
+    "{marshal} refused your order... and then stood idle. The army watched in bewildered silence.",
     "{marshal} refused to act on your command, yet offered no alternative. A wasted day.",
 ]
 

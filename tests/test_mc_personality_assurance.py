@@ -358,15 +358,18 @@ class TestEnemyAIPersonalityDifferentiation:
         assert ai._get_effective_personality(aggr, w) == "aggressive"
         assert ai._get_effective_personality(caut, w) == "cautious"
 
-    def test_effective_personality_player_literal_preserved_unless_autonomous(self):
-        # The literal→cautious swap is documented as the consequence of going
-        # autonomous; a player literal under command keeps literal.
+    def test_effective_personality_player_literal_is_always_preserved(self):
+        # The literal→cautious swap was the consequence of going autonomous;
+        # row IC's Session 2b (Nov 20, 2026) removed that state and the swap
+        # with it — a player literal keeps literal, on his task to prove
+        # himself too (the state that stands where the autonomous one stood).
+        from backend.game_logic import trial
         lit = make_marshal("Grouchy", nation="France", personality="literal")
         w = make_world(lit)  # player_nation defaults to France
-        lit.autonomous = False
         assert self._ai()._get_effective_personality(lit, w) == "literal"
-        lit.autonomous = True
-        assert self._ai()._get_effective_personality(lit, w) == "cautious"
+        lit.trial = {"line": "Grouchy, hold.", "turns_left": 2}
+        assert trial.on_trial(lit)
+        assert self._ai()._get_effective_personality(lit, w) == "literal"
 
     def test_aggressive_threshold_below_cautious(self, zero_variance):
         # Aggressive seeks battle at odds a cautious general declines.

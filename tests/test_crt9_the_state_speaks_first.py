@@ -72,9 +72,11 @@ def _broken(w):
     d.broken, d.broken_recovery = True, 1
 
 
-def _autonomous(w):
-    d = w.get_marshal("Davout")
-    d.autonomous, d.autonomy_turns = True, 2
+def _on_his_task(w):
+    """Row IC, Session 2b: on his task to prove himself — he takes no orders
+    (the state that stands where the old autonomous one stood)."""
+    from backend.game_logic import trial
+    assert trial.give(w, w.get_marshal("Davout"))["given"]
 
 
 def _no_military(w):
@@ -102,7 +104,7 @@ STATES = {
     "drill_locked": _drill_locked,
     "retreating": _retreating,
     "broken": _broken,
-    "autonomous": _autonomous,
+    "on_his_task": _on_his_task,
     "no_military": _no_military,
     "one_military": _one_military,
     "no_admin": _no_admin,
@@ -135,7 +137,7 @@ COMMANDS = {
 _STATE_SENTENCES = re.compile(
     r"Not enough actions|No administrative actions remaining|locked in drill|"
     r"is fortified at|cannot march from his works|recovering from retreat|"
-    r"\[BROKEN\]|army is broken|acting independently|is securing", re.I)
+    r"\[BROKEN\]|army is broken|takes no orders until it ends|is securing", re.I)
 
 
 def _davout(world):

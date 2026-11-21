@@ -156,9 +156,6 @@ def _battery_reason(world, marshal, action: str, verb: str) -> str:
     # to himself), so its state gates are not his.
     if getattr(marshal, "is_sovereign", False):
         return ""
-    if getattr(marshal, "autonomous", False):
-        turns = int(getattr(marshal, "autonomy_turns", 0) or 0)
-        return f"acting on his own authority — {turns} turn{'s' if turns != 1 else ''}"
     if getattr(marshal, "drilling_locked", False):
         turn = getattr(marshal, "drill_complete_turn", None)
         return (f"locked in drill until turn {int(turn)}" if turn is not None
@@ -251,6 +248,16 @@ def _own_reason(world, marshal, verb: str) -> str:
     return ""
 
 
+def trial_reason(marshal) -> str:
+    """Row IC, Session 2b: a man on his TASK TO PROVE HIMSELF takes no orders
+    — none at all, the one that would cancel his standing order too (the
+    user's ruling: no call-back). The executor refuses every order to him
+    before it reads the pool (`trial.order_refusal`), so this reason comes
+    first here too, for every verb and every button. "" for anyone else."""
+    from backend.game_logic import trial as _trial
+    return _trial.short_reason(marshal) if _trial.on_trial(marshal) else ""
+
+
 def order_price(world, marshal, verb: str) -> int:
     """CF-6: what ``<marshal>, <verb>`` costs in military actions — the
     figure the pre-gate would charge (`_pool_reason`'s own arithmetic): a
@@ -287,6 +294,9 @@ def order_state_refusal(world, marshal, verb: str) -> str:
     if verb not in VERBS or marshal is None:
         return ""
     action, strategic_type = VERBS[verb]
+    reason = trial_reason(marshal)
+    if reason:
+        return reason
     reason = _pool_reason(world, marshal, action, strategic_type)
     if reason:
         return reason
@@ -356,6 +366,9 @@ def button_refusal(world, marshal, key: str) -> str:
     executor's). PURE."""
     if marshal is None or key not in BUTTONS:
         return ""
+    reason = trial_reason(marshal)
+    if reason:
+        return reason
     action = "stance_change" if key.startswith("stance:") else _BUTTON_ACTION[key]
     if key == "break_square" and not getattr(marshal, "square_formation", False):
         return "not in square"

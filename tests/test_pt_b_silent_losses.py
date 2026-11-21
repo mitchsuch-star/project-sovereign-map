@@ -262,7 +262,7 @@ class TestTheRecoveryEndpointIsWired:
         world.pending_redemption = {
             "marshal": subject.name, "trust": 2,
             "message": "requests an urgent audience",
-            "options": [{"id": "grant_autonomy"}],
+            "options": [{"id": "trial"}],
         }
         original = M.world
         M.world = world

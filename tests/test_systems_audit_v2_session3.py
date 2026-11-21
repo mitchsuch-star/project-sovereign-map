@@ -273,37 +273,45 @@ class TestEnemyPhaseErrorHandling:
 
 
 # ═══════════════════════════════════════════════════════
-# V2-26: Autonomous marshal crash doesn't break turn
+# V2-26: A crash in the nightly count of a man's task doesn't break the turn
 # ═══════════════════════════════════════════════════════
 
 class TestAutonomousPhaseErrorHandling:
-    """V2-26: Single autonomous marshal crash doesn't kill entire turn."""
+    """V2-26: a single autonomous marshal's crash didn't kill the entire turn.
 
-    def test_autonomous_crash_produces_error_entry(self):
-        """Exception during autonomous action → error report entry."""
-        from backend.game_logic.turn_manager import TurnManager
+    Row IC, Session 2b (November 20, 2026): that pass is gone. The pass that
+    stands where it stood — the turn's close for the men on their task to
+    prove himself (`trial.close_of_turn`) — keeps the same promise: a crash
+    in it is reported, never raised, and the turn's reports come back whole."""
+
+    def test_a_crash_in_the_nightly_count_does_not_kill_the_turn(self):
+        from backend.game_logic import trial
 
         world = make_world()
         ney = make_marshal(name="Ney", location="Belgium", strength=50000, nation="France")
-        ney.autonomy_turns = 3
-        ney.autonomous = True
-        ney.autonomous_battles_won = 0
-        ney.autonomous_battles_lost = 0
-        ney.autonomous_regions_captured = 0
         world.marshals["Ney"] = ney
+        assert trial.give(world, ney)["given"]
+        rows = [{"marshal": "Davout", "message": "kept"}]
 
-        tm = TurnManager(world)
-        game_state = {"world": world}
+        with patch.object(trial, "tick", side_effect=RuntimeError("test crash")):
+            out = trial.close_of_turn(world, rows)
 
-        with patch.object(EnemyAI, 'decide_single_action', side_effect=RuntimeError("test crash")):
-            result = tm._process_autonomous_marshals(game_state)
+        assert out == rows                     # the turn's reports come back whole
+        # ... and nothing was half-counted: he is still on his task
+        assert trial.on_trial(ney) and ney.trial["turns_left"] == 3
 
-        report = result["independent_command_report"]
-        assert len(report) == 1
-        assert report[0]["action"] == "error"
-        assert report[0]["marshal"] == "Ney"
-        # Autonomy turns still decremented
-        assert ney.autonomy_turns == 2
+    def test_a_crash_in_keeping_one_mans_hold_does_not_stop_the_count(self):
+        from backend.game_logic import trial
+
+        world = make_world()
+        ney = make_marshal(name="Ney", location="Belgium", strength=50000, nation="France")
+        world.marshals["Ney"] = ney
+        assert trial.give(world, ney)["given"]
+
+        with patch.object(trial, "keep_the_hold", side_effect=RuntimeError("test crash")):
+            trial.close_of_turn(world, [])
+
+        assert ney.trial["turns_left"] == 2    # the count still ran
 
 
 # ═══════════════════════════════════════════════════════

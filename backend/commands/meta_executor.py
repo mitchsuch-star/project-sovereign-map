@@ -378,8 +378,9 @@ class MetaExecutor:
         End turn early, skipping remaining actions.
 
         Uses TurnManager to:
-        1. Process autonomous marshals
-        2. Process ENEMY AI TURNS (all enemy nations take actions)
+        1. Process ENEMY AI TURNS (all enemy nations take actions)
+        2. Carry out the player's standing orders, and count the men on a
+           task to prove themselves
         3. Process tactical states (drill, fortify, retreat)
         4. Advance turn
         """
@@ -504,42 +505,10 @@ class MetaExecutor:
         # FINAL-7: Filter tactical events by fog — only show events the player can see
         tactical_events = _filter_tactical_events_by_fog(tactical_events, world)
 
-        # Add Independent Command Report to message (Phase 2.5)
-        # NOTE: Action names must be player-readable — never show raw internal names
-        # like "stance_change" or "fortify". Use _action_display_name() to translate.
-        independent_report = turn_result.get("independent_command_report", [])
-        if independent_report:
-            message += "\n\n═══ INDEPENDENT COMMAND REPORT ═══"
-            for entry in independent_report:
-                marshal_name = entry.get("marshal", "Unknown")
-                action = entry.get("action", "wait")
-                target = entry.get("target")
-                turns_left = entry.get("turns_remaining", 0)
-                perf = entry.get("performance", {})
-
-                action_str = _action_display_name(action)
-                if target:
-                    # Row IC review (IC-R3, the sibling): the man chose his
-                    # quarry with the AI's eyes — an enemy the player cannot
-                    # see and did not fight is "an enemy corps" here too
-                    # (`while_you_waited.own_way_target`, the one reading).
-                    from backend.game_logic.while_you_waited import own_way_target
-                    action_str += f" {own_way_target(world, entry) or target}"
-
-                perf_parts = []
-                if perf.get("battles_won", 0) > 0:
-                    perf_parts.append(f"{perf['battles_won']}W")
-                if perf.get("battles_lost", 0) > 0:
-                    perf_parts.append(f"{perf['battles_lost']}L")
-                if perf.get("regions_captured", 0) > 0:
-                    perf_parts.append(f"{perf['regions_captured']} captured")
-                perf_str = f" ({', '.join(perf_parts)})" if perf_parts else ""
-
-                if entry.get("autonomy_ended"):
-                    end_result = entry.get("end_result", {})
-                    message += f"\n{marshal_name}: {action_str}{perf_str} - AUTONOMY ENDED ({end_result.get('tier', 'unknown')})"
-                else:
-                    message += f"\n{marshal_name}: {action_str}{perf_str} - {turns_left} turn{'s' if turns_left != 1 else ''} remaining"
+        # (Row IC, Session 2b: the block added to the message here — what a
+        # French marshal did on the enemy's decision logic — went with that
+        # engine. A man on his task to prove himself reports in the standing
+        # orders' rows and the turn's events.)
 
         # ════════════════════════════════════════════════════════════
         # FINANCIAL SUMMARY (Phase 6.2.G)
@@ -777,11 +746,6 @@ class MetaExecutor:
                 if _ending.get("tier_title"):
                     _line += f" — {_ending.get('tier_title')}"
                 result["message"] = f"{result.get('message') or ''}\n{_line}".strip()
-
-        # Add Independent Command Report for autonomous marshals (Phase 2.5)
-        if turn_result.get("show_independent_command_report"):
-            result["show_independent_command_report"] = True
-            result["independent_command_report"] = turn_result.get("independent_command_report", [])
 
         # Add Strategic Order Reports (Phase 5.2-C)
         strategic_reports = turn_result.get("strategic_reports", [])
@@ -1654,7 +1618,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                           "  • set_morale <marshal> <0-100> - Set morale\n"
                           "  • set_fortified <marshal> - Toggle fortified\n"
                           "  • freeze <marshal> - Toggle AI freeze (marshal won't act)\n"
-                          "  • set_autonomy <marshal> [turns] - Toggle autonomous (Phase 2.5)\n"
+                          "  • audience <marshal> - Open his audience now (trust set to 15)\n"
                           "  • set_trust <marshal> <0-100> - Set trust level\n"
                           "  • set_vindication <marshal> <-5 to 5> - Set vindication score\n"
                           "  • set_relationship <marshal> <target> <-2 to 2> - Set relationship\n"
@@ -2241,59 +2205,41 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                           f"Now try: '{marshal.name}, attack Wellington' to trigger the popup!"
             }
 
-        elif ability == "set_autonomy":
-            turns = 3
-            if len(parts) >= 3:
-                try:
-                    turns = int(parts[2])
-                    turns = max(1, min(10, turns))
-                except ValueError:
-                    pass
-
+        elif ability == "audience":
+            # Row IC, Session 2b — it stands where `set_autonomy` stood (that
+            # arm set a French marshal on the ENEMY's decision logic; the
+            # state is gone). This one opens the marshal's AUDIENCE now:
+            # trust set to 15 and the REAL question staged through the one
+            # seam (`stage_redemption`), so this reply carries it and the
+            # window opens at once — for staging the task to prove himself
+            # in a walk or a probe. Nothing is given here: the answer is the
+            # audience's own.
             if marshal.nation != world.player_nation:
                 return {
                     "success": False,
                     "message": f"{marshal.name} is not a {world.player_nation} marshal. "
-                              f"Only player marshals can be made autonomous."
+                              f"Only the player's marshals ask an audience."
                 }
-
-            if getattr(marshal, 'autonomous', False):
-                marshal.autonomous = False
-                marshal.autonomy_turns = 0
-                marshal.autonomy_reason = ""
-                return {
-                    "success": True,
-                    "message": f"🔧 DEBUG: {marshal.name} is no longer autonomous.\n"
-                              f"Player can command normally."
-                }
-            elif getattr(marshal, "is_sovereign", False):
-                # NP promise audit (Aug 15, 2026): §6.1 row 9 names a
-                # "modify_trust no-op + autonomy GATE". The trust freeze
-                # landed; the gate never did — the property held only by
-                # cascade (the redemption arc needs trust <= 20 and his is
-                # frozen at 100), and this debug arm could break it while
-                # its own sibling `dismiss` 80 lines below DID get the
-                # guard. An autonomous sovereign is a player who cannot
-                # command himself.
+            if getattr(marshal, "is_sovereign", False):
+                # NP promise audit (Aug 15, 2026): §6.1 row 9 — the Emperor's
+                # trust is frozen and he is never put out of the player's
+                # hands. The guard the old arm carried, kept on this one.
                 return {
                     "success": False,
-                    "message": f"{marshal.name} cannot be made autonomous — "
+                    "message": f"{marshal.name} asks no audience of himself — "
                                f"he is the hand that gives the orders."
                 }
-            else:
-                marshal.autonomous = True
-                marshal.autonomy_turns = turns
-                marshal.autonomy_reason = "debug"
-                marshal.autonomous_battles_won = 0
-                marshal.autonomous_battles_lost = 0
-                marshal.autonomous_regions_captured = 0
-                return {
-                    "success": True,
-                    "message": f"🔧 DEBUG: {marshal.name} is now AUTONOMOUS for {turns} turns.\n"
-                              f"• Will act independently at turn start using Enemy AI\n"
-                              f"• Player commands will be blocked\n"
-                              f"• Use 'end turn' to see Independent Command Report"
-                }
+            from backend.commands.disobedience import stage_redemption
+            marshal.trust.set(15)
+            marshal.redemption_pending = False
+            marshal.redemption_cooldown_until = 0
+            reply = {"success": True,
+                     "message": f"🔧 DEBUG: {marshal.name}'s trust set to 15 — he asks an audience."}
+            if stage_redemption(world, marshal, result=reply) is None:
+                reply["message"] = (
+                    f"🔧 DEBUG: {marshal.name}'s trust set to 15, but no audience was opened: "
+                    f"another question stands, or he is on a task or at the desk.")
+            return reply
 
         elif ability == "set_location" or ability == "move":
             if len(parts) < 3:
@@ -2346,8 +2292,10 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             for name, m in world.marshals.items():
                 status = "DEAD" if m.strength <= 0 else f"{m.strength:,} troops"
                 admin_status = " [ADMIN]" if getattr(m, 'administrative', False) else ""
-                auto_status = f" [AUTO {m.autonomy_turns}t]" if getattr(m, 'autonomous', False) else ""
-                lines.append(f"  {name} ({m.nation}): {m.location} - {status}{admin_status}{auto_status}")
+                _task = getattr(m, "trial", None)
+                task_status = (f" [ON A TASK {int(_task.get('turns_left', 0) or 0)}t]"
+                               if isinstance(_task, dict) else "")
+                lines.append(f"  {name} ({m.nation}): {m.location} - {status}{admin_status}{task_status}")
             return {
                 "success": True,
                 "message": "\n".join(lines)
@@ -2722,8 +2670,8 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 world.notifications.add(create_notification(
                     MARSHAL_DEFIED_ORDER,
                     NotificationPriority.HIGH,
-                    f"{marshal_name} defied your order!",
-                    f"{marshal_name} defied your order to {_action_display_name(original_action)} "
+                    f"{marshal_name} refused your order!",
+                    f"{marshal_name} refused your order to {_action_display_name(original_action)} "
                     f"and chose to {_action_display_name(defiant_action)} instead.",
                     world.current_turn,
                 ))
@@ -3048,6 +2996,17 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         world: WorldState = game_state.get("world")
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
+        # Row IC, Session 2b (the review, IC2B-V5): this road sits BELOW the
+        # executor's refusal, and an objection can outlive the order it was
+        # about — a man since given his task to prove himself takes no orders,
+        # so the answer to his old objection carries nothing out for him.
+        from backend.game_logic import trial as _trial
+        _on_task = _trial.order_refusal(
+            world, {**(command if isinstance(command, dict) else {}),
+                    "marshal": (command.get("marshal") if isinstance(command, dict) else None)
+                    or marshal_name}, action)
+        if _on_task is not None:
+            return _on_task
         if not charge_ap and trust_arm_pays_the_fortify():
             # S15H-4: the arm's 1 is what the pool must cover — the preferred
             # action's own pre-check (fortify's 2 from neutral) is not asked

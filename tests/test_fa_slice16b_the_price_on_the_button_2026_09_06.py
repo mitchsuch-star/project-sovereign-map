@@ -140,9 +140,15 @@ class TestTheFalteringWarningTellsTheTruth:
 
     def test_the_at_20_clause_is_kept(self, world):
         """FA-26 landed in slice 9, so "at 20 he will ask to be released" is
-        now TRUE — and a pin one file over asserts the "20"."""
+        now TRUE — and a pin one file over asserts the "20".
+
+        Row IC, Session 2b (November 20, 2026): what he asks at 20 changed —
+        an audience, where he proposes a task to prove himself ("Grant
+        Autonomy", the release the old words meant, is removed) — and the
+        clause says that now."""
         src = inspect.getsource(WorldState._check_trust_warnings)
-        assert "20 he will ask to be released" in src
+        assert "20 he will ask for an audience, and propose a task to prove himself." in src
+        assert "ask to be released" not in src
 
     def test_a_clean_record_earns_no_rider(self, world):
         marshal = next(iter(world.marshals.values()))
@@ -179,7 +185,7 @@ class TestTheFalteringWarningTellsTheTruth:
                 if marshal.name in str(w.get("message", ""))]
         assert mine, "the faltering warning did not fire"
         assert "taken his measure" in mine[0]["message"]
-        assert "20 he will ask to be released" in mine[0]["message"]
+        assert "20 he will ask for an audience, and propose a task to prove himself." in mine[0]["message"]
 
     def test_the_rider_never_raises(self, world):
         """It is appended inside a message the turn loop builds; a throw

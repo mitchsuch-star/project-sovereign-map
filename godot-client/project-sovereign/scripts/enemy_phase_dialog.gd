@@ -278,12 +278,9 @@ func _wyw_block() -> String:
 			out += _wyw_rows([row], 0, ink, "war")
 		if int(d.get("battles_more", 0)) > 0:
 			out += "  [color=#" + Utils.COLOR_INFO + "]… and " + str(int(d.get("battles_more", 0))) + " more[/color]\n"
-	# Row IC (what was hidden): a marshal who acted without orders this turn —
-	# the reply always carried it; no screen showed it.
-	var own_way = d.get("own_way", [])
-	if own_way is Array and not own_way.is_empty():
-		out += "[color=#" + Utils.COLOR_TEXT + "][b]Acting without orders[/b][/color]\n"
-		out += _wyw_rows(own_way, 0, Utils.COLOR_INFO, "march")
+	# (Row IC, Session 2b: the rows that stood here — a French marshal moved
+	# by the enemy's logic — went with that engine. A man on his task to
+	# prove himself reports with the standing orders and the turn's events.)
 	var beside = d.get("beside", [])
 	if beside is Array and not beside.is_empty():
 		out += "[color=#" + Utils.COLOR_WARNING + "][b]Now next to you[/b][/color]\n"

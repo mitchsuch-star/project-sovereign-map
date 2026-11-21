@@ -42,66 +42,65 @@ def find_marshal(world, name):
 # ═══════════════════════════════════════════════════════
 
 class TestAuthorityBonus:
-    """Fix 1: Spectacular autonomous result should modify authority_tracker."""
+    """Fix 1: a spectacular result writes to the authority tracker.
 
-    def test_spectacular_autonomous_modifies_authority_tracker(self):
-        """When a marshal has spectacular autonomous results,
-        authority_tracker.authority should increase by 10."""
+    Row IC, Session 2b (November 20, 2026): the three turns of "Grant
+    Autonomy" are a TASK TO PROVE HIMSELF now, and the rewards are kept — a
+    spectacular return (two battles won, or a defended place taken) is +10
+    authority, written through the books of authority's one writer."""
+
+    @staticmethod
+    def _on_his_last_turn(world, won: int):
+        from backend.game_logic import trial
+        marshal = next(m for m in world.marshals.values() if m.nation == world.player_nation)
+        assert trial.give(world, marshal)["given"]
+        marshal.strategic_order.opening_take = None      # (no take tonight: the count is the pin)
+        marshal.trial["turns_left"] = 1                  # his last turn
+        marshal.battles_won += won                       # ... fought on earlier turns of his task
+        marshal.trial["tick_won"] = marshal.battles_won  # no victory THIS turn: he does not press on
+        return marshal
+
+    def test_spectacular_task_modifies_authority_tracker(self):
+        """A spectacular task raises authority_tracker.authority by 10."""
+        from backend.game_logic import trial
         world = make_world()
-        executor = make_executor()
-        tm = TurnManager(world, executor)
-
-        # Find a player marshal and make them autonomous
-        marshal = None
-        for m in world.marshals.values():
-            if m.nation == world.player_nation:
-                marshal = m
-                break
-        assert marshal is not None
-
-        # Set up spectacular results (autonomous=True, autonomy_turns=1 so it ends this turn)
-        marshal.autonomous = True
-        marshal.autonomy_turns = 1  # Will reach 0 after decrement → triggers _end_autonomy
-        marshal.autonomous_battles_won = 2  # Spectacular threshold
-
         # Set authority below max so we can detect the +10 increase
         world.authority_tracker.authority = 80
-        initial_authority = world.authority_tracker.authority
+        marshal = self._on_his_last_turn(world, won=2)   # the spectacular threshold
 
-        # Process autonomous marshals (this is where the fix lives)
-        tm._process_autonomous_marshals({"world": world})
+        # The turn's close for the men on their task (this is where the fix lives)
+        trial.close_of_turn(world, [])
 
-        # Authority tracker should have increased
-        assert world.authority_tracker.authority == initial_authority + 10
+        assert not trial.on_trial(marshal)
+        assert world.authority_tracker.authority == 90
+
+    def test_a_task_short_of_spectacular_leaves_authority_alone(self):
+        from backend.game_logic import trial
+        world = make_world()
+        world.authority_tracker.authority = 80
+        marshal = self._on_his_last_turn(world, won=1)   # a good result, not a spectacular one
+
+        trial.close_of_turn(world, [])
+
+        assert not trial.on_trial(marshal)
+        assert world.authority_tracker.authority == 80
 
     def test_authority_clamped_at_100(self):
         """Authority should not exceed 100 even with bonus."""
+        from backend.game_logic import trial
         world = make_world()
-        executor = make_executor()
-        tm = TurnManager(world, executor)
-
         # Set authority near max
         world.authority_tracker.authority = 95
+        self._on_his_last_turn(world, won=2)
 
-        marshal = None
-        for m in world.marshals.values():
-            if m.nation == world.player_nation:
-                marshal = m
-                break
-        assert marshal is not None
+        trial.close_of_turn(world, [])
 
-        marshal.autonomous = True
-        marshal.autonomy_turns = 1
-        marshal.autonomous_battles_won = 2
-
-        tm._process_autonomous_marshals({"world": world})
-
-        # Clamped at 100 (95 + 10 = 105, but modify_authority clamps)
+        # Clamped at 100 (95 + 10 = 105, but the books' writer clamps)
         assert world.authority_tracker.authority == 100
 
 
 # ═══════════════════════════════════════════════════════
-# FIX 2: Autonomous marshal command format
+# FIX 2: The AI's single-action command format
 # ═══════════════════════════════════════════════════════
 
 class TestAutonomousCommandFormat:
@@ -116,10 +115,11 @@ class TestAutonomousCommandFormat:
         ai = EnemyAI(executor)
         game_state = {"world": world}
 
-        # Find a player marshal to use as autonomous
+        # An ENEMY's marshal (row IC, Session 2b: the logic refuses a marshal
+        # of the player's nation — no French marshal is moved by it any more)
         marshal = None
         for m in world.marshals.values():
-            if m.nation == world.player_nation:
+            if m.nation != world.player_nation and m.strength > 0:
                 marshal = m
                 break
         assert marshal is not None
@@ -127,7 +127,7 @@ class TestAutonomousCommandFormat:
         # Call decide_single_action and inspect the command it builds
         # We can't easily intercept the command, so instead verify
         # the function returns a result (not silently failing)
-        result = ai.decide_single_action(marshal, world.player_nation, world, game_state)
+        result = ai.decide_single_action(marshal, marshal.nation, world, game_state)
 
         # Result should not be None (marshal should find something to do)
         assert result is not None

@@ -282,7 +282,7 @@ class TestRedemptionEndpoint:
         """Responding when no redemption pending should fail gracefully."""
         response = client.post(
             "/respond_to_redemption",
-            json={"choice": "grant_autonomy"}
+            json={"choice": "trial"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -296,7 +296,7 @@ class TestRedemptionEndpoint:
             "marshal": "Ney",
             "trust": 5,
             "message": "Ney's trust has collapsed!",
-            "options": ["grant_autonomy", "administrative_role", "dismiss"]
+            "options": ["trial", "administrative_role", "dismiss"]
         }
 
         response = client.post(

@@ -1041,6 +1041,10 @@ def update_literal_hold_counters(world) -> None:
             if order is not None and any(
                     not line.get("used") for line in (getattr(order, "if_thens", None) or [])):
                 sidelined = False
+            # Row IC, Session 2b: a man on his task to prove himself is at
+            # work for as long as it lasts, whatever is left of his lines.
+            if on_his_task(marshal):
+                sidelined = False
             # VP-M1 (GE-D1): a WOUNDED man is not sidelined — he is not fit
             # to be sent; the counter neither climbs nor resets on him.
             from backend.game_logic.fortunes_of_war import is_wounded as _is_wounded
@@ -3313,7 +3317,7 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
     if marshal.personality == "aggressive":
         body = _pick_petition_body("aggressive", marshal, target, _fires)
         promise_label = "Promise Glory"
-        rebuke_rider = ("He will not act on his own this cycle — he "
+        rebuke_rider = ("He will not attack without orders this cycle — he "
                         "respects the Emperor's anger, briefly.")
     elif marshal.personality == "literal":
         body = _pick_petition_body("literal", marshal, target, _fires)
@@ -5084,12 +5088,13 @@ def process_turn(world) -> List[Dict]:
         if not _is_standing(marshal):
             marshal.jealousy_autonomous_warned = False
             continue
-        # IC-V3 (row IC, Session 2 — the review of November 20, 2026): a man
-        # in the trust crisis's three turns ("acting independently") already
-        # acts by himself as the turn ends. Warned and jealous too, he struck
-        # BEFORE the enemy moved and was moved again after it — two battles in
-        # one end of turn. His one act is the independent one: no warning.
-        if acts_independently(marshal):
+        # IC-V3 (row IC, Session 2 — the review of November 20, 2026), re-seated
+        # by Session 2b on the state that replaced the old three turns: a man
+        # on his TASK TO PROVE HIMSELF already acts by himself as the turn
+        # ends (his take, his hold's sortie). Warned and jealous too, he would
+        # strike BEFORE the enemy moved and act again after it — two battles
+        # in one end of turn. He has work: no warning, no strike.
+        if on_his_task(marshal):
             marshal.jealousy_autonomous_warned = False
             continue
         # Slice-17 review round: a FORTIFIED marshal cannot attack at all
@@ -5351,12 +5356,14 @@ def _warned_retarget_clause(world, warned, enemy, region) -> str:
                                   past=True)
 
 
-def acts_independently(marshal) -> bool:
-    """IC-V3: he is in the trust crisis's three turns of acting by himself
-    (`Marshal.autonomous`). ONE reader for the two jealousy seams — the row
-    that replaces those three turns (the task to prove himself, row IC's own
-    session) re-seats it on that state."""
-    return bool(getattr(marshal, "autonomous", False))
+def on_his_task(marshal) -> bool:
+    """IC-V3, re-seated (row IC, Session 2b): he is on a TASK TO PROVE
+    HIMSELF (`Marshal.trial`; `trial.on_trial` is the state's one reader).
+    The two jealousy seams ask it here — such a man is never warned and makes
+    no jealous strike. (Was `acts_independently`, on `Marshal.autonomous`:
+    the trust crisis's three turns on the enemy's logic, removed.)"""
+    from backend.game_logic import trial as _trial
+    return _trial.on_trial(marshal)
 
 
 def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
@@ -5382,9 +5389,9 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             continue
         if marshal.personality != "aggressive":
             continue
-        # IC-V3: … and a warning that stood when the three turns began fires
-        # no strike (the flag is already spent above; nothing is said).
-        if acts_independently(marshal):
+        # IC-V3: … and a warning that stood when his task began fires no
+        # strike (the flag is already spent above; nothing is said).
+        if on_his_task(marshal):
             continue
         target_info = find_autonomous_attack_target(world, marshal)
         if target_info is None:
@@ -5402,7 +5409,7 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                 "marshal": marshal.name,
                 "message": (
                     f"{humanize_entity_name(marshal.name)} meant to go at "
-                    f"{_meant} on his own initiative, but "
+                    f"{_meant} without waiting for orders, but "
                     + (f"{_gone}, and " if _gone else "")
                     + f"no enemy stood "
                     f"within his reach when the moment came — he stands "
@@ -5438,8 +5445,8 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                 "marshal": marshal.name,
                 "message": (
                     f"{humanize_entity_name(marshal.name)} meant to go at "
-                    f"{humanize_entity_name(enemy.name)} on his own "
-                    f"initiative, but the odds held him — "
+                    f"{humanize_entity_name(enemy.name)} without waiting "
+                    f"for orders, but the odds held him — "
                     f"{_odds_words(_held.get('ratio'))} against "
                     f"{humanize_entity_name(enemy.name)}'s position at "
                     f"{_region} — he stands where he was, and his orders "
@@ -5517,8 +5524,8 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                 "marshal": marshal.name,
                 "message": (
                     f"{humanize_entity_name(marshal.name)} meant to go at "
-                    f"{humanize_entity_name(enemy.name)} on his own "
-                    f"initiative, but {_refusal_reason(result)} — he "
+                    f"{humanize_entity_name(enemy.name)} without waiting "
+                    f"for orders, but {_refusal_reason(result)} — he "
                     f"stands where he was, and his orders are unchanged."
                     + _retarget_note),
             })
@@ -5540,14 +5547,14 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                 "marshal": marshal.name,
                 "message": (
                     f"{humanize_entity_name(marshal.name)} went at "
-                    f"{humanize_entity_name(enemy.name)} on his own "
-                    f"initiative — {_what} is void. He awaits fresh "
+                    f"{humanize_entity_name(enemy.name)} without waiting "
+                    f"for orders — {_what} is void. He awaits fresh "
                     f"orders."),
             })
         _beat = (f"{humanize_entity_name(marshal.name)}, hungry for "
                  f"glory, has attacked "
-                 f"{humanize_entity_name(enemy.name)} on his own "
-                 f"initiative.")
+                 f"{humanize_entity_name(enemy.name)} without waiting "
+                 f"for orders.")
         if _retarget:
             # S14G-5: the dispatch warned of one man and the weakest in his
             # reach when he went was another — the beat names both.
@@ -5555,7 +5562,7 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                      f"eyeing {humanize_entity_name(str(_warned.get('quarry')))}, "
                      f"strikes {humanize_entity_name(enemy.name)} at "
                      f"{_region} instead — {_retarget}, and he took the "
-                     f"weakest man in his reach on his own initiative.")
+                     f"weakest man in his reach without waiting for orders.")
         events.append({
             "type": "jealousy_autonomous_attack",
             "message": _beat,

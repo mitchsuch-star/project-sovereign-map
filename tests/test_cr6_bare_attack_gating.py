@@ -137,13 +137,16 @@ class TestResolveAutoAttack:
             {"type": "auto_assign_attack", "target": "Wellington"}, world, "attack Wellington")
         assert res["kind"] == "passthrough"
 
-    def test_prefers_commandable_over_autonomous(self):
-        """A bare attack reaches for whoever CAN be ordered — an autonomous
-        marshal in contact is skipped when a commandable one is available."""
+    def test_prefers_commandable_over_a_man_on_his_task(self):
+        """A bare attack reaches for whoever CAN be ordered — a marshal on
+        his task to prove himself (he takes no orders; row IC, Session 2b,
+        where the autonomous state stood) is skipped when a commandable one
+        is in contact."""
+        from backend.game_logic import trial
         world = _fresh_world()
         ney, wellington = _isolate_single_contact(world)
         davout = _add_second_contact(world)
-        ney.autonomous = True  # Ney is off the leash
+        assert trial.give(world, ney)["given"]  # Ney takes no orders
         combat = CommandExecutor()._combat
         res = combat.resolve_auto_attack({"type": "general_attack"}, world, "attack")
         # Only Davout is commandable → single commandable candidate → named him

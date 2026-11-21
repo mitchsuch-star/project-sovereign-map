@@ -88,6 +88,8 @@ static func from_overview(card: Dictionary) -> Dictionary:
 		"location": str(card.get("location", "")),
 		"prices": _dict_of(card.get("order_prices", {})),
 		"refusals": _dict_of(card.get("order_refusals", {})),
+		# Row IC, Session 2b: the task to prove himself he is on ({} for none)
+		"trial": _dict_of(card.get("trial", {})),
 	}
 
 
@@ -125,6 +127,9 @@ static func from_board(entry: Dictionary, row: Dictionary = {}) -> Dictionary:
 		"buttons": _dict_of(ts.get("buttons", {})),
 		"stance": str(ts.get("stance", "")),
 		"stay_put": bool(ts.get("stay_put", false)),
+		# Row IC, Session 2b: the task to prove himself he is on — its words,
+		# the turns left, the reason every order is refused ({} for none).
+		"trial": _dict_of(ts.get("trial", {})),
 	}
 
 
@@ -152,7 +157,8 @@ static func has_standing_order(view: Dictionary) -> bool:
 static func status_of(view: Dictionary) -> Dictionary:
 	"""What he is doing, as one badge: {key, label, detail, tone, glyph, idle}.
 	`key` is idle | marching | pursuing | holding | supporting | fortified |
-	drilling | square | broken | retreating | prisoner | petition; `label` the
+	drilling | square | broken | retreating | prisoner | petition | proving
+	(row IC, Session 2b: on a task to prove himself); `label` the
 	short word for a badge, `detail` the line with its object ("Marching to
 	Vienna"); `tone` a Utils colour (hex, no '#'); `glyph` a stat glyph name
 	for Utils.glyph() ("" for idle - the consumer draws the gilt dot)."""
@@ -167,6 +173,13 @@ static func status_of(view: Dictionary) -> Dictionary:
 		return _badge("broken", "Broken", "Broken - rallying", Utils.COLOR_WARNING, "morale", idle)
 	if bool(view.get("retreating", false)):
 		return _badge("retreating", "Retreating", "Falling back", Utils.COLOR_WARNING, "morale", idle)
+	# Row IC, Session 2b: on a task to prove himself — he takes no orders until
+	# it ends (the detail is the server's own line: "… — 2 turns left").
+	var on_task: Dictionary = _dict_of(view.get("trial", {}))
+	if not on_task.is_empty():
+		var said := str(on_task.get("status", ""))
+		return _badge("proving", "On a task", said if said != "" else "On a task to prove himself",
+			Utils.COLOR_WARNING, "trust", false)
 	if order_type != "":
 		var key := str(_ORDER_KEYS.get(order_type, "marching"))
 		match key:
@@ -211,7 +224,13 @@ static func order_specs(view: Dictionary) -> Array:
 		var reason := ""
 		var locked := false
 		if verb == "cancel":
-			if not has_standing_order(view):
+			var proving: Dictionary = _dict_of(view.get("trial", {}))
+			if not proving.is_empty():
+				# Row IC, Session 2b: a man on his task to prove himself takes
+				# no orders - there is no call-back; the reason is the server's.
+				locked = true
+				reason = str(proving.get("reason", "on his task to prove himself"))
+			elif not has_standing_order(view):
 				locked = true
 				reason = NO_STANDING_ORDER
 			else:

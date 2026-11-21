@@ -121,7 +121,7 @@ class TestD5TheAudienceNamesItsCause:
         offer = DT.build_rente_offer(m, w)
         assert f"{int(offer['face']):,}g a turn" in opts[0]["text"]
         assert f"pays {int(offer['cost']):,}g a turn" in opts[0]["description"]
-        assert [o["id"] for o in opts[1:]] == ["grant_autonomy", "administrative_role", "dismiss"]
+        assert [o["id"] for o in opts[1:]] == ["trial", "administrative_role", "dismiss"]
 
     def test_a_marshal_with_no_arrears_is_not_offered_it(self):
         w = _boot()
@@ -172,7 +172,8 @@ class TestD5TheAudienceNamesItsCause:
             opts = w.disobedience_system._get_available_redemption_options(m, w)
             res = w.disobedience_system.handle_redemption_response(
                 {"marshal": m.name, "options": opts}, "settle_account", {"world": w})
-        assert res["success"] is False and "not among the courses" in res["message"]
+        # (row IC, Session 2b — the review: the sentence in plain words, no "Sire")
+        assert res["success"] is False and "not one of the answers open to you" in res["message"]
 
     def test_the_client_builds_the_button_from_the_payload(self):
         dlg = (GD / "redemption_dialog.gd").read_text(encoding="utf-8")

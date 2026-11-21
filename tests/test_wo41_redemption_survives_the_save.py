@@ -234,7 +234,7 @@ class TestOneLiveQuestionAtATime:
         davout, _ = _cross(world, "Davout")
         # answer the first the way POST /respond_to_redemption does
         world.disobedience_system.handle_redemption_response(
-            first, "grant_autonomy", {"world": world})
+            first, "trial", {"world": world})
         world.pending_redemption = None
         assert ney.redemption_pending is False
         second = world.disobedience_system.check_redemption_threshold(

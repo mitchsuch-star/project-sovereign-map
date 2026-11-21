@@ -1135,8 +1135,10 @@ def _build_result_response(result: dict, world, drain_popups: bool = True) -> di
         _attach_modal_for_the_carried_question(response, world)
     # R1-8 (slice-9 review): a redemption riding an early-return result
     # carries its state too, as the main /command path stamps it.
-    if response.get("redemption_event") and not response.get("state"):
-        response["state"] = "awaiting_redemption_choice"
+    if response.get("redemption_event"):
+        _redemption_for_the_wire(world, response["redemption_event"])
+        if not response.get("state"):
+            response["state"] = "awaiting_redemption_choice"
     return response
 
 
@@ -1489,6 +1491,29 @@ def _war_is_over(world) -> bool:
     return world is not None and terminal_ending(world) is not None
 
 
+def _redemption_for_the_wire(world, event):
+    """Row IC, Session 2b: the audience's arm "a task to prove himself" carries
+    HIS proposal, read from the board — so it is read AGAIN each time the
+    question goes to the player (the rente arm is re-priced at its read the
+    same way; `standing_redemption`). The event is changed in place: it IS
+    the world's standing question, and the answer is checked against the
+    proposal it last showed (`trial.give`: what the window showed is what is
+    given). Returns the event."""
+    try:
+        from backend.game_logic import trial as _trial
+        return _trial.refresh(world, event)
+    except Exception as exc:
+        _errors.report(exc, "main._redemption_for_the_wire: trial.refresh")
+        return event
+
+
+def _marshal_trial_state(marshal):
+    """Row IC, Session 2b: the task to prove himself a marshal is on, as the
+    client reads it (`trial.payload`), or None."""
+    from backend.game_logic import trial as _trial
+    return _trial.payload(marshal)
+
+
 def _include_command_redemption_event(response: dict, result: dict, world) -> None:
     """Surface redemption choice state and persist it for the follow-up endpoint."""
     redemption_event = result.get("redemption_event")
@@ -1499,12 +1524,14 @@ def _include_command_redemption_event(response: dict, result: dict, world) -> No
         return
     if redemption_event:
         # R1-9 (slice-9 review): the question is minted before the rest of
-        # the tick runs (an autonomous battle can dock the same man again),
-        # so the figure is re-quoted from the live marshal at delivery.
+        # the tick runs (a later battle of the tick can dock the same man
+        # again), so the figure is re-quoted from the live marshal at delivery
+        # — and, row IC Session 2b, so is his proposal.
         _getter = getattr(world, "get_marshal", None)
         _live = _getter(redemption_event.get("marshal", "")) if callable(_getter) else None
         if _live is not None and hasattr(_live, "trust"):
             redemption_event["trust"] = int(_live.trust.value)
+        _redemption_for_the_wire(world, redemption_event)
         response["state"] = "awaiting_redemption_choice"
         response["redemption_event"] = redemption_event
         world.pending_redemption = redemption_event
@@ -2508,15 +2535,6 @@ def _include_command_tactical_events(response: dict, result: dict, world) -> Non
         )
 
 
-def _include_command_independent_report(response: dict, result: dict) -> None:
-    """Pass through independent command report payloads when present."""
-    if result.get("show_independent_command_report"):
-        response["show_independent_command_report"] = True
-        response["independent_command_report"] = result.get(
-            "independent_command_report", []
-        )
-
-
 def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
     """Apply the one /command-specific popup deferral rule after base response build."""
     if not response.get("enemy_phase"):
@@ -2648,7 +2666,6 @@ def _apply_command_result_layers(response: dict, result: dict, world) -> None:
     if result.get("while_you_waited"):
         response["while_you_waited"] = result["while_you_waited"]
     _include_command_tactical_events(response, result, world)
-    _include_command_independent_report(response, result)
     _apply_command_popup_contract(response, result, world)
     _include_peace_ratification_summary(response, result)
     _finalize_command_notifications(response, world)
@@ -3460,7 +3477,13 @@ class DiplomaticObjectionResponse(BaseModel):
 
 class RedemptionResponse(BaseModel):
     """Request model for responding to redemption events."""
-    choice: str  # 'grant_autonomy', 'dismiss', or 'demand_obedience'
+    choice: str  # one the audience offered: 'trial', 'settle_account', 'administrative_role', 'dismiss'
+    # Row IC, Session 2b (the review): the proposal the WINDOW displayed — the
+    # task's own line — sent back with the answer, so "what was shown is what
+    # is given" is checked against the screen, not against the server's own
+    # last read of the board. None from a caller that showed nothing (a
+    # script, the typed word): the standing question's line is used.
+    shown: Optional[str] = None
 
 
 class MarshalPetitionResponse(BaseModel):
@@ -6428,7 +6451,8 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
         # the Fall — GE-1 verification round)
         if result.get("redemption_event") and not _war_is_over(world):
             response["state"] = "awaiting_redemption_choice"
-            response["redemption_event"] = result["redemption_event"]
+            response["redemption_event"] = _redemption_for_the_wire(
+                world, result["redemption_event"])
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
 
@@ -6747,12 +6771,18 @@ def respond_to_redemption(request: RedemptionResponse):
     Respond to a redemption event (trust at critical low).
 
     Args:
-        request: RedemptionResponse with 'choice' field
-            - 'grant_autonomy': Marshal acts independently for 3 turns
+        request: RedemptionResponse with 'choice' field — one of the courses
+            the audience offered:
+            - 'trial': a task to prove himself (his own proposal; he then
+              takes no orders until it ends — row IC, Session 2b)
+            - 'settle_account': the rente that pays what he is owed
+            - 'administrative_role': a post on the staff
             - 'dismiss': Remove marshal, transfer troops
-            - 'demand_obedience': Keep marshal but high disobey chance
+            (an old client's 'grant_autonomy' is taken as 'trial')
 
-    Returns result of the redemption choice.
+    Returns result of the redemption choice. A task whose proposal changed
+    under the standing question is refused free: `standing` is true and
+    `redemption_event` carries the question again with his new proposal.
     """
     try:
         if world.game_over:
@@ -6776,18 +6806,32 @@ def respond_to_redemption(request: RedemptionResponse):
         # outer arm is kept only so the endpoint can refuse a malformed id
         # without entering the handler at all, and it now reads the same
         # source rather than a second copy that can drift.
-        valid_choices = [o.get('id') for o in
-                         (redemption_event.get('options') or [])
+        from backend.game_logic import trial as _trial
+        # Row IC, Session 2b: the old arm's id — from a save or a client of
+        # before the change — is the task, on both sides of the check.
+        _choice = _trial.ARM if request.choice == _trial.LEGACY_ARM else request.choice
+        valid_choices = [(_trial.ARM if o.get('id') == _trial.LEGACY_ARM else o.get('id'))
+                         for o in (redemption_event.get('options') or [])
                          if isinstance(o, dict) and o.get('id')]
-        if valid_choices and request.choice not in valid_choices:
-            return _refusal_response(
-                world, message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
+        if valid_choices and _choice not in valid_choices:
+            # (row IC, Session 2b — the review: this arm answered the bare
+            # keys, "Invalid choice: 'dismiss'. Valid: trial", ahead of the
+            # handler's sentence; ONE sentence now, and the question rides
+            # the reply again so the window comes back)
+            from backend.commands.disobedience import not_an_answer_words
+            _refused = _refusal_response(
+                world, message=not_an_answer_words(redemption_event, valid_choices))
+            _refused["standing"] = True
+            _refused["redemption_event"] = _redemption_for_the_wire(world, redemption_event)
+            _refused["state"] = "awaiting_redemption_choice"
+            return _refused
 
         # Process the redemption response
         result = world.disobedience_system.handle_redemption_response(
             redemption_event=redemption_event,
-            choice=request.choice,
-            game_state=game_state
+            choice=_choice,
+            game_state=game_state,
+            shown=request.shown,
         )
 
         # Clear pending redemption — ONLY when it was actually resolved.
@@ -6808,9 +6852,11 @@ def respond_to_redemption(request: RedemptionResponse):
             world,
             success=result.get("success", False),
             message=result.get("message", "Redemption processed"),
-            choice=request.choice,
-            autonomous=result.get("autonomous", False),
-            autonomy_turns=result.get("autonomy_turns", 0),
+            choice=_choice,
+            # Row IC, Session 2b: the task he was given (its words, its
+            # turns) — None for every other answer. (`autonomous` /
+            # `autonomy_turns` left the reply with the old three turns.)
+            trial=result.get("trial"),
             dismissed=result.get("dismissed", False),
             administrative=result.get("administrative", False),
             new_max_actions=result.get("new_max_actions", 0),
@@ -6819,6 +6865,18 @@ def respond_to_redemption(request: RedemptionResponse):
             include_popup_passthroughs=False,
         )
         _fill_popup_keys_without_draining(response)
+        # A refused answer leaves the question STANDING, and the question
+        # rides the reply again — read now — so the window comes back: with
+        # what he proposes as the board stands (what the window showed is
+        # what is given), or with the same answers after one that could not
+        # be carried out (a rente the treasury cannot pay — the review: that
+        # refusal closed the window with nothing to bring it back).
+        if not result.get("success", False):
+            _still = standing_redemption(world)
+            if isinstance(_still, dict):
+                response["standing"] = True
+                response["redemption_event"] = _redemption_for_the_wire(world, _still)
+                response["state"] = "awaiting_redemption_choice"
         return response
     except Exception as e:
         _errors.report(e, "main.respond_to_redemption: the route", every=True)
@@ -6850,6 +6908,7 @@ def get_pending_redemption():
             "has_pending": False,
             "message": "No pending redemption event"
         }
+    _redemption_for_the_wire(world, redemption)   # row IC, Session 2b: his proposal, read now
 
     return {
         "has_pending": True,
@@ -7019,7 +7078,8 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         # Fall — GE-1 verification round)
         if result.get("redemption_event") and not _war_is_over(world):
             response["state"] = "awaiting_redemption_choice"
-            response["redemption_event"] = result["redemption_event"]
+            response["redemption_event"] = _redemption_for_the_wire(
+                world, result["redemption_event"])
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
         # CR-7-3: the tail that waited behind the interrupt, re-judged.
@@ -7479,7 +7539,7 @@ async def load_endpoint(request: LoadRequest):
     from backend.commands.disobedience import standing_redemption
     _standing = standing_redemption(world)
     if _standing:
-        response["redemption_event"] = _standing
+        response["redemption_event"] = _redemption_for_the_wire(world, _standing)
     # GE-1 R6: a defeated save loads onto the end screen, never onto a board
     # that silently refuses every order — the terminal ending rides the load
     # through `build_base_response`'s terminal attach (the one seam; GE-2
@@ -8921,6 +8981,15 @@ async def cancel_order(request: Request):
             return _refusal_response(
                 world, message="No active game")
 
+        # Row IC, Session 2b: a man on his task to prove himself takes no
+        # orders — said in the trial's own words, before the actions check
+        # (with no action left the reply used to be "No actions remaining").
+        from backend.game_logic import trial as _trial
+        _on_task = world.get_marshal(str(marshal_name))
+        if (_on_task is not None and _trial.on_trial(_on_task)
+                and _on_task.nation == world.player_nation):
+            return _refusal_response(world, message=_trial.refusal_words(_on_task))
+
         # AP pre-check (matches typed cancel command flow)
         if world.actions_remaining <= 0:
             return _refusal_response(
@@ -9394,7 +9463,7 @@ async def debug_set_trust(request: Request):
 @app.get("/debug/marshal_status/{marshal_name}")
 def debug_marshal_status(marshal_name: str):
     """
-    DEBUG: Get full marshal status including autonomy state.
+    DEBUG: Get full marshal status, including a task to prove himself.
 
     Usage:
         GET /debug/marshal_status/Ney
@@ -9421,8 +9490,7 @@ def debug_marshal_status(marshal_name: str):
         "trust": int(marshal.trust.value) if hasattr(marshal, 'trust') else 70,
         "trust_label": marshal.trust.get_label() if hasattr(marshal, 'trust') else "Unknown",
         "vindication": int(getattr(marshal, 'vindication_score', 0)),
-        "autonomous": getattr(marshal, 'autonomous', False),
-        "autonomy_turns": getattr(marshal, 'autonomy_turns', 0),
+        "trial": _marshal_trial_state(marshal),
         "personality": marshal.personality,
         "recent_overrides": list(getattr(marshal, 'recent_overrides', [])),
     }
@@ -9470,6 +9538,9 @@ def debug_trigger_redemption(marshal_name: str):
     # Create redemption event. WO-41: latch the marshal beside the question,
     # exactly as the checker does — the liveness predicate reads both.
     redemption_event = world.disobedience_system._create_redemption_event(marshal)
+    # Row IC, Session 2b: the no-world event carries the task alone, read
+    # with no board; read it now against the board, as every delivery does.
+    _redemption_for_the_wire(world, redemption_event)
     marshal.redemption_pending = True
     world.pending_redemption = redemption_event
 

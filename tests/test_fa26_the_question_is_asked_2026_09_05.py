@@ -205,14 +205,16 @@ class TestTheNet:
         second = "Soult" if first == "Murat" else "Murat"
         with _quiet():
             answer = client.post("/respond_to_redemption",
-                                 json={"choice": "grant_autonomy"}).json()
+                                 json={"choice": "trial"}).json()
         assert answer.get("success", True)
         assert board.pending_redemption is None
-        # The granted man now acts on his own at end turn — the AI's choice,
-        # with battle randomness that can put a CAPTURE question on the same
-        # response (a legitimate two-question turn, slice 6's business, not
-        # this pin's). Stand him down; his cooldown is what the pin needs.
-        board.marshals[first].autonomous = False
+        # The man is on his task to prove himself now (row IC, Session 2b —
+        # where "Grant Autonomy" stood): a take at the turn's end can put a
+        # CAPTURE question on the same response (a legitimate two-question
+        # turn, slice 6's business, not this pin's). Stand him down; his
+        # cooldown is what the pin needs.
+        board.marshals[first].trial = None
+        board.marshals[first].strategic_order = None
         r2 = end_turn(client)
         assert asked(r2) and r2["redemption_event"]["marshal"] == second
         assert board.marshals[second].redemption_pending is True
@@ -229,9 +231,10 @@ class TestTheNet:
         murat.trust.set(15)
         end_turn(client)
         with _quiet():
-            client.post("/respond_to_redemption", json={"choice": "grant_autonomy"})
+            client.post("/respond_to_redemption", json={"choice": "trial"})
         assert board.pending_redemption is None
-        murat.autonomous = False         # stand him down (see the pin above);
+        murat.trial = None               # stand him down (see the pin above);
+        murat.strategic_order = None
         murat.trust.set(10)              # still at the threshold, still ours
         assert board.current_turn < murat.redemption_cooldown_until
         r = end_turn(client)
@@ -347,7 +350,7 @@ class TestTheFailedReinforcerAsks:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# the rider — the turn after a grant of autonomy serializes
+# the rider — the turn after the audience's first answer serializes
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheTurnAfterAutonomySerializes:
@@ -359,38 +362,62 @@ class TestTheTurnAfterAutonomySerializes:
     Reproduced on the committed pre-slice tree (2c451162) with the question
     staged by hand: grant_autonomy 200, next `end turn` 500. Pre-existing;
     FA-26's question made it reachable in ordinary play. No lever — a
-    serialization repair, not a behaviour change."""
+    serialization repair, not a behaviour change.
 
-    def test_the_next_end_turn_answers_200_while_the_man_acts(self, board, client):
+    Row IC, Session 2b (November 20, 2026): the autonomy engine and its
+    report are gone. The answer that stands there — the task to prove himself
+    — carries a battle out of the night the same way (the take's row, built
+    from an executor result), so the pin is re-seated on it: the turn after
+    the task is given answers 200, and no row of his embeds the world."""
+
+    @staticmethod
+    def _no_world_in(value, path="row"):
+        if isinstance(value, dict):
+            assert "new_state" not in value, path
+            for key, inner in value.items():
+                TestTheTurnAfterAutonomySerializes._no_world_in(inner, f"{path}.{key}")
+        elif isinstance(value, (list, tuple)):
+            for i, inner in enumerate(value):
+                TestTheTurnAfterAutonomySerializes._no_world_in(inner, f"{path}[{i}]")
+
+    def test_the_next_end_turn_answers_200_while_the_man_is_on_his_task(self, board, client):
         soult = board.marshals["Soult"]
         soult.trust.set(12)
         end_turn(client)
         assert board.pending_redemption["marshal"] == "Soult"
         with _quiet():
-            ans = client.post("/respond_to_redemption", json={"choice": "grant_autonomy"})
-        assert ans.status_code == 200 and soult.autonomous is True
+            ans = client.post("/respond_to_redemption", json={"choice": "trial"})
+        assert ans.status_code == 200 and isinstance(soult.trial, dict)
+        assert ans.json()["trial"]["turns_left"] == 3
         with _quiet():
             resp = client.post("/command", json={"command": "end turn"})
         assert resp.status_code == 200          # raise_server_exceptions is on: a 500 raises
         body = resp.json()
-        report = body.get("independent_command_report") or []
-        assert report and report[0]["marshal"] == "Soult"
-        assert all("new_state" not in (entry.get("result") or {}) for entry in report)
+        assert "independent_command_report" not in body
+        assert soult.trial["turns_left"] == 2
+        self._no_world_in(body.get("strategic_reports") or [])
 
-    def test_the_report_builder_strips_the_world(self, board):
-        from backend.game_logic.turn_manager import TurnManager
-        soult = board.marshals["Soult"]
-        soult.autonomous = True
-        soult.autonomy_turns = 3
-        tm = TurnManager(board)
-        with _quiet():
-            out = tm._process_autonomous_marshals({"world": board})
-        entries = [e for e in out["independent_command_report"] if e["marshal"] == "Soult"]
-        assert entries
-        assert "new_state" not in entries[0]["result"]
-        # and the original executor result is untouched — the copy, not the source, was stripped
+    def test_the_takes_row_strips_the_world(self, board):
+        """The row that carries a BATTLE out of the night: Ney's take, fought
+        and reported — serializable as it stands, the world nowhere in it."""
         import json
-        json.dumps(entries[0]["result"], default=str)
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
+        from backend.game_logic import trial
+        ney = board.marshals["Ney"]
+        ney.location = "Franconia"                       # beside Austrian Bohemia
+        board.get_region("Bohemia").garrison_strength = 3000     # defended: a battle is fought
+        with _quiet():
+            board._build_marshal_index()
+            board.calculate_visibility()
+            assert trial.give(board, ney)["given"]
+            executor = CommandExecutor()
+            rows = StrategicOrderProcessor(executor).process_strategic_orders(
+                board, {"world": board, "executor": executor})
+        row = next(r for r in rows if r.get("marshal") == "Ney")
+        assert row["action"] == "trial_take", row
+        self._no_world_in(row)
+        json.dumps(row)                          # no `default=`: every value is plain
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -476,10 +503,10 @@ class TestTheReviewRound:
         assert asked(end_turn(client))
         capture(board, "Murat")
         with _quiet():
-            ans = client.post("/respond_to_redemption", json={"choice": "grant_autonomy"}).json()
+            ans = client.post("/respond_to_redemption", json={"choice": "trial"}).json()
         assert ans.get("success") is False
         assert "No redemption event pending" in (ans.get("message") or "")
-        assert murat.autonomous is False and board.pending_redemption is None
+        assert murat.trial is None and board.pending_redemption is None
 
     # ── R1-2: the administrative man survives the turn ──────────────────
     def test_an_administrative_man_survives_the_attrition_sweep(self, board, client):
@@ -652,8 +679,11 @@ class TestTheReviewRound:
         gd = (ROOT / "godot-client" / "project-sovereign" / "scripts" / "main.gd").read_text(encoding="utf-8")
         # no arm draws the redemption dialog straight over whatever the dispatch raised
         assert "_show_pending_dispatch()\n\t\t\t_show_redemption_dialog(" not in gd
-        # three writers: PT-B1's `_stash_redemption` and the two end-turn arms
-        assert gd.count("pending_redemption_data = response.redemption_event") == 3
+        # four writers: PT-B1's `_stash_redemption`, the two end-turn arms and
+        # — row IC, Session 2b — the answer the server REFUSED because the board
+        # changed under the standing question (it comes back carrying his new
+        # proposal, and is raised by the same shared tail)
+        assert gd.count("pending_redemption_data = response.redemption_event") == 4
         assert "pending_redemption_data = pending_strategic_response.redemption_event" in gd
         i = gd.index("func _process_next_interrupt():")
         j = gd.index("\nfunc ", i + 1)

@@ -94,14 +94,13 @@ def create_full_marshal() -> Marshal:
     m.recent_battles = ["victory", "defeat", "victory"]
     m.recent_overrides = [True, False, True, True, False]
 
-    # Autonomy system
-    m.autonomous = True
-    m.autonomy_turns = 2
-    m.autonomy_reason = "redemption"
+    # The audience, and the task to prove himself (row IC, Session 2b — where
+    # the six autonomy fields stood)
+    m.trial = {"line": "Ney, hold Belgium.", "words": "Ney is a bold man.", "task": "hold",
+              "place": "Belgium", "turns_left": 2, "turns_done": 1, "rolls": 0, "given": 3,
+              "record_won": 3, "record_lost": 2, "tick_won": 3, "tick_lost": 2, "taken": 0,
+              "next_take": None}
     m.redemption_pending = True
-    m.autonomous_battles_won = 3
-    m.autonomous_battles_lost = 1
-    m.autonomous_regions_captured = 2
     m.trust_warning_shown = True
 
     # Relationships
@@ -418,14 +417,10 @@ class TestMarshalSerialization:
         assert_field_equal(restored, original, "recent_battles", "Marshal")
         assert_field_equal(restored, original, "recent_overrides", "Marshal")
 
-        # Autonomy system
-        assert_field_equal(restored, original, "autonomous", "Marshal")
-        assert_field_equal(restored, original, "autonomy_turns", "Marshal")
-        assert_field_equal(restored, original, "autonomy_reason", "Marshal")
+        # The audience, and the task to prove himself
+        assert_field_equal(restored, original, "trial", "Marshal")
+        assert restored.trial is not original.trial, "a copy, never the same dict"
         assert_field_equal(restored, original, "redemption_pending", "Marshal")
-        assert_field_equal(restored, original, "autonomous_battles_won", "Marshal")
-        assert_field_equal(restored, original, "autonomous_battles_lost", "Marshal")
-        assert_field_equal(restored, original, "autonomous_regions_captured", "Marshal")
         assert_field_equal(restored, original, "trust_warning_shown", "Marshal")
 
         # Relationships
@@ -991,7 +986,7 @@ class TestModdingWorkflow:
         assert marshal.drilling is False
         assert marshal.fortified is False
         assert marshal.retreat_recovery == 0
-        assert marshal.autonomous is False
+        assert marshal.trial is None
 
     def test_minimal_region_creation(self):
         """

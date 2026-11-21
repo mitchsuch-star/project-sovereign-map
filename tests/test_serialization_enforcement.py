@@ -143,14 +143,14 @@ def create_fully_populated_marshal() -> Marshal:
     marshal.recent_battles = ["victory", "defeat", "victory"]
     marshal.recent_overrides = [True, False, True, False, True]
 
-    # Autonomy system
-    marshal.autonomous = True
-    marshal.autonomy_turns = 2
-    marshal.autonomy_reason = "redemption"
+    # The audience, and the task to prove himself (row IC, Session 2b — the
+    # six autonomy fields that stood here left the Marshal with the old
+    # engine; `trial` is kept only while he is on his task, so it is held)
+    marshal.trial = {"line": "Ney, hold Belgium.", "words": "Ney is a bold man.", "task": "hold",
+                     "place": "Belgium", "turns_left": 2, "turns_done": 1, "rolls": 0, "given": 3,
+                     "record_won": 3, "record_lost": 2, "tick_won": 3, "tick_lost": 2, "taken": 0,
+                     "next_take": None}
     marshal.redemption_pending = True
-    marshal.autonomous_battles_won = 2
-    marshal.autonomous_battles_lost = 1
-    marshal.autonomous_regions_captured = 1
     marshal.trust_warning_shown = True
 
     # Relationships

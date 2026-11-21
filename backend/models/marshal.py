@@ -434,11 +434,19 @@ class Marshal:
         self.recent_battles: List[str] = []  # Last 3 battle results
         self.recent_overrides: List[bool] = []  # Last 5 override events
 
-        # Autonomy System (Phase 2.1 - Redemption, Phase 2.5 - AI Connection)
-        # When trust hits critical low, player can grant autonomy
-        self.autonomous: bool = False  # Marshal acting independently
-        self.autonomy_turns: int = 0   # Turns remaining in autonomy
-        self.autonomy_reason: str = ""  # Why autonomous ("redemption", "communication_cut", etc.)
+        # ── The audience (Phase 2.1 — redemption) ─────────────────────────
+        # Row IC, Session 2b (November 20, 2026): THE TASK TO PROVE HIMSELF.
+        # When trust falls to 20 or less the audience offers it where "Grant
+        # Autonomy" stood (three turns on the ENEMY's decision logic —
+        # removed: `autonomous`, `autonomy_turns`, `autonomy_reason` and the
+        # three `autonomous_*` counters left this class with it; an old
+        # save's values are read once in `from_dict` and settled on load).
+        # None, or the task he is on: {line, words, task, place, turns_left,
+        # turns_done, rolls, given, record_won, record_lost, tick_won,
+        # tick_lost, taken, next_take} — `backend/game_logic/trial.py` is the
+        # one module that writes it; `trial.on_trial` the one reader of
+        # "is he on it".
+        self.trial: Optional[Dict] = None
         self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
         self.redemption_cooldown_until: int = 0  # Turn when redemption can next fire (5-turn cooldown)
         # ── FA-S9-D1 / FA-71 (slice 14): the man at the desk ──────────────
@@ -462,11 +470,6 @@ class Marshal:
         self.administrative: bool = False
         self.administrative_strength: int = 0
         self.administrative_location: Optional[str] = None
-
-        # Autonomy Performance Tracking (for evaluation when autonomy ends)
-        self.autonomous_battles_won: int = 0
-        self.autonomous_battles_lost: int = 0
-        self.autonomous_regions_captured: int = 0
 
         # Trust Warning System (Phase 3)
         # Tracks if warning has been shown for trust dropping below 40
@@ -934,6 +937,7 @@ class Marshal:
         'honours',                # row MC: his titles of victory
         'title_due',              # row MC: the title in the Emperor's gift
         'last_claim_turn',        # row MC: his last claim
+        'trial',                  # row IC, Session 2b: the task to prove himself
     )
     DAYS_KEPT = 6                 # BA-5: the last six pitched battles he led
 
@@ -2009,19 +2013,15 @@ class Marshal:
             "recent_battles": self.recent_battles.copy(),
             "recent_overrides": self.recent_overrides.copy(),
 
-            # ═══════ AUTONOMY SYSTEM ═══════
-            "autonomous": self.autonomous,
-            "autonomy_turns": int(self.autonomy_turns),
-            "autonomy_reason": self.autonomy_reason,
+            # ═══════ THE AUDIENCE ═══════
+            # (Row IC, Session 2b: the old autonomy keys are no longer
+            # written; `trial` is written below, only while he is on one.)
             "redemption_pending": self.redemption_pending,
             "redemption_cooldown_until": int(self.redemption_cooldown_until),
             # FA-S9-D1 / FA-71 (slice 14): the man at the desk survives the save.
             "administrative": bool(self.administrative),
             "administrative_strength": int(self.administrative_strength),
             "administrative_location": self.administrative_location,
-            "autonomous_battles_won": int(self.autonomous_battles_won),
-            "autonomous_battles_lost": int(self.autonomous_battles_lost),
-            "autonomous_regions_captured": int(self.autonomous_regions_captured),
             "trust_warning_shown": self.trust_warning_shown,
 
             # ═══════ ES-7 ESTATE ENDOWMENTS (Economy Revisit S7) ═══════
@@ -2185,6 +2185,10 @@ class Marshal:
             data["title_due"] = dict(self.title_due)
         if self.last_claim_turn:
             data["last_claim_turn"] = int(self.last_claim_turn)
+        # Row IC, Session 2b: the task to prove himself - written only while
+        # he is on one (a campaign that never met the audience saves no key).
+        if isinstance(self.trial, dict):
+            data["trial"] = dict(self.trial)
         return data
 
     @classmethod
@@ -2239,10 +2243,15 @@ class Marshal:
         marshal.recent_battles = data.get("recent_battles", []).copy()
         marshal.recent_overrides = data.get("recent_overrides", []).copy()
 
-        # ═══════ AUTONOMY SYSTEM ═══════
-        marshal.autonomous = data.get("autonomous", False)
-        marshal.autonomy_turns = data.get("autonomy_turns", 0)
-        marshal.autonomy_reason = data.get("autonomy_reason", "")
+        # ═══════ THE AUDIENCE ═══════
+        # Row IC, Session 2b: the task to prove himself. Absent in every
+        # older save → None (he is on no task).
+        _trial = data.get("trial")
+        marshal.trial = dict(_trial) if isinstance(_trial, dict) else None
+        # (An OLD save's six autonomy keys are not read here: a man saved in
+        # the middle of the old three turns is settled by the WORLD's load,
+        # which reads his saved row once — `trial.settle_legacy`, called at
+        # the foot of `WorldState.from_dict`. They are never written again.)
         marshal.redemption_pending = data.get("redemption_pending", False)
         marshal.redemption_cooldown_until = data.get("redemption_cooldown_until", 0)
         # FA-S9-D1 / FA-71 (slice 14). Save-compat: an old save has none of
@@ -2251,9 +2260,6 @@ class Marshal:
         marshal.administrative_strength = int(
             data.get("administrative_strength", 0) or 0)
         marshal.administrative_location = data.get("administrative_location")
-        marshal.autonomous_battles_won = data.get("autonomous_battles_won", 0)
-        marshal.autonomous_battles_lost = data.get("autonomous_battles_lost", 0)
-        marshal.autonomous_regions_captured = data.get("autonomous_regions_captured", 0)
         marshal.trust_warning_shown = data.get("trust_warning_shown", False)
 
         # ═══════ ES-7 ESTATE ENDOWMENTS (Economy Revisit S7) ═══════

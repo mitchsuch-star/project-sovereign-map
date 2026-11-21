@@ -1678,7 +1678,9 @@ class TestRowICDirectives:
         soult = next(r for r in card["rows"] if r["marshal"] == "Soult")
         assert soult["ok"] is False and soult["text"] == "already stands at Lorraine"
         said = card["total_text"]
-        assert "Cost: 4 actions (2 + 2) of the 4 in hand — 2 corps go, each on his own order." in said
+        # (row IC, Session 2b's words census: "on his own" is kept for a man set
+        # on his own - the list says each goes BY his own order)
+        assert "Cost: 4 actions (2 + 2) of the 4 in hand — 2 corps go, each by his own order." in said
         assert "Lannes is not ticked: he needs 2 actions, and the ticked corps leave none." in said
         assert "undoes them all and gives their actions back" in _pw_said(typed)
         assert _ic_actions(typed) == "4/4"                                # nothing spent
@@ -1693,7 +1695,7 @@ class TestRowICDirectives:
         untick = _ic_card(walk["untick"])
         assert untick["members"] == ["Ney"] and untick["total"] == 2
         assert untick["title"] == "ORDERS FOR 1 OF 4 CORPS"
-        assert "Cost: 2 actions of the 4 in hand — 1 corps goes, on his own order." in untick["total_text"]
+        assert "Cost: 2 actions of the 4 in hand — 1 corps goes, by his own order." in untick["total_text"]
         assert _ic_card(walk["retick"])["members"] == ["Ney", "Davout"]
 
     def test_esc_spends_nothing_says_so_and_puts_the_line_back(self, walk):
@@ -2011,6 +2013,264 @@ class TestRowIC7TheButtons:
         task ("Soult, hold Lorraine. If attacked, dig in.")."""
         box = (walk["draft"].get("command_line") or {})["rect"]
         assert box[2] >= 360, f"the command line is {box[2]} px wide at his setup"
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Row IC, Session 2b (November 20, 2026) — the task to prove himself, pressed
+# in the real client at the first player's own setup. The audience is reached
+# through the staging switch (`DD_B_STAGE=1`: the sandbox's own debug road —
+# `debug audience <marshal>` sets his trust to 15 and raises the game's own
+# question through its one seam); everything after it is a player's press.
+# ════════════════════════════════════════════════════════════════════════════
+
+def _ic2b_window(state: dict) -> dict:
+    """The audience's window as drawn: its lines and its answers ({} when shut)."""
+    for s in state.get("surfaces") or []:
+        if isinstance(s, dict) and s.get("name") == "RedemptionDialog":
+            return {"lines": [str(line) for line in s.get("lines") or []],
+                    "answers": _ic_on(state, "RedemptionDialog")}
+    return {}
+
+
+def _ic2b_card(state: dict) -> dict:
+    for s in state.get("surfaces") or []:
+        if isinstance(s, dict) and s.get("name") == "SelectionCard":
+            return {"lines": [str(line) for line in s.get("lines") or []],
+                    "buttons": [str(b["text"]) for b in _ic_on(state, "SelectionCard")]}
+    return {}
+
+
+def _ic2b_rect(state: dict, starts: str) -> list:
+    """The rect of the audience window's text that starts `starts`."""
+    for t in state.get("texts") or []:
+        if str(t.get("surface") or "") == "RedemptionDialog" and str(t.get("text") or "").startswith(starts):
+            return t["rect"]
+    raise AssertionError(f"no text of the audience's window starts {starts!r}")
+
+
+@pytest.fixture(scope="module")
+def ic2b_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic2b")
+    states: dict = {}
+    try:
+        states["begin"] = _act(run, "click Begin")
+        _act(run, "type debug set_location Ney Franconia", meant="other: staging")
+        _act(run, "type debug set_location Davout Franconia", meant="other: staging")
+        states["ney"] = _act(run, "type debug audience Ney", meant="other: staging")
+        states["given"] = _act(run, "click Give Ney a task to prove himself")
+        states["card"] = _act(run, "click Ney")
+        states["let_go"] = _act(run, "key Escape")
+        # the Generals page: his row, then his detail (the review - his card's
+        # sibling: no order button there either)
+        states["generals"] = _act(run, "click Generals (G)")
+        row = next(b for b in _ic_on(states["generals"], "MarshalManagement")
+                   if "On a task to prove himself" in str(b.get("tooltip") or ""))
+        states["generals_ney"] = _ic_press(run, row)
+        states["generals_shut"] = _act(run, "key Escape")
+        states["davout"] = _act(run, "type debug audience Davout", meant="other: staging")
+        states["davout_given"] = _act(run, "click Give Davout a task to prove himself")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowIC9bTheTaskToProveHimself:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic2b_walk):
+        assert "error" not in ic2b_walk, ic2b_walk.get("error")
+        return ic2b_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        state = walk["ney"]
+        assert state["ui_scale"]["window"] == pytest.approx(1.8)
+        assert state["factor"]["logical_size"] == [2844.0, 765.0]
+
+    def test_the_audience_offers_the_task_and_says_it_in_full(self, walk):
+        window = _ic2b_window(walk["ney"])
+        assert window["lines"][0] == "NEY REQUESTS AUDIENCE"
+        assert [str(b["text"]) for b in window["answers"]] == [
+            "Give Ney a task to prove himself", "Dismiss Ney", "Transfer Ney to Staff"]
+        said = "\n".join(window["lines"])
+        assert ("Ney is a bold man, so he asks to march from Franconia and take Bohemia, where France "
+                "sees no defenders — and then to hold it, striking any enemy next to him that he "
+                "outnumbers.") in said
+        for needed in ("for 3 turns — this one and the next two — then he is under your orders again",
+                       "Until then he takes no orders, and you cannot call him back.",
+                       "up to 6 turns in all, the first 3 included",
+                       "40 (and your authority by 10) if he won two battles or took a defended place;",
+                       "5 if he lost more than he won."):
+            assert needed in said, needed
+        assert "Trust: 15 of 100 — critical" in said
+        assert "autonom" not in said.lower() and "independent" not in said.lower()
+
+    def test_every_answers_words_stand_under_its_own_button(self, walk):
+        """The first blind reading: "Dismiss Ney" and "Transfer Ney to Staff"
+        stood with no words. Each answer's words are between its own button
+        and the next one."""
+        state = walk["ney"]
+        buttons = {str(b["text"]): b["rect"] for b in _ic2b_window(state)["answers"]}
+        task = _ic2b_rect(state, "Ney is a bold man")
+        dismiss = _ic2b_rect(state, "Ney is dismissed for good; his men join the nearest marshal within three")
+        staff = _ic2b_rect(state, "Ney leaves the field for a post on your staff; his corps waits in depot.")
+        give, out, transfer = (buttons["Give Ney a task to prove himself"], buttons["Dismiss Ney"],
+                               buttons["Transfer Ney to Staff"])
+        assert give[1] < task[1] < out[1] < dismiss[1] < transfer[1] < staff[1]
+        # ... each nearer its own button than the next answer's
+        assert task[1] - (give[1] + give[3]) < out[1] - (task[1] + task[3])
+        assert dismiss[1] - (out[1] + out[3]) < transfer[1] - (dismiss[1] + dismiss[3])
+        assert all(str(b.get("tooltip") or "") == "" for b in _ic2b_window(state)["answers"]), \
+            "the words stand on the window: no hover repeats them"
+
+    def test_the_window_stands_whole_below_the_top_bar_and_does_not_move(self, walk):
+        """Pressed at his setup: with every answer's words it first stood 720 px
+        in a 765 px view, over the top bar."""
+        for key in ("ney", "davout"):
+            state = walk[key]
+            assert not state.get("off_screen"), (key, state.get("off_screen"))
+            assert not _pw_panel_moves(state), (key, _pw_panel_moves(state))
+            rects = [t["rect"] for t in state["texts"] if str(t.get("surface") or "") == "RedemptionDialog"]
+            rects += [b["rect"] for b in _ic2b_window(state)["answers"]]
+            assert min(r[1] for r in rects) >= 44.0, (key, "below the top bar")
+            assert max(r[1] + r[3] for r in rects) <= 765.0 - 8.0, key
+
+    def test_giving_it_is_free_and_says_what_he_will_do(self, walk):
+        log = _ic_log(walk["given"])
+        assert ('Ney has his task to prove himself: "Ney, take Bohemia and hold it." He marches on '
+                "Bohemia as this turn ends. He takes no orders until it ends — 3 turns, or up to 6 "
+                "while he keeps winning.") in log
+        assert _ic_actions(walk["given"]) == "4/4", "giving it costs no action"
+        assert _ic2b_window(walk["given"]) == {}, "the window is shut"
+        assert [m["marshal"] for m in walk["given"]["order_marks"]] == ["Ney"], "his order is on the map"
+
+    def test_the_desk_lists_no_matter_for_a_man_who_takes_no_orders(self, walk):
+        """Pressed at his setup: TO DECIDE said "Ney will leave his post to
+        join a battle near him — Mack is close."."""
+        desk = [str(b["text"]) for b in _ic_on(walk["given"], "DeskCard")]
+        assert desk and not [row for row in desk if "Ney" in row], desk
+
+    def test_his_card_carries_no_order_and_says_why(self, walk):
+        """The first blind reading: eleven greyed order buttons under "he takes
+        no orders" — every reader doubted them."""
+        card = _ic2b_card(walk["card"])
+        assert card["buttons"] == ["×"], card["buttons"]
+        said = "\n".join(card["lines"])
+        assert "On a task to prove himself — 3 turns left: marches on Bohemia as this turn ends." in said
+        assert 'His task: "Ney, take Bohemia and hold it."' in said
+        assert "He takes no orders until it ends, and you cannot call him back." in said
+        assert card["lines"][-1] == "Esc closes this card"
+        assert "actions left" not in said and "lets him go" not in said
+        assert "Click a province to send him" not in said
+        assert not walk["card"].get("off_screen")
+        assert _ic2b_card(walk["let_go"]) == {}, "Esc closes it"
+
+    def test_the_generals_page_shows_his_task_and_no_order_button(self, walk):
+        """The review (rule 10, his card's sibling): his Generals page still
+        wore seven greyed order buttons - "Cancel order" among them - under a
+        man who takes no orders: the thing every reader of the first blind
+        reading doubted on his card."""
+        roster = walk["generals"]
+        assert roster["open"]["screens"] == ["generals"]
+        state = walk["generals_ney"]
+        page = next(s for s in state["surfaces"] if s.get("name") == "MarshalManagement")
+        said = "\n".join(str(line) for line in page["lines"])
+        assert "On a task to prove himself — 3 turns left: marches on Bohemia as this turn ends" in said
+        assert "His task: Ney, take Bohemia and hold it." in said
+        assert "He takes no orders until his task ends, and you cannot call him back." in said
+        faces = [str(b["text"]) for b in _ic_on(state, "MarshalManagement")]
+        assert "On the map" in faces
+        orders = ("Hold", "Fortify", "Unfortify", "Drill", "Scout", "Fall back", "Garrison", "Cancel order")
+        assert not [face for face in faces if face.startswith(orders)], faces
+        assert not state.get("off_screen")
+        assert walk["generals_shut"]["open"]["screens"] == [], "Esc closes the page"
+
+    def test_davout_proposes_by_his_own_nature_on_the_same_ground(self, walk):
+        """The blind reading's question: two men on one ground, two tasks."""
+        said = "\n".join(_ic2b_window(walk["davout"])["lines"])
+        assert "Davout is a careful man, so he asks to hold Franconia, where he stands, and to dig in." in said
+        log = _ic_log(walk["davout_given"])
+        assert 'Davout has his task to prove himself: "Davout, hold Franconia."' in log
+        assert "marches on" not in log.split("Davout has his task")[1]
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+@pytest.fixture(scope="module")
+def ic2b_compact(tmp_path_factory) -> dict:
+    """The audience at the smallest view the client supports: Interface Scale
+    2.0 on a 1600 x 900 window - a logical 800 x 450."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "2.0")
+        mp.setenv("DD_B_WINDOW", "1600x900")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic2b_compact")
+    states: dict = {}
+    try:
+        _act(run, "click Begin")
+        _act(run, "type debug set_location Ney Franconia", meant="other: staging")
+        states["ney"] = _act(run, "type debug audience Ney", meant="other: staging")
+        states["given"] = _act(run, "click Give Ney a task to prove himself")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowIC9bTheAudienceAtTheCompactView:
+    """The review (the client's lane), pressed: at Interface Scale 2.0 on
+    1600 x 900 the window ran 77 px past the screen - its header under the top
+    bar, "Transfer to Staff" off the bottom. Where the window cannot hold his
+    proposal whole, his quoted line steps aside and the proposal SCROLLS: every
+    answer stays on the screen."""
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic2b_compact):
+        assert "error" not in ic2b_compact, ic2b_compact.get("error")
+        return ic2b_compact
+
+    def test_the_view_is_the_compact_one(self, walk):
+        state = walk["ney"]
+        assert state["ui_scale"]["window"] == pytest.approx(2.0)
+        assert state["factor"]["logical_size"] == [800.0, 450.0]
+
+    def test_every_answer_stands_on_the_screen(self, walk):
+        state = walk["ney"]
+        assert not state.get("off_screen"), state.get("off_screen")
+        answers = {str(b["text"]): b["rect"] for b in _ic2b_window(state)["answers"]}
+        assert list(answers) == ["Give Ney a task to prove himself", "Dismiss Ney", "Transfer Ney to Staff"]
+        for face, rect in answers.items():
+            assert rect[1] >= 44.0, (face, "below the top bar")
+            assert rect[1] + rect[3] <= 450.0, (face, "above the screen's bottom edge")
+        title = _ic2b_rect(state, "NEY REQUESTS AUDIENCE")
+        assert title[1] >= 44.0, "the header is not under the top bar"
+
+    def test_his_proposal_scrolls_and_the_other_answers_keep_their_words_in_hovers(self, walk):
+        state = walk["ney"]
+        proposal = next(t for t in state["texts"]
+                        if str(t.get("surface") or "") == "RedemptionDialog"
+                        and str(t.get("text") or "").startswith("Ney is a bold man"))
+        assert proposal.get("clipped"), "the proposal stands in a scroll: it is longer than its room"
+        assert "you cannot call him back" in str(proposal["text"]), "nothing of it is cut from the text"
+        hovers = {str(b["text"]): str(b.get("tooltip") or "") for b in _ic2b_window(state)["answers"]}
+        assert hovers["Dismiss Ney"].startswith("Ney is dismissed for good")
+        assert hovers["Transfer Ney to Staff"].startswith("Ney leaves the field for a post on your staff")
+
+    def test_the_task_is_given_from_there_too(self, walk):
+        assert 'Ney has his task to prove himself: "Ney, take Bohemia and hold it."' in _ic_log(walk["given"])
+        assert _ic2b_window(walk["given"]) == {}
 
     def test_the_run_met_no_script_error(self, walk):
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

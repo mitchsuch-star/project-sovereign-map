@@ -7,12 +7,13 @@ line for tasks, exact orders): every pin below is a plain behaviour test now.
   IC-V1, IC-V2  the read-back's rows — `tests/test_ic8_the_line.py` holds the
                 full behaviour (Taken, Not taken, the line as understood, the
                 typed gate).
-  IC-V3         a guard on the two jealousy seams (`jealousy.acts_independently`).
-                The three turns themselves — the trust crisis's "Grant
-                Autonomy" — are replaced by a task to prove himself in row
-                IC's own next session (Session 2b: row IC2-D1, the strict
-                xfail at the foot of this file; INDEPENDENT_COMMAND_SPEC
-                §6.11, §15); these two tests are then re-seated on that state.
+  IC-V3         a guard on the two jealousy seams. The three turns themselves
+                — the trust crisis's "Grant Autonomy" — were replaced by a
+                TASK TO PROVE HIMSELF the same day, in row IC's Session 2b
+                (row IC2-D1, at the foot of this file; INDEPENDENT_COMMAND_SPEC
+                §6.11, §15), and the guard reads that state now
+                (`jealousy.on_his_task` → `trial.on_trial`): the two tests
+                are re-seated on a man the game itself has given his task.
   IC-V4         the one client table — `tests/test_ic7_the_buttons.py` holds
                 the buttons' behaviour, server and client.
 
@@ -43,8 +44,8 @@ his own'"; every finding and its ruling
                       same orders as the typed line; IC-7 seats them in one
                       client table, `SIMPLE_ORDER_BUTTONS`.
 
-Each class carries a premise test (green today and after the fix) so the xfail
-fails for the reason the row names, not for a broken fixture.
+Each class carries a premise test (green before the fix and after) so the pin
+failed for the reason the row names, not for a broken fixture.
 """
 from __future__ import annotations
 
@@ -151,19 +152,22 @@ def world1805():
         return WorldState.from_scenario(str(SCENARIO_PATH))
 
 
-def _warned_ney(world1805, *, autonomous: bool):
+def _warned_ney(world1805, *, on_his_task: bool):
     """`tests/test_jealousy_v32.py`'s own setup: Ney jealous of Davout,
-    standing with Mack in Swabia (at war), authority neutral."""
+    standing with Mack in Swabia (at war), authority neutral. `on_his_task`:
+    the game's own giver has put him on his task to prove himself (row IC,
+    Session 2b — the state that stands where "Grant Autonomy" stood)."""
     world = WorldState.from_dict(world1805.to_dict())
     world.authority_tracker.authority = 50
     ney = world.marshals["Ney"]
     ney.location = "Swabia"
     ney.jealous_of = "Davout"
     ney.jealousy_turns_remaining = 4
-    if autonomous:
-        ney.autonomous = True
-        ney.autonomy_turns = 2
-        ney.autonomy_reason = "redemption"
+    if on_his_task:
+        from backend.game_logic import trial
+        with _quiet():
+            given = trial.give(world, ney)
+        assert given["given"] and trial.on_trial(ney), "the premise: he is on his task"
     return world, ney
 
 
@@ -172,7 +176,7 @@ class TestICV3AManActingIndependentlyActsOnce:
     def test_a_warned_jealous_man_strikes_at_the_turns_end(self, world1805):
         from backend.commands.executor import CommandExecutor
         from backend.game_logic import jealousy as J
-        world, ney = _warned_ney(world1805, autonomous=False)
+        world, ney = _warned_ney(world1805, on_his_task=False)
         ney.jealousy_autonomous_warned = True
         with _quiet():
             fired = J.process_autonomous_attacks(world, CommandExecutor(), {"world": world})
@@ -180,7 +184,7 @@ class TestICV3AManActingIndependentlyActsOnce:
 
     def test_a_man_acting_independently_is_never_warned(self, world1805):
         from backend.game_logic import jealousy as J
-        world, ney = _warned_ney(world1805, autonomous=True)
+        world, ney = _warned_ney(world1805, on_his_task=True)
         world._jealousy_processed_turn = None
         with _quiet():
             J.process_turn(world)
@@ -189,11 +193,11 @@ class TestICV3AManActingIndependentlyActsOnce:
     def test_a_man_acting_independently_makes_no_jealous_strike(self, world1805):
         from backend.commands.executor import CommandExecutor
         from backend.game_logic import jealousy as J
-        world, ney = _warned_ney(world1805, autonomous=True)
+        world, ney = _warned_ney(world1805, on_his_task=True)
         ney.jealousy_autonomous_warned = True
         with _quiet():
             fired = J.process_autonomous_attacks(world, CommandExecutor(), {"world": world})
-        assert not fired, "his one act is the independent one; the strike would be a second"
+        assert not fired, "his one act a turn is his task's; the strike would be a second"
 
 
 # ═══════════════════════ the buttons (IC-V4) ═════════════════════════════════
@@ -218,23 +222,19 @@ class TestICV4EverySimpleOrderHasAButton:
             "support, fall back and garrison — one table (INDEPENDENT_COMMAND_SPEC §8.1)")
 
 
-# ═══════════ handed to its own session: the task to prove himself (IC2-D1) ═══
+# ═══════════ the task to prove himself stands where "Grant Autonomy" stood ═══
 #
 # Row IC's Session 2 landed the buttons, the line for tasks and exact orders,
 # and at its checkpoint took the plan's decided fork ("the session cannot hold
 # all three slices at the standard: … hand IC-9 to its own session the same
-# day"): the trust crisis's "Grant Autonomy" is replaced by a TASK TO PROVE
-# HIMSELF — and `TurnManager._process_autonomous_marshals` / `_end_autonomy`
-# deleted — in row IC's Session 2b (`docs/BUG_FIXES.md` §"Row IC, Session 2",
-# row IC2-D1; INDEPENDENT_COMMAND_SPEC §6.11 and §15; `PRE_DEPLOY_PLAN.md` §2
-# row IC). Until then the audience offers what it offered, and IC-V3's guard
-# keeps a man in those three turns to one act a turn.
-#
-# The two pins are strict xfails: they turn red the day the trial lands, so
-# the row must close with them.
-
-_IC2_D1 = ("IC2-D1 (owner row IC Session 2b, slice IC-9's second half): the trust crisis's "
-           "'Grant Autonomy' is replaced by a task to prove himself and the old engine deleted")
+# day"). Row IC2-D1 (`docs/BUG_FIXES.md` §"Row IC, Session 2") was filed with
+# two strict-xfail pins that turned red the day the trial landed — row IC's
+# Session 2b, November 20, 2026: the trust crisis's "Grant Autonomy" is
+# replaced by a TASK TO PROVE HIMSELF (`backend/game_logic/trial.py`), and
+# `TurnManager._process_autonomous_marshals` / `_end_autonomy` are deleted
+# (INDEPENDENT_COMMAND_SPEC §6.11 and §15; SYSTEMS_REFERENCE §232). Both pins
+# are plain behaviour tests now; the trial's full behaviour is
+# `tests/test_autonomy.py` and `tests/test_ic9b_the_trial.py`.
 
 
 class TestIC2D1TheTrialReplacesGrantAutonomy:
@@ -248,16 +248,14 @@ class TestIC2D1TheTrialReplacesGrantAutonomy:
                 world.marshals["Ney"], world)
 
     def test_the_audience_has_answers_for_a_man_whose_trust_has_broken(self, world1805):
-        """The premise — green today and after the trial lands."""
+        """The premise — green before the trial landed and after."""
         options = self._options(world1805)
         assert options and all(option.get("id") for option in options)
 
-    @pytest.mark.xfail(strict=True, reason=_IC2_D1)
     def test_the_audience_offers_a_task_to_prove_himself_and_no_autonomy(self, world1805):
         ids = [option["id"] for option in self._options(world1805)]
         assert "grant_autonomy" not in ids and "trial" in ids
 
-    @pytest.mark.xfail(strict=True, reason=_IC2_D1)
     def test_no_french_marshal_is_moved_by_the_enemys_logic(self):
         from backend.game_logic.turn_manager import TurnManager
         assert not hasattr(TurnManager, "_process_autonomous_marshals")

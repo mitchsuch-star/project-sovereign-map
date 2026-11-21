@@ -3,9 +3,11 @@ Tests for Literal personality AI conversion.
 
 MC-V-2 decision (MC exit review, July 11, 2026): enemy-nation literal
 marshals play LITERAL — their authored AI rows are live. The
-literal→cautious conversion applies ONLY to the player's own literal
-marshals gone autonomous (losing literal precision IS the consequence
-of going autonomous).
+literal→cautious conversion applied ONLY to the player's own literal
+marshals gone autonomous — and row IC's Session 2b (November 20, 2026)
+removed that state and the conversion with it: no marshal of the player's
+nation is moved by this logic, and a literal man plays his authored
+character on every board.
 
 Run with: pytest tests/test_literal_personality.py -v
 """
@@ -18,7 +20,7 @@ from backend.ai.enemy_ai import EnemyAI
 
 
 class TestLiteralPersonalityConversion:
-    """_get_effective_personality(): autonomous-player-only conversion."""
+    """_get_effective_personality(): a literal man is literal on every board."""
 
     def setup_method(self):
         self.world = WorldState()
@@ -34,27 +36,31 @@ class TestLiteralPersonalityConversion:
         assert result == "literal", f"Expected 'literal', got '{result}'"
 
     def test_player_literal_stays_literal(self):
-        """Literal marshal for player nation (not autonomous) returns 'literal'."""
-        # Grouchy is French (player nation) and not autonomous
+        """Literal marshal for player nation returns 'literal'."""
         grouchy = self.world.marshals.get("Grouchy")
         if grouchy is None:
             grouchy = Marshal("Grouchy", "Paris", 30000, "literal", nation="France")
-
-        grouchy.autonomous = False
 
         result = self.ai._get_effective_personality(grouchy, self.world)
         assert result == "literal", f"Expected 'literal', got '{result}'"
 
-    def test_autonomous_literal_becomes_cautious(self):
-        """Player's literal marshal with autonomous=True returns 'cautious'."""
+    def test_a_literal_man_on_his_task_stays_literal(self):
+        """Row IC, Session 2b: the literal→cautious alias is GONE — it lived
+        only for the player's literal marshal the trust crisis had handed to
+        the enemy's logic. A literal man on his task to prove himself (the
+        state that stands there now) is read as literal, and that logic
+        refuses to decide for him at all."""
+        from backend.game_logic import trial
         grouchy = self.world.marshals.get("Grouchy")
         if grouchy is None:
             grouchy = Marshal("Grouchy", "Paris", 30000, "literal", nation="France")
-
-        grouchy.autonomous = True
+            self.world.marshals["Grouchy"] = grouchy
+        assert trial.give(self.world, grouchy)["given"]
 
         result = self.ai._get_effective_personality(grouchy, self.world)
-        assert result == "cautious", f"Expected 'cautious', got '{result}'"
+        assert result == "literal", f"Expected 'literal', got '{result}'"
+        assert self.ai.decide_single_action(
+            grouchy, "France", self.world, {"world": self.world}) is None
 
     def test_non_literal_personalities_unchanged(self):
         """Cautious and aggressive stay unchanged regardless of nation."""

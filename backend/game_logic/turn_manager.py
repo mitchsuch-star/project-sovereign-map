@@ -404,9 +404,10 @@ class TurnManager:
 
         Processes:
         1. Enemy AI turns (all enemy nations take actions)
-        2. Tactical state processing (drill, fortify, retreat for ALL marshals)
-        3. Turn advancement
-        4. Autonomous marshal actions (at START of new turn, before player acts)
+        2. The player's standing orders, and the nightly count of every man
+           on a task to prove himself (`trial.close_of_turn`)
+        3. Tactical state processing (drill, fortify, retreat for ALL marshals)
+        4. Turn advancement
         5. Victory/defeat check
 
         Args:
@@ -690,8 +691,8 @@ class TurnManager:
         strategic_reports = []
         # GE-1 review round: once the Empire has FALLEN (the Emperor killed
         # in the enemy phase) nothing else of the player's moves — no
-        # standing order marches, no grievance is aired, no autonomous
-        # marshal acts; each could add a question nobody can answer.
+        # standing order marches, no grievance is aired, no task to prove
+        # himself is counted; each could add a question nobody can answer.
         _fallen = _game_end.terminal_ending(self.world) is not None
         if game_state and hasattr(self, 'executor') and not _fallen and not _resuming:
             strategic_exec = StrategicOrderProcessor(self.executor)
@@ -711,6 +712,11 @@ class TurnManager:
         # standing order in the pass above, not only in the enemy phase.
         _fallen = _game_end.terminal_ending(self.world) is not None
         if not _fallen and not _resuming:
+            if game_state and hasattr(self, 'executor'):
+                # Row IC, Session 2b — the nightly count of every man on his
+                # task to prove himself (why here: `trial.close_of_turn`).
+                from backend.game_logic import trial as _trial
+                strategic_reports = _trial.close_of_turn(self.world, strategic_reports)
             _jealousy_pass.process_turn(self.world)
 
         # ════════════════════════════════════════════════════════════
@@ -761,20 +767,13 @@ class TurnManager:
         # ════════════════════════════════════════════════════════════
         capital_alerts = self._check_capital_proximity()
         tactical_events.extend(capital_alerts)
+        # Row IC, Session 2b: how each task to prove himself went, told once.
+        if not _fallen:
+            from backend.game_logic import trial as _trial_morning
+            tactical_events.extend(_trial_morning.morning_events(self.world))
         for i, evt in enumerate(tactical_events):
             debug_print(f"  Event {i}: type={evt.get('type')}, has_message={bool(evt.get('message'))}")
 
-        # ════════════════════════════════════════════════════════════
-        # AUTONOMOUS MARSHALS: Process at START of new turn (Phase 2.5)
-        # Autonomous player marshals act BEFORE player can issue commands
-        # Each gets 1 action using Enemy AI decision tree
-        # ════════════════════════════════════════════════════════════
-        autonomous_report = None
-        # (`_fallen` was re-read after the strategic pass, above the grievance
-        # pass: nothing between here and there can end the war — the advance
-        # never kills the Emperor, attrition is not a battlefield cause.)
-        if game_state and not _fallen:
-            autonomous_report = self._process_autonomous_marshals(game_state)
 
         # GE-1: the ONE per-turn caller of the endings — the fall clocks
         # tick and, at the authored turn, the Verdict is rendered. Once per
@@ -814,18 +813,13 @@ class TurnManager:
         if enemy_phase_results:
             result["enemy_phase"] = enemy_phase_results
 
-        # Add autonomous marshal report (Phase 2.5)
-        if autonomous_report:
-            result["show_independent_command_report"] = autonomous_report.get("show_independent_command_report", False)
-            result["independent_command_report"] = autonomous_report.get("independent_command_report", [])
-
         # Add AI diplomatic proposal if delivered (Phase 8 Session 4)
         if ai_proposal_delivered:
             result["ai_proposal"] = ai_proposal_delivered
 
         # Add strategic order reports (Phase 5.2-C)
-        # SR-2e AAR-8: the advance, the grievance pass and the autonomous
-        # marshals can each spend a question after its row was written.
+        # SR-2e AAR-8: the advance and the grievance pass can each spend a
+        # question after its row was written.
         if strategic_reports:
             from backend.commands.strategic import reconcile_question_rows
             strategic_reports = reconcile_question_rows(
@@ -1172,229 +1166,6 @@ class TurnManager:
                 })
 
         return delivered
-
-    def _process_autonomous_marshals(self, game_state: Dict) -> Dict:
-        """
-        Process autonomous player marshals at START of player's turn.
-
-        Phase 2.5: Autonomous marshals use the Enemy AI decision tree
-        but aligned with the player's nation (France). Each gets 1 action.
-
-        For each autonomous marshal:
-        1. Execute AI-decided action (1 action per marshal)
-        2. Track performance (battles won/lost, regions captured)
-        3. Decrement autonomy_turns
-        4. If turns <= 0, evaluate performance and end autonomy
-
-        Returns:
-            Dict with independent_command_report for Godot popup
-        """
-        from backend.ai.enemy_ai import EnemyAI
-        from backend.commands.executor import CommandExecutor
-
-        # DEBUG: Log all marshals and their autonomy state
-        debug_print("\n" + "=" * 70)
-        debug_print("🔍 DEBUG: Checking for autonomous marshals")
-        debug_print("=" * 70)
-        for m in self.world.marshals.values():
-            auto_status = "AUTONOMOUS" if getattr(m, 'autonomous', False) else "normal"
-            debug_print(f"  {m.name} ({m.nation}): {auto_status}, turns={getattr(m, 'autonomy_turns', 0)}")
-
-        autonomous_marshals = [
-            m for m in self.world.marshals.values()
-            if m.nation == self.world.player_nation and getattr(m, 'autonomous', False)
-        ]
-
-        debug_print(f"🔍 DEBUG: Found {len(autonomous_marshals)} autonomous player marshals")
-
-        if not autonomous_marshals:
-            debug_print("🔍 DEBUG: No autonomous marshals - skipping report")
-            return {
-                "show_independent_command_report": False,
-                "independent_command_report": []
-            }
-
-        debug_print("\n" + "=" * 70)
-        debug_print("INDEPENDENT COMMAND REPORT")
-        debug_print("=" * 70)
-
-        executor = CommandExecutor()
-        ai = EnemyAI(executor)
-
-        report = []
-
-        for marshal in autonomous_marshals:
-            debug_print(f"\n--- {marshal.name} (Autonomous, {marshal.autonomy_turns} turns remaining) ---")
-
-            # V2-26: Wrap per-marshal body in try/except so one crash doesn't kill the turn
-            try:
-                # Execute AI action for this marshal (aligned with player's nation)
-                action_result = ai.decide_single_action(
-                    marshal=marshal,
-                    nation=self.world.player_nation,  # France - only attacks enemies of France
-                    world=self.world,
-                    game_state=game_state
-                )
-
-                # Track performance based on result
-                if action_result and action_result.get("result"):
-                    result = action_result["result"]
-
-                    # Check for battle outcomes
-                    if result.get("battle_won"):
-                        marshal.autonomous_battles_won += 1
-                        debug_print(f"  Battle won! (Total: {marshal.autonomous_battles_won})")
-                    elif result.get("battle_lost"):
-                        marshal.autonomous_battles_lost += 1
-                        debug_print(f"  Battle lost! (Total: {marshal.autonomous_battles_lost})")
-
-                    # Check for region capture
-                    if result.get("region_captured"):
-                        marshal.autonomous_regions_captured += 1
-                        debug_print(f"  Region captured! (Total: {marshal.autonomous_regions_captured})")
-
-                # Decrement autonomy turns
-                marshal.autonomy_turns -= 1
-
-                # FA-26 rider (September 5, 2026): this report rides the
-                # end-turn RESPONSE, and the executor result it embeds carries
-                # `new_state` — the live WorldState, circular, tuple-keyed
-                # maps inside. `jsonable_encoder` walked it and the turn AFTER
-                # a grant of autonomy answered with a 500, the world already
-                # advanced (measured on the pre-slice tree with the debug
-                # trigger: grant_autonomy 200, next `end turn` 500). The
-                # question FA-26 now asks made the crash reachable in ordinary
-                # play; the strip lives here, the one place the whole result
-                # is embedded (the R4 serialization warning, CLAUDE.md).
-                _report_result = (
-                    dict(action_result["result"])
-                    if action_result and isinstance(action_result.get("result"), dict)
-                    else {"message": "No action taken"})
-                _report_result.pop("new_state", None)
-
-                # Build report entry
-                report_entry = {
-                    "marshal": marshal.name,
-                    "action": action_result.get("action") if action_result else "wait",
-                    "target": action_result.get("target") if action_result else None,
-                    "result": _report_result,
-                    "turns_remaining": marshal.autonomy_turns,
-                    "performance": {
-                        "battles_won": marshal.autonomous_battles_won,
-                        "battles_lost": marshal.autonomous_battles_lost,
-                        "regions_captured": marshal.autonomous_regions_captured
-                    }
-                }
-
-                # Check if autonomy is ending
-                if marshal.autonomy_turns <= 0:
-                    end_result = self._end_autonomy(marshal)
-                    report_entry["autonomy_ended"] = True
-                    report_entry["end_result"] = end_result
-                    debug_print(f"\n  AUTONOMY ENDED: {end_result['message']}")
-
-            except Exception as exc:
-                _errors.report(exc, "turn_manager.TurnManager._process_autonomous_marshals: ai.decide_single_action")
-                import traceback
-                debug_print(f"[ERROR] Autonomous marshal {marshal.name} crashed: {traceback.format_exc()}")
-                marshal.autonomy_turns -= 1
-                report_entry = {
-                    "marshal": marshal.name,
-                    "action": "error",
-                    "target": None,
-                    "result": {"message": f"{marshal.name} encountered an error during independent command"},
-                    "turns_remaining": marshal.autonomy_turns,
-                    "performance": {
-                        "battles_won": marshal.autonomous_battles_won,
-                        "battles_lost": marshal.autonomous_battles_lost,
-                        "regions_captured": marshal.autonomous_regions_captured
-                    }
-                }
-
-            report.append(report_entry)
-
-        return {
-            "show_independent_command_report": True,
-            "independent_command_report": report
-        }
-
-    def _end_autonomy(self, marshal) -> Dict:
-        """
-        Evaluate marshal performance and restore control.
-
-        Performance tiers (RELATIVE gains from ~20 floor, prevents exploit):
-        - Spectacular: 2+ battles won OR 1+ region captured → +40 trust, +10 authority
-        - Success: positive score → +25 trust
-        - Neutral: zero score → +15 trust
-        - Failure: negative score → +5 trust
-
-        Note: Vindication does NOT change during autonomy.
-        Vindication tracks "marshal objected to player's order and was right/wrong."
-        During autonomy there are no player orders - trust changes capture outcomes.
-
-        Returns:
-            Result dict with message, tier, and new trust
-        """
-        # Log trust before change
-        old_trust = marshal.trust.value
-        debug_print(f"\n[AUTONOMY END] {marshal.name}")
-        debug_print(f"  Trust before: {old_trust}")
-        debug_print(f"  Performance: {marshal.autonomous_battles_won}W / {marshal.autonomous_battles_lost}L / {marshal.autonomous_regions_captured} captured")
-
-        marshal.autonomous = False
-
-        # Calculate performance score
-        score = (
-            marshal.autonomous_battles_won * 2 +
-            marshal.autonomous_regions_captured * 3 -
-            marshal.autonomous_battles_lost * 2
-        )
-
-        spectacular = (
-            marshal.autonomous_battles_won >= 2 or
-            marshal.autonomous_regions_captured >= 1
-        )
-
-        # All RELATIVE gains (not flat values) to prevent exploit
-        if spectacular:
-            marshal.trust.modify(+40)  # 20 → 60 (Reliable, not fully Trusted)
-            from backend.game_logic import standing as _standing
-            _standing.move(self.world, marshal.nation, +10, "spectacular_return",
-                           party=marshal.name, marshal=marshal.name)
-            message = f"{marshal.name} has proven themselves spectacularly! Trust +40, Authority +10."
-            tier = "spectacular"
-        elif score > 0:
-            marshal.trust.modify(+25)  # 20 → 45 (Recovering)
-            message = f"{marshal.name} performed well independently. Trust +25."
-            tier = "success"
-        elif score == 0:
-            marshal.trust.modify(+15)  # 20 → 35 (Still strained)
-            message = f"{marshal.name} returns to your command. Trust +15."
-            tier = "neutral"
-        else:
-            marshal.trust.modify(+5)   # 20 → 25 (Barely above floor)
-            message = f"{marshal.name} struggled but shows humility. Trust +5."
-            tier = "failure"
-
-        new_trust = marshal.trust.value
-
-        # Log trust after change
-        debug_print(f"  Trust after: {new_trust} (score={score}, tier={tier})")
-
-        # Reset tracking fields
-        marshal.autonomous_battles_won = 0
-        marshal.autonomous_battles_lost = 0
-        marshal.autonomous_regions_captured = 0
-        marshal.autonomy_turns = 0
-        marshal.autonomy_reason = ""
-
-        return {
-            "message": message,
-            "tier": tier,
-            "new_trust": int(new_trust),
-            "old_trust": int(old_trust),
-            "score": score
-        }
 
     def _run_ai_phases(self, ai, nation: str, game_state: Dict):
         """(nation_results, admin_results) for one court: its military phase

@@ -555,16 +555,39 @@ class TestTheBeltsSixOneNamed:
             "marshal": "Ney", "options": [],
         }) == J.PETITION_QUEUED
 
-    def test_the_sovereign_cannot_be_made_autonomous(self, europe):
+    def test_the_sovereign_cannot_be_put_out_of_the_players_hands(self, europe):
         """§6.1 row 9 names an "autonomy gate"; only the trust freeze
-        landed, and this debug arm could break it while its own sibling
-        `dismiss` DID get the guard."""
+        landed, and the debug arm `set_autonomy` could break it while its own
+        sibling `dismiss` DID get the guard.
+
+        Row IC, Session 2b (November 20, 2026): the autonomous state and that
+        arm are gone. The arm that stands in its place opens a marshal's
+        AUDIENCE (whose first answer is the task to prove himself, under
+        which he takes no orders) — and it carries the same guard."""
         ex = CommandExecutor()
+        napoleon = europe.marshals["Napoleon"]
+        trust = napoleon.trust.value
+        # (the arm is a DEBUG arm: the old pin sent it down the `cheat` road,
+        # which never carried it, and so passed whatever the arm did)
         out = ex.execute({"success": True, "command": {
-            "action": "cheat", "cheat_type": "set_autonomy",
-            "marshal": "Napoleon", "value": "5",
+            "action": "debug", "target": "audience Napoleon",
         }}, {"world": europe, "debug_mode": True})
-        assert europe.marshals["Napoleon"].autonomous is False, out
+        assert out.get("success") is False, out
+        assert "asks no audience of himself" in out["message"]
+        assert napoleon.trial is None and napoleon.trust.value == trust
+        assert europe.pending_redemption is None and not napoleon.redemption_pending
+        # the premise: for a marshal the arm DOES open the audience ...
+        ney = ex.execute({"success": True, "command": {
+            "action": "debug", "target": "audience Ney",
+        }}, {"world": europe, "debug_mode": True})
+        assert ney.get("success") is True and europe.pending_redemption["marshal"] == "Ney"
+        assert europe.pending_redemption["options"][0]["id"] == "trial"
+        # ... and the retired arm is no arm at all
+        old = ex.execute({"success": True, "command": {
+            "action": "debug", "target": "set_autonomy Napoleon 5",
+        }}, {"world": europe, "debug_mode": True})
+        assert old.get("success") is False, old
+        assert napoleon.trial is None and not hasattr(napoleon, "autonomous")
 
     def test_the_restlessness_loop_skips_him(self, europe):
         """§6.1 cut-set row 4 names a belt in the restlessness loop."""

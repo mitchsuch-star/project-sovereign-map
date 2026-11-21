@@ -340,6 +340,10 @@ CAMPAIGN_LOG_TYPES = {
     # goal the Emperor names for a war (191 -> 193, flipped consciously)
     "army_roster",
     "war_goal",
+    # Row IC, Session 2b: the task to prove himself — given, on a roll, ended
+    # (its band), or settled when an old save loads (193 -> 194, flipped
+    # consciously)
+    "marshal_trial",
     # PL-14: Ultimatum events
     "ultimatum_issued",
     "ultimatum_accepted",
@@ -707,6 +711,7 @@ CATEGORY_MAP = {
     "title_conferred": "command",
     "army_roster": "command",
     "war_goal": "command",
+    "marshal_trial": "command",
     # PL-14: Ultimatum events
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
@@ -826,7 +831,7 @@ LOG_TIER_NOTABLE = frozenset({
     "garrison_assault", "glory_crowned", "jealousy_autonomous",
     "jealousy_confrontation", "jealousy_escalation", "jealousy_fired",
     "law_enacted", "marshal_bond", "marshal_broken", "marshal_commissioned",
-    "marshal_released", "marshal_wounded", "moment", "offensive_cascade",
+    "marshal_released", "marshal_trial", "marshal_wounded", "moment", "offensive_cascade",
     "proposal_arrived", "region_captured", "retreat",
     "rivalry_confrontation", "settlement_summary", "strait_open",
     "strait_shut", "te_deum", "third_party_peace", "ultimatum_accepted",
@@ -1039,6 +1044,7 @@ _PLAYER_COURT_RECORDS = frozenset({
     "fontainebleau_petition", "rente_defaulted", "marshal_commissioned",
     "order_voided_by_battle",
     "marshal_bond", "title_in_the_gift", "title_conferred",
+    "marshal_trial",      # row IC, Session 2b: the task to prove himself
 })
 
 
@@ -2182,7 +2188,7 @@ def _oneliner_the_field(ctx: OnelinerContext):
         # deed — he gave battle on the road at favourable odds without an
         # order; the log names it as his, not the march's.
         if ctx.event.get("initiative"):
-            line += " — on his own judgment, on the road"
+            line += " — by his own judgment, on the road"
         # W6-6: the enemy commander's one-line register rides as a flavor
         # suffix (already humanized + quoted at composition).
         enemy_voice = ctx.event.get("enemy_voice")
@@ -2388,8 +2394,8 @@ def _oneliner_purse_and_court(ctx: OnelinerContext):
         marshal = ctx.event.get("marshal", "Unknown")
         nation = ctx.event.get("nation", "")
         target = humanize_entity_name(ctx.event.get("target", "the enemy"))
-        return (f"{_name_tag(marshal, nation)} attacked {target} on his own "
-                f"initiative, hungry for glory")
+        return (f"{_name_tag(marshal, nation)} attacked {target} without "
+                f"waiting for orders, hungry for glory")
 
     if ctx.event_type == "jealousy_confrontation":
         marshal = ctx.event.get("marshal", "Unknown")
@@ -2773,7 +2779,7 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
 
     if ctx.event_type == "defiance":
         marshal = ctx.event.get("marshal", "Unknown")
-        defiance_action = _display_defiance_action(ctx.event.get("defiance_action", "acted independently"))
+        defiance_action = _display_defiance_action(ctx.event.get("defiance_action", "chose another course"))
         return f"{marshal} defied orders and {defiance_action} instead"
     return _NEXT_STAGE
 
@@ -3908,6 +3914,39 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         tail = (f" — passed over: {', '.join(over)}" if over else "")
         styled = marshal_title(ctx.world, str(ctx.event.get("marshal", "") or ""), start=True) or marshal
         return f"{styled} is created {ctx.event.get('title', 'a duke')}{tail}"
+
+    if ctx.event_type == "marshal_trial":
+        # Row IC, Session 2b: the task to prove himself, one line per phase
+        # (`backend/game_logic/trial.py` writes the event).
+        marshal = humanize_entity_name(ctx.event.get("marshal", "Unknown"))
+        phase = str(ctx.event.get("phase") or "")
+        gain = int(ctx.event.get("trust_gain", 0) or 0)
+        authority = int(ctx.event.get("authority_gain", 0) or 0)
+        moved = (f"trust +{gain}" + (f", authority +{authority}" if authority > 0 else "")
+                 if gain > 0 else "trust unchanged")
+        if phase == "given":
+            place = humanize_entity_name(str(ctx.event.get("place") or ""))
+            # the task in its own words — "free Swabia for Bavaria and hold
+            # it", "drive Mack out of Swabia and hold there" (the review: every
+            # take read "take X and hold it", of a province that is not kept)
+            doing = str(ctx.event.get("doing") or "") or (
+                f"take {place} and hold it" if ctx.event.get("task") == "take"
+                else f"hold {place}" if place else "hold where he stands")
+            return (f"{marshal} is given a task to prove himself — to {doing}; "
+                    f"he takes no orders until it ends")
+        if phase == "roll":
+            place = humanize_entity_name(str(ctx.event.get("place") or ""))
+            tail = f" and goes for {place}" if place else ""
+            return f"{marshal} is on a roll — his task runs one more turn{tail}"
+        if phase == "settled":
+            return (f"{marshal} was acting without orders when the game was saved — "
+                    f"settled on loading ({moved})")
+        band = str(ctx.event.get("band") or "")
+        if not band:
+            return f"{marshal}'s task to prove himself ended with his corps"
+        result = {"spectacular": "he has proved himself", "good": "a good result",
+                  "none": "little to show for it", "poor": "a poor result"}.get(band, band)
+        return f"{marshal}'s task to prove himself is over — {result} ({moved})"
 
     # PL-14: Ultimatum events
     if ctx.event_type == "ultimatum_issued":

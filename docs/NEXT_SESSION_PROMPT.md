@@ -1,11 +1,51 @@
-# NEXT SESSION PROMPT — Row IC, Session 2b: the task to prove himself (read the first block)
+# NEXT SESSION PROMPT — Row IC, Session 3: on his own (read the first block)
 
-> **READ THIS FIRST — the next session is ROW IC's SESSION 2b** (the section "## Row IC, Session 2b — the task to
-> prove himself: the plan, decided" below). Then row IC's Sessions 3 and 4, then **Session H, the deploy** (its
-> section is kept below, with the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2 (row IC).
+> **READ THIS FIRST — the next session is ROW IC's SESSION 3** (the section "## Row IC, Session 3 — on his own:
+> the plan, decided" below — **the user's direction stands at its head**). Then row IC's Session 4, then
+> **Session H, the deploy** (its section is kept below, with the lines that overrule it). The order is
+> `PRE_DEPLOY_PLAN.md` §2 (row IC).
 >
-> Overwritten each time a session hands off. Current hand-over: **November 20, 2026 — ROW IC, SESSION 2: BUTTONS
-> FOR ORDERS, THE LINE FOR TASKS, EXACT ORDERS ✅ BUILT AND COMMITTED — NOT PUSHED (it waits for his word).** His
+> Overwritten each time a session hands off. Current hand-over: **November 20, 2026 — ROW IC, SESSION 2b: THE
+> TASK TO PROVE HIMSELF ✅ BUILT AND COMMITTED — NOT PUSHED (it waits for his word).** His words in its Plan Mode:
+> "its good but he shouldnt take orders if its low trust and he does it for x turns then maybe you get control
+> unless hes on a roll etc. also make sure when you give genmrals autonomy they really do stuff and iunteract
+> withe achother and even help their friends your strategoic suggestions are just guidance for ai" — and his two
+> answers, "No call-back" and "He presses on". Built (`SYSTEMS_REFERENCE.md` §232; `BUG_FIXES.md` §"Row IC,
+> Session 2b"; `backend/game_logic/trial.py`; `tests/test_autonomy.py` rewritten, `tests/test_ic9b_the_trial.py`;
+> the driven `TestRowIC9bTheTaskToProveHimself` and `TestRowIC9bTheAudienceAtTheCompactView`): the audience's arm
+> **"Give him a task to prove himself"** where "Grant Autonomy" stood — his own proposal by nature, said in full
+> on the window, given free; **no orders at all until it ends, and no call-back**; three turns, **one more for
+> each last turn ended on a victory, six at most**; today's rewards by what he did; old saves settled on
+> loading; the words census. **Deleted in the same commit:** `TurnManager._process_autonomous_marshals`,
+> `_end_autonomy`, every reader, the six autonomy fields — no French marshal is ever moved by the enemy's
+> decision logic. IC2-D1 is closed. **The second sentence of his words is Session 3's subject** and heads its
+> plan below.
+> **Its traps (fresh):** (1) **an order with NO NAME on it** ("retreat", "attack", "scout X", "bombard X",
+> "attack <enemy>") is routed to the man it picks BELOW the executor's refusal, which reads the name — a rule
+> that closes a man to orders must also be taught to the five pickers (`executor._MARSHAL_LESS_TYPES`); the
+> review found it, and a typed "retreat" had walked a man on his task off it; (2) every `CAMPAIGN_LOG_TYPES`
+> count pin keeps the WHOLE chain of earlier "flipped consciously" rationales on its line — a flip PREPENDS,
+> never replaces (two censuses catch it only in the full run); (3) `tools/playtest_scripts/commanded_provoke40.json`
+> carries its own policy `"redemption": "dismiss"` — pass `--answer trial` to `tools/_ic2b_measure.py`; (4) the
+> suite's `/new_game` boots bare Europe: a served-campaign test seats its own marshals; (5) the audience's debug
+> arm is on the `debug` road (`{"action": "debug", "target": "audience <marshal>"}`), never `cheat`; (6) blind
+> readers doubt a greyed button — where the screen says "he takes no orders", take the control away; (7) a
+> window that gains long text must be pressed at the compact view too (Interface Scale 2.0 on 1600 x 900): the
+> audience ran 77 px past the screen there while it fitted at his setup; (8) `end_turn` stands at 493 of its 499
+> lines — a new step goes in a helper; (9) the NPC-2 census wants `clear_order_bound_interrupt` within six
+> lines before or twenty after any `strategic_order = None`; (10) a wording sweep can move another feature's
+> driven pins ("on his own order" → "by his own order" moved the directives') — run the engine lane after one;
+> (11) a status line must read the thing that will RUN, never a copy of it (`trial.announced_take`); (12) a
+> multi-file patcher that stops at its first mismatch leaves the earlier files written — re-run only what is
+> left; (13) shell heredocs still mangle backslashes: write every script with the Write tool; (14) the top
+> bar's keys ("G") are typed INTO the command line when it has the focus — the instrument presses the button
+> (`click Generals (G)`); (15) the full run takes 17 to
+> 20 minutes at ten workers, and two older tests that time the real client can stop it on a busy machine —
+> the hook stopped this commit once on them (the head of Session 3's plan below).
+>
+> The hand-over before it: **November 20, 2026 — ROW IC, SESSION 2: BUTTONS
+> FOR ORDERS, THE LINE FOR TASKS, EXACT ORDERS ✅ BUILT AND COMMITTED, and PUSHED November 20 at his word ("Push
+> it").** His
 > words: "make sure buttons exist for simpler things but typing is used for missions and excepts a wide array if
 > things". Built (`SYSTEMS_REFERENCE.md` §231; `BUG_FIXES.md` §"Row IC, Session 2"; `tests/test_ic7_the_buttons.py`,
 > `test_ic8_the_line.py`, `test_ic9_exact_orders.py`; the driven `TestRowIC7TheButtons`): **the buttons** — one
@@ -18,7 +58,7 @@
 > (`backend/commands/if_thens.py`: eight ifs, five thens, three lines for a literal man and one on a hold for the
 > others). Ten rows closed (UI6-X70, X73, X74, X75, WS-12 with GRD-33, WS-14, IC-V1 … IC-V4). **NOT built: the
 > trust crisis's "Grant Autonomy" replaced by a task to prove himself** — the plan's decided fork was taken at the
-> checkpoint; it is Session 2b (row IC2-D1, two strict-xfail pins).
+> checkpoint; it is Session 2b (row IC2-D1, two strict-xfail pins). *(✅ Built the same day — the hand-over above.)*
 > **Its traps (fresh):** (1) a harness's client hides the reading under the command line (`UiSettings.get_readback`
 > defaults to off under a harness) — a walk that means to read it sets `DD_B_READBACK=1`; (2) the general's card
 > stands on its BOTTOM edge: whatever makes it taller lifts every row above the new one — add rows above what was
@@ -169,21 +209,24 @@
 
 **FIRST — in this order:**
 
-0. `git log`: the review of "on his own" is ONE commit (the design, the ledgers, the plan's row and the pins — no
-   game code), pushed November 20 at the user's word; before it row IC's two commits — the desk (pushed November 19,
-   "Push both") and directives (pushed November 20, "Push it") — and row PW's, each through the hook. Read
-   `STATUS.md` ▶ NEXT UP first, then the spec's §1.3, §6.11, §8 and §15.
-1. **ROW IC, SESSION 2** — the section "## Row IC, Session 2 — the plan, decided" below. Plan Mode first (the
-   user's standing rule); the plan is decided there, so the Plan-Mode draft is that plan made concrete — no question
-   is owed him.
-2. **Then row IC's Sessions 3 and 4** (the spec's §15: on his own; the voice and the other side of the hill), each
-   its own Plan-Mode session.
+0. `git log`: row IC's Session 2b is ONE commit (the task to prove himself; the old engine deleted) — NOT pushed
+   unless he has said so since; before it Session 2 (`cc7dc22b`, pushed November 20, "Push it"), the review of "on
+   his own" (`a2518541`, pushed), directives and the desk — each through the hook. Read `STATUS.md` ▶ NEXT UP
+   first, then the spec's §1.1 (his words of November 20, both sets), §6, §13 and §15.
+1. **ROW IC, SESSION 3** — the section "## Row IC, Session 3 — on his own: the plan, decided" below. Plan Mode
+   first (the user's standing rule); his direction heads the plan and its forks are decided there, so the
+   Plan-Mode draft is that plan made concrete against the code as it then stands. The section's head lists
+   three small finds of Session 2b's last night, each with a recommendation — filed and fixed first.
+2. **Then row IC's Session 4** (the spec's §15: the voice, and the other side of the hill), its own Plan-Mode
+   session.
 3. **Then SESSION H — S15 THE DEPLOY** (the section below; read first `PRE_DEPLOY_PLAN.md` §2 S15 and
    `DYNAMISM_SPEC.md` §7). Its head's open rows — each a defect with a strict-xfail pin, none a call:
    **WS-10** (the war room keeps the bare digits; a docked ledger's tabs move to Alt+1–8 and its lead line says
    so — `TestWS10TwoSurfacesClaimTheBareDigits`), **WS-R** (the readers' unconfirmed finds), **PW3-D1** (row PW
-   part 3: the Cabinet's first page seats its courts in columns — `TestPW3D1TheCabinetsCourtListHasRoom`); **moved
-   November 20, 2026 to row IC's IC-8** (the read-back of typed tasks depends on them): **WS-12 with GRD-33** (the
+   part 3: the Cabinet's first page seats its courts in columns — `TestPW3D1TheCabinetsCourtListHasRoom`), **IC2-N1** (row IC's
+   Session 2: at his setup the command line shows about twenty characters of a typed task — the strict-xfail driven
+   pin `TestRowIC7TheButtons::test_the_command_line_shows_the_task_being_typed`); **moved
+   November 20, 2026 to row IC's IC-8 and ✅ FIXED there, in Session 2** (the read-back of typed tasks depends on them): **WS-12 with GRD-33** (the
    live model's number moves nothing — `TestWS12AModelsNumberMovesAMarshal`, `TestSessionHsHead::test_grd33_…`),
    **WS-14** (the readback's standing question) and **UI6-X70, X73, X74, X75** (the typed order road's compound
    subjects; GRD-16, "Did you mean Ney?", was BUILT by row PW part 2); and — CLOSED by row
@@ -229,7 +272,154 @@ say what is built and what is not.
 
 ---
 
-## Row IC, Session 2b — the task to prove himself: the plan, decided (November 20, 2026)
+## Row IC, Session 3 — on his own: the plan, decided (November 20, 2026)
+
+**The user's direction heads this session** (Session 2b's Plan Mode, November 20, 2026 — his words):
+
+> "also make sure when you give genmrals autonomy they really do stuff and iunteract withe achother and even help
+> their friends your strategoic suggestions are just guidance for ai"
+
+Read as four rules, each built INTO the slices below and three of them measured by a rule written before any data
+(`docs/INDEPENDENT_COMMAND_SPEC.md` §1.1, §13, D36):
+
+1. **They really do stuff — R-ACTS.** Each man on his own does something the player can see (a march, a fight, a
+   siege, a probe, a look, a first dig-in, a join) on at least 7 nights in 10; "stays put" is under 3 in 10; a
+   bold man with a seen enemy within two marches fights, besieges or marches toward him on at least half of
+   those nights.
+2. **They work with each other — R-TOGETHER.** Men near the same seen enemy never make two separate attacks on
+   him (a test); on at least half of such nights one man's line names another — he joins him, covers his road
+   or flank, or supports him.
+3. **They help their friends — R-FRIENDS.** Every man on his own, not Lannes alone, answers the battle of any
+   of our corps attacked within his reach — by the game's own arrival roll, shown as "may" — never a man he
+   hates; a friend (a relationship of +1 or more) first.
+4. **Your task is guidance.** The typed task names the aim and the area; each night's act is HIS choice inside
+   it — by his nature, his line, his record and the men beside him — and is shown under "Tonight" before the
+   turn ends. (D8 stands: he never improvises unseen. Guidance means you need not say how.)
+
+**What it is.** The spec's Session 3 — slices **IC-10** (the order, the pure reading, the pass, "Tonight", the
+count and its law, giving it by the line, the morning block, the exemptions, the petition's button, the desk
+row's two buttons), **IC-11** (the men differ: proposals, ways of waiting, the third night, one man per target,
+the recent record, the personal lines; R-VARIETY) and **IC-12** (an army's task; "take the war goal").
+
+**Read first:** `docs/INDEPENDENT_COMMAND_SPEC.md` §0, §2, §6 whole (§6.5 and §6.7 carry notes for D36), §7, §8.6,
+§9.1, §12, §13 (the rules), §14 (verify every line against the code first), §15, §16 (D32–D36);
+`SYSTEMS_REFERENCE.md` §231 and §232; `backend/game_logic/trial.py` — Session 2b's reader is what this session
+generalises; `tests/test_ic9b_the_trial.py::TestTheWordsCensus`. Plan Mode first (his standing rule); the forks
+below are decided, so the Plan-Mode draft is this plan made concrete against the code as it then stands.
+
+**What Session 2b left that this session stands on** (verify each name first):
+
+- ONE pure reader of "a place the enemy holds that he may go for, as France sees it": `trial._reading`,
+  `_place_to_take` (nearest, then fewest known defenders, then name; never a place France knows to outnumber
+  him; an enemy on a friend's ground is driven out; an ally's ground is freed for that ally).
+- The friend he helps: `trial._friend_to_help` (the weakest of our corps next to him, never a man he hates) and
+  the join line that fires inside the friend's battle (`if_thens.join_line`,
+  `combat_executor._calculate_reinforcements`' row `joined_by_line`). R-FRIENDS is that seam made a standing
+  disposition of every man on his own — not a written line, not used up.
+- A take that rides a standing order and is run once by the pass: `StrategicOrder.opening_take`,
+  `trial.run_take` (the fired-if-then attack idiom; the last look by the proposal's own reader; never a night
+  late: `trial.drop_take`, `trial.announced_take`).
+- **An order with no name on it** ("retreat", "attack", "scout X", "bombard X", "attack <enemy>") is routed
+  below the executor's refusal: the pickers pass over a man who takes no orders
+  (`_scan_general_attack_candidates`, `_execute_general_retreat`, the nameless scout and bombardment,
+  `find_nearest_marshal_to_region(…, for_order=True)`). A man on his own TAKES today's order (§6.3), so these
+  need a ruling of their own in this session's Plan Mode — decided below.
+- The audience's window sends back what it showed (`RedemptionResponse.shown`); every refusal that leaves the
+  audience standing carries the question again.
+- **The words census holds "on his own" on NO screen today.** This session must teach it the strings of a man
+  you set — by name, in the census's own exemption tables, never by widening a pattern.
+
+**The head of the session — three small finds of Session 2b's last night, none in its own code** (rule 10: each
+is filed in the ledger with its tag and fixed here, before the build; each recommendation is one line to reverse):
+
+1. **A slow list jumps** — the sibling of IC-P1 (`BUG_FIXES.md` §"Row IC — the second commit: DIRECTIVES"). When
+   `GET /directive_quote` takes longer than `DIRECTIVE_READING_DELAY_S` (0.35 s), `main.gd::_directive_show_reading`
+   opens the "reading" card, and `_on_directive_quote` then opens the list somewhere else. Read once, under the
+   hook's load: on "Hold…" the card moved from [1142, 50, 560, 207] (the middle of the 2844-wide view) to
+   [2272, 174, 560, 416] (its right edge), and the driven `TestRowICDirectives::test_the_list_fits_and_stands_still`
+   stopped the commit; it passes alone and passed on the next run. **Recommended:** the list opens where the
+   "reading" card stood — one anchor for both. **Done when:** a driven arm holds the reply past 0.35 s and the
+   card's rect does not move between "reading" and the list.
+2. **A stopwatch started late** — `tools/readback_harness.gd` stamps `_typed_at` AFTER `_on_command_text_changed`
+   returns, so under load the rest reads short: 144 ms against the pin's floor of 150 (the debounce is 220) in
+   `tests/test_cx_readback_history_fog.py::TestTheReadbackRow::test_one_ask_after_the_rest`, which stopped the same
+   run. **Recommended:** stamp before the call; the floor stands. **Done when:** the stamp is first and the module
+   passes five runs in a row beside a full run.
+3. **"Broken" on the Generals page** — the trust tile of a man at 20 or less carries the trust band's word
+   "Broken" (`backend/models/trust.py::get_label`, the tile's caption in `scripts/marshal_management.gd`), the word
+   the corps badge uses for a routed corps ("Broken - rallying", `scripts/marshal_state.gd`). **Recommended:** this
+   session's reading asks one more question on that page — "Is Ney's corps broken?" (the key: no — it is his trust
+   in you) — and the tile changes to "Trust broken" only if a reader answers yes; a test holds whichever stands.
+   **Done when:** the question is asked and scored, and the ledger's row says which way it went.
+
+**Scope — one slice, one commit, one review, one measure with arms:**
+
+1. **The order** (IC-10): one of the four tasks (take · pursue · hold · support) with its area, the risk step
+   (more · usual · less) and up to two if-thens (§6.1); who can be set (§6.2: a bold or a careful man at trust
+   30 or more — never a literal man, the Emperor, an ally's commander or a man on his task to prove himself);
+   the price (2 actions; 1 for a support) and [Withdraw] until the turn ends (§6.3); the count N — 1 at the
+   start, 2 with the Staff, 3 with the new law (§6.4).
+2. **The pure reading** — ONE reader of what he will do tonight, PURE (no write, no die, France's own sight; the
+   game's own battle forecast, never recomputed beside it): the card's "Tonight" line, the read-back and the
+   pass all ask it.
+3. **The pass** — FIRST of all when the turn ends (D6), in rank order (`precedence.order_of_precedence`), one
+   thing a turn (D7), each man's reading leaving out what a higher man has taken; what "Tonight" said, or he
+   stays put (D8).
+4. **His direction, in the pass:** R-FRIENDS at the reinforcement seam; the ways of waiting that R-ACTS needs
+   (§6.7 point 3: probe, look, strike a neighbour, a first dig-in, a siege — never the same idle act a third
+   night); the lead / join / cover lines that name each other (R-TOGETHER, §6.7 point 5).
+5. **Giving it by the line** (§6.9, §8.6): "Give him a task…" opens the command line already written with HIS
+   proposal; the read-back's four rows; the morning's block "Your marshals"; his move replayed on the map with
+   a mark that says he acted on his own; the desk's "On their own: n of N" and its rows; the life of the order
+   (§6.8); the petition's button.
+6. **The men** (IC-11): each marshal's own odds authored in the scenario file (the validator clamps them), his
+   proposal, his recent record, the personal lines (§6.7).
+7. **An army's task** (IC-12; §9.1): its commander on his own, the rest supporting by today's rules; "take the
+   war goal".
+8. **The words:** "on his own" only for a man you set; the census taught, never loosened.
+
+**Saves:** the order's new fields and each man's saved nights (`to_dict` / `from_dict` with `.get`,
+`SAVE_FORMAT_REFERENCE.md`, the enforcement test).
+
+**The measure — one sweep with arms** (as today · N 1 · N 2 at the start · N by the ladder) on the three
+commanded seeds, and R-VARIETY's 30 seeds × 20 turns: R-INERT, R-TRUE, R-BAND, R-FUN, R-VARIETY, **R-ACTS,
+R-TOGETHER, R-FRIENDS** — each reported per seed and per man; a miss is said as a miss. Play every new rule out
+on crafted boards before the sweep (his rule).
+
+**The reading** (R-READ; the bar and the key written before any frame; three fresh readers a round, a changed
+screen read again by a new panel; at his setup, Interface Scale 1.8 on 5120 x 1377): §13's "on his own"
+questions — "What will Masséna do tonight?" · "What might he do that you did not ask?" · "How many more men can
+you set on their own?" — and one for his direction: **"Ney is attacked beside Lannes, who is on his own. What
+does Lannes do?"**
+
+**Forks, decided now** (each one line to reverse):
+
+- *The session cannot hold all three slices at the standard* → land IC-10 with his direction built in (the
+  pass, "Tonight", the count, R-FRIENDS, the ways of waiting R-ACTS needs) and hand IC-11's remaining ways and
+  IC-12 to a Session 3b; nothing half-built — no man can be set on his own until the pass, "Tonight" and the
+  count are whole.
+- *R-ACTS is missed* → say it per man; add ways of waiting from §6.7's own list before anything else; the day's
+  nerve stays R-VARIETY's fallback and nothing else.
+- *R-BAND breaks on a commanded seed* → N at the start stays 1; reported per seed.
+- *"Guidance" against "Tonight is true"* → D8 stands. What he will do tonight is always shown before the turn
+  ends; guidance means the player names the aim and the area, never the how.
+- *A friend is attacked on a night he has already acted* → he still answers (the arrival roll): joining a
+  friend's battle in the enemy's phase is the one exception to "one thing a turn", as it is for the written
+  join line (§231.2).
+- *An order with no name on it and a man on his own* → he is an ordinary corps to it: today's order to a man on
+  his own is an ordinary order (§6.3) — its price, his one thing that turn. Only a man on his task to prove
+  himself is passed over.
+- *A man on his own whose trust falls to 20* → he asks for an audience like any man; the task to prove himself
+  ends his order "on his own" (he is under exact orders then, and is not counted).
+
+**Done when:** every rule of the spec's §13 that this session owns is met on the final tree, or the report says
+which was not, per seed; "Tonight" equals the act on every path of the life table; the count holds; the census
+passes with "on his own" only for a man you set; `tools/defect_census.py --open` lists no IC row but IC2-N1;
+the head's three finds are filed in the ledger and closed. STATUS line: *"ROW IC, SESSION 3 — ON HIS OWN"*. Then Session 4 (the voice, and the other side of the hill).
+
+---
+
+## Row IC, Session 2b — the task to prove himself: the plan as it was decided (November 20, 2026) — ✅ BUILT the same day; two of its lines were changed by his rulings in Plan Mode (no "Call him back"; three turns run longer on a roll)
 
 **What it is.** The half of IC-9 that Session 2 handed on at its checkpoint (ledger row **IC2-D1**, `BUG_FIXES.md`
 §"Row IC, Session 2"; `SYSTEMS_REFERENCE.md` §231.10): the trust crisis's "Grant Autonomy" replaced by **"Give him

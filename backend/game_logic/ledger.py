@@ -1914,6 +1914,13 @@ def _build_orders(world, player: str) -> list:
                 # `path_remaining` itself, so a frozen march must publish 0
                 # or the ORDERS tab keeps promising progress.
                 condition_text = "HALTED — awaiting your word"
+            # Row IC, Session 2b: the order of a man on his task to prove
+            # himself says so in the trial's own words — and the tab offers
+            # no cancel for it (`trial`): he takes no orders until it ends.
+            from backend.game_logic import trial as _trial
+            on_task = _trial.status_words(marshal) if _trial.on_trial(marshal) else ""
+            if on_task:
+                condition_text = f"{on_task} — he takes no orders"
 
             active_orders.append({
                 "marshal": marshal.name,
@@ -1935,6 +1942,7 @@ def _build_orders(world, player: str) -> list:
                 "started_turn": int(order.started_turn),
                 "arrived_turn": int(order.arrived_turn) if order.arrived_turn is not None else -1,
                 "has_order": True,
+                "trial": on_task,
             })
         else:
             # FA-N36, slice 17 review round (L3-4): an order-FREE decision

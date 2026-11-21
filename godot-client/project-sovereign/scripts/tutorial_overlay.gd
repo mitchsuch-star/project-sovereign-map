@@ -172,7 +172,7 @@ const STEPS := [
 		# not type. The buttons are built at runtime and carry the marshal's
 		# name and the trust figures, so only the stable leading words are
 		# named here.
-		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. TRUST is the currency of command — his card ([color=#e8d4a8]G[/color], or Alt+G while you type) shows the figure. Yield to him and it rises; overrule him and it falls. A marshal whose trust runs low may DEFY you — refuse an order, or act on his own judgement — and at the bottom he asks for a hearing you must answer. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
+		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. TRUST is the currency of command — his card ([color=#e8d4a8]G[/color], or Alt+G while you type) shows the figure. Yield to him and it rises; overrule him and it falls. A marshal whose trust runs low may DEFY you — refuse an order, or act by his own judgement — and at the bottom he asks for a hearing you must answer. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_objection_resolved",
@@ -264,7 +264,7 @@ const STEPS := [
 		# entry would land a mid-lesson reload on the wrong branch of VIII.
 		# It shows from the moment VIII completes (as "waiting") and
 		# releases itself on turn 5's first response.
-		"body": "Read the MUSTER before every battle: it names who WILL JOIN, who WILL NOT, and why — ask [color=#e8d4a8]what if Ney attacks Mack[/color] and Berthier reads it for nothing, before you commit. Your marshals are men with histories — press [color=#e8d4a8]G[/color] (Alt+G while you type): each card shows his TRUST in you, his GLORY, his skills, and whom he loves and hates. Ney and Soult are at odds; two marshals at odds bring half their weight to a shared battle, and friends fight better side by side. Glory is a ladder — in the great campaign a man who watches a rival crowned grows ENVIOUS: he petitions you, demands an estate, and may even march on his own. Here the school keeps the peace; envy sleeps in this lesson. Victories also raise a marshal's EXPECTATION of reward — the [color=#e8d4a8]Reward[/color] chip on his card pays it (an estate or a rente) before his loyalty erodes.",
+		"body": "Read the MUSTER before every battle: it names who WILL JOIN, who WILL NOT, and why — ask [color=#e8d4a8]what if Ney attacks Mack[/color] and Berthier reads it for nothing, before you commit. Your marshals are men with histories — press [color=#e8d4a8]G[/color] (Alt+G while you type): each card shows his TRUST in you, his GLORY, his skills, and whom he loves and hates. Ney and Soult are at odds; two marshals at odds bring half their weight to a shared battle, and friends fight better side by side. Glory is a ladder — in the great campaign a man who watches a rival crowned grows ENVIOUS: he petitions you, demands an estate, and may even attack without waiting for orders. Here the school keeps the peace; envy sleeps in this lesson. Victories also raise a marshal's EXPECTATION of reward — the [color=#e8d4a8]Reward[/color] chip on his card pays it (an estate or a rente) before his loyalty erodes.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_5",
@@ -273,7 +273,7 @@ const STEPS := [
 		"id": "strategic_order",
 		"turn_gate": 5,
 		"title": "X. Standing Orders",
-		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own). Every standing order stands on the map as an ARROW along the road still to march, its clock on the badge — click the arrow to cancel the order or change it. The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color], or Alt+T while you type) lists them all. And [color=#e8d4a8].[/color] finds your next marshal with nothing to do ([color=#e8d4a8]Alt+.[/color] while you type).",
+		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies by himself). Every standing order stands on the map as an ARROW along the road still to march, its clock on the badge — click the arrow to cancel the order or change it. The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color], or Alt+T while you type) lists them all. And [color=#e8d4a8].[/color] finds your next marshal with nothing to do ([color=#e8d4a8]Alt+.[/color] while you type).",
 		"suggest": "Davout, march to Franconia",
 		"suggest_action": "move",
 		"advance": "_pred_davout_marching",
@@ -1406,7 +1406,7 @@ func _pred_bombardment(response: Dictionary) -> bool:
 func _pred_davout_marching(response: Dictionary) -> bool:
 	# Any waypoint counts — the S5 live drive saw the pathfinder route the
 	# second leg through Munich around an enemy-held Franconia, which IS the
-	# lesson ("he routes around enemies on his own").
+	# lesson ("he routes around enemies by himself").
 	return _marshal_location(response, "Davout") in ["Swabia", "Munich", "Franconia"]
 
 

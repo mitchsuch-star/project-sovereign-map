@@ -107,7 +107,7 @@ class TestStructure:
             "is_fortified", "defense_bonus", "is_drilling", "drilling_locked",
             "shock_bonus", "is_retreating", "retreat_recovery",
             "is_broken", "broken_recovery",
-            "idle_turns", "is_autonomous", "autonomy_reason",
+            "idle_turns", "trial",
             # Unit specifics
             "cavalry", "counter_punch_available", "counter_punch_turns",
             "holding_position", "artillery", "bombardments_this_turn",
@@ -536,16 +536,20 @@ class TestStatusFlags:
         assert g["is_broken"] is True
         assert g["broken_recovery"] == 3
 
-    def test_autonomous_flag(self):
-        """Autonomous marshal shows correct state."""
+    def test_a_man_on_his_task_to_prove_himself_is_flagged(self):
+        """Row IC, Session 2b: the card carries his task (where the old
+        `is_autonomous` / `autonomy_reason` pair stood) — and nothing for a
+        man on no task."""
+        from backend.game_logic import trial
         world = _make_world()
         ney = world.marshals["Ney"]
-        ney.autonomous = True
-        ney.autonomy_reason = "redemption"
+        assert trial.give(world, ney)["given"]
         overview = build_marshal_overview(world)
         n = _find_marshal(overview, "Ney")
-        assert n["is_autonomous"] is True
-        assert n["autonomy_reason"] == "redemption"
+        assert n["trial"]["status"].startswith("On a task to prove himself — 3 turns left")
+        assert n["trial"]["turns_left"] == 3 and n["trial"]["line"].startswith("Ney, ")
+        assert _find_marshal(overview, "Davout")["trial"] is None
+        assert "is_autonomous" not in n and "autonomy_reason" not in n
 
     def test_idle_turns(self):
         """Idle turns tracked."""

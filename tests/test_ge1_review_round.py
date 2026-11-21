@@ -989,12 +989,12 @@ class TestNothingMovesAfterTheFall:
         from backend.ai.enemy_ai import EnemyAI
         from backend.commands.executor import CommandExecutor
         from backend.commands.strategic import StrategicOrderProcessor
-        from backend.game_logic import jealousy
+        from backend.game_logic import jealousy, trial
         from backend.game_logic.turn_manager import TurnManager
         monkeypatch.setattr(game_end, "SOVEREIGN_DEATH_CHANCE_PCT", 100)
         w = _boot()
         first = w.enemy_nations[0]
-        calls = {"admin": [], "strategic": 0, "jealousy": 0, "autonomous": 0}
+        calls = {"admin": [], "strategic": 0, "jealousy": 0, "trial": 0}
 
         def _turn(self, nation, world, game_state):
             if nation == first and "Napoleon" in world.marshals:
@@ -1013,19 +1013,21 @@ class TestNothingMovesAfterTheFall:
         def _jealousy(world):
             calls["jealousy"] += 1
 
-        def _autonomous(self, game_state):
-            calls["autonomous"] += 1
-            return None
+        def _trial(world, reports):
+            # (row IC, Session 2b: the nightly count of the men on their task
+            # to prove himself stands where the autonomous pass stood)
+            calls["trial"] += 1
+            return reports
         monkeypatch.setattr(EnemyAI, "process_nation_turn", _turn)
         monkeypatch.setattr(EnemyAI, "execute_admin_phase", _admin)
         monkeypatch.setattr(StrategicOrderProcessor, "process_strategic_orders", _strategic)
         monkeypatch.setattr(jealousy, "process_turn", _jealousy)
-        monkeypatch.setattr(TurnManager, "_process_autonomous_marshals", _autonomous)
+        monkeypatch.setattr(trial, "close_of_turn", _trial)
         tm = TurnManager(w, CommandExecutor())
         with contextlib.redirect_stdout(io.StringIO()):
             result = tm.end_turn({"world": w})
         assert game_end.terminal_ending(w)["cause"] == game_end.CAUSE_EAGLE_FALLS
-        assert calls == {"admin": [], "strategic": 0, "jealousy": 0, "autonomous": 0}
+        assert calls == {"admin": [], "strategic": 0, "jealousy": 0, "trial": 0}
         # The payload is cut from the CLOSED record.
         assert game_end.terminal_ending(w)["closed"] is True
         assert result["ending"]["cause"] == game_end.CAUSE_EAGLE_FALLS

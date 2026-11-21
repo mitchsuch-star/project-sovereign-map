@@ -120,7 +120,7 @@ class TestS14E1:
         assert result.get("first_step_combat") is True
         msg = result.get("message", "")
         assert "Archduke John bars the way at Tyrol, Sire — I can take him." in msg
-        assert "Massena engages him on the road, on his own judgment." in msg
+        assert "Massena engages him on the road, by his own judgment." in msg
         # the muster block rides the battle's head (the answered contact's idiom)
         assert "MUSTER" in msg   # the block rides the battle's head
         # a battle was fought — somebody bled
@@ -147,7 +147,7 @@ class TestS14E1:
         assert battles and battles[-1].get("initiative") is True
         from backend.campaign_log import format_event_oneliner
         line = format_event_oneliner(battles[-1], world)
-        assert "on his own judgment, on the road" in line
+        assert "by his own judgment, on the road" in line
 
     def test_the_teeth_both_ways(self, _r1_board):
         """The outcomes drive the teeth: a win takes the laurel and +2 trust,

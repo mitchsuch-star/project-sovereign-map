@@ -1,5 +1,15 @@
 # On His Own — the Emperor's desk, his marshals' judgement, and exact orders (row IC)
 
+> **Status: DESIGN, version 6 — amended in Session 2b's Plan Mode (November 20, 2026).** The user's words there,
+> verbatim: *"its good but he shouldnt take orders if its low trust and he does it for x turns then maybe you get
+> control unless hes on a roll etc. also make sure when you give genmrals autonomy they really do stuff and
+> iunteract withe achother and even help their friends your strategoic suggestions are just guidance for ai"* —
+> and his two answers to the questions the plan then put to him: **"No call-back"** and **"He presses on"**.
+> **What they change:** the task to prove himself has NO call-back and runs longer on a roll (§6.11 — BUILT in
+> Session 2b: §15's landing record, `SYSTEMS_REFERENCE.md` §232); a man you set on his own really acts, works
+> with the others and helps his friends, and your task to him is guidance (§1.1; §13's R-ACTS, R-TOGETHER and
+> R-FRIENDS, written before any data; D36) — Session 3 builds it.
+>
 > **Status: DESIGN, version 6 — November 20, 2026 — the review of "on his own".** The user's words that day,
 > verbatim: *"review the new autonomous generla conmcept assure low authority autonomy isnt in conflict even
 > removing it if needed and make sure buttons exist for simpler things but typing is used for missions and
@@ -13,7 +23,9 @@
 > of different natures do different things, night after night**, with no dice in their choice (§6.7); an
 > army's task (§9.1); the build re-cut into three sessions, all before the deploy (§15). Version 6 was read by
 > two fresh readers before its commit; **it has not been put to a scored panel**, and the user's own play
-> outranks every panel. Nothing version 6 adds is built yet; the desk and directives below are.
+> outranks every panel. Nothing version 6 adds is built yet; the desk and directives below are. *(Since
+> built: Session 2 — the buttons, the line for tasks, exact orders; Session 2b — the task to prove himself. Not
+> built: a man on his own (Session 3); the voice and the enemy's plans (Session 4).)*
 >
 > **Version 5's status, as it stood (November 19, 2026) — BOTH COMMITS the user approved are BUILT, the same day:
 > THE DESK (§4, §5, §11's menu steer; pushed November 19 at his word, "Push both") and DIRECTIVES (one list for
@@ -152,6 +164,25 @@ one delegation:
   task (§9.1).
 - **"full reveiw and u[pdates"** — the delegation: the review's rulings are taken here, each one line to
   reverse (§16), and the next session's prompt is pre-decided.
+
+**November 20, 2026 — Session 2b's Plan Mode** (quoted whole in the status block). Shown the plan for the task
+to prove himself, he said: *"its good but he shouldnt take orders if its low trust and he does it for x turns
+then maybe you get control unless hes on a roll etc. also make sure when you give genmrals autonomy they really
+do stuff and iunteract withe achother and even help their friends your strategoic suggestions are just guidance
+for ai"*. The plan then asked him two questions, and he chose **"No call-back"** and **"He presses on"**. Read
+as two rulings on the task and one direction for "on his own":
+
+- **"he shouldnt take orders if its low trust"** + "No call-back" — a man on his task to prove himself takes no
+  orders at all until it ends; version 6's "Call him back" is withdrawn (§6.11, D32).
+- **"he does it for x turns then maybe you get control unless hes on a roll"** + "He presses on" — three turns;
+  a last turn ended on a victory runs the task one turn longer, again each such turn, six at most (§6.11, D33).
+- **"when you give genmrals autonomy they really do stuff and iunteract withe achother and even help their
+  friends your strategoic suggestions are just guidance for ai"** — the direction for Session 3 (D36): a man on
+  his own acts on most nights; the men's acts name each other (one leads, one joins, one covers); every man —
+  not Lannes alone — answers the battle of a friend who is attacked within his reach, never a man he hates; and
+  your task to him names the aim and the area — each night's act is his own choice inside it, shown under
+  "Tonight" before the turn ends. Each has a rule written before any data (§13: R-ACTS, R-TOGETHER, R-FRIENDS).
+  What of it belonged to Session 2b is built: a man on his task helps the friend next to him.
 
 ### 1.2 The research behind it
 
@@ -510,7 +541,10 @@ says exactly what he will do.
 - **He does not leave his task for distant cannon fire** *(version 6)*. Today a bold man's standing order yields
   to a battle within two provinces (the "cannon_fire" redirect); a man on his own is exempt, and his card says
   so ("he will not leave his task for a battle elsewhere"). His only march to the guns is Lannes's line (§6.7) or
-  the arrival roll of §2, step 4 — shown, as "may", never promised.
+  the arrival roll of §2, step 4 — shown, as "may", never promised. *(Session 2b's Plan Mode, D36 — the user's
+  "even help their friends": he still never DROPS his task for the guns, but every man on his own — not Lannes
+  alone — answers the battle of a friend attacked within his reach by that arrival roll, and comes back to his
+  task; never for a man he hates. R-FRIENDS, §13.)*
 - **He makes no jealous strike.** The strike skips a man on his own (he has work; §6.10). The code needs a guard
   for it — today nothing in the strike's path reads such a state (IC-V3 is the same hole for the old one).
 
@@ -613,7 +647,8 @@ authored with the user's review, each a tested rule that **never contradicts the
 - **Murat** follows a beaten enemy two provinces, not one, and never storms walls.
 - **Ney**, on reaching an enemy, attacks at once at one step more risk.
 - **Lannes**: an enemy fighting a friend within two marches outranks any other target for him (his +15 to the
-  guns, made a choice).
+  guns, made a choice). *(D36: every man now answers a friend attacked within his own reach; what stays Lannes's
+  alone is the second march and the +15.)*
 - **Masséna** never chooses to give up a walled place short of being shattered.
 - **Davout** never chooses to fall back from a Hold he was attacked on (a beaten corps still retreats by the
   battle's rule).
@@ -699,14 +734,25 @@ design earns it at 30 and the laws raise it. Its code goes (`TurnManager._proces
 audience offers, as today, to pay what he is owed (when a debt stands), a quiet post on the staff, or dismissal
 — and, where "Grant Autonomy" stood, **"Give him a task to prove himself"**:
 - **His** task, proposed by him (§6.7's proposal — he names where he will prove himself), given as an **exact
-  order** (§7): the task and one if-then (three for a literal man), shown in full before you give it.
-- **Three turns.** He takes no other order meanwhile. "Call him back" ends it at any time; his trust then stays
-  where it is. **It costs no action** — it is the audience's answer, as "Grant Autonomy" was.
+  order** (§7): the task and one if-then (three for a literal man), shown in full before you give it. *(As
+  built, Session 2b: the if-then is the friend's — "if <friend> is attacked next to him, join his battle", the
+  weakest of our corps beside him, never a man he hates; a literal man also carries "if outnumbered, fall back".
+  A bold man is not sent at a place France knows to outnumber him; an enemy on a friend's ground is driven out,
+  not taken; an ally's ground in the enemy's hands is freed for that ally, and the words say so.)*
+- **Three turns — and no call-back** *(Session 2b's Plan Mode: the user's "he shouldnt take orders if its low
+  trust" and his answer "No call-back"; version 6 had "Call him back" ending it at any time — withdrawn, D32)*.
+  He takes no orders at all until his task ends: every order that names him is refused free — the one that would
+  cancel his standing order too — and an order with no name on it (a general retreat, a bare "attack") passes
+  over him and says so. **It costs no action** — it is the audience's answer, as "Grant Autonomy" was.
+- **Longer if he is on a roll** *(the user's "unless hes on a roll" and his answer "He presses on", D33)*: a last
+  turn ended on a victory — that turn he won a battle and lost none — runs his task one turn longer, and again
+  each such turn, **six turns at most**. No dice: his own battle record. A bold man on a roll goes for the next
+  enemy place in his reach, announced in the morning before he moves.
 - **Trust returns by what he achieves** — today's rewards, kept: +40 trust and +10 authority for a spectacular
   result (now *two battles won or a defended place taken*: an empty province proves nothing; a battle he wins
   defending counts — so a careful man holding a threatened province can earn it), +25 for a good one, +15 for
   none, +5 for a poor one.
-- **When the three turns end** he comes back to your hand with his new trust and no standing order, and the
+- **When his task ends** he comes back to your hand with his new trust and no standing order, and the
   morning says how he did.
 - **Always offered**, so the last field marshal is never left with no answer. Not counted (exact orders never
   are). Given only through the audience, so it cannot be bought at will; the audience's five-turn cooldown stands.
@@ -746,7 +792,8 @@ prove himself"*. Tests: `tests/test_ic9_exact_orders.py` (the trial's arm, the b
 old-save settle) and the rewritten `tests/test_autonomy.py`, `test_redemption_v2b.py`,
 `test_administrative_role.py`, `test_wo41_redemption_survives_the_save.py` — rewritten, never deleted, so the
 audience keeps its cover. **Until IC-9 lands, the game is unchanged** — and there is no conflict to meet in
-it: "on his own" is not built before Session 3.
+it: "on his own" is not built before Session 3. *(LANDED: Session 2b, November 20, 2026 — §15's landing record;
+the trial's own tests are `tests/test_autonomy.py`, rewritten, and `tests/test_ic9b_the_trial.py`.)*
 
 ---
 
@@ -1278,7 +1325,7 @@ measure is run.
 | *Version 6:* his recent record — after a win / after a defeat / a bold man's quiet nights | one step bolder / one step more careful / impatient after 3 | R-VARIETY and R-BAND |
 | The most steps from his own odds — one from you (word or chip) + one from him (record, impatience, Ney's line, or the nerve if built; never more than one together) | 2 | R-READ (the read-back shows all three numbers) |
 | The same idle act, nights running, before he must change it | 3 (never a third while another sensible act exists) | R-VARIETY |
-| A task to prove himself: turns; the bands | 3; +40 trust and +10 authority / +25 / +15 / +5 (today's) | kept from today; "spectacular" = two battles won or a defended place taken |
+| A task to prove himself: turns; the bands | 3, one more for each last turn ended on a victory, 6 at most *(Session 2b: the user's "He presses on")*; +40 trust and +10 authority / +25 / +15 / +5 (today's) | kept from today; "spectacular" = two battles won or a defended place taken |
 | The day's nerve (only if R-VARIETY is missed) | one step; a bold man bolder three days in ten, a careful man more careful three in ten | R-VARIETY's own arm |
 
 **The rules:**
@@ -1291,15 +1338,34 @@ measure is run.
   deliberate exception is the trust crisis's audience (IC-9): a commanded run whose playtest driver answers an
   audience with today's default, "Grant Autonomy", will answer it with the task to prove himself, so those runs
   move — Session 2 re-reads the France band and says per seed which moved and why. Everything else reproduces.
+  *(Read in Session 2b: no commanded seed of the band met a trust crisis — 26 / 27 / 28, the standing reading;
+  on the script that provokes one, 25 / 28 / 28 became 25 / 28 / 27 — §15's landing record.)*
 - **R-VARIETY** *(version 6, written before any data)*. On 30 seeds × 20 turns, with three bold men and two
   careful men on their own on the 1805 board: (1) all the men in reach of an enemy do the same act on **fewer than
   40%** of the turns they are all in reach; (2) **no man** takes the same waiting act a third night running while
   another sensible act existed (zero cases — a test, not a rate); (3) over 20 turns every man shows **at least two
   kinds** of act. If (1) or (3) is missed with §6.7's seven ways, the day's nerve (§6.7) is built as the arm, and
   kept only if the bar is then met with it and R-BAND still holds; the user is told which happened.
+- **R-ACTS** *(Session 2b's Plan Mode — the user's "they really do stuff"; written before any data)*. On
+  R-VARIETY's sweep, each man on his own does something the player can see on the map or in the morning's block
+  — a march, a fight, a siege, a probe, a look, a first dig-in, a join — on **at least 7 nights in 10**; "stays
+  put" (a repeated "digs in again — nothing has changed" included) is **under 3 nights in 10** for every man;
+  and a bold man with an enemy France can see within two marches fights, besieges or marches toward him on **at
+  least half** of those nights. Reported per man and per seed; a miss is said.
+- **R-TOGETHER** *(the user's "interact with each other"; written before any data)*. On the same sweep, on
+  nights when two or more men on their own stand within one march of the same seen enemy: **never** two
+  separate attacks on that enemy (zero cases — a test, not a rate); and on **at least half** of those nights
+  one man's line names another (he joins him, covers his road or flank, or supports him).
+- **R-FRIENDS** *(the user's "even help their friends"; written before any data)*. Every man on his own — not
+  Lannes alone — answers the battle of any of our corps attacked within his reach, by the game's own arrival
+  roll (shown as "may"), unless he hates him; a friend (a relationship of +1 or more) is answered first. A test
+  for each nature on a crafted board, not a rate; and on the sweep, the share of battles fought by a corps with
+  a man on his own in reach in which he at least rolled to arrive is reported per seed.
 - **The words census** *(version 6)*. A test reads every player-facing string of the marshals' screens: "autonomy"
   and "independent command" appear on none; "on his own" appears only for a man you set; the jealous strike says
   "without waiting for orders"; V2b says "refused your order" (the vassals' autonomy scale is exempt by name).
+  *(Built in Session 2b: `tests/test_ic9b_the_trial.py::TestTheWordsCensus` — "on his own" stands on NO screen
+  today; Session 3 teaches the census the strings of a man you set.)*
 - **R-TRUE.** Every act a marshal on his own made in the measure was exactly what "Tonight" said — or he stayed
   put, and the line had said he might.
 - **R-BAND.** With men on their own in use on the three commanded seeds, France's provinces at turn 40 stay
@@ -1315,7 +1381,8 @@ measure is run.
     men can you set on their own?" · "What will Soult do if Mack attacks him?"
   - *Version 6 — the buttons and the line:* "How would you make Murat chase Mack without typing?" · "You typed
     'Ney, retreat if outnumbered' — what will happen?" · "Why does Davout do something different tonight from
-    Ney?"
+    Ney?" *(The third, asked in Session 2b's form on the audience's window — "Why does Davout propose a different
+    task to prove himself from Ney?" — met in four rounds; it is asked again of two men on their own in Session 3.)*
   - *The enemy:* shown a literal marshal's captured orders — "What will he do if you do X?"
 - **R-HILL.** With the enemy's side on: the story classes and the France band hold on the standing seeds; a
   literal enemy marshal acts no less often than today, **averaged over the plans and reported per plan** (the
@@ -1536,6 +1603,30 @@ and hand IC-9 to its own session"; exact orders were built and tested at the che
 (four test files rewritten, about twenty touched) was not started. Nothing is half-built: the audience offers what
 it offered, and the shipped game never holds both "Grant Autonomy" and "on his own" (Session 3 follows 2b).
 
+**The landing record (November 20, 2026; the rules `SYSTEMS_REFERENCE.md` §232; the ledger `BUG_FIXES.md` §"Row
+IC, Session 2b"; the reading `docs/audits/ic_client/session2b/README.md`).** Built in one commit: the audience's
+arm `trial` (always offered), his proposal by nature, the task given free as an exact order, the take, the
+count, the settling by today's rewards, old saves settled on loading, the words census — and the old engine
+deleted (`TurnManager._process_autonomous_marshals`, `_end_autonomy`, every reader; the six autonomy fields left
+the Marshal; `EnemyAI.decide_single_action` refuses a marshal of the player's nation). IC2-D1 is closed, its two
+pins promoted. **What differs from the table above, each one line to reverse:** (1) **no "Call him back"** — the
+user's ruling in Plan Mode (D32); (2) **the roll** — three turns, one more for each last turn ended on a
+victory, six at most (D33); (3) the builder's own (D34): his score reads his own battle record from when the
+task was given, plus defended places taken (the old scoring was dead: it always paid +15); a bold man is not
+sent at a place France knows to outnumber him; an enemy on a friend's or a neutral's ground is driven out, an
+ally's ground is freed for that ally; the friend he helps is the weakest beside him; a take runs once, on the
+night it was announced for, and is never run a night late; an old save is settled from its own rows; the
+morning's line is a turn event told once; he has no order control on his card or his Generals page; the window
+sends back the proposal it showed. **The review** (three readers by lane on a frozen copy) found the class that
+mattered: an order typed with NO NAME on it — "retreat", "attack", "scout Bohemia" — never met the refusal,
+which reads the name; a typed "retreat" walked a man on his task off it. Twenty-four rows, every one fixed
+(IC2B-V1 … V24), and four more from one more reader who went over the fixes themselves (IC2B-V25 … V28). **The reading:** the bar met in each of four rounds — twelve fresh readers, forty-eight
+answers, forty-eight right; the first round's readers were right and in doubt (greyed order buttons under "he
+takes no orders"), so the card was rebuilt and read again. **The measure:** the band 26 / 27 / 28, the standing
+reading, no trust crisis on any commanded seed; on the provoking script 25 / 28 / 28 → 25 / 28 / 27, per seed in
+§232.10. **Boundaries** (§232.11): a great battle's "Let him decide" for a lead on his task (D35); a last stand
+is still the Emperor's to answer; a reckless cavalryman still charges; a lost battle still drives him off.
+
 ### Session 3 — On his own
 
 | Slice | What | Done when | Tests |
@@ -1545,8 +1636,21 @@ it offered, and the shipped game never holds both "Grant Autonomy" and "on his o
 | **IC-12** | An army's task (§9.1); "take the war goal" | An army's task is one list, its commander on his own and the rest supporting; changing the goal turns every man who serves it, at its price | `tests/test_ic12_an_armys_task.py` |
 
 Measure: one sweep with arms — as today; N 1; N 2 at the start; N by the ladder — on the three commanded seeds.
-R-INERT, R-TRUE, R-BAND, R-FUN, R-VARIETY; R-READ for "on his own". STATUS line: *"ROW IC, SESSION 3 — ON HIS
-OWN"*.
+R-INERT, R-TRUE, R-BAND, R-FUN, R-VARIETY, **R-ACTS, R-TOGETHER, R-FRIENDS**; R-READ for "on his own". STATUS
+line: *"ROW IC, SESSION 3 — ON HIS OWN"*.
+
+**The user's direction for this session** (Session 2b's Plan Mode, November 20, 2026; §1.1, D36): *"make sure
+when you give genmrals autonomy they really do stuff and iunteract withe achother and even help their friends
+your strategoic suggestions are just guidance for ai"*. It heads the session's plan
+(`docs/NEXT_SESSION_PROMPT.md`), and it is built INTO the slices, not after them: IC-10's pass carries R-FRIENDS
+(every man answers a friend attacked within his reach) and the rule that the task is guidance — it names the aim
+and the area, and each night's act is his own, shown under "Tonight"; IC-11's ways of waiting and "one man per
+target" carry R-ACTS and R-TOGETHER. What Session 2b built that this session stands on: the proposal's one
+reader (`trial._reading`, `_place_to_take`), the weakest friend beside him (`_friend_to_help`), a take that
+rides a standing order and is run once by the pass (`StrategicOrder.opening_take`, `trial.run_take`), the join
+line (`if_thens.join_line`), and the pickers that pass over a man who takes no orders. **The words census
+(`tests/test_ic9b_the_trial.py::TestTheWordsCensus`) holds "on his own" on NO screen today: this session must
+teach it the strings of a man you set.**
 
 ### Session 4 — The voice, and the other side of the hill
 
@@ -1558,7 +1662,7 @@ OWN"*.
 
 STATUS line: *"ROW IC, SESSION 4 — THE VOICE AND THE OTHER SIDE OF THE HILL — ROW IC COMPLETE"*.
 
-**Where the row sits against the deploy.** All of its sessions (2b, 3 and 4 remain) run before the deploy session (Session H) — the
+**Where the row sits against the deploy.** All of its sessions (3 and 4 remain) run before the deploy session (Session H) — the
 pattern of rows BA, OC and PW, and the user's standing rule that content is not cut or pushed back to protect a
 date. *Version 6: until November 20 no record had homed them (the STATUS line said only "later sessions of the
 row"); they are now a row of `PRE_DEPLOY_PLAN.md` §2, and `docs/NEXT_SESSION_PROMPT.md` opens Session 2.* This
@@ -1601,6 +1705,11 @@ is sizing, not pressure: about three sessions. One line to reverse.
 | **D29** *(v6)* | An army's task: its commander on his own, the rest supporting by today's rules; directives stay uniform | No new decision system; the men keep their natures in every fight |
 | **D30** *(v6)* | A man on his own is exempt from the cannon-fire redirect and the jealous strike, and faces no refusal roll | Otherwise "Tonight" is false or dice decide his obedience |
 | **D31** *(v6)* | Authority never moves the count; low authority bites as restlessness, refusal and the purchase floor | Autonomy is only ever given (§0) |
+| **D32** *(Session 2b — the user's ruling)* | **No call-back**: a man on his task to prove himself takes no orders at all until it ends; version 6's "Call him back" is withdrawn | "he shouldnt take orders if its low trust"; his answer "No call-back" |
+| **D33** *(Session 2b — the user's ruling)* | **The roll**: three turns; a last turn ended on a victory (a battle won, none lost that turn) runs the task one turn longer, again each such turn, six at most; a bold man goes for the next enemy place, announced in the morning | "for x turns then maybe you get control unless hes on a roll"; his answer "He presses on" |
+| **D34** *(Session 2b — the builder's, each one line to reverse)* | The trial as built: his score reads his own battle record from when the task was given, plus defended places taken (a place nobody defended is said and earns nothing) · a bold man is not sent at a place France knows to outnumber him · an enemy on a friend's or a neutral's ground is driven out; an ally's ground is freed for that ally · the friend he helps is the weakest beside him, never a man he hates · a take runs once, on its announced night, never a night late · an old save is settled from its own rows, no parked field · the morning's line is a turn event told once · no order control on his card or his Generals page · the other answers' words stand on the window while they fit; at a compact view the proposal scrolls · the window sends back the proposal it showed · an order with no name on it passes over him and says so | `SYSTEMS_REFERENCE.md` §232.9; the pressing, the readings, the review and the measure |
+| **D35** *(Session 2b)* | A great battle's "Let him decide" stays for a lead on his task — the day's own rule, pressed by the player for one battle — and never brings up a man who is on his own task; a last stand is still the Emperor's to answer | Row BA's hand, said on the button; not the removed engine (§232.11) |
+| **D36** *(Session 2b's Plan Mode — the user's direction for Session 3)* | **A man on his own really acts, works with the others and helps his friends; your task to him is guidance.** He acts on most nights (R-ACTS); the men's acts name each other — a lead, a join, a cover — and never pile two attacks on one enemy (R-TOGETHER); every man, not Lannes alone, answers the battle of a friend attacked within his reach, never a man he hates (R-FRIENDS); the task names the aim and the area, and each night's act is his own choice inside it, shown under "Tonight" (D8 stands: he never improvises unseen) | The user's words (§1.1); each rule is written in §13 before any data |
 
 ---
 
@@ -1624,6 +1733,7 @@ Each was in an earlier version of this design. Each was cut because panels showe
 | **Ground in hand by command skill** | Masséna's command skill is 3 in the 1805 file. |
 | *v6:* **"Grant Autonomy"** — the trust crisis's three turns on the enemy's AI (shipped content, removed by the user's consent) | §6.11: hidden dice, after the enemy moved, never shown, counted against the earned count, the opposite sign of the feature. Its rewards are kept in the task to prove himself. |
 | *v6:* **The card with [Give] and [Change]** for a task | The user's ruling: tasks are typed. The chips under the filled line do the card's job and teach the words. |
+| *Session 2b:* **"Call him back"** for a man on his task to prove himself (version 6's §6.11) | The user's ruling in Plan Mode: "he shouldnt take orders if its low trust" — "No call-back". |
 | *v6 (panels' proposals, not adopted):* **"Stand him down"** as the audience's new arm (P1) | A free trust farm with nothing to do; the task to prove himself keeps the deed and the reward. |
 | *v6 (panels' proposals):* **A daily seeded temper as the default** (P3) | Both adversaries: count-shopping and "personality is character, not situation". Kept only as R-VARIETY's fallback. |
 | *v6 (panels' proposals):* **Fixed risk floors (12 / 8 / 6 to 10) and "at any cost" as no floor** (P2) | They overrode a man's own odds by a word; a word moves one step, no more. |

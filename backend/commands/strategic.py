@@ -1661,10 +1661,18 @@ def aggressive_interrupt_applies(world, marshal, order=_STANDING_ORDER) -> bool:
     own marshal (the only roster `process_strategic_orders` walks), and not
     on the treaty's road home (FA-D6). `order` is the order in question — a
     NEW typed order is never a road-home one (pass None); omitted, the order
-    he holds now. PURE."""
+    he holds now. PURE.
+
+    Row IC, Session 2b: a man on his TASK TO PROVE HIMSELF keeps to it — he
+    drops it for no distant battle (he joins only the friend his task names),
+    so every reader of this gate — the interrupt itself, the order's reply,
+    the End Turn warning and the desk's row — says nothing of him."""
     if getattr(marshal, "personality", "") != "aggressive":
         return False
     if getattr(marshal, "nation", None) != getattr(world, "player_nation", None):
+        return False
+    from backend.game_logic import trial as _trial
+    if _trial.on_trial(marshal):
         return False
     standing = (getattr(marshal, "strategic_order", None)
                 if order is _STANDING_ORDER else order)
@@ -2312,7 +2320,24 @@ def standing_order_road(world, marshal) -> Dict:
         # sentence, the badge's man ("holds Rhineland · if Mack comes") and
         # how many are left ("2 of 3 left"); "" for none.
         **_watch_keys(order),
+        # Row IC, Session 2b: the order of a man on his TASK TO PROVE HIMSELF
+        # — the trial's own words ("On a task to prove himself — 2 turns
+        # left: marches on Tyrol as this turn ends"); "" for any other order.
+        # The card then offers no cancel and no change: he takes no orders.
+        "trial": _trial_words(marshal),
+        # ... and the place his task marches on as THIS turn ends ("" for
+        # none): the map's badge then says "marches on Bohemia as this turn
+        # ends" — "holds Franconia" over a man about to march read as a
+        # contradiction to two of three blind readers.
+        "goes_for": (_shown_name(str(getattr(order, "opening_take", None) or ""))
+                     if _trial_words(marshal) and getattr(order, "opening_take", None) else ""),
     }
+
+
+def _trial_words(marshal) -> str:
+    """Row IC, Session 2b: `trial.status_words` ("" for a man on no task)."""
+    from backend.game_logic import trial as _trial
+    return _trial.status_words(marshal) if _trial.on_trial(marshal) else ""
 
 
 def _watch_keys(order) -> Dict:
@@ -2529,8 +2554,33 @@ class StrategicOrderProcessor:
             # skip, the sally and the cannon interrupt) is done for this turn:
             # one thing a turn. A fall back or a march leaves him a fresh
             # road, walked by the rest of this pass this very tick.
+            if marshal.name in acted_on_a_line:
+                # Row IC, Session 2b (the review, IC2B-V7): a man on his task
+                # whose line fired tonight has done his one thing — the take
+                # announced for tonight is DROPPED and said, never run a night
+                # late (`trial.drop_take`; a no-op for every other man).
+                from backend.game_logic import trial as _trial_take
+                _dropped = _trial_take.drop_take(
+                    marshal, "he carried out a line of his orders instead")
+                if _dropped is not None:
+                    reports.append(_dropped)
             if marshal.name in acted_on_a_line and not acted_on_a_line[marshal.name]:
                 continue
+
+            # Row IC, Session 2b — the TAKE of a man on his task to prove
+            # himself (`StrategicOrder.opening_take`): run ONCE, tonight, at
+            # no cost, the way a fired if-then attacks — BEFORE the
+            # issuing-turn skip, because the night his task is given is its
+            # first night — then cleared; his hold stands where he ends
+            # (`trial.run_take`, which takes one last look with the
+            # proposal's own reader and says why when he stays put).
+            if getattr(order, "opening_take", None):
+                from backend.game_logic import trial as _trial
+                if _trial.on_trial(marshal):
+                    reports.append(_trial.run_take(
+                        self.executor, marshal, order, world, game_state))
+                    continue
+                order.opening_take = None   # no task carries it: an orphan is dropped
 
             # Skip orders issued THIS turn — first step already executed by executor.py
             issued = getattr(order, 'issued_turn', None)
@@ -5498,6 +5548,14 @@ class StrategicOrderProcessor:
 
         # LITERAL NEVER GETS INTERRUPTED BY CANNON FIRE
         if personality == "literal":
+            return None
+
+        # Row IC, Session 2b: a man on his task to prove himself is not
+        # pulled off it by a distant battle and asks the Emperor nothing —
+        # he takes no orders. (He helps only the friend his task names, by
+        # its own line: `if_thens.join_line`.)
+        from backend.game_logic import trial as _trial
+        if _trial.on_trial(marshal):
             return None
 
         # FA-D6 (slice 17, Phase 2): the treaty's road home is literal by

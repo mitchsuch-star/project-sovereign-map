@@ -1,0 +1,85 @@
+{
+ "_note": "Row IC, Session 2b (the task to prove himself) \u2014 arm BAND: the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72, 23\u201328): score_run's CMD-H / CMD-A / CMD-M per seed, and the trust crises that came up; arm AUDIENCE: the provoking script (score_run's DRAMA arm) on the same seeds with the audience answered by `answer` ('' = the driver's own default) \u2014 read, never gated. Written by tools/_ic2b_measure.py (a chain run ALONE).",
+ "answer": "grant_autonomy",
+ "arms": {
+  "AUDIENCE": {
+   "AUD-A": {
+    "crises": [
+     {
+      "answer": "grant_autonomy",
+      "turn": 4,
+      "who": "Murat, 19"
+     },
+     {
+      "answer": "grant_autonomy",
+      "turn": 9,
+      "who": "Lannes, 8"
+     }
+    ],
+    "provinces": 28,
+    "status": "completed",
+    "told": [
+     "seed `austerlitz` \u00b7 llm `mock` \u00b7 transport in-process \u00b7 policy `{\"objection\": \"insist\", \"diplomacy\": \"accept\", \"capture\": \"secure\", \"estate\": \"respect\", \"glorious_charge\": \"restrain\", \"diplomatic_objection\": \"proceed\", \"",
+     "- POPUP redemption: Murat, 19 \u2192 grant_autonomy",
+     "-     \u21b3 Murat has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle.",
+     "- POPUP redemption: Lannes, 8 \u2192 grant_autonomy",
+     "-     \u21b3 Lannes has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle."
+    ],
+    "trust_crises": 2,
+    "turn": 40
+   },
+   "AUD-H": {
+    "crises": [],
+    "provinces": 25,
+    "status": "completed",
+    "told": [
+     "seed `historical` \u00b7 llm `mock` \u00b7 transport in-process \u00b7 policy `{\"objection\": \"insist\", \"diplomacy\": \"accept\", \"capture\": \"secure\", \"estate\": \"respect\", \"glorious_charge\": \"restrain\", \"diplomatic_objection\": \"proceed\", \""
+    ],
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "AUD-M": {
+    "crises": [
+     {
+      "answer": "grant_autonomy",
+      "turn": 4,
+      "who": "Murat, 19"
+     },
+     {
+      "answer": "grant_autonomy",
+      "turn": 5,
+      "who": "Ney, 19"
+     },
+     {
+      "answer": "grant_autonomy",
+      "turn": 34,
+      "who": "Murat, 20"
+     }
+    ],
+    "provinces": 28,
+    "status": "completed",
+    "told": [
+     "seed `marengo` \u00b7 llm `mock` \u00b7 transport in-process \u00b7 policy `{\"objection\": \"insist\", \"diplomacy\": \"accept\", \"capture\": \"secure\", \"estate\": \"respect\", \"glorious_charge\": \"restrain\", \"diplomatic_objection\": \"proceed\", \"red",
+     "- POPUP redemption: Murat, 19 \u2192 grant_autonomy",
+     "-     \u21b3 Murat has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle.",
+     "- POPUP redemption: Ney, 19 \u2192 grant_autonomy",
+     "-     \u21b3 Ney has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle.",
+     "- POPUP redemption: Murat, 20 \u2192 grant_autonomy",
+     "-     \u21b3 Murat has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle."
+    ],
+    "trust_crises": 3,
+    "turn": 40
+   }
+  }
+ },
+ "band": [
+  23,
+  28
+ ],
+ "standing": {
+  "CMD-A": 27,
+  "CMD-H": 26,
+  "CMD-M": 28
+ },
+ "tag": "before"
+}

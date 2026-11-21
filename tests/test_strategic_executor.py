@@ -2016,7 +2016,7 @@ class TestFirstStepBlocked:
         assert result.get("success") is True
         assert result.get("requires_input") is not True
         assert "I can take him" in result.get("message", "") or "bars the way" in result.get("message", "")
-        assert "on his own judgment" in result.get("message", "")
+        assert "by his own judgment" in result.get("message", "")
 
     def test_first_step_aggressive_asks_bad_odds(self, world, game_state, executor):
         """Aggressive marshal asks player when blocked with bad odds."""

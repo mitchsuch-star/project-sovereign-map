@@ -1706,8 +1706,8 @@ def _order_would_not_bring(m, lead, lever) -> str:
         return (f"— an order to support {lead.name} would march him to "
                 f"{lever.get('stop')}, and from there he cannot reach this field in time")
     if why == "asks":
-        return (f"— an order to support {lead.name} would stop him on his own "
-                f"question: a corps stands on his road")
+        return (f"— an order to support {lead.name} would stop him at a "
+                f"question of his own: a corps stands on his road")
     if why == "asks_first":
         return f"— an order to support {lead.name} would first ask you about his road"
     return ""
@@ -14586,6 +14586,17 @@ class CombatExecutor:
             # INSTANT CAPTURE (existing behavior)
             old_controller = region.controller
             world.capture_region(region_name, marshal.nation)
+            # Row IC, Session 2b: a DEFENDED place taken — its defenders were
+            # beaten this turn — counts for a man on his task to prove
+            # himself ("an empty province proves nothing"; nothing for anyone
+            # else: `trial.note_taken`).
+            from backend.game_logic import trial as _trial
+            if had_garrison:
+                _trial.note_taken(marshal)
+            else:
+                # ... and a place nobody defended is told in the morning's
+                # line, though it earns him nothing (`trial.note_walked_in`)
+                _trial.note_walked_in(marshal)
 
             if liberated_to:
                 # The capture handed the ground back (`capture_region`):
@@ -14722,6 +14733,7 @@ class CombatExecutor:
         if player_marshals is None:
             player_marshals = world.get_player_marshals()
         from backend.commands.strategic import standing_last_stand_refusal
+        from backend.game_logic.trial import on_trial as _on_his_task
 
         combat_ready = []   # [(marshal, enemy, distance)]
         out_of_range = []   # [(marshal, enemy, distance)] - for fallback move
@@ -14748,6 +14760,15 @@ class CombatExecutor:
             # move-toward fallback either.
             if standing_last_stand_refusal(marshal) is not None:
                 filtered_out.append(f"{marshal.name} (cornered — awaits your word)")
+                continue
+            # Row IC, Session 2b (the review, IC2B-V2): a man on his task to
+            # prove himself takes no orders — he is nobody's pick either, not
+            # for the strike and not for the move-toward fallback, which
+            # marched him off his task at the player's cost (an order with no
+            # name on it never met the executor's refusal, which reads the name).
+            if _on_his_task(marshal):
+                filtered_out.append(
+                    f"{marshal.name} (on his task to prove himself — he takes no orders)")
                 continue
 
             # NOTE: Phase 5.2 strategic commands are complete, but personality-aware
@@ -14826,6 +14847,15 @@ class CombatExecutor:
         # ════════════════════════════════════════════════════════════════
         # CASE 2: No one can attack - move closest marshal toward enemy
         # ════════════════════════════════════════════════════════════════
+        # Row IC, Session 2b (the second read of the review's fixes): with
+        # nobody free in contact, a man on his task who IS in contact is the
+        # man the bare "attack" meant — it is refused FREE in his own words,
+        # not turned into a distant corps' march at the player's cost.
+        _busy = self._on_his_task_in_contact(world, player_marshals)
+        if _busy is not None:
+            from backend.game_logic import trial as _trial
+            return {"success": False, "no_action_cost": True,
+                    "message": _trial.refusal_words(_busy)}
         if out_of_range:
             # Sort by distance to enemy (closest first)
             out_of_range.sort(key=lambda x: x[2])
@@ -14957,6 +14987,32 @@ class CombatExecutor:
             "message": "No enemies found! You may have won the campaign."
         }
 
+    @staticmethod
+    def _on_his_task_in_contact(world, player_marshals):
+        """The first marshal on his task to prove himself with an enemy in
+        contact — his own province or the next, the scan's own reading — or
+        None."""
+        from backend.game_logic import trial as _trial
+        for marshal in player_marshals:
+            if marshal.strength <= 0 or not _trial.on_trial(marshal):
+                continue
+            nearest = world.find_nearest_enemy(marshal.location)
+            if nearest and nearest[0].strength > 0 and nearest[1] <= 1:
+                return marshal
+        return None
+
+    @staticmethod
+    def _on_his_task_nearest(world, place):
+        """The nearest man to `place` when he is on his task to prove himself
+        (the pick an "attack <target>" with no name would have made), else
+        None — so that the refusal is his, never "no marshals in range" of a
+        place a marshal stands beside."""
+        from backend.game_logic import trial as _trial
+        found = world.find_nearest_marshal_to_region(place)
+        if found and _trial.on_trial(found[0]):
+            return found[0]
+        return None
+
     def _execute_general_attack_combat(
         self,
         best_marshal,
@@ -15087,8 +15143,16 @@ class CombatExecutor:
             if _place is None:
                 return {"kind": "error", "error": unseen_target_refusal(
                     world, enemy, "our marshals")}
-            result = world.find_nearest_marshal_to_region(_place)
+            # (row IC, Session 2b — the review, IC2B-V4: `for_order` passes
+            # over a man on his task to prove himself, who would only refuse)
+            result = world.find_nearest_marshal_to_region(_place, for_order=True)
             if not result:
+                _busy = self._on_his_task_nearest(world, _place)
+                if _busy is not None:
+                    from backend.game_logic import trial as _trial
+                    return {"kind": "error", "error": {
+                        "success": False, "no_action_cost": True,
+                        "message": _trial.refusal_words(_busy)}}
                 if _seen == "last":
                     # his last sighting is the player's own intelligence
                     return {"kind": "error", "error": {
@@ -15122,8 +15186,14 @@ class CombatExecutor:
                 return {"kind": "error", "error": _auto_enemy_error}
             return {"kind": "error", "error": error}
         target_name = target_region.name if hasattr(target_region, 'name') else target
-        result = world.find_nearest_marshal_to_region(target_name)
+        result = world.find_nearest_marshal_to_region(target_name, for_order=True)
         if not result:
+            _busy = self._on_his_task_nearest(world, target_name)
+            if _busy is not None:
+                from backend.game_logic import trial as _trial
+                return {"kind": "error", "error": {
+                    "success": False, "no_action_cost": True,
+                    "message": _trial.refusal_words(_busy)}}
             return {"kind": "error", "error": {
                 "success": False,
                 "message": f"No marshals in range of {target_name}"}}
@@ -15183,11 +15253,13 @@ class CombatExecutor:
             if not combat_ready:
                 return {"kind": "passthrough"}
             combat_ready.sort(key=lambda x: (x[2], -x[0].strength))
-            # Prefer a commandable marshal — an autonomous marshal would be
-            # blocked downstream, so a bare "attack" reaches for whoever CAN be
-            # ordered when one is in contact.
+            # Prefer a commandable marshal — a man on his task to prove
+            # himself takes no orders and would be refused downstream, so a
+            # bare "attack" reaches for whoever CAN be ordered when one is in
+            # contact (row IC, Session 2b: was the old `autonomous` flag).
+            from backend.game_logic import trial as _trial
             pool = [c for c in combat_ready
-                    if not getattr(c[0], 'autonomous', False)] or combat_ready
+                    if not _trial.on_trial(c[0])] or combat_ready
             if len(pool) > 1:
                 from backend.commands.clarification import (
                     build_contact_attack_clarification,
@@ -15234,6 +15306,17 @@ class CombatExecutor:
             if getattr(m, 'artillery', False)
             and m.strength > 0
         ]
+
+        # Row IC, Session 2b (the review, IC2B-V3): a man on his task to
+        # prove himself takes no orders — a "bombard" with no name on it never
+        # picks his guns (it was routed to him below the executor's refusal).
+        from backend.game_logic import trial as _trial
+        _on_task = [m for m in artillery_marshals if _trial.on_trial(m)]
+        if _on_task:
+            artillery_marshals = [m for m in artillery_marshals if m not in _on_task]
+            if not artillery_marshals:
+                return {"success": False, "no_action_cost": True,
+                        "message": _trial.refusal_words(_on_task[0])}
 
         if not artillery_marshals:
             return {
@@ -15387,7 +15470,24 @@ class CombatExecutor:
             marshals_in_danger = [m for m in marshals_in_danger if m not in held]
         held_note = " ".join(last_stand_question_line(m) for m in held)
 
+        # Row IC, Session 2b (the review, IC2B-V1): a man on his task to prove
+        # himself takes NO orders — and the un-addressed `retreat` carried no
+        # name, so the executor's refusal never saw it and the general retreat
+        # walked him off his task: the call-back the user ruled out. He stays,
+        # and the report says why. (A lost battle still drives him off by the
+        # battle's own rule; a last stand is still the Emperor's to answer.)
+        from backend.game_logic import trial as _trial
+        on_task = [m for m in marshals_in_danger if _trial.on_trial(m)]
+        stays_note = ""
+        if on_task:
+            marshals_in_danger = [m for m in marshals_in_danger if m not in on_task]
+            stays_note = " ".join(
+                f"{humanize_entity_name(m.name)} keeps to his task to prove himself — "
+                f"he takes no orders." for m in on_task)
+
         if not marshals_in_danger:
+            if on_task and not held:
+                return {"success": False, "no_action_cost": True, "message": stays_note}
             if held:
                 return {
                     "success": False,
@@ -15395,7 +15495,8 @@ class CombatExecutor:
                     "last_stand_pending": True,
                     "message": (f"{held_note} The general retreat leaves "
                                 f"{'him' if len(held) == 1 else 'them'} where "
-                                f"{'he stands' if len(held) == 1 else 'they stand'}."),
+                                f"{'he stands' if len(held) == 1 else 'they stand'}."
+                                + (f" {stays_note}" if stays_note else "")),
                 }
             return {
                 "success": False,
@@ -15418,7 +15519,7 @@ class CombatExecutor:
             fail_msg = " | ".join(failed) if failed else "Could not retreat any marshals."
             return {
                 "success": False,
-                "message": fail_msg,
+                "message": " ".join(part for part in (fail_msg, stays_note) if part),
                 "events": []
             }
 
@@ -15427,6 +15528,8 @@ class CombatExecutor:
             message += f" (Failed: {', '.join([f.split(':')[0] for f in failed])})"
         if held_note:
             message += f" {held_note}"
+        if stays_note:
+            message += f" {stays_note}"
 
         return {
             "success": True,

@@ -584,7 +584,7 @@ class TestOtherEndpointDiplomaticFields:
 
     def test_respond_to_redemption_no_pending_has_diplomatic_fields(self, client, fresh_world):
         """Redemption 'no pending' response should include diplomatic fields."""
-        response = client.post("/respond_to_redemption", json={"choice": "grant_autonomy"})
+        response = client.post("/respond_to_redemption", json={"choice": "trial"})
         data = response.json()
         for key in DIPLOMATIC_TOPBAR_KEYS:
             assert key in data, f"/respond_to_redemption missing: {key}"

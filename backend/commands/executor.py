@@ -1822,6 +1822,23 @@ class CommandExecutor:
         is_sortie = command.get("_sortie", False)
         self._current_sortie = is_sortie  # Expose to _execute_attack
 
+        # ════════════════════════════════════════════════════════════
+        # Row IC, Session 2b — A MAN ON HIS TASK TO PROVE HIMSELF TAKES NO
+        # ORDERS: said HERE, before the actions are read, so with no action
+        # left the reply is still the true reason ("… takes no orders until
+        # it ends"), never "Not enough actions". The same refusal stands
+        # again in `_exec_name_and_place`, for a bare order that is resolved
+        # to his name there. (`state_probe` reads the same reason first.)
+        # ════════════════════════════════════════════════════════════
+        if not (is_ai_command or is_strategic_execution
+                or bool(command.get("_autonomous_execution"))):
+            from backend.game_logic import trial as _trial
+            _trial_refusal = _trial.order_refusal(world, command, action)
+            if _trial_refusal is not None:
+                _ptrace.decide("executor", "trial_refusal",
+                               str(_trial_refusal.get("message") or "")[:120])
+                return _trial_refusal
+
         # ============================================================
         # ACTION ECONOMY: Check if player has actions remaining
         # ============================================================
@@ -2242,6 +2259,27 @@ class CommandExecutor:
             return _decision_refusal
 
         # ════════════════════════════════════════════════════════════
+        # Row IC, Session 2b — A MAN ON HIS TASK TO PROVE HIMSELF TAKES NO
+        # ORDERS. The user's ruling (November 20, 2026): none at all until
+        # the task ends — there is no call-back, so `cancel` is refused with
+        # every other verb, tactical or standing. Refused FREE, in plain
+        # words. Sited beside the standing decision's gate for the same
+        # reason it sits there: this is the one seam every marshal-bearing
+        # verb passes (the old "acting independently" block sat under the
+        # objection predicate and let a typed standing order through). The
+        # game's own carrying-out of his task and the AI's commands pass;
+        # so does what is no order to him (a question, his pension).
+        # ════════════════════════════════════════════════════════════
+        if not (is_ai_command or is_strategic_execution
+                or bool(command.get("_autonomous_execution"))):
+            from backend.game_logic import trial as _trial
+            _trial_refusal = _trial.order_refusal(world, command, action)
+            if _trial_refusal is not None:
+                _ptrace.decide("executor", "trial_refusal",
+                               str(_trial_refusal.get("message") or "")[:120])
+                return _trial_refusal
+
+        # ════════════════════════════════════════════════════════════
         # DD-0 S4 — THE EXIT PREDICATE's first half (SFR-D7): a stationary
         # arm that names a province the marshal does not stand in is refused
         # by name BEFORE the objection battery and BEFORE it is carried out
@@ -2318,57 +2356,18 @@ class CommandExecutor:
             not _is_sovereign_order and
             not is_strategic_execution and  # Phase 5.2-C: marshal can't object to own decision
             not is_strategic_command and  # Phase M: strategic objection handled separately
-            # July 2026 AI audit: an autonomous marshal executing his OWN
-            # AI-decided action can neither object to himself nor be blocked
-            # by the "cannot command autonomous marshal" gate below — that
-            # gate made the entire autonomy feature a no-op (every decided
-            # action bounced off the player-facing refusal)
+            # July 2026 AI audit: a command the AI's own decision carried out
+            # is never asked an objection. (Row IC, Session 2b: the block
+            # that stood below — "cannot command an autonomous marshal" —
+            # went with the old three turns; a man on his task to prove
+            # himself is refused ABOVE this predicate, for every verb:
+            # `trial.order_refusal`, beside `_standing_decision_refusal`.)
             not command.get("_autonomous_execution")
         )
 
         if should_check_objection:
             marshal = world.get_marshal(marshal_name)
             if marshal and marshal.nation == world.player_nation:
-                # ═══════════════════════════════════════════════════════════
-                # AUTONOMOUS CHECK: Cannot command autonomous marshals (Phase 2.5)
-                # Autonomous marshals use Enemy AI decision tree at turn start.
-                # Player cannot issue orders until autonomy period ends.
-                # ═══════════════════════════════════════════════════════════
-                if getattr(marshal, 'autonomous', False) and not is_strategic_execution:
-                    reason = getattr(marshal, 'autonomy_reason', 'granted autonomy')
-                    turns = marshal.autonomy_turns
-
-                    # Build performance summary
-                    wins = getattr(marshal, 'autonomous_battles_won', 0)
-                    losses = getattr(marshal, 'autonomous_battles_lost', 0)
-                    captures = getattr(marshal, 'autonomous_regions_captured', 0)
-
-                    perf_parts = []
-                    if wins > 0:
-                        perf_parts.append(f"{wins} battle{'s' if wins != 1 else ''} won")
-                    if losses > 0:
-                        perf_parts.append(f"{losses} battle{'s' if losses != 1 else ''} lost")
-                    if captures > 0:
-                        perf_parts.append(f"{captures} region{'s' if captures != 1 else ''} captured")
-
-                    if perf_parts:
-                        perf_str = f" ({', '.join(perf_parts)})"
-                    else:
-                        perf_str = ""
-
-                    return {
-                        "success": False,
-                        "message": f"{marshal_name} is acting independently{perf_str}. {turns} turn{'s' if turns != 1 else ''} remaining.",
-                        "autonomous": True,
-                        "autonomy_turns": turns,
-                        "autonomy_reason": reason,
-                        "performance": {
-                            "battles_won": wins,
-                            "battles_lost": losses,
-                            "regions_captured": captures
-                        }
-                    }
-
                 # FA-16's gate used to sit HERE, under `should_check_objection`
                 # — which excludes strategic commands and lists only the
                 # objection verbs, so `Ney, march to Paris` and `Ney, charge`

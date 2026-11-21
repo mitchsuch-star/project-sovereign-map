@@ -1039,9 +1039,10 @@ class TestRedemptionEventStructure:
         assert "message" in redemption
         assert isinstance(redemption["options"], list)
         assert len(redemption["options"]) >= 1
-        # At minimum, grant_autonomy should always be available
+        # At minimum, the task to prove himself is always offered (row IC,
+        # Session 2b — it stands where "Grant Autonomy" stood)
         option_ids = [o["id"] for o in redemption["options"]]
-        assert "grant_autonomy" in option_ids
+        assert "trial" in option_ids and "grant_autonomy" not in option_ids
 
 
 class TestBombardmentEndpointWiring:

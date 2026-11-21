@@ -11,7 +11,9 @@ The pins, from the spec:
     envy target, never a jealous subject.
   - Expectation forever 0; endow/rente refused in character; never eroding.
   - Trust never moves (structural: SovereignTrust no-ops modify/set across
-    all 22 direct ``.trust.modify`` call sites); never autonomous.
+    all 22 direct ``.trust.modify`` call sites); never asks an audience,
+    so never on a task to prove himself (the state that stands where the
+    autonomous one stood — row IC, Session 2b).
   - No objection: evaluate_situation and evaluate_strategic_situation both
     return NONE (including the universal form_square MILD).
   - No voice: pick_marshal_voice and pick_enemy_voice return "".
@@ -261,13 +263,19 @@ class TestTrustFreeze:
     def test_serialized_shape_is_stable(self):
         assert SovereignTrust(100).to_dict() == {"value": 100}
 
-    def test_never_autonomous(self):
+    def test_never_on_a_task_to_prove_himself(self):
+        # (was `test_never_autonomous`: the autonomous state left the game in
+        # row IC's Session 2b; what stands there is the task the AUDIENCE
+        # gives at trust 20 or less — a trust his freeze never lets him reach.)
+        from backend.commands.disobedience import DisobedienceSystem
+        from backend.game_logic import trial
         s = make_sovereign()
         start = s.trust.value
         s.modify_trust(-100)
         s.trust.modify(-100)
-        assert s.trust.value == start
-        assert s.autonomous is False
+        assert s.trust.value == start and start > 20
+        assert s.trial is None and not trial.on_trial(s)
+        assert DisobedienceSystem().check_redemption_threshold(s, None) is None
 
     def test_ordinary_marshal_trust_still_moves(self):
         # Control: the freeze binds ONLY the sovereign.

@@ -76,30 +76,55 @@ class TestAIAdminPoolIsolation:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 2. Autonomous marshals actually act
+# 2. Autonomous marshals actually act — re-seated on the task to prove himself
 # ═══════════════════════════════════════════════════════════════════
 
 class TestAutonomousExecution:
+    """July 2026: the executor's 'cannot command autonomous marshal' gate
+    bounced every AI-decided action of a French marshal the trust crisis had
+    handed to the enemy's logic — autonomy was a no-op.
 
-    def test_autonomous_marshal_executes_real_action(self):
-        """The executor's 'cannot command autonomous marshal' gate bounced
-        every AI-decided autonomous action — autonomy was a no-op."""
+    Row IC, Session 2b (November 20, 2026) removed that engine. What stands
+    in its place carries the SAME shape of risk: a man on his task to prove
+    himself takes no orders, and the game's own carrying-out of his task must
+    not be bounced by that refusal."""
+
+    def test_the_task_is_carried_out_and_not_bounced_by_the_no_orders_gate(self):
+        from backend.commands.strategic import StrategicOrderProcessor
+        from backend.game_logic import trial
         world = _fresh_1805()
         executor = CommandExecutor()
-        ai = EnemyAI(executor)
         ney = world.get_marshal("Ney")
-        ney.autonomous = True
-        ney.autonomy_turns = 3
+        ney.location = "Franconia"                       # beside Austrian Bohemia
+        world._build_marshal_index()
+        world.calculate_visibility()
+        assert trial.give(world, ney)["given"]
+        assert ney.strategic_order.opening_take == "Bohemia"
         ap_before = (world.actions_remaining, world.admin_actions_remaining)
 
-        outcome = ai.decide_single_action(ney, "France", world, _game_state(world))
+        # the player's own order to him IS refused, free ...
+        bounced = executor.execute(
+            {"command": {"marshal": "Ney", "action": "attack", "target": "Bohemia"}},
+            _game_state(world))
+        assert bounced["success"] is False and "takes no orders" in bounced["message"]
+        assert ney.location == "Franconia"
 
-        result = outcome.get("result") or {}
-        assert "acting independently" not in result.get("message", ""), (
-            "Autonomous action bounced off the autonomy gate")
-        assert result.get("success") is True, result.get("message")
-        # The marshal acts on his own initiative — never on the player's AP
+        # ... and the game's own carrying-out of his task is NOT
+        rows = StrategicOrderProcessor(executor).process_strategic_orders(
+            world, _game_state(world))
+        row = next(r for r in rows if r.get("marshal") == "Ney")
+        assert row["action"] == "trial_take", row
+        assert "takes no orders" not in row["message"], "the task bounced off its own gate"
+        assert ney.location == "Bohemia"
+        # he acts on his task — never on the player's actions
         assert (world.actions_remaining, world.admin_actions_remaining) == ap_before
+
+    def test_the_enemys_logic_never_decides_for_a_french_marshal(self):
+        world = _fresh_1805()
+        ney = world.get_marshal("Ney")
+        outcome = EnemyAI(CommandExecutor()).decide_single_action(
+            ney, "France", world, _game_state(world))
+        assert outcome is None
 
 
 # ═══════════════════════════════════════════════════════════════════

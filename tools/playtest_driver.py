@@ -716,10 +716,17 @@ POLICY_DEFAULTS = {
     # PERMANENT `destroy_marshal` arm (a `fallen_marshals` tombstone) — and
     # the archive's one redemption line is exactly that: "Bernadotte, 9 →
     # dismiss", never mentioned again. An unattended camera must not delete
-    # a marshal by default. `grant_autonomy` self-expires in 3 turns, changes
-    # no roster and grants no permanent AP; `administrative_role` permanently
-    # adds `bonus_actions += 1` and zeroes the corps. Both remain dials.
-    "redemption": "grant_autonomy", # grant_autonomy | administrative_role | dismiss
+    # a marshal by default. `administrative_role` permanently adds
+    # `bonus_actions += 1` and zeroes the corps. Both remain dials.
+    # Row IC, Session 2b (November 20, 2026): the default is `trial` — the
+    # TASK TO PROVE HIMSELF, which stands where "Grant Autonomy" stood (the
+    # old default, `grant_autonomy`: removed from the game). Like it, the task
+    # ends by itself (three turns, six at most on a roll), changes no roster
+    # and grants no permanent action. R-INERT's one written exception: a run
+    # that meets an audience answers it with the task now, so it may move
+    # (`tools/_ic2b_measure.py` reads it per seed). The retired word is still
+    # taken on the command line and read as `trial`; recorded digests keep it.
+    "redemption": "trial", # trial | administrative_role | dismiss
     # Marshal petitions (jealousy/rivalry/Fontainebleau/war-weary):
     # first ENABLED option — usually the free acknowledge arm.
     # FA-79: `rotate` cycles the ENABLED arms per petition kind so the paid
@@ -2650,6 +2657,28 @@ class Digest:
             self.record("order_progress", marshal=marshal,
                         order_status=status, message=message)
 
+    def trial_lines(self, events):
+        """Row IC, Session 2b: how a marshal's task to prove himself went —
+        he pressed on (a roll), it ended and how he did, or an old save's man
+        was settled on loading. These ride the turn's events (`tactical_events`,
+        type `marshal_trial`), told once by the game; no order row carries
+        them, so without this a digest showed a task given and never its end."""
+        if not isinstance(events, list):
+            return
+        for event in events:
+            if not isinstance(event, dict) or event.get("type") != "marshal_trial":
+                continue
+            # (400: a roll's line runs to about 250 characters, and the cut
+            # dropped "… in 3 turns at most." — the review)
+            message = first_line(event.get("message"), 400)
+            if not message:
+                continue
+            marshal = str(event.get("marshal") or "?")
+            phase = str(event.get("phase") or "")
+            self._md(f"- TASK {marshal} [{phase}]: {message}")
+            self.record("trial", marshal=marshal, phase=phase,
+                        band=str(event.get("band") or ""), message=message)
+
     def campaign_log(self, events, turn=None):
         """FA-84: the AI-vs-AI beats no other surface carries.
 
@@ -3771,7 +3800,9 @@ class Answerer:
         # glorious-charge arm; the choice is logged like every other answer.
         if response.get("redemption_event"):
             payload = _as_dict(response.get("redemption_event"))
-            choice = self.policy.get("redemption", "grant_autonomy")
+            choice = self.policy.get("redemption", "trial")
+            if choice == "grant_autonomy":      # the retired word (row IC, Session 2b)
+                choice = "trial"
             self.d.popup("redemption", _summ(payload, "marshal", "trust"),
                          choice)
             reply = self.t.post("/respond_to_redemption", {"choice": choice})
@@ -5127,6 +5158,7 @@ def run(args):
         # need the new method. (`/respond_to_objection` can carry the key —
         # structurally possible, measured zero. Stated limit.)
         digest.order_progress(response.get("strategic_reports"))
+        digest.trial_lines(response.get("tactical_events"))      # row IC, Session 2b
         digest.autonomous_attacks(response.get("jealousy_attacks"))
         drain(transport, digest, answerer, response, args.strict)
         # GE-1: every ending stamped since the last read is written into the
@@ -5161,6 +5193,7 @@ def run(args):
             digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
                                response.get("enemy_phase"))
             digest.order_progress(response.get("strategic_reports"))
+            digest.trial_lines(response.get("tactical_events"))  # row IC, Session 2b
             digest.autonomous_attacks(response.get("jealousy_attacks"))
             drain(transport, digest, answerer, response, args.strict)
             if response.get("success") is False:
@@ -6216,7 +6249,9 @@ def main():
                          "is offered")
     # FA slice 17 part f — the decision dials (see POLICY_DEFAULTS).
     ap.add_argument("--redemption", default="",
-                    choices=["", "grant_autonomy", "administrative_role", "dismiss"])
+                    choices=["", "trial", "administrative_role", "dismiss", "grant_autonomy"],
+                    help="the audience's answer: trial = a task to prove himself (the default); "
+                         "grant_autonomy is the retired word, read as trial")
     ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate", "buy"],
                     help="rotate cycles the enabled arms per petition kind (opt-in); AU-3a: buy "
                          "takes the arm priced in authority where it is open")

@@ -462,13 +462,7 @@ Reserved future `event_log` payloads:
   "recent_battles": [],
   "recent_overrides": [],
 
-  "autonomous": false,
-  "autonomy_turns": 0,
-  "autonomy_reason": "",
   "redemption_pending": false,
-  "autonomous_battles_won": 0,
-  "autonomous_battles_lost": 0,
-  "autonomous_regions_captured": 0,
   "trust_warning_shown": false,
 
   "dotation_regions": ["Swabia"],
@@ -612,18 +606,14 @@ Reserved future `event_log` payloads:
 | `last_objection_turn` | int | Turn of last objection (V2b vindication decay timer) |
 | `defiance_cooldown_until` | int | Turn when defiance becomes available again (V2b) |
 
-#### Autonomy System
+#### The audience, and the task to prove himself (row IC, Session 2b — was "Autonomy System")
 | Field | Type | Description |
 |-------|------|-------------|
-| `autonomous` | bool | Marshal acting independently |
-| `autonomy_turns` | int | Turns remaining in autonomy |
-| `autonomy_reason` | string | "redemption", "communication_cut" |
 | `redemption_pending` | bool | Redemption event triggered |
 | `redemption_cooldown_until` | int | Turn when redemption can next fire (5-turn cooldown, V2b) |
-| `autonomous_battles_won` | int | Wins during autonomy |
-| `autonomous_battles_lost` | int | Losses during autonomy |
-| `autonomous_regions_captured` | int | Captures during autonomy |
 | `trust_warning_shown` | bool | Warning shown at trust < 40 |
+| `trial` | dict (absent when he is on none) | **Row IC, Session 2b (November 20, 2026) — THE TASK TO PROVE HIMSELF** (`backend/game_logic/trial.py`; `SYSTEMS_REFERENCE.md` §232). Written ONLY while he is on his task: `{line, words, task ("take" \| "hold"), place, turns_left, turns_done, rolls, given, record_won, record_lost, tick_won, tick_lost, taken, walked_in, next_take}` — the order as it was given and its plain words; the count (three turns, one more for each last turn ended on a victory, six at most); his battle record as it stood when the task was given and when the last turn closed (what he achieved is read against them); the defended places he took, and the places nobody defended (said, never counted). The place he marches on tonight is read from his ORDER (`StrategicOrder.opening_take`), not from `next_take`. Absent, or anything that is not a dict → no task. The morning's lines ride the event log (`marshal_trial` events; a `told` mark on each once it has been told). |
+| `autonomous`, `autonomy_turns`, `autonomy_reason`, `autonomous_battles_won`, `autonomous_battles_lost`, `autonomous_regions_captured` | — | **No longer written** (row IC, Session 2b: the trust crisis's "Grant Autonomy" is removed). In an OLDER save they are read ONCE, at load, by `trial.settle_legacy`: a man in the middle of the old three turns is settled on what he had achieved — the same bands — with one line the next morning; a save written afterwards carries none of them. |
 
 #### Estate Endowments (ES-7, Economy Revisit S7 + §0.6.8 second pass)
 | Field | Type | Description |
@@ -830,7 +820,7 @@ Reserved future `event_log` payloads:
 | `arrival_target` | string\|null | CR-7-6 (Sept 22, 2026): the enemy marshal an arrival tail NAMED (`march to Swabia then attack Archduke Charles`); read by `strategic.pick_contact_enemy` at the first-step / mid-path / arrival seams, which prefer him among the enemies met and fall back to the first otherwise. Absent in older saves → `None` → the pre-CR-7-6 pick. |
 | `arrival_verb` | string\|null | CC-4 / D7 (Oct 19, 2026, S13c part 4): (MOVE_TO) what the march does on arrival — `"fortify"`, `"hold"`, `"drill"` or `"defend"` (`march to Orleanais then fortify`); done free on arrival by `strategic._handle_move_to_arrival` (`hold` becomes a standing HOLD where he arrives). Absent in older saves → `None` → the march ends on arrival, as before. |
 | `if_thens` | list | **Row IC, Session 2 (IC-9, November 20, 2026) — EXACT ORDERS** (`backend/commands/if_thens.py`; `SYSTEMS_REFERENCE.md` §231.2). The if-thens the order carries, in order — each `{if, who, friend, place, then, to, any_odds, clause, used, written}`: `if` one of `enemy_near`, `attacked`, `outnumbered`, `surrounded`, `friend_attacked`, `place_falls`, `friend_arrives`; `who` the named enemy (`null` = any), `friend` the named friend, `place` the named place; `then` one of `attack`, `fall_back`, `march`, `join`, `dig_in`; `to` the province of a fall back or a march; `any_odds` "attack whatever the odds"; `clause` the typed words; `used` true once it has fired (or was struck — then `struck` carries the reason); `written` the turn it was given (a line is live from the turn after). Three for a marshal who follows orders to the letter, on any standing order; one, on a hold, for anyone else. Fired free by `StrategicOrderProcessor._if_thens_pass` / `_fire_if_then`; a `join` line inside the friend's battle (`combat_executor._calculate_reinforcements`). **It replaces CC-4 / D8's `contingency`** (`{who, then, to, clause}`, October 19, 2026): an older save's `contingency` loads as a one-line list, already live (`if_thens.from_legacy`), and the key is no longer written. Absent → `[]` → a plain order. |
-| `opening_take` | string\|null | **Row IC, Session 2 (IC-9).** Reserved for the task to prove himself (row IC2-D1, Session 2b): the place a bold man on trial takes on the order's first night — the take order as the card builds it ("<Marshal>, attack <Province>"), run once by the strategic pass at no cost, then cleared. `None` on every order today (nothing reads it yet) and in every older save. |
+| `opening_take` | string\|null | **Row IC (IC-9; read since Session 2b, November 20, 2026).** The place the order's man marches on as the turn it was ANNOUNCED for ends — the take of a marshal on his task to prove himself (`trial.run_take`): the take order as the card builds it ("<Marshal>, attack <Province>"), run once by the strategic pass at no cost, then cleared; set again when a roll announces his next place (`trial._press_on`). His card, the Generals page, the ledger and the map read it through `trial.announced_take`. `None` on every other order and in every older save. |
 
 ---
 

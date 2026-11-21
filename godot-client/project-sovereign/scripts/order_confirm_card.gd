@@ -298,6 +298,17 @@ func open_standing_card(marshal: String, shown: String, info: Dictionary, ap_lef
 	send_button.disabled = ap_left < cancel_ap
 	line_button.disabled = false
 	cancel_button.disabled = false
+	# Row IC, Session 2b: the order of a man on his task to prove himself can
+	# be neither cancelled nor changed - he takes no orders until it ends (the
+	# terms say so; the two buttons are greyed with that reason as their hover).
+	var proving := str(info.get("trial", ""))
+	send_button.tooltip_text = ""
+	line_button.tooltip_text = ""
+	if proving != "":
+		send_button.disabled = true
+		line_button.disabled = true
+		send_button.tooltip_text = Utils.clean_tip("He takes no orders until his task ends.")
+		line_button.tooltip_text = Utils.clean_tip("He takes no orders until his task ends.")
 	_raise()
 
 
@@ -364,6 +375,14 @@ func _standing_terms(info: Dictionary, ap_left: int) -> String:
 		lines.append("[color=#" + Utils.COLOR_INFO + "]Road: " + " → ".join(PackedStringArray(road)) + "[/color]")
 	elif str(info.get("kind", "")) == "hold" and int(info.get("holds_for", 0)) > 0:
 		lines.append("[b]holds " + Utils.plural(int(info.get("holds_for", 0)), "more turn") + "[/b]")
+	# Row IC, Session 2b: a man on his task to prove himself - the trial's own
+	# words, and that this order can be neither cancelled nor changed.
+	var proving := str(info.get("trial", ""))
+	if proving != "":
+		lines.append("[b]" + proving + ".[/b]")
+		lines.append("[color=#" + Utils.COLOR_WARNING
+			+ "]He takes no orders until it ends: this order cannot be cancelled or changed.[/color]")
+		return "\n".join(lines)
 	var cancel_ap := int(info.get("cancel_ap", 1))
 	var trust := int(info.get("cancel_trust", 0))
 	var price := "Cancelling costs " + ("nothing" if cancel_ap <= 0 else Utils.plural(cancel_ap, "action"))
@@ -667,8 +686,8 @@ func _paint_directive() -> void:
 			+ str(members.size()) + " corps) as one order.")
 	else:
 		sum = _cost_words(total, have, _dir_breakdown(members, rows_by)) + (
-			" — 1 corps goes, on his own order." if members.size() == 1
-			else " — " + str(members.size()) + " corps go, each on his own order.")
+			" — 1 corps goes, by his own order." if members.size() == 1
+			else " — " + str(members.size()) + " corps go, each by his own order.")
 	# Directives' blind reading 1 (all three readers): a man who could go stood
 	# unticked with no word why. Where ticking him would cost more than is left,
 	# the card says so.

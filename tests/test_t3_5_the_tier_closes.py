@@ -180,10 +180,22 @@ class TestTheHarnessFranceIsBound:
         assert not WC.annexation_permitted(world, "France", "Bohemia", marshal=marshal)
         assert WC.annexation_permitted(world, "France", "Vienna", marshal=marshal)
 
-    def test_independent_command_stays_the_players(self, world):
+    def test_no_human_road_runs_the_rungs_any_longer(self, world):
+        """T3-5 kept ONE exemption for the player's nation: a marshal the
+        trust crisis had handed to the AI's rungs ("independent command")
+        stayed the player's. Row IC, Session 2b (November 20, 2026) removed
+        that road — the audience gives a task to prove himself, carried out
+        by the game's own standing orders — and the exemption with it: the
+        AI's logic refuses a French marshal, and a man on his task reads at
+        this rule as any marshal of a harness France does."""
+        from backend.ai.enemy_ai import EnemyAI
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import trial
         marshal = self._french_marshal(world)
-        marshal.autonomous = True
-        assert WC.annexation_permitted(world, "France", "Bohemia", marshal=marshal)
+        assert trial.give(world, marshal)["given"]
+        assert not WC.annexation_permitted(world, "France", "Bohemia", marshal=marshal)
+        assert EnemyAI(CommandExecutor()).decide_single_action(
+            marshal, "France", world, {"world": world}) is None
 
     def test_a_read_without_its_corps_keeps_the_t3_3_reading(self, world):
         assert WC.annexation_permitted(world, "France", "Bohemia")

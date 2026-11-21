@@ -365,8 +365,13 @@ for a reader of digests:
 * **A disabled option is never pressed.** The `propose` arm used to press a
   greyed "Send as suggested" and log WIN-1's honest refusal as an artefact;
   an all-disabled surface is now left standing WITH the engine's reason.
-* **`--redemption` defaults to `grant_autonomy`** (self-expiring, no roster
-  change) — `dismiss` was the permanent `destroy_marshal` arm. Both replies
+* **`--redemption` defaults to `trial`** — the task to prove himself (row IC,
+  Session 2b, November 20, 2026; it stands where `grant_autonomy` stood, and that
+  word is still read as the task): self-expiring, no roster change — `dismiss`
+  was the permanent `destroy_marshal` arm. The digest says how a task went:
+  `- TASK <marshal> [roll|ended|settled]: …`. ⚠ `tools/playtest_scripts/
+  commanded_provoke40.json` carries its own `"redemption": "dismiss"` — pass the
+  answer by flag to read the task. Both replies
   (`/respond_to_redemption`, `/marshal_petition_response`) are digested with
   `↳ refused:` when the engine refused them. `--petition rotate` cycles the
   enabled arms per kind — OPT-IN (it makes every archived digest

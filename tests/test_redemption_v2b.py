@@ -8,7 +8,8 @@ Covers:
 - Strategic defiance success triggering redemption (Gap 3)
 - Strategic proceed / failed-roll crossing threshold (Gaps 4-5)
 - Bombardment friendly fire regression
-- Autonomous marshal guard (B2)
+- A man on his task to prove himself is not asked again (B2; row IC, Session 2b —
+  the state that stands where "Grant Autonomy" stood)
 - Multi-marshal bombardment first-wins (B5)
 - Strategic interrupt trust penalties → redemption (F1)
 - Cavalry trust penalties → redemption (F2)
@@ -114,13 +115,14 @@ class TestCheckRedemptionThreshold:
         result = self.disobedience.check_redemption_threshold(None, self.world)
         assert result is None
 
-    def test_no_fire_for_autonomous_marshal(self):
-        """B2: Autonomous marshal with trust <= 20 does NOT get redundant redemption."""
+    def test_no_fire_for_a_man_on_his_task_to_prove_himself(self):
+        """B2: a man on his task with trust <= 20 does NOT get a second audience
+        (row IC, Session 2b — the task stands where "Grant Autonomy" stood)."""
+        from backend.game_logic import trial
         ney = self.world.get_marshal("Ney")
         ney.trust.set(15)
         ney.redemption_pending = False
-        ney.autonomous = True
-        ney.autonomy_turns = 2
+        assert trial.give(self.world, ney)["given"] and trial.on_trial(ney)
 
         result = self.disobedience.check_redemption_threshold(ney, self.world)
 
@@ -160,7 +162,7 @@ class TestRedemptionCooldown:
 
         redemption_event = {"marshal": "Ney", "type": "redemption_event"}
         result = self.disobedience.handle_redemption_response(
-            redemption_event, "grant_autonomy", self.game_state
+            redemption_event, "trial", self.game_state
         )
 
         assert result["success"] is True
@@ -177,7 +179,7 @@ class TestRedemptionCooldown:
         # Resolve redemption
         redemption_event = {"marshal": "Ney", "type": "redemption_event"}
         self.disobedience.handle_redemption_response(
-            redemption_event, "grant_autonomy", self.game_state
+            redemption_event, "trial", self.game_state
         )
 
         # Try to fire again at turn 8
@@ -197,12 +199,12 @@ class TestRedemptionCooldown:
         # Resolve redemption
         redemption_event = {"marshal": "Ney", "type": "redemption_event"}
         self.disobedience.handle_redemption_response(
-            redemption_event, "grant_autonomy", self.game_state
+            redemption_event, "trial", self.game_state
         )
 
-        # Reset for re-trigger
-        ney.autonomous = False
-        ney.autonomy_turns = 0
+        # Reset for re-trigger: his task has ended meanwhile
+        ney.trial = None
+        ney.strategic_order = None
         self.world.current_turn = 12
         ney.trust.set(10)
 

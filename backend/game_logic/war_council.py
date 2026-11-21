@@ -723,17 +723,17 @@ def annexation_permitted(world, nation: str, region_name: str,
     extension's own catch. A VASSAL'S contingent fights its lord's war
     under the lord's direction (VD-C) — exempt. The player's nation was
     wholly exempt until T3-5 (`the_conduct_binds_every_runner`): a human's
-    own commands never pass through here, and the one human road that runs
-    the AI's rungs — a marshal granted INDEPENDENT COMMAND
-    (`EnemyAI.decide_single_action`, the player's grant) — stays exempt by
-    the `marshal` it acts with; an AI-run France (the harness) is bound. A
+    own commands never pass through here; an AI-run France (the harness) is
+    bound. (Row IC, Session 2b: the one human road that ran the AI's rungs
+    — a marshal the trust crisis handed to `EnemyAI.decide_single_action`,
+    exempt by the `marshal` he acted with — is removed, and its exemption
+    with it: no marshal of the player's nation is moved by that logic.) A
     read with no `marshal` keeps the T3-3 reading (it cannot tell the
     two apart)."""
     if not annexation_follows_the_aim():
         return True
     if nation == getattr(world, "player_nation", "France"):
-        if (not the_conduct_binds_every_runner() or marshal is None
-                or getattr(marshal, "autonomous", False)):
+        if not the_conduct_binds_every_runner() or marshal is None:
             return True
     if nation in (getattr(world, "vassals", {}) or {}):
         return True

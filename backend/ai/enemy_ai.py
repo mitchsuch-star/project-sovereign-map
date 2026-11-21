@@ -75,8 +75,8 @@ def _fires_from_a_sanctuary(world, marshal, target_nation) -> str:
     return fires_from_a_sanctuary(world, marshal, target_nation)
 AI_DEBUG = _os.environ.get("AI_DEBUG", "").lower() in ("1", "true", "yes")
 
-# AI strategic scoring (Phase 5): every successful autonomous action is
-# scored (`calculate_ai_strategic_score`) and its bonuses applied.
+# AI strategic scoring (Phase 5): every successful action of the AI's own
+# deciding is scored (`calculate_ai_strategic_score`) and its bonuses applied.
 
 # HC-4b "The Admiralty's bill" (gate §5b): naval_expedition /
 # naval_diversion bill at the `world._action_costs` table price (2 / 1)
@@ -363,23 +363,21 @@ def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState
     standing disposition until the stagnation breaker represents new orders
     arriving (Mack sits at Ulm; Buxhowden is always late).
 
-    The literal→cautious alias survives ONLY for the player's own literal
-    marshals gone autonomous — the case the original rationale was written
-    for: losing literal precision IS the consequence of going autonomous.
+    Row IC, Session 2b (November 20, 2026): the literal→cautious alias is
+    GONE. It survived only for the player's own literal marshals handed to
+    this logic by the trust crisis's "Grant Autonomy" — and no marshal of the
+    player's nation is ever moved by this logic any more
+    (`decide_single_action` refuses one; INDEPENDENT_COMMAND_SPEC §6.11).
+    A literal man plays his authored character on every board.
     """
     personality = getattr(marshal, 'personality', 'balanced')
     # NP-0 (NAPOLEON_SPEC §3.1/§10): a sovereign under AI control plays
     # AGGRESSIVE — the honest read of a monarch who forces battle over his
     # own generals' advice (Alexander at Austerlitz). Content-inert while
     # the sovereign's nation is the player (the AI never drives him — he
-    # is never jealous, never autonomous); ships for GR5 symmetry.
+    # is never jealous, never on a task); ships for GR5 symmetry.
     if personality == "sovereign":
         return "aggressive"
-    if personality != "literal" or world is None:
-        return personality
-    player_nation = getattr(world, 'player_nation', 'France')
-    if marshal.nation == player_nation and getattr(marshal, 'autonomous', False):
-        return "cautious"
     return personality
 
 
@@ -510,7 +508,7 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
         marshal: The AI marshal executing the action
         action: The action being taken (e.g., "attack", "defend")
         target: The target marshal (if applicable)
-        world: Current world state (optional, for the autonomous-literal conversion)
+        world: Current world state (optional; read for the personality the AI plays)
 
     Returns:
         Strategic score 0-100
@@ -1038,9 +1036,9 @@ class EnemyAI:
 
         MC-V-2 (MC exit review, July 11, 2026): enemy-nation literals play
         LITERAL — their authored rows (threshold 1.0, variance ±8%) are live
-        and they inherit none of the cautious reflexes. Only the player's
-        own literal marshals gone autonomous still convert to cautious
-        (losing literal precision IS the consequence of going autonomous).
+        and they inherit none of the cautious reflexes. (Row IC, Session 2b:
+        the one exception — the player's own literal marshal handed to this
+        logic by "Grant Autonomy" — went with that grant.)
         Single source: module-level get_effective_ai_personality.
         """
         return get_effective_ai_personality(marshal, world)
@@ -1157,7 +1155,11 @@ class EnemyAI:
                         or int(other.strength) <= 0 or getattr(other, 'broken', False)
                         or getattr(other, 'retreating', False)
                         or getattr(other, 'retreated_this_turn', False)
-                        or getattr(other, 'fortified', False) or _corps_is_drilling(other)):
+                        or getattr(other, 'fortified', False) or _corps_is_drilling(other)
+                        # Row IC, Session 2b: a man on his task to prove
+                        # himself keeps to it — a lead left to his own
+                        # judgement brings up another corps, never him.
+                        or isinstance(getattr(other, 'trial', None), dict)):
                     continue
                 if (combined + int(other.strength)) / max(1, defenders) >= bar:
                     return {"kind": "bring_up", "who": other.name,
@@ -1334,7 +1336,7 @@ class EnemyAI:
         """
         Decide whether a nation-wide AI query should use fog-filtered contacts.
 
-        Player autonomous AI should keep using the player-facing RegionIntel view.
+        An AI-run player nation (the harness) keeps the player-facing RegionIntel view.
         Enemy nations use the live nation-perspective visibility seam so they stop
         reaching through fog on scale-sensitive contact queries.
         """
@@ -1582,10 +1584,18 @@ class EnemyAI:
         game_state: Dict
     ) -> Optional[Dict]:
         """
-        Decide and execute a single action for one marshal.
+        Decide and execute a single action for one marshal — the decision
+        tree for ONE corps, outside a nation's whole turn (probes, tests).
 
-        Used for autonomous player marshals who get 1 action per turn.
-        Uses the same decision tree as enemy AI but aligned with the given nation.
+        ⚠ Row IC, Session 2b (November 20, 2026): NO MARSHAL OF THE PLAYER'S
+        NATION IS EVER MOVED BY THIS LOGIC. Its one human road was the trust
+        crisis's "Grant Autonomy" — three turns of a French marshal on the
+        enemy's moods and dice, after the enemy had moved, never shown
+        beforehand — and it is removed (INDEPENDENT_COMMAND_SPEC §6.11: the
+        task to prove himself runs under exact orders instead,
+        `backend/game_logic/trial.py`). A marshal of the player's nation is
+        REFUSED here before anything is evaluated: no draw is taken, nothing
+        is written, None is returned.
 
         Args:
             marshal: The marshal to decide for
@@ -1595,8 +1605,15 @@ class EnemyAI:
 
         Returns:
             Result dict with action taken and outcome, or None if no action
+            (always None for a marshal of the player's nation)
         """
-        ai_debug(f"=== AUTONOMOUS ACTION: {marshal.name} ({nation}) ===")
+        if (world is not None and getattr(marshal, "nation", None)
+                == getattr(world, "player_nation", None)):
+            ai_debug(f"=== REFUSED: {marshal.name} is the player's own marshal — "
+                     f"the enemy's logic never moves him ===")
+            return None
+
+        ai_debug(f"=== SINGLE ACTION: {marshal.name} ({nation}) ===")
 
         # Ensure tracking sets exist (normally initialized by process_nation_turn,
         # but decide_single_action can be called standalone — Bug 4E-1)
@@ -1657,10 +1674,8 @@ class EnemyAI:
 
         # Execute through the same executor (Building Blocks principle).
         # _autonomous_execution marks the AI-execution context: the marshal
-        # is acting on his OWN decision, so the executor must skip the
-        # "cannot command autonomous marshal" gate, objections, and the
-        # player AP charge (July 2026 AI audit — the gate previously
-        # bounced EVERY autonomous action, making autonomy a no-op).
+        # is acting on the AI's decision, so the executor skips objections
+        # and the player AP charge (July 2026 AI audit).
         command = {
             "command": {
                 "type": "specific",
@@ -1674,7 +1689,7 @@ class EnemyAI:
         result = self.executor.execute(command, game_state)
 
         # ════════════════════════════════════════════════════════════
-        # AI STRATEGIC SCORING (Phase 5): Apply bonuses to autonomous marshals
+        # AI STRATEGIC SCORING (Phase 5): apply the AI's own bonuses
         # ════════════════════════════════════════════════════════════
         ai_score = None
         if result.get("success", False):
@@ -1696,7 +1711,7 @@ class EnemyAI:
             is_combat = action.get("action") in ["attack", "charge"]
             apply_strategic_bonuses(marshal, ai_score, is_combat_action=is_combat)
 
-            ai_debug(f"  Autonomous Strategic Score: {ai_score} (combat={is_combat})")
+            ai_debug(f"  Strategic Score: {ai_score} (combat={is_combat})")
 
         return {
             "marshal": marshal.name,
@@ -3666,8 +3681,8 @@ class EnemyAI:
         non-player marshal — the AI keeps PT-F1), so it bites only where the
         courts' tree drives the player's nation: the review's AI-France
         harness (`tools/ai_france_sweep.py`, about 27 refused attacks a
-        campaign in its steward arm) and an autonomous player marshal through
-        `decide_single_action`. Read by P4, the counter-punch, the ally
+        campaign in its steward arm). (`decide_single_action` refuses a
+        marshal of the player's nation — row IC, Session 2b.) Read by P4, the counter-punch, the ally
         support strike and the surrounded strike — the rungs that pick a
         field away from the corps' own province."""
         if marshal.nation != getattr(world, "player_nation", None):
@@ -3702,9 +3717,8 @@ class EnemyAI:
         drops him. It is inert against a STUB by construction (reset on
         every victory and whenever the target falls below half strength),
         which is why slice 2 left it out; it is the non-stub grind it
-        exists for. Nation-scoped so an autonomous PLAYER marshal
-        (`decide_single_action` reuses the tree) never reads another court's
-        pairs.
+        exists for. Nation-scoped so an AI-run player nation (the harness
+        reuses the tree) never reads another court's pairs.
 
         Readers (T0-E, the November 6, 2026 review — FA-N72's sibling
         sweep): P0, P4's engaged arm, `_get_default_action`, and now P3.9's

@@ -499,7 +499,7 @@ class TestLastMarshalProtectionCountsOnlyTheStanding:
                 lannes, world)
         assert event is not None
         offered = [o["id"] for o in event["options"]]
-        assert offered == ["grant_autonomy"], offered
+        assert offered == ["trial"], offered     # (the task to prove himself: row IC, Session 2b)
 
     def test_two_standing_marshals_still_get_all_three_courses(self):
         """The negative control: the fix must not be satisfiable by
@@ -517,7 +517,7 @@ class TestLastMarshalProtectionCountsOnlyTheStanding:
             event = DisobedienceSystem().check_redemption_threshold(
                 lannes, world)
         assert set(o["id"] for o in event["options"]) == {
-            "grant_autonomy", "administrative_role", "dismiss"}
+            "trial", "administrative_role", "dismiss"}
 
     def test_the_administrative_clause_is_still_needed_beside_it(self):
         """`strength > 0` is ADDITIVE, not a replacement: an administrative
@@ -560,7 +560,8 @@ class TestTheRedemptionAnswerMustBeOffered:
 
     def test_an_unoffered_course_is_refused_and_costs_nothing(self):
         """The headline: `dismiss` was accepted when the audience offered
-        `grant_autonomy` alone. The refusal must also leave the question
+        `grant_autonomy` alone (the task to prove himself, `trial`, stands
+        there since row IC's Session 2b). The refusal must also leave the question
         standing — the old invalid-choice arm cleared the latch and stamped
         the cooldown BEFORE it refused."""
         from backend.commands.disobedience import DisobedienceSystem
@@ -574,7 +575,7 @@ class TestTheRedemptionAnswerMustBeOffered:
         lannes.trust.modify(-100)
         with contextlib.redirect_stdout(io.StringIO()):
             event = system.check_redemption_threshold(lannes, world)
-        assert [o["id"] for o in event["options"]] == ["grant_autonomy"]
+        assert [o["id"] for o in event["options"]] == ["trial"]
 
         with contextlib.redirect_stdout(io.StringIO()):
             result = system.handle_redemption_response(
@@ -594,7 +595,7 @@ class TestTheRedemptionAnswerMustBeOffered:
         with contextlib.redirect_stdout(io.StringIO()):
             event = system.check_redemption_threshold(ney, world)
             result = system.handle_redemption_response(
-                event, "grant_autonomy", {"world": world})
+                event, "trial", {"world": world})
         assert result["success"] is True
 
 

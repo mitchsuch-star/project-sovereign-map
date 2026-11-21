@@ -184,18 +184,32 @@ def test_ai_target_ratio_refreshes_indexes_for_direct_calls():
 
 
 def test_ai_decide_single_action_refreshes_indexes_before_evaluation():
+    # (Row IC, Session 2b: the subject is an ENEMY's marshal now — the logic
+    # refuses a marshal of the player's nation before it evaluates anything.)
     world = WorldFactory.basic(player_nation="France")
     ai = EnemyAI(CommandExecutor())
     game_state = {"world": world, "debug_mode": True}
-    ney = world.get_marshal("Ney")
-    starting_location = ney.location
+    wellington = world.get_marshal("Wellington")
+    starting_location = wellington.location
     world._marshals_by_region = {}
 
-    result = ai.decide_single_action(ney, "France", world, game_state)
+    result = ai.decide_single_action(wellington, wellington.nation, world, game_state)
 
     assert result is not None
     assert world._marshals_by_region
     assert starting_location in world._marshals_by_region
+
+
+def test_ai_decide_single_action_refuses_the_players_marshal_untouched():
+    world = WorldFactory.basic(player_nation="France")
+    ai = EnemyAI(CommandExecutor())
+    world._marshals_by_region = {}
+
+    result = ai.decide_single_action(world.get_marshal("Ney"), "France", world,
+                                     {"world": world, "debug_mode": True})
+
+    assert result is None
+    assert world._marshals_by_region == {}, "refused before anything is touched"
 
 
 def test_ai_coordinated_attack_refreshes_indexes_for_direct_calls():

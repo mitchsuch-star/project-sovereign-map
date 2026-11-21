@@ -341,8 +341,14 @@ func send_diplomatic_objection_response(choice: String, data: Dictionary, callba
 	_send_post("/respond_to_diplomatic_objection", body, callback)
 
 
-func send_redemption_response(choice: String, callback: Callable):
-	_send_post("/respond_to_redemption", {"choice": choice}, callback)
+# Row IC, Session 2b (the review): `shown` is the proposal the audience's
+# window displayed (the task's own line; "" from the typed word) - the
+# server gives the task only if that is still what he proposes.
+func send_redemption_response(choice: String, callback: Callable, shown: String = ""):
+	var body := {"choice": choice}
+	if shown != "":
+		body["shown"] = shown
+	_send_post("/respond_to_redemption", body, callback)
 
 
 # PT-B1: the belt-and-braces recovery. `GET /pending_redemption` has existed

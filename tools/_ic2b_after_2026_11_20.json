@@ -1,0 +1,99 @@
+{
+ "_note": "Row IC, Session 2b (the task to prove himself) \u2014 arm BAND: the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72, 23\u201328): score_run's CMD-H / CMD-A / CMD-M per seed, and the trust crises that came up; arm AUDIENCE: the provoking script (score_run's DRAMA arm) on the same seeds with the audience answered by `answer` ('' = the driver's own default) \u2014 read, never gated. Written by tools/_ic2b_measure.py (a chain run ALONE).",
+ "answer": "trial",
+ "arms": {
+  "AUDIENCE": {
+   "AUD-A": {
+    "crises": [
+     {
+      "answer": "trial",
+      "turn": 4,
+      "who": "Murat, 19"
+     }
+    ],
+    "provinces": 28,
+    "status": "completed",
+    "told": [
+     "-     \u21b3 Murat has his task to prove himself: \"Murat, free Swabia for Bavaria and hold it. If Napoleon is attacked nex\u2026",
+     "- CMD `Murat, drill` \u2192 \u2717 Murat is on his task to prove himself and takes no orders until it ends (1 turn left \u2014 up to 6 in all while he keeps winning).",
+     "- TASK Murat [ended]: Murat's task is over with little to show for it. In 3 turns he fought no battle; he took 1 place that nobody defended. His trust in you rises by 15 (to 34). He is under your orders again."
+    ],
+    "trust_crises": 1,
+    "turn": 40
+   },
+   "AUD-H": {
+    "crises": [],
+    "provinces": 25,
+    "status": "completed",
+    "told": [],
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "AUD-M": {
+    "crises": [
+     {
+      "answer": "trial",
+      "turn": 4,
+      "who": "Murat, 19"
+     },
+     {
+      "answer": "trial",
+      "turn": 5,
+      "who": "Ney, 19"
+     }
+    ],
+    "provinces": 27,
+    "status": "completed",
+    "told": [
+     "-     \u21b3 Murat has his task to prove himself: \"Murat, hold Swabia. If Soult is attacked next to him, join his battle.\"\u2026",
+     "-     \u21b3 Ney has his task to prove himself: \"Ney, hold Swabia. If Bernadotte is attacked next to him, join his battle.\u2026",
+     "- CMD `Murat, drill` \u2192 \u2717 Murat is on his task to prove himself and takes no orders until it ends (1 turn left \u2014 up to 6 in all while he keeps winning).",
+     "- CMD `Ney, wait` \u2192 \u2717 Ney is on his task to prove himself and takes no orders until it ends (2 turns left \u2014 up to 6 in all while he keeps winning).",
+     "- TASK Murat [ended]: Murat did well on his task. In 3 turns he won 1 battle. His trust in you rises by 25 (to 44). He is under your orders again.",
+     "- CMD `Ney, wait` \u2192 \u2717 Ney is on his task to prove himself and takes no orders until it ends (1 turn left \u2014 up to 6 in all while he keeps winning).",
+     "- TASK Ney [ended]: Ney's task is over with little to show for it. In 3 turns he fought no battle. His trust in you rises by 15 (to 34). He is under your orders again."
+    ],
+    "trust_crises": 2,
+    "turn": 40
+   }
+  },
+  "BAND": {
+   "CMD-A": {
+    "crises": [],
+    "provinces": 27,
+    "status": "completed",
+    "told": [],
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "CMD-H": {
+    "crises": [],
+    "provinces": 26,
+    "status": "completed",
+    "told": [],
+    "trust_crises": 0,
+    "turn": 40
+   },
+   "CMD-M": {
+    "crises": [],
+    "provinces": 28,
+    "status": "completed",
+    "told": [],
+    "trust_crises": 0,
+    "turn": 40
+   }
+  }
+ },
+ "band": [
+  23,
+  28
+ ],
+ "band_holds": true,
+ "band_is_the_standing_reading": true,
+ "standing": {
+  "CMD-A": 27,
+  "CMD-H": 26,
+  "CMD-M": 28
+ },
+ "tag": "after"
+}

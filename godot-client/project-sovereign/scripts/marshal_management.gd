@@ -1047,7 +1047,7 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		if m.get("jealousy_warned", false):
 			# Session UI-4: the warning's long tail opens from the grievance line
 			bbcode += Utils.bb_note("gen.grievance." + name, grievance,
-				"[color=#" + Utils.COLOR_ERROR + "] — HE EYES THE ENEMY ON HIS OWN; any order restrains him[/color]", "\n")
+				"[color=#" + Utils.COLOR_ERROR + "] — HE MAY ATTACK WITHOUT WAITING FOR ORDERS; any order restrains him[/color]", "\n")
 		else:
 			bbcode += grievance + "\n"
 	if m.get("jealousy_surge", false):
@@ -1177,9 +1177,11 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		flags.append("[color=#" + Utils.COLOR_BLUE + "]" + drill_txt + "[/color]")
 	if m.get("square_formation", false):
 		flags.append("[color=#" + Utils.COLOR_GOLD + "]SQUARE (+5% def, cav -40%, arty +50% vuln)[/color]")
-	if m.get("is_autonomous", false):
-		var reason = str(m.get("autonomy_reason", ""))
-		flags.append("[color=#" + Utils.COLOR_ORANGE + "]AUTONOMOUS" + (" (" + reason + ")" if reason != "" else "") + "[/color]")
+	# Row IC, Session 2b: on a task to prove himself (the server's own words —
+	# "On a task to prove himself — 2 turns left"); he takes no orders meanwhile.
+	var on_task = m.get("trial")
+	if on_task is Dictionary and str(on_task.get("status", "")) != "":
+		flags.append("[color=#" + Utils.COLOR_ORANGE + "]" + str(on_task.get("status", "")) + "[/color]")
 
 	var idle = int(m.get("idle_turns", 0))
 	if idle >= 2:
@@ -1190,9 +1192,16 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 
 	# Strategic order
 	var strat = m.get("strategic_order")
-	if strat != null and strat is Dictionary:
-		var cmd = str(strat.get("command_type", "?"))
-		var target = str(strat.get("target", "?"))
+	# Row IC, Session 2b (pressed in the real client): a man on his task shows
+	# the task as it was given - never the standing order that carries it out.
+	var task_line := str(on_task.get("line", "")) if on_task is Dictionary else ""
+	if task_line != "":
+		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]His task: " + task_line + "[/color]"
+	elif strat != null and strat is Dictionary:
+		# (IC2B-X16: the order in the player's words - "Hold", never the code's
+		# "HOLD"; the server's own display map, an older server's raw key behind it)
+		var cmd = str(strat.get("display", strat.get("command_type", "?")))
+		var target = str(strat.get("target_shown", strat.get("target", "?")))
 		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]Order: " + cmd + " → " + target + "[/color]"
 
 	bbcode += "\n"
@@ -1996,6 +2005,11 @@ func _figure_tiles(m: Dictionary) -> Array:
 
 # ── the order bar ─────────────────────────────────────────────────────────
 
+# The one line a man on his task wears where his orders would stand (his
+# card says the same - `selection_card.gd`).
+const TRIAL_NO_ORDERS := "He takes no orders until his task ends, and you cannot call him back."
+
+
 func _fill_order_bar(m: Dictionary) -> void:
 	"""Real Buttons, pinned above the scroll, one per slot of the kit's seven
 	(Cancel order only while he has a standing order). A locked order is a
@@ -2008,8 +2022,22 @@ func _fill_order_bar(m: Dictionary) -> void:
 		order_bar.visible = false
 		return
 	order_bar.visible = true
+	# Row IC, Session 2b (rule 10 - his card's sibling: the first blind reading
+	# doubted every greyed order button, "Cancel order" among them, under "he
+	# takes no orders"): a man on his task to prove himself has NO order button
+	# here either - one plain line, and the way to find him on the map.
+	var on_task = m.get("trial")
+	var proving: bool = on_task is Dictionary and str(on_task.get("status", "")) != ""
+	if proving:
+		var note := Label.new()
+		note.text = TRIAL_NO_ORDERS
+		note.add_theme_color_override("font_color", _tone_color(Utils.COLOR_ORANGE))
+		note.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		order_bar.add_child(note)
 	var standing: bool = MarshalKit.has_standing_order(MarshalKit.from_overview(m))
 	for spec in MarshalKit.order_specs(MarshalKit.from_overview(m)):
+		if proving:
+			break
 		if str(spec["verb"]) == "cancel" and not standing:
 			continue
 		order_bar.add_child(_order_button(mname, spec))
@@ -2215,7 +2243,7 @@ func _grievance_lines(m: Dictionary) -> String:
 		grievance += "[/color]"
 		if m.get("jealousy_warned", false):
 			bbcode += Utils.bb_note("gen.grievance." + mname, grievance,
-				"[color=#" + Utils.COLOR_ERROR + "] — HE EYES THE ENEMY ON HIS OWN; any order restrains him[/color]", "\n")
+				"[color=#" + Utils.COLOR_ERROR + "] — HE MAY ATTACK WITHOUT WAITING FOR ORDERS; any order restrains him[/color]", "\n")
 		else:
 			bbcode += grievance + "\n"
 	if m.get("jealousy_surge", false):
@@ -2258,16 +2286,20 @@ func _status_lines(m: Dictionary) -> String:
 		flags.append("[color=#" + Utils.COLOR_BLUE + "]" + drill_txt + "[/color]")
 	if m.get("square_formation", false):
 		flags.append("[color=#" + Utils.COLOR_GOLD + "]SQUARE (+5% def, cav -40%, arty +50% vuln)[/color]")
-	if m.get("is_autonomous", false):
-		var reason := str(m.get("autonomy_reason", ""))
-		flags.append("[color=#" + Utils.COLOR_ORANGE + "]AUTONOMOUS" + (" (" + reason + ")" if reason != "" else "") + "[/color]")
+	# Row IC, Session 2b: on a task to prove himself (the server's own words).
+	var on_task = m.get("trial")
+	if on_task is Dictionary and str(on_task.get("status", "")) != "":
+		flags.append("[color=#" + Utils.COLOR_ORANGE + "]" + str(on_task.get("status", "")) + "[/color]")
 	if int(m.get("idle_turns", 0)) >= 2:
 		flags.append("[color=#" + Utils.COLOR_INFO + "]IDLE " + str(int(m.get("idle_turns", 0))) + " turns[/color]")
 	if flags.size() > 0:
 		bbcode += "\n  " + " | ".join(flags)
 	var strat = m.get("strategic_order")
-	if strat != null and strat is Dictionary:
-		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]Order: " + str(strat.get("command_type", "?")) + " → " + str(strat.get("target", "?")) + "[/color]"
+	var task_line := str(on_task.get("line", "")) if on_task is Dictionary else ""
+	if task_line != "":   # (row IC, Session 2b: his task as it was given)
+		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]His task: " + task_line + "[/color]"
+	elif strat != null and strat is Dictionary:   # (IC2B-X16: the server's display words)
+		bbcode += "\n  [color=#" + Utils.COLOR_BLUE + "]Order: " + str(strat.get("display", strat.get("command_type", "?"))) + " → " + str(strat.get("target_shown", strat.get("target", "?"))) + "[/color]"
 	bbcode += "\n"
 	var specifics: Array = []
 	if m.get("cavalry", false):

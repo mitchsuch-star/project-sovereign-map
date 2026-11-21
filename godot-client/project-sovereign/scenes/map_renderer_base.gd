@@ -3875,6 +3875,11 @@ func order_arrow_label(info: Dictionary) -> String:
 		"pursue":
 			return "pursues " + who + ((" · " + clock) if on_road else "")
 		"hold":
+			# Row IC, Session 2b: a man on his task to prove himself who marches
+			# on a place as this turn ends - never "holds <where he stands>".
+			var goes := str(info.get("goes_for", ""))
+			if goes != "":
+				return "marches on " + goes + " as this turn ends"
 			if on_road:
 				return "to hold " + dest + " · " + clock
 			var more := int(info.get("holds_for", 0))

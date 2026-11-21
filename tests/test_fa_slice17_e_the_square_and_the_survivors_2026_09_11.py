@@ -150,7 +150,8 @@ class TestFAN70NoRawEnumInPlayerCopy:
 
     def test_the_defiance_notice_and_the_square_message_read_the_helper(self):
         se = (REPO / "backend" / "commands" / "strategic_executor.py").read_text(encoding="utf-8")
-        assert "defied your order to {order_verb_display(strategic_type)}" in se
+        # ("refused your order" since row IC's Session 2b — the words census)
+        assert "refused your order to {order_verb_display(strategic_type)}" in se
         ce = (REPO / "backend" / "commands" / "combat_executor.py").read_text(encoding="utf-8")
         assert 'f" Strategic order ({old_order.command_type}) cancelled."' not in ce
         assert "order_verb_display(old_order.command_type)" in ce

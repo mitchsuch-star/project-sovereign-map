@@ -8,7 +8,7 @@ Tests cover:
 4. Dismiss transfers troops to nearby marshal (≤3 regions)
 5. Dismiss disbands troops if no ally nearby
 6. Dismiss grants +10 authority
-7. Last marshal protection (only autonomy available)
+7. Last marshal protection (only the task to prove himself is offered)
 8. Bonus action persists across turns
 """
 
@@ -132,7 +132,7 @@ class TestAdminRoleMaxOne:
         options = system._get_available_redemption_options(davout, world)
         option_ids = [opt['id'] for opt in options]
 
-        assert 'grant_autonomy' in option_ids
+        assert 'trial' in option_ids
         assert 'administrative_role' not in option_ids  # Already have one admin
         assert 'dismiss' in option_ids
 
@@ -243,11 +243,13 @@ class TestDismissGrantsAuthority:
         assert world.authority_tracker.authority == 100  # Capped, not 105
 
 
-class TestLastMarshalOnlyAutonomy:
-    """Test that last field marshal only sees autonomy option."""
+class TestLastMarshalIsOfferedOnlyTheTask:
+    """The last field marshal is offered only the task to prove himself (row
+    IC, Session 2b — it stands where "Grant Autonomy" stood, and like it is
+    ALWAYS offered: France is never left without a man in the field)."""
 
-    def test_last_marshal_only_autonomy_available(self):
-        """When only 1 field marshal remains, only autonomy is available."""
+    def test_last_marshal_only_the_task_is_offered(self):
+        """When only 1 field marshal remains, only the task is offered."""
         world = WorldState()
         system = DisobedienceSystem()
 
@@ -265,9 +267,14 @@ class TestLastMarshalOnlyAutonomy:
         options = system._get_available_redemption_options(ney, world)
         option_ids = [opt['id'] for opt in options]
 
-        assert option_ids == ['grant_autonomy']
+        assert option_ids == ['trial']
         assert 'administrative_role' not in option_ids
         assert 'dismiss' not in option_ids
+        # ... and the answer is taken: he is on his task, still in the field
+        event = system._create_redemption_event(ney, world)
+        result = system.handle_redemption_response(event, 'trial', world)
+        assert result['success'] is True and ney.trial is not None
+        assert len(world.get_field_marshals()) == 1
 
     def test_two_marshals_shows_all_options(self):
         """When 2+ field marshals exist, all options are available."""
@@ -287,7 +294,7 @@ class TestLastMarshalOnlyAutonomy:
         options = system._get_available_redemption_options(ney, world)
         option_ids = [opt['id'] for opt in options]
 
-        assert 'grant_autonomy' in option_ids
+        assert 'trial' in option_ids and 'grant_autonomy' not in option_ids
         assert 'administrative_role' in option_ids
         assert 'dismiss' in option_ids
 
@@ -484,7 +491,7 @@ class TestDemandObedienceRemoved:
 
         assert result['success'] is False
         assert 'demand_obedience' not in result['message']
-        assert 'grant_autonomy' in result['message']
+        assert 'trial' in result['message'] and 'grant_autonomy' not in result['message']
         # Nothing was spent: the audience is still waiting.
         assert ney.redemption_pending is True
         assert getattr(ney, 'redemption_cooldown_until', 0) == 0

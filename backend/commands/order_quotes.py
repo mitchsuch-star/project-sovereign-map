@@ -634,6 +634,15 @@ def take_quote(world, marshal, target: str = "") -> Dict[str, Any]:
     q = _blank("take", marshal, name, f"{shown}, attack {name}")
     q["ground"] = reading
     q["confirm"] = True
+    # Row IC, Session 2b (the review): a man on his task to prove himself
+    # takes no orders — said FIRST, before anything about the ground (the
+    # quote read "Mack stands there — he must be beaten first" of a man who
+    # can be sent at nobody).
+    from backend.commands.state_probe import trial_reason as _trial_reason
+    _on_task = _trial_reason(marshal)
+    if _on_task:
+        q["refusal"] = _on_task
+        return q
     code = str(reading.get("code") or "")
     takeable = ("open", "garrison", "fort") if name == here else (
         "garrison", "garrison_unsure", "fort", "takes", "takes_if_open", "liberates")

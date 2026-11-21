@@ -11,7 +11,8 @@ Pattern follows ledger.py.
 from typing import Dict, Any, List
 
 from backend.models.marshal import Marshal
-from backend.display_names import PERSONALITY_DISPLAY, STANCE_DISPLAY
+from backend.display_names import (PERSONALITY_DISPLAY, STANCE_DISPLAY,
+                                   get_strategic_display, humanize_entity_name)
 from backend.game_logic.formations import formed_display_name
 from backend.game_logic import fortunes_of_war as _fortunes
 from backend.display_names import with_definite_article
@@ -656,6 +657,11 @@ def _build_current_status(marshal: Marshal) -> Dict[str, Any]:
         strategic_order = {
             "command_type": order.command_type,
             "target": order.target,
+            # Row IC, Session 2b (IC2B-X16, X5's sibling): the order in the
+            # player's words — "Hold → Franconia", never the code's "HOLD"
+            # (R7: the one display map; the client holds no copy).
+            "display": get_strategic_display(str(order.command_type or "")),
+            "target_shown": humanize_entity_name(str(order.target or "")),
         }
 
     return {
@@ -679,10 +685,17 @@ def _build_current_status(marshal: Marshal) -> Dict[str, Any]:
             * Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100)),
         "iron_resolve_max_stacks": int(Marshal.IRON_RESOLVE_MAX_STACKS),
         "idle_turns": int(marshal.idle_turns),
-        "is_autonomous": bool(marshal.autonomous),
-        "autonomy_reason": marshal.autonomy_reason,
+        # Row IC, Session 2b: the task to prove himself he is on (None for
+        # every other man) — its turns left, the roll, the words his card
+        # says. It stands where `is_autonomous` / `autonomy_reason` stood.
+        "trial": _trial_payload(marshal),
         "square_formation": bool(marshal.square_formation),
     }
+
+
+def _trial_payload(marshal: Marshal):
+    from backend.game_logic import trial
+    return trial.payload(marshal)
 
 
 def _build_unit_specifics(marshal: Marshal) -> Dict[str, Any]:

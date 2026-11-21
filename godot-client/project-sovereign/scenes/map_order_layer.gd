@@ -661,6 +661,11 @@ func _arrow_geometry() -> Array:
 		var westward: bool = pts.size() > 1 and end.x < pts[pts.size() - 2].x
 		var label := str(a.get("label", ""))
 		var badge := _badge_rect(end, label, westward, ARROW_BADGE_PX) if label != "" else Rect2(end, Vector2.ZERO)
+		if badge.size != Vector2.ZERO and pts.size() == 1:
+			# Row IC, Session 2b (three blind readers read "…olds Franconia" and
+			# "narches on Bohemia"): a selected man's ring stands at his feet
+			# and the badge of an order with no road began under it.
+			badge = _clear_of_rings(badge, xform)
 		if badge.size != Vector2.ZERO:
 			# Two orders bound for one province would print their badges on
 			# one spot: a later badge steps down beneath those placed.
@@ -672,6 +677,31 @@ func _arrow_geometry() -> Array:
 		out.append({"marshal": str(a.get("marshal", "")), "pts": pts, "badge": badge,
 			"westward": westward, "arrow": a})
 	return out
+
+
+func _clear_of_rings(badge: Rect2, xform: Transform2D) -> Rect2:
+	"""`badge` moved clear of any selection ring it would begin under (the
+	ring as `_draw` draws it: an ellipse at the feet, 0.42 as tall) - to the
+	ring's right, or to its left where the layer has no room on the right
+	(the review: the shifted badge was not kept on the layer). Two passes, so
+	that clearing one ring of a group does not leave it under the next."""
+	var zoom: float = xform.get_scale().x
+	for _pass in range(2):
+		var moved := false
+		for ring in _rings:
+			var c: Vector2 = xform * (ring["at"] as Vector2)
+			var r: float = maxf(float(ring["r"]) * zoom, 9.0)
+			var box := Rect2(c - Vector2(r, r * 0.42), Vector2(r * 2.0, r * 0.84)).grow(3.0)
+			if not box.intersects(badge):
+				continue
+			moved = true
+			if size.x > 0.0 and box.end.x + 2.0 + badge.size.x > size.x:
+				badge.position.x = maxf(0.0, box.position.x - 2.0 - badge.size.x)
+			else:
+				badge.position.x = box.end.x + 2.0
+		if not moved:
+			break
+	return badge
 
 
 static func _overlaps_any(box: Rect2, placed: Array) -> bool:

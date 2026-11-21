@@ -3823,7 +3823,7 @@ class StrategicExecutor:
                      "gained, nothing charged.")
         message = (f"{interrupt_speaker(marshal)}: '{shown_enemy} bars the way at "
                    f"{blocked_region}, Sire — I can take him.' {name} engages him on "
-                   f"the road, on his own judgment.\n\n{combat_msg}")
+                   f"the road, by his own judgment.\n\n{combat_msg}")
         if teeth:
             message += f"\n\n{teeth}"
         return {"message": message, "record": record}
@@ -3895,11 +3895,14 @@ class StrategicExecutor:
         if not world:
             return {"success": False, "message": "Game state error in _execute_cancel: world state unavailable"}
 
+        from backend.game_logic import trial as _trial
         marshal_name = command.get("marshal")
         if not marshal_name:
-            # Try to find a marshal with an active strategic order
+            # Try to find a marshal with an active strategic order (never a
+            # man on his task to prove himself: his order is not ours to end)
             for m in world.marshals.values():
-                if m.nation == world.player_nation and m.in_strategic_mode:
+                if (m.nation == world.player_nation and m.in_strategic_mode
+                        and not _trial.on_trial(m)):
                     marshal_name = m.name
                     break
             if not marshal_name:
@@ -3909,6 +3912,16 @@ class StrategicExecutor:
         marshal = world.get_marshal(marshal_name)
         if not marshal:
             return {"success": False, "message": f"Marshal '{marshal_name}' not found."}
+
+        # Row IC, Session 2b: a man on his task to prove himself takes NO
+        # orders until it ends — the user's ruling: there is no call-back.
+        # Refused free, in the trial's own words (the typed road is refused
+        # earlier, at `trial.order_refusal`; this is the button's road and
+        # the belt for any other caller).
+        if _trial.on_trial(marshal) and marshal.nation == world.player_nation:
+            return {"success": False, "no_action_cost": True,
+                    "message": _trial.refusal_words(marshal),
+                    "trial": _trial.payload(marshal)}
 
         if not marshal.in_strategic_mode and not getattr(marshal, 'pending_interrupt', None):
             # Graceful cancel — may be canceling from a clarification popup
@@ -4312,10 +4325,10 @@ class StrategicExecutor:
                 world.notifications.add(create_notification(
                     MARSHAL_DEFIED_ORDER,
                     NotificationPriority.HIGH,
-                    f"{marshal_name} defied your strategic order!",
+                    f"{marshal_name} refused your order!",
                     # FA-N70 (the unfiled third site): `strategic_type` is the
                     # raw order enum here — through the R7 source, not ACTION_DISPLAY.
-                    f"{marshal_name} defied your order to {order_verb_display(strategic_type)} "
+                    f"{marshal_name} refused your order to {order_verb_display(strategic_type)} "
                     f"and chose to {_defiant_verb(defiant_action)} instead.",
                     world.current_turn,
                 ))

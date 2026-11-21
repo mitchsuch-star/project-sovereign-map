@@ -185,8 +185,20 @@ func _render() -> void:
 	size.x = custom_minimum_size.x
 	var menu: Control = null
 	if _group.is_empty():
-		_specs = MarshalStateKit.order_specs(_view)
 		_body.add_child(_head_row(compact))
+		# Row IC, Session 2b: on a task to prove himself his card carries NO
+		# order at all — what he is doing, his task as it was given, and that
+		# he cannot be called back. (The first blind reading: the card said "he
+		# takes no orders" above eleven greyed order buttons, "Cancel order"
+		# among them; all three readers answered right and all three said they
+		# could not tell whether the buttons still worked.)
+		var proving := _trial_row(compact)
+		if proving != null:
+			_body.add_child(proving)
+			_body.add_child(_hint_label(compact))
+			reset_size()
+			return
+		_specs = MarshalStateKit.order_specs(_view)
 		var ground := _ground_row(compact)
 		if ground != null:
 			_body.add_child(ground)
@@ -248,6 +260,35 @@ func _ground_row(compact: bool) -> Control:
 			words += " [color=#" + Utils.COLOR_INFO + "](" + str(stands.get("refusal", "")) + ")[/color]"
 		row.add_child(_measured_rich("GroundLine", words, wrap_w, true))
 	return row
+
+
+func _trial_row(compact: bool) -> Control:
+	"""Row IC, Session 2b: he is on a TASK TO PROVE HIMSELF — the server's own
+	words for how long it runs ("On a task to prove himself — 2 turns left"),
+	the task as it was given, and that he takes no orders and cannot be called
+	back. It stands where his orders would (`_render`). Null for every other man."""
+	var trial = _view.get("trial", {})
+	if not (trial is Dictionary) or (trial as Dictionary).is_empty():
+		return null
+	var wrap_w: float = maxf(_card_width(compact) - 24.0, 120.0)
+	var status := str(trial.get("status", "")).strip_edges()
+	if status == "":
+		status = "On a task to prove himself"
+	var words := "[color=#" + Utils.COLOR_WARNING + "]" + status + ".[/color]"
+	var line := str(trial.get("line", "")).strip_edges()
+	if line != "":
+		words += "\n[color=#" + Utils.COLOR_INFO + "]His task: \"" + line + "\"[/color]"
+	words += "\n[color=#" + Utils.COLOR_INFO + "]He takes no orders until it ends, and you cannot call him back.[/color]"
+	return _measured_rich("TrialLine", words, wrap_w, true)
+
+
+func _no_orders_reason() -> String:
+	"""Row IC, Session 2b: the server's short reason why he takes no orders
+	while he is on his task to prove himself, or "" for every other man."""
+	var trial = _view.get("trial", {})
+	if not (trial is Dictionary) or (trial as Dictionary).is_empty():
+		return ""
+	return str(trial.get("reason", "on his task to prove himself"))
 
 
 func _card_width(compact: bool) -> float:
@@ -332,6 +373,11 @@ func _figures_bbcode(compact: bool = false) -> String:
 		parts.append(Utils.bb_glyph("morale", 16) + " " + str(int(_view.get("morale", 0))) + "%")
 	# Row PW part 2 (three blind readers of three: "the icon is not labelled
 	# actions"): the figure says what it counts. The short view keeps its room.
+	# Row IC, Session 2b (the blind reading, three of three: "4 actions left"
+	# on the card of a man who takes no orders — "what can they be spent on?"):
+	# the Emperor's pool is not shown on the card of a man on his task.
+	if not _no_orders_reason().is_empty():
+		return "   ".join(parts)
 	var left := (str(_actions_left) + " left") if compact else (Utils.plural(_actions_left, "action") + " left")
 	parts.append(Utils.bb_glyph("actions", 16) + " " + left)
 	return "   ".join(parts)

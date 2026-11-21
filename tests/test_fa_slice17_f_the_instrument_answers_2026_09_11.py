@@ -259,13 +259,24 @@ class TestFA78ADisabledOptionIsNeverPressed:
 class TestFA79TheRedemptionAndPetitionArms:
 
     def test_the_default_is_the_self_expiring_arm(self):
-        assert driver.POLICY_DEFAULTS["redemption"] == "grant_autonomy"
+        # (row IC, Session 2b: the task to prove himself — it ends by itself
+        # after three to six turns, as "Grant Autonomy" did after three)
+        assert driver.POLICY_DEFAULTS["redemption"] == "trial"
+
+    def test_the_retired_word_is_answered_as_the_task(self):
+        """A script or a flag that still says `grant_autonomy` is read as the
+        task — recorded digests are history and stay as they are."""
+        a, t, d = make_answerer(replies={"/respond_to_redemption": {"success": True, "message": "ok"}})
+        a.policy["redemption"] = "grant_autonomy"
+        a.scan({"redemption_event": {"marshal": "Ney", "trust": 9}})
+        sent = [p for p in t.posts if p[0] == "/respond_to_redemption"]
+        assert sent and sent[0][1] == {"choice": "trial"}, t.posts
 
     def test_the_redemption_reply_is_written_to_the_digest(self):
         a, t, d = make_answerer(replies={"/respond_to_redemption": {
-            "success": False, "message": "That is not among the courses open to you, Sire. Ney awaits one of: grant_autonomy."}})
+            "success": False, "message": "That is not among the courses open to you, Sire. Ney awaits one of: trial."}})
         a.scan({"redemption_event": {"marshal": "Ney", "trust": 9}})
-        assert any("refused" in n and "grant_autonomy" in n for n in d.notes), d.notes
+        assert any("refused" in n and "trial" in n for n in d.notes), d.notes
 
     def test_the_petition_reply_is_written_to_the_digest(self):
         a, t, d = make_answerer(replies={"/marshal_petition_response": {

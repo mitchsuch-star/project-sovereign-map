@@ -217,15 +217,18 @@ class TestTheOwnOrderDeath:
         assert game_end.terminal_ending(w)["cause"] == game_end.CAUSE_EAGLE_FALLS
         assert "Napoleon" in ran and "Soult" not in ran
 
-    def test_the_grievance_pass_and_autonomy_rest_after_it(self, monkeypatch):
+    def test_the_grievance_pass_and_the_tasks_count_rest_after_it(self, monkeypatch):
+        # (Row IC, Session 2b: the nightly count of the men on their task to
+        # prove himself stands where the autonomous pass stood — and, like the
+        # grievance pass, it reads the Fall AFTER the standing-order pass.)
         from backend.ai.enemy_ai import EnemyAI
         from backend.commands.executor import CommandExecutor
         from backend.commands.strategic import StrategicOrderProcessor
-        from backend.game_logic import jealousy
+        from backend.game_logic import jealousy, trial
         from backend.game_logic.turn_manager import TurnManager
         monkeypatch.setattr(game_end, "SOVEREIGN_DEATH_CHANCE_PCT", 100)
         w = _boot()
-        calls = {"jealousy": 0, "autonomous": 0}
+        calls = {"jealousy": 0, "trial": 0}
 
         def _strategic(self, world, game_state):
             world.destroy_marshal(world.marshals["Napoleon"], cause="battle",
@@ -235,19 +238,19 @@ class TestTheOwnOrderDeath:
         def _jealousy(world):
             calls["jealousy"] += 1
 
-        def _autonomous(self, game_state):
-            calls["autonomous"] += 1
-            return None
+        def _trial(world, reports):
+            calls["trial"] += 1
+            return reports
         monkeypatch.setattr(EnemyAI, "process_nation_turn",
                             lambda self, nation, world, game_state: [])
         monkeypatch.setattr(EnemyAI, "execute_admin_phase",
                             lambda self, nation, world, game_state: [])
         monkeypatch.setattr(StrategicOrderProcessor, "process_strategic_orders", _strategic)
         monkeypatch.setattr(jealousy, "process_turn", _jealousy)
-        monkeypatch.setattr(TurnManager, "_process_autonomous_marshals", _autonomous)
+        monkeypatch.setattr(trial, "close_of_turn", _trial)
         _quiet(TurnManager(w, CommandExecutor()).end_turn, {"world": w})
         assert game_end.terminal_ending(w)["cause"] == game_end.CAUSE_EAGLE_FALLS
-        assert calls == {"jealousy": 0, "autonomous": 0}
+        assert calls == {"jealousy": 0, "trial": 0}
 
 
 # ════════════════════════════════════════════════════════════════════════

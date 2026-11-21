@@ -604,23 +604,29 @@ class TestAutoChargeAtFour:
 
 
 class TestRecklessnessAndAutonomy:
-    """Test interaction between recklessness 4+ and autonomous marshals."""
+    """Recklessness 4+ and a man on his task to prove himself (row IC,
+    Session 2b — the state that stands where the autonomous one stood)."""
 
-    def test_recklessness_overrides_autonomy(self):
-        """Recklessness 4+ overrides autonomous behavior."""
+    def test_recklessness_overrides_the_task(self):
+        """Recklessness 4+ is the game's own rule for the man, never an
+        order: a cavalryman on his task still charges uncontrollably — and
+        the battle is on his task's record like any other he fights."""
+        from backend.game_logic import trial
         world = WorldState()
         ney = world.get_marshal("Ney")
         wellington = world.get_marshal("Wellington")
 
         ney.recklessness = 4
-        ney.autonomous = True
-        ney.autonomous_turns_remaining = 2
         wellington.location = "Belgium"
+        assert trial.give(world, ney)["given"]
+        fought = ney.battles_won + ney.battles_lost
 
         events = world._process_reckless_cavalry_turn_start()
 
-        # Should auto-charge despite being autonomous
+        # Should auto-charge although he is on his task
         assert any(e.get("type") == "auto_glorious_charge" for e in events)
+        won, lost, _taken = trial.achieved(ney)
+        assert won + lost == (ney.battles_won + ney.battles_lost) - fought
 
 
 class TestEnemyAIRecklessness:
@@ -744,7 +750,7 @@ class TestEdgeCases:
 class TestTurnOrder:
     """Test correct turn processing order with recklessness."""
 
-    def test_turn_order_recklessness_before_autonomous(self):
+    def test_turn_order_recklessness_at_the_turns_start(self):
         """Recklessness 4+ processes at turn start."""
         world = WorldState()
         ney = world.get_marshal("Ney")

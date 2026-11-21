@@ -543,7 +543,7 @@ class TestWO28TheRefusedAttackRestoresTheOrder:
                    if e["type"] == "jealousy_autonomous_refused"]
         assert len(refused) == 1
         msg = refused[0]["message"]
-        assert msg.startswith("Ney meant to go at Wellington on his own initiative, but ")
+        assert msg.startswith("Ney meant to go at Wellington without waiting for orders, but ")
         assert "fortified" in msg
         assert msg.endswith("his orders are unchanged.")
         assert refused[0]["nation"] == "France"
@@ -613,7 +613,7 @@ class TestWO28TheRefusedAttackRestoresTheOrder:
         rows = D._build_turn_events([{
             "type": "jealousy_autonomous_refused", "nation": "France",
             "marshal": "Ney",
-            "message": "Ney meant to go at Wellington on his own initiative, "
+            "message": "Ney meant to go at Wellington without waiting for orders, "
                        "but he is fortified — his orders are unchanged."}],
             "France")
         assert any("his orders are unchanged" in r.get("message", "")

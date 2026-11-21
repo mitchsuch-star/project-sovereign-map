@@ -410,7 +410,7 @@ Ney, defend
 /debug set_strength Grouchy 0
 /debug set_trust Ney 15
 ```
-**Expected:** Only "Grant Autonomy" available (last marshal).
+**Expected:** Only "Give Ney a task to prove himself" available (last marshal) — his proposal and its terms stand on the window; once given he takes no orders until it ends (row IC, Session 2b).
 
 ---
 

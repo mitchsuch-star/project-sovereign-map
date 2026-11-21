@@ -6,6 +6,12 @@ below "Begin"; that a marshal acted WITHOUT ORDERS this turn (the reply has alwa
 jealous man may attack on his own tonight, or a literal man resents being left out (both are TO DECIDE rows
 now — pinned in `tests/test_ic1_the_desk.py`). Styling, focus and words only: nothing is renamed, moved or
 shut, and no rule changes.
+
+Row IC, Session 2b (November 20, 2026): the second of the three is re-seated. The engine that moved a marshal
+"without orders" (the trust crisis's "Grant Autonomy") is removed, with its report; the man out of the player's
+hands is now the one on his TASK TO PROVE HIMSELF, and the first class below pins that what HE does is said in
+plain words. (The jealous strike's words are "without waiting for orders" now: "on his own" is kept for the man
+the Emperor sets on his own.)
 """
 
 from __future__ import annotations
@@ -29,126 +35,170 @@ def _func(source: str, name: str) -> str:
     return match.group(0)
 
 
-REPORT = [
-    {"marshal": "Ney", "action": "attack", "target": "Mack", "turns_remaining": 2,
-     "performance": {"battles_won": 1, "battles_lost": 0, "regions_captured": 0},
-     "result": {"message": "x"}},
-    {"marshal": "Davout", "action": "wait", "target": None, "turns_remaining": 1,
-     "performance": {"battles_won": 0, "battles_lost": 0, "regions_captured": 0}},
-    {"marshal": "Murat", "action": "move", "target": "Bavaria", "turns_remaining": 0, "autonomy_ended": True,
-     "end_result": {"tier": "success", "message": "Murat performed well independently. Trust +25."}},
-]
+def _board():
+    """The shipped 1805 board, Ney moved to Franconia (beside Austrian Bohemia)."""
+    import contextlib
+    import io as _io
+    from backend.models.world_state import WorldState
+    scenario = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
+    with contextlib.redirect_stdout(_io.StringIO()):
+        world = WorldState.from_scenario(str(scenario))
+        world.marshals["Ney"].location = "Franconia"
+        world._build_marshal_index()
+        world.calculate_visibility()
+    return world
+
+
+def _quietly(fn, *args, **kwargs):
+    import contextlib
+    import io as _io
+    with contextlib.redirect_stdout(_io.StringIO()):
+        return fn(*args, **kwargs)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 1. A marshal who acted without orders is said, in plain words
+# 1. A marshal who is out of your hands is said, in plain words
 # ═════════════════════════════════════════════════════════════════════════════
+#
+# IC-3 found that a marshal ACTED WITHOUT ORDERS and no screen said so: the
+# trust crisis's "Grant Autonomy" handed him to the enemy's decision logic for
+# three turns, and the reply's `independent_command_report` was read by no
+# client script (`while_you_waited._own_way` then said it in one plain line).
+#
+# Row IC, Session 2b (November 20, 2026) removed that engine, its report and
+# `_own_way` with it. The man who is out of the player's hands now is the one
+# on his TASK TO PROVE HIMSELF — and the promise this class pinned is kept
+# for him: what he does is said, in plain words, where the player reads the
+# turn (the standing orders' rows, the turn's events, the summary).
 
-class TestAManActingWithoutOrdersIsReported:
+class TestAManOnHisTaskIsReported:
     def test_one_plain_line_each(self):
-        rows = WYW._own_way(REPORT)
-        assert [r["marshal"] for r in rows] == ["Ney", "Davout", "Murat"]
-        # the morning after: said in the past tense (the review)
-        assert rows[0]["line"] == "Ney acted without orders: he attacked Mack. He acts on his own for 2 more turns."
-        assert rows[1]["line"] == ("Davout acted without orders: he held his position. He acts on his own for "
-                                   "1 more turn.")
-        assert rows[2]["line"] == ("Murat acted without orders: he marched to Bavaria. He is under your orders "
-                                   "again. Murat performed well independently. Trust +25.")
-        assert rows[2]["ended"] is True and rows[0]["ended"] is False
-        for row in rows:
-            assert "_" not in row["line"], row["line"]              # no internal verb in the words
-            assert isinstance(row["turns_left"], int)
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
+        from backend.game_logic import trial
+        world = _board()
+        ney = world.marshals["Ney"]
+        given = _quietly(trial.give, world, ney)
+        executor = CommandExecutor()
+        rows = _quietly(StrategicOrderProcessor(executor).process_strategic_orders,
+                        world, {"world": world, "executor": executor})
+        took = next(r for r in rows if r.get("marshal") == "Ney")
+        assert took["message"] == "Ney marches on Bohemia, as he proposed. Bohemia is ours."
+        ney.battles_won += 1                                   # ... he won a battle on each turn
+        _quietly(trial.tick, world)
+        ney.battles_won += 1
+        _quietly(trial.tick, world)
+        ney.battles_won += 1
+        pressed = _quietly(trial.tick, world)                  # his last turn ended on a victory
+        assert pressed[0]["message"].startswith(
+            "Ney is on a roll — last turn he won a battle and lost none. He presses on with his "
+            "task one more turn")
+        over = _quietly(trial.tick, world)                     # a turn with no victory: it ends
+        # (the review, IC2B-X19: Bohemia stood open — he walked in — and the
+        # morning says so; the old pin here was an `or` whose first arm could
+        # never match)
+        assert over[0]["message"].startswith(
+            "Ney has proved himself. In 4 turns he won 3 battles and took 1 place that nobody "
+            "defended. His trust in you rises by ")
+        assert over[0]["message"].endswith(" He is under your orders again.")
+        for line in (given["message"], took["message"], pressed[0]["message"], over[0]["message"],
+                     trial.status_words(world.marshals["Davout"]) or "x"):
+            assert "_" not in line, line                       # no internal word in the words
+            for hidden in ("trial", "HOLD", "opening_take", "autonom", "independent"):
+                assert hidden not in line, (hidden, line)
 
-    def test_an_enemy_he_went_for_is_named_only_where_the_player_knows_him(self):
-        """The review (IC-R3): the man chose his quarry with the AI's eyes. An enemy the player
-        cannot see and did not fight is "an enemy corps" — in the report AND in the log's block."""
-        import contextlib
-        import io as _io
-        import json
+    def test_an_enemy_he_goes_for_is_named_only_where_the_player_knows_him(self):
+        """The review (IC-R3) found the old report naming a quarry the man
+        had chosen "with the AI's eyes". The task is proposed from what
+        FRANCE sees: an enemy corps the player cannot see is named nowhere —
+        not in the proposal, not in the order's line."""
+        from backend.game_logic import trial
         from backend.models.intel import RegionIntel
-        from backend.models.world_state import WorldState
-        scenario = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
-        with contextlib.redirect_stdout(_io.StringIO()):
-            world = WorldState.from_dict(json.loads(json.dumps(
-                WorldState.from_scenario(str(scenario)).to_dict(), default=str)))
-        mack = world.marshals["Mack"]
-        intel = world.intel.get(mack.location)
+        world = _board()
+        ney = world.marshals["Ney"]
+        charles = world.marshals["ArchdukeCharles"]
+        charles.location = "Bohemia"                           # a corps stands on his target
+        charles.strength = 9000
+        world._build_marshal_index()
+        intel = world.intel.get("Bohemia")
         if intel is None:
-            intel = world.intel[mack.location] = RegionIntel(mack.location)
-        entry = {"marshal": "Ney", "action": "attack", "target": "Mack", "turns_remaining": 2,
-                 "result": {"success": False, "message": "No enemy there."}}
-        intel.visibility = "unknown"
-        assert WYW.own_way_target(world, entry) == "an enemy corps"
-        assert WYW._own_way([entry], world)[0]["line"] == (
-            "Ney acted without orders: he attacked an enemy corps. He acts on his own for 2 more turns.")
-        intel.visibility = "partial"                                    # he stands in sight now
-        assert WYW.own_way_target(world, entry) == "Mack"
-        intel.visibility = "unknown"
-        fought = dict(entry, result={"battle_won": True})               # a battle was fought with him
-        assert WYW.own_way_target(world, fought) == "Mack"
-        # a province, one of our own men and a name the roster does not hold are said as they are
-        assert WYW.own_way_target(world, {"target": "Bavaria"}) == "Bavaria"
-        assert WYW.own_way_target(world, {"target": "Davout"}) == "Davout"
-        assert WYW.own_way_target(world, {"target": None}) == ""
-        # … and the log's older block reads the same rule (the sibling)
-        block = (REPO / "backend" / "commands" / "meta_executor.py").read_text(encoding="utf-8")
-        report = block[block.index("═══ INDEPENDENT COMMAND REPORT ═══"):block.index("# FINANCIAL SUMMARY")]
-        assert "own_way_target(world, entry) or target" in report
-        assert 'action_str += f" {target}"' not in report
+            intel = world.intel["Bohemia"] = RegionIntel("Bohemia")
+        intel.visibility = "unknown"                           # ... and France cannot see it
+        unseen = _quietly(trial.proposal, world, ney)
+        assert "Charles" not in unseen["words"] and "Charles" not in unseen["line"]
+        assert unseen["foe"] == ""
+        intel.visibility = "full"                              # he stands in sight now
+        seen = _quietly(trial.proposal, world, ney)
+        assert seen["place"] == "Bohemia" and seen["foe"] == "ArchdukeCharles"   # (the roster's key)
+        assert "where Archduke Charles stands" in seen["words"]
 
-    def test_a_verb_with_no_place_does_not_dangle(self):
-        rows = WYW._own_way([{"marshal": "Ney", "action": "retreat", "target": None, "turns_remaining": 1}])
-        assert rows[0]["line"] == "Ney acted without orders: he fell back. He acts on his own for 1 more turn."
+    def test_a_hold_with_nothing_beside_it_does_not_dangle(self):
+        from backend.game_logic import trial
+        world = _board()
+        read = trial.proposal(None, world.marshals["Davout"])  # no board to read: no friend, no place to take
+        assert read["line"] == "Davout, hold Alsace." or read["line"].startswith("Davout, hold ")
+        assert read["line"].endswith(".") and "  " not in read["line"] and "None" not in read["line"]
+        assert read["words"].endswith(".") and "None" not in read["words"]
 
     def test_nothing_to_say_is_nothing_said(self):
-        assert WYW._own_way(None) == [] and WYW._own_way([]) == []
-        assert WYW._own_way([{"action": "attack"}, "x", None]) == []
+        from backend.game_logic import trial
+        world = _board()
+        kept = [{"marshal": "Davout", "message": "kept"}]
+        assert _quietly(trial.close_of_turn, world, kept) == kept
+        assert _quietly(trial.tick, world) == []
+        assert trial.morning_events(world) == []
+        assert trial.status_words(world.marshals["Ney"]) == ""
+        assert trial.payload(world.marshals["Ney"]) is None
 
     def test_the_turn_s_summary_carries_it_and_is_no_longer_quiet(self):
-        class _Board:
-            player_nation = "France"
-            regions: dict = {}
-            current_turn = 3
-
-            def get_visible_enemies(self, nation):
-                return []
-
-            def get_player_marshals(self):
-                return []
-        before = {"turn": 2, "regions": {}, "garrisons": {}, "corps": {}, "places": {}, "wars": []}
-        told = WYW.digest(_Board(), before, None, None, own_way=REPORT)
-        assert [r["marshal"] for r in told["own_way"]] == ["Ney", "Davout", "Murat"]
+        """The province he took on his task is in the summary of the turn —
+        which is then no quiet turn."""
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.strategic import StrategicOrderProcessor
+        from backend.game_logic import trial
+        world = _board()
+        ney = world.marshals["Ney"]
+        before = WYW.before(world)
+        quiet = WYW.digest(world, before, None, None)
+        assert quiet["quiet"] is True and quiet["gained"] == []
+        _quietly(trial.give, world, ney)
+        executor = CommandExecutor()
+        _quietly(StrategicOrderProcessor(executor).process_strategic_orders,
+                 world, {"world": world, "executor": executor})
+        told = WYW.digest(world, before, None, None)
+        assert [row["region"] for row in told["gained"]] == ["Bohemia"]
         assert told["quiet"] is False
-        quiet = WYW.digest(_Board(), before, None, None)
-        assert "own_way" not in quiet and quiet["quiet"] is True
+        assert "own_way" not in told
 
-    def test_the_turn_hands_its_report_to_the_summary(self):
+    def test_the_turn_hands_the_morning_its_lines(self):
+        manager = (REPO / "backend" / "game_logic" / "turn_manager.py").read_text(encoding="utf-8")
+        assert "tactical_events.extend(_trial_morning.morning_events(self.world))" in manager
+        assert "_trial.close_of_turn(self.world, strategic_reports)" in manager
         attach = (REPO / "backend" / "game_logic" / "while_you_waited.py").read_text(encoding="utf-8")
         body = attach[attach.index("def attach("):attach.index("def snapshot(")]
-        assert 'own_way=result.get("independent_command_report")' in body
+        assert "own_way" not in body and "independent_command_report" not in body
 
-    def test_the_seam_down_is_the_summary_as_it_was(self, monkeypatch):
-        monkeypatch.setattr(WYW, "a_man_acting_without_orders_is_reported", lambda: False)
-
-        class _Board:
-            player_nation = "France"
-            regions: dict = {}
-            current_turn = 3
-
-            def get_visible_enemies(self, nation):
-                return []
-
-            def get_player_marshals(self):
-                return []
-        before = {"turn": 2, "regions": {}, "garrisons": {}, "corps": {}, "places": {}, "wars": []}
-        told = WYW.digest(_Board(), before, None, None, own_way=REPORT)
-        assert "own_way" not in told and told["quiet"] is True
+    def test_the_old_report_and_its_seam_are_gone(self):
+        import inspect
+        for gone in ("_own_way", "own_way_target", "a_man_acting_without_orders_is_reported"):
+            assert not hasattr(WYW, gone), gone
+        assert "own_way" not in inspect.signature(WYW.digest).parameters
+        block = (REPO / "backend" / "commands" / "meta_executor.py").read_text(encoding="utf-8")
+        assert "INDEPENDENT COMMAND REPORT" not in block
+        assert "independent_command_report" not in block
 
     def test_the_report_after_end_turn_shows_it(self):
+        """The client: the old "Acting without orders" block is gone from the
+        turn's report, and the task's lines print with the turn's events and
+        the standing orders' rows (each once — `tests/test_autonomy.py`)."""
         block = _func(_src("enemy_phase_dialog.gd"), "_wyw_block")
-        assert 'var own_way = d.get("own_way", [])' in block
-        assert "[b]Acting without orders[/b]" in block
-        assert block.index("Acting without orders") < block.index("Now next to you")
+        assert "own_way" not in block and "Acting without orders" not in block
+        main = _src("main.gd")
+        assert "independent_command_report" not in main
+        events = main[main.index("# Display tactical events (supply attrition, occupation updates)"):]
+        assert 'var msg = str(event.get("message", ""))' in events[:600]
+        rows = _func(main, "_show_strategic_reports")
+        assert 'var msg = report.get("message", "")' in rows
 
 
 # ═════════════════════════════════════════════════════════════════════════════

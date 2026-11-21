@@ -380,15 +380,24 @@ def _rows_last_stand(world, have) -> List[Dict[str, Any]]:
 
 
 def _rows_battle_days(world, have) -> List[Dict[str, Any]]:
-    from backend.game_logic import battle_day
+    from backend.game_logic import battle_day, trial
     rows = []
     for day in battle_day.awaiting(world):
         field = str(day.get("field_shown") or day.get("field") or "")
         lead = str(day.get("lead_shown") or "")
-        rows.append(_row(f"day:{day.get('enemy')}", TIER_BITES,
-                         _fit([f"The battle at {field} has no winner yet — {lead} still waits for your orders.",
-                               f"The battle at {field} has no winner yet — it waits for your orders.",
-                               f"A battle at {field} waits for your orders."]),
+        forms = [f"The battle at {field} has no winner yet — {lead} still waits for your orders.",
+                 f"The battle at {field} has no winner yet — it waits for your orders.",
+                 f"A battle at {field} waits for your orders."]
+        getter = getattr(world, "get_marshal", None)
+        man = getter(str(day.get("lead") or "")) if callable(getter) else None
+        if man is not None and trial.on_trial(man):
+            # Row IC, Session 2b (pressed in the real client): a lead on his
+            # task to prove himself waits for no order — the day's panel gives
+            # his corps none. What is still the Emperor's: to send him help.
+            forms = [f"The battle at {field} has no winner yet — {lead} takes no orders; you can send him help.",
+                     f"The battle at {field} has no winner yet — you can send {lead} help.",
+                     f"A battle at {field} has no winner yet."]
+        rows.append(_row(f"day:{day.get('enemy')}", TIER_BITES, _fit(forms),
                          {"kind": "day", "enemy": str(day.get("enemy") or "")}))
     return rows
 
@@ -712,9 +721,9 @@ def _rows_strike(world, have) -> List[Dict[str, Any]]:
         if getattr(m, "jealousy_autonomous_warned", False):
             shown = humanize_entity_name(m.name)
             rows.append(_row(f"strike:{m.name}", TIER_BITES,
-                             _fit([f"{shown} may attack on his own when the turn ends — an order that reaches him stops it.",
-                                   f"{shown} may attack on his own when the turn ends — an order stops it.",
-                                   f"{shown} may attack on his own when the turn ends."]),
+                             _fit([f"{shown} may attack without waiting for orders when the turn ends — an order that reaches him stops it.",
+                                   f"{shown} may attack without waiting for orders when the turn ends — an order stops it.",
+                                   f"{shown} may attack without waiting for orders when the turn ends."]),
                              {"kind": "marshal", "marshal": m.name}))
     return rows
 

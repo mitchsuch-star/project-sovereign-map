@@ -617,7 +617,7 @@ class TestABattleReachesTheClientWhole:
         world.calculate_visibility()
         reply = _post(client, "Ney, march to Swabia")
         assert reply.get("success") is True, reply.get("message")
-        assert "on his own judgment" in (reply.get("message") or "")
+        assert "by his own judgment" in (reply.get("message") or "")
         assert reply.get("battle_report"), "the after-action report"
         assert reply.get("battle_diorama"), "the diorama"
         events = reply.get("events") or []
@@ -743,8 +743,12 @@ class TestTheCensus:
         refusal arm pinned in `tests/test_cc4_chained_orders.py`), three in
         strategic_executor.py (the first-step aggressive arm and the two
         PURSUE first-step arms), and one in jealousy.py
-        (`process_autonomous_attacks`, with its own restore-on-refusal arm).
-        Fourteen are ORDER-DRIVEN and two are the player's own ANSWER; the
+        (`process_autonomous_attacks`, with its own restore-on-refusal arm),
+        and — row IC, Session 2b, November 20, 2026 — one in trial.py
+        (`run_take`, the take a man's task to prove himself announced for the
+        night; its refusal arm pinned in `tests/test_autonomy.py`
+        `TestTheTakeIsAnOrderSeam`).
+        Fifteen are ORDER-DRIVEN and two are the player's own ANSWER; the
         muster re-issue is NOT strategic execution and is not counted.
 
         Slice-3 review round (R1-F7c / R3-S1): the first census was a TEXT
@@ -773,7 +777,8 @@ class TestTheCensus:
         by_file = {f: hits.count(f) for f in set(hits)}
         assert by_file == {"backend/commands/strategic.py": 13,
                            "backend/commands/strategic_executor.py": 3,
-                           "backend/game_logic/jealousy.py": 1}, by_file
+                           "backend/game_logic/jealousy.py": 1,
+                           "backend/game_logic/trial.py": 1}, by_file
 
     def test_the_lever_free_seams_read_the_predicate(self):
         """Source pin: the refusal predicate is consulted where each family

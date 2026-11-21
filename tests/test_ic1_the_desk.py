@@ -559,7 +559,9 @@ class TestTheRows:
         world.marshals["Murat"].jealousy_autonomous_warned = True
         row = next(r for r in today.decide(world) if r["id"] == "strike:Murat")
         assert row["tier"] == today.TIER_BITES
-        assert row["text"] == "Murat may attack on his own when the turn ends — an order that reaches him stops it."
+        # ("without waiting for orders" since row IC's Session 2b — "on his own" is kept for the man the
+        # Emperor sets on his own; the longer words take the fit's second form on the desk's line.)
+        assert row["text"] == "Murat may attack without waiting for orders when the turn ends — an order stops it."
         assert row["door"] == {"kind": "marshal", "marshal": "Murat"}
 
     def test_an_order_that_reaches_him_takes_the_row_away(self, world):

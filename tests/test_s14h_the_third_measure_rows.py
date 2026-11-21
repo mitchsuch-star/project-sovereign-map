@@ -2495,7 +2495,9 @@ class TestS14GX18:
     warning named Mack ("Murat is eyeing Mack's position at ...") and the
     target was re-derived silently when he went. OLD reading: the fire-time
     beat "Murat, hungry for glory, has attacked Archduke Charles on his own
-    initiative." with nothing said of Mack. NOW: the warning says the target
+    initiative." with nothing said of Mack (the words are "without waiting
+    for orders" since row IC's Session 2b: "on his own" is kept for the man
+    the Emperor sets on his own). NOW: the warning says the target
     may change and records whom it named (`__warned__` in the serialized
     `jealousy_history`), and the fire-time lines name both men."""
 
@@ -2533,7 +2535,7 @@ class TestS14GX18:
         assert beats[0]["message"] == (
             "Murat, warned of eyeing Mack, strikes Archduke Charles at Munich "
             "instead — Mack had left Swabia, and he took the weakest man in his "
-            "reach on his own initiative.")
+            "reach without waiting for orders.")
         assert "__warned__" not in b.murat.jealousy_history          # read, used, cleared
         assert b.murat.jealousy_autonomous_warned is False
 
@@ -2546,7 +2548,7 @@ class TestS14GX18:
         beats = [e for e in b.world._pending_jealousy_turn_events
                  if e["type"] == "jealousy_autonomous_attack"]
         assert [e["message"] for e in beats] == [
-            "Murat, hungry for glory, has attacked Mack on his own initiative."]
+            "Murat, hungry for glory, has attacked Mack without waiting for orders."]
 
     def test_a_hand_set_flag_with_no_record_reads_as_it_always_did(self, _r5_board):
         from backend.game_logic import jealousy as J
@@ -2558,7 +2560,7 @@ class TestS14GX18:
         beats = [e for e in b.world._pending_jealousy_turn_events
                  if e["type"] == "jealousy_autonomous_attack"]
         assert [e["message"] for e in beats] == [
-            "Murat, hungry for glory, has attacked Archduke Charles on his own initiative."]
+            "Murat, hungry for glory, has attacked Archduke Charles without waiting for orders."]
 
     def test_a_held_attack_on_a_changed_quarry_names_the_man_warned_of(self, _r5_board):
         from backend.game_logic import jealousy as J
@@ -2571,7 +2573,7 @@ class TestS14GX18:
                    if e["type"] == "jealousy_autonomous_refused"]
         assert len(refused) == 1 and refused[0]["held_by_odds"] is True
         assert refused[0]["message"].startswith(
-            "Murat meant to go at Archduke Charles on his own initiative, but the odds held him")
+            "Murat meant to go at Archduke Charles without waiting for orders, but the odds held him")
         assert refused[0]["message"].endswith(
             " (Warned of eyeing Mack at Swabia, he found that Mack had left Swabia; the man in "
             "his reach was Archduke Charles at Munich.)")
@@ -2588,7 +2590,7 @@ class TestS14GX18:
         refused = [e for e in b.world._pending_jealousy_turn_events
                    if e["type"] == "jealousy_autonomous_refused"]
         assert [e["message"] for e in refused] == [
-            "Murat meant to go at Mack on his own initiative, but Mack had left Swabia, "
+            "Murat meant to go at Mack without waiting for orders, but Mack had left Swabia, "
             "and no enemy stood within his reach when the moment came — he stands where "
             "he was, and his orders are unchanged."]
 

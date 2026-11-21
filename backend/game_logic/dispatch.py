@@ -7052,6 +7052,12 @@ _DISPATCH_EVENT_TYPES = {
     # lord's in-place answers (same type, `nation` = that lord) are
     # filtered out by the relevance gate below exactly as before.
     "client_petition_answered",
+    # Row IC, Session 2b: how a marshal's TASK TO PROVE HIMSELF went — it
+    # ended (today's rewards), he presses on (a roll), or an old save's man
+    # was settled on loading. `trial.morning_events` threads each line into
+    # the turn's events once; without the type HERE the morning would drop
+    # it at the whitelist (the `shadow_petition` trap, above).
+    "marshal_trial",
 }
 
 

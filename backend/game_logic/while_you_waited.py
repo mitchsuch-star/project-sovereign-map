@@ -54,13 +54,6 @@ def a_loss_says_if_it_was_foreseen() -> bool:
     return True
 
 
-def a_man_acting_without_orders_is_reported() -> bool:
-    """Row IC seam (one line to reverse): the digest carries `own_way` — one
-    plain line for each marshal who acted without orders this turn. Down
-    (False): no such key (the log's terse block is all there is, as before)."""
-    return True
-
-
 # What a lost province's row says of the warning, by its `foreseen` key.
 FORESEEN_WORDS = {
     "warned": "You were warned before the turn ended.",
@@ -116,8 +109,7 @@ def attach(result: Dict[str, Any], world, before_the_turn: Dict[str, Any],
     reading; nothing is written to the world."""
     if not before_the_turn:
         return
-    told = digest(world, before_the_turn, enemy_phase, tactical_events,
-                  own_way=result.get("independent_command_report"))
+    told = digest(world, before_the_turn, enemy_phase, tactical_events)
     if told:
         result["while_you_waited"] = told
 
@@ -398,9 +390,16 @@ def _our_battles(world, events) -> List[Dict[str, Any]]:
             result = "open"
             who = (f"{our_name} attacked {his_name}" if we_attacked
                    else f"{his_name} attacked {our_name}")
-            said = (f"{who} — no winner yet: the battle waits for your orders this turn"
-                    if str(day.get("awaits") or "") == "ours"
-                    else f"{who} — no winner yet: the battle goes on")
+            if str(day.get("awaits") or "") != "ours":
+                said = f"{who} — no winner yet: the battle goes on"
+            elif _lead_takes_no_orders(world, str(day.get("lead") or ours.get("name") or "")):
+                # Row IC, Session 2b (IC2B-X17, the desk row's sibling): a
+                # lead on his task to prove himself waits for no order — what
+                # is still the Emperor's is to send him help.
+                said = (f"{who} — no winner yet: {our_name} takes no orders; "
+                        f"you can send him help this turn")
+            else:
+                said = f"{who} — no winner yet: the battle waits for your orders this turn"
         place = str(event.get("location") or event.get("region_name") or "")
         our_loss = int(ours.get("casualties", 0) or 0)
         his_loss = int(theirs.get("casualties", 0) or 0)
@@ -417,6 +416,20 @@ def _our_battles(world, events) -> List[Dict[str, Any]]:
             "line": (f"{place}: {said}. Losses: you {our_loss:,}, him {his_loss:,}." + tail),
         })
     return rows
+
+
+def _lead_takes_no_orders(world, name: str) -> bool:
+    """Row IC, Session 2b: our lead in this battle is on his task to prove
+    himself (`trial.on_trial`, the one reader) — he can be given no word of
+    the day."""
+    try:
+        from backend.game_logic import trial as _trial
+        getter = getattr(world, "get_marshal", None)
+        marshal = getter(name) if callable(getter) and name else None
+        return marshal is not None and _trial.on_trial(marshal)
+    except Exception as exc:
+        report(exc, "while_you_waited._lead_takes_no_orders: trial.on_trial")
+        return False
 
 
 def _now_beside(world, before) -> List[Dict[str, Any]]:
@@ -506,84 +519,14 @@ def _plaques(lost, friends_lost, battles, gained, friends_gained) -> List[Dict[s
     return rows[:MAX_PLAQUES]
 
 
-def own_way_target(world, entry: Dict[str, Any]) -> str:
-    """Whom or where a man who acted without orders went for, as the PLAYER
-    may read it (the review, IC-R3): a province by its name; an enemy marshal
-    by his name only where the player knows him — a battle was fought with
-    him this turn, or he stands in sight now — else "an enemy corps". The
-    man chose his quarry with the AI's eyes; the report must not lend them
-    to the player. "" with no target."""
-    target = str(entry.get("target") or "")
-    if not target:
-        return ""
-    man = (getattr(world, "marshals", None) or {}).get(target) if world is not None else None
-    if man is None:
-        return humanize_entity_name(target)            # a province, or a name the roster does not hold
-    if world is not None and getattr(man, "nation", None) == getattr(world, "player_nation", None):
-        return humanize_entity_name(target)
-    result = entry.get("result") if isinstance(entry.get("result"), dict) else {}
-    fought = bool(result.get("battle_won") or result.get("battle_lost") or result.get("battle"))
-    try:
-        from backend.game_logic import intel_surfaces
-        seen = intel_surfaces.in_sight(world, world.player_nation, man)
-    except Exception as exc:
-        report(exc, "while_you_waited.own_way_target: intel_surfaces.in_sight")
-        seen = False
-    return humanize_entity_name(target) if (fought or seen) else "an enemy corps"
-
-
-# What he did, in the past tense (the report is read the morning after): the
-# verbs `display_names.action_display_name` writes in the present.
-_DID = {"attacks": "attacked", "moves to": "marched to", "defends": "stood on the defensive",
-        "fortifies": "dug in", "abandons fortification": "left his works",
-        "forms square": "formed square", "breaks square": "broke square",
-        "drills": "drilled his men", "changes stance": "changed his stance",
-        "retreats to": "fell back to", "holds position": "held his position",
-        "recruits": "raised men", "scouts": "scouted", "holds": "held",
-        "bombards": "bombarded", "charges": "charged"}
-
-
-def _own_way(report_rows, world=None) -> List[Dict[str, Any]]:
-    """Row IC (what was hidden): the marshals who acted WITHOUT ORDERS this
-    turn — a man given his head after a quarrel (`TurnManager.
-    _process_autonomous_marshals`) — one plain line each. The turn's reply has
-    always carried these rows (`independent_command_report`) and printed them
-    as a terse block in the log; no screen read them."""
-    from backend.display_names import action_display_name
-    rows: List[Dict[str, Any]] = []
-    for entry in report_rows or []:
-        if not isinstance(entry, dict) or not entry.get("marshal"):
-            continue
-        shown = humanize_entity_name(str(entry["marshal"]))
-        action = str(entry.get("action") or "wait")
-        # The one table of verbs (`display_names.action_display_name`): "attacks",
-        # "moves to", "holds position" — never a raw action key — said in the
-        # past tense where this table knows the verb.
-        verb = "holds position" if action in ("error", "") else action_display_name(action)
-        did = _DID.get(verb, verb)
-        target = own_way_target(world, entry) if action not in ("wait", "error", "") else ""
-        if target:
-            did += " " + target
-        elif did.endswith(" to"):
-            did = did[:-3]                      # "fell back to" with no place named
-        left = int(entry.get("turns_remaining", 0) or 0)
-        if entry.get("autonomy_ended"):
-            end = entry.get("end_result") if isinstance(entry.get("end_result"), dict) else {}
-            tail = "He is under your orders again." + (f" {end['message']}" if end.get("message") else "")
-        else:
-            tail = f"He acts on his own for {left} more turn{'s' if left != 1 else ''}."
-        rows.append({"marshal": str(entry["marshal"]), "shown": shown, "turns_left": left,
-                     "ended": bool(entry.get("autonomy_ended")),
-                     "line": f"{shown} acted without orders: he {did}. {tail}"})
-    return rows[:MAX_ROWS]
-
-
 def digest(world, before: Optional[Dict[str, Any]], enemy_phase=None,
-           tactical_events=None, own_way=None) -> Dict[str, Any]:
+           tactical_events=None) -> Dict[str, Any]:
     """What changed for the player between `before` (End Turn pressed) and
     now. {} when there is no snapshot or the seam is down; `quiet: True` when
-    nothing of his changed (the report then says so in one line). `own_way` is
-    the turn's `independent_command_report` (row IC)."""
+    nothing of his changed (the report then says so in one line). (Row IC,
+    Session 2b: the `own_way` rows — a French marshal moved by the enemy's
+    decision logic — went with that engine; a man on his task to prove
+    himself reports in the strategic rows.)"""
     if not before or not the_turn_is_summed_up():
         return {}
     try:
@@ -628,13 +571,7 @@ def digest(world, before: Optional[Dict[str, Any]], enemy_phase=None,
             # every province that changed hands on or beside his side: the map flashes them
             "flash": [r["region"] for r in (lost + gained + friends_lost + friends_gained)][:24],
         }
-        # Row IC: the men who acted without orders, in plain words (the key
-        # rides only when there is such a man — an older client reads none).
-        acted = _own_way(own_way, world) if a_man_acting_without_orders_is_reported() else []
-        if acted:
-            out["own_way"] = acted
-        out["quiet"] = not (lost or gained or friends_lost or friends_gained or battles or beside
-                            or acted)
+        out["quiet"] = not (lost or gained or friends_lost or friends_gained or battles or beside)
         # Row PW part 2 (the user, of the report: "can we show the pieces moving
         # or something better?"): the few words the MAP wears at a province
         # while the turn is played on it — the report's own facts, no new one.

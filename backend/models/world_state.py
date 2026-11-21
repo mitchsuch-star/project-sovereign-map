@@ -303,6 +303,17 @@ def _button_state(world, marshal) -> Dict:
         return {"prices": {}, "refusals": {}}
 
 
+def _trial_state(marshal):
+    """Row IC, Session 2b: `trial.payload` (a display-only read) — the task to
+    prove himself he is on, as his card says it, or None."""
+    try:
+        from backend.game_logic import trial
+        return trial.payload(marshal)
+    except Exception as exc:
+        report(exc, "world_state._trial_state: backend.game_logic.trial")
+        return None
+
+
 def _order_prices(world, marshal) -> Dict:
     """CF-6: `state_probe.order_prices` (a display-only read) — the figure
     each chip's label prints beside the verb."""
@@ -7551,7 +7562,8 @@ class WorldState:
     # Add this to backend/models/world_state.py
     # ============================================================================
 
-    def ready_marshals_near(self, region_name: str, for_levy: bool = False
+    def ready_marshals_near(self, region_name: str, for_levy: bool = False,
+                            for_order: bool = False
                             ) -> Tuple[List[Tuple[Marshal, int]], List[str]]:
         """CN (the Command-Road Queue, slice 3): the player's LIVING,
         combat-ready marshals within their own range of `region_name`,
@@ -7575,6 +7587,13 @@ class WorldState:
             _client = levy_passes_over(self, m) if for_levy else None
             if _client:
                 filtered_out.append(_client)
+            elif for_order and isinstance(getattr(m, "trial", None), dict):
+                # Row IC, Session 2b (the review): `for_order` — the pick is a
+                # man to be ORDERED, and one on his task to prove himself
+                # takes none (`trial.on_trial`; read here by its field to keep
+                # this reader import-free).
+                filtered_out.append(
+                    f"{m.name} (on his task to prove himself — he takes no orders)")
             elif m.strength <= 0:
                 # WO-15 (slice 12): a prisoner is a strength-0 marshal who
                 # stays on the roster BY DESIGN (W6-7) — the recruit refusal
@@ -7599,7 +7618,8 @@ class WorldState:
 
     def find_nearest_marshal_to_region(self, region_name: str,
                                        arm: Optional[str] = None,
-                                       for_levy: bool = False
+                                       for_levy: bool = False,
+                                       for_order: bool = False
                                        ) -> Optional[Tuple[Marshal, int]]:
         """
         Find the player's STRONGEST combat-ready marshal nearest to a region.
@@ -7630,7 +7650,7 @@ class WorldState:
 
         # Filter for LIVING, COMBAT-READY marshals within range
         ready_marshals, filtered_out = self.ready_marshals_near(
-            region_name, for_levy=for_levy)
+            region_name, for_levy=for_levy, for_order=for_order)
         if arm is not None:
             passed_over = [m for m, _d in ready_marshals
                            if recruit_arm_of(m) != arm]
@@ -11497,6 +11517,15 @@ class WorldState:
         from backend.game_logic import awakening as _awakening
         _awakening.ensure_houses(world)
 
+        # Row IC, Session 2b (the task to prove himself): an OLD save's man in
+        # the middle of the old three turns ("Grant Autonomy", removed) is
+        # settled now — the same bands, on what he had achieved — with one
+        # line for the next morning; a saved audience that still names the
+        # old arm has it rebuilt. Nothing for a save from after the change
+        # (its marshals carry none of the six old keys).
+        from backend.game_logic import trial as _trial
+        _trial.settle_legacy(world, data)
+
         # SR-7d RV-6: every marshal's standing doctrine term is DERIVED here,
         # as the last statement — after the `reforms` store, or a loaded cure
         # would be missed. Never serialized (Marshal.DERIVED_STANDING_FIELDS).
@@ -12281,6 +12310,10 @@ class WorldState:
                         # STANDS on, when it is not ours — why, and the order
                         # that takes it. Player-only, like the rest ({} at home).
                         "stands_on": _stands_on(self, m),
+                        # Row IC, Session 2b: the task to prove himself he is
+                        # on (his card's words, the turns left, the roll) —
+                        # None for every other man. Player-only, like the rest.
+                        "trial": _trial_state(m),
                     }
 
                     # Session 66: Relationships for tooltip display
@@ -16105,6 +16138,16 @@ class WorldState:
                         _occ_alarm_from = _occ_ce._alarm_mark(self)
                         capture_msg = self._apply_occupation_capture_effects(marshal, occ_region)
                         capture_msg += _occ_ce._alarm_rider(self, marshal, _occ_alarm_from)
+                        # Row IC, Session 2b: a siege that followed a FIGHT
+                        # (two turns required — `_attempt_region_capture`
+                        # sets 2 when the defenders were beaten, 1 for empty
+                        # works) is a defended place taken, for a man on his
+                        # task to prove himself.
+                        from backend.game_logic import trial as _trial
+                        if int(marshal.occupation_turns_required or 0) >= 2:
+                            _trial.note_taken(marshal)
+                        else:
+                            _trial.note_walked_in(marshal)   # empty works: said, not counted
                         marshal.occupation_region = None
                         marshal.occupation_turns_held = 0
                         marshal.occupation_turns_required = 0
@@ -16809,7 +16852,7 @@ class WorldState:
                         f"for — a vindicated objection is the only thing "
                         f"that pays"
                         f"{_faltering_trust_riders(self, marshal)} — at "
-                        f"20 he will ask to be released.")
+                        f"20 he will ask for an audience, and propose a task to prove himself.")
                 })
                 debug_print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")
 
@@ -16937,7 +16980,7 @@ class WorldState:
         2. Moves toward nearest enemy if not in range (FREE action)
 
         This happens BEFORE player gets to act and is a FREE action.
-        Turn order: Recklessness 4+ → Autonomous → Enemy → Player
+        Turn order: Recklessness 4+ → Enemy → Player
 
         Returns:
             List of events describing auto-actions

@@ -2232,7 +2232,11 @@ func _render_orders():
 
 		bbcode += "  │ " + condition
 
-		if can_cancel:
+		if str(o.get("trial", "")) != "":
+			# Row IC, Session 2b: a man on his task to prove himself takes no
+			# orders - his order is not cancelled here (its line says why).
+			bbcode += "  " + Utils.bb_chip_disabled("Cancel")
+		elif can_cancel:
 			# UXR3-F5: a chip, as every other tab's action (a red bracketed
 			# word read as a raw tag).
 			bbcode += "  " + Utils.bb_button_chip("cancel:" + mname, "Cancel", Utils.COLOR_ERROR_CHIP, "233043")

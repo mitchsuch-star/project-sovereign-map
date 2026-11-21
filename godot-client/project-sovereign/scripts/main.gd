@@ -3586,7 +3586,11 @@ func _execute_command():
 	# WO-36 drive-by: the third verb was `demand_obedience`, which the
 	# backend retired in Phase 3 (`administrative_role` replaced it) and now
 	# rejects as invalid — the client advertised and forwarded a dead word.
-	var redemption_choices = ["grant_autonomy", "dismiss", "administrative_role"]
+	# Row IC, Session 2b: `trial` is the task to prove himself (it stands
+	# where the retired `grant_autonomy` stood).
+	# (the review: the fallback names `settle_account` when it is offered, and
+	# this list did not take it)
+	var redemption_choices = ["trial", "dismiss", "administrative_role", "settle_account"]
 	if command.to_lower() in redemption_choices:
 		if DEBUG_VERBOSE:
 			print("REDEMPTION COMMAND DETECTED: ", command)
@@ -8509,11 +8513,16 @@ func _show_redemption_text_fallback(redemption_event: Dictionary):
 	var options = redemption_event.get("options", [])
 
 	add_output("[color=#" + Utils.COLOR_INFO + "]You must decide how to handle this:[/color]")
+	var offered := PackedStringArray()
 	for opt in options:
 		add_output("[color=#" + Utils.COLOR_INFO + "]  • " + opt.get("id", "?") + ": " + opt.get("text", "Unknown") + "[/color]")
+		# Row IC, Session 2b: his proposal, in full, where the window would say it
+		if str(opt.get("id", "")) == "trial" and str(opt.get("description", "")) != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]      " + str(opt.get("description", "")) + "[/color]")
+		offered.append("'" + str(opt.get("id", "?")) + "'")
 
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]Type: 'grant_autonomy', 'administrative_role', or 'dismiss'[/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]Type one of: " + ", ".join(offered) + "[/color]")
 	add_output("")
 
 	pending_redemption = true
@@ -8532,8 +8541,10 @@ func _on_redemption_choice_made(choice: String):
 	# Display player choice in log
 	var choice_text = ""
 	match choice:
-		"grant_autonomy":
-			choice_text = "You grant the marshal autonomy to act independently."
+		"trial":
+			# Row IC, Session 2b: the task to prove himself (where the
+			# retired "Grant Autonomy" stood).
+			choice_text = "You give the marshal his task to prove himself."
 		"settle_account":
 			# FA-D5 (slice 17, Phase 2): the arm that pays him.
 			choice_text = "You settle the marshal's account with a rente."
@@ -8548,8 +8559,12 @@ func _on_redemption_choice_made(choice: String):
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + choice_text + "[/color]")
 	add_output("")
 
-	# Send choice to backend
-	api_client.send_redemption_response(choice, _on_redemption_response)
+	# Send choice to backend - with the proposal the window showed (row IC,
+	# Session 2b: what was shown is what is given)
+	var shown := ""
+	if choice == "trial" and redemption_dialog != null and redemption_dialog.has_method("shown_line"):
+		shown = str(redemption_dialog.shown_line())
+	api_client.send_redemption_response(choice, _on_redemption_response, shown)
 
 
 func _on_redemption_response(response):
@@ -8582,13 +8597,13 @@ func _on_redemption_response(response):
 		add_output("")
 
 		var msg = str(response.get("message", ""))
-		if choice == "grant_autonomy":
+		if choice == "trial":
+			# Row IC, Session 2b: the task's own line — what he will do, and
+			# that he takes no orders until it ends (the server's sentence).
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + Utils.COLOR_SUCCESS + "]   AUTONOMY GRANTED[/color]")
+			add_output("[color=#" + Utils.COLOR_SUCCESS + "]   A TASK TO PROVE HIMSELF[/color]")
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
-			var turns = int(response.get("autonomy_turns", 3))
-			add_output("[color=#" + Utils.COLOR_INFO + "]The marshal will act independently for " + str(turns) + " turns.[/color]")
 
 		elif choice == "dismiss":
 			add_output("[color=#" + Utils.COLOR_ERROR + "]═══════════════════════════════════════[/color]")
@@ -8619,6 +8634,12 @@ func _on_redemption_response(response):
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 		add_output("")
+		# Row IC, Session 2b: a refused answer leaves the question STANDING.
+		# Where the board changed under his proposal the reply carries the
+		# question again with what he proposes now — stashed here, raised by
+		# the tail below (what the window shows is what is given).
+		if response.get("standing", false) and response.get("redemption_event") is Dictionary:
+			pending_redemption_data = response.redemption_event
 
 	_update_war_panel_visibility()
 	_return_control_to_player()
@@ -9156,6 +9177,15 @@ func _on_capture_choice_response(response):
 	# copy here skipped the projected net and the gate; the chained estate
 	# question below returned before any sync.
 	_sync_response_hud(response)
+
+	# Row IC, Session 2b (pressed in the real client): ONE question can reach
+	# the player by two roads - stashed out of the end-turn response
+	# (`pending_capture_response`), and again on a reply that came before
+	# control was handed back (a word given on a great battle's panel). Once
+	# it is answered the stash is stale: this response says what still stands
+	# (the chain below). Before, the window rose a second time for the province
+	# just secured, and its answer read "No pending capture choice."
+	pending_capture_response = null
 
 	# W6-8: the answer may mount a SECOND question (the estate stage), or a
 	# stale/wrong-token answer re-attaches the current one — chain straight
@@ -12506,6 +12536,13 @@ func order_strip_text() -> String:
 # another of ours picks him — the hint keeps to the orders).
 # Row PW (plain words; one click sends): what a click does now, said as it is.
 const ORDER_STRIP_HINT := "Click a province to send him · an enemy to attack · right-click a marshal to support him · Esc lets him go"
+# Row IC, Session 2b (pressed in the real client): a man on his task to prove
+# himself takes no orders, so his card never says "click a province to send
+# him" — it says what a click on the map does now.
+# (the blind readings: "Esc lets him go" read as perhaps releasing him from
+# his task, three of three; "a click on the map gives him no order" read as
+# oddly worded, two of three — the card above already says he takes none)
+const ORDER_STRIP_TRIAL_HINT := "Esc closes this card"
 
 
 func _render_order_strip() -> void:
@@ -12520,6 +12557,11 @@ func _render_order_strip() -> void:
 		_show_order_strip(_group_strip_text())
 		return
 	var text := ORDER_STRIP_HINT
+	var proving_ts = _marshal_entry(_order_marshal).get("tactical_state", {})
+	var proving = proving_ts.get("trial", {}) if proving_ts is Dictionary else {}
+	if proving is Dictionary and not (proving as Dictionary).is_empty():
+		_show_order_strip(ORDER_STRIP_TRIAL_HINT)
+		return
 	if _order_reach.is_empty():
 		text += "\n[color=#" + Utils.COLOR_INFO + "]Reading his roads…[/color]"
 	elif not bool(_order_reach.get("ok", false)):

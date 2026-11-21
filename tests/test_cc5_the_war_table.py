@@ -869,7 +869,7 @@ class TestTheGroup:
         assert rep["total"] == total and rep["have"] == 4 and rep["line"] == listing["line"]
         price = f"{total} action{'s' if total != 1 else ''}"
         adds = " + ".join(str(r["ap"]) for r in listing["rows"] if r["ticked"])   # how it adds up
-        assert f"Cost: {price} ({adds}) of the 4 in hand — 3 corps go, each on his own order." in rep["total_text"]
+        assert f"Cost: {price} ({adds}) of the 4 in hand — 3 corps go, each by his own order." in rep["total_text"]
         assert rep["give_text"] == "Give the order  (Enter)" and rep["give_disabled"] is False
         for row in rep["rows"]:                              # the row's words, bbcode off
             plain = re.sub(r"\[/?[^\]]+\]", "", row["text"])

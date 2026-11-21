@@ -754,6 +754,45 @@ def _war_is_over(world) -> bool:
         return False
 
 
+def answers_in_words(redemption_event: Optional[Dict], offered: Optional[List[str]] = None) -> str:
+    """Row IC, Session 2b (IC2B-X18; golden rule 11 — a pinned key keeps its
+    name, plain words ride beside it): the answers a standing audience takes,
+    each typed key with what it does — "trial (Give Ney a task to prove
+    himself); dismiss (Dismiss Ney)". The keys are the words the command
+    window takes; the words beside them are the buttons' own."""
+    from backend.game_logic import trial as _trial
+    said = {}
+    for option in (redemption_event or {}).get('options') or []:
+        if isinstance(option, dict) and option.get('id'):
+            key = _trial.ARM if option.get('id') == _trial.LEGACY_ARM else str(option.get('id'))
+            said.setdefault(key, str(option.get('text') or ''))
+    keys = list(offered) if offered else (list(said) or [_trial.ARM, 'administrative_role', 'dismiss'])
+    fallback = {_trial.ARM: "give him a task to prove himself",
+                'administrative_role': "a post on your staff",
+                'dismiss': "dismiss him",
+                'settle_account': "pay what he is owed"}
+    parts = []
+    for key in keys:
+        words = said.get(key) or fallback.get(key, '')
+        # a legacy arm's own text names what has left the game
+        if key == _trial.ARM and 'task to prove himself' not in words:
+            words = fallback[_trial.ARM]
+        parts.append(f"{key} ({words})" if words else str(key))
+    return '; '.join(parts)
+
+
+def not_an_answer_words(redemption_event: Optional[Dict], offered: Optional[List[str]] = None) -> str:
+    """The ONE sentence for an answer the audience did not offer — the
+    handler's and the endpoint's (which answered "Invalid choice: 'x'. Valid:
+    trial, dismiss", the bare keys, before the handler's sentence could be
+    reached). Plain words, the game's own voice (the review: "…the courses
+    open to you, Sire" was period voice outside a character's quoted line)."""
+    from backend.display_names import humanize_entity_name
+    who = humanize_entity_name(str((redemption_event or {}).get('marshal') or '')) or "He"
+    return (f"That is not one of the answers open to you. {who} is waiting for one of: "
+            f"{answers_in_words(redemption_event, offered)}.")
+
+
 def standing_redemption(world) -> Optional[Dict]:
     """The redemption question the world is still waiting on, or ``None``.
 
@@ -888,8 +927,8 @@ def stage_redemption(world, marshal, *, result=None, events=None) -> Optional[Di
     client's once-per-turn recovery poll (`GET /pending_redemption`, PT-B1)
     and the world-swap re-attach deliver.
 
-    The checker owns every guard — trust > 20, the latch, autonomous /
-    administrative men, a non-player nation (GR5: the AI's trust is read by
+    The checker owns every guard — trust > 20, the latch, a man on his task
+    to prove himself or at the desk, a non-player nation (GR5: the AI's trust is read by
     nothing), the cooldown, and one live question at a time — so calling
     this after EVERY lowering write is idempotent and cheap. Returns the
     event, or None.
@@ -1753,11 +1792,13 @@ class DisobedienceSystem:
         Determine which redemption options are available based on game state.
 
         Rules:
-        - Grant Autonomy: Always available
+        - A task to prove himself: ALWAYS available (row IC, Session 2b — it
+          stands where "Grant Autonomy" stood; `backend/game_logic/trial.py`)
         - Administrative Role: Available if ≥2 field marshals AND no existing admin
         - Dismiss: Available if ≥2 field marshals
 
-        Last Marshal Protection: If only 1 field marshal remains, ONLY show Autonomy.
+        Last Marshal Protection: If only 1 field marshal remains, ONLY the
+        task is shown (beside the rente, when an unpaid claim is the cause).
 
         Args:
             marshal: The marshal triggering redemption
@@ -1787,20 +1828,20 @@ class DisobedienceSystem:
         print(f"  [REDEMPTION OPTIONS] Field marshals: {field_count}, Admin marshals: {admin_count}")
 
         # ════════════════════════════════════════════════════════════
-        # GRANT AUTONOMY - Always available
+        # A TASK TO PROVE HIMSELF - always available (row IC, Session 2b).
+        # HIS proposal, by his nature, read from what France sees and said
+        # in full before it is given (`trial.option`); it stands where
+        # "Grant Autonomy" stood, so the last field marshal is never left
+        # with no answer.
         # ════════════════════════════════════════════════════════════
-        options.append({
-            'id': 'grant_autonomy',
-            'text': f"Grant {marshal.name} Autonomy",
-            'description': f"{marshal.name} will act independently for 3 turns. Cannot receive orders during this time. Trust restored based on performance.",
-            'effect': 'autonomous_3_turns_trust_based_on_performance',
-        })
+        from backend.game_logic import trial as _trial
+        options.append(_trial.option(world, marshal))
 
         # ════════════════════════════════════════════════════════════
         # LAST MARSHAL PROTECTION - If only 1 field marshal, stop here
         # ════════════════════════════════════════════════════════════
         if field_count < 2:
-            print("  [REDEMPTION OPTIONS] Last marshal protection: only autonomy available")
+            print("  [REDEMPTION OPTIONS] Last marshal protection: only the task is offered")
             return options
 
         # ════════════════════════════════════════════════════════════
@@ -1810,7 +1851,15 @@ class DisobedienceSystem:
             options.append({
                 'id': 'administrative_role',
                 'text': f"Transfer {marshal.name} to Staff",
-                'description': f"{marshal.name} joins the administrative staff. His corps is frozen; `recall {marshal.name}` returns him to the field for 1 administrative action. You gain +1 action per turn.",
+                # (row IC, Session 2b: plain words — the audience's window
+                # shows every answer's words under its button, not in a hover)
+                # Short, so that the window holds every answer's words at the
+                # first player's setup. (The fourth reading, three of three:
+                # "what is Staff?", "is the action permanent?", "nothing shows
+                # how he is recalled".)
+                'description': (f"{marshal.name} leaves the field for a post on your staff; his corps "
+                                f"waits in depot. While he serves you get 1 more action each turn; the "
+                                f"order \"recall {marshal.name}\" brings him back."),
                 'effect': 'admin_role_plus_one_action',
             })
             print("  [REDEMPTION OPTIONS] Administrative role available (no existing admin)")
@@ -1823,7 +1872,11 @@ class DisobedienceSystem:
         options.append({
             'id': 'dismiss',
             'text': f"Dismiss {marshal.name}",
-            'description': f"Relieve {marshal.name} of command permanently. Troops transfer to nearby ally (≤3 regions) or disband. +10 authority.",
+            # (the third and fourth readings, five of six: "join a marshal …
+            # or disband — which one happens?")
+            'description': (f"{marshal.name} is dismissed for good; his men join the nearest marshal "
+                            f"within three provinces, or disband if there is none. Your authority "
+                            f"rises by 10."),
             'effect': 'remove_marshal_transfer_troops_authority_bonus',
         })
         print("  [REDEMPTION OPTIONS] Dismiss available (>=2 field marshals)")
@@ -1835,7 +1888,8 @@ class DisobedienceSystem:
         Create a redemption event when trust falls to critical levels.
 
         Player must choose how to handle the broken relationship:
-        - Grant Autonomy: Marshal acts independently for 3 turns
+        - A task to prove himself: his own proposal, three turns out of the
+          player's hands (longer on a roll), trust by what he achieves
         - Administrative Role: Marshal sidelined, +1 action/turn (if available)
         - Dismiss: Remove marshal permanently, +10 authority (if available)
 
@@ -1847,13 +1901,12 @@ class DisobedienceSystem:
         if world:
             options = self._get_available_redemption_options(marshal, world)
         else:
-            # Fallback if no world provided - only autonomy
-            options = [{
-                'id': 'grant_autonomy',
-                'text': f"Grant {marshal.name} Autonomy",
-                'description': f"{marshal.name} will act independently for 3 turns.",
-                'effect': 'autonomous_3_turns_trust_based_on_performance',
-            }]
+            # Fallback if no world provided - only the task (with no board
+            # to read he proposes to hold where he stands; the arm is read
+            # again against the board before the question goes to the
+            # player — `trial.refresh`).
+            from backend.game_logic import trial as _trial
+            options = [_trial.option(None, marshal)]
 
         return {
             'type': 'redemption_event',
@@ -1905,7 +1958,10 @@ class DisobedienceSystem:
                 getattr(marshal, 'strength', 0) <= 0
                 or getattr(marshal, 'captured_by', '')):
             return None
-        if getattr(marshal, 'autonomous', False):
+        # Row IC, Session 2b: a man on his task to prove himself is not asked
+        # again until it ends (the guard the old three turns had).
+        from backend.game_logic import trial as _trial
+        if _trial.on_trial(marshal):
             return None
         if getattr(marshal, 'administrative', False):
             return None
@@ -1935,20 +1991,32 @@ class DisobedienceSystem:
         self,
         redemption_event: Dict,
         choice: str,
-        game_state
+        game_state,
+        shown: Optional[str] = None,
     ) -> Dict:
         """
         Handle player's response to a redemption event.
 
         Args:
             redemption_event: The redemption event dict
-            choice: 'grant_autonomy', 'administrative_role', or 'dismiss'
+            choice: 'trial' (the task to prove himself), 'settle_account',
+                'administrative_role' or 'dismiss' — one the audience OFFERED.
+                An old save's 'grant_autonomy' is taken as the task, so a
+                standing question never sticks.
             game_state: Current game state
+            shown: the proposal the WINDOW displayed (the task's own line), as
+                the client sends it back with the answer; None = the line the
+                standing question last carried. What was shown is what is
+                given: when the board has changed under it, nothing is given
+                and the question comes back with his new proposal.
 
         Returns:
             Result dict with outcome
         """
+        from backend.game_logic import trial as _trial
         marshal_name = redemption_event['marshal']
+        if choice == _trial.LEGACY_ARM:
+            choice = _trial.ARM
 
         # Get marshal and world
         # Handle multiple ways game_state can be passed:
@@ -1987,17 +2055,15 @@ class DisobedienceSystem:
         # than at the endpoint, so the endpoint, the playtest driver and any
         # future caller inherit it — and a refused answer leaves the question
         # STANDING: no latch cleared, no cooldown paid, nothing spent.
-        offered = [o.get('id') for o in
-                   (redemption_event.get('options') or [])
+        offered = [(_trial.ARM if o.get('id') == _trial.LEGACY_ARM else o.get('id'))
+                   for o in (redemption_event.get('options') or [])
                    if isinstance(o, dict) and o.get('id')]
         if offered and choice not in offered:
             return {
                 'success': False,
-                'message': (
-                    f"That is not among the courses open to you, Sire. "
-                    f"{marshal_name} awaits one of: "
-                    f"{', '.join(offered)}."),
+                'message': not_an_answer_words(redemption_event, offered),
                 'offered_options': offered,
+                'standing': True,
             }
 
         # ── FA-D5 (slice 17, Phase 2): the arm that pays him ──────────────
@@ -2033,41 +2099,50 @@ class DisobedienceSystem:
                 'pension': int(getattr(marshal, 'pension', 0) or 0),
             }
 
+        # ════════════════════════════════════════════════════════════════════════════
+        # A TASK TO PROVE HIMSELF (row IC, Session 2b — where "Grant Autonomy"
+        # stood). HIS proposal, installed FREE as an exact order; he then takes
+        # no orders until it ends (`backend/game_logic/trial.py`). What the
+        # audience SHOWED is what is given: the proposal is read again here,
+        # and when the board has changed under it nothing is given, the
+        # question STANDS (no latch cleared, no cooldown paid) and it carries
+        # his new proposal for the window to show.
+        # ════════════════════════════════════════════════════════════════════════════
+        if choice == _trial.ARM:
+            given = _trial.give(world, marshal,
+                                shown=(shown if shown else _trial.shown_line(redemption_event)))
+            if not given.get("given"):
+                _trial.refresh(world, redemption_event)
+                return {
+                    'success': False,
+                    'type': 'redemption_refused',
+                    'choice': _trial.ARM,
+                    'marshal': marshal_name,
+                    'message': str(given.get("message") or ''),
+                    'standing': True,
+                    'redemption_event': redemption_event,
+                }
+            marshal.redemption_pending = False
+            marshal.redemption_cooldown_until = getattr(world, 'current_turn', 0) + 5
+            print(f"  [REDEMPTION] {marshal_name} given a task to prove himself")
+            return {
+                'success': True,
+                'type': 'redemption_resolved',
+                'choice': _trial.ARM,
+                'marshal': marshal_name,
+                'message': str(given.get("message") or ''),
+                'trial': _trial.payload(marshal),
+            }
+
         # FIX: Clear redemption_pending flag now that we're resolving it
         marshal.redemption_pending = False
         # 5-turn cooldown to prevent rapid re-trigger
         marshal.redemption_cooldown_until = getattr(world, 'current_turn', 0) + 5
 
         # ════════════════════════════════════════════════════════════════════════════
-        # GRANT AUTONOMY - Marshal acts independently for 3 turns
-        # ════════════════════════════════════════════════════════════════════════════
-        if choice == 'grant_autonomy':
-            marshal.autonomous = True
-            marshal.autonomy_turns = 3
-            marshal.autonomy_reason = "redemption"
-
-            # Reset performance tracking
-            marshal.autonomous_battles_won = 0
-            marshal.autonomous_battles_lost = 0
-            marshal.autonomous_regions_captured = 0
-
-            print(f"  [REDEMPTION] {marshal_name} granted autonomy for 3 turns")
-
-            return {
-                'success': True,
-                'type': 'redemption_resolved',
-                'choice': 'grant_autonomy',
-                'marshal': marshal_name,
-                'message': f"{marshal_name} has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle.",
-                'autonomous': True,
-                'autonomy_turns': 3,
-                'autonomy_reason': 'redemption',
-            }
-
-        # ════════════════════════════════════════════════════════════════════════════
         # ADMINISTRATIVE ROLE - Marshal sidelined, troops frozen, +1 action/turn
         # ════════════════════════════════════════════════════════════════════════════
-        elif choice == 'administrative_role':
+        if choice == 'administrative_role':
             # Store the frozen corps so `recall <marshal>` can return it
             # (FA-S9-D1, slice 14). All three fields are serialized as of
             # that slice — before it they were ad-hoc attributes and one
@@ -2153,7 +2228,8 @@ class DisobedienceSystem:
         # ════════════════════════════════════════════════════════════════════════════
         return {
             'success': False,
-            'message': f'Invalid choice: {choice}. Valid options: grant_autonomy, administrative_role, dismiss',
+            'message': not_an_answer_words(redemption_event, offered),
+            'standing': True,
         }
 
     def get_major_objections_remaining(self) -> int:

@@ -1952,6 +1952,8 @@ class MovementExecutor:
         player_marshals = world.get_player_marshals()
         candidates = []  # (marshal, distance)
         from backend.commands.strategic import standing_last_stand_refusal
+        from backend.game_logic import trial as _trial
+        on_task = []     # men in range who take no orders (row IC, Session 2b)
 
         for m in player_marshals:
             if m.strength <= 0:
@@ -1970,9 +1972,23 @@ class MovementExecutor:
             max_range = base_scout_range + scout_bonus
             dist = world.get_distance(m.location, target_name)
             if dist is not None and dist <= max_range:
+                # Row IC, Session 2b (the review, IC2B-V3): the auto-scout
+                # roster is one more un-addressed road — to a man on his task
+                # to prove himself, who takes no orders. "scout Bohemia"
+                # picked him and charged the action.
+                if _trial.on_trial(m):
+                    on_task.append(m)
+                    continue
                 candidates.append((m, dist))
 
         if not candidates:
+            if on_task:
+                return {
+                    "success": False,
+                    "no_action_cost": True,
+                    "message": (f"No marshal who takes orders is in scout range of "
+                                f"{target_name}: {_trial.refusal_words(on_task[0])}"),
+                }
             return {
                 "success": False,
                 "message": f"No marshals in scout range of {target_name}.",
