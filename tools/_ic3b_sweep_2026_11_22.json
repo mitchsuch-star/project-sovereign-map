@@ -1,0 +1,205 @@
+{
+ "tool": "tools/_ic3b_measure.py",
+ "seeds": 30,
+ "turns": 20,
+ "army": "Army of the Rhine",
+ "men": [
+  "Ney",
+  "Davout",
+  "Soult"
+ ],
+ "score": {
+  "R-TRUE": {
+   "mismatches": [],
+   "count": 0,
+   "nights_read": 1390,
+   "met": true
+  },
+  "R-TOGETHER": {
+   "follower_battles": [],
+   "count": 0,
+   "shared_nights": 1064,
+   "named": 1064,
+   "share": 1.0,
+   "met": true
+  },
+  "reported": {
+   "task_nights": 533,
+   "commander_nights": 464,
+   "follower_nights": 926,
+   "commander_acts": {
+    "start": 48,
+    "attack": 29,
+    "take": 7,
+    "look": 302,
+    "strike": 27,
+    "march": 23,
+    "stay": 22,
+    "asks": 6
+   },
+   "follower_acts": {
+    "follow": 49,
+    "with": 618,
+    "stand_by": 14,
+    "join": 107,
+    "stay": 13,
+    "start": 125,
+    "halt": 0,
+    "recover": 0
+   }
+  },
+  "per_seed": {
+   "historical": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "austerlitz": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "marengo": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-01": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-02": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-03": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-04": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-05": {
+    "nights": 20,
+    "given": 35,
+    "mismatches": 0
+   },
+   "ic3b-06": {
+    "nights": 20,
+    "given": 3,
+    "mismatches": 0
+   },
+   "ic3b-07": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-08": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-09": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-10": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-11": {
+    "nights": 20,
+    "given": 37,
+    "mismatches": 0
+   },
+   "ic3b-12": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-13": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-14": {
+    "nights": 20,
+    "given": 37,
+    "mismatches": 0
+   },
+   "ic3b-15": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-16": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-17": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-18": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-19": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-20": {
+    "nights": 20,
+    "given": 6,
+    "mismatches": 0
+   },
+   "ic3b-21": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-22": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   },
+   "ic3b-23": {
+    "nights": 20,
+    "given": 30,
+    "mismatches": 0
+   },
+   "ic3b-24": {
+    "nights": 20,
+    "given": 3,
+    "mismatches": 0
+   },
+   "ic3b-25": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-26": {
+    "nights": 20,
+    "given": 2,
+    "mismatches": 0
+   },
+   "ic3b-27": {
+    "nights": 20,
+    "given": 1,
+    "mismatches": 0
+   }
+  }
+ },
+ "seconds": 281
+}

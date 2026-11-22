@@ -185,6 +185,17 @@ class TestParity:
                     # the parse's own.
                     if pre["action"] != cmd.get("action"):
                         mismatches.append((line, cmd.get("action"), pre["action"]))
+                elif pre["kind"] == "order" and isinstance(ref.get("own"), dict):
+                    # Row IC, Session 3b: a TASK ON HIS OWN ("Ney, hold Rhineland
+                    # carefully") reads as its man and the task's verb — its
+                    # `action` is blank by design since Session 3 (the order is the
+                    # task, not the plain hold the parse rides on). The sampled
+                    # quarter never held such a line until this session's five
+                    # golden rows moved it; the reading must still name the man
+                    # and a verb.
+                    if pre["marshal"] != humanize_entity_name(cmd["marshal"]) or not pre.get("verb"):
+                        mismatches.append((line, cmd.get("marshal"), "a task on his own",
+                                           pre["marshal"], pre.get("verb")))
                 elif pre["kind"] == "order" and (
                         pre["marshal"] != humanize_entity_name(cmd["marshal"])
                         or pre["action"] != cmd.get("action")):

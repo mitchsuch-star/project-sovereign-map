@@ -75,7 +75,28 @@ def set_aside_marks(text: str) -> Tuple[str, List[str]]:
     found = [m.group(0).strip(" ,;") for m in _MARK_RE.finditer(text or "")]
     if not found:
         return text, []
-    cleaned = _MARK_RE.sub(" ", text)
+
+    def _the_gap(m: "re.Match") -> str:
+        # Row IC, Session 3b (the metamorphic corpus, on this session's first
+        # golden row with a mark): the mark took the comma beside it with it —
+        # "Ney, take Swabia on your own, the men are rested" lost the comma that
+        # sets the reason apart, and "take Swabia on your own, Ney" the one that
+        # sets the name apart; both lines were then no order at all. A comma
+        # that stood between the mark and MORE WORDS stays.
+        joined = "," in m.group(0) or ";" in m.group(0)
+        after = m.string[m.end():].strip(" .!?,;")
+        more_before = bool(m.string[:m.start()].strip())
+        if not (joined and after and more_before):
+            return " "
+        # "…on your own, carefully": a how-bold word is the task's own word and
+        # rides with it, as it always did (the comma would set it apart as a
+        # remark, and the task would lose its step)
+        from backend.ai import task_words as _tw
+        if after.lower() in {str(w).lower() for w in tuple(_tw.BOLDER_WORDS) + tuple(_tw.CAREFUL_WORDS)}:
+            return " "
+        return ", "
+
+    cleaned = _MARK_RE.sub(_the_gap, text)
     cleaned = re.sub(r"\s+([.!?])", r"\1", re.sub(r"\s{2,}", " ", cleaned)).strip()
     return cleaned, found
 
@@ -118,6 +139,40 @@ def read_line(text: str, names: List[str], regions: List[str],
                 "command": {"marshal": marshal, "action": "own_task", "type": "specific",
                             "raw_command": text, "mode": "mock"}}
     return None
+
+
+# Row IC, Session 3b (§9): "Ney, take the war goal" — the task that follows
+# the goal you named for the war. The words are read here; what they mean on
+# the board today (a place to take, an army in sight to chase — or why not) is
+# `war_goals.task_for`'s to say.
+def _goal_re() -> "re.Pattern":
+    # the words are the word table's (`word_table.GOAL_VERBS` / `GOAL_OBJECT`)
+    from backend.ai import task_words as _tw
+
+    def alt(phrases) -> str:
+        return "|".join(re.escape(p).replace(r"\ ", r"\s+")
+                        for p in sorted(phrases, key=len, reverse=True))
+    return re.compile(r"\b(?:" + alt(_tw.GOAL_VERBS) + r")\s+(?:" + alt(_tw.GOAL_OBJECTS) + r")\b",
+                      re.IGNORECASE)
+
+
+_GOAL_RE = _goal_re()
+
+
+def the_war_goal(text: str, names: List[str]) -> Optional[Tuple[str, int, int]]:
+    """`(marshal, start, end)` — the man a line addresses and the span of its
+    "take the war goal" — or None when the line is no such task (a question
+    never is: "Ney, can you take the war goal?")."""
+    text = text or ""
+    if text.strip().endswith("?"):
+        return None
+    marshal, _rest = _address(text, names)
+    if not marshal:
+        return None
+    found = _GOAL_RE.search(text)
+    if found is None:
+        return None
+    return marshal, found.start(), found.end()
 
 
 def two_provinces(text: str, regions: List[str], marked: bool = True) -> Tuple[str, str]:

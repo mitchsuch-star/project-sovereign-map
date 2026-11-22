@@ -6781,7 +6781,24 @@ def _derive_marshal_status(marshal, world) -> tuple:
                     f"On his own ({_words}) — asks for your word: "
                     f"{(_spec.get('asks') or {}).get('why', '')}.")
         _last = str((getattr(marshal, "own_record", None) or {}).get("said") or "")
-        return ("on_his_own", f"On his own: {_words}." + (f" Last night: {_last}." if _last else ""))
+        # Row IC, Session 3b: the army he commands is said with his task.
+        _army = f" He commands the {_spec['army']}." if _spec.get("army") else ""
+        return ("on_his_own", f"On his own: {_words}.{_army}" + (f" Last night: {_last}." if _last else ""))
+
+    # Row IC, Session 3b: a man who FOLLOWS the commander of an army's task —
+    # said as what it is (the plain "Supporting Ney" told nothing of the army).
+    try:
+        from backend.commands import army_task as _army_task
+        _lead = _army_task.following(world, marshal) if world is not None else None
+    except Exception as exc:
+        report(exc, "dispatch._derive_marshal_status: army_task")
+        _lead = None
+    if _lead is not None:
+        from backend.display_names import humanize_entity_name as _hn
+        _led = str((_own.own(_lead) or {}).get("army") or "")
+        # (the status key is the plain follow order's own, "en_route": one mark)
+        return ("en_route", f"Follows {_hn(_lead.name)} — the {_led}'s task "
+                            f"({_own.task_words(_own.own(_lead) or {})}).")
 
     if marshal.in_strategic_mode:
         order = marshal.strategic_order

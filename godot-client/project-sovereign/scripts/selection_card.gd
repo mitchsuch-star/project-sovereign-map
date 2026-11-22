@@ -43,6 +43,7 @@ signal task_line_pressed(line: String)
 signal own_write_pressed(line: String)
 signal own_send_pressed(line: String)
 signal name_army_pressed
+signal army_task_pressed(name: String)   # row IC, Session 3b: "Give it a task…"
 signal save_army_pressed(name: String)
 signal disband_army_pressed(name: String)
 
@@ -214,6 +215,11 @@ func _render() -> void:
 		var own_row := _own_row(compact)
 		if own_row != null:
 			_body.add_child(own_row)
+		# Row IC, Session 3b: a man who FOLLOWS an army's commander — whom, and
+		# what he does tonight. He takes today's orders as any man does.
+		var follows_row := _follows_row(compact)
+		if follows_row != null:
+			_body.add_child(follows_row)
 		# Row IC, Session 2 (pressed in the real client at the first player's
 		# setup): the card stands on its bottom edge, so whatever makes it taller
 		# lifts every row above the new one out from under the cursor - with the
@@ -314,6 +320,25 @@ func _own_row(compact: bool) -> Control:
 	var state_words := str(own.get("state_words", ""))
 	if state_words != "":
 		words += "  [color=#" + Utils.COLOR_INFO + "](" + state_words + ")[/color]"
+	# Row IC, Session 3b: the army he commands, and who follows him; the war
+	# goal his task serves.
+	# ONE line for both (pressed in the real client at the first player's
+	# setup: two more lines pushed his last row of orders 11 px past the
+	# screen's foot — the card stands on its bottom edge). Who follows him is
+	# named on the army's chip and on the desk's line.
+	var army := str(own.get("army", ""))
+	var serves := bool(own.get("goal", false))
+	if army != "":
+		var followers = own.get("followers", [])
+		var n: int = (followers as Array).size() if followers is Array else 0
+		var men := "nobody follows yet" if n == 0 else ("1 man follows" if n == 1 else (str(n) + " men follow"))
+		words += "\n[color=#" + Utils.COLOR_GOLD + "]Commands the " + army + "[/color]"
+		if serves:
+			words += " (" + men + ") · serves your war goal."
+		else:
+			words += " — " + men + (" him." if n > 0 else ".")
+	elif serves:
+		words += ("\n[color=#" + Utils.COLOR_GOLD + "]Serves your war goal[/color] — a new goal turns him (1 action).")
 	var tonight := str(own.get("tonight", "")).strip_edges()
 	if tonight != "":
 		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tonight:[/color] " + tonight + "."
@@ -327,9 +352,18 @@ func _own_row(compact: bool) -> Control:
 	if asks != "":
 		words += "\n[color=#" + Utils.COLOR_WARNING + "]He asks for your word: " + asks + ".[/color]"
 	if not compact:
-		words += ("\n[color=#" + Utils.COLOR_INFO + "]He attacks only when the odds are " + str(own.get("odds", ""))
-			+ " (men of ours to theirs, as the battle forecast reckons them). An order you give him today"
-			+ " is carried out; his task goes on the next night.[/color]")
+		# Row IC, Session 3b (pressed at the first player's setup): where his
+		# night's own line already says the odds and the bar he goes in at ("the
+		# odds are our 19.5 to their 10, and he goes in when they are 5 to 10 or
+		# better"), the sentence that repeats them is left out — with it, a
+		# commander's card on the night he is given ran 27 px past the screen's
+		# foot and cut his last button off.
+		var said_odds := tonight.contains("he goes in when") or ahead.contains("he goes in when")
+		words += "\n[color=#" + Utils.COLOR_INFO + "]"
+		if not said_odds:
+			words += ("He attacks only when the odds are " + str(own.get("odds", ""))
+				+ " (men of ours to theirs, as the battle forecast reckons them). ")
+		words += "An order you give him today is carried out; his task goes on the next night.[/color]"
 	col.add_child(_measured_rich("OwnLine", words, wrap_w, true))
 	var flow := HFlowContainer.new()
 	flow.name = "OwnButtons"
@@ -353,6 +387,30 @@ func _own_row(compact: bool) -> Control:
 		_emit_own_send.bind(shown + ", stand down")))
 	col.add_child(flow)
 	return col
+
+
+func _follows_row(compact: bool) -> Control:
+	"""Row IC, Session 3b: he FOLLOWS the commander of an army's task — whom,
+	for which army and task, and what he will do tonight (the server's own
+	reading: he moves right after his commander, before the enemy). Null for
+	every other man."""
+	var follows = _view.get("follows", {})
+	if not (follows is Dictionary) or str((follows as Dictionary).get("lead", "")) == "":
+		return null
+	var wrap_w: float = maxf(_card_width(compact) - 24.0, 120.0)
+	var lead := str(follows.get("lead_shown", follows.get("lead", "")))
+	var words := ("[color=#" + Utils.COLOR_GOLD + "]Follows " + lead + "[/color] — the " + str(follows.get("army", ""))
+		+ " is on its own: " + str(follows.get("task", "")) + ".")
+	var tonight := str(follows.get("tonight", "")).strip_edges()
+	if tonight != "":
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tonight:[/color] " + tonight + "."
+	if not compact:
+		var odds := int(follows.get("odds", 0))
+		words += ("\n[color=#" + Utils.COLOR_INFO + "]He moves with " + lead + " each night, before the enemy does, and may"
+			+ " join " + lead + "'s battles next to him" + ((" (about " + str(odds) + " times in 100)") if odds > 0 else "")
+			+ ". He takes none of your places for men on their own. An order you give him today is carried out;"
+			+ " he follows again the next night.[/color]")
+	return _measured_rich("FollowsLine", words, wrap_w, true)
 
 
 func _dict_of_view_own() -> Dictionary:
@@ -811,6 +869,13 @@ func _group_buttons_row(compact: bool) -> Control:
 			"Gives these corps a name, so one chip or one line (“Army of Italy, hold”) orders them all again. Free.",
 			compact, _emit_name_army)
 	elif _army_same:
+		# Row IC, Session 3b: an army's TASK — its commander on his own, the
+		# rest following him. The button writes a ready sentence on the line.
+		_add_group_button(flow, "ArmyTask", "Give it a task…",
+			"Writes a task for the " + _army_name + " on the command line (“" + _army_name
+			+ ", take …”). Its commander is set on his own and the others follow him. "
+			+ "You see the list and its price before anything is spent.",
+			compact, _emit_army_task)
 		_add_group_button(flow, "DisbandArmy", "Disband the " + _army_name,
 			"The " + _army_name + " is dissolved; its corps keep their orders and stand where they are. Free.",
 			compact, _emit_disband)
@@ -845,6 +910,8 @@ func _short_face(node_name: String, face: String) -> String:
 	match node_name:
 		"NameArmy", "NameNewArmy":
 			return "Name…"
+		"ArmyTask":
+			return "Task…"
 		"DisbandArmy":
 			return "Disband"
 		"SaveArmy":
@@ -860,6 +927,11 @@ func _emit_group_verb(verb: String) -> void:
 func _emit_name_army() -> void:
 	AudioManager.play("click")
 	name_army_pressed.emit()
+
+
+func _emit_army_task() -> void:
+	AudioManager.play("click")
+	army_task_pressed.emit(_army_name)
 
 
 func _emit_save() -> void:

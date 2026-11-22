@@ -69,6 +69,15 @@ ORDER_KEYS = frozenset({
     # order's own; before this the remark alone made the order stand. A
     # concern that asks a question is a question, and still stands.
     "mild_concerns_this_turn",
+    # Row IC, Session 3b (IC3B-1, and Session 3's sibling): setting a man on
+    # his own while a bold senior stands idle writes that senior's resentment
+    # in the court's book of incidents (`precedence.note`, "passed_over") — the
+    # order's own consequence, un-written with it. Before this the note alone
+    # made the order stand ("More than the order itself followed from it"),
+    # for one man and for an army's task alike, while the list promised "Take
+    # back undoes it all". (A battle's entries in the book never reach here:
+    # a battle stands by its own verdict.)
+    "marshal_ledger",
 })
 # Asked or answered: nothing an order changes, and nothing to take back — the
 # log of what was typed, the counsel's memory, and help's own bookkeeping (a

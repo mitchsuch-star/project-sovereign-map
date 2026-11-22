@@ -2419,8 +2419,14 @@ class CommandExecutor:
                 # his one thing this turn — and his task STANDS, resuming the
                 # next night (`own_order.read` keeps him still tonight).
                 from backend.game_logic import own_order as _own_override
+                # Row IC, Session 3b: nor does a hand order end the FOLLOW order
+                # of a man in an army's task — he carries it out, stays put that
+                # night, and follows his commander again the next
+                # (`army_task.follower_reading`).
+                from backend.commands import army_task as _army_override
                 if (marshal.in_strategic_mode and not is_strategic_execution
-                        and not _own_override.on_his_own(marshal)):
+                        and not _own_override.on_his_own(marshal)
+                        and _army_override.following(world, marshal) is None):
                     strategic_override_actions = [
                         "attack", "move", "defend", "fortify", "drill", "retreat"
                     ]

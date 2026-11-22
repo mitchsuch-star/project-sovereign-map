@@ -1108,6 +1108,10 @@ def _own_reading(out: Dict[str, Any], world, parsed: Dict, text: str) -> Dict[st
     parts.append(("taken", f"he attacks only when the odds are {_tn.get('needed_words') or r.get('needed_words')}"))
     if len(r.get("area") or []) == 2:
         parts.append(("taken", "his area: " + " and ".join(humanize_entity_name(p) for p in r["area"])))
+    if r.get("goal"):
+        # Row IC, Session 3b: "take the war goal" — the task follows the goal
+        parts.append(("taken", f"he serves your war goal ({humanize_entity_name(str(r.get('target') or ''))}) — "
+                               "name a new goal and he is turned to it, 1 action"))
     tonight = r.get("tonight") or {}
     if tonight.get("line"):
         parts.append(("tonight", (f"Tonight, as things stand: {tonight['line']}" if r.get("starts_tonight")
@@ -1122,6 +1126,13 @@ def _own_reading(out: Dict[str, Any], world, parsed: Dict, text: str) -> Dict[st
     if r.get("slight"):
         parts.append(("warn", f"{r['slight']} outranks him and has no order — he will resent it "
                               f"(his regard for {shown} drops)"))
+    if parsed.get("dropped_sequel"):
+        # Row IC, Session 3b (the review, IC3B-V9): a task takes ONE order — the
+        # second one the line carried ("…, then hold Ulm") was dropped without a
+        # word here, where the ordinary read-back says "a second order waits"
+        # (`_riders`). An army's list reads its commander's line through this.
+        parts.append(("warn", f"a second order is not part of his task: “{parsed['dropped_sequel']}” "
+                              "— give it as a line of its own"))
     parts.append(("note", "he starts tomorrow night; you can stand him down for free"))
     out["parts"] = [_part(role, t) for role, t in parts]
     chips = []

@@ -354,3 +354,68 @@ EXAMPLES = (
     'Ney, march to Lorraine, then dig in.',
     'Soult, hold Lorraine. If attacked, dig in. If outnumbered, fall back to Champagne.',
 )
+
+# Row IC, Session 3b — a task for an ARMY: the verbs that make its line a task
+# (a take, a chase, a hold with a place named; `marked`: only with a mark)
+ARMY_TASK = {
+    'take': ('capture', 'occupy', 'seize', 'take'),
+    'chase': ('hunt down', 'go after', 'destroy', 'pursue', 'shadow', 'chase', 'harry', 'hunt'),
+    'hold': ('protect', 'guard', 'hold', 'keep'),
+    'marked': ('advance on', 'march on', 'march to', 'attack', 'storm'),
+}
+
+# (what an army is told of itself, how its commander hears it)
+ARMY_MARKS = (
+    ('on their own', 'on your own'),
+    ('on its own', 'on your own'),
+    ('as they see fit', 'as you see fit'),
+    ('as it sees fit', 'as you see fit'),
+    ('at their discretion', 'at your discretion'),
+    ('at its discretion', 'at your discretion'),
+    ('use their judgement', 'use your judgement'),
+    ('use their judgment', 'use your judgement'),
+    ('use its judgement', 'use your judgement'),
+    ('use its judgment', 'use your judgement'),
+    ('in their own way', 'in your own way'),
+    ('in its own way', 'in your own way'),
+)
+
+# the same words as a plain order to each corps
+ARMY_EXACT = (
+    'each by exact orders',
+    'each by exact order',
+    'as exact orders',
+    'by exact orders',
+    'as exact order',
+    'by exact order',
+    'to the letter',
+)
+
+# "Ney, take the war goal": the verbs that take the goal as their object
+GOAL_VERBS = (
+    'hunt down',
+    'strike at',
+    'go after',
+    'make for',
+    'march on',
+    'march to',
+    'aim for',
+    'capture',
+    'destroy',
+    'aim at',
+    'go for',
+    'pursue',
+    'chase',
+    'reach',
+    'seize',
+    'serve',
+    'take',
+    'win',
+)
+
+GOAL_OBJECTS = (
+    'your war goal',
+    'our war goal',
+    'the war goal',
+    'my war goal',
+)

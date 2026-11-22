@@ -170,6 +170,13 @@ def build() -> Dict[str, object]:
                             key=lambda t: (-len(t), t)),
         "open_ended": _flat(T.OPEN_ENDED),
         "examples": list(T.EXAMPLES),
+        # Row IC, Session 3b: an army's task and the war goal's.
+        "army_task": {kind: sorted({w.lower() for w in words}, key=lambda t: (-len(t), t))
+                      for kind, words in T.ARMY_TASK.items()},
+        "army_marks": [(said, means) for pattern, means in T.ARMY_MARKS for said in _flat([pattern])],
+        "army_exact": _flat(T.ARMY_EXACT),
+        "goal_verbs": _flat(T.GOAL_VERBS),
+        "goal_objects": _flat([T.GOAL_OBJECT]),
     }
 
 
@@ -228,6 +235,19 @@ def render_py(data: Dict[str, object]) -> str:
     out += _py_list("OPEN_ENDED", data["open_ended"],
                     "an 'until' that asks for no limit: filler, blocking nothing")
     out += _py_list("EXAMPLES", data["examples"])
+    out += "# Row IC, Session 3b — a task for an ARMY: the verbs that make its line a task\n"
+    out += "# (a take, a chase, a hold with a place named; `marked`: only with a mark)\n"
+    out += "ARMY_TASK = {\n"
+    for kind, words in data["army_task"].items():
+        out += f"    {kind!r}: {tuple(words)!r},\n"
+    out += "}\n\n"
+    out += _py_list("ARMY_MARKS", data["army_marks"],
+                    "(what an army is told of itself, how its commander hears it)")
+    out += _py_list("ARMY_EXACT", data["army_exact"],
+                    "the same words as a plain order to each corps")
+    out += _py_list("GOAL_VERBS", data["goal_verbs"],
+                    "\"Ney, take the war goal\": the verbs that take the goal as their object")
+    out += _py_list("GOAL_OBJECTS", data["goal_objects"])
     return out.rstrip("\n") + "\n"
 
 

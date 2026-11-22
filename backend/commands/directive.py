@@ -62,11 +62,26 @@ def address(world, text: str) -> Optional[Dict[str, Any]]:
     if world is None or not text.strip():
         return None
     try:
+        from backend.commands import army_task
         from backend.game_logic import armies
+        # Row IC, Session 3b: a NEW war goal named while men serve the old one
+        # is a list too — each of them turned, 1 action, said before Give.
+        if getattr(world, "war_goals", None):
+            turned = army_task.goal_change(world, text)
+            if turned is not None:
+                return turned
         hit = armies.address_of(world, text)
         if hit is not None:
-            return {"kind": "army", "army": hit["army"], "rest": hit["rest"],
-                    "names": armies.members(world, hit["army"])}
+            # …and an army given a TASK ("Army of Italy, take Swabia") is its
+            # commander on his own and the rest following him (`army_task`);
+            # "by exact orders" asks for the plain order to each corps instead.
+            rest, _exact = army_task.without_exact(hit["rest"])
+            found = {"kind": "army", "army": hit["army"], "rest": rest,
+                     "names": armies.members(world, hit["army"])}
+            task = army_task.read(world, hit["army"], hit["rest"])
+            if task is not None:
+                found["task"] = task
+            return found
         if armies.read_order(world, text) is not None:
             # The army's own verbs ("Army of Italy, disband", "form the Army of …")
             # are the staff's bookkeeping, never an order to several — though
@@ -116,6 +131,8 @@ def _names(shown: List[str]) -> str:
 def _who(world, stash: Dict[str, Any]) -> str:
     """Who the order goes to, as the card's title and the read-back say it."""
     kind = stash.get("kind")
+    if kind == "goal":
+        return "The men serving your war goal"
     if kind == "army" and stash.get("army_name"):
         return f"The {stash['army_name']}"
     if kind == "list":
@@ -131,6 +148,11 @@ def canonical_line(stash: Dict[str, Any]) -> str:
     Ulm"), so the second send never needs free wording read again."""
     rest = str(stash.get("rest") or "")
     kind = stash.get("kind")
+    if stash.get("goal"):
+        return str(stash["goal"].get("line") or "")
+    if stash.get("task"):
+        from backend.commands import army_task
+        return army_task.canonical(str(stash.get("army_name") or ""), stash["task"])
     if kind == "army" and stash.get("army_name"):
         return f"{stash['army_name']}, {rest}"
     if kind == "list":
@@ -177,6 +199,11 @@ def _row_from_reading(name: str, line: str, reading: Dict[str, Any]) -> Dict[str
                   if p.get("role") == "taken" and str(p.get("text") or "")]
         notes += ["not taken: " + str(p.get("text") or "") for p in parts
                   if p.get("role") == "nottaken" and str(p.get("text") or "")]
+        # Row IC, Session 3b: a row that sets a man ON HIS OWN (an army's
+        # commander, a man turned to a new war goal) says his first night and
+        # his answer, as his own read-back does.
+        notes += [str(p.get("text") or "") for p in parts
+                  if p.get("role") in ("tonight", "answer") and str(p.get("text") or "")]
         quote = reading.get("_quote")
         if isinstance(quote, dict):
             for key in _RIDERS:
@@ -313,6 +340,13 @@ def _quote_locked(world, stash: Dict[str, Any], readers: Dict[str, Any]) -> Dict
     have = int(getattr(world, "actions_remaining", 0) or 0)
     rows: List[Dict[str, Any]] = []
     memo: dict = {}
+    own_lines = bool(stash.get("own_lines"))
+    if own_lines:
+        # Row IC, Session 3b: an army's task, a changed war goal — each row
+        # the reading of that man's OWN line (`army_task.rows`).
+        from backend.commands import army_task
+        rows = army_task.rows(world, stash, readers)
+        addressed = []
     for name in addressed:
         marshal = world.get_marshal(name)
         line = f"{name}, {rest}"
@@ -345,7 +379,7 @@ def _quote_locked(world, stash: Dict[str, Any], readers: Dict[str, Any]) -> Dict
             row = _row_from_reading(name, line, reading)
         rows.append(row)
 
-    staff = _staff_view(world, stash, rows)
+    staff = None if own_lines else _staff_view(world, stash, rows)
     if staff is not None:
         covered = set(staff["covers"])
         for row in rows:
@@ -363,6 +397,12 @@ def _quote_locked(world, stash: Dict[str, Any], readers: Dict[str, Any]) -> Dict
                 row["ticked"] = True
                 left -= int(row["ap"])
                 total += int(row["ap"])
+        if own_lines and any(r.get("locked") and not r["ticked"] for r in rows):
+            # an army's commander who cannot be paid for today: nobody is
+            # ticked to follow a man with no task
+            for row in rows:
+                row["ticked"] = False
+            total = 0
     can_go = [r for r in rows if r["ok"] or r["covered"]]
     order = "recall their standing orders" if stash.get("cancel") else rest
     if stash.get("click") and strategic_type == "MOVE_TO" and stash.get("target"):
@@ -388,6 +428,9 @@ def _quote_locked(world, stash: Dict[str, Any], readers: Dict[str, Any]) -> Dict
         reasons = {r["why"] for r in rows if r["why"]}
         out["note"] = (next(iter(reasons)) if len(reasons) == 1
                        else "No corps can take this order today.")
+    if own_lines:
+        from backend.commands import army_task
+        army_task.dress(world, stash, out)
     return out
 
 
@@ -426,6 +469,11 @@ def stale(listing: Dict[str, Any], members: List[str], expect_ap: Optional[int])
             return f"{humanize_entity_name(name)} is not among the men this order goes to."
         if not row.get("ok") and not (rides_staff and row.get("covered")):
             return f"{row['shown']} can no longer take this order — {row.get('why') or 'it would be refused'}."
+    if listing.get("task"):
+        from backend.commands import army_task
+        why = army_task.stale(listing, members)
+        if why:
+            return why
     total = total_for(listing, members)
     if expect_ap is not None and int(expect_ap) != total:
         return (f"The price has changed since the list was drawn — it was {int(expect_ap)} "
@@ -515,13 +563,27 @@ def readback(world, text: str, out: Dict[str, Any], readers: Dict[str, Any]) -> 
         if found["kind"] == "army":
             lead = next((n for n in found.get("names") or []), "")
             parse_text = f"{lead}, {found['rest']}" if lead else text
-        parsed = pp.mock_parse(world, parse_text, readers["llm_state"], readers.get("epoch", 0))
+        own_lines = found["kind"] == "goal" or bool(found.get("task"))
+        # (an army's task and a changed war goal are built from the address
+        # alone — each man's own line is read row by row)
+        parsed = ({} if own_lines else
+                  pp.mock_parse(world, parse_text, readers["llm_state"], readers.get("epoch", 0)))
         built = G.build(world, pp._preview_parser(),
                         pp._llm_state(world, readers["llm_state"], readers.get("epoch", 0)),
                         text, parsed, address=found)
     except Exception as exc:
         report(exc, "directive.readback: the build")
         return None
+    if own_lines:
+        # Row IC, Session 3b: the reading of an army's task / a changed goal
+        # is the list it will open, said in rows (`army_task.readback`).
+        from backend.commands import army_task
+        if built is None:
+            return None
+        if built[0] != "stash":
+            return pp._refusal_reading(out, str(built[1].get("message") or "").replace(
+                " Nothing was spent.", "").replace(", Sire — nothing spent.", "").rstrip("."))
+        return army_task.readback(world, text, out, _quote_locked(world, built[1], readers), built[1])
     if built is None or built[0] != "stash":
         if found["kind"] != "army":
             return None

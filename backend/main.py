@@ -4413,6 +4413,14 @@ def _command_parse(ctx: CommandContext):
                                  "turn_advanced": False, "new_turn": None})
             from backend.commands.group_orders import second_person as _second_person
             _parse_text = f"{_lead}, {_second_person(_addr['rest'])}"
+            if _addr.get("task"):
+                # Row IC, Session 3b: an army's TASK is read as its COMMANDER's
+                # own line ("Massena, take Swabia on your own") — the man named,
+                # else the senior of its men who may be set on his own.
+                from backend.commands import army_task as _army_task
+                _cmd = _army_task.commander(world, _addr["army"], _addr["task"]["kind"],
+                                            _addr["task"].get("under") or "")
+                _parse_text = _army_task.lead_line(_cmd["lead"] or _lead, _addr["task"]["rest"])
             _ptrace.note("directive", "army_address", ctx.command_text, _parse_text,
                          army=_addr["army"])
     ctx.parsed = parser.parse(_parse_text, ctx.llm_game_state, world=world)
@@ -4671,7 +4679,10 @@ def _directive_road(ctx: CommandContext):
         _ptrace.decide("executor", "collective", _ptrace.result_summary(ctx.result))
         return _NEXT_STAGE
     stash = built[1]
-    several = len(stash.get("addressed") or stash.get("members") or []) > 1
+    # (Session 3b: an army's task and a changed war goal are ALWAYS shown as
+    # their list first — for one man too: the list is where the price is said)
+    several = (len(stash.get("addressed") or stash.get("members") or []) > 1
+               or bool(stash.get("always_list")))
     if asks and several:
         listing = _directive.quote(world, stash, _directive_readers())
         _ptrace.decide("directive", "asked", {"rows": len(listing["rows"]), "total": listing["total"]})
@@ -8598,8 +8609,25 @@ def get_parse_preview(line: str = ""):
                 "candidates": [], "epoch": int(_STATE_EPOCH)}
 
 
+def _army_task_preset(army: str) -> dict:
+    """Row IC, Session 3b: "Give it a task…" on an army's card — ONE ready
+    sentence for a named army (`army_task.proposal`: its commander's own idea,
+    said to the army). Read-only; nothing is sent and nothing is spent."""
+    from backend.commands import army_task as _army_task
+    from backend.game_logic import armies as _armies_mod
+    kept = _armies_mod.find(world, army)
+    if kept is None:
+        return {"success": False, "message": "There is no army of that name"}
+    offered = _army_task.proposal(world, kept)
+    if not offered.get("line"):
+        return {"success": False, "army": kept,
+                "message": str(offered.get("why") or "The staff has no ready task for it")}
+    return {"success": True, "army": kept, "line": str(offered["line"]),
+            "lead": str(offered.get("lead") or ""), "why": str(offered.get("why") or "")}
+
+
 @app.get("/task_presets")
-def get_task_presets(marshal: str = ""):
+def get_task_presets(marshal: str = "", army: str = ""):
     """Row IC, Session 2 (IC-8; INDEPENDENT_COMMAND_SPEC §8.2) — "Give him a
     task…": ready sentences for one of the player's marshals, with real names
     in them (`backend/commands/task_presets.py`). The first fills the command
@@ -8610,6 +8638,12 @@ def get_task_presets(marshal: str = ""):
     `task`). Player marshals only (the fog boundary)."""
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
+    if str(army or "").strip():
+        try:
+            return _army_task_preset(str(army).strip())
+        except Exception as e:
+            _errors.report(e, "main.get_task_presets: the army's task")
+            return {"success": False, "message": "The staff has no ready task for it"}
     try:
         from backend.commands import parse_preview as _pp
         from backend.commands import if_thens as _if_thens

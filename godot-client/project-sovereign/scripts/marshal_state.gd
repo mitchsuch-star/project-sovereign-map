@@ -136,6 +136,9 @@ static func from_board(entry: Dictionary, row: Dictionary = {}) -> Dictionary:
 		# asks, the stand-down's price ({} for none; for a bold or careful man
 		# who is not, whether he may be set)
 		"own": _dict_of(ts.get("own", {})),
+		# Row IC, Session 3b: the commander he follows as part of an army's
+		# task — whom, the army, its task, his night ({} for every other man)
+		"follows": _dict_of(ts.get("follows", {})),
 	}
 
 

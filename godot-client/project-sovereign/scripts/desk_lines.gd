@@ -341,13 +341,21 @@ func _fill_own() -> void:
 		_own.visible = false
 		return
 	var first := ""
+	var army_note := ""
 	var all := PackedStringArray()
 	for r in tonight:
 		if r is Dictionary:
 			all.append(str(r.get("line", "")))
 			if first == "":
 				first = str(r.get("line", "")).trim_prefix("Tonight: ")
-	_own.text = "ON THEIR OWN — %d of the %d you may have · tonight: %s" % [int(own.get("n", 0)), int(own.get("of", 1)), first]
+				# Row IC, Session 3b: an army's commander is counted ONCE — the
+				# line says how many follow him (each man's night is on the hover).
+				var behind := int(r.get("followers", 0))
+				if str(r.get("army", "")) != "":
+					army_note = ("the " + str(r.get("army", "")) + ", "
+						+ ("nobody following yet" if behind == 0 else (
+							"1 man following" if behind == 1 else (str(behind) + " men following"))) + " · ")
+	_own.text = "ON THEIR OWN — %d of the %d you may have · %stonight: %s" % [int(own.get("n", 0)), int(own.get("of", 1)), army_note, first]
 	# (round 2 of the blind reading: "1 of 1" never said how to raise it)
 	_own.tooltip_text = "\n".join(all) + "\n\nThe laws raise the count: the Grand Quartier Général," + " then the Emperor's Aides-de-Camp, one more each."
 	_own.visible = not _one_line()

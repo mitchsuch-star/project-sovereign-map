@@ -90,6 +90,17 @@ func is_any_modal_open() -> bool:
 			return true
 	return false
 
+
+func is_any_modal_open_but(dialog_name: String) -> bool:
+	"""A modal OTHER than `dialog_name` is up (row IC, Session 3b: the order
+	card is itself a modal — a card asking whether a window stands over it
+	must not count itself)."""
+	for key in _dialogs:
+		var entry = _dialogs[key]
+		if str(key) != dialog_name and entry.modal and entry.node and entry.node.visible:
+			return true
+	return false
+
 func hide_all():
 	for entry in _dialogs.values():
 		if entry.node:

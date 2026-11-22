@@ -2365,3 +2365,182 @@ class TestRowIC10OnHisOwn:
 
     def test_the_run_met_no_script_error(self, walk):
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ═══════════════════════════ row IC, Session 3b — an army's task ═════════════
+# (`SYSTEMS_REFERENCE.md` §234; `docs/audits/ic_client/session3b/README.md` —
+# the frames the blind reading read were taken by these same steps at the first
+# player's own setup)
+
+@pytest.fixture(scope="module")
+def ic3b_walk(tmp_path_factory) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        mp.setenv("DD_B_READBACK", "1")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic3b")
+    states: dict = {}
+    try:
+        states["begin"] = _act(run, "click Begin")
+        states["formed"] = _act(run, "type form the Army of Italy with Ney, Davout and Soult",
+                                meant="other: name an army")
+        states["draft"] = _act(run, "draft Army of Italy, take Swabia", meant="other: an army's task")
+        states["list"] = _act(run, "key Enter")
+        states["untick"] = _act(run, "key Space")          # the commander unticked: nobody follows him
+        _act(run, "key Down")
+        states["retick"] = _act(run, "key Space")          # a follower ticked: his commander with him
+        _act(run, "key Down")
+        states["all"] = _act(run, "key Space")
+        states["given"] = _act(run, "key Enter")
+        states["commander"] = _act(run, "click Ney")
+        _act(run, "key Escape")
+        states["follower"] = _act(run, "click Davout")
+        _act(run, "key Escape")
+        states["taken_back"] = _act(run, "click Take back")
+        states["goal"] = _act(run, "type the war goal is Bohemia", meant="other: name the war goal")
+        states["goal_task"] = _act(run, "type Ney, take the war goal", meant="other: the war goal's task")
+        states["goal_list"] = _act(run, "type the war goal is Tyrol", meant="other: change the war goal")
+        states["goal_given"] = _act(run, "key Enter")
+        # Ney fills the one place: the army's task says so and offers his stand-down
+        states["full"] = _act(run, "type Army of Italy under Davout, take Swabia",
+                              meant="other: an army's task")
+        states["offer"] = _act(run, "click Stand down Ney")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+def _ic3b_card_fits(state: dict) -> None:
+    """The general's card stands whole on the screen: no button cut at its foot."""
+    _width, height = state["factor"]["logical_size"]
+    rows = _ic_on(state, "SelectionCard")
+    assert rows, "the card is open"
+    assert max(b["rect"][1] + b["rect"][3] for b in rows) <= height
+    assert min(b["rect"][3] for b in rows) >= 30, sorted((b["rect"][3], b["text"]) for b in rows)[:3]
+
+
+class TestRowIC12AnArmysTask:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic3b_walk):
+        assert "error" not in ic3b_walk, ic3b_walk.get("error")
+        return ic3b_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        state = walk["draft"]
+        assert state["ui_scale"]["window"] == pytest.approx(1.8)
+        assert state["factor"]["logical_size"] == [2844.0, 765.0]
+
+    def test_typing_the_task_says_who_commands_and_who_follows_before_enter(self, walk):
+        said = _pw_said(walk["draft"])
+        assert "The Army of Italy · on its own: take Swabia" in said, said[-1500:]
+        assert "Ney commands — the highest-ranked of its men who can be set on his own" in said
+        assert "Davout and Soult follow him" in said
+        assert (walk["draft"].get("command_line") or {}).get("text") == "Army of Italy, take Swabia", \
+            "typed, not sent"
+        assert "is given its task" not in _ic_log(walk["draft"]), "nothing given by typing"
+
+    def test_enter_shows_one_list_its_commander_and_his_followers_on_one_screen(self, walk):
+        card = _ic_card(walk["list"])
+        assert card["visible"] is True and card["mode"] == "directive"
+        assert card["title"] == "A TASK FOR THE ARMY OF ITALY"
+        assert card["who"] == "The Army of Italy: take Swabia, on its own"
+        assert [r["marshal"] for r in card["rows"]] == ["Ney", "Davout", "Soult"]
+        assert card["members"] == ["Ney", "Davout", "Soult"] and card["total"] == 4
+        assert ("Cost: 4 actions (2 + 1 + 1) of the 4 in hand — Ney on his own, 2 men following him."
+                in card["total_text"])
+        assert card["rows"][0]["text"].startswith("[b]Ney[/b] · on his own: take Swabia · 2 actions")
+        assert card["rows"][1]["text"].startswith("[b]Davout[/b] · follow Ney · 1 action")
+        _ic_still_and_on_screen(walk["list"])
+        # every row stands on the screen at once (pressed: the commander's read-back, whole,
+        # pushed the men who follow him below the fold)
+        ticks = [b for b in _ic_on(walk["list"], "OrderConfirmCard")
+                 if str(b.get("tooltip") or "").startswith("Click to tick or untick")]
+        _width, height = walk["list"]["factor"]["logical_size"]
+        # a row is a chip with its tick box on it: three of each, all on the screen
+        assert sorted(b["kind"] for b in ticks) == ["button"] * 3 + ["chip"] * 3, ticks
+        assert all(b["rect"][1] + b["rect"][3] <= height for b in ticks), ticks
+        assert not _ic_replies_with(walk["list"], "group"), "the list spends nothing"
+
+    def test_nobody_is_ticked_to_follow_a_commander_who_is_left_out(self, walk):
+        untick = _ic_card(walk["untick"])
+        assert untick["members"] == [] and untick["give_disabled"] is True
+        assert untick["total_text"].startswith("Nobody is ticked — tick Ney to give the army its task")
+        assert _ic_card(walk["retick"])["members"] == ["Ney", "Davout"], "a follower ticks his commander"
+        assert _ic_card(walk["all"])["members"] == ["Ney", "Davout", "Soult"]
+
+    def test_give_is_one_request_and_the_board_says_the_army_is_on_its_own(self, walk):
+        give = walk["given"]
+        assert len(_ic_replies_with(give, "group")) == 1                     # ONE request
+        log = _ic_log(give)
+        assert ("The Army of Italy is given its task — Ney commands, on his own; Davout and Soult follow "
+                "him — 4 actions for the 4 in hand.") in log, log
+        assert "Army of Italy · 3 corps · on its own" in _pw_buttons(give)
+        desk = [str(b.get("text") or "") for b in _ic_on(give, "DeskCard")]
+        line = next((t for t in desk if t.startswith("ON THEIR OWN")), "")
+        assert "1 of the 1 you may have · the Army of Italy, 2 men following · tonight:" in line, desk
+
+    def test_the_commanders_card_names_his_army_and_stands_whole(self, walk):
+        said = _pw_said(walk["commander"])
+        assert "Commands the Army of Italy — 2 men follow him." in said, said[-1200:]
+        assert "Tonight:" in said and "Tomorrow night, as things stand:" in said
+        _ic3b_card_fits(walk["commander"])          # (pressed: his last button ran past the screen's foot)
+
+    def test_a_followers_card_says_whom_he_follows_and_his_night(self, walk):
+        said = _pw_said(walk["follower"])
+        assert "Follows Ney — the Army of Italy is on its own: take Swabia." in said, said[-1200:]
+        assert "Tonight: Davout set out when the order was given" in said
+        assert "He takes none of your places for men on their own." in said
+        _ic3b_card_fits(walk["follower"])
+
+    def test_take_back_undoes_the_whole_task(self, walk):
+        assert "Taken back: “Army of Italy, take Swabia”." in _ic_log(walk["taken_back"])
+        assert _ic_actions(walk["taken_back"]) == "4/4"
+        assert "Army of Italy · 3 corps" in _pw_buttons(walk["taken_back"])
+
+    def test_take_the_war_goal_sets_him_on_his_own_toward_it(self, walk):
+        assert "Ney is on his own: take Bohemia." in _ic_log(walk["goal_task"]), _ic_log(walk["goal_task"])
+
+    def test_a_changed_war_goal_is_a_list_that_turns_him(self, walk):
+        card = _ic_card(walk["goal_list"])
+        assert card["title"] == "A NEW WAR GOAL" and [r["marshal"] for r in card["rows"]] == ["Ney"]
+        assert card["total"] == 1 and card["members"] == ["Ney"]
+        assert card["note_text"].startswith("The war goal becomes Tyrol (it was Bohemia) when you Give")
+        assert card["rows"][0]["text"].startswith("[b]Ney[/b] · on his own: take Tyrol · 1 action")
+        assert "Untick him and he keeps to his task (take Bohemia)" in card["rows"][0]["text"]
+        _ic_still_and_on_screen(walk["goal_list"])
+        log = _ic_log(walk["goal_given"])
+        assert "The goal of the war with the Third Coalition is now Tyrol." in log, log
+        assert "Ney changes his task: take Tyrol." in log
+
+    def test_the_count_full_offers_the_stand_down_and_the_list_stands_still(self, walk):
+        full = _ic_card(walk["full"])
+        assert full["offer_text"] == "Stand down Ney (free) and list again", full
+        assert full["give_disabled"] is True
+        assert full["note_text"].startswith("You already have as many on their own as you may")
+        again = walk["offer"]
+        assert "Ney stands down and awaits your orders." in _ic_log(again), _ic_log(again)
+        card = _ic_card(again)
+        assert card["visible"] is True and card["give_disabled"] is False and card["offer_text"] == ""
+        assert "Davout" in card["members"]
+        # the list drawn again stands where the first stood (the first play's "bobbing"):
+        # the same x, and the same top — or, where the new list is the taller (three men
+        # may now go), raised only as far as keeps its foot on the screen
+        assert card["rect"][0] == pytest.approx(full["rect"][0], abs=1.0)
+        _width, height = again["factor"]["logical_size"]
+        foot = card["rect"][1] + card["rect"][3]
+        if card["rect"][1] != pytest.approx(full["rect"][1], abs=1.0):
+            assert card["rect"][3] > full["rect"][3] and card["rect"][1] < full["rect"][1]
+            assert foot == pytest.approx(height - 12.0, abs=1.5), (card["rect"], full["rect"])
+        assert card["rect"][1] >= 0 and foot <= height and not again.get("off_screen")
+        # the one move there is: the held "reading" face becoming the list — never sideways
+        moves = _pw_panel_moves(again)
+        assert all(m["what"] == "panel OrderConfirmCard/PanelContainer" and m["from"][0] == m["to"][0]
+                   and m["from"][2] == m["to"][2] for m in moves), moves
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

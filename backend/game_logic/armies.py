@@ -115,6 +115,17 @@ def army_of(world, marshal_name: str) -> Optional[str]:
     return None
 
 
+def commander(world, name: str) -> str:
+    """Row IC, Session 3b: the man NAMED to command this army ("Masséna
+    commands the Army of Italy") — "" when nobody was named, or when the man
+    named is no longer one of its men ours to order. Who commands an army's
+    task when nobody was named is `army_task.commander`'s to say (the senior
+    of its men who may be set on his own)."""
+    row = store(world).get(name) or {}
+    who = str(row.get("commander") or "")
+    return who if who and who in members(world, name) else ""
+
+
 def shown(name: str) -> str:
     """The army in a sentence: "the Army of Italy"."""
     return f"the {name}"
@@ -140,9 +151,22 @@ def payload(world) -> List[Dict[str, Any]]:
         mine = members(world, name)
         if not mine:
             continue
-        out.append({"name": str(name), "members": mine,
-                    "members_shown": [humanize_entity_name(n) for n in mine],
-                    "in_field": int(len(field_members(world, name)))})
+        row = {"name": str(name), "members": mine,
+               "members_shown": [humanize_entity_name(n) for n in mine],
+               "in_field": int(len(field_members(world, name)))}
+        # Row IC, Session 3b: the keys ride only when they hold something — an
+        # army nobody commands and no task reads as it always did.
+        named = commander(world, name)
+        if named:
+            row["commander"] = named
+        try:
+            from backend.commands import army_task
+            task = army_task.task_of(world, name)
+            if task:
+                row["task"] = task
+        except Exception as exc:
+            report(exc, "armies.payload: army_task.task_of")
+        out.append(row)
     return out
 
 
@@ -245,6 +269,25 @@ _DISBAND_RE = re.compile(
 _DISBAND_AFTER_RE = re.compile(
     r"^\s*(?:the\s+)?" + _NAME + r"\s*[,:]\s*(?:disband|dissolve|break\s+up)" + _END, re.IGNORECASE)
 _LIST_RE = re.compile(r"^\s*(?:(?:list|show|name)\s+)?(?:my\s+|our\s+|the\s+)?armies" + _END, re.IGNORECASE)
+# Row IC, Session 3b: who commands it — "Masséna commands the Army of Italy",
+# "put Masséna in command of the Army of Italy", "give the Army of Italy to
+# Masséna". (Never "X leads the Army of … to Vienna": the name ends the line.)
+_COMMANDS_RE = re.compile(
+    r"^\s*(?P<who>\S.*?)\s+(?:will\s+|shall\s+|now\s+|is\s+to\s+)?"
+    r"(?:commands?|leads?|heads?|takes?\s+command\s+of|is\s+in\s+command\s+of|is\s+at\s+the\s+head\s+of)"
+    r"\s+(?:the\s+)?" + _NAME + _END, re.IGNORECASE)
+_PUT_IN_COMMAND_RE = re.compile(
+    r"^\s*(?:please\s+)?(?:put|place|set|make|name|appoint)\s+(?P<who>\S.*?)\s+"
+    r"(?:in\s+command\s+of|at\s+the\s+head\s+of|(?:the\s+)?commander\s+of|to\s+command|to\s+lead)"
+    r"\s+(?:the\s+)?" + _NAME + _END, re.IGNORECASE)
+_GIVE_COMMAND_RE = re.compile(
+    r"^\s*(?:please\s+)?give\s+(?:(?:the\s+)?command\s+of\s+)?(?:the\s+)?" + _NAME
+    + r"\s+to\s+(?P<who>\S.*?)" + _END, re.IGNORECASE)
+# (said without a "no": the line's own negation guard reads "nobody commands …"
+# as an order withdrawn before any book sees it)
+_NO_COMMANDER_RE = re.compile(
+    r"^\s*(?:please\s+)?(?:relieve|clear|unset|dismiss)\s+(?:the\s+)?commander\s+of\s+(?:the\s+)?"
+    + _NAME + _END, re.IGNORECASE)
 
 
 def _people(who: str) -> List[str]:
@@ -276,6 +319,20 @@ def read_order(world, text: str) -> Optional[Dict[str, Any]]:
         match = pattern.match(text)
         if match:
             return {"op": "disband", "name": tidy(match.group("name")), "who": []}
+    # Row IC, Session 3b: who commands an army that EXISTS — read before "put …
+    # in …" can be taken for the roll ("put Masséna in command of the Army of
+    # Italy"); one man of ours, named whole.
+    nobody = _NO_COMMANDER_RE.match(text)
+    if nobody and find(world, nobody.group("name")) is not None:
+        return {"op": "command", "name": tidy(nobody.group("name")), "who": []}
+    for pattern in (_PUT_IN_COMMAND_RE, _GIVE_COMMAND_RE, _COMMANDS_RE):
+        match = pattern.match(text)
+        if not match or find(world, match.group("name")) is None:
+            continue
+        who = _people(match.group("who"))
+        good, _bad = _resolve(world, who)
+        if len(who) == 1 and len(good) == 1:
+            return {"op": "command", "name": tidy(match.group("name")), "who": who}
     for op, patterns in (("remove", (_REMOVE_RE, _LEAVES_RE)), ("add", (_ADD_RE, _JOINS_RE)),
                          ("form", (_FORM_RE,))):
         for pattern in patterns:
@@ -296,7 +353,27 @@ def read_order(world, text: str) -> Optional[Dict[str, Any]]:
 
 
 def carry_out(world, order: Dict[str, Any]) -> Dict[str, Any]:
-    """One of the four verbs, as `read_order` read it."""
+    """One of the verbs, as `read_order` read it — and, where the armies
+    changed, a commander whose army is gone (or who is its man no longer) is
+    said to command it no longer (row IC, Session 3b — `army_task.settle`)."""
+    out = _verb(world, order)
+    if out.get("success") and str(order.get("op") or "") != "list":
+        more = _settle_commanders(world)
+        if more:
+            out["message"] = (str(out.get("message") or "").rstrip() + " " + " ".join(more)).strip()
+    return out
+
+
+def _settle_commanders(world) -> List[str]:
+    try:
+        from backend.commands import army_task
+        return list(army_task.settle(world))
+    except Exception as exc:
+        report(exc, "armies._settle_commanders")
+        return []
+
+
+def _verb(world, order: Dict[str, Any]) -> Dict[str, Any]:
     op = str(order.get("op") or "")
     name, who = str(order.get("name") or ""), list(order.get("who") or [])
     if op == "form":
@@ -307,6 +384,8 @@ def carry_out(world, order: Dict[str, Any]) -> Dict[str, Any]:
         return remove(world, name, who)
     if op == "disband":
         return disband(world, name)
+    if op == "command":
+        return command(world, name, who)
     if op == "list":
         held = store(world)
         if not held:
@@ -397,9 +476,12 @@ def form(world, name: str, marshal_names: List[str]) -> Dict[str, Any]:
     if not isinstance(getattr(world, "armies", None), dict):
         world.armies = {}
     said = _take_out(world, good, keep=text)
+    had = str((world.armies.get(text) or {}).get("commander") or "")
     world.armies[text] = {"members": list(good),
                           "formed_turn": int((world.armies.get(text) or {}).get(
                               "formed_turn", getattr(world, "current_turn", 0)) or 0)}
+    if had and had in good:
+        world.armies[text]["commander"] = had      # (Session 3b) the man named still commands
     head = (f"{shown(text)[0].upper()}{shown(text)[1:]} now holds {_names(good)}." if kept
             else f"{shown(text)[0].upper()}{shown(text)[1:]} is formed: {_names(good)}.")
     # how to use it, said once — when the army is new
@@ -459,6 +541,38 @@ def remove(world, name: str, marshal_names: List[str]) -> Dict[str, Any]:
                         f"{shown(kept)} (now {_names(members(world, kept))}).")}
 
 
+def command(world, name: str, marshal_names: List[str]) -> Dict[str, Any]:
+    """Row IC, Session 3b: name the man who commands this army — or, with
+    nobody named, clear it. He joins the army if he was not in it (and leaves
+    the one he was in — the reply says so). It moves nobody and costs nothing:
+    it says who is set on his own when the army is given a task."""
+    kept = find(world, name)
+    if kept is None:
+        return _refused(f"There is no army called “{tidy(name)}”. {_known(world)}")
+    row = world.armies[kept]
+    if not marshal_names:
+        had = str(row.pop("commander", "") or "")
+        if not had:
+            return _refused(f"Nobody is named to command {shown(kept)} — when it is given a task, "
+                            "the highest-ranked of its men who can be set on his own commands.")
+        return {"success": True, "army": kept, "said": [],
+                "message": (f"{_names([had])} no longer commands {shown(kept)} — when it is given a "
+                            "task, the highest-ranked of its men who can be set on his own commands.")}
+    good, bad = _resolve(world, marshal_names)
+    if bad or len(good) != 1:
+        return _refused(f"Name one marshal of your own to command {shown(kept)}.")
+    who = good[0]
+    said: List[str] = []
+    if who not in [str(n) for n in (row.get("members") or [])]:
+        said = _take_out(world, [who], keep=kept)
+        row["members"] = list(row.get("members") or []) + [who]
+        said.insert(0, f"He joins {shown(kept)}.")
+    row["commander"] = who
+    head = (f"{_names([who])} commands {shown(kept)}. When you give the army a task "
+            f"(“{kept}, take …”), he is the one set on his own, and the others follow him.")
+    return {"success": True, "army": kept, "said": said, "message": " ".join([head] + said)}
+
+
 def disband(world, name: str) -> Dict[str, Any]:
     kept = find(world, name)
     if kept is None:
@@ -481,7 +595,7 @@ def roll_call(world) -> List[str]:
         return []
     said: List[str] = []
     try:
-        for line in prune(world):
+        for line in prune(world) + _settle_commanders(world):
             said.append(line)
             world.log_event({"type": "army_roster", "nation": _player(world),
                              "op": "prune", "army": "", "line": line})

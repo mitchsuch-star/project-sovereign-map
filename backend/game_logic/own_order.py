@@ -595,14 +595,18 @@ def _names(names: List[str]) -> str:
 
 def attack_line(marshal, verb: str, foe, place: str, odds: Dict[str, Any], need: Dict[str, Any],
                 with_: str, day: bool, tail: str = "") -> str:
-    """"Ney attacks Mack at Swabia, with Davout beside him (he may join) — our
-    12 to their 10; he goes in at 5 or better. May become a great battle." """
+    """"Ney attacks Mack at Swabia, with Davout beside him (he may join) — the
+    odds are our 12 to their 10, and he goes in when they are our 5 to their 10
+    or better. May become a great battle." Both figures are said the same way
+    round (row IC, Session 3b — read blind twice: "5 to 10 or better" was taken
+    for the ENEMY at half his strength; `needed_words` already said "our 5 to
+    their 10")."""
     head = f"{_shown(marshal.name)} {verb} {_shown(foe.name)} at {_shown(place)}"
     if with_:
         may = "they may join" if " and " in with_ else "he may join"
         head += f", with {with_} beside him ({may})"
     line = (f"{head} — the odds are our {odds['tenths']} to their 10, and he goes in when they are "
-            f"{need['needed']} to 10 or better{tail}")
+            f"our {need['needed']} to their 10 or better{tail}")
     if day:
         line += ". May become a great battle"
     return line
@@ -882,7 +886,9 @@ def _task_reading(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], re
             if foe:
                 hit, why2 = _attack_choice(world, marshal, where, need, taken)
                 if hit is not None:
-                    hit["line"] += f" — he bars the road to {_shown(target)}"
+                    # (row IC, Session 3b — read blind: "he bars the road" after a
+                    # sentence about our own man; the line names who bars it)
+                    hit["line"] += f" — {_shown(foe)} bars the road to {_shown(target)}"
                     return hit, ""
                 return None, f"road_barred:{why2 or _shown(foe) + ' bars the road'}"
             return None, f"road_barred:the road to {_shown(target)} is closed to him"
@@ -1294,11 +1300,22 @@ def _board_key(world) -> Tuple:
                           bool(getattr(m, "fortified", False)),
                           bool(getattr(m, "reinforced_this_turn", False)),
                           repr(getattr(m, "last_ordered_turn", None)),
-                          repr(getattr(getattr(m, "strategic_order", None), "own", None)))
+                          repr(getattr(getattr(m, "strategic_order", None), "own", None)),
+                          # Row IC, Session 3b: a follower's night reads his
+                          # FOLLOW order (whom, since when) and his army's roll
+                          _order_key(getattr(m, "strategic_order", None)))
                          for m in (getattr(world, "marshals", None) or {}).values()))
     return (id(world), _turn(world), int(getattr(world, "actions_remaining", 0) or 0),
             len(getattr(world, "event_log", None) or []),
-            len(getattr(world, "command_history", None) or []), hash(corps))
+            len(getattr(world, "command_history", None) or []), hash(corps),
+            repr(getattr(world, "armies", None) or None))
+
+
+def _order_key(order) -> Tuple:
+    if order is None:
+        return ()
+    return (str(getattr(order, "command_type", "") or ""), str(getattr(order, "target", "") or ""),
+            bool(getattr(order, "standing_follow", False)), repr(getattr(order, "issued_turn", None)))
 
 
 def tonight_shown(world) -> List[Dict[str, Any]]:
@@ -1534,6 +1551,11 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
         spec["late"] = bool(old.get("late")) and spec["given"] == turn
         spec["state"] = "given" if _int(spec, "given") == turn else "work"
         spec["acted"] = old.get("acted", -1)
+        # Row IC, Session 3b: a change of task leaves him at the head of the
+        # army he commands (its men still follow him). The war goal he served
+        # is kept only where the new task says so (`reading_of_parse`).
+        if old.get("army") and not spec.get("army"):
+            spec["army"] = old["army"]
     else:
         # a new order counts his battles from now: a win or a loss under an
         # earlier order is not "last night" (the review, IC3-V)
@@ -1617,6 +1639,7 @@ def stand_down(world, marshal) -> Dict[str, Any]:
             marshal.modify_trust(-trust_cost)
         except Exception as exc:
             report(exc, "own_order.stand_down: trust")
+    still = _followers_words(world, marshal)      # (Session 3b) read before his task is gone
     marshal.strategic_order = None
     from backend.commands.strategic import clear_order_bound_interrupt
     clear_order_bound_interrupt(marshal)
@@ -1624,7 +1647,7 @@ def stand_down(world, marshal) -> Dict[str, Any]:
         world.actions_remaining = int(getattr(world, "actions_remaining", 0) or 0) + refund
     tail = (f" The {refund} action{'s' if refund != 1 else ''} it cost come back." if refund
             else (f" Recalled in the middle of his task, he loses {trust_cost} trust." if trust_cost
-                  else ""))
+                  else "")) + still
     message = f"{shown} stands down and awaits your orders.{tail} {count_words(world)}."
     world.log_event({"type": EVENT, "phase": "stood_down", "marshal": marshal.name,
                      "nation": marshal.nation, "message": message, "told": True})
@@ -1684,8 +1707,21 @@ def ask_why(world, marshal, why: str) -> None:
                      "nation": marshal.nation, "message": message})
 
 
+def _followers_words(world, marshal) -> str:
+    """Row IC, Session 3b: said when an army's commander's task ends — the men
+    who followed him keep following, by an ordinary order now."""
+    if not (own(marshal) or {}).get("army"):
+        return ""
+    try:
+        from backend.commands import army_task as _army
+        return _army.ending_words(world, marshal)
+    except Exception as exc:
+        report(exc, "own_order._followers_words")
+        return ""
+
+
 def end(world, marshal, why: str, phase: str = "ended") -> Dict[str, Any]:
-    message = f"{_shown(marshal.name)}'s task on his own is over: {why}."
+    message = f"{_shown(marshal.name)}'s task on his own is over: {why}.{_followers_words(world, marshal)}"
     if own(marshal) is not None:
         marshal.strategic_order = None
         from backend.commands.strategic import clear_order_bound_interrupt
@@ -1756,6 +1792,18 @@ def reading_of_parse(world, parsed: Dict[str, Any]) -> Dict[str, Any]:
     if spec is None:
         out.update(task=task, target=target, why=why)
         return out
+    goal = str(own_part.get("goal") or "")
+    if goal:
+        # Row IC, Session 3b: "take the war goal" — the task SERVES the goal of
+        # that war (it is turned when the goal changes: `army_task`); a goal he
+        # has no road to is refused free, with why.
+        spec["goal"] = goal
+        if task == "take" and str(marshal.location or "") != spec["target"] \
+                and not _road(world, marshal, spec["target"]):
+            out.update(task=task, target=target,
+                       why=(f"{_shown(marshal.name)} has no road to {_shown(spec['target'])}, your war goal "
+                            "— give the task to a man who can reach it, or name another goal"))
+            return out
     price = CHANGE_PRICE if changing else int(PRICE.get(task, 2))
     prop = proposal(world, marshal)
     own_prop = (prop["task"] == task and str(prop["target"]) == str(spec["target"]))
@@ -1774,6 +1822,7 @@ def reading_of_parse(world, parsed: Dict[str, Any]) -> Dict[str, Any]:
         said = _voice.line(marshal.name, nature, "ack", _turn(world))
     senior = None if changing else slighted(world, marshal)
     out.update(ok=True, task=task, target=spec["target"], area=list(spec.get("area") or []),
+               goal=goal,
                risk=risk, spec=spec, price=price, changing=changing, own_proposal=own_prop,
                proposal=prop, tonight=reading, needed=n, needed_words=needed_words(n),
                says=said, objection=objected,
@@ -1847,6 +1896,15 @@ def the_pass(world, executor, game_state) -> List[Dict[str, Any]]:
         return rows
     _the_count_holds(world, rows)
     plan = {r["marshal"]: r for r in tonight(world)}
+    # Row IC, Session 3b: the men who FOLLOW a commander as his army's task
+    # move in this pass too — right after him, before the enemy — on what
+    # "Tonight" said of them (`army_task`: the army moves as one).
+    plan_followers: Dict[str, Dict[str, Any]] = {}
+    try:
+        from backend.commands import army_task as _army
+        plan_followers = {r["marshal"]: r for r in _army.tonight(world, list(plan.values()))}
+    except Exception as exc:
+        report(exc, "own_order.the_pass: the followers' plan")
     taken: Dict[str, str] = {}
     counted: Dict[str, str] = {}
     acted_names: List[str] = []
@@ -1865,6 +1923,12 @@ def the_pass(world, executor, game_state) -> List[Dict[str, Any]]:
             row = _row(man, said, f"{_shown(man.name)} stays put — the night could not be carried out.",
                        "stay")
         rows.append(row)
+        if plan_followers and (own(man) or {}).get("army"):
+            try:
+                rows.extend(_army.followers_night(world, executor, game_state, man, said,
+                                                  plan_followers, fought))
+            except Exception as exc:
+                report(exc, f"own_order.the_pass: the followers of {man.name}")
     return rows
 
 
@@ -2095,6 +2159,11 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
             message = (f"{_shown(man.name)} has taken {_shown(target)}{freed} and holds it now."
                        if not freed else
                        f"{_shown(man.name)} has freed {_shown(target)}{freed}; he holds it now.")
+            if spec.pop("goal", None):
+                # Row IC, Session 3b: the war goal reached — his task is the
+                # hold of it, as any take done; he serves no goal until you
+                # name a new one and give him the task again.
+                message += " Your war goal is won."
             world.log_event({"type": EVENT, "phase": "done", "marshal": man.name,
                              "nation": man.nation, "message": message})
             return {"marshal": man.name, "command": "HOLD", "order_status": "continues",
@@ -2151,7 +2220,19 @@ def payload(world, marshal) -> Optional[Dict[str, Any]]:
         return None
     reading = tonight_for(world, marshal) or {}
     n = needed(marshal, int(spec.get("risk", 0) or 0))
+    # Row IC, Session 3b: the army he commands (and who follows him), the war
+    # goal his task serves — each key rides only when it holds something.
+    extra: Dict[str, Any] = {}
+    if spec.get("army"):
+        try:
+            from backend.commands import army_task as _army
+            extra.update(_army.commander_payload(world, marshal))
+        except Exception as exc:
+            report(exc, "own_order.payload: army_task.commander_payload")
+    if spec.get("goal"):
+        extra["goal"] = True
     return {
+        **extra,
         "task": spec.get("task"), "target": spec.get("target"),
         "area": list(spec.get("area") or []), "words": task_words(spec),
         "state": spec.get("state"), "state_words": STATE_WORDS.get(spec.get("state"), ""),
@@ -2184,6 +2265,18 @@ def tonight_rows(world) -> List[Dict[str, Any]]:
                      + (f". Tomorrow night, as things stand: {ahead}" if ahead else ""),
                      "may_day": bool(reading.get("may_day")), "visible": bool(reading.get("visible")),
                      "step_out": bool(reading.get("step_out"))})
+        # Row IC, Session 3b: the men who follow him as his army's task move
+        # right after him — their lines stand under his.
+        army = str((own(world.get_marshal(reading["marshal"])) or {}).get("army") or "")
+        if army:
+            try:
+                from backend.commands import army_task as _army
+                behind = _army.tonight_rows(world, reading["marshal"])
+                rows[-1]["army"] = army
+                rows[-1]["followers"] = int(len(behind))
+                rows.extend(behind)
+            except Exception as exc:
+                report(exc, "own_order.tonight_rows: army_task.tonight_rows")
     return rows
 
 

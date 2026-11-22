@@ -1,12 +1,56 @@
-# NEXT SESSION PROMPT — Row IC, Session 3b: an army's task (read the first block)
+# NEXT SESSION PROMPT — Row IC, Session 4: the voice, and the other side of the hill (read the first block)
 
-> **READ THIS FIRST — the next session is ROW IC's SESSION 3b** (the section "## Row IC, Session 3b — an army's
-> task: the plan, decided" below — the half of Session 3 its plan's decided fork handed on, row IC3-D1). Then row
-> IC's Session 4, then
-> **Session H, the deploy** (its section is kept below, with the lines that overrule it). The order is
-> `PRE_DEPLOY_PLAN.md` §2 (row IC).
+> **READ THIS FIRST — the next session is ROW IC's SESSION 4** (the section "## Row IC, Session 4 — the voice, and
+> the other side of the hill: the plan, decided" below — the last session of row IC). Then **Session H, the
+> deploy** (its section is kept below, with the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2
+> (row IC).
 >
-> Overwritten each time a session hands off. Current hand-over: **November 21, 2026 — ROW IC, SESSION 3: ON HIS
+> Overwritten each time a session hands off. Current hand-over: **November 22, 2026 — ROW IC, SESSION 3b: AN
+> ARMY'S TASK ✅ BUILT, COMMITTED AND PUSHED at his word ("code commit and push").** His words: "Session 3b (its
+> plan is at the head of docs/NEXT_SESSION_PROMPT.md), code commit and push based opn next session writeups" —
+> the plan approved in Plan Mode. Built (`SYSTEMS_REFERENCE.md` §234; `BUG_FIXES.md` §"Row IC, Session 3b"; the
+> spec's §15 landing record and D38; `backend/commands/army_task.py` — ONE module: which lines are a task
+> (`read`), who commands (`commander`), each man's own line (`build`), the list's rows and its one offer (`rows`,
+> `offer`, `dress`), the hooks of the fan-out (`lead_stands`, `after`, `before`, `after_all`), the derived test
+> `following`, the followers' night (`follower_reading`, `followers_night` inside `own_order.the_pass`), the
+> tidying `settle`; `war_goals.task_for` / `serving` / `release`; `tests/test_ic12_an_armys_task.py`, the driven
+> `TestRowIC12AnArmysTask`; the measure `tools/_ic3b_measure.py`): **IC-12, both halves** — an army's task as ONE
+> list (its commander on his own, 2 actions; every other man FOLLOWING him, 1 action, taking none of the places
+> for men on their own), the army moving as one in the night's pass before the enemy, "take the war goal", a
+> changed goal as a list. Five lines of the plan changed at the build, each one line to reverse (D38): follow
+> not support; low authority changes nothing; the army moves as one; "attack" stays one battle; followers keep
+> following when the task ends. IC3-D1 is closed. The measure met all four rules (R-TRUE 0 differences in 1,390
+> nights; R-TOGETHER no follower battle, the commander named on all 1,064 shared nights; the band 26 / 27 / 28
+> with no task and 28 / 25 / 28 with one); the blind reading 9 of 9 three times (sure on 3, then 6, then 9);
+> the review's ten rows fixed, seven not upheld. Open: five rows, all at Session H's head (WS-10, WS-R, PW3-D1,
+> IC2-N1, IC3-N1).
+> **Its traps (fresh):** (1) **a plan's line can contradict the code** — Session 3b's "below authority 50 the
+> order is not heard" was the Staff's rule, never a named army's: read each rule of the plan against the code in
+> Plan Mode and say what you found; (2) a bold follower may OBJECT to following and stops the list behind his
+> question — test the list with men who do not, or give with `members=[…]`; (3) the fan-out's `continue` roads
+> (a line unread, refused by the state probe, an error) never reach the hook that runs AFTER a line — a rule
+> about "the rest" belongs before each of the rest (`army_task.lead_stands`); (4) a mark on a task that names a
+> thing (an army, a court) outlives the thing unless every road that ends the thing takes it off (`settle`,
+> `war_goals._let_go`); (5) **the order card is itself a registered modal** — "is a window open?" asked while the
+> card is up is always yes: ask `dialog_manager.is_any_modal_open_but("order_card")` (a review fix was wrong for
+> exactly this, and only the driven walk caught it — re-run the driven class after every client fix); (6) words
+> added to a list row are pressed again at his setup: two levers of the reading added two lines and the card
+> stood 8 px from the screen's foot — a card on the screen's edge has no spare line; (7) the directive card
+> measures a row's words itself — a width a few pixels off shows as a blank line or a card past the screen (it
+> now asks the scroll bar); (8) `tests/test_parse_preview.py::TestParity` compares a fixed QUARTER of the golden
+> corpus by sorted id — new golden rows move the quarter and can surface an old mismatch; and every new golden
+> row is run through the metamorphic variants (a reason tail, the name last) — the ledger stands at 0, so a new
+> failure is fixed, not listed; (9) `TestAMutationIsNeverMaskedByStaleBytecode` fails wherever
+> `PYTHONDONTWRITEBYTECODE` is set — the shell's, not the tree's; (10) CLAUDE.md stands 6 bytes under its
+> 62,000-byte cap: every added word there takes one out; (11) the words census — list every gap in one pass
+> (what `_census(_all_prose())` flags, and what `SET_BY_YOU` names that is gone) before patching; (12) GNU tar
+> reads `C:` as a host — `tar --force-local -xf`, from inside the folder; a copy of HEAD beside the tree
+> (`git archive`) is the quick way to ask "did this pass before my change?"; (13) the measure: `tools/
+> _ic3b_measure.py --seeds 30 --turns 20` (≈ 5 min) then `DD_B_STAGE=1 … --band --jobs 4` (≈ 15 min); re-take
+> it after any change to the server's logic, the review's fixes too; (14) the full run takes 17 to 20 minutes
+> at ten workers — run the suite without the engine lanes once BEFORE the commit (it found five things here).
+>
+> The hand-over before it: **November 21, 2026 — ROW IC, SESSION 3: ON HIS
 > OWN ✅ BUILT, COMMITTED AND PUSHED at his word ("commit and push when done").** His words: "make this engaging
 > make the typing really fun for this on make sure ux is good etc", with his direction of November 20 at the plan's
 > head (generals set on their own "really do stuff", work together, "help their friends"; orders are "just
@@ -310,7 +354,57 @@ say what is built and what is not.
 
 ---
 
-## Row IC, Session 3b — an army's task: the plan, decided (November 21, 2026)
+## Row IC, Session 4 — the voice, and the other side of the hill: the plan, decided (November 22, 2026)
+
+**What it is.** The last session of row IC (the spec's §10, §11 and §13; §15's table "Session 4": IC-13, IC-14,
+IC-15). Sessions 1–3b built the player's side — the desk, directives, buttons and typed tasks, the task to prove
+himself, a man on his own, an army's task. This builds how the marshals SOUND, how the enemy PLANS, and what the
+player LEARNS of it; then it closes the row. Open in Plan Mode, and **read §10, §11 and §13 against the code
+first** (Session 3b's plan carried a rule the code contradicted): say in the plan what you found.
+
+1. **IC-13 — the voice** (§11): the new lines, "said lately" (no line twice in a man's last three), the portrait,
+   `docs/MARSHAL_VOICE_BIBLE.md`, rule 11's wording on every new line, the lesson's two cards, the two first-open
+   lines. The lines are AUTHORED, never generated (golden rule 6); a line states no number the screen does not.
+   Start from `backend/game_logic/own_voice.py` (Session 3's answers) and `first_open.py`.
+2. **IC-14 — war plans** (§10): each court at war draws a plan; an enemy marshal who follows orders to the letter
+   is under exact orders with ONE master (`commands/if_thens.py` — the same if-thens the player's literal men
+   take, golden rule 5); every enemy if-then reads its OWN nation's sight (a fog census pin for each). The
+   enemy's per-man mood (§10.6) changes the old game: it is built as an ARM and measured.
+3. **IC-15 — what you learn**: natures public; the spy's report; captured orders; the hunt, as an arm; the closing
+   measure of the row (every rule of §13 on the final tree) and its readings; the records.
+
+**The measure** (rules written before any data): R-INERT — with the war plans' seam down and nobody on his own
+the France band reads 26 / 27 / 28; with the war plans up, the band on the three commanded seeds stays inside
+23–28 and the ambient measures of `PLAYTESTING.md` hold; the mood arm and the hunt arm are each read on the same
+seeds and REPORTED; every rule of §13 is read on the final tree and the report says which, if any, was not met.
+
+**The reading** (three fresh readers, the key written first, at his setup — and a NEW panel after every change):
+"Here are two lines with no names — which marshal said which, and what told you?" · "What do you know of the
+enemy's plan, and how did you come to know it?" · "The report says Mack follows orders to the letter. What does
+that tell you he will do?"
+
+**Forks, decided now** (each one line to reverse): *the enemy's per-man mood* → ships OFF, an arm measured and
+reported, adopted only with the user's word (the spec's §19: "it changes the old game"); *the hunt* → the same;
+*a voice line and a screen disagree* → the screen's number stands and the line is rewritten; *an enemy if-then
+would read what its nation cannot see* → it is not written (the fog pin fails the build); *the session cannot
+hold all three slices at the standard* → IC-13 and IC-14 land whole, and IC-15's spy's report, captured orders
+and hunt go to a Session 4b with the closing measure — nothing half-built, said plainly.
+
+**Done when:** no line repeats inside a man's last three and three readers tell two marshals apart from their
+lines alone; each court at war draws a plan and a planned literal marshal has one master; nothing is shown that
+was not learned; every rule of §13 is met on the final tree or the report says which was not;
+`tools/defect_census.py --open` lists no IC row but IC2-N1 and IC3-N1 (Session H's). STATUS line: *"ROW IC,
+SESSION 4 — THE VOICE AND THE OTHER SIDE OF THE HILL — ROW IC COMPLETE"*. Then Session H, the deploy.
+
+**The way of working** (unchanged, and it held again): Plan Mode first; tests beside the code; press it in the
+real client at his setup (Interface Scale 1.8 on 5120 × 1377) and the compact view (2.0 on 1600 × 900) BEFORE
+any reader; the measure with its rules written first; the blind reading with its key written first; ONE review
+on a frozen copy outside the repository, every finding checked against the code; the suite without the engine
+lanes once before the commit; the records; one commit through the hook.
+
+---
+
+## Row IC, Session 3b — an army's task: the plan, decided (November 21, 2026) — ✅ BUILT November 22, 2026 (five of its lines changed at the build — `SYSTEMS_REFERENCE.md` §234.7)
 
 **What it is.** The half of Session 3 its plan's fork handed on whole (row IC3-D1; the spec's §9.1 and §15 table
 "Session 3b"). Session 3 built the man on his own; this builds the ARMY on its own and the war goal's task, on the

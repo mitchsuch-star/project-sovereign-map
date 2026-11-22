@@ -192,6 +192,36 @@ OPEN_ENDED = (
     "until I (tell|order) you otherwise",
 )
 
+# ── a task for an ARMY, and the war goal ────────────────────────────────────
+# Row IC, Session 3b (§9, §9.1). A named army given a TASK — "Army of Italy,
+# take Swabia" — is its commander on his own and the rest following him
+# (`backend/commands/army_task.py`). The words that make an army's line a task:
+# a take, a chase, or a hold WITH A PLACE NAMED. "attack" is not among them
+# (an army's attack is one battle today, its first man's); `marked` verbs are a
+# task only when the line says so (a mark of judgement, a how-bold word).
+ARMY_TASK = {
+    "take": ("take", "capture", "seize", "occupy"),
+    "chase": ("pursue", "chase", "hunt down", "hunt", "harry", "go after", "shadow", "destroy"),
+    "hold": ("hold", "guard", "protect", "keep"),
+    "marked": ("attack", "storm", "march to", "march on", "advance on"),
+}
+# What an army is told of ITSELF, and how its commander hears it.
+ARMY_MARKS = (
+    ("on (its|their) own", "on your own"),
+    ("as (it sees|they see) fit", "as you see fit"),
+    ("at (its|their) discretion", "at your discretion"),
+    ("use (its|their) (judgement|judgment)", "use your judgement"),
+    ("in (its|their) own way", "in your own way"),
+)
+# "…, hold Milan by exact orders": the same words as a plain order to each corps.
+ARMY_EXACT = ("[each] by exact (orders|order)", "as exact (orders|order)", "to the letter")
+# "Ney, take the war goal": the task that follows the goal named for the war
+# (`backend/ai/own_words.py`, `war_goals.task_for`).
+GOAL_VERBS = ("take", "capture", "seize", "march (on|to)", "go for", "make for", "strike at",
+              "aim (at|for)", "win", "reach", "pursue", "chase", "hunt down", "go after",
+              "destroy", "serve")
+GOAL_OBJECT = "(the|our|my|your) war goal"
+
 # ── the sentences the Help page and the first-open line teach ───────────────
 # Each is executed through the read-back by the census on the 1805 board.
 EXAMPLES = (

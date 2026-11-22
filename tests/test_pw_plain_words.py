@@ -1574,4 +1574,5 @@ class TestTheReportIsTheEnemysMoves:
         assert names[at - 1] == "Ending a war" and names[at + 1] == "Expedition"
         # 61 -> 64 (row IC, directives, November 19, 2026): "Named army",
         # "Orders to several corps" and "War goal" joined the glossary.
-        assert len(names) == 64
+        # 64 -> 65 (row IC, Session 3b, November 22, 2026): "An army's task".
+        assert len(names) == 65

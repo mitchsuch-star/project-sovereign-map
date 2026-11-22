@@ -203,6 +203,120 @@ def payload(world, wars: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
+# ── the task that follows it (row IC, Session 3b) ───────────────────────────
+#
+# "Ney, take the war goal" sets him ON HIS OWN toward the goal — a place (he
+# takes it) or an enemy army France sees (he chases it). His task carries the
+# court the goal was named against (`StrategicOrder.own["goal"]`); a man SERVES
+# a war's goal while it does. When the goal changes he is turned by a list
+# (`backend/commands/army_task.py`), 1 action; left unticked, or when the goal
+# is cleared, he keeps his target and serves it no longer.
+
+def goal_in_war(world, court: str) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """``(court, goal)`` for the goal of the war `court` fights in — None when
+    that war has none."""
+    held = store(world)
+    for other in _same_war(world, court):
+        goal = held.get(other)
+        if isinstance(goal, dict) and goal.get("target"):
+            return other, goal
+    return None
+
+
+def serving(world, court: str = "") -> List[Any]:
+    """The men on their own who serve a war's goal — the war `court` fights in,
+    or any war's when no court is named. Highest rank first."""
+    try:
+        from backend.game_logic import own_order
+        men = own_order.men(world)
+    except Exception as exc:
+        report(exc, "war_goals.serving: own_order.men")
+        return []
+    if not men:
+        return []
+    wanted = set(_same_war(world, court)) if court else None
+    out = []
+    for man in men:
+        served = str((own_order.own(man) or {}).get("goal") or "")
+        if served and (wanted is None or served in wanted):
+            out.append(man)
+    return out
+
+
+def release(world, keep: Optional[List[str]] = None, court: str = "") -> List[str]:
+    """The men serving the goal of `court`'s war (any war's, with no court)
+    who are not in `keep` serve it no longer: each keeps the target he has, as
+    a task of his own. Returns what to say of it ([] when nobody was released)."""
+    try:
+        from backend.game_logic import own_order
+    except Exception as exc:
+        report(exc, "war_goals.release: own_order")
+        return []
+    kept = set(keep or [])
+    said: List[str] = []
+    for man in serving(world, court):
+        if man.name in kept:
+            continue
+        spec = own_order.own(man) or {}
+        spec.pop("goal", None)
+        said.append(f"{humanize_entity_name(man.name)} keeps to his task ({own_order.task_words(spec)}) "
+                    "and serves the war goal no longer.")
+    return said
+
+
+def task_for(world, marshal) -> Dict[str, Any]:
+    """What "take the war goal" means for this man today — ``{"task", "target",
+    "court", "words", "refusal", "short", "offers"}``: `words` is the task as
+    the line's own readers take it ("take Vienna", "pursue Mack"); `refusal`
+    the plain sentence when there is nothing to take (no goal is set; it is
+    taken already; its army is out of France's sight). With several wars' goals
+    open, the one nearest him. PURE."""
+    out = {"task": "", "target": "", "court": "", "words": "", "refusal": "", "short": "", "offers": []}
+    if not a_war_has_a_goal():
+        out["refusal"] = "War goals are not kept in this game."
+        out["short"] = "War goals are not kept in this game"
+        return out
+    held = store(world)
+    live = [(court, goal) for court, goal in held.items()
+            if isinstance(goal, dict) and goal.get("target") and status(world, court, goal) == "open"]
+    if not live:
+        taken = [goal for court, goal in held.items()
+                 if isinstance(goal, dict) and status(world, court, goal) == "taken"]
+        if taken:
+            out["refusal"] = (f"Your war goal, {target_shown(world, taken[0])}, is won already, Sire — "
+                              "name a new one (“the war goal is …”), then give the task.")
+            out["short"] = "The war goal is won already — name a new one first"
+        else:
+            out["refusal"] = ("No war goal is set, Sire — name one first (“the war goal is Vienna”, or "
+                              "click an enemy province and press “Make this the war goal”), then give the task.")
+            out["short"] = "No war goal is set — name one first: ‘the war goal is Vienna’"
+        return out
+
+    def _far(row) -> Tuple[int, str]:
+        _court_, goal = row
+        place = _ring(world, goal) if str(goal.get("kind")) == "army" else str(goal.get("target") or "")
+        try:
+            d = int(world.get_distance(str(getattr(marshal, "location", "") or ""), place)) if place else 99
+        except Exception as exc:
+            report(exc, "war_goals.task_for: world.get_distance")
+            d = 99
+        return d, str(goal.get("target") or "")
+
+    court, goal = min(live, key=_far) if marshal is not None else live[0]
+    target = str(goal.get("target") or "")
+    if str(goal.get("kind")) == "army":
+        if not _ring(world, goal):
+            shown = humanize_entity_name(target)
+            out["refusal"] = (f"France does not see {shown}, Sire — a chase needs an army in sight. Find "
+                              "him first, or name a place as the war goal.")
+            out["short"] = f"France does not see {shown} — a chase needs an army in sight"
+            return out
+        out.update(task="pursue", target=target, court=court, words=f"pursue {humanize_entity_name(target)}")
+        return out
+    out.update(task="take", target=target, court=court, words=f"take {humanize_entity_name(target)}")
+    return out
+
+
 # ── who can march on it ─────────────────────────────────────────────────────
 
 # Rule 8 (the review): the desk asks this on EVERY reply while a goal is set,
@@ -500,4 +614,28 @@ def prune(world) -> List[str]:
             del held[court]
             said.append(f"The war goal {target_shown(world, goal)} is dropped — "
                         f"{_war_named(world, court)} no longer reaches it.")
+            said.extend(_let_go(world, court))
+    return said
+
+
+def _let_go(world, court: str) -> List[str]:
+    """The men whose task served the goal named against `court`, when that goal
+    is dropped by the turn's own pruning (the war is over; nothing is left to
+    aim at): each keeps his task as his own. The review (row IC, Session 3b,
+    IC3B-V8): the mark outlived the goal — a goal named against that court a
+    year later listed him as serving it, and his morning said "Your war goal
+    is won" of a goal that was gone. Matched on the court itself: the war is
+    over, so `_same_war` can no longer say who fought in it."""
+    said: List[str] = []
+    try:
+        from backend.game_logic import own_order
+        for man in own_order.men(world):
+            spec = own_order.own(man) or {}
+            if str(spec.get("goal") or "") != str(court):
+                continue
+            spec.pop("goal", None)
+            said.append(f"{humanize_entity_name(man.name)} keeps to his task "
+                        f"({own_order.task_words(spec)}) — it serves no war goal now.")
+    except Exception as exc:
+        report(exc, "war_goals._let_go")
     return said

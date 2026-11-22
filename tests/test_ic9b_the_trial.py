@@ -1662,7 +1662,7 @@ SET_BY_YOU = {
      'On his own ({}) — asks for your word: {}.'):
         "the morning's status of a man on his own (§6.9)",
     ('backend/game_logic/dispatch.py',
-     'On his own: {}.'):
+     'On his own: {}.{}'):
         "the morning's status of a man on his own (§6.9)",
     ('backend/game_logic/jealousy.py',
      'He cannot be set on his own now: {}.'):
@@ -1699,9 +1699,6 @@ SET_BY_YOU = {
         'the module of a man on his own (§6)',
     ('backend/game_logic/own_order.py',
      '{} is not on his own.'):
-        'the module of a man on his own (§6)',
-    ('backend/game_logic/own_order.py',
-     "{}'s task on his own is over: {}."):
         'the module of a man on his own (§6)',
     ('backend/game_logic/own_order.py',
      "{}'s trust in you is {} — he needs {} to be trusted on his own"):
@@ -1757,6 +1754,77 @@ SET_BY_YOU = {
     ('godot-client/project-sovereign/scripts/turn_end_list.gd',
      'On his own. Press to go to him — to order it yourself, or to stand him down.'):
         "the End Turn list's Tonight rows (§5)",
+    # Row IC, Session 3b (November 21, 2026): an army's task — its COMMANDER is a man
+    # you set on his own; each string read and added by name, as above.
+    ('backend/commands/army_task.py',
+     'No man of the {} can be set on his own, Sire — {}. For the same words as a plain order to every corps, say “{}, {} by exact orders”.'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     "No man of the {} can be set on his own — a task needs a bold or a careful marshal whose trust in you is 30 or more. Each man's reason is below."):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'on his own: {} — not included'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'on his own: {} — he keeps that task as his own, and commands the {} no longer'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'No man of the {} can be set on his own'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'on his own: {}'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     '{} commands — {}; he is set on his own ({})'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'cannot be set on his own'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'The same words as an ordinary order for every corps — nobody is set on his own.'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'on his own:'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'is on his own already'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'the highest-ranked of its men who can be set on his own'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'would command — but no place is free for another man on his own'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/army_task.py',
+     'He takes your one place for a man on his own.'):
+        "an army's task: its commander is a man you set on his own (§9.1)",
+    ('backend/commands/group_orders.py',
+     '{} commands, on his own'):
+        "the reply to an army's task given (§9.1)",
+    ('backend/game_logic/armies.py',
+     '{} commands {}. When you give the army a task (“{}, take …”), he is the one set on his own, and the others follow him.'):
+        "naming an army's commander — the man set on his own by its task (§9.1)",
+    ('backend/game_logic/armies.py',
+     '{} no longer commands {} — when it is given a task, the highest-ranked of its men who can be set on his own commands.'):
+        "naming an army's commander — the man set on his own by its task (§9.1)",
+    ('backend/game_logic/armies.py',
+     'Nobody is named to command {} — when it is given a task, the highest-ranked of its men who can be set on his own commands.'):
+        "naming an army's commander — the man set on his own by its task (§9.1)",
+    ('backend/game_logic/own_order.py',
+     "{}'s task on his own is over: {}.{}"):
+        'the module of a man on his own (§6)',
+    ('godot-client/project-sovereign/scripts/marshal_chip_row.gd',
+     'The %s is on its own: %s. %s commands, on his own; %s.'):
+        "the army's chip, of its commander (§9.1)",
+    ('godot-client/project-sovereign/scripts/order_confirm_card.gd',
+     'goes on his own; nobody follows him yet.'):
+        "the list of an army's task, of its commander (§9.1)",
+    ('godot-client/project-sovereign/scripts/order_confirm_card.gd',
+     'on his own,'):
+        "the list of an army's task, of its commander (§9.1)",
+    ('godot-client/project-sovereign/scripts/selection_card.gd',
+     ', take …”). Its commander is set on his own and the others follow him.'):
+        'his card (§8.1, §8.6)',
 }
 
 # (4) ONE-WORD labels of the vassals' scale (read since the review widened the

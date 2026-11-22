@@ -471,7 +471,13 @@ class TestTheWingTheRailTheCardTheGrid:
     def test_the_order_card_is_capped_and_its_buttons_stay_whole(self):
         refit = _func(CARD, "refit")
         assert "var band := Utils.hud_band(view)" in refit
-        assert "minf(CARD_WIDTH, (band.y - band.x) * BAND_SHARE)" in refit
+        # Row IC, Session 3b (November 21, 2026): the card's authored width is 560 —
+        # and the wider one only for the list of an army's task or a changed war goal
+        # (`_authored_width`); the cap by the HUD band's share is the same for both.
+        assert "minf(_authored_width(), (band.y - band.x) * BAND_SHARE)" in refit
+        authored = _func(CARD, "_authored_width")
+        assert "return CARD_WIDTH_TASK" in authored and authored.rstrip().endswith("return CARD_WIDTH")
+        assert re.search(r"(?m)^const CARD_WIDTH := 560\.0$", CARD)
         assert "_fit_buttons(w)" in refit
         assert re.search(r"(?m)^const BAND_SHARE := 0\.9$", CARD)
         fit = _func(CARD, "_fit_buttons")

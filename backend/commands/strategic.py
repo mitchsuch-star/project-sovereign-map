@@ -1681,6 +1681,11 @@ def aggressive_interrupt_applies(world, marshal, order=_STANDING_ORDER) -> bool:
     # desk pass his standing order itself).
     if getattr(standing, "own", None) is not None:
         return False
+    # Row IC, Session 3b: nor the FOLLOW order of a man in an army's task —
+    # the order in question, read off him or handed in.
+    from backend.commands import army_task as _army_task
+    if _army_task.following(world, marshal, standing) is not None:
+        return False
     from backend.game_logic.withdrawal import is_road_home_order
     return not is_road_home_order(standing)
 
@@ -2542,6 +2547,12 @@ class StrategicOrderProcessor:
             # sally, no cannon-fire redirect, no stalemate question (D30). His
             # if-thens were read above, on a night he waited.
             if getattr(order, "own", None) is not None:
+                continue
+            # Row IC, Session 3b: nor the FOLLOW order of a man in an army's
+            # task — he moved in that same pass, right after his commander and
+            # before the enemy (`army_task.followers_night`).
+            from backend.commands import army_task as _army_task
+            if _army_task.following(world, marshal) is not None:
                 continue
 
             # CC-X9: a pursuit whose quarry is off the board ends NOW. The
@@ -5578,6 +5589,12 @@ class StrategicOrderProcessor:
         # guards every other reader of the gate).
         from backend.game_logic import own_order as _own
         if _own.on_his_own(marshal):
+            return None
+        # Row IC, Session 3b: nor a man who FOLLOWS the commander of an army's
+        # task — the army moves as one; he reaches the commander's battles by
+        # the arrival roll, and leaves for no battle elsewhere.
+        from backend.commands import army_task as _army_task
+        if _army_task.following(world, marshal) is not None:
             return None
 
         # FA-D6 (slice 17, Phase 2): the treaty's road home is literal by

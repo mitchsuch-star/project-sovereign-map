@@ -1829,6 +1829,52 @@ def _own_policy_lines(wanted: int, at_start: int = 0) -> list:
         return []
 
 
+ARMY_TASK_NAME = "Army of the Rhine"
+ARMY_TASK_MEN = ("Ney", "Davout", "Soult")
+
+
+def _army_task_next(sent: list) -> str:
+    """Row IC, Session 3b (`--army-task`, the measure's arm): the next typed
+    line of an army's task — form the Army of the Rhine (Ney, Davout, Soult)
+    once; give it its ready task (`army_task.proposal`) whenever it has none;
+    give the same task again while a man of it in the field does not follow
+    yet (the list adds him). "" when there is nothing to send, or the line was
+    sent this turn already. In-process only (reads the world the TestClient
+    serves)."""
+    try:
+        import backend.main as _bm
+        from backend.commands import army_task as _at
+        from backend.game_logic import armies as _ar
+        from backend.game_logic import own_order as _own
+        world = _bm.world
+        if _ar.find(world, ARMY_TASK_NAME) is None:
+            who = [n for n in ARMY_TASK_MEN
+                   if world.get_marshal(n) is not None and int(world.get_marshal(n).strength or 0) > 0
+                   and not getattr(world.get_marshal(n), "captured_by", "")]
+            if len(who) < 2:
+                return ""
+            line = f"form the {ARMY_TASK_NAME} with {', '.join(who[:-1])} and {who[-1]}"
+            return "" if line in sent else line
+        held = _at.task_of(world, ARMY_TASK_NAME)
+        have = int(getattr(world, "actions_remaining", 0) or 0)
+        if not held:
+            if have < 2 or _own.count(world) >= _own.allowed(world):
+                return ""
+            line = str(_at.proposal(world, ARMY_TASK_NAME).get("line") or "")
+            return "" if (not line or line in sent) else line
+        lead = world.get_marshal(held["lead"])
+        waiting = [n for n in _ar.field_members(world, ARMY_TASK_NAME)
+                   if n != held["lead"] and not _own.on_his_own(world.get_marshal(n))
+                   and _at.following(world, world.get_marshal(n)) is not lead]
+        if not waiting or have < 1:
+            return ""
+        line = f"{ARMY_TASK_NAME}, {held['words']}"
+        return "" if line in sent else line
+    except Exception as exc:
+        print(f"[driver] --army-task: {exc}")
+        return ""
+
+
 class Transport:
     """POST/GET against either an in-process TestClient or a live server.
 
@@ -5073,6 +5119,20 @@ def run(args):
                 digest.command(line, response)
                 drain(transport, digest, answerer, response, args.strict)
 
+        # Row IC, Session 3b (`--army-task`, the measure's arm; off = inert):
+        # an army's task — the Army of the Rhine formed once, given its ready
+        # task whenever it has none, and again while a man does not follow yet.
+        if getattr(args, "army_task", False) and not getattr(args, "http", None):
+            _army_sent: list = []
+            for _try in range(3):
+                line = _army_task_next(_army_sent)
+                if not line:
+                    break
+                _army_sent.append(line)
+                response = transport.post("/command", {"command": line})
+                digest.command(line, response)
+                drain(transport, digest, answerer, response, args.strict)
+
         # SF-AGD-1: the turn's lines without the implicit end turn, read
         # ahead so the dialogue a line opens is HELD while the next line is
         # the script's own click on it.
@@ -6297,6 +6357,10 @@ def main():
                          "proposals), as many as the count allows; 0 = off")
     ap.add_argument("--own-at-start", dest="own_at_start", type=int, default=0,
                     help="row IC, Session 3: the measure's arm — the count at the start (1 unless set)")
+    ap.add_argument("--army-task", dest="army_task", action="store_true",
+                    help="row IC, Session 3b: the measure's arm — form the Army of the Rhine (Ney, "
+                         "Davout, Soult) and keep it on its ready task (its commander on his own, "
+                         "the rest following him); off = inert")
     ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate", "buy"],
                     help="rotate cycles the enabled arms per petition kind (opt-in); AU-3a: buy "
                          "takes the arm priced in authority where it is open")

@@ -1,5 +1,13 @@
 # On His Own — the Emperor's desk, his marshals' judgement, and exact orders (row IC)
 
+> **Status: SESSION 3b BUILT — November 22, 2026 (IC-12: an army's task, and "take the war goal").** The
+> user's words for the session: *"Session 3b (its plan is at the head of docs/NEXT_SESSION_PROMPT.md), code
+> commit and push based opn next session writeups"* — the plan approved in Plan Mode. A named army can be
+> given a task: ONE list, its commander set on his own and every other man following him; the army moves as
+> one, before the enemy; a marshal or an army can be told to take the war goal and is turned, by a list, when
+> the goal changes. §15's landing record says what was built and how it differs (D38); the rules
+> `SYSTEMS_REFERENCE.md` §234. Next: Session 4 (the voice, and the other side of the hill).
+>
 > **Status: SESSION 3 BUILT — November 21, 2026 ("on his own": IC-10 and IC-11).** The user's words for the
 > session: *"commit and push when done, make this engaging make the typing really fun for this on make sure ux
 > is good etc"* — with his direction of Session 2b at its head (*"they really do stuff and iunteract withe
@@ -1025,6 +1033,10 @@ wide array of things; every simple order keeps its button; asking stays free; di
 - **One place a war aims at** ("Vienna"). Free to name. It shows on THE WAR line and as a gilt ring on the map.
   *(Built: directives, §230.)*
 - A task **"take the war goal"** follows it. Changing the goal costs 1 action for each man serving it.
+  *(Built: Session 3b, §234.4 — "Ney, take the war goal" sets him on his own toward the goal (a place: he
+  takes it; an army France sees: he chases it); a changed goal is ONE list that turns the men serving it, 1
+  action each, said before Give — a man left unticked keeps his old target and serves the goal no longer;
+  a goal reached becomes the hold of it.)*
 - **Two marshals as one force** need no new rule: one leads, and the other is set to Support him. A higher man
   supporting a lower one takes it ill, as today, and the card says so before you give the order.
 
@@ -1052,8 +1064,27 @@ as two marshals as one force, writ large; no new rule:
   order for each — today's order to several is one order, the same for each man, as
   built. A directive never silently overrides a man on his own — his row says "on his own — not included", with
   a press to include him.
-- The Staff's orders to several go unheard below authority 50 (`group_orders.py`); an army's task obeys the same
-  rule and says so before Give.
+- ~~The Staff's orders to several go unheard below authority 50 (`group_orders.py`); an army's task obeys the
+  same rule and says so before Give.~~ **Corrected at the build (Session 3b, D38):** the rule that goes unheard
+  below authority 50 is the Staff's SINGLE order — one price for the whole column, the collective words
+  only ("everyone, march …"). An order to a NAMED army never rides it (§230.1): each man goes on the Emperor's
+  own word at his own price, and an army's task does the same. So authority changes nothing here, and no new
+  penalty for low authority was invented (D31: authority never decides who may be on his own).
+
+**As built (Session 3b — `SYSTEMS_REFERENCE.md` §234; three things the build settled, each one line to
+reverse, D38):**
+- **The others are set to FOLLOW him**, not to the plain Support: a plain support order lapses of itself the
+  first night the friend is out of danger, so an army on the road would have lost its supporters the first
+  quiet night. Follow is the support that stays (the same price, 1 action).
+- **The army moves as one, before the enemy.** A follower is not moved by the standing-order pass (it runs
+  after the enemy has moved, and a bold man's standing order is dropped for any battle within two provinces —
+  his own commander's too): he moves in the commander's pass, right after him; "Tonight" is shown for him and
+  is what he does, or he stays put and says why; he starts no attack of his own and leaves for no battle
+  elsewhere. He reaches his commander's battles by the arrival roll, which favours a man under a support order.
+- **Which lines are a task:** a take, a chase, a hold with a place named. "Army of Italy, hold" (no place),
+  fortify, drill, march, fall back and support stay the same order for each corps; "attack" stays one battle;
+  "by exact orders" asks for the plain order to each. *(This changed one line a player could already type:
+  "Army of Italy, take Swabia" used to send its first man to attack at once.)*
 
 ---
 
@@ -1689,17 +1720,41 @@ doubt on the trust tile and nine other confusions built out between them (IC3-H3
 readers by lane, 23 rows fixed — its P1, a hand order that ended his task in silence (IC3-V1), now leaves the
 task standing as §6.3 says.
 
-### Session 3b — An army's task and "take the war goal" (IC-12 — handed on by the decided fork)
+### Session 3b — An army's task and "take the war goal" (IC-12 — handed on by the decided fork) — ✅ BUILT November 22, 2026
 
 | Slice | What | Done when | Tests |
 |---|---|---|---|
 | **IC-12** | An army's task (§9.1): "Army of Italy, take Swabia" → ONE list (the directive card): its commander on his own (the named commander, else the senior who qualifies; the count full → says so, offers to recall), every other man set to Support him (1 action each, not counted, each row his part), a man already on his own "not included"; below authority 50 the order is not heard and the list says so before Give. "Ney, take the war goal" — on his own, toward the goal; changing the goal turns every man who serves it, 1 action each | An army's task is one list, its commander on his own and the rest supporting; the war goal's task follows a changed goal at its price | `tests/test_ic12_an_armys_task.py`; a driven arm on the directive card |
 
-STATUS line: *"ROW IC, SESSION 3b — AN ARMY'S TASK"*; the ledger row `BUG_FIXES.md` IC3-D1. *Why it was handed
-on:* the approved plan's fork — "if IC-12 cannot be built at the standard, IC-10 and IC-11 land whole and IC-12
-goes to a Session 3b — nothing half-built"; the session spent its standard on the pass, the reading, the line,
-two rounds of the reading, the measure and the review. Nothing of IC-12 is in the game: no army's task is read,
-no war-goal task is offered.
+STATUS line: *"ROW IC, SESSION 3b — AN ARMY'S TASK"*; the ledger row `BUG_FIXES.md` IC3-D1 (closed). *Why it
+was handed on:* the approved plan's fork — "if IC-12 cannot be built at the standard, IC-10 and IC-11 land
+whole and IC-12 goes to a Session 3b — nothing half-built".
+
+**Landing record — Session 3b (November 21–22, 2026; `SYSTEMS_REFERENCE.md` §234; `BUG_FIXES.md` §"Row IC,
+Session 3b"; `backend/commands/army_task.py`; `tests/test_ic12_an_armys_task.py`, the driven
+`TestRowIC12AnArmysTask`).** Both halves landed — the plan's fork ("the army's task lands whole and the war
+goal goes to its own session") was not needed. **Built:** an army's task as ONE list on the directive card
+(its commander's own line "take Swabia on your own", 2 actions; every other man "follow <him>", 1 action,
+taking none of the places for men on their own; who is left out and why; the count full → the stand-down
+offered and the list drawn again in place; nobody able to command → the same words as plain orders); who
+commands (named in the line, at its head already, named for the army, else the highest-ranked who may be
+set); the army moving as one in the night's pass, before the enemy; "take the war goal", a changed goal as
+a list, a goal reached, cleared or pruned; the read-back, the chip, the desk, the cards, "Give it a task…",
+the Help. **How it differs from the table above, each one line to reverse (D38):** (1) the others FOLLOW
+him (the support that stays) where the table says "Support" — a plain support lapses the first quiet night;
+(2) "below authority 50 the order is not heard" is corrected — that rule is the Staff's single order to every
+corps and a named army never uses it (§9.1); (3) the army moves as one before the enemy: followers start no
+attack, leave for no battle elsewhere, and "Tonight" is shown for each; (4) which typed lines are a task —
+take, chase, hold with a place ("attack" stays one battle), so "Army of X, take Swabia" now opens the list
+where it sent its first man to attack at once; (5) followers keep following by an ordinary order when the
+task ends; (6) a follower who cannot reach his commander halts and says why each night, and asks nothing;
+(7) the Emperor may follow where the player put him in an army, and never commands one. **The measure**
+(rules written before any data; taken again after the review's fixes): All four rules met. R-TRUE: "Tonight" equalled every act — 0 differences in 1,390 nights read (30 seeds × 20 turns, the commander's and each follower's). R-TOGETHER: no follower opened a battle of his own; on all 1,064 nights the army shared, a follower's line named his commander (the bar: half). R-INERT: with no army's task the France band reads 26 / 27 / 28, the standing reading. R-BAND: with an army's task 28 / 25 / 28 (the bar 23–28). Reported: 533 nights with a task; the commander struck, attacked or took on 63, looked on 302; followers stayed with him on 618 nights, joined his battle on 107, marched after him on 49, stood by on 14, halted on 0.
+**The reading:** three rounds of three fresh readers, 9 of 9 right each time; sure on 3, then 6, then 9 of
+9 — eight wordings built between them, two of them sentences of Session 3's (the odds, said the same way
+round; a barred road names who bars it). **The review:** three readers by lane on a frozen copy — ten rows
+fixed, seven not upheld; the suite's metamorphic corpus found one more in Session 3's reader (the mark of
+judgement took the comma beside it).
 
 ### Session 4 — The voice, and the other side of the hill
 
@@ -1760,6 +1815,7 @@ is sizing, not pressure: about three sessions. One line to reverse.
 | **D35** *(Session 2b)* | A great battle's "Let him decide" stays for a lead on his task — the day's own rule, pressed by the player for one battle — and never brings up a man who is on his own task; a last stand is still the Emperor's to answer | Row BA's hand, said on the button; not the removed engine (§232.11) |
 | **D36** *(Session 2b's Plan Mode — the user's direction for Session 3)* | **A man on his own really acts, works with the others and helps his friends; your task to him is guidance.** He acts on most nights (R-ACTS); the men's acts name each other — a lead, a join, a cover — and never pile two attacks on one enemy (R-TOGETHER); every man, not Lannes alone, answers the battle of a friend attacked within his reach, never a man he hates (R-FRIENDS); the task names the aim and the area, and each night's act is his own choice inside it, shown under "Tonight" (D8 stands: he never improvises unseen) | The user's words (§1.1); each rule is written in §13 before any data |
 | **D37** *(Session 3 — the builder's, each one line to reverse)* | The order is a mode of the standing order the strategic pass skips · one module `own_order.py` · a join is never a second attack (the arrival roll brings him into the lead's one battle) · R-FRIENDS at the reinforcement seam, dug in or on his post, never a man he hates · his ways of waiting are real acts (look = the scout order, probe = a march inside his area) plus the three the first measure asked for · odds authored, read off the game's own forecast · the voice authored and keyed, never a die · nothing the night he is given · France's Staff carries the count, the Aides-de-Camp at 100 a turn · an order with no name on it treats him as an ordinary corps · today's hand order leaves his task standing · the End Turn list stops only for a may-become-great battle or a step out, and prints every Tonight · a target beyond his odds asks after three nights · an ask stands three of your turns · Davout's R-ACTS miss accepted as his character · IC-12 to Session 3b by the decided fork | `SYSTEMS_REFERENCE.md` §233.8 |
+| **D38** *(Session 3b — the builder's, each one line to reverse)* | The other men of an army's task FOLLOW its commander (the support that stays), not the plain support · low authority changes nothing for a named army (§9.1's sentence corrected) · the army moves as one in the night's pass, before the enemy: followers start no attack and leave for no battle elsewhere · a task is a take, a chase or a hold with a place — "attack" stays one battle · followers keep following by an ordinary order when the task ends · one module `army_task.py`; who follows is derived, never stored; the army's mark is taken off where the army changes · the commander's row in the list is short, his full reading the read-back's and his card's · a changed goal may be given with nobody ticked · the court's note of a slight is un-written by Take back · a halted follower says why and asks nothing · the Emperor may follow, never command | The plan left these open; each was read against the code first (`SYSTEMS_REFERENCE.md` §234.7) |
 
 ---
 

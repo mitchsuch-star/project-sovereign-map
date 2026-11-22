@@ -40,6 +40,10 @@ signal standing_change_requested(marshal: String)
 # in the list's order, the total the player saw, and whether the group came
 # from a click on the map (each man's own plain order).
 signal directive_give_requested(line: String, members: Array, expect_ap: int, click: bool)
+# Row IC, Session 3b: the list's one OFFER (an army's task that cannot be given
+# as asked — "Stand down Ney (free) and list again", "Plain orders to each
+# corps instead"): the server's own {label, kind, line, then, tip}.
+signal directive_offer_requested(offer: Dictionary)
 # Row BA, BA-2: a `bring` chip on an attack's card — the order that brings a
 # corps standing by, sent at once (the card closes; the lead is selected again).
 signal bring_requested(command: String)
@@ -64,6 +68,12 @@ var _standing: Dictionary = {}       # the arrow's: {marshal, shown, info, ap_le
 var _avoid: Array = []
 const SimpleOrders = preload("res://scripts/simple_orders.gd")   # row IC, Session 2: the one table's tips
 const CARD_WIDTH := 560.0
+# Row IC, Session 3b (pressed in the real client at the first player's setup):
+# the list of an army's task says more in a row than an order to several does
+# (who commands and why, his first night) — on the narrow card its commander's
+# row pushed the men who follow him below the fold. Such a list takes a wider
+# card where the screen has the room (the same clamps apply).
+const CARD_WIDTH_TASK := 780.0
 const CARD_EDGE := 12.0
 # Session UI-6 (November 13, 2026): the card never takes more than this share
 # of the HUD band (a narrow band — the compact view's, a docked desk's) …
@@ -91,6 +101,7 @@ func _wear(mode: String) -> void:
 	# ticked rows as one order) and stands its rows where the terms stand.
 	var listing := mode == "directive"
 	line_button.visible = not listing
+	line_button.tooltip_text = ""
 	terms_label.visible = not listing
 	if not listing:
 		_free_directive()
@@ -475,10 +486,18 @@ func open_directive(listing: Dictionary, avoid: Array = [], note: String = "") -
 			_dir_pick.append(key)
 			_dir_ticks[key] = bool(r.get("ticked", false))
 	_dir_cursor = 0
+	# Row IC, Session 3b: the list's one offer wears the middle button (hidden
+	# on every other list) — the server's words, sent back as they came.
+	var offer = _dir.get("offer", null)
+	line_button.visible = offer is Dictionary and str((offer as Dictionary).get("label", "")) != ""
+	if line_button.visible:
+		line_button.text = str((offer as Dictionary).get("label", ""))
+		line_button.tooltip_text = Utils.clean_tip(str((offer as Dictionary).get("tip", "")))
+		line_button.disabled = false
 	# A list still being read, or one that could not be read, carries no rows to
 	# count — its title says no number (the review: "ORDERS FOR 2 CORPS" stood
 	# over a list of five while it was read).
-	title_label.text = ("ORDERS FOR %d CORPS" % rows.size()) if not rows.is_empty() else "ORDERS FOR SEVERAL CORPS"
+	title_label.text = _dir_title(rows.size(), rows.size())
 	var who := str(_dir.get("who", ""))
 	var order := str(_dir.get("order", ""))
 	command_label.text = directive_headline(who, order, _headline_room())
@@ -487,6 +506,56 @@ func open_directive(listing: Dictionary, avoid: Array = [], note: String = "") -
 	_build_directive(note)
 	_raise()
 	refit.call_deferred()   # the rows' words re-wrap first
+
+
+func _dir_title(going: int, named: int) -> String:
+	"""The list's title: an army's task and a changed war goal say what they are
+	(row IC, Session 3b); every other list counts the corps it goes to."""
+	var task = _dir.get("task", null)
+	if task is Dictionary and str((task as Dictionary).get("army", "")) != "":
+		return "A TASK FOR THE " + str((task as Dictionary).get("army", "")).to_upper()
+	if _dir.get("goal", null) is Dictionary:
+		return "A NEW WAR GOAL"
+	if named <= 0:
+		return "ORDERS FOR SEVERAL CORPS"
+	return ("ORDERS FOR %d CORPS" % named) if going >= named else ("ORDERS FOR %d OF %d CORPS" % [going, named])
+
+
+func _dir_tail(members: Array) -> String:
+	"""How the cost line ends: who goes, in the list's own terms."""
+	var task = _dir.get("task", null)
+	if task is Dictionary and str((task as Dictionary).get("lead", "")) != "":
+		var lead := str((task as Dictionary).get("lead", ""))
+		var lead_shown := str((task as Dictionary).get("lead_shown", lead))
+		var n := members.size() - (1 if members.has(lead) else 0)
+		var men := "1 man" if n == 1 else (str(n) + " men")
+		if members.has(lead):
+			if n <= 0:
+				return " — " + lead_shown + " goes on his own; nobody follows him yet."
+			return " — " + lead_shown + " on his own, " + men + " following him."
+		return " — " + men + " more to follow " + lead_shown + "."
+	if _dir.get("goal", null) is Dictionary:
+		return " — " + ("1 man is" if members.size() == 1 else (str(members.size()) + " men are")) + " turned to the new goal."
+	return (" — 1 corps goes, by his own order." if members.size() == 1
+		else " — " + str(members.size()) + " corps go, each by his own order.")
+
+
+func _dir_keep_the_lead(key: String) -> void:
+	"""Row IC, Session 3b: an army's commander's row IS the task (the server
+	marks it `locked`) — nobody is ticked to follow a man who is not given it.
+	Unticking him unticks them all; ticking a follower ticks him too."""
+	var lead := ""
+	var rows: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
+	for r in rows:
+		if r is Dictionary and bool(r.get("locked", false)):
+			lead = str(r.get("marshal", ""))
+	if lead == "" or not _dir_pick.has(lead) or bool(_dir_ticks.get(lead, false)):
+		return
+	if key == lead:
+		for k in _dir_pick:
+			_dir_ticks[str(k)] = false
+	else:
+		_dir_ticks[lead] = true
 
 
 func directive_headline(who: String, order: String, room: float) -> String:
@@ -518,8 +587,16 @@ func _headline_room() -> float:
 	var frame: StyleBox = panel.get_theme_stylebox("panel")
 	var view := panel.get_viewport_rect().size
 	var band := Utils.hud_band(view)
-	var w := minf(minf(CARD_WIDTH, (band.y - band.x) * BAND_SHARE), maxf(160.0, view.x - 2.0 * CARD_EDGE))
+	var w := minf(minf(_authored_width(), (band.y - band.x) * BAND_SHARE), maxf(160.0, view.x - 2.0 * CARD_EDGE))
 	return maxf(160.0, w) - (frame.get_minimum_size().x if frame != null else 40.0)
+
+
+func _authored_width() -> float:
+	"""The card's width before the screen's clamps: the wider one for the list
+	of an army's task or a changed war goal (row IC, Session 3b)."""
+	if _mode == "directive" and (_dir.get("task", null) is Dictionary or _dir.get("goal", null) is Dictionary):
+		return CARD_WIDTH_TASK
+	return CARD_WIDTH
 
 
 func _build_directive(note: String) -> void:
@@ -534,10 +611,16 @@ func _build_directive(note: String) -> void:
 	vb.move_child(_dir_box, command_label.get_index() + 1)
 	var reading := bool(_dir.get("reading", false))
 	var said := note.strip_edges()
+	var plain_say := false
 	if said == "" and (reading or not bool(_dir.get("sendable", true))):
 		said = str(_dir.get("note", "")).strip_edges()
+	if said == "" and str(_dir.get("say", "")).strip_edges() != "":
+		# Row IC, Session 3b: what the list IS, said above its rows (a changed
+		# war goal: "The war goal becomes Munich when you Give. …").
+		said = str(_dir.get("say", "")).strip_edges()
+		plain_say = true
 	if said != "":
-		var tone: String = Utils.COLOR_INFO if reading else Utils.COLOR_WARNING
+		var tone: String = Utils.COLOR_INFO if (reading or plain_say) else Utils.COLOR_WARNING
 		_dir_label("DirectiveNote", "[color=#" + tone + "]" + said + "[/color]", _dir_box)
 	_dir_scroll = ScrollContainer.new()
 	_dir_scroll.name = "DirectiveRows"
@@ -569,7 +652,10 @@ func _build_directive(note: String) -> void:
 			+ "\n".join(stays), _dir_rows)
 	_dir_sum = _dir_label("DirectiveSum", "", _dir_box)
 	if not reading:
-		_dir_label("DirectiveHelp", "[color=#" + Utils.COLOR_INFO + "]" + DIR_HELP + "[/color]", _dir_box)
+		# (Session 3b: an army's task and a changed goal bring their own help)
+		var help := str(_dir.get("help", "")).strip_edges()
+		_dir_label("DirectiveHelp", "[color=#" + Utils.COLOR_INFO + "]"
+			+ (help if help != "" else DIR_HELP) + "[/color]", _dir_box)
 	_paint_directive()
 
 
@@ -637,11 +723,25 @@ static func directive_row_text(r: Dictionary, staff_carries: bool) -> String:
 	if replaces != "":
 		text += "\n[color=#" + Utils.COLOR_GOLD + "]Replaces " + replaces + ".[/color]"
 	var notes = r.get("notes", [])
+	# Row IC, Session 3b: a row that sets a man on his own says a good deal
+	# (his first night, his odds, his answer) — the server marks each note's
+	# tone, so only what warns wears the warning's colour.
+	var tones = r.get("tones", [])
 	if notes is Array:
-		for n in notes:
-			var noted := str(n).strip_edges()
-			if noted != "":
-				text += "\n[color=#" + Utils.COLOR_WARNING + "]" + noted + "[/color]"
+		for i in range((notes as Array).size()):
+			var noted := str(notes[i]).strip_edges()
+			if noted == "":
+				continue
+			var tone: String = Utils.COLOR_WARNING
+			if tones is Array and i < (tones as Array).size():
+				match str(tones[i]):
+					"info":
+						tone = Utils.COLOR_INFO
+					"voice":
+						tone = Utils.COLOR_GOLD
+					"tonight":
+						tone = Utils.COLOR_COMMAND
+			text += "\n[color=#" + tone + "]" + noted + "[/color]"
 	return text
 
 
@@ -659,8 +759,7 @@ func _paint_directive() -> void:
 	# blind reading 2, all three readers: "ORDERS FOR 4 CORPS" while two go).
 	var named := (_dir.get("rows", []) as Array).size() if _dir.get("rows") is Array else 0
 	if not reading and named > 0:
-		title_label.text = ("ORDERS FOR %d CORPS" % named) if members.size() >= named \
-			else ("ORDERS FOR %d OF %d CORPS" % [members.size(), named])
+		title_label.text = _dir_title(members.size(), named)
 	var rows_by: Dictionary = {}
 	var rows: Array = _dir.get("rows", []) if _dir.get("rows") is Array else []
 	for r in rows:
@@ -683,8 +782,20 @@ func _paint_directive() -> void:
 	var staff = _dir.get("staff", null)
 	if reading or named == 0:
 		sum = ""   # still reading, or the list could not be read (its note says so)
+	elif members.is_empty() and is_goal_list():
+		# (the review, IC3B-V3: this stood UNDER "nothing can be sent", so a goal
+		# list whose men cannot be turned said so over a Give that names the goal)
+		var nobody := "no man can be turned to it today" if _dir_pick.is_empty() else "nobody is ticked"
+		sum = ("[color=#" + Utils.COLOR_INFO + "][b]It costs nothing[/b] — " + nobody + ": the goal is named, nobody"
+			+ " is turned, and each man keeps his old target.[/color]")
 	elif _dir_pick.is_empty():
 		sum = "[color=#" + Utils.COLOR_ERROR + "]No corps can take this order today — nothing can be sent.[/color]"
+	elif members.is_empty() and _dir.get("task", null) is Dictionary \
+			and str((_dir.get("task") as Dictionary).get("lead_shown", "")) != "":
+		# (Session 3b) an army's task with nobody ticked: say whose tick it needs
+		sum = ("[color=#" + Utils.COLOR_WARNING + "]Nobody is ticked — tick "
+			+ str((_dir.get("task") as Dictionary).get("lead_shown", ""))
+			+ " to give the army its task; the others follow him.[/color]")
 	elif members.is_empty():
 		sum = "[color=#" + Utils.COLOR_WARNING + "]No corps is ticked — tick at least one to give the order.[/color]"
 	elif total > have:
@@ -694,9 +805,7 @@ func _paint_directive() -> void:
 		sum = (_cost_words(total, have) + " — the Grand Quartier Général carries the whole column ("
 			+ str(members.size()) + " corps) as one order.")
 	else:
-		sum = _cost_words(total, have, _dir_breakdown(members, rows_by)) + (
-			" — 1 corps goes, by his own order." if members.size() == 1
-			else " — " + str(members.size()) + " corps go, each by his own order.")
+		sum = _cost_words(total, have, _dir_breakdown(members, rows_by)) + _dir_tail(members)
 	# Directives' blind reading 1 (all three readers): a man who could go stood
 	# unticked with no word why. Where ticking him would cost more than is left,
 	# the card says so.
@@ -734,8 +843,12 @@ func _paint_directive() -> void:
 	if _dir_sum != null and is_instance_valid(_dir_sum):
 		_dir_sum.text = sum
 		_dir_sum.visible = sum != ""
-	send_button.text = DIR_GIVE if not members.is_empty() else "Nothing to give"
-	send_button.disabled = reading or members.is_empty() or total > have
+	# Row IC, Session 3b: a changed war goal can be given with nobody ticked —
+	# naming the goal is free; the men left out keep their old targets.
+	var goal_list := is_goal_list()
+	send_button.text = DIR_GIVE if not members.is_empty() else (
+		"Name the goal only  (Enter)" if goal_list else "Nothing to give")
+	send_button.disabled = reading or (members.is_empty() and not goal_list) or total > have
 	if visible:
 		refit.call_deferred()
 
@@ -839,6 +952,7 @@ func _toggle_dir(key: String) -> void:
 	if not _dir_pick.has(key) or bool(_dir.get("reading", false)):
 		return
 	_dir_ticks[key] = not bool(_dir_ticks.get(key, false))
+	_dir_keep_the_lead(key)
 	_dir_cursor = _dir_pick.find(key)
 	AudioManager.play("click")
 	_paint_directive()
@@ -848,6 +962,7 @@ func _on_dir_ticked(pressed: bool, key: String) -> void:
 	if not _dir_pick.has(key):
 		return
 	_dir_ticks[key] = pressed
+	_dir_keep_the_lead(key)
 	_dir_cursor = _dir_pick.find(key)
 	AudioManager.play("click")
 	_paint_directive()
@@ -895,8 +1010,41 @@ func directive_report() -> Dictionary:
 		"reading": bool(_dir.get("reading", false)),
 		"total_text": _dir_sum.get_parsed_text() if (_dir_sum != null and is_instance_valid(_dir_sum)) else "",
 		"give_text": send_button.text, "give_disabled": send_button.disabled,
+		# Row IC, Session 3b: the list's offer (the middle button) and its note
+		"offer_text": line_button.text if line_button.visible else "",
+		"note_text": _dir_note_text(),
 		"rect": [rect.position.x, rect.position.y, rect.size.x, rect.size.y],
 	}
+
+
+func hold_for_redraw(note: String) -> void:
+	"""Row IC, Session 3b: the list's offer is being carried out ("Stand down
+	Massena (free) and list again") — the card stays where it stands, on its
+	"reading" face, so the list drawn again opens IN ITS PLACE (IC3-H1's rule:
+	x and top kept). Pressed in the real client: closed and opened again, the
+	card came back 110 px to the right."""
+	if _mode != "directive" or not visible:
+		return
+	var rect := placed_rect()
+	var keep := Vector2(rect.position.x, rect.position.y)
+	var held := {"who": str(_dir.get("who", "")), "order": str(_dir.get("order", "")), "rows": [],
+		"reading": true, "have": int(_dir.get("have", 0)), "note": note}
+	if _dir.get("task", null) is Dictionary:
+		held["task"] = (_dir.get("task") as Dictionary).duplicate(true)   # the same width
+	open_directive(held, _avoid)
+	_dir_anchor = keep
+
+
+func is_goal_list() -> bool:
+	"""Row IC, Session 3b: the list on the card is a changed war goal's."""
+	return _mode == "directive" and _dir.get("goal", null) is Dictionary
+
+
+func _dir_note_text() -> String:
+	if _dir_box == null or not is_instance_valid(_dir_box):
+		return ""
+	var label := _dir_box.get_node_or_null("DirectiveNote") as RichTextLabel
+	return label.get_parsed_text() if label != null else ""
 
 
 func mode() -> String:
@@ -925,7 +1073,7 @@ func refit() -> void:
 	var view := panel.get_viewport_rect().size
 	# Session UI-6: min(560, 0.9 × the HUD band), never past the viewport.
 	var band := Utils.hud_band(view)
-	var w := minf(minf(CARD_WIDTH, (band.y - band.x) * BAND_SHARE), maxf(160.0, view.x - 2.0 * CARD_EDGE))
+	var w := minf(minf(_authored_width(), (band.y - band.x) * BAND_SHARE), maxf(160.0, view.x - 2.0 * CARD_EDGE))
 	w = maxf(w, 160.0)
 	_fit_buttons(w)
 	panel.custom_minimum_size = Vector2(w, 0.0)
@@ -1050,7 +1198,16 @@ func _dir_rows_height(inner: float) -> float:
 	words, wrapped; then who will not go)."""
 	if _dir_rows == null or not is_instance_valid(_dir_rows):
 		return 0.0
-	var text_w := inner - DIR_SCROLLBAR_W
+	# Row IC, Session 3b (pressed at the first player's setup: a blank line stood
+	# under a row whose last words just fitted): the words are measured at the
+	# width the scroll really leaves them — its own bar's, which the theme sets
+	# (8 px there) — not at a constant 14 that wrapped them a line early.
+	var bar_w := DIR_SCROLLBAR_W
+	if _dir_scroll != null and is_instance_valid(_dir_scroll) and _dir_scroll.get_v_scroll_bar() != null:
+		var real_bar := _dir_scroll.get_v_scroll_bar().get_combined_minimum_size().x
+		if real_bar > 0.0:
+			bar_w = minf(DIR_SCROLLBAR_W, real_bar)
+	var text_w := inner - bar_w
 	var h := 0.0
 	var count := 0
 	for child in _dir_rows.get_children():
@@ -1449,7 +1606,7 @@ func _on_send() -> void:
 			# Row IC: the ticked men, in the list's order, and the total shown —
 			# ONE request (the server checks both against the list it draws again).
 			var members := directive_members()
-			if members.is_empty():
+			if members.is_empty() and not is_goal_list():
 				return
 			var line := str(_dir.get("line", ""))
 			var total := directive_total()
@@ -1467,6 +1624,14 @@ func _on_send() -> void:
 
 
 func _on_line() -> void:
+	if _mode == "directive":
+		# Row IC, Session 3b: the list's offer — the host carries it out and
+		# draws the list again (the card stays up until it does).
+		var offer = _dir.get("offer", null)
+		if offer is Dictionary and not (offer as Dictionary).is_empty():
+			AudioManager.play("click")
+			directive_offer_requested.emit((offer as Dictionary).duplicate(true))
+		return
 	if _mode == "standing":
 		var who := standing_marshal()
 		_close_quietly()

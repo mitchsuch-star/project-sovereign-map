@@ -316,6 +316,16 @@ def _price(world, marshal, action: str, strategic_type: Optional[str]) -> int:
         return 1
 
 
+def _member_price(world, marshal, stash: Dict[str, Any]) -> int:
+    """What the order costs THIS man as it finds him — his own line's price
+    where each man has his own (row IC, Session 3b: an army's task), else the
+    one order's."""
+    if stash.get("own_lines"):
+        from backend.commands import army_task as _army_task
+        return int(_army_task.price_of(world, marshal, stash))
+    return _price(world, marshal, stash["action"], stash.get("strategic_type"))
+
+
 def _leader_name(world, parsed: Dict) -> str:
     """The man the order names (a follow / support / pursuit) — he is not
     ordered to follow himself."""
@@ -357,7 +367,13 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
     # list showed it (a give alone carries it), checked as he is charged.
     rows: List[Dict[str, Any]] = []
     quoted: Dict[str, int] = stash.get("quoted") or {}
-    named = stash.get("kind") in ("list", "army")
+    named = stash.get("kind") in ("list", "army", "goal")
+    # Row IC, Session 3b: an army's task (and a changed war goal) sends each
+    # man his OWN line — the commander's task on his own, a follower's follow
+    # (`army_task`) — where every other order sends one line to all.
+    lines_by: Dict[str, str] = stash.get("lines_by") or {}
+    verbs_by: Dict[str, str] = stash.get("verbs_by") or {}
+    own_lines = bool(stash.get("own_lines"))
 
     def _not_sent(who: str, sent_line: str, why: str) -> None:
         rows.append({"marshal": who, "sent": False, "line": sent_line, "why": why, "ap": 0})
@@ -377,6 +393,23 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
         verb = _probe_verb(action, strategic_type, rest)
         line = f"{name}, {rest}"
         own_price: Optional[int] = None
+        if own_lines:
+            line = str(lines_by.get(name) or line)
+            verb = str(verbs_by.get(name, verb))
+            from backend.commands import army_task as _army_task
+            if not _army_task.lead_stands(world, stash, name):
+                # (the review, IC3B-V4) nobody follows a commander who does not
+                # hold the task — whichever way his own line failed to give it
+                # (refused, unread, an error: roads that never reach `after`)
+                lead_shown = _display(str((stash.get("task") or {}).get("lead") or ""))
+                for waiter in members:
+                    lines.append(f"{_display(waiter)} — not sent: {lead_shown} did not take "
+                                 "the task, so nobody follows him.")
+                    refused.append((waiter, ""))
+                    _not_sent(waiter, "", f"{lead_shown} did not take the task")
+                members = []
+                break
+            own_price = int(_army_task.price_of(world, marshal, stash))
         if stash.get("click"):
             # A group sent by a click on a province: each man's own plain order,
             # as his single click sends it (`order_quotes.march_quote(click=True)`
@@ -468,6 +501,20 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             _not_sent(name, line, said)
         else:
             rows.append({"marshal": name, "sent": True, "line": line, "why": "", "ap": int(cost)})
+        if own_lines:
+            # Row IC, Session 3b: what the list knew and his own line could not
+            # say (the army he commands, the goal he serves) is stamped here —
+            # and nobody follows a commander who did not take the task.
+            from backend.commands import army_task as _army_task
+            if not _army_task.after(world, stash, name, result):
+                lines.append(_member_line(name, said))
+                for waiter in members:
+                    lines.append(f"{_display(waiter)} — not sent: {_display(name)} did not take "
+                                 "the task, so nobody follows him.")
+                    refused.append((waiter, ""))
+                    _not_sent(waiter, "", f"{_display(name)} did not take the task")
+                members = []
+                break
         if army and band == "carries" and _would_object(
                 world, marshal, strategic_type, parsed_target=stash.get("target"), rest=rest):
             said += " (He had his doubts; the Staff's order carries.)"
@@ -593,9 +640,29 @@ def _head_line(world, stash: Dict[str, Any], names: List[str], have: Optional[in
         if name in quoted:
             total += int(quoted[name])      # row IC: the price the list showed
         elif m is not None:
-            total += _price(world, m, stash["action"], stash.get("strategic_type"))
+            total += _member_price(world, m, stash)
     if have is None:
         have = int(getattr(world, "actions_remaining", 0) or 0)
+    if stash.get("goal"):
+        # Row IC, Session 3b: the men serving the war goal, turned to the new one.
+        return (f"The men serving your war goal are turned to {stash['goal']['shown']} — "
+                f"{n} m{'a' if n == 1 else 'e'}n, {total} action{'s' if total != 1 else ''} for the "
+                f"{have} in hand.")
+    if stash.get("task"):
+        # Row IC, Session 3b: an army's task — its commander on his own, the
+        # rest following him.
+        task = stash["task"]
+        lead = str(task.get("lead") or "")
+        men = [x for x in names if x != lead]
+        parts = []
+        if lead in names:
+            parts.append(f"{_display(lead)} commands, on his own")
+        if men:
+            shown = [_display(x) for x in men]
+            who = shown[0] if len(shown) == 1 else ", ".join(shown[:-1]) + " and " + shown[-1]
+            parts.append(f"{who} follow{'s' if len(men) == 1 else ''} him")
+        return (f"The {task['army']} is given its task — {'; '.join(parts) or 'nobody goes'} — "
+                f"{total} action{'s' if total != 1 else ''} for the {have} in hand.")
     if stash.get("cancel"):
         # S14E-X143: the recall's own head - what it recalls and what it costs
         # (each corps' cancel is the ordinary one: the price is its own).
@@ -713,6 +780,14 @@ def build(world, parser, llm_game_state, command_text: str, parsed: Dict, *,
     the collective words — this is the collective road exactly as AO landed
     it. PURE: nothing is written to the world (the read-only quote calls it
     with the built-in reader)."""
+    # Row IC, Session 3b: an army's TASK and a changed war goal are lists of
+    # each man's own line (`army_task`) — read before the same-order fan-out.
+    if (address or {}).get("kind") == "goal":
+        from backend.commands import army_task as _army_task
+        return _army_task.build_goal(world, address, command_text)
+    if (address or {}).get("kind") == "army" and (address or {}).get("task"):
+        from backend.commands import army_task as _army_task
+        return _army_task.build(world, address, command_text)
     if (address or {}).get("kind") in ("list", "army"):
         return _build_named(world, parser, llm_game_state, command_text, parsed, address, click)
     command = (parsed or {}).get("command") or {}
@@ -892,8 +967,38 @@ def _carry_out(world, game_state, parser, executor, llm_game_state,
         for name in original:
             marshal = world.get_marshal(name)
             if marshal is not None:
-                shown_prices[name] = _price(world, marshal, stash["action"], stash.get("strategic_type"))
+                shown_prices[name] = _member_price(world, marshal, stash)
+    # Row IC, Session 3b: a changed war goal is NAMED first (free), so each
+    # man's own line turns him to it; the men left out are let go after.
+    opening: List[str] = []
+    if stash.get("own_lines"):
+        from backend.commands import army_task as _army_task
+        if stash.get("task") and not original:
+            # an army with no man who can be set on his own: said, free
+            return {"success": False, "variable_action_cost": 0,
+                    "message": _army_task.nobody_words(world, stash) + " Nothing was spent.",
+                    "group": {"army": False, "members": [], "asked": False, "rows": []}}
+        try:
+            opening = _army_task.before(world, stash)
+        except _army_task.GoalNotSet as why:
+            return {"success": False, "message": f"{why} Nothing was spent.",
+                    "variable_action_cost": 0,
+                    "group": {"army": False, "members": [], "asked": False, "rows": []}}
     run = _run_members(world, game_state, parser, executor, llm_game_state, stash)
+    if stash.get("own_lines"):
+        from backend.commands import army_task as _army_task
+        sent_names = [r["marshal"] for r in (run.get("rows") or []) if r.get("sent")]
+        closing = _army_task.after_all(world, stash, sent_names)
+        run["lines"] = list(opening) + list(run.get("lines") or []) + list(closing)
+        if stash.get("goal") and not original:
+            # the goal named with nobody ticked: it is named (free), and the
+            # men who served the old one are let go — said, nothing spent
+            return {"success": True, "message": "\n".join(run["lines"]), "variable_action_cost": 0,
+                    "events": run.get("events") or [],
+                    "group": {"army": False, "members": [], "asked": False,
+                              "rows": _rows_of(stash, run)},
+                    "action_info": world.get_action_info(0),
+                    "action_summary": world.get_action_summary()}
     refused = list(run.get("refused") or [])
     refused_names = {n for n, _why in refused}
     took = [n for n in original if n not in refused_names]

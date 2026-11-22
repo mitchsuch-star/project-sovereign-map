@@ -277,6 +277,12 @@ func get_task_presets(marshal_name: String, callback: Callable):
 	_send_get("/task_presets?marshal=" + marshal_name.uri_encode(), callback)
 
 
+func get_army_task(army_name: String, callback: Callable):
+	"""Row IC, Session 3b: "Give it a task…" on an army's card — a ready task
+	for a named army, read-only (`GET /task_presets` with `army`)."""
+	_send_get("/task_presets?army=" + army_name.uri_encode(), callback)
+
+
 func get_directive_quote(line: String, click: bool, callback: Callable):
 	"""Row IC, directives: the LIST of an order to several corps, read-only
 	(`GET /directive_quote`) — a group selected on the map, its Hold / Fortify

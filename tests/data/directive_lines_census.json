@@ -1,10 +1,10 @@
 {
  "_note": "Row IC, the directive — step 0. Every line to several corps in the committed playtest scripts and the golden corpus, with how backend/commands/directive.py reads it on the shipped 1805 board. Written by tools/_ic_directive_census.py; compared by tests/test_ic4_the_directive.py::TestTheCensus.",
  "counts": {
-  "lines": 269,
+  "lines": 270,
   "by_takes": {
    "fan_out": 23,
-   "none": 237,
+   "none": 238,
    "one_order": 9
   }
  },
@@ -70,6 +70,16 @@
    "kind": null,
    "names": [],
    "rest": "",
+   "takes": "none",
+   "action": "",
+   "strategic": ""
+  },
+  {
+   "source": "parser_golden_corpus.json",
+   "line": "Army of Italy, take Swabia",
+   "kind": "everyone",
+   "names": [],
+   "rest": "of Italy, take Swabia",
    "takes": "none",
    "action": "",
    "strategic": ""

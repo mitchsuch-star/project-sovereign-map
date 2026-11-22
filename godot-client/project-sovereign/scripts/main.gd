@@ -656,6 +656,7 @@ func _ready():
 		order_card.standing_cancel_requested.connect(_on_standing_cancel_requested)
 		order_card.standing_change_requested.connect(_on_standing_change_requested)
 		order_card.directive_give_requested.connect(_send_directive)   # row IC: the list's Give, ONE request
+		order_card.directive_offer_requested.connect(_on_directive_offer)   # Session 3b: the list's one offer
 		order_card.bring_requested.connect(_on_order_card_bring)   # row BA, BA-2
 		order_card.take_requested.connect(_on_order_card_take)     # row PW
 	dialog_manager.modal_shown.connect(_on_modal_shown)
@@ -11402,6 +11403,11 @@ var _directive_typed_line := ""
 var _directive_card_typed := ""
 var _directive_serial := 0
 var _directive_waiting := 0   # row IC: the serial of a list asked for and not yet shown
+# Row IC, Session 3b: the list's offer is being carried out ("Stand down Ney
+# (free) and list again") — the card is HELD on its reading face until the list
+# is drawn again; the offer's own reply must not let it go (pressed: the reply
+# closed it with a stray "Not given" and the new list opened 110 px away).
+var _directive_offer_held := false
 # A list slow to come shows the "reading" card after this wait; one that comes
 # sooner opens once, fully formed (a card that grows as its rows arrive bobs).
 const DIRECTIVE_READING_DELAY_S := 0.35
@@ -11585,7 +11591,7 @@ func _clear_order_selection() -> void:
 		_order_dwell.stop()
 	if map_area and map_area.has_method("clear_order_selection"):
 		map_area.clear_order_selection()
-	if card_open:
+	if card_open and not _directive_offer_held:
 		order_card.close_card()
 		# Row IC, directives (the review): a list shut under a let-go selection
 		# is said in the log, and the typed line it held is let go with it.
@@ -12486,7 +12492,11 @@ func _send_directive(line: String, members: Array, expect_ap: int, click: bool) 
 	"""Row IC, directives: the list's [Give the order] — ONE request (one
 	Take-back unit) down the typed road's steps: the wire guard, the end-turn
 	latch retired, the echo, the in-flight latch."""
-	if line == "" or members.is_empty() or api_client == null:
+	# (Session 3b: a changed war goal may be given with nobody ticked — the goal
+	# is named, free, and the men who served the old one keep their targets)
+	var names_only: bool = order_card != null and order_card.has_method("is_goal_list") \
+		and bool(order_card.is_goal_list())
+	if line == "" or (members.is_empty() and not names_only) or api_client == null:
 		return
 	if _chip_command_in_flight or not command_input.editable:
 		# (the review) the list stays up: Give is pressed again once the rider is back
@@ -12508,8 +12518,12 @@ func _send_directive(line: String, members: Array, expect_ap: int, click: bool) 
 	# A click group's line is composed ("Ney and Davout, march to Lorraine") and
 	# each man takes his own click order — the echo says "go to", as the list does.
 	var said := line.replace(", march to ", ": go to ") if click else line
+	var went := str(members.size()) + " corps"
+	if names_only:
+		went = "nobody turned" if members.is_empty() else (
+			"1 man turned" if members.size() == 1 else (str(members.size()) + " men turned"))
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(said)
-		+ " — " + str(members.size()) + " corps[/color]")
+		+ " — " + went + "[/color]")
 	AudioManager.play("quill_flick")
 	_retire_line_latches()   # CC-0: any send means the player moved on
 	set_input_enabled(false)
@@ -12522,6 +12536,73 @@ func _send_directive(line: String, members: Array, expect_ap: int, click: bool) 
 func _on_directive_result(response) -> void:
 	_chip_command_in_flight = false
 	_on_command_result(response)   # a list that no longer held comes back as one (`_directive_reply`)
+
+
+func _on_directive_offer(offer: Dictionary) -> void:
+	"""Row IC, Session 3b: the list's one OFFER, pressed. An army's task that
+	cannot be given as asked says what would let it be: "Stand down Ney (free)
+	and list again" SENDS that order and then draws the list afresh (`then`);
+	"Plain orders to each corps instead" draws that other list. The words are
+	the server's; nothing here composes an order."""
+	var line := str(offer.get("line", "")).strip_edges()
+	if line == "" or api_client == null or order_card == null:
+		return
+	if _chip_command_in_flight or not command_input.editable:
+		add_output("[color=#" + Utils.COLOR_ERROR
+			+ "]The despatch rider has not yet returned, Sire — one moment; the list stands.[/color]")
+		return
+	var typed := _directive_card_typed
+	# The card stays where it stands, on its "reading" face: the list drawn
+	# again opens in its place (pressed in the real client: closed and opened
+	# again it came back 110 px to the right — the first play's "bobbing").
+	if order_card.has_method("hold_for_redraw"):
+		order_card.hold_for_redraw("One moment — the list is drawn again…")
+	_update_war_panel_visibility()
+	if str(offer.get("kind", "list")) != "send":
+		_open_directive_line(line, false)
+		# (the review, IC3B-V2) the typed line the first list came from is still
+		# the one a Cancel puts back — on the plain list too
+		_directive_card_typed = typed
+		return
+	# (`_directive_card_typed` stands while the card is held: Esc on the held
+	# card puts the typed line back, as on any list)
+	var then := str(offer.get("then", "")).strip_edges()
+	_chip_command_in_flight = true
+	_directive_offer_held = true
+	_add_to_history(line)
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(line) + "[/color]")
+	AudioManager.play("quill_flick")
+	_retire_line_latches()
+	set_input_enabled(false)
+	AudioManager.start_scribble()
+	api_client.send_command(line, func(response): _on_directive_offer_result(response, then, typed))
+
+
+func _on_directive_offer_result(response, then: String, typed: String) -> void:
+	"""The offer's order came back: say it, then draw the list again as it
+	stands now (the typed line it came from stays the one a Cancel puts back)."""
+	_chip_command_in_flight = false
+	_on_command_result(response)      # (the held card is not let go by this reply)
+	_directive_offer_held = false
+	# (the review, IC3B-V1) the player let the held card go while the order was
+	# on its way (Esc, Cancel): the card is his to close — no list springs back.
+	if order_card == null or not _order_card_open() or str(order_card.mode()) != "directive":
+		return
+	var went: bool = response is Dictionary and bool((response as Dictionary).get("success", false))
+	# (the card is itself a modal: the question is whether ANOTHER window stands)
+	var another_window: bool = _ui5_overlay_open() or (
+		dialog_manager != null and dialog_manager.is_any_modal_open_but("order_card"))
+	if then == "" or not went or another_window:
+		# the offer's order was refused (its reply says why), or its reply raised
+		# a window of its own: the held card goes, and nothing is drawn behind it
+		_directive_card_typed = ""
+		if order_card.has_method("close_card"):
+			order_card.close_card()
+			order_card.given_up_words()   # (no "Not given": nothing was asked)
+		return
+	_open_directive_line(then, false)
+	_directive_card_typed = typed
 
 
 func directive_report() -> Dictionary:
@@ -15515,7 +15596,9 @@ func _ui6_build_selection_card() -> void:
 			# Row IC, Session 2: "Give him a task…" and a ready task chosen
 			["task_pressed", _on_selection_task], ["task_line_pressed", _write_on_the_line],
 			# Row IC, Session 3: a man on his own — a line written, or sent
-			["own_write_pressed", _write_on_the_line], ["own_send_pressed", _pw_send_and_keep_him]]:
+			["own_write_pressed", _write_on_the_line], ["own_send_pressed", _pw_send_and_keep_him],
+			# Row IC, Session 3b: "Give it a task…" on an army's card
+			["army_task_pressed", _on_army_task]]:
 		if _selection_card.has_signal(str(pair[0])):
 			_selection_card.connect(str(pair[0]), pair[1])
 	# its size settles after its labels measure themselves: the slot follows
@@ -17149,6 +17232,29 @@ func _on_disband_army(army_name: String) -> void:
 	if army_name == "" or _chip_command_in_flight or not _order_input_ready():
 		return
 	_on_reward_command("disband the " + army_name)
+
+
+func _on_army_task(army_name: String) -> void:
+	"""Row IC, Session 3b: "Give it a task…" on an army's card — the staff
+	writes a ready task for the army on the command line (`GET /task_presets`
+	with `army`: its commander's own idea, said to the army). Nothing is sent:
+	the reading under the line says who commands and what it costs, and Enter
+	shows the list."""
+	if army_name == "" or api_client == null or not api_client.has_method("get_army_task"):
+		return
+	api_client.get_army_task(army_name, func(response): _on_army_task_line(army_name, response))
+
+
+func _on_army_task_line(army_name: String, response) -> void:
+	var line := ""
+	if typeof(response) == TYPE_DICTIONARY and bool(response.get("success", false)):
+		line = str(response.get("line", ""))
+	if line == "":
+		line = army_name + ", take "   # the staff had no idea: the player names the place
+	_clear_order_selection()
+	_write_on_the_line(line)
+	_resume_editing()
+	ToastLayer.say("A task for the " + army_name + " is on the command line — change it, or press Enter to see the list.", "")
 
 
 func _ic_goals() -> Array:

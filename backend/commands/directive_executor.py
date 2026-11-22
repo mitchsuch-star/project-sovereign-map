@@ -111,6 +111,20 @@ class DirectiveExecutor:
         result: Dict[str, Any] = {"success": bool(outcome.get("success")),
                                   "message": str(outcome.get("message") or "")}
         if outcome.get("success"):
+            # Row IC, Session 3b: a goal cleared — or named on this road, which
+            # turns nobody (the LIST turns the men who serve it: `army_task`) —
+            # leaves each man who served it at the target he has, said.
+            court = str(outcome.get("court") or "")
+            new = outcome.get("goal") or {}
+            keep = []
+            if order["op"] != "clear":
+                from backend.game_logic import own_order
+                keep = [m.name for m in war_goals.serving(world, court)
+                        if str((own_order.own(m) or {}).get("target") or "") == str(new.get("target") or "")]
+            let_go = war_goals.release(world, keep=keep, court=court)
+            if let_go:
+                result["message"] = (result["message"] + " " + " ".join(let_go)).strip()
+            outcome["message"] = result["message"]
             goal = outcome.get("goal") or {}
             event = {"type": "war_goal", "nation": world.player_nation,
                      "op": "clear" if order["op"] == "clear" else "set",

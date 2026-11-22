@@ -332,6 +332,21 @@ def _own_state(world, marshal):
         return None
 
 
+def _follows_state(world, marshal) -> Dict:
+    """Row IC, Session 3b: ``{"follows": {...}}`` for a man who follows the
+    commander of an army's task (`army_task.follower_payload`), else {} —
+    nothing is read on a board with no army."""
+    if not getattr(world, "armies", None):
+        return {}
+    try:
+        from backend.commands import army_task
+        held = army_task.follower_payload(world, marshal)
+        return {"follows": held} if held else {}
+    except Exception as exc:
+        report(exc, "world_state._follows_state: backend.commands.army_task")
+        return {}
+
+
 def _order_prices(world, marshal) -> Dict:
     """CF-6: `state_probe.order_prices` (a display-only read) — the figure
     each chip's label prints beside the verb."""
@@ -10612,7 +10627,9 @@ class WorldState:
         # reads none (each row is a plain dict, rebuilt key by key).
         _armies = data.get("armies")
         world.armies = ({str(_k): {"members": [str(_n) for _n in ((_v or {}).get("members") or [])],
-                                   "formed_turn": int((_v or {}).get("formed_turn", 0) or 0)}
+                                   "formed_turn": int((_v or {}).get("formed_turn", 0) or 0),
+                                   # Row IC, Session 3b: the man named to command it — only when one is
+                                   **({"commander": str(_v.get("commander"))} if (_v or {}).get("commander") else {})}
                          for _k, _v in _armies.items() if isinstance(_v, dict)}
                         if isinstance(_armies, dict) else {})
         _goals = data.get("war_goals")
@@ -12336,6 +12353,10 @@ class WorldState:
                         # words, "Tonight", the stand-down's price) — or, for a
                         # bold or careful man, whether he may be set on his own.
                         "own": _own_state(self, m),
+                        # Row IC, Session 3b: the commander he follows as part
+                        # of an army's task (whom, the army, his night) — the
+                        # key rides only for such a man.
+                        **_follows_state(self, m),
                     }
 
                     # Session 66: Relationships for tooltip display

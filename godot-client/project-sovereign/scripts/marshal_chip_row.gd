@@ -350,6 +350,21 @@ func _make_army_chip(a: Dictionary) -> Button:
 			who = ", ".join(names.slice(0, names.size() - 1)) + " and " + names[names.size() - 1]
 		b.tooltip_text = ("The %s: %s. Press to select its corps — then click a province to send them,"
 			+ " or use the card's Hold, Fortify or Drill.") % [army_name, who]
+		# Row IC, Session 3b: an army with a TASK says so on its chip — its
+		# commander is on his own and the rest follow him.
+		var task = a.get("task", {})
+		if task is Dictionary and str((task as Dictionary).get("line", "")) != "":
+			b.text += " · on its own"
+			var followers = (task as Dictionary).get("followers", [])
+			var n: int = (followers as Array).size() if followers is Array else 0
+			var men := "nobody follows him yet" if n == 0 else (
+				"1 man follows him" if n == 1 else (str(n) + " men follow him"))
+			b.tooltip_text = ("The %s is on its own: %s. %s commands, on his own; %s. "
+				+ "Press to select its corps.") % [army_name,
+				str((task as Dictionary).get("words", "")), str((task as Dictionary).get("lead_shown", "")), men]
+		var named := str(a.get("commander", ""))
+		if named != "" and not (task is Dictionary and str((task as Dictionary).get("line", "")) != ""):
+			b.tooltip_text += " " + Utils.humanize_entity_name(named) + " is named to command it."
 	b.pressed.connect(_on_army_pressed.bind(army_name))
 	_dress_army(b)
 	return b
@@ -679,5 +694,12 @@ static func _army_signature_of(rows: Array) -> String:
 		var shown := PackedStringArray()
 		for m in r.get("members_shown", []):
 			shown.append(str(m))
-		parts.append(str(r.get("name", "")) + ":" + str(int(r.get("in_field", 0))) + ":" + ",".join(shown))
+		# (Session 3b) its task and its named commander are on the chip too
+		var task = r.get("task", {})
+		var task_key := ""
+		if task is Dictionary:
+			task_key = str((task as Dictionary).get("line", "")) + "/" + str((task as Dictionary).get("lead", "")) \
+				+ "/" + str((task as Dictionary).get("followers", []))
+		parts.append(str(r.get("name", "")) + ":" + str(int(r.get("in_field", 0))) + ":" + ",".join(shown)
+			+ ":" + task_key + ":" + str(r.get("commander", "")))
 	return ";".join(parts)

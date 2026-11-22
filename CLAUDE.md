@@ -33,12 +33,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2, 2b, 3 ✅ Nov 19–21 (§229–§233); IC-3b, IC-4, then H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–3b ✅ Nov 19–22 (§229–§234); IC-4, then H**.
 
-**▶ LIVE STATE (Nov 21, 2026).** Last three rows:
-- **Row IC Session 3 (Nov 21) — on his own: his task, his way each night, "Tonight" shown first; men differ, act together, help friends (§233); NEXT: row IC Session 3b (an army's task, IC3-D1)**.
+**▶ LIVE STATE (Nov 22, 2026).** Last three rows:
+- **Row IC Session 3b (Nov 22) — an army's task: one list, its commander on his own, the rest follow him; "take the war goal" (§234); NEXT: row IC Session 4 (the voice, the enemy's plans)**.
+- **Row IC Session 3 (Nov 21) — on his own: his task, his way each night; men differ, act together** (§233).
 - **Row IC Session 2b (Nov 20) — a task to prove himself replaces "Grant Autonomy"** (§232).
-- **Row IC Session 2 (Nov 20) — buttons for simple orders, the typed line's read-back, exact orders** (§231).
 
 **Open with the user:** none (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`); the certificate is a purchase.
 
@@ -101,7 +101,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/commands/directive.py` | Row IC directives: an order to several corps as ONE list — `address`, `quote` (rows = `parse_preview.read_one`), `stale`, `give` (the overcharge guard); `/command` `list_first`/`members`/`expect_ap`; `GET /directive_quote` (§230) |
 | `backend/game_logic/armies.py`, `war_goals.py`; `commands/directive_executor.py` | Named armies (`world.armies`, action `army`) and war goals (`world.war_goals`, action `set_war_goal`): free, saved only when non-empty (§230) |
 | `backend/game_logic/today.py`, `threats.py` | Row IC the desk: the `desk` key (THE PEACE / THE WAR / TO DECIDE), what a seen enemy can reach (§229) |
-| `commands/if_thens.py`, `task_line.py`, `task_presets.py`; `ai/word_table.py`, `own_words.py`; `game_logic/trial.py`, `own_order.py`, `own_voice.py` | Row IC Sessions 2–3 (§231–§233): exact orders, refusals, ready tasks, the word table (→ `gen_task_words`), the task to prove himself, ON HIS OWN (one pure reading; the pass first in `end_turn`); client `simple_orders.gd` |
+| `commands/if_thens.py`, `task_line.py`, `task_presets.py`, `army_task.py`; `ai/word_table.py`, `own_words.py`; `game_logic/trial.py`, `own_order.py`, `own_voice.py` | Row IC Sessions 2–3b (§231–§234): exact orders, refusals, ready tasks, the word table (→ `gen_task_words`), the task to prove himself, ON HIS OWN (one pure reading; the pass first in `end_turn`), an army's task; client `simple_orders.gd` |
 | `backend/game_logic/standing.py` | AU-1 the books of authority: ONE writer `move` with a cause, the quote, the floors (`refusal` 60, `ai_refusal`), `spend`/`regrow`, `payload`, the dent, `courts_move` (`docs/AUTHORITY_CURRENCY_SPEC.md` §5) |
 | `backend/game_logic/precedence.py` | Row MC the Order of the Marshalate: precedence, the book of incidents, renown, titles of victory, the two-way bonds, the account, the claim |
 | `backend/game_logic/crowns.py` | DY-6/7 the crowns: the `crown` block, the king, the Alarm, recognition (`DYNAMISM_SPEC.md` §6) |
@@ -189,7 +189,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
 | On his own, the trust crisis's audience | SYSTEMS_REFERENCE §233, §232 FIRST, spec v6 §6, `own_order.py`, `trial.py` |
 | Exact orders, the read-back's rows and gate, the simple-order buttons | SYSTEMS_REFERENCE §231 FIRST, `if_thens.py`, `parse_preview.py`, `simple_orders.gd` |
-| An order to several corps, named armies, war goals | SYSTEMS_REFERENCE §230 FIRST, `directive.py`, `group_orders.py` (`_run_members`, `_carry_out`), `main.py` (`_directive_road`), `armies.py`, `war_goals.py`, `order_confirm_card.gd`, `main.gd` ("Row IC, directives") |
+| An order to several corps, named armies, war goals, an army's task | SYSTEMS_REFERENCE §230, §234 FIRST, `directive.py`, `army_task.py`, `group_orders.py` (`_run_members`, `_carry_out`), `main.py` (`_directive_road`), `armies.py`, `war_goals.py`, `order_confirm_card.gd`, `main.gd` ("Row IC, directives") |
 | The desk (TO DECIDE), the End Turn list, the danger mark | SYSTEMS_REFERENCE §229 FIRST, `today.py`, `threats.py`, `desk_lines.gd`, `turn_end_list.gd`, `main.gd` ("Row IC") |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger, POST /cancel_order) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |

@@ -9562,6 +9562,69 @@
       },
       "source": "Row IC Session 2 (IC-8) — §8.3 — the guard beside 'a river line'",
       "notes": "Only a NAMED line ('the line of the Inn') is a stretch; the plain idiom holds."
+    },
+    {
+      "id": "ic12-take-the-war-goal-needs-a-goal",
+      "utterance": "Ney, take the war goal",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": false,
+        "error_contains": "No war goal is set"
+      },
+      "source": "Row IC, Session 3b (November 21, 2026; SYSTEMS_REFERENCE.md §234; tests/test_ic12_an_armys_task.py)",
+      "notes": "'Take the war goal' is the task that follows the goal named for the war (own_words.the_war_goal -> war_goals.task_for). On a board with no goal it is refused FREE with why — never read as an attack on a province called 'The War Goal'. With a goal set the phrase is restated as what it means ('take Vienna' / 'pursue Mack') and the parse carries own['goal'] (pinned on a board with a goal in tests/test_ic12…)."
+    },
+    {
+      "id": "ic12-chase-the-war-goal-needs-a-goal",
+      "utterance": "Murat, chase the war goal boldly",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": false,
+        "error_contains": "No war goal is set"
+      },
+      "source": "Row IC, Session 3b (November 21, 2026; SYSTEMS_REFERENCE.md §234; tests/test_ic12_an_armys_task.py)",
+      "notes": "The chase form and a how-bold word: the same free refusal — the goal is read before any other reader."
+    },
+    {
+      "id": "ic12-a-question-about-the-goal-is-no-task",
+      "utterance": "Ney, can you take the war goal?",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "help"
+      },
+      "source": "Row IC, Session 3b (November 21, 2026; SYSTEMS_REFERENCE.md §234; tests/test_ic12_an_armys_task.py)",
+      "notes": "A question is never the task: it stays a question to him, free (own_words.the_war_goal skips a line ending in '?')."
+    },
+    {
+      "id": "ic12-take-on-your-own-is-the-take",
+      "utterance": "Ney, take Swabia on your own",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Swabia"
+      },
+      "source": "Row IC, Session 3b (November 21, 2026; SYSTEMS_REFERENCE.md §234; tests/test_ic12_an_armys_task.py)",
+      "notes": "The commander's own line of an army's task ('Army of X, take Swabia' is read as its commander's 'take Swabia on your own'): the mark of judgement is set aside and the parse carries `own` (kind give, task take) — the executor's own road gives it, never the attack."
+    },
+    {
+      "id": "ic12-an-army-nobody-formed-is-no-address",
+      "utterance": "Army of Italy, take Swabia",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "success": false,
+        "error_contains": "Unknown action"
+      },
+      "source": "Row IC, Session 3b (November 21, 2026; SYSTEMS_REFERENCE.md §234; tests/test_ic12_an_armys_task.py)",
+      "notes": "An army's task is read only for an army that EXISTS (armies.address_of, tried in /command before the parse). On a board with none the line is no order at all, as before this row — the task (its commander on his own, the rest following him) is pinned on a board with the army formed, in tests/test_ic12_an_armys_task.py."
     }
   ]
 }

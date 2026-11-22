@@ -3436,6 +3436,28 @@ class CommandParser:
             return _own_line
         _b = command_text
         command_text, _own_marks = _own_words.set_aside_marks(command_text)
+        # Row IC, Session 3b (§9): "Ney, take the war goal" — the task that
+        # follows the goal of the war. The phrase is restated as what it means
+        # on the board today ("take Vienna" / "pursue Mack") before any reader
+        # sees it, and the parse carries the court the goal was named against
+        # (`own["goal"]`); with nothing to take it is refused FREE, with why.
+        _own_goal = ""
+        _goal_hit = _own_words.the_war_goal(command_text, _friends) if _own_world is not None else None
+        if _goal_hit is not None:
+            from backend.game_logic import war_goals as _war_goals
+            _goal_task = _war_goals.task_for(_own_world, _own_world.get_marshal(_goal_hit[0]))
+            if _goal_task["refusal"]:
+                _ptrace.decide("parser", "war_goal_task", _goal_task["refusal"][:120])
+                return {"success": False, "error": _goal_task["refusal"] + " Nothing has been relayed.",
+                        "suggestion": None, "raw_input": typed_text, "kind": "task_line",
+                        "unknown_name": None, "candidates": [],
+                        "short": _goal_task["short"], "offers": list(_goal_task["offers"]),
+                        "mode": self._failure_road(None)}
+            command_text = (command_text[:_goal_hit[1]] + _goal_task["words"]
+                            + command_text[_goal_hit[2]:])
+            _own_goal = _goal_task["court"]
+            if not _own_marks:
+                _own_marks = ["the war goal"]      # a task by its nature: always his own
         command_text, _own_second = _own_words.two_provinces(command_text, _own_regions,
                                                              marked=bool(_own_marks))
         _ptrace.note("parser", "own_words_set_aside", _b, command_text)
@@ -3674,6 +3696,8 @@ class CommandParser:
         # carries a how-bold word to a bold or careful man who may be set on
         # his own (`_attach_own`); its how-bold words are then TAKEN.
         result = _attach_own(result, _own_world, _own_marks, _risk_words, _own_second)
+        if _own_goal and isinstance(result, dict) and isinstance(result.get("own"), dict):
+            result["own"]["goal"] = _own_goal      # (Session 3b) the task serves that war's goal
         # IC-7: "attack <him>, held back" — the attack, without the glorious
         # charge (`combat_executor._execute_attack` reads the flag; the words
         # are the word table's).
