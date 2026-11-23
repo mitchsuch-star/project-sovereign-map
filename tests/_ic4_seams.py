@@ -11,16 +11,18 @@ folds these rows in, as it folds row OC's). The rows stand in LADDER order — t
 measure's arms bring them up one by one (`tools/_ic4_measure.py`).
 
     PLAN      IC-14 — `war_plans.the_courts_follow_a_plan`: each court at war
-              (the coalition, when courts fight together) draws a written war
-              plan; its marshals who follow orders to the letter are moved by
-              the plan's exact orders (`war_plans.the_pass`, before the enemy's
-              phase) and by nothing else but survival, a battle they are in, the
-              ground they stand on and the road home. Down: no pass, no plan
-              order, no gate — the court's own logic moves every man, as before.
-              SHIPS DOWN — BUILT, NOT ADOPTED: the measure's R-HILL (4), written
-              before the data, was missed after its two rounds of content; by
-              the fallback written with it the plans ship off and the choice is
-              the user's (`tools/_ic4_measure.py`).
+              WITH FRANCE (the coalition, when courts fight her together) draws
+              a written war plan; its marshals who follow orders to the letter
+              are moved by the plan's exact orders (`war_plans.the_pass`, before
+              the enemy's phase) and by nothing else but survival, a battle they
+              are in, the ground they stand on and the road home. Down: no pass,
+              no plan order, no gate — the court's own logic moves every man, as
+              before. Built in Session 4 and shipped down (R-HILL (4) missed);
+              FIXED November 23, 2026 by the user's "fix warplans" (IC4-D1: a
+              plan drawn only against France) and measured again — the thirty
+              seeds still raise no minor with it up, 200 fresh seeds raise one
+              as often up as down (SYSTEMS_REFERENCE §236.8) — and SHIPS UP by
+              his word on those numbers, "Switch them on".
 
     FAVOUR    IC-14 — `war_plans.a_plan_names_a_favoured_province`: a plan's
               step names ONE province the court's other corps lean toward (the
@@ -70,9 +72,9 @@ IC4_SEAMS_BY_ROW = {
     "FIGHT": ["backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=False"],
 }
 
-# As shipped: the plans are DOWN (built, not adopted), and with them the two
-# rows that read a plan are inert; the three arms are DOWN.
-IC4_SHIPPED_UP = ("FAVOUR", "LEARNS")
-IC4_SHIPPED_DOWN = ("PLAN", "MOOD", "HUNT", "FIGHT")
+# As shipped (November 23, 2026 — the user's "Switch them on"): the plans are
+# UP, and with them the two rows that read a plan; the three arms are DOWN.
+IC4_SHIPPED_UP = ("PLAN", "FAVOUR", "LEARNS")
+IC4_SHIPPED_DOWN = ("MOOD", "HUNT", "FIGHT")
 
 IC4_SEAMS_DOWN = [spec for row in IC4_SEAMS_BY_ROW for spec in IC4_SEAMS_BY_ROW[row]]

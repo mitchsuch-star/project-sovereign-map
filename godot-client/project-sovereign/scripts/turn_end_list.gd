@@ -65,63 +65,17 @@ func _init() -> void:
 	_box.add_child(_tail)
 
 
-var _tonight: Array = []   # row IC, Session 3: [{marshal, line, may_day, step_out}]
-var _tonight_buttons: Array = []
-
-
-func set_tonight(rows: Array) -> void:
-	"""Row IC, Session 3 (§5): what each marshal on his own will do when the
-	turn ends — drawn at the head of the list (`show_rows`), each a button to
-	his card (to order it yourself)."""
-	_tonight = rows.duplicate(true) if rows is Array else []
-
-
-func tonight_texts() -> Array:
-	var out: Array = []
-	for b in _tonight_buttons:
-		if is_instance_valid(b):
-			out.append(str(b.text))
-	return out
-
-
 func show_rows(rows: Array, closing: String, max_rows: int = MAX_ROWS) -> void:
 	"""Stand the list: `rows` are desk rows ({id, tier, text, more, door});
 	`closing` is the one line under them (how to end the turn anyway);
 	`max_rows` is how many the host has room for (the rest are counted).
-	Row IC, Session 3: the "Tonight" rows (`set_tonight`) stand above them."""
+	(Row IC, Session 4b: no "Tonight" rows stand above them any more — a man on
+	his own moves as the next turn opens, and nothing of his is previewed.)"""
 	for b in _buttons:
 		if is_instance_valid(b):
 			_rows_box.remove_child(b)
 			b.queue_free()
 	_buttons.clear()
-	for b in _tonight_buttons:
-		if is_instance_valid(b):
-			b.get_parent().remove_child(b)
-			b.queue_free()
-	_tonight_buttons.clear()
-	for i in _tonight.size():
-		var t: Dictionary = _tonight[i]
-		var tb := Button.new()
-		tb.name = "Tonight%d" % (i + 1)
-		tb.flat = true
-		tb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		tb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tb.focus_mode = Control.FOCUS_ALL
-		tb.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		var stop := bool(t.get("may_day", false)) or bool(t.get("step_out", false))
-		tb.text = str(t.get("line", "")) + "  ›"
-		tb.tooltip_text = "On his own. Press to go to him — to order it yourself, or to stand him down."
-		tb.add_theme_color_override("font_color",
-				Color.html("#" + (Utils.COLOR_WARNING if stop else Utils.COLOR_COMMAND)))
-		tb.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)
-		tb.add_theme_color_override("font_focus_color", Utils.UI_GOLD_BRIGHT)
-		tb.set_meta("row_id", "tonight:" + str(t.get("marshal", "")))
-		tb.set_meta("door", {"kind": "marshal", "marshal": str(t.get("marshal", ""))})
-		tb.pressed.connect(_on_row_pressed.bind(tb))
-		_box.add_child(tb)
-		_box.move_child(tb, _head.get_index())
-		_tonight_buttons.append(tb)
 	var shown := mini(rows.size(), clampi(max_rows, 1, MAX_ROWS))
 	# Lever L2 of the blind reading (all three readers: "the ! in front of a
 	# matter is not explained"): the head says what the mark means, while a
@@ -166,7 +120,7 @@ func show_rows(rows: Array, closing: String, max_rows: int = MAX_ROWS) -> void:
 	# "the TO DECIDE card": the card's own head, the words the player can find
 	# on the screen (the review: "the desk above" named nothing he could see).
 	_tail.text = ("…and %d more on the TO DECIDE card. " % extra if extra > 0 else "") + closing
-	visible = not rows.is_empty() or not _tonight.is_empty()
+	visible = not rows.is_empty()
 
 
 func hide_list() -> void:

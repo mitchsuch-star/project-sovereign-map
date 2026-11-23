@@ -3436,6 +3436,18 @@ class CommandParser:
             return _own_line
         _b = command_text
         command_text, _own_marks = _own_words.set_aside_marks(command_text)
+        # Row IC, Session 4b (IC4-D3): "Ney, act on your own" — a mark of
+        # judgement with no task beside it sets him on his own with NO task
+        # (`own_order` "free": he makes war as he sees fit).
+        if _own_marks:
+            _free = _own_words.free_task(command_text, _friends)
+            if _free is not None:
+                _ptrace.decide("parser", "own_words", "free")
+                return {"success": True, "raw_input": typed_text, "mode": "mock",
+                        "own": {"kind": "give", "task": "free", "target": "", "risk": int(_free[1]),
+                                "second": "", "marks": list(_own_marks), "words": []},
+                        "command": {"marshal": _free[0], "action": "own_task", "type": "specific",
+                                    "raw_command": typed_text, "mode": "mock"}}
         # Row IC, Session 3b (§9): "Ney, take the war goal" — the task that
         # follows the goal of the war. The phrase is restated as what it means
         # on the board today ("take Vienna" / "pursue Mack") before any reader

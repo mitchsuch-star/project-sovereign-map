@@ -340,7 +340,7 @@ class CaptureExecutor:
                        f"will not forgive it.")
             if outcome["disapproving"]:
                 names = ", ".join(outcome["disapproving"])
-                message += (f" Your cautious marshals disapprove — property "
+                message += (f" Your careful marshals disapprove — property "
                             f"is sacred ({names}: -1 trust).")
             return {
                 "success": True,

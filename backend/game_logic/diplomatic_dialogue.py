@@ -368,8 +368,18 @@ def mission_effect_text(world, mission_type: str, short: bool = False) -> str:
                 f"+{per} per turn courted (max +{cap}, now "
                 f"+{_court_favour_now(world)}); {chance}% chance of {loss:+d}")
     if mission_type == "GATHER_INTEL":
-        return ("3 turns, then full intel for 5" if short
-                else "3 turns to complete, then full intel for 5")
+        # Row IC, Session 4b: written orders exist only while the courts write
+        # plans (`war_plans.the_courts_follow_a_plan`), so only then promised.
+        from backend.game_logic.war_plans import the_courts_follow_a_plan
+        if not the_courts_follow_a_plan():
+            return ("3 turns, then full intel for 5" if short
+                    else "3 turns to complete, then full intel for 5")
+        # ... of a court at war with you only: no other court draws a plan
+        # (`war_plans._muster`, IC4b-30).
+        return ("3 turns, then full intel for 5, and their written orders if at war with you"
+                if short
+                else "3 turns to complete, then full intel for 5 and, from a court at war "
+                     "with you, the written orders of any marshal who follows orders to the letter")
     if mission_type == "UNDERMINE_ALLIANCE":
         value = _m("target_pair_relation_change")
         return (f"{value:+d} relation between targets/turn" if short

@@ -1,0 +1,55 @@
+{
+ "band": [
+  23,
+  28
+ ],
+ "standing": {
+  "CMD-H": 26,
+  "CMD-A": 27,
+  "CMD-M": 28
+ },
+ "arms": {
+  "TODAY": {
+   "CMD-H": {
+    "exit": 0,
+    "provinces": 26,
+    "army_task_lines": 0
+   },
+   "CMD-A": {
+    "exit": 0,
+    "provinces": 27,
+    "army_task_lines": 0
+   },
+   "CMD-M": {
+    "exit": 0,
+    "provinces": 28,
+    "army_task_lines": 0
+   },
+   "_holds": true
+  },
+  "ARMY": {
+   "CMD-H": {
+    "exit": 0,
+    "provinces": 28,
+    "army_task_lines": 4
+   },
+   "CMD-A": {
+    "exit": 0,
+    "provinces": 23,
+    "army_task_lines": 9
+   },
+   "CMD-M": {
+    "exit": 0,
+    "provinces": 28,
+    "army_task_lines": 9
+   },
+   "_holds": true
+  }
+ },
+ "R-INERT": {
+  "met": true
+ },
+ "R-BAND": {
+  "met": true
+ }
+}

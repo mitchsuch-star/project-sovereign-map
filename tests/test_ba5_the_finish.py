@@ -186,15 +186,18 @@ class TestWhatTold:
         assert T.what_told(ctx, False, "theirs") == "his guns told on our squares"
 
     def test_a_temper_is_named(self):
-        ctx = _ctx(atk_mods=[_row("Personality (aggressive)", 15)])
-        assert T.what_told(ctx, True, "ours") == "our aggressive temper told"
-        ctx = _ctx(dfd_mods=[_row("Personality (aggressive)", 10, "penalty")])
-        assert T.what_told(ctx, True, "ours") == "his aggressive temper told against him"
+        # row IC, Session 4b: in his nature's word (Bold, Careful — one table)
+        ctx = _ctx(atk_mods=[_row("Bold nature", 15)])
+        assert T.what_told(ctx, True, "ours") == "our bold temper told"
+        ctx = _ctx(dfd_mods=[_row("Bold nature", 10, "penalty")])
+        assert T.what_told(ctx, True, "ours") == "his bold temper told against him"
+        ctx = _ctx(atk_mods=[_row("Careful nature", 15)])
+        assert T.what_told(ctx, True, "ours") == "our careful temper told"
 
     def test_no_label_falls_to_a_bare_word(self):
-        ctx = _ctx(dfd_mods=[_row("Outnumbered (cautious)", 10)])
+        ctx = _ctx(dfd_mods=[_row("Outnumbered (Careful)", 10)])
         assert T.what_told(ctx, True, "theirs") == "his caution when outnumbered told"
-        ctx = _ctx(dfd_mods=[_row("Immovable (literal hold)", 15)])
+        ctx = _ctx(dfd_mods=[_row("Immovable (holds to the letter)", 15)])
         assert T.what_told(ctx, True, "theirs") == "his immovable hold told"
         ctx = _ctx(atk_mods=[_row("Cavalry terrain (plains)", 20)])
         assert T.what_told(ctx, True, "ours") == "the ground told for our horse"

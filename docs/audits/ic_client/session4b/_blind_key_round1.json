@@ -1,0 +1,383 @@
+{
+ "_note": "Written BEFORE any reader saw a line (row IC, Session 4b, IC4-R1). `pairs` is the plan's question 1 (two lines, two named marshals: which said which); `sixway` the harder test besides. The confused pairings (Ney/Lannes, Massena/Davout) drawn twice each.",
+ "seed": 20261124,
+ "kinds_drawn_from": [
+  "ack",
+  "after_loss",
+  "after_win",
+  "asks",
+  "bolder",
+  "careful",
+  "done",
+  "free",
+  "idle",
+  "marched",
+  "object",
+  "overruled",
+  "proposal_hold",
+  "recalled",
+  "remembers",
+  "stayed",
+  "struck",
+  "third_night",
+  "trial_ask",
+  "trial_lost",
+  "trial_won",
+  "waited"
+ ],
+ "who": {
+  "Ney": "Ney — a bold marshal, famous for his courage and his impatience to fight.",
+  "Davout": "Davout — a careful marshal, strict, exact, who counts every man and never wastes one.",
+  "Murat": "Murat — a bold cavalry marshal who loves to ride and charge.",
+  "Lannes": "Lannes — a bold marshal who marches to the sound of the guns and leads assaults himself.",
+  "Massena": "Masséna — a stubborn marshal who never gives up ground he holds.",
+  "Bernadotte": "Bernadotte — a slow, politic marshal who is never in a hurry and always has an excuse."
+ },
+ "pairs": [
+  {
+   "n": 1,
+   "kind": "free",
+   "men": [
+    "Lannes",
+    "Ney"
+   ],
+   "line1": "Leave it to me, Sire. I'm moving now, and quickly.",
+   "line2": "As I see fit, Sire. Wherever the guns are loudest, that's where you'll find me.",
+   "key": {
+    "line1": "Ney",
+    "line2": "Lannes"
+   }
+  },
+  {
+   "n": 2,
+   "kind": "after_loss",
+   "men": [
+    "Lannes",
+    "Ney"
+   ],
+   "line1": "We got the worst of it, Sire. I'll look harder before the next assault.",
+   "line2": "I took a beating, Sire. I'll go slower, but I can't bear it long.",
+   "key": {
+    "line1": "Lannes",
+    "line2": "Ney"
+   }
+  },
+  {
+   "n": 3,
+   "kind": "proposal_hold",
+   "men": [
+    "Davout",
+    "Masséna"
+   ],
+   "line1": "I'd keep this ground, Sire. It's mine now, and worth keeping.",
+   "line2": "Let me hold here, Sire, with every company counted and in place.",
+   "key": {
+    "line1": "Masséna",
+    "line2": "Davout"
+   }
+  },
+  {
+   "n": 4,
+   "kind": "overruled",
+   "men": [
+    "Davout",
+    "Masséna"
+   ],
+   "line1": "Today is yours, Sire. My task is written down, every man and every order counted, for tomorrow.",
+   "line2": "Your order first, Sire. My task will keep, and so will my ground.",
+   "key": {
+    "line1": "Davout",
+    "line2": "Masséna"
+   }
+  },
+  {
+   "n": 5,
+   "kind": "idle",
+   "men": [
+    "Davout",
+    "Lannes"
+   ],
+   "line1": "No change. Every post is manned and every count is right.",
+   "line2": "Quiet for the moment. I'm listening for the guns.",
+   "key": {
+    "line1": "Davout",
+    "line2": "Lannes"
+   }
+  },
+  {
+   "n": 6,
+   "kind": "marched",
+   "men": [
+    "Bernadotte",
+    "Murat"
+   ],
+   "line1": "On his heels, Sire. He can hear us coming.",
+   "line2": "The corps is moving up, Sire, at a comfortable pace.",
+   "key": {
+    "line1": "Murat",
+    "line2": "Bernadotte"
+   }
+  },
+  {
+   "n": 7,
+   "kind": "idle",
+   "men": [
+    "Masséna",
+    "Murat"
+   ],
+   "line1": "No one to chase today. A pity.",
+   "line2": "Nothing to report. I give up nothing.",
+   "key": {
+    "line1": "Murat",
+    "line2": "Masséna"
+   }
+  },
+  {
+   "n": 8,
+   "kind": "bolder",
+   "men": [
+    "Davout",
+    "Murat"
+   ],
+   "line1": "Bolder still? Give me the squadrons and a loose rein.",
+   "line2": "Boldly, Sire — very well. But nothing will be wasted.",
+   "key": {
+    "line1": "Murat",
+    "line2": "Davout"
+   }
+  },
+  {
+   "n": 9,
+   "kind": "bolder",
+   "men": [
+    "Murat",
+    "Ney"
+   ],
+   "line1": "Boldly it is. Now I won't have to hold myself back.",
+   "line2": "Boldly, Sire? Then the squadrons ride at full gallop.",
+   "key": {
+    "line1": "Ney",
+    "line2": "Murat"
+   }
+  },
+  {
+   "n": 10,
+   "kind": "remembers",
+   "men": [
+    "Bernadotte",
+    "Ney"
+   ],
+   "line1": "You recalled me once before I'd begun, Sire. I've kept that in mind.",
+   "line2": "You overruled me once, Sire. I've not forgotten — but I'll go now.",
+   "key": {
+    "line1": "Bernadotte",
+    "line2": "Ney"
+   }
+  },
+  {
+   "n": 11,
+   "kind": "trial_lost",
+   "men": [
+    "Bernadotte",
+    "Masséna"
+   ],
+   "line1": "I regret it, Sire. The conditions were poor.",
+   "line2": "It went wrong, Sire. I held my ground as long as I could.",
+   "key": {
+    "line1": "Bernadotte",
+    "line2": "Masséna"
+   }
+  },
+  {
+   "n": 12,
+   "kind": "done",
+   "men": [
+    "Bernadotte",
+    "Lannes"
+   ],
+   "line1": "Done, Sire. I trust you'll find it was handled sensibly.",
+   "line2": "Done, Sire, and no fuss about it. Where are the guns next?",
+   "key": {
+    "line1": "Bernadotte",
+    "line2": "Lannes"
+   }
+  }
+ ],
+ "sixway": [
+  {
+   "kind": "third_night",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "Bored of this, Sire. The horses and I have changed it.",
+     "key": "Murat"
+    },
+    {
+     "letter": "B",
+     "line": "I'll not do the same thing a third day, Sire. A fixed habit wastes men.",
+     "key": "Davout"
+    },
+    {
+     "letter": "C",
+     "line": "I've changed it, Sire. I'll stay on what is mine, but not like that.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "D",
+     "line": "Sitting through the same again would drive me mad. I've changed it.",
+     "key": "Ney"
+    },
+    {
+     "letter": "E",
+     "line": "I've made a small change, Sire. Nothing risky, I assure you.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "F",
+     "line": "Two days of that was plenty, Sire. I've changed it, and my ear is on the guns.",
+     "key": "Lannes"
+    }
+   ]
+  },
+  {
+   "kind": "remembers",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "You pulled me away from the guns once, Sire. Don't do it twice.",
+     "key": "Lannes"
+    },
+    {
+     "letter": "B",
+     "line": "You gave another man the task that was mine, Sire. I remember.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "C",
+     "line": "I was passed over once. I'd rather you checked the rolls to see who is senior.",
+     "key": "Davout"
+    },
+    {
+     "letter": "D",
+     "line": "You overruled me once, Sire. I've not forgotten — but I'll go now.",
+     "key": "Ney"
+    },
+    {
+     "letter": "E",
+     "line": "I was recalled once in the middle of a chase. I've not forgotten it.",
+     "key": "Murat"
+    },
+    {
+     "letter": "F",
+     "line": "Last time I was called back. I'd like to finish this one.",
+     "key": "Bernadotte"
+    }
+   ]
+  },
+  {
+   "kind": "done",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "Done! Tell the others how a horseman manages it.",
+     "key": "Murat"
+    },
+    {
+     "letter": "B",
+     "line": "Done, Sire, and done in order. Not a man wasted.",
+     "key": "Davout"
+    },
+    {
+     "letter": "C",
+     "line": "Done, Sire, and no fuss about it. Where are the guns next?",
+     "key": "Lannes"
+    },
+    {
+     "letter": "D",
+     "line": "The task is finished, Sire. Not an inch of it given back.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "E",
+     "line": "Done, Sire. I trust you'll find it was handled sensibly.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "F",
+     "line": "Finished, Sire. Find me another fight now.",
+     "key": "Ney"
+    }
+   ]
+  },
+  {
+   "kind": "free",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "As I see fit, Sire? What I hold is mine, and I take what lies next to it.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "B",
+     "line": "My own judgement, Sire? Then I march to the guns.",
+     "key": "Lannes"
+    },
+    {
+     "letter": "C",
+     "line": "Very well, Sire. Not a man spent that I can't account for.",
+     "key": "Davout"
+    },
+    {
+     "letter": "D",
+     "line": "Free rein, Sire? The squadrons are saddled already.",
+     "key": "Murat"
+    },
+    {
+     "letter": "E",
+     "line": "Very good, Sire. I'll move when the moment is right, and not before.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "F",
+     "line": "No task, Sire? I'll find a fight myself now, before I go mad sitting here.",
+     "key": "Ney"
+    }
+   ]
+  },
+  {
+   "kind": "after_win",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "A win, Sire, and I want the next fight now.",
+     "key": "Ney"
+    },
+    {
+     "letter": "B",
+     "line": "A victory, Sire. What we won stays mine, and I'll risk a little more.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "C",
+     "line": "We won, Sire. I may venture a little more.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "D",
+     "line": "A victory. I'll accept slightly worse odds now, once the rolls are counted.",
+     "key": "Davout"
+    },
+    {
+     "letter": "E",
+     "line": "Another win, Sire. The horses and I will ride farther now.",
+     "key": "Murat"
+    },
+    {
+     "letter": "F",
+     "line": "A good day. The columns have their blood up, Sire.",
+     "key": "Lannes"
+    }
+   ]
+  }
+ ]
+}

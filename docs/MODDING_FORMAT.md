@@ -538,7 +538,7 @@ Current format version: **1.1**
 
 ## The `war_plans` block (row IC, Session 4 — IC-14; the feature ships OFF)
 
-Read by `backend/game_logic/war_plans.py`, checked by `validator._validate_war_plans`. A scenario without the block has no war plans. **As shipped the plans' seam is down (`war_plans.the_courts_follow_a_plan`): the block is validated and saved and nothing reads it.**
+Read by `backend/game_logic/war_plans.py`, checked by `validator._validate_war_plans`. A scenario without the block has no war plans. **As shipped the plans' seam is UP since November 23, 2026 (`war_plans.the_courts_follow_a_plan`): the block is read every turn, and each court at war with the player draws a plan from it and moves its letter-following marshals by it — a court whose wars are all with other courts draws none (`war_plans._muster`).**
 
 ```json
 "war_plans": {"sets": [

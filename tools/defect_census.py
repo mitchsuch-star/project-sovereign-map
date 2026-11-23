@@ -81,7 +81,11 @@ DIET_ARCHIVES = ("STATUS_[0-9][0-9][0-9][0-9]_Q[1-4].md",
 
 CELL_SPLIT = re.compile(r"(?<!\\)\|")
 SEPARATOR = re.compile(r"^:?-{3,}:?$")
-ID_TOKEN = r"[A-Z][A-Z0-9]*(?:-[A-Z0-9]+[a-z]?){1,3}(?:\.\d+)?"
+# (November 23, 2026: one lowercase letter may close the FIRST segment too —
+# row IC's Session 4b named its rows "IC4b-1" … "IC4b-33" and the census never
+# counted them; widened, it adds exactly those 33 rows, all closed, and moves
+# no other row.)
+ID_TOKEN = r"[A-Z][A-Z0-9]*[a-z]?(?:-[A-Z0-9]+[a-z]?){1,3}(?:\.\d+)?"
 ID_CELL = re.compile(r"^[^A-Za-z0-9]*(?P<id>" + ID_TOKEN + r")(?![A-Za-z0-9])")
 ANY_ID = re.compile(r"(?<![A-Za-z0-9-])(" + ID_TOKEN + r")(?![A-Za-z0-9])")
 SEVERITY = re.compile(r"\bP([0-4])\b")

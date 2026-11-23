@@ -2477,9 +2477,10 @@ def _what_the_field_shows_of_him(world, day) -> dict:
         return out
     try:
         from backend.ai.enemy_ai import get_effective_ai_personality
-        from backend.display_names import PERSONALITY_DISPLAY
+        from backend.display_names import NATURE_WORDS
         temper = str(get_effective_ai_personality(foe, world) or "")
-        out["his_temper"] = str(PERSONALITY_DISPLAY.get(temper, temper.replace("_", " ").title()))
+        out["his_temper"] = str(
+            (NATURE_WORDS.get(temper) or (temper.replace("_", " ").title(),))[0])
         # The day he opened he does not leave by a road: he breaks off.
         if day.get("side") == "attack":
             out["his_road"] = _his_road(world, foe)

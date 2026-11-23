@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | SURE | Line 1 is impatience ("no more waiting"); Line 2 is the guns.
+PAIR 2: Line 1 = Lannes, Line 2 = Ney | SURE | Line 1 says "point me at the guns"; Line 2 won't sit and admire it.
+PAIR 3: Line 1 = Masséna, Line 2 = Davout | SURE | Line 1 is about keeping ground that is now his; Line 2 is about every man fed and in his place.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | Line 1 counts the losses; Line 2 holds the field.
+PAIR 5: Line 1 = Ney, Line 2 = Bernadotte | SURE | Line 1 won't be left idle; Line 2 says "I was in no rush".
+PAIR 6: Line 1 = Bernadotte, Line 2 = Murat | PARTLY GUESSED | Line 1 is the comfortable, no-danger excuse; Line 2 is a cavalryman scanning the roads for dust.
+PAIR 7: Line 1 = Bernadotte, Line 2 = Davout | SURE | Line 1 is "no news, let's hope it stays that way"; Line 2 is order and every man in his place.
+PAIR 8: Line 1 = Lannes, Line 2 = Davout | SURE | Line 1 goes where the guns are; Line 2 checks the rolls and stores first.
+PAIR 9: Line 1 = Murat, Line 2 = Lannes | PARTLY GUESSED | Line 1 asks for a horse (Murat); Line 2 is "straight talk" and leading the assault (Lannes).
+PAIR 10: Line 1 = Ney, Line 2 = Murat | PARTLY GUESSED | Line 2 is vain about "handsomely ridden"; Line 1 wants something to fight.
+PAIR 11: Line 1 = Bernadotte, Line 2 = Masséna | SURE | Line 1 has doubts and goes slowly; Line 2 doesn't like leaving a place he has made his.
+PAIR 12: Line 1 = Murat, Line 2 = Masséna | SURE | Line 1 is the horses; Line 2 is what he held being "mine".
+SET 1: A=Ney, B=Bernadotte, C=Murat, D=Davout, E=Lannes, F=Masséna | guessed letters: A, E, F
+SET 2: A=Masséna, B=Bernadotte, C=Ney, D=Murat, E=Lannes, F=Davout | guessed letters: A, C, E
+SET 3: A=Murat, B=Lannes, C=Bernadotte, D=Masséna, E=Ney, F=Davout | guessed letters: B, E
+SET 4: A=Masséna, B=Lannes, C=Ney, D=Murat, E=Bernadotte, F=Davout | guessed letters: B, C
+SET 5: A=Davout, B=Masséna, C=Murat, D=Ney, E=Lannes, F=Bernadotte | guessed letters: B, D

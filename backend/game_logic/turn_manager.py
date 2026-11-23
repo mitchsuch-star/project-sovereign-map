@@ -324,24 +324,35 @@ def note_court_turn_failed(world, nation: str) -> None:
         _errors.report(exc, "turn_manager.note_court_turn_failed: the rail row")
 
 
-def _their_own_night(manager, game_state, resuming: bool) -> None:
-    """Row IC, Session 3 (IC-10; INDEPENDENT_COMMAND_SPEC §2 step 2, D6): FIRST
-    of all when the turn ends — before the Congress signs, before the offers
-    lapse, before the jealous strikes, before the enemy moves — every marshal
-    on his own does what "Tonight" said, highest rank first, or stays put and
-    says why (`own_order.the_pass`). Nothing on a resumed close (it ran once
-    already), nothing once the campaign has fallen, nothing where the server
-    holds no executor; with nobody on his own it touches nothing (R-INERT)."""
+def _their_own_turn(manager, game_state) -> list:
+    """Row IC, Session 4b — the user's ruling of November 23, 2026, "He moves
+    at turn start" (INDEPENDENT_COMMAND_SPEC D43, replacing D6/D8): as each
+    turn OPENS — after the enemy has moved and the turn has advanced, before
+    the player gives any order and before the morning report is drawn — every
+    marshal on his own makes his move, highest rank first
+    (`own_order.the_pass`). Returns the rows that open the turn's report.
+    Nothing once the campaign has fallen, nothing where the server holds no
+    executor; with nobody on his own it touches nothing (R-INERT). Each man's
+    `acted` turn keeps a resumed close from moving him twice."""
     from backend.game_logic import own_order as _own
-    if resuming or not game_state or not hasattr(manager, "executor"):
-        return
+    if not game_state or not hasattr(manager, "executor"):
+        return []
     try:
         from backend.game_logic import game_end as _game_end
-        if _game_end.terminal_ending(manager.world) is not None:
-            return
-        _own.the_pass(manager.world, manager.executor, game_state)
+        if _game_end.terminal_ending(manager.world) is not None or manager.world.game_over:
+            return []
+        return list(_own.the_pass(manager.world, manager.executor, game_state) or [])
     except Exception as exc:
-        _errors.report(exc, "turn_manager._their_own_night: own_order.the_pass")
+        _errors.report(exc, "turn_manager._their_own_turn: own_order.the_pass")
+        return []
+
+
+def _their_own_turn_first(manager, game_state, fallen: bool, reports):
+    """The turn's report with the moves of the men on their own first
+    (`_their_own_turn`; nothing once the campaign has fallen). With nobody on
+    his own the report is returned as it was (R-INERT)."""
+    rows = [] if fallen else _their_own_turn(manager, game_state)
+    return (list(rows) + list(reports or [])) if rows else reports
 
 
 def _their_own_close(world, reports) -> list:
@@ -487,7 +498,6 @@ class TurnManager:
         # march or grievance pass — each ran once already. The reply says so
         # (`resumed`, read by `meta_executor._execute_end_turn`).
         _resuming = bool(getattr(self.world, "_advance_failed", False))
-        _their_own_night(self, game_state, _resuming)   # row IC, Session 3: first of all (D6)
         # GE-3: every recognition the player won at the Congress's table this
         # turn is signed BEFORE the enemy phase and the advance move relations
         # (a signature holds for the sitting — `congress.take_the_signatures`;
@@ -804,6 +814,8 @@ class TurnManager:
         else:
             debug_print(f"[WARNING] Double advance_turn prevented in end_turn! current_turn={self.world.current_turn}")
         _the_days_dawn(self, game_state, enemy_phase_results)   # row BA (BA-3): the days the phase opened are offered
+        # Row IC, Session 4b — "He moves at turn start": his move opens the turn's report.
+        strategic_reports = _their_own_turn_first(self, game_state, _fallen, strategic_reports)
 
         # DD-1 S7 Slice B (the fuzzer's I6 on a live seed, DD1-7's class):
         # the standing marshal petition is read AGAIN after `advance_turn` —

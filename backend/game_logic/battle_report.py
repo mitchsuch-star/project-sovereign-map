@@ -10,7 +10,7 @@ get_defense_modifier() consume one-shot bonuses (strategic combat bonus, etc.).
 
 import random
 
-from backend.display_names import humanize_entity_name
+from backend.display_names import NATURE_WORDS, humanize_entity_name
 from typing import Dict, List
 
 from backend.models.region import TERRAIN_DEFENSE_BONUS
@@ -22,6 +22,15 @@ from backend.models.personality_modifiers import (
     get_defense_modifier_for_personality,
     get_personality_modifiers,
 )
+
+
+def _nature(personality) -> str:
+    """The nature's own word for a label — Bold · Careful · To the letter
+    (`display_names.NATURE_WORDS`, ONE table). Row IC, Session 4b: the labels
+    read the raw key ("Personality (aggressive)") after every screen had
+    moved to the nature's word. An unknown key is shown as it is."""
+    pair = NATURE_WORDS.get(str(personality or "").lower())
+    return pair[0] if pair else str(personality or "")
 
 
 def defense_personality_components(personality: str, stance: str,
@@ -45,26 +54,26 @@ def defense_personality_components(personality: str, stance: str,
         if stance == "aggressive":
             v = int(round(mods.get("aggressive_stance_defense_penalty", 0) * 100))
             if v:
-                rows.append((f"Personality ({personality})", v, "penalty"))
+                rows.append((f"{_nature(personality)} nature", v, "penalty"))
         if stance == "defensive":
             v = int(round(mods.get("defensive_stance_defense_penalty", 0) * 100))
             if v:
-                rows.append((f"Personality ({personality})", v, "penalty"))
+                rows.append((f"{_nature(personality)} nature", v, "penalty"))
     elif key == "cautious":
         if stance == "defensive":
             v = int(round(mods.get("defensive_stance_defense_bonus", 0) * 100))
             if v:
-                rows.append((f"Personality ({personality})", v, "bonus"))
+                rows.append((f"{_nature(personality)} nature", v, "bonus"))
         if is_outnumbered:
             v = int(round(mods.get("outnumbered_defense_bonus", 0) * 100))
             if v:
-                rows.append((f"Outnumbered ({personality})", v, "bonus"))
+                rows.append((f"Outnumbered ({_nature(personality)})", v, "bonus"))
     elif key == "literal":
         if is_holding:
             v = int(round(mods.get("hold_position_defense_bonus", 0) * 100))
             if v:
                 # W6-1 (BUG-CA-5): the doctrine name, not the opaque caption.
-                rows.append(("Immovable (literal hold)", v, "bonus"))
+                rows.append(("Immovable (holds to the letter)", v, "bonus"))
     return rows
 
 
@@ -115,10 +124,10 @@ def snapshot_attacker_modifiers(
     )
     if pers_mod > 1.001:
         pct = int(round((pers_mod - 1.0) * 100))
-        mods.append({"label": f"Personality ({personality})", "value": pct, "type": "bonus"})
+        mods.append({"label": f"{_nature(personality)} nature", "value": pct, "type": "bonus"})
     elif pers_mod < 0.999:
         pct = int(round((1.0 - pers_mod) * 100))
-        mods.append({"label": f"Personality ({personality})", "value": pct, "type": "penalty"})
+        mods.append({"label": f"{_nature(personality)} nature", "value": pct, "type": "penalty"})
 
     # --- Recklessness attack bonus ---
     if getattr(attacker, "is_reckless_cavalry", False):

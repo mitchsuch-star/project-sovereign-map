@@ -314,9 +314,22 @@ _NOUNS = (
 
 
 def _temper(low: str) -> str:
-    """"personality (aggressive)" -> "aggressive temper"."""
-    named = low.split("(", 1)[1].split(")", 1)[0].strip() if "(" in low else ""
-    return f"{named} temper" if named else "temper"
+    """"bold nature" -> "bold temper": his NATURE's word (row IC, Session 4b —
+    `display_names.NATURE_WORDS`, one table for every screen; the report's
+    label carries the word itself, and the older "personality (aggressive)"
+    reads the same)."""
+    from backend.display_names import NATURE_WORDS
+    if low.endswith(" nature"):
+        word = low[: -len(" nature")].strip()
+    else:
+        named = low.split("(", 1)[1].split(")", 1)[0].strip() if "(" in low else ""
+        word = (NATURE_WORDS.get(named) or ("",))[0].lower()
+    return f"{word} temper" if word and word != "to the letter" else "temper"
+
+
+def _is_nature_row(low: str) -> bool:
+    """The report's nature row ("bold nature"; an older "personality (…)")."""
+    return low.endswith(" nature") or low.startswith("personality (")
 
 
 def _noun(label: str) -> str:
@@ -387,7 +400,7 @@ def what_told(ctx, attacker_is_ours: bool, better: str) -> str:
                 elif "square formation (vs artillery)" in low:
                     # the ATTACKER's row, named for the defender's squares under his guns
                     best = (value, f"{whose} guns told on {losers} squares")
-                elif low.startswith("personality ("):
+                elif _is_nature_row(low):
                     best = (value, f"{whose} {_temper(low)} told")
                 else:
                     best = (value, f"{whose} {_noun(label)} told")
@@ -404,7 +417,7 @@ def what_told(ctx, attacker_is_ours: bool, better: str) -> str:
                     best = (value, f"{whose} guns told")
                 elif low.startswith("cavalry terrain"):
                     best = (value, f"the ground told against {losers} horse")
-                elif low.startswith("personality ("):
+                elif _is_nature_row(low):
                     best = (value, f"{losers} {_temper(low)} told against {against}")
                 else:
                     best = (value, f"{losers} {_noun(low)} told against {against}")
@@ -985,6 +998,8 @@ def why_plain(ctx, attacker_is_ours: bool) -> List[str]:
                 key=lambda r: -int(r.get("value", 0) or 0))[:2]
             for row in named:
                 label = str(row.get("label") or "").strip()
+                if _is_nature_row(label.lower()):
+                    label = _temper(label.lower())       # "bold temper", his nature's word
                 # The review (PW-R16): a label that carries a figure of its own
                 # in brackets ("Ranged bombardment (−50% return fire)") read
                 # "… (−50% return fire) +50%": the bracket goes, the row's own

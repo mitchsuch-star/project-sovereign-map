@@ -61,6 +61,9 @@ def an_army_takes_a_task() -> bool:
 
 
 _STANDING = object()      # "read the order the marshal holds now"
+# Row IC, Session 4b — "He moves at turn start": the read-back's line of his
+# first move, said as an intention (`parse_preview._own_reading`)
+FIRST_MOVE = "At the start of next turn he means to"
 
 
 def _shown(name) -> str:
@@ -446,7 +449,7 @@ def his_part(world, lead, man) -> str:
         head = (f"To the letter: marches where {lead_shown} marches, and this order is his "
                 f"written word to join {lead_shown}'s battles next to him")
     else:
-        head = (f"Moves with {lead_shown} each night, before the enemy does, and may join "
+        head = (f"Moves with {lead_shown} at the start of each turn, and may join "
                 f"{lead_shown}'s battles next to him")
     odds = ""
     if with_order:
@@ -551,7 +554,7 @@ def _tone(note: str) -> str:
     said = str(note or "")
     if said.startswith("“"):
         return "voice"
-    if said.startswith(("His first night", "Tonight, as things stand", "Every night")):
+    if said.startswith((FIRST_MOVE, "Every turn")):
         return "tonight"
     low = said.lower()
     if (low.startswith(("he objects", "not taken:", "untick him", "a second order")) or "he will resent" in low
@@ -572,7 +575,7 @@ def _for_the_list(notes: List[str], shown: str, army_men: Tuple[str, ...] = ()) 
     beside the commander's battle, or the senior who resents the task, is often
     NOT of the army ("what do Lannes and Murat do?"), so the list says so."""
     night = [_beside_for_the_list(str(n), army_men) for n in notes
-             if str(n).startswith(("His first night", "Tonight, as things stand"))]
+             if str(n).startswith(FIRST_MOVE)]
     odds = [n for n in notes if str(n).startswith("he attacks only when")]
     warns = [_slight_for_the_list(str(n), shown, army_men) for n in notes if _tone(n) == "warn"]
     said_odds = any("he goes in when" in str(n) for n in night)
@@ -1043,13 +1046,10 @@ def follower_reading(world, man, lead, lead_dest: str, battle_place: str = "") -
     order = getattr(man, "strategic_order", None)
     if order is not None and getattr(order, "issued_turn", None) == turn:
         return _f(man, lead, "start", f"{shown} set out when the order was given — he follows "
-                                      f"{lead_shown} from tomorrow night", why="given today")
-    if own._int({"t": getattr(man, "last_ordered_turn", None)}, "t") == turn:
-        return _f(man, lead, "stay", f"{shown} carried out your order today — he follows {lead_shown} "
-                                     "again tomorrow night", why="your order today")
+                                      f"{lead_shown} from the start of next turn", why="given this turn")
     if bool(getattr(man, "reinforced_this_turn", False)) and not battle_place:
-        return _f(man, lead, "stay", f"{shown} fought beside a friend today — he follows {lead_shown} "
-                                     "again tomorrow night", why="drawn in today")
+        return _f(man, lead, "stay", f"{shown} fought beside a friend this turn — he follows {lead_shown} "
+                                     "again at the start of next turn", why="drawn in this turn")
     unfit = own._unfit(world, man)
     if unfit:
         return _f(man, lead, "recover", f"{shown} recovers — {unfit}", why=unfit)
@@ -1139,15 +1139,15 @@ def followers_night(world, executor, game_state, lead, said_lead: Dict[str, Any]
                                       f"{shown} stood by {lead_shown}'s attack at {_shown(battle)} "
                                       "and did not arrive in time"))
                 continue
-            if bool(getattr(man, "reinforced_this_turn", False)) and said.get("why") != "drawn in today":
+            if bool(getattr(man, "reinforced_this_turn", False)) and said.get("why") != "drawn in this turn":
                 rows_.append(_row(man, lead, said, "join",
-                                  f"{shown} was drawn into a battle beside him — that was his night"))
+                                  f"{shown} was drawn into a battle beside him — that was his move this turn"))
                 continue
             fresh = follower_reading(world, man, lead, str(lead.location or ""), battle)
             if key_of(fresh) != key_of(said):
-                what = "fight" if fights else "night"
+                what = "fight" if fights else "move"
                 rows_.append(_row(man, lead, said, "stay",
-                                  f"{shown} stays put — {lead_shown}'s {what} changed things"))
+                                  f"{shown} stayed put — {lead_shown}'s {what} changed things"))
                 continue
             refused = ""
             moved = False
@@ -1164,7 +1164,7 @@ def followers_night(world, executor, game_state, lead, said_lead: Dict[str, Any]
                 rows_.append(_row(man, lead, said, "follow" if moved else "stay",
                                   f"{shown} could not follow {lead_shown} as planned: {refused.rstrip('.')}"))
                 continue
-            line = str(fresh.get("line") or "")
+            line = _told(str(fresh.get("line") or ""), man)
             if fresh.get("act") == "start":
                 line = f"{shown} set out to follow {lead_shown} when the order was given"
             rows_.append(_row(man, lead, said, str(fresh.get("act") or "stay"), line,
@@ -1172,8 +1172,22 @@ def followers_night(world, executor, game_state, lead, said_lead: Dict[str, Any]
         except Exception as exc:
             report(exc, f"army_task.followers_night: {man.name}")
             rows_.append(_row(man, lead, said, "stay",
-                              f"{shown} stays put — the night could not be carried out"))
+                              f"{shown} stayed put — his move could not be carried out"))
+    for row in rows_:
+        # (Row IC, Session 4b: what each follower did as the turn opened — his
+        # card's "This turn" line reads it back; no preview is kept)
+        try:
+            world.log_event({"type": "own_night", "phase": "follow", "marshal": row["marshal"],
+                             "nation": lead.nation, "follows": lead.name, "act": row.get("act"),
+                             "message": row["message"], "told": True})
+        except Exception as exc:
+            report(exc, "army_task.followers_night: the log")
     return rows_
+
+
+def _told(line: str, man) -> str:
+    """A follower's line as the morning tells it, in the past (`own_order.told`)."""
+    return _own().told(line, man)
 
 
 def _row(man, lead, said: Dict[str, Any], act: str, message: str, **extra) -> Dict[str, Any]:
@@ -1187,52 +1201,35 @@ def _row(man, lead, said: Dict[str, Any], act: str, message: str, **extra) -> Di
 
 # ═══════════════════════════ what the screens say ═══════════════════════════
 
-_SHOWN: Dict[str, Any] = {"key": None, "rows": None}
-
-
-def tonight_shown(world) -> List[Dict[str, Any]]:
-    """`tonight` for the screens, kept while the board is unchanged (the desk
-    is built on every reply — golden rule 8)."""
-    own = _own()
-    if not getattr(world, "armies", None):
-        return []
-    try:
-        key = own._board_key(world)
-    except Exception as exc:
-        report(exc, "army_task.tonight_shown: the key")
-        return tonight(world, own.tonight_shown(world))
-    if _SHOWN["key"] != key:
-        _SHOWN["rows"] = tonight(world, own.tonight_shown(world))
-        _SHOWN["key"] = key
-    return list(_SHOWN["rows"] or [])
-
-
-def tonight_rows(world, lead_name: str) -> List[Dict[str, Any]]:
-    """The followers' lines under their commander's "Tonight" (the desk, the
-    End Turn list)."""
-    out = []
-    for reading in tonight_shown(world):
-        if reading.get("follows") != lead_name:
+def this_turn(world, marshal) -> str:
+    """What a follower did as this turn opened (the pass's own row, logged) —
+    "" when he made no move with his commander this turn (Row IC, Session 4b:
+    the card says what he did, never what he will do)."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for event in reversed((getattr(world, "event_log", None) or [])[-400:]):
+        if not isinstance(event, dict) or event.get("type") != "own_night":
             continue
-        out.append({"marshal": reading["marshal"], "shown": reading["shown"], "act": reading["act"],
-                    "line": "Tonight: " + str(reading.get("line") or ""),
-                    "may_day": False, "visible": bool(reading.get("visible")),
-                    "step_out": False, "follows": lead_name})
-    return out
+        if int(event.get("turn", -1) or -1) != turn:
+            break
+        if event.get("phase") == "follow" and event.get("marshal") == marshal.name:
+            return str(event.get("message") or "")
+    return ""
 
 
 def follower_payload(world, marshal) -> Optional[Dict[str, Any]]:
-    """A follower's card: whom he follows, for which army, and his night."""
+    """A follower's card: whom he follows, for which army, and what he did as
+    this turn opened."""
     lead = following(world, marshal)
     if lead is None:
         return None
     own = _own()
     spec = own.own(lead) or {}
-    mine = next((r for r in tonight_shown(world) if r.get("marshal") == marshal.name), {})
     with_order, _without = _arrival(world, lead, marshal)
+    given_now = getattr(getattr(marshal, "strategic_order", None), "issued_turn", None) == int(
+        getattr(world, "current_turn", 0) or 0)
     return {"lead": lead.name, "lead_shown": _shown(lead.name), "army": str(spec.get("army") or ""),
-            "task": own.task_words(spec), "tonight": str(mine.get("line") or ""),
-            "odds": int(with_order)}
+            "task": own.task_words(spec), "this_turn": this_turn(world, marshal),
+            "first_move_next": bool(given_now), "odds": int(with_order)}
 
 
 def commander_payload(world, marshal) -> Dict[str, Any]:
@@ -1309,7 +1306,7 @@ def readback(world, text: str, out: Dict[str, Any], listing: Dict[str, Any],
         short = len(going) - len(ticked)
         cost = f"{pp._cost_text(full, 'military', full == 0)} for the {have} in hand"
         if short > 0:
-            cost += f" — {_plural(short, 'man')} must wait for tomorrow's actions"
+            cost += f" — {_plural(short, 'man')} must wait for next turn's actions"
         parts = [("head", head), ("cost", cost)]
         if lead_row is not None and lead_row.get("ok"):
             price = int(lead_row.get("ap", 0) or 0)
@@ -1317,7 +1314,7 @@ def readback(world, text: str, out: Dict[str, Any], listing: Dict[str, Any],
                                    f"he is set on his own ({_plural(price, 'action')})"))
             for note in (lead_row.get("notes") or [])[1:]:
                 said = str(note)
-                if said.startswith("His first night") or said.startswith("Tonight, as things stand"):
+                if said.startswith(FIRST_MOVE):
                     parts.append(("tonight", said))
                 elif _tone(said) == "warn":
                     parts.append(("warn", said))
@@ -1331,8 +1328,8 @@ def readback(world, text: str, out: Dict[str, Any], listing: Dict[str, Any],
             one = len(men) == 1
             parts.append(("taken", f"{who} follow{'s' if one else ''} him — 1 action{'' if one else ' each'}, "
                                    f"and take{'s' if one else ''} none of your places for men on their "
-                                   f"own; {'he moves' if one else 'they move'} with him each night and "
-                                   f"may join his battles"))
+                                   f"own; {'he moves' if one else 'they move'} with him at the start of each "
+                                   f"turn and may join his battles"))
         for r in rows_:
             if not r.get("ok") and r.get("marshal") != lead:
                 parts.append(("warn", f"{r['shown']} is left out — {r.get('why') or 'he cannot go'}"))

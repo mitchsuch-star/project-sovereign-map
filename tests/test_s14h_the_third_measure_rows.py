@@ -1129,7 +1129,7 @@ class TestS14G2:
         _r2_order(executor, gs, "Massena", "Massena, hold Bohemia", "HOLD", "hold", "Bohemia")
         line = end_turn_interrupt_warning(world, "France")
         assert line is not None
-        assert line.startswith("Massena (aggressive) holds a standing order at Bohemia with ")
+        assert line.startswith("Massena (bold) holds a standing order at Bohemia with ")
         assert "Kutuzov's ~" in line or "Archduke" in line or "Mack's" in line
         assert line.endswith("— he will drop it for any battle within two provinces "
                              "in a war of ours.")

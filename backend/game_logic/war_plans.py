@@ -6,9 +6,11 @@ enemy learns of you), §7 (exact orders — the same for every nation), §2 step
 §235; the seams `tests/_ic4_seams.py`.
 
 THE ENEMY KEEPS ITS HAND. Its bold and careful marshals are moved by their
-court's own logic exactly as before. What a court at war GAINS is a war plan —
-drawn by the campaign's seed from two or three written ones (the historical
-seed draws the first, the historical plan):
+court's own logic exactly as before. What a court at war WITH FRANCE gains is
+a war plan — drawn by the campaign's seed from two or three written ones (the
+historical seed draws the first, the historical plan). A plan is drawn against
+France, the other side of the hill: a court whose wars are all with other
+courts fights them by its own logic, as before (`_muster`):
 
   * a plan is a short list of STEPS; a step gives EXACT ORDERS — a standing
     order and up to three if-thens, the very if-thens the player's literal men
@@ -19,7 +21,7 @@ seed draws the first, the historical plan):
     place fallen) and the next applies; steps only go forward; when they run
     out the men are the court's ordinary literal men again;
   * while a court's capital is lost its part of the plan is torn up;
-  * a court at peace has no plan.
+  * a court at peace with France has no plan.
 
 A MARSHAL UNDER A PLAN IS MOVED BY HIS WRITTEN ORDERS AND NOTHING ELSE — except
 to save his corps, to fight a battle he is already in, to take the ground he
@@ -66,16 +68,37 @@ ANY_LITERAL = "any_literal"
 # ═══════════════════════════ the seams ═══════════════════════════════════════
 
 def the_courts_follow_a_plan() -> bool:
-    """IC-14's seam (`tests/_ic4_seams.py`, row PLAN). SHIPS DOWN — BUILT, NOT
-    ADOPTED (November 22, 2026): the measure's rule written before the data
-    (R-HILL (4): a letter-following enemy marshal acts no less often than
-    today) was missed after the two rounds of content its fallback allows, so
-    by that fallback the plans ship off and the choice is the user's
-    (`tools/_ic4_measure.py`; SYSTEMS_REFERENCE §235). Down: no pass, no plan
-    order, no gate; every man is moved by his court's own logic, as before the
-    session. One line to adopt: return True (then re-take the measure and
-    re-pin the standing record)."""
-    return False
+    """IC-14's seam (`tests/_ic4_seams.py`, row PLAN). SHIPS UP — FIXED and
+    SWITCHED ON November 23, 2026: the user's "fix warplans", then, shown the
+    measure below, "Switch them on" (IC4-D1 closed; BASELINE_SERIES re-pinned
+    from `tools/_ic4b_fix_series_arms_2026_11_23.json`'s "+PLAN" arm, the old
+    pin kept as SERIES_BEFORE_IC4B).
+
+    The record: built in Session 4 behind this seam and shipped down — the
+    measure's R-HILL (4) (a letter-following enemy marshal acts no less often
+    than today) was missed after its two rounds of content
+    (`tools/_ic4_measure.py`; SYSTEMS_REFERENCE §235). The user ruled "On,
+    after 20 seeds" (D41): if those seeds break a clause of the deploy gate,
+    the seam stays down and the question is his. Session 4b read them: up, no
+    minor was raised on any of the thirty seeds (clause 2;
+    `tools/_ic4_promotions_wide_2026_11_23.json`). Traced (§236.8): every
+    court at war drew a plan — France's ally Bavaria too, in her own war with
+    Austria — and the general set ordered her one corps (Deroy, who follows
+    orders to the letter) to hold where he stood from turn 2 until its steps
+    ran out at turn 10; the peace came at 14 with the Tyrol that crowns her
+    untaken (with the same coalition plan and none of her own he takes it at
+    13). THE FIX (`_muster`): a plan is drawn only by a court at war with
+    France. Measured again (the rules written first,
+    `tools/_ic4_measure.py`): up, the band 28/25/26 and every clause of the gate
+    but clause 2, still zero on the thirty; on 200 fresh seeds a minor rises on
+    8 with the plans up and 9 with them down (`tools/_ic4b_wide_promotions.py`)
+    — the thirty's zero is the sample's (at one seed in twenty-two, thirty seeds
+    read zero about one time in four); per court the plans close Denmark's road
+    to Scania (5 to 0) while Bavaria and Hesse rise more often. By D41 the seam
+    stayed down and the question went back to the user with those numbers: he
+    answered "Switch them on". Down: no pass, no plan order, no gate; every man
+    is moved by his court's own logic."""
+    return True
 
 
 def a_planned_man_still_strikes_at_good_odds() -> bool:
@@ -171,8 +194,10 @@ def from_saved(raw: Any, scenario_name: str = "") -> Dict[str, Any]:
 def to_save(world) -> Dict[str, Any]:
     """What a save carries of the store: all of it beside a holder's plan;
     nothing while no court holds one and the sets can be read back from the
-    world's own scenario (so a default save gains no key — and none while the
-    plans ship off); the sets alone for a scenario that cannot be read back."""
+    world's own scenario (so a save gains no key until a court at war with
+    France has drawn its plan — the plans ship UP since November 23, 2026, so a
+    save made in the boot war carries one); the sets alone for a scenario that
+    cannot be read back."""
     store = getattr(world, "war_plans", None)
     if not isinstance(store, dict) or not store:
         return {}
@@ -394,15 +419,23 @@ def _set_for(world, nation: str) -> Tuple[str, Optional[Dict[str, Any]]]:
 def _muster(world) -> Dict[str, Dict[str, Any]]:
     """Every holder that should stand tonight: `{holder: {"set", "courts"}}` —
     each court run by the game (never the player's, never a client: a client's
-    men march at their lord's call) that is at war and still on the map."""
+    men march at their lord's call) that is AT WAR WITH FRANCE (the player) and
+    still on the map. A plan is drawn against France: a court whose wars are
+    all with other courts — France's ally Bavaria against Austria, Denmark
+    against Sweden — fights them by its own logic, as before. (Every court at
+    war drew one until November 23, 2026, and the general set ordered Bavaria's
+    one corps to hold where he stood through the war that wins her the Tyrol:
+    §236.8, IC4b-28.)"""
     live: Dict[str, Dict[str, Any]] = {}
     player = _player(world)
+    if not player:
+        return live
     clients = getattr(world, "vassals", None) or {}
     active = set(world.get_active_nations())
     for nation in list(getattr(world, "enemy_nations", None) or []):
         if nation == player or nation in clients or nation not in active:
             continue
-        if not world.get_nations_at_war_with(nation):
+        if not world.is_at_war(nation, player):
             continue
         key, plan_set = _set_for(world, nation)
         if not key or plan_set is None:
@@ -655,7 +688,15 @@ def _settle_the_holders(world) -> List[str]:
                 continue
             state = held[key] = _fresh_state(world, key, plan_id, courts)
             _enter(world, key, state)
+        joined = [c for c in courts if c not in (state.get("courts") or ())]
         state["courts"] = courts
+        for court in joined:
+            # A court that (re)joins a standing holder takes the step's orders
+            # afresh: its men's marks from before it left (a peace with France
+            # inside the step, a war renewed) would otherwise keep them off the
+            # step until the next (IC4b-29).
+            for man in world.get_marshals_by_nation(court):
+                (state.get("enrolled") or {}).pop(man.name, None)
         torn = [c for c in courts if capital_is_lost(world, c)]
         state["torn"] = torn
         for court in torn:

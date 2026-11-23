@@ -754,6 +754,43 @@ def _desk(world, envelope=None):
         return None
 
 
+def _learned_for_wire(world) -> dict:
+    """Row IC, Session 4b: `learned.payload(world)` for the envelope, each
+    marshal row carrying his nature (`display_names.nature_of`). {} when
+    nothing was learned. Never raises into a reply."""
+    try:
+        from backend.game_logic import learned as _learned
+        from backend.display_names import nature_of as _nature_of
+        shown = _learned.payload(world)
+        for name, row in (shown.get("marshals") or {}).items():
+            row.update(_nature_of(world.get_marshal(name), world))
+        return shown
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "main._learned_for_wire")
+        return {}
+
+
+def _nature_beside_personality(world, response: dict) -> None:
+    """Row IC, Session 4b (IC-15): an objection names its marshal's NATURE —
+    the one table, `display_names.NATURE_WORDS` — beside the raw personality
+    it carries (top level for a tactical objection, `objection` for a strategic
+    one; every objection path reaches the wire through here). A copy is written
+    only where a personality rides; nothing else changes."""
+    try:
+        from backend.display_names import nature_of as _nature_of
+        for holder in (response, response.get("objection")):
+            if not isinstance(holder, dict) or not holder.get("personality") or holder.get("nature"):
+                continue
+            name = holder.get("marshal") or response.get("marshal")
+            marshal = world.get_marshal(str(name)) if isinstance(name, str) and name else None
+            holder.update(_nature_of(marshal if marshal is not None
+                                     else {"personality": holder.get("personality")}, world))
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "main._nature_beside_personality")
+
+
 def _named_armies(world):
     """Row IC, directives: the armies the player has named, as the client
     draws their chips (`armies.payload`) — [] when none (nothing is read on a
@@ -901,7 +938,15 @@ def build_base_response(world, success: bool = True, message: str = "",
     _armies = _named_armies(world)
     if _armies:
         response["armies"] = _armies
+    # Row IC, Session 4b (IC4-D2): what France has learned of the enemy's
+    # written orders, each with its age and how it was learned — rides only
+    # while something was learned (absent = nothing), so a board that never
+    # sent a spy or took orders carries the envelope it always did.
+    _learned_rows = _learned_for_wire(world)
+    if _learned_rows:
+        response["learned"] = _learned_rows
     response.update(extra)
+    _nature_beside_personality(world, response)
     # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): a line of authority crossed by ANY
     # write since the last response rides this one (the tracker's queue, read
     # then cleared — Golden Rule 4); an executor result that carries its own

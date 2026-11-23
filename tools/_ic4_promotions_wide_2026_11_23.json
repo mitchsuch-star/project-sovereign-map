@@ -1,0 +1,101 @@
+{
+ "_note": "Row IC, Session 4b \u2014 the deploy gate's clause 2 on the twenty wide seeds (forty turns, the ambient runner, per arm): each seed's rank promotions [turn, court]. Read with the ten's record by the gate surface. Written by tools/_ic4_measure.py --surfaces promotions.",
+ "arms": {
+  "+PLAN": {
+   "seams_held": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True"
+   ],
+   "seeds": {
+    "abukir": [],
+    "arcole": [],
+    "aspern": [],
+    "bautzen": [],
+    "borodino": [],
+    "castiglione": [],
+    "dresden": [],
+    "hohenlinden": [],
+    "jemappes": [],
+    "leipzig": [],
+    "lutzen": [],
+    "salamanca": [],
+    "smolensk": [],
+    "talavera": [],
+    "trafalgar": [],
+    "valmy": [],
+    "vitoria": [],
+    "waterloo": [],
+    "wavre": [],
+    "zurich": []
+   },
+   "seeds_promoting": []
+  },
+  "0": {
+   "seams_held": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=False",
+    "backend.game_logic.war_plans:a_plan_names_a_favoured_province=False",
+    "backend.game_logic.war_plans:a_court_learns_a_routed_mans_task=False",
+    "backend.ai.enemy_ai:each_man_has_his_own_mood=False",
+    "backend.ai.enemy_ai:the_enemy_hunts_a_lone_corps=False",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=False"
+   ],
+   "seeds": {
+    "abukir": [],
+    "arcole": [],
+    "aspern": [
+     [
+      21,
+      "Bavaria"
+     ]
+    ],
+    "bautzen": [],
+    "borodino": [
+     [
+      30,
+      "Denmark"
+     ]
+    ],
+    "castiglione": [],
+    "dresden": [],
+    "hohenlinden": [],
+    "jemappes": [],
+    "leipzig": [],
+    "lutzen": [],
+    "salamanca": [],
+    "smolensk": [],
+    "talavera": [],
+    "trafalgar": [],
+    "valmy": [],
+    "vitoria": [],
+    "waterloo": [],
+    "wavre": [],
+    "zurich": []
+   },
+   "seeds_promoting": [
+    "aspern",
+    "borodino"
+   ]
+  }
+ },
+ "seeds": [
+  "aspern",
+  "borodino",
+  "leipzig",
+  "waterloo",
+  "talavera",
+  "salamanca",
+  "vitoria",
+  "dresden",
+  "bautzen",
+  "lutzen",
+  "hohenlinden",
+  "trafalgar",
+  "abukir",
+  "arcole",
+  "castiglione",
+  "zurich",
+  "valmy",
+  "jemappes",
+  "smolensk",
+  "wavre"
+ ]
+}

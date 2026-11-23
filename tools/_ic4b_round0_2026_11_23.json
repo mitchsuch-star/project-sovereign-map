@@ -1,0 +1,359 @@
+{
+ "tool": "tools/_ic4b_measure.py",
+ "seeds": 30,
+ "turns": 20,
+ "men": [
+  "Ney",
+  "Lannes",
+  "Murat",
+  "Davout",
+  "Bernadotte"
+ ],
+ "bars": {
+  "bold_pooled": 0.6,
+  "bold_each": 0.5,
+  "careful_good": 0.6,
+  "return": 0.8,
+  "acts_together": 0.7,
+  "bold_toward": 0.5
+ },
+ "score": {
+  "R-INITIATIVE": {
+   "bold_pooled": 0.275,
+   "bold_chance_turns": 298,
+   "bold_each_met": false,
+   "careful_good_share": 0.287,
+   "careful_good_turns": 108,
+   "far_chances": [],
+   "far_count": 0,
+   "return_share": 0.355,
+   "returns_due": 31,
+   "out_and_back": 2,
+   "free_chance_turns": 220,
+   "free_taken_share": 0.482,
+   "met": false
+  },
+  "R-ACTS": {
+   "together_visible_share_at_war": 0.574,
+   "war_turns": 1600,
+   "bare_stays": [
+    [
+     "ic4b-02",
+     9,
+     "Murat",
+     "Murat could not carry out his move: Cannot attack elsewhere while engaged with enemy forces! Archduke Charles, Kutuzov must be dealt with fi"
+    ],
+    [
+     "ic4b-05",
+     9,
+     "Murat",
+     "Murat could not carry out his move: Cannot charge through Swabia - Mack blocks the path! Engage them first."
+    ],
+    [
+     "ic4b-05",
+     10,
+     "Murat",
+     "Murat could not carry out his move: Cannot charge through Swabia - Mack blocks the path! Engage them first."
+    ],
+    [
+     "ic4b-08",
+     4,
+     "Murat",
+     "Murat could not carry out his move: Cannot charge through Munich - Mack blocks the path! Engage them first."
+    ],
+    [
+     "ic4b-08",
+     10,
+     "Murat",
+     "Murat could not carry out his move: Cannot attack elsewhere while engaged with enemy forces! Kutuzov must be dealt with first."
+    ],
+    [
+     "ic4b-12",
+     3,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte cannot fortify while engaged with enemy forces! Enemy present: Archduke Charles. Attack "
+    ],
+    [
+     "ic4b-13",
+     4,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte cannot fortify while engaged with enemy forces! Enemy present: Archduke Charles. Attack "
+    ],
+    [
+     "ic4b-14",
+     4,
+     "Murat",
+     "Murat could not carry out his move: Cannot attack elsewhere while engaged with enemy forces! Mack must be dealt with first."
+    ],
+    [
+     "ic4b-14",
+     5,
+     "Murat",
+     "Murat could not carry out his move: Cannot move into Tyrol - enemy forces present! Use ATTACK to engage Archduke John."
+    ],
+    [
+     "ic4b-19",
+     3,
+     "Murat",
+     "Murat could not carry out his move: Cannot charge through Munich - Mack blocks the path! Engage them first."
+    ],
+    [
+     "ic4b-19",
+     3,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Cannot advance while engaged with Archduke Charles at Franconia. No friendly province adjoins him: "
+    ],
+    [
+     "ic4b-20",
+     19,
+     "Lannes",
+     "Lannes could not carry out his move: Cannot attack elsewhere while engaged with enemy forces! Buxhowden must be dealt with first."
+    ],
+    [
+     "ic4b-22",
+     17,
+     "Murat",
+     "Murat could not carry out his move: Cannot move into Bohemia - enemy forces present! Use ATTACK to engage Archduke Charles, Archduke John, K"
+    ],
+    [
+     "ic4b-22",
+     21,
+     "Murat",
+     "Murat could not carry out his move: Cannot move into Bohemia - enemy forces present! Use ATTACK to engage Mack, Archduke Charles, Archduke J"
+    ],
+    [
+     "ic4b-24",
+     3,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte cannot fortify while engaged with enemy forces! Enemy present: Archduke Charles. Attack "
+    ],
+    [
+     "ic4b-27",
+     3,
+     "Murat",
+     "Murat could not carry out his move: Cannot attack elsewhere while engaged with enemy forces! Mack must be dealt with first."
+    ],
+    [
+     "ic4b-27",
+     7,
+     "Murat",
+     "Murat could not carry out his move: Cannot charge through Tyrol - Archduke Charles blocks the path! Engage them first."
+    ],
+    [
+     "ic4b-27",
+     15,
+     "Ney",
+     "Ney could not carry out his move: Cannot attack elsewhere while engaged with enemy forces! Archduke Charles must be dealt with first."
+    ]
+   ],
+   "bare_stay_count": 18,
+   "bold_toward_met": false,
+   "met": false,
+   "per_man": {
+    "Ney": {
+     "turns": 393,
+     "visible_share": 0.646,
+     "stays_share": 0.221,
+     "kinds": [
+      "attack",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike"
+     ],
+     "near_foe_turns": 201,
+     "toward_share": 0.502,
+     "chance_turns": 117,
+     "chance_taken_share": 0.222,
+     "good_chance_turns": 78,
+     "good_taken_share": 0.321,
+     "tasks": {
+      "hold": 15,
+      "pursue": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Lannes": {
+     "turns": 342,
+     "visible_share": 0.497,
+     "stays_share": 0.149,
+     "kinds": [
+      "attack",
+      "join",
+      "look",
+      "march",
+      "move_up",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 242,
+     "toward_share": 0.459,
+     "chance_turns": 118,
+     "chance_taken_share": 0.28,
+     "good_chance_turns": 70,
+     "good_taken_share": 0.386,
+     "tasks": {
+      "support": 15,
+      "pursue": 5,
+      "hold": 5,
+      "free": 5
+     }
+    },
+    "Murat": {
+     "turns": 217,
+     "visible_share": 0.659,
+     "stays_share": 0.069,
+     "kinds": [
+      "attack",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 198,
+     "toward_share": 0.606,
+     "chance_turns": 63,
+     "chance_taken_share": 0.365,
+     "good_chance_turns": 41,
+     "good_taken_share": 0.488,
+     "tasks": {
+      "pursue": 15,
+      "hold": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Davout": {
+     "turns": 397,
+     "visible_share": 0.547,
+     "stays_share": 0.343,
+     "kinds": [
+      "dig_in",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 205,
+     "toward_share": 0.395,
+     "chance_turns": 109,
+     "chance_taken_share": 0.275,
+     "good_chance_turns": 80,
+     "good_taken_share": 0.287,
+     "tasks": {
+      "hold": 15,
+      "support": 5,
+      "free": 5,
+      "pursue": 5
+     }
+    },
+    "Bernadotte": {
+     "turns": 251,
+     "visible_share": 0.538,
+     "stays_share": 0.147,
+     "kinds": [
+      "attack",
+      "dig_in",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 180,
+     "toward_share": 0.311,
+     "chance_turns": 79,
+     "chance_taken_share": 0.127,
+     "good_chance_turns": 28,
+     "good_taken_share": 0.286,
+     "tasks": {
+      "support": 5,
+      "free": 5,
+      "hold": 10,
+      "take": 5,
+      "pursue": 5
+     }
+    }
+   }
+  },
+  "R-REPORT": {
+   "false": [
+    [
+     "ic4b-02",
+     3,
+     "Lannes",
+     "march",
+     "Lannes marched from Swabia to Franconia, to find Archduke Charles."
+    ],
+    [
+     "ic4b-12",
+     5,
+     "Lannes",
+     "march",
+     "Lannes marched from Lorraine to Franche-Comte, to hold Franche-Comte."
+    ],
+    [
+     "ic4b-14",
+     11,
+     "Bernadotte",
+     "march",
+     "Bernadotte marched from Tyrol to Bohemia, after Archduke John."
+    ],
+    [
+     "ic4b-20",
+     3,
+     "Lannes",
+     "march",
+     "Lannes marched from Swabia to Franconia, to find Archduke Charles."
+    ],
+    [
+     "ic4b-23",
+     13,
+     "Lannes",
+     "march",
+     "Lannes marched from Swabia to Munich, to where Mack was last seen."
+    ],
+    [
+     "ic4b-26",
+     7,
+     "Lannes",
+     "march",
+     "Lannes moved up to Swabia, beside Davout, who faces Archduke Charles \u2014 to the guns."
+    ]
+   ],
+   "count": 6,
+   "met": false
+  },
+  "R-VARIETY": {
+   "alike_share": 0.052,
+   "turns_read": 366,
+   "third_turn_repeats": 0,
+   "asks_or_recovers_three_turns": 0,
+   "every_man_two_kinds": true,
+   "met": true
+  },
+  "R-TOGETHER": {
+   "turns": 488,
+   "double_attacks": 0,
+   "named_share": 0.535,
+   "met": true
+  },
+  "R-FRIENDS": {
+   "battles_with_a_man_beside": 365,
+   "he_rolled": 96
+  }
+ },
+ "seconds": 201
+}

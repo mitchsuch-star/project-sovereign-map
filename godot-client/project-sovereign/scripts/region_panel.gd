@@ -373,6 +373,41 @@ var _war_goals: Array = []
 var _war_enemies: Array = []
 
 
+# Row IC 4b: what France has learned of the enemy's plans (the server's
+# "learned" key, handed in by main.gd on every reply).
+var _learned: Dictionary = {}
+
+
+func set_learned(payload: Dictionary) -> void:
+	"""Row IC 4b: store what we have learned; an open panel redraws only when it changed."""
+	if payload == _learned:
+		return
+	_learned = payload.duplicate(true)
+	if visible:
+		_render_keeping_scroll()
+
+
+func _enemy_know_lines(m: Dictionary) -> String:
+	"""Row IC 4b: under an enemy marshal's row, his nature in muted words and, only
+	when something was learned, his orders with their age. Nothing otherwise."""
+	if str(m.get("nation", "")) == _PLAYER_NATION:
+		return ""
+	var out := ""
+	var nature := str(m.get("nature", ""))
+	if nature != "":
+		out += "    [color=#" + Utils.COLOR_INFO + "]Nature: " + nature + "[/color]\n"
+	var rows = _learned.get("marshals", {})
+	if rows is Dictionary:
+		var row = rows.get(str(m.get("name", "")), null)
+		if row is Dictionary:
+			var orders := Utils.learned_orders_text(row)
+			if orders != "":
+				var tail := Utils.learned_tail(row)
+				var head := "Known orders" + (" (" + tail + ")" if tail != "" else "")
+				out += "    [color=#" + Utils.COLOR_ENEMY_VOICE + "]" + head + ": " + orders + "[/color]\n"
+	return out
+
+
 func set_war_goal_context(goals: Array, enemies: Array) -> void:
 	"""Row IC, directives: store the desk's goal rows and the courts we are at war
 	with; an open panel redraws, the reader's scroll kept."""
@@ -744,6 +779,7 @@ func _render() -> void:
 				bbcode += _marshal_row_folded(m, enemy_names)   # Session UI-6: one row a marshal
 			else:
 				bbcode += _format_marshal_row(m, enemy_names)
+			bbcode += _enemy_know_lines(m)
 		var ap_under_forces := _actions_left_words(bbcode.substr(forces_from))
 		ap_said = ap_under_forces != ""
 		bbcode += ap_under_forces

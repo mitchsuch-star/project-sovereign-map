@@ -77,10 +77,11 @@ def world(_snapshot):
         return WorldState.from_dict(json.loads(_snapshot))
 
 
-# The plans SHIP DOWN — built, not adopted (the measure's R-HILL (4) was missed
-# after its two rounds; `war_plans.the_courts_follow_a_plan`). Everything this
-# file pins of the plans is pinned of what was BUILT: every test runs with the
-# seam raised, and the pins of what SHIPS read the real function, kept here.
+# The plans SHIP UP — built in Session 4, FIXED November 23, 2026 by the user's
+# "fix warplans" (IC4-D1: a plan drawn only against France) and switched on at
+# his word on the measure, "Switch them on" (`war_plans.the_courts_follow_a_plan`).
+# Every test here runs with the seam raised, as before; the pins of what SHIPS
+# read the real function, kept here.
 _AS_SHIPPED = WP.the_courts_follow_a_plan
 
 
@@ -325,10 +326,68 @@ class TestTheDraw:
         assert world.get_nations_at_war_with("KingdomOfItaly")
         assert WP.holder_of(world, "KingdomOfItaly") == ""
 
-    def test_every_other_court_at_war_draws_from_the_general_pair(self, world):
+    def test_a_court_whose_wars_are_all_with_other_courts_draws_no_plan(self, world):
+        """IC4-D1, the fix (November 23, 2026): a plan is drawn against France.
+        France's ally Bavaria fights Austria and Spain fights Britain at the boot
+        — neither war is France's, so each court fights it by its own logic;
+        the general set had ordered Bavaria's one corps, Deroy, to hold where
+        he stood through the war that wins her the Tyrol (SYSTEMS_REFERENCE
+        §236.8, IC4b-28)."""
+        assert world.get_nations_at_war_with("Bavaria") and world.get_nations_at_war_with("Spain")
+        assert not world.is_at_war("Bavaria", "France") and not world.is_at_war("Spain", "France")
         _pass(world)
-        assert WP.holders(world)["court::Bavaria"]["plan"] in ("press_forward", "guard_the_capital")
+        held = WP.holders(world)
+        assert "court::Bavaria" not in held and "court::Spain" not in held
+        assert WP.holder_of(world, "Bavaria") == "" and WP.holder_of(world, "Spain") == ""
+        deroy = world.get_marshal("Deroy")
+        assert deroy.personality == "literal" and not WP.planned(world, deroy)
+        assert WP.favoured(world, "Bavaria") == frozenset()
+
+    def test_a_court_at_war_with_france_with_no_set_of_its_own_draws_from_the_general_pair(self, world):
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        assert not world.is_at_war("Spain", "France")
+        set_diplomatic_state(world, "Spain", "France", "WAR")
+        assert world.is_at_war("Spain", "France")
+        _pass(world)
         assert WP.holders(world)["court::Spain"]["plan"] in ("press_forward", "guard_the_capital")
+
+    def test_a_court_that_rejoins_its_coalitions_plan_takes_the_step_afresh(self, world):
+        """IC4b-29 (the review): Austria takes a truce with France inside a
+        step — still of the coalition, out of its plan — while Russia and
+        Britain keep the holder standing, then the war resumes: her letter-
+        following man takes the step's orders again that night, not only at
+        the next step. (A peace takes a court out of the coalition itself, so
+        a renewed war draws its own plan.)"""
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        _pass(world)
+        WP.holders(world)[COALITION]["live_turns"] = -1000      # the step stands through the test
+        mack = world.get_marshal("Mack")
+        assert WP.planned(world, mack)
+        set_diplomatic_state(world, "Austria", "France", "ARMISTICE")
+        _pass(world)
+        state = WP.holders(world)[COALITION]
+        assert "Austria" not in state["courts"] and not WP.planned(world, mack)
+        assert "Austria" in world.active_coalition["members"], "a truce keeps her in the coalition"
+        step = state["step"]
+        set_diplomatic_state(world, "Austria", "France", "WAR")
+        _pass(world)
+        state = WP.holders(world)[COALITION]
+        assert state["step"] == step, "the same step"
+        assert "Austria" in state["courts"]
+        assert WP.planned(world, mack), "her man takes the step's orders again at once"
+
+    def test_a_court_that_makes_its_peace_with_france_loses_its_plan(self, world):
+        """At war with others still, but no longer with France: the holder
+        goes and its men's written orders come off at the next night."""
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        set_diplomatic_state(world, "Spain", "France", "WAR")
+        _pass(world)
+        assert "court::Spain" in WP.holders(world)
+        set_diplomatic_state(world, "Spain", "France", "PEACE")
+        assert world.get_nations_at_war_with("Spain"), "Spain is still at war with Britain"
+        _pass(world)
+        assert "court::Spain" not in WP.holders(world)
+        assert not any(WP.planned(world, m) for m in world.get_marshals_by_nation("Spain"))
 
     def test_a_bare_board_has_no_plan_and_nothing_runs(self):
         from backend.models.world_state import WorldState
@@ -423,6 +482,7 @@ class TestAPlansLife:
         _pass(world)
         assert WP.planned(world, world.get_marshal("Mack"))
         monkeypatch.setattr(type(world), "get_nations_at_war_with", lambda self, nation: [])
+        monkeypatch.setattr(type(world), "is_at_war", lambda self, a, b: False)
         _pass(world)
         assert WP.holders(world) == {}
         assert world.get_marshal("Mack").strategic_order is None
@@ -1269,19 +1329,29 @@ class TestTheFogCensus:
 class TestTheArms:
 
     def test_what_ships_up_and_what_ships_down(self):
-        # BUILT, NOT ADOPTED: the plans are off as shipped (the measure's rule,
-        # written first, was missed — the choice is the user's).
-        assert _AS_SHIPPED() is False
+        # SWITCHED ON November 23, 2026 — the user's "Switch them on", after
+        # the fix and its measure (IC4-D1 closed); the three arms stay down.
+        assert _AS_SHIPPED() is True
         assert WP.a_plan_names_a_favoured_province() is True
         assert WP.a_court_learns_a_routed_mans_task() is True
         assert EA.each_man_has_his_own_mood() is False
         assert EA.the_enemy_hunts_a_lone_corps() is False
         assert WP.a_planned_man_still_strikes_at_good_odds() is False
 
-    def test_as_shipped_no_court_has_a_plan_and_no_man_is_planned(self, world, monkeypatch):
-        """The shipped tree: the pass writes nothing, draws nothing, moves
-        nobody — every man is his court's own, as before the session."""
+    def test_as_shipped_the_courts_at_war_with_france_follow_their_plans(self, world, monkeypatch):
+        """The shipped tree: the coalition France fights draws its plan and
+        its letter-following men take their orders; France's ally Bavaria, at
+        war only with Austria, draws none (IC4b-28)."""
         monkeypatch.setattr(WP, "the_courts_follow_a_plan", _AS_SHIPPED)
+        _pass(world)
+        assert sorted(WP.holders(world)) == [COALITION]
+        assert WP.planned(world, world.get_marshal("Mack"))
+        assert not WP.planned(world, world.get_marshal("Deroy"))
+
+    def test_with_the_seam_down_the_pass_changes_nothing(self, world, monkeypatch):
+        """Down (the arm 0 of every measure): the pass writes nothing, draws
+        nothing, moves nobody — every man is his court's own."""
+        monkeypatch.setattr(WP, "the_courts_follow_a_plan", lambda: False)
         before = json.dumps(world.to_dict(), default=str, sort_keys=True)
         rows = _pass(world)
         assert rows == []
@@ -1318,7 +1388,7 @@ class TestTheArms:
         from tests._ic4_seams import IC4_SEAMS_BY_ROW, IC4_SEAMS_DOWN, IC4_SHIPPED_DOWN, IC4_SHIPPED_UP
         from tests._oct27_seams import OCT27_SEAMS_DOWN
         assert list(IC4_SEAMS_BY_ROW) == ["PLAN", "FAVOUR", "LEARNS", "MOOD", "HUNT", "FIGHT"]
-        assert IC4_SHIPPED_DOWN == ("PLAN", "MOOD", "HUNT", "FIGHT")
+        assert IC4_SHIPPED_DOWN == ("MOOD", "HUNT", "FIGHT")
         assert set(IC4_SHIPPED_UP) | set(IC4_SHIPPED_DOWN) == set(IC4_SEAMS_BY_ROW)
         for row, specs in IC4_SEAMS_BY_ROW.items():
             for spec in specs:

@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | PARTLY GUESSED | "No more waiting, moving now" is impatience (Ney); "wherever the guns are loudest" is Lannes
+PAIR 2: Line 1 = Lannes, Line 2 = Ney | SURE | "Point me at the guns" is Lannes; "no man to sit and admire it" is Ney's restlessness
+PAIR 3: Line 1 = Masséna, Line 2 = Davout | SURE | "keep this ground, it's mine now" is Masséna; "every man fed and in his place" is Davout
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | "counted the losses" is Davout; "the field is mine now, I'll hold it" is Masséna
+PAIR 5: Line 1 = Ney, Line 2 = Bernadotte | SURE | "don't leave me idle, send me at someone" is Ney; "I was in no rush" is Bernadotte
+PAIR 6: Line 1 = Bernadotte, Line 2 = Murat | SURE | "rested and in no danger" is Bernadotte's ease; "dust on the roads, none worth following" is Murat's cavalry scouting
+PAIR 7: Line 1 = Bernadotte, Line 2 = Davout | SURE | "hope it stays that way" is Bernadotte's avoidance; "every man in his place" is Davout
+PAIR 8: Line 1 = Lannes, Line 2 = Davout | SURE | "where the guns are" is Lannes; "rolls and stores first" is Davout
+PAIR 9: Line 1 = Murat, Line 2 = Lannes | PARTLY GUESSED | "give me a horse" is Murat; "straight talk, lead the assault" is Lannes
+PAIR 10: Line 1 = Ney, Line 2 = Murat | PARTLY GUESSED | "find me something to fight" is Ney; "handsomely ridden" is Murat's vanity
+PAIR 11: Line 1 = Bernadotte, Line 2 = Masséna | SURE | "doubts, I'll go slowly" is Bernadotte; "a place I've made mine" is Masséna
+PAIR 12: Line 1 = Murat, Line 2 = Masséna | SURE | "the horses and I" is Murat; "what I held there was mine" is Masséna
+SET 1: A=Davout, B=Bernadotte, C=Murat, D=Masséna, E=Lannes, F=Ney | guessed letters: A, D, F
+SET 2: A=Masséna, B=Bernadotte, C=Ney, D=Murat, E=Lannes, F=Davout | guessed letters: A, C
+SET 3: A=Murat, B=Lannes, C=Bernadotte, D=Masséna, E=Ney, F=Davout | guessed letters: B, C
+SET 4: A=Masséna, B=Bernadotte, C=Ney, D=Murat, E=Lannes, F=Davout | guessed letters: A, E
+SET 5: A=Davout, B=Masséna, C=Murat, D=Ney, E=Lannes, F=Bernadotte | guessed letters: B

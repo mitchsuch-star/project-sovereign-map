@@ -50,6 +50,7 @@ LINES = {
     "stance:aggressive": "aggressive stance",
     "stance:neutral": "neutral stance",
     "stance:defensive": "defensive stance",
+    "own_free": "act on your own",          # row IC, Session 4b: "Set him on his own"
 }
 
 
@@ -773,7 +774,7 @@ class TestTheOneTable:
 
     def test_it_seats_every_order_the_review_listed(self):
         ids = {row["id"] for row in _table()}
-        assert {"stand", "stay_put", "posture", "task",                          # the card
+        assert {"stand", "stay_put", "posture", "task", "own_free",              # the card (Session 4b)
                 "posture_attacking", "posture_steady", "posture_defending",     # posture
                 "form_square", "break_square",                                  # the square
                 "pursue", "bombard", "charge", "held_back",                     # an enemy

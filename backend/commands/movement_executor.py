@@ -1762,7 +1762,8 @@ class MovementExecutor:
                 if scout_bonus > 0:
                     # "Iron Marshal" is Davout's epithet, not the cautious
                     # kit's name — live it captioned Archduke John's lines.
-                    _kit_label = "Iron Marshal" if marshal.name == "Davout" else "Cautious"
+                    from backend.display_names import NATURE_WORDS   # (the nature's own word)
+                    _kit_label = "Iron Marshal" if marshal.name == "Davout" else NATURE_WORDS["cautious"][0]
                     range_msg += f" ({_kit_label}: +{scout_bonus} range)"
                 return {
                     "success": False,

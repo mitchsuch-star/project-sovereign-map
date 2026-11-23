@@ -550,9 +550,9 @@ class CombatResolver:
                         # Label with the personality, not Ney's signature ability —
                         # the 1805 roster has 4 aggressive marshals and this message
                         # fires for all of them (audit 2026-07-09 fix 2.1).
-                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Aggressive: +{base_bonus}% total)"
+                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Bold: +{base_bonus}% total)"
                     else:
-                        attacker_personality_message = f"{attacker.name} leads the charge! (Aggressive: +15% attack)"
+                        attacker_personality_message = f"{attacker.name} leads the charge! (Bold: +15% attack)"
 
                 elif personality == "cautious":
                     if strength_ratio < 1.0:
@@ -574,10 +574,10 @@ class CombatResolver:
                                    f"{int(round(attacker.strength / 1000))}k against "
                                    f"{int(round(defender.strength / 1000))}k")
                                   if committed_attacker > 0 else "")
-                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_frame}. (Cautious: -10% attack)"
+                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_frame}. (Careful: -10% attack)"
                     if current_stance == Stance.AGGRESSIVE:
                         if not attacker_personality_message:
-                            attacker_personality_message = f"{attacker.name} is hesitant in aggressive posture. (Cautious: -5% attack)"
+                            attacker_personality_message = f"{attacker.name} is hesitant in an attacking posture. (Careful: -5% attack)"
 
         # Clear drill bonus AFTER modifier calculation (one-time use).
         # NOTE: Drill state is cleared here in combat.py rather than in marshal.py's
@@ -697,18 +697,18 @@ class CombatResolver:
                 # Personality-specific messages
                 if personality == "aggressive":
                     if current_stance == Stance.AGGRESSIVE:
-                        defender_personality_message = f"{defender.name}'s reckless aggression weakens defense! (Aggressive: -5% additional)"
+                        defender_personality_message = f"{defender.name}'s reckless aggression weakens defense! (Bold: -5% additional)"
                     elif current_stance == Stance.DEFENSIVE:
-                        defender_personality_message = f"{defender.name} chafes at defensive duty. (Aggressive: +10% defense, not +15%)"
+                        defender_personality_message = f"{defender.name} chafes at defensive duty. (Bold: +10% defense, not +15%)"
 
                 elif personality == "cautious":
                     if current_stance == Stance.DEFENSIVE:
                         # Label with the personality, not Davout's epithet — the 1805
                         # roster has 13 cautious marshals (audit 2026-07-09 fix 2.1).
-                        defender_personality_message = f"{defender.name}'s methodical defense is exemplary! (Cautious: +20% total)"
+                        defender_personality_message = f"{defender.name}'s methodical defense is exemplary! (Careful: +20% total)"
                     if is_outnumbered:
                         if not defender_personality_message:
-                            defender_personality_message = f"{defender.name} stands firm against superior numbers! (Cautious: +10% outnumbered)"
+                            defender_personality_message = f"{defender.name} stands firm against superior numbers! (Careful: +10% outnumbered)"
                         else:
                             defender_personality_message += " Outnumbered bonus: +10%"
 

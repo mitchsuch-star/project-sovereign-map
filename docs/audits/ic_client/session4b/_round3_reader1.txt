@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | PARTLY GUESSED | Line 1 is impatience (before I go mad sitting); Line 2 is guns loudest.
+PAIR 2: Line 1 = Ney, Line 2 = Lannes | PARTLY GUESSED | Line 1 is impatient (no more sitting still); Line 2 is leading columns at them, a weak signal.
+PAIR 3: Line 1 = Davout, Line 2 = Masséna | SURE | Line 1 has rolls, stores and feeding every man; Line 2 is holding ground and making them pay.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | Line 1 has rolls counted; Line 2 has what we won stays mine.
+PAIR 5: Line 1 = Ney, Line 2 = Bernadotte | SURE | Line 1 would sooner fight than brood; Line 2 gives an excuse (circumstances).
+PAIR 6: Line 1 = Bernadotte, Line 2 = Lannes | SURE | Line 1 is politic and deflecting; Line 2 is about guns.
+PAIR 7: Line 1 = Masséna, Line 2 = Lannes | SURE | Line 1 is not giving an inch; Line 2 goes to the guns.
+PAIR 8: Line 1 = Davout, Line 2 = Bernadotte | SURE | Line 1 counts every man; Line 2 is politic and hedging.
+PAIR 9: Line 1 = Murat, Line 2 = Masséna | PARTLY GUESSED | Line 1 is about being called back from a pursuit; Line 2 is about ground that was his to take, a grudge over holding ground.
+PAIR 10: Line 1 = Murat, Line 2 = Davout | SURE | Line 1 has horses; Line 2 has recounted every man.
+PAIR 11: Line 1 = Murat, Line 2 = Ney | PARTLY GUESSED | Line 1 has horses saddled; Line 2 is restless, with no cavalry marker.
+PAIR 12: Line 1 = Murat, Line 2 = Bernadotte | SURE | Line 1 has squadrons and a loose rein; Line 2 wants a comfortable moment, which is slow and politic.
+SET 1: A=Lannes, B=Davout, C=Ney, D=Masséna, E=Bernadotte, F=Murat | guessed letters: A, C
+SET 2: A=Masséna, B=Bernadotte, C=Davout, D=Ney, E=Murat, F=Lannes | guessed letters: D, F
+SET 3: A=Masséna, B=Davout, C=Murat, D=Bernadotte, E=Lannes, F=Ney | guessed letters: none
+SET 4: A=Masséna, B=Bernadotte, C=Lannes, D=Murat, E=Davout, F=Ney | guessed letters: D, F
+SET 5: A=Masséna, B=Lannes, C=Bernadotte, D=Murat, E=Davout, F=Ney | guessed letters: D, F

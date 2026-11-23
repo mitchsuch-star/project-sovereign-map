@@ -344,6 +344,11 @@ CAMPAIGN_LOG_TYPES = {
     # (its band), or settled when an old save loads (193 -> 194, flipped
     # consciously)
     "marshal_trial",
+    # Row IC, Session 4b: a marshal on his own (`own_order.EVENT`, a follower's
+    # move in `army_task`) — set, his move as each turn opens, asks, done,
+    # stood down. Logged since Session 3 under a constant the census regex
+    # could not read, and never whitelisted: a silent drop until now.
+    "own_night",
     # PL-14: Ultimatum events
     "ultimatum_issued",
     "ultimatum_accepted",
@@ -712,6 +717,7 @@ CATEGORY_MAP = {
     "army_roster": "command",
     "war_goal": "command",
     "marshal_trial": "command",
+    "own_night": "command",          # row IC, Session 4b: a marshal on his own
     # PL-14: Ultimatum events
     "ultimatum_issued": "diplomacy",
     "ultimatum_accepted": "diplomacy",
@@ -841,6 +847,7 @@ LOG_TIER_NOTABLE = frozenset({
 
 LOG_TIER_ROUTINE = frozenset({
     "army_roster", "war_goal",      # row IC: the staff's own books
+    "own_night",                    # row IC, Session 4b: his move on his own (its battle has its own row)
     "ai_ai_proposal_refused", "ai_proposal_accepted",
     "ai_proposal_counter_failed", "ai_proposal_rejected",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected", "ai_ultimatum_void",
@@ -1045,6 +1052,7 @@ _PLAYER_COURT_RECORDS = frozenset({
     "order_voided_by_battle",
     "marshal_bond", "title_in_the_gift", "title_conferred",
     "marshal_trial",      # row IC, Session 2b: the task to prove himself
+    "own_night",          # row IC, Session 4b: a marshal on his own
 })
 
 
@@ -2633,7 +2641,7 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
 
     if ctx.event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).
-        return ctx.event.get("message", "A literal marshal held to his orders.")
+        return ctx.event.get("message", "A marshal who goes to the letter held to his orders.")
 
     if ctx.event_type == "marshal_captured":
         marshal = ctx.event.get("marshal", "Unknown")
@@ -3947,6 +3955,23 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         result = {"spectacular": "he has proved himself", "good": "a good result",
                   "none": "little to show for it", "poor": "a poor result"}.get(band, band)
         return f"{marshal}'s task to prove himself is over — {result} ({moved})"
+
+    if ctx.event_type == "own_night":
+        # Row IC, Session 4b: a marshal on his own — every phase carries the
+        # sentence the morning (or the reply) already told, in plain words;
+        # the row is that sentence. A row without one says what changed.
+        message = str(ctx.event.get("message") or "").strip().rstrip(".")
+        if message:
+            return message
+        marshal = humanize_entity_name(ctx.event.get("marshal", "Unknown"))
+        phase = str(ctx.event.get("phase") or "")
+        return {"given": f"{marshal} is set on his own",
+                "stood_down": f"{marshal} is stood down",
+                "carry_on": f"{marshal} carries on with his task",
+                "asks": f"{marshal} asks for your word on his task",
+                "done": f"{marshal}'s task is done",
+                "follow": f"{marshal} moved with his army's commander"}.get(
+                    phase, f"{marshal} acted on his own")
 
     # PL-14: Ultimatum events
     if ctx.event_type == "ultimatum_issued":

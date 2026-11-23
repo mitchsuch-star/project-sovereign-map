@@ -2072,7 +2072,7 @@ class TestNewsOfABattleAbroad:
             assert kind in campaign_log.CAMPAIGN_LOG_TYPES
         # 188 at BA-4; 191 since row MC (Nov 17, 2026) added `marshal_bond`, `title_in_the_gift`
         # and `title_conferred` (precedence.py)
-        assert len(campaign_log.CAMPAIGN_LOG_TYPES) == 194  # 193->194 flipped consciously: row IC, Session 2b (Nov 20, 2026) adds `marshal_trial` - a marshal's task to prove himself: given, pressed on (a roll), ended, or an old save's three turns settled on loading (trial.py); no inert type retired in exchange  # 191->193 flipped consciously: row IC, directives (Nov 19, 2026) adds `army_roster` - a named army formed, changed or dissolved (armies.py) - and `war_goal` - the goal the Emperor names for a war, or drops (war_goals.py); no inert type retired in exchange
+        assert len(campaign_log.CAMPAIGN_LOG_TYPES) == 195  # 194->195 flipped consciously: row IC, Session 4b (Nov 23, 2026) adds `own_night` - a marshal on his own: set, his move as each turn opens, asks, done, stood down (logged since Session 3 under a constant the census could not read: a silent drop); no inert type retired in exchange  # 193->194 flipped consciously: row IC, Session 2b (Nov 20, 2026) adds `marshal_trial` - a marshal's task to prove himself: given, pressed on (a roll), ended, or an old save's three turns settled on loading (trial.py); no inert type retired in exchange  # 191->193 flipped consciously: row IC, directives (Nov 19, 2026) adds `army_roster` - a named army formed, changed or dissolved (armies.py) - and `war_goal` - the goal the Emperor names for a war, or drops (war_goals.py); no inert type retired in exchange
 
 
 # ════════════════════════════════════════════════════════════════════════

@@ -948,6 +948,41 @@ PERSONALITY_DISPLAY = {
     "loyal": "Loyal",
 }
 
+# Row IC, Session 4b (IC-15): a marshal's NATURE, one table for every screen —
+# "Bold · Careful · To the letter", each with one plain line.
+NATURE_WORDS = {
+    "aggressive": ("Bold", "Attacks readily, even at worse odds, and hates to sit idle."),
+    "cautious": ("Careful", "Holds good ground and attacks only when the odds are good."),
+    "literal": ("To the letter", "Does exactly what the order says — no more, no less."),
+}
+
+
+def nature_of(marshal, world=None) -> dict:
+    """{"nature": word, "nature_line": line} for a marshal, or {} for the
+    player's own sovereign (the Emperor is the player: no nature) and for any
+    value the table does not know. An ENEMY sovereign reads through the
+    effective AI personality (he plays aggressive)."""
+    if marshal is None:
+        return {}
+    raw = (marshal.get("personality", "") if isinstance(marshal, dict)
+           else getattr(marshal, "personality", ""))
+    raw = getattr(raw, "value", raw)
+    raw = str(raw or "").lower()
+    if raw == "sovereign":
+        if world is None or getattr(marshal, "nation", None) == getattr(world, "player_nation", None):
+            return {}
+        try:
+            from backend.ai.enemy_ai import get_effective_ai_personality
+            raw = str(get_effective_ai_personality(marshal, world) or "").lower()
+        except Exception as exc:
+            report(exc, "display_names.nature_of: an enemy sovereign's nature")
+            return {}
+    pair = NATURE_WORDS.get(raw)
+    if not pair:
+        return {}
+    return {"nature": pair[0], "nature_line": pair[1]}
+
+
 STANCE_DISPLAY = {
     "neutral": "Neutral",
     "defensive": "Defensive",

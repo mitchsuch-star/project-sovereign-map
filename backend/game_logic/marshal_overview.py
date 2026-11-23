@@ -11,7 +11,7 @@ Pattern follows ledger.py.
 from typing import Dict, Any, List
 
 from backend.models.marshal import Marshal
-from backend.display_names import (PERSONALITY_DISPLAY, STANCE_DISPLAY,
+from backend.display_names import (PERSONALITY_DISPLAY, nature_of, STANCE_DISPLAY,
                                    get_strategic_display, humanize_entity_name)
 from backend.game_logic.formations import formed_display_name
 from backend.game_logic import fortunes_of_war as _fortunes
@@ -60,11 +60,11 @@ _WIRED_ABILITY_MARSHALS = {
 # Gameplay descriptions for each personality type
 _PERSONALITY_DESCRIPTIONS = {
     "aggressive": (
-        "Aggressive: +15% attack, +5% more in aggressive stance. "
+        "Bold: +15% attack, +5% more in aggressive stance. "
         "Fortify capped at 10%. Grows restless if idle too long."
     ),
     "cautious": (
-        "Cautious: +20% defense in defensive stance, +10% when outnumbered. "
+        "Careful: +20% defense in defensive stance, +10% when outnumbered. "
         "Fortify up to 20%. Hesitant to attack at bad odds."
     ),
     # NP-V (adversarial review, CONFIRMED across three lenses): the apex
@@ -86,7 +86,7 @@ _PERSONALITY_DESCRIPTIONS = {
     ),
     "literal": (
         # W6-5 The Literal Doctrine (§7.1) — the doctrine, stated on the card.
-        "Literal: Executes orders to the letter — no improvisation, no "
+        "To the letter: Executes orders to the letter — no improvisation, no "
         "initiative, no objection. Cheaper to command (strategic orders "
         "cost 1 action, not 2), immovable on the defense (+15% when holding), "
         "and utterly predictable. He will never march to the sound of the "
@@ -332,6 +332,7 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
         "personality_description": _PERSONALITY_DESCRIPTIONS.get(
             marshal.personality, ""
         ),
+        **nature_of(marshal),
         "unit_type": unit_type,
         "unit_type_description": _UNIT_TYPE_DESCRIPTIONS.get(unit_type, ""),
         "movement_range": int(marshal.movement_range),

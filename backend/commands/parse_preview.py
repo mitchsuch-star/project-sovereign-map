@@ -494,9 +494,12 @@ def _charge_gate(marshal) -> str:
     if callable(recovering) and recovering():
         return "recovering from the rout, he cannot charge"
     if not getattr(marshal, "is_reckless_cavalry", False):
+        # (row IC, Session 4b: the nature's own word, as the executor says it)
+        from backend.display_names import NATURE_WORDS, nature_of
+        bold = NATURE_WORDS["aggressive"][0]
         if not getattr(marshal, "cavalry", False):
-            return "no cavalryman — only reckless cavalry charge"
-        return "not reckless enough to charge"
+            return f"no cavalryman — only {bold} cavalry charge"
+        return f"only {bold} cavalry charge — he is {nature_of(marshal).get('nature') or 'not ' + bold}"
     if int(getattr(marshal, "recklessness", 0) or 0) < 1:
         return "one victory as the attacker arms the charge"
     return ""
@@ -799,7 +802,7 @@ def _order_reading(out: Dict[str, Any], world, view: _View, parsed: Dict,
     quote = None
     asks_first = False
     if verb in sp.VERBS:
-        refusal = sp.order_state_refusal(world, marshal, verb)
+        refusal = sp.order_state_refusal(world, marshal, verb, parsed=parsed)
         if refusal:
             return _refusal_reading(out, f"{shown} — {refusal}")
         ap = int(sp.order_price(world, marshal, verb))
@@ -1114,10 +1117,18 @@ def _own_reading(out: Dict[str, Any], world, parsed: Dict, text: str) -> Dict[st
                                "name a new goal and he is turned to it, 1 action"))
     tonight = r.get("tonight") or {}
     if tonight.get("line"):
-        parts.append(("tonight", (f"Tonight, as things stand: {tonight['line']}" if r.get("starts_tonight")
-                                  else f"His first night (tomorrow), as things stand: {tonight['line']}")))
+        # Row IC, Session 4b — the user's "He moves at turn start": what he
+        # MEANS to do, said as an intention (the enemy moves before he does)
+        parts.append(("tonight", f"At the start of next turn he means to — if nothing changes first: "
+                                 f"{tonight['line']}"))
+    if r.get("task") == "free":
+        parts.append(("taken", "no task: each turn he weighs what he can beat, the ground the enemy "
+                               "holds and your war goal, and makes war as he sees fit"))
+    elif r.get("task"):
+        parts.append(("taken", "your task guides him: each turn he weighs it against the chances "
+                               "beside him — a bold man takes them readily, a careful man only at good odds"))
     if tonight.get("help"):
-        parts.append(("tonight", f"Every night: {tonight['help']}"))
+        parts.append(("tonight", f"Every turn: {tonight['help']}"))
     if r.get("says"):
         parts.append(("answer", f"\u201c{r['says']}\u201d"))
     if r.get("objection"):
@@ -1133,7 +1144,7 @@ def _own_reading(out: Dict[str, Any], world, parsed: Dict, text: str) -> Dict[st
         # (`_riders`). An army's list reads its commander's line through this.
         parts.append(("warn", f"a second order is not part of his task: “{parsed['dropped_sequel']}” "
                               "— give it as a line of its own"))
-    parts.append(("note", "he starts tomorrow night; you can stand him down for free"))
+    parts.append(("note", "he makes his first move at the start of next turn; you can stand him down for free"))
     out["parts"] = [_part(role, t) for role, t in parts]
     chips = []
     risk = int(r.get("risk", 0) or 0)

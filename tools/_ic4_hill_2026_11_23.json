@@ -1,0 +1,388 @@
+{
+ "_note": "Row IC, Session 4 \u2014 R-HILL (4), (5) and R-HUNT's ambient count: ten ambient seeds x 20 turns a arm, France only ending the turn. Per arm: each letter-following enemy marshal's man-turns alive, the man-turns he acted in (a successful attack, a march, a dig-in, leaving his works, a fall-back, a retreat \u2014 by his court's logic or his written orders) and the rate; every line that fired; hits and stalls; the enemy's attacks on French corps and on LONE French corps. Arm 0 is today. Written by tools/_ic4_measure.py --surfaces hill.",
+ "arms": {
+  "+PLAN": {
+   "acted": 246,
+   "attacks": {
+    "on_french": 133,
+    "on_lone_french": 37
+   },
+   "fired": {
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "guard_the_capital|1|Alten|enemy_near|dig_in": 1,
+    "guard_the_capital|1|Deroy|enemy_near|dig_in": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 5,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1,
+    "press_forward|1|Deroy|enemy_near|attack": 1,
+    "press_forward|1|Deroy|outnumbered|fall_back": 6,
+    "press_forward|1|Mack|enemy_near|attack": 1,
+    "press_forward|2|Deroy|enemy_near|attack": 3,
+    "press_forward|2|Deroy|outnumbered|fall_back": 2,
+    "weyrothers_disposition|2|Buxhowden|enemy_near|attack": 1,
+    "weyrothers_disposition|2|Mack|surrounded|fall_back": 1
+   },
+   "hits": 31,
+   "kinds": {
+    "Alten|fortify|plan": 1,
+    "Alten|move|court": 1,
+    "Blake|attack|court": 11,
+    "Blake|move|court": 35,
+    "Blake|retreat|court": 1,
+    "Buxhowden|attack|court": 9,
+    "Buxhowden|attack|plan": 2,
+    "Buxhowden|fortify|court": 12,
+    "Buxhowden|move|court": 12,
+    "Buxhowden|move|plan": 44,
+    "Buxhowden|retreat|court": 3,
+    "Buxhowden|unfortify|court": 10,
+    "Deroy|attack|court": 19,
+    "Deroy|attack|plan": 4,
+    "Deroy|fortify|plan": 1,
+    "Deroy|move|court": 24,
+    "Deroy|move|plan": 6,
+    "Deroy|retreat|court": 6,
+    "Deroy|unfortify|court": 1,
+    "Mack|attack|court": 29,
+    "Mack|attack|plan": 7,
+    "Mack|fortify|court": 11,
+    "Mack|move|court": 12,
+    "Mack|move|plan": 23,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 10
+   },
+   "man_turns": 699,
+   "per_man": {
+    "Alten": {
+     "acted": 2,
+     "man_turns": 21,
+     "planned_turns": 6,
+     "rate": 0.095,
+     "rate_as_worded": 0.095,
+     "worded": 2
+    },
+    "Blake": {
+     "acted": 38,
+     "man_turns": 109,
+     "planned_turns": 8,
+     "rate": 0.349,
+     "rate_as_worded": 0.349,
+     "worded": 38
+    },
+    "Buxhowden": {
+     "acted": 84,
+     "man_turns": 200,
+     "planned_turns": 125,
+     "rate": 0.42,
+     "rate_as_worded": 0.38,
+     "worded": 76
+    },
+    "Deroy": {
+     "acted": 47,
+     "man_turns": 199,
+     "planned_turns": 94,
+     "rate": 0.236,
+     "rate_as_worded": 0.231,
+     "worded": 46
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 13,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 75,
+     "man_turns": 156,
+     "planned_turns": 103,
+     "rate": 0.481,
+     "rate_as_worded": 0.429,
+     "worded": 67
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Naples": "guard_the_capital",
+     "court::PapalStates": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Spain": "press_forward"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "guard_the_capital",
+     "court::Spain": "press_forward"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Naples": "press_forward",
+     "court::PapalStates": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    }
+   },
+   "rate": 0.352,
+   "rate_as_worded": 0.328,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True"
+   ],
+   "stalls": 0,
+   "worded": 229
+  },
+  "0": {
+   "acted": 350,
+   "attacks": {
+    "on_french": 154,
+    "on_lone_french": 31
+   },
+   "fired": {},
+   "hits": 0,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 10,
+    "Blake|attack|court": 10,
+    "Blake|move|court": 48,
+    "Buxhowden|attack|court": 1,
+    "Buxhowden|fortify|court": 56,
+    "Buxhowden|move|court": 33,
+    "Buxhowden|unfortify|court": 54,
+    "Deroy|attack|court": 10,
+    "Deroy|move|court": 20,
+    "Deroy|retreat|court": 12,
+    "Deroy|unfortify|court": 5,
+    "Mack|attack|court": 98,
+    "Mack|fortify|court": 20,
+    "Mack|move|court": 40,
+    "Mack|retreat|court": 4,
+    "Mack|unfortify|court": 19
+   },
+   "man_turns": 730,
+   "per_man": {
+    "Alten": {
+     "acted": 7,
+     "man_turns": 25,
+     "planned_turns": 0,
+     "rate": 0.28,
+     "rate_as_worded": 0.28,
+     "worded": 7
+    },
+    "Blake": {
+     "acted": 43,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.391,
+     "rate_as_worded": 0.391,
+     "worded": 43
+    },
+    "Buxhowden": {
+     "acted": 128,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.64,
+     "rate_as_worded": 0.295,
+     "worded": 59
+    },
+    "Deroy": {
+     "acted": 42,
+     "man_turns": 191,
+     "planned_turns": 0,
+     "rate": 0.22,
+     "rate_as_worded": 0.194,
+     "worded": 37
+    },
+    "Mack": {
+     "acted": 130,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.65,
+     "rate_as_worded": 0.585,
+     "worded": 117
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 4,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {},
+    "eylau": {},
+    "friedland": {},
+    "historical": {},
+    "jena": {},
+    "lodi": {},
+    "marengo": {},
+    "rivoli": {},
+    "ulm": {},
+    "wagram": {}
+   },
+   "rate": 0.479,
+   "rate_as_worded": 0.36,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=False",
+    "backend.game_logic.war_plans:a_plan_names_a_favoured_province=False",
+    "backend.game_logic.war_plans:a_court_learns_a_routed_mans_task=False",
+    "backend.ai.enemy_ai:each_man_has_his_own_mood=False",
+    "backend.ai.enemy_ai:the_enemy_hunts_a_lone_corps=False",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=False"
+   ],
+   "stalls": 0,
+   "worded": 263
+  }
+ },
+ "r_hill_4": {
+  "as_first_run": {},
+  "as_the_plan_words_it": {}
+ },
+ "r_hill_4_note": "TWO READINGS, both kept. `as_first_run` is the count this tool made exact before its first run (every dig-in and every leaving of the works is an act). `as_the_plan_words_it` is the plan approved in Plan Mode, word for word: 'a march, an attack, a first dig-in, a fall-back or a capture' \u2014 a dig-in counts once a province, leaving the works does not. The second reading was added AFTER the first data was seen; the report says so.",
+ "r_hill_5": {
+  "+PLAN": 0,
+  "0": 0
+ },
+ "seeds": [
+  "historical",
+  "ulm",
+  "austerlitz",
+  "jena",
+  "marengo",
+  "eylau",
+  "friedland",
+  "wagram",
+  "lodi",
+  "rivoli"
+ ],
+ "sets": [
+  [
+   [
+    "coalition",
+    "Third Coalition"
+   ],
+   [
+    "danube_junction",
+    "long_retreat",
+    "weyrothers_disposition"
+   ]
+  ],
+  [
+   [
+    "court",
+    "Prussia"
+   ],
+   [
+    "thuringian_concentration",
+    "saale_line",
+    "behind_the_elbe"
+   ]
+  ],
+  [
+   [
+    "court",
+    "Britain"
+   ],
+   [
+    "hold_the_lines",
+    "descent_on_a_coast"
+   ]
+  ],
+  [
+   [
+    "default",
+    true
+   ],
+   [
+    "press_forward",
+    "guard_the_capital"
+   ]
+  ]
+ ],
+ "turns": 20
+}

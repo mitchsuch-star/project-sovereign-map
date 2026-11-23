@@ -19,12 +19,13 @@ The rules, each pinned by `tests/test_ic13_every_man_his_own_line.py`:
 - Plain: everyday English, at most two sentences, at most 120 characters. Pin: `test_every_line_is_plain_and_short`.
 - No digit in any line; figures stay on the screen beside it. Pin: `test_every_line_is_plain_and_short`.
 - "Sire" is the only period word (`PERIOD_WORDS` lists what is barred). Pin: `test_sire_is_the_only_period_word`.
+- A line said when an order is given (`free`, `ack`, `bolder`, `careful`, `remembers`) never promises he acts at once — no "now", "right away", "today": he moves as the next turn opens (row IC, Session 4b). Pin: `test_a_line_said_when_an_order_is_given_never_promises_he_acts_at_once`.
 - His own: no line stands in two sets, and no set repeats a line. Pin: `test_no_line_stands_in_two_sets`.
 - He never says what `NEVER_SAYS` lists for him — nor does a line of his nature that falls through to him (`own_voice.pool` drops a nature's line that would break his words). Pin: `test_no_man_says_what_he_never_says`.
 - Every line carries an explicit MARK of the man — Ney's impatience, Davout's order and counting, Murat's horses and his vanity, Lannes's guns and the assault, Masséna's ground ("mine", not an inch), Bernadotte's polite excuse. The blind readings showed that an unmarked line ("Done.", "On the road at last.") is anybody's. Pin: the reading (`docs/audits/ic_client/session4/README.md`).
 - No line twice within his last three. Pin: `test_no_line_twice_within_his_last_three_on_a_long_walk`.
 - A man with nothing new to say says nothing; the plain sentence stands alone. Pin: `test_a_man_with_nothing_new_to_say_says_nothing`.
-- A kind he can say on nights running carries four lines or more. Pin: `test_a_kind_said_on_nights_running_carries_four_lines_a_man`.
+- A kind he can say on turns running carries four lines or more. Pin: `test_a_kind_said_on_nights_running_carries_four_lines_a_man`.
 - Every set of every kind a named man holds is four lines or more once his nature's lines are added. Pin: `test_every_named_mans_set_of_every_kind_is_four_or_more`.
 - His own lines come before his nature's. Pin: `test_his_own_lines_come_before_his_natures`.
 - On the historical seed the first line of each set is said first; another seed starts at a fixed place, never a die. Pin: `test_the_historical_seed_says_the_first_line_of_each_set_first`, `test_another_seed_starts_each_set_at_a_fixed_place`.
@@ -46,7 +47,7 @@ Two functions in `own_voice.py`:
 
 - the read-back under the typed line, which shows the line he will say when the order is given;
 - a question put to him;
-- "Tonight", the list of what each man will do before the turn ends;
+- his card's "Ask him" (what he means to do at the start of next turn, said as an intention — row IC, Session 4b: he moves as each turn opens and nothing previews it);
 - a court's heading on captured orders (`court_head`; no marshal says it).
 
 Because `voice` and `speak` pick the same line from the same state, the line the player sees before pressing Enter is the line he says after. Pin: `test_the_read_back_shows_the_line_the_order_then_says`, `test_asking_him_changes_nothing`.
@@ -54,7 +55,7 @@ Because `voice` and `speak` pick the same line from the same state, the line the
 **Said (recorded):**
 
 - an order given (his answer to it);
-- a night's act, in the morning report;
+- his move as each turn opens, in the morning report (Session 4b: "He moves at turn start");
 - a battle (the after-battle line);
 - a task ended (done, trial won, trial lost);
 - the memory, once (`recall_memory` with `said`), then put away.
@@ -81,8 +82,8 @@ The record rides `marshals`, so an order taken back takes its line back with it.
 | `stayed` | he stayed put | the six; bold and careful natures |
 | `asks` | he asks you for a word | the six; bold and careful natures |
 | `done` | the task is done | everyone, including the letter-following men |
-| `third_night` | he changes his way of waiting rather than repeat it | the six; bold and careful natures |
-| `after_win` / `after_loss` | the night after a battle | the six; bold and careful natures |
+| `third_night` | he changes his way of waiting rather than repeat it (the key keeps its old name; no line says "night") | the six; bold and careful natures |
+| `after_win` / `after_loss` | the turn after a battle | the six; bold and careful natures |
 | `overruled` | today's order came over his own task | everyone, including the letter-following men |
 | `recalled` | his task was called back | the six; bold and careful natures |
 | `passed_over` | a junior was sent while he stood idle | natures only (bold, careful, literal) |
@@ -90,9 +91,9 @@ The record rides `marshals`, so an order taken back takes its line back with it.
 | `trial_ask` / `trial_won` / `trial_lost` | the task to prove himself | everyone |
 | `exact` / `repeat` / `not_covered` / `broken` / `refusal` | a man who follows orders to the letter | Soult, Grouchy; the literal nature |
 
-`RECURRING` (`ack`, `idle`, `struck`, `marched`, `waited`, `stayed`, `dug_in`) are the kinds a man can say on nights running. Each must reach four lines or more for every man, counting his nature's lines after his own.
+`RECURRING` (`ack`, `idle`, `struck`, `marched`, `waited`, `stayed`, `dug_in`) are the kinds a man can say on turns running. Each must reach four lines or more for every man, counting his nature's lines after his own.
 
-`KIND_OF_ACT` turns a night's act into a kind: attack, storm, besiege, take, strike say `struck`; march, move_up and join say `marched` (a join is a march to a friend's battle — no "I led"); fall_back says `fell_back`; look and probe say `waited`; dig_in says `dug_in`; stay says `stayed`; asks says `asks`. Then `own_order._voice_act` keeps each line true of the night: a night with no battle says no `struck` line (a take he marched into says `marched`; a siege kept up, or the ground he stands on claimed, says nothing); a stay says the line that fits WHY he stayed (`own_order.STAY_SAYS`: none when he did your order today, did his night's work, was drawn into a friend's battle or has no corps; `waited` on a quiet front; `stayed` only when the board changed). A night he only made ready or rested his men has no line; the plain words say it. A line never claims what the night did not hold: `struck` claims no victory, `waited` no particular way of waiting, `asks` no reason, `done` no particular task, an `ack` nothing false of a hold.
+`KIND_OF_ACT` turns his move into a kind: attack, storm, besiege, take, strike say `struck`; march, move_up and join say `marched` (a join is a march to a friend's battle — no "I led"); fall_back says `fell_back`; look and probe say `waited`; dig_in says `dug_in`; stay says `stayed`; asks says `asks`. Then `own_order._voice_act` keeps each line true of his move: a move with no battle says no `struck` line (a take he marched into says `marched`; a siege kept up, or the ground he stands on claimed, says nothing); a stay says the line that fits WHY he stayed (`own_order.STAY_SAYS`: none when he did your order today, has made his move, was drawn into a friend's battle or has no corps; `waited` on a quiet front; `stayed` only when the board changed). A move that only rested his men has no line; the plain words say it. A line never claims what his move did not hold: `struck` claims no victory, `waited` no particular way of waiting, `asks` no reason, `done` no particular task, an `ack` nothing false of a hold.
 
 ---
 
@@ -111,7 +112,7 @@ Six judge for themselves (Ney, Davout, Murat, Lannes, Masséna, Bernadotte). Two
 
 **Never says:** retreat, fall back, fell back, prudent, too strong, wait for.
 
-**What he remembers:** an order you overruled (`overruled`). Said once, the next time he is given a task or reports a night.
+**What he remembers:** an order you overruled (`overruled`). Said once, the next time he is given a task or reports his move.
 
 **Exemplars:**
 - ack
@@ -121,7 +122,7 @@ Six judge for themselves (Ney, Davout, Murat, Lannes, Masséna, Bernadotte). Two
 - idle
   > Quiet again. I'm climbing the walls, Sire.
 - remembers
-  > You overruled me once, Sire. I've not forgotten — but I'll go.
+  > You overruled me once and kept me sitting idle, Sire. Never again.
 
 ### Davout (Careful)
 
@@ -167,7 +168,7 @@ Six judge for themselves (Ney, Davout, Murat, Lannes, Masséna, Bernadotte). Two
 - object
   > Sit still, Sire? Horsemen are made to ride.
 - remembers
-  > I was recalled once in the middle of a chase. I've not forgotten it.
+  > I was recalled once in the middle of a charge, Sire, the horses blown for nothing. I've not forgotten it.
 
 ### Lannes (Bold)
 
@@ -188,7 +189,7 @@ Six judge for themselves (Ney, Davout, Murat, Lannes, Masséna, Bernadotte). Two
 - proposal
   > Put me where the guns are loudest, Sire. That's where I'm best.
 - overruled
-  > Fine, Sire. The horses can rest a night, and so can my task.
+  > Fine, Sire. The columns can rest a day, but my ear stays on the guns.
 - remembers
   > You pulled me away from the guns once, Sire. Don't do it twice.
 
@@ -230,13 +231,13 @@ Six judge for themselves (Ney, Davout, Murat, Lannes, Masséna, Bernadotte). Two
 
 **Exemplars:**
 - ack
-  > As you wish, Sire. I'm sure you'll let the men have a good night's rest first.
+  > As you wish, Sire. I'm sure you'll let the men have a good rest first.
 - asks
   > Perhaps you would decide, Sire. I'd rather not presume.
 - dug_in
   > A little digging, Sire, just enough to sleep soundly.
 - remembers
-  > You recalled me once before I'd begun, Sire. I've kept that in mind.
+  > You recalled me once before I'd begun, Sire. I made no complaint, of course — but I've kept it in mind.
 
 ### Soult (To the letter)
 
@@ -363,8 +364,8 @@ Two things hold for them now: every bank carries four lines or more (pin `test_e
 2. **Append. Never reorder.** The first line of each set is the one said first on the historical seed, and the pins read that.
 3. Keep the rules of section 1: plain, at most two sentences, at most 120 characters, no digit, no period word other than "Sire", none of his `NEVER_SAYS` words — and his MARK in it, so a reader who knows only the one-line sketches of the six would name him and nobody else.
 4. Do not put a line in two sets. Check the other men's sets and the natures' sets first.
-5. A kind in `RECURRING` needs four lines or more once his nature's lines are added. If you add a new kind a man can say on nights running, add it to `RECURRING`.
-6. A line states no number and claims nothing the night did not hold (section 3).
+5. A kind in `RECURRING` needs four lines or more once his nature's lines are added. If you add a new kind a man can say on turns running, add it to `RECURRING`.
+6. A line states no number and claims nothing his move did not hold (section 3).
 7. `NEVER_SAYS` and `PERIOD_WORDS` change only with the user's word.
 8. Run:
 

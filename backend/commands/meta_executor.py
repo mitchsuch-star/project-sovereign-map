@@ -1136,7 +1136,7 @@ MILITARY COMMANDS:
                "Lannes, move to Munich"
 
   retreat    - Fall back toward friendly territory (FREE)
-               "Ney, retreat" - Aggressive marshals may object!
+               "Ney, retreat" - Bold marshals may object!
 
   recruit    - Raise troops (1 admin action + gold)
                "recruit for Davout" - his corps, where he stands
@@ -1958,7 +1958,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             if marshal.personality != 'cautious':
                 return {
                     "success": False,
-                    "message": f"Counter-Punch is only available for cautious marshals (Davout, Wellington). "
+                    "message": f"Counter-Punch is only available for careful marshals (Davout, Wellington). "
                               f"{marshal.name} is {marshal.personality}."
                 }
             marshal.counter_punch_available = True
@@ -1967,14 +1967,14 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s counter_punch_available = True\n"
                           f"Next attack by {marshal.name} will be FREE!\n"
-                          f"(Note: In normal play, this triggers when any cautious marshal successfully defends)"
+                          f"(Note: In normal play, this triggers when any careful marshal successfully defends)"
             }
 
         elif ability == "restless":
             if marshal.personality != 'aggressive':
                 return {
                     "success": False,
-                    "message": f"Restlessness is only available for aggressive marshals (Ney). "
+                    "message": f"Restlessness is only available for bold marshals (Ney). "
                               f"{marshal.name} is {marshal.personality}."
                 }
             marshal.turns_in_defensive_stance = 5
@@ -2031,7 +2031,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             if marshal.personality != 'literal':
                 return {
                     "success": False,
-                    "message": f"Immovable (hold) is only available for literal marshals (Grouchy). "
+                    "message": f"Immovable (hold) is only available for marshals who go to the letter (Grouchy). "
                               f"{marshal.name} is {marshal.personality}."
                 }
             marshal.holding_position = True

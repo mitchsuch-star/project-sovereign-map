@@ -331,7 +331,7 @@ class TestTheAssault:
     def test_the_personality_figure_is_the_reports_own_row(self):
         ney, mack, world = _pair()
         result = _result(modifier_snapshot={"attacker": [
-            {"label": "Personality (aggressive)", "value": 20, "type": "bonus"}],
+            {"label": "Bold nature", "value": 20, "type": "bonus"}],
             "defender": []})
         advance = _beats(_build(world, ney, mack, result)["script"], "assault", "advance")[0]
         assert advance["pct"] == 20 and "(+20%)" in advance["text"]
@@ -346,7 +346,7 @@ class TestTheAssault:
         ("defender", "Reverse Slope Defense", 5, "ability", "Reverse Slope Defense (+5%)"),
         ("defender", "Child of Victory (outnumbered)", 10, "ability", "Child of Victory (+10%)"),
         ("defender", "Habsburg Resolve", 3, "ability", "Habsburg Resolve (+3%)"),
-        ("defender", "Immovable (literal hold)", 15, "ability", "exactly where he was posted"),
+        ("defender", "Immovable (holds to the letter)", 15, "ability", "exactly where he was posted"),
     ])
     def test_a_named_ability_or_state_is_a_head_beat(self, side, label, value, kind, needle):
         ney, mack, world = _pair()
@@ -625,13 +625,13 @@ class TestFog:
         world = _world(mack, john, blucher, gneisenau, _mk("Ney", "Paris", 10000))
         world.update_intel_from_battle("Waterloo", 1)
         rows = {
-            "attacker": [{"label": "Personality (cautious)", "value": 5, "type": "bonus"},
+            "attacker": [{"label": "Careful nature", "value": 5, "type": "bonus"},
                          {"label": "Drill training", "value": 20, "type": "bonus"},
                          {"label": "Artillery overwatch", "value": 6, "type": "penalty"}],
             "defender": [{"label": "Terrain (Hills)", "value": 15, "type": "bonus"},
                          {"label": "Fortified position", "value": 12, "type": "bonus"},
                          {"label": "Caught drilling", "value": 20, "type": "penalty"},
-                         {"label": "Personality (aggressive)", "value": 10, "type": "bonus"}],
+                         {"label": "Bold nature", "value": 10, "type": "bonus"}],
         }
         result = _result(victor="Mack", atk=("Mack", 3000, 27000, 80, False),
                          dfn=("Blucher", 9000, 21000, 22, True),

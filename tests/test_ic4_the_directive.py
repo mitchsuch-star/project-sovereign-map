@@ -382,6 +382,28 @@ class TestTheListIsTheTruth:
         assert rows["Davout"]["sent"] and rows["Soult"]["why"] == "the actions were spent before him"
         assert "Nothing left for Soult today" in reply["message"], reply["message"]
 
+    def test_a_renewed_hold_with_a_new_watch_goes_as_its_row_said(self, client, world):
+        """IC4-N1's sibling (row IC, Session 4b): the list's run read the hold's
+        refusal WITHOUT the typed line — "already holding here" for a man who
+        holds his ground — while his row (read with the line) said it goes. A
+        hold with a new if-then is a new order on both roads; the same hold
+        again is refused, free, on both."""
+        world.actions_remaining = 12
+        for name in ("Davout", "Soult"):
+            assert _say(client, f"{name}, hold")["success"]
+        line = "Davout and Soult, hold. If attacked, dig in."
+        listing = _ask(client, line)
+        rows = {r["marshal"]: r for r in listing["rows"]}
+        assert rows["Davout"]["ok"] and rows["Soult"]["ok"], listing["rows"]
+        reply = _give(client, listing)
+        assert reply["success"], reply["message"]
+        sent = {r["marshal"]: r for r in reply["group"]["rows"]}
+        assert sent["Davout"]["sent"] and sent["Soult"]["sent"], reply["group"]["rows"]
+        again = _say(client, line)
+        rows = {r["marshal"]: r for r in again["group"]["rows"]}
+        for name in ("Davout", "Soult"):
+            assert rows[name]["sent"] is False and rows[name]["ap"] == 0, rows[name]
+
     def test_a_refused_row_costs_nothing_and_is_reported(self, client, world):
         """The collective's own rule, on a list: Soult stands at Lorraine already."""
         world.actions_remaining = 12

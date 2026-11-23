@@ -735,7 +735,18 @@ class TestTheMeasuredArms:
         # BASELINE_SERIES; the movers are CURE, CHEAP, STAFF and SAVE.
         oc = json.loads((ROOT / "tools" / "_oc_series_arms_final.json").read_text(encoding="utf-8"))
         assert oc["prior"] == oc["arms"]["0"]["series"] == SERIES_BEFORE_OC
-        assert oc["arms"]["ALL"]["series"] == BASELINE_SERIES
+        # Re-pinned by row IC, Session 4b, continued (November 23, 2026 — the
+        # war plans fixed and switched on, "Switch them on";
+        # `tools/_ic4_series_arms.py` → `tools/_ic4b_fix_series_arms_2026_11_23.json`):
+        # arm 0 (every row of `tests/_ic4_seams.py` down) reproduces row OC's
+        # series byte for byte; the plans-up arm (+PLAN) IS the live
+        # BASELINE_SERIES, first moving at [9].
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_IC4B
+        assert oc["arms"]["ALL"]["series"] == SERIES_BEFORE_IC4B
+        ic4b = json.loads((ROOT / "tools" / "_ic4b_fix_series_arms_2026_11_23.json").read_text(encoding="utf-8"))
+        assert ic4b["prior"] == ic4b["arms"]["0"]["series"] == SERIES_BEFORE_IC4B
+        assert ic4b["arms"]["+PLAN"]["series"] == BASELINE_SERIES
+        assert ic4b["arms"]["+PLAN"]["first_divergence_vs_prior"] == 9
         assert oc["arms"]["ALL"]["first_divergence_vs_prior"] == 10
         assert {arm: oc["arms"][arm]["first_divergence_vs_prior"] for arm in oc["arms"]
                 if arm.startswith("+")} == {"+LETTER": None, "+ARREARS": None, "+RESTLESS": None, "+CURE": 9, "+STAFF": 17, "+SAVE": 22, "+USED": None, "+CHEAP": 10}

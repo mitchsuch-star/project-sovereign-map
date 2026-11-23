@@ -2791,15 +2791,15 @@ def _rule_text(world, key: str, ap: bool) -> str:
                     f"(an ordinary marshal's figures; a marshal's own kit sets his ceiling), and it takes the defensive stance — attacks from the works "
                     f"are {def_pen}% weaker, and a fortified marshal refuses a march until he breaks camp. A counter-punch "
                     f"from the works is free."),
-        "unfortify": "Unfortify breaks camp: the works are abandoned, the defence bonus lost, and the corps may march again. Cautious marshals break camp free.",
+        "unfortify": "Unfortify breaks camp: the works are abandoned, the defence bonus lost, and the corps may march again. Careful marshals break camp free.",
         "drill": (f"Drill ({cost('drill')} action) restores +{gain} morale (+{gain_t} on a training ground) and arms a one-shot "
                   f"shock bonus for the next attack; it locks the corps for the turn, and no corps drills within the enemy's reach — "
                   f"a corps caught drilling defends at three quarters."),
         "square": "Form square braces the corps against cavalry: a charge breaks on it, but a square cannot move and its own attack is spent.",
         "support": (f"Support is a standing order ({support_ap} action): the corps marches to a marshal of ours and stays with him, "
                     f"joining any battle he fights until he is safe or the battle is won."),
-        "hold": f"Hold is a standing order ({march_ap} actions; 1 for a literal marshal or the Emperor): the corps keeps its ground turn after turn, with an 'until' condition the ledger counts down.",
-        "march": (f"A march (move to / march to) is a standing order of {march_ap} actions (1 for a literal marshal or the Emperor): "
+        "hold": f"Hold is a standing order ({march_ap} actions; 1 for a marshal who goes to the letter, or the Emperor): the corps keeps its ground turn after turn, with an 'until' condition the ledger counts down.",
+        "march": (f"A march (move to / march to) is a standing order of {march_ap} actions (1 for a marshal who goes to the letter, or the Emperor): "
                   f"the corps walks the lawful road a province a turn until it arrives; an enemy in the road stops it and asks. "
                   f"A plain 'move to' a neighbouring province is one action."),
         "pursue": f"Pursue is a standing order ({march_ap} actions): the corps follows a named enemy wherever our intelligence places him, and attacks on contact.",
@@ -2835,7 +2835,7 @@ def _rule_text(world, key: str, ap: bool) -> str:
         "blockade": "A blockade is a fleet posture: the stronger navy shuts the weaker's trade and crossings, and halves its yards.",
         "expedition": "An expedition lands a corps across the water on a shore that will receive it; the odds read the fleets, the readiness and a diversion.",
         "ap": (f"Each turn gives the day's orders (military actions) and administrative actions. A tactical order costs one; "
-               f"a standing march, pursuit or hold {march_ap} (1 for a literal marshal or the Emperor); support {support_ap}; "
+               f"a standing march, pursuit or hold {march_ap} (1 for a marshal who goes to the letter, or the Emperor); support {support_ap}; "
                f"recruiting, building and the laws spend administrative actions; retreat and the desk are free."),
         "supply": "A province feeds so many men; more than that bleed to attrition each turn. Depots and capitals raise the cap; a French army lives off the land it marches through.",
         "stability": "Stability is a province's order: it grows under quiet rule, falls under occupation and plunder, and below 50 the income suffers.",
@@ -3369,11 +3369,9 @@ def _answer_foe_reach(world, foe: str, place: str) -> str:
 
 
 def _answer_personality(world, name: str) -> str:
-    from backend.display_names import PERSONALITY_DISPLAY  # noqa: F401
-    words = {"aggressive": "aggressive — he attacks when the odds are fair and objects to sitting idle",
-             "cautious": "cautious — he counter-punches from the works and objects to long odds",
-             "literal": "literal — he does exactly what he is told and asks when an order needs a reading",
-             "sovereign": "the Emperor — his orders are your own will"}
+    from backend.display_names import NATURE_WORDS
+    words = {key: f"{word} — {line[0].lower()}{line[1:]}" for key, (word, line) in NATURE_WORDS.items()}
+    words["sovereign"] = "the Emperor — his orders are your own will"
     if name:
         me = _own(world, name)
         if me is None:
@@ -3383,7 +3381,7 @@ def _answer_personality(world, name: str) -> str:
     rows = []
     for m in _standing(world):
         p = str(getattr(getattr(m, "personality", ""), "value", getattr(m, "personality", "")) or "").lower()
-        rows.append(f"{_display(m.name)} ({p})")
+        rows.append(f"{_display(m.name)} ({(NATURE_WORDS.get(p) or (p,))[0]})")
     return "Our marshals, Sire: " + _join(rows) + "."
 
 

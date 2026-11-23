@@ -208,7 +208,9 @@ class TestGivingIt:
         assert int(M.world.actions_remaining) == before - 2
         ney = M.world.marshals["Ney"]
         assert O.on_his_own(ney) and O.own(ney)["task"] == "take" and O.own(ney)["target"] == "Swabia"
-        assert "starts tomorrow night" in out["message"] and "On their own: 1 of the 1 you may have" in out["message"]
+        # (row IC, Session 4b — the user's "He moves at turn start")
+        assert ("makes his first move at the start of next turn" in out["message"]
+                and "On their own: 1 of the 1 you may have" in out["message"])
 
     def test_a_support_costs_one_action(self, road):
         client, snap = road
@@ -274,11 +276,25 @@ class TestGivingIt:
         _board(snap)
         assert _post(client, "Ney, hold Rhineland on your own")["success"]
         ney = M.world.marshals["Ney"]
-        O.ask_why(M.world, ney, "his road has been barred")
+        O.ask_why(M.world, ney, "his trust in you has fallen to 25", freeze=True)
         left = int(M.world.actions_remaining)
         out = _post(client, "Ney, carry on")
         assert out["success"], out
         assert O.own(ney)["state"] == "work" and int(M.world.actions_remaining) == left
+
+    def test_carry_on_answers_a_question_he_carried_on_through(self, road):
+        """Row IC, Session 4b (IC4-D3): in a war a question about his task does
+        not stop him; "carry on" answers it, free."""
+        client, snap = road
+        _board(snap)
+        assert _post(client, "Ney, hold Rhineland on your own")["success"]
+        ney = M.world.marshals["Ney"]
+        O.ask_why(M.world, ney, "his road has been barred")
+        assert O.own(ney).get("question") and O.own(ney)["state"] != "asks"
+        left = int(M.world.actions_remaining)
+        out = _post(client, "Ney, carry on")
+        assert out["success"], out
+        assert not O.own(ney).get("question") and int(M.world.actions_remaining) == left
 
 
 class TestTheReadBack:
@@ -291,8 +307,10 @@ class TestTheReadBack:
         taken = _roles(reading, "taken")
         assert "on his own — once given, 1 of the 1 you may have (laws raise it)" in taken
         assert any(t.startswith("he attacks only when the odds are our ") for t in taken)
-        (night,) = [t for t in _roles(reading, "tonight") if t.startswith("His first night (tomorrow)")]
-        assert "Ney" in night
+        # (row IC, Session 4b: his first move is an INTENTION — the enemy moves first)
+        (night,) = [t for t in _roles(reading, "tonight")
+                    if t.startswith("At the start of next turn he means to")]
+        assert "Ney" in night and "if nothing changes first" in night
         assert _roles(reading, "answer"), reading
 
     def test_boldly_moves_his_figure_one_step_and_his_answer_changes(self, road):
@@ -394,32 +412,54 @@ class TestThePureReading:
         assert len(attacked) == len(set(attacked)), rows
 
 
-class TestTonightIsTrue:
-    """R-TRUE: every act a man on his own made was what "Tonight" said — or he
-    stayed put and said why (a join whose lead fought is its own act)."""
+class TestTheMorningIsTrue:
+    """R-REPORT (row IC, Session 4b — replaces R-TRUE, which checked a preview
+    the user's "He moves at turn start" removed): each man on his own moves as
+    the turn OPENS, his rows open the turn's report, and what the morning says
+    he did is what happened — a fight he claims was fought, a march he claims
+    was made."""
 
-    def test_six_nights_on_the_1805_board(self, road, monkeypatch):
+    def test_six_turns_on_the_1805_board(self, road, monkeypatch):
         client, snap = road
         world = _board(snap)
         _five_on_their_own(world, monkeypatch)
-        mismatches, acts = [], 0
-        for night in range(6):
-            with _quiet():
-                said = {r["marshal"]: r for r in O.tonight(M.world)}
+        false, acts = [], 0
+        for turn in range(6):
             out = _post(client, "end turn")
-            for row in out.get("strategic_reports") or []:
-                if not row.get("own"):
-                    continue
-                plan = said.get(row["marshal"])
-                if plan is None:
-                    continue
+            rows = out.get("strategic_reports") or []
+            own_rows = [r for r in rows if r.get("own") and not r.get("follows")
+                        and r.get("action") not in ("own_done", "own_ended")]
+            if own_rows:
+                assert rows[0].get("own"), rows[0]          # they open the report
+            for row in own_rows:
                 acts += 1
-                if row["act"] == "stay" or (row["act"] == "join" and plan["act"] in ("join", "move_up")):
+                man = M.world.marshals[row["marshal"]]
+                if "could not carry out" in row["message"]:
                     continue
-                if row.get("said") and row["said"] != plan["line"]:
-                    mismatches.append((night, row["marshal"], plan["line"], row["message"]))
+                if row["act"] in ("attack", "strike") and not (row.get("battle_message")
+                                                                or row.get("battle_report")):
+                    false.append((turn, row["marshal"], "a fight claimed", row["message"]))
+                if row["act"] in ("march", "probe", "fall_back", "move_up") and row.get("place") \
+                        and man.location != row["place"]:
+                    false.append((turn, row["marshal"], "a march claimed", row["message"], man.location))
         assert acts >= 20
-        assert not mismatches, mismatches
+        assert not false, false
+
+    def test_he_moves_after_the_enemy_as_the_turn_opens(self):
+        """The pass is called after the advance, never at the head of the
+        close (the user's "Each turn opens with his move")."""
+        import inspect
+
+        from backend.game_logic import turn_manager as TM
+        body = inspect.getsource(TM.TurnManager.end_turn)
+        # (the call goes through `_their_own_turn_first`, which keeps `end_turn`
+        # under the 500-line ratchet — IC4b-27)
+        call = "_their_own_turn_first(self, game_state"
+        assert call in body
+        assert body.index("self.world.advance_turn()\n            _advanced = True\n        else") \
+            < body.index(call)
+        assert "_their_own_turn(manager, game_state)" in inspect.getsource(TM._their_own_turn_first)
+        assert "_their_own_night" not in body
 
 
 class TestOneThingATurn:
@@ -431,12 +471,14 @@ class TestOneThingATurn:
         O.own(ney)["acted"] = int(world.current_turn)
         assert O.acted_tonight(ney, world)
 
-    def test_the_given_night_he_makes_ready(self, world1805):
+    def test_the_turn_he_is_given_his_first_move_is_the_next(self, world1805):
         world = _fresh(world1805)
         ney = _give(world, "Ney", "hold", "Rhineland")
         with _quiet():
             (reading,) = O.tonight(world)
-        assert reading["act"] == "start" and "makes ready — a task starts the night after it is given" in reading["line"] and reading["ahead"]
+        assert (reading["act"] == "start"
+                and "makes his first move at the start of next turn" in reading["line"]
+                and reading["ahead"]), reading
 
 
 class TestTheExemptions:
@@ -499,17 +541,36 @@ class TestRFriends:
 class TestTheLifeTable:
 
     def test_an_unanswered_ask_ends_the_order_after_three_turns_no_trust_lost(self, world1805):
+        """A man who stops and WAITS for your word (his trust under 30, or at
+        peace) stands down after three of your turns unanswered."""
         world = _fresh(world1805)
         ney = _give(world, "Ney", "hold", "Rhineland")
-        O.ask_why(world, ney, "his road has been barred")
+        O.ask_why(world, ney, "his trust in you has fallen to 25", freeze=True)
         # (the review, IC3-V: the ask stands three of YOUR turns — raised at
-        # night T, seen on T+1, T+2 and T+3, ended at the close of T+3)
+        # turn T, seen on T+1, T+2 and T+3, ended at the close of T+3)
         O.own(ney)["asks"]["since"] = int(world.current_turn) - 2
+        ney.trust.set(40)
         assert O._life(world, ney) is None and O.on_his_own(ney)
         O.own(ney)["asks"]["since"] = int(world.current_turn) - 3
         trust = int(ney.trust.value)
         row = O._life(world, ney)
         assert row is not None and not O.on_his_own(ney) and int(ney.trust.value) == trust
+
+    def test_in_a_war_an_unanswered_question_drops_and_leaves_him_at_work(self, world1805):
+        """Row IC, Session 4b (IC4-D3): a question about his task in a war
+        never stops him and, unanswered three turns, it drops — he stays on his
+        own (the old lapse stood him down)."""
+        world = _fresh(world1805)
+        ney = _give(world, "Ney", "hold", "Rhineland")
+        assert world.is_at_war("France", "Austria")
+        O.ask_why(world, ney, "his road has been barred")
+        spec = O.own(ney)
+        assert spec["state"] != "asks" and spec["question"]["why"] == "his road has been barred"
+        reading = O.read(world, ney, preview=True)
+        assert reading["act"] != "asks", "a question in a war does not stop him"
+        spec["question"]["since"] = int(world.current_turn) - 3
+        O._life(world, ney)
+        assert O.on_his_own(ney) and not O.own(ney).get("question")
 
     def test_his_trust_under_30_makes_him_ask(self, world1805):
         world = _fresh(world1805)
@@ -518,10 +579,23 @@ class TestTheLifeTable:
         O._life(world, ney)
         assert O.own(ney)["state"] == "asks" and "25" in O.own(ney)["asks"]["why"]
 
-    def test_a_pursuit_ends_when_the_quarry_is_gone(self, world1805):
+    def test_a_pursuit_done_in_a_war_leaves_him_on_his_own_with_no_task(self, world1805):
+        """Row IC, Session 4b (IC4-D3): the chase done, he makes war as he sees
+        fit (at peace it ends, as before)."""
         world = _fresh(world1805)
         murat = _give(world, "Murat", "pursue", "Mack")
         world.marshals["Mack"].strength = 0
+        row = O._life(world, murat)
+        assert row is not None and "done his task" in row["message"]
+        assert O.on_his_own(murat) and O.own(murat)["task"] == "free"
+        assert murat.strategic_order.command_type == "HOLD"
+        assert O.task_words(O.own(murat)) == "make war as he sees fit"
+
+    def test_a_pursuit_done_at_peace_ends(self, world1805, monkeypatch):
+        world = _fresh(world1805)
+        murat = _give(world, "Murat", "pursue", "Mack")
+        world.marshals["Mack"].strength = 0
+        monkeypatch.setattr(O, "_at_war", lambda w: False)
         row = O._life(world, murat)
         assert row is not None and not O.on_his_own(murat) and "done" in row["message"]
 
@@ -594,23 +668,42 @@ class TestTheData:
 
 class TestTheDesk:
 
-    def test_the_desk_says_the_count_and_each_night(self, world1805):
+    def test_the_desk_says_the_count_and_what_he_did_this_turn(self, world1805):
+        """Row IC, Session 4b — "He moves at turn start": the desk says what
+        each man did as the turn opened; nothing says what he will do."""
         from backend.game_logic import today
         world = _fresh(world1805)
         built = today.desk(world)
         assert "own" not in built, "an unused feature changes no payload"
-        _give(world, "Ney", "hold", "Rhineland")
+        ney = _give(world, "Ney", "hold", "Rhineland")
         built = today.desk(world)
-        assert built["own"]["n"] == 1 and built["own"]["tonight"][0]["line"].startswith("Tonight: Ney")
+        assert built["own"]["n"] == 1 and built["own"]["this_turn"] == []
+        assert "tonight" not in built["own"]
+        rec = O.record(ney)
+        rec["acts"] = [["dig_in", "Rhineland", int(world.current_turn), "Rhineland", "Rhineland"]]
+        rec["said"] = "Ney dug in at Rhineland"
+        ney.own_record = rec
+        built = today.desk(world)
+        assert built["own"]["this_turn"][0]["line"] == "This turn: Ney dug in at Rhineland."
 
-    def test_a_man_who_asks_comes_first(self, world1805):
+    def test_a_man_who_asks_and_waits_comes_first(self, world1805):
+        from backend.game_logic import today
+        world = _fresh(world1805)
+        ney = _give(world, "Ney", "hold", "Rhineland")
+        O.ask_why(world, ney, "his trust in you has fallen to 25", freeze=True)
+        rows = today.decide(world)
+        own_rows = [r for r in rows if r["id"] == "own_asks:Ney"]
+        assert own_rows and own_rows[0]["tier"] == today.TIER_BITES
+
+    def test_a_question_he_carries_on_through_stands_below_what_bites(self, world1805):
         from backend.game_logic import today
         world = _fresh(world1805)
         ney = _give(world, "Ney", "hold", "Rhineland")
         O.ask_why(world, ney, "his road has been barred")
         rows = today.decide(world)
         own_rows = [r for r in rows if r["id"] == "own_asks:Ney"]
-        assert own_rows and own_rows[0]["tier"] == today.TIER_BITES
+        assert own_rows and own_rows[0]["tier"] == today.TIER_GROWS
+        assert "carries on meanwhile" in own_rows[0]["text"]
 
     def test_the_jealous_row_offers_to_set_him_on_his_own(self, world1805):
         from backend.game_logic import today
@@ -730,13 +823,16 @@ class TestTheReviewsRowsOnTheNight:
         assert out.get("success"), out
         assert O.on_his_own(ney), "today's order is an ordinary order — his task stands (§6.3)"
 
-    def test_the_night_after_a_hand_order_he_stays_and_says_why(self, world1805):
+    def test_a_hand_order_is_on_top_of_his_own_move(self, world1805):
+        """Row IC, Session 4b — "He moves at turn start", "like any other
+        general": an order you give him by hand is carried out at its usual
+        price ON TOP of his own move; it no longer costs him his next move."""
         world = _fresh(world1805)
         ney = _give(world, "Ney", "hold", "Rhineland")
         O.own(ney)["given"] = int(world.current_turn) - 1
         ney.last_ordered_turn = int(world.current_turn)
         reading = O.read(world, ney)
-        assert reading["act"] == "stay" and "your order today" in reading["line"]
+        assert "your order today" not in reading["line"] and reading.get("kind"), reading
 
     def test_a_night_already_done_is_not_done_twice(self, world1805):
         world = _fresh(world1805)
@@ -751,7 +847,7 @@ class TestTheReviewsRowsOnTheNight:
         O.own(ney)["given"] = int(world.current_turn) - 1
         ney.reinforced_this_turn = True
         reading = O.read(world, ney)
-        assert reading["act"] == "stay" and "fought beside a friend today" in reading["line"]
+        assert reading["act"] == "stay" and "fought beside a friend this turn" in reading["line"]
 
     def test_a_new_order_counts_his_battles_from_now(self, world1805):
         world = _fresh(world1805)
@@ -763,7 +859,7 @@ class TestTheReviewsRowsOnTheNight:
         O._life(world, ney)
         assert O.record(ney).get("last") != "won" and not O.record(ney).get("held")
 
-    def test_a_change_keeps_where_he_stands_and_starts_tonight(self, world1805):
+    def test_a_change_keeps_where_he_stands_and_turns_him_next_turn(self, world1805):
         world = _fresh(world1805)
         ney = _give(world, "Ney", "hold", "Rhineland")
         spec = O.own(ney)
@@ -772,7 +868,7 @@ class TestTheReviewsRowsOnTheNight:
         assert new is not None, why
         with _quiet():
             out = O.give(world, ney, new, line="Ney, more risk")
-        assert out["success"] and "He turns to it tonight" in out["message"]
+        assert out["success"] and "He turns to it at the start of next turn" in out["message"]
         assert O.own(ney)["state"] == "work" and O.own(ney)["acted"] == int(world.current_turn) - 1
 
     def test_a_march_into_an_empty_place_is_no_attack_to_join(self):
@@ -805,12 +901,15 @@ class TestWhatThePressingAndTheClientReviewFound:
         assert state.count('"own": _dict_of(') >= 2, "from_board and from_overview both carry it"
         assert 'return _badge("own", "On his own"' in state
 
-    def test_c4_end_turn_prints_every_tonight_as_you_press(self):
+    def test_c4_end_turn_previews_nothing_of_his(self):
+        """Row IC, Session 4b — the user's "He moves at turn start": End Turn
+        prints no "Tonight" (Session 3's C4 printed each as you pressed); the
+        morning report opens with what he did."""
         main = (CLIENT / "scripts" / "main.gd").read_text(encoding="utf-8")
         at = main.index("func _send_end_turn")
         body = main[at:main.index("\nfunc ", at + 10)]
-        assert "for own_row in _own_tonight_rows():" in body
-        assert body.index("for own_row in _own_tonight_rows():") < body.index("set_input_enabled(false)")
+        assert "_own_tonight" not in body and "Tonight" not in body
+        assert "--- Your marshals on their own, as this turn opened ---" in main
 
     def test_c6_the_morning_tells_the_night_once(self, world1805):
         world = _fresh(world1805)
@@ -894,57 +993,58 @@ class TestTheReviewsLastThreeRows:
         assert says == "I carried out your orders, Sire."
 
 
-# ═══════════════ his ruling of November 22, 2026 — owed by Session 4b ════════
+# ═══════════════ his ruling, built in row IC Session 4b (IC4-D3) ═════════════
 
-class TestWhatSession4bOwesHisRuling:
-    """The user, November 22, 2026, at the end of row IC Session 4, verbatim:
-    "tihis is for one sgiven autonomous right i mean yeah they are autonomous
-    your word sguide them it should be like napoleonic warfare buit no orders
-    and they dont just sit there during war" — and, correcting the first
-    wording (which kept his choices inside the task): "if they dont do their
-    own thing its really no different then guys you move very turn in essance"
-    · "orders shlould beguiding ai that has its own actions and does its own
-    thing you get it". A man GIVEN autonomy is his own commander: the task
-    guides his choice and never fences it; he takes the initiative and never
-    sits idle while France is at war (`BUG_FIXES.md` IC4-D3, the spec's D40;
-    row IC Session 4b, `docs/NEXT_SESSION_PROMPT.md`). Each pin is a STRICT
-    expected failure on what the game does today: it turns red the day the
-    ruling is built, and the builder makes it a plain test."""
+class TestHisRulingBuilt:
+    """The user, November 22, 2026, verbatim: "orders shlould beguiding ai that
+    has its own actions and does its own thing you get it" — and his correction
+    opening Session 4b (November 23): "thats not true either its just these are
+    autonomous armies napoleons orders guiode them, they still work under ai
+    with goals set that impact their decision tree!!". A man GIVEN autonomy
+    runs a decision tree over ALL his acts; your task is a GOAL that weighs in
+    it — never a fence, never a forced act (`own_judgement.judge`;
+    `BUG_FIXES.md` IC4-D3, the spec's D40 as corrected). These five were
+    strict expected failures until Session 4b built the ruling."""
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="IC4-D3: today his task fences his choice — he marches past a beatable enemy beside him")
-    def test_he_takes_the_initiative_beside_his_road(self, world1805):
-        """Ney (bold) is told to take Bohemia; an Austrian raid of 4,000 stands in
-        French Lorraine beside him, off his road, and France sees it. A commander
-        with initiative strikes it, then turns back to his task; today he marches
-        from Rhineland to Swabia past it."""
-        from backend.commands import if_thens
+    def _raid(self, world1805):
         world = _fresh(world1805)
         world.marshals["Mack"].location = "Vienna"           # the road to Bohemia is open
         john = world.marshals["ArchdukeJohn"]
         john.location, john.strength = "Lorraine", 4000
         world.refresh_marshal_indexes()
+        return world
+
+    def test_he_takes_the_initiative_beside_his_road(self, world1805):
+        """Ney (bold) is told to take Bohemia; an Austrian raid of 4,000 stands in
+        French Lorraine beside him, off his road, and France sees it. His
+        judgement weighs the raid against his road: he strikes it, and says
+        why."""
+        from backend.commands import if_thens
+        world = self._raid(world1805)
         ney = _give(world, "Ney", "take", "Bohemia")
-        O.own(ney)["given"] = int(world.current_turn) - 1    # his first night is past
+        O.own(ney)["given"] = int(world.current_turn) - 1    # his first turn is past
         seen = [(enemy.name, where) for enemy, where in if_thens.seen_enemies(world, ney)]
         assert ("ArchdukeJohn", "Lorraine") in seen, seen
         reading = O.read(world, ney, O.own(ney), preview=True)
         assert any(step.get("action") == "attack" and step.get("target") in ("ArchdukeJohn", "Lorraine")
                    for step in reading.get("do") or []), reading.get("line")
+        assert reading["kind"] == "chance" and "beside his road to Bohemia" in reading["line"]
+        assert "our soil" in reading["line"]
+        kinds = {w["kind"] for w in reading["weighed"]}
+        assert {"chance", "goal"} <= kinds, reading["weighed"]
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="IC4-D3: today a finished chase ends his order and he waits")
     def test_a_finished_chase_in_a_war_leaves_him_on_his_own(self, world1805):
         world = _fresh(world1805)
         murat = _give(world, "Murat", "pursue", "Mack")
         assert world.is_at_war("France", "Austria")
         world.marshals["Mack"].strength = 0
         O._life(world, murat)
-        assert O.on_his_own(murat), "the chase is done; in a war he goes on by his nature"
+        assert O.on_his_own(murat) and O.own(murat)["task"] == "free"
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="IC4-D3: today four quiet nights make him ask for work and wait")
-    def test_a_quiet_front_in_a_war_sends_him_to_find_work(self, world1805, monkeypatch):
+    def test_a_quiet_front_in_a_war_no_longer_makes_him_ask(self, world1805, monkeypatch):
+        """Four quiet turns in a war: no ask for work and no standing down —
+        his judgement carries on (under a hold he keeps the ground you named:
+        that is what "hold" asks)."""
         from backend.commands import if_thens
         world = _fresh(world1805)
         ney = _give(world, "Ney", "hold", "Rhineland")
@@ -954,10 +1054,8 @@ class TestWhatSession4bOwesHisRuling:
         monkeypatch.setattr(if_thens, "seen_enemies", lambda *a, **k: [])
         O._life(world, ney)
         assert O.on_his_own(ney)
-        assert O.own(ney).get("state") != "asks", "a quiet front in a war: he goes to find the enemy"
+        assert O.own(ney).get("state") != "asks" and not O.own(ney).get("question")
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="IC4-D3: today a forced retreat wipes his task (combat_executor)")
     def test_a_beaten_man_on_his_own_keeps_his_task(self, world1805):
         from backend.commands.executor import CommandExecutor
         world = _fresh(world1805)
@@ -966,11 +1064,16 @@ class TestWhatSession4bOwesHisRuling:
             CommandExecutor()._combat._apply_forced_retreat_or_break(
                 ney, world.marshals["Mack"], world, skip_fate=True)
         assert O.on_his_own(ney), "beaten, he falls back, rallies and carries on with his task"
+        assert O.own(ney)["task"] == "take" and not ney.holding_position
 
-    @pytest.mark.xfail(strict=True, raises=AssertionError,
-                       reason="IC4-D3: today a man is set on his own only with one of four tasks")
     def test_he_can_be_set_on_his_own_with_no_task(self, road):
         client, snap = road
         world = _board(snap)
-        _post(client, "Ney, act on your own")
-        assert O.on_his_own(world.marshals["Ney"]), "no task: he makes war as he sees fit"
+        before = int(world.actions_remaining)
+        out = _post(client, "Ney, act on your own")
+        ney = M.world.marshals["Ney"]
+        assert out.get("success"), out
+        assert O.on_his_own(ney) and O.own(ney)["task"] == "free", "no task: he makes war as he sees fit"
+        assert int(M.world.actions_remaining) == before - 2
+        assert ney.strategic_order.command_type == "HOLD" and ney.strategic_order.target == ney.location
+        assert "make war as he sees fit" in out["message"]

@@ -3817,7 +3817,7 @@ class CombatExecutor:
             world.muster_hint_shown = True
             preview["hint"] = (
                 "Standing orders decide who marches: 'Soult, support Ney' "
-                "authorizes even a literal marshal to move to his guns."
+                "authorizes even a marshal who goes to the letter to move to his guns."
             )
         return preview
 
@@ -6170,6 +6170,9 @@ class CombatExecutor:
                 msg = self._apply_forced_retreat_or_break(attacker, defender, world, **_rng_kw)
                 if msg:
                     retreat_messages.append(msg)
+                _baggage = self._tell_orders_taken(world)
+                if _baggage:
+                    retreat_messages.append(_baggage)
 
         # Check defender forced retreat
         if battle_result.get("defender", {}).get("forced_retreat"):
@@ -6177,6 +6180,9 @@ class CombatExecutor:
                 msg = self._apply_forced_retreat_or_break(defender, attacker, world, **_rng_kw)
                 if msg:
                     retreat_messages.append(msg)
+                _baggage = self._tell_orders_taken(world)
+                if _baggage:
+                    retreat_messages.append(_baggage)
 
         self._stamp_capture_on_report(battle_result, attacker, defender,
                                       _free_before)
@@ -8061,10 +8067,14 @@ class CombatExecutor:
         marshal.occupation_region = None
         marshal.occupation_turns_held = 0
         marshal.occupation_turns_required = 0
-        if marshal.strategic_order:
+        from backend.game_logic import own_order as _own_order
+        _keeps_task = _own_order.keeps_task(marshal)    # Row IC, Session 4b: a man on his own keeps it
+        if marshal.strategic_order and not _keeps_task:
             marshal.strategic_order = None
             clear_order_bound_interrupt(marshal)  # NPC-2
         marshal.move_to(destination)
+        if _keeps_task:
+            _own_order.after_retreat(world, marshal)
         attrition_note = ""
         if not encircled:
             attrition = self._executor._calculate_movement_attrition(
@@ -8191,6 +8201,24 @@ class CombatExecutor:
         if not observation.startswith(clause):
             report["observation"] = clause
 
+    @staticmethod
+    def _tell_orders_taken(world) -> str:
+        """Row IC, Session 4b (IC4-D2): the captured orders the rout just took,
+        told in plain words ("Among the baggage: ..."). Read, then cleared
+        (golden rule 4) — a second call, or a re-entry that wrote nothing,
+        tells nothing. "" when nothing was taken."""
+        taken = getattr(world, "_orders_taken", None)
+        world._orders_taken = None
+        if not taken:
+            return ""
+        try:
+            from backend.game_logic import learned as _learned
+            return _learned.taken_words(world, taken) or ""
+        except Exception as exc:
+            from backend.errors import report
+            report(exc, "combat_executor._tell_orders_taken")
+            return ""
+
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
                                        skip_fate: bool = False, rng=None) -> str:
         """
@@ -8264,14 +8292,28 @@ class CombatExecutor:
             marshal.occupation_turns_held = 0
             marshal.occupation_turns_required = 0
             # Clear strategic order before moving (forced retreat breaks all orders)
+            # — but Row IC, Session 4b (IC4-D3, the user's "beaten, he keeps his
+            # autonomy"): a man on his own keeps his task; his post is broken
+            # and he rallies (`own_order.after_retreat`, after the move below).
             strategic_msg = ""
-            if marshal.strategic_order:
+            from backend.game_logic import own_order as _own_order
+            _keeps_task = _own_order.keeps_task(marshal)
+            if _keeps_task:
+                strategic_msg = (f" {_shown_name(marshal.name)} keeps his task — "
+                                 "he will rally and carry on.")
+            elif marshal.strategic_order:
                 cmd_type = marshal.strategic_order.command_type
+                # IC4b-33: the sentence names HIS ORDER — the player's own man
+                # only. An enemy's letter-following marshal carries his court's
+                # written orders since the war plans; what France knows of them
+                # is the spy's to tell (the order is still broken either way).
+                _ours = getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France')
                 if cmd_type == "HOLD":
-                    strategic_msg = f" {_shown_name(marshal.name)}'s HOLD order at {old_loc} is broken!"
+                    if _ours:
+                        strategic_msg = f" {_shown_name(marshal.name)}'s HOLD order at {old_loc} is broken!"
                     marshal.holding_position = False
                     marshal.hold_region = ""
-                else:
+                elif _ours:
                     strategic_msg = f" {_shown_name(marshal.name)}'s {cmd_type} order is cancelled!"
                 # Notification: forced retreat voided strategic order (player only)
                 if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
@@ -8289,6 +8331,8 @@ class CombatExecutor:
                 marshal.strategic_order = None
                 clear_order_bound_interrupt(marshal)  # NPC-2
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
+            if _keeps_task:
+                _own_order.after_retreat(world, marshal)
             # S14E-X251 (S14f p3, October 25, 2026): a rout out of (or into) a
             # capital moves the pair's siege component AFTER the battle's
             # stamp (step 8 reads the corps still standing in the capital).
@@ -8371,14 +8415,23 @@ class CombatExecutor:
             marshal.retreat_recovery = 0
             marshal.clear_combat_transient_state()
 
-            # Clear strategic order (army shattered, all orders void)
+            # Clear strategic order (army shattered, all orders void) — but a
+            # man on his own keeps his task (Row IC, Session 4b): broken, he
+            # recovers, then carries on.
             strategic_msg = ""
-            if marshal.strategic_order:
+            from backend.game_logic import own_order as _own_order
+            if _own_order.keeps_task(marshal):
+                _own_order.after_retreat(world, marshal)
+                strategic_msg = (f" {_shown_name(marshal.name)} keeps his task — "
+                                 "he will recover and carry on.")
+            elif marshal.strategic_order:
                 cmd_type = marshal.strategic_order.command_type
-                if cmd_type == "HOLD":
-                    strategic_msg = f" {_shown_name(marshal.name)}'s HOLD position at {old_loc} is lost!"
-                else:
-                    strategic_msg = f" {_shown_name(marshal.name)}'s {cmd_type} order is void!"
+                # IC4b-33: the player's own man only (see the forced retreat's arm)
+                if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
+                    if cmd_type == "HOLD":
+                        strategic_msg = f" {_shown_name(marshal.name)}'s HOLD position at {old_loc} is lost!"
+                    else:
+                        strategic_msg = f" {_shown_name(marshal.name)}'s {cmd_type} order is void!"
                 # Notification: broken army voided strategic order (player only)
                 if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
                     from backend.notifications import (
@@ -8657,6 +8710,9 @@ class CombatExecutor:
                         self._apply_forced_retreat_or_break(
                             force, marshal, world,
                             **({"rng": rng} if rng is not None else {}))  # WS-11
+                        _baggage = self._tell_orders_taken(world)
+                        if _baggage:
+                            collateral_messages.append("  " + _baggage)
 
         # ════════════════════════════════════════════════════════════
         # INCREMENT COUNTERS
@@ -8711,6 +8767,9 @@ class CombatExecutor:
                 defender, marshal, world,
                 **({"rng": rng} if rng is not None else {}))  # WS-11
             destroyed_msg = f"\n{break_msg}"
+            _baggage = self._tell_orders_taken(world)
+            if _baggage:
+                destroyed_msg += f"\n{_baggage}"
 
         # ════════════════════════════════════════════════════════════
         # BUILD NARRATIVE MESSAGE
@@ -12297,6 +12356,9 @@ class CombatExecutor:
                                 ctx.p, ctx.enemy_marshal, ctx.world, **_rng_kw)
                             if msg:
                                 ctx.forced_retreat_msg += "\n" + msg
+                            _baggage = self._tell_orders_taken(ctx.world)
+                            if _baggage:
+                                ctx.forced_retreat_msg += "\n" + _baggage
                         elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
                             ctx.forced_retreat_msg += (
                                 f"\n{humanize_entity_name(ctx.p.name)}'s regiments close ranks — they will not break. "
@@ -12310,6 +12372,9 @@ class CombatExecutor:
                                 ctx.p, ctx.marshal, ctx.world, **_rng_kw)
                             if msg:
                                 ctx.forced_retreat_msg += "\n" + msg
+                            _baggage = self._tell_orders_taken(ctx.world)
+                            if _baggage:
+                                ctx.forced_retreat_msg += "\n" + _baggage
                         elif ctx.p.morale <= FORCED_RETREAT_THRESHOLD:
                             ctx.forced_retreat_msg += (
                                 f"\n{humanize_entity_name(ctx.p.name)}'s regiments close ranks — they will not break. "
@@ -13544,8 +13609,11 @@ class CombatExecutor:
         marshal.square_formation = True
 
         # Cancel strategic order (forming square is a defensive stance commitment)
+        # — except a man on his own's task: an order by your hand leaves it
+        # standing (row IC, Session 3's rule; Session 4b's guard).
         strategic_cancel_msg = ""
-        if getattr(marshal, 'strategic_order', None):
+        from backend.game_logic import own_order as _own_order
+        if getattr(marshal, 'strategic_order', None) and not _own_order.keeps_task(marshal):
             old_order = marshal.strategic_order
             marshal.strategic_order = None
             clear_order_bound_interrupt(marshal)  # NPC-2
@@ -13556,8 +13624,12 @@ class CombatExecutor:
             # "Strategic order (MOVE_TO) cancelled" was the one player-facing
             # site that bypassed it.
             from backend.commands.strategic_executor import order_verb_display
-            strategic_cancel_msg = (f" His {order_verb_display(old_order.command_type)} "
-                                    f"order is cancelled.")
+            # IC4b-33: the player's own man only — an enemy square's broken
+            # order is his court's written orders, which France knows only by
+            # the spy (the order is still cancelled either way)
+            if marshal.nation == getattr(world, "player_nation", "France"):
+                strategic_cancel_msg = (f" His {order_verb_display(old_order.command_type)} "
+                                        f"order is cancelled.")
 
         # PC-9 (quiet-France played campaign, Aug 3 2026): the second line is
         # a rule addressed to the PLAYER ("any order you give…"), and it was
@@ -13698,10 +13770,14 @@ class CombatExecutor:
                     "message": f"{marshal.name} is not cavalry and cannot execute a Glorious Charge."
                 }
             else:
+                # (row IC, Session 4b: the nature's own word, never the raw key)
+                from backend.display_names import NATURE_WORDS, nature_of
+                bold = NATURE_WORDS["aggressive"][0]
+                his = nature_of(marshal).get("nature") or "not " + bold
                 return {
                     "success": False,
-                    "message": f"{marshal.name} is cavalry but not aggressive enough for Glorious Charge. "
-                              f"Only reckless cavalry commanders (aggressive cavalry) can charge."
+                    "message": f"{marshal.name} cannot make a Glorious Charge: only {bold} cavalry "
+                              f"commanders charge, and he is {his}."
                 }
 
         # Must have recklessness >= 1

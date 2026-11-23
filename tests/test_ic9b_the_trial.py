@@ -1428,7 +1428,7 @@ class TestWhatTheReviewFound:
         ney.strategic_order = kept
         row = T.drop_take(ney, "he carried out a line of his orders instead")
         assert row["action"] == "trial_take_dropped" and row["place"] == "Bohemia"
-        assert row["message"] == ("Ney does not march on Bohemia tonight: he carried out a line of "
+        assert row["message"] == ("Ney does not march on Bohemia this turn: he carried out a line of "
                                   "his orders instead.")
         assert kept.opening_take is None and T.drop_take(ney, "again") is None
         assert T.drop_take(world.marshals["Davout"], "no task") is None
@@ -1640,11 +1640,19 @@ SET_BY_YOU = {
      'XIX. On His Own'):
         "the lesson's card that teaches setting a man on his own (Session 4, IC-13)",
     ('godot-client/project-sovereign/scripts/tutorial_overlay.gd',
-     'You can set a bold or a careful marshal on his own. Type his task on the command line — for example [color=#e8d4a8]Ney, take Swabia on your own[/color] — or use the chips under the line. Before you press Enter he answers in his own words, and the line under it says what he will do tonight. A marshal on his own acts each night without further orders. A marshal who follows orders to the letter (Soult) takes exact orders instead: [color=#e8d4a8]Soult, hold Lorraine. If attacked, dig in.[/color]'):
+     'You can set a bold or a careful marshal on his own. Type his task on the command line — for example [color=#e8d4a8]Ney, take Swabia on your own[/color] — or give him none: [color=#e8d4a8]Ney, act on your own[/color]. Before you press Enter he answers in his own words. He makes his move as each turn opens, before you give orders: your task guides him, and he weighs it against the chances around him. The morning report says what he did. A marshal who follows orders to the letter (Soult) takes exact orders instead: [color=#e8d4a8]Soult, hold Lorraine. If attacked, dig in.[/color]'):
         "the lesson's card that teaches setting a man on his own (Session 4, IC-13)",
     ('backend/ai/own_words.py',
      'on his own'):
         "a mark of judgement the typed line takes ('on his own' typed of him)",
+    # Row IC, Session 4b (IC4-D3): on his own with NO task — the card's button
+    # and its refusal for a man already set so
+    ('godot-client/project-sovereign/scripts/simple_orders.gd',
+     'Set him on his own'):
+        "the card's button that sets a bold or careful man on his own with no task (Session 4b)",
+    ('backend/commands/state_probe.py',
+     'he is on his own already'):
+        "the refusal of 'Set him on his own' for a man already on his own with no task (Session 4b)",
     ('backend/commands/parse_preview.py',
      'how boldly he goes is his own only on a task on his own, and {}'):
         'the read-back of a task on his own (§8.4)',
@@ -1762,9 +1770,9 @@ SET_BY_YOU = {
     ('godot-client/project-sovereign/scripts/selection_card.gd',
      ']On his own:'):
         'his card (§8.1, §8.6)',
-    ('godot-client/project-sovereign/scripts/turn_end_list.gd',
-     'On his own. Press to go to him — to order it yourself, or to stand him down.'):
-        "the End Turn list's Tonight rows (§5)",
+    # (Row IC, Session 4b: the End Turn list's "Tonight" rows are gone — he
+    # moves as the turn opens and nothing is previewed — and their exemption
+    # with them.)
     # Row IC, Session 3b (November 21, 2026): an army's task — its COMMANDER is a man
     # you set on his own; each string read and added by name, as above.
     ('backend/commands/army_task.py',
@@ -1836,6 +1844,12 @@ SET_BY_YOU = {
     ('godot-client/project-sovereign/scripts/selection_card.gd',
      ', take …”). Its commander is set on his own and the others follow him.'):
         'his card (§8.1, §8.6)',
+    # Row IC, Session 4b (IC4b-26): the Event Log's lines for a man you set on his
+    # own, when his row carries no sentence of its own
+    ('backend/campaign_log.py', '{} is set on his own'):
+        "the Event Log's line when you set a man on his own (Session 4b, IC4b-26)",
+    ('backend/campaign_log.py', '{} acted on his own'):
+        "the Event Log's line of a man you set on his own, a row with no sentence (Session 4b, IC4b-26)",
 }
 
 # (4) ONE-WORD labels of the vassals' scale (read since the review widened the

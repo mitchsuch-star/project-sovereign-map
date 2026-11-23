@@ -1901,8 +1901,10 @@ class TestRowIC7TheButtons:
         assert faces[1:8] == [
             "1 Hold the ground · 2 actions", "2 Fortify · 2 actions", "3 Drill · 1 action",
             "4 Scout · 1 action", "5 Fall back · free", "6 Garrison · 2 actions", "7 Cancel order"]
+        # (row IC, Session 4b: a man who may be set on his own wears its button last —
+        # no task, he makes war as he sees fit)
         assert faces[8:] == ["Stand here · 1 action", "Stay put · free", "Posture: steady ▾",
-                             "Give him a task…"]
+                             "Give him a task…", "Set him on his own · 2 actions"]
         assert not walk["select"].get("off_screen")
 
     def test_the_posture_menu_opens_where_the_hint_stood_and_moves_nothing(self, walk):
@@ -2337,23 +2339,26 @@ class TestRowIC10OnHisOwn:
         assert "on his own: hold Rhineland" in reading, reading
         assert "once given, 1 of the 1 you may have (laws raise it)" in reading
         assert "he attacks only when the odds are our" in reading
-        assert "His first night (tomorrow), as things stand:" in reading
+        assert "At the start of next turn he means to — if nothing changes first:" in reading  # (Session 4b)
         assert (walk["draft"].get("command_line") or {}).get("text") == "Davout, hold Rhineland on your own", \
             "typed, not sent"
         assert "is on his own" not in _ic_log(walk["draft"]), "nothing given by typing"
 
     def test_giving_it_says_when_he_starts_and_charges_two_actions(self, walk):
         log = _ic_log(walk["given"])
-        assert "on his own: hold Milan and Piedmont. He starts tomorrow night." in log, log
+        assert ("on his own: hold Milan and Piedmont. He makes his first move at the start of next turn."
+                in log), log
         assert "On their own: 1 of the 1 you may have." in log
         before, after = (int(_ic_actions(walk["begin"]).split("/")[0]),
                          int(_ic_actions(walk["given"]).split("/")[0]))
         assert before - after == 2
 
-    def test_his_card_says_tonight_and_offers_his_own_buttons(self, walk):
+    def test_his_card_says_when_he_moves_and_offers_his_own_buttons(self, walk):
         faces = list(_ic2_faces(walk["card"]))
         said = _pw_said(walk["card"])
-        assert "On his own" in said and "Tonight:" in said
+        # (Session 4b — "He moves at turn start": no preview, the card says when he moves)
+        assert "On his own" in said and "He makes his first move at the start of next turn." in said
+        assert "Tonight" not in said
         assert "Ask him" in faces and "Change his task…" in faces
         assert any(f.startswith("Stand him down · free") for f in faces), faces
         assert "Give him a task…" not in faces, "a man on his own changes his task instead"
@@ -2362,7 +2367,7 @@ class TestRowIC10OnHisOwn:
     def test_the_desk_says_the_count_and_his_night(self, walk):
         desk = [str(b.get("text") or "") for b in _ic_on(walk["desk"], "DeskCard")]
         line = next((t for t in desk if t.startswith("ON THEIR OWN")), "")
-        assert "1 of the 1 you may have" in line and "tonight:" in line, desk
+        assert "1 of the 1 you may have" in line and "they move as each turn opens" in line, desk
 
     def test_asking_him_is_free_and_answered_in_his_voice(self, walk):
         assert _ic_actions(walk["asked"]) == _ic_actions(walk["given"]), "a question spends nothing"
@@ -2491,18 +2496,19 @@ class TestRowIC12AnArmysTask:
         assert "Army of Italy · 3 corps · on its own" in _pw_buttons(give)
         desk = [str(b.get("text") or "") for b in _ic_on(give, "DeskCard")]
         line = next((t for t in desk if t.startswith("ON THEIR OWN")), "")
-        assert "1 of the 1 you may have · the Army of Italy, 2 men following · tonight:" in line, desk
+        assert ("1 of the 1 you may have · the Army of Italy, 2 men following · they move as each turn "
+                "opens") in line, desk
 
     def test_the_commanders_card_names_his_army_and_stands_whole(self, walk):
         said = _pw_said(walk["commander"])
         assert "Commands the Army of Italy — 2 men follow him." in said, said[-1200:]
-        assert "Tonight:" in said and "Tomorrow night, as things stand:" in said
+        assert "He makes his first move at the start of next turn." in said and "Tonight" not in said
         _ic3b_card_fits(walk["commander"])          # (pressed: his last button ran past the screen's foot)
 
     def test_a_followers_card_says_whom_he_follows_and_his_night(self, walk):
         said = _pw_said(walk["follower"])
         assert "Follows Ney — the Army of Italy is on its own: take Swabia." in said, said[-1200:]
-        assert "Tonight: Davout set out when the order was given" in said
+        assert "He moves with Ney from the start of next turn." in said
         assert "He takes none of your places for men on their own." in said
         _ic3b_card_fits(walk["follower"])
 
@@ -2757,4 +2763,291 @@ class TestRowIC13AnArmysTaskSpeaks:
         his = [line for kind in kinds for line in own_voice.pool(lead, nature, kind)]
         said = [line for line in his if f"{lead}: “{line}”" in log]
         assert len(said) == 1, log[-800:]
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ═══════════════════════ row IC, Session 4b — his own judgement ═════════════
+# (`SYSTEMS_REFERENCE.md` §236; the user's "He moves at turn start" and his
+# correction: an autonomous army whose orders are goals that weigh in its
+# decision tree.) Pressed at the first player's own setup and at the small
+# window: a man set on his own with NO task ("act on your own"), the turn
+# ended, the morning's report of what he did as the turn opened, his card's
+# "This turn", and his nature on the Generals page.
+
+def _ic4b_steps(run: pathlib.Path, by_button: bool) -> dict:
+    states: dict = {}
+    answered: list = []
+    states["begin"] = _act(run, "click Begin")
+    if by_button:
+        # the card's own button (the server's `buttons.offered.own_free`)
+        states["card_before"] = _act(run, "click Ney")
+        face = next((b for b in _ic_on(states["card_before"], "SelectionCard")
+                     if str(b.get("text") or "").startswith("Set him on his own")), None)
+        assert face is not None, sorted(_ic2_faces(states["card_before"]))
+        states["given"] = _ic_press(run, face)
+        _act(run, "key Escape")
+    else:
+        states["draft"] = _act(run, "draft Ney, act on your own", meant="other: on his own, no task")
+        states["given"] = _act(run, "key Enter")
+    # the morning's lines arrive with the End Turn press and the answers after
+    # it: gathered across every state of the chain, not read off its last one
+    log: list = []
+    state = _act(run, "click End Turn (E)")
+    log += list(state.get("terminal_new") or [])
+    if _ic_on(state, "TurnEndList"):
+        state = _act(run, "click End Turn (E)")          # the list stops once; the button stays one press away
+        log += list(state.get("terminal_new") or [])
+    for _ in range(14):
+        if not _modal(state) and state.get("scene") == "main":
+            break
+        state = _answer_chain_step(run, state, answered)
+        log += list(state.get("terminal_new") or [])
+    states["ended"] = state
+    states["morning"] = " ".join(log)
+    states["answered"] = answered
+    states["card"] = _act(run, "click Ney")          # (his piece may stand off the small window's map)
+    _act(run, "key Escape")
+    states["generals"] = _act(run, "key alt+g")        # (the small window's top bar is icons)
+    two = next((b for b in _ic_on(states["generals"], "MarshalManagement")
+                if str(b.get("text") or "") == "2"), None)
+    # Ney, the second on the roll (the small window draws the roll as portraits:
+    # its number key selects him there)
+    states["generals_ney"] = _ic_press(run, two) if two else _act(run, "key 2")
+    return states
+
+
+def _answer_chain_step(run: pathlib.Path, state: dict, answered: list) -> dict:
+    """One answer of `_answer_chain` (the same pick), returning the next state."""
+    modal = _modal(state)
+    floor = int(state.get("modal_floor", -10**6))
+    live = [b for b in state.get("buttons", [])
+            if int(b["layer"]) >= floor and not b.get("disabled") and b.get("kind") != "slider"]
+    pick = None
+    for word in _ANSWERS:
+        pick = next((b for b in live if b["text"].strip().lower().startswith(word)), None)
+        if pick:
+            break
+    if pick is None and "battle_diorama" in " ".join(modal):
+        w, h = state["factor"]["logical_size"]
+        answered.append("battle_diorama: skip")
+        return _act(run, f"click_at {int(w / 2)} {int(h / 2)}")
+    assert pick is not None, f"no answer on {modal}: {[b['text'] for b in live]}"
+    r = pick["rect"]
+    answered.append(f"{modal}: {pick['text']}")
+    return _act(run, f"click_at {int(r[0] + r[2] / 2)} {int(r[1] + r[3] / 2)}")
+
+
+def _ic4b_walk_at(tmp_path_factory, name: str, scale: str, window: str, by_button: bool) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", scale)
+        mp.setenv("DD_B_WINDOW", window)
+        mp.setenv("DD_B_READBACK", "1")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, name)
+    states: dict = {}
+    try:
+        states.update(_ic4b_steps(run, by_button))
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+@pytest.fixture(scope="module")
+def ic4b_walk(tmp_path_factory) -> dict:
+    """The first player's own setup: Interface Scale 1.8 on 5120 x 1377."""
+    return _ic4b_walk_at(tmp_path_factory, "ic4b", "1.8", "5120x1377", by_button=True)
+
+
+@pytest.fixture(scope="module")
+def ic4b_compact(tmp_path_factory) -> dict:
+    """The small window: Interface Scale 2.0 on 1600 x 900."""
+    return _ic4b_walk_at(tmp_path_factory, "ic4b_compact", "2.0", "1600x900", by_button=False)
+
+
+def _ic4b_pins(walk: dict) -> None:
+    if "draft" in walk:                               # the typed road: answered before Enter
+        reading = _ic2_readback(walk["draft"])
+        assert "on his own: make war as he sees fit" in reading, reading
+        assert "At the start of next turn he means to" in reading, reading
+    log = _ic_log(walk["given"])
+    assert "Ney is on his own: make war as he sees fit. He makes his first move at the start of next turn." \
+        in log, log[-600:]
+    begin, given = _ic_actions(walk["begin"]), _ic_actions(walk["given"])
+    if begin and given:                               # (the counter as the wide desk draws it)
+        assert int(begin.split("/")[0]) - int(given.split("/")[0]) == 2, "on his own costs two actions"
+    # the morning report says what he did as the turn opened: the dispatch's
+    # own line for him (the probe keeps a step's last 80 terminal lines, and
+    # the dispatch fills them; the "as this turn opened" block printed just
+    # above it is pinned at the server's road, `strategic_reports`)
+    morning = walk["morning"]
+    assert "On his own: make war as he sees fit. This turn: Ney " in morning, morning[-1500:]
+    assert "Tonight" not in morning
+    generals = _pw_said(walk["generals_ney"]) + " " + " ".join(_pw_buttons(walk["generals_ney"]))
+    assert "Bold" in generals, "his nature stands on his Generals card"
+    assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+class TestRowIC4bHisOwnJudgement:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4b_walk):
+        assert "error" not in ic4b_walk, ic4b_walk.get("error")
+        return ic4b_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        assert walk["given"]["ui_scale"]["window"] == pytest.approx(1.8)
+        assert walk["given"]["factor"]["logical_size"] == [2844.0, 765.0]
+
+    def test_on_his_own_with_no_task_moves_at_turn_start_and_says_what_he_did(self, walk):
+        _ic4b_pins(walk)
+
+    def test_the_button_says_its_price_before_the_press(self, walk):
+        face = next(str(b.get("text") or "") for b in _ic_on(walk["card_before"], "SelectionCard")
+                    if str(b.get("text") or "").startswith("Set him on his own"))
+        assert "2 actions" in face, face
+
+    def test_the_price_reads_on_the_desk(self, walk):
+        assert _ic_actions(walk["begin"]) and _ic_actions(walk["given"]), "the wide desk shows the counter"
+
+    def test_his_card_says_what_he_did_this_turn_and_nothing_ahead(self, walk):
+        said = _pw_said(walk["card"])
+        assert "This turn: Ney " in said, said[-800:]
+        assert "Tonight" not in said and "tonight" not in said
+
+    def test_his_card_says_each_thing_once_and_no_task_reads_as_none(self, walk):
+        # pressed in the real client (the screens' reading, Session 4b): the
+        # state's own words "(makes his first move at the start of next turn)"
+        # stood right above the same sentence, and a man with NO task read
+        # "Your task guides him"
+        card = " | ".join(str(t.get("text") or "") for t in walk["given"].get("texts") or []
+                          if t.get("surface") == "SelectionCard")
+        assert card.count("first move at the start of next turn") == 1, card[-900:]
+        assert "No task: each turn he weighs the chances around him" in card, card[-900:]
+        assert "Your task guides him" not in card
+
+    def test_nothing_runs_off_the_screen(self, walk):
+        for key in ("card_before", "given", "card"):
+            assert not walk[key].get("off_screen"), (key, walk[key].get("off_screen"))
+
+
+class TestRowIC4bHisOwnJudgementAtTheCompactView:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4b_compact):
+        assert "error" not in ic4b_compact, ic4b_compact.get("error")
+        return ic4b_compact
+
+    def test_the_run_stands_at_the_small_window(self, walk):
+        assert walk["draft"]["ui_scale"]["window"] == pytest.approx(2.0)
+
+    def test_on_his_own_with_no_task_moves_at_turn_start_and_says_what_he_did(self, walk):
+        _ic4b_pins(walk)
+
+
+# ═══════════════ row IC, Session 4b, continued — what we know of their plans ═══════════════
+# (`SYSTEMS_REFERENCE.md` §236.8; the user's "fix warplans", then "Switch them on".) Pressed at
+# the first player's own setup: agents sent to Austria from the Cabinet, three turns ended, then
+# the war's page and the province window under Mack. Pressing found both rows pinned here: the
+# Folded war page never listed what the spy brought back (IC4b-32), and the command window told
+# an enemy's written orders as the player's — "Mack holds at Swabia, per your orders" (IC4b-31).
+# A new campaign draws its own seed, so the plan Austria draws varies; the pins read the words
+# every plan shares.
+
+def _ic4b_plans_steps(run: pathlib.Path) -> dict:
+    states: dict = {}
+    log: list = []
+    states["begin"] = _act(run, "click Begin")
+    _act(run, "click ⚖ Cabinet")
+    states["austria"] = _act(run, "click Austria")
+    w, h = states["austria"]["factor"]["logical_size"]
+    state = _act(run, f"scroll {int(w * 0.63)} {int(h * 0.61)} down 8")   # the wizard's action list
+    gather = next((b for b in state.get("buttons", []) if str(b.get("text")) == "Gather Intel"), None)
+    assert gather is not None, [b.get("text") for b in state.get("buttons", [])][:40]
+    state = _ic_press(run, gather)
+    begin = next((b for b in state.get("buttons", []) if str(b.get("text")) == "Begin mission"), None)
+    assert begin is not None, [b.get("text") for b in state.get("buttons", [])][:20]
+    state = _ic_press(run, begin)
+    log += list(state.get("terminal_new") or [])
+    answered: list = []
+    for _ in range(3):                                # the mission's three turns
+        state = _act(run, "click End Turn (E)")
+        log += list(state.get("terminal_new") or [])
+        if _ic_on(state, "TurnEndList"):
+            state = _act(run, "click End Turn (E)")
+            log += list(state.get("terminal_new") or [])
+        for _ in range(16):
+            if not _modal(state) and state.get("scene") == "main":
+                break
+            state = _answer_chain_step(run, state, answered)
+            log += list(state.get("terminal_new") or [])
+    states["log"] = log
+    states["answered"] = answered
+    war = next((b for b in state.get("buttons", []) if b.get("surface") == "WarStatusPanel"
+                and str(b.get("text") or "").startswith("War ")), None)
+    assert war is not None, [b.get("text") for b in _ic_on(state, "WarStatusPanel")]
+    states["war_page"] = _ic_press(run, war)
+    state = _act(run, "key Escape")
+    mack = next((lab for lab in state.get("map") or [] if lab.get("text") == "Mack"), None)
+    assert mack is not None, [lab.get("text") for lab in state.get("map") or []]
+    r = mack["rect"]
+    states["province"] = _act(run, f"click_at {int(r[0] + r[2] / 2)} {int(r[1] + r[3] / 2 + 5)}")
+    return states
+
+
+@pytest.fixture(scope="module")
+def ic4b_plans_walk(tmp_path_factory) -> dict:
+    """The first player's own setup: Interface Scale 1.8 on 5120 x 1377."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        mp.setenv("DD_B_READBACK", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic4b_plans")
+    states: dict = {}
+    try:
+        states.update(_ic4b_plans_steps(run))
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowIC4bWhatWeKnowOfTheirPlans:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4b_plans_walk):
+        assert "error" not in ic4b_plans_walk, ic4b_plans_walk.get("error")
+        return ic4b_plans_walk
+
+    def test_the_spys_report_names_their_written_orders(self, walk):
+        said = " ".join(walk["log"])
+        assert "His report on their written orders: Mack " in said, said[-1200:]
+
+    def test_the_war_page_lists_what_we_know_of_their_plans(self, walk):
+        page = " || ".join(str(t.get("text") or "") for t in walk["war_page"].get("texts") or []
+                           if t.get("surface") == "WarDetailPopup")
+        assert "What we know of their plans" in page, page[-900:]
+        known = page[page.index("What we know of their plans"):]
+        assert "Mack " in known                              # his orders, whichever plan was drawn
+        assert "(learned this turn, from your spy's report)" in known
+        assert "Austria's corps " in known                   # "favour no province" / "lean toward X"
+        assert known.index("What we know of their plans") < known.index("Recent Battles")
+
+    def test_the_province_window_gives_mack_his_known_orders(self, walk):
+        panel = " || ".join(str(t.get("text") or "") for t in walk["province"].get("texts") or []
+                            if t.get("surface") == "RegionPanel")
+        assert "Nature: To the letter" in panel, panel[-800:]
+        assert "Known orders (learned this turn, from your spy's report): Mack " in panel
+
+    def test_no_line_tells_an_enemys_orders_as_yours(self, walk):
+        said = " ".join(walk["log"])
+        assert "Mack holds at" not in said and "per your orders" not in said, said[-1200:]
+
+    def test_nothing_runs_off_the_screen_and_no_script_errs(self, walk):
+        for key in ("war_page", "province"):
+            assert not walk[key].get("off_screen"), (key, walk[key].get("off_screen"))
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

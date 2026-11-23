@@ -1879,7 +1879,23 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # LETTER, ARREARS, RESTLESS and USED alone are byte-identical (every seam read
 # on the loop). ALL diverges at [10]. The prior's series: SERIES_BEFORE_OC.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 29, 26, 23, 20, 25, 22, 19, 21, 18, 15, 17, 17, 14, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by row IC, Session 4b, continued (November 23, 2026 — the enemy's
+# war plans FIXED, a plan only for a court at war with France, and SWITCHED ON
+# at the user's word, "Switch them on"; `SYSTEMS_REFERENCE.md` §236.8). The
+# attribution: `tools/_ic4_series_arms.py` →
+# `tools/_ic4b_fix_series_arms_2026_11_23.json` — arm 0 (every row of
+# `tests/_ic4_seams.py` down) reproduces the prior BYTE FOR BYTE; arm +PLAN (the
+# plans up, as fixed) is the shipped tree and diverges at [9]. Traced on the
+# series' own loop: the coalition's opening orders hold its letter-following
+# men, France loses fewer battles in the first turns, and Switzerland's loyalty
+# falls by drift alone — she leaves France's web at world turn 17, for Austria,
+# where the prior saw her rebel at 11 (the -10 at [10] moves to [16]). The
+# prior's series: SERIES_BEFORE_IC4B.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 41, 38, 36, 33, 30, 27, 24, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# row OC's series (row IC Session 4b's prior; the IC4b rig's arm 0):
+SERIES_BEFORE_IC4B = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 29, 26, 23, 20, 25, 22, 19, 21, 18, 15, 17, 17, 14, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The seven-seed probe record (`docs/audits/probes/sf_lb2/`) re-recorded with
 # the tree: Prussia→Hanover opens on 8 / 12 / 11 / 8 / 12 / 10 / 12
 # (historical / austerlitz / friedland / jena / ulm / marengo / eylau) — four

@@ -158,6 +158,19 @@ class TestTheRulesOfALine:
                 assert len(line) <= 120, (owner, kind, line)
                 assert set(re.findall(r"\{(\w+)\}", line)) <= {"orders"}, (owner, kind, line)
 
+    def test_a_line_said_when_an_order_is_given_never_promises_he_acts_at_once(self):
+        """Row IC, Session 4b — the user's "He moves at turn start": an order
+        given in your turn is first carried out as the next turn opens, so the
+        answer said as it is given never says "now" or "right away" (pressed
+        in the real client before the screens' reading: Ney's "I'm moving now"
+        stood under "He makes his first move at the start of next turn")."""
+        given = ("free", "ack", "bolder", "careful", "remembers")
+        at_once = re.compile(r"\b(now|at once|immediately|right away|this instant|today|tonight)\b", re.I)
+        for owner, kind, lines in _every_set():
+            if kind in given:
+                for line in lines:
+                    assert not at_once.search(line), (owner, kind, line)
+
     def test_sire_is_the_only_period_word(self):
         for owner, kind, lines in _every_set():
             for line in lines:
@@ -701,14 +714,16 @@ class TestEveryLineSaidIsShown:
         assert V.KIND_OF_ACT["join"] == "marched"
 
     def test_a_stay_says_the_line_that_fits_why_he_stayed(self):
-        """A man who did your order today, did his night's work, was drawn into
-        a friend's battle or has no corps says no line of the night; a quiet
-        front is a waiting night; only a stay because the board changed says
-        his "stayed" line (which claims that it changed)."""
-        for why in ("your order today", "his night is done", "drawn in today", "no corps"):
+        """A man whose move was made, who was drawn into a friend's battle or
+        has no corps says no line of it; a stay his judgement chose (row IC,
+        Session 4b) is a quiet wait — unless he held back from a fight too
+        strong for him, which says his "stayed" line (he held back)."""
+        for why in ("his move is made", "drawn in this turn", "no corps"):
             assert O._voice_act("stay", {}, [], [], why) == "claim", why
-        assert V.KIND_OF_ACT[O._voice_act("stay", {}, [], [], "nothing to do")] == "waited"
-        assert O._voice_act("stay", {}, [], [], "Mack's fight changed things") == "stay"
+        assert V.KIND_OF_ACT[O._voice_act(
+            "stay", {}, [], [], "as you asked — nothing within his reach worth leaving it for")] == "waited"
+        assert O._voice_act("stay", {}, [], [], "Mack at Swabia is too strong for him: our 8 to their "
+                                                "10, and he goes in at 11") == "stay"
         assert V.KIND_OF_ACT["stay"] == "stayed"
 
     def test_his_proposal_line_follows_the_task_proposed(self, world):

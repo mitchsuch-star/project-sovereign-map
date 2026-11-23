@@ -78,7 +78,12 @@ class TestHisOwnOddsAndHisRecord:
 
 class TestTheThirdNight:
 
-    def test_not_the_same_waiting_act_a_third_night_while_another_exists(self, world1805):
+    def test_not_the_same_waiting_act_a_third_night_while_another_exists(self, world1805, monkeypatch):
+        # (row IC, Session 4b: a chance within reach of his post now weighs at
+        # the plan's one price — the rule pinned here is about WAITING, so the
+        # board's chances are taken out of it)
+        from backend.game_logic import own_judgement as J
+        monkeypatch.setattr(J, "_chances", lambda *a, **k: [])
         world = _fresh(world1805)
         davout = _give(world, "Davout", "hold", "Rhineland")
         davout.fortified = False
@@ -134,7 +139,7 @@ class TestTheirPersonalLines:
         O.own(bern)["given"] = int(world.current_turn) - 1
         with _quiet():
             reading = O.read(world, bern)
-        assert reading["act"] == "start" and "a night late" in reading["line"]
+        assert reading["act"] == "start" and "a turn late" in reading["line"]
 
     def test_murat_never_storms_walls(self, world1805):
         world = _fresh(world1805)

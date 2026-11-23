@@ -814,14 +814,17 @@ func _render_commission_view():
 		if not (c is Dictionary):
 			continue
 		var cname = str(c.get("name", "?"))
-		var personality = str(c.get("personality", "?"))
+		var nature_text = str(c.get("nature", ""))
+		var nature_line = str(c.get("nature_line", ""))
 		var cost = int(c.get("cost", 0))
 		var available = bool(c.get("available", false))
 		var reason = str(c.get("blocked_reason", ""))
 
 		bbcode += _portrait_block(cname, 64, 80)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + cname + "[/color]"
-		bbcode += "  " + Utils.bb_badge(personality.capitalize(), Utils.COLOR_BADGE_QUIET)
+		if nature_text != "":
+			# (its one plain line on the hover — the one road, `Utils.bb_hint`)
+			bbcode += "  " + Utils.bb_hint(Utils.bb_badge(nature_text, Utils.COLOR_BADGE_QUIET), nature_line)
 		# CN-3 rider 2: every arm is tagged, the serving card's own idiom —
 		# the bench tagged only [Cavalry], so Marmont and Senarmont, the gun
 		# marshals, rendered untagged. The corps he raises rides beside it.
@@ -910,7 +913,6 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 	var name = str(m.get("name", "?"))
 	var unit_type = str(m.get("unit_type", "Infantry"))
 	var nation = str(m.get("nation", "?"))
-	var personality = str(m.get("personality", "?"))
 
 	# Unit type badge color
 	var type_color = Utils.COLOR_INFO
@@ -957,7 +959,13 @@ func _render_card(m: Dictionary, index: int, opened := false) -> String:
 		sheet += _unit_icon(unit_type, type_color) + " "
 	# the sheet is a table cell (bb_portrait_row): its tags are inline runs
 	sheet += Utils.bb_tag(unit_type, arm_tone)
-	sheet += "  " + Utils.bb_flag(nation) + " " + Utils.bb_tag(Utils.display_nation_name(nation), Utils.COLOR_BADGE_QUIET) + "\n"
+	sheet += "  " + Utils.bb_flag(nation) + " " + Utils.bb_tag(Utils.display_nation_name(nation), Utils.COLOR_BADGE_QUIET)
+	# Row IC 4b: his nature (Bold, Careful, To the letter) beside the arm and
+	# the nation; its one plain line on the hover. The Emperor has none.
+	var nature := str(m.get("nature", ""))
+	if nature != "":
+		sheet += "  " + Utils.bb_hint(Utils.bb_tag(nature, Utils.COLOR_BADGE_QUIET), str(m.get("nature_line", "")))
+	sheet += "\n"
 	sheet += _court_line(m)
 
 	# UXR3-24: the Emperor's card opens on his STATE (the backend's line: in
@@ -1927,6 +1935,13 @@ func _fill_header(m: Dictionary) -> void:
 	var nation := str(m.get("nation", "?"))
 	var tags := Utils.bb_tag(unit_type, arm_tone) + "  " + Utils.bb_flag(nation) + " " \
 		+ Utils.bb_tag(Utils.display_nation_name(nation), Utils.COLOR_BADGE_QUIET)
+	# Row IC 4b: his nature (Bold, Careful, To the letter) beside the arm and
+	# the nation, its one plain line on the hover — the roster's card is the
+	# one the page opens on (pressed in the real client: the sheet's head
+	# alone carried it). The Emperor has none.
+	var nature := str(m.get("nature", ""))
+	if nature != "":
+		tags += "  " + Utils.bb_hint(Utils.bb_tag(nature, Utils.COLOR_BADGE_QUIET), str(m.get("nature_line", "")))
 
 	# what he is doing, in his status tone; the Emperor's own state line leads
 	var tone := str(status.get("tone", Utils.COLOR_GOLD))

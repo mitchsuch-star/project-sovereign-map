@@ -129,6 +129,15 @@ def _row(rows: List[dict], prefix: str) -> Optional[dict]:
     return None
 
 
+def _nature_row(rows: List[dict]) -> Optional[dict]:
+    """The report's nature row ("Bold nature", "Careful nature" — row IC,
+    Session 4b: the label carries the nature's own word, not the raw key)."""
+    for row in rows:
+        if str(row.get("label", "")).endswith(" nature"):
+            return row
+    return None
+
+
 # ── The assault's rows, by the label the report already prints ────────────
 #
 # (label prefix, kind, weight, sentence). `{a}` is the corps the row belongs
@@ -611,7 +620,7 @@ def _assault(script: _Script, attacker, defender, battle_result: dict,
             ("attacker", attacker, atk_rows, _ADVANCE),
             ("defender", defender, def_rows, _RECEIVE)):
         temper = temper_of(lead)
-        row = _row(rows, "Personality (")
+        row = _nature_row(rows)
         figure = f" ({_signed(row)})" if row else ""
         alt = (_ADVANCE_ALT if lines is _ADVANCE else _RECEIVE_ALT)[temper]
         script.add("assault", _beat(

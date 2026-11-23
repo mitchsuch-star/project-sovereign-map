@@ -388,7 +388,7 @@
  "day_follows_his": {
   "staging": "Masséna, from the Tyrol, falls on the Archduke Charles in Carniola with no other corps near: 96,000 men engaged — a great battle, two corps, and a day whose chips fit the panel.",
   "ambient_seed": 0,
-  "shows": "HIS clash's tableau after ours: the day's live chips (5) ride it (2 to 2, his temper 'Cautious')",
+  "shows": "HIS clash's tableau after ours: the day's live chips (5) ride it (2 to 2, his temper 'Careful')",
   "kind": "battle",
   "form": "full",
   "register": "grim",
@@ -401,7 +401,7 @@
  "day_ulm": {
   "staging": "The board as the campaign opens: Mack in Swabia, six French corps in the four provinces round him. Ney attacks.",
   "ambient_seed": 0,
-  "shows": "the real Ulm opening: Mack surrounded (his_road false, 'Literal'), the day open, the lead's press lit among 13 chips",
+  "shows": "the real Ulm opening: Mack surrounded (his_road false, 'To the letter'), the day open, the lead's press lit among 13 chips",
   "kind": "battle",
   "form": "full",
   "register": "triumph",

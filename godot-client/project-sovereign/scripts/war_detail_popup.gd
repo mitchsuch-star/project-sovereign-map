@@ -928,6 +928,8 @@ func _render_war_detail(w: Dictionary):
 	if naval_line != "":
 		bbcode += "Their fleet: " + Utils.humanize_nation_keys_in_text(naval_line) + "\n"
 
+	bbcode += _known_plans_block(w)
+
 	# Recent battles
 	var recent = w.get("recent_battles", [])
 	if recent.size() > 0:
@@ -950,6 +952,69 @@ func _render_war_detail(w: Dictionary):
 	if refused_peace != "" and refused_peace != "null":
 		bbcode += "[color=" + COLOR_AMBER + "]" + refused_peace + "[/color]\n"
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+
+
+# Row IC 4b: what France has learned of the enemy's plans (the server's
+# "learned" key, handed in by main.gd on every reply).
+var _learned: Dictionary = {}
+
+
+func set_learned(payload: Dictionary) -> void:
+	"""Row IC 4b: store what we have learned; an open war page redraws when it changed."""
+	if payload == _learned:
+		return
+	_learned = payload.duplicate(true)
+	if visible and _current_mode == "war" and not _war_cache.is_empty():
+		_render_war_detail(_war_cache)
+
+
+func _known_plans_block(w: Dictionary) -> String:
+	"""Row IC 4b: "What we know of their plans" - the learned marshal rows and the
+	favoured province of this war's opponent courts. Empty when nothing is known."""
+	var courts_here: Array = []
+	var opps = w.get("opponents", [])
+	if opps is Array:
+		for o in opps:
+			courts_here.append(str(o))
+	var single := str(w.get("opponent", ""))
+	if single != "" and not courts_here.has(single):
+		courts_here.append(single)
+	var lines := ""
+	var marshal_rows = _learned.get("marshals", {})
+	if marshal_rows is Dictionary:
+		for mname in marshal_rows.keys():
+			var row = marshal_rows[mname]
+			if not (row is Dictionary):
+				continue
+			if not courts_here.has(str(row.get("court", ""))):
+				continue
+			var orders := Utils.learned_orders_text(row)
+			if orders == "":
+				continue
+			var tail := Utils.learned_tail(row)
+			# (the orders are whole sentences that name their marshal)
+			lines += "  " + orders
+			if tail != "":
+				lines += " (" + tail + ")"
+			lines += "\n"
+	var court_rows = _learned.get("courts", {})
+	if court_rows is Dictionary:
+		for cname in courts_here:
+			var crow = court_rows.get(cname, null)
+			if not (crow is Dictionary):
+				continue
+			var words := str(crow.get("words", "")).replace("[", "(").replace("]", ")")
+			if words == "":
+				continue
+			var ctail := Utils.learned_tail(crow)
+			# (the words name their court: "Austria's corps lean toward Bohemia")
+			lines += "  " + words
+			if ctail != "":
+				lines += " (" + ctail + ")"
+			lines += "\n"
+	if lines == "":
+		return ""
+	return "\n[color=" + COLOR_HEADER + "]What we know of their plans[/color]\n" + lines
 
 
 func _table_px() -> float:
@@ -1220,7 +1285,11 @@ func _figures_tail(w: Dictionary, lead_line: String) -> String:
 	prose. Nothing is cut: every sentence the old tail printed stands in the
 	note or on a hover."""
 	var slug := _slug(_current_war_id if _current_war_id != "" else _current_nation)
-	var out := "\n" + _tiles(w) + "\n" + _standing_table(w) + _battles_table(w)
+	# Row IC 4b (IC4b-32, pressed in the real client once the war plans were
+	# switched on): what we know of their plans stands on the Folded page too,
+	# where the On-the-page path prints it — before Recent Battles. The early
+	# return above never reached it, so the default page never showed it.
+	var out := "\n" + _tiles(w) + "\n" + _standing_table(w) + _known_plans_block(w) + _battles_table(w)
 	var next_letter = w.get("next_letter", null)
 	if next_letter is Dictionary and str(next_letter.get("display", "")) != "":
 		out += "\n[color=" + COLOR_AMBER + "]" + str(next_letter.get("display", "")) + "[/color]\n"

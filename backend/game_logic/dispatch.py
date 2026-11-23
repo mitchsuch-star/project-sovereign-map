@@ -4843,7 +4843,7 @@ def end_turn_interrupt_reading(world, nation: str) -> Optional[Dict[str, Any]]:
     foe, hops}], line} — so the desk's row can open the corps it names; the
     words are unchanged.)
 
-    "Massena (aggressive) holds a standing order at Bohemia with Kutuzov's
+    "Massena (bold) holds a standing order at Bohemia with Kutuzov's
     ~33,000 two provinces off — he will drop it for any battle within two
     provinces in a war of ours." The ruling (S14G-D2) keeps the interrupt — the
     aggressive man answers cannon fire (`strategic._check_interrupts`) — and
@@ -4915,7 +4915,7 @@ def end_turn_interrupt_reading(world, nation: str) -> Optional[Dict[str, Any]]:
                       # what he would break off (row IC: the desk's row says it in plain words)
                       "order": str(getattr(getattr(m, "strategic_order", None), "command_type", "") or "")})
         lines.append(
-            f"{humanize_entity_name(m.name)} (aggressive) holds a standing order at "
+            f"{humanize_entity_name(m.name)} (bold) holds a standing order at "
             f"{m.location} with {row['name']}'s {figure} {_OFF_PHRASES.get(hops, 'near')} — "
             f"he will drop it for {_st.AGGRESSIVE_INTERRUPT_TERMS}.")
     if not lines:
@@ -4923,7 +4923,7 @@ def end_turn_interrupt_reading(world, nation: str) -> Optional[Dict[str, Any]]:
     if len(lines) > _INTERRUPT_LINES_NAMED:
         extra = len(lines) - _INTERRUPT_LINES_NAMED
         lines = lines[:_INTERRUPT_LINES_NAMED]
-        lines.append(f"{extra} more aggressive corps "
+        lines.append(f"{extra} more bold corps "     # (row IC, Session 4b: "(bold)" above)
                      f"{'stands' if extra == 1 else 'stand'} likewise.")
     return {"corps": named, "line": " ".join(lines)}
 
@@ -6780,10 +6780,13 @@ def _derive_marshal_status(marshal, world) -> tuple:
             return ("awaiting_decision",
                     f"On his own ({_words}) — asks for your word: "
                     f"{(_spec.get('asks') or {}).get('why', '')}.")
-        _last = str((getattr(marshal, "own_record", None) or {}).get("said") or "")
+        # Row IC, Session 4b — "He moves at turn start": what he did as this
+        # turn opened (the morning's status is read after his move)
+        _last = _own.this_turn(world, marshal)
         # Row IC, Session 3b: the army he commands is said with his task.
         _army = f" He commands the {_spec['army']}." if _spec.get("army") else ""
-        return ("on_his_own", f"On his own: {_words}.{_army}" + (f" Last night: {_last}." if _last else ""))
+        return ("on_his_own", f"On his own: {_words}.{_army}"
+                + (f" This turn: {_last.rstrip('.')}." if _last else ""))
 
     # Row IC, Session 3b: a man who FOLLOWS the commander of an army's task —
     # said as what it is (the plain "Supporting Ney" told nothing of the army).

@@ -1,15 +1,61 @@
-# NEXT SESSION PROMPT — Row IC, Session 4b: the decision on the war plans, what you learn, and his ruling that a man given autonomy is his own commander — orders guide him (read the first block)
+# NEXT SESSION PROMPT — Session H: S15 the deploy (ROW IC COMPLETE, November 23, 2026 — read the first block)
 
-> **READ THIS FIRST — the next session is ROW IC's SESSION 4b.** Then **Session H, the deploy** (its section is
-> kept below, with the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2 (row IC).
+> **READ THIS FIRST — the next session is SESSION H, THE DEPLOY** (its section is kept below, with the lines that
+> overrule it), with WS-10, WS-R, PW3-D1, IC2-N1 and IC3-N1 at its head — the five open defect rows
+> (`tools/defect_census.py --open`); the release waits for 0. The order is `PRE_DEPLOY_PLAN.md` §2.
 >
-> Current hand-over: **November 22, 2026 — ROW IC, SESSION 4: THE VOICE ✅ BUILT; THE ENEMY'S WAR PLANS BUILT AND
-> SWITCHED OFF (HIS RULING THE SAME EVENING: ON, AFTER THE TWENTY SEEDS); WHAT YOU LEARN NOT FINISHED — ROW IC NOT COMPLETE. Committed and pushed at his word
-> ("commoit and push").** Records: `docs/STATUS.md` (the entry), `SYSTEMS_REFERENCE.md` §235, `BUG_FIXES.md` §"Row IC,
-> Session 4", the spec's §15 landing record and D39, `docs/MARSHAL_VOICE_BIBLE.md`,
-> `docs/audits/ic_client/session4/README.md`.
+> Current hand-over: **November 23, 2026 — ROW IC, SESSION 4b — WHAT YOU LEARN — ROW IC COMPLETE.** Session 4b built
+> his own judgement, his move at the start of the turn and what you learn; the user's three calls were answered the
+> same day — the price kept at 12 ("make decision on price"), the war plans FIXED (a plan is drawn only by a court at
+> war with France) and, shown the measure, SWITCHED ON ("Switch them on"), the voice passed ("Count it as passed").
+> No Session 4c is needed. Committed at the user's word ("Commit the working tree changes with a sensible message");
+> NOT pushed — the push is his word too (the hook runs the whole suite, about 25 minutes at 10 workers; commit in
+> the background). Records: `docs/STATUS.md` (the entry),
+> `SYSTEMS_REFERENCE.md` §236 and §236.8, `BUG_FIXES.md` §"Row IC, Session 4b" (IC4b-1 … IC4b-32), the spec's §15
+> landing record and its Session 4c table.
+>
+> **What the plans being ON means for Session H:** the enemy's courts at war with France follow written plans now
+> (`war_plans.the_courts_follow_a_plan` ships True); the standing record `BASELINE_SERIES` is the plans-up series
+> (the old kept as `SERIES_BEFORE_IC4B`); a measure's arm 0 holds `tests/_ic4_seams.py`'s rows down to read the tree
+> before row IC. The continuation's traps (§236.8): name a flipped arm by what it holds (`+PLAN`), never ALL; read a
+> gate clause that rests on a rare event on hundreds of fresh seeds before calling a cause; compare arms that differ
+> in one thing; a screen built while its feature shipped off has never been seen — press it when the feature goes on.
 
-## Row IC, Session 4b — the plan
+## Row IC, Session 4c — the plan, pre-decided (November 23, 2026) — ✅ CARRIED OUT the same day, in Session 4b's continuation (the user's answers: keep 12; fix the plans, then "Switch them on"; "Count it as passed")
+
+> **CARRIED OUT — do not act on the lines below.** On the plans the user chose the road this plan did NOT recommend:
+> "fix warplans", then "Switch them on" — the seam ships UP and `BASELINE_SERIES` was re-pinned from
+> `tools/_ic4b_fix_series_arms_2026_11_23.json` (not the record named in item 2). Kept as the record of the plan.
+
+**Open in plain everyday words.** If the user answered in Session 4b's closing turn, carry the answers out; if
+not, ask each as one plain question, the recommendation first. Read each against the code before acting.
+
+1. **The price of a chance off the ground he was told to hold** (`own_judgement.WEIGHTS["off_held"]`).
+   **Recommended: keep 12** — the plan's one price (a march off held ground costs what a march off your road
+   costs); every Part 1 rule is met on it. The doubled 24 the first build carried missed two (bold men 56 in 100;
+   one band seed at 22). If he picks 24: that one number, the line in
+   `tests/test_ic4b_his_own_judgement.py` that asserts 12, and the miss written into §236.6 and the ledger.
+2. **The enemy's war plans (IC4-D1).** **Recommended: off for the release** — close IC4-D1 as ruled; the seam
+   stays down (`war_plans.the_courts_follow_a_plan`), the spy's words already follow it, D41's row records it.
+   If he wants them fixed instead: a slice that finds why no minor court is raised with the plans up
+   (`tools/_ic4_promotions_wide_2026_11_23.json`; the promotions code), its rule written before any data, the
+   thirty-seed gate read again; only then up, with `BASELINE_SERIES` re-pinned from
+   `tools/_ic4b_series_arms_2026_11_23.json`'s "+PLAN" arm (history kept by name).
+3. **The voice's "nobody guesses" clause (IC4-R1).** **Recommended: count "right on every pair" as met**
+   (108 of 108; 263 of 270 in the six-way test) and close IC4-R1 as ruled. If he wants the pass: one systematic
+   pass over the three bold men's lines (Ney, Lannes, Murat — a mark only he has, in every line), a fresh draw
+   with `tools/_ic4b_voice_key.py`, three fresh readers **as Explore agents** (that type loads no CLAUDE.md),
+   the key written first.
+
+**Done when** `tools/defect_census.py --open` lists no IC row but IC2-N1 and IC3-N1, and the STATUS line reads
+"ROW IC COMPLETE". Then Session H, the deploy (below), with WS-10, WS-R, PW3-D1, IC2-N1 and IC3-N1 at its head.
+
+**Traps Session 4b met (`SYSTEMS_REFERENCE.md` §236.7 has all nine):** a blind reader briefed as a
+general-purpose agent loads CLAUDE.md — use Explore agents; check a question's premise against the data before
+the key (Masséna is Bold); grade a measure from the board, never from the man's own labels; the full suite runs
+about 25 minutes at 10 workers — commit in the background.
+
+## Row IC, Session 4b — the plan (November 22, 2026) — ✅ BUILT November 23, 2026; its calls answered the same day (Session 4c, above)
 
 **Open in Plan Mode, in plain everyday words. The one decision Session 4 left him is RULED (IC4-D1, the spec's
 D41):** asked the same evening whether this session should switch the enemy's war plans on — leave them off /

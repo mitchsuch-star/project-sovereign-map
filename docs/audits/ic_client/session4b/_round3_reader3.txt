@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | PARTLY GUESSED | "before I go mad sitting here" is impatience (Ney); "wherever the guns are loudest" is Lannes.
+PAIR 2: Line 1 = Ney, Line 2 = Lannes | PARTLY GUESSED | "no more sitting still, I go now" is impatience (Ney); "straight at them with the columns" is assault leading (Lannes), though both are bold.
+PAIR 3: Line 1 = Davout, Line 2 = Masséna | SURE | "rolls and stores... every man fed" is Davout; "my ground... every yard" is Masséna.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | "once the rolls are counted" is Davout; "what we won stays mine" is Masséna.
+PAIR 5: Line 1 = Ney, Line 2 = Bernadotte | SURE | "sooner be fighting than brooding" is Ney; "Circumstances were against me" is an excuse (Bernadotte).
+PAIR 6: Line 1 = Bernadotte, Line 2 = Lannes | SURE | The deflecting "worries enough" is Bernadotte; "No guns near me" is Lannes.
+PAIR 7: Line 1 = Masséna, Line 2 = Lannes | SURE | "not give an inch" is Masséna; "if I hear the guns, I go" is Lannes.
+PAIR 8: Line 1 = Davout, Line 2 = Bernadotte | SURE | "count every man I send" is Davout; "If you insist... risks weighed" is hedging (Bernadotte).
+PAIR 9: Line 1 = Murat, Line 2 = Masséna | PARTLY GUESSED | "You called me back... let me see this one through" fits Murat; "the ground that was mine to take... I remember it" fits Masséna's ground and grudge.
+PAIR 10: Line 1 = Murat, Line 2 = Davout | SURE | "The horses and I" is Murat; "recounted every man" is Davout.
+PAIR 11: Line 1 = Murat, Line 2 = Ney | PARTLY GUESSED | "horses saddled" is Murat; "I'm restless, but I'll hold" fits Ney.
+PAIR 12: Line 1 = Murat, Line 2 = Bernadotte | SURE | "squadrons and a loose rein" is Murat; "comfortable moment to think... safely" is Bernadotte.
+SET 1: A=Lannes, B=Davout, C=Ney, D=Masséna, E=Bernadotte, F=Murat | guessed letters: A, C
+SET 2: A=Masséna, B=Bernadotte, C=Davout, D=Lannes, E=Murat, F=Ney | guessed letters: D, F
+SET 3: A=Masséna, B=Davout, C=Murat, D=Bernadotte, E=Lannes, F=Ney | guessed letters: none
+SET 4: A=Masséna, B=Bernadotte, C=Lannes, D=Murat, E=Davout, F=Ney | guessed letters: D
+SET 5: A=Masséna, B=Lannes, C=Bernadotte, D=Murat, E=Davout, F=Ney | guessed letters: D, F

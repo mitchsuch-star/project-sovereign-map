@@ -93,7 +93,16 @@ class TestTheCabinetInPlainWords:
         assert "is at war with you" not in guarantee
         # the provinces the court holds when the mission ends, for the grant's five turns
         wait = MISSION_EFFECTS["GATHER_INTEL"]["duration"]
-        assert intel == f"Send agents: after {wait} turns you see everything in the provinces they hold then, for 5 turns."
+        from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS
+        cost = MISSION_DP_COSTS["GATHER_INTEL"]
+        # Row IC, Session 4b: the written orders are promised only while the
+        # courts write plans (the seam `war_plans.the_courts_follow_a_plan`).
+        from backend.game_logic.war_plans import the_courts_follow_a_plan
+        orders = (", and from a court at war with you they bring back the written orders of any "
+                  "marshal who follows orders to the letter, and the province their corps "
+                  "favour") if the_courts_follow_a_plan() else ""
+        assert intel == (f"Send agents for {wait} turns, {cost} diplomatic point a turn. Then you see everything in the "
+                         f"provinces they hold, for 5 turns{orders}.")
         src = (REPO / "backend" / "game_logic" / "diplomacy.py").read_text(encoding="utf-8")
         assert "grant_expiry = int(world.current_turn) + 5" in src, "the line's five turns are the grant's"
         assert "{" not in ultimatum + guarantee + intel, "every figure is filled from its own constant"

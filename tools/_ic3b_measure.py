@@ -6,13 +6,11 @@ first run):
 
   R-INERT     with no army's task the France band on the three commanded seeds
               reads the standing 26 / 27 / 28 (the arm TODAY of `--band`).
-  R-TRUE      on 30 seeds x 20 turns with ONE army's task: "Tonight" equals
-              every act — the commander's and each follower's. A night is TRUE
-              for a man when the pass's row carries the act and the place his
-              "Tonight" named; or he STAYED PUT and said why (D8: what the
-              screen said, or he stays put); or, where "Tonight" said he stands
-              by his commander's attack and MAY join it, he joined it. Anything
-              else is a mismatch. Met: 0 mismatches.
+  R-REPORT    (row IC, Session 4b — replaces Session 3b's R-TRUE: the user's
+              "He moves at turn start" previews nothing) on 30 seeds x 20 turns
+              with ONE army's task: what the report says each man of the army
+              did is what happened — a march or a follow it claims ended where
+              it says. Met: 0 false lines.
   R-TOGETHER  never two separate attacks: on no night does a follower open a
               battle of his own (a battle whose attacker is a follower); and the
               followers' "Tonight" lines name their commander on at least half
@@ -127,11 +125,8 @@ def one_seed(seed: str, turns: int) -> dict:
                     break
             w = M.world
             held = AT.task_of(w, ARMY) if armies.find(w, ARMY) else {}
-            with _quiet():
-                plan = {r["marshal"]: dict(r) for r in O.tonight_rows(w)}
-                readings = {r["marshal"]: r for r in O.tonight(w)}
-                for r in AT.tonight(w, list(readings.values())):
-                    readings[r["marshal"]] = r
+            # (row IC, Session 4b — "He moves at turn start": nothing is previewed;
+            # the army moves as the next turn opens and the report says what it did)
             followers = [m.name for m in AT.followers(w, w.get_marshal(held["lead"]))] if held else []
             log_at = len(getattr(w, "event_log", None) or [])
             random.seed(f"{seed}:{t}")
@@ -148,12 +143,10 @@ def one_seed(seed: str, turns: int) -> dict:
             nights.append({
                 "turn": t + 1, "lead": (held or {}).get("lead", ""), "task": (held or {}).get("words", ""),
                 "followers": followers,
-                "plan": {n: {"act": str(readings.get(n, {}).get("act") or ""),
-                             "place": str(readings.get(n, {}).get("place") or ""),
-                             "line": str(plan.get(n, {}).get("line") or "")} for n in readings},
                 "did": [{"marshal": r["marshal"], "act": str(r.get("act") or ""),
                          "place": str(r.get("place") or ""), "follows": str(r.get("follows") or ""),
-                         "message": str(r.get("message") or ""), "action": str(r.get("action") or "")}
+                         "message": str(r.get("message") or ""), "action": str(r.get("action") or ""),
+                         "after": str(getattr(w.get_marshal(r["marshal"]), "location", "") or "")}
                         for r in rows if r.get("act")],
                 "follower_battles": opened,
             })
@@ -161,54 +154,52 @@ def one_seed(seed: str, turns: int) -> dict:
 
 
 def score(runs: list) -> dict:
+    """Row IC, Session 4b: R-REPORT replaces R-TRUE (nothing is previewed —
+    the user's "He moves at turn start"): what the report says each man of the
+    army did is what happened; R-TOGETHER as written (no follower opens a
+    battle; each follower's line names his commander)."""
     mismatches, lead_nights, follower_nights, named, shared = [], 0, 0, 0, 0
     acts = {"follow": 0, "with": 0, "stand_by": 0, "join": 0, "stay": 0, "start": 0, "halt": 0, "recover": 0}
     lead_acts: dict = {}
     battles = []
     task_nights, per_seed = 0, {}
+    moves = {"march", "probe", "fall_back", "move_up", "follow"}
     for run in runs:
         bad_here = 0
         for night in run["nights"]:
             if night["lead"]:
                 task_nights += 1
-            for name in night["followers"]:
-                shared += 1
-                line = night["plan"].get(name, {}).get("line", "")
-                if night["lead"] and night["lead"].replace("Massena", "Masséna") in line \
-                        or night["lead"] in line:
-                    named += 1
             battles.extend({"seed": run["seed"], **b} for b in night["follower_battles"])
             for row in night["did"]:
                 name, act = row["marshal"], row["act"]
-                said = night["plan"].get(name)
-                if said is None:
-                    continue            # a row of the close (a task done), not of the pass
+                if row["action"] in ("own_done", "own_ended"):
+                    continue            # a row of the close (a task done), not of the move
                 follower = bool(row["follows"])
                 if follower:
                     follower_nights += 1
                     acts[act] = acts.get(act, 0) + 1
+                    shared += 1
+                    lead = row["follows"]
+                    if lead in row["message"] or lead.replace("Massena", "Masséna") in row["message"]:
+                        named += 1
                 else:
                     lead_nights += 1
                     lead_acts[act] = lead_acts.get(act, 0) + 1
-                if act == "stay":
-                    continue            # D8: he stays put and says why
-                if follower and act == "join" and said["act"] == "stand_by":
-                    continue            # "he may join it": he did
-                if not follower and act == "join":
-                    continue            # the arrival roll drew him in (Session 3's rule)
-                if act != said["act"] or (row["place"] and said["place"] and row["place"] != said["place"]):
+                if "could not" in row["message"]:
+                    continue
+                if act in moves and row["place"] and row["after"] and row["after"] != row["place"]:
                     bad_here += 1
                     mismatches.append({"seed": run["seed"], "turn": night["turn"], "marshal": name,
-                                       "said": said, "did": {"act": act, "place": row["place"],
-                                                             "message": row["message"][:160]}})
+                                       "did": {"act": act, "place": row["place"], "after": row["after"],
+                                               "message": row["message"][:160]}})
         per_seed[run["seed"]] = {"nights": len(run["nights"]), "given": run["given"],
                                  "mismatches": bad_here}
     share = (named / shared) if shared else 1.0
     return {
-        "R-TRUE": {"mismatches": mismatches[:20], "count": len(mismatches),
-                   "nights_read": lead_nights + follower_nights, "met": not mismatches},
+        "R-REPORT": {"false": mismatches[:20], "count": len(mismatches),
+                     "turns_read": lead_nights + follower_nights, "met": not mismatches},
         "R-TOGETHER": {"follower_battles": battles[:20], "count": len(battles),
-                       "shared_nights": shared, "named": named, "share": round(share, 3),
+                       "shared_turns": shared, "named": named, "share": round(share, 3),
                        "met": not battles and share >= 0.5},
         "reported": {"task_nights": task_nights, "commander_nights": lead_nights,
                      "follower_nights": follower_nights, "commander_acts": lead_acts,

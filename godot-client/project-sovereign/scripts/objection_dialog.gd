@@ -141,6 +141,7 @@ static func data_from_response(response: Dictionary) -> Dictionary:
 	return {
 		"marshal": objection.get("marshal", response.get("marshal", "Unknown")),
 		"personality": objection.get("personality", response.get("personality", "unknown")),
+		"nature": objection.get("nature", response.get("nature", "")),
 		"message": objection.get("message", response.get("message", "I have concerns about this order, Sire.")),
 		"trust": response.get("trust", 70),
 		"trust_label": response.get("trust_label", "Unknown"),
@@ -205,9 +206,10 @@ func show_objection(objection_data: Dictionary):
 		message_label.text += ("\n" if Utils.compact_view() else "\n\n") + stake_line
 
 	# Get marshal stats
-	var personality = objection_data.get("personality", "unknown")
+	# Row IC 4b: his nature in the server's one word (Bold, Careful, To the letter).
+	var nature := str(objection_data.get("nature", ""))
 	if personality_label:
-		personality_label.text = "Personality: %s" % personality.capitalize()
+		personality_label.text = ("Nature: %s" % nature) if nature != "" else ""
 
 	var trust = int(objection_data.get("trust", 70))
 	var trust_label_text = objection_data.get("trust_label", "Unknown")

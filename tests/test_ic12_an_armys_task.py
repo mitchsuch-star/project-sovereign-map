@@ -295,10 +295,12 @@ class TestTheList:
         assert listing["total"] == 4 and all(r["ticked"] for r in listing["rows"])
         assert all(isinstance(r["ap"], int) and isinstance(r["turns"], int) for r in listing["rows"])
 
-    def test_the_commanders_row_says_his_first_night_and_his_odds(self, client):
+    def test_the_commanders_row_says_his_first_move_and_his_odds(self, client):
         _form(client)
         lead = _row(_ask(client, f"{ARMY}, take Swabia"), "Ney")
-        assert lead["notes"][1].startswith("His first night (tomorrow), as things stand: Ney attacks Mack at Swabia")
+        # (row IC, Session 4b — "He moves at turn start": said as an intention)
+        assert lead["notes"][1].startswith("At the start of next turn he means to — if nothing changes "
+                                           "first: Ney attacks Mack at Swabia")
         assert "he goes in when they are our " in lead["notes"][1], "his odds, said with his first night"
         assert " to their 10 or better" in lead["notes"][1], "both figures the same way round"
         # (read blind: "is Murat in the army?" — a senior who is not one of its men is said to be)
@@ -312,18 +314,22 @@ class TestTheList:
         # the small print are the read-back's and his card's (pressed at the first player's setup)
         assert len(lead["notes"]) == 3 and lead["voice"].startswith("“")
 
-    def test_a_first_night_that_is_no_attack_says_his_odds_apart(self, client):
+    def test_his_odds_are_said_once_with_his_first_move_or_apart(self, client):
+        """His odds stand once on his row: in his first move's line when it is
+        an attack, else apart (row IC, Session 4b: his judgement may strike a
+        chance beside the ground he holds — Mack at Swabia, beside the Emperor)."""
         _form(client, who="Davout and Soult")
         lead = _row(_ask(client, f"{ARMY}, hold Rhineland"), "Davout")
-        assert not any("he goes in when" in n for n in lead["notes"] if n.startswith("His first night"))
-        assert any(n.startswith("He attacks only when the odds are our ") for n in lead["notes"])
+        night = [n for n in lead["notes"] if n.startswith(AT.FIRST_MOVE)]
+        said_with = bool(night) and "he goes in when" in night[0]
+        assert said_with != any(n.startswith("He attacks only when the odds are our ") for n in lead["notes"])
 
     def test_a_followers_row_says_his_own_part(self, client):
         _form(client)
         listing = _ask(client, f"{ARMY}, take Swabia")
         davout, soult = _row(listing, "Davout"), _row(listing, "Soult")
         assert davout["notes"][0].startswith(
-            "Moves with Ney each night, before the enemy does, and may join Ney's battles next to him — about ")
+            "Moves with Ney at the start of each turn, and may join Ney's battles next to him — about ")
         assert davout["notes"][0].endswith("times in 100. He takes none of your places for men on their own.")
         # the man who follows orders to the letter: his order is his written word
         assert soult["notes"][0].startswith(
@@ -493,26 +499,23 @@ class TestTheArmyMovesAsOne:
         ney.strategic_order.standing_follow = False
         assert AT.following(world, ney) is None
 
-    def test_the_followers_move_with_him_before_the_enemy_and_as_tonight_said(self, client, world):
+    def test_the_followers_move_with_him_as_the_turn_opens(self, client, world):
+        """Row IC, Session 4b — "He moves at turn start": the turn after the
+        task is given OPENS with the commander's move, his follower's right
+        after it (the army moves as one); no preview is kept, and the
+        follower's card says what he did."""
         ney, davout = self._given(client, world)             # both at Rhineland; Lorraine is next door
         assert (ney.location, davout.location) == ("Rhineland", "Rhineland")
-        first = _say(client, "end turn")                     # the night it is given: nobody moves
-        rows = {r["marshal"]: r for r in first["strategic_reports"] if r.get("own")}
-        assert rows["Ney"]["act"] == "start" and rows["Davout"]["action"] == "army_start"
-        said = {r["marshal"]: r["line"] for r in O.tonight_rows(world)}
-        assert said["Ney"].startswith("Tonight: Ney marches from Rhineland to Lorraine")
-        assert said["Davout"] == "Tonight: Davout marches to join Ney at Lorraine"
-        second = _say(client, "end turn")
-        rows = {r["marshal"]: r for r in second["strategic_reports"] if r.get("own")}
-        assert rows["Ney"]["act"] == "march" and rows["Ney"]["place"] == "Lorraine"
-        assert rows["Davout"]["action"] == "army_follow" and rows["Davout"]["place"] == "Lorraine"
-        assert rows["Davout"]["follows"] == "Ney"
-        # R-TRUE: what the screen said is what each of them did
-        assert "Tonight: " + rows["Ney"]["said"] == said["Ney"].split(". Tomorrow night")[0]
-        assert "Tonight: " + rows["Davout"]["said"] == said["Davout"]
-        # the commander's row comes first, his follower's right after it
-        order = [r["marshal"] for r in second["strategic_reports"] if r.get("own")]
-        assert order.index("Davout") == order.index("Ney") + 1
+        reply = _say(client, "end turn")
+        own_rows = [r for r in reply["strategic_reports"] if r.get("own")]
+        order = [r["marshal"] for r in own_rows]
+        assert order.index("Davout") == order.index("Ney") + 1, order
+        rows = {r["marshal"]: r for r in own_rows}
+        assert rows["Ney"]["act"] != "start", "his first move is the turn after he is given"
+        assert rows["Davout"]["follows"] == "Ney" and rows["Davout"]["action"].startswith("army_")
+        if rows["Ney"]["act"] == "march":
+            assert rows["Davout"]["action"] in ("army_follow", "army_with"), rows["Davout"]
+        assert AT.this_turn(world, davout) == rows["Davout"]["message"]
 
     def test_the_standing_order_pass_does_not_tick_him(self, client, world):
         self._given(client, world)
@@ -526,32 +529,26 @@ class TestTheArmyMovesAsOne:
         the arrival roll may bring them into THAT battle; none attacks separately (R-TOGETHER)."""
         _form(client)
         assert _give(client, _ask(client, f"{ARMY}, take Swabia"))["success"]
-        _say(client, "end turn")
-        said = {r["marshal"]: r for r in O.tonight_rows(world)}
-        assert said["Ney"]["act"] == "attack"
-        for name in ("Davout", "Soult"):
-            assert said[name]["act"] == "stand_by"
-            assert said[name]["line"].startswith(f"Tonight: {name} stands by Ney's attack at Swabia — he may join it")
-        reply = _say(client, "end turn")
+        reply = _say(client, "end turn")                     # the turn opens with the army's move
+        lead = next(r for r in reply["strategic_reports"] if r.get("own") and r["marshal"] == "Ney")
         rows = {r["marshal"]: r for r in reply["strategic_reports"] if r.get("own") and r.get("follows")}
         assert set(rows) == {"Davout", "Soult"}
-        assert {r["action"] for r in rows.values()} <= {"army_join", "army_stand_by"}
+        assert not any(r["act"] in ("attack", "strike") for r in rows.values())
+        if lead["act"] == "attack":
+            assert {r["action"] for r in rows.values()} <= {"army_join", "army_stand_by"}
 
     def test_a_hand_order_does_not_end_his_following(self, client, world):
         ney, davout = self._given(client, world)
-        _say(client, "end turn")
         world.actions_remaining = 4
         reply = _say(client, "Davout, fortify")
         assert reply["success"], reply["message"]
         assert AT.following(world, davout) is ney, "his follow order stands"
-        said = {r["marshal"]: r for r in O.tonight_rows(world)}
-        assert said["Davout"]["act"] == "stay"
-        assert said["Davout"]["line"] == ("Tonight: Davout carried out your order today — he follows Ney "
-                                          "again tomorrow night")
+        # (row IC, Session 4b: a hand order is on top of his move; it costs no later move)
+        reading = AT.follower_reading(world, davout, ney, str(ney.location or ""))
+        assert "your order" not in reading["line"]
 
     def test_a_hand_order_does_not_end_the_commanders_task_either(self, client, world):
         ney, davout = self._given(client, world)
-        _say(client, "end turn")
         world.actions_remaining = 4
         assert _say(client, "Ney, fortify")["success"]
         assert (O.own(ney) or {}).get("army") == ARMY and AT.following(world, davout) is ney
@@ -664,9 +661,9 @@ class TestTheWarGoal:
         assert (row["says"], row["ap"], row["ticked"]) == (f"on his own: take {second}", 1, True)
         assert row["notes"][0] == (f"Untick him and he keeps to his task (take {first}) — he then serves "
                                    "the war goal no longer.")
-        # short, as a commander's row is: his first night, then what warns
-        assert row["notes"][1].startswith("His first night (tomorrow), as things stand: ")
-        assert not any(n.startswith(("he starts tomorrow night", "“", "on his own —")) for n in row["notes"])
+        # short, as a commander's row is: his first move, then what warns
+        assert row["notes"][1].startswith("At the start of next turn he means to — if nothing changes first: ")
+        assert not any(n.startswith(("he makes his first move", "“", "on his own —")) for n in row["notes"])
         reply = _give(client, listing)
         assert reply["success"], reply["message"]
         assert world.war_goals["Austria"]["target"] == second
@@ -774,15 +771,16 @@ class TestSavesSeamAndScreens:
                                 "line": "on its own: take Swabia", "followers": ["Soult", "Davout"]}
 
     def test_the_desk_counts_the_commander_once_and_names_his_followers(self, client, world):
+        """Row IC, Session 4b — "He moves at turn start": the desk counts the
+        commander once; it says what he DID as the turn opened (nothing yet,
+        the turn the task is given) — no preview of what he will do."""
         _form(client)
         reply = _give(client, _ask(client, f"{ARMY}, take Swabia"))
         own = reply["desk"]["own"]
         assert (own["n"], own["of"]) == (1, 1)
-        rows = own["tonight"]
-        assert [r["marshal"] for r in rows] == ["Ney", "Soult", "Davout"]
-        assert rows[0]["army"] == ARMY and rows[0]["followers"] == 2
-        assert all(r.get("follows") == "Ney" for r in rows[1:])
-        assert all(isinstance(r["may_day"], bool) for r in rows)
+        assert own["this_turn"] == [] and "tonight" not in own
+        card = O.payload(world, world.get_marshal("Ney"))
+        assert card["army"] == ARMY and card["followers"] == ["Soult", "Davout"]
 
     def test_the_cards_say_who_commands_and_who_follows(self, client, world):
         _form(client)
@@ -791,7 +789,7 @@ class TestSavesSeamAndScreens:
         assert card["army"] == ARMY and card["followers"] == ["Soult", "Davout"]
         held = AT.follower_payload(world, world.get_marshal("Davout"))
         assert (held["lead"], held["army"], held["task"]) == ("Ney", ARMY, "take Swabia")
-        assert isinstance(held["odds"], int) and held["tonight"].startswith("Davout set out when the order was given")
+        assert isinstance(held["odds"], int) and held["first_move_next"] is True and held["this_turn"] == ""
         assert AT.follower_payload(world, world.get_marshal("Lannes")) is None
 
     def test_the_mornings_status_says_who_commands_and_who_follows(self, client, world):
@@ -813,8 +811,9 @@ class TestSavesSeamAndScreens:
         """Read blind, round 1: the men beside the commander's battle and the senior who
         resents the task were taken for men of the army. The words, by themselves."""
         men = ("Ney", "Davout", "Soult")
-        night = ("His first night (tomorrow), as things stand: Ney attacks Mack at Swabia, with {} beside "
-                 "him ({}) — the odds are our 19.2 to their 10, and he goes in when they are 5 to 10 or better")
+        night = ("At the start of next turn he means to — if nothing changes first: Ney attacks Mack at "
+                 "Swabia, with {} beside him ({}) — the odds are our 19.2 to their 10, and he goes in when "
+                 "they are 5 to 10 or better")
         mixed = AT._beside_for_the_list(night.format("Davout, Lannes and Murat", "they may join"), men)
         assert "beside him (they may join, of this army or not) — the odds" in mixed
         outside = AT._beside_for_the_list(night.format("Lannes", "he may join"), men)
@@ -832,7 +831,8 @@ class TestSavesSeamAndScreens:
         """Read blind, round 1: "…May become a great battle — he bars the road to Tyrol" — who?"""
         _say(client, "the war goal is Tyrol")
         nights = _heads(_preview(client, "Ney, take the war goal"), "tonight")
-        assert nights and nights[0].startswith("His first night (tomorrow), as things stand: Ney attacks Mack at Swabia")
+        assert nights and nights[0].startswith("At the start of next turn he means to — if nothing changes "
+                                               "first: Ney attacks Mack at Swabia")
         assert nights[0].endswith(" — Mack bars the road to Tyrol"), nights[0]
 
     def test_give_it_a_task_writes_a_ready_sentence(self, client, world):
@@ -931,13 +931,15 @@ class TestTheClientsHalf:
         card = _gd("selection_card.gd")
         own_row = _gd_func(card, "_own_row")
         assert ']Commands the " + army + "[/color]"' in own_row
-        # ONE line for the army and the goal, and no repeated odds (his card stands whole)
+        # ONE line for the army and the goal (his card stands whole); Session 4b:
+        # no "Tonight" line — what he did this turn, his odds said once
         assert own_row.count('words += "\\n[color=#" + Utils.COLOR_GOLD + "]Commands the "') == 1
-        assert 'tonight.contains("he goes in when") or ahead.contains("he goes in when")' in own_row
+        assert 'own.get("this_turn", "")' in own_row and "Tonight" not in own_row
+        assert own_row.count("He attacks only when the odds are ") == 1
         assert "]Follows \" + lead + \"[/color]" in _gd_func(card, "_follows_row")
         assert '"follows": _dict_of(ts.get("follows", {}))' in _gd("marshal_state.gd")
         assert '"ArmyTask", "Give it a task…"' in card and "army_task_pressed.emit(_army_name)" in card
-        assert "the \" + str(r.get(\"army\", \"\")) + \", \"" in _gd_func(_gd("desk_lines.gd"), "_fill_own")
+        assert "the \" + str(army.get(\"name\", \"\")) + \", \"" in _gd_func(_gd("desk_lines.gd"), "_fill_own")
 
     def test_the_help_teaches_the_task_without_the_reserved_words(self):
         terms = _gd("codex_terms.gd")

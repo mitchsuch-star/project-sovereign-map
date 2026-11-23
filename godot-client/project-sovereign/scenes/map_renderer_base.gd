@@ -4714,11 +4714,13 @@ func _draw_marshal_tooltip():
 			Color(0.6, 0.8, 0.6)
 		)
 
+	var nature = str(marshal.get("nature", ""))
 	var personality = str(marshal.get("personality", ""))
-	if personality != "":
+	if nature != "" or personality != "":
 		_push_tooltip_spacer(lines, 8.0)
-		_push_tooltip_line(lines, "Type: " + personality.capitalize(), Color(0.85, 0.85, 0.5))
-
+	if nature != "":
+		_push_tooltip_line(lines, "Nature: " + nature, Color(0.85, 0.85, 0.5))
+	if personality != "":
 		var trust = int(marshal.get("trust", 0))
 		var trust_color = Color(0.5, 0.85, 0.5)
 		if trust < 40:

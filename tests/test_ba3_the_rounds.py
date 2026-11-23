@@ -1560,7 +1560,7 @@ class TestWhatTheFieldShowsOfHim:
 
     def test_the_block_names_his_temper_and_his_road(self, table):
         _, day = table.open_a_day(_awaits_us, his_personality="cautious")
-        assert day["his_temper"] == "Cautious"
+        assert day["his_temper"] == "Careful"
         assert day["his_road"] in (True, False)
         for leak in ("ratio", "bar", "odds_his", "threshold", "mood"):
             assert leak not in day
@@ -1573,7 +1573,7 @@ class TestWhatTheFieldShowsOfHim:
                 break
         live = table.days()["days"][0]
         assert live["side"] == "defence" and live["his_road"] is None
-        assert live["his_temper"] == "Aggressive"
+        assert live["his_temper"] == "Bold"
 
     def test_his_road_is_read_without_a_draw(self, table, monkeypatch):
         """The read is on every block: it must move no stream."""

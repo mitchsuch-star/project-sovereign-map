@@ -23,6 +23,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+from tests._ic4_seams import IC4_SEAMS_DOWN  # noqa: E402
 from tests._oc_seams import OC_SEAMS_DOWN  # noqa: E402
 
 SCRIPT = REPO / "tools" / "playtest_scripts" / "volte_court_austria.json"
@@ -180,14 +181,25 @@ class TestTheVolteFaceFiresOnItsArm:
         held down at a time beside the seams above: MCSEEDS alone returns the
         beat on turn 25 (every row down: 25; none of the other seven alone).
         The arm keeps its purpose with the 1805 reading held at the old values
-        — the seeds stage the war, they are not the rule."""
+        — the seeds stage the war, they are not the rule.
+
+        RE-SEATED by row IC, Session 4b, continued (November 23, 2026 — the
+        enemy's war plans fixed and switched on at the user's word, "Switch
+        them on"; `SYSTEMS_REFERENCE.md` §236.8): the coalition's written
+        orders hold its letter-following men in the opening, France loses
+        fewer battles, and the historical board re-times from there — the beat
+        never fires in forty turns. With the plans' seam held down beside the
+        seams above it returns on turn 26 (measured on this drive).
+        The arm keeps its purpose with the plans held — the written orders
+        stage the war, they are not the rule."""
         rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
                       "--seam", "backend.models.world_state:deck_entry_stands="
                       "(a[1] or {}).get('id') != 'the_old_alliance'",
                       "--seam", "backend.game_logic.affairs:ai_decrees=False",
                       "--seam", "backend.ai.enemy_ai:desperation_reads_the_brakes=False",
                       "--seam", "backend.game_logic.battle_day:key_bar=80000",
-                      "--seam", "backend.game_logic.precedence:the_seeds_read_as_of_1805=False")
+                      "--seam", "backend.game_logic.precedence:the_seeds_read_as_of_1805=False",
+                      "--seam", "backend.game_logic.war_plans:the_courts_follow_a_plan=False")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20
@@ -265,5 +277,11 @@ class TestTheVolteFaceFiresOnItsArm:
             # keeps is Step 3's, so row OC's seams ride down with the rest
             # (`tests/_oc_seams.py`).
             *[arg for spec in OC_SEAMS_DOWN for arg in ("--seam", spec)],
+            # Row IC, Session 4b, continued (November 23, 2026): the enemy's war
+            # plans, switched on at the user's word, re-time this arm too (the
+            # beat fires at turn 20 twice with them up); the attribution this pin
+            # keeps is Step 3's, so the session's seams ride down with the rest
+            # (`tests/_ic4_seams.py`).
+            *[arg for spec in IC4_SEAMS_DOWN for arg in ("--seam", spec)],
         )
         assert not _volte_turns(rows)

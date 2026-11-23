@@ -107,6 +107,34 @@ static func objective_targets_text(objective: Dictionary, fallback: String) -> S
 	return fallback
 
 
+static func learned_orders_text(row: Dictionary) -> String:
+	"""Row IC 4b: a learned row's written orders (the server sends a list of
+	sentences) as one plain line. Empty when there are none."""
+	var orders = row.get("orders", [])
+	var out := ""
+	if orders is Array:
+		var parts := PackedStringArray()
+		for said in orders:
+			var text := str(said).strip_edges()
+			if text != "":
+				parts.append(text)
+		out = " ".join(parts)
+	else:
+		out = str(orders).strip_edges()
+	# (server words drawn into BBCode: a bracket can never open a tag)
+	return out.replace("[", "(").replace("]", ")")
+
+
+static func learned_tail(row: Dictionary) -> String:
+	"""Row IC 4b: when and how it was learned — "learned 2 turns ago, from
+	captured orders". Empty when the row says neither."""
+	var when := str(row.get("learned", "")).strip_edges()
+	var how := str(row.get("how", "")).strip_edges()
+	if when != "" and how != "":
+		return when + ", " + how
+	return when + how
+
+
 static func launch_hint() -> String:
 	if OS.has_feature("editor"):
 		return ".venv\\Scripts\\python.exe -m backend.main"

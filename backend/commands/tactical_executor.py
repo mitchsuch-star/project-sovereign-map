@@ -821,14 +821,15 @@ class TacticalExecutor:
 
         # Build message with personality-specific info
         personality_message = ""
+        from backend.display_names import NATURE_WORDS     # (the nature's own word)
         if personality == "cautious":
             # "Iron Marshal" is Davout's epithet, not the cautious kit's
             # name — live it captioned Archduke John's and Moore's fortify
             # lines (the July-9 misattribution class, three missed sites).
-            _kit_label = "Iron Marshal" if marshal.name == "Davout" else "Cautious"
+            _kit_label = "Iron Marshal" if marshal.name == "Davout" else NATURE_WORDS["cautious"][0]
             personality_message = f" ({_kit_label}: +{int(instant_bonus * 100)}% instant, +{int(fortify_rate * 100)}%/turn, max {int(max_fortify * 100)}%)"
         elif personality == "aggressive":
-            personality_message = f" (Aggressive: max {int(max_fortify * 100)}% only)"
+            personality_message = f" ({NATURE_WORDS['aggressive'][0]}: max {int(max_fortify * 100)}% only)"
 
         current_bonus_pct = int(marshal.defense_bonus * 100)
 
@@ -901,8 +902,10 @@ class TacticalExecutor:
             # corps' own strike or march.
             marshal.ai_square_cooldown = max(
                 int(getattr(marshal, 'ai_square_cooldown', 0) or 0), 2)
-        # Cancel any strategic order (breaking formation to act)
-        if getattr(marshal, 'strategic_order', None):
+        # Cancel any strategic order (breaking formation to act) — a man on his
+        # own keeps his task (row IC, Session 4b: the square broken is his own act)
+        from backend.game_logic import own_order as _own_order
+        if getattr(marshal, 'strategic_order', None) and not _own_order.keeps_task(marshal):
             marshal.strategic_order = None
             clear_order_bound_interrupt(marshal)  # NPC-2
             # [7A-6] Clear holding state when square break cancels strategic order

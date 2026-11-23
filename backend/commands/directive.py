@@ -304,7 +304,7 @@ def _staff_view(world, stash: Dict[str, Any], rows: List[Dict[str, Any]]) -> Opt
     if not stash.get("army"):
         return None
     from backend.commands import group_orders as G
-    from backend.commands.state_probe import VERBS, order_state_refusal
+    from backend.commands.state_probe import ALREADY_HOLDING, VERBS, order_state_refusal
     verb = G._probe_verb(stash["action"], stash.get("strategic_type"), stash["rest"])
     can_go = {r["marshal"] for r in rows if r.get("ok")}
     covers: List[str] = []
@@ -315,7 +315,9 @@ def _staff_view(world, stash: Dict[str, Any], rows: List[Dict[str, Any]]) -> Opt
             continue
         if name not in can_go:
             continue
-        if verb in VERBS and order_state_refusal(world, marshal, verb):
+        # (a hold's own refusal is read with its parse: his row above already
+        # did — IC4-N1's sibling, Session 4b)
+        if verb in VERBS and order_state_refusal(world, marshal, verb) not in ("", ALREADY_HOLDING):
             continue
         doubt = G._would_object(world, marshal, stash.get("strategic_type"),
                                 parsed_target=stash.get("target"), rest=stash["rest"])

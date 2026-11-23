@@ -350,7 +350,7 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
     asked, with the rest of the members left in the stash on the world;
     `spent` (ACH-1) sums the actions each member's own reply says it cost."""
     from backend.main import _result_carries_question
-    from backend.commands.state_probe import order_state_refusal
+    from backend.commands.state_probe import ALREADY_HOLDING, order_state_refusal
     rest = stash["rest"]
     action = stash["action"]
     strategic_type = stash.get("strategic_type")
@@ -428,6 +428,10 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             if int(getattr(world, "actions_remaining", 0) or 0) < price:
                 break
         reason = order_state_refusal(world, marshal, verb) if verb in _probe_verbs() else ""
+        if reason == ALREADY_HOLDING:
+            # IC4-N1's sibling (Session 4b): a hold is read with its parse —
+            # the same ground AND the same watch — below, once his line is read.
+            reason = ""
         if reason:
             members.pop(0)
             lines.append(f"{_display(name)} — {reason}.")
@@ -459,6 +463,13 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             refused.append((name, ""))
             _not_sent(name, line, _why)
             continue
+        if verb == "hold" and verb in _probe_verbs():
+            reason = order_state_refusal(world, marshal, verb, parsed=parsed)
+            if reason:
+                lines.append(f"{_display(name)} — {reason}.")
+                refused.append((name, ""))
+                _not_sent(name, line, reason)
+                continue
         command = parsed.get("command") or {}
         # (a man's quoted answer rides `voices` on this road — the reply keeps
         # only the first sentence of each man's own reply)

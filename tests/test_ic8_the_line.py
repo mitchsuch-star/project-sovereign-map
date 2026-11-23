@@ -1401,9 +1401,8 @@ class TestICN1TheReadBackOfARenewedHold:
     he already holds, the read-back REFUSES it ("already holding here", a free
     refusal) while Enter GIVES it and charges an action. A button says what it
     will do before the press: the reading must be the order. STRICT — the day it
-    is fixed this turns red and the xfail comes off."""
+    is fixed (Session 4b) the pin below holds."""
 
-    @pytest.mark.xfail(strict=True, reason="IC4-N1: the read-back refuses a renewed hold that Enter gives")
     def test_the_reading_of_a_renewed_hold_is_what_enter_does(self, road):
         client, snap = road
         board = _board(snap)
@@ -1415,3 +1414,32 @@ class TestICN1TheReadBackOfARenewedHold:
         assert sent["success"], sent.get("message")
         assert reading.get("ok") is True and reading.get("kind") == "order", reading
 
+    def test_an_identical_renewed_hold_still_reads_already_holding(self, road):
+        client, snap = road
+        board = _board(snap)
+        board.actions_remaining = 12
+        line = "Soult, hold Lorraine. If attacked, dig in."
+        assert _post(client, line)["success"]
+        reading = _preview(client, line)
+        assert reading.get("ok") is False
+        assert "already holding here" in str(reading), reading
+
+    def test_a_hold_of_another_province_reads_as_the_order_enter_gives(self, road):
+        """Session 4b's review of the fix: the typed hold's PLACE sits on the
+        parse's command (where the executor reads it). Read from the wrong key
+        it was always "where he stands", so a hold of ANOTHER province, given
+        while he holds his own, read "already holding here"."""
+        import backend.main as M
+        from backend.commands.state_probe import order_state_refusal
+        client, snap = road
+        board = _board(snap)
+        board.actions_remaining = 12
+        soult = board.get_marshal("Soult")
+        assert _post(client, f"Soult, hold {soult.location}")["success"]
+        other = sorted(board.regions[soult.location].adjacent_regions)[0]
+        with _quiet():
+            elsewhere = M.parser.parse(f"Soult, hold {other}", {"world": board}, world=board)
+            here = M.parser.parse("Soult, hold here", {"world": board}, world=board)
+        assert (elsewhere.get("command") or {}).get("target") == other, elsewhere
+        assert order_state_refusal(board, soult, "hold", parsed=elsewhere) == ""
+        assert order_state_refusal(board, soult, "hold", parsed=here) == "already holding here"

@@ -114,7 +114,8 @@ class TestSnapshotAttackerModifiers:
         atk = _make_marshal(personality="aggressive")
         defn = _make_marshal(name="Def")
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
-        m = _find_mod(mods, "personality", "bonus")
+        # (row IC, Session 4b: the label carries the nature's word — "Bold nature")
+        m = _find_mod(mods, "bold nature", "bonus")
         assert m is not None
         assert m["value"] > 0
 

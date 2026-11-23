@@ -7,30 +7,36 @@ autonomy they really do stuff and iunteract withe achother and even help their
 friends your strategoic suggestions are just guidance for ai".
 
 WHAT IT IS. A standing order — take a place, pursue a named enemy army, hold one
-or two provinces, support a friend — that a BOLD or CAREFUL marshal carries out
-by his own judgement. Your task names the aim and the area; each night's act is
-HIS choice inside it, by his nature, his odds, his record and the men beside
-him — and it is shown under "Tonight" before you end the turn (D8: what the
-screen said, or he stays put).
+or two provinces, support a friend, or no task at all ("act on your own") —
+that a BOLD or CAREFUL marshal carries out by his own judgement. Row IC,
+Session 4b (IC4-D3) — the user's ruling, corrected twice: he is an autonomous
+army run by an AI whose DECISION TREE weighs every act open to him; your task
+is a GOAL that weighs in it, never a fence and never a forced act
+(`own_judgement.judge`: your aim's step, the chances beside him, finding the
+enemy, his ways of waiting — each weighed by his nature, his odds, the men
+beside him and the board).
 
 THE ORDER. `StrategicOrder.own` (a dict; the order keeps its standing type, so
-every reader that asks "has he an order?" still says yes). The strategic pass
-SKIPS an own order (`strategic.process_strategic_orders`): the cannon-fire
-redirect, the stalemate questions, the careful man's dig-in and the bold man's
-sally never touch him. His if-thens (two at most) are still read by the
-if-then sub-pass — only on a night he waited (`acted_tonight`).
+every reader that asks "has he an order?" still says yes; "free" rides a HOLD
+of where he stood). The strategic pass SKIPS an own order
+(`strategic.process_strategic_orders`): the cannon-fire redirect, the
+stalemate questions, the careful man's dig-in and the bold man's sally never
+touch him. His if-thens (two at most) are still read by the if-then sub-pass —
+only on a turn he waited (`acted_tonight`).
 
 THE ONE READING. `read` / `tonight` are PURE — no write, no die, France's own
-sight — and serve "Tonight" (the desk, the card, the End Turn list), the
-read-back's "Tomorrow night", every question you ask him, and THE PASS that
-carries the act out. So what you read is what he does.
+sight — and serve the read-back's intention, every question you ask him and THE
+PASS that carries the act out.
 
-THE PASS (`the_pass`) runs FIRST of all when you end the turn — before the
-Congress signs, before the offers lapse, before the jealous strikes, before the
-enemy moves (D6) — highest rank first (`precedence.order_of_precedence`), one
-thing a turn (D7). Each man's act is re-read on the board the higher men left:
-if it is what "Tonight" said, it is carried out through the executor (free —
-`_strategic_execution`); otherwise he stays put and says why (D8).
+THE PASS (`the_pass`) — the user's ruling of November 23, 2026, "He moves at
+turn start": it runs as each turn OPENS, after the enemy has moved and the turn
+has advanced, before you give orders and before the morning report is drawn
+(`turn_manager._their_own_turn`) — highest rank first
+(`precedence.order_of_precedence`), one thing a turn (D7). Each man reads the
+board the higher men left and his act is carried out through the executor
+(free — `_strategic_execution`); the morning report opens with what he did. No
+preview: nothing says beforehand what he will do (an asked intention is said as
+an intention).
 
 HIS FRIENDS (R-FRIENDS). Every man on his own may answer the battle of any of
 our corps attacked next to him — dug in or on his hold's post — by the game's
@@ -69,13 +75,18 @@ WAITS_ASKS_AFTER = 3         # his target in reach but beyond his odds three nig
 UNSEEN_ASKS_AFTER = 3        # a pursued army unseen three turns: he asks
 PURSUE_RING = 3              # marches from where the pursuit began
 STAND_DOWN_TRUST = 3         # recalled mid-task by your choice
-PRICE = {"take": 2, "pursue": 2, "hold": 2, "support": 1}
+PRICE = {"take": 2, "pursue": 2, "hold": 2, "support": 1, "free": 2}
 CHANGE_PRICE = 1
-EVENT = "own_night"          # the campaign log's and the dispatch's event type
+EVENT = "own_night"          # the campaign log's and the dispatch's event type (a saved key)
 
-TASKS = ("take", "pursue", "hold", "support")
-ORDER_TYPE = {"take": "MOVE_TO", "pursue": "PURSUE", "hold": "HOLD", "support": "SUPPORT"}
-TASK_OF_ORDER = {v: k for k, v in ORDER_TYPE.items()}
+# Row IC, Session 4b: "free" — on his own with NO task ("Ney, act on your own"):
+# he makes war as he sees fit; it rides a HOLD of the province he stood on.
+TASKS = ("take", "pursue", "hold", "support", "free")
+ORDER_TYPE = {"take": "MOVE_TO", "pursue": "PURSUE", "hold": "HOLD", "support": "SUPPORT",
+              "free": "HOLD"}
+# the reverse map of the four tasks a STANDING order names ("free" shares HOLD
+# and is read off the order's own spec, never off its type)
+TASK_OF_ORDER = {v: k for k, v in ORDER_TYPE.items() if k != "free"}
 
 # The acts of a night. WAITING acts leave his if-thens live (§2, §6.7.3).
 WAITING_ACTS = frozenset({"look", "dig_in", "stay", "start", "asks", "recover"})
@@ -220,8 +231,10 @@ def why_not(world, marshal, task: str = "", *, replacing: bool = False) -> str:
     trust = int(getattr(getattr(marshal, "trust", None), "value", 0) or 0)
     if trust < TRUST_NEEDED:
         return f"{shown}'s trust in you is {trust} — he needs {TRUST_NEEDED} to be trusted on his own"
-    if getattr(marshal, "artillery", False) and task in ("take", "pursue"):
+    if getattr(marshal, "artillery", False) and task in ("take", "pursue", "free"):
         return f"{shown}'s guns can only hold or support on their own"
+    if task == "free" and not _at_war(world):
+        return "there is no war to make — give him a hold or a support"
     if task in ("take", "pursue") and not _at_war(world):
         return "at peace only a hold or a support can be given — a take or a pursuit needs a war"
     if not replacing and count(world) >= allowed(world):
@@ -260,7 +273,7 @@ def _his_step(marshal, rec: Dict[str, Any], reaching: bool = False) -> Tuple[int
     nature = _nature(marshal)
     key = str(getattr(marshal, "name", "") or "")
     if nature == "bold" and int(rec.get("quiet", 0) or 0) >= IMPATIENT_AFTER:
-        return 1, f"after {int(rec.get('quiet', 0))} quiet nights — he is impatient"
+        return 1, f"after {int(rec.get('quiet', 0))} quiet turns — he is impatient"
     if rec.get("last") == "won":
         return 1, "since his last win"
     if rec.get("last") == "lost":
@@ -411,14 +424,97 @@ def _in_strike_reach(world, marshal, place: str) -> bool:
         report(exc, "own_order._in_strike_reach")
         return False
     if d >= 2:
-        # the charge's own rule: a corps in the province between bars it
-        # ("Cannot charge through X — Y blocks the path")
+        # the charge's own rule: a corps in ANY province between bars it
+        # ("Cannot charge through X — Y blocks the path": the executor checks
+        # every middle province — Session 4b's measure: this read "any one
+        # clear", and the charge was refused at the turn's start)
         between = [p for p in _near(world, here) if place in _near(world, p)]
         # (France's sight only: a corps France cannot see may still bar it —
-        # the night then says so, the fog's honest surprise)
-        if not any(not _foes_at(world, marshal, p) for p in between):
+        # his report then says so, the fog's honest surprise)
+        if any(_foes_at(world, marshal, p) for p in between):
             return False
     return True
+
+
+def _rallying(world, marshal, spec: Dict[str, Any], unfit: str) -> Dict[str, Any]:
+    """His men are rallying from a defeat: he does not attack — "he falls back
+    to his ground or digs in, then carries on" (the plan Session 4b's user
+    approved). Off his ground — off the post you told him to hold, or on soil
+    not France's — he falls back one march toward it, never into an enemy
+    France sees; on his ground a careful man digs in where the works can be
+    begun; else he rests his men. PURE."""
+    shown = _shown(marshal.name)
+    here = str(marshal.location or "")
+    nation = str(getattr(marshal, "nation", "") or "")
+    back = ""
+    area = [p for p in (spec.get("area") or []) if p] if spec.get("task") == "hold" else []
+    region = world.get_region(here)
+    on_french_soil = region is not None and str(getattr(region, "controller", "") or "") == nation
+    # Falling back is to SAFETY (Session 4b's measure: a rallying man fell back
+    # onto his post three turns running, was thrown off it each time, and was
+    # destroyed): never onto ground with or beside an enemy France sees, never
+    # straight back where he came from last turn, never a third time the same.
+    rec = _record_view(marshal)
+    acts = [a for a in rec.get("acts") or [] if isinstance(a, (list, tuple)) and len(a) >= 3]
+    came_from = (str(acts[-1][3] or "") if acts and len(acts[-1]) >= 4
+                 and _int({"t": acts[-1][2]}, "t") == _turn(world) - 1 else "")
+    last_two = [tuple(a[:2]) for a in acts[-2:]]
+
+    def _safe(place: str) -> bool:
+        if not place or place == came_from or _foes_at(world, marshal, place):
+            return False
+        if last_two == [("fall_back", place), ("fall_back", place)]:
+            return False
+        return not any(_foes_at(world, marshal, p) for p in _near(world, place))
+
+    if area and here not in area:
+        best = None
+        for post in area:
+            road = list(_road(world, marshal, post) or [])
+            if road and _safe(road[0]):
+                if best is None or (len(road), road[0]) < best:
+                    best = (len(road), road[0])
+        back = best[1] if best else ""
+    elif not on_french_soil:
+        for place in sorted(_near(world, here)):
+            ground = world.get_region(place)
+            if (ground is not None and str(getattr(ground, "controller", "") or "") == nation
+                    and _safe(place)):
+                back = place
+                break
+    if back:
+        from backend.game_logic.own_judgement import move_is_open
+        back = back if move_is_open(world, marshal, back) else ""
+    if back:
+        do = ([{"action": "unfortify"}] if getattr(marshal, "fortified", False) else [])
+        return _reading(marshal, "fall_back",
+                        f"{shown} falls back to {_shown(back)} — {unfit}",
+                        why=unfit, place=back, target=back, do=do + [{"action": "move", "target": back}])
+    if _nature(marshal) == "careful" and not getattr(marshal, "cavalry", False):
+        from backend.commands.tactical_executor import fortify_refusal
+        if not fortify_refusal(world, marshal)[0]:
+            return _reading(marshal, "dig_in", f"{shown} digs in at {_shown(here)} — {unfit}",
+                            why=unfit, place=here, target=here, do=[{"action": "fortify"}])
+    return _reading(marshal, "recover", f"{shown} recovers — {unfit}", why=unfit, place=here)
+
+
+def _engaged_by(world, marshal) -> List[Any]:
+    """The enemy corps (at war, standing) in his own province. While they stand
+    there he may attack only them and march only onto French soil — the
+    executor's own engagement rules ("Cannot attack elsewhere while engaged",
+    `combat_executor`; "Cannot advance while engaged", `movement_executor`).
+    (A corps in his own province is always seen.) PURE."""
+    here = str(getattr(marshal, "location", "") or "")
+    nation = str(getattr(marshal, "nation", "") or "")
+    if not here or not nation:
+        return []
+    try:
+        return [m for m in world.get_marshals_in_region(here)
+                if m.nation != nation and int(getattr(m, "strength", 0) or 0) > 0
+                and world.is_at_war(nation, m.nation)]
+    except Exception as exc:
+        report(exc, "own_order._engaged_by")
+        return []
 
 
 def _sheltered(world, marshal, enemy) -> bool:
@@ -563,6 +659,12 @@ def _attack_choice(world, marshal, place: str, need: Dict[str, Any], taken: Dict
     foe = foes[0]
     if not _in_strike_reach(world, marshal, place):
         return None, f"{_shown(foe.name)} at {_shown(place)} is out of his reach"
+    here = str(marshal.location or "")
+    if place != here:
+        engaged = _engaged_by(world, marshal)
+        if engaged:
+            return None, (f"{_names([e.name for e in engaged])} at {_shown(here)} must be "
+                          "dealt with first")
     if _sheltered(world, marshal, foe):
         return None, f"{_shown(foe.name)} shelters on neutral ground"
     if foe.name in taken:
@@ -621,7 +723,7 @@ def _take_place(world, marshal, place: str, need: Dict[str, Any], taken: Dict[st
     if place in taken:
         return None, f"taken:{taken[place]}"
     if ("~" + place) in taken:
-        return None, f"{_shown(taken['~' + place])} marches into {_shown(place)} tonight"
+        return None, f"{_shown(taken['~' + place])} marches into {_shown(place)} this turn"
     reading, why = _attack_choice(world, marshal, place, need, taken)
     if reading is not None or why:
         return reading, why
@@ -693,7 +795,7 @@ def _march_toward(world, marshal, destination: str, need: Dict[str, Any], taken:
         return None, f"barred::{road[0]}"
     end = leg[-1]
     left = max(0, len(road) - len(leg))
-    nights = "" if left == 0 else f" — {left} more march{'es' if left != 1 else ''} after tonight"
+    nights = "" if left == 0 else f" — {left} more march{'es' if left != 1 else ''} to go"
     shown = _shown(marshal.name)
     line = f"{shown} marches from {_shown(marshal.location)} to {_shown(end)}, {purpose}{nights}"
     do = [{"action": "unfortify"}] if getattr(marshal, "fortified", False) else []
@@ -738,10 +840,11 @@ def _nearest_foe(world, marshal) -> Tuple[Optional[Any], str]:
     return (best[3], best[4]) if best else (None, "")
 
 
-def _waiting(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], rec: Dict[str, Any],
-             taken: Dict[str, str], friend_line: str) -> Dict[str, Any]:
-    """His own way of waiting, by nature (§6.7.3), never the same act at the
-    same place a third night running while another sensible one exists (§6.7.4)."""
+def _waiting_options(world, marshal, spec: Dict[str, Any], need: Dict[str, Any],
+                     rec: Dict[str, Any], taken: Dict[str, str]) -> List[Dict[str, Any]]:
+    """His own ways of waiting, by nature (§6.7.3) — each a real act, in the
+    order his nature would try them. Row IC, Session 4b: his judgement weighs
+    them beside everything else (`own_judgement._waits`); `_waiting` picks."""
     shown = _shown(marshal.name)
     nature = _nature(marshal)
     horse = bool(getattr(marshal, "cavalry", False))
@@ -765,8 +868,12 @@ def _waiting(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], rec: Di
                                         do=do + [{"action": "move", "target": other}]))
     digs = []
     if not horse and nature == "careful":
-        if not getattr(marshal, "fortified", False):
-            resolve = (" — his Iron Resolve starts to build (each night dug in makes his next attack "
+        # the executor's own predicate (`fortify_refusal`): no works while an
+        # enemy stands on his ground, nor in an aggressive stance (Session 4b's
+        # measure: "cannot fortify while engaged" refused a chosen dig-in)
+        from backend.commands.tactical_executor import fortify_refusal
+        if not fortify_refusal(world, marshal)[0]:
+            resolve = (" — his Iron Resolve starts to build (each turn dug in makes his next attack "
                        "stronger)" if _has_resolve(marshal) else "")
             digs.append(_reading(marshal, "dig_in", f"{shown} digs in at {_shown(here)}{resolve}",
                                  place=here, target=here, do=[{"action": "fortify"}]))
@@ -791,6 +898,16 @@ def _waiting(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], rec: Di
         options += looks + digs
     else:
         options += digs + looks
+    return options
+
+
+def _waiting(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], rec: Dict[str, Any],
+             taken: Dict[str, str], friend_line: str) -> Dict[str, Any]:
+    """His own way of waiting, by nature (§6.7.3), never the same act at the
+    same place a third turn running while another sensible one exists (§6.7.4)."""
+    shown = _shown(marshal.name)
+    here = str(marshal.location or "")
+    options = _waiting_options(world, marshal, spec, need, rec, taken)
     acts = [tuple(a[:2]) for a in (rec.get("acts") or []) if isinstance(a, (list, tuple)) and len(a) >= 2]
     last_two = acts[-2:]
 
@@ -818,8 +935,8 @@ def _waiting(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], rec: Di
                 words += f" — Iron Resolve {stacks} of 3"
         else:
             words = f"{shown} stays put at {_shown(here)}"
-        pick = _reading(marshal, "stay", words + " — nothing to do that he would choose",
-                        place=here, why="nothing to do")
+        pick = _reading(marshal, "stay", words + " — nothing within his reach to do",
+                        place=here, why="nothing within his reach to do")
     pick["help"] = friend_line
     return pick
 
@@ -919,7 +1036,7 @@ def _task_reading(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], re
                     return _reading(marshal, "attack", line, place=where, target=quarry.name,
                                     with_=with_, do=do + [{"action": "attack", "target": quarry.name}],
                                     odds=odds, need=need, may_day=day, counted=others), ""
-                return None, (f"{_shown(quarry.name)} is too strong for him tonight: our "
+                return None, (f"{_shown(quarry.name)} is too strong for him now: our "
                               f"{odds['tenths']} to their 10, and he goes in at {need['needed']}")
             reading, why = _march_toward(world, marshal, where, need, taken,
                                          purpose=f"after {_shown(quarry.name)}", stop_short=1)
@@ -991,39 +1108,9 @@ def _task_reading(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], re
                 return reading, ""
             if why.startswith("taken:") and not left_to:
                 left_to = why
-        # a step outside his area — once per order (§6.7.1)
-        if not spec.get("stepped_out"):
-            strikes = []
-            for place in area:
-                for beside in _near(world, place):
-                    if beside in area or not _in_strike_reach(world, marshal, beside):
-                        continue
-                    if not _foes_at(world, marshal, beside):
-                        continue
-                    strikes.append(beside)
-            resolve_full = _has_resolve(marshal) and int(
-                getattr(marshal, "iron_resolve_stacks", 0) or 0) >= 3
-            beat_off = nature == "careful" and rec.get("last") == "won" and bool(rec.get("held"))
-            if nature == "bold" or resolve_full or beat_off:
-                for beside in sorted(set(strikes)):
-                    hit, _why = _attack_choice(world, marshal, beside, need, taken, verb="strikes")
-                    if hit is not None:
-                        hit["act"] = "strike"
-                        hit["step_out"] = True
-                        tail = ("; Iron Resolve is full, so he strikes out and comes back after"
-                                if resolve_full and nature == "careful"
-                                else "; he beat them off last night and counter-attacks, then comes back"
-                                if beat_off and nature == "careful"
-                                else f"; {_shown(beside)} is next to the ground he holds, so he strikes "
-                                     f"there once and comes back after")
-                        foe = world.get_marshal(hit["target"])
-                        odds = odds_against(world, marshal, foe) if foe is not None else None
-                        if foe is not None and odds is not None:
-                            hit["line"] = attack_line(marshal, "strikes", foe, beside, odds, need,
-                                                      hit.get("with") or "", hit.get("may_day"), tail)
-                        return hit, ""
-                    if _why.startswith("taken:") and not left_to:
-                        left_to = _why
+        # Row IC, Session 4b (IC4-D3): the old "one step outside his area, once
+        # per order" is gone — an enemy beside the ground he holds is a CHANCE
+        # his judgement weighs against keeping his post (`own_judgement`).
         return None, left_to
     return None, ""
 
@@ -1070,87 +1157,72 @@ def _lannes_to_the_guns(world, marshal, taken: Dict[str, str]) -> Optional[Dict[
 
 def read(world, marshal, spec: Optional[Dict[str, Any]] = None,
          taken: Optional[Dict[str, str]] = None, *, preview: bool = False) -> Dict[str, Any]:
-    """What he does tonight — PURE. `spec` is his task (default: his order's
-    own); `taken` the targets higher men have taken (enemy or place → name);
-    `preview`: a task not yet given (the read-back: "tomorrow night")."""
+    """What he does at the start of a turn — PURE. `spec` is his task (default:
+    his order's own); `taken` the targets higher men have taken (enemy or place
+    → name); `preview`: a task not yet given (the read-back's intention).
+
+    Row IC, Session 4b (IC4-D3): his task's own step is ONE option his
+    judgement weighs beside the chances around him, finding the enemy and his
+    ways of waiting (`own_judgement.judge`) — the user's "orders should be
+    guiding ai that has its own actions and does its own thing"."""
     spec = spec if spec is not None else (own(marshal) or {})
     taken = dict(taken or {})
     shown = _shown(marshal.name)
     turn = _turn(world)
     rec = _record_view(marshal)
+    here = str(marshal.location or "")
     if not preview:
         if spec.get("state") == "asks":
             why = str((spec.get("asks") or {}).get("why") or "he waits for your word")
             return _reading(marshal, "asks", f"{shown} waits for your word — {why}", why=why,
-                            place=str(marshal.location or ""))
+                            place=here)
         if _int(spec, "given") == turn:
+            # given during this turn: his first move is at the start of the next
             ahead = read(world, marshal, spec, taken, preview=True)
-            first = str(ahead.get("line") or "")
-            if first.startswith(shown + " "):
-                first = "he " + first[len(shown) + 1:]
-            words = (f"{shown} makes ready — a task starts the night after it is given"
-                     if first else f"{shown} starts on his task tomorrow night")
-            out = _reading(marshal, "start", words, place=str(marshal.location or ""),
-                           why="given tonight")
+            out = _reading(marshal, "start", f"{shown} makes his first move at the start of next turn",
+                           place=here, why="given this turn")
             out["ahead"] = str(ahead.get("line") or "")
             return out
         if (str(getattr(marshal, "name", "")) == "Bernadotte" and spec.get("late")
                 and _int(spec, "given", -9) + 1 == turn):
             return _reading(marshal, "start",
-                            f"{shown} starts a night late, as is his way",
-                            place=str(marshal.location or ""), why="his way")
-        # ONE THING A TURN (§6.3, the review IC3-V): his night already done (a
-        # close re-entered), today's order by your hand, or a friend's battle
-        # he was drawn into today — his task resumes the next night
+                            f"{shown} starts a turn late, as is his way",
+                            place=here, why="his way")
+        # ONE MOVE OF HIS OWN A TURN (§6.3): his move already made this turn,
+        # or a friend's battle he was drawn into this turn — his next move is at
+        # the start of the next turn. (An order you give him by hand is carried
+        # out ON TOP of his own move, at its usual price — the user's "like any
+        # other general".)
         if _int(spec, "acted") == turn:
-            return _reading(marshal, "stay", f"{shown} has done his night's work",
-                            place=str(marshal.location or ""), why="his night is done")
-        if _int({"t": getattr(marshal, "last_ordered_turn", None)}, "t") == turn:
-            return _reading(marshal, "stay",
-                            f"{shown} carried out your order today — his task resumes tomorrow night",
-                            place=str(marshal.location or ""), why="your order today")
+            return _reading(marshal, "stay", f"{shown} has made his move this turn",
+                            place=here, why="his move is made")
         if bool(getattr(marshal, "reinforced_this_turn", False)):
             return _reading(marshal, "stay",
-                            f"{shown} fought beside a friend today — his task resumes tomorrow night",
-                            place=str(marshal.location or ""), why="drawn in today")
+                            f"{shown} fought beside a friend this turn — he moves again at the start "
+                            "of next turn", place=here, why="drawn in this turn")
     unfit = _unfit(world, marshal)
     if unfit:
-        return _reading(marshal, "recover", f"{shown} recovers — {unfit}", why=unfit,
-                        place=str(marshal.location or ""))
+        return _rallying(world, marshal, spec, unfit)
     if int(getattr(marshal, "strength", 0) or 0) <= 0:
         return _reading(marshal, "stay", f"{shown} has no corps", why="no corps")
     from backend.commands import if_thens as _it
     reaching = any(True for _e, _w in _it.seen_enemies(world, marshal))
     need = needed(marshal, int(spec.get("risk", 0) or 0), rec, reaching=reaching)
-    # Lannes's line: a friend fighting within two marches outranks any other
-    # target — he goes to stand beside him (§6.7.7)
-    reading, why = _task_reading(world, marshal, spec, need, rec, taken)
-    if reading is None and why.startswith("taken:"):
-        lead = why.split(":", 1)[1]
-        reading = _join(world, marshal, lead, taken, need)
-        why = ""
-    if reading is not None:
-        return reading
-    if not why.startswith("road_barred:") and spec.get("task") != "support":
-        guns = _lannes_to_the_guns(world, marshal, taken)
-        if guns is not None:
-            guns["needed"] = int(need["needed"])
-            guns["needed_words"] = needed_words(need)
-            return guns
-    friend = _friend_line(world, marshal)
-    pick = _waiting(world, marshal, spec, need, rec, taken, friend)
-    reason = why.split(":", 1)[1] if why.startswith("road_barred:") else why
-    if reason and reason not in ("ours",):
-        pick["why"] = reason
-        if not pick.get("line", "").endswith(reason):
-            pick["line"] = f"{pick['line']} ({reason})"
-    if why.startswith("road_barred:"):
-        pick["barred"] = True
-    elif reason and reason != "ours" and spec.get("task") in ("take", "pursue"):
-        pick["stuck"] = True        # his target beyond his odds (or his road): he waits, then asks
-    pick["needed"] = int(need["needed"])
-    pick["needed_words"] = needed_words(need)
-    return pick
+    goal: Optional[Dict[str, Any]] = None
+    why = ""
+    join = None
+    if str(spec.get("task") or "") != "free":
+        goal, why = _task_reading(world, marshal, spec, need, rec, taken)
+        if goal is None and why.startswith("taken:"):
+            lead = why.split(":", 1)[1]
+            join = _join(world, marshal, lead, taken, need)
+            why = ""
+    from backend.game_logic import own_judgement as _judgement
+    reading = _judgement.judge(world, marshal, spec, need, rec, taken, goal=goal, goal_why=why,
+                               join=join)
+    reading["needed"] = int(need["needed"])
+    reading["needed_words"] = needed_words(need)
+    return reading
 
 
 def _join(world, marshal, lead: str, taken: Dict[str, str], need: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -1236,6 +1308,9 @@ def join_fits(world, marshal, lead: str, place: str) -> bool:
     target = str(spec.get("target") or "")
     if not place:
         return False
+    if task == "free":
+        # no task: a higher man's battle beside him is his to join
+        return (_distance(world, marshal.location, place) or 9) <= 1
     if task == "hold":
         area = [p for p in (spec.get("area") or [target]) if p]
         return any(place == p or place in _near(world, p) for p in area)
@@ -1292,57 +1367,6 @@ def _read_in_turn(world, man, taken: Dict[str, str], counted: Dict[str, str]) ->
                                f"{_shown(lead)}'s battle first")
         return reading
     return read(world, man, taken=taken)
-
-
-_SHOWN: Dict[str, Any] = {"key": None, "rows": None}
-
-
-def _board_key(world) -> Tuple:
-    """What the night's reading depends on, cheaply: the turn, the actions left,
-    every corps' place, strength and works, the orders and the sight (the
-    log's length moves with every scout, battle and order)."""
-    corps = tuple(sorted((m.name, str(m.location or ""), int(getattr(m, "strength", 0) or 0),
-                          bool(getattr(m, "fortified", False)),
-                          bool(getattr(m, "reinforced_this_turn", False)),
-                          repr(getattr(m, "last_ordered_turn", None)),
-                          repr(getattr(getattr(m, "strategic_order", None), "own", None)),
-                          # Row IC, Session 3b: a follower's night reads his
-                          # FOLLOW order (whom, since when) and his army's roll
-                          _order_key(getattr(m, "strategic_order", None)))
-                         for m in (getattr(world, "marshals", None) or {}).values()))
-    return (id(world), _turn(world), int(getattr(world, "actions_remaining", 0) or 0),
-            len(getattr(world, "event_log", None) or []),
-            len(getattr(world, "command_history", None) or []), hash(corps),
-            repr(getattr(world, "armies", None) or None))
-
-
-def _order_key(order) -> Tuple:
-    if order is None:
-        return ()
-    return (str(getattr(order, "command_type", "") or ""), str(getattr(order, "target", "") or ""),
-            bool(getattr(order, "standing_follow", False)), repr(getattr(order, "issued_turn", None)))
-
-
-def tonight_shown(world) -> List[Dict[str, Any]]:
-    """`tonight` for the screens (the desk, the cards, the End Turn list) —
-    kept while the board is unchanged, so a reply that draws every card reads
-    the night once. The pass itself always reads afresh."""
-    try:
-        key = _board_key(world)
-    except Exception as exc:
-        report(exc, "own_order.tonight_shown: the key")
-        return tonight(world)
-    if _SHOWN["key"] != key:
-        _SHOWN["rows"] = tonight(world)
-        _SHOWN["key"] = key
-    return list(_SHOWN["rows"] or [])
-
-
-def tonight_for(world, marshal) -> Optional[Dict[str, Any]]:
-    for reading in tonight_shown(world):
-        if reading.get("marshal") == marshal.name:
-            return reading
-    return None
 
 
 # ═══════════════════════════ his proposal (§6.7.2) ══════════════════════════
@@ -1427,9 +1451,15 @@ def spec_from(world, marshal, task: str, target: str, *, area: Optional[List[str
     """A task spec, checked — `(spec, "")` or `(None, why)` in plain words."""
     shown = _shown(marshal.name)
     if task not in TASKS:
-        return None, "a task is one of take, chase, hold or support"
+        return None, "a task is one of take, chase, hold or support — or none (\"act on your own\")"
     target = str(target or "")
-    if task == "hold":
+    if task == "free":
+        # Row IC, Session 4b: no task — he makes war as he sees fit
+        if not _at_war(world):
+            return None, "there is no war to make — give him a hold or a support"
+        target = ""
+        area = []
+    elif task == "hold":
         area = [p for p in (area or [target or marshal.location]) if p][:2]
         for place in area:
             if world.get_region(place) is None:
@@ -1468,8 +1498,11 @@ def spec_from(world, marshal, task: str, target: str, *, area: Optional[List[str
 
 
 def task_words(spec: Dict[str, Any]) -> str:
-    """"take Swabia" · "hold Milan and Piedmont" · "chase Mack" · "support Ney"."""
+    """"take Swabia" · "hold Milan and Piedmont" · "chase Mack" · "support Ney" ·
+    "make war as he sees fit" (no task)."""
     task = spec.get("task")
+    if task == "free":
+        return "make war as he sees fit"
     if task == "hold":
         area = [ _shown(p) for p in (spec.get("area") or [spec.get("target")]) if p]
         return "hold " + " and ".join(area)
@@ -1581,7 +1614,9 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
             lines = [{**dict(row), "used": False, "written": turn} for row in kept[:2]]
     except Exception as exc:
         report(exc, "own_order.give: if-thens")
-    target = spec["target"]
+    # (a man with no task rides a HOLD of the province he stood on — every
+    # reader that asks "has he an order?" still says yes)
+    target = spec["target"] or (str(marshal.location or "") if spec["task"] == "free" else "")
     target_type = "marshal" if spec["task"] in ("pursue", "support") else "region"
     order = StrategicOrder(command_type=ORDER_TYPE[spec["task"]], target=target,
                            target_type=target_type, started_turn=turn, issued_turn=turn,
@@ -1600,7 +1635,8 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
     voices: List[Dict[str, Any]] = []
     said = (_voice.recall_memory(world, marshal, said=True)
             or _voice.speak(world, marshal, _voice.kind_given(int(spec.get("risk", 0) or 0),
-                                                              bool(objected))))
+                                                              bool(objected),
+                                                              free=spec.get("task") == "free")))
     if said:
         voices.append({"speaker": marshal.name, "says": said})
     took_ill = ""
@@ -1630,8 +1666,10 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
             report(exc, "own_order.give: objection trust")
         cost_words = f" He objected ({objected}); giving it anyway cost {cost} of his trust."
     verb = "changes his task" if changing else "is on his own"
-    starts = ("He starts tomorrow night." if _int(spec, "given") == turn
-              else "He turns to it tonight.")
+    # (the user's "He moves at turn start": whatever is given this turn, his
+    # next move is at the start of the next)
+    starts = ("He makes his first move at the start of next turn." if _int(spec, "given") == turn
+              else "He turns to it at the start of next turn.")
     # Row IC, Session 4 (IC-13): HIS line is not folded into the staff's
     # sentence any more — it rides `voices`, drawn once, with his portrait and
     # name (pressed in the real client: it stood twice in the reply).
@@ -1671,7 +1709,8 @@ def stand_down(world, marshal) -> Dict[str, Any]:
     turn = _turn(world)
     refund = int(spec.get("paid", 0) or 0) if _int(spec, "given") == turn else 0
     trust_cost = 0
-    if not refund and spec.get("state") != "asks" and _int(spec, "acted") >= 0:
+    asked = spec.get("state") == "asks" or bool(spec.get("question"))
+    if not refund and not asked and _int(spec, "acted") >= 0:
         trust_cost = STAND_DOWN_TRUST
         try:
             marshal.modify_trust(-trust_cost)
@@ -1709,11 +1748,13 @@ def carry_on(world, marshal) -> Dict[str, Any]:
     shown = _shown(marshal.name)
     if spec is None:
         return {"success": False, "message": f"{shown} is not on his own.", "no_action_cost": True}
-    if spec.get("state") != "asks":
+    if spec.get("state") != "asks" and not spec.get("question"):
         return {"success": True, "message": f"{shown} is already carrying on with his task.",
                 "no_action_cost": True}
-    spec["state"] = "work"
+    if spec.get("state") == "asks":
+        spec["state"] = "work"
     spec["asks"] = None
+    spec.pop("question", None)
     spec["blocked"] = 0
     spec["unseen"] = 0
     if spec.get("task") == "pursue":
@@ -1743,14 +1784,42 @@ def change_risk(world, marshal, step: int) -> Dict[str, Any]:
             "marshal": marshal.name}
 
 
-def ask_why(world, marshal, why: str) -> None:
+def ask_why(world, marshal, why: str, *, freeze: Optional[bool] = None, cause: str = "") -> None:
+    """He asks for your word. Row IC, Session 4b (IC4-D3): in a war a question
+    about his task (a barred road, a target too strong, a quarry lost, a friend
+    fallen) does NOT stop him — his judgement carries on while it waits
+    (`spec["question"]`), and unanswered it drops after three turns. He stops
+    and WAITS (`state` "asks") only when his trust has fallen under 30, or at
+    peace (today's rules there). `freeze`: None = by those rules. `cause`: what
+    the question is about ("barred", "stuck", "ring", "unseen") — a question
+    already standing for the same cause is not asked again (its words carry a
+    running count; the review of Session 4b: keyed on the words he re-asked
+    every turn and the three-turn lapse never came)."""
     spec = own(marshal)
     if spec is None or spec.get("state") == "asks":
         return
-    spec["state"] = "asks"
-    spec["asks"] = {"why": why, "since": _turn(world)}
-    message = f"{_shown(marshal.name)} asks for your word: {why}."
+    if freeze is None:
+        freeze = not _at_war(world)
+    turn = _turn(world)
+    shown = _shown(marshal.name)
     from backend.game_logic import own_voice as _voice
+    if not freeze:
+        held = spec.get("question") or {}
+        if isinstance(held, dict) and (held.get("why") == why
+                                       or (cause and held.get("cause") == cause)):
+            return                  # asked already — once, never every turn
+        spec["question"] = {"why": why, "since": turn, **({"cause": cause} if cause else {})}
+        message = f"{shown} asks for your word — {why}. He carries on by his own judgement meanwhile."
+        said = _voice.speak(world, marshal, "asks")
+        if said:
+            spec["question"]["says"] = said
+        world.log_event({"type": EVENT, "phase": "asks", "marshal": marshal.name,
+                         "nation": marshal.nation, "message": message, "question": True,
+                         **({"says": said, "speaker": marshal.name} if said else {})})
+        return
+    spec["state"] = "asks"
+    spec["asks"] = {"why": why, "since": turn}
+    message = f"{shown} asks for your word: {why}."
     said = _voice.speak(world, marshal, "asks")      # the reason is the plain words' to carry
     if said:
         spec["asks"]["says"] = said
@@ -1873,7 +1942,8 @@ def reading_of_parse(world, parsed: Dict[str, Any]) -> Dict[str, Any]:
     # one of his last three), and the very line `give` says and records; the
     # one thing he remembers, while it is on his mind, comes first.
     said = (_voice.recall_memory(world, marshal, said=False)
-            or _voice.voice(world, marshal, _voice.kind_given(risk, bool(objected))))
+            or _voice.voice(world, marshal, _voice.kind_given(risk, bool(objected),
+                                                              free=task == "free")))
     senior = None if changing else slighted(world, marshal)
     out.update(ok=True, task=task, target=spec["target"], area=list(spec.get("area") or []),
                goal=goal,
@@ -1927,9 +1997,51 @@ def from_parse(world, parsed: Dict[str, Any], command: Dict[str, Any]) -> Dict[s
 # ═══════════════════════════ the seams (the exemptions, R-FRIENDS) ══════════
 
 def acted_tonight(marshal, world) -> bool:
-    """His one thing is done tonight (his if-thens sleep)."""
+    """His own move is made this turn (his if-thens sleep). (The name is kept:
+    `strategic._if_thens_pass` reads it.)"""
     spec = own(marshal)
     return spec is not None and _int(spec, "acted") == _turn(world)
+
+
+def keeps_task(marshal) -> bool:
+    """Row IC, Session 4b (IC4-D3, the user's "beaten, he keeps his
+    autonomy"): a man of the player's on his own whose corps still stands
+    keeps his task when he is driven off — a forced retreat, a breakout, a
+    broken square, the enemy's charge. Every place that would wipe an order
+    asks this first (`combat_executor`, `world_state`, `tactical_executor`);
+    the places that END a task (captured, corps gone, a road home at peace)
+    do not."""
+    return (on_his_own(marshal) and int(getattr(marshal, "strength", 0) or 0) > 0
+            and not getattr(marshal, "captured_by", ""))
+
+
+def target_gone(world, marshal, why: str) -> bool:
+    """The man his task names has left the board (a removed corps, a client's
+    contingent recalled). In a war a man on his own goes on with NO task —
+    True: the caller keeps his order. At peace (or not on his own) False: the
+    caller ends it as before."""
+    spec = own(marshal)
+    if spec is None or not keeps_task(marshal) or not _at_war(world):
+        return False
+    if spec.get("task") in ("pursue", "support"):
+        _freed(world, marshal, spec, why)
+    return True
+
+
+def after_retreat(world, marshal) -> None:
+    """Driven off: his post is broken (a hold's ground is to be taken back) and
+    a chase's ring is drawn again where he stands — his task stands. He rallies
+    first (`_unfit` reads the rally), then carries on."""
+    spec = own(marshal)
+    if spec is None:
+        return
+    marshal.holding_position = False
+    marshal.hold_region = ""
+    area = [p for p in (spec.get("area") or []) if p]
+    if area and str(marshal.location or "") not in area and spec.get("state") == "work":
+        spec["state"] = "road"
+    if spec.get("task") == "pursue":
+        spec["ring"] = str(marshal.location or "")
 
 
 def answers_the_guns(marshal) -> bool:
@@ -1942,49 +2054,134 @@ def answers_the_guns(marshal) -> bool:
 # ═══════════════════════════ the pass (D6, D7, D8) ══════════════════════════
 
 def the_pass(world, executor, game_state) -> List[Dict[str, Any]]:
-    """FIRST of all when the turn ends: every man on his own does what
-    "Tonight" said — or stays put and says why. Returns the report rows (also
-    kept on the world for the turn's report, `close_of_turn`)."""
+    """Row IC, Session 4b — the user's ruling "He moves at turn start": as each
+    turn OPENS (after the enemy has moved and the turn has advanced, before you
+    give orders — `turn_manager._their_own_turn`) every man on his own makes his
+    move, highest rank first, each on the board the higher men left (one thing
+    a turn, D7). Returns the report rows: they open the morning's report."""
     rows: List[Dict[str, Any]] = []
-    world._own_night_rows = rows
+    world._own_night_rows = rows       # (the name is kept: the measures read it)
     if not men(world):
         return rows
     _the_count_holds(world, rows)
-    plan = {r["marshal"]: r for r in tonight(world)}
-    # Row IC, Session 3b: the men who FOLLOW a commander as his army's task
-    # move in this pass too — right after him, before the enemy — on what
-    # "Tonight" said of them (`army_task`: the army moves as one).
-    plan_followers: Dict[str, Dict[str, Any]] = {}
     try:
         from backend.commands import army_task as _army
-        plan_followers = {r["marshal"]: r for r in _army.tonight(world, list(plan.values()))}
     except Exception as exc:
-        report(exc, "own_order.the_pass: the followers' plan")
+        report(exc, "own_order.the_pass: army_task")
+        _army = None
     taken: Dict[str, str] = {}
     counted: Dict[str, str] = {}
     acted_names: List[str] = []
     fought: List[str] = []
+    drawn_by: Dict[str, Tuple[str, str]] = {}     # a man not yet moved → (whose battle, where)
     for man in men(world):
         if getattr(world, "game_over", False):
             break
-        said = plan.get(man.name)
-        if said is None:
-            continue
+        # the men not yet drawn into a battle: the usual arrival roll of THIS
+        # man's battle may draw one in — after his own move (his line then says
+        # so) or before it (his move is that battle)
+        free_before = {m.name for m in men(world)
+                       if not getattr(m, "reinforced_this_turn", False)}
+        try:
+            said = _read_in_turn(world, man, taken, counted)
+        except Exception as exc:
+            report(exc, f"own_order.the_pass: the reading of {man.name}")
+            said = _reading(man, "stay", f"{_shown(man.name)} stays put",
+                            why="the board could not be read")
+        if man.name in drawn_by:
+            said = dict(said)
+            said["drawn_by"], said["drawn_at"] = drawn_by[man.name]
         try:
             row = _carry_out(world, executor, game_state, man, said, taken, counted, acted_names,
                              fought)
         except Exception as exc:
             report(exc, f"own_order.the_pass: {man.name}")
-            row = _row(man, said, f"{_shown(man.name)} stays put — the night could not be carried out.",
+            row = _row(man, said, f"{_shown(man.name)} stayed put — his move could not be carried out.",
                        "stay")
         rows.append(row)
-        if plan_followers and (own(man) or {}).get("army"):
+        # Row IC, Session 3b: the men who FOLLOW a commander as his army's task
+        # move right after him (`army_task`: the army moves as one)
+        if _army is not None and (own(man) or {}).get("army"):
             try:
+                plan_followers = {r["marshal"]: r for r in _army.tonight(world, [said])}
                 rows.extend(_army.followers_night(world, executor, game_state, man, said,
                                                   plan_followers, fought))
             except Exception as exc:
                 report(exc, f"own_order.the_pass: the followers of {man.name}")
+        _drawn_in_after_his_move(world, rows, free_before, man, row)
+        moved = {str(r.get("marshal")) for r in rows}
+        field = str(row.get("place") or getattr(man, "location", "") or "")
+        for other in men(world):
+            if (other.name in free_before and other.name not in moved and other.name != man.name
+                    and getattr(other, "reinforced_this_turn", False)):
+                drawn_by.setdefault(other.name, (man.name, field))
     return rows
+
+
+def _drawn_in_after_his_move(world, rows: List[Dict[str, Any]], free_before: set, lead,
+                             lead_row: Dict[str, Any]) -> None:
+    """A man who had made his move and was then drawn into `lead`'s battle by
+    the usual arrival roll: his line says so — the morning (R-REPORT) and his
+    card ("This turn: …") never leave him where his march ended when the roll
+    carried him on to a friend's field. (The measure, November 23, 2026:
+    "Lannes marched from Swabia to Franconia", and he stood at Munich, in Ney's
+    battle.)"""
+    place = str(lead_row.get("place") or getattr(lead, "location", "") or "")
+    for row in rows:
+        name = str(row.get("marshal") or "")
+        if name not in free_before or name == lead.name:
+            continue
+        man = world.marshals.get(name)
+        if man is None or not getattr(man, "reinforced_this_turn", False):
+            continue
+        tail = f" — then the usual roll drew him into {_shown(lead.name)}'s battle at {_shown(place)}"
+        message = str(row.get("message") or "").rstrip(".")
+        row["message"] = row["reason"] = message + tail + "."
+        row["drawn_in"] = lead.name
+        rec = record(man)
+        if rec.get("said"):
+            rec["said"] = str(rec["said"]).rstrip(".") + tail
+            man.own_record = rec
+
+
+# The morning reads what he did, in the past (the user's "the morning report
+# says what he did"): the leading verb of his line, and the odds said as they
+# were. Longest phrase first.
+_PAST = (("keeps up the siege of", "kept up the siege of"), ("lays siege to", "laid siege to"),
+         ("keeps to his works", "kept to his works"), ("sends his scouts", "sent his scouts"),
+         ("pushes forward", "pushed forward"), ("marches into", "marched into"),
+         ("marches from", "marched from"), ("marches to", "marched to"),
+         ("marches after", "marched after"), ("cannot reach", "could not reach"),
+         ("halts", "halted"),
+         ("falls back", "fell back"), ("falls on", "fell on"), ("stands beside", "stood beside"),
+         ("stands by", "stood by"), ("stays put", "stayed put"), ("digs in", "dug in"),
+         ("moves up", "moved up"), ("attacks", "attacked"), ("strikes", "struck"),
+         ("storms", "stormed"), ("takes", "took"), ("frees", "freed"), ("keeps", "kept"),
+         ("stays", "stayed"), ("recovers", "recovered"), ("rests", "rested"),
+         ("waits", "waited"), ("makes", "made"), ("has", "had"))
+
+
+def told(line: str, marshal) -> str:
+    """"Ney strikes Mack at Swabia — the odds are our 12 to their 10, and he
+    goes in when they are our 5 to their 10 or better" → "Ney struck Mack at
+    Swabia — the odds were our 12 to their 10"."""
+    import re as _re
+    shown = _shown(marshal.name)
+    text = str(line or "")
+    if text.startswith(shown + " "):
+        rest = text[len(shown) + 1:]
+        for now, then in _PAST:
+            if rest == now or rest.startswith(now + " ") or rest.startswith(now + ","):
+                rest = then + rest[len(now):]
+                break
+        text = f"{shown} {rest}"
+    text = _re.sub(r", and he goes in when they are our [\d.]+ to their 10 or better", "", text)
+    text = text.replace(" — the odds are our ", " — the odds were our ")
+    text = text.replace(" (he may join)", "").replace(" (they may join)", "")
+    text = text.replace(". May become a great battle", "")
+    text = text.replace(" to take it if nothing unseen holds it", " to take it")
+    text = text.replace(" and takes it", " and took it")
+    return text
 
 
 def _row(man, said: Dict[str, Any], message: str, act: str, **extra) -> Dict[str, Any]:
@@ -2001,50 +2198,58 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
     shown = _shown(man.name)
     spec = own(man) or {}
     lead_name = str(said.get("target") or "") if said.get("act") == "join" else ""
+    origin = str(man.location or "")
     if lead_name and lead_name in fought:
-        # his lead has fought tonight: the join is over — the arrival roll
-        # brought him in, or it did not. It was his one thing (§12).
+        # his lead has fought this turn: the join is over — the arrival roll
+        # brought him in, or it did not. It was his move (§12).
         arrived = bool(getattr(man, "reinforced_this_turn", False))
         spec["acted"] = _turn(world)
         line = (f"{shown} marched to {_shown(lead_name)}'s battle and joined it" if arrived else
                 f"{shown} tried to join {_shown(lead_name)}'s battle and did not arrive in time")
         voice = _note(world, man, "join", str(man.location or ""), line, visible=True,
-                      voiced=arrived)     # a man who did not arrive says no fighting line
+                      voiced=arrived, origin=origin, target=lead_name)
         acted_names.append(man.name)
         return _row(man, said, line + ".", "join", target=lead_name, arrived=arrived,
                     **_voiced(man, voice))
-    if bool(getattr(man, "reinforced_this_turn", False)) and said.get("why") != "drawn in today":
+    if bool(getattr(man, "reinforced_this_turn", False)):
         # the arrival roll drew him into a higher man's battle before his own
-        # act came round — that was his one thing tonight (§12)
+        # move came round — that was his move this turn (§12). (The flag is
+        # cleared as the turn advances, so at the turn-start pass it can only
+        # be an earlier man's battle in this same pass — Session 4b's measure:
+        # the reading now taken just before his move saw the flag, and the row
+        # read "he fought beside a friend — he moves again next turn — unless
+        # the usual roll draws him in first".)
         lead = str(said.get("drawn_by") or (fought[-1] if fought else ""))
+        field = str(said.get("drawn_at") or "")
         spec["acted"] = _turn(world)
-        line = (f"{shown} was drawn into {_shown(lead)}'s battle on the way — that was his night"
-                if lead else f"{shown} marched to a friend's battle — that was his night")
-        voice = _note(world, man, "join", str(man.location or ""), line, visible=True)
+        line = (f"{shown} was drawn into {_shown(lead)}'s battle"
+                + (f" at {_shown(field)}" if field else "")
+                + " by the usual roll — that was his move this turn"
+                if lead else f"{shown} marched to a friend's battle — that was his move this turn")
+        voice = _note(world, man, "join", str(man.location or ""), line, visible=True,
+                      origin=origin, target=lead)
         acted_names.append(man.name)
         return _row(man, said, line + ".", "join", target=lead, arrived=True, **_voiced(man, voice))
-    fresh = _read_in_turn(world, man, taken, counted)
-    if key_of(fresh) != key_of(said):
-        higher = _shown(acted_names[-1]) if acted_names else ""
-        what = "fight" if acted_names and acted_names[-1] in fought else "move"
-        cause = (f"{higher}'s {what} changed things" if higher
-                 else str(fresh.get("why") or "the board changed"))
-        line = f"{shown} stays put — {cause}"
-        voice = _note(world, man, "stay", str(man.location or ""), line, visible=False)
-        return _row(man, said, line + ".", "stay", **_voiced(man, voice))
+    # (read a moment ago, on the board the higher men left — the user's "He
+    # moves at turn start" shows nothing beforehand, so there is no promise
+    # to keep and nothing to re-read)
+    fresh = said
     act = str(fresh.get("act") or "stay")
-    if fresh.get("barred") or fresh.get("stuck"):
-        # nights running (any night that moves his task on starts the count
-        # again — the review, IC3-V): a barred road asks after two, a target
-        # beyond his odds after three
+    if (fresh.get("barred") or fresh.get("stuck")) and str(fresh.get("kind") or "") == "wait":
+        # turns running (a turn that moves your aim on starts the count again —
+        # the review, IC3-V): a barred road asks after two, a target beyond his
+        # odds after three. In a war the question does not stop him (`ask_why`).
+        # Counted only on the turns he WAITED (Session 4b's review: a turn he
+        # struck a chance or took a province is no turn waited — "he has
+        # waited 3 turns" was said of a man who had been fighting).
         spec["blocked"] = int(spec.get("blocked", 0) or 0) + 1
         if fresh.get("barred") and spec["blocked"] >= BARRED_ASKS_AFTER:
-            ask_why(world, man, f"his road has been barred {spec['blocked']} nights: "
+            ask_why(world, man, cause="barred", why=f"his road has been barred {spec['blocked']} turns: "
                                 f"{fresh.get('why') or 'the enemy stands across it'}")
         elif not fresh.get("barred") and spec["blocked"] >= WAITS_ASKS_AFTER:
-            ask_why(world, man, f"he has waited {spec['blocked']} nights: "
+            ask_why(world, man, cause="stuck", why=f"he has waited {spec['blocked']} turns: "
                                 f"{fresh.get('why') or 'his task is beyond him as things stand'}")
-    elif act not in ("start", "asks", "recover"):
+    elif str(fresh.get("kind") or "") in ("goal", "join"):
         spec["blocked"] = 0
     results = []
     for step in fresh.get("do") or []:
@@ -2069,17 +2274,16 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
         elif isinstance(last, dict) and not last.get("success", False):
             refused = str(last.get("message") or "it could not be done")
     if refused:
-        line = f"{shown} could not carry out his night: {refused}"
+        line = f"{shown} could not carry out his move: {refused}"
         moved = any(isinstance(r, dict) and r.get("success") for r, s in
                     zip(results, fresh.get("do") or []) if s.get("action") != "unfortify")
         if moved:
-            spec["acted"] = _turn(world)    # he went part of the way: that was his night
-        voice = _note(world, man, "stay", str(man.location or ""), line, visible=moved)
+            spec["acted"] = _turn(world)    # he went part of the way: that was his move
+        voice = _note(world, man, "stay", str(man.location or ""), line, visible=moved,
+                      origin=origin, target=str(fresh.get("target") or ""))
         return _row(man, said, line, "stay", **_voiced(man, voice))
     if act not in WAITING_ACTS:
         spec["acted"] = _turn(world)
-    if fresh.get("step_out"):
-        spec["stepped_out"] = True
     acted_names.append(man.name)
     taken.update(_taken_by(fresh, world))
     for other in fresh.get("counts_on") or []:
@@ -2087,28 +2291,35 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
             counted[other] = man.name
     if spec.get("state") == "given":
         spec["state"] = "work"
-    line = str(fresh.get("line") or "")
-    # the morning reads the night in the past — a night he only made ready,
-    # waited for your word or recovered is said as what it was
+    # the morning reads what he did, in the past (`told`) — a turn he only made
+    # ready, waited for your word or rested is said as what it was
+    line = told(str(fresh.get("line") or ""), man)
     if act == "start":
-        line = f"{shown} made ready for his task: {task_words(spec)}"
+        # (in the pass only Bernadotte's late start — his way, §8 — reads so)
+        line = (f"{shown} started a turn late, as is his way — his task: {task_words(spec)}"
+                if fresh.get("why") == "his way"
+                else f"{shown} makes his first move at the start of next turn — his task: "
+                     f"{task_words(spec)}")
     elif act == "asks":
         line = f"{shown} waited for your word — {fresh.get('why') or 'he asks for orders'}"
     elif act == "recover":
-        line = f"{shown} recovered — {fresh.get('why') or 'his men rest'}"
+        line = f"{shown} rested his men — {fresh.get('why') or 'they needed it'}"
     voice = _note(world, man, act, str(fresh.get("place") or ""), line,
                   visible=bool(fresh.get("visible")), changed=bool(fresh.get("changed")),
                   voice_act=_voice_act(act, battle, results, fresh.get("do") or [],
-                                       str(fresh.get("why") or "")))
+                                       str(fresh.get("why") or "")),
+                  origin=origin, target=str(fresh.get("target") or ""))
     return _row(man, said, line + ".", act, target=str(fresh.get("target") or ""),
-                place=str(fresh.get("place") or ""), **battle, **_voiced(man, voice))
+                place=str(fresh.get("place") or ""), kind=str(fresh.get("kind") or ""),
+                chance=bool(fresh.get("chance")), weighed=list(fresh.get("weighed") or []),
+                **battle, **_voiced(man, voice))
 
 
-# Why a night is a stay → the line that fits it ("claim" has none: the plain
-# sentence says it — he did your order today, did his night's work, was drawn
-# into a friend's battle, has no corps). A quiet front is a waiting night.
-STAY_SAYS = {"his night is done": "claim", "your order today": "claim", "drawn in today": "claim",
-             "no corps": "claim", "the board could not be read": "claim", "nothing to do": "look"}
+# Why a turn is a stay → the line that fits it ("claim" has none: the plain
+# sentence says it — his move was made, he was drawn into a friend's battle,
+# he has no corps).
+STAY_SAYS = {"his move is made": "claim", "drawn in this turn": "claim",
+             "no corps": "claim", "the board could not be read": "claim"}
 
 
 def _voice_act(act: str, battle: Dict[str, Any], results: List[Any], do: List[Any],
@@ -2121,7 +2332,11 @@ def _voice_act(act: str, battle: Dict[str, Any], results: List[Any], do: List[An
     board changed says his "stayed" line."""
     from backend.game_logic import own_voice as _voice
     if act == "stay":
-        return STAY_SAYS.get(str(why or ""), act)
+        if str(why or "") in STAY_SAYS:
+            return STAY_SAYS[str(why)]
+        # Row IC, Session 4b: a stay his judgement chose — held back from a
+        # fight too strong for him ("stayed"), else a quiet wait ("waited")
+        return act if "too strong" in str(why or "") else "look"
     if battle or _voice.KIND_OF_ACT.get(act) != "struck":
         return act
     if act == "take":
@@ -2160,14 +2375,16 @@ def _night_voice(world, man, act: str, rec: Dict[str, Any], changed: bool) -> st
 
 
 def _note(world, man, act: str, place: str, line: str, *, visible: bool,
-          changed: bool = False, voiced: bool = True, voice_act: str = "") -> str:
-    """His night on his record (the third-night rule reads it) and on the log
-    (the morning reads it). Returns the line HE says of it ("" when he has
-    none — `_night_voice`)."""
+          changed: bool = False, voiced: bool = True, voice_act: str = "",
+          origin: str = "", target: str = "") -> str:
+    """His move on his record (the third-turn rule and the step he came by
+    read it: `[act, place, turn, where he stood, whom or what]`) and on the
+    log (the morning reads it). Returns the line HE says of it ("" when he
+    has none — `_night_voice`)."""
     rec = record(man)
     man.own_record = rec
     acts = [a for a in rec.get("acts") or [] if isinstance(a, (list, tuple))]
-    acts.append([act, place, _turn(world)])
+    acts.append([act, place, _turn(world), str(origin or ""), str(target or "")])
     rec["acts"] = acts[-3:]
     rec["said"] = line
     rec["idle_run"] = (int(rec.get("idle_run", 0) or 0) + 1) if (act == "stay" or not visible) else 0
@@ -2187,14 +2404,16 @@ def _note(world, man, act: str, place: str, line: str, *, visible: bool,
     return voice
 
 
-QUIET_FRONT_ASKS = 4      # nights with nothing he would choose to do, no enemy near
+QUIET_FRONT_ASKS = 4      # turns with nothing he would choose to do, no enemy near
 
 
 def _quiet_front(world, man, rec: Dict[str, Any]) -> bool:
-    """Four nights running he did nothing he would choose (stayed put, or a
-    waiting act "again — nothing has changed") and France sees no enemy within
-    two marches of him: he asks for work (R-ACTS — a man on his own really
-    does something, or says he has nothing to do)."""
+    """AT PEACE: four turns running he did nothing he would choose (stayed put,
+    or a waiting act "again — nothing has changed") and France sees no enemy
+    within two marches of him — he asks for work. Row IC, Session 4b (IC4-D3):
+    in a war he never asks for work; his judgement carries on."""
+    if _at_war(world):
+        return False
     if int(rec.get("idle_run", 0) or 0) < QUIET_FRONT_ASKS:
         return False
     from backend.commands import if_thens as _it
@@ -2218,11 +2437,12 @@ def _the_count_holds(world, rows: List[Dict[str, Any]]) -> None:
 # ═══════════════════════════ the close of the turn (§6.8) ═══════════════════
 
 def close_of_turn(world, reports: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
-    """After the enemy has moved and the standing orders have run: the night's
-    rows join the turn's report (first), and each man's life table moves on —
-    his record (won, lost, quiet), a task done, a pursuit lost, a friend
-    fallen, an ask unanswered three turns, his trust under 30."""
-    out = list(getattr(world, "_own_night_rows", None) or []) + list(reports or [])
+    """After the enemy has moved and the standing orders have run: each man's
+    life table moves on — his record (won, lost, quiet), a task done, a pursuit
+    lost, a friend fallen, an ask unanswered three turns, his trust under 30.
+    (Row IC, Session 4b: his move's rows are told in the report of the turn
+    that OPENED with it — `turn_manager._their_own_turn` — never again here.)"""
+    out = list(reports or [])
     world._own_night_rows = []
     nation = _player(world)
     for marshal in (getattr(world, "marshals", None) or {}).values():
@@ -2239,6 +2459,37 @@ def close_of_turn(world, reports: Optional[List[Dict[str, Any]]]) -> List[Dict[s
         if row is not None:
             out.append(row)
     return out
+
+
+def _freed(world, man, spec: Dict[str, Any], why: str) -> Dict[str, Any]:
+    """Row IC, Session 4b (IC4-D3, the user's "if you give them nothing they
+    should make decisions"): a task run out in a war — the quarry destroyed,
+    the friend he stood by fallen — leaves him on his own with NO task: he
+    makes war as he sees fit until you give him another (a change, 1 action)."""
+    spec["task"] = "free"
+    spec["target"] = ""
+    spec["area"] = []
+    spec["ring"] = ""
+    spec["last_seen"] = ""
+    spec["unseen"] = 0
+    spec["blocked"] = 0
+    spec.pop("question", None)
+    spec.pop("goal", None)
+    order = getattr(man, "strategic_order", None)
+    if order is not None:
+        order.command_type = "HOLD"
+        order.target = str(man.location or "")
+        order.target_type = "region"
+    message = (f"{_shown(man.name)} has done his task: {why}. He makes war as he sees fit now — "
+               "give him a new task any time.")
+    from backend.game_logic import own_voice as _voice
+    said = _voice.speak(world, man, "done")
+    voice_keys = {"says": said, "speaker": man.name} if said else {}
+    world.log_event({"type": EVENT, "phase": "done", "marshal": man.name,
+                     "nation": man.nation, "message": message})
+    return {"marshal": man.name, "command": "HOLD", "order_status": "continues",
+            "action": "own_done", "message": message, "reason": message, "own": True,
+            **voice_keys}
 
 
 def _life(world, man) -> Optional[Dict[str, Any]]:
@@ -2269,9 +2520,14 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
         if turn - since >= ASK_LAPSE:
             return end(world, man, "he had no answer for three turns and stands down — no trust is lost")
         return None
+    question = spec.get("question")
+    if isinstance(question, dict) and turn - _int(question, "since", turn) >= ASK_LAPSE:
+        spec.pop("question", None)      # unanswered: it drops; he was at work all along
+        spec["blocked"] = 0             # (and its count starts again: no question straight back)
+        spec["unseen"] = 0
     trust = int(getattr(getattr(man, "trust", None), "value", 0) or 0)
     if trust < TRUST_NEEDED:
-        ask_why(world, man, f"his trust in you has fallen to {trust}")
+        ask_why(world, man, f"his trust in you has fallen to {trust}", freeze=True)
         return None
     task = spec.get("task")
     here = str(man.location or "")
@@ -2309,7 +2565,11 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
                 or getattr(quarry, "captured_by", ""))
         if dead and int(spec.get("unseen", 0) or 0) == 0:
             # in France's sight to the last (the review, IC3-V: one destroyed
-            # out of sight is "unseen" below, never known destroyed)
+            # out of sight is "unseen" below, never known destroyed). Row IC,
+            # Session 4b: in a war the chase done leaves him on his own with
+            # no task — he makes war as he sees fit (at peace, done).
+            if _at_war(world):
+                return _freed(world, man, spec, f"{_shown(spec.get('target'))} is destroyed")
             return end(world, man, f"{_shown(spec.get('target'))} is destroyed — done", phase="done")
         if dead:
             quarry = None
@@ -2319,20 +2579,24 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
             ring = str(spec.get("ring") or "")
             d = _distance(world, ring, quarry.location) if ring else 0
             if d is not None and d > PURSUE_RING:
-                ask_why(world, man, f"{_shown(quarry.name)} has left the ring of {PURSUE_RING} marches "
+                ask_why(world, man, cause="ring", why=f"{_shown(quarry.name)} has left the ring of {PURSUE_RING} marches "
                                     f"around {_shown(ring)}")
         else:
             spec["unseen"] = int(spec.get("unseen", 0) or 0) + 1
             if spec["unseen"] >= UNSEEN_ASKS_AFTER:
-                ask_why(world, man, f"{_shown(spec.get('target'))} has been out of sight {spec['unseen']} turns")
+                ask_why(world, man, cause="unseen",
+                        why=f"{_shown(spec.get('target'))} has been out of sight {spec['unseen']} turns")
     elif task == "support":
         friend = world.get_marshal(str(spec.get("target") or ""))
         if friend is None or int(getattr(friend, "strength", 0) or 0) <= 0 \
                 or getattr(friend, "captured_by", "") or friend.nation != man.nation:
+            if _at_war(world):
+                # Row IC, Session 4b: in a war he goes on by his own judgement
+                return _freed(world, man, spec, f"{_shown(spec.get('target'))} has fallen")
             ask_why(world, man, f"{_shown(spec.get('target'))} has fallen; he holds where he stands")
     if _quiet_front(world, man, rec):
         ask_why(world, man, f"all has been quiet around {_shown(man.location)} for "
-                            f"{QUIET_FRONT_ASKS} nights — he asks for a task with work in it")
+                            f"{QUIET_FRONT_ASKS} turns — he asks for a task with work in it")
         return None
     if spec.get("state") == "given":
         spec["state"] = "road"
@@ -2344,8 +2608,19 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
 
 # ═══════════════════════════ what the screen says ═══════════════════════════
 
-STATE_WORDS = {"given": "starts tomorrow night", "road": "on the road", "work": "at work",
-               "asks": "asks for your word"}
+STATE_WORDS = {"given": "makes his first move at the start of next turn", "road": "on the road",
+               "work": "at work", "asks": "asks for your word"}
+
+
+def this_turn(world, marshal) -> str:
+    """What he did at the start of THIS turn, as the morning told it — "" when
+    he made no move of his own this turn (the user's "He moves at turn
+    start": the card shows what he did, never what he will do)."""
+    rec = _record_view(marshal)
+    acts = [a for a in rec.get("acts") or [] if isinstance(a, (list, tuple)) and len(a) >= 3]
+    if not acts or _int({"t": acts[-1][2]}, "t") != _turn(world):
+        return ""
+    return str(rec.get("said") or "")
 
 
 def payload(world, marshal) -> Optional[Dict[str, Any]]:
@@ -2353,8 +2628,8 @@ def payload(world, marshal) -> Optional[Dict[str, Any]]:
     spec = own(marshal)
     if spec is None:
         return None
-    reading = tonight_for(world, marshal) or {}
     n = needed(marshal, int(spec.get("risk", 0) or 0))
+    question = spec.get("question") if isinstance(spec.get("question"), dict) else None
     # Row IC, Session 3b: the army he commands (and who follows him), the war
     # goal his task serves — each key rides only when it holds something.
     extra: Dict[str, Any] = {}
@@ -2366,65 +2641,57 @@ def payload(world, marshal) -> Optional[Dict[str, Any]]:
             report(exc, "own_order.payload: army_task.commander_payload")
     if spec.get("goal"):
         extra["goal"] = True
+    given_now = _int(spec, "given") == _turn(world)
+    asked = spec.get("state") == "asks" or question is not None
     return {
         **extra,
         "task": spec.get("task"), "target": spec.get("target"),
         "area": list(spec.get("area") or []), "words": task_words(spec),
         "state": spec.get("state"), "state_words": STATE_WORDS.get(spec.get("state"), ""),
-        "asks": (spec.get("asks") or {}).get("why", "") if spec.get("asks") else "",
-        "tonight": str(reading.get("line") or ""),
-        "tonight_act": str(reading.get("act") or ""),
-        "ahead": str(reading.get("ahead") or ""),
+        "asks": ((spec.get("asks") or {}).get("why", "") if spec.get("asks")
+                 else (str(question.get("why") or "") if question else "")),
+        # a question about his task does not stop him (Session 4b): he carries on
+        "carries_on": question is not None and spec.get("state") != "asks",
+        # Row IC, Session 4b — the user's "He moves at turn start": what he did
+        # at the start of this turn ("" before his first move); no preview
+        "this_turn": this_turn(world, marshal),
+        "first_move_next": bool(given_now),
         # R-FRIENDS said on his card: the friend he would march to help
-        "help": str(reading.get("help") or "") or _friend_line(world, marshal),
-        "odds": str(reading.get("needed_words") or "") or needed_words(n),
+        "help": _friend_line(world, marshal),
+        "odds": needed_words(n),
         "risk": int(spec.get("risk", 0) or 0),
-        "given_tonight": _int(spec, "given") == _turn(world),
-        "stand_down": ("free — the actions it cost come back" if _int(spec, "given") == _turn(world)
-                       else ("free" if spec.get("state") == "asks" or _int(spec, "acted") < 0
+        "stand_down": ("free — the actions it cost come back" if given_now
+                       else ("free" if asked or _int(spec, "acted") < 0
                              else f"free, but {STAND_DOWN_TRUST} of his trust")),
         "count": count_words(world),
         "lines": len(list(getattr(marshal.strategic_order, "if_thens", None) or [])),
     }
 
 
-def tonight_rows(world) -> List[Dict[str, Any]]:
-    """The End Turn list's and the desk's "Tonight" rows (empty when nobody is
-    on his own — the feature is inert unused)."""
+def this_turn_rows(world) -> List[Dict[str, Any]]:
+    """The desk's "This turn" rows: what each man on his own did as the turn
+    opened (empty when nobody is on his own — the feature is inert unused),
+    and the line of each man who follows him."""
     rows = []
-    for reading in tonight_shown(world):
-        ahead = str(reading.get("ahead") or "")
-        rows.append({"marshal": reading["marshal"], "shown": reading["shown"],
-                     "act": reading["act"],
-                     "line": "Tonight: " + str(reading.get("line") or "")
-                     + (f". Tomorrow night, as things stand: {ahead}" if ahead else ""),
-                     "may_day": bool(reading.get("may_day")), "visible": bool(reading.get("visible")),
-                     "step_out": bool(reading.get("step_out"))})
-        # Row IC, Session 3b: the men who follow him as his army's task move
-        # right after him — their lines stand under his.
-        army = str((own(world.get_marshal(reading["marshal"])) or {}).get("army") or "")
-        if army:
-            try:
-                from backend.commands import army_task as _army
-                behind = _army.tonight_rows(world, reading["marshal"])
-                rows[-1]["army"] = army
-                rows[-1]["followers"] = int(len(behind))
-                rows.extend(behind)
-            except Exception as exc:
-                report(exc, "own_order.tonight_rows: army_task.tonight_rows")
+    for man in men(world):
+        line = this_turn(world, man)
+        if not line:
+            continue
+        rows.append({"marshal": man.name, "shown": _shown(man.name),
+                     "line": "This turn: " + line.rstrip(".") + "."})
     return rows
 
 
 def morning_events(world) -> List[Dict[str, Any]]:
-    """The night's lines for the turn's report and the morning dispatch — read
-    from the event log, each told once."""
+    """The turn's lines for its report and the morning dispatch — read from the
+    event log, each told once."""
     out = []
     for event in getattr(world, "event_log", None) or []:
         if not isinstance(event, dict) or event.get("type") != EVENT or event.get("told"):
             continue
         event["told"] = True
         if event.get("phase") == "night":
-            continue        # the night's own rows open the turn's report (`close_of_turn`)
+            continue        # his move's own rows open the turn's report (`_their_own_turn`)
         out.append({"type": EVENT, "phase": str(event.get("phase") or ""),
                     "act": str(event.get("act") or ""), "marshal": event.get("marshal"),
                     "nation": event.get("nation"), "visible": bool(event.get("visible")),
@@ -2468,21 +2735,24 @@ def answer(world, marshal, kind: str, place: str = "") -> Dict[str, Any]:
     nature = _nature(marshal)
     turn = _turn(world)
     if kind == "night":
+        # Row IC, Session 4b — the user's "He moves at turn start": he says
+        # what he MEANS to do at the start of next turn, as an intention (the
+        # enemy moves first), and what he did this turn if he has moved.
         if on_his_own(marshal):
-            reading = tonight_for(world, marshal) or read(world, marshal)
-            if reading.get("act") == "start":
-                ahead = read(world, marshal, preview=True)
-                said = first_person(str(ahead.get("line") or ""), marshal)
-                return {"says": f"Tonight I make ready. Tomorrow night, as things stand: {said}.",
-                        "line": reading.get("line", "")}
-            said = first_person(str(reading.get("line") or ""), marshal)
-            return {"says": f"Tonight: {said}.", "line": reading.get("line", "")}
+            done = this_turn(world, marshal)
+            ahead = read(world, marshal, preview=True)
+            said = first_person(str(ahead.get("line") or ""), marshal)
+            means = (f"At the start of next turn I mean to {said[2:] if said.startswith('I ') else said}"
+                     if said else "")
+            head = f"This turn: {first_person(done.rstrip('.'), marshal)}. " if done else ""
+            return {"says": f"{head}{means}, if nothing changes first.".strip(),
+                    "line": str(ahead.get("line") or "")}
         if nature in ("bold", "careful") and not why_not(world, marshal, replacing=True):
             prop = proposal(world, marshal)
             spec, _why = spec_from(world, marshal, prop["task"], prop["target"])
             reading = read(world, marshal, spec, preview=True) if spec else {}
             said = first_person(str(reading.get("line") or ""), marshal) if reading else ""
-            tail = (f" — the first night, {said if said.startswith('I ') else said[:1].lower() + said[1:]}"
+            tail = (f" — my first move, {said if said.startswith('I ') else said[:1].lower() + said[1:]}"
                     if said else "")
             return {"says": f"Set me on my own, Sire, and I would {task_words(spec or {'task': prop['task'], 'target': prop['target']})}{tail}.",
                     "proposal": prop["line"]}
@@ -2523,13 +2793,14 @@ def answer(world, marshal, kind: str, place: str = "") -> Dict[str, Any]:
             return {"says": f"Yes, Sire. {first_person(reading['line'], marshal)}."}
         if act == "march":
             return {"says": f"In time, Sire. {first_person(reading['line'], marshal)}."}
-        reason = str(reading.get("why") or "not tonight")
-        return {"says": f"Not tonight, Sire — {reason}."}
+        reason = str(reading.get("why") or "not yet")
+        return {"says": f"Not yet, Sire — {reason}."}
     if kind == "why":
         rec = _record_view(marshal)
         last = rec.get("said") or ""
         if not last:
             return {"says": ("I carried out your orders, Sire." if not on_his_own(marshal)
                              else "I have done nothing on my own yet, Sire.")}
-        return {"says": f"Last night: {first_person(last, marshal)}."}
+        when = "This turn" if this_turn(world, marshal) else "Last time"
+        return {"says": f"{when}: {first_person(last, marshal)}."}
     return {"says": _voice.voice(world, marshal, "idle")}

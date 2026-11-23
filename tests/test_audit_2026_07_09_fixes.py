@@ -54,7 +54,7 @@ class TestPersonalityMessagesLabelPersonalityNotAbility:
             "Ney's signature ability name must not caption another marshal's "
             "personality bonus"
         )
-        assert "Aggressive:" in message
+        assert "Bold:" in message          # (row IC, Session 4b: the nature's own word)
 
     def test_cautious_non_davout_defender_not_captioned_iron_marshal(self):
         ney = _make_marshal("Ney", "aggressive", "France", Stance.NEUTRAL)
@@ -67,7 +67,7 @@ class TestPersonalityMessagesLabelPersonalityNotAbility:
         assert "Iron Marshal" not in message, (
             "Davout's epithet must not caption another marshal's personality bonus"
         )
-        assert "Cautious:" in message
+        assert "Careful:" in message       # (row IC, Session 4b: the nature's own word)
 
 
 def _battle_result_player_defends(coordination_context):

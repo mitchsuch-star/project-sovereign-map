@@ -1,0 +1,691 @@
+{
+ "by_seed": {
+  "historical": {
+   "Ney": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 4,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Murat": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "pursue"
+   },
+   "Bernadotte": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "support"
+   }
+  },
+  "austerlitz": {
+   "Murat": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 8,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 14,
+    "taken": 5,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 3,
+    "taken": 3,
+    "task": "pursue"
+   }
+  },
+  "marengo": {
+   "Lannes": {
+    "chance_turns": 5,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "pursue"
+   },
+   "Bernadotte": {
+    "chance_turns": 8,
+    "taken": 3,
+    "task": "hold"
+   }
+  },
+  "ic4b-01": {
+   "Ney": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "support"
+   },
+   "Bernadotte": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "take"
+   }
+  },
+  "ic4b-02": {
+   "Bernadotte": {
+    "chance_turns": 3,
+    "taken": 0,
+    "task": "pursue"
+   },
+   "Davout": {
+    "chance_turns": 5,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Murat": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "pursue"
+   },
+   "Ney": {
+    "chance_turns": 4,
+    "taken": 2,
+    "task": "support"
+   }
+  },
+  "ic4b-03": {
+   "Lannes": {
+    "chance_turns": 4,
+    "taken": 2,
+    "task": "support"
+   },
+   "Davout": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "pursue"
+   },
+   "Bernadotte": {
+    "chance_turns": 8,
+    "taken": 0,
+    "task": "hold"
+   }
+  },
+  "ic4b-04": {
+   "Ney": {
+    "chance_turns": 8,
+    "taken": 6,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 5,
+    "taken": 4,
+    "task": "hold"
+   },
+   "Bernadotte": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "support"
+   }
+  },
+  "ic4b-05": {
+   "Murat": {
+    "chance_turns": 12,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 5,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 9,
+    "taken": 6,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 2,
+    "taken": 2,
+    "task": "pursue"
+   }
+  },
+  "ic4b-06": {
+   "Lannes": {
+    "chance_turns": 10,
+    "taken": 7,
+    "task": "hold"
+   },
+   "Murat": {
+    "chance_turns": 7,
+    "taken": 6,
+    "task": "support"
+   },
+   "Bernadotte": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 2,
+    "taken": 2,
+    "task": "pursue"
+   }
+  },
+  "ic4b-07": {
+   "Ney": {
+    "chance_turns": 4,
+    "taken": 4,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 4,
+    "taken": 4,
+    "task": "hold"
+   },
+   "Lannes": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "support"
+   }
+  },
+  "ic4b-08": {
+   "Bernadotte": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "pursue"
+   },
+   "Davout": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "support"
+   }
+  },
+  "ic4b-09": {
+   "Murat": {
+    "chance_turns": 2,
+    "taken": 2,
+    "task": "pursue"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "support"
+   },
+   "Bernadotte": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "hold"
+   }
+  },
+  "ic4b-10": {
+   "Ney": {
+    "chance_turns": 3,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 3,
+    "taken": 3,
+    "task": "hold"
+   }
+  },
+  "ic4b-11": {
+   "Murat": {
+    "chance_turns": 13,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 6,
+    "taken": 4,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "pursue"
+   }
+  },
+  "ic4b-12": {
+   "Lannes": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "pursue"
+   },
+   "Murat": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "support"
+   }
+  },
+  "ic4b-13": {
+   "Ney": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Lannes": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "support"
+   }
+  },
+  "ic4b-14": {
+   "Bernadotte": {
+    "chance_turns": 3,
+    "taken": 0,
+    "task": "pursue"
+   },
+   "Davout": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Murat": {
+    "chance_turns": 2,
+    "taken": 2,
+    "task": "pursue"
+   },
+   "Ney": {
+    "chance_turns": 2,
+    "taken": 0,
+    "task": "support"
+   }
+  },
+  "ic4b-15": {
+   "Lannes": {
+    "chance_turns": 4,
+    "taken": 4,
+    "task": "support"
+   },
+   "Davout": {
+    "chance_turns": 9,
+    "taken": 5,
+    "task": "pursue"
+   }
+  },
+  "ic4b-16": {
+   "Ney": {
+    "chance_turns": 4,
+    "taken": 3,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 5,
+    "taken": 5,
+    "task": "hold"
+   },
+   "Bernadotte": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "support"
+   }
+  },
+  "ic4b-17": {
+   "Murat": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 4,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 4,
+    "taken": 2,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 8,
+    "taken": 1,
+    "task": "pursue"
+   }
+  },
+  "ic4b-18": {
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 7,
+    "taken": 4,
+    "task": "pursue"
+   },
+   "Bernadotte": {
+    "chance_turns": 4,
+    "taken": 1,
+    "task": "hold"
+   }
+  },
+  "ic4b-19": {
+   "Ney": {
+    "chance_turns": 7,
+    "taken": 6,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 8,
+    "taken": 7,
+    "task": "hold"
+   },
+   "Bernadotte": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "take"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "support"
+   }
+  },
+  "ic4b-20": {
+   "Bernadotte": {
+    "chance_turns": 2,
+    "taken": 0,
+    "task": "pursue"
+   },
+   "Davout": {
+    "chance_turns": 2,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "support"
+   }
+  },
+  "ic4b-21": {
+   "Lannes": {
+    "chance_turns": 4,
+    "taken": 3,
+    "task": "support"
+   }
+  },
+  "ic4b-22": {
+   "Ney": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 3,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Bernadotte": {
+    "chance_turns": 17,
+    "taken": 0,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 2,
+    "taken": 0,
+    "task": "support"
+   },
+   "Murat": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "pursue"
+   }
+  },
+  "ic4b-23": {
+   "Murat": {
+    "chance_turns": 6,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 4,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 13,
+    "taken": 5,
+    "task": "support"
+   },
+   "Lannes": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "pursue"
+   }
+  },
+  "ic4b-24": {
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "hold"
+   },
+   "Ney": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "pursue"
+   },
+   "Murat": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "support"
+   }
+  },
+  "ic4b-25": {
+   "Ney": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Davout": {
+    "chance_turns": 3,
+    "taken": 2,
+    "task": "hold"
+   },
+   "Lannes": {
+    "chance_turns": 4,
+    "taken": 3,
+    "task": "support"
+   }
+  },
+  "ic4b-26": {
+   "Davout": {
+    "chance_turns": 8,
+    "taken": 6,
+    "task": "hold"
+   },
+   "Bernadotte": {
+    "chance_turns": 1,
+    "taken": 0,
+    "task": "pursue"
+   }
+  },
+  "ic4b-27": {
+   "Murat": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "pursue"
+   },
+   "Bernadotte": {
+    "chance_turns": 5,
+    "taken": 0,
+    "task": "hold"
+   },
+   "Lannes": {
+    "chance_turns": 1,
+    "taken": 1,
+    "task": "support"
+   },
+   "Davout": {
+    "chance_turns": 2,
+    "taken": 0,
+    "task": "pursue"
+   }
+  }
+ },
+ "by_man": {
+  "Ney": {
+   "turns": 85,
+   "taken": 50,
+   "by_task": {
+    "hold": {
+     "turns": 63,
+     "taken": 40,
+     "share": 0.635
+    },
+    "pursue": {
+     "turns": 12,
+     "taken": 6,
+     "share": 0.5
+    },
+    "support": {
+     "turns": 10,
+     "taken": 4,
+     "share": 0.4
+    }
+   },
+   "share": 0.588
+  },
+  "Davout": {
+   "turns": 118,
+   "taken": 71,
+   "by_task": {
+    "hold": {
+     "turns": 59,
+     "taken": 43,
+     "share": 0.729
+    },
+    "support": {
+     "turns": 46,
+     "taken": 22,
+     "share": 0.478
+    },
+    "pursue": {
+     "turns": 13,
+     "taken": 6,
+     "share": 0.462
+    }
+   },
+   "share": 0.602
+  },
+  "Murat": {
+   "turns": 54,
+   "taken": 24,
+   "by_task": {
+    "pursue": {
+     "turns": 9,
+     "taken": 8,
+     "share": 0.889
+    },
+    "hold": {
+     "turns": 35,
+     "taken": 9,
+     "share": 0.257
+    },
+    "support": {
+     "turns": 10,
+     "taken": 7,
+     "share": 0.7
+    }
+   },
+   "share": 0.444
+  },
+  "Bernadotte": {
+   "turns": 68,
+   "taken": 11,
+   "by_task": {
+    "support": {
+     "turns": 24,
+     "taken": 2,
+     "share": 0.083
+    },
+    "hold": {
+     "turns": 30,
+     "taken": 6,
+     "share": 0.2
+    },
+    "take": {
+     "turns": 3,
+     "taken": 2,
+     "share": 0.667
+    },
+    "pursue": {
+     "turns": 11,
+     "taken": 1,
+     "share": 0.091
+    }
+   },
+   "share": 0.162
+  },
+  "Lannes": {
+   "turns": 68,
+   "taken": 42,
+   "by_task": {
+    "support": {
+     "turns": 31,
+     "taken": 20,
+     "share": 0.645
+    },
+    "pursue": {
+     "turns": 18,
+     "taken": 9,
+     "share": 0.5
+    },
+    "hold": {
+     "turns": 19,
+     "taken": 13,
+     "share": 0.684
+    }
+   },
+   "share": 0.618
+  }
+ }
+}

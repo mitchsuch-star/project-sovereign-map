@@ -751,22 +751,36 @@ def _own_line(world, marshal) -> str:
 
 def _rows_own_asks(world, have) -> List[Dict[str, Any]]:
     """Row IC, Session 3 (§4, §6.8): a man on his own who ASKS for your word
-    comes first (tier 1: carry on is free)."""
+    and WAITS for it comes first (tier 1: carry on is free). Row IC, Session
+    4b (IC4-D3): a question about his task in a war does not stop him — it
+    stands below anything that truly needs you, and says he carries on."""
     from backend.game_logic import own_order as _own
     rows = []
     for m in _own.men(world):
         spec = _own.own(m) or {}
-        if spec.get("state") != "asks":
-            continue
         shown = humanize_entity_name(m.name)
-        why = str((spec.get("asks") or {}).get("why") or "")
-        rows.append(_row(f"own_asks:{m.name}", TIER_BITES,
-                         _fit([f"{shown}, on his own, asks for your word: {why}.",
-                               f"{shown}, on his own, asks for your word.",
+        if spec.get("state") == "asks":
+            why = str((spec.get("asks") or {}).get("why") or "")
+            rows.append(_row(f"own_asks:{m.name}", TIER_BITES,
+                             _fit([f"{shown}, on his own, asks for your word: {why}.",
+                                   f"{shown}, on his own, asks for your word.",
+                                   f"{shown} asks for your word."]),
+                             {"kind": "marshal", "marshal": m.name},
+                             more=f"{shown}, on his own, asks for your word: {why}. Carry on (free), "
+                                  f"give him a new task, or stand him down (free)."))
+            continue
+        question = spec.get("question")
+        if not isinstance(question, dict):
+            continue
+        why = str(question.get("why") or "")
+        rows.append(_row(f"own_asks:{m.name}", TIER_GROWS,
+                         _fit([f"{shown} asks for your word — {why}. He carries on meanwhile.",
+                               f"{shown} asks for your word. He carries on meanwhile.",
                                f"{shown} asks for your word."]),
                          {"kind": "marshal", "marshal": m.name},
-                         more=f"{shown}, on his own, asks for your word: {why}. Carry on (free), "
-                              f"give him a new task, or stand him down (free)."))
+                         more=f"{shown} asks for your word: {why}. He carries on by his own "
+                              f"judgement meanwhile. Carry on (free), give him a new task, or stand him "
+                              f"down (free)."))
     return rows
 
 
@@ -1072,10 +1086,25 @@ def desk(world, wars: Optional[Dict[str, Any]] = None,
 
 
 def _own_block(world) -> Dict[str, Any]:
+    """Row IC, Session 4b — the user's "He moves at turn start": the desk says
+    what each man on his own DID as this turn opened ("this_turn"); nothing
+    says beforehand what he will do."""
     from backend.game_logic import own_order as _own
     n, of = _own.count(world), _own.allowed(world)
-    return {"line": f"On their own: {n} of {of}", "n": int(n), "of": int(of),
-            "tonight": _own.tonight_rows(world) if n else []}
+    out = {"line": f"On their own: {n} of {of}", "n": int(n), "of": int(of),
+           "this_turn": _own.this_turn_rows(world) if n else []}
+    # Row IC, Session 3b: an army's commander is counted ONCE — the desk's line
+    # says how many follow him (kept through Session 4b's change of timing)
+    for man in (_own.men(world) if n else []):
+        army = str((_own.own(man) or {}).get("army") or "")
+        if army:
+            try:
+                from backend.commands import army_task as _army
+                out["army"] = {"name": army, "followers": int(len(_army.followers(world, man)))}
+            except Exception as exc:
+                report(exc, "today._own_block: army_task.followers")
+            break
+    return out
 
 
 def _goals(world, wars: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:

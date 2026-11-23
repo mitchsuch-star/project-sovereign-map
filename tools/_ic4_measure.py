@@ -84,8 +84,95 @@ of `_ic4_gate_*.json` is not a loss. The shipped tree equals row OC's ALL on
 signature and census, so the gate stands as row OC read it. To ADOPT the plans
 the twenty wide seeds must be read with them up.
 
+SESSION 4b (November 23, 2026) — THE USER'S "On, after 20 seeds" READ. The
+twenty wide seeds (`--surfaces promotions`, `_oc_measure.WIDE_SEEDS`) were read
+with the plans up (arm `+PLAN`, the tree as built) on the final tree of Parts 1
+and 2, from a frozen copy, with the band, the ambient ten, the gate on thirty
+and the enemy's acts: arm 0 still reproduces the standing records (band 26/27/
+28; ambient signature and census EQUAL to row OC's ALL; the forty-turn series
+byte for byte). With the plans up the band holds (28/25/28), story classes 10,
+the roster in 3 readings, no annexation outside aim — and NO MINOR IS RAISED ON
+ANY OF THE THIRTY SEEDS (arm 0: aspern and borodino). The deploy gate's clause 2
+breaks, so by the reading recorded with the ruling the plans STAY DOWN and the
+choice goes back to the user (`tools/_ic4_gate_2026_11_23.json`,
+`tools/_ic4_promotions_wide_2026_11_23.json`). R-INERT reads arm 0 alone from
+this session on (the shipped tree may adopt the plans).
+
+SESSION 4b, CONTINUED (November 23, 2026) — THE USER'S "fix warplans". Traced
+on the two seeds that raise a minor with the plans down (aspern: Bavaria at 21;
+borodino: Denmark at 30), from a frozen copy, the plans down and up: on aspern
+every court at war drew a plan — France's ally Bavaria too, in its own war with
+Austria — and the general set ("guard the capital") ordered Bavaria's one
+corps, Deroy, who follows orders to the letter, to hold where he stood
+(Franconia, then Munich) from turn 2 until its steps ran out at 10; the peace
+came at 14 with the Tyrol that crowns her untaken (with the same coalition
+plan and no plan of her own he takes it at 13; with no plans at all, at 12).
+On borodino no plan of her own touches Denmark (no man of hers follows orders
+to the letter), but the coalition's plan does at one remove: its opening moves
+Russia's money to Sweden a turn sooner (6, not 7), Sweden raises 13,000 men at
+8, and Denmark's war council reads her outmatched and never declares — a
+plan's effect on which minor rises, not a fault in a plan's code. THE FIX
+(`war_plans._muster`): a plan is drawn only by a court at war with France.
+
+THE RULES FOR THE FIX, WRITTEN BEFORE ITS DATA (the deploy gate as the user
+ruled it, nothing new; stamp `2026_11_23_fix`):
+  R-ADOPT   Arm ALL — the plans up as fixed (first read as ALL from a frozen
+            copy that carried the seam up; the records of the stamp are
+            re-taken as arm +PLAN, the seam held up, so they reproduce from the
+            tree whatever it ships): (1) the band on the three commanded seeds inside 23-28;
+            (2) story classes >= 6 on the ten ambient seeds; (3) a minor raised
+            on >= 1 of the THIRTY seeds (the ten and the twenty wide); (4) the
+            roster in >= 2 readings; (5) no annexation outside aim. All five
+            met: the plans ship up and BASELINE_SERIES is re-pinned from the
+            series' ALL arm (the old pin kept by name). One missed: the seam
+            goes back down and the question returns to the user with the
+            per-seed table — no rounds of content, no second fix measured
+            against the same seeds.
+  R-INERT   Arm 0 reproduces the standing records (the band 26/27/28; the
+            ambient signature and census equal to row OC's ALL; the forty-turn
+            series byte for byte against HEAD's BASELINE_SERIES).
+  REPORTED  R-HILL (2) (story classes per seed against arm 0) and R-HILL (4)
+            (acts per man-turn, each written plan forced) — information: the
+            user adopted the plans as built without R-HILL (4) (D41).
+
+THE OUTCOME OF THE FIX (November 23, 2026 — written after its data; first read
+as arm ALL on a frozen copy that carried the seam UP, re-taken as arm +PLAN
+from a frozen copy of the tree as it ships — the same numbers; every
+`_2026_11_23_fix` record names the arm +PLAN): R-INERT MET (the band 26/27/28; the ambient signature and
+census EQUAL to row OC's ALL; the series byte for byte). R-ADOPT: (1) the band
+28/25/26 — met; (2) story classes 9 — met; (3) a minor raised on the thirty —
+MISSED, zero (the ten: none; the twenty: none — Bavaria takes the Tyrol on
+aspern again at 13 and lacks the crown's 3,000 gold before Austria retakes it);
+(4) the roster in 2 readings — met; (5) no annexation outside aim — met. So the
+seam went back DOWN and the question is the user's (D41). Measured besides, by
+a rule written before its data (`tools/_ic4b_wide_promotions.py`): on 200 fresh
+seeds a minor rises on 9 with the plans down (Denmark 5, Bavaria 3, Hesse 1) and
+8 with them up (Bavaria 5, Hesse 3) — "no suppression shown" on the count the
+gate reads: the thirty's zero is the sample's. Per court it is not even: the
+plans close DENMARK's road (5 to 0, a one-sided chance near 3 in 100) — traced
+on borodino and three fresh seeds, the coalition's opening moves Russia's money
+to Sweden a turn sooner, Sweden arms at turn 8, and Denmark's war council reads
+her outmatched and stays out, as Denmark stayed out in 1805 — while Bavaria and
+Hesse rise more often. A plan's effect on WHICH minor rises; reported to the
+user with the gate. R-HILL (4), reported: the acts a man-turn of the enemy's
+letter-following men, each written plan forced — each set's mean 0.40-0.42
+against today's 0.48 as this tool first counted (missed), 0.37-0.38 against
+0.35 as the approved plan words an act (met); single plans 0.39-0.42 and
+0.36-0.38; Session 4's round 2 read coalition 0.36 and default 0.34 (as
+worded 0.33 and 0.32). (The
+hill child does not seed `random` per turn as the ambient runner does, so its
+rates move by about half a point run to run — arm 0 read 0.478 and 0.484 on
+two runs of the same plans-down code.)
+The review of the fix (three lanes, two refuters per finding) upheld two more
+rows, fixed before the final measure: a court rejoining a standing holder takes
+the step afresh (IC4b-29), and the spy promises written orders only of a court
+at war with you (IC4b-30). Every record of the stamp is from the final code.
+THE USER'S WORD, shown these numbers: "Switch them on" — the seam ships UP,
+BASELINE_SERIES re-pinned from `_ic4b_fix_series_arms_2026_11_23.json`'s
+"+PLAN" arm (the old pin kept as SERIES_BEFORE_IC4B), IC4-D1 closed.
+
 THE SURFACES, each a chain run ALONE (run this tool from a FROZEN COPY of the
-tree and copy its records back): band, ambient, gate, hill, chain_d.
+tree and copy its records back): band, ambient, promotions, gate, hill, chain_d.
 
     .venv/Scripts/python.exe tools/_ic4_measure.py --surfaces band --arms 0,ALL
     .venv/Scripts/python.exe tools/_ic4_measure.py --surfaces hill
@@ -138,7 +225,7 @@ def held(arm: str) -> list:
     if arm == "0":
         return down(list(IC4_SEAMS_BY_ROW))
     if arm == "ALL":
-        return []                      # the tree as shipped (the plans DOWN)
+        return []                      # the tree as shipped (the plans UP since November 23, 2026)
     if arm == "+PLAN":
         return [PLAN_UP]               # the plans as built
     if arm == "+PLAN+FIGHT":
@@ -194,9 +281,10 @@ def band(arms, stamp: str, jobs: int) -> dict:
         print(f"[ic4] band {arm:<26} {cells}", flush=True)
         if any(v is None or not (BAND[0] <= v <= BAND[1]) for v in cells.values()):
             breach.append(arm)
-    # R-INERT: arm 0 — and, since the plans ship DOWN, the tree as shipped
-    # (ALL) — reads the standing band.
-    for inert in ("0", "ALL"):
+    # R-INERT: arm 0 (every seam down) reads the standing band. (Session 4b:
+    # the plans may now be adopted, so the tree as shipped is no longer held
+    # to arm 0 — it is read against the band's 23-28 like any arm.)
+    for inert in ("0",):
         if inert in record["arms"]:
             got = {n: record["arms"][inert][n]["provinces"] for n in BAND_ARMS}
             if got != ARM0_BAND:
@@ -225,7 +313,7 @@ def ambient(arms, stamp: str, turns: int) -> None:
                       "--out", sig, "--census", cen], seams=";".join(held(arm)))
         if rc != 0:
             raise SystemExit(f"[ic4] ambient {arm} failed (rc {rc})")
-        if arm in ("0", "ALL"):       # R-INERT: every seam down, and the tree as shipped
+        if arm == "0":                # R-INERT: every seam down (Session 4b: arm 0 alone)
             same = (_strip(json.loads(OC_SIGNATURE.read_text(encoding="utf-8")))
                     == _strip(json.loads(sig.read_text(encoding="utf-8"))),
                     _strip(json.loads(OC_CENSUS.read_text(encoding="utf-8")))
@@ -268,6 +356,19 @@ def gate(arms, stamp: str) -> dict:
               f"readings {cell['roster_readings']}, annexations {cell['annexations_outside_aim']} "
               f"(captures outside aim {cell['captures_outside_aim']}) -> "
               f"{'MET' if cell['met'] else 'NOT MET'}", flush=True)
+    wide_file = TOOLS / f"_ic4_promotions_wide_{stamp}.json"
+    wide = json.loads(wide_file.read_text(encoding="utf-8")) if wide_file.exists() else {"arms": {}}
+    for arm, cell in out.items():
+        # clause 2 on THIRTY seeds — the ten and the twenty wide (the user's
+        # ruling of November 18, 2026; row OC's `gate`)
+        extra = wide["arms"].get(arm, {}).get("seeds_promoting")
+        cell["promotions_on_the_twenty"] = extra
+        cell["clause_2_on_thirty"] = bool(cell["promotions"]) or bool(extra)
+        cell["met_on_thirty"] = (cell["story_classes"] >= 6 and cell["clause_2_on_thirty"]
+                                 and cell["roster_readings"] >= 2
+                                 and cell["annexations_outside_aim"] == 0)
+        print(f"[ic4] gate {arm}: clause 2 on the twenty {extra} -> "
+              f"{'MET' if cell['met_on_thirty'] else 'NOT MET'} on thirty", flush=True)
     if out:
         _write(TOOLS / f"_ic4_gate_{stamp}.json",
                {"_note": ("Row IC, Session 4 — the deploy gate per arm, read off the ambient "
@@ -275,6 +376,31 @@ def gate(arms, stamp: str) -> dict:
                           "in >= 2 readings, no annexation outside aim on the ten ambient seeds. "
                           "Written by tools/_ic4_measure.py --surfaces gate."), "arms": out})
     return out
+
+
+def promotions(arms, stamp: str, jobs: int) -> dict:
+    """Clause 2's twenty further ambient seeds per arm (row OC's runner and
+    reading, `_oc_measure._wide_promotions` over `_oc_measure.WIDE_SEEDS`), so
+    the gate reads "a minor raised" on THIRTY seeds (Session 4b: the plans are
+    adopted only once these twenty are read with them up — the user's "On,
+    after 20 seeds")."""
+    from tools import _oc_measure as OC
+
+    record = {"_note": ("Row IC, Session 4b — the deploy gate's clause 2 on the twenty wide seeds "
+                        "(forty turns, the ambient runner, per arm): each seed's rank promotions "
+                        "[turn, court]. Read with the ten's record by the gate surface. Written "
+                        "by tools/_ic4_measure.py --surfaces promotions."),
+              "seeds": list(OC.WIDE_SEEDS), "arms": {}}
+    for arm in arms:
+        seams = ";".join(held(arm))
+        with ThreadPoolExecutor(max_workers=max(1, min(jobs, 4))) as pool:
+            got = dict(zip(OC.WIDE_SEEDS,
+                           pool.map(lambda sd: OC._wide_promotions(sd, seams), OC.WIDE_SEEDS)))
+        record["arms"][arm] = {"seams_held": held(arm), "seeds": got,
+                               "seeds_promoting": sorted(sd for sd, v in got.items() if v)}
+        print(f"[ic4] promotions {arm}: {record['arms'][arm]['seeds_promoting']}", flush=True)
+    _write(TOOLS / f"_ic4_promotions_wide_{stamp}.json", record)
+    return record
 
 
 def chain_d(arms, stamp: str, turns: int) -> None:
@@ -592,6 +718,8 @@ def main() -> None:
         band(arms, args.stamp, args.jobs)
     if "ambient" in surfaces:
         ambient(arms, args.stamp, args.turns)
+    if "promotions" in surfaces:
+        promotions(arms, args.stamp, args.jobs)
     if "gate" in surfaces:
         gate(arms, args.stamp)
     if "chain_d" in surfaces:

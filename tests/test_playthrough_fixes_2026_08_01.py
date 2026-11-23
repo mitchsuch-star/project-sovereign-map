@@ -215,7 +215,7 @@ class TestIronMarshalCaption:
         assert "Iron Marshal" not in msg, (
             "Davout's epithet captioned another marshal's fortify — the "
             "live pass had it on Archduke John and Moore")
-        assert "(Cautious:" in msg
+        assert "(Careful:" in msg
 
     def test_davout_keeps_his_epithet(self, world, executor):
         result = self._fortify(world, executor, "Davout")

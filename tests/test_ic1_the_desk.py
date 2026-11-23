@@ -503,7 +503,7 @@ class TestTheRows:
                  "field (Belgium).")
         morale = ("Lannes's corps stands below 40% morale beside Bagration (55,404, Podolia) — "
                   "end the turn anyway?")
-        halt = ("Massena (aggressive) holds a standing order at Bohemia with Kutuzov's ~33,000 two "
+        halt = ("Massena (bold) holds a standing order at Bohemia with Kutuzov's ~33,000 two "
                 "provinces off — he will drop it for any battle within two provinces in a war of ours.")
         monkeypatch.setattr(dispatch, "end_turn_peril_reading",
                             lambda w, n: {"location": "Belgium", "foe": 52000, "corps": ["Ney"], "line": peril})
@@ -735,12 +735,13 @@ class TestTheDeskAndTheGateAreOneList:
         assert asked == {"_army_warning_stands", "_ic_danger_warning_stands", "_ic_strike_warning_stands",
                          "_day_warning_stands", "_pw_take_warning_stands", "_ui5_idle_warning_stands",
                          "_treasury_goes_negative"}
-        # Row IC, Session 3: the seventh stop is the desk's own block — a man
-        # on his own whose night may become a great battle or takes him out
-        # of his area (`desk.own.tonight`), said once, not a TO DECIDE row
-        assert gate.count("_show_lapse_confirmation()") == 7
-        assert "not _own_tonight_stops().is_empty()" in gate
-        assert '_ic_desk.get("own", {})' in _func(_src("main.gd"), "_own_tonight_rows")
+        # Row IC, Session 4b — the user's "He moves at turn start": the old
+        # seventh stop (a man on his own's "Tonight") is gone — nothing of his
+        # is previewed, so End Turn never stops for him; the desk's block says
+        # what he did as this turn opened
+        assert gate.count("_show_lapse_confirmation()") == 6
+        assert "_own_tonight" not in _src("main.gd")
+        assert "_own_this_turn_rows" not in _src("main.gd"), "no client copy of the rows the desk draws"
 
     def test_the_idle_reading_is_the_client_s_own(self, world):
         """`today.is_idle` and `main.gd::_idle_marshals` name the same corps: the client's

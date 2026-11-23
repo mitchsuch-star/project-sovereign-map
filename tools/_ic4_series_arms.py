@@ -59,9 +59,12 @@ def plan_ids() -> list:
 def _arms() -> dict:
     arms = {
         "0": ({row: "down" for row in ROWS}, ""),
-        "ALL": (_shipped(), ""),          # the tree as shipped: the plans DOWN
+        "ALL": (_shipped(), ""),          # the tree as shipped (the plans UP since November 23, 2026)
+        # the plans held up whatever the tree ships — the arm the re-pin of
+        # November 23, 2026 names (`_ic4b_fix_series_arms_2026_11_23.json`)
+        "+PLAN": ({**_shipped(), "PLAN": "up"}, ""),
     }
-    for row in IC4_SHIPPED_DOWN:          # +PLAN (the plans as built), +MOOD, +HUNT, +FIGHT
+    for row in IC4_SHIPPED_DOWN:          # +MOOD, +HUNT, +FIGHT
         arms["+" + row] = ({**_shipped(), row: "up"}, "")
     arms["+PLAN+FIGHT"] = ({**_shipped(), "PLAN": "up", "FIGHT": "up"}, "")
     for plan_id in plan_ids():

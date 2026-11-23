@@ -333,31 +333,35 @@ func _rebuild() -> void:
 
 
 func _fill_own() -> void:
-	"""Row IC, Session 3 (§4): "ON THEIR OWN — 1 of 2 · tonight: Ney attacks
-	Mack at Swabia" while a man is on his own; every man's night on the hover."""
+	"""Row IC, Session 3 (§4): "ON THEIR OWN — 1 of 2" while a man is on his
+	own. Row IC, Session 4b — the user's "He moves at turn start": the line
+	says what each man DID as this turn opened ("this turn: Ney struck Mack at
+	Swabia"), every man's on the hover — never what he will do."""
 	var own = _desk.get("own", {})
-	var tonight = own.get("tonight", []) if own is Dictionary else []
-	if not (own is Dictionary) or int(own.get("n", 0)) <= 0 or not (tonight is Array):
+	var done = own.get("this_turn", []) if own is Dictionary else []
+	if not (own is Dictionary) or int(own.get("n", 0)) <= 0 or not (done is Array):
 		_own.visible = false
 		return
 	var first := ""
-	var army_note := ""
 	var all := PackedStringArray()
-	for r in tonight:
+	for r in done:
 		if r is Dictionary:
 			all.append(str(r.get("line", "")))
 			if first == "":
-				first = str(r.get("line", "")).trim_prefix("Tonight: ")
-				# Row IC, Session 3b: an army's commander is counted ONCE — the
-				# line says how many follow him (each man's night is on the hover).
-				var behind := int(r.get("followers", 0))
-				if str(r.get("army", "")) != "":
-					army_note = ("the " + str(r.get("army", "")) + ", "
-						+ ("nobody following yet" if behind == 0 else (
-							"1 man following" if behind == 1 else (str(behind) + " men following"))) + " · ")
-	_own.text = "ON THEIR OWN — %d of the %d you may have · %stonight: %s" % [int(own.get("n", 0)), int(own.get("of", 1)), army_note, first]
+				first = str(r.get("line", "")).trim_prefix("This turn: ")
+	var head := "ON THEIR OWN — %d of the %d you may have" % [int(own.get("n", 0)), int(own.get("of", 1))]
+	# Row IC, Session 3b: an army's commander is counted ONCE — the line says
+	# how many follow him.
+	var army = own.get("army", {})
+	if army is Dictionary and str(army.get("name", "")) != "":
+		var behind := int(army.get("followers", 0))
+		head += (" · the " + str(army.get("name", "")) + ", "
+			+ ("nobody following yet" if behind == 0 else (
+				"1 man following" if behind == 1 else (str(behind) + " men following"))))
+	_own.text = (head + " · this turn: " + first) if first != "" else (head + " · they move as each turn opens")
 	# (round 2 of the blind reading: "1 of 1" never said how to raise it)
-	_own.tooltip_text = "\n".join(all) + "\n\nThe laws raise the count: the Grand Quartier Général," + " then the Emperor's Aides-de-Camp, one more each."
+	var said := "\n".join(all) if not all.is_empty() else "Each of them makes his move as the turn opens, before you give orders; the morning report says what he did."
+	_own.tooltip_text = said + "\n\nThe laws raise the count: the Grand Quartier Général," + " then the Emperor's Aides-de-Camp, one more each."
 	_own.visible = not _one_line()
 
 

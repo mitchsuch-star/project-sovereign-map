@@ -101,6 +101,34 @@ def set_aside_marks(text: str) -> Tuple[str, List[str]]:
     return cleaned, found
 
 
+def free_task(text: str, names: List[str]) -> Optional[Tuple[str, int]]:
+    """Row IC, Session 4b (IC4-D3): `(marshal, risk)` when a line, read WITHOUT
+    its marks of judgement (`set_aside_marks`), sets a man on his own with NO
+    task — "Ney, act on your own" · "Ney, as you see fit" · "Ney, make war as
+    you see fit" (the word table's `FREE_TASK`; a how-bold word may ride with
+    it) — else None. Only the caller knows a mark was there."""
+    marshal, rest = _address(text or "", names)
+    if not marshal:
+        return None
+    from backend.ai import task_words as _tw
+    words = re.sub(r"\s+", " ", rest.strip(" .!,;").lower())
+    risk = 0
+    for bold in tuple(_tw.BOLDER_WORDS) + tuple(_tw.CAREFUL_WORDS):
+        for form in (f" {bold}", f"{bold} "):
+            if words.endswith(form) or words.startswith(form):
+                words = (words[:-len(form)] if words.endswith(form) else words[len(form):]).strip()
+                risk = 1 if bold in _tw.BOLDER_WORDS else -1
+                break
+        if risk:
+            break
+        if words == bold:
+            words, risk = "", (1 if bold in _tw.BOLDER_WORDS else -1)
+            break
+    if not words or words in tuple(getattr(_tw, "FREE_TASK", ()) or ()):
+        return marshal, risk
+    return None
+
+
 def read_line(text: str, names: List[str], regions: List[str],
               own_names: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
     """A question to a man, or a word that changes the task of a man ON HIS OWN

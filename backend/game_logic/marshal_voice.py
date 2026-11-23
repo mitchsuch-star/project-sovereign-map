@@ -139,8 +139,16 @@ def emit_literal_fidelity_events(world) -> list:
         elif e.get("type") == "region_captured":
             recent_captures.add(e.get("region", ""))
 
+    player = str(getattr(world, "player_nation", "") or "")
     for marshal in world.marshals.values():
         if getattr(marshal, "personality", "") != "literal":
+            continue
+        # The beat speaks of YOUR man and YOUR order ("per your orders",
+        # "Sire"): an enemy's letter-following marshal carries his court's
+        # written orders since the war plans (row IC, Session 4b — pressed in
+        # the real client: "Mack holds at Swabia, per your orders"), and what
+        # France knows of those orders is the spy's to tell (IC4b-31).
+        if getattr(marshal, "nation", None) != player:
             continue
         order = getattr(marshal, "strategic_order", None)
         if order is None or marshal.strength <= 0:

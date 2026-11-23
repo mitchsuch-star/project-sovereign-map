@@ -53,6 +53,11 @@ const SIMPLE_ORDER_BUTTONS := [
 	{"id": "task", "where": "card", "label": "Give him a task…", "line": "",
 		"price": "none",
 		"tip": "A task is an order with a condition, a time limit or an if-then. It is typed: this lists ready sentences for him here; press one and it is written on the command line for you to send or change."},
+	# Row IC, Session 4b (IC4-D3): on his own with NO task — shown only on the
+	# card of a man who may ever be set so (the server sends its price then).
+	{"id": "own_free", "where": "card", "label": "Set him on his own", "line": "act on your own",
+		"price": "button:own_free",
+		"tip": "No task: as each turn opens he weighs the enemy he can beat, the ground the enemy holds and your war goal, and makes war as he sees fit. It takes one of your places for men on their own. A task you give later guides him."},
 	# ---- his posture ---------------------------------------------------------
 	{"id": "posture_attacking", "where": "posture", "label": "Attacking",
 		"line": "aggressive stance", "price": "button:stance:aggressive",

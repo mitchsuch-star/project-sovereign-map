@@ -27,7 +27,7 @@ ES-7 expectations (battles_won 0 → expectation 0 — his duchy comes later).
 """
 
 from typing import Dict, List, Optional, Tuple
-from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import marshal_title, nature_of  # SF5-X3: the ONE style for a marshal in prose
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -500,7 +500,7 @@ def build_recruitment_payload(world) -> Dict:
         reason = check_commission(world, nation, candidate)
         candidates.append({
             "name": candidate.get("name"),
-            "personality": candidate.get("personality", "cautious"),
+            "personality": candidate.get("personality", "cautious"), **nature_of(candidate),
             "skills": dict(candidate.get("skills", {}) or {}),
             "trust": int((candidate.get("trust", {}) or {}).get("value", 70)),
             "biography": candidate.get("biography", ""),

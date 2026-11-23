@@ -206,6 +206,34 @@ class TestFidelityBeat:
         assert any(le.get("type") == "literal_fidelity"
                    for le in world.event_log)
 
+    def test_never_speaks_of_an_enemys_marshal(self):
+        """IC4b-31 (row IC, Session 4b, continued — pressed in the real
+        client once the war plans were switched on): an enemy's letter-
+        following marshal carries his court's written orders now, and the
+        beat told him as the player's — "Mack holds at Swabia, per your
+        orders — the guns at Franconia did not move him." The beat speaks of
+        YOUR man only; what France knows of an enemy's orders is the spy's."""
+        mack = MarshalFactory.enemy(name="Mack", location="Belgium", nation="Austria",
+                                    personality="literal")
+        mack.strategic_order = StrategicOrder(
+            command_type="HOLD", target="Belgium", target_type="region",
+            started_turn=1, original_command="the court's written orders — its war plan")
+        soult = _literal(location="Paris")
+        world = WorldFactory.with_marshals([mack, soult])
+        world.current_turn = 3
+        world.event_log = [{
+            "type": "battle", "location": "Waterloo",
+            "attacker": "Mack", "attacker_nation": "Austria",
+            "defender": "Ney", "defender_nation": "France",
+            "outcome": "stalemate", "turn": 3,
+        }]
+        assert "Waterloo" in world.get_region("Belgium").adjacent_regions
+        assert emit_literal_fidelity_events(world) == []
+        assert not any(le.get("type") == "literal_fidelity" for le in world.event_log)
+        # the same board with the man France's: the beat speaks
+        mack.nation = "France"
+        assert len(emit_literal_fidelity_events(world)) == 1
+
     def test_does_not_fire_for_non_literal(self):
         ney = MarshalFactory.infantry(name="Ney", location="Belgium",
                                       personality="aggressive")

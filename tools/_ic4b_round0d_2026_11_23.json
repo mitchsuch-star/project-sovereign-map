@@ -1,0 +1,468 @@
+{
+ "tool": "tools/_ic4b_measure.py",
+ "seeds": 30,
+ "turns": 20,
+ "men": [
+  "Ney",
+  "Lannes",
+  "Murat",
+  "Davout",
+  "Bernadotte"
+ ],
+ "bars": {
+  "bold_pooled": 0.6,
+  "bold_each": 0.5,
+  "careful_good": 0.6,
+  "return": 0.8,
+  "acts_together": 0.7,
+  "bold_toward": 0.5
+ },
+ "score": {
+  "R-INITIATIVE": {
+   "bold_pooled": 0.613,
+   "bold_chance_turns": 212,
+   "bold_each_met": true,
+   "careful_good_share": 0.653,
+   "careful_good_turns": 121,
+   "far_chances": [],
+   "far_count": 0,
+   "return_share": 0.356,
+   "returns_due": 45,
+   "out_and_back": 1,
+   "out_and_back_any_reported": 7,
+   "free_chance_turns": 278,
+   "free_taken_share": 0.727,
+   "met": false
+  },
+  "R-ACTS": {
+   "together_visible_share_at_war": 0.724,
+   "war_turns": 2040,
+   "bare_stays": [
+    [
+     "ic4b-01",
+     10,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-01",
+     11,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-03",
+     6,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Tyrol and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-03",
+     7,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Tyrol and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-03",
+     19,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Milan and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-03",
+     20,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Milan and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-04",
+     8,
+     "Davout",
+     "Davout could not carry out his move: Davout is fortified at Lorraine and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-09",
+     15,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Milan and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-09",
+     16,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Milan and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-11",
+     4,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-11",
+     5,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-11",
+     14,
+     "Davout",
+     "Davout could not carry out his move: Davout is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-11",
+     19,
+     "Davout",
+     "Davout could not carry out his move: Davout is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-16",
+     4,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-16",
+     5,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-18",
+     6,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Munich and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-18",
+     7,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Munich and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-18",
+     15,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Tyrol and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-18",
+     16,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Milan and cannot move. Order 'unfortify' first to make the army mobile."
+    ],
+    [
+     "ic4b-18",
+     17,
+     "Bernadotte",
+     "Bernadotte could not carry out his move: Bernadotte is fortified at Milan and cannot move. Order 'unfortify' first to make the army mobile."
+    ]
+   ],
+   "bare_stay_count": 20,
+   "bold_toward_met": true,
+   "met": false,
+   "per_man": {
+    "Ney": {
+     "turns": 517,
+     "visible_share": 0.82,
+     "stays_share": 0.085,
+     "kinds": [
+      "attack",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 249,
+     "toward_share": 0.751,
+     "chance_turns": 101,
+     "chance_taken_share": 0.604,
+     "good_chance_turns": 73,
+     "good_taken_share": 0.808,
+     "tasks": {
+      "hold": 15,
+      "pursue": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Lannes": {
+     "turns": 438,
+     "visible_share": 0.66,
+     "stays_share": 0.066,
+     "kinds": [
+      "attack",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "move_up",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 300,
+     "toward_share": 0.607,
+     "chance_turns": 65,
+     "chance_taken_share": 0.662,
+     "good_chance_turns": 45,
+     "good_taken_share": 0.822,
+     "tasks": {
+      "support": 15,
+      "pursue": 5,
+      "hold": 5,
+      "free": 5
+     }
+    },
+    "Murat": {
+     "turns": 283,
+     "visible_share": 0.756,
+     "stays_share": 0.021,
+     "kinds": [
+      "attack",
+      "fall_back",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 269,
+     "toward_share": 0.658,
+     "chance_turns": 46,
+     "chance_taken_share": 0.565,
+     "good_chance_turns": 37,
+     "good_taken_share": 0.622,
+     "tasks": {
+      "pursue": 15,
+      "hold": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Davout": {
+     "turns": 515,
+     "visible_share": 0.751,
+     "stays_share": 0.171,
+     "kinds": [
+      "dig_in",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 259,
+     "toward_share": 0.71,
+     "chance_turns": 125,
+     "chance_taken_share": 0.672,
+     "good_chance_turns": 94,
+     "good_taken_share": 0.777,
+     "tasks": {
+      "hold": 15,
+      "support": 5,
+      "free": 5,
+      "pursue": 5
+     }
+    },
+    "Bernadotte": {
+     "turns": 287,
+     "visible_share": 0.568,
+     "stays_share": 0.237,
+     "kinds": [
+      "attack",
+      "dig_in",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 180,
+     "toward_share": 0.261,
+     "chance_turns": 57,
+     "chance_taken_share": 0.14,
+     "good_chance_turns": 27,
+     "good_taken_share": 0.222,
+     "tasks": {
+      "support": 5,
+      "free": 5,
+      "hold": 10,
+      "take": 5,
+      "pursue": 5
+     }
+    }
+   }
+  },
+  "R-REPORT": {
+   "false": [],
+   "count": 0,
+   "met": true
+  },
+  "R-VARIETY": {
+   "alike_share": 0.025,
+   "turns_read": 435,
+   "third_turn_repeats": 1,
+   "asks_or_recovers_three_turns": 0,
+   "every_man_two_kinds": true,
+   "met": false
+  },
+  "R-TOGETHER": {
+   "turns": 662,
+   "double_attacks": 0,
+   "named_share": 0.612,
+   "met": true
+  },
+  "R-FRIENDS": {
+   "battles_with_a_man_beside": 489,
+   "he_rolled": 122
+  }
+ },
+ "not_taken": {
+  "bold": {
+   "acts": {
+    "march": 46,
+    "look": 24,
+    "strike": 6,
+    "stay": 5,
+    "attack": 1
+   },
+   "top": {
+    "goal:march": 35,
+    "wait:look": 22,
+    "chance:strike": 14,
+    "seek:march": 6,
+    "wait:stay": 5
+   },
+   "gaps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    4,
+    6,
+    9,
+    9,
+    9,
+    10,
+    17,
+    17,
+    21,
+    21,
+    21,
+    21,
+    21,
+    22,
+    22,
+    25,
+    25,
+    35,
+    35,
+    36,
+    45,
+    59,
+    59
+   ],
+   "chance_in_top5": 59,
+   "gap_median": 18
+  },
+  "careful": {
+   "acts": {
+    "march": 30,
+    "stay": 18,
+    "dig_in": 17,
+    "look": 13,
+    "join": 12,
+    "start": 7
+   },
+   "top": {
+    "chance:strike": 21,
+    "goal:march": 18,
+    "wait:dig_in": 14,
+    "wait:look": 13,
+    "wait:stay": 12,
+    "seek:march": 8
+   },
+   "gaps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    7,
+    7,
+    11,
+    14,
+    14,
+    17,
+    22,
+    22,
+    22,
+    22,
+    28,
+    34,
+    35,
+    45,
+    69
+   ],
+   "chance_in_top5": 52,
+   "gap_median": 11
+  }
+ },
+ "passes": {
+  "historical": 20,
+  "austerlitz": 20,
+  "marengo": 20,
+  "ic4b-01": 20,
+  "ic4b-02": 11,
+  "ic4b-03": 20,
+  "ic4b-04": 20,
+  "ic4b-05": 20,
+  "ic4b-06": 20,
+  "ic4b-07": 20,
+  "ic4b-08": 20,
+  "ic4b-09": 20,
+  "ic4b-10": 19,
+  "ic4b-11": 20,
+  "ic4b-12": 14,
+  "ic4b-13": 20,
+  "ic4b-14": 20,
+  "ic4b-15": 20,
+  "ic4b-16": 20,
+  "ic4b-17": 20,
+  "ic4b-18": 20,
+  "ic4b-19": 20,
+  "ic4b-20": 20,
+  "ic4b-21": 19,
+  "ic4b-22": 20,
+  "ic4b-23": 20,
+  "ic4b-24": 20,
+  "ic4b-25": 20,
+  "ic4b-26": 20,
+  "ic4b-27": 20
+ },
+ "stalls": [],
+ "seconds": 227
+}

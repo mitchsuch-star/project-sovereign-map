@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | SURE | Line 1 is impatient ("no more waiting"). Line 2 is about the guns.
+PAIR 2: Line 1 = Lannes, Line 2 = Ney | SURE | "Point me at the guns" is Lannes. "No man to sit and admire it" is Ney's restlessness.
+PAIR 3: Line 1 = Masséna, Line 2 = Davout | SURE | "Mine now, worth keeping" is Masséna. Feeding every man and keeping him in place is Davout.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | "Counted the losses" is Davout. "The field is mine, I'll hold it" is Masséna.
+PAIR 5: Line 1 = Ney, Line 2 = Bernadotte | SURE | "Don't leave me idle, send me at someone" is Ney. "I was in no rush" is Bernadotte.
+PAIR 6: Line 1 = Bernadotte, Line 2 = Murat | PARTLY GUESSED | Line 1 is comfortable and unhurried. Line 2 watches the roads for dust, which suits a cavalryman.
+PAIR 7: Line 1 = Bernadotte, Line 2 = Davout | SURE | Line 1 hopes nothing happens. Line 2 says every man is in his place.
+PAIR 8: Line 1 = Lannes, Line 2 = Davout | SURE | "Where the guns are" is Lannes. Checking rolls and stores first is Davout.
+PAIR 9: Line 1 = Murat, Line 2 = Lannes | SURE | "Give me a horse" is Murat. "Lead the assault again" is Lannes.
+PAIR 10: Line 1 = Ney, Line 2 = Murat | SURE | "Find me something to fight" is Ney. "Handsomely ridden" is Murat's vanity.
+PAIR 11: Line 1 = Bernadotte, Line 2 = Masséna | SURE | "Doubts, I'll go slowly" is Bernadotte. "A place I've made mine" is Masséna.
+PAIR 12: Line 1 = Murat, Line 2 = Masséna | SURE | "The horses and I" is Murat. "What I held there was mine" is Masséna.
+SET 1: A=Ney, B=Bernadotte, C=Murat, D=Davout, E=Lannes, F=Masséna | guessed letters: A, F
+SET 2: A=Masséna, B=Bernadotte, C=Ney, D=Murat, E=Lannes, F=Davout | guessed letters: A
+SET 3: A=Murat, B=Lannes, C=Bernadotte, D=Masséna, E=Ney, F=Davout | guessed letters: B, C
+SET 4: A=Masséna, B=Lannes, C=Ney, D=Murat, E=Bernadotte, F=Davout | guessed letters: B
+SET 5: A=Davout, B=Masséna, C=Murat, D=Ney, E=Lannes, F=Bernadotte | guessed letters: B

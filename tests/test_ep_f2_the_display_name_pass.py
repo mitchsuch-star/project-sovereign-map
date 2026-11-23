@@ -481,8 +481,8 @@ class TestTheDefenceLineIsSplit:
     def test_the_two_terms_are_their_own_rows(self, payloads):
         mods = payloads["defence"]["battle_report"]["modifier_breakdown"]["defender"]
         by_label = {m["label"]: m for m in mods}
-        assert by_label["Personality (cautious)"]["value"] == 5, mods
-        assert by_label["Outnumbered (cautious)"]["value"] == 10, mods
+        assert by_label["Careful nature"]["value"] == 5, mods
+        assert by_label["Outnumbered (Careful)"]["value"] == 10, mods
         assert all(m["value"] != 16 for m in mods), mods
 
     def test_the_labelled_product_is_the_applied_modifier(self):
@@ -742,8 +742,8 @@ class TestBerthierOnTheTerminal:
 
     def test_the_defence_line_is_split_on_screen(self, driven):
         text = driven["berthier_terminal"]["defence"]
-        assert "Personality (cautious) +5%" in text, text
-        assert "Outnumbered (cautious) +10%" in text, text
+        assert "Careful nature +5%" in text, text
+        assert "Outnumbered (Careful) +10%" in text, text
         assert "+16%" not in text, text
 
 

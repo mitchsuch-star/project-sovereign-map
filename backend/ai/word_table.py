@@ -222,6 +222,15 @@ GOAL_VERBS = ("take", "capture", "seize", "march (on|to)", "go for", "make for",
               "destroy", "serve")
 GOAL_OBJECT = "(the|our|my|your) war goal"
 
+# ── on his own with NO task ─────────────────────────────────────────────────
+# Row IC, Session 4b (IC4-D3 — the user's "if you give them nothing they should
+# make decisions"): a mark of judgement with nothing else to do — "Ney, act on
+# your own", "Ney, as you see fit", "Ney, make war as you see fit" — sets him on
+# his own with NO task (`own_order` "free"). The words that may stand beside a
+# mark and still say "no task" (`backend/ai/own_words.free_task`):
+FREE_TASK = ("act", "act alone", "go", "fight", "make war", "wage war", "carry the war to them",
+             "do as you will", "do your work", "lead", "command", "take the field")
+
 # ── the sentences the Help page and the first-open line teach ───────────────
 # Each is executed through the read-back by the census on the 1805 board.
 EXAMPLES = (

@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | SURE | Line 1 is impatient haste; Line 2 is "where the guns are loudest".
+PAIR 2: Line 1 = Lannes, Line 2 = Ney | PARTLY GUESSED | "next assault" fits Lannes; "can't bear it long" is Ney's impatience.
+PAIR 3: Line 1 = Masséna, Line 2 = Davout | SURE | "This ground... mine" is Masséna; "every company counted" is Davout.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | "Every man counted, written down" is Davout; "my ground" is Masséna.
+PAIR 5: Line 1 = Davout, Line 2 = Lannes | SURE | "Every post manned, every count right" is Davout; "listening for the guns" is Lannes.
+PAIR 6: Line 1 = Murat, Line 2 = Bernadotte | SURE | "On his heels" is a cavalry pursuit; "comfortable pace" is the slow Bernadotte.
+PAIR 7: Line 1 = Murat, Line 2 = Masséna | SURE | "No one to chase. A pity" is Murat; "I give up nothing" is Masséna.
+PAIR 8: Line 1 = Murat, Line 2 = Davout | SURE | "Squadrons and a loose rein" is Murat; "nothing wasted" is Davout.
+PAIR 9: Line 1 = Ney, Line 2 = Murat | PARTLY GUESSED | "Won't have to hold myself back" is Ney's impatience; "squadrons ride at full gallop" is Murat.
+PAIR 10: Line 1 = Bernadotte, Line 2 = Ney | PARTLY GUESSED | "Kept that in mind" sounds like Bernadotte's grudge; "but I'll go now" sounds like Ney's eagerness.
+PAIR 11: Line 1 = Bernadotte, Line 2 = Masséna | SURE | "Conditions were poor" is an excuse; "held my ground" is Masséna.
+PAIR 12: Line 1 = Bernadotte, Line 2 = Lannes | SURE | "Handled sensibly" is Bernadotte; "Where are the guns next?" is Lannes.
+SET 1: A=Murat, B=Davout, C=Masséna, D=Ney, E=Bernadotte, F=Lannes | guessed letters: none
+SET 2: A=Lannes, B=Masséna, C=Davout, D=Ney, E=Murat, F=Bernadotte | guessed letters: B, F
+SET 3: A=Murat, B=Davout, C=Lannes, D=Masséna, E=Bernadotte, F=Ney | guessed letters: F
+SET 4: A=Masséna, B=Lannes, C=Davout, D=Murat, E=Bernadotte, F=Ney | guessed letters: none
+SET 5: A=Ney, B=Masséna, C=Bernadotte, D=Davout, E=Murat, F=Lannes | guessed letters: A, C, F

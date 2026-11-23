@@ -503,8 +503,8 @@ _PLAIN_OTHER = {
         "Court them hard: relations rise and each offer gets likelier turn by turn — at the risk, "
         "each turn, of a slight that sets relations back."),
     "mission_gather_intel": (
-        "Send agents: after {intel_wait} turns you see everything in the provinces they hold then, "
-        "for 5 turns."),
+        "Send agents for {intel_wait} turns, {intel_cost}. Then you see everything in the "
+        "provinces they hold, for 5 turns{intel_orders}."),
     "mission_undermine": (
         "Work against their alliances: their relations with their allies fall each turn the mission runs."),
     "cancel_mission": "Recall Talleyrand from this mission. What it has gained so far stays.",
@@ -541,13 +541,24 @@ _PLAIN_OTHER = {
 }
 
 
-def _plain_figures() -> Dict[str, int]:
+def _plain_figures() -> Dict[str, Any]:
     """The figures the plain lines quote, each from its own constant — a line
     never carries a copy that can drift from the rule it describes."""
     from backend.game_logic.diplomacy import ARMISTICE_DURATION
-    from backend.game_logic.diplomatic_dialogue import MISSION_EFFECTS
+    from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS, MISSION_EFFECTS
     from backend.game_logic.instruments import GUARANTEE_GRACE_TURNS
+    from backend.game_logic.war_plans import the_courts_follow_a_plan
+    _dp = int(MISSION_DP_COSTS.get("GATHER_INTEL", 1))
     return {
+        "intel_cost": f"{_dp} diplomatic point{'' if _dp == 1 else 's'} a turn",
+        # Row IC, Session 4b: the written orders exist only while the courts
+        # write plans (the seam), so the line promises them only then — and
+        # only of a court at war with you, the one kind that draws a plan
+        # (`war_plans._muster`, IC4b-30).
+        "intel_orders": (", and from a court at war with you they bring back the written orders "
+                         "of any marshal who follows orders to the letter, and the province "
+                         "their corps favour"
+                         if the_courts_follow_a_plan() else ""),
         "truce": int(ARMISTICE_DURATION),
         "grace": int(GUARANTEE_GRACE_TURNS),
         "intel_wait": int((MISSION_EFFECTS.get("GATHER_INTEL") or {}).get("duration", 3)),

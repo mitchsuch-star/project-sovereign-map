@@ -130,6 +130,12 @@ def _broken_turns(marshal) -> int:
              // max(1, int(marshal.get_rally_stages_per_turn())))
 
 
+# A corps in its works is refused a move or an attack until it leaves them —
+# named, so a reader that unfortifies first (a man on his own: his acts
+# carry the step) can tell this reason from the rest (`own_judgement.move_is_open`).
+FORTIFIED_FIRST = "fortified — unfortify first"
+
+
 def _standing_reason(world, marshal, strategic_type: str) -> str:
     """The standing-order road's state arms (`strategic_executor.
     StrategicExecutor._strategic_open`, the first stage of
@@ -140,7 +146,7 @@ def _standing_reason(world, marshal, strategic_type: str) -> str:
         return "recovering from a retreat — no standing orders"
     if THE_STATE_SPEAKS_FIRST and strategic_type not in ("HOLD", "SUPPORT"):
         if getattr(marshal, "fortified", False):
-            return "fortified — unfortify first"
+            return FORTIFIED_FIRST
         if getattr(marshal, "drilling_locked", False) or getattr(marshal, "drilling", False):
             return "drilling this turn — no standing orders"
     if getattr(marshal, "broken", False):
@@ -161,7 +167,7 @@ def _battery_reason(world, marshal, action: str, verb: str) -> str:
         return (f"locked in drill until turn {int(turn)}" if turn is not None
                 else "locked in drill")
     if getattr(marshal, "fortified", False) and action in ("attack", "move"):
-        return "fortified — unfortify first"
+        return FORTIFIED_FIRST
     if action == "defend":
         from backend.commands.tactical_executor import defend_refusal
         _sentence, short = defend_refusal(marshal)
@@ -216,7 +222,13 @@ def _the_days_enemy_of(world, marshal) -> set:
         return set()
 
 
-def _own_reason(world, marshal, verb: str) -> str:
+# The hold's own refusal (IC4-N1): a TYPED hold is read with its parse —
+# the same ground and the same watch — so a caller without the parse reads
+# this one reason again once it has it (`group_orders._run_members`).
+ALREADY_HOLDING = "already holding here"
+
+
+def _own_reason(world, marshal, verb: str, parsed=None) -> str:
     """Each verb's own predicate, already the executor's (CN-4 / CX-R2).
     CF-6 (October 17, 2026) adds the three the province panel's new chips
     read: `hold` (the redundant hold the strategic executor's stage 5
@@ -232,9 +244,29 @@ def _own_reason(world, marshal, verb: str) -> str:
         return T.unfortify_refusal(marshal)[1] or ""
     if verb == "hold":
         order = getattr(marshal, "strategic_order", None)
+        if parsed is not None:
+            # IC4-N1: the read-back of a TYPED hold uses the executor's own
+            # test (`strategic_executor`'s redundant-hold stage): the same
+            # ground AND the same on-arrival watch. A renewed hold with new
+            # if-thens is an order Enter gives, so it is not refused here.
+            if order is not None and getattr(order, "command_type", "") == "HOLD":
+                from backend.ai.generic_targets import is_generic_target
+                from backend.commands.strategic import order_arrival_matches
+                # The place sits on the parse's COMMAND (as the executor reads
+                # it: `ctx.target`, `ctx.is_generic`); "here" or none is where
+                # he stands.
+                command = parsed.get("command") or {}
+                raw = command.get("target") or parsed.get("target")
+                generic = is_generic_target(raw) or command.get("target_type") == "generic"
+                new_target = marshal.location if generic else raw
+                existing_target = getattr(order, "target", None) or marshal.location
+                if (str(existing_target).lower() == str(new_target).lower()
+                        and order_arrival_matches(order, parsed)):
+                    return ALREADY_HOLDING
+            return ""
         if (order is not None and getattr(order, "command_type", "") == "HOLD"
                 and (getattr(order, "target", None) or marshal.location) == marshal.location):
-            return "already holding here"
+            return ALREADY_HOLDING
         return ""
     if verb == "retreat":
         if getattr(marshal, "retreated_this_turn", False):
@@ -286,18 +318,21 @@ def order_prices(world, marshal) -> Dict[str, int]:
     return {verb: order_price(world, marshal, verb) for verb in VERBS}
 
 
-def order_state_refusal(world, marshal, verb: str) -> str:
+def order_state_refusal(world, marshal, verb: str, parsed=None, *, free: bool = False) -> str:
     """The SHORT reason ``<marshal>, <verb>`` would be refused for his state
     or for the action it costs — "" when neither stops it (the order may
     still be refused for its TARGET, which is each slot's own business).
-    PURE."""
+    `parsed` (optional; the typed line's own parse, only the read-back passes
+    it) lets a renewed hold be read as the executor reads it (IC4-N1). `free`:
+    the move costs nothing (a man on his own makes his own move free —
+    `own_judgement.move_is_open`), so the action pool refuses nothing. PURE."""
     if verb not in VERBS or marshal is None:
         return ""
     action, strategic_type = VERBS[verb]
     reason = trial_reason(marshal)
     if reason:
         return reason
-    reason = _pool_reason(world, marshal, action, strategic_type)
+    reason = "" if free else _pool_reason(world, marshal, action, strategic_type)
     if reason:
         return reason
     region = getattr(marshal, "occupation_region", None)
@@ -307,8 +342,8 @@ def order_state_refusal(world, marshal, verb: str) -> str:
         # CF-6: a standing order's own gate (the redundant hold) after the
         # road's state arms, as the strategic executor's stages meet them.
         return (_standing_reason(world, marshal, strategic_type)
-                or _own_reason(world, marshal, verb))
-    return _battery_reason(world, marshal, action, verb) or _own_reason(world, marshal, verb)
+                or _own_reason(world, marshal, verb, parsed))
+    return _battery_reason(world, marshal, action, verb) or _own_reason(world, marshal, verb, parsed)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -323,9 +358,11 @@ def order_state_refusal(world, marshal, verb: str) -> str:
 # count it, and the completer treats a member as a typed verb).
 # ═══════════════════════════════════════════════════════════════════════════
 POSTURES = ("aggressive", "neutral", "defensive")
-BUTTONS = ("wait", "form_square", "break_square") + tuple(f"stance:{p}" for p in POSTURES)
+# Row IC, Session 4b: "own_free" — "Set him on his own", with no task (IC4-D3)
+BUTTONS = ("wait", "form_square", "break_square", "own_free") + tuple(f"stance:{p}" for p in POSTURES)
 # what each button's order is to the executor's gates
-_BUTTON_ACTION = {"wait": "wait", "form_square": "form_square", "break_square": "break_square"}
+_BUTTON_ACTION = {"wait": "wait", "form_square": "form_square", "break_square": "break_square",
+                  "own_free": "own_task"}
 
 
 def _need_reason(world, need: int) -> str:
@@ -349,6 +386,8 @@ def button_price(world, marshal, key: str) -> int:
     square nothing. PURE."""
     if marshal is None or key not in BUTTONS:
         return 0
+    if key == OWN_FREE:
+        return _own_free_price(marshal)
     if key.startswith("stance:"):
         from backend.commands.tactical_executor import stance_change_cost
         from backend.models.marshal import Stance
@@ -366,6 +405,8 @@ def button_refusal(world, marshal, key: str) -> str:
     executor's). PURE."""
     if marshal is None or key not in BUTTONS:
         return ""
+    if key == OWN_FREE:
+        return _own_free_refusal(world, marshal)
     reason = trial_reason(marshal)
     if reason:
         return reason
@@ -390,12 +431,47 @@ def button_refusal(world, marshal, key: str) -> str:
     return ""
 
 
+# Row IC, Session 4b (IC4-D3): "Act on his own" — on his own with no task — a
+# button on the card of a man who may ever be set on his own (bold or careful,
+# never guns); its price and its refusal are `own_order`'s own.
+OWN_FREE = "own_free"
+
+
+def _own_free_offered(marshal) -> bool:
+    from backend.game_logic import own_order as _own
+    return _own._nature(marshal) in ("bold", "careful") and not getattr(marshal, "artillery", False)
+
+
+def _own_free_price(marshal) -> int:
+    from backend.game_logic import own_order as _own
+    return int(_own.CHANGE_PRICE if _own.on_his_own(marshal) else _own.PRICE["free"])
+
+
+def _own_free_refusal(world, marshal) -> str:
+    from backend.game_logic import own_order as _own
+    reason = trial_reason(marshal)
+    if reason:
+        return reason
+    if (_own.own(marshal) or {}).get("task") == "free":
+        return "he is on his own already"
+    why = _own.why_not(world, marshal, "free", replacing=_own.on_his_own(marshal))
+    if why:
+        return why
+    return _need_reason(world, _own_free_price(marshal))
+
+
 def button_prices(world, marshal) -> Dict[str, int]:
     """``{button: actions}`` for the player's marshal; empty with the lever down."""
     if (not THE_SCREEN_READS_THE_STATE or marshal is None
             or getattr(marshal, "nation", None) != getattr(world, "player_nation", None)):
         return {}
     return {key: button_price(world, marshal, key) for key in BUTTONS}
+
+
+def button_offered(marshal) -> Dict[str, bool]:
+    """Which buttons the card draws at all for this man (row IC, Session 4b:
+    "Set him on his own" only for a bold or careful man, never guns)."""
+    return {OWN_FREE: bool(marshal is not None and _own_free_offered(marshal))}
 
 
 def button_refusals(world, marshal) -> Dict[str, str]:

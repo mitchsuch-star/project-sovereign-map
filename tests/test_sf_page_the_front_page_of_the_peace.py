@@ -696,6 +696,16 @@ class TestTheLedgerAndTheLog:
 # ═════════════════════ the three commanded arms, driven ═══════════════════════
 
 ARMS = {"CMD-H": "historical", "CMD-A": "austerlitz", "CMD-M": "marengo"}
+# Row IC, Session 4b, continued (November 23, 2026 — the enemy's war plans switched
+# on at the user's word, "Switch them on"; SYSTEMS_REFERENCE §236.8): with the plans
+# up, none of the three commanded arms carries a standing crisis in forty turns (the
+# coalition's written orders re-time each campaign), so the standing-crisis pin's
+# "at least one arm must" is witnessed by CMD-A with the plans' seam held down —
+# measured: its line stands on the page turns 10 … 40 (CMD-M's at 39–40). The arm
+# keeps its purpose with the plans held: the written orders stage the war, they
+# are not the page's rule. Driven in its own folder (`witness/`).
+WITNESS = {"CMD-A-PLANS-DOWN": ("austerlitz",
+                                ["backend.game_logic.war_plans:the_courts_follow_a_plan=False"])}
 # DDB-R3 (Pre-Deploy S13b part 3, October 15, 2026): a detachment stormed at
 # >= 4:1 capitulates whole — on CMD-H Archduke Charles takes Bavaria's 3,000
 # at Franconia in one assault at turn 34 and rolls on into Swabia (measured:
@@ -926,6 +936,21 @@ def driven(tmp_path_factory):
         procs.append(subprocess.Popen(
             argv, cwd=str(REPO), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             env=dict(env, INK_IRON_SAVE_DIR=str(run / f"_saves_{name}"))))
+    # The witness arms (row IC, Session 4b, continued — `WITNESS`): driven beside
+    # the commanded arms, in a folder of their own, so the instrument's reading
+    # of `arms/` is the three commanded arms as before.
+    for name, (seed, seams) in WITNESS.items():
+        out = run / "witness"
+        out.mkdir(exist_ok=True)
+        argv = [sys.executable, str(REPO / "tools" / "playtest_driver.py"), "--name", name,
+                "--fresh", "--out", str(out), "--llm", "mock", "--script", str(SCRIPT),
+                "--turns", "40", "--diplomacy", "accept", "--save-at", "10,20,30,40",
+                "--seed", seed]
+        for seam in seams:
+            argv += ["--seam", seam]
+        procs.append(subprocess.Popen(
+            argv, cwd=str(REPO), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            env=dict(env, INK_IRON_SAVE_DIR=str(run / f"_saves_{name}"))))
     for p in procs:
         assert p.wait(timeout=1500) == 0
     check = subprocess.run([sys.executable, str(REPO / "tools" / "score_run.py"), "check",
@@ -1096,8 +1121,13 @@ class TestTheDrivenArms:
         run, _checklist = driven
         nag = re.compile(r"arrears|unrewarded|without settlement|household goes unpaid|claim is")
         seen = 0
-        for name in ARMS:
-            pages = _pages(run / "arms" / name / "digest.jsonl")
+        # (the commanded arms, and the witness arm `WITNESS` names — row IC,
+        # Session 4b, continued: with the war plans on, no commanded arm carries
+        # a standing crisis, so the rule is exercised on the witness)
+        paths = ([(name, run / "arms" / name / "digest.jsonl") for name in ARMS]
+                 + [(name, run / "witness" / name / "digest.jsonl") for name in WITNESS])
+        for name, path in paths:
+            pages = _pages(path)
             on = [t for t, r in pages
                   if any(nag.search(x) for x in [r.get("headline_text") or ""] + list(r.get("sub_beats") or []))]
             # RE-SEATED by S13e part 3 (PC-R4, ruling E, October 16, 2026),

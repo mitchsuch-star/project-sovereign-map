@@ -43,6 +43,7 @@ from backend.models.intel import (
 from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+from backend.display_names import nature_of  # Row IC S4b: a marshal's nature on every row
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 from backend.game_logic.intel_surfaces import whither as _whither  # UI6-X35: a foreign commander's place is the fog's
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
@@ -295,12 +296,14 @@ def _button_state(world, marshal) -> Dict:
     """Row IC, Session 2 (IC-7): `state_probe.button_prices` / `button_refusals`
     (display-only reads) — the posture, square and "stay put" buttons."""
     try:
-        from backend.commands.state_probe import button_prices, button_refusals
+        from backend.commands.state_probe import button_offered, button_prices, button_refusals
         return {"prices": button_prices(world, marshal),
-                "refusals": button_refusals(world, marshal)}
+                "refusals": button_refusals(world, marshal),
+                # Row IC, Session 4b: which buttons the card draws at all
+                "offered": button_offered(marshal)}
     except Exception as exc:
         report(exc, "world_state._button_state: backend.commands.state_probe")
-        return {"prices": {}, "refusals": {}}
+        return {"prices": {}, "refusals": {}, "offered": {}}
 
 
 def _trial_state(marshal):
@@ -4365,6 +4368,10 @@ class WorldState:
                 _order = getattr(_other, "strategic_order", None)
                 if (_order and getattr(_order, "target_type", "") == "marshal"
                         and getattr(_order, "target", "") == marshal.name):
+                    # Row IC, Session 4b: a man on his own goes on with no task
+                    from backend.game_logic import own_order as _own_order
+                    if _own_order.target_gone(self, _other, f"{marshal.name} has gone home"):
+                        continue
                     _other.strategic_order = None
                     clear_order_bound_interrupt(_other)  # NPC-2
         return True
@@ -6141,6 +6148,10 @@ class WorldState:
             order = getattr(marshal, 'strategic_order', None)
             if order and getattr(order, 'target_type', '') == 'marshal':
                 if getattr(order, 'target', '') in removed_set:
+                    # Row IC, Session 4b: a man on his own goes on with no task
+                    from backend.game_logic import own_order as _own_order
+                    if _own_order.target_gone(self, marshal, f"{order.target}'s court has fallen"):
+                        continue
                     marshal.strategic_order = None
                     clear_order_bound_interrupt(marshal)  # NPC-2
 
@@ -12232,6 +12243,10 @@ class WorldState:
                         else "artillery" if getattr(m, "artillery", False)
                         else "infantry"
                     ),
+                    # Row IC, Session 4b (IC-15): his nature is public by
+                    # design — "Bold · Careful · To the letter" + one line.
+                    # No key for the player's own sovereign.
+                    **nature_of(m, self),
                 }
                 # CN-4: the region panel offered "Attack <X>" against every
                 # foreign marshal standing beside a French corps — an ALLY's
@@ -12530,9 +12545,11 @@ class WorldState:
             "map_data": map_data,
             "marshals": {
                 name: {
+                    "name": name,
                     "location": m.location,
                     "strength": int(m.strength),
-                    "morale": int(m.morale)
+                    "morale": int(m.morale),
+                    **nature_of(m, self),
                 }
                 for name, m in self.marshals.items()
                 if m.nation == self.player_nation
@@ -12542,6 +12559,7 @@ class WorldState:
                     "location": m.location,
                     "strength": int(m.strength),
                     "nation": m.nation,
+                    **nature_of(m, self),
                     # CX-R2: CN-4's flag, on the dict the command-line
                     # completer reads — "enemies" holds every foreign corps
                     # (France's Bavarian ally and neutral Prussia included),
@@ -12845,6 +12863,7 @@ class WorldState:
                         "nation": marshal_data["nation"],
                         "strength_band": band,
                         "fog_level": intel.visibility,
+                        **nature_of(self.marshals.get(marshal_data["name"]), self),
                     }
                     filtered_region["fogged_forces"].append(filtered_marshal)
                 # LAST_KNOWN / UNKNOWN: enemy marshals hidden from map_data
@@ -12860,6 +12879,7 @@ class WorldState:
                         "nation": _s.get("nation", "Unknown"),
                         "strength_band": _s.get("strength_display") or "unknown",
                         "fog_level": STALE,
+                        **nature_of(self.marshals.get(_s["roster_name"]), self),
                     })
 
             filtered_map[region_name] = filtered_region
@@ -12902,6 +12922,7 @@ class WorldState:
                     # nation already ride), and diplomacy carries no fog.
                     "at_war_with_player": bool(
                         enemy_data.get("at_war_with_player", False)),
+                    **nature_of(marshal_obj, self),
                 }
             # LAST_KNOWN / UNKNOWN: enemy not shown in enemies dict
 
@@ -12921,6 +12942,7 @@ class WorldState:
                     "strength_band": _s.get("strength_display") or "unknown",
                     "fog_level": STALE,
                     "at_war_with_player": bool(_live.get("at_war_with_player", False)),
+                    **nature_of(self.marshals.get(_name), self),
                 }
 
         summary["enemies"] = filtered_enemies
@@ -16141,6 +16163,11 @@ class WorldState:
             for marshal in self.marshals.values():
                 order = getattr(marshal, 'strategic_order', None)
                 if order and order.command_type == "SUPPORT" and order.target in broken_marshal_names:
+                    # Row IC, Session 4b: a man on his own keeps standing by his
+                    # friend through the rally (his judgement weighs the board)
+                    from backend.game_logic import own_order as _own_order
+                    if _own_order.keeps_task(marshal):
+                        continue
                     target_name = order.target
                     marshal.strategic_order = None
                     clear_order_bound_interrupt(marshal)  # NPC-2
@@ -16460,14 +16487,15 @@ class WorldState:
 
                     # Add personality-specific message
                     personality_note = ""
+                    from backend.display_names import NATURE_WORDS   # (the nature's own word)
                     if personality == "cautious":
                         # Davout keeps his epithet; other cautious marshals
                         # get the kit's own name (misattribution class).
                         _kit_label = ("Iron Marshal" if marshal.name == "Davout"
-                                      else "Cautious")
+                                      else NATURE_WORDS["cautious"][0])
                         personality_note = f" ({_kit_label}: faster fortification)"
                     elif personality == "aggressive":
-                        personality_note = " (Aggressive: limited fortification)"
+                        personality_note = f" ({NATURE_WORDS['aggressive'][0]}: limited fortification)"
 
                     front_load_note = " [FRONT-LOADED]" if front_loaded else ""
 
@@ -17354,10 +17382,14 @@ class WorldState:
                     retreat_to = self.get_safe_retreat_destination(enemy.name, marshal.location)
                     if retreat_to:
                         old_enemy_loc = enemy.location
-                        if enemy.strategic_order:
+                        from backend.game_logic import own_order as _own_order   # Row IC, Session 4b
+                        _keeps = _own_order.keeps_task(enemy)
+                        if enemy.strategic_order and not _keeps:
                             enemy.strategic_order = None
                             clear_order_bound_interrupt(enemy)  # NPC-2
                         enemy.move_to(retreat_to)
+                        if _keeps:
+                            _own_order.after_retreat(self, enemy)
                         enemy.retreating = True
                         enemy.retreat_recovery = 0
                         enemy.retreated_this_turn = True
@@ -17387,7 +17419,10 @@ class WorldState:
                         enemy.broken_recovery = 0
                         enemy.retreating = False
                         enemy.clear_combat_transient_state()
-                        if enemy.strategic_order:
+                        from backend.game_logic import own_order as _own_order   # Row IC, Session 4b
+                        if _own_order.keeps_task(enemy):
+                            _own_order.after_retreat(self, enemy)
+                        elif enemy.strategic_order:
                             enemy.strategic_order = None
                             clear_order_bound_interrupt(enemy)  # NPC-2
                         forced_retreat_msg = f" {_shown_name(enemy.name)}'s army is SHATTERED and flees{_whither(self, enemy, spawn_loc)}!"
@@ -17401,10 +17436,14 @@ class WorldState:
                     retreat_to = self.get_safe_retreat_destination(marshal.name, auto_charge_battle_region)
                     if retreat_to:
                         old_atk_loc = marshal.location
-                        if marshal.strategic_order:
+                        from backend.game_logic import own_order as _own_order   # Row IC, Session 4b
+                        _keeps = _own_order.keeps_task(marshal)
+                        if marshal.strategic_order and not _keeps:
                             marshal.strategic_order = None
                             clear_order_bound_interrupt(marshal)  # NPC-2
                         marshal.move_to(retreat_to)
+                        if _keeps:
+                            _own_order.after_retreat(self, marshal)
                         marshal.retreating = True
                         marshal.retreat_recovery = 0
                         marshal.retreated_this_turn = True
@@ -17436,7 +17475,10 @@ class WorldState:
                         marshal.broken_recovery = 0
                         marshal.retreating = False
                         marshal.clear_combat_transient_state()
-                        if marshal.strategic_order:
+                        from backend.game_logic import own_order as _own_order   # Row IC, Session 4b
+                        if _own_order.keeps_task(marshal):
+                            _own_order.after_retreat(self, marshal)
+                        elif marshal.strategic_order:
                             marshal.strategic_order = None
                             clear_order_bound_interrupt(marshal)  # NPC-2
                         forced_retreat_msg += f" {_shown_name(marshal.name)}'s army is SHATTERED and flees{_whither(self, marshal, spawn_loc)}!"

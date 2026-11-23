@@ -1,0 +1,338 @@
+{
+ "tool": "tools/_ic4b_measure.py",
+ "seeds": 30,
+ "turns": 20,
+ "men": [
+  "Ney",
+  "Lannes",
+  "Murat",
+  "Davout",
+  "Bernadotte"
+ ],
+ "bars": {
+  "bold_pooled": 0.6,
+  "bold_each": 0.5,
+  "careful_good": 0.6,
+  "return": 0.8,
+  "acts_together": 0.7,
+  "bold_toward": 0.5
+ },
+ "score": {
+  "R-INITIATIVE": {
+   "bold_pooled": 0.54,
+   "bold_chance_turns": 202,
+   "bold_each_met": false,
+   "careful_good_share": 0.654,
+   "careful_good_turns": 107,
+   "far_chances": [],
+   "far_count": 0,
+   "return_share": 0.978,
+   "returns_due": 46,
+   "out_and_back": 0,
+   "out_and_back_any_reported": 2,
+   "free_chance_turns": 279,
+   "free_taken_share": 0.71,
+   "met": false
+  },
+  "R-ACTS": {
+   "together_visible_share_at_war": 0.691,
+   "war_turns": 2207,
+   "bare_stays": [],
+   "bare_stay_count": 0,
+   "bold_toward_met": true,
+   "met": false,
+   "per_man": {
+    "Ney": {
+     "turns": 565,
+     "visible_share": 0.811,
+     "stays_share": 0.106,
+     "kinds": [
+      "attack",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 233,
+     "toward_share": 0.738,
+     "chance_turns": 81,
+     "chance_taken_share": 0.58,
+     "good_chance_turns": 62,
+     "good_taken_share": 0.758,
+     "tasks": {
+      "hold": 15,
+      "pursue": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Lannes": {
+     "turns": 469,
+     "visible_share": 0.633,
+     "stays_share": 0.092,
+     "kinds": [
+      "attack",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "move_up",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 299,
+     "toward_share": 0.582,
+     "chance_turns": 66,
+     "chance_taken_share": 0.591,
+     "good_chance_turns": 46,
+     "good_taken_share": 0.739,
+     "tasks": {
+      "support": 15,
+      "pursue": 5,
+      "hold": 5,
+      "free": 5
+     }
+    },
+    "Murat": {
+     "turns": 305,
+     "visible_share": 0.682,
+     "stays_share": 0.141,
+     "kinds": [
+      "attack",
+      "fall_back",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike"
+     ],
+     "near_foe_turns": 256,
+     "toward_share": 0.598,
+     "chance_turns": 55,
+     "chance_taken_share": 0.418,
+     "good_chance_turns": 50,
+     "good_taken_share": 0.44,
+     "tasks": {
+      "pursue": 15,
+      "hold": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Davout": {
+     "turns": 552,
+     "visible_share": 0.712,
+     "stays_share": 0.243,
+     "kinds": [
+      "dig_in",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 245,
+     "toward_share": 0.702,
+     "chance_turns": 108,
+     "chance_taken_share": 0.62,
+     "good_chance_turns": 82,
+     "good_taken_share": 0.768,
+     "tasks": {
+      "hold": 15,
+      "support": 5,
+      "free": 5,
+      "pursue": 5
+     }
+    },
+    "Bernadotte": {
+     "turns": 316,
+     "visible_share": 0.535,
+     "stays_share": 0.199,
+     "kinds": [
+      "asks",
+      "attack",
+      "dig_in",
+      "fall_back",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 189,
+     "toward_share": 0.328,
+     "chance_turns": 63,
+     "chance_taken_share": 0.175,
+     "good_chance_turns": 25,
+     "good_taken_share": 0.28,
+     "tasks": {
+      "support": 5,
+      "free": 5,
+      "hold": 10,
+      "take": 5,
+      "pursue": 5
+     }
+    }
+   }
+  },
+  "R-REPORT": {
+   "false": [],
+   "count": 0,
+   "met": true
+  },
+  "R-VARIETY": {
+   "alike_share": 0.023,
+   "turns_read": 487,
+   "third_turn_repeats": 0,
+   "asks_or_recovers_three_turns": 1,
+   "every_man_two_kinds": true,
+   "met": true
+  },
+  "R-TOGETHER": {
+   "turns": 639,
+   "double_attacks": 0,
+   "named_share": 0.557,
+   "met": true
+  },
+  "R-FRIENDS": {
+   "battles_with_a_man_beside": 429,
+   "he_rolled": 128
+  }
+ },
+ "not_taken": {
+  "bold": {
+   "acts": {
+    "march": 42,
+    "look": 29,
+    "stay": 13,
+    "strike": 5,
+    "take": 2,
+    "move_up": 1,
+    "attack": 1
+   },
+   "top": {
+    "goal:march": 38,
+    "wait:look": 28,
+    "chance:strike": 13,
+    "wait:stay": 12,
+    "chance:take": 2
+   },
+   "gaps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    6,
+    9,
+    9,
+    12,
+    21,
+    21,
+    21,
+    21,
+    22,
+    24,
+    26,
+    35,
+    36,
+    37,
+    45
+   ],
+   "chance_in_top5": 62,
+   "gap_median": 21
+  },
+  "careful": {
+   "acts": {
+    "march": 28,
+    "stay": 21,
+    "dig_in": 18,
+    "look": 15,
+    "join": 11,
+    "start": 7,
+    "asks": 1
+   },
+   "top": {
+    "goal:march": 23,
+    "chance:strike": 18,
+    "wait:stay": 18,
+    "wait:dig_in": 15,
+    "wait:look": 14,
+    "chance:take": 1
+   },
+   "gaps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    7,
+    10,
+    13,
+    14,
+    14,
+    14,
+    14,
+    19,
+    22,
+    22,
+    22,
+    22,
+    26,
+    35,
+    42,
+    45
+   ],
+   "chance_in_top5": 69,
+   "gap_median": 14
+  }
+ },
+ "passes": {
+  "historical": 20,
+  "austerlitz": 20,
+  "marengo": 20,
+  "ic4b-01": 20,
+  "ic4b-02": 20,
+  "ic4b-03": 20,
+  "ic4b-04": 20,
+  "ic4b-05": 20,
+  "ic4b-06": 20,
+  "ic4b-07": 20,
+  "ic4b-08": 20,
+  "ic4b-09": 20,
+  "ic4b-10": 19,
+  "ic4b-11": 20,
+  "ic4b-12": 20,
+  "ic4b-13": 20,
+  "ic4b-14": 20,
+  "ic4b-15": 20,
+  "ic4b-16": 20,
+  "ic4b-17": 20,
+  "ic4b-18": 20,
+  "ic4b-19": 20,
+  "ic4b-20": 20,
+  "ic4b-21": 20,
+  "ic4b-22": 20,
+  "ic4b-23": 20,
+  "ic4b-24": 20,
+  "ic4b-25": 20,
+  "ic4b-26": 20,
+  "ic4b-27": 20
+ },
+ "stalls": [],
+ "seconds": 229
+}

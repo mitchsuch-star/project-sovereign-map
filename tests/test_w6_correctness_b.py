@@ -185,8 +185,8 @@ class TestModifierLabels:
         defender.holding_position = True
         mods = snapshot_defender_modifiers(defender, attacker, "plains", 0)
         labels = [m["label"] for m in mods]
-        assert "Immovable (literal hold)" in labels
-        assert "Personality (literal)" not in labels
+        assert "Immovable (holds to the letter)" in labels
+        assert "To the letter nature" not in labels
 
 
 # ════════════════════════════════════════════════════════════════════════

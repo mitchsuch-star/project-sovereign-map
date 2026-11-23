@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | SURE | "wherever the guns are loudest" is Lannes; the hurried "moving now, quickly" is Ney.
+PAIR 2: Line 1 = Lannes, Line 2 = Ney | PARTLY GUESSED | "next assault" points to Lannes; "can't bear it long" points to Ney's impatience.
+PAIR 3: Line 1 = Masséna, Line 2 = Davout | SURE | "keep this ground, it's mine" is Masséna; "every company counted" is Davout.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | "every man and every order counted" is Davout; "so will my ground" is Masséna.
+PAIR 5: Line 1 = Davout, Line 2 = Lannes | SURE | "every post manned, every count right" is Davout; "listening for the guns" is Lannes.
+PAIR 6: Line 1 = Murat, Line 2 = Bernadotte | SURE | "On his heels" is a cavalry pursuit; "comfortable pace" is Bernadotte.
+PAIR 7: Line 1 = Murat, Line 2 = Masséna | SURE | "No one to chase, a pity" is Murat; "I give up nothing" is Masséna.
+PAIR 8: Line 1 = Murat, Line 2 = Davout | SURE | "squadrons and a loose rein" is Murat; "nothing will be wasted" is Davout.
+PAIR 9: Line 1 = Ney, Line 2 = Murat | PARTLY GUESSED | "won't have to hold myself back" reads as Ney's impatience; "squadrons ride at full gallop" is Murat.
+PAIR 10: Line 1 = Bernadotte, Line 2 = Ney | PARTLY GUESSED | "kept that in mind" is the politic grudge; "but I'll go now" is Ney's eagerness.
+PAIR 11: Line 1 = Bernadotte, Line 2 = Masséna | SURE | "conditions were poor" is an excuse; "held my ground" is Masséna.
+PAIR 12: Line 1 = Bernadotte, Line 2 = Lannes | SURE | "handled sensibly" is Bernadotte; "Where are the guns next?" is Lannes.
+SET 1: A=Murat, B=Davout, C=Masséna, D=Ney, E=Bernadotte, F=Lannes | guessed letters: D, F
+SET 2: A=Lannes, B=Masséna, C=Davout, D=Ney, E=Murat, F=Bernadotte | guessed letters: B, F, D
+SET 3: A=Murat, B=Davout, C=Lannes, D=Masséna, E=Bernadotte, F=Ney | guessed letters: F
+SET 4: A=Masséna, B=Lannes, C=Davout, D=Murat, E=Bernadotte, F=Ney | guessed letters: none
+SET 5: A=Ney, B=Masséna, C=Bernadotte, D=Davout, E=Murat, F=Lannes | guessed letters: A, F

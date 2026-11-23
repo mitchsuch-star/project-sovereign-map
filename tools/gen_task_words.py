@@ -177,6 +177,9 @@ def build() -> Dict[str, object]:
         "army_exact": _flat(T.ARMY_EXACT),
         "goal_verbs": _flat(T.GOAL_VERBS),
         "goal_objects": _flat([T.GOAL_OBJECT]),
+        # Row IC, Session 4b: on his own with no task
+        "free_task": sorted({re.sub(r"\s+", " ", f.lower().strip()) for f in T.FREE_TASK},
+                            key=lambda t: (-len(t), t)),
     }
 
 
@@ -248,6 +251,8 @@ def render_py(data: Dict[str, object]) -> str:
     out += _py_list("GOAL_VERBS", data["goal_verbs"],
                     "\"Ney, take the war goal\": the verbs that take the goal as their object")
     out += _py_list("GOAL_OBJECTS", data["goal_objects"])
+    out += _py_list("FREE_TASK", data["free_task"],
+                    "Row IC, Session 4b — beside a mark of judgement, the words that still say \"no task\"")
     return out.rstrip("\n") + "\n"
 
 

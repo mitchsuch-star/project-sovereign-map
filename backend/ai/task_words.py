@@ -419,3 +419,19 @@ GOAL_OBJECTS = (
     'the war goal',
     'my war goal',
 )
+
+# Row IC, Session 4b — beside a mark of judgement, the words that still say "no task"
+FREE_TASK = (
+    'carry the war to them',
+    'do as you will',
+    'take the field',
+    'do your work',
+    'act alone',
+    'make war',
+    'wage war',
+    'command',
+    'fight',
+    'lead',
+    'act',
+    'go',
+)

@@ -1,0 +1,341 @@
+{
+ "tool": "tools/_ic4b_measure.py",
+ "seeds": 30,
+ "turns": 20,
+ "men": [
+  "Ney",
+  "Lannes",
+  "Murat",
+  "Davout",
+  "Bernadotte"
+ ],
+ "bars": {
+  "bold_pooled": 0.6,
+  "bold_each": 0.5,
+  "careful_good": 0.6,
+  "return": 0.8,
+  "acts_together": 0.7,
+  "bold_toward": 0.5
+ },
+ "score": {
+  "R-INITIATIVE": {
+   "bold_pooled": 0.419,
+   "bold_chance_turns": 217,
+   "bold_each_met": false,
+   "careful_good_share": 0.276,
+   "careful_good_turns": 116,
+   "far_chances": [],
+   "far_count": 0,
+   "return_share": 0.291,
+   "returns_due": 55,
+   "out_and_back": 9,
+   "free_chance_turns": 283,
+   "free_taken_share": 0.633,
+   "met": false
+  },
+  "R-ACTS": {
+   "together_visible_share_at_war": 0.594,
+   "war_turns": 2072,
+   "bare_stays": [
+    [
+     "ic4b-22",
+     17,
+     "Murat",
+     "Murat could not carry out his move: Cannot move into Bohemia - enemy forces present! Use ATTACK to engage Archduke Charles, Archduke John, K"
+    ],
+    [
+     "ic4b-22",
+     21,
+     "Murat",
+     "Murat could not carry out his move: Cannot move into Bohemia - enemy forces present! Use ATTACK to engage Mack, Archduke Charles, Archduke J"
+    ]
+   ],
+   "bare_stay_count": 2,
+   "bold_toward_met": false,
+   "met": false,
+   "per_man": {
+    "Ney": {
+     "turns": 526,
+     "visible_share": 0.654,
+     "stays_share": 0.226,
+     "kinds": [
+      "attack",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 260,
+     "toward_share": 0.527,
+     "chance_turns": 104,
+     "chance_taken_share": 0.26,
+     "good_chance_turns": 73,
+     "good_taken_share": 0.342,
+     "tasks": {
+      "hold": 15,
+      "pursue": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Lannes": {
+     "turns": 449,
+     "visible_share": 0.537,
+     "stays_share": 0.143,
+     "kinds": [
+      "attack",
+      "join",
+      "look",
+      "march",
+      "move_up",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 333,
+     "toward_share": 0.483,
+     "chance_turns": 74,
+     "chance_taken_share": 0.514,
+     "good_chance_turns": 53,
+     "good_taken_share": 0.585,
+     "tasks": {
+      "support": 15,
+      "pursue": 5,
+      "hold": 5,
+      "free": 5
+     }
+    },
+    "Murat": {
+     "turns": 277,
+     "visible_share": 0.729,
+     "stays_share": 0.007,
+     "kinds": [
+      "attack",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 254,
+     "toward_share": 0.665,
+     "chance_turns": 39,
+     "chance_taken_share": 0.667,
+     "good_chance_turns": 28,
+     "good_taken_share": 0.786,
+     "tasks": {
+      "pursue": 15,
+      "hold": 5,
+      "support": 5,
+      "free": 5
+     }
+    },
+    "Davout": {
+     "turns": 519,
+     "visible_share": 0.559,
+     "stays_share": 0.331,
+     "kinds": [
+      "dig_in",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 271,
+     "toward_share": 0.369,
+     "chance_turns": 120,
+     "chance_taken_share": 0.258,
+     "good_chance_turns": 93,
+     "good_taken_share": 0.258,
+     "tasks": {
+      "hold": 15,
+      "support": 5,
+      "free": 5,
+      "pursue": 5
+     }
+    },
+    "Bernadotte": {
+     "turns": 301,
+     "visible_share": 0.512,
+     "stays_share": 0.153,
+     "kinds": [
+      "attack",
+      "dig_in",
+      "join",
+      "look",
+      "march",
+      "recover",
+      "stay",
+      "strike",
+      "take"
+     ],
+     "near_foe_turns": 191,
+     "toward_share": 0.319,
+     "chance_turns": 56,
+     "chance_taken_share": 0.179,
+     "good_chance_turns": 23,
+     "good_taken_share": 0.348,
+     "tasks": {
+      "support": 5,
+      "free": 5,
+      "hold": 10,
+      "take": 5,
+      "pursue": 5
+     }
+    }
+   }
+  },
+  "R-REPORT": {
+   "false": [],
+   "count": 0,
+   "met": true
+  },
+  "R-VARIETY": {
+   "alike_share": 0.048,
+   "turns_read": 459,
+   "third_turn_repeats": 0,
+   "asks_or_recovers_three_turns": 0,
+   "every_man_two_kinds": true,
+   "met": true
+  },
+  "R-TOGETHER": {
+   "turns": 712,
+   "double_attacks": 0,
+   "named_share": 0.566,
+   "met": true
+  },
+  "R-FRIENDS": {
+   "battles_with_a_man_beside": 501,
+   "he_rolled": 124
+  }
+ },
+ "not_taken": {
+  "bold": {
+   "acts": {
+    "stay": 52,
+    "march": 50,
+    "look": 17,
+    "strike": 6,
+    "attack": 1
+   },
+   "top": {
+    "chance:strike": 50,
+    "goal:march": 48,
+    "wait:look": 15,
+    "seek:march": 7,
+    "wait:stay": 6
+   },
+   "gaps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    9,
+    9,
+    9,
+    17,
+    21,
+    21,
+    22,
+    25,
+    27,
+    35,
+    37
+   ],
+   "chance_in_top5": 110,
+   "gap_median": 9
+  },
+  "careful": {
+   "acts": {
+    "stay": 69,
+    "march": 38,
+    "dig_in": 16,
+    "start": 7,
+    "join": 7,
+    "look": 5
+   },
+   "top": {
+    "chance:strike": 51,
+    "goal:march": 45,
+    "wait:dig_in": 15,
+    "wait:stay": 8,
+    "seek:march": 7,
+    "wait:look": 5
+   },
+   "gaps": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    7,
+    11,
+    14,
+    14,
+    14,
+    22,
+    22,
+    30,
+    44,
+    69
+   ],
+   "chance_in_top5": 102,
+   "gap_median": 2
+  }
+ },
+ "passes": {
+  "historical": 20,
+  "austerlitz": 20,
+  "marengo": 20,
+  "ic4b-01": 20,
+  "ic4b-02": 11,
+  "ic4b-03": 20,
+  "ic4b-04": 20,
+  "ic4b-05": 20,
+  "ic4b-06": 20,
+  "ic4b-07": 20,
+  "ic4b-08": 20,
+  "ic4b-09": 20,
+  "ic4b-10": 19,
+  "ic4b-11": 20,
+  "ic4b-12": 20,
+  "ic4b-13": 20,
+  "ic4b-14": 20,
+  "ic4b-15": 20,
+  "ic4b-16": 20,
+  "ic4b-17": 20,
+  "ic4b-18": 20,
+  "ic4b-19": 20,
+  "ic4b-20": 20,
+  "ic4b-21": 19,
+  "ic4b-22": 20,
+  "ic4b-23": 20,
+  "ic4b-24": 20,
+  "ic4b-25": 20,
+  "ic4b-26": 20,
+  "ic4b-27": 20
+ },
+ "stalls": [],
+ "seconds": 228
+}

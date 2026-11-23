@@ -1,0 +1,2020 @@
+{
+ "_note": "Row IC, Session 4 \u2014 R-HILL (4), (5) and R-HUNT's ambient count: ten ambient seeds x 20 turns a arm, France only ending the turn. Per arm: each letter-following enemy marshal's man-turns alive, the man-turns he acted in (a successful attack, a march, a dig-in, leaving his works, a fall-back, a retreat \u2014 by his court's logic or his written orders) and the rate; every line that fired; hits and stalls; the enemy's attacks on French corps and on LONE French corps. Arm 0 is today. Written by tools/_ic4_measure.py --surfaces hill.",
+ "arms": {
+  "+PLAN": {
+   "acted": 300,
+   "attacks": {
+    "on_french": 115,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "danube_junction|2|Buxhowden|enemy_near|attack": 1,
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1
+   },
+   "hits": 17,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 43,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 2,
+    "Buxhowden|fortify|court": 17,
+    "Buxhowden|move|court": 14,
+    "Buxhowden|move|plan": 42,
+    "Buxhowden|retreat|court": 6,
+    "Buxhowden|unfortify|court": 19,
+    "Deroy|attack|court": 44,
+    "Deroy|move|court": 45,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 35,
+    "Mack|attack|plan": 10,
+    "Mack|fortify|court": 13,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 16,
+    "Mack|move|plan": 17,
+    "Mack|retreat|court": 2,
+    "Mack|unfortify|court": 13,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 41,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.376,
+     "rate_as_worded": 0.376,
+     "worded": 41
+    },
+    "Buxhowden": {
+     "acted": 96,
+     "man_turns": 200,
+     "planned_turns": 112,
+     "rate": 0.48,
+     "rate_as_worded": 0.395,
+     "worded": 79
+    },
+    "Deroy": {
+     "acted": 71,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.355,
+     "rate_as_worded": 0.35,
+     "worded": 70
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 80,
+     "man_turns": 156,
+     "planned_turns": 90,
+     "rate": 0.513,
+     "rate_as_worded": 0.455,
+     "worded": 71
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.42,
+   "rate_as_worded": 0.381,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True"
+   ],
+   "stalls": 0,
+   "worded": 272
+  },
+  "0": {
+   "acted": 353,
+   "attacks": {
+    "on_french": 149,
+    "on_lone_french": 30
+   },
+   "fired": {},
+   "hits": 0,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 10,
+    "Blake|attack|court": 8,
+    "Blake|move|court": 47,
+    "Buxhowden|fortify|court": 61,
+    "Buxhowden|move|court": 28,
+    "Buxhowden|unfortify|court": 59,
+    "Deroy|attack|court": 12,
+    "Deroy|move|court": 24,
+    "Deroy|retreat|court": 14,
+    "Deroy|unfortify|court": 5,
+    "Mack|attack|court": 92,
+    "Mack|fortify|court": 23,
+    "Mack|move|court": 34,
+    "Mack|retreat|court": 4,
+    "Mack|unfortify|court": 22
+   },
+   "man_turns": 730,
+   "per_man": {
+    "Alten": {
+     "acted": 7,
+     "man_turns": 25,
+     "planned_turns": 0,
+     "rate": 0.28,
+     "rate_as_worded": 0.28,
+     "worded": 7
+    },
+    "Blake": {
+     "acted": 40,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.364,
+     "rate_as_worded": 0.364,
+     "worded": 40
+    },
+    "Buxhowden": {
+     "acted": 132,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.66,
+     "rate_as_worded": 0.28,
+     "worded": 56
+    },
+    "Deroy": {
+     "acted": 48,
+     "man_turns": 191,
+     "planned_turns": 0,
+     "rate": 0.251,
+     "rate_as_worded": 0.225,
+     "worded": 43
+    },
+    "Mack": {
+     "acted": 126,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.63,
+     "rate_as_worded": 0.55,
+     "worded": 110
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 4,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {},
+    "eylau": {},
+    "friedland": {},
+    "historical": {},
+    "jena": {},
+    "lodi": {},
+    "marengo": {},
+    "rivoli": {},
+    "ulm": {},
+    "wagram": {}
+   },
+   "rate": 0.484,
+   "rate_as_worded": 0.351,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=False",
+    "backend.game_logic.war_plans:a_plan_names_a_favoured_province=False",
+    "backend.game_logic.war_plans:a_court_learns_a_routed_mans_task=False",
+    "backend.ai.enemy_ai:each_man_has_his_own_mood=False",
+    "backend.ai.enemy_ai:the_enemy_hunts_a_lone_corps=False",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=False"
+   ],
+   "stalls": 0,
+   "worded": 256
+  },
+  "P:behind_the_elbe": {
+   "acted": 302,
+   "attacks": {
+    "on_french": 121,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "danube_junction|2|Buxhowden|enemy_near|attack": 1,
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1
+   },
+   "hits": 17,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 44,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 2,
+    "Buxhowden|fortify|court": 17,
+    "Buxhowden|move|court": 14,
+    "Buxhowden|move|plan": 42,
+    "Buxhowden|retreat|court": 5,
+    "Buxhowden|unfortify|court": 18,
+    "Deroy|attack|court": 45,
+    "Deroy|move|court": 47,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 35,
+    "Mack|attack|plan": 10,
+    "Mack|fortify|court": 14,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 15,
+    "Mack|move|plan": 17,
+    "Mack|retreat|court": 2,
+    "Mack|unfortify|court": 14,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.385,
+     "rate_as_worded": 0.385,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 93,
+     "man_turns": 200,
+     "planned_turns": 112,
+     "rate": 0.465,
+     "rate_as_worded": 0.385,
+     "worded": 77
+    },
+    "Deroy": {
+     "acted": 73,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.365,
+     "rate_as_worded": 0.36,
+     "worded": 72
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 82,
+     "man_turns": 156,
+     "planned_turns": 90,
+     "rate": 0.526,
+     "rate_as_worded": 0.462,
+     "worded": 72
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.423,
+   "rate_as_worded": 0.384,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='behind_the_elbe'"
+   ],
+   "stalls": 0,
+   "worded": 274
+  },
+  "P:danube_junction": {
+   "acted": 288,
+   "attacks": {
+    "on_french": 134,
+    "on_lone_french": 28
+   },
+   "fired": {
+    "danube_junction|1|Mack|friend_arrives|attack": 1,
+    "danube_junction|2|Buxhowden|enemy_near|attack": 1,
+    "danube_junction|2|Mack|enemy_near|attack": 8,
+    "danube_junction|2|Mack|outnumbered|fall_back": 8,
+    "guard_the_capital|1|Mack|enemy_near|dig_in": 1,
+    "guard_the_capital|1|Mack|outnumbered|fall_back": 1
+   },
+   "hits": 20,
+   "kinds": {
+    "Alten|attack|court": 3,
+    "Alten|move|court": 2,
+    "Blake|attack|court": 13,
+    "Blake|move|court": 37,
+    "Buxhowden|attack|court": 8,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 21,
+    "Buxhowden|move|court": 20,
+    "Buxhowden|move|plan": 30,
+    "Buxhowden|retreat|court": 2,
+    "Buxhowden|unfortify|court": 20,
+    "Deroy|attack|court": 35,
+    "Deroy|move|court": 43,
+    "Deroy|retreat|court": 8,
+    "Deroy|unfortify|court": 1,
+    "Hiller|fortify|court": 1,
+    "Hiller|unfortify|court": 1,
+    "Mack|attack|court": 62,
+    "Mack|attack|plan": 9,
+    "Mack|fortify|court": 14,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 16,
+    "Mack|move|plan": 13,
+    "Mack|retreat|court": 5,
+    "Mack|unfortify|court": 12,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 740,
+   "per_man": {
+    "Alten": {
+     "acted": 5,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.179,
+     "rate_as_worded": 0.179,
+     "worded": 5
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.382,
+     "rate_as_worded": 0.382,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 80,
+     "man_turns": 200,
+     "planned_turns": 112,
+     "rate": 0.4,
+     "rate_as_worded": 0.325,
+     "worded": 65
+    },
+    "Deroy": {
+     "acted": 68,
+     "man_turns": 199,
+     "planned_turns": 0,
+     "rate": 0.342,
+     "rate_as_worded": 0.337,
+     "worded": 67
+    },
+    "Hiller": {
+     "acted": 2,
+     "man_turns": 5,
+     "planned_turns": 0,
+     "rate": 0.4,
+     "rate_as_worded": 0.2,
+     "worded": 1
+    },
+    "Mack": {
+     "acted": 91,
+     "man_turns": 194,
+     "planned_turns": 111,
+     "rate": 0.469,
+     "rate_as_worded": 0.438,
+     "worded": 85
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 4,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "jena": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "guard_the_capital"
+    }
+   },
+   "rate": 0.389,
+   "rate_as_worded": 0.358,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='danube_junction'"
+   ],
+   "stalls": 0,
+   "worded": 265
+  },
+  "P:descent_on_a_coast": {
+   "acted": 295,
+   "attacks": {
+    "on_french": 123,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1,
+    "press_forward|1|Mack|enemy_near|attack": 1
+   },
+   "hits": 17,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 11,
+    "Blake|move|court": 45,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 17,
+    "Buxhowden|move|court": 12,
+    "Buxhowden|move|plan": 38,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 19,
+    "Deroy|attack|court": 47,
+    "Deroy|move|court": 46,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 39,
+    "Mack|attack|plan": 11,
+    "Mack|fortify|court": 13,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 13,
+    "Mack|move|plan": 15,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 13,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 45,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.413,
+     "rate_as_worded": 0.413,
+     "worded": 45
+    },
+    "Buxhowden": {
+     "acted": 87,
+     "man_turns": 200,
+     "planned_turns": 117,
+     "rate": 0.435,
+     "rate_as_worded": 0.35,
+     "worded": 70
+    },
+    "Deroy": {
+     "acted": 74,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.37,
+     "rate_as_worded": 0.365,
+     "worded": 73
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 77,
+     "man_turns": 156,
+     "planned_turns": 93,
+     "rate": 0.494,
+     "rate_as_worded": 0.436,
+     "worded": 68
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.413,
+   "rate_as_worded": 0.374,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='descent_on_a_coast'"
+   ],
+   "stalls": 0,
+   "worded": 267
+  },
+  "P:guard_the_capital": {
+   "acted": 303,
+   "attacks": {
+    "on_french": 119,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "danube_junction|2|Buxhowden|enemy_near|attack": 1,
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "guard_the_capital|1|Buxhowden|enemy_near|dig_in": 1,
+    "guard_the_capital|1|Buxhowden|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1
+   },
+   "hits": 17,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 44,
+    "Buxhowden|attack|court": 9,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 18,
+    "Buxhowden|fortify|plan": 1,
+    "Buxhowden|move|court": 11,
+    "Buxhowden|move|plan": 42,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 19,
+    "Buxhowden|unfortify|plan": 1,
+    "Deroy|attack|court": 42,
+    "Deroy|move|court": 47,
+    "Deroy|retreat|court": 10,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 39,
+    "Mack|attack|plan": 10,
+    "Mack|fortify|court": 15,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 16,
+    "Mack|move|plan": 17,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 14,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.385,
+     "rate_as_worded": 0.385,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 93,
+     "man_turns": 200,
+     "planned_turns": 114,
+     "rate": 0.465,
+     "rate_as_worded": 0.37,
+     "worded": 74
+    },
+    "Deroy": {
+     "acted": 74,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.37,
+     "rate_as_worded": 0.365,
+     "worded": 73
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 82,
+     "man_turns": 156,
+     "planned_turns": 92,
+     "rate": 0.526,
+     "rate_as_worded": 0.468,
+     "worded": 73
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "guard_the_capital",
+     "court::Switzerland": "guard_the_capital"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "guard_the_capital"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    }
+   },
+   "rate": 0.424,
+   "rate_as_worded": 0.382,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='guard_the_capital'"
+   ],
+   "stalls": 0,
+   "worded": 273
+  },
+  "P:hold_the_lines": {
+   "acted": 299,
+   "attacks": {
+    "on_french": 114,
+    "on_lone_french": 30
+   },
+   "fired": {
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1
+   },
+   "hits": 16,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 44,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 19,
+    "Buxhowden|move|court": 12,
+    "Buxhowden|move|plan": 38,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 21,
+    "Deroy|attack|court": 49,
+    "Deroy|move|court": 47,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Hiller|attack|court": 1,
+    "Hiller|fortify|court": 1,
+    "Hiller|move|court": 1,
+    "Hiller|unfortify|court": 1,
+    "Mack|attack|court": 35,
+    "Mack|attack|plan": 10,
+    "Mack|fortify|court": 13,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 12,
+    "Mack|move|plan": 17,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 13,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 712,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.385,
+     "rate_as_worded": 0.385,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 90,
+     "man_turns": 200,
+     "planned_turns": 112,
+     "rate": 0.45,
+     "rate_as_worded": 0.35,
+     "worded": 70
+    },
+    "Deroy": {
+     "acted": 76,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.38,
+     "rate_as_worded": 0.375,
+     "worded": 75
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 2,
+     "man_turns": 19,
+     "planned_turns": 3,
+     "rate": 0.105,
+     "rate_as_worded": 0.105,
+     "worded": 2
+    },
+    "Mack": {
+     "acted": 77,
+     "man_turns": 149,
+     "planned_turns": 90,
+     "rate": 0.517,
+     "rate_as_worded": 0.456,
+     "worded": 68
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.42,
+   "rate_as_worded": 0.376,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='hold_the_lines'"
+   ],
+   "stalls": 0,
+   "worded": 268
+  },
+  "P:long_retreat": {
+   "acted": 311,
+   "attacks": {
+    "on_french": 116,
+    "on_lone_french": 28
+   },
+   "fired": {
+    "long_retreat|1|Mack|enemy_near|fall_back": 10,
+    "long_retreat|1|Mack|outnumbered|fall_back": 9,
+    "long_retreat|2|Mack|enemy_near|attack": 5,
+    "long_retreat|2|Mack|outnumbered|dig_in": 2
+   },
+   "hits": 26,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 17,
+    "Blake|attack|court": 12,
+    "Blake|move|court": 40,
+    "Buxhowden|attack|court": 8,
+    "Buxhowden|fortify|court": 24,
+    "Buxhowden|move|court": 11,
+    "Buxhowden|move|plan": 34,
+    "Buxhowden|retreat|court": 3,
+    "Buxhowden|unfortify|court": 22,
+    "Deroy|attack|court": 49,
+    "Deroy|move|court": 37,
+    "Deroy|retreat|court": 6,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 42,
+    "Mack|attack|plan": 5,
+    "Mack|fortify|court": 21,
+    "Mack|fortify|plan": 2,
+    "Mack|move|court": 16,
+    "Mack|move|plan": 32,
+    "Mack|retreat|court": 2,
+    "Mack|unfortify|court": 22,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 736,
+   "per_man": {
+    "Alten": {
+     "acted": 10,
+     "man_turns": 35,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 10
+    },
+    "Blake": {
+     "acted": 45,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.409,
+     "rate_as_worded": 0.409,
+     "worded": 45
+    },
+    "Buxhowden": {
+     "acted": 84,
+     "man_turns": 200,
+     "planned_turns": 121,
+     "rate": 0.42,
+     "rate_as_worded": 0.33,
+     "worded": 66
+    },
+    "Deroy": {
+     "acted": 67,
+     "man_turns": 184,
+     "planned_turns": 0,
+     "rate": 0.364,
+     "rate_as_worded": 0.359,
+     "worded": 66
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Mack": {
+     "acted": 101,
+     "man_turns": 200,
+     "planned_turns": 121,
+     "rate": 0.505,
+     "rate_as_worded": 0.44,
+     "worded": 88
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "guard_the_capital"
+    }
+   },
+   "rate": 0.423,
+   "rate_as_worded": 0.378,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='long_retreat'"
+   ],
+   "stalls": 0,
+   "worded": 278
+  },
+  "P:press_forward": {
+   "acted": 296,
+   "attacks": {
+    "on_french": 121,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1,
+    "press_forward|1|Mack|enemy_near|attack": 1
+   },
+   "hits": 16,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 44,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 17,
+    "Buxhowden|move|court": 13,
+    "Buxhowden|move|plan": 38,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 19,
+    "Deroy|attack|court": 51,
+    "Deroy|move|court": 47,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 38,
+    "Mack|attack|plan": 11,
+    "Mack|fortify|court": 13,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 12,
+    "Mack|move|plan": 15,
+    "Mack|retreat|court": 3,
+    "Mack|unfortify|court": 13,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.385,
+     "rate_as_worded": 0.385,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 87,
+     "man_turns": 200,
+     "planned_turns": 117,
+     "rate": 0.435,
+     "rate_as_worded": 0.355,
+     "worded": 71
+    },
+    "Deroy": {
+     "acted": 76,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.38,
+     "rate_as_worded": 0.375,
+     "worded": 75
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 79,
+     "man_turns": 156,
+     "planned_turns": 95,
+     "rate": 0.506,
+     "rate_as_worded": 0.449,
+     "worded": 70
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.415,
+   "rate_as_worded": 0.377,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='press_forward'"
+   ],
+   "stalls": 0,
+   "worded": 269
+  },
+  "P:saale_line": {
+   "acted": 292,
+   "attacks": {
+    "on_french": 121,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1
+   },
+   "hits": 15,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 44,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 17,
+    "Buxhowden|move|court": 13,
+    "Buxhowden|move|plan": 38,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 19,
+    "Deroy|attack|court": 49,
+    "Deroy|move|court": 45,
+    "Deroy|retreat|court": 8,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 40,
+    "Mack|attack|plan": 10,
+    "Mack|fortify|court": 13,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 12,
+    "Mack|move|plan": 15,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 13,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.385,
+     "rate_as_worded": 0.385,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 87,
+     "man_turns": 200,
+     "planned_turns": 117,
+     "rate": 0.435,
+     "rate_as_worded": 0.355,
+     "worded": 71
+    },
+    "Deroy": {
+     "acted": 73,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.365,
+     "rate_as_worded": 0.36,
+     "worded": 72
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 78,
+     "man_turns": 156,
+     "planned_turns": 95,
+     "rate": 0.5,
+     "rate_as_worded": 0.442,
+     "worded": 69
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 1,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.409,
+   "rate_as_worded": 0.371,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='saale_line'"
+   ],
+   "stalls": 0,
+   "worded": 265
+  },
+  "P:thuringian_concentration": {
+   "acted": 294,
+   "attacks": {
+    "on_french": 117,
+    "on_lone_french": 34
+   },
+   "fired": {
+    "danube_junction|2|Mack|enemy_near|attack": 1,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1
+   },
+   "hits": 16,
+   "kinds": {
+    "Alten|move|court": 16,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 44,
+    "Buxhowden|attack|court": 7,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 18,
+    "Buxhowden|move|court": 12,
+    "Buxhowden|move|plan": 38,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 20,
+    "Deroy|attack|court": 44,
+    "Deroy|move|court": 45,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Dokhturov|fortify|court": 1,
+    "Dokhturov|move|court": 4,
+    "Dokhturov|unfortify|court": 1,
+    "Mack|attack|court": 36,
+    "Mack|attack|plan": 10,
+    "Mack|fortify|court": 15,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 14,
+    "Mack|move|plan": 17,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 15,
+    "Mack|unfortify|plan": 1
+   },
+   "man_turns": 715,
+   "per_man": {
+    "Alten": {
+     "acted": 8,
+     "man_turns": 28,
+     "planned_turns": 0,
+     "rate": 0.286,
+     "rate_as_worded": 0.286,
+     "worded": 8
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.385,
+     "rate_as_worded": 0.385,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 89,
+     "man_turns": 200,
+     "planned_turns": 116,
+     "rate": 0.445,
+     "rate_as_worded": 0.35,
+     "worded": 70
+    },
+    "Deroy": {
+     "acted": 71,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.355,
+     "rate_as_worded": 0.35,
+     "worded": 70
+    },
+    "Dokhturov": {
+     "acted": 4,
+     "man_turns": 6,
+     "planned_turns": 0,
+     "rate": 0.667,
+     "rate_as_worded": 0.5,
+     "worded": 3
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 80,
+     "man_turns": 156,
+     "planned_turns": 94,
+     "rate": 0.513,
+     "rate_as_worded": 0.455,
+     "worded": 71
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 2,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.411,
+   "rate_as_worded": 0.369,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='thuringian_concentration'"
+   ],
+   "stalls": 0,
+   "worded": 264
+  },
+  "P:weyrothers_disposition": {
+   "acted": 277,
+   "attacks": {
+    "on_french": 116,
+    "on_lone_french": 34
+   },
+   "fired": {
+    "press_forward|1|Buxhowden|enemy_near|attack": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 2,
+    "weyrothers_disposition|1|Mack|surrounded|fall_back": 1,
+    "weyrothers_disposition|2|Buxhowden|enemy_near|attack": 3,
+    "weyrothers_disposition|2|Mack|surrounded|fall_back": 1
+   },
+   "hits": 8,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 12,
+    "Blake|attack|court": 10,
+    "Blake|move|court": 43,
+    "Buxhowden|attack|court": 12,
+    "Buxhowden|attack|plan": 4,
+    "Buxhowden|fortify|court": 19,
+    "Buxhowden|move|court": 14,
+    "Buxhowden|move|plan": 49,
+    "Buxhowden|retreat|court": 3,
+    "Buxhowden|unfortify|court": 18,
+    "Deroy|attack|court": 30,
+    "Deroy|move|court": 31,
+    "Deroy|retreat|court": 11,
+    "Deroy|unfortify|court": 2,
+    "Mack|attack|court": 24,
+    "Mack|attack|plan": 21,
+    "Mack|fortify|court": 11,
+    "Mack|move|court": 17,
+    "Mack|move|plan": 3,
+    "Mack|retreat|court": 1,
+    "Mack|unfortify|court": 10
+   },
+   "man_turns": 694,
+   "per_man": {
+    "Alten": {
+     "acted": 6,
+     "man_turns": 27,
+     "planned_turns": 0,
+     "rate": 0.222,
+     "rate_as_worded": 0.222,
+     "worded": 6
+    },
+    "Blake": {
+     "acted": 40,
+     "man_turns": 109,
+     "planned_turns": 0,
+     "rate": 0.367,
+     "rate_as_worded": 0.367,
+     "worded": 40
+    },
+    "Buxhowden": {
+     "acted": 104,
+     "man_turns": 200,
+     "planned_turns": 112,
+     "rate": 0.52,
+     "rate_as_worded": 0.44,
+     "worded": 88
+    },
+    "Deroy": {
+     "acted": 58,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.29,
+     "rate_as_worded": 0.28,
+     "worded": 56
+    },
+    "Hiller": {
+     "acted": 0,
+     "man_turns": 14,
+     "planned_turns": 3,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    },
+    "Mack": {
+     "acted": 69,
+     "man_turns": 139,
+     "planned_turns": 83,
+     "rate": 0.496,
+     "rate_as_worded": 0.46,
+     "worded": 64
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 5,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Russia": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Switzerland": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Russia": "press_forward"
+    }
+   },
+   "rate": 0.399,
+   "rate_as_worded": 0.366,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:the_plan_forced='weyrothers_disposition'"
+   ],
+   "stalls": 0,
+   "worded": 254
+  }
+ },
+ "r_hill_4": {
+  "as_first_run": {
+   "coalition:Third Coalition": {
+    "mean_of_plans": 0.404,
+    "met": false,
+    "today": 0.484
+   },
+   "court:Britain": {
+    "mean_of_plans": 0.416,
+    "met": false,
+    "today": 0.484
+   },
+   "court:Prussia": {
+    "mean_of_plans": 0.414,
+    "met": false,
+    "today": 0.484
+   },
+   "default:True": {
+    "mean_of_plans": 0.419,
+    "met": false,
+    "today": 0.484
+   }
+  },
+  "as_the_plan_words_it": {
+   "coalition:Third Coalition": {
+    "mean_of_plans": 0.367,
+    "met": true,
+    "today": 0.351
+   },
+   "court:Britain": {
+    "mean_of_plans": 0.375,
+    "met": true,
+    "today": 0.351
+   },
+   "court:Prussia": {
+    "mean_of_plans": 0.375,
+    "met": true,
+    "today": 0.351
+   },
+   "default:True": {
+    "mean_of_plans": 0.38,
+    "met": true,
+    "today": 0.351
+   }
+  }
+ },
+ "r_hill_4_note": "TWO READINGS, both kept. `as_first_run` is the count this tool made exact before its first run (every dig-in and every leaving of the works is an act). `as_the_plan_words_it` is the plan approved in Plan Mode, word for word: 'a march, an attack, a first dig-in, a fall-back or a capture' \u2014 a dig-in counts once a province, leaving the works does not. The second reading was added AFTER the first data was seen; the report says so.",
+ "r_hill_5": {
+  "+PLAN": 0,
+  "0": 0,
+  "P:behind_the_elbe": 0,
+  "P:danube_junction": 0,
+  "P:descent_on_a_coast": 0,
+  "P:guard_the_capital": 0,
+  "P:hold_the_lines": 0,
+  "P:long_retreat": 0,
+  "P:press_forward": 0,
+  "P:saale_line": 0,
+  "P:thuringian_concentration": 0,
+  "P:weyrothers_disposition": 0
+ },
+ "seeds": [
+  "historical",
+  "ulm",
+  "austerlitz",
+  "jena",
+  "marengo",
+  "eylau",
+  "friedland",
+  "wagram",
+  "lodi",
+  "rivoli"
+ ],
+ "sets": [
+  [
+   [
+    "coalition",
+    "Third Coalition"
+   ],
+   [
+    "danube_junction",
+    "long_retreat",
+    "weyrothers_disposition"
+   ]
+  ],
+  [
+   [
+    "court",
+    "Prussia"
+   ],
+   [
+    "thuringian_concentration",
+    "saale_line",
+    "behind_the_elbe"
+   ]
+  ],
+  [
+   [
+    "court",
+    "Britain"
+   ],
+   [
+    "hold_the_lines",
+    "descent_on_a_coast"
+   ]
+  ],
+  [
+   [
+    "default",
+    true
+   ],
+   [
+    "press_forward",
+    "guard_the_capital"
+   ]
+  ]
+ ],
+ "turns": 20
+}

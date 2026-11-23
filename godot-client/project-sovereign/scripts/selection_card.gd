@@ -302,7 +302,7 @@ func _trial_row(compact: bool) -> Control:
 
 func _own_row(compact: bool) -> Control:
 	"""Row IC, Session 3: he is ON HIS OWN — the server's own words for his
-	task, what he will do tonight (the one reading the night itself uses), what
+	task, what he did as this turn opened (Session 4b: never a preview), what
 	he asks of you, his odds — and four buttons, each the click twin of a typed
 	line: "Ask him" and "Change his task…" WRITE the line (asking is free and
 	his answer shows before Enter; a change costs 1 action), "Carry on" (when
@@ -317,8 +317,14 @@ func _own_row(compact: bool) -> Control:
 	var shown := Utils.humanize_entity_name(_marshal)
 	var task_words := str(own.get("words", ""))
 	var words := "[color=#" + Utils.COLOR_GOLD + "]On his own: " + task_words + "[/color]"
+	# Row IC, Session 4b — what he did as this turn opened; read first, so the
+	# state's own words are not said twice (pressed in the real client: "(makes
+	# his first move at the start of next turn)" stood right above the same
+	# sentence on its own line)
+	var done := str(own.get("this_turn", "")).strip_edges().trim_suffix(".")
+	var first_next := done == "" and bool(own.get("first_move_next", false))
 	var state_words := str(own.get("state_words", ""))
-	if state_words != "":
+	if state_words != "" and not first_next:
 		words += "  [color=#" + Utils.COLOR_INFO + "](" + state_words + ")[/color]"
 	# Row IC, Session 3b: the army he commands, and who follows him; the war
 	# goal his task serves.
@@ -339,31 +345,32 @@ func _own_row(compact: bool) -> Control:
 			words += " — " + men + (" him." if n > 0 else ".")
 	elif serves:
 		words += ("\n[color=#" + Utils.COLOR_GOLD + "]Serves your war goal[/color] — a new goal turns him (1 action).")
-	var tonight := str(own.get("tonight", "")).strip_edges()
-	if tonight != "":
-		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tonight:[/color] " + tonight + "."
-	var ahead := str(own.get("ahead", "")).strip_edges()
-	if ahead != "":
-		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tomorrow night, as things stand:[/color] " + ahead + "."
+	# Row IC, Session 4b — the user's "He moves at turn start": what he DID as
+	# this turn opened, never what he will do (no preview).
+	if done != "":
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]This turn:[/color] " + done + "."
+	elif first_next:
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]He makes his first move at the start of next turn.[/color]"
 	var help := str(own.get("help", "")).strip_edges()
 	if help != "":
-		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Every night:[/color] " + help + "."
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Every turn:[/color] " + help + "."
 	var asks := str(own.get("asks", "")).strip_edges()
 	if asks != "":
-		words += "\n[color=#" + Utils.COLOR_WARNING + "]He asks for your word: " + asks + ".[/color]"
+		if bool(own.get("carries_on", false)):
+			words += "\n[color=#" + Utils.COLOR_WARNING + "]He asks for your word: " + asks + ". He carries on meanwhile.[/color]"
+		else:
+			words += "\n[color=#" + Utils.COLOR_WARNING + "]He asks for your word: " + asks + ".[/color]"
 	if not compact:
-		# Row IC, Session 3b (pressed at the first player's setup): where his
-		# night's own line already says the odds and the bar he goes in at ("the
-		# odds are our 19.5 to their 10, and he goes in when they are 5 to 10 or
-		# better"), the sentence that repeats them is left out — with it, a
-		# commander's card on the night he is given ran 27 px past the screen's
-		# foot and cut his last button off.
-		var said_odds := tonight.contains("he goes in when") or ahead.contains("he goes in when")
 		words += "\n[color=#" + Utils.COLOR_INFO + "]"
-		if not said_odds:
-			words += ("He attacks only when the odds are " + str(own.get("odds", ""))
-				+ " (men of ours to theirs, as the battle forecast reckons them). ")
-		words += "An order you give him today is carried out; his task goes on the next night.[/color]"
+		words += ("He attacks only when the odds are " + str(own.get("odds", ""))
+			+ " (men of ours to theirs, as the battle forecast reckons them). ")
+		# (pressed in the real client: a man set on his own with NO task read
+		# "Your task guides him")
+		if str(own.get("task", "")) == "free":
+			words += "No task: each turn he weighs the chances around him and makes war as he sees fit; a task you give later guides him. "
+		else:
+			words += "Your task guides him: each turn he weighs it against the chances around him. "
+		words += "An order you give him by hand is carried out at its usual price.[/color]"
 	col.add_child(_measured_rich("OwnLine", words, wrap_w, true))
 	var flow := HFlowContainer.new()
 	flow.name = "OwnButtons"
@@ -391,9 +398,9 @@ func _own_row(compact: bool) -> Control:
 
 func _follows_row(compact: bool) -> Control:
 	"""Row IC, Session 3b: he FOLLOWS the commander of an army's task — whom,
-	for which army and task, and what he will do tonight (the server's own
-	reading: he moves right after his commander, before the enemy). Null for
-	every other man."""
+	for which army and task, and what he did as this turn opened (Session 4b:
+	he moves right after his commander at the turn's start). Null for every
+	other man."""
 	var follows = _view.get("follows", {})
 	if not (follows is Dictionary) or str((follows as Dictionary).get("lead", "")) == "":
 		return null
@@ -401,15 +408,17 @@ func _follows_row(compact: bool) -> Control:
 	var lead := str(follows.get("lead_shown", follows.get("lead", "")))
 	var words := ("[color=#" + Utils.COLOR_GOLD + "]Follows " + lead + "[/color] — the " + str(follows.get("army", ""))
 		+ " is on its own: " + str(follows.get("task", "")) + ".")
-	var tonight := str(follows.get("tonight", "")).strip_edges()
-	if tonight != "":
-		words += "\n[color=#" + Utils.COLOR_COMMAND + "]Tonight:[/color] " + tonight + "."
+	var done := str(follows.get("this_turn", "")).strip_edges().trim_suffix(".")
+	if done != "":
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]This turn:[/color] " + done + "."
+	elif bool(follows.get("first_move_next", false)):
+		words += "\n[color=#" + Utils.COLOR_COMMAND + "]He moves with " + lead + " from the start of next turn.[/color]"
 	if not compact:
 		var odds := int(follows.get("odds", 0))
-		words += ("\n[color=#" + Utils.COLOR_INFO + "]He moves with " + lead + " each night, before the enemy does, and may"
+		words += ("\n[color=#" + Utils.COLOR_INFO + "]He moves with " + lead + " at the start of each turn, and may"
 			+ " join " + lead + "'s battles next to him" + ((" (about " + str(odds) + " times in 100)") if odds > 0 else "")
-			+ ". He takes none of your places for men on their own. An order you give him today is carried out;"
-			+ " he follows again the next night.[/color]")
+			+ ". He takes none of your places for men on their own. An order you give him by hand is carried out;"
+			+ " he follows again at the start of next turn.[/color]")
 	return _measured_rich("FollowsLine", words, wrap_w, true)
 
 
@@ -625,6 +634,13 @@ func _simple_row(compact: bool) -> Control:
 			if not _own_now:
 				flow.add_child(_simple_button("Simple_task", str(entry["label"]),
 					str(entry["tip"]), "", _emit_task))
+		elif id == "own_free":
+			# Row IC, Session 4b: on his own with no task — only for a man who
+			# may ever be set so (the server prices it then), never once he is.
+			var offered = (_view.get("buttons", {}) as Dictionary).get("offered", {}) \
+				if _view.get("buttons", {}) is Dictionary else {}
+			if not _own_now and offered is Dictionary and bool((offered as Dictionary).get("own_free", false)):
+				flow.add_child(_order_button(entry, compact))
 		else:
 			flow.add_child(_order_button(entry, compact))
 	return flow

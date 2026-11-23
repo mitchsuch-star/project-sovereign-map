@@ -14239,6 +14239,12 @@ def _process_mission_effects(world) -> List[Dict]:
                 events[-1]["orders_learned"] = list(_spied.get("marshals") or [])
                 events[-1]["favour_learned"] = _spied.get("favour")
                 events[-1]["message"] += " " + _orders_said
+            else:
+                # An empty plan must read differently from a failed spy — said
+                # only while the courts write plans at all (the seam).
+                from backend.game_logic.war_plans import the_courts_follow_a_plan
+                if the_courts_follow_a_plan():
+                    events[-1]["message"] += " No written orders were found."
             from backend.game_logic.diplomatic_dialogue import record_mission_end
             record_mission_end(world, mission, "duration",
                                regions_revealed=len(target_regions),

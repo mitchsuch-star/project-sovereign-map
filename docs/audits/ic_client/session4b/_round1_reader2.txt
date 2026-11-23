@@ -1,0 +1,17 @@
+PAIR 1: Line 1 = Ney, Line 2 = Lannes | PARTLY GUESSED | Line 1 is impatient haste; Line 2 is the guns-loudest talk.
+PAIR 2: Line 1 = Lannes, Line 2 = Ney | PARTLY GUESSED | "next assault" points to Lannes; "can't bear it long" is Ney's impatience.
+PAIR 3: Line 1 = Masséna, Line 2 = Davout | SURE | "It's mine now" is holding ground; "every company counted" is Davout.
+PAIR 4: Line 1 = Davout, Line 2 = Masséna | SURE | Written down, every man counted is Davout; "my ground" is Masséna.
+PAIR 5: Line 1 = Davout, Line 2 = Lannes | SURE | Every post manned and counted vs listening for the guns.
+PAIR 6: Line 1 = Murat, Line 2 = Bernadotte | SURE | "On his heels" is pursuit; "comfortable pace" is slow.
+PAIR 7: Line 1 = Murat, Line 2 = Masséna | SURE | "No one to chase, a pity" vs "I give up nothing".
+PAIR 8: Line 1 = Murat, Line 2 = Davout | SURE | Squadrons and loose rein vs "nothing will be wasted".
+PAIR 9: Line 1 = Ney, Line 2 = Murat | PARTLY GUESSED | "Won't have to hold myself back" is Ney's impatience; squadrons at gallop is cavalry.
+PAIR 10: Line 1 = Bernadotte, Line 2 = Ney | PARTLY GUESSED | A quiet, politic grudge vs "but I'll go now" eagerness.
+PAIR 11: Line 1 = Bernadotte, Line 2 = Masséna | SURE | "Conditions were poor" is an excuse; "held my ground" is Masséna.
+PAIR 12: Line 1 = Bernadotte, Line 2 = Lannes | SURE | "Handled sensibly" is politic; "Where are the guns next" is Lannes.
+SET 1: A=Murat, B=Davout, C=Masséna, D=Ney, E=Bernadotte, F=Lannes | guessed letters: D, F
+SET 2: A=Lannes, B=Masséna, C=Davout, D=Ney, E=Murat, F=Bernadotte | guessed letters: B, E, F
+SET 3: A=Murat, B=Davout, C=Lannes, D=Masséna, E=Bernadotte, F=Ney | guessed letters: F
+SET 4: A=Masséna, B=Lannes, C=Davout, D=Murat, E=Bernadotte, F=Ney | guessed letters: none
+SET 5: A=Ney, B=Masséna, C=Bernadotte, D=Davout, E=Murat, F=Lannes | guessed letters: A, C, F

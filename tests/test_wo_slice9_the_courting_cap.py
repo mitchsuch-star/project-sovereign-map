@@ -1134,7 +1134,20 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # sooner. With every OC seam held down in the child it reads 12
         # verbatim (`tests/_oc_seams.py`; measured). The contract — the cap
         # DELAYS, it does not save — stands.
-        assert capped == 11, capped
+        # Re-measured by row IC, Session 4b, continued (November 23, 2026 —
+        # the enemy's war plans fixed and switched on, "Switch them on";
+        # SYSTEMS_REFERENCE §236.8; the BASELINE_SERIES attribution block):
+        # capped 17 — the coalition's opening orders hold its letter-following
+        # men, France loses fewer battles in the first turns, and Switzerland's
+        # loyalty falls by drift alone; she leaves France's web at world turn
+        # 17, for Austria, where the prior board saw her rebel at 11 (the
+        # series' −10 moves from [10] to [16]; traced on the series' own loop).
+        # With the plans' seam held down in the child it reads 11 verbatim
+        # (measured — the flip must be a function,
+        # `backend.game_logic.war_plans:the_courts_follow_a_plan=lambda *a, **k: False`;
+        # a bare `=False` makes the seam's call raise and reads 21). The
+        # contract — the cap DELAYS, it does not save — stands.
+        assert capped == 17, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

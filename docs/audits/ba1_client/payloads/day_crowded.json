@@ -244,7 +244,7 @@
    {
     "who": "clash",
     "kind": "clash",
-    "line": "The opening: we won on points — 7,725 of ours for 13,439 of his; our aggressive temper told."
+    "line": "The opening: we won on points — 7,725 of ours for 13,439 of his; our bold temper told."
    },
    {
     "who": "theirs",
@@ -464,7 +464,7 @@
     "more": "He spends what is left by his own temper, and the enemy answers, until night."
    }
   ],
-  "his_temper": "Literal",
+  "his_temper": "To the letter",
   "his_road": false,
   "first_open": {
    "screen": "battle_day",

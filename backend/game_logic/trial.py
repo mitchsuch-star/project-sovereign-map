@@ -129,7 +129,7 @@ def drop_take(marshal, why: str) -> Optional[Dict[str, Any]]:
     if not place:
         return None
     message = (f"{humanize_entity_name(marshal.name)} does not march on "
-               f"{humanize_entity_name(place)} tonight: {why}.")
+               f"{humanize_entity_name(place)} this turn: {why}.")
     return {"marshal": marshal.name, "command": "HOLD", "order_status": "continues",
             "action": "trial_take_dropped", "reason": message, "message": message, "place": place}
 
