@@ -535,3 +535,28 @@ Region A says it's adjacent to B, but B doesn't say it's adjacent to A. Add the 
 Scenario files are forward-compatible. Fields added in future versions will be ignored by older game versions. However, older scenarios may not have access to newer features.
 
 Current format version: **1.1**
+
+## The `war_plans` block (row IC, Session 4 — IC-14; the feature ships OFF)
+
+Read by `backend/game_logic/war_plans.py`, checked by `validator._validate_war_plans`. A scenario without the block has no war plans. **As shipped the plans' seam is down (`war_plans.the_courts_follow_a_plan`): the block is validated and saved and nothing reads it.**
+
+```json
+"war_plans": {"sets": [
+  {"for": {"coalition": "Third Coalition"},
+   "plans": [{"id": "danube_junction", "name": "The Danube junction",
+              "steps": [
+                {"ends": {"turns": 2},
+                 "orders": {"Mack": {"order": "hold", "place": "Swabia",
+                                     "lines": [{"if": "attacked", "then": "dig_in"}]},
+                            "any_literal": {"order": "hold", "place": "$here", "lines": []}}},
+                {"ends": {"turns": 4}, "favour": "Milan",
+                 "orders": {"Buxhowden": {"order": "support", "whom": "Kutuzov", "lines": []}}}]}]},
+  {"for": {"court": "Prussia"}, "plans": [...]},
+  {"for": {"default": true}, "plans": [...]}
+]}
+```
+
+- A set is `for` a coalition (by name), a court, or `default` (every other court at war). 2–3 plans a set; the FIRST is the one the historical seed draws. 2–3 steps a plan; every plan of a set opens with the SAME first step.
+- A step `ends` on exactly one of `turns`, `line_used` (`{marshal, index}`) or `until` (`{"if": "place_falls", "place": …}`).
+- `favour` is a province, or `$aim` (the nearest of the court's own war aims). It is a priority among the court's own aims — it never adds ground to what a court may take.
+- `orders` are keyed by a marshal who follows orders to the letter, or `any_literal`. `order` is `hold` / `march` (with `place`: a province, `$here`, `$capital`) or `support` / `chase` (with `whom`). `lines` are the if-thens of `backend/commands/if_thens.py`, under its rules: at most three, at most one attack, no repeat, `join` only with `friend_attacked`, never "outnumbered → attack"; `attacked` and `friend_attacked` are refused in the default set (only France's battles are known when the lines are read).

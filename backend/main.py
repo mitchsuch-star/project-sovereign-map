@@ -1284,6 +1284,10 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "victory",
     "ending",
     "endings_recorded",
+    # Row IC, Session 4 (IC-13): the lines the marshals SAID in answer to this
+    # order — `[{speaker, says}]` — drawn by the client with each man's
+    # portrait and name (`voice_line.gd`). Display only.
+    "voices",
     # Row IC, the directive: how an order to several corps went, row by row
     # (`group.rows`), so the client and a test can set what was shown beside
     # what was done.
@@ -6419,6 +6423,9 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
         _copy_truthy_result_fields(response, result, ("objection_kept", "choices"))
         # Row BA (BA-3): the day as the answer left it.
         _copy_truthy_result_fields(response, result, ("battle_day",))
+        # Row IC, Session 4 (IC-13): what the marshals said once the answer
+        # let the order go on (an order over his task, exact orders).
+        _copy_truthy_result_fields(response, result, ("voices",))
 
         # CA8-25 sibling (Aug 2026 health-check audit): the insist path
         # re-enters _execute_attack, which can produce a diorama and a
@@ -6876,6 +6883,9 @@ def respond_to_redemption(request: RedemptionResponse):
             include_popup_passthroughs=False,
         )
         _fill_popup_keys_without_draining(response)
+        # Row IC, Session 4 (IC-13): what he SAID as he took the task (the
+        # census: recorded by `trial.give`, then dropped here).
+        _copy_truthy_result_fields(response, result, ("voices",))
         # A refused answer leaves the question STANDING, and the question
         # rides the reply again — read now — so the window comes back: with
         # what he proposes as the board stands (what the window showed is
@@ -8676,6 +8686,17 @@ def get_task_presets(marshal: str = "", army: str = ""):
                               "on_his_own": _own.on_his_own(man),
                               "why": _own.why_not(world, man, replacing=_own.on_his_own(man)),
                               "count": _own.count_words(world)}
+            if payload["own"]["can"]:
+                # Row IC, Session 4 (IC-13): his own idea in HIS words — the
+                # `proposal` line's reader (a PREVIEW: nothing is recorded).
+                idea = _own.proposal(world, man)
+                said = str(idea.get("says") or "")
+                if said:
+                    payload["own"].update(says=said, speaker=man.name)
+                    for row in rows:      # … and on HIS row of the ready tasks
+                        if row.get("line") == idea.get("line"):
+                            row.update(says=said, speaker=man.name)
+                            break
         _first_open.attach(payload, world, "task")
         return payload
     except Exception as e:

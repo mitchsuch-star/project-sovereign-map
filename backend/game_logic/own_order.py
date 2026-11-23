@@ -800,6 +800,11 @@ def _waiting(world, marshal, spec: Dict[str, Any], need: Dict[str, Any], rec: Di
     fresh = [row for row in options if not _third(row)]
     if fresh:
         pick = fresh[0]
+        if options and fresh[0] is not options[0]:
+            # the third-night rule turned him from what he would have done
+            # again: his morning line says so (`own_voice`, "third_night")
+            pick = dict(pick)
+            pick["changed"] = True
     elif options:
         pick = dict(options[0])
         pick["line"] = pick["line"] + " again — nothing has changed"
@@ -1410,7 +1415,9 @@ def proposal(world, marshal) -> Dict[str, Any]:
     return {"marshal": marshal.name, "shown": shown, "nature": nature, "task": task,
             "target": target, "line": line, "why": why,
             "words": f"{shown} proposes to {verb} {_shown(target)} — {why}.",
-            "says": _voice.line(marshal.name, nature, "proposal", _turn(world))}
+            # (his line follows the task proposed: a hold is never pitched as
+            # a chase — the verification, three skeptics of three)
+            "says": _voice.voice(world, marshal, "proposal_hold" if task == "hold" else "proposal")}
 
 
 # ═══════════════════════════ giving it (§6.3) ═══════════════════════════════
@@ -1534,8 +1541,9 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
     changing = on_his_own(marshal)
     refusal = why_not(world, marshal, spec.get("task", ""), replacing=changing)
     if refusal:
-        return {"success": False, "message": f"{shown} cannot be set on his own: {refusal}.",
-                "no_action_cost": True}
+        return _refused_in_his_words(world, marshal, {
+            "success": False, "message": f"{shown} cannot be set on his own: {refusal}.",
+            "no_action_cost": True})
     turn = _turn(world)
     price = CHANGE_PRICE if changing else int(PRICE.get(spec["task"], 2))
     old = own(marshal) or {}
@@ -1585,10 +1593,16 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
     clear_order_bound_interrupt(marshal)
     if hasattr(marshal, "jealousy_autonomous_warned"):
         marshal.jealousy_autonomous_warned = False      # a man on his own makes no strike
-    nature = _nature(marshal)
-    voice_kind = "bolder" if int(spec.get("risk", 0) or 0) > 0 else (
-        "careful" if int(spec.get("risk", 0) or 0) < 0 else "ack")
-    said = _voice.line(marshal.name, nature, voice_kind, turn)
+    # Row IC, Session 4 (IC-13): the line the read-back showed is the line he
+    # says — his objection, else how he was told, else plain (`kind_given`);
+    # the ONE thing he remembers, if it is on his mind, is said first and once.
+    objected = "" if own_proposal else objection(world, marshal, spec)
+    voices: List[Dict[str, Any]] = []
+    said = (_voice.recall_memory(world, marshal, said=True)
+            or _voice.speak(world, marshal, _voice.kind_given(int(spec.get("risk", 0) or 0),
+                                                              bool(objected))))
+    if said:
+        voices.append({"speaker": marshal.name, "says": said})
     took_ill = ""
     if not changing:
         senior = slighted(world, marshal)
@@ -1601,7 +1615,12 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
                 report(exc, "own_order.give: the slight")
             took_ill = (f" {_shown(senior.name)} outranks him and stood by with no order — he resents "
                         f"it (his regard for {shown} drops).")
-    objected = "" if own_proposal else objection(world, marshal, spec)
+            # ... and he says so, in his own nature's words; a man who
+            # remembers a slight keeps it (`own_voice.REMEMBERS`).
+            grudge = _voice.speak(world, senior, "passed_over")
+            _voice.note_memory(world, senior, "passed_over", marshal.name)
+            if grudge:
+                voices.append({"speaker": senior.name, "says": grudge})
     cost_words = ""
     if objected:
         cost = objection_cost(marshal)
@@ -1613,13 +1632,32 @@ def give(world, marshal, spec: Dict[str, Any], *, line: str, own_proposal: bool 
     verb = "changes his task" if changing else "is on his own"
     starts = ("He starts tomorrow night." if _int(spec, "given") == turn
               else "He turns to it tonight.")
+    # Row IC, Session 4 (IC-13): HIS line is not folded into the staff's
+    # sentence any more — it rides `voices`, drawn once, with his portrait and
+    # name (pressed in the real client: it stood twice in the reply).
     message = (f"{shown} {verb}: {task_words(spec)}. {starts} "
-               f"\"{said}\" {count_words(world)}.{took_ill}{cost_words}")
+               f"{count_words(world)}.{took_ill}{cost_words}")
     world.log_event({"type": EVENT, "phase": "given", "marshal": marshal.name,
                      "nation": marshal.nation, "task": spec["task"], "target": target,
                      "changing": bool(changing), "message": message, "told": True})
     return {"success": True, "message": message, "variable_action_cost": price,
-            "own": payload(world, marshal), "marshal": marshal.name}
+            "own": payload(world, marshal), "marshal": marshal.name,
+            **({"voices": voices} if voices else {})}
+
+
+def _refused_in_his_words(world, marshal, out: Dict[str, Any]) -> Dict[str, Any]:
+    """Row IC, Session 4 (IC-13): a man who follows orders to the letter,
+    asked to act on his own, says so HIMSELF beside the staff's plain refusal
+    (`voices`). PURE — a refused order changes nothing, so nothing is recorded."""
+    try:
+        if _nature(marshal) == "literal":
+            from backend.game_logic import own_voice as _voice
+            said = _voice.voice(world, marshal, "refusal")
+            if said:
+                out["voices"] = [{"speaker": marshal.name, "says": said}]
+    except Exception as exc:
+        report(exc, "own_order._refused_in_his_words")
+    return out
 
 
 def stand_down(world, marshal) -> Dict[str, Any]:
@@ -1643,6 +1681,14 @@ def stand_down(world, marshal) -> Dict[str, Any]:
     marshal.strategic_order = None
     from backend.commands.strategic import clear_order_bound_interrupt
     clear_order_bound_interrupt(marshal)
+    # Row IC, Session 4 (IC-13): recalled from a task he had begun, he says
+    # so — and a man who remembers a recall keeps it. (A task taken back the
+    # turn it was given is a withdrawal: nothing was begun, nothing is said.)
+    recalled = ""
+    if not refund:
+        from backend.game_logic import own_voice as _voice
+        recalled = _voice.speak(world, marshal, "recalled")
+        _voice.note_memory(world, marshal, "recalled")
     if refund:
         world.actions_remaining = int(getattr(world, "actions_remaining", 0) or 0) + refund
     tail = (f" The {refund} action{'s' if refund != 1 else ''} it cost come back." if refund
@@ -1652,7 +1698,8 @@ def stand_down(world, marshal) -> Dict[str, Any]:
     world.log_event({"type": EVENT, "phase": "stood_down", "marshal": marshal.name,
                      "nation": marshal.nation, "message": message, "told": True})
     return {"success": True, "message": message, "no_action_cost": True,
-            "refunded": refund, "marshal": marshal.name}
+            "refunded": refund, "marshal": marshal.name,
+            **({"voices": [{"speaker": marshal.name, "says": recalled}]} if recalled else {})}
 
 
 def carry_on(world, marshal) -> Dict[str, Any]:
@@ -1703,8 +1750,13 @@ def ask_why(world, marshal, why: str) -> None:
     spec["state"] = "asks"
     spec["asks"] = {"why": why, "since": _turn(world)}
     message = f"{_shown(marshal.name)} asks for your word: {why}."
+    from backend.game_logic import own_voice as _voice
+    said = _voice.speak(world, marshal, "asks")      # the reason is the plain words' to carry
+    if said:
+        spec["asks"]["says"] = said
     world.log_event({"type": EVENT, "phase": "asks", "marshal": marshal.name,
-                     "nation": marshal.nation, "message": message})
+                     "nation": marshal.nation, "message": message,
+                     **({"says": said, "speaker": marshal.name} if said else {})})
 
 
 def _followers_words(world, marshal) -> str:
@@ -1726,10 +1778,17 @@ def end(world, marshal, why: str, phase: str = "ended") -> Dict[str, Any]:
         marshal.strategic_order = None
         from backend.commands.strategic import clear_order_bound_interrupt
         clear_order_bound_interrupt(marshal)     # NPC-2: its question ends with it
+    # Row IC, Session 4 (IC-13): a task DONE is said in his own words (a task
+    # that only lapsed — no answer, a law gone, his corps gone — says nothing).
+    said = ""
+    if phase == "done" and int(getattr(marshal, "strength", 0) or 0) > 0:
+        from backend.game_logic import own_voice as _voice
+        said = _voice.speak(world, marshal, "done")
+    voice_keys = {"says": said, "speaker": marshal.name} if said else {}
     world.log_event({"type": EVENT, "phase": phase, "marshal": marshal.name,
-                     "nation": marshal.nation, "message": message})
+                     "nation": marshal.nation, "message": message, **voice_keys})
     return {"marshal": marshal.name, "command": "", "order_status": "completed",
-            "action": "own_ended", "message": message, "reason": message}
+            "action": "own_ended", "message": message, "reason": message, **voice_keys}
 
 
 # ═══════════════════════════ the typed road (§8.2) ══════════════════════════
@@ -1809,17 +1868,12 @@ def reading_of_parse(world, parsed: Dict[str, Any]) -> Dict[str, Any]:
     own_prop = (prop["task"] == task and str(prop["target"]) == str(spec["target"]))
     reading = read(world, marshal, spec, preview=True)
     n = needed(marshal, risk)
-    nature = _nature(marshal)
-    said = ""
-    if risk > 0:
-        said = _voice.line(marshal.name, nature, "bolder", _turn(world))
-    elif risk < 0:
-        said = _voice.line(marshal.name, nature, "careful", _turn(world))
     objected = "" if own_prop else objection(world, marshal, spec)
-    if objected:
-        said = _voice.line(marshal.name, nature, "object", _turn(world))
-    if not said:
-        said = _voice.line(marshal.name, nature, "ack", _turn(world))
+    # Row IC, Session 4 (IC-13): the line he WOULD say — PURE (`voice`: never
+    # one of his last three), and the very line `give` says and records; the
+    # one thing he remembers, while it is on his mind, comes first.
+    said = (_voice.recall_memory(world, marshal, said=False)
+            or _voice.voice(world, marshal, _voice.kind_given(risk, bool(objected))))
     senior = None if changing else slighted(world, marshal)
     out.update(ok=True, task=task, target=spec["target"], area=list(spec.get("area") or []),
                goal=goal,
@@ -1855,8 +1909,9 @@ def from_parse(world, parsed: Dict[str, Any], command: Dict[str, Any]) -> Dict[s
         return change_risk(world, marshal, int(own_part.get("step", 0) or 0))
     reading = reading_of_parse(world, parsed)
     if not reading.get("ok"):
-        return {"success": False, "no_action_cost": True,
-                "message": f"{shown} cannot be set on his own: {reading.get('why') or 'no task he can take'}."}
+        return _refused_in_his_words(world, marshal, {
+            "success": False, "no_action_cost": True,
+            "message": f"{shown} cannot be set on his own: {reading.get('why') or 'no task he can take'}."})
     price = int(reading["price"])
     have = int(getattr(world, "actions_remaining", 0) or 0)
     if have < price:
@@ -1953,9 +2008,11 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
         spec["acted"] = _turn(world)
         line = (f"{shown} marched to {_shown(lead_name)}'s battle and joined it" if arrived else
                 f"{shown} tried to join {_shown(lead_name)}'s battle and did not arrive in time")
-        _note(world, man, "join", str(man.location or ""), line, visible=True)
+        voice = _note(world, man, "join", str(man.location or ""), line, visible=True,
+                      voiced=arrived)     # a man who did not arrive says no fighting line
         acted_names.append(man.name)
-        return _row(man, said, line + ".", "join", target=lead_name, arrived=arrived)
+        return _row(man, said, line + ".", "join", target=lead_name, arrived=arrived,
+                    **_voiced(man, voice))
     if bool(getattr(man, "reinforced_this_turn", False)) and said.get("why") != "drawn in today":
         # the arrival roll drew him into a higher man's battle before his own
         # act came round — that was his one thing tonight (§12)
@@ -1963,9 +2020,9 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
         spec["acted"] = _turn(world)
         line = (f"{shown} was drawn into {_shown(lead)}'s battle on the way — that was his night"
                 if lead else f"{shown} marched to a friend's battle — that was his night")
-        _note(world, man, "join", str(man.location or ""), line, visible=True)
+        voice = _note(world, man, "join", str(man.location or ""), line, visible=True)
         acted_names.append(man.name)
-        return _row(man, said, line + ".", "join", target=lead, arrived=True)
+        return _row(man, said, line + ".", "join", target=lead, arrived=True, **_voiced(man, voice))
     fresh = _read_in_turn(world, man, taken, counted)
     if key_of(fresh) != key_of(said):
         higher = _shown(acted_names[-1]) if acted_names else ""
@@ -1973,8 +2030,8 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
         cause = (f"{higher}'s {what} changed things" if higher
                  else str(fresh.get("why") or "the board changed"))
         line = f"{shown} stays put — {cause}"
-        _note(world, man, "stay", str(man.location or ""), line, visible=False)
-        return _row(man, said, line + ".", "stay")
+        voice = _note(world, man, "stay", str(man.location or ""), line, visible=False)
+        return _row(man, said, line + ".", "stay", **_voiced(man, voice))
     act = str(fresh.get("act") or "stay")
     if fresh.get("barred") or fresh.get("stuck"):
         # nights running (any night that moves his task on starts the count
@@ -2017,8 +2074,8 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
                     zip(results, fresh.get("do") or []) if s.get("action") != "unfortify")
         if moved:
             spec["acted"] = _turn(world)    # he went part of the way: that was his night
-        _note(world, man, "stay", str(man.location or ""), line, visible=moved)
-        return _row(man, said, line, "stay")
+        voice = _note(world, man, "stay", str(man.location or ""), line, visible=moved)
+        return _row(man, said, line, "stay", **_voiced(man, voice))
     if act not in WAITING_ACTS:
         spec["acted"] = _turn(world)
     if fresh.get("step_out"):
@@ -2039,15 +2096,74 @@ def _carry_out(world, executor, game_state, man, said, taken, counted, acted_nam
         line = f"{shown} waited for your word — {fresh.get('why') or 'he asks for orders'}"
     elif act == "recover":
         line = f"{shown} recovered — {fresh.get('why') or 'his men rest'}"
-    _note(world, man, act, str(fresh.get("place") or ""), line,
-          visible=bool(fresh.get("visible")))
+    voice = _note(world, man, act, str(fresh.get("place") or ""), line,
+                  visible=bool(fresh.get("visible")), changed=bool(fresh.get("changed")),
+                  voice_act=_voice_act(act, battle, results, fresh.get("do") or [],
+                                       str(fresh.get("why") or "")))
     return _row(man, said, line + ".", act, target=str(fresh.get("target") or ""),
-                place=str(fresh.get("place") or ""), **battle)
+                place=str(fresh.get("place") or ""), **battle, **_voiced(man, voice))
 
 
-def _note(world, man, act: str, place: str, line: str, *, visible: bool) -> None:
+# Why a night is a stay → the line that fits it ("claim" has none: the plain
+# sentence says it — he did your order today, did his night's work, was drawn
+# into a friend's battle, has no corps). A quiet front is a waiting night.
+STAY_SAYS = {"his night is done": "claim", "your order today": "claim", "drawn in today": "claim",
+             "no corps": "claim", "the board could not be read": "claim", "nothing to do": "look"}
+
+
+def _voice_act(act: str, battle: Dict[str, Any], results: List[Any], do: List[Any],
+               why: str = "") -> str:
+    """The act his LINE answers (row IC, Session 4 — IC-13; the verification's
+    upheld findings): a night with no battle was no fight — a take marched in
+    (his "marched" line) or claimed the ground he stands on, a siege kept up,
+    an attack that ran no battle: none of them says a "struck" line. A stay
+    says the line that fits WHY he stayed (`STAY_SAYS`); a stay because the
+    board changed says his "stayed" line."""
+    from backend.game_logic import own_voice as _voice
+    if act == "stay":
+        return STAY_SAYS.get(str(why or ""), act)
+    if battle or _voice.KIND_OF_ACT.get(act) != "struck":
+        return act
+    if act == "take":
+        marched_in = any(isinstance(r, dict) and r.get("success") and (s or {}).get("action") == "move"
+                         for r, s in zip(results, do))
+        return "march" if marched_in else "claim"
+    return "claim"
+
+
+def _voiced(man, voice: str) -> Dict[str, Any]:
+    """The row's keys for the line HE said of his night (none when he said none)."""
+    return {"says": voice, "speaker": man.name} if voice else {}
+
+
+def _night_voice(world, man, act: str, rec: Dict[str, Any], changed: bool) -> str:
+    """Row IC, Session 4 (IC-13): what HE says of his night — one line, said
+    and remembered (`own_voice.speak`). In this order: the one thing he
+    remembers, while it is on his mind; the night after a battle won or lost
+    (his odds have moved — unless he fought again tonight); the third night's
+    change; else the line of what he did. A night he only made ready or rested
+    has none. It decides nothing and claims nothing the plain sentence does
+    not say."""
+    from backend.game_logic import own_voice as _voice
+    kind = _voice.KIND_OF_ACT.get(act, "")
+    if not kind:
+        return ""
+    remembered = _voice.recall_memory(world, man, said=True)
+    if remembered:
+        return remembered
+    news = str(rec.pop("news", "") or "")
+    if news and kind != "struck":
+        kind = "after_win" if news == "won" else "after_loss"
+    elif changed and kind in ("waited", "dug_in"):
+        kind = "third_night"
+    return _voice.speak(world, man, kind)
+
+
+def _note(world, man, act: str, place: str, line: str, *, visible: bool,
+          changed: bool = False, voiced: bool = True, voice_act: str = "") -> str:
     """His night on his record (the third-night rule reads it) and on the log
-    (the morning reads it)."""
+    (the morning reads it). Returns the line HE says of it ("" when he has
+    none — `_night_voice`)."""
     rec = record(man)
     man.own_record = rec
     acts = [a for a in rec.get("acts") or [] if isinstance(a, (list, tuple))]
@@ -2055,9 +2171,20 @@ def _note(world, man, act: str, place: str, line: str, *, visible: bool) -> None
     rec["acts"] = acts[-3:]
     rec["said"] = line
     rec["idle_run"] = (int(rec.get("idle_run", 0) or 0) + 1) if (act == "stay" or not visible) else 0
+    try:
+        voice = _night_voice(world, man, voice_act or act, rec, changed) if voiced else ""
+    except Exception as exc:
+        report(exc, f"own_order._note: the voice of {man.name}")
+        voice = ""
+    if voice:
+        rec["voice"] = voice
+    else:
+        rec.pop("voice", None)
     world.log_event({"type": EVENT, "phase": "night", "act": act, "marshal": man.name,
                      "nation": man.nation, "place": place, "visible": bool(visible),
-                     "message": line + "."})
+                     "message": line + ".",
+                     **({"says": voice, "speaker": man.name} if voice else {})})
+    return voice
 
 
 QUIET_FRONT_ASKS = 4      # nights with nothing he would choose to do, no enemy near
@@ -2126,10 +2253,12 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
     rec["held"] = False
     if won > tick_won and lost <= tick_lost:
         rec["last"], rec["quiet"] = "won", 0
+        rec["news"] = "won"         # (Session 4) said once, the next night he does not fight
         # a win on a night he did not attack: he beat off an attack on him
         rec["held"] = _int(spec, "acted") != turn
     elif lost > tick_lost:
         rec["last"], rec["quiet"] = "lost", 0
+        rec["news"] = "lost"
     else:
         rec["quiet"] = int(rec.get("quiet", 0) or 0) + 1
     rec["tick_won"], rec["tick_lost"] = won, lost
@@ -2164,10 +2293,16 @@ def _life(world, man) -> Optional[Dict[str, Any]]:
                 # hold of it, as any take done; he serves no goal until you
                 # name a new one and give him the task again.
                 message += " Your war goal is won."
+            from backend.game_logic import own_voice as _voice
+            said = _voice.speak(world, man, "done")
+            voice_keys = {"says": said, "speaker": man.name} if said else {}
+            # (his line rides the report row, which the turn's report draws;
+            # on the morning's event too it was drawn twice — the census)
             world.log_event({"type": EVENT, "phase": "done", "marshal": man.name,
                              "nation": man.nation, "message": message})
             return {"marshal": man.name, "command": "HOLD", "order_status": "continues",
-                    "action": "own_done", "message": message, "reason": message, "own": True}
+                    "action": "own_done", "message": message, "reason": message, "own": True,
+                    **voice_keys}
     elif task == "pursue":
         quarry = world.get_marshal(str(spec.get("target") or ""))
         dead = (quarry is None or int(getattr(quarry, "strength", 0) or 0) <= 0
@@ -2293,7 +2428,9 @@ def morning_events(world) -> List[Dict[str, Any]]:
         out.append({"type": EVENT, "phase": str(event.get("phase") or ""),
                     "act": str(event.get("act") or ""), "marshal": event.get("marshal"),
                     "nation": event.get("nation"), "visible": bool(event.get("visible")),
-                    "message": str(event.get("message") or "")})
+                    "message": str(event.get("message") or ""),
+                    **({"says": str(event["says"]), "speaker": str(event.get("speaker") or "")}
+                       if event.get("says") else {})})
     return out
 
 
@@ -2350,6 +2487,15 @@ def answer(world, marshal, kind: str, place: str = "") -> Dict[str, Any]:
             return {"says": f"Set me on my own, Sire, and I would {task_words(spec or {'task': prop['task'], 'target': prop['target']})}{tail}.",
                     "proposal": prop["line"]}
         order = getattr(marshal, "strategic_order", None)
+        if nature == "literal":
+            # Row IC, Session 4 (IC-13): he repeats his orders back, or asks
+            # for them — his own bank (PURE: an answer records nothing).
+            written = (str(order.original_command or order.command_type).strip().rstrip(".") + "."
+                       if order is not None else "")
+            said = (_voice.voice(world, marshal, "repeat", orders=written) if written
+                    else _voice.voice(world, marshal, "refusal"))
+            if said:
+                return {"says": said}
         if order is not None:
             return {"says": f"I carry out your order, Sire: {str(order.original_command or order.command_type).strip()}"}
         return {"says": "I await your orders, Sire."}
@@ -2386,4 +2532,4 @@ def answer(world, marshal, kind: str, place: str = "") -> Dict[str, Any]:
             return {"says": ("I carried out your orders, Sire." if not on_his_own(marshal)
                              else "I have done nothing on my own yet, Sire.")}
         return {"says": f"Last night: {first_person(last, marshal)}."}
-    return {"says": _voice.line(marshal.name, nature, "idle", turn)}
+    return {"says": _voice.voice(world, marshal, "idle")}

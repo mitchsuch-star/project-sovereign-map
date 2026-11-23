@@ -1033,6 +1033,271 @@ def _validate_casting(result, data: dict, known_nations: set) -> None:
         _validate_weight_mod(result, "casting", block)
 
 
+_WAR_PLAN_TOKENS = ("$here", "$capital", "$aim")
+_WAR_PLAN_SET_KEYS = {"for", "plans", "_comment"}
+_WAR_PLAN_PLAN_KEYS = {"id", "name", "steps", "_comment"}
+_WAR_PLAN_STEP_KEYS = {"ends", "favour", "orders", "_comment"}
+_WAR_PLAN_ORDER_KEYS = {"order", "place", "whom", "lines"}
+_WAR_PLAN_LINE_KEYS = {"if", "then", "who", "friend", "place", "to", "any_odds"}
+
+
+def _validate_war_plans(result, data: dict, known_nations: Set[str]) -> None:
+    """Row IC, Session 4 (IC-14; `docs/INDEPENDENT_COMMAND_SPEC.md` §10.1,
+    `backend/game_logic/war_plans.py`): the top-level `war_plans` block —
+    `{"sets": [{"for": {coalition | court | default}, "plans": [{id, name,
+    steps}]}]}`. The SHAPE is hard — a plan is content the enemy's marshals
+    are moved by, and a malformed one would freeze a corps or leave a court
+    planless in silence:
+
+    * a set is for ONE coalition (by name), ONE court, or every other court
+      (`default`); it writes two or three plans, a plan two or three steps;
+    * all of a set's plans open with the SAME first step ("so the opening
+      does not give the plan away") — compared as written;
+    * a step ends on exactly one written condition — a number of turns, a
+      line used, a place fallen — may name ONE favoured province (a real
+      province, or `$aim`: the nearest of a court's own aims), and gives
+      exact orders by marshal name or to `any_literal`;
+    * an order is a hold or a march with a place (a province, `$here`,
+      `$capital`), or a support of a friend / a chase of an enemy by name
+      (`whom`), and up to three if-thens of the grammar's own ifs and thens
+      (`if_thens.IFS` / `THENS`) — at most one attack line, no line repeating
+      or contradicting an earlier one, `join` only for a friend attacked,
+      never "if outnumbered, attack", at most one "fall back from a named
+      enemy";
+    * a named man must be on the board or a bench, and must be a marshal who
+      follows orders to the letter — nobody else takes three lines;
+    * "if he is attacked" and "if a friend is attacked" read only the
+      PLAYER's battles when the lines are read, so the general (`default`)
+      set, whose courts may fight anyone, may not write them: they would
+      never fire.
+
+    Absent = no plans (every board but the campaign's)."""
+    if "war_plans" not in data:
+        return
+    block = data.get("war_plans")
+    if not isinstance(block, dict):
+        result.add_error("war_plans", f"Must be an object, got {type(block).__name__}")
+        return
+    for key in sorted(set(block) - {"sets", "holders", "_comment"}):
+        result.add_error(f"war_plans.{key}", "Unknown key (allowed: sets)")
+    plan_sets = block.get("sets")
+    if not isinstance(plan_sets, list) or not plan_sets:
+        result.add_error("war_plans.sets", "Must be a nonempty list of sets")
+        return
+    from backend.commands.if_thens import ATTACK_LINES, IFS, LITERAL_LINES, THENS
+    regions = set(_known_region_names(data))
+    if str(data.get("sovereign_map") or "").strip().lower() == "europe":
+        try:
+            from backend.models.region import create_europe_regions
+            regions |= set(create_europe_regions())
+        except Exception as exc:                                # pragma: no cover
+            report(exc, "validator._validate_war_plans: create_europe_regions")
+    natures: Dict[str, str] = {}
+    marshals = data.get("marshals")
+    for name, row in (marshals.items() if isinstance(marshals, dict) else ()):
+        if isinstance(row, dict):
+            natures[str(row.get("name") or name)] = str(row.get("personality") or "")
+    pool = data.get("marshal_pool")
+    for rows in (pool.values() if isinstance(pool, dict) else ()):
+        for row in (rows if isinstance(rows, list) else ()):
+            if isinstance(row, dict) and row.get("name"):
+                natures[str(row["name"])] = str(row.get("personality") or "")
+    known_nations = set(known_nations or ())
+    if str(data.get("sovereign_map") or "").strip().lower() == "europe":
+        from backend.nation_config import EUROPE_ROSTER
+        known_nations |= set(EUROPE_ROSTER)
+
+    def _a_place(path: str, value, tokens) -> None:
+        if not isinstance(value, str) or not value.strip():
+            result.add_error(path, "Must name a province")
+        elif value not in tokens and regions and value not in regions:
+            result.add_error(path, f"Unknown province '{value}'")
+
+    seen_ids: Set[str] = set()
+    seen_for: Set[str] = set()
+    for si, plan_set in enumerate(plan_sets):
+        spath = f"war_plans.sets[{si}]"
+        if not isinstance(plan_set, dict):
+            result.add_error(spath, f"Must be an object, got {type(plan_set).__name__}")
+            continue
+        for key in sorted(set(plan_set) - _WAR_PLAN_SET_KEYS):
+            result.add_error(f"{spath}.{key}", "Unknown key (allowed: for, plans)")
+        whom = plan_set.get("for")
+        general = False
+        if not isinstance(whom, dict) or len(whom) != 1 or next(iter(whom)) not in (
+                "coalition", "court", "default"):
+            result.add_error(f"{spath}.for",
+                             "Must be exactly one of {coalition: name}, {court: nation}, {default: true}")
+        else:
+            kind, value = next(iter(whom.items()))
+            general = kind == "default"
+            label = f"{kind}:{value}"
+            if label in seen_for:
+                result.add_error(f"{spath}.for", f"A second set for {label}")
+            seen_for.add(label)
+            if kind == "default" and value is not True:
+                result.add_error(f"{spath}.for.default", "Must be true")
+            if kind in ("coalition", "court") and (not isinstance(value, str) or not value.strip()):
+                result.add_error(f"{spath}.for.{kind}", "Must be a non-empty name")
+            if kind == "court" and isinstance(value, str) and known_nations and value not in known_nations:
+                result.add_error(f"{spath}.for.court", f"References unknown nation '{value}'")
+        plans = plan_set.get("plans")
+        if not isinstance(plans, list) or not (2 <= len(plans) <= 3):
+            result.add_error(f"{spath}.plans", "A set writes two or three plans")
+            continue
+        openings = []
+        for pi, plan in enumerate(plans):
+            ppath = f"{spath}.plans[{pi}]"
+            if not isinstance(plan, dict):
+                result.add_error(ppath, f"Must be an object, got {type(plan).__name__}")
+                continue
+            for key in sorted(set(plan) - _WAR_PLAN_PLAN_KEYS):
+                result.add_error(f"{ppath}.{key}", "Unknown key (allowed: id, name, steps)")
+            plan_id = plan.get("id")
+            if not isinstance(plan_id, str) or not plan_id.strip():
+                result.add_error(f"{ppath}.id", "Must be a non-empty string")
+            elif plan_id in seen_ids:
+                result.add_error(f"{ppath}.id", f"'{plan_id}' is written twice")
+            else:
+                seen_ids.add(plan_id)
+            if not isinstance(plan.get("name"), str) or not plan["name"].strip():
+                result.add_error(f"{ppath}.name", "Must be a non-empty string")
+            steps = plan.get("steps")
+            if not isinstance(steps, list) or not (2 <= len(steps) <= 3):
+                result.add_error(f"{ppath}.steps", "A plan is two or three steps")
+                continue
+            openings.append(json.dumps(steps[0], sort_keys=True))
+            for ti, step in enumerate(steps):
+                tpath = f"{ppath}.steps[{ti}]"
+                if not isinstance(step, dict):
+                    result.add_error(tpath, f"Must be an object, got {type(step).__name__}")
+                    continue
+                for key in sorted(set(step) - _WAR_PLAN_STEP_KEYS):
+                    result.add_error(f"{tpath}.{key}", "Unknown key (allowed: ends, favour, orders)")
+                ends = step.get("ends")
+                if not isinstance(ends, dict) or len(ends) != 1 or next(iter(ends)) not in (
+                        "turns", "line_used", "until"):
+                    result.add_error(f"{tpath}.ends",
+                                     "Must be exactly one of {turns}, {line_used}, {until}")
+                elif "turns" in ends:
+                    if (not isinstance(ends["turns"], int) or isinstance(ends["turns"], bool)
+                            or ends["turns"] < 1):
+                        result.add_error(f"{tpath}.ends.turns", "Must be a whole number of turns, 1 or more")
+                elif "line_used" in ends:
+                    used = ends["line_used"]
+                    orders_here = step.get("orders") if isinstance(step.get("orders"), dict) else {}
+                    spec = orders_here.get((used or {}).get("marshal")) if isinstance(used, dict) else None
+                    count = len((spec or {}).get("lines") or []) if isinstance(spec, dict) else 0
+                    if (not isinstance(used, dict) or not isinstance(used.get("index"), int)
+                            or isinstance(used.get("index"), bool)
+                            or not (0 <= used["index"] < count)):
+                        result.add_error(f"{tpath}.ends.line_used",
+                                         "Must be {marshal, index} naming a line this step writes for that man")
+                else:
+                    until = ends["until"]
+                    if not isinstance(until, dict) or until.get("if") != "place_falls":
+                        result.add_error(f"{tpath}.ends.until", "Must be {if: place_falls, place}")
+                    else:
+                        _a_place(f"{tpath}.ends.until.place", until.get("place"), ())
+                if "favour" in step and step.get("favour") not in (None, ""):
+                    _a_place(f"{tpath}.favour", step.get("favour"), ("$aim",))
+                orders = step.get("orders", {})
+                if not isinstance(orders, dict):
+                    result.add_error(f"{tpath}.orders", f"Must be an object, got {type(orders).__name__}")
+                    continue
+                for who, spec in orders.items():
+                    opath = f"{tpath}.orders.{who}"
+                    if who != "any_literal":
+                        if who not in natures:
+                            result.add_error(opath, f"References unknown marshal '{who}'")
+                        elif natures[who] != "literal":
+                            result.add_error(opath, f"'{who}' does not follow orders to the letter — "
+                                                    "only such a marshal takes a plan's exact orders")
+                    if not isinstance(spec, dict):
+                        result.add_error(opath, f"Must be an object, got {type(spec).__name__}")
+                        continue
+                    for key in sorted(set(spec) - _WAR_PLAN_ORDER_KEYS):
+                        result.add_error(f"{opath}.{key}",
+                                         "Unknown key (allowed: order, place, whom, lines)")
+                    if spec.get("order") not in ("hold", "march", "support", "chase"):
+                        result.add_error(f"{opath}.order",
+                                         "Must be 'hold', 'march', 'support' or 'chase'")
+                    if spec.get("order") in ("support", "chase"):
+                        # a friend he keeps by / an enemy he closes on — by name
+                        if "place" in spec:
+                            result.add_error(f"{opath}.place",
+                                             "A support or a chase names a man ('whom'), not a place")
+                        if spec.get("whom") not in natures:
+                            result.add_error(f"{opath}.whom",
+                                             f"References unknown marshal {spec.get('whom')!r}")
+                        elif who != "any_literal" and spec.get("whom") == who:
+                            result.add_error(f"{opath}.whom", "A man does not support or chase himself")
+                    else:
+                        if "whom" in spec:
+                            result.add_error(f"{opath}.whom",
+                                             "A hold or a march names a place, not a man")
+                        _a_place(f"{opath}.place", spec.get("place", "$here"), ("$here", "$capital"))
+                    lines = spec.get("lines", [])
+                    if not isinstance(lines, list) or len(lines) > LITERAL_LINES:
+                        result.add_error(f"{opath}.lines", f"At most {LITERAL_LINES} if-thens")
+                        continue
+                    attacks = 0
+                    flights = 0
+                    watched = {}
+                    for li, line in enumerate(lines):
+                        lpath = f"{opath}.lines[{li}]"
+                        if not isinstance(line, dict):
+                            result.add_error(lpath, f"Must be an object, got {type(line).__name__}")
+                            continue
+                        for key in sorted(set(line) - _WAR_PLAN_LINE_KEYS):
+                            result.add_error(f"{lpath}.{key}", "Unknown key")
+                        if_, then = line.get("if"), line.get("then")
+                        if if_ not in IFS:
+                            result.add_error(f"{lpath}.if", f"Must be one of {', '.join(IFS)}")
+                        if then not in THENS:
+                            result.add_error(f"{lpath}.then", f"Must be one of {', '.join(THENS)}")
+                        if then == "attack":
+                            attacks += 1
+                            if if_ == "outnumbered":
+                                result.add_error(lpath, "'If outnumbered, attack' is not an order")
+                        if then == "join" and if_ != "friend_attacked":
+                            result.add_error(lpath, "'join' answers only a friend attacked")
+                        if then in ("fall_back", "march"):
+                            _a_place(f"{lpath}.to", line.get("to"), ("$here", "$capital"))
+                        if if_ == "enemy_near" and line.get("who") and then == "fall_back":
+                            flights += 1
+                        if if_ in ("friend_attacked", "friend_arrives"):
+                            if line.get("friend") not in natures:
+                                result.add_error(f"{lpath}.friend",
+                                                 f"References unknown marshal {line.get('friend')!r}")
+                        if line.get("who") and line.get("who") not in natures:
+                            result.add_error(f"{lpath}.who",
+                                             f"References unknown marshal {line.get('who')!r}")
+                        if if_ == "place_falls":
+                            _a_place(f"{lpath}.place", line.get("place"), ("$capital",))
+                        if general and if_ in ("attacked", "friend_attacked"):
+                            result.add_error(
+                                lpath, "The general set may not write 'if he is attacked' or "
+                                       "'if a friend is attacked': the lines are read on the "
+                                       "player's battles only, and for a court that is not "
+                                       "fighting the player such a line never fires")
+                        key = (if_, line.get("who"), line.get("friend"), line.get("place"))
+                        if key in watched:
+                            same = watched[key] == (then, line.get("to"))
+                            result.add_error(lpath, "It repeats an earlier line" if same
+                                             else "It contradicts an earlier line")
+                        watched.setdefault(key, (then, line.get("to")))
+                    if attacks > ATTACK_LINES:
+                        result.add_error(f"{opath}.lines", "At most one line of an order may attack")
+                    if flights > 1:
+                        result.add_error(f"{opath}.lines",
+                                         "At most one line may fall back from a named enemy")
+        if len(set(openings)) > 1:
+            result.add_error(f"{spath}.plans",
+                             "All of a set's plans open with the same first step "
+                             "(so the opening does not give the plan away)")
+
+
 def _validate_questions(result, data: dict, known_nations: Set[str]) -> None:
     """DY-2 (DYNAMISM_SPEC.md §4, Tier 5): the top-level `questions` block —
     a list of {id, title, voice, provinces, claimants}, the Questions of
@@ -3932,6 +4197,9 @@ def validate_scenario(
 
     # DY-2 (DYNAMISM_SPEC §4): the authored `questions` block.
     _validate_questions(result, data, statecraft_known)
+
+    # Row IC, Session 4 (IC-14): the authored `war_plans` block.
+    _validate_war_plans(result, data, statecraft_known)
 
     # DY-4 (DYNAMISM_SPEC §5): the authored `awakening` block.
     _validate_awakening(result, data)

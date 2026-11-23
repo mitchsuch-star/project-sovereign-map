@@ -1,0 +1,80 @@
+{
+ "waited": [
+  [
+   "Bernadotte",
+   "Nothing pressing today. The men are comfortable."
+  ],
+  [
+   "Davout",
+   "No fight today. Everything is in its place."
+  ],
+  [
+   "Murat",
+   "No quarry today. My patrols are out on every road."
+  ],
+  [
+   "Ney",
+   "Another quiet night. I count them, Sire."
+  ],
+  [
+   "Massena",
+   "They looked at my lines today and thought better of it."
+  ],
+  [
+   "Lannes",
+   "I kept an ear out for the guns, Sire. Nothing."
+  ]
+ ],
+ "stayed": [
+  [
+   "Bernadotte",
+   "No march today. I'm sure you understand."
+  ],
+  [
+   "Lannes",
+   "The plan no longer fit the day, so I waited."
+  ],
+  [
+   "Ney",
+   "Not tonight, Sire. The ground shifted under the plan."
+  ],
+  [
+   "Davout",
+   "I stayed put. Better a lost day than a lost corps."
+  ],
+  [
+   "Massena",
+   "No move today. Here I know what I have."
+  ],
+  [
+   "Murat",
+   "I waited. Even I can do that, once."
+  ]
+ ],
+ "idle": [
+  [
+   "Massena",
+   "My front is quiet. It stays mine."
+  ],
+  [
+   "Murat",
+   "No one to chase today. A pity."
+  ],
+  [
+   "Lannes",
+   "No fighting near me yet."
+  ],
+  [
+   "Ney",
+   "No enemy in reach. I keep looking."
+  ],
+  [
+   "Davout",
+   "Nothing moving in front of me. The pickets are out."
+  ],
+  [
+   "Bernadotte",
+   "Nothing to trouble you with."
+  ]
+ ]
+}

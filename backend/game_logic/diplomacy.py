@@ -14227,6 +14227,18 @@ def _process_mission_effects(world) -> List[Dict]:
                 f"Talleyrand has completed his intelligence gathering on {_dn(target)}. "
                 f"{len(target_regions)} region{'s' if len(target_regions) != 1 else ''} revealed for 5 turns."
             )
+            # Row IC, Session 4 (IC-15; INDEPENDENT_COMMAND_SPEC §10.2): the
+            # spy's report — ADDED to what the mission gives above, nothing
+            # taken away: each of that court's letter-following marshals'
+            # written orders, wherever he stands, and the province its corps
+            # favour (`learned.from_spy`; nothing where no plan is written).
+            from backend.game_logic import learned as _learned
+            _spied = _learned.from_spy(world, target)
+            _orders_said = _learned.spy_words(world, target, _spied)
+            if _orders_said:
+                events[-1]["orders_learned"] = list(_spied.get("marshals") or [])
+                events[-1]["favour_learned"] = _spied.get("favour")
+                events[-1]["message"] += " " + _orders_said
             from backend.game_logic.diplomatic_dialogue import record_mission_end
             record_mission_end(world, mission, "duration",
                                regions_revealed=len(target_regions),

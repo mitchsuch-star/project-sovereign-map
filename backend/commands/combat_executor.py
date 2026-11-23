@@ -1967,6 +1967,17 @@ def battle_win_on_own_soil(world, region_name, nation, conquered=False) -> bool:
                 and getattr(field_region, "controller", None) == nation)
 
 
+def _bare_battle_line(formatted: str) -> str:
+    """Row IC, Session 4 (IC-13): `Name: "line"` (the battle pickers' form) ->
+    the bare line."""
+    text = str(formatted or "")
+    if ': "' in text:
+        text = text.split(': "', 1)[1]
+        if text.endswith('"'):
+            text = text[:-1]
+    return text
+
+
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
 
@@ -8207,6 +8218,19 @@ class CombatExecutor:
         # routed Bernadotte). Every road out of a lost field passes here.
         forced_retreat_clears_counter_punch(marshal, world)
 
+        # Row IC, Session 4 (IC-15; INDEPENDENT_COMMAND_SPEC §10.2, §10.3): the
+        # one road out of every lost field is where orders are TAKEN — before
+        # anything below wipes the routed man's order. A corps of a court at
+        # war with France, routed by a French corps: its court's written
+        # orders (`learned.from_rout`). A French marshal ON HIS OWN, routed:
+        # the court learns his task (`war_plans.learns_of`). Never on the fate
+        # re-entry (`skip_fate`: the same rout, answered).
+        if not skip_fate:
+            from backend.game_logic import learned as _learned
+            _taken = _learned.a_rout(world, marshal, enemy)
+            if _taken:
+                world._orders_taken = _taken     # read once by the battle's telling
+
         if not skip_fate:
             fate_msg = self._check_marshal_fate(
                 marshal, enemy, world, **({"rng": rng} if rng is not None else {}))
@@ -10433,7 +10457,8 @@ class CombatExecutor:
                     cautious_muster_halt,
                 )
                 _halt = (cautious_muster_halt(
-                            ctx.marshal.name, int(ctx.world.current_turn))
+                            ctx.marshal.name, int(ctx.world.current_turn),
+                            marshal=ctx.marshal)
                          if muster_gate_arms(ctx.marshal, ctx.muster_preview["odds_band"])
                          else (f"Berthier stays the order a moment, Sire: before "
                                f"{humanize_entity_name(ctx.marshal.name)} marches on "
@@ -11877,9 +11902,13 @@ class CombatExecutor:
                     getattr(_enemy_m, "personality", "cautious"),
                     _situation,
                     _voice_rotation_key_for(ctx.world, _enemy_m, ctx.target_location,
-                                            _situation))
+                                            _situation), marshal=_enemy_m)
                 if _voice:
                     ctx.battle_result["enemy_voice"] = _voice
+                    # Row IC, Session 4 (IC-13): who said it, and the bare
+                    # line — so the screens can stand his portrait beside it.
+                    ctx.battle_result["enemy_voice_by"] = {
+                        "speaker": _enemy_m.name, "says": _bare_battle_line(_voice)}
                     if isinstance(ctx.battle_result.get("log_battle_event"), dict):
                         ctx.battle_result["log_battle_event"]["enemy_voice"] = _voice
 
@@ -11905,9 +11934,11 @@ class CombatExecutor:
                     getattr(_own_m, "personality", "cautious"),
                     _own_situation,
                     _voice_rotation_key_for(ctx.world, _own_m, ctx.target_location,
-                                            _own_situation))
+                                            _own_situation), marshal=_own_m)
                 if _own_voice:
                     ctx.battle_result["marshal_voice"] = _own_voice
+                    ctx.battle_result["marshal_voice_by"] = {
+                        "speaker": _own_m.name, "says": _bare_battle_line(_own_voice)}
 
         # Clear coordination transient fields (D5 + X1)
         # CA8 sweep 4 review: three regions cannot cover every stamped
@@ -12898,6 +12929,10 @@ class CombatExecutor:
             # Marshal Voice Tier 1: so does the player's own commander's.
             if ctx.battle_result.get("marshal_voice"):
                 ctx.result["battle_report"]["marshal_voice"] = ctx.battle_result["marshal_voice"]
+            # Row IC, Session 4 (IC-13): and who said each, for his portrait.
+            for _voice_key in ("enemy_voice_by", "marshal_voice_by"):
+                if isinstance(ctx.battle_result.get(_voice_key), dict):
+                    ctx.result["battle_report"][_voice_key] = dict(ctx.battle_result[_voice_key])
             # §0.6.8 item 4c: a victory that raised the winner's reward
             # expectation says so in the report at the moment it happens,
             # not just in tomorrow's dispatch.

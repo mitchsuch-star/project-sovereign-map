@@ -32,6 +32,7 @@ LITERAL_ACK: List[str] = [
     "\"{order}.\" It will be done exactly, Sire.",
     "\"{order}.\" No more and no less.",
     "\"{order}.\" Understood to the letter.",
+    "\"{order}.\" As written, Sire.",
 ]
 
 # ── Completion: the order is quoted, the outcome stated, instruction awaited ──
@@ -39,6 +40,7 @@ LITERAL_COMPLETE: List[str] = [
     "The order was \"{order}\". {outcome} I await further instruction.",
     "\"{order}\" — executed as written. {outcome} Awaiting your next word.",
     "As ordered: \"{order}\". {outcome} {name} stands ready for instruction.",
+    "\"{order}\" — done as written. {outcome} What next, Sire?",
 ]
 
 # ── The no-march tell: he heard the guns and held to his letter ──
@@ -58,17 +60,31 @@ LITERAL_EXACT: List[str] = [
     "To the letter, Sire — each line once, and no more.",
     "Exactly as written, Sire. I will not improve on it.",
     "As written, Sire: no more and no less.",
+    "Each line as you wrote it, Sire. Nothing added.",
 ]
 
 
-def _pick(bank: List[str], key: int) -> str:
-    return bank[key % len(bank)]
+def _pick(bank: List[str], key: int, marshal=None, said: bool = True) -> str:
+    """One line of a bank, by its rotation key. Row IC, Session 4 (IC-13):
+    given THE MAN (`marshal`), the line is the first in that rotation he has
+    not said among his last three (`said_lately`), and — where it is really
+    said (`said`, every caller but a preview) — it is remembered. With no man
+    the pick is the bare rotation, as it always was."""
+    if marshal is None:
+        return bank[key % len(bank)]
+    from backend.game_logic import said_lately as _said
+    # (Every bank this module holds carries four lines or more, so `speak`
+    # never comes back empty here; the bare rotation is the floor all the
+    # same — an order's acknowledgement must not lose its sentence.)
+    return _said.speak(marshal, bank, int(key) % len(bank), said=said) or bank[key % len(bank)]
 
 
-def literal_exact_ack(name: str, turn: int) -> str:
+def literal_exact_ack(name: str, turn: int, marshal=None, said: bool = False) -> str:
     """The read-back's "He says" for a literal marshal given if-thens — one
-    line, picked by the man and the turn (never a die)."""
-    return _pick(LITERAL_EXACT, sum(ord(c) for c in str(name or "")) + int(turn))
+    line, picked by the man and the turn (never a die). The read-back is a
+    PREVIEW: it writes nothing (`said` False); the give says it."""
+    return _pick(LITERAL_EXACT, sum(ord(c) for c in str(name or "")) + int(turn),
+                 marshal, said)
 
 
 def _clean_order_text(order_text: str) -> str:
@@ -76,20 +92,20 @@ def _clean_order_text(order_text: str) -> str:
     return (order_text or "").strip().rstrip(".!").strip()
 
 
-def literal_ack(order_text: str, turn: int) -> str:
+def literal_ack(order_text: str, turn: int, marshal=None) -> str:
     """Acknowledgment line at order creation — quotes the verbatim command."""
     order = _clean_order_text(order_text)
-    return _pick(LITERAL_ACK, len(order) + int(turn)).format(order=order)
+    return _pick(LITERAL_ACK, len(order) + int(turn), marshal).format(order=order)
 
 
 def literal_completion(order_text: str, outcome: str, name: str,
-                       turn: int) -> str:
+                       turn: int, marshal=None) -> str:
     """Completion report — quotes the order, states the outcome plainly."""
     order = _clean_order_text(order_text)
     outcome_text = (outcome or "Done.").strip()
     if outcome_text and not outcome_text.endswith("."):
         outcome_text += "."
-    return _pick(LITERAL_COMPLETE, len(order) + int(turn)).format(
+    return _pick(LITERAL_COMPLETE, len(order) + int(turn), marshal).format(
         order=order, outcome=outcome_text, name=name)
 
 
@@ -578,7 +594,7 @@ def interrupt_speaker(marshal) -> str:
 
 
 def pick_marshal_voice(name: str, personality: str, situation: str,
-                       rotation_key: int = 0) -> str:
+                       rotation_key: int = 0, marshal=None) -> str:
     """One line in the player commander's register ("" when none applies).
 
     Named rows (Ney, Davout, Murat) override the personality default;
@@ -595,7 +611,7 @@ def pick_marshal_voice(name: str, personality: str, situation: str,
     bank = voice_bank(name, personality, situation)
     if not bank:
         return ""
-    line = bank[int(rotation_key) % len(bank)]
+    line = _pick(bank, int(rotation_key), marshal)
     return f"{humanize_entity_name(name)}: \"{line}\""
 
 
@@ -626,12 +642,14 @@ _ACK_LINES: Dict[str, Dict[str, List[str]]] = {
             "enough.\"",
             "\"Good. An army rots standing still.\"",
             "\"We march. Pity whatever slows us.\"",
+            "\"We go at once, Sire.\"",
         ],
         "PURSUE": [
             "\"He is already beaten — he merely has not been told. I "
             "will tell him.\"",
             "\"Run him to ground, then. My sabers are hungry.\"",
             "\"I will have him by the collar within the week.\"",
+            "\"I will not let him rest, Sire.\"",
         ],
         "HOLD": [
             "\"Hold? Very well — but chain a hound and he strains the "
@@ -639,12 +657,14 @@ _ACK_LINES: Dict[str, Dict[str, List[str]]] = {
             "\"I will hold. They had best not come close enough to "
             "tempt me.\"",
             "\"Standing guard while others win laurels. As you command.\"",
+            "\"I will hold, Sire. I do not like it.\"",
         ],
         "SUPPORT": [
             "\"He shall have my sabers the moment he needs them — and I "
             "shall have a share of the credit.\"",
             "\"I ride to the guns the instant they speak.\"",
             "\"Supporting, Sire — though I intend to arrive first.\"",
+            "\"I will be there when he needs me, Sire.\"",
         ],
     },
     "cautious": {
@@ -653,31 +673,35 @@ _ACK_LINES: Dict[str, Dict[str, List[str]]] = {
             "army arrives broken.\"",
             "\"The roads will be scouted before each march, Sire.\"",
             "\"As ordered. I keep my flanks as I go.\"",
+            "\"We march with care, Sire.\"",
         ],
         "PURSUE": [
             "\"I will follow — at a distance that leaves him no chance "
             "to turn on us.\"",
             "\"Pursuit, then. I do not intend to be led into anything.\"",
             "\"He will be watched at every step. Patience closes traps.\"",
+            "\"I will follow him, Sire, and keep my guard up.\"",
         ],
         "HOLD": [
             "\"A sound instruction. Ground held is ground the enemy "
             "pays for.\"",
             "\"I will make this position expensive.\"",
             "\"Good. Let them come to us.\"",
+            "\"We hold here, Sire. It is good ground.\"",
         ],
         "SUPPORT": [
             "\"I will keep within reach — a corps that arrives whole is "
             "worth two that arrive winded.\"",
             "\"As you order. I move when the need is real, not before.\"",
             "\"He will not stand alone while I am in range.\"",
+            "\"I will stay close to him, Sire.\"",
         ],
     },
 }
 
 
 def personality_ack(personality: str, order_type: str, turn: int,
-                    key_extra: int = 0, marshal_name: str = "") -> str:
+                    key_extra: int = 0, marshal_name: str = "", marshal=None) -> str:
     """Register line appended to a standing-order acknowledgment for
     aggressive/cautious marshals ("" for literal — his quote ack is the
     W6-5 doctrine — and for unknown personalities/order types).
@@ -700,7 +724,7 @@ def personality_ack(personality: str, order_type: str, turn: int,
     bank = _ACK_LINES.get(personality, {}).get(order_type)
     if not bank:
         return ""
-    return _pick(bank, int(turn) + int(key_extra) + _name_key(marshal_name))
+    return _pick(bank, int(turn) + int(key_extra) + _name_key(marshal_name), marshal)
 
 
 def _name_key(name: str) -> int:
@@ -746,10 +770,12 @@ _MUSTER_HALT_LINES: List[str] = [
     "rather be told twice than bury them once.\"",
     "\"I can attack, Sire. I cannot promise you an army afterwards. "
     "Say the word and it is done.\"",
+    "\"The odds are bad, Sire. I will go if you say so, but I want you to "
+    "know it first.\"",
 ]
 
 
-def cautious_muster_halt(name: str, turn: int) -> str:
+def cautious_muster_halt(name: str, turn: int, marshal=None) -> str:
     """The cautious marshal's own words on the muster-confirm modal.
 
     Deterministic (GR6 — display only, rotated on the turn like every
@@ -757,7 +783,7 @@ def cautious_muster_halt(name: str, turn: int) -> str:
     `objection_v2.muster_gate_arms`.
     """
     return f"{name} halts before the order is carried out. " \
-           f"{_pick(_MUSTER_HALT_LINES, int(turn))}"
+           f"{_pick(_MUSTER_HALT_LINES, int(turn), marshal)}"
 
 
 # ── Completion: the order is done, reported in register ─────────────────
@@ -766,17 +792,19 @@ _COMPLETION_LINES: Dict[str, List[str]] = {
         "\"Done — and I trust the next order has more fire in it.\"",
         "\"It is done. Point me at something that shoots back, Sire.\"",
         "\"Accomplished. The men want a battle, not another road.\"",
+        "\"Done, Sire. What is next?\"",
     ],
     "cautious": [
         "\"Done, and done properly — no stragglers, no surprises.\"",
         "\"Accomplished as ordered. The army is intact.\"",
         "\"It is done. I took the liberty of posting pickets.\"",
+        "\"Done, Sire. The corps is in good order.\"",
     ],
 }
 
 
 def personality_completion(personality: str, reason: str, name: str,
-                           turn: int) -> str:
+                           turn: int, marshal=None) -> str:
     """Completion report for aggressive/cautious marshals: the plain
     reason plus one register line. Returns the reason unchanged for
     literal (owned by literal_completion) and unknown personalities."""
@@ -784,5 +812,5 @@ def personality_completion(personality: str, reason: str, name: str,
     base = (reason or "").strip()
     if not bank:
         return base
-    line = _pick(bank, len(base) + int(turn))
+    line = _pick(bank, len(base) + int(turn), marshal)
     return f"{base} {name}: {line}".strip()

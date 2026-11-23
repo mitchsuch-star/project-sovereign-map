@@ -540,7 +540,7 @@ class TestTheTableAndItsMirrors:
         # "The Congress of Paris" teaches the reign's ending between the
         # Wooden Wall and the Instruments; the Instruments and the hand-off
         # each move one gate later.
-        assert len(rows) == 20       # 19 → 20, consciously (SR-5r RF-4c, Sept 27,
+        assert len(rows) == 22       # 20 → 22 (row IC: On His Own, Ask Him); 19 → 20, consciously (SR-5r RF-4c, Sept 27,
         # 2026): card XVIII "The Laws of State" follows the Congress.
         assert ids.index("congress") == ids.index("naval") + 1
         assert ids.index("laws") == ids.index("congress") + 1

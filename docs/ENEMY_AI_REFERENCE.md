@@ -1009,3 +1009,14 @@ for r in results:
 
 *Last updated: July 17, 2026 (NA-3)*
 *Recent additions: P3.7 homeland defense, P4.6 coordinated attack, P4.75 hostile exclusion, P4.76 co-location persistence, P4.77 cross-nation adjacency, P7.4 defensive positioning, +8% coordination estimate, artillery stagnation override, stagnation fortify fix, cautious advance fallback*
+
+## The war plan's pass and gate (row IC, Session 4 — IC-14; SHIPS OFF)
+
+`backend/game_logic/war_plans.py`; `SYSTEMS_REFERENCE.md` §235.5. **The seam `war_plans.the_courts_follow_a_plan` ships DOWN — built, not adopted (the measure's rule written before the data was missed; the choice is the user's). Down, nothing below runs.**
+
+- **The pass** — `turn_manager._the_plans_night`, after the day's night and before `_process_enemy_turns`: holders settled, every planned man's lines read on one frozen board through his own court's sight, each acts once through the executor (`_strategic_execution`, `_ai_phase_nation` set).
+- **The gate** — `EnemyAI._evaluate_marshal`, right after P2 critical survival: a planned man (`war_plans.planned`) whose court's capital stands returns `(None, 999)`. Above it still move him: the occupation tick, a stored intent, the ground he stands on (P-1), the limited-corps rule, a battle he is in (P0 — never a second blow on a night his orders moved him), retreat recovery (P1), the road home (P1.2), the gunner's screen, critical survival (P2).
+- **Row FIGHT** (`a_planned_man_still_strikes_at_good_odds`, down): at the gate, the P4 attack rung alone, when his orders did not move him tonight.
+- **The idle count** of a planned man is held at 0, so he does not lurch when his plan ends.
+- **The favoured province** — `_plan_favour_set`: extra credit in `_agenda_biased_distance` for one of the court's own aims; `aim_pull_set` is untouched.
+- **Arms, both down:** `each_man_has_his_own_mood` (the mood from the seed, the turn and his name; the nation's stream is still drawn and set aside), `the_enemy_hunts_a_lone_corps` (`_hunt_credit` in `_consider_strategic_move`).

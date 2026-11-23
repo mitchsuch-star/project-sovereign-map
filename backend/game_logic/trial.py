@@ -592,7 +592,22 @@ def proposal(world, marshal) -> Dict[str, Any]:
         # two paragraphs on the window: what HE asks, then the terms
         "description": f"{words}\n{terms_words()}",
         "turns": int(TURNS), "most_turns": int(MOST_TURNS),
+        # Row IC, Session 4 (IC-13): HIS line as he asks — a preview of the
+        # line he says when the task is given (PURE: nothing is recorded).
+        **_his_line(world, marshal, "trial_ask", said=False),
     }
+
+
+def _his_line(world, marshal, kind: str, said: bool) -> Dict[str, Any]:
+    """`{says, speaker}` for one of his own lines (`own_voice`), or {} when he
+    has none. `said` False is a preview and writes nothing."""
+    try:
+        from backend.game_logic import own_voice as _voice
+        line = (_voice.speak if said else _voice.voice)(world, marshal, kind)
+    except Exception as exc:
+        report(exc, "trial._his_line")
+        return {}
+    return {"says": line, "speaker": marshal.name} if line else {}
 
 
 def option(world, marshal) -> Dict[str, Any]:
@@ -605,6 +620,9 @@ def option(world, marshal) -> Dict[str, Any]:
         "effect": "a_task_to_prove_himself",
         "proposal": {key: read[key] for key in
                      ("nature", "task", "place", "from", "line", "words", "turns", "most_turns")},
+        # Row IC, Session 4 (IC-13): his own line as he asks — a preview of the
+        # line the give then says (`give`); the window draws it by name.
+        **({"says": read["says"], "speaker": read["speaker"]} if read.get("says") else {}),
     }
 
 
@@ -690,13 +708,17 @@ def give(world, marshal, shown: Optional[str] = None) -> Dict[str, Any]:
     message = (f"{read['shown']} has his task to prove himself: \"{read['line']}\"{marches} "
                f"He takes no orders until it ends — {TURNS} turns, or up to {MOST_TURNS} while he "
                f"keeps winning.")
+    voiced = _his_line(world, marshal, "trial_ask", said=True)
     world.log_event({
         "type": EVENT, "phase": "given", "marshal": marshal.name,
         "nation": marshal.nation, "task": read["task"], "place": read["place"],
         "doing": read["doing"],
-        "message": message,
+        "message": message, **voiced,
     })
-    return {"given": True, "stale": False, "proposal": read, "message": message}
+    # his line rides ONE channel — `voices` (the review: never the reply's own
+    # `says` beside it, which a client could draw twice)
+    return {"given": True, "stale": False, "proposal": read, "message": message,
+            **({"voices": [dict(voiced)]} if voiced else {})}
 
 
 def _drop_his_objection(world, marshal) -> None:
@@ -931,16 +953,19 @@ def settle(world, marshal) -> Dict[str, Any]:
     shown = humanize_entity_name(marshal.name)
     message = _settle_words(shown, name, _deeds(won, lost, taken, turns, walked_in), gain,
                             int(marshal.trust.value), authority)
+    # Row IC, Session 4 (IC-13): what HE says of how it ended.
+    voiced = _his_line(world, marshal,
+                       "trial_won" if name in ("spectacular", "good") else "trial_lost", said=True)
     world.log_event({
         "type": EVENT, "phase": "ended", "marshal": marshal.name, "nation": marshal.nation,
         "band": name, "trust_gain": int(gain), "authority_gain": int(authority),
         "won": int(won), "lost": int(lost), "taken": int(taken), "turns": int(turns),
         "walked_in": int(walked_in),
-        "message": message,
+        "message": message, **voiced,
     })
     return {"marshal": marshal.name, "command": "HOLD", "order_status": "completed",
             "action": "trial_ended", "band": name, "reason": message, "message": message,
-            "trust_gain": int(gain), "authority_gain": int(authority)}
+            "trust_gain": int(gain), "authority_gain": int(authority), **voiced}
 
 
 def _press_on(world, marshal) -> Dict[str, Any]:
@@ -1083,7 +1108,9 @@ def morning_events(world) -> List[Dict[str, Any]]:
         out.append({"type": EVENT, "phase": str(event.get("phase") or ""),
                     "marshal": event.get("marshal"), "nation": event.get("nation"),
                     "band": str(event.get("band") or ""),
-                    "message": str(event.get("message") or "")})
+                    "message": str(event.get("message") or ""),
+                    **({"says": str(event["says"]), "speaker": str(event.get("speaker") or "")}
+                       if event.get("says") else {})})
     return out
 
 

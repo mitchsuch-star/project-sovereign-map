@@ -27710,6 +27710,7 @@ class TestS14EX207:
             "_flag_path_cache", "_flag_aspect_cache",      # path strings, aspect floats
             "_portrait_paths", "_bitmap_load_error_latch",  # path strings, a latch
             "_text_size_bases",                             # [type, item, size] numbers
+            "_inline_cache",       # row IC, Session 4: `VoiceLine` - bbcode strings, no Resource held
         }
         released = {var for var, _ in _W20_RELEASED.values()}
         resource_types = r"(Shader|Texture2D|Texture|Font|FontFile|FontVariation|Theme|Resource|" \

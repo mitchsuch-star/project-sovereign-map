@@ -40,9 +40,7 @@
       "status"
     ],
     "11": [],
-    "12": [
-      "enact the Staff"
-    ]
+    "12": ["enact the Staff", "Ney, what will you do?", "Davout, what do you see?"]
   },
   "policy": {
     "objection": "insist",

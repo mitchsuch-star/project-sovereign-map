@@ -4060,5 +4060,758 @@
                 }
             ]
         }
+    },
+    "_war_plans_comment": "Row IC, Session 4 (IC-14; docs/INDEPENDENT_COMMAND_SPEC.md 10.1; backend/game_logic/war_plans.py): the courts' WAR PLANS. Each court at war - the coalition together - draws ONE plan by the campaign's seed from its set (the historical seed draws the first, the historical plan). A plan is two or three steps - an opening book of about twelve turns, after which the men are their court's again. A step gives exact orders (the if-thens of backend/commands/if_thens.py - the same the player's literal marshals take) to the court's marshals who follow orders to the letter, by name or to 'any_literal' (a man hired later): hold or march (a place), support (a friend by name: he keeps by him and marches to his battles) or chase (an enemy by name: he closes on him where his court sees him and attacks when he is not outnumbered). A step may name ONE favoured province - a PRIORITY among a court's own war aims ($aim = the nearest of them); a province outside a court's aims pulls nobody, so a plan adds no ground to a march and none to what a court may keep. All of a set's plans open with the SAME first step. Places: a province, $here (where he stands when the order is written), $capital (his own court's). A step ends on turns | line_used | until place_falls. The plan names are the design's; where the map has no such province the nearest stands in (Swabia for the Iller; Franconia for Thuringia). Checked by validator._validate_war_plans.",
+    "war_plans": {
+        "sets": [
+            {
+                "for": {
+                    "coalition": "Third Coalition"
+                },
+                "plans": [
+                    {
+                        "id": "danube_junction",
+                        "name": "The Danube junction",
+                        "_comment": "The historical plan. Mack holds the Iller until the Russians arrive and never falls back - the door Napoleon closed at Ulm; Buxhowden keeps by Kutuzov and marches to his battles. Austria's corps favour Milan (the main army is the Archduke's, in Italy).",
+                        "steps": [
+                            {
+                                "_comment": "The armies gather. Mack keeps Swabia (the Iller); Buxhowden starts west. Nothing fires on turn one: a line arms the turn after it is written.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "Mack": {
+                                        "order": "hold",
+                                        "place": "Swabia",
+                                        "lines": [
+                                            {
+                                                "if": "attacked",
+                                                "then": "dig_in"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "march",
+                                        "place": "Ukraine",
+                                        "lines": []
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "favour": "Milan",
+                                "orders": {
+                                    "Mack": {
+                                        "order": "hold",
+                                        "place": "Swabia",
+                                        "lines": [
+                                            {
+                                                "if": "friend_arrives",
+                                                "then": "attack",
+                                                "friend": "Kutuzov"
+                                            },
+                                            {
+                                                "if": "attacked",
+                                                "then": "dig_in"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "support",
+                                        "whom": "Kutuzov",
+                                        "lines": [
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "Podolia"
+                                            }
+                                        ]
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "favour": "Milan",
+                                "orders": {
+                                    "Mack": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "Vienna"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "support",
+                                        "whom": "Kutuzov",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            }
+                                        ]
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "id": "long_retreat",
+                        "name": "The long retreat",
+                        "_comment": "Draw him in. If Napoleon comes within reach Mack falls back on the Tyrol; the Russians hold in Moravia; then the army stands before Vienna. No province is favoured.",
+                        "steps": [
+                            {
+                                "_comment": "The armies gather. Mack keeps Swabia (the Iller); Buxhowden starts west. Nothing fires on turn one: a line arms the turn after it is written.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "Mack": {
+                                        "order": "hold",
+                                        "place": "Swabia",
+                                        "lines": [
+                                            {
+                                                "if": "attacked",
+                                                "then": "dig_in"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "march",
+                                        "place": "Ukraine",
+                                        "lines": []
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "orders": {
+                                    "Mack": {
+                                        "order": "hold",
+                                        "place": "Swabia",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "fall_back",
+                                                "who": "Napoleon",
+                                                "to": "Tyrol"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "Tyrol"
+                                            },
+                                            {
+                                                "if": "attacked",
+                                                "then": "dig_in"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "march",
+                                        "place": "Moravia",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "fall_back",
+                                                "to": "Ukraine"
+                                            },
+                                            {
+                                                "if": "friend_attacked",
+                                                "then": "join",
+                                                "friend": "Kutuzov"
+                                            }
+                                        ]
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "orders": {
+                                    "Mack": {
+                                        "order": "march",
+                                        "place": "Vienna",
+                                        "lines": [
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "support",
+                                        "whom": "Kutuzov",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            }
+                                        ]
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "id": "weyrothers_disposition",
+                        "name": "Weyrother's disposition",
+                        "_comment": "March and attack. Mack falls on the French corps nearest him - Bernadotte's, in Franconia - then turns on Ney, striking whenever he is not outnumbered and falling back only when he is being surrounded; Buxhowden hurries on to Bohemia and then to the Tyrol. Each court presses the nearest of its own aims. (A chase follows a man only where the court can see him: step out of its sight and he stands.)",
+                        "steps": [
+                            {
+                                "_comment": "The armies gather. Mack keeps Swabia (the Iller); Buxhowden starts west. Nothing fires on turn one: a line arms the turn after it is written.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "Mack": {
+                                        "order": "hold",
+                                        "place": "Swabia",
+                                        "lines": [
+                                            {
+                                                "if": "attacked",
+                                                "then": "dig_in"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "march",
+                                        "place": "Ukraine",
+                                        "lines": []
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "favour": "$aim",
+                                "orders": {
+                                    "Mack": {
+                                        "order": "chase",
+                                        "whom": "Bernadotte",
+                                        "lines": [
+                                            {
+                                                "if": "surrounded",
+                                                "then": "fall_back",
+                                                "to": "Tyrol"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "march",
+                                        "place": "Bohemia",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "friend_attacked",
+                                                "then": "join",
+                                                "friend": "Kutuzov"
+                                            }
+                                        ]
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "favour": "$aim",
+                                "orders": {
+                                    "Mack": {
+                                        "order": "chase",
+                                        "whom": "Ney",
+                                        "lines": [
+                                            {
+                                                "if": "surrounded",
+                                                "then": "fall_back",
+                                                "to": "Tyrol"
+                                            }
+                                        ]
+                                    },
+                                    "Buxhowden": {
+                                        "order": "march",
+                                        "place": "Tyrol",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "friend_attacked",
+                                                "then": "join",
+                                                "friend": "Kutuzov"
+                                            }
+                                        ]
+                                    },
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "for": {
+                    "court": "Prussia"
+                },
+                "plans": [
+                    {
+                        "id": "thuringian_concentration",
+                        "name": "The Thuringian concentration",
+                        "_comment": "Forward (Thuringia is not a province of this map): the corps press the nearest of Prussia's own aims.",
+                        "steps": [
+                            {
+                                "_comment": "The army is called up. A man hired later stands where he is.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 8
+                                },
+                                "favour": "$aim",
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "id": "saale_line",
+                        "name": "The Saale line",
+                        "_comment": "Stand on the river and let him come: no province is favoured.",
+                        "steps": [
+                            {
+                                "_comment": "The army is called up. A man hired later stands where he is.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 8
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "attacked",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "id": "behind_the_elbe",
+                        "name": "Wait behind the Elbe",
+                        "_comment": "Give ground and keep the army: a letter-following man goes to Berlin and holds it.",
+                        "steps": [
+                            {
+                                "_comment": "The army is called up. A man hired later stands where he is.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 8
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "march",
+                                        "place": "$capital",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "dig_in"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "for": {
+                    "court": "Britain"
+                },
+                "plans": [
+                    {
+                        "id": "hold_the_lines",
+                        "name": "Hold the lines, never risk the army",
+                        "_comment": "Britain's one army is not to be lost: no province is favoured.",
+                        "steps": [
+                            {
+                                "_comment": "The army keeps its camps.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 10
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "id": "descent_on_a_coast",
+                        "name": "The descent on a coast",
+                        "_comment": "A landing: the corps press the nearest of Britain's own aims (the fleet decides whether they may cross).",
+                        "steps": [
+                            {
+                                "_comment": "The army keeps its camps.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 10
+                                },
+                                "favour": "$aim",
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "for": {
+                    "default": true
+                },
+                "plans": [
+                    {
+                        "id": "press_forward",
+                        "name": "Press forward",
+                        "_comment": "The corps press the nearest of the court's own aims; a letter-following man strikes what comes within reach and falls back on his capital when outnumbered. The orders are written twice, four turns each: his lines are fresh again for the second.",
+                        "steps": [
+                            {
+                                "_comment": "The court gathers its men.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "favour": "$aim",
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 4
+                                },
+                                "favour": "$aim",
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "attack"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "id": "guard_the_capital",
+                        "name": "Guard the capital",
+                        "_comment": "No province is favoured; a letter-following man digs in when the enemy comes within reach.",
+                        "steps": [
+                            {
+                                "_comment": "The court gathers its men.",
+                                "ends": {
+                                    "turns": 2
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": []
+                                    }
+                                }
+                            },
+                            {
+                                "ends": {
+                                    "turns": 6
+                                },
+                                "orders": {
+                                    "any_literal": {
+                                        "order": "hold",
+                                        "place": "$here",
+                                        "lines": [
+                                            {
+                                                "if": "enemy_near",
+                                                "then": "dig_in"
+                                            },
+                                            {
+                                                "if": "outnumbered",
+                                                "then": "fall_back",
+                                                "to": "$capital"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
 }

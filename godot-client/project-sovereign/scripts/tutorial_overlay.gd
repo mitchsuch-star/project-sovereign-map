@@ -367,10 +367,33 @@ const STEPS := [
 		"open_label": "Open THE LAWS ▸",
 		"advance": "_pred_law_enacted",
 	},
+	# Row IC, Session 4 (IC-13): two READING cards — nothing must be done to
+	# pass them. They stand at gate 12, BEFORE "The Instruments": after it (at
+	# gate 13) each cost one more response, and an idle Emperor ended the
+	# lesson on "On His Own" without ever seeing the last card (the lesson's
+	# own engine test, and the review). Here the catch-up walks them.
+	{
+		"id": "on_his_own",
+		"turn_gate": 12,
+		"title": "XIX. On His Own",
+		"body": "You can set a bold or a careful marshal on his own. Type his task on the command line — for example [color=#e8d4a8]Ney, take Swabia on your own[/color] — or use the chips under the line. Before you press Enter he answers in his own words, and the line under it says what he will do tonight. A marshal on his own acts each night without further orders. A marshal who follows orders to the letter (Soult) takes exact orders instead: [color=#e8d4a8]Soult, hold Lorraine. If attacked, dig in.[/color]",
+		"suggest": "",
+		"suggest_action": "",
+		"advance": "_pred_any_success",
+	},
+	{
+		"id": "ask_him",
+		"turn_gate": 12,
+		"title": "XX. Ask Him",
+		"body": "You can ask a marshal a question at any time, and asking costs nothing: [color=#e8d4a8]Ney, what will you do?[/color], [color=#e8d4a8]Davout, what do you see?[/color], [color=#e8d4a8]Lannes, can you take Swabia?[/color] He answers in his own voice; the plain words beside his answer say what it means. Nothing changes until you give an order.",
+		"suggest": "",
+		"suggest_action": "",
+		"advance": "_pred_any_success",
+	},
 	{
 		"id": "free_books",
 		"turn_gate": 13,
-		"title": "XIX. The Instruments",
+		"title": "XXI. The Instruments",
 		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger (eight books — forces, land, treasury, intelligence, manpower, orders, the Admiralty, the laws), [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again, [color=#e8d4a8]L[/color] the campaign log, [color=#e8d4a8]N[/color] Le Moniteur. Hold [color=#e8d4a8]Alt[/color] with the letter while you type. The treasury now carries occupation costs and the charges of empire — read them in the ledger. The notice rail at the top collects every matter that waits on you; [color=#e8d4a8]Esc[/color] saves, loads and sets the screen. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
 		"suggest": "",
 		"suggest_action": "",
@@ -379,7 +402,7 @@ const STEPS := [
 	{
 		"id": "handoff",
 		"turn_gate": 14,
-		"title": "XX. The Lesson Ends",
+		"title": "XXII. The Lesson Ends",
 		"body": "That is the whole of the craft, Sire: orders, temper, battle, conquest, coin — and the courts beyond. The real war of 1805 waits at the main menu under BEGIN. Hold this little front as long as it amuses you.",
 		"suggest": "",
 		"suggest_action": "",

@@ -462,6 +462,38 @@ def a_stream_of_its_own(world, nation: str, *identity):
         _A_STREAM_OF_ITS_OWN.reset(token)
 
 
+def each_man_has_his_own_mood() -> bool:
+    """Row IC, Session 4 (IC-14; INDEPENDENT_COMMAND_SPEC §10.6 — "different
+    men on the other side too"): SHIPS DOWN. Today an enemy marshal's mood is
+    drawn from his NATION's one stream, at every decision, in call order — so
+    it is noise, not character, and it shifts with how many corps were weighed
+    before him. Up: his mood for the day is his own — the campaign's seed, the
+    turn and HIS NAME (`campaign_variance._unit`, a hash with no stream),
+    inside his nature's own band; the nation's stream is still drawn and the
+    draw set aside, so nothing else that reads the stream moves. It changes
+    the old game, so it is an ARM of the session's measure
+    (`tests/_ic4_seams.py`, row MOOD) and is adopted only with the user's
+    word. One line to reverse: return True."""
+    return False
+
+
+def the_enemy_hunts_a_lone_corps() -> bool:
+    """Row IC, Session 4 (IC-15; INDEPENDENT_COMMAND_SPEC §10.5 — "the hunt, a
+    measured option, not a promise"): SHIPS DOWN. Up: ONE new term in the
+    enemy's choice of whom to march on — a corps of the player's nation that it
+    can see, with no friend of his within one march, counts as nearer
+    (`EnemyAI._hunt_credit`: two marches nearer at good odds, one at even, none
+    against the odds). Adopted only by R-HUNT (§13) and the user's word; the
+    table is reported either way (`tests/_ic4_seams.py`, row HUNT). One line
+    to reverse: return True."""
+    return False
+
+
+HUNT_CREDIT_GOOD_ODDS = 2     # marches nearer, when he outnumbers the lone corps 3 to 2 or better
+HUNT_CREDIT_EVEN_ODDS = 1     # ... at even odds or better
+HUNT_GOOD_ODDS = 1.5
+
+
 def ai_rng(world, nation: str):
     """OCT27-D13(c) (ruled as recommended, S14i): the generals' draws — the
     strategic score's variance, the mood, the stagnation fallback — come from
@@ -1211,6 +1243,15 @@ class EnemyAI:
         # Apply random variance: threshold * (1 ± variance)
         mood_modifier = ai_rng(world, str(getattr(marshal, "nation", "") or "")).uniform(
             1.0 - variance, 1.0 + variance)   # OCT27-D13(c)
+        if each_man_has_his_own_mood():
+            # Row IC, Session 4 (§10.6, the MOOD arm): the day's mood is the
+            # MAN's — seed, turn, his name — inside the same band; the stream's
+            # draw above is taken and set aside so no other reader shifts.
+            from backend.game_logic import campaign_variance as _cv
+            unit = _cv._unit(
+                str(getattr(world, "campaign_seed", "") or _cv.HISTORICAL_SEED),
+                f"mood::{marshal.name}::{int(getattr(world, 'current_turn', 0) or 0)}")
+            mood_modifier = (1.0 - variance) + 2.0 * variance * unit
         adjusted = base_threshold * mood_modifier
 
         # Log if significantly different from base
@@ -1446,6 +1487,55 @@ class EnemyAI:
         self._agenda_covet_cache = {"key": key, "covets": covets}
         return covets
 
+    def _plan_favour_set(self, nation: str, world: WorldState) -> frozenset:
+        """Row IC, Session 4 (IC-14; INDEPENDENT_COMMAND_SPEC §10.1): the
+        province the court's WAR PLAN favours — always one of its OWN aims
+        (`war_plans.favoured`), so it is a priority among what the covet set
+        already holds and never new ground: the design's own line put it in
+        `aim_pull_set`, which `war_council.annexation_permitted` also reads
+        as what a court may KEEP, and the first measure of a wider reading
+        (any province the court might take) kept two provinces outside any
+        aim. Memoized per (nation, turn) like the covet set (GR8); empty with
+        no plan written, or the seam down."""
+        cache = getattr(self, '_plan_favour_cache', None)
+        key = (nation, world.current_turn)
+        if cache is not None and cache.get("key") == key:
+            return cache["favour"]
+        from backend.game_logic import war_plans as _war_plans
+        favour = _war_plans.favoured(world, nation)
+        self._plan_favour_cache = {"key": key, "favour": favour}
+        return favour
+
+    def _hunt_credit(self, marshal, enemy, nation: str, world) -> int:
+        """Row IC, Session 4 (§10.5, the HUNT arm — 0 while its seam is down):
+        how many marches NEARER a corps counts in the choice of whom to march
+        on, because it stands alone — a corps of the player's nation, seen
+        (the caller's list is the court's own sight), with no friend of his
+        in his province or the ones next to it; weighted by the odds
+        (`HUNT_CREDIT_*`). The hop gate still reads the real distance: the
+        credit never fakes a step."""
+        if not the_enemy_hunts_a_lone_corps():
+            return 0
+        if getattr(enemy, "nation", None) != getattr(world, "player_nation", None):
+            return 0
+        here = world.get_region(str(getattr(enemy, "location", "") or ""))
+        if here is None:
+            return 0
+        ring = [here.name] + list(getattr(here, "adjacent_regions", None) or [])
+        for name in ring:
+            for other in world.get_marshals_in_region_indexed(name):
+                if other is enemy or int(getattr(other, "strength", 0) or 0) <= 0:
+                    continue
+                if other.nation == enemy.nation:
+                    return 0              # a friend of his within one march: he is not alone
+        his = max(1, int(getattr(enemy, "strength", 0) or 0))
+        odds = float(int(getattr(marshal, "strength", 0) or 0)) / float(his)
+        if odds >= HUNT_GOOD_ODDS:
+            return HUNT_CREDIT_GOOD_ODDS
+        if odds >= 1.0:
+            return HUNT_CREDIT_EVEN_ODDS
+        return 0
+
     def _agenda_biased_distance(self, from_region: str, to_region: str,
                                 nation: str, world: WorldState) -> int:
         """NA-3 §5.6 — hop distance minus AGENDA_TARGET_DISTANCE_BONUS when
@@ -1455,6 +1545,11 @@ class EnemyAI:
         from backend.game_logic.agendas import AGENDA_TARGET_DISTANCE_BONUS
         distance = world.get_distance(from_region, to_region)
         if to_region in self._agenda_covet_set(nation, world):
+            # Row IC, Session 4: the aim the court's war plan favours counts
+            # nearer still (`_plan_favour_set` — a priority among its aims).
+            if to_region in self._plan_favour_set(nation, world):
+                from backend.game_logic.war_plans import PLAN_FAVOUR_EXTRA
+                return distance - AGENDA_TARGET_DISTANCE_BONUS - PLAN_FAVOUR_EXTRA
             return distance - AGENDA_TARGET_DISTANCE_BONUS
         return distance
 
@@ -2167,6 +2262,7 @@ class EnemyAI:
                 marshals_who_acted.add(m_name)
 
         stagnation_forced = getattr(self, '_unfortified_this_turn', set())
+        from backend.game_logic import war_plans as _stagnation_war_plans
         for m in world.get_marshals_by_nation(nation):
             if m.name in meaningful_actions:
                 if m.name in stagnation_forced:
@@ -2178,6 +2274,12 @@ class EnemyAI:
                     if world.ai_stagnation_turns.get(m.name, 0) > 0:
                         print(f"  [STAGNATION RESET] {m.name} took meaningful action - counter reset")
                     world.ai_stagnation_turns[m.name] = 0
+            elif _stagnation_war_plans.planned(world, m):
+                # Row IC, Session 4 (IC-14): a man under his court's written
+                # orders is not idle — "the stagnation breaker yields to the
+                # plan". The counter stays at nothing, so he does not lurch
+                # the night his plan ends.
+                world.ai_stagnation_turns[m.name] = 0
             elif m.name not in marshals_who_acted:
                 # Marshal was SKIPPED entirely (priority 999) — still counts as idle
                 old = world.ai_stagnation_turns.get(m.name, 0)
@@ -2573,6 +2675,15 @@ class EnemyAI:
             self._marshals_done_this_turn.add(marshal.name)
             return None, 999
 
+        from backend.game_logic import war_plans as _plan_night
+        if (enemies_in_region and _plan_night.planned(world, marshal)
+                and _plan_night.acted_tonight(world, marshal)):
+            # Row IC, Session 4 (IC-14; §2 "one thing a turn"): his written
+            # orders moved him tonight (`war_plans.the_pass`) — a line fired, a
+            # march walked. The engagement rung does not give him a second
+            # blow the same night; survival (below) is still his.
+            ai_debug(f"  P0: {marshal.name} acted on his written orders tonight - no second blow")
+            enemies_in_region = []
         if enemies_in_region:
             ai_debug(f"  P0: ENGAGED with {[e.name for e in enemies_in_region]}!")
 
@@ -2801,6 +2912,34 @@ class EnemyAI:
                 action = self._get_survival_action(marshal, nation, world)
                 if action:
                     return (action, 2)
+
+        # ════════════════════════════════════════════════════════════
+        # THE WAR PLAN'S GATE (row IC, Session 4 — IC-14; INDEPENDENT_
+        # COMMAND_SPEC §10.1): "a literal marshal under a plan is moved by
+        # his written orders and by nothing else — except to save his corps,
+        # as any corps does, and to fight a battle he is already in. His
+        # court's decision logic skips him." Everything ABOVE this line
+        # still moves him: the occupation tick, a stored intent, the ground
+        # he stands on (P-1), the limited-corps rule, a battle he is in
+        # (P0), retreat recovery (P1), the road home (P1.2), the gunner's
+        # screen and critical survival (P2). Everything below is his
+        # court's judgement, and his orders stand in its place
+        # (`war_plans.the_pass`, before this phase). A court whose capital
+        # has fallen inside this very phase has no plan from that moment.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic import war_plans as _war_plans
+        if (_war_plans.planned(world, marshal)
+                and not self._is_capital_lost(nation, world)):
+            if (_war_plans.a_planned_man_still_strikes_at_good_odds()
+                    and not _war_plans.acted_tonight(world, marshal)):
+                # Row FIGHT (an arm, ships down): he keeps today's fighting
+                # sense — the P4 rung alone, and one thing a turn.
+                strike = self._find_attack_opportunity(marshal, nation, world)
+                if strike and self._admits(strike):
+                    ai_debug(f"  PLAN: {marshal.name} strikes at good odds: {strike}")
+                    return (strike, 4)
+            ai_debug(f"  PLAN: {marshal.name} is under his court's written orders - skipped")
+            return None, 999
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 2.5: SQUARE FORMATION (Session 67)
@@ -4352,22 +4491,9 @@ class EnemyAI:
     # ═══════════════════════════════════════════════════════════════════
 
     def _is_capital_lost(self, nation: str, world: WorldState) -> bool:
-        """Check if this nation has lost its capital region.
-
-        T4-2b: the capital is the court's SEAT — a court that signed its
-        capital away and removed has not "lost its capital" while its seat
-        stands (the flag scan below read the old capital's flag for ever).
-        Seam down: the flag scan, as before."""
-        from backend.game_logic.game_end import a_court_removes_its_seat
-        if a_court_removes_its_seat():
-            seat = world.get_region(world.get_nation_capital(nation) or "")
-            return bool(seat and seat.controller != nation)
-        starting = world.nation_starting_regions.get(nation, [])
-        for region_name in starting:
-            region = world.get_region(region_name)
-            if region and region.is_capital and region.controller != nation:
-                return True
-        return False
+        """Check if this nation has lost its capital region (`capital_is_lost`
+        — ONE predicate; the war plans read the same)."""
+        return capital_is_lost(world, nation)
 
     def _count_lost_regions(self, nation: str, world: WorldState) -> int:
         """Count how many starting regions this nation has lost."""
@@ -5999,7 +6125,8 @@ class EnemyAI:
                 target_region = min(
                     enemies,
                     key=lambda e: self._agenda_biased_distance(
-                        marshal.location, e.location, nation, world),
+                        marshal.location, e.location, nation, world)
+                    - self._hunt_credit(marshal, e, nation, world),
                 ).location
             else:
                 target_region = min(
@@ -6138,7 +6265,8 @@ class EnemyAI:
                         target_region = min(
                             enemies,
                             key=lambda e: self._agenda_biased_distance(
-                                marshal.location, e.location, nation, world),
+                                marshal.location, e.location, nation, world)
+                            - self._hunt_credit(marshal, e, nation, world),
                         ).location
                     else:
                         target_region = min(
@@ -9042,6 +9170,27 @@ class EnemyAI:
         """Check if an action costs an action point."""
         free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "wait"]
         return action not in free_actions
+
+
+def capital_is_lost(world, nation: str) -> bool:
+    """Has this court lost its capital?
+
+    T4-2b: the capital is the court's SEAT — a court that signed its
+    capital away and removed has not "lost its capital" while its seat
+    stands (the flag scan below read the old capital's flag for ever).
+    Seam down: the flag scan, as before. (Row IC, Session 4: a module
+    function so `war_plans` — a plan is torn up while the capital is lost —
+    reads the court's own rule without an `EnemyAI` in hand.)"""
+    from backend.game_logic.game_end import a_court_removes_its_seat
+    if a_court_removes_its_seat():
+        seat = world.get_region(world.get_nation_capital(nation) or "")
+        return bool(seat and seat.controller != nation)
+    starting = world.nation_starting_regions.get(nation, [])
+    for region_name in starting:
+        region = world.get_region(region_name)
+        if region and region.is_capital and region.controller != nation:
+            return True
+    return False
 
 
 def get_casualty_description(casualties: int, starting_strength: int) -> str:

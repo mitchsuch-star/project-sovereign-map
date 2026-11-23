@@ -385,6 +385,31 @@ def _the_days_night(manager, game_state) -> list:
         return []
 
 
+def _the_plans_night(manager, game_state) -> list:
+    """Row IC, Session 4 (IC-14; INDEPENDENT_COMMAND_SPEC §2 step 3, §10.1):
+    before the enemy's phase, every marshal under his court's WAR PLAN does
+    what his written orders say (`war_plans.the_pass`) — the first of his
+    if-thens that has come true on what the player has just done, else his
+    standing order's night. Returns the executor's own results ([] where no
+    plan is written — every board but the campaign's — or the seam is down);
+    they join the phase's telling as each court's first actions, and the fog
+    filter decides what France is shown of them."""
+    from backend.game_logic import war_plans as _plans
+    world = manager.world
+    try:
+        from backend.game_logic import game_end as _game_end
+        if _game_end.terminal_ending(world) is not None or getattr(world, "game_over", False):
+            return []
+        executor = getattr(manager, "executor", None)
+        if executor is None:
+            from backend.commands.executor import CommandExecutor
+            executor = CommandExecutor()
+        return list(_plans.the_pass(world, executor, game_state) or [])
+    except Exception as exc:
+        _errors.report(exc, "turn_manager._the_plans_night: war_plans.the_pass")
+        return []
+
+
 def _join_the_night(world, enemy_phase_results, night) -> None:
     """The night's strikes are his court's first actions of the phase's
     telling: each result goes to the head of its court's own list."""
@@ -680,6 +705,10 @@ class TurnManager:
         enemy_phase_results = None
         if game_state and not _resuming:
             _night = _the_days_night(self, game_state)   # row BA (BA-3): night falls on the open days
+            # Row IC, Session 4 (IC-14; §2 step 3): the courts' WAR PLANS — each
+            # enemy marshal who follows orders to the letter answers what the
+            # player has just done, by his written orders, before his court moves.
+            _night = list(_night or []) + _the_plans_night(self, game_state)
             enemy_phase_results = self._process_enemy_turns(game_state)
             _join_the_night(self.world, enemy_phase_results, _night)
 

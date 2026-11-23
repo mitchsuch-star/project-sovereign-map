@@ -468,6 +468,14 @@ class Marshal:
         # KEPT_ONLY_WHEN_HELD_FIELDS.
         self.own_odds: int = 0
         self.own_record: Dict = {}
+        # Row IC, Session 4 (IC-13): SAID LATELY — the last three lines he
+        # SAID, each as a short key of its words (`backend/game_logic/
+        # said_lately.py` is the one module that reads and writes it): no line
+        # comes twice within a man's last three. Written only when a line is
+        # really said (an order given, a night's act, a battle) — never by a
+        # preview or a question. Kept only when held; it rides `marshals`, so
+        # an order taken back takes its line back with it.
+        self.said_lately: List[int] = []
         self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
         self.redemption_cooldown_until: int = 0  # Turn when redemption can next fire (5-turn cooldown)
         # ── FA-S9-D1 / FA-71 (slice 14): the man at the desk ──────────────
@@ -961,6 +969,7 @@ class Marshal:
         'trial',                  # row IC, Session 2b: the task to prove himself
         'own_odds',               # row IC, Session 3: his own odds (authored)
         'own_record',             # row IC, Session 3: his saved nights on his own
+        'said_lately',            # row IC, Session 4: the last three lines he said
     )
     DAYS_KEPT = 6                 # BA-5: the last six pitched battles he led
 
@@ -2219,6 +2228,9 @@ class Marshal:
         if self.own_record:
             data["own_record"] = {k: (list(v) if isinstance(v, list) else v)
                                   for k, v in self.own_record.items()}
+        # Row IC, Session 4: the lines he said last - only when he has spoken.
+        if self.said_lately:
+            data["said_lately"] = [int(k) for k in self.said_lately]
         return data
 
     @classmethod
@@ -2285,6 +2297,10 @@ class Marshal:
             marshal.own_odds = 0
         _rec = data.get("own_record")
         marshal.own_record = dict(_rec) if isinstance(_rec, dict) else {}
+        # Row IC, Session 4: said lately. Absent in every older save ([]).
+        _said = data.get("said_lately")
+        marshal.said_lately = ([int(k) for k in _said if isinstance(k, (int, float))][-3:]
+                               if isinstance(_said, list) else [])
         # (An OLD save's six autonomy keys are not read here: a man saved in
         # the middle of the old three turns is settled by the WORLD's load,
         # which reads his saved row once — `trial.settle_legacy`, called at

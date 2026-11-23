@@ -2199,6 +2199,7 @@ _PETITION_VOICE = {
         "\"Am I to be a garrison officer, Sire? Give me the enemy and I "
         "will give you {target}'s laurels twice over.\"",
         "\"I ask once more, Sire. A command. Any command.\"",
+        "\"I am still waiting, Sire. {target} is not.\"",
     ),
     "cautious": (
         "\"I do not complain, Sire. I observe that {target}'s despatches "
@@ -2207,6 +2208,7 @@ _PETITION_VOICE = {
         "some time now.\"",
         "\"I have said my piece before. I will not say it a third time "
         "unless you wish it.\"",
+        "\"I ask only to be used, Sire. {target} has been.\"",
     ),
     "literal": (
         "\"My orders have been carried out exactly, Sire. I note that "
@@ -2215,6 +2217,7 @@ _PETITION_VOICE = {
         "eleven. There was nothing in any of them.\"",
         "\"I request reassignment, Sire. I will state the reason if it is "
         "required of me.\"",
+        "\"I have no orders worth the name, Sire. {target} has.\"",
     ),
 }
 
@@ -2266,7 +2269,12 @@ def petition_speaker_line(marshal, target_name: str = "") -> str:
     # 10th audience all repeated the last line verbatim, forever. The
     # escalation register is carried by the body's own clause, so the
     # spoken line may cycle.
-    line = bank[fires % len(bank)]
+    # Row IC, Session 4 (IC-13, golden rule 10): never one of the lines he
+    # said among his last three (`said_lately.choose` — PURE: the card is
+    # built and rebuilt, so nothing is recorded here; the bank's own rotation
+    # of four keeps a petition's line from coming twice running).
+    from backend.game_logic import said_lately as _said
+    line = _said.choose(marshal, bank, fires % len(bank)) or bank[fires % len(bank)]
     return line.format(target=humanize_entity_name(target_name or "him"))
 
 

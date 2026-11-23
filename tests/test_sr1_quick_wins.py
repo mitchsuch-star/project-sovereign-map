@@ -200,12 +200,21 @@ class TestTheSchoolTeachesTheCongress:
         # State" follows the Congress; the Instruments and the hand-off each
         # move one number and one gate later.
         assert ids.index("laws") == ids.index("congress") + 1
-        assert ids.index("free_books") == ids.index("laws") + 1
+        # (row IC, Session 4: the two reading cards "On His Own" and "Ask Him"
+        # stand between them)
+        assert ids.index("free_books") == ids.index("laws") + 3
         titles = dict((s[0], s[2]) for s in T.STEPS)
         assert titles["congress"] == "XVII. The Congress of Paris"
         assert titles["laws"] == "XVIII. The Laws of State"
-        assert titles["free_books"] == "XIX. The Instruments"
-        assert titles["handoff"] == "XX. The Lesson Ends"
+        assert titles["on_his_own"] == "XIX. On His Own"
+        assert titles["ask_him"] == "XX. Ask Him"
+        assert titles["free_books"] == "XXI. The Instruments"
+        assert titles["handoff"] == "XXII. The Lesson Ends"
+        # (row IC, Session 4) the two reading cards stand BEFORE "The Instruments"
+        assert ids.index("on_his_own") == ids.index("laws") + 1
+        assert ids.index("ask_him") == ids.index("on_his_own") + 1
+        assert ids.index("free_books") == ids.index("ask_him") + 1
+        assert ids.index("handoff") == ids.index("free_books") + 1
         gates = dict((s[0], s[1]) for s in T.STEPS)
         assert (gates["congress"], gates["laws"], gates["free_books"],
                 gates["handoff"]) == (11, 12, 13, 14)

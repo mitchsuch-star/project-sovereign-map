@@ -366,6 +366,10 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
     # what was shown is what is reported); `quoted` is each man's price as the
     # list showed it (a give alone carries it), checked as he is charged.
     rows: List[Dict[str, Any]] = []
+    # Row IC, Session 4 (IC-13): the lines the men SAID as they took their
+    # orders — every one reaches the reply (the census: they were recorded
+    # by each man's own road and then dropped here).
+    voices: List[Dict[str, Any]] = []
     quoted: Dict[str, int] = stash.get("quoted") or {}
     named = stash.get("kind") in ("list", "army", "goal")
     # Row IC, Session 3b: an army's task (and a changed war goal) sends each
@@ -456,6 +460,10 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             _not_sent(name, line, _why)
             continue
         command = parsed.get("command") or {}
+        # (a man's quoted answer rides `voices` on this road — the reply keeps
+        # only the first sentence of each man's own reply)
+        command["_in_a_list"] = True
+        parsed["command"] = command
         if army:
             # Free of its own price and of the battery's objection (the
             # executor's `_army_order` arms); the standing order is created
@@ -473,6 +481,9 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             continue
         if isinstance(result, dict) and result.get("events"):
             events.extend(result.get("events") or [])
+        for heard in ((result.get("voices") or []) if isinstance(result, dict) else []):
+            if isinstance(heard, dict) and heard.get("says") and heard not in voices:
+                voices.append(dict(heard))
         cost = 0
         if isinstance(result, dict) and isinstance(result.get("action_info"), dict):
             cost = int(result["action_info"].get("cost") or 0)
@@ -494,7 +505,8 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
             for waiter in members:
                 _not_sent(waiter, "", f"waits behind {_display(name)}'s question")
             return {"lines": lines, "question": result, "events": events, "waiting": members,
-                    "asker": name, "spent": spent, "refused": refused, "rows": rows}
+                    "asker": name, "spent": spent, "refused": refused, "rows": rows,
+                    "voices": voices}
         said = _first_sentence(result.get("message", ""))
         if isinstance(result, dict) and result.get("success") is False:
             refused.append((name, said))
@@ -523,7 +535,7 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
     for waiter in members:
         _not_sent(waiter, "", "the actions were spent before him")
     return {"lines": lines, "question": None, "events": events, "waiting": members, "asker": "",
-            "spent": spent, "refused": refused, "rows": rows}
+            "spent": spent, "refused": refused, "rows": rows, "voices": voices}
 
 
 class Overcharge(Exception):
@@ -995,6 +1007,7 @@ def _carry_out(world, game_state, parser, executor, llm_game_state,
             # men who served the old one are let go — said, nothing spent
             return {"success": True, "message": "\n".join(run["lines"]), "variable_action_cost": 0,
                     "events": run.get("events") or [],
+                    **({"voices": list(run["voices"])} if run.get("voices") else {}),
                     "group": {"army": False, "members": [], "asked": False,
                               "rows": _rows_of(stash, run)},
                     "action_info": world.get_action_info(0),
@@ -1043,6 +1056,8 @@ def _carry_out(world, game_state, parser, executor, llm_game_state,
         # said by the client BEFORE the question's window (which carries only
         # the question); without it the rest of the order's result was lost.
         result["group"]["said"] = _compose(stash, run, head_line, resumed=False, with_question=False)
+    if run.get("voices"):
+        result["voices"] = list(run["voices"])     # (the asker's own among them)
     # ACH-1: the whole order's price — the Staff's charge and every corps'
     # own reply — where it said 0 while the corps spent the pool.
     result["action_info"] = world.get_action_info(head_spent + int(run.get("spent") or 0))
@@ -1132,6 +1147,7 @@ def resume(world, game_state, parser, executor, llm_game_state) -> Optional[Dict
         text = "The order goes on.\n" + text
     out: Dict[str, Any] = {"message": text, "question": run.get("question"),
                            "events": run.get("events") or [],
+                           "voices": run.get("voices") or [],
                            "waiting": run.get("waiting") or [],
                            "spent": int(run.get("spent") or 0)}
     return out
@@ -1157,6 +1173,9 @@ def attach(response: Dict[str, Any], cont: Optional[Dict[str, Any]], world) -> N
         response["message"] = (base + "\n\n" + text) if base else text
     if cont.get("events"):
         response["events"] = list(response.get("events") or []) + list(cont["events"])
+    if cont.get("voices"):
+        heard = list(response.get("voices") or [])
+        response["voices"] = heard + [v for v in cont["voices"] if v not in heard]
     q = cont.get("question")
     if isinstance(q, dict):
         for key in _QUESTION_CARRY:

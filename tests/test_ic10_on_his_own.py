@@ -892,3 +892,85 @@ class TestTheReviewsLastThreeRows:
         world = _fresh(world1805)
         says = O.answer(world, world.marshals["Ney"], "why")["says"]
         assert says == "I carried out your orders, Sire."
+
+
+# ═══════════════ his ruling of November 22, 2026 — owed by Session 4b ════════
+
+class TestWhatSession4bOwesHisRuling:
+    """The user, November 22, 2026, at the end of row IC Session 4, verbatim:
+    "tihis is for one sgiven autonomous right i mean yeah they are autonomous
+    your word sguide them it should be like napoleonic warfare buit no orders
+    and they dont just sit there during war" — and, correcting the first
+    wording (which kept his choices inside the task): "if they dont do their
+    own thing its really no different then guys you move very turn in essance"
+    · "orders shlould beguiding ai that has its own actions and does its own
+    thing you get it". A man GIVEN autonomy is his own commander: the task
+    guides his choice and never fences it; he takes the initiative and never
+    sits idle while France is at war (`BUG_FIXES.md` IC4-D3, the spec's D40;
+    row IC Session 4b, `docs/NEXT_SESSION_PROMPT.md`). Each pin is a STRICT
+    expected failure on what the game does today: it turns red the day the
+    ruling is built, and the builder makes it a plain test."""
+
+    @pytest.mark.xfail(strict=True, raises=AssertionError,
+                       reason="IC4-D3: today his task fences his choice — he marches past a beatable enemy beside him")
+    def test_he_takes_the_initiative_beside_his_road(self, world1805):
+        """Ney (bold) is told to take Bohemia; an Austrian raid of 4,000 stands in
+        French Lorraine beside him, off his road, and France sees it. A commander
+        with initiative strikes it, then turns back to his task; today he marches
+        from Rhineland to Swabia past it."""
+        from backend.commands import if_thens
+        world = _fresh(world1805)
+        world.marshals["Mack"].location = "Vienna"           # the road to Bohemia is open
+        john = world.marshals["ArchdukeJohn"]
+        john.location, john.strength = "Lorraine", 4000
+        world.refresh_marshal_indexes()
+        ney = _give(world, "Ney", "take", "Bohemia")
+        O.own(ney)["given"] = int(world.current_turn) - 1    # his first night is past
+        seen = [(enemy.name, where) for enemy, where in if_thens.seen_enemies(world, ney)]
+        assert ("ArchdukeJohn", "Lorraine") in seen, seen
+        reading = O.read(world, ney, O.own(ney), preview=True)
+        assert any(step.get("action") == "attack" and step.get("target") in ("ArchdukeJohn", "Lorraine")
+                   for step in reading.get("do") or []), reading.get("line")
+
+    @pytest.mark.xfail(strict=True, raises=AssertionError,
+                       reason="IC4-D3: today a finished chase ends his order and he waits")
+    def test_a_finished_chase_in_a_war_leaves_him_on_his_own(self, world1805):
+        world = _fresh(world1805)
+        murat = _give(world, "Murat", "pursue", "Mack")
+        assert world.is_at_war("France", "Austria")
+        world.marshals["Mack"].strength = 0
+        O._life(world, murat)
+        assert O.on_his_own(murat), "the chase is done; in a war he goes on by his nature"
+
+    @pytest.mark.xfail(strict=True, raises=AssertionError,
+                       reason="IC4-D3: today four quiet nights make him ask for work and wait")
+    def test_a_quiet_front_in_a_war_sends_him_to_find_work(self, world1805, monkeypatch):
+        from backend.commands import if_thens
+        world = _fresh(world1805)
+        ney = _give(world, "Ney", "hold", "Rhineland")
+        rec = O.record(ney)
+        rec["idle_run"] = O.QUIET_FRONT_ASKS
+        ney.own_record = rec
+        monkeypatch.setattr(if_thens, "seen_enemies", lambda *a, **k: [])
+        O._life(world, ney)
+        assert O.on_his_own(ney)
+        assert O.own(ney).get("state") != "asks", "a quiet front in a war: he goes to find the enemy"
+
+    @pytest.mark.xfail(strict=True, raises=AssertionError,
+                       reason="IC4-D3: today a forced retreat wipes his task (combat_executor)")
+    def test_a_beaten_man_on_his_own_keeps_his_task(self, world1805):
+        from backend.commands.executor import CommandExecutor
+        world = _fresh(world1805)
+        ney = _give(world, "Ney", "take", "Swabia")
+        with _quiet():
+            CommandExecutor()._combat._apply_forced_retreat_or_break(
+                ney, world.marshals["Mack"], world, skip_fate=True)
+        assert O.on_his_own(ney), "beaten, he falls back, rallies and carries on with his task"
+
+    @pytest.mark.xfail(strict=True, raises=AssertionError,
+                       reason="IC4-D3: today a man is set on his own only with one of four tasks")
+    def test_he_can_be_set_on_his_own_with_no_task(self, road):
+        client, snap = road
+        world = _board(snap)
+        _post(client, "Ney, act on your own")
+        assert O.on_his_own(world.marshals["Ney"]), "no task: he makes war as he sees fit"

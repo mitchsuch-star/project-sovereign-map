@@ -93,7 +93,39 @@ def ordered_by_hand(world, marshal_name, action, command, result) -> None:
         return      # row IC, Session 3: "stand down", "carry on", "more risk" — no order today
     man = world.get_marshal(str(marshal_name)) if world is not None else None
     if man is not None and man.nation == getattr(world, "player_nation", None):
+        first_today = int(getattr(man, "last_ordered_turn", -1) or -1) != int(world.current_turn)
         man.last_ordered_turn = int(world.current_turn)
+        if first_today:
+            _overruled(world, man, result)
+
+
+def _overruled(world, man, result) -> None:
+    """Row IC, Session 4 (IC-13; §11 "being given today's order over his own"):
+    a man with a task of his own — on his own, or a literal man under exact
+    orders — who is given TODAY'S ORDER by hand says so, once a turn, in his
+    own words; a man who remembers being overruled keeps it (`own_voice.
+    REMEMBERS`). The line rides the reply (`voices`); it changes nothing."""
+    try:
+        from backend.game_logic import own_order as _own
+        from backend.game_logic import own_voice as _voice
+        order = getattr(man, "strategic_order", None)
+        on_task = _own.on_his_own(man) or (
+            getattr(man, "personality", "") == "literal" and bool(lines(order)))
+        if not on_task:
+            return
+        # ... a task he ALREADY had: the order that gives him his task today is
+        # not an order over it.
+        given = getattr(order, "issued_turn", None)
+        if given is None:
+            given = getattr(order, "started_turn", None)
+        if given is None or int(given) >= int(world.current_turn):
+            return
+        said = _voice.speak(world, man, "overruled")
+        _voice.note_memory(world, man, "overruled")
+        if said and isinstance(result, dict):
+            result.setdefault("voices", []).append({"speaker": man.name, "says": said})
+    except Exception as exc:
+        report(exc, "if_thens._overruled")
 
 
 def lines(order) -> List[Dict[str, Any]]:
@@ -753,13 +785,41 @@ def struck(world, marshal, line) -> str:
 
 # ═══════════════════════════ the triggers ═══════════════════════════════════
 
+def _sees(world, marshal, province: str) -> bool:
+    """Does HIS OWN NATION see this province? (§7: "only what his own nation
+    can see"; §10.3: an enemy literal marshal's if-thens read the live sight
+    the code already keeps for each nation — never France's.)
+
+    Row IC, Session 4 (IC-14) — THE ONE PLACE the if-thens ask about sight
+    (with `known_strength`; the fog census in `tests/test_ic14_the_war_plan.py`
+    pins that no other line of this module reads the player's store):
+
+    * the PLAYER's nation reads its own intelligence — a province it sees
+      fully or partly — exactly as before this seam;
+    * ANY OTHER nation reads the sight its court's own logic reads
+      (`WorldState.is_region_live_visible_to_nation`: the ground it holds, each
+      of its corps' provinces and their neighbours, its towers). His own
+      province and the ones next to it are his by that rule whatever the cache
+      holds, so they are answered here without it; a horseman's second ring is
+      read from the cache (the plan's pass refreshes it first).
+    """
+    nation = getattr(marshal, "nation", None)
+    if nation == getattr(world, "player_nation", None):
+        from backend.models.intel import FULL, PARTIAL
+        return world.get_region_intel(province).visibility in (FULL, PARTIAL)
+    here = world.get_region(getattr(marshal, "location", "") or "")
+    if here is not None and (province == here.name
+                             or province in (getattr(here, "adjacent_regions", None) or ())):
+        return True
+    return bool(world.is_region_live_visible_to_nation(province, nation))
+
+
 def reach(world, marshal) -> List[str]:
     """The provinces within his reach that his nation SEES: his own and the
     ones next to it — two provinces out for horse — never across a crossing
     the enemy's fleet shuts (FA-15). His own first, then by the map's order
     (Rule 8: his region and its neighbours only)."""
     from backend.commands.strategic import strike_crossing_verdict
-    from backend.models.intel import FULL, PARTIAL
     here = world.get_region(marshal.location)
     if here is None:
         return []
@@ -772,7 +832,7 @@ def reach(world, marshal) -> List[str]:
                     ring.append(further)
     out = []
     for name in ring:
-        if world.get_region_intel(name).visibility not in (FULL, PARTIAL):
+        if not _sees(world, marshal, name):
             continue
         if strike_crossing_verdict(world, marshal, name) is not None:
             continue
@@ -780,10 +840,19 @@ def reach(world, marshal) -> List[str]:
     return out
 
 
-def known_strength(world, enemy) -> int:
+def known_strength(world, enemy, viewer=None) -> int:
     """An enemy corps' strength AS HIS NATION KNOWS IT: exact where he is fully
     seen, the middle of his band where he is partly seen, 0 with no reading.
-    The one fog-banded helper (`CombatExecutor._fog_banded_strength`)."""
+    The one fog-banded helper (`CombatExecutor._fog_banded_strength`).
+
+    Row IC, Session 4 (IC-14): `viewer` is the man who looks. With none, or a
+    man of the player's nation, the reading is France's fog band, as before.
+    A man of ANY OTHER nation knows what his nation sees exactly — the rule its
+    court's own logic follows (`strategic.py`: "fog for the player, live truth
+    for the AI"); what it does not see never reaches here (`reach`)."""
+    if viewer is not None and getattr(viewer, "nation", None) != getattr(
+            world, "player_nation", None):
+        return int(getattr(enemy, "strength", 0) or 0)
     try:
         from backend.commands.combat_executor import CombatExecutor
         from backend.commands.order_quotes import _band_range
@@ -821,7 +890,7 @@ def _forces(world, marshal) -> Dict[str, int]:
     """Province -> the known strength of the enemy seen there (added up)."""
     forces: Dict[str, int] = {}
     for enemy, where in seen_enemies(world, marshal):
-        forces[where] = forces.get(where, 0) + known_strength(world, enemy)
+        forces[where] = forces.get(where, 0) + known_strength(world, enemy, marshal)
     return forces
 
 
@@ -876,7 +945,7 @@ def happened(world, marshal, line: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         total = sum(v for v in forces.values() if v >= floor)
         if total > int(marshal.strength):
             strongest = max(seen_enemies(world, marshal),
-                            key=lambda pair: known_strength(world, pair[0]), default=None)
+                            key=lambda pair: known_strength(world, pair[0], marshal), default=None)
             return {"came": "he is outnumbered by the enemy within reach",
                     "enemy": strongest[0] if strongest else None,
                     "where": strongest[1] if strongest else marshal.location}
@@ -953,10 +1022,10 @@ def attack_target(world, marshal, line: Dict[str, Any], event: Dict[str, Any]):
     tripped = event.get("enemy")
     target = next((e for e, _where in seen if tripped is not None and e.name == tripped.name), None)
     if target is None and seen:
-        target = min((e for e, _where in seen), key=lambda e: known_strength(world, e))
+        target = min((e for e, _where in seen), key=lambda e: known_strength(world, e, marshal))
     if target is None:
         return None
-    if not line.get("any_odds") and int(marshal.strength) < known_strength(world, target):
+    if not line.get("any_odds") and int(marshal.strength) < known_strength(world, target, marshal):
         return None
     return target
 

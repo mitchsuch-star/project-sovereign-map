@@ -1,0 +1,373 @@
+{
+ "_note": "Written BEFORE any reader saw a line (row IC, Session 4, the final reading). `pairs` is the approved plan's question 1 (two lines, two named marshals: which said which); `sixway` the harder test besides (IC4-R1).",
+ "seed": 20261124,
+ "kinds_drawn_from": [
+  "ack",
+  "after_loss",
+  "after_win",
+  "asks",
+  "bolder",
+  "careful",
+  "done",
+  "idle",
+  "marched",
+  "object",
+  "overruled",
+  "proposal",
+  "recalled",
+  "stayed",
+  "struck",
+  "third_night",
+  "trial_ask",
+  "trial_lost",
+  "trial_won",
+  "waited"
+ ],
+ "pairs": [
+  {
+   "n": 1,
+   "kind": "trial_ask",
+   "men": [
+    "Davout",
+    "Masséna"
+   ],
+   "line1": "Give me a task and a few turns, Sire. I'll waste neither men nor days.",
+   "line2": "Give me a task, Sire. What is put in my hands, I hold.",
+   "key": {
+    "line1": "Davout",
+    "line2": "Masséna"
+   }
+  },
+  {
+   "n": 2,
+   "kind": "bolder",
+   "men": [
+    "Lannes",
+    "Ney"
+   ],
+   "line1": "Boldly, Sire? Straight at them with the columns.",
+   "line2": "Boldly it is. Now I won't have to hold myself back.",
+   "key": {
+    "line1": "Lannes",
+    "line2": "Ney"
+   }
+  },
+  {
+   "n": 3,
+   "kind": "stayed",
+   "men": [
+    "Masséna",
+    "Murat"
+   ],
+   "line1": "I held the squadrons back, Sire. Something changed out there.",
+   "line2": "It changed, so I stayed on my own ground. Nobody shifts me off it.",
+   "key": {
+    "line1": "Murat",
+    "line2": "Masséna"
+   }
+  },
+  {
+   "n": 4,
+   "kind": "after_loss",
+   "men": [
+    "Bernadotte",
+    "Lannes"
+   ],
+   "line1": "We got the worst of it, Sire. I'll look harder before the next assault.",
+   "line2": "After that, Sire, I'm going very carefully indeed.",
+   "key": {
+    "line1": "Lannes",
+    "line2": "Bernadotte"
+   }
+  },
+  {
+   "n": 5,
+   "kind": "third_night",
+   "men": [
+    "Bernadotte",
+    "Masséna"
+   ],
+   "line1": "I've made a small change, Sire. Nothing risky, I assure you.",
+   "line2": "I've changed it, Sire. I'll stay on what is mine, but not like that.",
+   "key": {
+    "line1": "Bernadotte",
+    "line2": "Masséna"
+   }
+  },
+  {
+   "n": 6,
+   "kind": "idle",
+   "men": [
+    "Davout",
+    "Murat"
+   ],
+   "line1": "I see dust on the roads and none of it worth following.",
+   "line2": "Nothing moving in front of me. The pickets are out.",
+   "key": {
+    "line1": "Murat",
+    "line2": "Davout"
+   }
+  },
+  {
+   "n": 7,
+   "kind": "marched",
+   "men": [
+    "Davout",
+    "Ney"
+   ],
+   "line1": "Moving up, Sire. Every wagon is closed up and every man accounted for.",
+   "line2": "We marched hard today, Sire. I'd have gone faster if the men could.",
+   "key": {
+    "line1": "Davout",
+    "line2": "Ney"
+   }
+  },
+  {
+   "n": 8,
+   "kind": "marched",
+   "men": [
+    "Bernadotte",
+    "Ney"
+   ],
+   "line1": "The corps is moving up, Sire, at a comfortable pace.",
+   "line2": "On the road, Sire. We'll be up with them soon.",
+   "key": {
+    "line1": "Bernadotte",
+    "line2": "Ney"
+   }
+  },
+  {
+   "n": 9,
+   "kind": "third_night",
+   "men": [
+    "Davout",
+    "Lannes"
+   ],
+   "line1": "Not three nights of the same, Sire, not for my columns. I've changed it.",
+   "line2": "I'll not do the same thing a third night, Sire. A fixed habit gets men killed.",
+   "key": {
+    "line1": "Lannes",
+    "line2": "Davout"
+   }
+  },
+  {
+   "n": 10,
+   "kind": "ack",
+   "men": [
+    "Masséna",
+    "Ney"
+   ],
+   "line1": "Leave it with me, Sire. Once I have it in hand, I keep it.",
+   "line2": "I'll see to it, Sire, and quickly. I can't bear sitting still.",
+   "key": {
+    "line1": "Masséna",
+    "line2": "Ney"
+   }
+  },
+  {
+   "n": 11,
+   "kind": "done",
+   "men": [
+    "Lannes",
+    "Murat"
+   ],
+   "line1": "Done! Tell the others how it's managed.",
+   "line2": "Finished. Send me to the next one who needs it.",
+   "key": {
+    "line1": "Murat",
+    "line2": "Lannes"
+   }
+  },
+  {
+   "n": 12,
+   "kind": "trial_won",
+   "men": [
+    "Bernadotte",
+    "Murat"
+   ],
+   "line1": "It is done, Sire, and without any fuss. I hope that counts.",
+   "line2": "Was that not handsomely ridden, Sire?",
+   "key": {
+    "line1": "Bernadotte",
+    "line2": "Murat"
+   }
+  }
+ ],
+ "sixway": [
+  {
+   "kind": "struck",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "Every man was in place, so I sent them in, Sire.",
+     "key": "Davout"
+    },
+    {
+     "letter": "B",
+     "line": "I led the columns in myself, Sire. That's all.",
+     "key": "Lannes"
+    },
+    {
+     "letter": "C",
+     "line": "I attacked, as it happens, Sire. I hope you understand it could not be helped.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "D",
+     "line": "They came too near my ground, so I hit them.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "E",
+     "line": "We rode at them. I'll not pretend I didn't enjoy it.",
+     "key": "Murat"
+    },
+    {
+     "letter": "F",
+     "line": "We went in at first light, Sire. I led from the front.",
+     "key": "Ney"
+    }
+   ]
+  },
+  {
+   "kind": "marched",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "Half the country is behind my saddle already, Sire.",
+     "key": "Murat"
+    },
+    {
+     "letter": "B",
+     "line": "Moving up, Sire. Every wagon is closed up and every man accounted for.",
+     "key": "Davout"
+    },
+    {
+     "letter": "C",
+     "line": "On the road, Sire. Nothing I own is left open behind me.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "D",
+     "line": "On the road at last. We'll arrive when we arrive.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "E",
+     "line": "We marched hard today, Sire. I'd have gone faster if the men could.",
+     "key": "Ney"
+    },
+    {
+     "letter": "F",
+     "line": "Marching toward the sound of it, Sire.",
+     "key": "Lannes"
+    }
+   ]
+  },
+  {
+   "kind": "ack",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "A task for a cavalryman, Sire! I'll ride it in style.",
+     "key": "Murat"
+    },
+    {
+     "letter": "B",
+     "line": "Right, Sire. If the guns speak, I'll be there.",
+     "key": "Lannes"
+    },
+    {
+     "letter": "C",
+     "line": "Very well, Sire. I'll start once the men are rested.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "D",
+     "line": "I'll check the rolls and the stores first, Sire. Then I begin.",
+     "key": "Davout"
+    },
+    {
+     "letter": "E",
+     "line": "I'll see to it, Sire, and quickly. I can't bear sitting still.",
+     "key": "Ney"
+    },
+    {
+     "letter": "F",
+     "line": "Leave it with me, Sire. Once I have it in hand, I keep it.",
+     "key": "Masséna"
+    }
+   ]
+  },
+  {
+   "kind": "done",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "Done! Tell the others how it's managed.",
+     "key": "Murat"
+    },
+    {
+     "letter": "B",
+     "line": "The task is done, Sire. Now give me something worth fighting.",
+     "key": "Ney"
+    },
+    {
+     "letter": "C",
+     "line": "Finished. Send me to the next one who needs it.",
+     "key": "Lannes"
+    },
+    {
+     "letter": "D",
+     "line": "The task is complete, Sire. The corps is intact.",
+     "key": "Davout"
+    },
+    {
+     "letter": "E",
+     "line": "The task is finished. My corps is whole.",
+     "key": "Bernadotte"
+    },
+    {
+     "letter": "F",
+     "line": "The task is finished, Sire. Not an inch of it given back.",
+     "key": "Masséna"
+    }
+   ]
+  },
+  {
+   "kind": "stayed",
+   "rows": [
+    {
+     "letter": "A",
+     "line": "The guns told me it had changed, so I held the columns.",
+     "key": "Lannes"
+    },
+    {
+     "letter": "B",
+     "line": "I held back, Sire, and I hated it. It had turned into a trap.",
+     "key": "Ney"
+    },
+    {
+     "letter": "C",
+     "line": "No move today. Here I know what I have.",
+     "key": "Masséna"
+    },
+    {
+     "letter": "D",
+     "line": "The chance closed before I could get a squadron across.",
+     "key": "Murat"
+    },
+    {
+     "letter": "E",
+     "line": "Things shifted, Sire, so I held. Every man is where he should be.",
+     "key": "Davout"
+    },
+    {
+     "letter": "F",
+     "line": "I waited for a clearer picture, Sire. One can hardly be blamed.",
+     "key": "Bernadotte"
+    }
+   ]
+  }
+ ]
+}

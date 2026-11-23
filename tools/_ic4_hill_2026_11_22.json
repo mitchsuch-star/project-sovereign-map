@@ -1,0 +1,2836 @@
+{
+ "_note": "Row IC, Session 4 \u2014 R-HILL (4), (5) and R-HUNT's ambient count: ten ambient seeds x 20 turns a arm, France only ending the turn. Per arm: each letter-following enemy marshal's man-turns alive, the man-turns he acted in (a successful attack, a march, a dig-in, leaving his works, a fall-back, a retreat \u2014 by his court's logic or his written orders) and the rate; every line that fired; hits and stalls; the enemy's attacks on French corps and on LONE French corps. Arm 0 is today. Written by tools/_ic4_measure.py --surfaces hill.",
+ "arms": {
+  "+HUNT": {
+   "acted": 352,
+   "attacks": {
+    "on_french": 157,
+    "on_lone_french": 29
+   },
+   "fired": {},
+   "hits": 0,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 10,
+    "Blake|attack|court": 8,
+    "Blake|move|court": 50,
+    "Buxhowden|fortify|court": 57,
+    "Buxhowden|move|court": 33,
+    "Buxhowden|unfortify|court": 55,
+    "Deroy|attack|court": 12,
+    "Deroy|move|court": 20,
+    "Deroy|retreat|court": 12,
+    "Deroy|unfortify|court": 6,
+    "Mack|attack|court": 103,
+    "Mack|fortify|court": 20,
+    "Mack|move|court": 38,
+    "Mack|retreat|court": 3,
+    "Mack|unfortify|court": 19
+   },
+   "man_turns": 730,
+   "per_man": {
+    "Alten": {
+     "acted": 7,
+     "man_turns": 25,
+     "planned_turns": 0,
+     "rate": 0.28,
+     "rate_as_worded": 0.28,
+     "worded": 7
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.382,
+     "rate_as_worded": 0.382,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 130,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.65,
+     "rate_as_worded": 0.3,
+     "worded": 60
+    },
+    "Deroy": {
+     "acted": 44,
+     "man_turns": 191,
+     "planned_turns": 0,
+     "rate": 0.23,
+     "rate_as_worded": 0.199,
+     "worded": 38
+    },
+    "Mack": {
+     "acted": 129,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.645,
+     "rate_as_worded": 0.58,
+     "worded": 116
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 4,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {},
+    "eylau": {},
+    "friedland": {},
+    "historical": {},
+    "jena": {},
+    "lodi": {},
+    "marengo": {},
+    "rivoli": {},
+    "ulm": {},
+    "wagram": {}
+   },
+   "rate": 0.482,
+   "rate_as_worded": 0.36,
+   "seams": [
+    "backend.ai.enemy_ai:the_enemy_hunts_a_lone_corps=True"
+   ],
+   "stalls": 0,
+   "worded": 263
+  },
+  "0": {
+   "acted": 352,
+   "attacks": {
+    "on_french": 152,
+    "on_lone_french": 28
+   },
+   "fired": {},
+   "hits": 0,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 10,
+    "Blake|attack|court": 8,
+    "Blake|move|court": 49,
+    "Buxhowden|fortify|court": 60,
+    "Buxhowden|move|court": 31,
+    "Buxhowden|unfortify|court": 58,
+    "Deroy|attack|court": 12,
+    "Deroy|move|court": 23,
+    "Deroy|retreat|court": 12,
+    "Deroy|unfortify|court": 5,
+    "Mack|attack|court": 97,
+    "Mack|fortify|court": 20,
+    "Mack|move|court": 35,
+    "Mack|retreat|court": 3,
+    "Mack|unfortify|court": 19
+   },
+   "man_turns": 730,
+   "per_man": {
+    "Alten": {
+     "acted": 7,
+     "man_turns": 25,
+     "planned_turns": 0,
+     "rate": 0.28,
+     "rate_as_worded": 0.28,
+     "worded": 7
+    },
+    "Blake": {
+     "acted": 41,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.373,
+     "rate_as_worded": 0.373,
+     "worded": 41
+    },
+    "Buxhowden": {
+     "acted": 133,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.665,
+     "rate_as_worded": 0.295,
+     "worded": 59
+    },
+    "Deroy": {
+     "acted": 45,
+     "man_turns": 191,
+     "planned_turns": 0,
+     "rate": 0.236,
+     "rate_as_worded": 0.209,
+     "worded": 40
+    },
+    "Mack": {
+     "acted": 126,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.63,
+     "rate_as_worded": 0.565,
+     "worded": 113
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 4,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {},
+    "eylau": {},
+    "friedland": {},
+    "historical": {},
+    "jena": {},
+    "lodi": {},
+    "marengo": {},
+    "rivoli": {},
+    "ulm": {},
+    "wagram": {}
+   },
+   "rate": 0.482,
+   "rate_as_worded": 0.356,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=False",
+    "backend.game_logic.war_plans:a_plan_names_a_favoured_province=False",
+    "backend.game_logic.war_plans:a_court_learns_a_routed_mans_task=False",
+    "backend.ai.enemy_ai:each_man_has_his_own_mood=False",
+    "backend.ai.enemy_ai:the_enemy_hunts_a_lone_corps=False",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=False"
+   ],
+   "stalls": 0,
+   "worded": 260
+  },
+  "ALL": {
+   "acted": 348,
+   "attacks": {
+    "on_french": 156,
+    "on_lone_french": 28
+   },
+   "fired": {},
+   "hits": 0,
+   "kinds": {
+    "Alten|attack|court": 1,
+    "Alten|move|court": 10,
+    "Blake|attack|court": 10,
+    "Blake|move|court": 46,
+    "Buxhowden|attack|court": 3,
+    "Buxhowden|fortify|court": 57,
+    "Buxhowden|move|court": 34,
+    "Buxhowden|retreat|court": 1,
+    "Buxhowden|unfortify|court": 55,
+    "Deroy|attack|court": 10,
+    "Deroy|move|court": 22,
+    "Deroy|retreat|court": 12,
+    "Deroy|unfortify|court": 5,
+    "Mack|attack|court": 89,
+    "Mack|fortify|court": 20,
+    "Mack|move|court": 39,
+    "Mack|retreat|court": 4,
+    "Mack|unfortify|court": 19
+   },
+   "man_turns": 730,
+   "per_man": {
+    "Alten": {
+     "acted": 7,
+     "man_turns": 25,
+     "planned_turns": 0,
+     "rate": 0.28,
+     "rate_as_worded": 0.28,
+     "worded": 7
+    },
+    "Blake": {
+     "acted": 42,
+     "man_turns": 110,
+     "planned_turns": 0,
+     "rate": 0.382,
+     "rate_as_worded": 0.382,
+     "worded": 42
+    },
+    "Buxhowden": {
+     "acted": 132,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.66,
+     "rate_as_worded": 0.31,
+     "worded": 62
+    },
+    "Deroy": {
+     "acted": 43,
+     "man_turns": 191,
+     "planned_turns": 0,
+     "rate": 0.225,
+     "rate_as_worded": 0.199,
+     "worded": 38
+    },
+    "Mack": {
+     "acted": 124,
+     "man_turns": 200,
+     "planned_turns": 0,
+     "rate": 0.62,
+     "rate_as_worded": 0.555,
+     "worded": 111
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 4,
+     "planned_turns": 0,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {},
+    "eylau": {},
+    "friedland": {},
+    "historical": {},
+    "jena": {},
+    "lodi": {},
+    "marengo": {},
+    "rivoli": {},
+    "ulm": {},
+    "wagram": {}
+   },
+   "rate": 0.477,
+   "rate_as_worded": 0.356,
+   "seams": [],
+   "stalls": 0,
+   "worded": 260
+  },
+  "PF:danube_junction": {
+   "acted": 280,
+   "attacks": {
+    "on_french": 155,
+    "on_lone_french": 34
+   },
+   "fired": {
+    "danube_junction|1|Mack|friend_arrives|attack": 3,
+    "danube_junction|2|Buxhowden|enemy_near|attack": 1,
+    "danube_junction|2|Mack|enemy_near|attack": 2,
+    "danube_junction|2|Mack|outnumbered|fall_back": 1,
+    "guard_the_capital|1|Alten|enemy_near|dig_in": 1,
+    "press_forward|1|Deroy|outnumbered|fall_back": 2,
+    "press_forward|2|Deroy|enemy_near|attack": 2,
+    "press_forward|2|Deroy|outnumbered|fall_back": 1
+   },
+   "hits": 13,
+   "kinds": {
+    "Alten|fortify|plan": 1,
+    "Alten|move|court": 2,
+    "Blake|attack|court": 9,
+    "Blake|move|court": 46,
+    "Buxhowden|attack|court": 11,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 30,
+    "Buxhowden|move|court": 21,
+    "Buxhowden|move|plan": 34,
+    "Buxhowden|retreat|court": 3,
+    "Buxhowden|unfortify|court": 27,
+    "Deroy|attack|court": 2,
+    "Deroy|attack|plan": 2,
+    "Deroy|move|court": 14,
+    "Deroy|move|plan": 2,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 5,
+    "Hiller|fortify|court": 5,
+    "Hiller|move|court": 4,
+    "Hiller|unfortify|court": 3,
+    "Mack|attack|court": 75,
+    "Mack|attack|plan": 5,
+    "Mack|fortify|court": 15,
+    "Mack|move|court": 18,
+    "Mack|move|plan": 6,
+    "Mack|retreat|court": 6,
+    "Mack|unfortify|court": 15
+   },
+   "man_turns": 714,
+   "per_man": {
+    "Alten": {
+     "acted": 3,
+     "man_turns": 27,
+     "planned_turns": 7,
+     "rate": 0.111,
+     "rate_as_worded": 0.111,
+     "worded": 3
+    },
+    "Blake": {
+     "acted": 38,
+     "man_turns": 110,
+     "planned_turns": 15,
+     "rate": 0.345,
+     "rate_as_worded": 0.345,
+     "worded": 38
+    },
+    "Buxhowden": {
+     "acted": 101,
+     "man_turns": 200,
+     "planned_turns": 96,
+     "rate": 0.505,
+     "rate_as_worded": 0.4,
+     "worded": 80
+    },
+    "Deroy": {
+     "acted": 29,
+     "man_turns": 189,
+     "planned_turns": 63,
+     "rate": 0.153,
+     "rate_as_worded": 0.127,
+     "worded": 24
+    },
+    "Hiller": {
+     "acted": 10,
+     "man_turns": 24,
+     "planned_turns": 6,
+     "rate": 0.417,
+     "rate_as_worded": 0.292,
+     "worded": 7
+    },
+    "Mack": {
+     "acted": 99,
+     "man_turns": 158,
+     "planned_turns": 72,
+     "rate": 0.627,
+     "rate_as_worded": 0.557,
+     "worded": 88
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 6,
+     "planned_turns": 4,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Spain": "guard_the_capital"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Naples": "guard_the_capital",
+     "court::PapalStates": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Spain": "press_forward"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "guard_the_capital",
+     "court::Switzerland": "press_forward"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "behind_the_elbe",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "press_forward"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "guard_the_capital",
+     "court::Naples": "press_forward",
+     "court::PapalStates": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    }
+   },
+   "rate": 0.392,
+   "rate_as_worded": 0.336,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=True",
+    "backend.game_logic.war_plans:the_plan_forced='danube_junction'"
+   ],
+   "stalls": 0,
+   "worded": 240
+  },
+  "PF:guard_the_capital": {
+   "acted": 291,
+   "attacks": {
+    "on_french": 134,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "guard_the_capital|1|Deroy|enemy_near|dig_in": 5,
+    "guard_the_capital|1|Deroy|outnumbered|fall_back": 3,
+    "long_retreat|1|Mack|enemy_near|fall_back": 2,
+    "long_retreat|1|Mack|outnumbered|fall_back": 3,
+    "long_retreat|2|Mack|enemy_near|attack": 1,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "weyrothers_disposition|2|Buxhowden|enemy_near|attack": 1
+   },
+   "hits": 16,
+   "kinds": {
+    "Alten|move|court": 3,
+    "Blake|attack|court": 12,
+    "Blake|move|court": 42,
+    "Buxhowden|attack|court": 10,
+    "Buxhowden|attack|plan": 1,
+    "Buxhowden|fortify|court": 20,
+    "Buxhowden|move|court": 19,
+    "Buxhowden|move|plan": 39,
+    "Buxhowden|retreat|court": 4,
+    "Buxhowden|unfortify|court": 19,
+    "Deroy|attack|court": 11,
+    "Deroy|fortify|plan": 5,
+    "Deroy|move|court": 14,
+    "Deroy|move|plan": 4,
+    "Deroy|retreat|court": 12,
+    "Deroy|unfortify|court": 10,
+    "Deroy|unfortify|plan": 1,
+    "Hiller|attack|court": 3,
+    "Hiller|fortify|court": 5,
+    "Hiller|move|court": 6,
+    "Hiller|unfortify|court": 5,
+    "Mack|attack|court": 62,
+    "Mack|attack|plan": 7,
+    "Mack|fortify|court": 11,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 21,
+    "Mack|move|plan": 15,
+    "Mack|retreat|court": 3,
+    "Mack|unfortify|court": 9
+   },
+   "man_turns": 719,
+   "per_man": {
+    "Alten": {
+     "acted": 3,
+     "man_turns": 26,
+     "planned_turns": 4,
+     "rate": 0.115,
+     "rate_as_worded": 0.115,
+     "worded": 3
+    },
+    "Blake": {
+     "acted": 40,
+     "man_turns": 108,
+     "planned_turns": 11,
+     "rate": 0.37,
+     "rate_as_worded": 0.37,
+     "worded": 40
+    },
+    "Buxhowden": {
+     "acted": 95,
+     "man_turns": 198,
+     "planned_turns": 113,
+     "rate": 0.48,
+     "rate_as_worded": 0.404,
+     "worded": 80
+    },
+    "Deroy": {
+     "acted": 46,
+     "man_turns": 197,
+     "planned_turns": 69,
+     "rate": 0.234,
+     "rate_as_worded": 0.203,
+     "worded": 40
+    },
+    "Hiller": {
+     "acted": 14,
+     "man_turns": 35,
+     "planned_turns": 3,
+     "rate": 0.4,
+     "rate_as_worded": 0.257,
+     "worded": 9
+    },
+    "Mack": {
+     "acted": 93,
+     "man_turns": 153,
+     "planned_turns": 95,
+     "rate": 0.608,
+     "rate_as_worded": 0.562,
+     "worded": 86
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 2,
+     "planned_turns": 1,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "guard_the_capital"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "saale_line",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital",
+     "court::Switzerland": "guard_the_capital"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "saale_line",
+     "court::Spain": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Naples": "guard_the_capital",
+     "court::PapalStates": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Sardinia": "guard_the_capital",
+     "court::Spain": "guard_the_capital",
+     "court::Sweden": "guard_the_capital",
+     "court::Switzerland": "guard_the_capital"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "guard_the_capital"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "guard_the_capital",
+     "court::Hesse": "guard_the_capital",
+     "court::Prussia": "saale_line",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "guard_the_capital"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "behind_the_elbe",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Naples": "guard_the_capital",
+     "court::PapalStates": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Sardinia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    }
+   },
+   "rate": 0.405,
+   "rate_as_worded": 0.359,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=True",
+    "backend.game_logic.war_plans:the_plan_forced='guard_the_capital'"
+   ],
+   "stalls": 0,
+   "worded": 258
+  },
+  "PF:long_retreat": {
+   "acted": 306,
+   "attacks": {
+    "on_french": 126,
+    "on_lone_french": 31
+   },
+   "fired": {
+    "guard_the_capital|1|Alten|enemy_near|dig_in": 2,
+    "guard_the_capital|1|Deroy|enemy_near|dig_in": 1,
+    "guard_the_capital|1|Deroy|outnumbered|fall_back": 1,
+    "long_retreat|1|Mack|enemy_near|fall_back": 5,
+    "long_retreat|1|Mack|outnumbered|fall_back": 4,
+    "long_retreat|2|Mack|enemy_near|attack": 2,
+    "long_retreat|2|Mack|outnumbered|dig_in": 2,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1,
+    "press_forward|1|Deroy|outnumbered|fall_back": 4,
+    "press_forward|2|Deroy|enemy_near|attack": 4,
+    "press_forward|2|Deroy|outnumbered|fall_back": 2
+   },
+   "hits": 28,
+   "kinds": {
+    "Alten|fortify|plan": 2,
+    "Alten|move|court": 2,
+    "Blake|attack|court": 12,
+    "Blake|move|court": 36,
+    "Buxhowden|attack|court": 17,
+    "Buxhowden|fortify|court": 22,
+    "Buxhowden|move|court": 19,
+    "Buxhowden|move|plan": 38,
+    "Buxhowden|retreat|court": 2,
+    "Buxhowden|unfortify|court": 20,
+    "Deroy|attack|court": 9,
+    "Deroy|attack|plan": 4,
+    "Deroy|fortify|plan": 1,
+    "Deroy|move|court": 16,
+    "Deroy|move|plan": 5,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 7,
+    "Hiller|fortify|court": 7,
+    "Hiller|move|court": 3,
+    "Hiller|unfortify|court": 6,
+    "Mack|attack|court": 52,
+    "Mack|attack|plan": 2,
+    "Mack|fortify|court": 20,
+    "Mack|fortify|plan": 2,
+    "Mack|move|court": 27,
+    "Mack|move|plan": 29,
+    "Mack|retreat|court": 8,
+    "Mack|unfortify|court": 16,
+    "Mack|unfortify|plan": 2
+   },
+   "man_turns": 721,
+   "per_man": {
+    "Alten": {
+     "acted": 4,
+     "man_turns": 28,
+     "planned_turns": 10,
+     "rate": 0.143,
+     "rate_as_worded": 0.143,
+     "worded": 4
+    },
+    "Blake": {
+     "acted": 37,
+     "man_turns": 110,
+     "planned_turns": 19,
+     "rate": 0.336,
+     "rate_as_worded": 0.336,
+     "worded": 37
+    },
+    "Buxhowden": {
+     "acted": 92,
+     "man_turns": 194,
+     "planned_turns": 114,
+     "rate": 0.474,
+     "rate_as_worded": 0.397,
+     "worded": 77
+    },
+    "Deroy": {
+     "acted": 45,
+     "man_turns": 186,
+     "planned_turns": 74,
+     "rate": 0.242,
+     "rate_as_worded": 0.21,
+     "worded": 39
+    },
+    "Hiller": {
+     "acted": 13,
+     "man_turns": 29,
+     "planned_turns": 6,
+     "rate": 0.448,
+     "rate_as_worded": 0.241,
+     "worded": 7
+    },
+    "Mack": {
+     "acted": 115,
+     "man_turns": 172,
+     "planned_turns": 99,
+     "rate": 0.669,
+     "rate_as_worded": 0.605,
+     "worded": 104
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 2,
+     "planned_turns": 1,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "press_forward",
+     "court::Spain": "guard_the_capital",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Naples": "guard_the_capital",
+     "court::PapalStates": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "press_forward",
+     "court::Sweden": "guard_the_capital",
+     "court::Switzerland": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "press_forward"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "behind_the_elbe",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "press_forward"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "guard_the_capital",
+     "court::Naples": "press_forward",
+     "court::PapalStates": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    }
+   },
+   "rate": 0.424,
+   "rate_as_worded": 0.372,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=True",
+    "backend.game_logic.war_plans:the_plan_forced='long_retreat'"
+   ],
+   "stalls": 0,
+   "worded": 268
+  },
+  "PF:press_forward": {
+   "acted": 282,
+   "attacks": {
+    "on_french": 142,
+    "on_lone_french": 30
+   },
+   "fired": {
+    "long_retreat|1|Mack|enemy_near|fall_back": 2,
+    "long_retreat|1|Mack|outnumbered|fall_back": 3,
+    "long_retreat|2|Mack|enemy_near|attack": 1,
+    "long_retreat|2|Mack|outnumbered|dig_in": 1,
+    "press_forward|1|Buxhowden|outnumbered|fall_back": 1,
+    "press_forward|1|Deroy|enemy_near|attack": 1,
+    "press_forward|1|Deroy|outnumbered|fall_back": 3,
+    "press_forward|2|Deroy|enemy_near|attack": 4,
+    "press_forward|2|Deroy|outnumbered|fall_back": 1
+   },
+   "hits": 17,
+   "kinds": {
+    "Alten|move|court": 3,
+    "Blake|attack|court": 12,
+    "Blake|move|court": 39,
+    "Buxhowden|attack|court": 16,
+    "Buxhowden|fortify|court": 19,
+    "Buxhowden|move|court": 19,
+    "Buxhowden|move|plan": 41,
+    "Buxhowden|retreat|court": 3,
+    "Buxhowden|unfortify|court": 18,
+    "Deroy|attack|court": 6,
+    "Deroy|attack|plan": 5,
+    "Deroy|move|court": 13,
+    "Deroy|move|plan": 4,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 6,
+    "Hiller|attack|court": 1,
+    "Hiller|fortify|court": 8,
+    "Hiller|move|court": 2,
+    "Hiller|unfortify|court": 8,
+    "Mack|attack|court": 60,
+    "Mack|attack|plan": 7,
+    "Mack|fortify|court": 9,
+    "Mack|fortify|plan": 1,
+    "Mack|move|court": 23,
+    "Mack|move|plan": 15,
+    "Mack|retreat|court": 7,
+    "Mack|unfortify|court": 9
+   },
+   "man_turns": 709,
+   "per_man": {
+    "Alten": {
+     "acted": 3,
+     "man_turns": 26,
+     "planned_turns": 4,
+     "rate": 0.115,
+     "rate_as_worded": 0.115,
+     "worded": 3
+    },
+    "Blake": {
+     "acted": 38,
+     "man_turns": 108,
+     "planned_turns": 19,
+     "rate": 0.352,
+     "rate_as_worded": 0.352,
+     "worded": 38
+    },
+    "Buxhowden": {
+     "acted": 95,
+     "man_turns": 192,
+     "planned_turns": 112,
+     "rate": 0.495,
+     "rate_as_worded": 0.417,
+     "worded": 80
+    },
+    "Deroy": {
+     "acted": 39,
+     "man_turns": 193,
+     "planned_turns": 66,
+     "rate": 0.202,
+     "rate_as_worded": 0.171,
+     "worded": 33
+    },
+    "Hiller": {
+     "acted": 12,
+     "man_turns": 35,
+     "planned_turns": 7,
+     "rate": 0.343,
+     "rate_as_worded": 0.143,
+     "worded": 5
+    },
+    "Mack": {
+     "acted": 95,
+     "man_turns": 153,
+     "planned_turns": 91,
+     "rate": 0.621,
+     "rate_as_worded": 0.575,
+     "worded": 88
+    },
+    "Yorck": {
+     "acted": 0,
+     "man_turns": 2,
+     "planned_turns": 1,
+     "rate": 0.0,
+     "rate_as_worded": 0.0,
+     "worded": 0
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "historical": {
+     "coalition::Third Coalition": "danube_junction",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Naples": "press_forward",
+     "court::PapalStates": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "press_forward",
+     "court::Sweden": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "long_retreat",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "behind_the_elbe",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Naples": "press_forward",
+     "court::PapalStates": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "press_forward"
+    }
+   },
+   "rate": 0.398,
+   "rate_as_worded": 0.348,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=True",
+    "backend.game_logic.war_plans:the_plan_forced='press_forward'"
+   ],
+   "stalls": 0,
+   "worded": 247
+  },
+  "PF:weyrothers_disposition": {
+   "acted": 254,
+   "attacks": {
+    "on_french": 135,
+    "on_lone_french": 37
+   },
+   "fired": {
+    "guard_the_capital|1|Deroy|enemy_near|dig_in": 1,
+    "press_forward|1|Deroy|enemy_near|attack": 1,
+    "press_forward|1|Deroy|outnumbered|fall_back": 2,
+    "press_forward|2|Deroy|outnumbered|fall_back": 1,
+    "weyrothers_disposition|2|Buxhowden|enemy_near|attack": 2
+   },
+   "hits": 7,
+   "kinds": {
+    "Alten|move|court": 2,
+    "Blake|attack|court": 16,
+    "Blake|move|court": 39,
+    "Buxhowden|attack|court": 12,
+    "Buxhowden|attack|plan": 2,
+    "Buxhowden|fortify|court": 14,
+    "Buxhowden|move|court": 17,
+    "Buxhowden|move|plan": 50,
+    "Buxhowden|retreat|court": 6,
+    "Buxhowden|unfortify|court": 14,
+    "Deroy|attack|court": 2,
+    "Deroy|attack|plan": 1,
+    "Deroy|fortify|plan": 1,
+    "Deroy|move|court": 15,
+    "Deroy|move|plan": 3,
+    "Deroy|retreat|court": 9,
+    "Deroy|unfortify|court": 1,
+    "Hiller|attack|court": 1,
+    "Hiller|fortify|court": 7,
+    "Hiller|move|court": 4,
+    "Hiller|unfortify|court": 7,
+    "Mack|attack|court": 48,
+    "Mack|attack|plan": 12,
+    "Mack|fortify|court": 7,
+    "Mack|move|court": 12,
+    "Mack|retreat|court": 2,
+    "Mack|unfortify|court": 7
+   },
+   "man_turns": 678,
+   "per_man": {
+    "Alten": {
+     "acted": 2,
+     "man_turns": 24,
+     "planned_turns": 4,
+     "rate": 0.083,
+     "rate_as_worded": 0.083,
+     "worded": 2
+    },
+    "Blake": {
+     "acted": 43,
+     "man_turns": 108,
+     "planned_turns": 6,
+     "rate": 0.398,
+     "rate_as_worded": 0.398,
+     "worded": 43
+    },
+    "Buxhowden": {
+     "acted": 100,
+     "man_turns": 198,
+     "planned_turns": 119,
+     "rate": 0.505,
+     "rate_as_worded": 0.434,
+     "worded": 86
+    },
+    "Deroy": {
+     "acted": 28,
+     "man_turns": 191,
+     "planned_turns": 72,
+     "rate": 0.147,
+     "rate_as_worded": 0.147,
+     "worded": 28
+    },
+    "Hiller": {
+     "acted": 14,
+     "man_turns": 35,
+     "planned_turns": 3,
+     "rate": 0.4,
+     "rate_as_worded": 0.171,
+     "worded": 6
+    },
+    "Mack": {
+     "acted": 67,
+     "man_turns": 122,
+     "planned_turns": 73,
+     "rate": 0.549,
+     "rate_as_worded": 0.492,
+     "worded": 60
+    }
+   },
+   "plans_drawn": {
+    "austerlitz": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "eylau": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "guard_the_capital",
+     "court::Prussia": "saale_line",
+     "court::Russia": "press_forward",
+     "court::Spain": "guard_the_capital",
+     "court::Switzerland": "press_forward"
+    },
+    "friedland": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Spain": "guard_the_capital"
+    },
+    "historical": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "hold_the_lines",
+     "court::Hanover": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Spain": "press_forward"
+    },
+    "jena": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "press_forward",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "press_forward",
+     "court::Naples": "guard_the_capital",
+     "court::PapalStates": "press_forward",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "guard_the_capital",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "press_forward",
+     "court::Switzerland": "press_forward"
+    },
+    "lodi": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "press_forward"
+    },
+    "marengo": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "press_forward",
+     "court::Hanover": "press_forward",
+     "court::Hesse": "press_forward",
+     "court::Prussia": "saale_line",
+     "court::Spain": "press_forward"
+    },
+    "rivoli": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Bavaria": "guard_the_capital",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Spain": "guard_the_capital"
+    },
+    "ulm": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "guard_the_capital",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Prussia": "behind_the_elbe",
+     "court::Russia": "guard_the_capital",
+     "court::Spain": "press_forward"
+    },
+    "wagram": {
+     "coalition::Third Coalition": "weyrothers_disposition",
+     "court::Austria": "guard_the_capital",
+     "court::Bavaria": "press_forward",
+     "court::Britain": "descent_on_a_coast",
+     "court::Hanover": "guard_the_capital",
+     "court::Naples": "press_forward",
+     "court::PapalStates": "guard_the_capital",
+     "court::Prussia": "thuringian_concentration",
+     "court::Russia": "press_forward",
+     "court::Sardinia": "press_forward",
+     "court::Spain": "guard_the_capital"
+    }
+   },
+   "rate": 0.375,
+   "rate_as_worded": 0.332,
+   "seams": [
+    "backend.game_logic.war_plans:the_courts_follow_a_plan=True",
+    "backend.game_logic.war_plans:a_planned_man_still_strikes_at_good_odds=True",
+    "backend.game_logic.war_plans:the_plan_forced='weyrothers_disposition'"
+   ],
+   "stalls": 0,
+   "worded": 225
+  }
+ },
+ "r_hill_4": {
+  "as_first_run": {
+   "coalition:Third Coalition +FIGHT": {
+    "mean_of_plans": 0.397,
+    "met": false,
+    "today": 0.482
+   },
+   "default:True +FIGHT": {
+    "mean_of_plans": 0.402,
+    "met": false,
+    "today": 0.482
+   }
+  },
+  "as_the_plan_words_it": {
+   "coalition:Third Coalition +FIGHT": {
+    "mean_of_plans": 0.347,
+    "met": false,
+    "today": 0.356
+   },
+   "default:True +FIGHT": {
+    "mean_of_plans": 0.353,
+    "met": false,
+    "today": 0.356
+   }
+  }
+ },
+ "r_hill_4_note": "TWO READINGS, both kept. `as_first_run` is the count this tool made exact before its first run (every dig-in and every leaving of the works is an act). `as_the_plan_words_it` is the plan approved in Plan Mode, word for word: 'a march, an attack, a first dig-in, a fall-back or a capture' \u2014 a dig-in counts once a province, leaving the works does not. The second reading was added AFTER the first data was seen; the report says so.",
+ "r_hill_5": {
+  "+HUNT": 0,
+  "0": 0,
+  "ALL": 0,
+  "PF:danube_junction": 0,
+  "PF:guard_the_capital": 0,
+  "PF:long_retreat": 0,
+  "PF:press_forward": 0,
+  "PF:weyrothers_disposition": 0
+ },
+ "rounds": {
+  "_note": "The same surface in the runs before the final one. `first` and `round_1` were taken before the counter kept the reading 'as the plan words it'; their 'ALL' and 'P:' arms are the plans UP (what '+PLAN' is now).",
+  "first": {
+   "+HUNT": {
+    "acted": 190,
+    "man_turns": 724,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 27,
+      "planned_turns": 7,
+      "rate": 0.074
+     },
+     "Blake": {
+      "acted": 29,
+      "man_turns": 107,
+      "planned_turns": 25,
+      "rate": 0.271
+     },
+     "Buxhowden": {
+      "acted": 49,
+      "man_turns": 200,
+      "planned_turns": 167,
+      "rate": 0.245
+     },
+     "Deroy": {
+      "acted": 47,
+      "man_turns": 189,
+      "planned_turns": 98,
+      "rate": 0.249
+     },
+     "Mack": {
+      "acted": 63,
+      "man_turns": 200,
+      "planned_turns": 163,
+      "rate": 0.315
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.262,
+    "stalls": 0
+   },
+   "0": {
+    "acted": 350,
+    "man_turns": 729,
+    "per_man": {
+     "Alten": {
+      "acted": 7,
+      "man_turns": 25,
+      "planned_turns": 0,
+      "rate": 0.28
+     },
+     "Blake": {
+      "acted": 43,
+      "man_turns": 110,
+      "planned_turns": 0,
+      "rate": 0.391
+     },
+     "Buxhowden": {
+      "acted": 132,
+      "man_turns": 200,
+      "planned_turns": 0,
+      "rate": 0.66
+     },
+     "Deroy": {
+      "acted": 41,
+      "man_turns": 190,
+      "planned_turns": 0,
+      "rate": 0.216
+     },
+     "Mack": {
+      "acted": 127,
+      "man_turns": 200,
+      "planned_turns": 0,
+      "rate": 0.635
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 4,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.48,
+    "stalls": 0
+   },
+   "ALL": {
+    "acted": 195,
+    "man_turns": 724,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 27,
+      "planned_turns": 7,
+      "rate": 0.074
+     },
+     "Blake": {
+      "acted": 32,
+      "man_turns": 107,
+      "planned_turns": 24,
+      "rate": 0.299
+     },
+     "Buxhowden": {
+      "acted": 49,
+      "man_turns": 200,
+      "planned_turns": 169,
+      "rate": 0.245
+     },
+     "Deroy": {
+      "acted": 49,
+      "man_turns": 189,
+      "planned_turns": 100,
+      "rate": 0.259
+     },
+     "Hiller": {
+      "acted": 3,
+      "man_turns": 7,
+      "planned_turns": 1,
+      "rate": 0.429
+     },
+     "Mack": {
+      "acted": 60,
+      "man_turns": 193,
+      "planned_turns": 163,
+      "rate": 0.311
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.269,
+    "stalls": 0
+   },
+   "P:danube_junction": {
+    "acted": 165,
+    "man_turns": 743,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 28,
+      "planned_turns": 6,
+      "rate": 0.071
+     },
+     "Blake": {
+      "acted": 25,
+      "man_turns": 108,
+      "planned_turns": 28,
+      "rate": 0.231
+     },
+     "Buxhowden": {
+      "acted": 37,
+      "man_turns": 200,
+      "planned_turns": 173,
+      "rate": 0.185
+     },
+     "Deroy": {
+      "acted": 43,
+      "man_turns": 200,
+      "planned_turns": 108,
+      "rate": 0.215
+     },
+     "Dokhturov": {
+      "acted": 4,
+      "man_turns": 6,
+      "planned_turns": 1,
+      "rate": 0.667
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 8,
+      "planned_turns": 6,
+      "rate": 0.0
+     },
+     "Mack": {
+      "acted": 54,
+      "man_turns": 193,
+      "planned_turns": 141,
+      "rate": 0.28
+     }
+    },
+    "rate": 0.222,
+    "stalls": 0
+   },
+   "P:guard_the_capital": {
+    "acted": 185,
+    "man_turns": 731,
+    "per_man": {
+     "Alten": {
+      "acted": 3,
+      "man_turns": 26,
+      "planned_turns": 10,
+      "rate": 0.115
+     },
+     "Blake": {
+      "acted": 27,
+      "man_turns": 110,
+      "planned_turns": 30,
+      "rate": 0.245
+     },
+     "Buxhowden": {
+      "acted": 47,
+      "man_turns": 200,
+      "planned_turns": 173,
+      "rate": 0.235
+     },
+     "Deroy": {
+      "acted": 46,
+      "man_turns": 194,
+      "planned_turns": 114,
+      "rate": 0.237
+     },
+     "Mack": {
+      "acted": 62,
+      "man_turns": 200,
+      "planned_turns": 169,
+      "rate": 0.31
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.253,
+    "stalls": 0
+   },
+   "P:long_retreat": {
+    "acted": 158,
+    "man_turns": 721,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 26,
+      "planned_turns": 10,
+      "rate": 0.077
+     },
+     "Blake": {
+      "acted": 27,
+      "man_turns": 105,
+      "planned_turns": 24,
+      "rate": 0.257
+     },
+     "Buxhowden": {
+      "acted": 23,
+      "man_turns": 200,
+      "planned_turns": 196,
+      "rate": 0.115
+     },
+     "Deroy": {
+      "acted": 52,
+      "man_turns": 189,
+      "planned_turns": 88,
+      "rate": 0.275
+     },
+     "Mack": {
+      "acted": 54,
+      "man_turns": 200,
+      "planned_turns": 196,
+      "rate": 0.27
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.219,
+    "stalls": 0
+   },
+   "P:press_forward": {
+    "acted": 200,
+    "man_turns": 725,
+    "per_man": {
+     "Alten": {
+      "acted": 1,
+      "man_turns": 25,
+      "planned_turns": 7,
+      "rate": 0.04
+     },
+     "Blake": {
+      "acted": 34,
+      "man_turns": 110,
+      "planned_turns": 20,
+      "rate": 0.309
+     },
+     "Buxhowden": {
+      "acted": 49,
+      "man_turns": 200,
+      "planned_turns": 172,
+      "rate": 0.245
+     },
+     "Deroy": {
+      "acted": 49,
+      "man_turns": 189,
+      "planned_turns": 100,
+      "rate": 0.259
+     },
+     "Mack": {
+      "acted": 67,
+      "man_turns": 200,
+      "planned_turns": 168,
+      "rate": 0.335
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.276,
+    "stalls": 0
+   },
+   "P:weyrothers_disposition": {
+    "acted": 206,
+    "man_turns": 735,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 27,
+      "planned_turns": 7,
+      "rate": 0.074
+     },
+     "Blake": {
+      "acted": 27,
+      "man_turns": 107,
+      "planned_turns": 28,
+      "rate": 0.252
+     },
+     "Buxhowden": {
+      "acted": 64,
+      "man_turns": 200,
+      "planned_turns": 160,
+      "rate": 0.32
+     },
+     "Deroy": {
+      "acted": 41,
+      "man_turns": 200,
+      "planned_turns": 119,
+      "rate": 0.205
+     },
+     "Mack": {
+      "acted": 72,
+      "man_turns": 200,
+      "planned_turns": 152,
+      "rate": 0.36
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.28,
+    "stalls": 0
+   }
+  },
+  "round_1": {
+   "0": {
+    "acted": 335,
+    "man_turns": 719,
+    "per_man": {
+     "Alten": {
+      "acted": 7,
+      "man_turns": 25,
+      "planned_turns": 0,
+      "rate": 0.28
+     },
+     "Blake": {
+      "acted": 36,
+      "man_turns": 99,
+      "planned_turns": 0,
+      "rate": 0.364
+     },
+     "Buxhowden": {
+      "acted": 127,
+      "man_turns": 200,
+      "planned_turns": 0,
+      "rate": 0.635
+     },
+     "Deroy": {
+      "acted": 45,
+      "man_turns": 191,
+      "planned_turns": 0,
+      "rate": 0.236
+     },
+     "Mack": {
+      "acted": 120,
+      "man_turns": 200,
+      "planned_turns": 0,
+      "rate": 0.6
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 4,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.466,
+    "stalls": 0
+   },
+   "ALL": {
+    "acted": 245,
+    "man_turns": 715,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 19,
+      "planned_turns": 3,
+      "rate": 0.105
+     },
+     "Blake": {
+      "acted": 42,
+      "man_turns": 99,
+      "planned_turns": 3,
+      "rate": 0.424
+     },
+     "Buxhowden": {
+      "acted": 74,
+      "man_turns": 200,
+      "planned_turns": 147,
+      "rate": 0.37
+     },
+     "Deroy": {
+      "acted": 46,
+      "man_turns": 195,
+      "planned_turns": 110,
+      "rate": 0.236
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     },
+     "Mack": {
+      "acted": 81,
+      "man_turns": 200,
+      "planned_turns": 150,
+      "rate": 0.405
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.343,
+    "stalls": 0
+   },
+   "P:danube_junction": {
+    "acted": 243,
+    "man_turns": 743,
+    "per_man": {
+     "Alten": {
+      "acted": 4,
+      "man_turns": 28,
+      "planned_turns": 10,
+      "rate": 0.143
+     },
+     "Blake": {
+      "acted": 31,
+      "man_turns": 110,
+      "planned_turns": 11,
+      "rate": 0.282
+     },
+     "Buxhowden": {
+      "acted": 84,
+      "man_turns": 200,
+      "planned_turns": 118,
+      "rate": 0.42
+     },
+     "Deroy": {
+      "acted": 48,
+      "man_turns": 196,
+      "planned_turns": 93,
+      "rate": 0.245
+     },
+     "Hiller": {
+      "acted": 4,
+      "man_turns": 12,
+      "planned_turns": 0,
+      "rate": 0.333
+     },
+     "Mack": {
+      "acted": 72,
+      "man_turns": 196,
+      "planned_turns": 116,
+      "rate": 0.367
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.327,
+    "stalls": 0
+   },
+   "P:guard_the_capital": {
+    "acted": 237,
+    "man_turns": 721,
+    "per_man": {
+     "Alten": {
+      "acted": 3,
+      "man_turns": 21,
+      "planned_turns": 6,
+      "rate": 0.143
+     },
+     "Blake": {
+      "acted": 36,
+      "man_turns": 99,
+      "planned_turns": 6,
+      "rate": 0.364
+     },
+     "Buxhowden": {
+      "acted": 72,
+      "man_turns": 200,
+      "planned_turns": 142,
+      "rate": 0.36
+     },
+     "Deroy": {
+      "acted": 46,
+      "man_turns": 200,
+      "planned_turns": 127,
+      "rate": 0.23
+     },
+     "Mack": {
+      "acted": 80,
+      "man_turns": 200,
+      "planned_turns": 142,
+      "rate": 0.4
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.329,
+    "stalls": 0
+   },
+   "P:long_retreat": {
+    "acted": 259,
+    "man_turns": 731,
+    "per_man": {
+     "Alten": {
+      "acted": 3,
+      "man_turns": 27,
+      "planned_turns": 10,
+      "rate": 0.111
+     },
+     "Blake": {
+      "acted": 43,
+      "man_turns": 110,
+      "planned_turns": 3,
+      "rate": 0.391
+     },
+     "Buxhowden": {
+      "acted": 78,
+      "man_turns": 200,
+      "planned_turns": 146,
+      "rate": 0.39
+     },
+     "Deroy": {
+      "acted": 49,
+      "man_turns": 192,
+      "planned_turns": 92,
+      "rate": 0.255
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     },
+     "Mack": {
+      "acted": 86,
+      "man_turns": 200,
+      "planned_turns": 145,
+      "rate": 0.43
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.354,
+    "stalls": 0
+   },
+   "P:press_forward": {
+    "acted": 245,
+    "man_turns": 714,
+    "per_man": {
+     "Alten": {
+      "acted": 1,
+      "man_turns": 17,
+      "planned_turns": 3,
+      "rate": 0.059
+     },
+     "Blake": {
+      "acted": 38,
+      "man_turns": 99,
+      "planned_turns": 2,
+      "rate": 0.384
+     },
+     "Buxhowden": {
+      "acted": 76,
+      "man_turns": 200,
+      "planned_turns": 148,
+      "rate": 0.38
+     },
+     "Deroy": {
+      "acted": 49,
+      "man_turns": 196,
+      "planned_turns": 100,
+      "rate": 0.25
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     },
+     "Mack": {
+      "acted": 81,
+      "man_turns": 200,
+      "planned_turns": 147,
+      "rate": 0.405
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.343,
+    "stalls": 0
+   },
+   "P:weyrothers_disposition": {
+    "acted": 246,
+    "man_turns": 728,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 19,
+      "planned_turns": 3,
+      "rate": 0.105
+     },
+     "Blake": {
+      "acted": 35,
+      "man_turns": 99,
+      "planned_turns": 13,
+      "rate": 0.354
+     },
+     "Buxhowden": {
+      "acted": 79,
+      "man_turns": 200,
+      "planned_turns": 140,
+      "rate": 0.395
+     },
+     "Deroy": {
+      "acted": 47,
+      "man_turns": 198,
+      "planned_turns": 109,
+      "rate": 0.237
+     },
+     "Dokhturov": {
+      "acted": 2,
+      "man_turns": 4,
+      "planned_turns": 0,
+      "rate": 0.5
+     },
+     "Hiller": {
+      "acted": 5,
+      "man_turns": 11,
+      "planned_turns": 0,
+      "rate": 0.455
+     },
+     "Mack": {
+      "acted": 76,
+      "man_turns": 195,
+      "planned_turns": 133,
+      "rate": 0.39
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 2,
+      "planned_turns": 1,
+      "rate": 0.0
+     }
+    },
+    "rate": 0.338,
+    "stalls": 0
+   }
+  },
+  "round_2": {
+   "0": {
+    "acted": 349,
+    "kinds": {
+     "Alten|attack|court": 1,
+     "Alten|move|court": 10,
+     "Blake|attack|court": 8,
+     "Blake|move|court": 49,
+     "Buxhowden|fortify|court": 56,
+     "Buxhowden|move|court": 35,
+     "Buxhowden|unfortify|court": 54,
+     "Deroy|attack|court": 10,
+     "Deroy|move|court": 21,
+     "Deroy|retreat|court": 13,
+     "Deroy|unfortify|court": 6,
+     "Mack|attack|court": 96,
+     "Mack|fortify|court": 20,
+     "Mack|move|court": 36,
+     "Mack|retreat|court": 3,
+     "Mack|unfortify|court": 19
+    },
+    "man_turns": 729,
+    "per_man": {
+     "Alten": {
+      "acted": 7,
+      "man_turns": 25,
+      "planned_turns": 0,
+      "rate": 0.28,
+      "rate_as_worded": 0.28,
+      "worded": 7
+     },
+     "Blake": {
+      "acted": 41,
+      "man_turns": 110,
+      "planned_turns": 0,
+      "rate": 0.373,
+      "rate_as_worded": 0.373,
+      "worded": 41
+     },
+     "Buxhowden": {
+      "acted": 130,
+      "man_turns": 200,
+      "planned_turns": 0,
+      "rate": 0.65,
+      "rate_as_worded": 0.305,
+      "worded": 61
+     },
+     "Deroy": {
+      "acted": 45,
+      "man_turns": 190,
+      "planned_turns": 0,
+      "rate": 0.237,
+      "rate_as_worded": 0.205,
+      "worded": 39
+     },
+     "Mack": {
+      "acted": 126,
+      "man_turns": 200,
+      "planned_turns": 0,
+      "rate": 0.63,
+      "rate_as_worded": 0.565,
+      "worded": 113
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 4,
+      "planned_turns": 0,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.479,
+    "rate_as_worded": 0.358,
+    "stalls": 0,
+    "worded": 261
+   },
+   "ALL": {
+    "acted": 241,
+    "kinds": {
+     "Alten|fortify|plan": 1,
+     "Alten|move|court": 1,
+     "Blake|attack|court": 13,
+     "Blake|move|court": 35,
+     "Blake|retreat|court": 2,
+     "Buxhowden|attack|court": 7,
+     "Buxhowden|attack|plan": 2,
+     "Buxhowden|fortify|court": 12,
+     "Buxhowden|move|court": 12,
+     "Buxhowden|move|plan": 44,
+     "Buxhowden|retreat|court": 3,
+     "Buxhowden|unfortify|court": 10,
+     "Deroy|attack|court": 19,
+     "Deroy|attack|plan": 4,
+     "Deroy|fortify|plan": 1,
+     "Deroy|move|court": 22,
+     "Deroy|move|plan": 6,
+     "Deroy|retreat|court": 6,
+     "Deroy|unfortify|court": 1,
+     "Mack|attack|court": 25,
+     "Mack|attack|plan": 7,
+     "Mack|fortify|court": 12,
+     "Mack|move|court": 12,
+     "Mack|move|plan": 23,
+     "Mack|retreat|court": 1,
+     "Mack|unfortify|court": 11
+    },
+    "man_turns": 699,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 21,
+      "planned_turns": 6,
+      "rate": 0.095,
+      "rate_as_worded": 0.095,
+      "worded": 2
+     },
+     "Blake": {
+      "acted": 40,
+      "man_turns": 109,
+      "planned_turns": 4,
+      "rate": 0.367,
+      "rate_as_worded": 0.367,
+      "worded": 40
+     },
+     "Buxhowden": {
+      "acted": 82,
+      "man_turns": 200,
+      "planned_turns": 127,
+      "rate": 0.41,
+      "rate_as_worded": 0.37,
+      "worded": 74
+     },
+     "Deroy": {
+      "acted": 44,
+      "man_turns": 199,
+      "planned_turns": 98,
+      "rate": 0.221,
+      "rate_as_worded": 0.216,
+      "worded": 43
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 13,
+      "planned_turns": 3,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     },
+     "Mack": {
+      "acted": 73,
+      "man_turns": 156,
+      "planned_turns": 105,
+      "rate": 0.468,
+      "rate_as_worded": 0.41,
+      "worded": 64
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.345,
+    "rate_as_worded": 0.319,
+    "stalls": 0,
+    "worded": 223
+   },
+   "P:danube_junction": {
+    "acted": 268,
+    "kinds": {
+     "Alten|move|court": 2,
+     "Blake|attack|court": 8,
+     "Blake|move|court": 31,
+     "Blake|retreat|court": 1,
+     "Buxhowden|attack|court": 9,
+     "Buxhowden|fortify|court": 20,
+     "Buxhowden|move|court": 18,
+     "Buxhowden|move|plan": 35,
+     "Buxhowden|retreat|court": 1,
+     "Buxhowden|unfortify|court": 18,
+     "Deroy|attack|court": 18,
+     "Deroy|attack|plan": 5,
+     "Deroy|fortify|plan": 3,
+     "Deroy|move|court": 20,
+     "Deroy|move|plan": 10,
+     "Deroy|retreat|court": 5,
+     "Deroy|unfortify|plan": 3,
+     "Hiller|attack|court": 2,
+     "Hiller|move|court": 5,
+     "Mack|attack|court": 44,
+     "Mack|attack|plan": 10,
+     "Mack|fortify|court": 18,
+     "Mack|fortify|plan": 1,
+     "Mack|move|court": 21,
+     "Mack|move|plan": 18,
+     "Mack|retreat|court": 1,
+     "Mack|unfortify|court": 15
+    },
+    "man_turns": 752,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 26,
+      "planned_turns": 4,
+      "rate": 0.077,
+      "rate_as_worded": 0.077,
+      "worded": 2
+     },
+     "Blake": {
+      "acted": 34,
+      "man_turns": 110,
+      "planned_turns": 12,
+      "rate": 0.309,
+      "rate_as_worded": 0.309,
+      "worded": 34
+     },
+     "Buxhowden": {
+      "acted": 86,
+      "man_turns": 200,
+      "planned_turns": 113,
+      "rate": 0.43,
+      "rate_as_worded": 0.36,
+      "worded": 72
+     },
+     "Deroy": {
+      "acted": 50,
+      "man_turns": 198,
+      "planned_turns": 102,
+      "rate": 0.253,
+      "rate_as_worded": 0.253,
+      "worded": 50
+     },
+     "Hiller": {
+      "acted": 5,
+      "man_turns": 15,
+      "planned_turns": 3,
+      "rate": 0.333,
+      "rate_as_worded": 0.333,
+      "worded": 5
+     },
+     "Mack": {
+      "acted": 91,
+      "man_turns": 200,
+      "planned_turns": 111,
+      "rate": 0.455,
+      "rate_as_worded": 0.395,
+      "worded": 79
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 3,
+      "planned_turns": 1,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.356,
+    "rate_as_worded": 0.322,
+    "stalls": 0,
+    "worded": 242
+   },
+   "P:guard_the_capital": {
+    "acted": 241,
+    "kinds": {
+     "Alten|fortify|plan": 1,
+     "Alten|move|court": 1,
+     "Blake|attack|court": 10,
+     "Blake|move|court": 37,
+     "Buxhowden|attack|court": 10,
+     "Buxhowden|attack|plan": 1,
+     "Buxhowden|fortify|court": 12,
+     "Buxhowden|fortify|plan": 1,
+     "Buxhowden|move|court": 11,
+     "Buxhowden|move|plan": 41,
+     "Buxhowden|retreat|court": 3,
+     "Buxhowden|unfortify|court": 10,
+     "Buxhowden|unfortify|plan": 1,
+     "Deroy|attack|court": 11,
+     "Deroy|fortify|plan": 7,
+     "Deroy|move|court": 20,
+     "Deroy|move|plan": 4,
+     "Deroy|retreat|court": 8,
+     "Deroy|unfortify|court": 2,
+     "Deroy|unfortify|plan": 4,
+     "Mack|attack|court": 30,
+     "Mack|attack|plan": 8,
+     "Mack|fortify|court": 12,
+     "Mack|move|court": 22,
+     "Mack|move|plan": 20,
+     "Mack|retreat|court": 1,
+     "Mack|unfortify|court": 12
+    },
+    "man_turns": 699,
+    "per_man": {
+     "Alten": {
+      "acted": 2,
+      "man_turns": 21,
+      "planned_turns": 6,
+      "rate": 0.095,
+      "rate_as_worded": 0.095,
+      "worded": 2
+     },
+     "Blake": {
+      "acted": 37,
+      "man_turns": 109,
+      "planned_turns": 13,
+      "rate": 0.339,
+      "rate_as_worded": 0.339,
+      "worded": 37
+     },
+     "Buxhowden": {
+      "acted": 80,
+      "man_turns": 200,
+      "planned_turns": 120,
+      "rate": 0.4,
+      "rate_as_worded": 0.35,
+      "worded": 70
+     },
+     "Deroy": {
+      "acted": 41,
+      "man_turns": 197,
+      "planned_turns": 106,
+      "rate": 0.208,
+      "rate_as_worded": 0.208,
+      "worded": 41
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 13,
+      "planned_turns": 3,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     },
+     "Mack": {
+      "acted": 81,
+      "man_turns": 156,
+      "planned_turns": 99,
+      "rate": 0.519,
+      "rate_as_worded": 0.474,
+      "worded": 74
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 3,
+      "planned_turns": 1,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.345,
+    "rate_as_worded": 0.32,
+    "stalls": 0,
+    "worded": 224
+   },
+   "P:long_retreat": {
+    "acted": 276,
+    "kinds": {
+     "Alten|fortify|plan": 2,
+     "Alten|move|court": 2,
+     "Blake|attack|court": 17,
+     "Blake|move|court": 30,
+     "Blake|retreat|court": 1,
+     "Buxhowden|attack|court": 10,
+     "Buxhowden|fortify|court": 19,
+     "Buxhowden|move|court": 12,
+     "Buxhowden|move|plan": 40,
+     "Buxhowden|unfortify|court": 16,
+     "Deroy|attack|court": 21,
+     "Deroy|attack|plan": 5,
+     "Deroy|fortify|plan": 3,
+     "Deroy|move|court": 21,
+     "Deroy|move|plan": 7,
+     "Deroy|retreat|court": 6,
+     "Deroy|unfortify|court": 4,
+     "Mack|attack|court": 28,
+     "Mack|attack|plan": 1,
+     "Mack|fortify|court": 19,
+     "Mack|move|court": 19,
+     "Mack|move|plan": 38,
+     "Mack|retreat|court": 1,
+     "Mack|unfortify|court": 18
+    },
+    "man_turns": 735,
+    "per_man": {
+     "Alten": {
+      "acted": 4,
+      "man_turns": 28,
+      "planned_turns": 10,
+      "rate": 0.143,
+      "rate_as_worded": 0.143,
+      "worded": 4
+     },
+     "Blake": {
+      "acted": 42,
+      "man_turns": 110,
+      "planned_turns": 3,
+      "rate": 0.382,
+      "rate_as_worded": 0.382,
+      "worded": 42
+     },
+     "Buxhowden": {
+      "acted": 81,
+      "man_turns": 200,
+      "planned_turns": 125,
+      "rate": 0.405,
+      "rate_as_worded": 0.345,
+      "worded": 69
+     },
+     "Deroy": {
+      "acted": 52,
+      "man_turns": 196,
+      "planned_turns": 84,
+      "rate": 0.265,
+      "rate_as_worded": 0.26,
+      "worded": 51
+     },
+     "Mack": {
+      "acted": 97,
+      "man_turns": 200,
+      "planned_turns": 123,
+      "rate": 0.485,
+      "rate_as_worded": 0.425,
+      "worded": 85
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.376,
+    "rate_as_worded": 0.341,
+    "stalls": 0,
+    "worded": 251
+   },
+   "P:press_forward": {
+    "acted": 239,
+    "kinds": {
+     "Alten|move|court": 1,
+     "Blake|attack|court": 11,
+     "Blake|move|court": 35,
+     "Blake|retreat|court": 1,
+     "Buxhowden|attack|court": 7,
+     "Buxhowden|attack|plan": 2,
+     "Buxhowden|fortify|court": 16,
+     "Buxhowden|move|court": 12,
+     "Buxhowden|move|plan": 41,
+     "Buxhowden|retreat|court": 3,
+     "Buxhowden|unfortify|court": 14,
+     "Deroy|attack|court": 16,
+     "Deroy|attack|plan": 4,
+     "Deroy|move|court": 24,
+     "Deroy|move|plan": 6,
+     "Deroy|retreat|court": 6,
+     "Deroy|unfortify|court": 1,
+     "Mack|attack|court": 24,
+     "Mack|attack|plan": 7,
+     "Mack|fortify|court": 14,
+     "Mack|move|court": 12,
+     "Mack|move|plan": 21,
+     "Mack|retreat|court": 3,
+     "Mack|unfortify|court": 12
+    },
+    "man_turns": 699,
+    "per_man": {
+     "Alten": {
+      "acted": 1,
+      "man_turns": 21,
+      "planned_turns": 6,
+      "rate": 0.048,
+      "rate_as_worded": 0.048,
+      "worded": 1
+     },
+     "Blake": {
+      "acted": 38,
+      "man_turns": 109,
+      "planned_turns": 5,
+      "rate": 0.349,
+      "rate_as_worded": 0.349,
+      "worded": 38
+     },
+     "Buxhowden": {
+      "acted": 82,
+      "man_turns": 200,
+      "planned_turns": 123,
+      "rate": 0.41,
+      "rate_as_worded": 0.355,
+      "worded": 71
+     },
+     "Deroy": {
+      "acted": 43,
+      "man_turns": 199,
+      "planned_turns": 103,
+      "rate": 0.216,
+      "rate_as_worded": 0.211,
+      "worded": 42
+     },
+     "Hiller": {
+      "acted": 0,
+      "man_turns": 13,
+      "planned_turns": 3,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     },
+     "Mack": {
+      "acted": 75,
+      "man_turns": 156,
+      "planned_turns": 101,
+      "rate": 0.481,
+      "rate_as_worded": 0.423,
+      "worded": 66
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 1,
+      "planned_turns": 0,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.342,
+    "rate_as_worded": 0.312,
+    "stalls": 0,
+    "worded": 218
+   },
+   "P:weyrothers_disposition": {
+    "acted": 240,
+    "kinds": {
+     "Alten|fortify|plan": 1,
+     "Blake|attack|court": 8,
+     "Blake|move|court": 37,
+     "Blake|retreat|court": 1,
+     "Buxhowden|attack|court": 11,
+     "Buxhowden|attack|plan": 5,
+     "Buxhowden|fortify|court": 11,
+     "Buxhowden|move|court": 18,
+     "Buxhowden|move|plan": 50,
+     "Buxhowden|retreat|court": 5,
+     "Buxhowden|unfortify|court": 9,
+     "Deroy|attack|court": 9,
+     "Deroy|attack|plan": 1,
+     "Deroy|fortify|plan": 1,
+     "Deroy|move|court": 25,
+     "Deroy|move|plan": 2,
+     "Deroy|retreat|court": 12,
+     "Hiller|fortify|court": 1,
+     "Hiller|move|court": 2,
+     "Mack|attack|court": 30,
+     "Mack|attack|plan": 21,
+     "Mack|fortify|court": 10,
+     "Mack|move|court": 13,
+     "Mack|move|plan": 4,
+     "Mack|retreat|court": 1,
+     "Mack|unfortify|court": 10
+    },
+    "man_turns": 682,
+    "per_man": {
+     "Alten": {
+      "acted": 1,
+      "man_turns": 21,
+      "planned_turns": 6,
+      "rate": 0.048,
+      "rate_as_worded": 0.048,
+      "worded": 1
+     },
+     "Blake": {
+      "acted": 34,
+      "man_turns": 109,
+      "planned_turns": 15,
+      "rate": 0.312,
+      "rate_as_worded": 0.312,
+      "worded": 34
+     },
+     "Buxhowden": {
+      "acted": 96,
+      "man_turns": 187,
+      "planned_turns": 110,
+      "rate": 0.513,
+      "rate_as_worded": 0.487,
+      "worded": 91
+     },
+     "Deroy": {
+      "acted": 38,
+      "man_turns": 199,
+      "planned_turns": 104,
+      "rate": 0.191,
+      "rate_as_worded": 0.191,
+      "worded": 38
+     },
+     "Hiller": {
+      "acted": 2,
+      "man_turns": 21,
+      "planned_turns": 3,
+      "rate": 0.095,
+      "rate_as_worded": 0.095,
+      "worded": 2
+     },
+     "Mack": {
+      "acted": 69,
+      "man_turns": 139,
+      "planned_turns": 84,
+      "rate": 0.496,
+      "rate_as_worded": 0.475,
+      "worded": 66
+     },
+     "Yorck": {
+      "acted": 0,
+      "man_turns": 6,
+      "planned_turns": 3,
+      "rate": 0.0,
+      "rate_as_worded": 0.0,
+      "worded": 0
+     }
+    },
+    "rate": 0.352,
+    "rate_as_worded": 0.34,
+    "stalls": 0,
+    "worded": 232
+   }
+  },
+  "round_2_r_hill_4": {
+   "as_first_run": {
+    "coalition:Third Coalition": {
+     "mean_of_plans": 0.361,
+     "met": false,
+     "today": 0.479
+    },
+    "default:True": {
+     "mean_of_plans": 0.344,
+     "met": false,
+     "today": 0.479
+    }
+   },
+   "as_the_plan_words_it": {
+    "coalition:Third Coalition": {
+     "mean_of_plans": 0.334,
+     "met": false,
+     "today": 0.358
+    },
+    "default:True": {
+     "mean_of_plans": 0.316,
+     "met": false,
+     "today": 0.358
+    }
+   }
+  }
+ },
+ "seeds": [
+  "historical",
+  "ulm",
+  "austerlitz",
+  "jena",
+  "marengo",
+  "eylau",
+  "friedland",
+  "wagram",
+  "lodi",
+  "rivoli"
+ ],
+ "sets": [
+  [
+   [
+    "coalition",
+    "Third Coalition"
+   ],
+   [
+    "danube_junction",
+    "long_retreat",
+    "weyrothers_disposition"
+   ]
+  ],
+  [
+   [
+    "court",
+    "Prussia"
+   ],
+   [
+    "thuringian_concentration",
+    "saale_line",
+    "behind_the_elbe"
+   ]
+  ],
+  [
+   [
+    "court",
+    "Britain"
+   ],
+   [
+    "hold_the_lines",
+    "descent_on_a_coast"
+   ]
+  ],
+  [
+   [
+    "default",
+    true
+   ],
+   [
+    "press_forward",
+    "guard_the_capital"
+   ]
+  ]
+ ],
+ "turns": 20
+}

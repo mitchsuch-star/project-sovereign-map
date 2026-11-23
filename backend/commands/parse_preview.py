@@ -1484,8 +1484,14 @@ def _his_answer(world, parsed: Dict) -> str:
     if marshal is None or getattr(marshal, "personality", "") != "literal" \
             or not parsed.get("if_thens"):
         return ""
-    from backend.game_logic.marshal_voice import literal_exact_ack
-    return "“" + literal_exact_ack(marshal.name, int(getattr(world, "current_turn", 0) or 0)) + "”"
+    # Row IC, Session 4 (IC-13): his own bank first (Soult's and Grouchy's by
+    # name, any other such man's by his nature) — a PREVIEW, nothing recorded.
+    from backend.game_logic import own_voice as _voice
+    said = _voice.voice(world, marshal, "exact")
+    if not said:
+        from backend.game_logic.marshal_voice import literal_exact_ack
+        said = literal_exact_ack(marshal.name, int(getattr(world, "current_turn", 0) or 0))
+    return "“" + said + "”"
 
 
 def _with_task_rows(world, out: Dict[str, Any], parsed: Dict, text: str,

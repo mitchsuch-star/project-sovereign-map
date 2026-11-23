@@ -3002,11 +3002,24 @@ class StrategicExecutor:
         # already rides order.original_command — rider-(d) substrate), and
         # the precision reward is captioned so the discount reads as
         # doctrine, not accounting.
+        # Row IC, Session 4 (IC-13): the man whose line this is — so it is
+        # never one of his last three (`said_lately`). A French marshal only.
+        _man = ctx.marshal if ctx.marshal.nation == ctx.world.player_nation else None
+        _in_list = bool(isinstance(ctx.command, dict) and ctx.command.get("_in_a_list")) \
+            and _man is not None
+        _has_lines = bool(list(getattr(ctx.order, "if_thens", None) or []))
+        _list_voices = []
         if is_literal:
             from backend.game_logic.marshal_voice import literal_ack
             original = getattr(ctx.order, "original_command", "") or ""
-            if original:
-                ctx.msg += " " + literal_ack(original, int(ctx.world.current_turn))
+            # Given EXACT orders he answers with his own "exact" line (below —
+            # the line his read-back showed); the verbatim quote is not said too.
+            if original and not (_has_lines and _man is not None):
+                _lit = literal_ack(original, int(ctx.world.current_turn), marshal=_man)
+                if _in_list:
+                    _list_voices.append({"speaker": _man.name, "says": _lit})
+                else:
+                    ctx.msg += " " + _lit
             if not is_auto_upgrade:
                 ctx.msg += (f" (1 action — {ctx.marshal.name} executes precise orders "
                         f"with fewer couriers.)")
@@ -3021,9 +3034,15 @@ class StrategicExecutor:
             _ack = personality_ack(
                 getattr(ctx.marshal, "personality", ""), ctx.strategic_type,
                 int(ctx.world.current_turn), len(str(ctx.target or "")),
-                marshal_name=ctx.marshal.name)
+                marshal_name=ctx.marshal.name, marshal=_man)
             if _ack and ctx.marshal.nation == ctx.world.player_nation:
-                ctx.msg += f" {ctx.marshal.name}: {_ack}"
+                if _in_list:
+                    _bare = _ack.strip()
+                    if len(_bare) >= 2 and _bare[0] == '"' and _bare[-1] == '"':
+                        _bare = _bare[1:-1]
+                    _list_voices.append({"speaker": ctx.marshal.name, "says": _bare})
+                else:
+                    ctx.msg += f" {ctx.marshal.name}: {_ack}"
             # NP-1: the sovereign's discount is captioned like the
             # literal's, so 1 AP reads as doctrine, not accounting.
             if is_sovereign and not is_auto_upgrade:
@@ -3051,6 +3070,23 @@ class StrategicExecutor:
         if ctx.first_step_attack_result is not None:
             from backend.commands.strategic import _carry_combat_fields
             _carry_combat_fields(_reply, ctx.first_step_attack_result)
+        # Row IC, Session 4 (IC-13; the review): a man who follows orders to
+        # the letter, GIVEN exact orders (if-thens), says the line the read-back
+        # showed him saying (`own_voice` "exact") — said here, so it is the same
+        # line and it is remembered. The verbatim quote of the order above is
+        # the staff's sentence; this is his.
+        try:
+            if (is_literal and _man is not None
+                    and list(getattr(ctx.order, "if_thens", None) or [])):
+                from backend.game_logic import own_voice as _own_voice
+                _said = _own_voice.speak(ctx.world, _man, "exact")
+                if _said:
+                    _reply["voices"] = [{"speaker": _man.name, "says": _said}]
+            if _list_voices:
+                _reply["voices"] = list(_reply.get("voices") or []) + _list_voices
+        except Exception as exc:
+            from backend.errors import report as _report_error
+            _report_error(exc, "strategic_executor: the exact order's voice")
         return _reply
 
     def _handle_strategic_objection_response(

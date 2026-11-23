@@ -2132,6 +2132,8 @@ class DisobedienceSystem:
                 'marshal': marshal_name,
                 'message': str(given.get("message") or ''),
                 'trial': _trial.payload(marshal),
+                # Row IC, Session 4 (IC-13): what HE said as he took it
+                **({'voices': given['voices']} if given.get('voices') else {}),
             }
 
         # FIX: Clear redemption_pending flag now that we're resolving it

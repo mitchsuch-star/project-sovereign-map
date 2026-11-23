@@ -4399,10 +4399,13 @@ func _render_own_result(response: Dictionary) -> void:
 					var msg = str(event.get("message", ""))
 					if msg != "":
 						add_output("[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]")
+					_say_event_voice(event)
 		_display_jealousy_attacks(response)
 		_show_mild_dispatches(response)
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		# Row IC, Session 4 (IC-13): a refused order is answered in his words too
+		_say_reply_voices(response)
 	add_output("")
 
 func _response_has_objection_route(response: Dictionary) -> bool:
@@ -6105,6 +6108,7 @@ func _on_command_result(response):
 					var msg = str(event.get("message", ""))
 					if msg != "":
 						add_output("[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]")
+					_say_event_voice(event)
 
 		# Check for enemy phase (from end_turn)
 		# NOTE: No total_actions > 0 gate — a payload that arrives is shown,
@@ -6189,6 +6193,9 @@ func _on_command_result(response):
 
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+		# Row IC, Session 4 (IC-13): a REFUSED order is answered too (the man
+		# who follows orders to the letter, asked to act on his own)
+		_say_reply_voices(response)
 
 	# N4i: Update war status HUD on every response
 	_process_active_wars(response)
@@ -6302,6 +6309,34 @@ func _raise_pending_surfaces() -> bool:
 	return false
 
 
+func _say_event_voice(event) -> void:
+	"""Row IC, Session 4 (IC-13): a turn event of a man on his task to prove
+	himself, or on his own, may carry his own line (`says`, `speaker`) — printed
+	under the event's plain sentence."""
+	if not (event is Dictionary):
+		return
+	var text := VoiceLine.bbcode(str(event.get("speaker", event.get("marshal", ""))), str(event.get("says", "")))
+	if text != "":
+		add_output("[color=#" + Utils.COLOR_MARSHAL + "]    " + text + "[/color]")
+
+
+func _say_reply_voices(response) -> void:
+	"""Row IC, Session 4 (IC-13): what the marshals SAID in answer to this order
+	(`voices` - [{speaker, says}]), one line each under the staff's message: his
+	small portrait, his name, his line (`VoiceLine.bbcode`). Display only."""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var said_voices = response.get("voices", [])
+	if not (said_voices is Array):
+		return
+	for voice in said_voices:
+		if not (voice is Dictionary):
+			continue
+		var voice_text := VoiceLine.bbcode(str(voice.get("speaker", "")), str(voice.get("says", "")))
+		if voice_text != "":
+			add_output("[color=#" + Utils.COLOR_MARSHAL + "]  " + voice_text + "[/color]")
+
+
 func _display_result(response):
 	"""Display result with appropriate formatting based on event type."""
 	var message = str(response.get("message", ""))
@@ -6371,6 +6406,8 @@ func _display_result(response):
 		_:
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + message + "[/color]")
 			_show_action_cost(action_info)
+
+	_say_reply_voices(response)
 
 	# Reinforcement inline-dramatic display (Session 66) — before Berthier report
 	# IQ-5: the handler is typed Array — a present-but-null key must not reach it.
@@ -6659,7 +6696,13 @@ func _display_berthier_report(report: Dictionary):
 	# first, in his register — the staff annotates after him. Backend-composed
 	# (marshal_voice.pick_marshal_voice), display-only.
 	var own_voice = str(report.get("marshal_voice", ""))
-	if own_voice != "" and own_voice != "<null>":
+	var own_by = report.get("marshal_voice_by", {})
+	if own_by is Dictionary and str((own_by as Dictionary).get("says", "")) != "":
+		# Row IC, Session 4 (IC-13): his portrait and name beside his line
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  "
+			+ VoiceLine.bbcode(str((own_by as Dictionary).get("speaker", "")),
+				str((own_by as Dictionary).get("says", ""))) + "[/color]")
+	elif own_voice != "" and own_voice != "<null>":
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  " + own_voice + "[/color]")
 
 	# CR-5 rider (d) "words become the record": when this battle came from a
@@ -8630,6 +8673,9 @@ func _on_redemption_response(response):
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]   A TASK TO PROVE HIMSELF[/color]")
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + msg + "[/color]")
+			# Row IC, Session 4 (IC-13): what HE said as he took it (this road
+			# bypasses _display_result, which draws a /command reply's voices)
+			_say_reply_voices(response)
 
 		elif choice == "dismiss":
 			add_output("[color=#" + Utils.COLOR_ERROR + "]═══════════════════════════════════════[/color]")
@@ -9736,6 +9782,10 @@ func _show_strategic_reports(response):
 			heads_said = true
 		if msg and bool(report.get("own", false)):
 			add_output("[color=#" + Utils.COLOR_COMMAND + "]  ◆ " + str(msg) + "[/color]")
+			# Row IC, Session 4 (IC-13): his own line about his night, beneath
+			var own_voice := VoiceLine.bbcode(str(report.get("speaker", marshal_name)), str(report.get("says", "")))
+			if own_voice != "":
+				add_output("[color=#" + Utils.COLOR_MARSHAL + "]    " + own_voice + "[/color]")
 		elif msg:
 			add_output("[color=#" + Utils.COLOR_INFO + "]" + marshal_name + ": " + msg + "[/color]")
 		# Log sally battle details to output
@@ -16292,9 +16342,13 @@ func _readback_task_lines(resp: Dictionary) -> String:
 		out += pad + Utils.bbcode_color("Not taken: " + " · ".join(missed), Utils.COLOR_WARNING)
 	if says != "":
 		var speaker := "He says: "
-		if str(resp.get("kind", "")) == "question" and str(resp.get("marshal", "")) != "":
-			speaker = str(resp.get("marshal", "")) + " says: "
-		out += pad + Utils.bbcode_color(speaker, Utils.COLOR_INFO) + Utils.bbcode_color(says, Utils.COLOR_TEXT)
+		var face := ""
+		# Row IC, Session 4 (IC-13): his NAME when the reading knows it, and
+		# his portrait beside it (the small inline one - `VoiceLine`)
+		if str(resp.get("marshal", "")) != "":
+			speaker = _ui6_bb_escape(Utils.display_marshal_name(str(resp.get("marshal", "")))) + ": "
+			face = VoiceLine.portrait_bbcode(str(resp.get("marshal", "")))
+		out += pad + face + Utils.bbcode_color(speaker, Utils.COLOR_INFO) + Utils.bbcode_color(says, Utils.COLOR_TEXT)
 	var understood := str(resp.get("understood", "")).strip_edges()
 	if understood != "":
 		out += pad + Utils.bbcode_color("Enter sends: ", Utils.COLOR_INFO) \

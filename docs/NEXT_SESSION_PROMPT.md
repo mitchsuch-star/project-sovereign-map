@@ -1,4 +1,143 @@
-# NEXT SESSION PROMPT — Row IC, Session 4: the voice, and the other side of the hill (read the first block)
+# NEXT SESSION PROMPT — Row IC, Session 4b: the decision on the war plans, what you learn, and his ruling that a man given autonomy is his own commander — orders guide him (read the first block)
+
+> **READ THIS FIRST — the next session is ROW IC's SESSION 4b.** Then **Session H, the deploy** (its section is
+> kept below, with the lines that overrule it). The order is `PRE_DEPLOY_PLAN.md` §2 (row IC).
+>
+> Current hand-over: **November 22, 2026 — ROW IC, SESSION 4: THE VOICE ✅ BUILT; THE ENEMY'S WAR PLANS BUILT AND
+> SWITCHED OFF (HIS RULING THE SAME EVENING: ON, AFTER THE TWENTY SEEDS); WHAT YOU LEARN NOT FINISHED — ROW IC NOT COMPLETE. Committed and pushed at his word
+> ("commoit and push").** Records: `docs/STATUS.md` (the entry), `SYSTEMS_REFERENCE.md` §235, `BUG_FIXES.md` §"Row IC,
+> Session 4", the spec's §15 landing record and D39, `docs/MARSHAL_VOICE_BIBLE.md`,
+> `docs/audits/ic_client/session4/README.md`.
+
+## Row IC, Session 4b — the plan
+
+**Open in Plan Mode, in plain everyday words. The one decision Session 4 left him is RULED (IC4-D1, the spec's
+D41):** asked the same evening whether this session should switch the enemy's war plans on — leave them off /
+on as built / on with "still strikes at good odds" (the last not recommended: one test campaign falls to 22
+provinces) — he answered **"On, after 20 seeds"**: switch them on, as built, once the twenty wide seeds are
+read with them up. (The rule written before Session 4's measure — the enemy's two marshals who follow orders to
+the letter, Mack and Buxhowden, act no less often than today — stays missed: about 36 nights in 100 against 48,
+because a planned marshal attacks only when one of his written lines says so; Mack sits at Ulm as he did, which
+is what makes capturing his orders worth it.)
+
+Read each rule against the code first and say what you found (Session 4's plan carried several the code
+contradicted — `SYSTEMS_REFERENCE.md` §235 and the spec's D39 list them).
+
+**Switching them on — the order of work:** build IC-15 and IC4-D3 first (IC4-D3 moves French marshals, so the
+seeds are read on the final tree); then flip `war_plans.the_courts_follow_a_plan` (and `tests/_ic4_seams.py`
+`IC4_SHIPPED_UP/DOWN`), read the TWENTY wide seeds with the plans up (the deploy gate's promoted-minor clause is a
+thirty-seed reading — `tools/_oc_gate_2026_11_18.json`; `tools/_ic4_measure.py` reads ten), take the whole measure
+again from a frozen copy (`tools/_ic4_measure.py --surfaces band,ambient,gate,hill --arms 0,ALL`), and re-pin
+`BASELINE_SERIES` with its lineage (`tools/_ic4_series_arms.py`: arm `+PLAN` is today's reading of the plans up).
+If the twenty seeds break a clause of the deploy gate, leave the seam down, say which clause and why, and put it
+to him again (my reading of "after 20 seeds").
+
+**Then build IC-15 (IC4-D2) — what you learn** (the server's store is built: `backend/game_logic/learned.py`,
+`tests/test_ic15_what_you_learn.py`; its three strict expected-failures name what is owed):
+- Every marshal's nature on every screen — **Bold · Careful · To the letter** (his ruling), with one line of what
+  it means: `display_names.NATURE_WORDS`; a `nature` key on every row that names a marshal (never the player-only
+  `personality` block — the map tooltip would print "Trust: 0" for an enemy); the Generals page, the Help, the
+  battle's `his_temper`, `state_desk`, the lesson's card IV and the map tooltip's "Type:" change to match.
+- What France learned, with its age ("learned 2 turns ago", never "changed"), on the enemy marshal's card and the
+  war's page (`learned.payload`).
+- Captured orders told in the battle's result (`world._orders_taken` is written by the rout and read by nobody;
+  `learned.taken_words` has the words, headed in the court's own register).
+- The spy: its button and its report say what it now gives and its true price (1 point a turn for three turns).
+- The audience window draws his `trial_ask` line (the server sends `proposal.says`).
+(The plans go on by his ruling; if the twenty seeds keep them off, say plainly what of this is still worth
+building — natures and the audience's line are; the rest reads plans that do not exist.)
+
+**His ruling at the end of Session 4 (November 22, 2026) — IC4-D3, the spec's D40: a marshal given autonomy is
+his own commander. Your orders guide him; he takes the initiative and never sits still in a war.** His words,
+verbatim, in order: "autonomous generals dont cost ap really thats benefit right" · "if you give them nothing they
+shoudl make deciions right" · "they support frienfds because they want to right" · "we want this dynamic fun and
+relaistic and thats what would happen correct" · and, answering the question:
+
+> "tihis is for one sgiven autonomous right i mean yeah they are autonomous your word sguide them it should be
+> like napoleonic warfare buit no orders and they dont just sit there during war"
+
+Then, correcting my first wording of the row (I had written "never sits still" but kept his choices inside your
+task — "a task you give replaces his own aim", "never takes land the task did not name"):
+
+> "oi was syaing they shouldnt sit still because they take initiaitve! is that what you did?" · "like i was
+> croitiquing the fact that if they dont do their own thing its really no different then guys you move very turn
+> in essance" · "orders shlould beguiding ai that has its own actions and does its own thing you get it"
+
+**The point of the ruling:** a marshal on his own who only carries out the task is a man you move every turn by
+another name. He is an AI with its own actions; the task is guidance. It is about the men GIVEN autonomy only —
+his cap of November 19 stands, and a marshal with no orders who is not on his own still waits.
+
+What the code does today (read November 22 by four readers, every claim re-checked by a skeptic):
+- **his task fences his choice:** each night's act is chosen INSIDE the task (D36's reading; §6.10 "he never takes
+  land the task did not name"). Told to take Bohemia, Ney marches from Rhineland to Swabia past a 4,000-man
+  Austrian raid standing in French Lorraine beside him, which France sees;
+- a finished chase ends his order (`own_order._life`, the pursuit's "destroyed — done") and he waits;
+- a take done becomes a hold of the place, and a holder acts only on an enemy in strike reach (`_task_reading`'s
+  hold arm; one step out beside the area per order) — a quiet hold is a man sitting;
+- four quiet nights with no enemy France sees within two marches make him ASK for work (`_quiet_front`,
+  `QUIET_FRONT_ASKS`), and an ask unanswered for three turns stands him down (`ASK_LAPSE`);
+- a forced retreat wipes every order, his task included (`combat_executor._apply_forced_retreat_or_break`:
+  "forced retreat breaks all orders" — no on-his-own guard);
+- he can be set on his own only with one of four tasks (`own_order.TASKS`, `spec_from`); none has no aim;
+- R-ACTS (each man does something visible on 7 nights in 10 and stays put under 3) is missed for Davout — visible
+  60%, stays put 36% (Session 3, and again in Session 4's re-read,
+  `tools/_ic4_side_ic3_sweep_2026_11_22.json`) — accepted then as "his character" (D37).
+
+Build, as recommended (put each choice to him in Plan Mode in plain words, recommendation first):
+- **His own commander, every night:** he chooses among ALL his actions — attack, march, take, besiege, chase, go
+  to a friend's battle, stand by a friend, dig in, scout — by his nature, his odds, the men beside him and the
+  board. The task is a PULL toward your aim, not a fence: a chance beside him (a beatable enemy next to his road,
+  a friend under threat, an open enemy province within a march) can win the night by his nature — a bold man
+  takes such chances readily, a careful man only at good odds or to cover a friend — and then he turns back
+  toward your aim. One thing a night (D7). "Tonight" shows his choice the evening before (D8 kept as "show
+  before, never surprise").
+- **No task:** "Ney, act on your own" — and a button on his card — sets him on his own with no task (2 actions,
+  one of the places): he makes war as he sees fit near where he stands. A task you give later guides him; it
+  does not take his initiative away.
+- **A task run out, in a war:** a finished chase or a take done leads him on by his nature; a quiet front sends
+  him toward the nearest enemy France can see instead of asking; an unanswered ask leaves him at work. At peace,
+  today's rules stand.
+- **Beaten, he keeps his autonomy:** a forced retreat moves him and breaks a hold's post, but he rallies
+  (`recover`) and carries on.
+- §6.10 and D36's "inside your task" are replaced by the ruling; the enemy's use of the same rules is read on the
+  AI's side (rule 10).
+- **The measure, its rules written before any data:** an initiative rule (how often he acts outside the task
+  when a chance stands beside him — a bar for bold, one for careful, written before the data); R-ACTS met for
+  EVERY man, Davout included; the France band inside 23–28 on the three commanded seeds; R-TOGETHER, R-FRIENDS and
+  R-TRUE as recorded; "Tonight" never differs from what a man did.
+- **Pins:** `tests/test_ic10_on_his_own.py::TestWhatSession4bOwesHisRuling` — five STRICT expected failures (he
+  strikes the raid beside his road; a finished chase; a quiet front; a beaten man; no task); each becomes a plain
+  test when built. Two tests pin today's ends and change with it:
+  `TestTheLifeTable::test_a_pursuit_ends_when_the_quarry_is_gone` and
+  `::test_an_unanswered_ask_ends_the_order_after_three_turns_no_trust_lost` (in a war).
+
+**The voice, read again (IC4-R1):** rounds 4–7 were right on 143 of 144 pairs and 356 of 360 six-way lines,
+but every reader still marked two to four pairs "partly guessed" (the bold pair Ney/Lannes, the holding pair
+Masséna/Davout). Put the "none guessing" clause to him in plain words first; then, as he rules, read again on a
+fresh draw (`docs/audits/ic_client/session4/` — the seeded key procedure; include the hold-proposal lines added
+after round 7), three fresh readers, the key written first.
+
+**The read-back of a renewed hold (IC4-N1):** it refuses "already holding here" while Enter gives the order and
+charges an action — make the reading the order (`tests/test_ic8_the_line.py::TestICN1TheReadBackOfARenewedHold`,
+a strict pin, turns red when fixed).
+
+**The row's close:** §13 on the final tree — `tools/_ic3_measure.py`, `tools/_ic3b_measure.py`, the readings of
+the earlier sessions asked once more; press everything in the real client at 1.8 on 5120 × 1377 and at 2.0 on
+1600 × 900 before any reader (not pressed in Session 4: the after-battle line with its portrait, the desk row's
+hover); ONE review on a frozen copy; the whole suite without the engine lanes once; the records. Done when
+`tools/defect_census.py --open` lists no IC row but IC2-N1 and IC3-N1 and the STATUS line reads "ROW IC, SESSION
+4b — WHAT YOU LEARN — ROW IC COMPLETE".
+
+**Traps** (`SYSTEMS_REFERENCE.md` §235, the last paragraph): a new campaign's seed starts each set of lines at
+its own place; never write a patch through a shell heredoc; a reading card in the lesson's last gates costs a
+response the idle player does not have; the words census takes "on his own" by name; the gate's clause 2 is a
+thirty-seed reading; copy a measure's rule from the approved plan word for word.
+
+---
+
+*(Below: the previous hand-over, kept for its Session H section. Its "Row IC, Session 4" plan is DONE as far as
+the entry above says — do not run it again.)*
+
 
 > **READ THIS FIRST — the next session is ROW IC's SESSION 4** (the section "## Row IC, Session 4 — the voice, and
 > the other side of the hill: the plan, decided" below — the last session of row IC). Then **Session H, the

@@ -2046,12 +2046,23 @@ def _ic2b_card(state: dict) -> dict:
     return {}
 
 
+def _ic2b_text(state: dict, starts: str) -> dict:
+    """The audience window's text that starts `starts` — or whose words start
+    it on the line under his own quoted line (row IC, Session 4 — IC-13: his
+    proposal is headed by "Ney: “…”", the line he asks with)."""
+    for t in state.get("texts") or []:
+        if str(t.get("surface") or "") != "RedemptionDialog":
+            continue
+        text = str(t.get("text") or "")
+        head, _, rest = text.partition("\n")
+        if text.startswith(starts) or (head.endswith("”") and rest.startswith(starts)):
+            return t
+    raise AssertionError(f"no text of the audience's window starts {starts!r}")
+
+
 def _ic2b_rect(state: dict, starts: str) -> list:
     """The rect of the audience window's text that starts `starts`."""
-    for t in state.get("texts") or []:
-        if str(t.get("surface") or "") == "RedemptionDialog" and str(t.get("text") or "").startswith(starts):
-            return t["rect"]
-    raise AssertionError(f"no text of the audience's window starts {starts!r}")
+    return _ic2b_text(state, starts)["rect"]
 
 
 @pytest.fixture(scope="module")
@@ -2262,9 +2273,7 @@ class TestRowIC9bTheAudienceAtTheCompactView:
 
     def test_his_proposal_scrolls_and_the_other_answers_keep_their_words_in_hovers(self, walk):
         state = walk["ney"]
-        proposal = next(t for t in state["texts"]
-                        if str(t.get("surface") or "") == "RedemptionDialog"
-                        and str(t.get("text") or "").startswith("Ney is a bold man"))
+        proposal = _ic2b_text(state, "Ney is a bold man")
         assert proposal.get("clipped"), "the proposal stands in a scroll: it is longer than its room"
         assert "you cannot call him back" in str(proposal["text"]), "nothing of it is cut from the text"
         hovers = {str(b["text"]): str(b.get("tooltip") or "") for b in _ic2b_window(state)["answers"]}
@@ -2543,4 +2552,209 @@ class TestRowIC12AnArmysTask:
                    and m["from"][2] == m["to"][2] for m in moves), moves
 
     def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ═══════════════════════════ row IC, Session 4 — the voice (IC-13) ═══════════
+# (`SYSTEMS_REFERENCE.md` §235; `docs/MARSHAL_VOICE_BIBLE.md`.) A marshal's own
+# line stands beside his NAME and his small PORTRAIT wherever the text surfaces
+# quote him: under the command line as you type, and in the reply when the
+# order is given. Pressed first at the first player's setup (Interface Scale
+# 1.8 on 5120 x 1377) and at the compact view (2.0 on 1600 x 900) — where it
+# showed his line TWICE (once folded into the staff's sentence): fixed, pinned.
+
+def _ic4_steps(run: pathlib.Path, states: dict) -> None:
+    states["begin"] = _act(run, "click Begin")
+    _act(run, "draft Ney, take Swabia on your own", meant="other: a task on his own")
+    # (the reading is fetched after the keystroke: a second look — the caret
+    # sent to the line's end, nothing changed — reads it once it has landed)
+    states["draft"] = _act(run, "key End")
+    states["given"] = _act(run, "key Enter")
+    _act(run, "draft Soult, hold Lorraine. If attacked, dig in.", meant="other: exact orders")
+    states["exact"] = _act(run, "key End")
+    states["exact_given"] = _act(run, "key Enter")
+    states["refused"] = _act(run, "type Soult, hold Lorraine on your own",
+                             meant="other: asked to act on his own")
+
+
+def _ic4_walk(tmp_path_factory, name: str, scale: str, window: str) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", scale)
+        mp.setenv("DD_B_WINDOW", window)
+        mp.setenv("DD_B_READBACK", "1")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, name)
+    states: dict = {}
+    try:
+        _ic4_steps(run, states)
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+@pytest.fixture(scope="module")
+def ic4_walk(tmp_path_factory) -> dict:
+    return _ic4_walk(tmp_path_factory, "ic4", "1.8", "5120x1377")
+
+
+@pytest.fixture(scope="module")
+def ic4_compact(tmp_path_factory) -> dict:
+    return _ic4_walk(tmp_path_factory, "ic4_compact", "2.0", "1600x900")
+
+
+def _ic4_voice_pins(walk: dict) -> None:
+    from backend.game_logic import own_voice
+    ney = own_voice.pool("Ney", "bold", "ack")
+    # as you type: his line under the command line, by NAME — never "He says"
+    reading = _ic2_readback(walk["draft"])
+    assert "He says:" not in reading, reading
+    said = [line for line in ney if f"Ney: “{line}”" in reading]
+    assert len(said) == 1, reading
+    assert "is on his own" not in _ic_log(walk["draft"]), "nothing given by typing"
+    # given: the SAME line, once, with his name — not folded into the staff's sentence too
+    log = _ic_log(walk["given"])
+    assert "Ney is on his own: take Swabia." in log, log
+    assert log.count(said[0]) == 1, log
+    assert f"Ney: “{said[0]}”" in log
+    # the senior man passed over says so himself
+    assert any(f"Murat: “{line}”" in log for line in own_voice.pool("Murat", "bold", "passed_over")), log
+    # the letter-following man: his own line as you type; refused in his own words
+    exact = _ic2_readback(walk["exact"])
+    # (a new campaign draws its own seed, and a seed starts each set at its own
+    # place: the line is one of the lines HE can say — his own or his nature's)
+    assert any(f"Soult: “{line}”" in exact
+               for line in own_voice.pool("Soult", "literal", "exact")), exact
+    refused = _ic_log(walk["refused"])
+    assert "cannot be set on his own" in refused, refused
+    assert any(f"Soult: “{line}”" in refused
+               for line in own_voice.pool("Soult", "literal", "refusal")), refused
+    assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+class TestRowIC13TheVoice:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4_walk):
+        assert "error" not in ic4_walk, ic4_walk.get("error")
+        return ic4_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        assert walk["draft"]["ui_scale"]["window"] == pytest.approx(1.8)
+        assert walk["draft"]["factor"]["logical_size"] == [2844.0, 765.0]
+
+    def test_his_line_stands_by_his_name_as_typed_and_once_when_given(self, walk):
+        _ic4_voice_pins(walk)
+
+    def test_nothing_runs_off_the_screen(self, walk):
+        for key in ("draft", "given", "exact", "refused"):
+            assert not walk[key].get("off_screen"), (key, walk[key].get("off_screen"))
+
+
+class TestRowIC13TheVoiceAtTheCompactView:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4_compact):
+        assert "error" not in ic4_compact, ic4_compact.get("error")
+        return ic4_compact
+
+    def test_the_run_stands_at_the_compact_view(self, walk):
+        assert walk["draft"]["factor"]["logical_size"] == [800.0, 450.0]
+
+    def test_his_line_stands_by_his_name_as_typed_and_once_when_given(self, walk):
+        _ic4_voice_pins(walk)
+
+
+# The census's roads, pressed (row IC, Session 4 — IC-13): the audience window
+# heads his proposal with his own line and, given, he says that line once; an
+# army's task, given, carries its men's lines into the reply.
+
+@pytest.fixture(scope="module")
+def ic4_audience(tmp_path_factory) -> dict:
+    """The audience at the compact view: Interface Scale 2.0 on 1600 x 900."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "2.0")
+        mp.setenv("DD_B_WINDOW", "1600x900")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic4_audience")
+    states: dict = {}
+    try:
+        _act(run, "click Begin")
+        _act(run, "type debug set_location Ney Franconia", meant="other: staging")
+        states["ney"] = _act(run, "type debug audience Ney", meant="other: staging")
+        states["given"] = _act(run, "click Give Ney a task to prove himself")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+@pytest.fixture(scope="module")
+def ic4_army(tmp_path_factory) -> dict:
+    """An army's task at the first player's setup (1.8 on 5120 x 1377)."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", "1.8")
+        mp.setenv("DD_B_WINDOW", "5120x1377")
+        mp.setenv("DD_B_READBACK", "1")
+        mp.setenv("DD_B_STAGE", "1")
+        run, sup = _start_engine_run(tmp_path_factory, "ic4_army")
+    states: dict = {}
+    try:
+        _act(run, "click Begin")
+        _act(run, "type form the Army of the Rhine with Davout, Soult and Bernadotte",
+             meant="other: name an army")
+        _act(run, "draft Army of the Rhine, take Swabia", meant="other: an army's task")
+        states["list"] = _act(run, "key Enter")
+        states["given"] = _act(run, "key Enter")
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+class TestRowIC13TheAudienceSpeaksAtTheCompactView:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4_audience):
+        assert "error" not in ic4_audience, ic4_audience.get("error")
+        return ic4_audience
+
+    def test_his_line_heads_his_proposal_and_he_says_it_once_when_given(self, walk):
+        from backend.game_logic import own_voice
+        assert walk["ney"]["factor"]["logical_size"] == [800.0, 450.0]
+        asks = own_voice.pool("Ney", "bold", "trial_ask")
+        window = [str(t.get("text") or "") for t in walk["ney"].get("texts") or []]
+        heads = [line for line in asks if any(text.startswith(f"Ney: “{line}”") for text in window)]
+        assert len(heads) == 1, window[:6]
+        log = _ic_log(walk["given"])
+        assert "A TASK TO PROVE HIMSELF" in log
+        assert log.count(f"Ney: “{heads[0]}”") == 1, log[-600:]
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+class TestRowIC13AnArmysTaskSpeaks:
+
+    @pytest.fixture(scope="class")
+    def walk(self, ic4_army):
+        assert "error" not in ic4_army, ic4_army.get("error")
+        return ic4_army
+
+    def test_the_given_army_reply_carries_its_mens_lines(self, walk):
+        import re
+        from backend.game_logic import own_voice
+        log = _ic_log(walk["given"])
+        found = re.search(r"(\w+) commands, on his own", log)
+        assert found, log[-800:]
+        lead = found.group(1)
+        nature = {"Davout": "careful", "Bernadotte": "careful"}.get(lead, "bold")
+        kinds = ("ack", "object", "bolder", "careful", "remembers")
+        his = [line for kind in kinds for line in own_voice.pool(lead, nature, kind)]
+        said = [line for line in his if f"{lead}: “{line}”" in log]
+        assert len(said) == 1, log[-800:]
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

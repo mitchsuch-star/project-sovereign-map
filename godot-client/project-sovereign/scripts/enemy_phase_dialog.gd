@@ -1352,6 +1352,11 @@ func _format_berthier_report(report: Dictionary) -> String:
 	# on the field, and the staff comments afterwards.
 	# --------------------------------------------------------------
 	var enemy_voice = str(report.get("enemy_voice", ""))
+	var enemy_by = report.get("enemy_voice_by", {})
+	if enemy_by is Dictionary and str((enemy_by as Dictionary).get("says", "")) != "":
+		# Row IC, Session 4 (IC-13): his portrait and name beside his line
+		enemy_voice = VoiceLine.bbcode(str((enemy_by as Dictionary).get("speaker", "")),
+			str((enemy_by as Dictionary).get("says", "")))
 	if enemy_voice != "":
 		result += ("[color=#" + Utils.COLOR_ENEMY_VOICE + "]    "
 			+ Utils.humanize_nation_keys_in_text(enemy_voice) + "[/color]
@@ -1360,6 +1365,10 @@ func _format_berthier_report(report: Dictionary) -> String:
 	# Marshal Voice Tier 1 (position 9): our own commander answers in his
 	# register — enemy speaks, our marshal answers, Berthier observes.
 	var own_voice = str(report.get("marshal_voice", ""))
+	var own_by = report.get("marshal_voice_by", {})
+	if own_by is Dictionary and str((own_by as Dictionary).get("says", "")) != "":
+		own_voice = VoiceLine.bbcode(str((own_by as Dictionary).get("speaker", "")),
+			str((own_by as Dictionary).get("says", "")))
 	if own_voice != "" and own_voice != "<null>":
 		result += ("[color=#" + Utils.COLOR_GOLD + "]    "
 			+ Utils.humanize_nation_keys_in_text(own_voice) + "[/color]

@@ -733,14 +733,20 @@ static func directive_row_text(r: Dictionary, staff_carries: bool) -> String:
 			if noted == "":
 				continue
 			var tone: String = Utils.COLOR_WARNING
+			var his_words := false
 			if tones is Array and i < (tones as Array).size():
 				match str(tones[i]):
 					"info":
 						tone = Utils.COLOR_INFO
 					"voice":
 						tone = Utils.COLOR_GOLD
+						his_words = true
 					"tonight":
 						tone = Utils.COLOR_COMMAND
+			if his_words:
+				# Row IC, Session 4 (IC-13): his answer by name, with his portrait
+				text += "\n[color=#" + tone + "]" + VoiceLine.bbcode(str(r.get("marshal", "")), noted) + "[/color]"
+				continue
 			text += "\n[color=#" + tone + "]" + noted + "[/color]"
 	return text
 

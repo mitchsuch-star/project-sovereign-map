@@ -4089,6 +4089,15 @@ class StrategicOrderProcessor:
                 if why:
                     line["used"] = True
                     line["struck"] = why
+                    said = ""
+                    try:
+                        # Row IC, Session 4 (IC-13): HIS line beside the
+                        # staff's plain sentence (a literal man's own bank).
+                        from backend.game_logic import own_voice as _voice
+                        if getattr(marshal, "personality", "") == "literal":
+                            said = _voice.speak(world, marshal, "broken")
+                    except Exception as exc:
+                        _errors.report(exc, "strategic._if_thens_pass: the broken line's voice")
                     reports.append({
                         "marshal": marshal.name, "command": order.command_type,
                         "order_status": "continues", "action": "if_then_struck",
@@ -4096,6 +4105,7 @@ class StrategicOrderProcessor:
                         "message": (f"{marshal.name}'s orders are broken — "
                                     f"'{_if_thens.describe(line, _shown_name)}' can no longer "
                                     f"be carried out: {why}."),
+                        **({"says": said, "speaker": marshal.name} if said else {}),
                     })
             if int(getattr(marshal, "last_ordered_turn", -1) or -1) == turn:
                 continue      # he was given an order by hand today: his lines sleep
@@ -4320,7 +4330,10 @@ class StrategicOrderProcessor:
                     broken.update({"action": "attack_refused", **refusal_keys(result)})
                     return broken
                 msg = f"{marshal.name} arrives at {marshal.location} and attacks {_shown_name(target.name)}!"
-                self._complete_order(marshal, world, msg)
+                # Row IC, Session 4 (IC-13; the census): the completion line is
+                # SAID (recorded) by `_complete_order` — so it is the line shown.
+                done = self._complete_order(marshal, world, msg)
+                msg = str((done or {}).get("message") or msg)
                 # Strip new_state to avoid circular reference in JSON serialization
                 cleaned_result = {k: v for k, v in result.items() if k != "new_state"} if result else None
                 return {
@@ -6018,7 +6031,9 @@ class StrategicOrderProcessor:
             if original:
                 from backend.game_logic.marshal_voice import literal_completion
                 completion_msg = literal_completion(
-                    original, reason, marshal.name, int(world.current_turn))
+                    original, reason, marshal.name, int(world.current_turn),
+                    marshal=(marshal if marshal.nation == getattr(
+                        world, 'player_nation', 'France') else None))
         elif getattr(marshal, 'nation', '') == getattr(world, 'player_nation',
                                                        'France'):
             # Marshal Voice Tier 1: aggressive/cautious completion reports
@@ -6027,7 +6042,7 @@ class StrategicOrderProcessor:
             from backend.game_logic.marshal_voice import personality_completion
             completion_msg = personality_completion(
                 marshal.personality, reason, marshal.name,
-                int(world.current_turn))
+                int(world.current_turn), marshal=marshal)
 
         # Notification: strategic order complete (player marshals only)
         if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):

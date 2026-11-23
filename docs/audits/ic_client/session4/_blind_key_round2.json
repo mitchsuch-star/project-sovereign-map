@@ -1,0 +1,80 @@
+{
+ "stayed (the lines round 1 missed, rewritten)": [
+  [
+   "Davout",
+   "I stayed put. Better a lost day than a lost corps."
+  ],
+  [
+   "Lannes",
+   "The guns told me it had changed, so I held the columns."
+  ],
+  [
+   "Massena",
+   "No move today. Here I know what I have."
+  ],
+  [
+   "Ney",
+   "Not tonight, Sire. It galls me, but the chance was gone."
+  ],
+  [
+   "Bernadotte",
+   "No march today. I'm sure you understand."
+  ],
+  [
+   "Murat",
+   "I kept the horses in. Even I can do that, once."
+  ]
+ ],
+ "idle (rewritten)": [
+  [
+   "Davout",
+   "Nothing moving in front of me. The pickets are out."
+  ],
+  [
+   "Massena",
+   "My front is quiet. It stays mine."
+  ],
+  [
+   "Bernadotte",
+   "Nothing to trouble you with."
+  ],
+  [
+   "Ney",
+   "No enemy in reach. Find me one, Sire."
+  ],
+  [
+   "Murat",
+   "No one to chase today. A pity."
+  ],
+  [
+   "Lannes",
+   "No guns near me yet, Sire."
+  ]
+ ],
+ "stayed (a set not read before)": [
+  [
+   "Murat",
+   "I held the squadrons back, Sire. Something changed out there."
+  ],
+  [
+   "Davout",
+   "I kept my ground, Sire. The moment was wrong."
+  ],
+  [
+   "Bernadotte",
+   "I thought it better not to move, Sire. Matters had changed."
+  ],
+  [
+   "Massena",
+   "I did not move, Sire. I don't leave ground on a guess."
+  ],
+  [
+   "Ney",
+   "I held back, Sire, and I hated it. It had turned into a trap."
+  ],
+  [
+   "Lannes",
+   "I didn't go in, Sire. The assault had lost its moment."
+  ]
+ ]
+}

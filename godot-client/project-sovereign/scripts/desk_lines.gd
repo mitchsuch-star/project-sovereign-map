@@ -376,6 +376,11 @@ func _make_row(index: int, row: Dictionary) -> Control:
 	var bites := int(row.get("tier", 0)) == BITES
 	b.text = "%d. %s%s" % [index + 1, (MARK_BITES + " ") if bites else "", str(row.get("text", ""))]
 	var more := str(row.get("more", ""))
+	# Row IC, Session 4 (IC-13): a letter-following man's own line rides the
+	# hover, after the row's own words (the row's one line stays as it was)
+	var voiced := VoiceLine.plain_text(str(row.get("speaker", "")), str(row.get("says", "")))
+	if voiced != "":
+		more = (more + "\n" if more != "" else "") + voiced
 	b.tooltip_text = (more + "\n" if more != "" else "") + "Press to go to it."
 	var ink := Color.html("#" + Utils.COLOR_WARNING) if bites else Utils.toned(Utils.UI_TEXT_DIM)
 	b.add_theme_color_override("font_color", ink)
@@ -419,6 +424,10 @@ func _fill_one_line(peace_text: String, war_text: String, standing: Array) -> vo
 	var tip := PackedStringArray()
 	for i in standing.size():
 		tip.append("%d. %s" % [i + 1, str((standing[i] as Dictionary).get("text", ""))])
+		var said := VoiceLine.plain_text(str((standing[i] as Dictionary).get("speaker", "")),
+				str((standing[i] as Dictionary).get("says", "")))
+		if said != "":
+			tip.append("    " + said)
 	_line.tooltip_text = "\n".join(tip)
 	_line.set_meta("row", first)
 	var bites := int(first.get("tier", 0)) == BITES

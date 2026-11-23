@@ -2533,6 +2533,21 @@ class WorldState:
         # it was); an old save reads none.
         self.armies: Dict[str, Dict[str, Any]] = {}
         self.war_goals: Dict[str, Dict[str, Any]] = {}
+        # Row IC, Session 4 (IC-14; `backend/game_logic/war_plans.py`): the
+        # courts' WAR PLANS — the scenario's written sets and each holder's
+        # state ({"sets": [...], "holders": {holder: {plan, step, ...}}}; the
+        # scenario key and the save key are one). {} where no plan is written
+        # (every board but the campaign's), and then not saved at all. The
+        # state is written only as a turn ends and by a battle's own rout —
+        # never inside an order (the take-back's books are untouched).
+        self.war_plans: Dict[str, Any] = {}
+        # Row IC, Session 4 (IC-15; `backend/game_logic/learned.py`): what
+        # France has LEARNED of the enemy's written orders and favoured
+        # provinces — the words as they stood when learned, and the turn
+        # ({"marshals": {name: {...}}, "courts": {court: {...}}}). Written by
+        # the spy's completion and a battle's rout, never by an order; saved
+        # only while it holds something.
+        self.learned: Dict[str, Any] = {}
         # Row MC (`backend/game_logic/precedence.py`): the book of incidents
         # between marshals ({"A|B": {incidents, won, lost}}) and the accounts
         # waiting for the Emperor's word. Written to a save only when held.
@@ -9948,6 +9963,17 @@ class WorldState:
     # SERIALIZATION (Phase I: Save/Load Preparation)
     # ============================================================
 
+    def _plans_saved(self) -> Dict:
+        """Row IC, Session 4: the courts' war plans and what France has learned
+        of them — each only where it holds STATE. The written plan sets are the
+        scenario's content: they ride the save only beside a holder's plan, and
+        every load reads them back (`war_plans.to_save` / `from_saved`). Gathered
+        here because `to_dict` stands at its 500-line ratchet."""
+        from backend.game_logic import war_plans as _war_plans
+        plans = _war_plans.to_save(self)
+        return {**({"war_plans": plans} if plans else {}),
+                **({"learned": copy.deepcopy(self.learned)} if self.learned else {})}
+
     def to_dict(self) -> Dict:
         """
         Serialize complete game state for save/load.
@@ -10000,7 +10026,7 @@ class WorldState:
             "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation), **({"battle_days": copy.deepcopy(self.battle_days)} if self.battle_days else {}), **({"marshal_ledger": copy.deepcopy(self.marshal_ledger)} if self.marshal_ledger else {}), **({"marshal_accounts": copy.deepcopy(self.marshal_accounts)} if self.marshal_accounts else {}),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock); BA-3: the open days of battle, only when there is one
             # Row IC, directives: the named armies and the wars' goals, each only when held.
             **({"armies": copy.deepcopy(self.armies)} if self.armies else {}),
-            **({"war_goals": copy.deepcopy(self.war_goals)} if self.war_goals else {}),
+            **({"war_goals": copy.deepcopy(self.war_goals)} if self.war_goals else {}), **self._plans_saved(),
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -10639,6 +10665,14 @@ class WorldState:
                             for _k, _v in _goals.items()
                             if isinstance(_v, dict) and (_v or {}).get("target")}
                            if isinstance(_goals, dict) else {})
+        # Row IC, Session 4 (IC-14): the courts' war plans — a scenario's block
+        # or a save's key, the same shape; an old save reads none (the 1805
+        # campaign's is backfilled from its scenario: `save_manager`).
+        from backend.game_logic import war_plans as _war_plans
+        world.war_plans = _war_plans.from_saved(data.get("war_plans"), world.scenario_name)
+        # ... and what France has learned of them (an old save: nothing).
+        from backend.game_logic import learned as _learned
+        world.learned = _learned.from_block(data.get("learned"))
         # S14E-35: the last battle each court fought; an old save without the
         # key reads as today (empty = the marshals' own stamps alone).
         _last_battles: Dict[str, int] = {}

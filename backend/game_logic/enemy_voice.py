@@ -322,7 +322,7 @@ def derive_enemy_situation(outcome: str, enemy_was_attacker: bool,
 
 
 def pick_enemy_voice(enemy_name: str, personality: str, situation: str,
-                     rotation_key: int = 0) -> str:
+                     rotation_key: int = 0, marshal=None) -> str:
     """One line in the enemy commander's register ("" when none applies).
 
     Named rows (Mack, Kutuzov, Archduke Charles, Wellington, Blücher)
@@ -339,7 +339,14 @@ def pick_enemy_voice(enemy_name: str, personality: str, situation: str,
     bank = voice_bank(enemy_name, personality, situation)
     if not bank:
         return ""
-    line = bank[int(rotation_key) % len(bank)]
+    if marshal is None:
+        line = bank[int(rotation_key) % len(bank)]
+    else:
+        # Row IC, Session 4 (IC-13, golden rule 10): the enemy's own line
+        # obeys the same rule as a French marshal's — never one of his last
+        # three (`said_lately`; the battle is the place a line is said).
+        from backend.game_logic import said_lately as _said
+        line = _said.speak(marshal, bank, int(rotation_key) % len(bank))
     return f"{humanize_entity_name(enemy_name)}: \"{line}\""
 
 

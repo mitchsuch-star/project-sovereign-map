@@ -61,7 +61,7 @@ class TestTheLawsCard:
     def test_the_card_follows_the_congress(self):
         from backend.game_logic import tutorial_state as T
         ids = [s[0] for s in T.STEPS]
-        assert len(ids) == 20
+        assert len(ids) == 22   # 20 → 22: "XX. On His Own" and "XXI. Ask Him" (row IC)
         assert ids.index("laws") == ids.index("congress") + 1
         assert dict((s[0], (s[1], s[2])) for s in T.STEPS)["laws"] == (
             12, "XVIII. The Laws of State")

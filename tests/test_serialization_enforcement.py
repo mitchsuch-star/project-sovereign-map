@@ -156,6 +156,9 @@ def create_fully_populated_marshal() -> Marshal:
                      "next_take": None}
     marshal.redemption_pending = True
     marshal.trust_warning_shown = True
+    # Row IC, Session 4 (IC-13): the last three lines he said - kept only when
+    # held, so it is held here.
+    marshal.said_lately = [101, 202, 303]
 
     # Relationships
     marshal.relationships = {"Davout": 1, "Grouchy": -1}
@@ -508,6 +511,14 @@ class TestWorldStateSerializationEnforcement:
         # `tests/test_ic6_the_war_goal.py` pin both halves).
         world.armies = {"Army of Italy": {"members": ["Ney", "Davout"], "formed_turn": 3}}
         world.war_goals = {"Austria": {"kind": "place", "target": "Vienna", "turn": 4}}
+        # Row IC, Session 4 (IC-14): the courts' war plans, written only where
+        # a scenario writes them (`tests/test_ic14_the_war_plan.py` pins the
+        # round trip of a played board).
+        world.war_plans = {"sets": [{"for": {"default": True}, "plans": []}],
+                           "holders": {"court::Austria": {"plan": "p", "step": 0}}}
+        # ... and what France has learned of them (IC-15), only when held.
+        world.learned = {"marshals": {"Mack": {"court": "Austria", "orders": ["Mack holds Swabia."],
+                                               "turn": 4, "how": "captured"}}}
 
         instance_attrs = get_instance_attributes(world)
         serialized_keys = get_serialized_keys(world)

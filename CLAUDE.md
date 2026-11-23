@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 8. **Scale-ready code: NO per-region scans in hot paths** — Map is scaling to full 1805 Europe. Never iterate `world.regions.values()` in loops called multiple times per turn. Use cached helpers (e.g. `get_active_nations()` is per-turn cached, `get_nation_regions()` for region lookups). If adding a new helper that scans regions, cache the result per-turn and invalidate via `invalidate_active_nations_cache()` pattern.
 9. **No open-ended deferrals** — any hidden, cut, deferred, later, v2, or polish player-facing work must name a concrete owner row/spec, landing slice, completion definition, STATUS tracking line, and behavior test. If the work is not going to land, remove the player-facing promise explicitly. Do not leave "future work" labels, disabled placeholders, or vague backlog notes in active specs.
 10. **Sibling sweep** (Oct 14, 2026) — a fix ends with a search for its class (other courts, dialogues, roads, the AI's side); each sibling found is filed (tagged) and fixed in that slice or heads the next part. The release build waits for 0 open defect rows.
-11. **Plain words** (Nov 18) — every button, verdict and consequence a player acts on is in everyday words; period voice only in Berthier's and Talleyrand's quoted lines. A pinned key keeps its name; plain words ride beside it (§227).
+11. **Plain words** (Nov 18) — every button, verdict and consequence a player acts on is in everyday words; period voice only in a named character's quoted line. A pinned key keeps its name; plain words ride beside it (§227).
 
 ## Workflow: work directly on master
 
@@ -33,14 +33,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–3b ✅ Nov 19–22 (§229–§234); IC-4, then H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–4 Nov 19–22 (§229–§235); IC-4b, then H**.
 
 **▶ LIVE STATE (Nov 22, 2026).** Last three rows:
-- **Row IC Session 3b (Nov 22) — an army's task: one list, its commander on his own, the rest follow him; "take the war goal" (§234); NEXT: row IC Session 4 (the voice, the enemy's plans)**.
-- **Row IC Session 3 (Nov 21) — on his own: his task, his way each night; men differ, act together** (§233).
-- **Row IC Session 2b (Nov 20) — a task to prove himself replaces "Grant Autonomy"** (§232).
+- **Row IC Session 4 (Nov 22) — the voice ✅; war plans BUILT, seam DOWN (measure missed); IC-15 → 4b (§235); NEXT: Session 4b**.
+- **Row IC Session 3b (Nov 22) — an army's task; "take the war goal"** (§234).
+- **Row IC Session 3 (Nov 21) — on his own** (§233).
 
-**Open with the user:** none (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md`); the certificate is a purchase.
+**Open with the user:** the certificate is a purchase (war plans ruled Nov 22: on after 20 seeds, Session 4b).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 
@@ -101,7 +101,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/commands/directive.py` | Row IC directives: an order to several corps as ONE list — `address`, `quote` (rows = `parse_preview.read_one`), `stale`, `give` (the overcharge guard); `/command` `list_first`/`members`/`expect_ap`; `GET /directive_quote` (§230) |
 | `backend/game_logic/armies.py`, `war_goals.py`; `commands/directive_executor.py` | Named armies (`world.armies`, action `army`) and war goals (`world.war_goals`, action `set_war_goal`): free, saved only when non-empty (§230) |
 | `backend/game_logic/today.py`, `threats.py` | Row IC the desk: the `desk` key (THE PEACE / THE WAR / TO DECIDE), what a seen enemy can reach (§229) |
-| `commands/if_thens.py`, `task_line.py`, `task_presets.py`, `army_task.py`; `ai/word_table.py`, `own_words.py`; `game_logic/trial.py`, `own_order.py`, `own_voice.py` | Row IC Sessions 2–3b (§231–§234): exact orders, refusals, ready tasks, the word table (→ `gen_task_words`), the task to prove himself, ON HIS OWN (one pure reading; the pass first in `end_turn`), an army's task; client `simple_orders.gd` |
+| `commands/if_thens.py`, `task_line.py`, `task_presets.py`, `army_task.py`; `ai/word_table.py`, `own_words.py`; `game_logic/trial.py`, `own_order.py`, `own_voice.py`, `said_lately.py`, `war_plans.py` (seam DOWN), `learned.py` | Row IC Sessions 2–4 (§231–§235): exact orders, refusals, ready tasks, the word table (→ `gen_task_words`), the task to prove himself, ON HIS OWN (one pure reading; the pass first in `end_turn`), an army's task; client `simple_orders.gd` |
 | `backend/game_logic/standing.py` | AU-1 the books of authority: ONE writer `move` with a cause, the quote, the floors (`refusal` 60, `ai_refusal`), `spend`/`regrow`, `payload`, the dent, `courts_move` (`docs/AUTHORITY_CURRENCY_SPEC.md` §5) |
 | `backend/game_logic/precedence.py` | Row MC the Order of the Marshalate: precedence, the book of incidents, renown, titles of victory, the two-way bonds, the account, the claim |
 | `backend/game_logic/crowns.py` | DY-6/7 the crowns: the `crown` block, the king, the Alarm, recognition (`DYNAMISM_SPEC.md` §6) |

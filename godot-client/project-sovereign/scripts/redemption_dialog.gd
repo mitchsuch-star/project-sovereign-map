@@ -160,6 +160,12 @@ func show_redemption(redemption_data: Dictionary):
 				# Row IC, Session 2b: his proposal stands ON the window, in
 				# full — never only in a hover. It wraps; the type never shrinks.
 				proposal_words = str(opt_desc)
+				# Row IC, Session 4 (IC-13): his own line as he asks — by name, at
+				# the head of his proposal (the line the give then says). A Label
+				# here: his name stands beside it, the window's heading his face.
+				var asks_line := VoiceLine.plain_text(str(opt.get("speaker", "")), str(opt.get("says", "")))
+				if asks_line != "":
+					proposal_words = asks_line + "\n" + proposal_words
 				trial_button.tooltip_text = ""
 				var asked = opt.get("proposal")
 				_shown_line = str(asked.get("line", "")) if asked is Dictionary else ""

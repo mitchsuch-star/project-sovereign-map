@@ -210,6 +210,15 @@ from tests._oc_seams import OC_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in OC_SEAMS_BY_ROW for spec in OC_SEAMS_BY_ROW[row]]
 
+# Row IC, Session 4 "the voice, and the other side of the hill" (November 22,
+# 2026): the courts' war plans, the favoured province, what a court learns of a
+# routed man — and the two arms that ship down already (each man's own mood,
+# the hunt). A board recorded before the session is replayed with them down.
+# The seams' own rows: `tests/_ic4_seams.py`.
+from tests._ic4_seams import IC4_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in IC4_SEAMS_BY_ROW for spec in IC4_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

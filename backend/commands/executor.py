@@ -2424,9 +2424,16 @@ class CommandExecutor:
                 # night, and follows his commander again the next
                 # (`army_task.follower_reading`).
                 from backend.commands import army_task as _army_override
+                # Row IC, Session 4 (IC-14): nor does his court's own act end a
+                # WAR PLAN's order — a planned man who takes the ground he
+                # stands on, fights the battle he is in or saves his corps
+                # (the rungs above the plan's gate in `EnemyAI._evaluate_
+                # marshal`) is under his written orders again the next night.
+                from backend.game_logic import war_plans as _plan_override
                 if (marshal.in_strategic_mode and not is_strategic_execution
                         and not _own_override.on_his_own(marshal)
-                        and _army_override.following(world, marshal) is None):
+                        and _army_override.following(world, marshal) is None
+                        and not _plan_override.planned(world, marshal)):
                     strategic_override_actions = [
                         "attack", "move", "defend", "fortify", "drill", "retreat"
                     ]

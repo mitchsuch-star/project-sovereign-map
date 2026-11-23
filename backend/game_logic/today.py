@@ -877,21 +877,36 @@ def _rows_exact_orders(world, have) -> List[Dict[str, Any]]:
         sentence = if_thens.restate(shown, order_words(order), kept or lines)
         if struck:
             why = str(struck[0].get("struck") or "")
-            rows.append(_row(
+            rows.append(_voiced(world, m, "broken", _row(
                 f"orders_broken:{m.name}", TIER_BITES,
                 _fit([f"{shown}'s orders are broken — {why}. Give them again.",
                       f"{shown}'s orders are broken — give them again."]),
                 {"kind": "marshal", "marshal": m.name, "line": sentence},
                 more=(f"{shown}'s orders are broken: "
-                      f"'{if_thens.describe(struck[0])}' can no longer be carried out — {why}.")))
+                      f"'{if_thens.describe(struck[0])}' can no longer be carried out — {why}."))))
         elif not live:
             price = actions_words(int(m.strategic_order_ap(order_type=order.command_type)))
-            rows.append(_row(
+            rows.append(_voiced(world, m, "not_covered", _row(
                 f"orders_used:{m.name}", TIER_WASTES,
                 _fit([f"{shown} has used his if-thens and stands — renew them ({price}).",
                       f"{shown} has used his if-thens — renew them ({price})."]),
-                {"kind": "marshal", "marshal": m.name, "line": sentence}))
+                {"kind": "marshal", "marshal": m.name, "line": sentence})))
     return rows
+
+
+def _voiced(world, marshal, kind: str, row: Dict[str, Any]) -> Dict[str, Any]:
+    """Row IC, Session 4 (IC-13): a letter-following man's OWN line rides his
+    row (`says`, `speaker`) — the client draws it with his portrait where the
+    row is opened. PURE: the desk is a reading; nothing is recorded."""
+    try:
+        from backend.game_logic import own_voice as _voice
+        if getattr(marshal, "personality", "") == "literal":
+            said = _voice.voice(world, marshal, kind)
+            if said:
+                row["says"], row["speaker"] = said, marshal.name
+    except Exception as exc:
+        report(exc, "today._voiced")
+    return row
 
 
 def _rows_congress(world, have) -> List[Dict[str, Any]]:

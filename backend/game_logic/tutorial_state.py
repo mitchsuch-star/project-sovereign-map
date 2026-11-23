@@ -37,8 +37,10 @@ STEPS: List[Tuple[str, int, str]] = [
     ("naval", 10, "XVI. The Wooden Wall"),
     ("congress", 11, "XVII. The Congress of Paris"),
     ("laws", 12, "XVIII. The Laws of State"),
-    ("free_books", 13, "XIX. The Instruments"),
-    ("handoff", 14, "XX. The Lesson Ends"),
+    ("on_his_own", 12, "XIX. On His Own"),
+    ("ask_him", 12, "XX. Ask Him"),
+    ("free_books", 13, "XXI. The Instruments"),
+    ("handoff", 14, "XXII. The Lesson Ends"),
 ]
 
 TUTORIAL_SCENARIO_NAME = "tutorial"

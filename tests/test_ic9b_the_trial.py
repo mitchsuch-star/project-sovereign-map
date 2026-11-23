@@ -1631,6 +1631,17 @@ EXEMPT_BY_NAME = {
 # until it is read and added, and every entry must still stand
 # (`test_every_exemption_names_a_string_that_is_there`). Exempt for that word only.
 SET_BY_YOU = {
+    # Row IC, Session 4 (IC-13): the LESSON's card that teaches it — the School of
+    # War's "XX. On His Own" (the client's card and the server's mirror of its title).
+    ('backend/game_logic/tutorial_state.py',
+     'XIX. On His Own'):
+        "the lesson's card that teaches setting a man on his own (Session 4, IC-13)",
+    ('godot-client/project-sovereign/scripts/tutorial_overlay.gd',
+     'XIX. On His Own'):
+        "the lesson's card that teaches setting a man on his own (Session 4, IC-13)",
+    ('godot-client/project-sovereign/scripts/tutorial_overlay.gd',
+     'You can set a bold or a careful marshal on his own. Type his task on the command line — for example [color=#e8d4a8]Ney, take Swabia on your own[/color] — or use the chips under the line. Before you press Enter he answers in his own words, and the line under it says what he will do tonight. A marshal on his own acts each night without further orders. A marshal who follows orders to the letter (Soult) takes exact orders instead: [color=#e8d4a8]Soult, hold Lorraine. If attacked, dig in.[/color]'):
+        "the lesson's card that teaches setting a man on his own (Session 4, IC-13)",
     ('backend/ai/own_words.py',
      'on his own'):
         "a mark of judgement the typed line takes ('on his own' typed of him)",

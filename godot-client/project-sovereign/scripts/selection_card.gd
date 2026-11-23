@@ -704,8 +704,15 @@ func _task_rows(compact: bool) -> Control:
 			continue
 		var words := str((preset as Dictionary).get("label", line))
 		var price := str((preset as Dictionary).get("price", ""))
+		# Row IC, Session 4 (IC-13): the task that is HIS idea carries his own
+		# line on its hover - `Ney: "..."` under the sentence it writes.
+		var tip := line
+		var said := str((preset as Dictionary).get("says", ""))
+		if said != "":
+			tip += "
+" + VoiceLine.plain_text(str((preset as Dictionary).get("speaker", _marshal)), said)
 		var btn := _simple_button("Task" + str(index), words + (" · " + price if price != "" else ""),
-			line, "", _emit_task_line.bind(line))
+			tip, "", _emit_task_line.bind(line))
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		# (the review, C2) a long task wraps inside the card - it never widens it
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -491,8 +491,11 @@ class TestICV2TheReadBackShowsWhatItTook:
             "if Ney arrives, attack"]
         assert _parts(reading, "cost") == ["1 action"]
         said = _parts(reading, "answer")
-        from backend.game_logic.marshal_voice import LITERAL_EXACT
-        assert len(said) == 1 and said[0].strip("“”") in LITERAL_EXACT
+        # Row IC, Session 4 (IC-13): the line is from SOULT'S OWN bank now
+        # (`own_voice` — "exact"); `marshal_voice.LITERAL_EXACT` is the
+        # fallback for a man with no such bank.
+        from backend.game_logic import own_voice
+        assert len(said) == 1 and said[0].strip("“”") in own_voice.LINES["Soult"]["exact"]
         # ... a man who does not follow orders to the letter answers nothing here
         ney = _preview(client, "Ney, hold Rhineland. If attacked, dig in.")
         assert _parts(ney, "taken") == ["if he is attacked, dig in"] and not _parts(ney, "answer")
@@ -1390,3 +1393,25 @@ class TestTheReviewsRowsOnTheLine:
         assert PP.WHY_NOT_HELD == ("not an end this order can keep; it would go on until you "
                                    "change it")
         assert PP.WHY_REASON == "taken as your reason, not as a condition; he acts now"
+
+
+class TestICN1TheReadBackOfARenewedHold:
+    """`BUG_FIXES.md` IC4-N1 (found by row IC, Session 4, in the last commit
+    too — owner row IC Session 4b): given a hold with new if-thens on the ground
+    he already holds, the read-back REFUSES it ("already holding here", a free
+    refusal) while Enter GIVES it and charges an action. A button says what it
+    will do before the press: the reading must be the order. STRICT — the day it
+    is fixed this turns red and the xfail comes off."""
+
+    @pytest.mark.xfail(strict=True, reason="IC4-N1: the read-back refuses a renewed hold that Enter gives")
+    def test_the_reading_of_a_renewed_hold_is_what_enter_does(self, road):
+        client, snap = road
+        board = _board(snap)
+        board.actions_remaining = 12
+        assert _post(client, "Soult, hold Lorraine. If attacked, dig in.")["success"]
+        line = "Soult, hold Lorraine. If outnumbered, fall back on Champagne."
+        reading = _preview(client, line)
+        sent = _post(client, line)
+        assert sent["success"], sent.get("message")
+        assert reading.get("ok") is True and reading.get("kind") == "order", reading
+
