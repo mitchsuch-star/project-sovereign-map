@@ -2370,7 +2370,7 @@ func _relayout_terminal() -> void:
 	# Session UI-6: the bar's log is its drawer — BAR_LOG_SHARE of the view
 	# while it stands open (hidden while it is folded).
 	if output_scroll != null:
-		output_scroll.custom_minimum_size.y = _ui6_bar_log_height() if mode == "bar" else _log_floor()
+		output_scroll.custom_minimum_size.y = _fr1_log_floor(mode)
 	_fold_header()
 	# Session UI-6 (N8): folded, the chest and the turn leave the window — the
 	# top bar carries both, the turn at every scale; the bar shows "T1" on its
@@ -2393,6 +2393,11 @@ func _relayout_terminal() -> void:
 		disp_w = maxf(Utils.hud_columns(size).x - TERMINAL_ANCHOR_LEFT - Utils.HUD_MARGIN,
 				UiSettings.MIN_TERMINAL_WIDTH)
 		disp_h = maxf(size.y + TERMINAL_ANCHOR_BOTTOM - _ui6_column_top(), UiSettings.MIN_TERMINAL_HEIGHT)
+	# FR1-2: the window's own height, as drawn (the column's or the desk's; the bar
+	# grows upward to its rows) — the room a long reading may take is read from it
+	_fr1_window_h = disp_h if mode != "bar" else 0.0
+	if _readback_row != null and is_instance_valid(_readback_row) and _readback_row.visible:
+		_readback_fit_now.call_deferred()
 	bottom_left_ui.offset_left = left
 	bottom_left_ui.offset_bottom = TERMINAL_ANCHOR_BOTTOM
 	bottom_left_ui.offset_right = left + disp_w
@@ -2411,6 +2416,7 @@ func _relayout_terminal() -> void:
 
 
 const LOG_FLOOR_SHORT := 80.0   # Session UI-4: 110 -> 80 — at 2.0 the window ate half the screen
+const LOG_FLOOR_MIN := 60.0     # IC2-N1 (row FR, FR-1): the log's floor less the turn row's, never below this
 const LOG_FLOOR := 140.0
 const LOG_FLOOR_TALL := 180.0
 # Session UI-2: under this logical height the header folds into one band.
@@ -14313,6 +14319,9 @@ func _render_suggestions() -> void:
 				+ Utils.bbcode_color(tail, lit_hex) + Utils.bbcode_color("]", Utils.COLOR_GOLD))
 		else:
 			shown = _ui6_dim(mark + head) + Utils.bbcode_color(tail, Utils.COLOR_GOLD)
+		# IC3-N1's sibling (row FR, Session FR-1): an offer writes into the line —
+		# said on its hover, the hint inside the link (the read-back chips' idiom)
+		shown = Utils.bb_hint(shown, COMPLETION_FILL_TIP)
 		parts.append("[url=sugg:%d]%s[/url]" % [i, shown])   # CC-1: clickable
 	var hint := "(Tab)" if _suggestions.size() < 2 else "(Tab · ↓)"
 	_suggestion_row.text = ("  " + "   ".join(parts) + "  "
@@ -15003,6 +15012,9 @@ func _ui6_build_desk() -> void:
 	_marshal_row.idle_pressed.connect(_on_marshal_row_idle)
 	if _marshal_row.has_signal("army_pressed"):
 		_marshal_row.connect("army_pressed", _on_army_chip_pressed)   # row IC: an army's chip
+	# IC2-N1 (row FR, Session FR-1): the Cabinet, End Turn and Open Envoys on a
+	# row of their own under the line, on the desk and in the column
+	_fr1_build_turn_row(layout)
 	# the bar's second row, under the line
 	_bar_row = HBoxContainer.new()
 	_bar_row.name = "BarStatusRow"
@@ -15087,9 +15099,97 @@ func _ui6_apply_desk_mode(mode: String) -> void:
 		_map_mode_chip.visible = not bar     # M still cycles; the bar's ⋯ names the view
 	if changed:
 		_ui6_seat_marshal_row(mode)
+	_fr1_seat_turn_buttons(mode)   # IC2-N1: the line on a row of its own (desk, column)
 	_ic_apply_desk_mode(mode)   # row IC: the desk's lines keep their seat under the header
 	_ui6_dress_status_row()
 	_ui6_refresh_bar()
+
+
+# ── IC2-N1 (row FR, Session FR-1, November 23, 2026): the line on its own row ──
+# Row IC Session 2's blind reading, three readers of three, unasked: with
+# "Ney, retreat if outnumbered" typed the box showed "retreat if outnumbered" —
+# the line shared its row with the send mark, the Cabinet and End Turn and stood
+# 171 px wide at the first player's setup (Interface Scale 1.8 on 5120 x 1377),
+# about twenty characters, and a task is a sentence. On the desk and in the
+# column the Cabinet, End Turn and Open Envoys stand on a row of their own under
+# the line (right-aligned, in their old order), so the line takes the window's
+# width less the send mark. The slim bar (the compact view) keeps them on the
+# line's row, as Session UI-6 built it: its height is the scarce thing there.
+# Built in code and moved at run time, so no scene path changes (`@onready`).
+var _turn_row: HBoxContainer = null
+
+
+func _fr1_build_turn_row(layout: Node) -> void:
+	var input_row := command_input.get_parent() if command_input != null else null
+	if layout == null or input_row == null or _turn_row != null:
+		return
+	_turn_row = HBoxContainer.new()
+	_turn_row.name = "TurnSection"
+	_turn_row.alignment = BoxContainer.ALIGNMENT_END
+	_turn_row.add_theme_constant_override("separation", 6)
+	_turn_row.visible = false
+	layout.add_child(_turn_row)
+	layout.move_child(_turn_row, input_row.get_index() + 1)
+
+
+var _fr1_window_h := 0.0   # FR1-2: the window's height as `_relayout_terminal` set it (0 on the bar)
+
+
+func _fr1_log_floor(mode: String) -> float:
+	"""The log's floor: the bar's drawer; on the desk and in the column the room's
+	floor less the turn row's (IC2-N1) — and 0 while a reading stands under the
+	line (FR1-2: the log yields first, the reading scrolls past what is left)."""
+	if mode == "bar":
+		return _ui6_bar_log_height()
+	if _readback_row != null and is_instance_valid(_readback_row) and _readback_row.visible:
+		return 0.0
+	return maxf(LOG_FLOOR_MIN, _log_floor() - _fr1_turn_row_room())
+
+
+func _fr1_readback_room() -> float:
+	"""FR1-2: the height the reading may take — the window's own height less what
+	its other rows need at their floors (the log's is 0 while the reading stands)
+	and its frame, never under READBACK_MIN_ROOM nor over its share of the view; on
+	the slim bar (it grows upward to its rows) the share alone."""
+	var share := floorf(size.y * READBACK_VIEW_SHARE)
+	if _desk_mode_now == "bar" or bottom_left_ui == null or _fr1_window_h <= 0.0:
+		return share
+	var layout := _readback_row.get_parent() as Control
+	if layout == null:
+		return share
+	var others: float = layout.get_combined_minimum_size().y - _readback_row.custom_minimum_size.y
+	var frame: float = bottom_left_ui.get_combined_minimum_size().y - layout.get_combined_minimum_size().y
+	return clampf(_fr1_window_h - others - frame, minf(READBACK_MIN_ROOM, share), share)
+
+
+func _fr1_turn_row_room() -> float:
+	"""The height the turn's own row takes (its buttons and the layout's gap) —
+	taken from the log's floor, so the window's own floor is what it was before
+	the row (pressed at the first player's setup: with a four-line reading under
+	the line the column's header rose under the top bar until the log yielded it)."""
+	if _turn_row == null or not _turn_row.visible:
+		return 0.0
+	var layout := _turn_row.get_parent() as Control
+	var gap: float = float(layout.get_theme_constant("separation")) if layout != null else 0.0
+	return _turn_row.get_combined_minimum_size().y + gap
+
+
+func _fr1_seat_turn_buttons(mode: String) -> void:
+	"""The three buttons on the turn's own row (desk, column) or back on the
+	line's row (the bar), in their old order; each move lands only on a change."""
+	if _turn_row == null or command_input == null:
+		return
+	var input_row := command_input.get_parent()
+	var bar := mode == "bar"
+	var target: Node = input_row if bar else _turn_row
+	var moved := false
+	for b in [diplomacy_button, end_turn_button, open_envoys_button]:
+		if b != null and is_instance_valid(b) and b.get_parent() != target:
+			b.reparent(target, false)
+			moved = true
+	if moved and bar and _more_button != null and _more_button.get_parent() == input_row:
+		input_row.move_child(_more_button, input_row.get_child_count() - 1)   # ⋯ last, as built
+	_turn_row.visible = not bar
 
 
 func _ui6_set_constant(node: Control, constant: String, value: int) -> void:
@@ -15177,8 +15277,10 @@ const DESK_KEY_WORDS := [
 func _ui6_refresh_status_tips() -> void:
 	"""The figures' hovers: the words a folded key gave up."""
 	if actions_value != null and actions_value.get_parent() is Control:
+		# IC3-N1 (row FR, Session FR-1): the word is said where it is counted —
+		# what an action is, what one costs and when they come back.
 		(actions_value.get_parent() as Control).tooltip_text = (
-			"Actions left this turn: %d of %d — each order to a marshal spends them; they come back when you end the turn"
+			"Actions left this turn: %d of %d — an order spends them (1 or 2 each; the price stands on his card and under the line); they come back when you end the turn"
 			% [int(actions_remaining), int(max_actions)])
 	if admin_value != null and admin_value.get_parent() is Control:
 		(admin_value.get_parent() as Control).tooltip_text = (
@@ -15604,6 +15706,17 @@ const READBACK_MIN_CHARS := 4
 const READBACK_MAX_CHARS := 500
 const READBACK_STALE_ALPHA := 0.5
 const READBACK_CHIPS_MAX := 3
+# FR1-2 (row FR, Session FR-1 — IC2-N1's sibling, found by pressing): a long
+# reading (an "on his own" task reads seventeen lines, about 500 px at the first
+# player's setup) lifted the command window's head — the title and the counters —
+# under the top bar. The row stands at most this share of the view; past it the
+# reading scrolls in its own row.
+const READBACK_VIEW_SHARE := 0.4
+const READBACK_MIN_ROOM := 96.0   # FR1-2: never under three lines — the order, its price and "Taken"
+# IC3-N1 (row FR, Session FR-1 — the blind readers did not know the gold chips
+# under the line were buttons): each says, on hover, that it writes into the line.
+const READBACK_FILL_TIP := "A button: adds these words into your sentence on the line — nothing is sent until you press Enter"
+const COMPLETION_FILL_TIP := "Click it, or press Tab: it is written into your sentence on the line — nothing is sent until you press Enter"
 const READBACK_ASK_KINDS := ["unknown_name", "needs_marshal", "secretary", "pending"]
 const READBACK_LEAD_WORDS := ["what", "how", "where", "who", "everyone", "all"]
 # UI6-X1: the joining words a remembered order may carry beside the board's
@@ -16238,7 +16351,11 @@ func _readback_hide() -> void:
 	_readback_row.text = ""
 	_readback_row.tooltip_text = ""
 	_readback_row.custom_minimum_size = Vector2.ZERO
+	_readback_row.scroll_active = false
 	_readback_row.modulate.a = 1.0
+	# FR1-2: the reading gone, the log takes its floor back
+	if output_scroll != null:
+		output_scroll.custom_minimum_size.y = _fr1_log_floor(_desk_mode_now)
 	_readback_last = {}
 
 
@@ -16291,6 +16408,8 @@ func _readback_render(resp: Dictionary) -> void:
 				if folded:
 					notes.append(words)
 					continue
+			if role == "cost":
+				words = _readback_price_in_hand(words)
 			shown.append(Utils.bbcode_color(_ui6_bb_escape(words), _readback_part_hex(role, ask)))
 	var body := (" " + Utils.bbcode_color("·", Utils.COLOR_INFO) + " ").join(shown)
 	if kind == "cabinet":
@@ -16390,6 +16509,24 @@ func _readback_part_hex(role: String, ask: bool) -> String:
 	return Utils.COLOR_INFO
 
 
+var _price_rx: RegEx = null
+
+
+func _readback_price_in_hand(words: String) -> String:
+	"""IC3-N1 (row FR, Session FR-1 — the blind readers: "actions" never said
+	what it is): a plain price under the line is said against the actions in
+	hand — "2 actions of the 4 in hand", the order card's own words — so the
+	word reads as the pool the counter shows. Only "1 action" / "N actions",
+	and only once the counter knows its pool."""
+	if int(max_actions) <= 0:
+		return words
+	if _price_rx == null:
+		_price_rx = RegEx.create_from_string("^\\d+ actions?$")
+	if _price_rx.search(words) == null:
+		return words
+	return words + " of the %d in hand" % int(actions_remaining)
+
+
 func _readback_chips(resp: Dictionary, ask: bool) -> String:
 	"""The reading's candidates as links — `fill:N` FILLS the line with
 	candidate N's whole line; it never sends."""
@@ -16417,16 +16554,35 @@ func _readback_chip_links(resp: Dictionary) -> String:
 		var label := str((c as Dictionary).get("label", "")).strip_edges()
 		if label == "":
 			continue
-		links.append("[url=fill:%d]%s[/url]" % [i, Utils.bbcode_color(
-			"[lb]" + _ui6_bb_escape(label) + "[rb]", Utils.COLOR_GOLD)])
+		# IC3-N1: what the chip does rides as its hover — the hint INSIDE the link
+		# (the `bb_button_chip` idiom), so the whole chip is still the target.
+		links.append("[url=fill:%d]%s[/url]" % [i, Utils.bb_hint(Utils.bbcode_color(
+			"[lb]" + _ui6_bb_escape(label) + "[rb]", Utils.COLOR_GOLD), READBACK_FILL_TIP)])
 	return " ".join(links)
 
 
 func _readback_fit_now() -> void:
-	"""The row's height is its wrapped lines' (no fit_content)."""
+	"""The row's height is its wrapped lines' (no fit_content) — at most its
+	share of the view (FR1-2); a longer reading scrolls in its own row, its
+	head first."""
 	if _readback_row == null or not is_instance_valid(_readback_row) or not _readback_row.visible:
 		return
+	# FR1-2: the log yields its floor while the reading stands, then the reading
+	# takes the room that is left (the window's head stays in view)
+	if output_scroll != null:
+		var floor_now := _fr1_log_floor(_desk_mode_now)
+		if absf(output_scroll.custom_minimum_size.y - floor_now) > 0.5:
+			output_scroll.custom_minimum_size.y = floor_now
 	var h := float(_readback_row.get_content_height())
+	var cap := _fr1_readback_room()
+	var capped := cap > 0.0 and h > cap
+	if _readback_row.scroll_active != capped:
+		_readback_row.scroll_active = capped
+	if capped:
+		# whole lines only (pressed: the row's foot cut a line in half) — the
+		# reading's own average line, its paragraphs' gaps shared among them
+		var line_px := h / float(maxi(1, _readback_row.get_line_count()))
+		h = maxf(line_px, floorf(cap / line_px) * line_px)
 	if absf(_readback_row.custom_minimum_size.y - h) > 0.5:
 		_readback_row.custom_minimum_size = Vector2(0.0, h)
 

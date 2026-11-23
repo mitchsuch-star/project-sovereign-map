@@ -944,8 +944,11 @@ class TestWhatTheSecondReadingSaidOfTheOlderScreens:
         assert "Stay put does nothing at all" in stand
         assert "Stand here makes him defend where he is" in stay
 
-    @pytest.mark.xfail(strict=True, reason="IC3-N1 — owned by Session H's head (BUG_FIXES.md §Row IC, Session 3)")
     def test_n1_actions_the_writing_chips_and_titled_provinces_are_said_plainly(self):
+        """IC3-N1 — FIXED in row FR's Session FR-1 (November 23, 2026); the
+        behaviour is pressed in the real client by
+        `tests/test_dd_b_the_client_hands.py::TestRowFR1TheFourRows` and read
+        right by the session's blind reading (`docs/audits/fr1_client/`)."""
         scripts = CLIENT / "scripts"
         outside_codex = " ".join(p.read_text(encoding="utf-8") for p in scripts.glob("*.gd")
                                  if p.name != "codex_terms.gd")

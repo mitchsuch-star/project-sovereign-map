@@ -231,6 +231,13 @@ func _render() -> void:
 		# One of the two at a time (`_toggle_posture`, `show_tasks`).
 		if not _posture_open and not _tasks.is_empty() and _tasks_for == _marshal:
 			_body.add_child(_task_rows(compact))
+		else:
+			# IC3-N1: the dashed buttons' key, ABOVE the orders — the ready tasks
+			# take its place while they stand (the card is at its ceiling then;
+			# a line below the orders pushed them down 27 px as the tasks opened)
+			var legend := _locked_legend(compact)
+			if legend != null:
+				_body.add_child(legend)
 		_body.add_child(_order_row(compact))
 		_body.add_child(_simple_row(compact))
 		if _posture_open:
@@ -965,6 +972,27 @@ func _emit_save() -> void:
 func _emit_disband() -> void:
 	AudioManager.play("click")
 	disband_army_pressed.emit(_army_name)
+
+
+# IC3-N1 (row FR, Session FR-1 — the second blind reading, all three readers:
+# "the dashed buttons" — not known to be buttons, nor why they stood dim): a
+# locked order wears the theme's dashed rim; one line above the orders says what
+# the dash means — a key, so it does not come and go with the locks (the card
+# stands on its bottom edge: a line that came and went would move the rows above
+# it under the cursor); the ready tasks take its place while they stand (pressed
+# in the real client: below the orders it pushed them down as the tasks opened,
+# the card being at its ceiling). The compact card keeps its room (each button's
+# hover says why it is locked).
+const LOCKED_LEGEND := "A dashed button is an order not open to him now — point at it to read why."
+
+
+func _locked_legend(compact: bool) -> Control:
+	if compact:
+		return null
+	var inner := maxf(120.0, _card_width(compact) - 28.0)
+	var line := _measured_rich("LockedLegend", LOCKED_LEGEND, inner, compact)
+	line.add_theme_color_override("default_color", Utils.UI_TEXT_DIM)
+	return line
 
 
 func _hint_label(compact: bool) -> Control:

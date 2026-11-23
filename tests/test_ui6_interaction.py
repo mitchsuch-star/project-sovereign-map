@@ -487,8 +487,10 @@ class TestTheWingTheRailTheCardTheGrid:
         assert 150 + 130 + 130 + 2 * 10 == 430
 
     def test_the_grid_portraits(self):
-        assert "const PORTRAIT_GRID := Vector2(40.0, 50.0)" in ROW
-        assert re.search(r"(?m)^const GRID_H := 58\.0", ROW)
+        # UI-6: 22 -> 40 x 50 (too small for the 32:9 column); row FR, Session FR-1 (IC2-N1):
+        # 40 x 50 -> 32 x 40, the chip 58 -> 48 — the four rows give back the line's new row
+        assert "const PORTRAIT_GRID := Vector2(32.0, 40.0)" in ROW
+        assert re.search(r"(?m)^const GRID_H := 48\.0", ROW)
         chip = _func(ROW, "_make_chip")
         assert 'if not grid:\n\t\tname_label.theme_type_variation = &"Caption"' in chip
         assert "holder.custom_minimum_size = px" in _func(ROW, "_likeness")

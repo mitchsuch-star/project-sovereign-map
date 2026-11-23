@@ -20,6 +20,7 @@ signal door_pressed(door: Dictionary, row_id: String)
 
 const BITES := 1
 const MARK_BITES := "!"
+const DeskLinesScript := preload("res://scripts/desk_lines.gd")
 const LEGEND := " (! can cost you when the turn ends)"
 const MAX_ROWS := 6      # the rest are counted on the last line
 
@@ -106,7 +107,9 @@ func show_rows(rows: Array, closing: String, max_rows: int = MAX_ROWS) -> void:
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if has_door else Control.CURSOR_ARROW
 		b.text = "%s%s%s" % [(MARK_BITES + " ") if bites else "", str(row.get("text", "")), "  ›" if has_door else ""]
 		var more := str(row.get("more", ""))
-		b.tooltip_text = (more + "\n" if more != "" and has_door else more) + ("Press to go to it." if has_door else "")
+		# IC3-N1's sibling (row FR, Session FR-1): a door that writes his order on
+		# the line says so — the desk's own words (`desk_lines.gd` `press_words`).
+		b.tooltip_text = (more + "\n" if more != "" and has_door else more) + (DeskLinesScript.press_words(door) if has_door else "")
 		b.add_theme_color_override("font_color",
 				Color.html("#" + Utils.COLOR_WARNING) if bites else Utils.toned(Utils.UI_TEXT_DIM))
 		b.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)

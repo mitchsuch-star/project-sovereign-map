@@ -80,7 +80,12 @@ var _likelihood_colors: Dictionary = {
 # Session UI-3 (November 12, 2026): 0.7 -> 0.8 - the readers again saw the acts
 # scroll under a band of dark screen (a viewport under 650 px keeps the
 # authored rect: 0.8 x 650 = 520; the compact view's 450 is unchanged).
-const CABINET_CEILING_SHARE := Vector2(0.0, 0.8)
+# PW3-D1 (row FR, Session FR-1, November 23, 2026): 0.8 -> 0.9 — pressed at the
+# first player's setup (Interface Scale 1.8 on a 765-px-tall view) the first page
+# showed three courts above "▼ more below"; the Cabinet is modal, so its list may
+# take the band below the bar (the clamp's own rule). With the Designs line folded
+# into its door and the rows at the doors' height, five courts stand in view.
+const CABINET_CEILING_SHARE := Vector2(0.0, 0.9)
 
 
 func _ready():
@@ -764,7 +769,10 @@ func _add_nation_button(nation_data: Dictionary):
 	row.add_theme_constant_override("separation", 8)
 	var btn = Button.new()
 	btn.text = Utils.display_nation_name(nation_name)
-	btn.custom_minimum_size = Vector2(0, 40 if folded else 44)
+	# PW3-D1 (row FR, Session FR-1): folded, a court's row stands at the doors'
+	# height (36, the Congress's and the Designs' own) — five courts in view at the
+	# first player's setup.
+	btn.custom_minimum_size = Vector2(0, 36 if folded else 44)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -937,6 +945,11 @@ func _add_congress_row(congress) -> void:
 	# them and must not shout over them.
 	lbl.theme_type_variation = &"CaptionRich"
 	var bbcode := "[color=#" + Utils.COLOR_GOLD + "][b]The Congress of Paris[/b][/color]"
+	# IC3-N1's sibling (row FR, Session FR-1): the terms count titled provinces —
+	# the row's name carries what one is, the desk's own sentence, as its hover.
+	var titled_means = congress.get("titled_means")
+	if titled_means is String and titled_means != "":
+		bbcode = Utils.bb_hint(bbcode, titled_means)
 	# Where it stands, in one clause: the clock line where it says something
 	# the terms do not (the sitting's turn, the cooldown); at the gate, how
 	# many of its terms are met.
@@ -956,6 +969,9 @@ func _add_congress_row(congress) -> void:
 		# Before a summons the terms the summons is refused on, ✓ met / • not;
 		# while it sits the table holds the story ("View the table").
 		if _congress_terms_open:
+			# IC3-N1's sibling: the terms count titled provinces — said first.
+			if titled_means is String and titled_means != "":
+				bbcode += "\n    [color=#" + Utils.COLOR_INFO + "]" + str(titled_means).replace("[", "[lb]") + "[/color]"
 			for term in gate_terms:
 				if not (term is Dictionary):
 					continue
@@ -1080,34 +1096,28 @@ func _add_designs_row(designs) -> void:
 
 
 func _add_designs_row_folded(designs: Dictionary) -> void:
-	"""Folded only (Session UI-6): the Designs block on ONE status line (the
-	tail after the first em dash is its hover) and the two doors side by side,
-	the full words as tooltips — so the nation rows keep the window."""
+	"""Folded only (Session UI-6): the Designs block on ONE row, the full words as
+	tooltips — so the nation rows keep the window. PW3-D1 (row FR, Session FR-1,
+	November 23, 2026): the status line that stood above the two doors folds into
+	the Designs door's own face ("The Emperor's Designs — no road proclaimed",
+	trimmed at the door's edge, the whole line its hover): pressed at the first
+	player's setup the head left three courts in view, and a fifth needed room."""
 	var line_text: String = str(designs.get("line") if designs.get("line") != null else "")
 	var head: String = line_text
-	var tail: String = ""
 	var cut: int = line_text.find("—")
 	if cut >= 0:
 		head = line_text.substr(0, cut).strip_edges()
-		tail = line_text.substr(cut + 1).strip_edges()
-	var lbl := Label.new()
-	lbl.text = "The Emperor's Designs" + (" — " + head if head != "" else "")
-	lbl.theme_type_variation = &"Caption"
-	lbl.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
-	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
-	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	lbl.clip_text = true
-	lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-	lbl.tooltip_text = tail if tail != "" else line_text
-	content_list.add_child(lbl)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	content_list.add_child(row)
 	var d_btn := Button.new()
-	d_btn.text = "The Emperor's Designs"
-	d_btn.tooltip_text = "The Emperor's Designs — the roads of the Empire"
+	d_btn.text = "The Emperor's Designs" + (" — " + head if head != "" else "")
+	d_btn.tooltip_text = "The Emperor's Designs — the roads of the Empire" + ("\n" + line_text if line_text != "" else "")
+	d_btn.clip_text = true
+	d_btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	d_btn.custom_minimum_size = Vector2(0, 36)
 	d_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	d_btn.size_flags_stretch_ratio = 1.6
 	d_btn.theme_type_variation = &"CaptionButton"
 	d_btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
 	d_btn.pressed.connect(_on_designs_pressed)

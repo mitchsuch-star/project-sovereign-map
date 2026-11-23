@@ -230,7 +230,10 @@ class TestTheThreeForms:
                      "TOP_BAR_RESERVED_PX - Utils.top_bar_growth()",
                      'war_status_panel.call_deferred("_fit_panel_to_content")'):
             assert line in relayout, line
-        assert relayout.index("_log_floor()") < relayout.index("_fold_header()")
+        # (row FR, Session FR-1: the log's floor is ONE helper — the turn row's room
+        # out of it, and 0 while a reading stands, FR1-2 — still set before the fold)
+        assert relayout.index("_fr1_log_floor(mode)") < relayout.index("_fold_header()")
+        assert "_log_floor() - _fr1_turn_row_room()" in _func(MAIN, "_fr1_log_floor")
         # the fractions and the default footprint are untouched (their pins hold)
         assert "const TERMINAL_WIDTH_FRACTION := 0.28" in SETTINGS
         assert "const TERMINAL_HEIGHT_FRACTION := 0.32" in SETTINGS

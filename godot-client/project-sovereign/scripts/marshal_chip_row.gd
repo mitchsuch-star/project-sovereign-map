@@ -38,9 +38,15 @@ const ROW_H := 30.0          # a row chip: a 22-px likeness beside his name
 # Session UI-6 (the lead's wave-1 shoot): the 32:9 column's likenesses were too
 # small for it — a grid chip is a 40 x 50 portrait (the Generals' roster's
 # own) and his name at the body's size.
-const GRID_H := 58.0         # a grid chip: the 50-px likeness in its 1-px ring, a little air
+# Row FR, Session FR-1 (November 23, 2026 — IC2-N1): 40 x 50 -> 32 x 40, the chip
+# 58 -> 48. The command line took a row of its own (the Cabinet and End Turn
+# under it) and the column's four marshal rows give back the 40 px that row took:
+# pressed at the first player's setup, the End Turn list — which floats over the
+# log — had lost a row ("Nothing holds Rhineland" folded into "…and 1 more").
+# Still far above the row's 22-px likeness.
+const GRID_H := 48.0         # a grid chip: the 40-px likeness in its 1-px ring, a little air
 const PORTRAIT_ROW := 22.0
-const PORTRAIT_GRID := Vector2(40.0, 50.0)
+const PORTRAIT_GRID := Vector2(32.0, 40.0)
 const GLYPH_PX := 16.0       # the smallest stat glyph that renders
 const DOT_PX := 8.0
 const GAP := 4.0

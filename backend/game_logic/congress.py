@@ -3461,6 +3461,17 @@ def clock_payload(world) -> Optional[Dict[str, Any]]:
     return payload
 
 
+def _titled_means(world) -> str:
+    """The desk's one sentence for what a titled province is (`today.titled_means`;
+    imported here, since `today` reads this module)."""
+    try:
+        from backend.game_logic import today
+        return today.titled_means(world)
+    except Exception as exc:
+        report(exc, "congress._titled_means: today.titled_means")
+        return ""
+
+
 def build_congress_payload(world) -> Optional[Dict[str, Any]]:
     """The table — the CONGRESS ledger tab, `GET /congress`, the wizard row,
     the war room and the Moniteur column all read THIS (ints only, GR2)."""
@@ -3535,6 +3546,9 @@ def build_congress_payload(world) -> Optional[Dict[str, Any]]:
         "command": SUMMON_COMMAND,
         "cooldown_left": int(cooldown_left(world)),
         "turns": int(congress_turns(world)),
+        # IC3-N1 (row FR, Session FR-1): what a titled province is, in the desk's
+        # own sentence — the pages print it before they use the word.
+        "titled_means": _titled_means(world),
     }
     if ph == "sitting":
         payload.update({

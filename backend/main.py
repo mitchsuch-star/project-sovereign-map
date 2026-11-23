@@ -9203,7 +9203,7 @@ def _wizard_congress(world):
     return {key: payload.get(key) for key in (
         "phase", "sitting", "available", "unavailable_reason", "gate_terms",
         "cost_text", "command", "state_line", "severity", "titled",
-        "titled_needed", "day", "turns", "cooldown_left")
+        "titled_needed", "day", "turns", "cooldown_left", "titled_means")
         if key in payload}
 
 

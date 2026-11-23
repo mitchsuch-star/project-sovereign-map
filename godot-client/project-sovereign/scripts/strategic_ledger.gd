@@ -45,6 +45,12 @@ const _NAVAL_CHIP_BG = "233043"
 var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders, 6=admiralty, 7=laws
 # SF7-X24: Alt+1..8 turn the books while the command line holds the caret.
 const ALT_TURNS_THE_BOOKS := true
+# WS-10 (row FR, Session FR-1, November 23, 2026 — the user's ruling of November
+# 17, `docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §3): pinned beside the map the
+# book leaves the bare digits to the war room (the selected marshal's card,
+# 1-7) and turns on Alt+1–8 alone; its lead line says which keys it answers.
+const BOOK_KEYS_WORDS := "Keys 1–8 turn the ledger's books (Alt+1–8 while you type)"
+const BOOK_KEYS_PINNED_WORDS := "Alt+1–8 turn the ledger's books while it is pinned beside the map — the number keys stay with your marshal's card"
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 
@@ -117,6 +123,11 @@ func _input(event):
 	# and a bare digit still belongs to whoever has the caret.
 	var _typing: bool = _focused is LineEdit or _focused is TextEdit
 	if _typing and not (ALT_TURNS_THE_BOOKS and event is InputEventKey and event.alt_pressed):
+		return
+	# WS-10: pinned beside the map, a bare digit is the war room's (the selected
+	# marshal's card) wherever the caret is; the book turns on Alt+digit alone.
+	var docked: bool = $PanelContainer.has_meta("side_desk_docked")
+	if docked and not (event is InputEventKey and event.alt_pressed):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var switched = true
@@ -365,11 +376,11 @@ func _render_forces():
 	var bbcode = ""
 	# Session UI-3 (November 12, 2026): each book's lead-in stands behind an ⓘ
 	# at its heading (Explanations: Folded); On the page = the old line.
-	var lead_line := "The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); Esc closes it (Alt+T while you type)."
+	var lead_line := "The muster of your corps — strength, morale, and each marshal's temper. " + _book_keys_words() + "; Esc closes it (Alt+T while you type)."
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]" + Utils.lead_mark(lead_line, "sl.forces.lead") + "\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); Esc closes it (Alt+T while you type).[/color]\n\n", "sl.forces.lead")
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + lead_line + "[/color]\n\n", "sl.forces.lead")
 	bbcode += _collapse_note_line()
 	# UXR3-41: Talleyrand's mission leads the muster when one runs (the
 	# Cabinet's full block); an idle Cabinet says so in one line.
@@ -1514,10 +1525,11 @@ func _render_economy():
 
 func _render_admiralty_tab():
 	# NV-12: the naval theatre's own book.
-	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]" + Utils.lead_mark("The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).", "sl.admiralty.lead") + "\n"
+	var admiralty_lead := "The fleet, the blockades, the crossings — and every order the sea will take. " + _book_keys_words() + "."
+	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]" + Utils.lead_mark(admiralty_lead, "sl.admiralty.lead") + "\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n", "sl.admiralty.lead")
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + admiralty_lead + "[/color]\n", "sl.admiralty.lead")
 	var adm = cached_data.get("admiralty", {})
 	if not (adm is Dictionary) or not adm.get("active", false):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]This campaign has no naval theatre.[/color]\n"
@@ -1790,11 +1802,12 @@ func _render_laws_tab():
 	the ledger's one chip road; an enactment is quoted first on the
 	clarification channel (the Council of State's confirm) and enacted there."""
 	var laws = cached_data.get("laws", {})
-	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]" + Utils.lead_mark("The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).", "sl.laws.lead") + "\n"
+	var laws_lead := "The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. " + _book_keys_words() + "."
+	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]" + Utils.lead_mark(laws_lead, "sl.laws.lead") + "\n"
 	bbcode += _dated_line()
 	# R159 (S14D-X2, October 23, 2026): the eighth book names the mechanic it
 	# displays, as every other book does.
-	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n", "sl.laws.lead")
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + laws_lead + "[/color]\n", "sl.laws.lead")
 	# S14d (docs/TABLE_LESSON_SPEC.md §2 line 5): the book's first-open line.
 	bbcode += _first_open_bbcode(laws, "laws")
 	if not (laws is Dictionary) or laws.is_empty():
@@ -2461,6 +2474,22 @@ func refresh_pinned() -> void:
 func _on_pinned_ledger(response, held_scroll: int) -> void:
 	_on_ledger_received(response)
 	Utils.restore_scroll(scroll_container, held_scroll)
+
+
+func _book_keys_words() -> String:
+	"""WS-10: the keys this ledger answers, as it stands — pinned beside the map
+	the books turn on Alt+1–8 alone (the bare digits are the war room's)."""
+	return BOOK_KEYS_PINNED_WORDS if $PanelContainer.has_meta("side_desk_docked") else BOOK_KEYS_WORDS
+
+
+func on_docked_changed() -> void:
+	"""WS-10: pinned or let go, the open book re-draws from what it holds (no
+	fetch), so its lead line names the keys it answers now; the scroll stays."""
+	if not visible or cached_data.is_empty():
+		return
+	var held: int = scroll_container.scroll_vertical
+	_render_current_tab()
+	Utils.restore_scroll(scroll_container, held)
 
 
 func _on_cancel_result(_response):

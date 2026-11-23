@@ -1,4 +1,237 @@
-# NEXT SESSION PROMPT — Session H: S15 the deploy (ROW IC COMPLETE, November 23, 2026 — read the first block)
+# NEXT SESSION PROMPT — Row FR, Session FR-2 (the readers' twelve finds), then row TU, the tutorial brought up to date, then Session H, the deploy (read the first block)
+
+> **▶ NEXT: Session FR-2** — its section below, and first its design doc `docs/WEAK_SPOT_FINDS_SPEC.md`.
+> **Session FR-1 ✅ BUILT November 23, 2026** (`SYSTEMS_REFERENCE.md` §237; `BUG_FIXES.md` §"Row FR, Session FR-1"):
+> - **The four rows closed:** WS-10, IC3-N1, PW3-D1, IC2-N1.
+> - **Two older defects found on the way, and fixed:**
+>   - FR1-1 — the pinned flag was written where no reader looked;
+>   - FR1-2 — a long reading lifted the command window's head under the top bar.
+> - IC3-N1's blind reading read 15 of 15. The census lists WS-R alone.
+> - **The design docs** for FR-2 and row TU were written at FR-1's head, with row TU's own test
+>   `tests/test_tu_the_tutorial_brought_up_to_date.py`.
+> - FR-1 is committed only at the user's word. If the working tree still holds it when FR-2 opens, ask before
+>   building on it.
+
+> **READ THIS FIRST — the user's word of November 23, 2026, after row IC closed:** "after this give prompt for a
+> session to update tutorial so it reflects all updates we made and ficx Five defect rows remain open can eb
+> mul;tiple sessions". So three sessions come before Session H, in this order, each a session of its own:
+>
+> 1. **FR-1 — the four rows on the player's screen** (WS-10, IC3-N1, PW3-D1, IC2-N1): keys, words and layout, pressed in
+>    the real client.
+> 2. **FR-2 — the readers' twelve finds** (WS-R): each confirmed in the code, then fixed (or filed and fixed under
+>    its own id), or refuted with its reason.
+> 3. **TU — the tutorial brought up to date**: both lessons, Help & Keys, the first-open lines and
+>    `docs/TUTORIAL_SCRIPT.md`, rewritten from the code as it stands after FR-1 and FR-2.
+>
+> Then **Session H, the deploy** (its section is kept below; the five rows it once carried at its head are row FR's
+> now). The order is reasoned: the tutorial must describe the finished game, and FR-1 changes keys (WS-10), hovers
+> and words (IC3-N1), the Cabinet's first page (PW3-D1) and the command line (IC2-N1) — all things the lessons show
+> or quote; FR-2 touches mostly the backend and may change a sentence a lesson quotes. So the tutorial goes last.
+> The release waits for 0 open defect rows (`.venv/Scripts/python.exe tools/defect_census.py --open`).
+>
+> Current hand-over: **November 23, 2026 — ROW IC COMPLETE** (52868a3e, committed and pushed at the user's word).
+> Written after that push and NOT yet committed — they ride in FR-1's commit: this block; rows FR and TU in
+> `docs/PRE_DEPLOY_PLAN.md` §2; the STATUS ▶ NEXT UP lines that name them; the five rows' new owner in
+> `docs/BUG_FIXES.md`; row FR's sessions in `tests/test_the_plan_homes_every_row.py`'s list; and the records' stale
+> "committed at your word, not pushed" lines put right. Records: `docs/STATUS.md`, `SYSTEMS_REFERENCE.md` §236 and
+> §236.8, `BUG_FIXES.md` §"Row IC, Session 4b", `docs/PRE_DEPLOY_PLAN.md` §2 (rows FR and TU).
+>
+> **Every session, the standing rules:** work on master in `C:\Users\User\PycharmProjects\project-sovereign-map`;
+> open in Plan Mode, in plain everyday words; commit and push ONLY at the user's word (the hook runs ruff and the
+> whole suite — about 30 minutes at 10 workers: commit in the background with `env -u PYTHONDONTWRITEBYTECODE`,
+> never `--no-verify`); the user's live game runs on port 8005 — never touch it (test servers on 8006 and up; the
+> driven client `tools/dd_b_play.py` refuses 8005); press every changed screen in the real client at the user's setup (Interface
+> Scale 1.8 on 5120 × 1377) and at the small window (2.0 on 1600 × 900); blind readers are fresh **Explore**
+> agents with the key written first; helpers on Sonnet or Haiku; golden rules 9 (no open-ended deferral), 10 (the
+> sibling sweep) and 11 (plain words). A strict xfail that starts passing FAILS the suite: drop each row's xfail in
+> the commit that fixes it.
+
+## Row FR, Session FR-1 — the four rows on the player's screen (WS-10 · IC3-N1 · PW3-D1 · IC2-N1) — ✅ BUILT November 23, 2026 (`SYSTEMS_REFERENCE.md` §237; the plan below as it was decided, kept)
+
+**Open in Plan Mode, in plain everyday words.** Read each row in `docs/BUG_FIXES.md` and its pin before planning,
+then the code it names — the line numbers below were read on November 23, 2026; check them. All four are client
+work, so they share one pressing pass, one suite run and one commit (the user's "fewer, larger sessions").
+
+1. **WS-10 (P2) — who owns a bare digit while a ledger is docked.** RULED
+   (`docs/audits/OPEN_CALLS_RULED_2026_11_17.md` §3): the war room keeps the bare digits; a docked ledger's books
+   move to Alt+1–8, and its lead line says Alt+1–8 while it is docked. Today both ledgers read bare digits in
+   `_input` (`strategic_ledger.gd` ~101–140, `diplomatic_ledger.gd` ~141–170) and their lead lines say "Keys 1–8"
+   (`strategic_ledger.gd` ~368, 372, 1517, 1520, 1793, 1797, and the diplomatic ledger's own). Copy the Generals
+   screen's stand-aside (`marshal_management.gd` ~182–184, the `side_desk_docked` meta). Pin:
+   `tests/test_ws_weak_spot_review_2026_11_13.py::TestWS10TwoSurfacesClaimTheBareDigits` (strict xfail, both
+   ledgers). Press it: a ledger docked, a corps selected — 1 gives the card's order, Alt+1 turns the book. Sibling
+   sweep: every other screen that can dock, and every line that teaches the digits (the lessons quote "T, then N").
+2. **IC3-N1 (P3) — three words a blind reader could not read.** The actions counter's hover says what an action is
+   ("an order spends them"); a chip that writes into the typed line says so on its hover ("into your sentence");
+   the Congress tab says what a titled province is before it uses the word (`diplomatic_ledger.gd` ~2709). Pin:
+   `tests/test_ic10_on_his_own.py::TestWhatTheSecondReadingSaidOfTheOlderScreens::test_n1_actions_the_writing_chips_and_titled_provinces_are_said_plainly`
+   (strict xfail, source strings; it excludes `codex_terms.gd` on purpose, so the words live on the screens). The
+   pin is weaker than the row: the row is done when a fresh blind reader at the user's setup reads all three right.
+3. **PW3-D1 (P3) — the Cabinet's court list has no room.** At 1.8 on a 765-px-tall view the Cabinet's first page
+   (F1) shows two court rows under the Congress, the Designs and Talleyrand's opening words; reaching Austria is a
+   scroll. Done when the first page shows at least five courts without scrolling, read in the real client — the
+   courts in two columns, or the page's fixed head folded (`diplomacy_wizard.gd`). Pin:
+   `tests/test_pw3_the_finishing_pass.py::TestPW3D1TheCabinetsCourtListHasRoom::test_the_courts_stand_in_columns`
+   (strict xfail on a source string) — replace it with a driven check of the rows the page shows
+   (`tests/test_dd_b_the_client_hands.py`'s idiom).
+4. **IC2-N1 (P3) — the command line shows about twenty characters.** At the user's setup the line is 171 px wide: it shares
+   its row with the send mark, Cabinet and End Turn, so a typed task scrolls its own start away. Done when it shows
+   at least forty characters (360 logical px of the command window's 429), pressed there. The left column is full
+   at that setup, so find the layout by pressing it — Cabinet and End Turn off the line's row, or the line on a row
+   of its own (`main.gd` ~154–155 and ~15226–15231, `main.tscn`'s BottomLeftUI → … → InputSection; mind the
+   read-back's row, ~16240–16431). Pin:
+   `tests/test_dd_b_the_client_hands.py::TestRowIC7TheButtons::test_the_command_line_shows_the_task_being_typed`
+   (strict xfail, driven, the engine lane). It must not break the 32:9 wing, the order strip, the selection card or
+   the small window.
+
+**Also in this session:** put right the stale "not pushed" lines named in the first block.
+
+**Done when:** the four rows closed in `docs/BUG_FIXES.md`, each with a behaviour test; their xfails dropped; every
+changed screen pressed at both setups; IC3-N1's blind reading met (three fresh readers, the key written first);
+the census lists WS-R alone (a sibling the sweep finds is fixed here, or heads FR-2 as a row of its own). Records: STATUS (the entry; ▶ NEXT UP → FR-2), `SYSTEMS_REFERENCE.md` (a new section),
+`BUG_FIXES.md`, `docs/PRE_DEPLOY_PLAN.md` row FR, this file (FR-2 next).
+
+## Row FR, Session FR-2 — the readers' twelve finds (WS-R)
+
+> **Design doc: `docs/WEAK_SPOT_FINDS_SPEC.md`** (written November 23, 2026, at FR-1's head) — read it first: each
+> find read in the code with a first reading (§2), the census trap that keeps the pin red if WS-R closes as REFUTED
+> (§1), find 12's rule written before the data (§3), the measure (§4) and the split (§5: likely two sessions, FR-2a
+> combat, FR-2b the roads, the read-back and the client). The list below is the row as filed; the doc overrules it
+> where they differ.
+
+**Open in Plan Mode, in plain everyday words.** The row (`docs/BUG_FIXES.md`, WS-R) holds twelve finds from the
+November 13 weak-spot review, none yet confirmed in the code. For each: read the code. CONFIRMED → fix it in this
+session under its own id (WS-R1 …, a behaviour test each; rule 10: sweep its class). REFUTED → the reason,
+recorded beside it. The finds, as filed:
+
+1. An ordered charge at a man out of sight but within reach still meets the crossing, "already engaged" and
+   terrain refusals, which speak of where he is (`combat_executor._execute_glorious_charge`).
+2. "No foe is in sight to march on" is said when a foe IS in sight but no road reaches him
+   (`strategic_executor._find_nearest_enemy` reads "no path" as "none").
+3. The battle report disagrees with what was applied: an Iron Resolve release prints the stance's −10% that it
+   undoes; the jealous solo attack's +15%, the jealousy surge's +10% and cavalry momentum have no row
+   (`battle_report.py`, `combat.py` — golden rule 1: the report reads `marshal.py`'s modifiers, never recalculates).
+4. `strategic_combat_bonus` and `strategic_defense_bonus` are cleared only when spent: a literal marshal's clear
+   order banks them with no expiry (set at `meta_executor.py` ~836–837 and `ai/feedback.py` ~159, read at
+   `battle_report.py` ~113 and ~280) — WS-12 retired the model-number road; check what is left.
+5. A corps killed by a bombardment goes down the forced-retreat road, never `destroy_marshal`; the
+   auto-bombardment kill returns before the attack count and the reinforcers' trust dock.
+6. The post-objection road's action gate asks for one action left, not the order's price.
+7. A marshal of one man still counts for combined arms, the adjacent-ally bonus, a flank's origin and the battle's
+   glory.
+8. The read-back's and the counsel's `redirect_stdout` swap the process's stdout across threads — present on
+   November 23 (`parse_preview.py` ~205, 1819, 1827, 2226; `counsel.py` ~186).
+9. The diplomatic ledger re-renders on every resize step once a tab that measures no width is shown (client).
+10. The WS-2 answer stands beside the pursuit road's for a man with a stale sighting.
+11. The read-back's cost per keystroke: name alternations recompiled per line; `last_seen` reads every region's
+    intel (golden rule 8).
+12. A bombardment passes a won battle to the war score at no risk — is it a farm? Settle it by evidence: a rule
+    written before the data, measured on seeds, and a fix only if the rule says so.
+
+Pin: `tests/test_ws_weak_spot_review_2026_11_13.py::TestWSRTheReviewsUnconfirmedFinds::test_every_find_is_confirmed_or_refuted`
+(strict xfail; green when the census reads WS-R closed). If the session cannot hold all twelve at the standard,
+split by the code — the combat finds (1, 3, 4, 5, 7, 12) first, the road, read-back and client finds (2, 6, 8, 9,
+10, 11) second — and say which is done; never half-ship a find. A fix that moves the AI or a battle re-times the
+standing forty-turn series: measure it from a frozen copy (arm 0 against the arm with the fix) and re-pin
+`BASELINE_SERIES` with its history, as row IC did (`tools/_ic4_series_arms.py`'s idiom).
+
+**Done when:** the census lists no open defect row; the pin green; every find closed or refuted in the row;
+records (STATUS → row TU next, `SYSTEMS_REFERENCE.md`, `BUG_FIXES.md`, this file).
+
+## Row TU — the tutorial brought up to date (after FR-1 and FR-2)
+
+> **Design doc: `docs/TUTORIAL_UPDATE_SPEC.md`** (written November 23, 2026, at FR-1's head) — read it first: the
+> inventory with every card's predicate (§1), the stale lines with their lines (§2), the first-hour items mapped to a
+> card or a Help entry (§3), the card plan (§4), every pin that moves (§8), the blind reading's key (§9) and what to
+> re-read after FR-1 and FR-2 (§12). Its behaviour test is `tests/test_tu_the_tutorial_brought_up_to_date.py`
+> (strict xfails on the stale lines — drop each in the commit that fixes it). The section below is kept; the doc
+> overrules it where they differ.
+
+**Open in Plan Mode, in plain everyday words.** The user's words: "update tutorial so it reflects all updates we
+made". Rewrite from the CODE, never from `docs/TUTORIAL_SCRIPT.md` — last revised October 24, its header still
+says "Eighteen cards".
+
+**What there is today** (read on November 23, 2026):
+- **The School of War — a guided campaign** (the Danube): `tutorial_overlay.gd` STEPS, 22 cards over 14 turns,
+  mirrored by `backend/game_logic/tutorial_state.py`; the scenario `tutorial_1805.json`.
+- **The Table — a guided peace** (the Peace of Pressburg): `tutorial_table_steps.gd`, 7 cards;
+  `tutorial_table_1805.json`.
+- **Help & Keys**: `codex_view.gd`, its data in `codex_terms.gd`.
+- **The first-open lines**: `backend/game_logic/first_open.py` (13 screens, the desk and a task among them).
+- The main menu's two rows (`main_menu.gd`), the play scripts `tools/playtest_scripts/tutorial_lesson*.json` and
+  `tutorial_table_lesson.json`, and the driver `tools/tutorial_overlay_harness.gd`.
+
+**Stale lines found:**
+- Card I says "Every command is TYPED". Since row IC's Session 2 every simple order is a button; typing is for
+  tasks, exact orders and questions.
+- Card V's hearing is now the task to prove himself (`trial.py`), not "his own judgement".
+- Card XXI repeats the Admiralty and names no surface from row IC.
+- Cards XIX and XX pass on any successful reply: nothing checks that a task or a question was typed.
+- The Table's card II must be read against the live table's words (row PW: "Ask more / Offer more / Leave out",
+  THIS DEAL, "Make peace" on a war's card).
+- `docs/TUTORIAL_SCRIPT.md` throughout: "AP" (retired); "Aggressive, Cautious, Literal" (now Bold · Careful · To
+  the letter); "type end turn" (the End Turn button and its list); no row IC, no selection card, no read-back, no
+  Help & Keys.
+
+**Taught nowhere, though a new player meets each in the first hour:**
+- the desk (THE PEACE / THE WAR / TO DECIDE), the End Turn list and the danger mark;
+- the selection card's seven orders and keys 1–7, the right-click cards, one click sends, the read-back (Taken /
+  Not taken / Enter sends), Take back, the map's Key;
+- orders to several corps, named armies, war goals, an army's task; exact orders (if-thens);
+- the task to prove himself; "Set him on his own" and "This turn: …" on his card; the voice and the portraits;
+- battles in acts and a key battle's points (50,000 men and more), Berthier's reading, THE ENEMY'S MOVES;
+- authority (the chip, what spends it) and the letters of state (the Correspondence);
+- the war's page and what France learned of the enemy's plans (the plans are ON since November 23);
+- the Order of the Marshalate; Settings (Explanations folded or on the page, text size, the read-back), saves (F5
+  and F9), and Help & Keys itself.
+
+**One call for the user in Plan Mode** (recommendation first): the School hides the desk
+(`backend/game_logic/today.py` ~1046: "The School of War keeps its own guide"). **Recommended: show the desk from
+the card that teaches it onward**, the card and the desk saying the same next thing, so a new player meets it before
+the campaign. The other road — keep it hidden and teach it in words only — is weaker: rule 9 forbids promising what
+the lesson cannot show.
+
+**The plan's shape** (pre-decided; the session refines it):
+- Fold the new teaching into cards a player already passes, where it fits:
+  - card I: the selection card, its buttons and the read-back;
+  - card III: the End Turn list and THE ENEMY'S MOVES;
+  - card VIII: the battle in acts and a day's points;
+  - card X: several corps, a named army, a war goal;
+  - card XIX: "Set him on his own" and "This turn";
+  - card XXI: the books — Help & Keys, Take back, the Key, saves and Settings.
+  Add a card only where nothing fits (the desk). Every card passes by doing what it teaches — fix the predicates of
+  XIX and XX.
+- Help & Keys gains entries for on his own, the desk, the End Turn list, the read-back, the selection card's seven
+  orders, the war's page and what we learned; check every entry against the code.
+- `docs/TUTORIAL_SCRIPT.md` rewritten from the code, both lessons card by card, with its update instructions.
+- Every card in plain words (golden rule 11): Berthier's period voice only in his quoted line, and no "AP".
+- The pins that move with any card change, all together:
+  - `tests/test_tutorial_unbreakable_2026_09_23.py` (~543, the 22 rows);
+  - `tests/test_rf4c_the_school_and_the_census.py` (~64);
+  - `tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py` (~582, the STEPS mirror);
+  - `tests/test_tutorial_table_scenario.py` (the Table's mirror);
+  - `tests/test_ic13_every_man_his_own_line.py` (~565–587, the card order and gates);
+  - `tests/test_hc5_tutorial_names_fleet.py`, `tests/test_ui6_settings_tutor.py`, `tests/test_tutorial_registry.py`
+    and `tests/test_first_open.py`;
+  - the lessons' play scripts.
+
+**If one session cannot hold it at the standard,** split at a clean line — the School of War and Help & Keys
+first; the Table, the first-open lines and `docs/TUTORIAL_SCRIPT.md` second — and say which is done; never
+half-ship a card.
+
+**Verify:**
+- Both lessons played in the real client at both setups, every card passed by doing its thing, and the skip,
+  refusal and catch-up roads still holding.
+- A blind reading of the finished lessons: three fresh Explore readers and a key of about ten questions a new player
+  must answer after the lesson (how do I give an order; what does the desk tell me; what happens when I press End
+  Turn; what does "on his own" mean; how is a great battle fought; what is authority for; …), the bar written first.
+- The sibling sweep: every screen's first-open line and Help entry read against the code.
+
+**Done when:** every first-hour item is taught by a lesson or pointed to by Help; no stale line is left; both lessons
+play end to end at both setups; the blind reading meets its bar; the pins and the docs moved together; records
+(STATUS → Session H next, `SYSTEMS_REFERENCE.md`, `BUG_FIXES.md` for any defect found, this file).
+
+## The hand-over written at row IC's close (November 23, 2026) — kept; the first block above overrules it
 
 > **READ THIS FIRST — the next session is SESSION H, THE DEPLOY** (its section is kept below, with the lines that
 > overrule it), with WS-10, WS-R, PW3-D1, IC2-N1 and IC3-N1 at its head — the five open defect rows
@@ -8,9 +241,8 @@
 > his own judgement, his move at the start of the turn and what you learn; the user's three calls were answered the
 > same day — the price kept at 12 ("make decision on price"), the war plans FIXED (a plan is drawn only by a court at
 > war with France) and, shown the measure, SWITCHED ON ("Switch them on"), the voice passed ("Count it as passed").
-> No Session 4c is needed. Committed at the user's word ("Commit the working tree changes with a sensible message");
-> NOT pushed — the push is his word too (the hook runs the whole suite, about 25 minutes at 10 workers; commit in
-> the background). Records: `docs/STATUS.md` (the entry),
+> No Session 4c is needed. Committed at the user's word ("Commit the working tree changes with a sensible message")
+> and pushed at the user's word ("Push it"). Records: `docs/STATUS.md` (the entry),
 > `SYSTEMS_REFERENCE.md` §236 and §236.8, `BUG_FIXES.md` §"Row IC, Session 4b" (IC4b-1 … IC4b-32), the spec's §15
 > landing record and its Session 4c table.
 >

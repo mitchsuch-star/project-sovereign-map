@@ -379,7 +379,8 @@ class TestTheHeaderFolds:
         assert "title_row.visible = not fold" in body
         # it runs on every relayout, beside the log's floor
         relayout = _func(main, "_relayout_terminal")
-        assert relayout.index("_log_floor()") < relayout.index("_fold_header()")
+        # (row FR, Session FR-1: the floor is set through `_fr1_log_floor`, before the fold)
+        assert relayout.index("_fr1_log_floor(mode)") < relayout.index("_fold_header()")
         scene = _read(SCENES / "main.tscn")
         assert 'parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow"' in scene
 

@@ -33,12 +33,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–4b Nov 19–23 (§229–§236); row IC ✅; then H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–4b Nov 19–23 (§229–§236); row IC ✅; FR-1 ✅ Nov 23 (§237); then FR-2, TU, H**.
 
 **▶ LIVE STATE (Nov 23, 2026).** Last three rows:
-- **Row IC Session 4b (Nov 23) — his own judgement ✅, moves at turn start; plans fixed, ON; voice passed (§236.8); ROW IC ✅; NEXT: H**.
+- **Row FR Session FR-1 (Nov 23) — WS-10, IC3-N1, PW3-D1, IC2-N1 ✅; FR1-1/FR1-2 found, fixed; design docs for FR-2, TU (§237); NEXT: FR-2, TU, H**.
+- **Row IC Session 4b (Nov 23) — his own judgement ✅; plans ON; voice passed; ROW IC ✅** (§236).
 - **Row IC Session 4 (Nov 22) — the voice ✅; war plans BUILT (ON since 4b)** (§235).
-- **Row IC Session 3b (Nov 22) — an army's task** (§234).
 
 **Open with the user:** the certificate (a purchase).
 

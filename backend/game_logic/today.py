@@ -215,11 +215,19 @@ def peace(world, have: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         head = (f"Win the peace: hold {need} titled provinces — your homeland, lands a treaty gave you, "
                 f"and {kept} — then summon the Congress of Paris. You hold {held}")
     out["text"] = head + _road_clause(world) + "."
-    out["hint"] = (f"A titled province is one held for good: your homeland, a province a treaty gave you, "
-                   f"or a conquest {_title_clock_words(world)}. The Congress of Paris ends the campaign in "
+    out["hint"] = (titled_means(world) + " The Congress of Paris ends the campaign in "
                    f"your favour; it can be summoned once the Empire and its satellites hold {need} titled "
                    "provinces — the page lists every condition and which are met.")
     return out
+
+
+def titled_means(world) -> str:
+    """IC3-N1 (row FR, Session FR-1): what a titled province is, in the desk's
+    own words — the ONE sentence the desk's hint and the Congress's pages (the
+    ledger's CONGRESS tab, the Cabinet's row) print, so no screen uses the word
+    before it says it."""
+    return ("A titled province is one held for good: your homeland, a province a treaty gave you, "
+            f"or a conquest {_title_clock_words(world)}.")
 
 
 def _title_turns(world) -> int:

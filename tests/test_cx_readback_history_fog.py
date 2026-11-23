@@ -175,7 +175,8 @@ class TestTheReadbackRow:
     def test_the_answer_reads_in_its_parts_words(self, driven):
         assert driven["r2_visible"] is True
         text = driven["r2_text"]
-        assert text.startswith("▸ Ney · attack Mack (Swabia) · 1 action · "), text
+        # (row FR, Session FR-1 — IC3-N1: a plain price reads against the pool in hand)
+        assert text.startswith("▸ Ney · attack Mack (Swabia) · 1 action of the 4 in hand · "), text
         assert text.endswith("may object"), text
         if driven["r2_compact"]:
             assert "replaces his march" not in text and driven["r2_tooltip"] == ""

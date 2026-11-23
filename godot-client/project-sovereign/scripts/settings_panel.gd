@@ -1058,7 +1058,8 @@ func _build_controls_section() -> void:
 	_add_hint("Screens — L Event Log · T Ledger · G Generals · D Diplomacy · R Dispatch "
 		+ "· N Moniteur (Alt+key while typing; Alt+B for the Dispatch where a graphics "
 		+ "overlay keeps Alt+R) · F1 the Cabinet · Esc close / pause. "
-		+ "The ledgers' books: 1–8.")
+		+ "The ledgers' books: 1–8 (Alt+1–8 while a ledger is pinned beside the map — "
+		+ "the number keys then stay with your marshal's card).")
 	_add_hint("The day — E End Turn · Tab show or hide the command window (Alt+` while "
 		+ "typing) · Up / Down the command history · Tab completes a half-typed order.")
 	_add_hint("The map — wheel zoom at the cursor · + / − zoom · Home recentre · the "

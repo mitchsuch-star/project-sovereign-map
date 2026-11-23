@@ -489,7 +489,9 @@ class TestEveryCounterWearsAWord:
         bar = _func(self.MAIN, "_ui6_bar_figures_bbcode")
         assert ']Turn " + str(int(current_turn))' in bar and "]Actions \"" in bar and "]Admin \"" in bar
         tips = _func(self.MAIN, "_ui6_refresh_status_tips")
-        assert "Actions left this turn: %d of %d — each order to a marshal spends them" in tips
+        # (row FR, Session FR-1 — IC3-N1: the hover says what an action is, in the words the
+        # blind readers' row asked for: "an order spends them")
+        assert "Actions left this turn: %d of %d — an order spends them" in tips
         assert "Men you can still recruit — infantry %s · cavalry %s · artillery %s" in tips
 
     def test_the_top_bars_figures(self):
@@ -684,12 +686,14 @@ class TestEscSetsALetterAside:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# PW3-D1 — OPEN, owned by Session H's head: the Cabinet's court list has room
+# PW3-D1 — FIXED in row FR's Session FR-1 (November 23, 2026): the Cabinet's
+# court list has room. Pressed at the first player's setup, the first page read
+# three courts above "▼ more below" (two when the row was filed); the list now
+# takes the band below the bar (0.8 -> 0.9 of the view — the Cabinet is modal),
+# the Designs line rides its door and the folded rows stand at the doors' 36 px.
+# The behaviour is the driven count of the rows in view:
+# `test_dd_b_the_client_hands.py::TestRowFR1TheFourRows::test_five_courts_stand_on_the_cabinets_first_page`.
 # ═════════════════════════════════════════════════════════════════════════════
-
-_PW3_D1 = ("PW3-D1 OPEN — owner Session H's head (BUG_FIXES.md §PW part 3): at Interface Scale 1.8 on a "
-           "765-px-tall view the Cabinet's first page shows two courts above a scroll; this pin turns red "
-           "the day the page seats its courts in columns (or folds its fixed head), so the row is closed with it")
 
 
 class TestPW3D1TheCabinetsCourtListHasRoom:
@@ -699,7 +703,9 @@ class TestPW3D1TheCabinetsCourtListHasRoom:
         assert "which nation requires our diplomatic attention?" in wizard
         assert "const MORE_BELOW_WORDS := \"▼ more below\"" in wizard
 
-    @pytest.mark.xfail(strict=True, reason=_PW3_D1)
-    def test_the_courts_stand_in_columns(self):
+    def test_the_page_makes_room_for_its_courts(self):
+        """A source guard beside the driven count: the three levers stand."""
         wizard = _src(SCRIPTS / "diplomacy_wizard.gd")
-        assert "COURT_LIST_COLUMNS" in wizard, "the first page seats its courts in columns (PW3-D1's landing)"
+        assert "const CABINET_CEILING_SHARE := Vector2(0.0, 0.9)" in wizard
+        assert 'd_btn.text = "The Emperor\'s Designs" + (" — " + head if head != "" else "")' in wizard
+        assert "btn.custom_minimum_size = Vector2(0, 36 if folded else 44)" in wizard

@@ -241,6 +241,21 @@ func _make_corner(node_name: String, face: String, tip: String) -> Button:
 	return b
 
 
+# IC3-N1's sibling (row FR, Session FR-1, November 23, 2026 — the blind readers
+# did not know the chips under the line were buttons that write): a row whose
+# door WRITES an order on the command line (his renewed exact order, his own
+# proposal — `main._ic_open_door`) says so before the press, as the chips do.
+const PRESS_WORDS := "Press to go to it."
+const PRESS_WRITES_WORDS := "Press to go to it — his order is written into your sentence on the line; nothing is sent until you press Enter."
+
+
+static func press_words(door) -> String:
+	if door is Dictionary and str((door as Dictionary).get("line", "")) != "" \
+			and str((door as Dictionary).get("kind", "")) in ["line", "marshal"]:
+		return PRESS_WRITES_WORDS
+	return PRESS_WORDS
+
+
 func _has_door(part) -> bool:
 	if not (part is Dictionary):
 		return false
@@ -385,7 +400,7 @@ func _make_row(index: int, row: Dictionary) -> Control:
 	var voiced := VoiceLine.plain_text(str(row.get("speaker", "")), str(row.get("says", "")))
 	if voiced != "":
 		more = (more + "\n" if more != "" else "") + voiced
-	b.tooltip_text = (more + "\n" if more != "" else "") + "Press to go to it."
+	b.tooltip_text = (more + "\n" if more != "" else "") + press_words(row.get("door", {}))
 	var ink := Color.html("#" + Utils.COLOR_WARNING) if bites else Utils.toned(Utils.UI_TEXT_DIM)
 	b.add_theme_color_override("font_color", ink)
 	b.add_theme_color_override("font_hover_color", Utils.UI_GOLD_BRIGHT)

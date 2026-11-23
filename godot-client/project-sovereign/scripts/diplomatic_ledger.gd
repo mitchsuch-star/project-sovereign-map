@@ -60,6 +60,10 @@ const AUTHORITY_ARMS_READ_THE_BACKEND := true
 var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains, 5=vassals, 6=congress
 # SF7-X24: Alt+1..7 turn the books while the command line holds the caret.
 const ALT_TURNS_THE_BOOKS := true
+# WS-10 (row FR, Session FR-1, November 23, 2026 — the user's ruling of November
+# 17): pinned beside the map the books turn on Alt+1–7 alone; the bare digits
+# are the war room's (the selected marshal's card).
+const BOOK_KEYS_PINNED_WORDS := "Alt+1–7 turn the ledger's books while it is pinned beside the map — the number keys stay with your marshal's card"
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
@@ -154,6 +158,12 @@ func _input(event):
 	# twin); a bare digit still belongs to whoever has the caret.
 	var _typing: bool = _focused is LineEdit or _focused is TextEdit
 	if _typing and not (ALT_TURNS_THE_BOOKS and event is InputEventKey and event.alt_pressed):
+		return
+	# WS-10 (row FR, Session FR-1): pinned beside the map, a bare digit is the
+	# war room's (the selected marshal's card) wherever the caret is; the book
+	# turns on Alt+digit alone (the strategic ledger's twin).
+	var docked: bool = $PanelContainer.has_meta("side_desk_docked")
+	if docked and not (event is InputEventKey and event.alt_pressed):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var switched = true
@@ -269,6 +279,16 @@ func refresh_pinned() -> void:
 func _on_pinned_ledger(response, held_scroll: int) -> void:
 	_on_ledger_received(response)
 	Utils.restore_scroll(scroll_container, held_scroll)
+
+
+func on_docked_changed() -> void:
+	"""WS-10: pinned or let go, the open book re-draws from what it holds (no
+	fetch), so its lead line names the keys it answers now; the scroll stays."""
+	if not visible or cached_data.is_empty():
+		return
+	var held: int = scroll_container.scroll_vertical
+	_render_current_tab()
+	Utils.restore_scroll(scroll_container, held)
 
 
 func open_to_settlements(api_client, route_id: String = "", war_id: String = ""):
@@ -633,9 +653,12 @@ func _render_nations():
 	# heading's line ("Fold, a switch restores"); On the page both lines print as
 	# they did.
 	var nations_lead := "Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger."
+	# WS-10: pinned beside the map, the lead line names the keys the books answer.
+	if $PanelContainer.has_meta("side_desk_docked"):
+		nations_lead += " " + BOOK_KEYS_PINNED_WORDS + "."
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ NATION OVERVIEW ═══[/color]" + Utils.lead_mark(nations_lead, "dl.nations.lead") + "\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.[/color]\n", "dl.nations.lead") + "\n"
+	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + nations_lead + "[/color]\n", "dl.nations.lead") + "\n"
 
 	# UXR3-29 (Pre-Deploy S15 head, October 25, 2026): the Nations book LEADS
 	# WITH THE COURTS' CARDS — each great power's Laws and Doctrine lines sit in
@@ -2705,10 +2728,21 @@ func _render_congress():
 	# R159: the screen names the mechanic it shows — in the payload's numbers.
 	# Session UI-3 (November 12, 2026): that lead-in stands behind an ⓘ at the
 	# heading (id dl.congress.lead); On the page it prints as it did.
+	# IC3-N1 (row FR, Session FR-1 — the blind readers could not say what the
+	# word "titled" meant): the lead says what a titled province is BEFORE it uses the
+	# word, in the desk's own sentence (the payload's `titled_means`, one source
+	# in `today.titled_means`); an older payload falls back to the same words.
+	var titled_means := _cstr(c, "titled_means")
+	if titled_means == "":
+		titled_means = "A titled province is one held for good: your homeland, a province a treaty gave you, or a conquest you have held long enough."
 	var congress_lead: String = "Europe must RECOGNIZE the new order. With " + str(needed)
 	congress_lead += " titled provinces the Emperor may summon the great powers to Paris; each answers at every end turn, with its reason and its price, and the Congress sits "
 	congress_lead += Utils.plural(turns, "turn") + ". If on the last day every court recognizes, is shut out or is gone, and the hold never broke, the Imperial Peace is proclaimed."
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CONGRESS OF PARIS ═══[/color]" + Utils.lead_mark(congress_lead, "dl.congress.lead") + "\n"
+	# IC3-N1: the word is said on the face, folded or on the page, under the
+	# heading and before the page first uses it — a frame cannot hover (the
+	# desk's lever L5, `today.py`); the lead-in above stays behind its ⓘ.
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + _bb_safe(titled_means) + "[/color]\n"
 	bbcode += Utils.bb_lead("[color=#" + Utils.COLOR_INFO + "]" + congress_lead + "[/color]\n", "dl.congress.lead") + "\n"
 	var line := _cstr(c, "state_line")
 	if line != "":

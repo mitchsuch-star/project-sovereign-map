@@ -1301,7 +1301,10 @@ def pw3_walk(tmp_path_factory) -> dict:
         states["take_back"] = _act(run, "click Take back")
         states["key"] = _act(run, "click Key")
         states["key_esc"] = _act(run, "key Escape")
-        states["line"] = _act(run, "click_at 130 720")
+        # the line where the client draws it (row FR, Session FR-1 — IC2-N1 moved it up a
+        # row: the Cabinet and End Turn stand on their own row under it now)
+        line = states["key_esc"]["command_line"]["rect"]
+        states["line"] = _act(run, f"click_at {int(line[0]) + 100} {int(line[1] + line[3] / 2)}")
         states["tab"] = _act(run, "key Tab")
         # Row IC (the desk) rides the same engine — one boot fewer in the window
         # lane. Its own steps, guarded: a fault in them is row IC's to report
@@ -2009,13 +2012,13 @@ class TestRowIC7TheButtons:
         assert lead["title"] == "ORDERS FOR LANNES" and lead["who"] == "Lannes, attack Mack"
         assert _ic2_order_card(walk["attack_esc"]) == {}
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "IC2-N1 (owner Session H, S15): at the first player's setup the command line shows about "
-        "twenty characters of a typed line — the rest scrolls out of the box"))
     def test_the_command_line_shows_the_task_being_typed(self, walk):
         """The blind reading's three readers, each unasked: the box read "retreat
         if outnumbered" — "Ney," had scrolled out. Forty characters is a short
-        task ("Soult, hold Lorraine. If attacked, dig in.")."""
+        task ("Soult, hold Lorraine. If attacked, dig in."). IC2-N1 — FIXED in
+        row FR's Session FR-1 (November 23, 2026): on the desk and in the column
+        the Cabinet, End Turn and Open Envoys stand on a row of their own under
+        the line (`main._fr1_seat_turn_buttons`); 171 px became 391."""
         box = (walk["draft"].get("command_line") or {})["rect"]
         assert box[2] >= 360, f"the command line is {box[2]} px wide at his setup"
 
@@ -3050,4 +3053,274 @@ class TestRowIC4bWhatWeKnowOfTheirPlans:
     def test_nothing_runs_off_the_screen_and_no_script_errs(self, walk):
         for key in ("war_page", "province"):
             assert not walk[key].get("off_screen"), (key, walk[key].get("off_screen"))
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Row FR, Session FR-1 (November 23, 2026) — the four rows on the player's
+# screen, pressed in the real client at the first player's own setup
+# (Interface Scale 1.8 on 5120 x 1377) and at the small window (2.0 on
+# 1600 x 900):
+#   WS-10   a pinned ledger leaves the bare digits to the war room (the
+#           selected marshal's card) and turns its books on Alt+digit;
+#   FR1-1   the pinned flag is read where it is set — the pinned Generals
+#           screen stands aside (UI-6's rule, dead until this session) and a
+#           ledger let go takes its bare digits back;
+#   PW3-D1  five courts stand on the Cabinet's first page;
+#   IC3-N1  the Congress page says what a titled province is before it uses
+#           the word; a dashed (locked) order button is said on the card;
+#   IC2-N1  the line on a row of its own (its width is pinned by
+#           TestRowIC7TheButtons::test_the_command_line_shows_the_task_being_typed).
+# The probe before the build: `docs/audits/fr1_client/before/README.md`.
+# ════════════════════════════════════════════════════════════════════════════
+
+_FR1_BOOKS = ("FORCES", "TERRITORIES", "ECONOMY", "INTELLIGENCE", "MANPOWER", "ORDERS", "ADMIRALTY", "LAWS")
+_FR1_COURTS = ("Britain", "Russia", "Austria", "Spain", "Bavaria", "Kingdom of Italy", "Prussia", "Ottoman Empire",
+               "Portugal", "Hanover", "Naples", "Sardinia", "Hesse", "Holland", "Switzerland", "Saxony",
+               "Papal States", "Denmark", "Sweden", "Württemberg", "Baden")
+
+
+def _fr1_text(state: dict, surface: str) -> str:
+    return " || ".join(str(t.get("text") or "") for t in state.get("texts") or [] if t.get("surface") == surface)
+
+
+def _fr1_book(state: dict) -> str:
+    """The Strategic Ledger's open book, by the heading its page opens with."""
+    for t in state.get("texts") or []:
+        if t.get("surface") != "StrategicLedger":
+            continue
+        head = str(t.get("text") or "").lstrip()
+        for book in _FR1_BOOKS:
+            if head == book or head.startswith(book + " ") or head.startswith(book + "\n"):
+                return book
+    return ""
+
+
+def _fr1_generals_detail(state: dict) -> str:
+    """The Generals screen's detail: the marshal it shows (its first line)."""
+    for t in state.get("texts") or []:
+        if t.get("surface") == "MarshalManagement":
+            return str(t.get("text") or "").strip()
+    return ""
+
+
+def _fr1_courts_in_view(state: dict) -> list:
+    """The Cabinet's court rows standing WHOLE in view — the court's button at
+    its full height (36 folded, 44 on the page), not cut by the list's scroll."""
+    out = []
+    for b in _ic_on(state, "DiplomacyWizard"):
+        name = str(b.get("text") or "")
+        r = b.get("rect") or [0, 0, 0, 0]
+        if name in _FR1_COURTS and float(r[3]) >= 35.0:
+            out.append(name)
+    return out
+
+
+def _fr1_reopen_cabinet(run: pathlib.Path) -> dict:
+    """The Cabinet opened again in the same turn, read on a fresh frame once the
+    new request's answer has drawn. (Its first-open line still stands: S14d keeps
+    a line on every payload of the turn it was first shown —
+    `first_open.line_for`, "the line must not vanish mid-read" — and drops it
+    the next turn.)"""
+    _act(run, "key F1")
+    return _act(run, "look")
+
+
+def _fr1_steps(run: pathlib.Path, states: dict) -> None:
+    states["begin"] = _act(run, "click Begin")
+    # IC2-N1: a task typed on the line; Cabinet and End Turn stand on the row under it
+    states["draft"] = _act(run, "draft Ney, retreat if outnumbered")
+    _act(run, "key Ctrl+A")
+    _act(run, "key Delete")
+    # FR1-2: the longest reading there is — a task on his own — keeps the window's head in view
+    states["long_reading"] = _act(run, "draft Davout, hold Rhineland on your own")
+    _act(run, "key Ctrl+A")
+    _act(run, "key Delete")
+    # WS-10: the Strategic Ledger pinned at its third book, a corps selected, the caret off the line
+    _act(run, "key Alt+t")
+    _act(run, "key Alt+3")
+    states["ledger_pinned"] = _act(run, "click Pin")
+    states["murat"] = _act(run, "click Murat")
+    states["off_line"] = _act(run, "click ECONOMY")
+    states["ledger_digit"] = _act(run, "key 4")       # the card's Scout — never the ledger's fourth book
+    states["ledger_alt"] = _act(run, "key Alt+1")     # the book turns on Alt
+    # let go, the ledger is a book again and its bare digits are its own (FR1-1: the flag removed)
+    _act(run, "click Unpin")
+    _act(run, "key Alt+t")
+    states["book_tab"] = _act(run, "click TERRITORIES")
+    states["book_digit"] = _act(run, "key 3")
+    _act(run, "key Escape")
+    # FR1-1: the Generals screen pinned stands aside for the selected marshal's card
+    _act(run, "key Alt+g")
+    states["generals_pinned"] = _act(run, "click Pin")
+    _act(run, "click Davout")
+    _act(run, "key Escape")                                    # let him go (the line keeps the caret)
+    x, y = _ic2_piece(states["begin"], "Britain")
+    _act(run, f"click_at {int(x)} {int(y) + 30}")              # a province: the map takes the caret
+    states["davout"] = _act(run, "click Davout")
+    states["generals_digit"] = _act(run, "key 4")
+    _act(run, "click Unpin")
+    # PW3-D1: the Cabinet's first page — its first opening (the first-open line at its head) and a second
+    states["cabinet"] = _act(run, "key F1")
+    _act(run, "key Escape")
+    states["cabinet_again"] = _fr1_reopen_cabinet(run)
+    _act(run, "key Escape")
+    # IC3-N1: the Congress page names what a titled province is before it uses the word
+    _act(run, "key Alt+d")
+    states["congress"] = _act(run, "key Alt+7")
+
+
+def _fr1_walk(tmp_path_factory, name: str, scale: str, window: str, steps) -> dict:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DD_B_UI_SCALE", scale)
+        mp.setenv("DD_B_WINDOW", window)
+        mp.setenv("DD_B_READBACK", "1")
+        run, sup = _start_engine_run(tmp_path_factory, name)
+    states: dict = {}
+    try:
+        steps(run, states)
+    except Exception as exc:      # noqa: BLE001 - re-raised by the class's own fixture
+        states["error"] = repr(exc)
+    finally:
+        _stop_engine_run(run, sup)
+    states["run"] = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    return states
+
+
+@pytest.fixture(scope="module")
+def fr1_walk(tmp_path_factory) -> dict:
+    return _fr1_walk(tmp_path_factory, "fr1", "1.8", "5120x1377", _fr1_steps)
+
+
+class TestRowFR1TheFourRows:
+
+    @pytest.fixture(scope="class")
+    def walk(self, fr1_walk):
+        assert "error" not in fr1_walk, fr1_walk.get("error")
+        return fr1_walk
+
+    def test_the_run_stands_at_the_first_players_own_setup(self, walk):
+        assert walk["begin"]["ui_scale"]["window"] == pytest.approx(1.8)
+        assert walk["begin"]["factor"]["logical_size"] == [2844.0, 765.0]
+
+    # ── WS-10 ────────────────────────────────────────────────────────────────
+    def test_a_pinned_ledger_leaves_the_bare_digit_to_the_card(self, walk):
+        assert walk["off_line"]["open"]["pinned"] == "ledger"
+        assert not walk["off_line"]["command_line"]["focused"], "the caret is off the line"
+        assert _fr1_book(walk["off_line"]) == "ECONOMY"
+        after = walk["ledger_digit"]
+        assert "► Murat, scout" in _ic_log(after), _ic_log(after)
+        assert _fr1_book(after) == "ECONOMY", "the ledger kept its book"
+
+    def test_the_pinned_ledger_turns_on_alt(self, walk):
+        assert walk["ledger_alt"]["open"]["pinned"] == "ledger"
+        assert _fr1_book(walk["ledger_alt"]) == "FORCES"
+
+    def test_let_go_the_book_takes_its_bare_digits_again(self, walk):
+        assert walk["book_tab"]["open"]["pinned"] == ""
+        assert _fr1_book(walk["book_tab"]) == "TERRITORIES"
+        assert _fr1_book(walk["book_digit"]) == "ECONOMY"
+
+    # ── FR1-1 ────────────────────────────────────────────────────────────────
+    def test_the_pinned_generals_screen_stands_aside(self, walk):
+        before = walk["davout"]
+        assert before["open"]["pinned"] == "generals"
+        assert not before["command_line"]["focused"], "the caret is off the line"
+        shown = _fr1_generals_detail(before)
+        after = walk["generals_digit"]
+        assert "► Davout, scout" in _ic_log(after), _ic_log(after)
+        assert _fr1_generals_detail(after) == shown, "the Generals screen kept its marshal"
+
+    # ── PW3-D1 ───────────────────────────────────────────────────────────────
+    def test_five_courts_stand_on_the_cabinets_first_page(self, walk):
+        for key in ("cabinet", "cabinet_again"):
+            courts = _fr1_courts_in_view(walk[key])
+            assert len(courts) >= 5, (key, courts)
+        # the first opening carries the first-open line at its head, and still five
+        assert "Any court may be treated with here, Sire" in _fr1_text(walk["cabinet"], "DiplomacyWizard")
+
+    def test_the_designs_status_rides_its_door(self, walk):
+        faces = [str(b["text"]) for b in _ic_on(walk["cabinet"], "DiplomacyWizard")]
+        assert any(f.startswith("The Emperor's Designs — ") for f in faces), faces
+        assert "Formable Nations" in faces
+
+    # ── IC3-N1 ───────────────────────────────────────────────────────────────
+    def test_the_congress_page_says_what_a_titled_province_is_first(self, walk):
+        page = _fr1_text(walk["congress"], "DiplomaticLedger")
+        assert "A titled province is one held for good" in page, page[:600]
+        assert page.index("A titled province is") < page.index(" titled"), page[:600]
+
+    def test_the_card_says_what_a_dashed_button_is(self, walk):
+        assert "A dashed button is an order not open to him now" in _fr1_text(walk["murat"], "SelectionCard")
+
+    # ── IC2-N1 ───────────────────────────────────────────────────────────────
+    def test_cabinet_and_end_turn_stand_under_the_line(self, walk):
+        state = walk["draft"]
+        line = state["command_line"]["rect"]
+        assert line[2] >= 360, f"the command line is {line[2]} px wide"
+        for face in ("⚖ Cabinet", "End Turn (E)"):
+            b = _ic2_btn(state, "BottomLeftUI", face)
+            assert b["rect"][1] >= line[1] + line[3], (face, b["rect"], line)
+        top = min(float(t["rect"][1]) for t in state["texts"] if t.get("surface") == "BottomLeftUI")
+        assert top >= 34.0, f"the command window's head stands at {top}, under the top bar"
+
+    # ── FR1-2 ────────────────────────────────────────────────────────────────
+    def test_a_long_reading_keeps_the_windows_head_in_view(self, walk):
+        state = walk["long_reading"]
+        reading = next(t for t in state["texts"] if t.get("surface") == "BottomLeftUI"
+                       and "on his own: hold Rhineland" in str(t.get("text") or ""))
+        width, height = state["factor"]["logical_size"]
+        assert reading["rect"][3] <= height * 0.4 + 1, reading["rect"]       # it scrolls past its share
+        top = min(float(t["rect"][1]) for t in state["texts"] if t.get("surface") == "BottomLeftUI")
+        assert top >= 34.0, f"the command window's head stands at {top}, under the top bar"
+        assert "2 actions of the 4 in hand" in str(reading.get("text")), "IC3-N1: the price against the pool"
+
+    def test_the_run_met_no_script_error(self, walk):
+        assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]
+
+
+def _fr1_compact_steps(run: pathlib.Path, states: dict) -> None:
+    states["begin"] = _act(run, "click Begin")
+    states["draft"] = _act(run, "draft Ney, retreat if outnumbered")
+    _act(run, "key Ctrl+A")
+    _act(run, "key Delete")
+    states["cabinet"] = _act(run, "key F1")
+    _act(run, "key Escape")
+    states["cabinet_again"] = _fr1_reopen_cabinet(run)
+
+
+@pytest.fixture(scope="module")
+def fr1_compact(tmp_path_factory) -> dict:
+    return _fr1_walk(tmp_path_factory, "fr1_compact", "2.0", "1600x900", _fr1_compact_steps)
+
+
+class TestRowFR1AtTheSmallWindow:
+    """The slim bar keeps End Turn on the line's row (Session UI-6's form — its
+    height is the scarce thing there); the Cabinet's taller list still fits."""
+
+    @pytest.fixture(scope="class")
+    def walk(self, fr1_compact):
+        assert "error" not in fr1_compact, fr1_compact.get("error")
+        return fr1_compact
+
+    def test_the_bar_keeps_end_turn_on_the_lines_row(self, walk):
+        state = walk["draft"]
+        assert state["factor"]["logical_size"] == [800.0, 450.0]
+        line = state["command_line"]["rect"]
+        end = _ic2_btn(state, "BottomLeftUI", "End Turn")
+        assert abs(float(end["rect"][1]) - float(line[1])) < float(line[3]), (end["rect"], line)
+
+    def test_the_cabinet_stands_whole_on_the_small_window(self, walk):
+        """At 800 x 450 the turn's openings are the head and the first-open line
+        (it stands all that turn), the courts a scroll below — as before this
+        session, with less room then (the list's share and the Designs fold give
+        it 62 px more); the page stands whole, its doors and its foot in view."""
+        for key in ("cabinet", "cabinet_again"):
+            state = walk[key]
+            assert not state.get("off_screen"), (key, state.get("off_screen"))
+            faces = [str(b["text"]) for b in _ic_on(state, "DiplomacyWizard")]
+            assert "Cancel" in faces and "Formable Nations" in faces, (key, faces)
+            assert "▼ more below" in _fr1_text(state, "DiplomacyWizard"), key
+
+    def test_the_run_met_no_script_error(self, walk):
         assert walk["run"]["n_script_errors"] == 0, walk["run"]["script_errors"]

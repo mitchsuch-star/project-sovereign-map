@@ -18569,3 +18569,161 @@ Pressed in the real client at 1.8 on 5120 × 1377 and 2.0 on 1600 × 900 (`tests
 **Pressed in the real client with the plans on** (1.8 on 5120 × 1377; 2.0 on 1600 × 900): agents sent to Austria from the Cabinet, three turns, then the spy's report ("His report on their written orders: Mack holds Swabia. …"), the war's page and the province window under Mack ("Known orders (learned this turn, from your spy's report): …"). It found two, fixed and pinned (`tests/test_dd_b_the_client_hands.py::TestRowIC4bWhatWeKnowOfTheirPlans`): **IC4b-31** — the command window told an enemy's written orders as the player's ("Mack holds at Swabia, per your orders — the guns at Franconia did not move him": the "to the letter" beat scanned every marshal with a standing order, and the end turn's fog filter kept it because France half-sees Swabia); the sibling sweep read every other reader of a standing order across all marshals — each already the player's alone, or dropped for want of a place. **IC4b-32** — the Folded war page (the one a player sees unless he unfolds the explanations) returned early with its tiles and tables, and the block "What we know of their plans" stood only on the On-the-page path below it; it now stands on the Folded page before Recent Battles. **A second review, of everything after the first** (three lanes, two refuters a finding): **IC4b-33** — the battle's own sentences still named an enemy's standing order ("Mack's HOLD order at Swabia is broken!" on a forced retreat or a rout; "His HOLD order is cancelled." when a square forms) — the sentence is the player's man's now (the order is still broken); and the records the switch-on left saying "down" (the save format, the modding contract, a docstring, §235.5's heading, CLAUDE.md's Session 4 row, the old Session 4c plan, two old "next" phrases), and this section's act-rate ranges, put right; and the defect census never counted this session's own rows — "IC4b-1" … did not match its row name, whose first part had to be capitals (IC4b-34, widened). The census lists no IC row but IC2-N1 and IC3-N1 — **ROW IC IS COMPLETE**.
 
 **Traps of the continuation.** (1) An arm named ALL means whatever the tree ships: a record taken from a frozen copy with a seam flipped must name the arm by what it holds (`+PLAN`), or a re-run on the tree reads the other arm under the same label. (2) A forty-turn ambient campaign runs in seconds: when a gate clause rests on a rare event (two seeds of thirty), read the rate on hundreds of fresh seeds before calling a cause. (3) Attribute a change by comparing arms that differ in ONE thing — the plans-up arm against the fix (the same coalition plan), never against the plans-down arm alone. (4) A pooled rule hides one court's road closing; read the per-court table beside it. (5) A screen built while its feature shipped off has never been seen: switching the feature on means pressing that screen in the real client — both IC4b-31 and IC4b-32 were there all along. (6) A test runner that applies flips as plain values (`=False`) breaks a function seam — the seam's call raises; write the flip as a function (`=lambda *a, **k: False`).
+
+
+## §237 Row FR, Session FR-1 — THE FOUR ROWS ON THE PLAYER'S SCREEN: the keys of a pinned ledger, three words said plainly, the Cabinet's courts, the command line's width (November 23, 2026)
+
+By the user's word of November 23, 2026 ("…ficx Five defect rows remain open can eb mul;tiple sessions"), the five
+open defect rows moved from Session H's head to row FR. This session took the four on the player's screen and
+opened by choosing the order of the three sessions, at the user's "choose which to scope assure others get slotted
+in status and have design doc".
+- FR-1 went first: the tutorial must describe the keys and screens it changes.
+- FR-2 and row TU were given their design docs at its head:
+  - `docs/WEAK_SPOT_FINDS_SPEC.md` — each of WS-R's twelve finds read in the code with a first reading, the census
+    trap, find 12's rule written before the data, the split;
+  - `docs/TUTORIAL_UPDATE_SPEC.md` — the inventory, the stale lines, the card plan, every pin that moves, the blind
+    reading's key, the one call.
+- Row TU got its behaviour test, `tests/test_tu_the_tutorial_brought_up_to_date.py`: strict xfails on the stale
+  lines, golden rule 9.
+
+### 237.1 The pinned flag (FR1-1) — found by the probe before the build
+
+- **The probe** (`docs/audits/fr1_client/before/README.md`): the real client at the first player's setup.
+  - With the Strategic Ledger pinned and the caret off the line, 1 turned the ledger and the selected marshal's card
+    did nothing (WS-10 as filed).
+  - With the Generals screen pinned, 3 jumped its detail to Davout. Session UI-6's stand-aside, the idiom WS-10 was
+    told to copy, never fired.
+- **The cause:**
+  - `top_bar._set_docked` wrote `side_desk_docked` on the screen's root; every reader asked its `PanelContainer`.
+  - On unpin the flag was set to false, not removed, and the readers ask `has_meta`.
+- **The fix:** `_set_docked` marks both the root and the panel (`DOCKED_META`) and removes the flag on unpin.
+- **Now true:**
+  - the pinned Generals screen stands aside and shows its narrow portrait roster (UI-6's pinned form, seen for the
+    first time);
+  - a pinned Dispatch keeps its dock on a refit;
+  - `Utils.fit_reading_window` leaves a docked window alone.
+- **The trap:** a source pin that reads a reader's words proves nothing about where the flag is written. Press the
+  behaviour.
+
+### 237.2 WS-10 — who owns a bare digit while a ledger is pinned (the user's ruling of November 17)
+
+- **The keys:** pinned beside the map, either ledger's `_input` returns for a bare digit, wherever the caret is.
+  - The digit goes to the war room: main's `_unhandled_input` → the selected marshal's card, 1–7.
+  - The book turns on Alt+digit: Alt+1–8 for the Strategic Ledger, Alt+1–7 for the Diplomatic Ledger.
+  - A ledger let go (a book again) takes its bare digits back.
+- **The words:**
+  - the Strategic Ledger's three lead lines (FORCES, ADMIRALTY, LAWS) read `_book_keys_words()`, the pinned or the
+    book form;
+  - the Diplomatic Ledger's Nations lead gains the pinned clause;
+  - `top_bar._set_docked` asks the screen to re-draw its page (`on_docked_changed`, no fetch, the scroll kept);
+  - a ledger's Pin chip says before the press what pinning does (`PIN_LEDGER_TOOLTIP`);
+  - Help & Keys' "1 to 8" and "1 to 7, with a corps selected" rows and Settings' key list say it too.
+- **Siblings:**
+  - the card's own Alt+1–7 alias acts only on an empty line, where the bare digit already works, so a pinned
+    ledger's Alt costs nothing;
+  - the other four screens that pin claim no digit;
+  - the battle day's digit keys are no longer stolen by a pinned ledger;
+  - "T, then N" stays true everywhere, because T opens a book.
+
+### 237.3 IC3-N1 — three words said plainly
+
+- **"Actions":**
+  - the counter's hover — "an order spends them (1 or 2 each; the price stands on his card and under the line);
+    they come back when you end the turn";
+  - a plain price under the line reads against the pool — "2 actions of the 4 in hand"
+    (`_readback_price_in_hand`, the order card's words; only "N action(s)" while the counter knows its pool).
+- **The dashed buttons:**
+  - The readers' frames show the dashes were the card's LOCKED orders, the theme's disabled face. A key line now
+    stands under the orders on every card: "A dashed button is an order not open to him now — point at it to read
+    why". It is always shown, because the card stands on its bottom edge and a line that came and went would move
+    the rows under the cursor.
+  - The gold chips under the line, which the row named, say on hover that they write into your sentence and send
+    nothing (`READBACK_FILL_TIP`).
+  - The same is said by the completion offers (`COMPLETION_FILL_TIP`), and by the desk's and the End Turn list's
+    rows whose door writes his order (`desk_lines.press_words`).
+  - The province panel's chips SEND (not siblings).
+- **"Titled provinces":**
+  - One sentence, the desk's own: `today.titled_means`, carried as the Congress payload's `titled_means`.
+  - It stands on the Congress page's face, under the heading and before the page first says "titled", folded or on
+    the page — a frame cannot hover (the desk's lever L5).
+  - The Cabinet's Congress row carries it on its name's hover and above its terms.
+  - The dispatch's and the end screen's uses are covered by the desk, whose THE PEACE line says it on its face.
+- **The blind reading:** `docs/audits/fr1_client/blind_reading/` (the key and the bar written first). Three fresh readers at the first player's setup read all five questions right: 15 of 15, 14 "sure" and 1 "fairly sure". Each of their remaining notes is routed in `RESULT.md`, most to row TU's teaching list.
+
+### 237.4 PW3-D1 — five courts on the Cabinet's first page
+
+- **Pressed first:** at 1.8 on the 765-px view the page read three courts above "▼ more below".
+- **Three levers, nothing cut:**
+  - the Cabinet's height share 0.8 → 0.9 — it is modal, and the clamp stands a tall panel in the band below the bar;
+  - the folded Designs status line rides its door: "The Emperor's Designs — no road proclaimed", trimmed at the
+    door's edge, with the whole line as its hover;
+  - folded court rows stand at the doors' 36 px.
+- **Result:** five courts in view on the first opening (the first-open line at its head) and on every later one.
+  The small window keeps its form.
+
+### 237.5 IC2-N1 — the line on a row of its own
+
+- **The change:**
+  - On the desk and in the column, the Cabinet, End Turn and Open Envoys stand on `TurnSection`, a row under the
+    line, right-aligned, in their old order.
+  - The row is built in code and the buttons are moved at run time by `_ui6_apply_desk_mode` →
+    `_fr1_seat_turn_buttons`, so no scene path changed.
+  - The slim bar keeps them on the line's row, as UI-6 built it.
+- **Measured:** the line is 391 px with its send mark at the first player's setup (was 171) and 429 empty.
+- **Found by pressing:** with a four-line reading under the line, the column's head rose under the top bar. The turn
+  row's height now comes out of the log's floor (`_fr1_turn_row_room`, never below `LOG_FLOOR_MIN` 60), so the
+  window's floor is what it was.
+- **The End Turn list**, which floats over the log, lost a row at first: in row IC's desk walk "Nothing holds
+  Rhineland" folded into "…and 1 more on the TO DECIDE card". In the column form the four marshal rows now give the
+  40 px back — likenesses 40 × 50 → 32 × 40, the chip 58 → 48 (`marshal_chip_row.gd`) — and the list lists it again.
+  Two other roads were ruled out:
+  - covering the empty line breaks "the command line and End Turn are never covered";
+  - a list a row shorter breaks row IC's "listed at End Turn".
+- **A walk that clicks a fixed point** where the line used to stand (row PW part 3's `click_at 130 720`) now reads the
+  line's rect from the client.
+
+### 237.6 FR1-2 — a long reading kept the window's head off the screen (IC2-N1's sibling, found by pressing)
+
+- **The problem:** in the column form at the first player's setup, the marshal grid takes about 250 px of a 663-px
+  window. The reading row had no cap: an order to a man on his own reads seventeen lines, about 500 px. So the window
+  grew past the column's top, and its title and counters stood under the top bar. This is older than this session:
+  the turn row's height comes out of the log's floor, so it adds nothing net.
+- **Now, while a reading stands:**
+  - the log yields its floor (`_fr1_log_floor`, 0 then);
+  - the reading takes the room the window has left (`_fr1_readback_room`): the window's own height as
+    `_relayout_terminal` drew it (`_fr1_window_h`), less its other rows at their floors and its frame — never under
+    three lines (`READBACK_MIN_ROOM` 96), never over 40 % of the view (`READBACK_VIEW_SHARE`);
+  - on the slim bar it takes the share alone;
+  - past its cap it scrolls, snapped to whole lines.
+- **When the reading goes:** the log takes its floor back (`_readback_hide`).
+- **Pressed:** the head stands at y 74 with "Davout, hold Rhineland on your own" typed (it stood at 0); the reading
+  is 208 px with its scroll.
+- **The trap:** `_relayout_terminal` re-computes `disp_h` per form after its first reading. A height read before the
+  column's branch is the desk's height.
+
+### 237.7 Verified
+
+- **In the real client** (`tools/dd_b_play.py`, port 8006+), at the first player's setup and the small window.
+- **The behaviour tests:** `tests/test_dd_b_the_client_hands.py::TestRowFR1TheFourRows` and
+  `TestRowFR1AtTheSmallWindow` (the engine lane); IC2-N1's `TestRowIC7TheButtons` pin with its xfail dropped.
+- **The source guards:**
+  - WS-10's (plus FR1-1's);
+  - PW3-D1's (the xfail replaced);
+  - IC3-N1's (its xfail dropped);
+  - the Cabinet's share, re-pinned with its history;
+  - PW part 3's hover words.
+- **Checks:** the parse harness reads 0 errors, and the census lists WS-R alone.
+  - **The suite on the final tree** (PYTHONDONTWRITEBYTECODE unset, as the hook runs it):
+    - outside the five window modules: 43,364 passed;
+    - two pins of `_relayout_terminal` re-seated for `_fr1_log_floor` (84 passed);
+    - after the grid's last change: the window lane 366 passed and 1 skipped (a data-dependent skip); the headless
+      client lanes 981 passed; `tests/test_ui6_interaction.py` 49 passed.
+  - `ruff check backend/` clean.
+
+**Traps of the session.**
+1. A source pin that reads a reader's words passes while the writer writes elsewhere. Press the behaviour.
+2. A test that presses 3 on a book already at 3 proves nothing. Press a digit that moves something.
+3. A definition behind an ⓘ is invisible to a frame, and most players play folded. Say a word on the face where it
+   is first used.
+4. A row added to a full column moves its head. Take the room from the flexible part's floor, not from the top.
+5. Write a closing status only after its proof. A blind reading's pass is claimed after it is run, never before.

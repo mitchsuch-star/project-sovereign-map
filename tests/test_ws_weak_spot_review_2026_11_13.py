@@ -557,10 +557,24 @@ class TestWS10TwoSurfacesClaimTheBareDigits:
         body = _func(_gd("marshal_management.gd"), "_input")
         assert '$PanelContainer.has_meta("side_desk_docked")' in body
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     @pytest.mark.parametrize("script", ["strategic_ledger.gd", "diplomatic_ledger.gd"])
     def test_one_surface_owns_a_bare_digit_while_a_ledger_is_docked(self, script):
-        assert "side_desk_docked" in _func(_gd(script), "_input")
+        """FIXED in row FR's Session FR-1 (November 23, 2026), by the ruling: a
+        pinned ledger leaves the bare digits to the war room and turns on
+        Alt+digit. A source guard only — the behaviour is pressed in the real
+        client (`test_dd_b_the_client_hands.py::TestRowFR1TheFourRows`), because
+        this very idiom stood on the Generals screen for ten days and never fired:
+        the flag was written on the screen's root and read on its panel (FR1-1)."""
+        body = _func(_gd(script), "_input")
+        assert "side_desk_docked" in body and "alt_pressed" in body
+
+    def test_the_pinned_flag_is_written_where_the_readers_ask(self):
+        """FR1-1: `top_bar._set_docked` marks the PanelContainer every reader
+        asks, and removes the flag on unpin (the readers ask `has_meta`)."""
+        body = _func(_gd("top_bar.gd"), "_set_docked")
+        assert 'node.get_node_or_null("PanelContainer")' in body
+        assert "holder.remove_meta(DOCKED_META)" in body
+        assert 'node.set_meta("side_desk_docked", on)' not in body
 
 
 class TestWS11ABattleIsRolledAgainByLoading:

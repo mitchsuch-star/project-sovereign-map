@@ -38,8 +38,10 @@ from tools import defect_census as census  # noqa: E402
 # before S15 by the design's D23 and the user's no-cuts rule) joined November 20,
 # 2026 with the review of "on his own" (`docs/INDEPENDENT_COMMAND_SPEC.md` v6 §15;
 # `PRE_DEPLOY_PLAN.md` §2 row IC): the typed road's rows moved there from Session H.
+# Row FR (the five open rows, Sessions FR-1 and FR-2, before row TU and S15 by the
+# user's word of November 23, 2026) joined that day: the five moved there from Session H.
 SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-i]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b|\bAU-[1-4][abc]?\b"
-                     r"|\bBA-[1-4]\b|\bIC-(?:[7-9]|1[0-5])\b")
+                     r"|\bBA-[1-4]\b|\bIC-(?:[7-9]|1[0-5])\b|\bFR-[12]\b")
 
 
 def _open_rows():

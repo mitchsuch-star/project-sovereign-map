@@ -53,6 +53,12 @@ var screens: Dictionary = {}    # maps screen name -> node reference
 # never saved.
 var pinned_screen: String = ""
 const PIN_TOOLTIP := "Keep this screen open beside the map — Esc or Unpin closes it"
+# WS-10 (row FR, Session FR-1): pinned, a ledger's books turn on Alt+number and
+# the bare number keys stay with the selected marshal's card — said before the press.
+const PIN_LEDGER_TOOLTIP := "Keep this screen open beside the map — its books then turn with Alt and a number key, and the number keys alone stay with your marshal's card; Esc or Unpin closes it"
+# FR1-1: the one name of the pinned flag, set on a pinned screen's root AND its
+# PanelContainer (where the readers ask), removed on unpin — never set false.
+const DOCKED_META := "side_desk_docked"
 # Session UI-4: the compact view leaves no room beside the map for a desk
 const PIN_COMPACT_TOOLTIP := "No room beside the map at this Interface Scale — lower it to keep a screen beside the map"
 var _pin_chips: Dictionary = {}  # screen name -> its header's Pin chip
@@ -564,14 +570,33 @@ func _dress_pin_chip(screen_name: String) -> void:
 		return
 	var locked := pinned_screen != screen_name and not can_pin()
 	chip.disabled = locked
-	chip.tooltip_text = PIN_COMPACT_TOOLTIP if locked else PIN_TOOLTIP
+	chip.tooltip_text = PIN_COMPACT_TOOLTIP if locked else _pin_tip(screen_name)
+
+
+func _pin_tip(screen_name: String) -> String:
+	"""WS-10: a ledger's Pin says before the press what pinning does to the keys."""
+	return PIN_LEDGER_TOOLTIP if screen_name in ["ledger", "diplomatic_ledger"] else PIN_TOOLTIP
 
 
 func _set_docked(node: Node, on: bool) -> void:
 	"""Dock a screen at the Side Desk or return it to its centred self: its
 	overlay hides and lets the mouse through, its grip hides, its chip reads
 	Unpin; undocked, each comes back as it was."""
-	node.set_meta("side_desk_docked", on)
+	# FR1-1 (row FR, Session FR-1, November 23, 2026): the flag stands on the
+	# screen's PanelContainer — where every reader asks (the Generals screen's
+	# stand-aside and narrow roster, the ledgers' digits, the Dispatch's clamp,
+	# `Utils.fit_reading_window`) — and is REMOVED on undock, because the readers
+	# ask `has_meta`. It was written on the screen's root and set to false on
+	# undock, so no reader ever saw a pin: with the Generals screen pinned, a bare
+	# 3 jumped its detail to Davout instead of the selected marshal's card
+	# (`docs/audits/fr1_client/before/README.md`).
+	for holder in [node, node.get_node_or_null("PanelContainer")]:
+		if holder == null:
+			continue
+		if on:
+			holder.set_meta(DOCKED_META, true)
+		elif holder.has_meta(DOCKED_META):
+			holder.remove_meta(DOCKED_META)
 	var overlay := node.get_node_or_null("BackgroundOverlay") as Control
 	if overlay != null:
 		if not overlay.has_meta("side_desk_filter"):
@@ -593,6 +618,10 @@ func _set_docked(node: Node, on: bool) -> void:
 		var panel := node.get_node_or_null("PanelContainer") as Control
 		if panel != null and node.visible:
 			Utils.clamp_centered_panel(panel)
+	# WS-10 (row FR, Session FR-1): a pinned ledger names the keys it answers
+	# (Alt+1–8; the bare digits are the war room's) — the screen re-draws its page.
+	if node.has_method("on_docked_changed"):
+		node.call_deferred("on_docked_changed")
 
 
 func _dock(node: Node) -> void:

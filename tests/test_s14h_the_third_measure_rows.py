@@ -10747,8 +10747,11 @@ class TestS14G16TheHints:
         assert "Press G to close" not in src
 
     def test_the_ledger_says_esc_and_the_alt_form(self):
+        # (row FR, Session FR-1 — WS-10: the books' keys are one constant, said as the
+        # ledger stands — a book's or, pinned beside the map, Alt+1–8 alone)
         src = _r16_gd("strategic_ledger.gd")
-        assert "(Alt+1–8 while you type); Esc closes it (Alt+T while you type)." in src
+        assert 'const BOOK_KEYS_WORDS := "Keys 1–8 turn the ledger\'s books (Alt+1–8 while you type)"' in src
+        assert '_book_keys_words() + "; Esc closes it (Alt+T while you type)."' in src
         assert "press T to close it" not in src
 
     def test_the_dispatch_says_esc_and_the_alt_form(self):
@@ -13065,7 +13068,7 @@ class TestS14G22:
         # the default-height meta is set BEFORE the grip loads the stored size
         assert (ready.index('$PanelContainer.set_meta("clamp_ceiling_fraction", CABINET_CEILING_SHARE)')
                 < ready.index('ResizeGrip.attach_centered($PanelContainer, "cabinet")'))
-        assert "const CABINET_CEILING_SHARE := Vector2(0.0, 0.8)" in wiz  # Session UI-2: 0.6 -> 0.7; Session UI-3: 0.7 -> 0.8
+        assert "const CABINET_CEILING_SHARE := Vector2(0.0, 0.9)" in wiz  # Session UI-2: 0.6 -> 0.7; Session UI-3: 0.7 -> 0.8; row FR, FR-1 (PW3-D1): 0.8 -> 0.9
         # the one road the open wizard fits by is untouched
         assert "Utils.clamp_centered_panel($PanelContainer)" in _r22_func(wiz, "refit")
         scene = (_R22_SCENES / "diplomacy_wizard.tscn").read_text(encoding="utf-8")
