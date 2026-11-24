@@ -1,0 +1,157 @@
+"""Row FR, Session FR-2 — "the weak-spot readers' twelve finds" — the
+BASELINE_SERIES attribution (November 23, 2026): which of the session's rows
+moves the ambient forty-turn series (`tests/test_ai_intent_threat_migration.py
+--emit-series`, the idle France on the historical seed). Every seam of
+`tests/_fr2_seams.py` is wrapped in the child and its reads COUNTED, so an arm
+whose seam is never read shows it: its byte-identical series attributes
+nothing, and the row's effect must be read on another measure (the session's
+review: SHELL and SALVO were never read on the idle series — no court's
+battery fires there — and the band and the farm arms carry them). The prior is
+HEAD's `BASELINE_SERIES` (never the working tree's), the S14k rig's rule.
+
+A row stands in one of two states in an arm: `down` (its seam answers False)
+or `real` (the function as the tree ships it — every FR-2 row ships up).
+
+Arms:
+    0          every row down — the tree before the session: MUST reproduce
+               the prior byte for byte (R-INERT). The display-only and
+               refusal-only fixes (WS-R1, R2, R3, R8 … R11) carry no seam, so
+               arm 0 is also their proof: they move nothing.
+    ALL        the tree as shipped — the re-pin's value
+    +<ROW>     that row alone up, every other row down — its own effect
+
+    .venv/Scripts/python.exe tools/_fr2_series_arms.py [--arms 0,ALL] [--jobs 4]
+        [--git <the repository a frozen copy was taken from>]
+
+Writes tools/_fr2_series_arms_final.json (a re-run writes its own via --out).
+Run it from a FROZEN COPY of the tree (no edit lands under it while it runs).
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import json
+import os
+import re
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+RUNNER = ROOT / "tests" / "test_ai_intent_threat_migration.py"
+sys.path.insert(0, str(ROOT))
+from tests._fr2_seams import FR2_SEAMS_BY_ROW  # noqa: E402
+
+ROWS = list(FR2_SEAMS_BY_ROW)
+
+
+def _arms() -> dict:
+    arms = {
+        "0": {row: "down" for row in ROWS},
+        "ALL": {row: "real" for row in ROWS},
+    }
+    for row in ROWS:
+        arms["+" + row] = {r: ("real" if r == row else "down") for r in ROWS}
+    return arms
+
+
+ARMS = _arms()
+
+CHILD = r"""
+import sys, runpy, atexit, collections, importlib
+ROWS = {rows!r}
+STATE = {state!r}
+_c = collections.Counter()
+def _wrap(module, name, row):
+    mod = importlib.import_module(module)
+    real = getattr(mod, name)
+    def seam(*a, **k):
+        _c[f"{{row}}:{{name}}"] += 1
+        return False if STATE.get(row) == "down" else real(*a, **k)
+    setattr(mod, name, seam)
+for row, specs in ROWS.items():
+    for spec in specs:
+        target = spec.split("=", 1)[0]
+        module, name = target.split(":", 1)
+        _wrap(module, name, row)
+def _dump():
+    print("REACH=" + repr(dict(_c)))
+atexit.register(_dump)
+sys.argv = [r"{runner}", "--emit-series"]
+runpy.run_path(r"{runner}", run_name="__main__")
+"""
+
+
+def run_arm(state: dict) -> dict:
+    env = dict(os.environ)
+    env["PYTHONHASHSEED"] = "0"
+    env["PYTHONPATH"] = str(ROOT)
+    env["SOVEREIGN_SEED"] = "historical"
+    env["LLM_MODE"] = "mock"
+    for k in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "PYTHONIOENCODING",
+              "PYTHONDONTWRITEBYTECODE", "INK_IRON_SEAMS"):
+        env.pop(k, None)
+    rows = {r: list(FR2_SEAMS_BY_ROW[r]) for r in ROWS}
+    code = CHILD.format(rows=rows, state=dict(state), runner=str(RUNNER))
+    proc = subprocess.run([sys.executable, "-c", code], env=env, cwd=str(ROOT),
+                          capture_output=True, timeout=3600)
+    stdout = proc.stdout.decode("utf-8", errors="replace")
+    stderr = proc.stderr.decode("utf-8", errors="replace")
+    if proc.returncode != 0:
+        raise SystemExit(f"arm failed:\n{stdout[-2000:]}\n{stderr[-3000:]}")
+    lines = stdout.splitlines()
+    payload = json.loads([ln for ln in lines if ln.startswith("PAYLOAD=")][-1][len("PAYLOAD="):])
+    counts = [ln for ln in lines if ln.startswith("REACH=")]
+    payload["reach"] = ast.literal_eval(counts[-1].split("=", 1)[1]) if counts else None
+    return payload
+
+
+def first_divergence(a, b):
+    for i, (x, y) in enumerate(zip(a, b)):
+        if x != y:
+            return i
+    return None if len(a) == len(b) else min(len(a), len(b))
+
+
+def prior_series(git_root: str = str(ROOT)) -> list:
+    """HEAD's `BASELINE_SERIES`, read from `git_root` (the repository a frozen
+    copy was taken from)."""
+    rel = RUNNER.relative_to(ROOT).as_posix()
+    text = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=git_root,
+                          capture_output=True, check=True).stdout.decode("utf-8")
+    m = re.search(r"^BASELINE_SERIES = (\[[^\]]*\])", text, re.M)
+    return json.loads(m.group(1))
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arms", default=",".join(ARMS))
+    ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--out", default=str(ROOT / "tools" / "_fr2_series_arms_final.json"))
+    ap.add_argument("--git", default=str(ROOT), help="the repository whose HEAD holds the prior")
+    args = ap.parse_args()
+    prior = prior_series(args.git)
+    names = [x.strip() for x in args.arms.split(",") if x.strip()]
+    unknown = [a for a in names if a not in ARMS]
+    if unknown:
+        raise SystemExit(f"unknown arms {unknown}; known: {sorted(ARMS)}")
+    out = {"prior": prior, "rows": ROWS, "arms": {}}
+    with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+        results = dict(zip(names, pool.map(lambda a: run_arm(ARMS[a]), names)))
+    for arm in names:
+        payload = results[arm]
+        series = payload["series"]
+        out["arms"][arm] = {"state": ARMS[arm], "series": series,
+                            "first_divergence_vs_prior": first_divergence(series, prior),
+                            "provinces": payload.get("provinces"),
+                            "reach": payload.get("reach")}
+        print(f"arm {arm:>8}: divergence vs prior {out['arms'][arm]['first_divergence_vs_prior']}",
+              flush=True)
+    Path(args.out).write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    print("wrote", args.out)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

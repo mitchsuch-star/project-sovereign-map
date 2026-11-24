@@ -256,13 +256,30 @@ class TestGRD33TheLiteralBuffExpiresWithTheTurn:
             world.advance_turn()
         assert int(soult.strategic_combat_bonus) == 15 and int(soult.strategic_defense_bonus) == 15
 
-    def test_only_the_players_literal_marshal_carries_it(self, world1805):
-        """A bold man's bonus and a court's literal man's are not this buff
-        (the courts' marshals are scored by the AI's own formula)."""
+    def test_every_holders_bonus_expires_with_the_turn(self, world1805):
+        """WS-R4 (row FR, Session FR-2): the rule covers every holder. A
+        court's bonus is now set before the attack it rewards and spent by it,
+        so whatever an attack refused before its blow left standing — or any
+        stray bonus — is gone at dawn; before, a court's literal man (Mack)
+        kept his for his next attack, however many turns later."""
         world = _fresh(world1805)
         ney, mack = world.marshals["Ney"], world.marshals["Mack"]
         assert ney.personality != "literal" and mack.personality == "literal"
         assert mack.nation != world.player_nation
+        ney.strategic_combat_bonus = 10
+        mack.strategic_combat_bonus = 10
+        with _quiet():
+            world.advance_turn()
+        assert int(ney.strategic_combat_bonus) == 0 and int(mack.strategic_combat_bonus) == 0
+
+    def test_with_wsr4_down_only_the_players_literal_marshal_is_cleared(self, world1805,
+                                                                        monkeypatch):
+        """GRD-33 as it was built: with WS-R4's seam down only the player's
+        literal marshals are cleared (the courts' marshals banked theirs)."""
+        from backend.ai import feedback as FB
+        monkeypatch.setattr(FB, "a_courts_bonus_rides_its_own_act", lambda: False)
+        world = _fresh(world1805)
+        ney, mack = world.marshals["Ney"], world.marshals["Mack"]
         ney.strategic_combat_bonus = 10
         mack.strategic_combat_bonus = 10
         with _quiet():

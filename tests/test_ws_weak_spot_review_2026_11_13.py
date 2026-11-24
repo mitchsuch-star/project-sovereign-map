@@ -660,9 +660,10 @@ class TestWS15ARefusedAttackCancelsADrill:
 class TestWSRTheReviewsUnconfirmedFinds:
     """The finds the readers reported and the lead did not confirm in the code
     (BUG_FIXES.md §WS lists them): each is confirmed — then fixed, or filed
-    under its own id — or refuted, at Session H's head."""
+    under its own id — or refuted. CLOSED by row FR, Session FR-2 (November
+    23, 2026): every one read in the code and proved by a behaviour test,
+    `tests/test_fr2_the_twelve_finds.py` (rows WS-R1 … WS-R12)."""
 
-    @pytest.mark.xfail(strict=True, reason=_OPEN_S15)
     def test_every_find_is_confirmed_or_refuted(self):
         sys.path.insert(0, str(REPO))
         from tools import defect_census as census

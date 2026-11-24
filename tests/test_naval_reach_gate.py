@@ -101,10 +101,32 @@ class TestTheCavalryChannelHop:
                          "target": "Moore", "type": "specific"}},
             {"world": world})
         assert result["success"] is False
-        assert result.get("blocked_naval") == "Britain"
+        # WS-R1 (row FR, Session FR-2): Moore is out of sight from Paris, so the
+        # hop is refused by the unseen answer — never a crossing that names his
+        # province (the in-sight twin below keeps the fleet's own refusal).
+        assert result.get("fogged") is True and "London" not in result["message"]
         # The measured failure was the POSITION, so pin the position.
         assert murat.location == "Paris"
         assert world.regions["London"].controller == "Britain"
+
+    def test_the_attack_verb_refuses_the_hop_at_a_man_in_sight(self, world, executor):
+        """The same hop with Moore in view (a corps of ours in Normandy): the
+        fleet's own refusal, naming the crossing."""
+        murat = _cavalry_at(world, "Murat", "Paris")
+        moore = world.get_marshal("Moore")
+        moore.location = "London"
+        moore.strength = 8000
+        world.get_marshal("Ney").location = "Normandy"
+        world._build_marshal_index()
+        world.calculate_visibility()
+        world.actions_remaining = 9
+        result = executor.execute(
+            {"command": {"marshal": "Murat", "action": "attack",
+                         "target": "Moore", "type": "specific"}},
+            {"world": world})
+        assert result["success"] is False
+        assert result.get("blocked_naval") == "Britain"
+        assert murat.location == "Paris"
 
     def test_the_charge_verb_refuses_it_too(self, world, executor):
         """The Glorious Charge only gated its ADVANCE, so a reckless
@@ -116,6 +138,10 @@ class TestTheCavalryChannelHop:
         moore.location = "London"
         moore.strength = 8000
         world._build_marshal_index()
+        # WS-R1 (row FR, Session FR-2): next door, Moore is IN SIGHT once the
+        # fog is read again — the fleet's own refusal stands for a man in view
+        # (a man out of sight gets the unseen answer, `test_fr2_the_twelve_finds`).
+        world.calculate_visibility()
         result = executor._combat._execute_glorious_charge(
             murat, "Moore", world, {"world": world})
         assert result["success"] is False

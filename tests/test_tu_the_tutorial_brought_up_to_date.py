@@ -84,6 +84,17 @@ class TestTULessonsTeachTheGameAsItIs:
         assert any(words in title or words.replace("-", " ") in title for title in _help_titles())
 
     @pytest.mark.xfail(strict=True, reason=_OPEN_TU)
+    def test_help_and_keys_says_a_battles_bonuses_multiply(self):
+        """§3, §5 (row FR, Session FR-2's blind reading: every reader right in
+        meaning, but two answers still guessed why a defence cut from +81% to
+        +75% reads -3%): Help & Keys says that a battle's bonuses multiply and
+        that a defence is limited to +75%."""
+        src = CODEX.read_text(encoding="utf-8")
+        i = src.index("const TERMS")
+        j = src.index("\n]", i)
+        assert any("multipl" in line.lower() and "+75" in line for line in src[i:j].splitlines())
+
+    @pytest.mark.xfail(strict=True, reason=_OPEN_TU)
     def test_the_script_is_rewritten_from_the_code(self):
         """§2.8: `docs/TUTORIAL_SCRIPT.md` says "Eighteen cards" and "AP"."""
         text = SCRIPT_DOC.read_text(encoding="utf-8")

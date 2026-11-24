@@ -390,6 +390,11 @@ func _update_tab_highlights():
 func _render_current_tab():
 	if cached_data.is_empty():
 		return
+	# WS-R9 (row FR, Session FR-2): the width a page's tables were drawn to is
+	# forgotten whenever a page draws — only a page that MEASURES (Nations, folded
+	# or on the page; Balance) sets it again, so a page that measures nothing
+	# is never redrawn on every resize step against a width another page left.
+	_width_used = -1
 	_stop_critical_pulse()
 	match current_tab:
 		0:
@@ -563,6 +568,18 @@ func _balance_width() -> int:
 	return out
 
 
+func _nations_table_is_wide() -> bool:
+	"""The unfolded Nations table is laid out wide from 820 px of window. Row FR,
+	Session FR-2's review (FR2-2): it measures the window, so it records the
+	width it was drawn to as `_balance_width` does, and a resize past the line
+	redraws it (WS-R9 forgets every width when a page draws)."""
+	if content_area == null:
+		return false
+	var w: int = int(content_area.size.x) - 64
+	_width_used = w if w > 280 else 640
+	return int(content_area.size.x) >= 820
+
+
 var _width_used := -1   # the content width the open tab's tables were drawn to
 # Session UI-6: the page's right text margin — no text or table reaches the cards' hairline.
 const PAGE_RIGHT_MARGIN := 16.0
@@ -570,14 +587,17 @@ const PAGE_RIGHT_MARGIN := 16.0
 const GRID_FACT_MAX_CHARS := 44
 
 
-func _on_content_resized() -> void:
+func _on_content_resized() -> bool:
 	"""Redraw the open tab once its page settles at a width its tables were not
-	drawn to (more than 16 px off) — never on a sub-pixel jitter."""
+	drawn to (more than 16 px off) — never on a sub-pixel jitter. WS-R9: true
+	when a redraw was scheduled (the driven pin reads it)."""
 	if not visible or _width_used < 0 or cached_data.is_empty() or content_area == null:
-		return
+		return false
 	var w: int = int(content_area.size.x) - 64
 	if w > 280 and absi(w - _width_used) > 16:
 		call_deferred("_rerender_keeping_scroll")
+		return true
+	return false
 
 
 func _gauge_scale_table(brews: int, forms: int) -> String:
@@ -897,7 +917,7 @@ func _render_nations():
 		if Utils.explanations_folded():
 			bbcode += _court_grid(facts)
 		else:
-			bbcode += _facts_table(facts, content_area != null and int(content_area.size.x) >= 820)
+			bbcode += _facts_table(facts, _nations_table_is_wide())
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor) — each tie
 		# a state badge, the temper in words after it.

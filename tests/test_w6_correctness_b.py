@@ -165,7 +165,9 @@ class TestModifierLabels:
         mods = snapshot_attacker_modifiers(attacker, defender, "plains",
                                            0.0, 0, False)
         labels = [m["label"] for m in mods]
-        assert "Forced march momentum (order completed)" in labels
+        # WS-R3 (row FR, Session FR-2): the plain words true of both roads
+        # that grant it — never a forced march, which grants nothing.
+        assert "Confidence in his orders" in labels
         assert "Strategic orders" not in labels
 
     def test_defender_forced_march_label(self):
@@ -174,7 +176,7 @@ class TestModifierLabels:
         defender.strategic_defense_bonus = 15
         mods = snapshot_defender_modifiers(defender, attacker, "plains", 0)
         labels = [m["label"] for m in mods]
-        assert "Forced march momentum (order completed)" in labels
+        assert "Confidence in his orders" in labels
         assert "Strategic orders" not in labels
 
     def test_literal_hold_labeled_immovable(self):

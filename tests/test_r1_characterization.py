@@ -416,8 +416,15 @@ class TestBombardmentPostCombat:
         assert result["success"]
         assert art.idle_turns == 0
 
-    def test_bombardment_records_diplo_battle(self):
-        """Bug 5 fixed: bombardment NOW records diplomacy battle via pipeline."""
+    def test_bombardment_records_diplo_battle(self, monkeypatch):
+        """Bug 5 fixed: bombardment NOW records diplomacy battle via pipeline.
+        WS-R12 (row FR, Session FR-2, find 12 — a farm by the rule written
+        before the data): a salvo writes its battle row only past
+        `battle_scale.CANNONADE_MIN_CASUALTIES`; with the SALVO seam down it
+        writes the row as Bug 5's fix did — pinned here with the seam down, its
+        new half in `test_a_small_salvos_dead_count_with_no_battle_row`."""
+        from backend.game_logic import battle_scale
+        monkeypatch.setattr(battle_scale, "a_salvo_is_a_battle_only_at_scale", lambda: False)
         art, target, world = self._setup_bombardment()
         executor = CommandExecutor()
         game_state = {"world": world}
@@ -427,6 +434,26 @@ class TestBombardmentPostCombat:
 
         assert result["success"]
         assert _count_battle_records(world) > initial_records
+
+    def test_a_small_salvos_dead_count_with_no_battle_row(self):
+        """WS-R12, the seam up (as shipped): the salvo still reaches the
+        pipeline's diplomacy record — its dead on the pair's campaign ledger
+        (the war score's blood) — but under 5,000 dead it writes no battle."""
+        art, target, world = self._setup_bombardment()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        key = world._make_diplo_key("Britain", "France")
+
+        def _dead():
+            ledger = (getattr(world, "campaign_ledgers", {}) or {}).get(key) or {}
+            return sum(int(v or 0) for v in (ledger.get("casualties") or {}).values())
+
+        initial_records, initial_dead = _count_battle_records(world), _dead()
+        result = executor._execute_bombardment(art, target, world, game_state)
+
+        assert result["success"]
+        assert _count_battle_records(world) == initial_records
+        assert _dead() > initial_dead
 
     def test_bombardment_does_not_add_coalition_threat(self):
         """Pin: bombardment does NOT add coalition threat."""

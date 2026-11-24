@@ -1,16 +1,28 @@
-# NEXT SESSION PROMPT — Row FR, Session FR-2 (the readers' twelve finds), then row TU, the tutorial brought up to date, then Session H, the deploy (read the first block)
+# NEXT SESSION PROMPT — Row TU, the tutorial brought up to date, then Session H, the deploy (read the first block)
 
-> **▶ NEXT: Session FR-2** — its section below, and first its design doc `docs/WEAK_SPOT_FINDS_SPEC.md`.
-> **Session FR-1 ✅ BUILT November 23, 2026** (`SYSTEMS_REFERENCE.md` §237; `BUG_FIXES.md` §"Row FR, Session FR-1"):
-> - **The four rows closed:** WS-10, IC3-N1, PW3-D1, IC2-N1.
-> - **Two older defects found on the way, and fixed:**
->   - FR1-1 — the pinned flag was written where no reader looked;
->   - FR1-2 — a long reading lifted the command window's head under the top bar.
-> - IC3-N1's blind reading read 15 of 15. The census lists WS-R alone.
-> - **The design docs** for FR-2 and row TU were written at FR-1's head, with row TU's own test
->   `tests/test_tu_the_tutorial_brought_up_to_date.py`.
-> - FR-1 is committed only at the user's word. If the working tree still holds it when FR-2 opens, ask before
->   building on it.
+> **▶ NEXT: row TU** — its section below, and first its design doc `docs/TUTORIAL_UPDATE_SPEC.md` (read its §12
+> "What TU must re-read after FR-1 and FR-2" before the plan).
+> **Session FR-2 ✅ BUILT November 23, 2026** (`SYSTEMS_REFERENCE.md` §238; `BUG_FIXES.md` WS-R and WS-R1 … WS-R12;
+> the landing record `docs/WEAK_SPOT_FINDS_SPEC.md` §7):
+> - **All twelve finds in one session:** ten confirmed and fixed (each for the part that was real), one refuted
+>   (WS-R6), and find 12 a farm by the rule written before the data, fixed (WS-R12: a salvo writes a won battle only
+>   past 5,000 dead).
+> - **Row FR is closed:** the census lists no open defect row.
+> - **What TU inherits from FR-2:**
+>   - the battle report's new rows — "Confidence in his orders", "Jealous lone attack", "Pride after proving
+>     himself", "Cavalry momentum (charged again today)" and "Defence limit (the bonuses multiply to +N%; the limit
+>     is +75%)" (card VIII shows the report);
+>   - a Help & Keys entry saying that a battle's bonuses multiply and that a defence is limited to +75 %. FR-2's
+>     blind reading left two answers guessing at that arithmetic. It is homed in the design's §3 and §5, with a
+>     strict pin, `tests/test_tu_the_tutorial_brought_up_to_date.py::…::test_help_and_keys_says_a_battles_bonuses_multiply`;
+>   - the refusals a card may quote: "No road reaches …" (find 2), and the out-of-sight answers that name a man's
+>     last sighting (finds 1 and 10);
+>   - what a bombardment scores (card VI): a salvo is a won battle only past 5,000 dead.
+> - FR-2 is committed at the user's word (“Commit the working tree changes with a sensible message”, November 24), and not pushed. If these lines
+>   still say "not pushed" after a push, put them right in TU's commit.
+>
+> **Session FR-1 ✅ BUILT November 23, 2026** (`SYSTEMS_REFERENCE.md` §237): WS-10, IC3-N1, PW3-D1 and IC2-N1 closed;
+> FR1-1 and FR1-2 found on the way and fixed; committed as 8dd99217 and pushed.
 
 > **READ THIS FIRST — the user's word of November 23, 2026, after row IC closed:** "after this give prompt for a
 > session to update tutorial so it reflects all updates we made and ficx Five defect rows remain open can eb
@@ -91,7 +103,7 @@ changed screen pressed at both setups; IC3-N1's blind reading met (three fresh r
 the census lists WS-R alone (a sibling the sweep finds is fixed here, or heads FR-2 as a row of its own). Records: STATUS (the entry; ▶ NEXT UP → FR-2), `SYSTEMS_REFERENCE.md` (a new section),
 `BUG_FIXES.md`, `docs/PRE_DEPLOY_PLAN.md` row FR, this file (FR-2 next).
 
-## Row FR, Session FR-2 — the readers' twelve finds (WS-R)
+## Row FR, Session FR-2 — the readers' twelve finds (WS-R) — ✅ BUILT November 23, 2026 (`SYSTEMS_REFERENCE.md` §238; the plan below as it was decided, kept)
 
 > **Design doc: `docs/WEAK_SPOT_FINDS_SPEC.md`** (written November 23, 2026, at FR-1's head) — read it first: each
 > find read in the code with a first reading (§2), the census trap that keeps the pin red if WS-R closes as REFUTED

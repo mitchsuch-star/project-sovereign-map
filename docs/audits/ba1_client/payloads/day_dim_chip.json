@@ -40,8 +40,8 @@
     "nation": "France",
     "arm": "infantry",
     "committed": 33255,
-    "casualties": 4334,
-    "remaining": 28921,
+    "casualties": 4551,
+    "remaining": 28704,
     "status": "engaged",
     "lead": true,
     "crowned": false,
@@ -49,7 +49,7 @@
    }
   ],
   "reserve_count": 0,
-  "casualties_total": 4334,
+  "casualties_total": 4551,
   "committed_total": 33255,
   "reserve_casualties": 0,
   "nation": "France"
@@ -117,6 +117,15 @@
       "penalty": false
      },
      {
+      "kind": "momentum",
+      "side": "attacker",
+      "actor": "ArchdukeCharles",
+      "text": "Archduke Charles goes in confident in his orders (+5%).",
+      "weight": "detail",
+      "pct": 5,
+      "penalty": false
+     },
+     {
       "kind": "ability",
       "side": "defender",
       "actor": "Massena",
@@ -175,7 +184,7 @@
   "theirs_of": 3,
   "awaits": "ours",
   "pending": false,
-  "morning": "The day so far: 13,079 of ours for 8,066 of his — Archduke Charles has the better of the toll.",
+  "morning": "The day so far: 13,296 of ours for 8,066 of his — Archduke Charles has the better of the toll.",
   "ahead": "even",
   "told": [
    {
@@ -191,7 +200,7 @@
    {
     "who": "clash",
     "kind": "clash",
-    "line": "Archduke Charles's attack: drawn — 4,334 of ours for 4,294 of his; an even fight."
+    "line": "Archduke Charles's attack: drawn — 4,551 of ours for 4,294 of his; an even fight."
    }
   ],
   "ended": "",
@@ -209,7 +218,7 @@
     "odds": "unfavorable",
     "marshal": "Massena",
     "shown": "Massena",
-    "does": "odds: unfavorable — 28,921 on 45,934",
+    "does": "odds: unfavorable — 28,704 on 45,934",
     "more": "A clash that decides ends the day at once.",
     "risk": "likely to be thrown back; he may strike in turn"
    },
@@ -256,7 +265,7 @@
     "odds": "",
     "marshal": "Massena",
     "shown": "Massena",
-    "does": "the day ends; he keeps the field; the toll stands at 13,079 of ours for 8,066 of his",
+    "does": "the day ends; he keeps the field; the toll stands at 13,296 of ours for 8,066 of his",
     "more": "The attack is given up and the day ends where it stands."
    },
    {

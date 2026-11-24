@@ -43,9 +43,7 @@ reading dict and the memory it is handed), byte-for-byte under
 """
 from __future__ import annotations
 
-import contextlib
 import hashlib
-import io
 from typing import Any, Dict, List, Mapping, Optional
 
 from backend.errors import report
@@ -183,7 +181,12 @@ ROAD_ACTIONS = {
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _quiet(fn, *args, **kwargs):
-    with contextlib.redirect_stdout(io.StringIO()):
+    """WS-R8 (row FR, Session FR-2): the inner calls' prints are muted for
+    THIS request only (`utils.quiet`) — `redirect_stdout` swapped the
+    process's stdout, and the Cabinet's preview runs in a worker thread beside
+    the order road: two swaps left out of order end the server's output."""
+    from backend.utils.quiet import quiet
+    with quiet():
         return fn(*args, **kwargs)
 
 

@@ -16764,15 +16764,22 @@ class WorldState:
         # TURN. The crisp-order buff (`_apply_grouchy_ambiguity_buff`) is for
         # the turn it was given in — it covers the enemy's phase behind it and
         # is gone at dawn, never banked for a battle turns later (Iron
-        # Resolve's no-banking rule, one marshal over). Only the player's
-        # literal marshals carry it (the courts' marshals are scored by the
-        # AI's own formula and spend theirs in the act that set it).
+        # Resolve's no-banking rule, one marshal over). WS-R4 (row FR, Session
+        # FR-2): the courts' marshals, scored by the AI's own formula, now
+        # carry the bonus INTO the attack it rewards (`feedback.
+        # a_courts_bonus_rides_its_own_act`) — and whatever an attack refused
+        # before its blow left standing is cleared here with the player's:
+        # the rule covers every holder. With that seam down only the player's
+        # literal marshals are cleared, as GRD-33 built it.
         # ════════════════════════════════════════════════════════════
         from backend.commands.meta_executor import the_literal_buff_expires_with_the_turn
+        from backend.ai.feedback import a_courts_bonus_rides_its_own_act
         if the_literal_buff_expires_with_the_turn():
+            every_holder = a_courts_bonus_rides_its_own_act()
             for marshal in self.marshals.values():
-                if (getattr(marshal, "personality", "") == "literal"
-                        and marshal.nation == self.player_nation
+                if ((every_holder
+                     or (getattr(marshal, "personality", "") == "literal"
+                         and marshal.nation == self.player_nation))
                         and (getattr(marshal, "strategic_combat_bonus", 0)
                              or getattr(marshal, "strategic_defense_bonus", 0))):
                     marshal.strategic_combat_bonus = 0
@@ -18320,6 +18327,15 @@ class WorldState:
             "nation": nation,
             "timestamp": int(self._action_counter)
         }
+
+        # WS-R7 (row FR, Session FR-2): a remnant's attack is no flank — a
+        # corps under `battle_scale.COUNTED_CORPS_MIN_STRENGTH` records no
+        # origin for the flanking bonus another corps draws.
+        from backend.game_logic.battle_scale import a_remnant_is_not_a_corps, counts_as_a_corps
+        _attacker = self.marshals.get(attacker_name)
+        if (a_remnant_is_not_a_corps() and _attacker is not None
+                and not counts_as_a_corps(_attacker)):
+            return attack_record
 
         # Initialize target list if needed
         if target_region not in self.attacks_this_turn:

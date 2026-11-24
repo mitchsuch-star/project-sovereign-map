@@ -97,13 +97,15 @@ class TestSnapshotAttackerModifiers:
     def test_strategic_combat_bonus(self):
         """Strategic combat bonus should appear and NOT be consumed.
 
-        W6-1 (BUG-CA-5): the label is now the player-mappable
-        "Forced march momentum (order completed)"."""
+        W6-1 (BUG-CA-5) named it "Forced march momentum (order completed)";
+        WS-R3 (row FR, Session FR-2): nothing grants it for a march — the two
+        roads that do (a literal marshal's clear order, a court's well-judged
+        attack) read "Confidence in his orders"."""
         atk = _make_marshal()
         atk.strategic_combat_bonus = 10
         defn = _make_marshal(name="Def")
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
-        m = _find_mod(mods, "forced march", "bonus")
+        m = _find_mod(mods, "confidence in his orders", "bonus")
         assert m is not None
         assert m["value"] == 10
         # Verify NOT consumed
@@ -208,13 +210,13 @@ class TestSnapshotDefenderModifiers:
     def test_strategic_defense_bonus_not_consumed(self):
         """Strategic defense bonus should appear and NOT be consumed.
 
-        W6-1 (BUG-CA-5): the label is now the player-mappable
-        "Forced march momentum (order completed)"."""
+        W6-1 (BUG-CA-5) named it "Forced march momentum (order completed)";
+        WS-R3 (row FR, Session FR-2): "Confidence in his orders"."""
         defn = _make_marshal()
         defn.strategic_defense_bonus = 15
         atk = _make_marshal(name="Atk")
         mods = snapshot_defender_modifiers(defn, atk, "plains", 0.0)
-        m = _find_mod(mods, "forced march", "bonus")
+        m = _find_mod(mods, "confidence in his orders", "bonus")
         assert m is not None
         assert m["value"] == 15
         # Verify NOT consumed
@@ -474,9 +476,9 @@ class TestBattleReportIntegration:
         atk.strategic_combat_bonus = 10
         defn = _make_marshal(name="Wellington", personality="cautious", strength=68000, nation="Britain")
 
-        # Verify snapshot sees the bonus (W6-1 label: forced march momentum)
+        # Verify snapshot sees the bonus (WS-R3 label: confidence in his orders)
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
-        assert _find_mod(mods, "forced march", "bonus") is not None
+        assert _find_mod(mods, "confidence in his orders", "bonus") is not None
         # Bonus still present after snapshot
         assert atk.strategic_combat_bonus == 10
 

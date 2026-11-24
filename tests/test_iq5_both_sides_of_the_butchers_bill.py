@@ -46,9 +46,18 @@ def _pre_doctrine_board(monkeypatch):
     to arrive (the Austrian bar is 75, not 65), which re-times every figure
     beneath it. The family runs with the doctrine lever DOWN (the board it
     was recorded on); the doctrine's own prose and figures are pinned in
-    `tests/test_sr7d_the_doctrines.py`."""
+    `tests/test_sr7d_the_doctrines.py`.
+
+    Row FR, Session FR-2 (WS-R7, November 23, 2026): the remnant floor too —
+    the stub boards' 500-man corps lends its reinforcer no coordination now,
+    which re-times their figures (measured: the floor's seam ALONE moves the
+    seven stub pins, every FR-2 seam held down one at a time; held down, every
+    figure stands). The family keeps the board it was recorded on; the stub's
+    report under the floor is `test_the_floor_up_stub_still_reports_the_army`."""
+    from backend.game_logic import battle_scale
     from backend.game_logic import doctrines as DC
     monkeypatch.setattr(DC, "DOCTRINES_ACTIVE", False)
+    monkeypatch.setattr(battle_scale, "a_remnant_is_not_a_corps", lambda: False)
 
 from backend.campaign_log import format_event_oneliner
 from backend.commands.combat_executor import (
@@ -562,6 +571,24 @@ class TestTheLogIsBoundedByTheField:
         assert ev["attacker_field_before"] == 100000
         # the lead's figure is still stamped for a reader that wants it
         assert ev["defender_strength_before"] == 500
+
+    def test_the_floor_up_stub_still_reports_the_army(self, monkeypatch):
+        """Row FR, Session FR-2 (WS-R7): with the remnant floor UP, as shipped,
+        the stub's battle re-times (Ney's 500 men lend Davout no coordination)
+        — and the report still prints the army's loss, never the lead's 500,
+        and the dispatch still mauls the man who bled."""
+        from backend.game_logic import battle_scale
+        monkeypatch.setattr(battle_scale, "a_remnant_is_not_a_corps", lambda: True)
+        w, _res, logs, losses = _battle(D_STUB, "Moore", "Ney")
+        army = losses["Ney"] + losses["Davout"]
+        assert army > 500 and losses["Davout"] > losses["Ney"]
+        line = format_event_oneliner(logs[0])
+        assert f" / {army:,} casualties)" in line, line
+        assert "/ 500 casualties" not in line
+        assert logs[0]["defender_field_before"] == 48500
+        _head, texts = _headline_texts(w)
+        assert any(t.startswith("Sire — Davout was mauled at Paris") for t in texts), texts
+        assert not any("Ney was mauled" in t for t in texts)
 
     def test_a_stub_prints_the_armys_loss_on_the_attacker_side(self):
         _w, _res, logs, _ = _battle(A_STUB, "Ney", "Mack")

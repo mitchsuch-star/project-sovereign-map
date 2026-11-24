@@ -191,7 +191,18 @@ class TestTheVolteFaceFiresOnItsArm:
         never fires in forty turns. With the plans' seam held down beside the
         seams above it returns on turn 26 (measured on this drive).
         The arm keeps its purpose with the plans held — the written orders
-        stage the war, they are not the rule."""
+        stage the war, they are not the rule.
+
+        RE-SEATED by row FR, Session FR-2 (November 23, 2026 — WS-R4, the
+        weak-spot readers' find 4; `SYSTEMS_REFERENCE.md` §238): a court's
+        attack is judged before it runs and carries its own +5 / +10 %, where
+        it had waited for that marshal's next attack — the coalition's judged
+        blows land harder and the historical board re-times from there, the
+        beat never firing in forty turns. Measured on this drive, one FR-2
+        seam held down at a time beside the seams above: BANK alone returns the
+        beat on turn 26 (every FR-2 seam down: 26; SHELL, FLOOR and SALVO alone
+        down: none). The arm keeps its purpose with the old banking held — the
+        court's bonus stages the war, it is not the rule."""
         rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
                       "--seam", "backend.models.world_state:deck_entry_stands="
                       "(a[1] or {}).get('id') != 'the_old_alliance'",
@@ -199,7 +210,8 @@ class TestTheVolteFaceFiresOnItsArm:
                       "--seam", "backend.ai.enemy_ai:desperation_reads_the_brakes=False",
                       "--seam", "backend.game_logic.battle_day:key_bar=80000",
                       "--seam", "backend.game_logic.precedence:the_seeds_read_as_of_1805=False",
-                      "--seam", "backend.game_logic.war_plans:the_courts_follow_a_plan=False")
+                      "--seam", "backend.game_logic.war_plans:the_courts_follow_a_plan=False",
+                      "--seam", "backend.ai.feedback:a_courts_bonus_rides_its_own_act=False")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

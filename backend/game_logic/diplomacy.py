@@ -13001,8 +13001,15 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
                   attacker_participants: Optional[List[str]] = None,
                   defender_participants: Optional[List[str]] = None,
                   nation_theater_strength: Optional[Mapping[str, int]] = None,
-                  battle_name: str = "") -> None:
+                  battle_name: str = "",
+                  cannonade: bool = False) -> None:
     """Record a battle result for war score calculation.
+
+    WS-R12 (row FR, Session FR-2): `cannonade` — a bombardment's salvo. Its dead
+    accrue as every exchange's do (the campaign ledger, the settlement's
+    contribution), but it writes a battle row only past
+    `battle_scale.CANNONADE_MIN_CASUALTIES` (seam
+    `battle_scale.a_salvo_is_a_battle_only_at_scale`).
 
     Also checks for decisive battle (casualty ratio > 2:1 AND total > 10,000).
     Max 2 decisive bonuses per war.
@@ -13073,6 +13080,10 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
     # module attribute at call time — see battle_scale's own warning.
     total_casualties = attacker_casualties + defender_casualties
     if not battle_scale.is_a_battle(total_casualties):
+        return
+    # WS-R12: a salvo is a battle only at a battle's scale (the farm, measured).
+    if (cannonade and battle_scale.a_salvo_is_a_battle_only_at_scale()
+            and int(total_casualties) < battle_scale.CANNONADE_MIN_CASUALTIES):
         return
 
     record = {

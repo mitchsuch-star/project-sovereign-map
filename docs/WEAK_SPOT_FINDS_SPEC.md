@@ -1,12 +1,13 @@
 # Row FR, Session FR-2 — the weak-spot readers' twelve finds (WS-R): the design
 
-**Status:** design written November 23, 2026, before Session FR-2 opens. Nothing is built.
+**Status:** ✅ LANDED November 23, 2026 (Session FR-2, all twelve in one session; §7). The design was written the same
+day, before Session FR-2 opened.
 **Owner:** row FR (`docs/PRE_DEPLOY_PLAN.md` §2), Session FR-2 (FR-2a and FR-2b if it splits, §5).
 **By whose word:** the user's, November 23, 2026, after row IC closed: "update tutorial so it reflects all updates we
 made and ficx Five defect rows remain open can eb mul;tiple sessions".
 **Tracked:** `docs/STATUS.md` ▶ NEXT UP; `docs/BUG_FIXES.md` row WS-R.
 **Behaviour test:** `tests/test_ws_weak_spot_review_2026_11_13.py::TestWSRTheReviewsUnconfirmedFinds::test_every_find_is_confirmed_or_refuted`
-(strict xfail; it goes green when the census reads WS-R closed — mind §1's trap).
+(its strict xfail dropped at the landing: the census reads WS-R closed), and per find `tests/test_fr2_the_twelve_finds.py`.
 **Done when:** §6. **Landing record:** §7, written at the landing.
 
 ---
@@ -381,5 +382,89 @@ Adopted, amended or replaced at FR-2's Plan Mode before the first run, never aft
 
 ## §7 Landing record
 
-*(Written by Session FR-2 at its landing: per find, CONFIRMED / REFUTED, the id, the test, the siblings and the
-measure.)*
+*(Written by Session FR-2 at its landing, November 23, 2026. All twelve fitted in one session, so §5's split was not
+taken. At the session's head three read-only helpers read each find in the code; every verdict was re-read by hand
+and proved by a behaviour test before it was closed. The full account is `docs/SYSTEMS_REFERENCE.md` §238.)*
+
+| # | Verdict | Row | What changed | Behaviour test |
+|---|---|---|---|---|
+| 1 | CONFIRMED, narrower than filed (the crossing, the ground); "already engaged" REFUTED | WS-R1 | For a man out of sight, a barred crossing on the charge and on the attack road gets the same answer as every other verdict about where he is; a refused fallback attack names no ground | `TestWSR1ABarredCrossingNamesNoUnseenMansPlace` |
+| 2 | CONFIRMED in the code; reachable only on a map that does not connect | WS-R2 | "No road reaches Mack from Rhineland" instead of "No foe is in sight" | `TestWSR2AFoeInSightNoRoadReaches` |
+| 3 | CONFIRMED ×4, and its class swept | WS-R3 | The modifiers note their parts as they apply them; the report and the battle's message lines read them; four new rows in words a blind reading passed | `TestWSR3TheReportReadsWhatWasApplied` |
+| 4 | The player's half REFUTED (GRD-33); the courts' half CONFIRMED | WS-R4 | A court's attack is judged before it runs and carries its own bonus; the turn-end expiry covers every holder | `TestWSR4ACourtsBonusRidesItsOwnAttack` |
+| 5 | (a) CONFIRMED; (b) REFUTED; (c) ruled, and REFUTED | WS-R5 | A corps shelled to nothing is destroyed at the field (cause, victor, grave) | `TestWSR5AShelledCorpsIsDestroyedAtTheField` |
+| 6 | REFUTED | WS-R6 | Nothing: every reachable answer is priced first, and the rest are roads that cannot run | `TestWSR6TheGateAfterAnObjectionIsRefuted` |
+| 7 | CONFIRMED, commoner than filed | WS-R7 | A remnant under 1,000 men gives no bonus to others | `TestWSR7ARemnantIsNotACorps` |
+| 8 | CONFIRMED, wider than filed | WS-R8 | One quiet switch; nothing swaps the process's output | `TestWSR8NoThreadSwapsTheServersOutput` |
+| 9 | CONFIRMED (the filed tab list corrected) | WS-R9 | A page forgets the width another page left | `tests/test_ge3_the_client.py::TestWSR9APageThatMeasuresNothingIsNotRedrawnOnResize` |
+| 10 | CONFIRMED, narrow | WS-R10 | One sighting rule: the chase is asked first; "No intelligence" only with no sighting | `TestWSR10AttackAndPursueAgreeOnAManLastSeen` |
+| 11 | CONFIRMED, modest | WS-R11 | The read-back's sighting scan is kept per board; the second-name patterns are built once per roster | `TestWSR11TheReadBackScansOncePerBoard` |
+| 12 | A FARM by the rule (clause (b), on all three seeds) | WS-R12 | A salvo writes a battle only past 5,000 dead; its dead still count for the war | `TestWSR12ASalvoIsABattleOnlyAtABattlesScale` |
+
+(Tests in `tests/test_fr2_the_twelve_finds.py` unless named. The seams: `tests/_fr2_seams.py` — BANK, SHELL, FLOOR,
+SALVO.)
+
+### 7.1 Find 12's rule, as amended and as measured
+
+- **Amended at Plan Mode, before any run:**
+  - both arms commission Marmont on turn 1, because France starts 1805 with no gun commander;
+  - arm A's guns are silent; arm B's fire twice a turn when a seen corps is in range;
+  - clause (b) is read inside arm B (salvos against won battles), because the arms' campaigns part at the first
+    salvo.
+- **Set after a harness smoke run, before the measure:** the commission's 4,500 gold is granted on turn 1 in both arms
+  (the treasury holds 800), so the battery stands from turn 1 as the rule says, and the script's own economy is left
+  as shipped.
+- **The measure** (`tools/_fr2_farm_measure.py`, `tools/_fr2_farm_2026_11_23.json`, a frozen copy of 8dd99217), arm B:
+
+  | Seed | Salvos (battles written) | Salvo points per 1,000 French dead | Won-battle points per 1,000 French dead |
+  |---|---|---|---|
+  | historical | 6 (3) | 65.7 | 1.09 |
+  | austerlitz | 6 (6) | 409.1 | 0.61 |
+  | marengo | 2 (2) | 87.0 | 1.02 |
+
+- **Verdict:** a farm on all three seeds by (b); (a) held on none (no war's battle points reached the cap in either
+  arm). Re-scored from arm B's own salvo record:
+  - F2 (a salvo scores 1) left the salvo rate at 21.9 / 136.4 / 29.0 — still a farm on all three;
+  - F1 (a salvo writes a battle only past 5,000 dead) and F3 (no battle at all) both end it;
+  - F1, the smallest, was taken.
+- **Re-run with the fix** (`tools/_fr2_farm_fixed_2026_11_23.json`, a frozen copy of the final tree): not a farm on
+  any seed. No salvo wrote a battle (every one was under 5,000 dead), and won battles read 1.09 / 0.91 / 1.02 points
+  per 1,000 French dead.
+- **The rule's limits** (found by the session's review, stated in `SYSTEMS_REFERENCE.md` §238.7): clause (a) never
+  came into play, so the verdict rests on (b); (b) holds almost whenever a salvo writes a battle, because a salvo
+  costs France only tens of men, so F2 could not end it by the rule's arithmetic; F1 and F3 re-score alike here.
+  The finding stands in plain terms: a +3 "won battle" for tens of men is a farm.
+
+### 7.2 The world measured
+
+- **The standing forty-turn series** (`tools/_fr2_series_arms.py`, `tools/_fr2_series_arms_final.json`):
+  - arms 0, ALL, +BANK, +SHELL, +FLOOR and +SALVO are all byte-identical to HEAD's `BASELINE_SERIES`;
+  - BANK's seam was read 936 times and FLOOR's about 60,350, and neither moves it;
+  - SHELL's and SALVO's were never reached, because no court's battery fires in the idle forty turns;
+  - `BASELINE_SERIES` is not re-pinned.
+- **The France band** (`tools/_fr2_band_measure.py`, `tools/_fr2_band_2026_11_23.json`):
+  - arm 0 reads 28 / 25 / 26, the standing reading to the province;
+  - arm ALL reads 28 / 28 / 26, inside 23–28.
+  - Austerlitz's move, by one-switch arms (`tools/_fr2_band_rows_2026_11_23.json`): +BANK 28, +FLOOR 24, +SHELL 25,
+    +SALVO 25. A court's judged attack now carries its own bonus, and that war turns on it.
+
+### 7.3 Found on the way
+
+- The guns-kill-before-the-assault road wrote a corps' grave at the province it fled to (fixed with WS-R5).
+- The battle's own message lines worked out their own percentages: Bold +15 %, +5 % and +5 % read "+25% total"
+  where +27 % applies (fixed with WS-R3).
+- "Forced march momentum (order completed)" named a cause nothing grants (renamed "Confidence in his orders", WS-R3).
+- The read-back's charge refusal said "no intelligence" over a sighting (fixed with WS-R10).
+- Pressing the real client found the verdict reading "your the Emperor commands in person +10%" (fixed with WS-R3).
+- **The session's review** (three lanes on a frozen copy) found four defects of the session's own fixes, all fixed
+  with behaviour tests (`BUG_FIXES.md` FR2-1 … FR2-4):
+  - FR2-1 (P2): WS-R1's guard answered a man found by a typed PROVINCE by name — typing provinces found which held
+    a man unseen, and who. The older peace-soil refusal had the same probe. Both now give the empty province's
+    answer;
+  - FR2-2: the Nations table with Explanations on the page stopped reflowing on a resize (WS-R9);
+  - FR2-3: the battery's own corps, emptied by its stray shells, was credited to its own court, and a sovereign
+    met the death roll from his own guns (WS-R5);
+  - FR2-4: the defence limit's total included coordination, which has no row (WS-R3).
+- The blind reading: every reader right in meaning in rounds 2 and 3, with two answers in round 3 still guessing at a
+  detail. Help & Keys saying that a battle's bonuses multiply and that a defence is limited to +75 % is row TU's
+  (`docs/TUTORIAL_UPDATE_SPEC.md` §3, §5; its strict pin in `tests/test_tu_the_tutorial_brought_up_to_date.py`).

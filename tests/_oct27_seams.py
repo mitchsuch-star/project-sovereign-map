@@ -219,6 +219,15 @@ from tests._ic4_seams import IC4_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in IC4_SEAMS_BY_ROW for spec in IC4_SEAMS_BY_ROW[row]]
 
+# Row FR, Session FR-2 "the weak-spot readers' twelve finds" (November 23,
+# 2026): a court's bonus rides the attack it judged (WS-R4), a corps shelled
+# to nothing is destroyed at the field (WS-R5), and the rows that followed. A
+# board recorded before the session is replayed with them down. The seams' own
+# rows: `tests/_fr2_seams.py`.
+from tests._fr2_seams import FR2_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in FR2_SEAMS_BY_ROW for spec in FR2_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

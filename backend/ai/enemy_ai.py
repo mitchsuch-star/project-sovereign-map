@@ -1781,13 +1781,23 @@ class EnemyAI:
             }
         }
 
+        # WS-R4: an attack is judged before it runs; its bonus rides it.
+        judged = self._judge_the_attack_first(action, world)
         result = self.executor.execute(command, game_state)
 
         # ════════════════════════════════════════════════════════════
         # AI STRATEGIC SCORING (Phase 5): apply the AI's own bonuses
         # ════════════════════════════════════════════════════════════
         ai_score = None
-        if result.get("success", False):
+        if result.get("success", False) and judged is not None:
+            # WS-R4: the attack carried its own bonus; its morale and trust
+            # follow the act, read from the same judgement.
+            ai_score = judged
+            if world.get_marshal(action.get("marshal") or "") is marshal:
+                from backend.ai.feedback import apply_strategic_bonuses
+                apply_strategic_bonuses(marshal, ai_score, is_combat_action=False)
+            ai_debug(f"  Strategic Score: {ai_score} (judged before the attack)")
+        elif result.get("success", False):
             # Get target marshal if exists
             target_marshal = None
             if action.get("target"):
@@ -9077,6 +9087,27 @@ class EnemyAI:
         return best_region
 
 
+    def _judge_the_attack_first(self, action: Dict, world) -> Optional[int]:
+        """WS-R4 (row FR, Session FR-2): a court's ATTACK or CHARGE is scored
+        before it runs and its combat bonus set (`feedback.set_combat_bonus`),
+        so the attack it judged spends it in `get_attack_modifier` — never the
+        marshal's next attack, turns later. Returns the score, or None when
+        the seam is down, the order is no attack, or the man is unknown (the
+        caller then scores after the act, as before)."""
+        from backend.ai.feedback import a_courts_bonus_rides_its_own_act, set_combat_bonus
+        if world is None or not a_courts_bonus_rides_its_own_act():
+            return None
+        if action.get("action") not in ("attack", "charge"):
+            return None
+        marshal = world.get_marshal(action.get("marshal") or "")
+        if marshal is None:
+            return None
+        target = world.get_marshal(action.get("target")) if action.get("target") else None
+        score = calculate_ai_strategic_score(marshal=marshal, action=action.get("action"),
+                                             target=target, world=world)
+        set_combat_bonus(marshal, score)
+        return score
+
     def _execute_action(self, action: Dict, game_state: Dict) -> Dict:
         """
         Execute an action through the standard executor.
@@ -9093,6 +9124,8 @@ class EnemyAI:
             }
         }
 
+        # WS-R4: an attack is judged before it runs; its bonus rides it.
+        judged = self._judge_the_attack_first(action, game_state.get("world"))
         result = self.executor.execute(command, game_state)
         result["ai_action"] = action
 
@@ -9127,7 +9160,17 @@ class EnemyAI:
         # Same system as player commands for fairness
         # ════════════════════════════════════════════════════════════
         ai_score = None
-        if result.get("success", False):
+        if result.get("success", False) and judged is not None:
+            # WS-R4: the attack carried its own bonus; its morale and trust
+            # follow the act, read from the same judgement.
+            world = game_state.get("world")
+            marshal = world.get_marshal(action["marshal"]) if world else None
+            ai_score = judged
+            if marshal:
+                from backend.ai.feedback import apply_strategic_bonuses
+                apply_strategic_bonuses(marshal, ai_score, is_combat_action=False)
+            ai_debug(f"  AI Strategic Score: {ai_score} (judged before the attack)")
+        elif result.get("success", False):
             world = game_state.get("world")
             if world:
                 marshal = world.get_marshal(action["marshal"])

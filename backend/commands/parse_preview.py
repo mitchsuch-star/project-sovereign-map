@@ -47,7 +47,6 @@ THE CONTRACT (`docs/SYSTEMS_REFERENCE.md` §217; design brief §1):
 from __future__ import annotations
 
 import contextlib
-import io
 import re
 import threading
 from typing import Any, Callable, Dict, List, Optional
@@ -56,6 +55,7 @@ from backend.ai import parse_trace as _ptrace
 from backend.ai.llm_client import LLMClient
 from backend.display_names import humanize_entity_name
 from backend.errors import report
+from backend.utils.quiet import quiet as _quiet  # WS-R8: never swap the process's stdout
 
 KINDS = ("order", "question", "meta", "cabinet", "delegation", "refusal",
          "unknown_name", "needs_marshal", "secretary", "pending", "busy", "none")
@@ -202,7 +202,7 @@ class _PreviewLLM(LLMClient):
 
 def _preview_parser():
     if _PARSER["parser"] is None:
-        with contextlib.redirect_stdout(io.StringIO()):
+        with _quiet():
             from backend.commands.parser import CommandParser
             parser = CommandParser(use_real_llm=False)
             parser.llm = _PreviewLLM()
@@ -585,6 +585,12 @@ def _unseen_reading(out: Dict[str, Any], world, marshal, foe, verb: str,
     if verb == "charge" or (verb == "attack" and getattr(marshal, "artillery", False)):
         # UI6-X16: a charge, or guns that cannot chase, at a man out of
         # sight — `/command` refuses by name, free; no pursuit stands in.
+        # WS-R10 (row FR, Session FR-2): with a sighting on the record "No
+        # intelligence" is false — `/command` says he is out of sight and was
+        # last seen (where is the executor's to say, never this reading's).
+        if pursue_known_location(world, marshal, foe):
+            return _refusal_reading(out, f"{shown} is out of sight — scout for him first, "
+                                         f"or pursue him from his last sighting")
         return _refusal_reading(out, f"No intelligence on {shown}’s position — scout for him first")
     refusal = sp.order_state_refusal(world, marshal, "pursue")
     if refusal:
@@ -1816,7 +1822,7 @@ def _read_line(world, text: str, out: Dict[str, Any], *, llm_state, epoch, lost_
     parser = _preview_parser()
     parser.llm.live = live_llm
     parser.llm.would_consult = False
-    with contextlib.redirect_stdout(io.StringIO()):
+    with _quiet():
         parsed = parser.parse(reading, state, world=world)
     if parser.llm.would_consult:
         out["would_consult_llm"] = True
@@ -1824,7 +1830,7 @@ def _read_line(world, text: str, out: Dict[str, Any], *, llm_state, epoch, lost_
                        ("head", "Berthier’s secretary reads this one — the price shows after you send"))
 
     def _parse_again(line: str) -> Dict:
-        with contextlib.redirect_stdout(io.StringIO()):
+        with _quiet():
             return parser.parse(line, state, world=world)
 
     def _read_again(line: str) -> Dict[str, Any]:
@@ -2193,10 +2199,14 @@ def read_one(world, line: str, *, llm_state: Callable[[], Dict], epoch: int = 0,
     out = _base(text, epoch)
     if world is None:
         return out
-    return _read_line(world, text, out, llm_state=llm_state, epoch=epoch,
-                      lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
-                      live_llm=live_llm, unbound_addressee=unbound_addressee,
-                      premise_reader=premise_reader, interrupt_reader=interrupt_reader)
+    # WS-R11 (row FR, Session FR-2): the sighting rows are kept for this
+    # board's state key — every read of one board shares one scan.
+    from backend.game_logic.intel_surfaces import sightings_cached
+    with sightings_cached(_state_key(world, epoch)):
+        return _read_line(world, text, out, llm_state=llm_state, epoch=epoch,
+                          lost_marshal_refusal=lost_marshal_refusal, why_rx=why_rx,
+                          live_llm=live_llm, unbound_addressee=unbound_addressee,
+                          premise_reader=premise_reader, interrupt_reader=interrupt_reader)
 
 
 @contextlib.contextmanager
@@ -2223,5 +2233,5 @@ def mock_parse(world, line: str, llm_state: Callable[[], Dict], epoch: int = 0) 
     parser = _preview_parser()
     parser.llm.live = None
     parser.llm.would_consult = False
-    with contextlib.redirect_stdout(io.StringIO()):
+    with _quiet():
         return parser.parse(str(line or "")[:500], state, world=world)

@@ -455,7 +455,13 @@ class TestWO25TheAutonomousAttackNeverAsks:
         typed charge's fog rule (`_execute_glorious_charge` — an ordered
         charge at a man out of sight never prints his distance) and the guns'
         range check (`_attack_range_check` — the same for a bombardment). Each
-        keeps an unordered attack on its own road."""
+        keeps an unordered attack on its own road.
+
+        WS-R1 (row FR, Session FR-2, November 23, 2026) added one, consciously:
+        the attack road's crossing gate (`_attack_engagement_and_crossing`) —
+        the player's ordered attack on a man out of sight is answered by the
+        unseen answer, never the crossing that names his province; an
+        unordered attack keeps the crossing's words."""
         code = _code_only(COMBAT_PY.read_text(encoding="utf-8"))
         # `_code_only` emits one token per line - squeeze before matching
         # a multi-token needle (the slice-10 trap, met again here).
@@ -468,7 +474,7 @@ class TestWO25TheAutonomousAttackNeverAsks:
         calls = (squeezed.count("_attack_is_unordered(command)")
                  + squeezed.count("_attack_is_unordered(ctx.command)")
                  - squeezed.count("def_attack_is_unordered(command)"))
-        assert calls == 7
+        assert calls == 8
         assert code.count('"_jealousy_autonomous"') == 1
         assert code.count('"_defiance"') == 1
 

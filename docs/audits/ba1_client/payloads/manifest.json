@@ -316,7 +316,7 @@
   "register": "grim",
   "beats": {
    "approach": 3,
-   "assault": 3,
+   "assault": 4,
    "crisis": 2
   }
  },
@@ -394,7 +394,7 @@
   "register": "grim",
   "beats": {
    "approach": 3,
-   "assault": 3,
+   "assault": 4,
    "crisis": 2
   }
  },

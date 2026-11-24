@@ -317,6 +317,18 @@ class Stance(Enum):
     AGGRESSIVE = "aggressive"
 
 
+def _note(parts, key: str, factor) -> None:
+    """WS-R3 (row FR, Session FR-2 — the weak-spot readers' find 3): the
+    modifier functions NOTE each factor as they apply it, into a caller's
+    `parts` list, so the battle report reads the very parts of the product
+    the fight used (golden rule 1: one source) instead of re-typing them. The
+    arithmetic is untouched — each factor is the expression the function
+    multiplies by, in the order it multiplies — so a battle comes out the same
+    to the last man. `parts=None` (every fighting caller) notes nothing."""
+    if parts is not None:
+        parts.append((key, float(factor)))
+
+
 class Marshal:
     """
     A marshal commanding an army.
@@ -1454,7 +1466,8 @@ class Marshal:
 
     def get_attack_modifier(self, strength_ratio: float = None,
                             consume: bool = True,
-                            terrain: Optional[str] = None) -> float:
+                            terrain: Optional[str] = None,
+                            parts: Optional[list] = None) -> float:
         """
         Get attack modifier from stance, personality, and other sources.
 
@@ -1476,6 +1489,9 @@ class Marshal:
             consume: When False, compute the same multiplier but DO NOT clear
                 any one-time bonus fields (GR1: single source, side-effect-free
                 read).
+            parts: WS-R3 — a list the function appends `(key, factor)` to
+                for every factor it applies, in order (`_note`); the battle
+                report reads it. None notes nothing.
 
         Returns:
             Float multiplier (e.g., 1.15 = +15% attack)
@@ -1488,19 +1504,23 @@ class Marshal:
         # (the muster's posture note names the defensive cost from it).
         if self.stance == Stance.AGGRESSIVE:
             modifier *= self.STANCE_ATTACK_FACTOR["aggressive"]  # +15%
+            _note(parts, "stance", self.STANCE_ATTACK_FACTOR["aggressive"])
         elif self.stance == Stance.DEFENSIVE:
             modifier *= self.STANCE_ATTACK_FACTOR["defensive"]  # -10%
+            _note(parts, "stance", self.STANCE_ATTACK_FACTOR["defensive"])
 
         # Drill/shock bonus (from completed drill training)
         shock = self.shock_bonus
         has_drill_bonus = shock > 0
         if has_drill_bonus:
             modifier *= (1.0 + shock * 0.10)  # shock_bonus=2 → +20%
+            _note(parts, "drill", 1.0 + shock * 0.10)
 
         # Strategic combat bonus (from inspiring commands, consumed on use)
         strategic_bonus = self.strategic_combat_bonus
         if strategic_bonus > 0:
             modifier *= (1.0 + strategic_bonus / 100.0)  # 10 → +10%
+            _note(parts, "strategic", 1.0 + strategic_bonus / 100.0)
             if consume:
                 self.strategic_combat_bonus = 0  # Consume after use
 
@@ -1512,6 +1532,7 @@ class Marshal:
             strength_ratio
         )
         modifier *= personality_mod
+        _note(parts, "personality", personality_mod)
 
         # Recklessness attack bonus (cavalry recklessness system), its share
         # scaled by the ground when the resolver names it (GRD-34: golden
@@ -1519,6 +1540,8 @@ class Marshal:
         recklessness_bonus = self._get_recklessness_attack_bonus()
         if recklessness_bonus > 0:
             modifier *= (1.0 + recklessness_bonus * self.recklessness_terrain_scale(terrain))
+            _note(parts, "recklessness",
+                  1.0 + recklessness_bonus * self.recklessness_terrain_scale(terrain))
 
         # Counter-Punch Mastery: Davout's +20% attack after being attacked
         # See docs/ADDING_CONTENT.md "Wiring a Special Ability" checklist.
@@ -1526,6 +1549,7 @@ class Marshal:
                 and self.ability.get("name") == "Counter-Punch Mastery"
                 and getattr(self, 'counter_punch_ready', False)):
             modifier *= 1.20  # +20%
+            _note(parts, "counter_punch", 1.20)
             if consume:
                 self.counter_punch_ready = False  # Consume after use
 
@@ -1538,6 +1562,7 @@ class Marshal:
             iron_stacks = getattr(self, 'iron_resolve_stacks', 0)
             if iron_stacks > 0:
                 modifier *= (1.0 + iron_stacks * self.IRON_RESOLVE_BONUS_PER_STACK)
+                _note(parts, "iron_resolve", 1.0 + iron_stacks * self.IRON_RESOLVE_BONUS_PER_STACK)
                 # CO-7 (Combat Overhaul Phase 2): the coil accrues ONLY while
                 # fortified, which forces the DEFENSIVE stance (−10% attack).
                 # Releasing from that fortify-mandated stance must not
@@ -1548,6 +1573,9 @@ class Marshal:
                 # and enemy alike (GR5). Read-only when consume=False.
                 if self.stance == Stance.DEFENSIVE:
                     modifier /= 0.90
+                    # WS-R3: the release undoes the stance's part — the
+                    # report shows neither (their product is 1).
+                    _note(parts, "stance_released", 1.0 / 0.90)
                 if consume:
                     self.iron_resolve_stacks = 0  # Consume after use
 
@@ -1559,8 +1587,10 @@ class Marshal:
         # through action ("I showed them").
         if self.jealous_of and getattr(self, '_jealousy_solo_attack', False):
             modifier *= (1.0 + self.JEALOUSY_SOLO_ATTACK_BONUS)
+            _note(parts, "jealous_alone", 1.0 + self.JEALOUSY_SOLO_ATTACK_BONUS)
         if self.jealousy_surge_turns > 0 and self.personality == "aggressive":
             modifier *= (1.0 + self.JEALOUSY_SURGE_BONUS)
+            _note(parts, "jealousy_surge", 1.0 + self.JEALOUSY_SURGE_BONUS)
 
         # Exhaustion penalty / cavalry momentum (attack spam prevention / B5 Balance)
         # Applied AFTER other modifiers (multiplicative with recklessness)
@@ -1568,9 +1598,12 @@ class Marshal:
         exhaustion_penalty = self._get_exhaustion_penalty()
         if exhaustion_penalty != 0:
             modifier *= (1.0 - exhaustion_penalty)
+            _note(parts, "exhaustion" if exhaustion_penalty > 0 else "momentum",
+                  1.0 - exhaustion_penalty)
 
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_attack_bonus', 0.0))
+        _note(parts, "coordination", 1.0 + getattr(self, 'total_coordination_attack_bonus', 0.0))
 
         # NP-2 The Presence (NAPOLEON_SPEC §5.1): the Emperor commands in
         # person — every friendly corps in his province fights harder.
@@ -1590,22 +1623,26 @@ class Marshal:
         _presence = float(getattr(self, 'sovereign_presence', 0.0) or 0.0)
         if _presence:
             modifier *= (1.0 + self.SOVEREIGN_PRESENCE_ATTACK * _presence)
+            _note(parts, "presence", 1.0 + self.SOVEREIGN_PRESENCE_ATTACK * _presence)
 
         # Overwatch penalty (Phase 7b: enemy artillery suppression)
         # Transient field set by _calculate_overwatch() in executor.py.
         # NOT serialized — read via getattr, cleared after combat.
         modifier *= (1.0 - getattr(self, 'overwatch_penalty', 0.0))
+        _note(parts, "overwatch", 1.0 - getattr(self, 'overwatch_penalty', 0.0))
 
         # SR-7d DC-1 (DOCTRINES_SPEC §2, §3): the court's attack clause —
         # Frederick's Drill — read off the standing derived term (RV-6). Read
         # when a lead attacks and for every reinforcer's committed weight on
         # either side (`_committed_share`); a defending lead never reads it.
         modifier *= float(self._doctrine_term("attack"))
+        _note(parts, "doctrine", float(self._doctrine_term("attack")))
 
         return modifier
 
     def get_defense_modifier(self, is_outnumbered: bool = False,
-                             consume: bool = True) -> float:
+                             consume: bool = True,
+                             parts: Optional[list] = None) -> float:
         """
         Get defense modifier from stance, personality, fortify, and drill status.
 
@@ -1632,29 +1669,35 @@ class Marshal:
         # Stance modifiers (base)
         if self.stance == Stance.DEFENSIVE:
             modifier *= 1.15  # +15%
+            _note(parts, "stance", 1.15)
         elif self.stance == Stance.AGGRESSIVE:
             modifier *= 0.90  # -10%
+            _note(parts, "stance", 0.90)
 
         # Fortify bonus (grows per turn, max varies by personality)
         # defense_bonus is stored as decimal (0.16 = 16%), applied directly as multiplier
         fortify_bonus = self.defense_bonus
         if fortify_bonus > 0:
             modifier *= (1.0 + fortify_bonus)  # 0.16 → 1.16x (16% reduction)
+            _note(parts, "fortify", 1.0 + fortify_bonus)
 
         # Strategic defense bonus (from clear orders - Grouchy, consumed on use)
         strategic_def_bonus = self.strategic_defense_bonus
         if strategic_def_bonus > 0:
             modifier *= (1.0 + strategic_def_bonus / 100.0)  # 10 → +10%
+            _note(parts, "strategic", 1.0 + strategic_def_bonus / 100.0)
             if consume:
                 self.strategic_defense_bonus = 0  # Consume after use
 
         # Drilling penalty (caught drilling = vulnerable)
         if self.drilling or self.drilling_locked:
             modifier *= 0.75  # -25%
+            _note(parts, "drilling", 0.75)
 
         # Artillery moved this turn — caught in transit, guns not set up
         if getattr(self, 'artillery', False) and getattr(self, 'moved_this_turn', False):
             modifier *= 0.75  # -25%
+            _note(parts, "artillery_moved", 0.75)
 
         # Personality-specific defense modifiers
         is_holding = self.holding_position
@@ -1665,11 +1708,13 @@ class Marshal:
             is_holding
         )
         modifier *= personality_mod
+        _note(parts, "personality", personality_mod)
 
         # Recklessness defense penalty (cavalry recklessness system)
         recklessness_penalty = self._get_recklessness_defense_penalty()
         if recklessness_penalty > 0:
             modifier *= (1.0 - recklessness_penalty)
+            _note(parts, "recklessness", 1.0 - recklessness_penalty)
 
         # Signature ability: Wellington's "Reverse Slope Defense" (+5% defense always)
         # When adding new defense abilities, follow docs/ADDING_CONTENT.md
@@ -1677,11 +1722,13 @@ class Marshal:
         if (hasattr(self, 'ability')
                 and self.ability.get("name") == "Reverse Slope Defense"):
             modifier *= 1.05
+            _note(parts, "reverse_slope", 1.05)
 
         # Archduke Charles's "Habsburg Resolve" (+3% defense always)
         if (hasattr(self, 'ability')
                 and self.ability.get("name") == "Habsburg Resolve"):
             modifier *= 1.03
+            _note(parts, "habsburg_resolve", 1.03)
 
         # Massena's "Child of Victory" (+10% defense when outnumbered — MC-1).
         # Defender-only by construction (this method is only consulted when
@@ -1689,18 +1736,22 @@ class Marshal:
         if (is_outnumbered and hasattr(self, 'ability')
                 and self.ability.get("name") == "Child of Victory"):
             modifier *= 1.10
+            _note(parts, "child_of_victory", 1.10)
 
         # Square formation: +5% defense (tight formation, mutual support)
         if getattr(self, 'square_formation', False):
             modifier *= 1.05
+            _note(parts, "square", 1.05)
 
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_defense_bonus', 0.0))
+        _note(parts, "coordination", 1.0 + getattr(self, 'total_coordination_defense_bonus', 0.0))
 
         # Jealousy surge (v3.2): a cautious marshal's vindication — +10%
         # defense for the turn after his grievance resolves through action.
         if self.jealousy_surge_turns > 0 and self.personality == "cautious":
             modifier *= (1.0 + self.JEALOUSY_SURGE_BONUS)
+            _note(parts, "jealousy_surge", 1.0 + self.JEALOUSY_SURGE_BONUS)
 
         # NP-2 The Presence (NAPOLEON_SPEC §5.1): the defensive half of the
         # aura, before the global cap — in a maximal fortified+coordinated
@@ -1711,13 +1762,17 @@ class Marshal:
         if _presence_def:
             modifier *= (
                 1.0 + self.SOVEREIGN_PRESENCE_DEFENSE * _presence_def)
+            _note(parts, "presence", 1.0 + self.SOVEREIGN_PRESENCE_DEFENSE * _presence_def)
 
         # SR-7d DC-1 (DOCTRINES_SPEC §2, §3): the court's defence clause —
         # The Line Holds — before the cap, which may absorb part of it (the
         # battle report prints the share that survived, RV-7).
         modifier *= float(self._doctrine_term("defense"))
+        _note(parts, "doctrine", float(self._doctrine_term("defense")))
 
         # Hard cap: no marshal can exceed 1.75x total defense (prevents invincible turtling)
+        if parts is not None and modifier > 1.75:
+            _note(parts, "cap", 1.75 / modifier)        # WS-R3: what the cap took
         modifier = min(modifier, 1.75)
 
         return modifier

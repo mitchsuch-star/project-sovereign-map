@@ -663,6 +663,10 @@ static func _anchor_bar_child(node: Control, a_left: float, a_right: float, o_le
 # ── RENDERING ──
 
 func _render_war_detail(w: Dictionary):
+	# WS-R9 (row FR, Session FR-2): forget the width the last page was drawn to;
+	# only the war page's tables measure (`_table_px`), so a coalition's or a
+	# truce's page is never redrawn on each resize step against it.
+	_table_px_used = -1.0
 	_war_cache = w
 	var trend = str(w.get("trend", "stable"))
 	var duration = int(float(w.get("duration", 0)))
@@ -1303,6 +1307,10 @@ func _figures_tail(w: Dictionary, lead_line: String) -> String:
 
 
 func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
+	# WS-R9 (row FR, Session FR-2): forget the width the last page was drawn to;
+	# only the war page's tables measure (`_table_px`), so a coalition's or a
+	# truce's page is never redrawn on each resize step against it.
+	_table_px_used = -1.0
 	_coalition_cache = coalition_data
 	_coalition_wars_cache = wars
 	var leader = str(coalition_data.get("leader", ""))
@@ -1346,6 +1354,10 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 
 
 func _render_armistice_detail(w: Dictionary):
+	# WS-R9 (row FR, Session FR-2): forget the width the last page was drawn to;
+	# only the war page's tables measure (`_table_px`), so a coalition's or a
+	# truce's page is never redrawn on each resize step against it.
+	_table_px_used = -1.0
 	_armistice_cache = w
 	var remaining = int(float(w.get("armistice_remaining", 0)))
 	var relation = int(float(w.get("relation", 0)))

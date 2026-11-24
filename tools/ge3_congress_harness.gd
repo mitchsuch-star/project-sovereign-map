@@ -541,6 +541,53 @@ func _run():
 		_out["gazette_text"] = glabel.get_parsed_text() if glabel != null else ""
 		gz.hide()
 
+	# ── 11. WS-R9 (row FR, Session FR-2): a page that measures nothing is never
+	#       redrawn on a resize step against a width another page left. The
+	#       Balance page measures its width; the Treaties page measures nothing.
+	_reset_between_scenes()
+	_api.responses["get_diplomatic_ledger"] = _p["ledger_gate"]
+	var wsr9 := {}
+	if dl != null:
+		dl.call("open", _api)
+		var area9 = dl.get("content_area")
+		dl.call("_switch_tab", 2)
+		wsr9["balance_width_used"] = int(dl.get("_width_used"))
+		area9.size = Vector2(900.0, area9.size.y)
+		wsr9["balance_redraws"] = bool(dl.call("_on_content_resized"))
+		dl.call("_switch_tab", 1)
+		wsr9["treaties_width_used"] = int(dl.get("_width_used"))
+		area9.size = Vector2(1180.0, area9.size.y)
+		wsr9["treaties_redraws"] = bool(dl.call("_on_content_resized"))
+		dl.call("_switch_tab", 2)
+		area9.size = Vector2(1460.0, area9.size.y)
+		wsr9["balance_again_redraws"] = bool(dl.call("_on_content_resized"))
+		# FR2-2 (the session's review): the Nations table with Explanations on
+		# the page measures the window too (wide from 820 px) — it records the
+		# width, and a resize past the line redraws it.
+		var expl_before := UiSettings.get_explanations()
+		UiSettings.set_explanations("page")
+		area9.size = Vector2(900.0, area9.size.y)
+		dl.call("_switch_tab", 0)
+		wsr9["nations_page_width_used"] = int(dl.get("_width_used"))
+		area9.size = Vector2(700.0, area9.size.y)
+		wsr9["nations_page_redraws"] = bool(dl.call("_on_content_resized"))
+		UiSettings.set_explanations(expl_before)
+		dl.hide()
+	# The war page: only its war tables measure; a truce's or a coalition's
+	# page forgets the width the war page left.
+	var wpacked = load("res://scenes/war_detail_popup.tscn")
+	if wpacked is PackedScene:
+		var wp = wpacked.instantiate()
+		root.add_child(wp)
+		wp.set("_table_px_used", 640.0)
+		wp.call("_render_armistice_detail", {})
+		wsr9["armistice_px_used"] = float(wp.get("_table_px_used"))
+		wp.set("_table_px_used", 640.0)
+		wp.call("_render_coalition_detail", {}, [])
+		wsr9["coalition_px_used"] = float(wp.get("_table_px_used"))
+		wp.hide()
+	_out["wsr9"] = wsr9
+
 	_out["api_calls"] = _api.calls
 	_phase = "done"
 

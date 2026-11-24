@@ -291,7 +291,11 @@ _NOUNS = (
     ("aggressive stance", "ardour"),
     ("flanking", "flank attack"),
     ("drill training", "drill"),
-    ("forced march momentum", "momentum"),
+    ("confidence in his orders", "confidence"),   # WS-R3 (row FR, Session FR-2)
+    ("cavalry momentum", "momentum of the horse"),
+    ("jealous lone attack", "jealousy"),
+    ("pride after proving himself", "pride"),
+    ("defence limit", "the limit of defence"),
     ("recklessness", "recklessness"),
     ("exhaustion", "exhaustion"),
     ("cavalry counter", "horse among the guns"),
@@ -1009,6 +1013,12 @@ def why_plain(ctx, attacker_is_ours: bool) -> List[str]:
                 if not label:
                     continue
                 sign = "+" if row.get("type") == "bonus" else "−"
+                # FR-2 (found pressing WS-R3's rows): a label that is a sentence
+                # of its own ("The Emperor commands in person") takes no "your" —
+                # it read "your the Emperor commands in person +10%".
+                if label.lower().startswith(("the ", "a ")):
+                    lines.append(f"{label[:1].lower()}{label[1:]} {sign}{int(row['value'])}%")
+                    continue
                 lines.append(f"{whose} {label[:1].lower()}{label[1:]} {sign}{int(row['value'])}%")
         natural = (result.get("attacker_roll") or {}).get("natural")
         if natural is not None and abs(int(natural) - AVERAGE_THROW) >= DICE_GAP:

@@ -125,6 +125,24 @@ DEFENDER_MORALE_CURVE_FACTOR = 1.0
 # accelerates the break. Symmetric (GR5): whichever combatant is losing the
 # blood exchange pays it, player or enemy. Sweep-tuned against M2 (spec §2.1);
 # blessed pivot 1.75 / slope 22 / cap 55 (SWEEP_1_2026_07_13).
+# WS-R3 (row FR, Session FR-2 — the weak-spot readers' find 3): the factors
+# the resolver applies ITSELF (target-type interactions on the shock, and the
+# charge's doubling — not marshal-intrinsic, so not in `get_attack_modifier`),
+# named once: the resolver multiplies by these and the battle report reads
+# them, so no figure is typed twice.
+CAVALRY_COUNTER_FACTOR = 1.30        # cavalry rides over unscreened guns
+SQUARE_VS_CAVALRY_FACTOR = 0.60      # horses refuse the bayonet wall
+SQUARE_VS_ARTILLERY_FACTOR = 1.50    # packed ranks, the guns cannot miss
+GLORIOUS_CHARGE_FACTOR = 2           # double the blood, given and taken
+
+
+def factor_pct(factor) -> int:
+    """WS-R3: a multiplier as the whole percent a row prints (1.27 → 27,
+    0.855 → 14) — rounded on the clean value, so a factor built as 1 + x
+    prints exactly what x × 100 would."""
+    return int(round(round(abs(float(factor) - 1.0) * 100, 6)))
+
+
 DECISIVENESS_EXCHANGE_PIVOT = 1.75   # exchange ratio at which the extra loss begins
 DECISIVENESS_MORALE_SLOPE = 22       # extra morale loss per unit of ratio over the pivot
 DECISIVENESS_MORALE_CAP = 55         # ceiling on the extra morale loss
@@ -486,15 +504,9 @@ class CombatResolver:
         attacker_iron_stacks = (getattr(attacker, 'iron_resolve_stacks', 0)
                                 if (hasattr(attacker, 'has_iron_resolve')
                                     and attacker.has_iron_resolve()) else 0)
+        # WS-R3: the message is written from the part the modifier applied
+        # (below, beside its call) — never a percentage worked out here.
         iron_resolve_message = None
-        if attacker_iron_stacks > 0:
-            from backend.models.marshal import Marshal as _Marshal
-            _iron_pct = int(round(attacker_iron_stacks * _Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100))
-            iron_resolve_message = (
-                f"{attacker.name}'s coiled resolve is released — "
-                f"{attacker_iron_stacks} stack{'s' if attacker_iron_stacks != 1 else ''} "
-                f"of patient fortification strike as one! (Iron Resolve: +{_iron_pct}% attack)"
-            )
 
         # ════════════════════════════════════════════════════════════
         # EXHAUSTION MESSAGE (Phase 3 - Attack Spam Prevention)
@@ -527,32 +539,46 @@ class CombatResolver:
         if hasattr(attacker, 'get_attack_modifier'):
             # GRD-34 (row OC, OC-4): the ground's scaling of a reckless
             # cavalryman's dash is read IN the marshal (golden rule 1).
-            attacker_stance_modifier = attacker.get_attack_modifier(strength_ratio, terrain=terrain)
+            # WS-R3 (row FR, Session FR-2): the call notes its parts, and the
+            # lines below quote them — never a figure worked out again here.
+            _atk_parts = []
+            attacker_stance_modifier = attacker.get_attack_modifier(
+                strength_ratio, terrain=terrain, parts=_atk_parts)
+            _ap = dict(_atk_parts)
+            if attacker_iron_stacks > 0 and "iron_resolve" in _ap:
+                iron_resolve_message = (
+                    f"{attacker.name}'s coiled resolve is released — "
+                    f"{attacker_iron_stacks} stack{'s' if attacker_iron_stacks != 1 else ''} "
+                    f"of patient fortification strike as one! "
+                    f"(Iron Resolve: +{factor_pct(_ap['iron_resolve'])}% attack)"
+                )
             if attacker_stance_modifier != 1.0:
                 from backend.models.marshal import Stance
                 current_stance = getattr(attacker, 'stance', Stance.NEUTRAL)
                 personality = getattr(attacker, 'personality', 'unknown')
 
-                # Stance messages
-                if current_stance == Stance.AGGRESSIVE:
-                    attacker_stance_message = f"{attacker.name}'s AGGRESSIVE stance drives the assault! (+15% attack)"
-                elif current_stance == Stance.DEFENSIVE:
-                    attacker_stance_message = f"{attacker.name}'s DEFENSIVE stance hampers offensive operations (-10% attack)"
+                # Stance messages — WS-R3: a defensive stance whose cost Iron
+                # Resolve's release undid is not said to hamper anything.
+                if current_stance == Stance.AGGRESSIVE and "stance" in _ap:
+                    attacker_stance_message = (f"{attacker.name}'s AGGRESSIVE stance drives the assault! "
+                                               f"(+{factor_pct(_ap['stance'])}% attack)")
+                elif (current_stance == Stance.DEFENSIVE and "stance" in _ap
+                      and "stance_released" not in _ap):
+                    attacker_stance_message = (f"{attacker.name}'s DEFENSIVE stance hampers offensive "
+                                               f"operations (-{factor_pct(_ap['stance'])}% attack)")
 
-                # Personality-specific messages
+                # Personality-specific messages — WS-R3: the nature's figure is
+                # the factor applied (its terms multiply: +15, +5 in the
+                # aggressive stance, +5 with drill is +27%, never "+25%").
+                _nature_pct = factor_pct(_ap.get("personality", 1.0))
                 if personality == "aggressive":
-                    base_bonus = 15
-                    if current_stance == Stance.AGGRESSIVE:
-                        base_bonus += 5  # +5% additional
-                    if attacker_drill_bonus > 0:  # Use saved value
-                        base_bonus += 5  # +5% drill synergy
-                    if base_bonus > 15:
+                    if current_stance == Stance.AGGRESSIVE or attacker_drill_bonus > 0:
                         # Label with the personality, not Ney's signature ability —
                         # the 1805 roster has 4 aggressive marshals and this message
                         # fires for all of them (audit 2026-07-09 fix 2.1).
-                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Bold: +{base_bonus}% total)"
+                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Bold: +{_nature_pct}% total)"
                     else:
-                        attacker_personality_message = f"{attacker.name} leads the charge! (Bold: +15% attack)"
+                        attacker_personality_message = f"{attacker.name} leads the charge! (Bold: +{_nature_pct}% attack)"
 
                 elif personality == "cautious":
                     if strength_ratio < 1.0:
@@ -574,10 +600,10 @@ class CombatResolver:
                                    f"{int(round(attacker.strength / 1000))}k against "
                                    f"{int(round(defender.strength / 1000))}k")
                                   if committed_attacker > 0 else "")
-                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_frame}. (Careful: -10% attack)"
+                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds{_frame}. (Careful: -{_nature_pct}% attack)"
                     if current_stance == Stance.AGGRESSIVE:
                         if not attacker_personality_message:
-                            attacker_personality_message = f"{attacker.name} is hesitant in an attacking posture. (Careful: -5% attack)"
+                            attacker_personality_message = f"{attacker.name} is hesitant in an attacking posture. (Careful: -{_nature_pct}% attack)"
 
         # Clear drill bonus AFTER modifier calculation (one-time use).
         # NOTE: Drill state is cleared here in combat.py rather than in marshal.py's
@@ -623,8 +649,9 @@ class CombatResolver:
         # ════════════════════════════════════════════════════════════
         cavalry_counter_message = None
         if getattr(attacker, 'cavalry', False) and getattr(defender, 'artillery', False):
-            shock_multiplier *= 1.30
-            cavalry_counter_message = f"{attacker.name}'s cavalry overruns {defender.name}'s gun line! (+30% attack)"
+            shock_multiplier *= CAVALRY_COUNTER_FACTOR
+            cavalry_counter_message = (f"{attacker.name}'s cavalry overruns {defender.name}'s gun line! "
+                                       f"(+{factor_pct(CAVALRY_COUNTER_FACTOR)}% attack)")
 
         # ════════════════════════════════════════════════════════════
         # SQUARE FORMATION INTERACTIONS (Phase 7b, Session 67)
@@ -637,11 +664,14 @@ class CombatResolver:
         square_artillery_message = None
         if getattr(defender, 'square_formation', False):
             if getattr(attacker, 'cavalry', False):
-                shock_multiplier *= 0.60  # -40% damage
-                square_cavalry_message = f"{defender.name}'s square holds firm! {attacker.name}'s cavalry charge is blunted. (-40% cavalry damage)"
+                shock_multiplier *= SQUARE_VS_CAVALRY_FACTOR  # -40% damage
+                square_cavalry_message = (f"{defender.name}'s square holds firm! {attacker.name}'s cavalry charge "
+                                          f"is blunted. (-{factor_pct(SQUARE_VS_CAVALRY_FACTOR)}% cavalry damage)")
             elif getattr(attacker, 'artillery', False):
-                shock_multiplier *= 1.50  # +50% damage
-                square_artillery_message = f"{defender.name}'s packed square is a perfect target for {attacker.name}'s guns! (+50% artillery damage)"
+                shock_multiplier *= SQUARE_VS_ARTILLERY_FACTOR  # +50% damage
+                square_artillery_message = (f"{defender.name}'s packed square is a perfect target for "
+                                            f"{attacker.name}'s guns! (+{factor_pct(SQUARE_VS_ARTILLERY_FACTOR)}% "
+                                            f"artillery damage)")
 
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
@@ -682,7 +712,15 @@ class CombatResolver:
         is_outnumbered = defender.strength < attacker.strength
 
         if hasattr(defender, 'get_defense_modifier'):
-            defender_stance_modifier = defender.get_defense_modifier(is_outnumbered)
+            # WS-R3 (row FR, Session FR-2): the call notes its parts and the
+            # lines below quote them; a "total" multiplies its terms as the
+            # modifier does (+15% stance with +5% careful is +21%, not +20%).
+            from backend.models.personality_modifiers import get_personality_modifiers
+            _def_parts = []
+            defender_stance_modifier = defender.get_defense_modifier(is_outnumbered, parts=_def_parts)
+            _dp = dict(_def_parts)
+            _stance_f = float(_dp.get("stance", 1.0))
+            _pmods = get_personality_modifiers(getattr(defender, 'personality', 'unknown'))
             if defender_stance_modifier != 1.0 and not is_drilling:  # Don't double message if drilling
                 from backend.models.marshal import Stance
                 current_stance = getattr(defender, 'stance', Stance.NEUTRAL)
@@ -690,40 +728,53 @@ class CombatResolver:
 
                 # Stance messages
                 if current_stance == Stance.DEFENSIVE:
-                    defender_stance_message = f"{defender.name}'s DEFENSIVE stance strengthens the line! (+15% defense)"
+                    defender_stance_message = (f"{defender.name}'s DEFENSIVE stance strengthens the line! "
+                                               f"(+{factor_pct(_stance_f)}% defense)")
                 elif current_stance == Stance.AGGRESSIVE:
-                    defender_stance_message = f"{defender.name}'s AGGRESSIVE stance leaves flanks exposed (-10% defense)"
+                    defender_stance_message = (f"{defender.name}'s AGGRESSIVE stance leaves flanks exposed "
+                                               f"(-{factor_pct(_stance_f)}% defense)")
 
                 # Personality-specific messages
                 if personality == "aggressive":
                     if current_stance == Stance.AGGRESSIVE:
-                        defender_personality_message = f"{defender.name}'s reckless aggression weakens defense! (Bold: -5% additional)"
+                        _extra = 1.0 - _pmods.get("aggressive_stance_defense_penalty", 0)
+                        defender_personality_message = (f"{defender.name}'s reckless aggression weakens defense! "
+                                                        f"(Bold: -{factor_pct(_extra)}% additional)")
                     elif current_stance == Stance.DEFENSIVE:
-                        defender_personality_message = f"{defender.name} chafes at defensive duty. (Bold: +10% defense, not +15%)"
+                        _net = _stance_f * (1.0 - _pmods.get("defensive_stance_defense_penalty", 0))
+                        defender_personality_message = (f"{defender.name} chafes at defensive duty. "
+                                                        f"(Bold: +{factor_pct(_net)}% defense, not "
+                                                        f"+{factor_pct(_stance_f)}%)")
 
                 elif personality == "cautious":
                     if current_stance == Stance.DEFENSIVE:
                         # Label with the personality, not Davout's epithet — the 1805
                         # roster has 13 cautious marshals (audit 2026-07-09 fix 2.1).
-                        defender_personality_message = f"{defender.name}'s methodical defense is exemplary! (Careful: +20% total)"
+                        _total = _stance_f * (1.0 + _pmods.get("defensive_stance_defense_bonus", 0))
+                        defender_personality_message = (f"{defender.name}'s methodical defense is exemplary! "
+                                                        f"(Careful: +{factor_pct(_total)}% total)")
                     if is_outnumbered:
+                        _outn = factor_pct(1.0 + _pmods.get("outnumbered_defense_bonus", 0))
                         if not defender_personality_message:
-                            defender_personality_message = f"{defender.name} stands firm against superior numbers! (Careful: +10% outnumbered)"
+                            defender_personality_message = (f"{defender.name} stands firm against superior "
+                                                            f"numbers! (Careful: +{_outn}% outnumbered)")
                         else:
-                            defender_personality_message += " Outnumbered bonus: +10%"
+                            defender_personality_message += f" Outnumbered bonus: +{_outn}%"
 
                 elif personality == "literal":
                     is_holding = getattr(defender, 'holding_position', False)
                     if is_holding:
-                        defender_personality_message = f"{defender.name} holds the position exactly as ordered! (Immovable: +15% defense)"
+                        _hold = factor_pct(1.0 + _pmods.get("hold_position_defense_bonus", 0))
+                        defender_personality_message = (f"{defender.name} holds the position exactly as "
+                                                        f"ordered! (Immovable: +{_hold}% defense)")
 
                 # MC-1: Massena's "Child of Victory" — the report names why
                 # the outnumbered wall held (rides the personality message so
                 # both result-building paths carry it without new plumbing).
-                if (is_outnumbered and hasattr(defender, 'ability')
-                        and defender.ability.get("name") == "Child of Victory"):
+                if "child_of_victory" in _dp:
                     cov_line = (f"{defender.name} is at his best with his back to the wall! "
-                                f"(Child of Victory: +10% defense when outnumbered)")
+                                f"(Child of Victory: +{factor_pct(_dp['child_of_victory'])}% "
+                                f"defense when outnumbered)")
                     defender_personality_message = (
                         f"{defender_personality_message} {cov_line}"
                         if defender_personality_message else cov_line)
@@ -761,8 +812,8 @@ class CombatResolver:
         # ════════════════════════════════════════════════════════════
         glorious_charge_message = None
         if glorious_charge:
-            attacker_casualties = int(attacker_casualties * 2)
-            defender_casualties = int(defender_casualties * 2)
+            attacker_casualties = int(attacker_casualties * GLORIOUS_CHARGE_FACTOR)
+            defender_casualties = int(defender_casualties * GLORIOUS_CHARGE_FACTOR)
             # DDB-X22 (Pre-Deploy S13b part 2): the mechanic, said before the
             # outcome in no outcome's register ("deals devastating damage"
             # stood over a charge that was thrown back).

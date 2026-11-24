@@ -2730,6 +2730,10 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
         if cause == "attrition":
             return (f"{marshal_title(ctx.world, marshal, start=True)}'s corps DESTROYED at {location} — "
                     f"starved out by supply attrition")
+        # FR2-3 (row FR, Session FR-2's review): stray shells of its own side.
+        if cause == "friendly_fire":
+            return (f"{marshal_title(ctx.world, marshal, start=True)}'s corps DESTROYED at {location} — "
+                    f"caught in its own side's stray shells")
         # WIN-D3: internment is not annihilation. The corps is off the board
         # by the same seam, but it was disarmed, not destroyed.
         if cause == "interned":

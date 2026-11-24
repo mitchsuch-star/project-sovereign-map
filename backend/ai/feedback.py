@@ -123,25 +123,48 @@ def get_bonuses_for_score(score: int) -> Dict[str, int]:
     return {"morale": 0, "trust": 0, "combat": 0}
 
 
+def a_courts_bonus_rides_its_own_act() -> bool:
+    """WS-R4 (row FR, Session FR-2 — the weak-spot readers' find 4): a court's
+    attack is judged BEFORE it runs (`EnemyAI._judge_the_attack_first`), so the
+    combat bonus its judgement earns is spent by the very attack it judged —
+    what this module's own words promise ("consumed in get_attack_modifier()")
+    and what the turn-end expiry's comment always assumed. Before, the court
+    scored the attack AFTER it had run and the bonus waited for that marshal's
+    next attack, however many turns later. With it, the turn-end expiry
+    (GRD-33's rule: never banked for a battle turns later) covers every
+    holder, so an attack refused before its blow banks nothing overnight.
+    One line to reverse: return False."""
+    return True
+
+
+def set_combat_bonus(marshal, strategic_score: int) -> int:
+    """WS-R4: the combat half of the score's bonuses, set before the attack it
+    rewards (its morale and trust follow the act, `apply_strategic_bonuses`
+    with `is_combat_action=False`). Returns the bonus set (0 for none)."""
+    combat = int(get_bonuses_for_score(strategic_score)["combat"])
+    if combat > 0:
+        marshal.strategic_combat_bonus = combat
+    return combat
+
+
 def apply_strategic_bonuses(marshal, strategic_score: int, is_combat_action: bool = False) -> Dict[str, int]:
     """
     Apply morale and trust bonuses to marshal. Optionally set combat bonus.
 
     Args:
         marshal: Marshal object to modify
-        strategic_score: Score from LLM (0-100)
+        strategic_score: the score (0-100)
         is_combat_action: If True, also set strategic_combat_bonus
 
     Returns:
         The bonuses dict that was applied
 
-    NOTE: Only call for PLAYER actions, not enemy AI.
-    Enemy AI doesn't use LLM scoring and shouldn't receive these bonuses.
-
-    NOTE: Phase 5.2 strategic feedback not yet differentiated from tactical. Future improvement:
-    When command_type == "strategic", use different bonus logic:
-    - apply_strategic_order_bonuses(marshal, score, standing_order, condition)
-    - Handle multi-turn persistence differently
+    Since WS-12 (row IC, Session 2: no number a model wrote reaches a marshal)
+    the courts are this function's only callers, scored by the AI's own formula
+    (`enemy_ai.calculate_ai_strategic_score`). Since WS-R4 (row FR, Session
+    FR-2) a court's combat bonus is set BEFORE the attack it rewards
+    (`set_combat_bonus`) and this function follows a successful act with its
+    morale and trust only; with the seam down the old order returns.
     """
     bonuses = get_bonuses_for_score(strategic_score)
 

@@ -19,7 +19,12 @@ class TestNations:
     def test_folded_courts_stand_in_pairs_page_keeps_the_table(self):
         body = _func("_render_nations")
         assert "if Utils.explanations_folded():\n\t\t\tbbcode += _court_grid(facts)" in body
-        assert "bbcode += _facts_table(facts, content_area != null and int(content_area.size.x) >= 820)" in body
+        # Row FR, Session FR-2's review (FR2-2): the 820-px rule moved into a helper
+        # that also records the width it read, so the page reflows on a resize.
+        assert "bbcode += _facts_table(facts, _nations_table_is_wide())" in body
+        wide = _func("_nations_table_is_wide")
+        assert "return int(content_area.size.x) >= 820" in wide
+        assert "_width_used = w if w > 280 else 640" in wide
 
     def test_the_grid_is_four_columns_two_facts_a_row_at_any_width(self):
         grid = _func("_court_grid")

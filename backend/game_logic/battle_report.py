@@ -77,6 +77,54 @@ def defense_personality_components(personality: str, stance: str,
     return rows
 
 
+# WS-R3 (row FR, Session FR-2 — the weak-spot readers' find 3): the rows read
+# the PARTS the modifier functions applied (`Marshal.get_attack_modifier` /
+# `get_defense_modifier` with `parts=`, read with consume=False), so the report
+# and the fight agree to the figure — golden rule 1: one source, nothing typed
+# twice. Before, the rows re-typed the numbers: Iron Resolve's release printed
+# the defensive stance's −10 % it had undone; the jealous lone attack (+15 %),
+# the jealousy surge (+10 %) and cavalry momentum had no row; the strategic
+# bonus was labelled for a forced march that never grants it; the ground's
+# share of a cavalryman's dash was printed as a factor of its own. Every
+# existing label is kept — the battle script and the telling read them by
+# prefix. The coordination totals stay out of the rows, by design (below).
+CONFIDENT_LABEL = "Confidence in his orders"
+JEALOUS_ALONE_LABEL = "Jealous lone attack"
+GRIEVANCE_SETTLED_LABEL = "Pride after proving himself"
+MOMENTUM_LABEL = "Cavalry momentum (charged again today)"
+DEFENCE_CAP_LABEL = "Defence limit (the bonuses multiply to +{whole}%{coord}; the limit is +{cap}%)"
+# FR2-4 (the session's review): coordination has no row (above), so when it fed
+# the total the row says so — else its figure cannot be read off the rows shown.
+DEFENCE_CAP_COORDINATION = ", coordination included"
+
+
+def _part_row(label: str, factor, **extra) -> Dict:
+    """WS-R3: one row from one applied factor — its whole percent and its
+    sign (`combat.factor_pct`, the one rounding)."""
+    from backend.game_logic.combat import factor_pct
+    return {"label": label, "value": factor_pct(factor),
+            "type": "bonus" if float(factor) >= 1.0 else "penalty", **extra}
+
+
+def attack_parts(attacker, defender, terrain=None) -> Dict[str, float]:
+    """WS-R3: the factors `get_attack_modifier` applies for this attack, by
+    key, read without spending anything (the resolver's own strength ratio)."""
+    ratio = attacker.strength / defender.strength if defender.strength > 0 else float("inf")
+    parts: list = []
+    attacker.get_attack_modifier(ratio, consume=False, terrain=terrain, parts=parts)
+    return dict(parts)
+
+
+def defence_parts(defender, attacker) -> Dict[str, float]:
+    """WS-R3: the factors `get_defense_modifier` applies for this defence, by
+    key (the resolver's own rule: outnumbered = fewer men), read without
+    spending anything."""
+    parts: list = []
+    defender.get_defense_modifier(defender.strength < attacker.strength, consume=False,
+                                  parts=parts)
+    return dict(parts)
+
+
 def snapshot_attacker_modifiers(
     attacker,
     defender,
@@ -89,80 +137,69 @@ def snapshot_attacker_modifiers(
     Read-only snapshot of all attack modifiers BEFORE they are consumed.
 
     Returns list of {label: str, value: int (%), type: "bonus"|"penalty"}.
-    Only includes modifiers that are actually active (non-zero).
+    Only includes modifiers that are actually active (non-zero). WS-R3: each
+    marshal row is a part the modifier applied (`attack_parts`); the rows the
+    resolver applies itself read its named factors (`combat.*_FACTOR`).
     """
     from backend.models.marshal import Stance
+    from backend.game_logic import combat as _combat
 
+    parts = attack_parts(attacker, defender, terrain)
     mods: List[Dict] = []
 
-    # --- Stance ---
+    # --- Stance --- (WS-R3: none when Iron Resolve's release undid it)
     stance = getattr(attacker, "stance", Stance.NEUTRAL)
-    if stance == Stance.AGGRESSIVE:
-        mods.append({"label": "Aggressive stance", "value": 15, "type": "bonus"})
-    elif stance == Stance.DEFENSIVE:
-        mods.append({"label": "Defensive stance", "value": 10, "type": "penalty"})
+    if "stance" in parts and "stance_released" not in parts:
+        mods.append(_part_row("Aggressive stance" if stance == Stance.AGGRESSIVE
+                              else "Defensive stance", parts["stance"]))
 
     # --- Drill / shock_bonus ---
-    shock = getattr(attacker, "shock_bonus", 0)
-    if shock > 0:
-        mods.append({"label": "Drill training", "value": int(shock * 10), "type": "bonus"})
+    if "drill" in parts:
+        mods.append(_part_row("Drill training", parts["drill"]))
 
-    # --- Strategic combat bonus (peek only, do NOT zero) ---
-    # W6-1 (BUG-CA-5): "Strategic orders" was unmappable to any player
-    # action — name what actually earned it. Label only, GR1 math untouched.
-    strat_bonus = getattr(attacker, "strategic_combat_bonus", 0)
-    if strat_bonus > 0:
-        mods.append({"label": "Forced march momentum (order completed)",
-                     "value": int(strat_bonus), "type": "bonus"})
+    # --- Strategic combat bonus --- WS-R3: in plain words, true of both roads
+    # that grant it (a literal marshal's clear order, a court's well-judged
+    # attack); "Forced march momentum" named a cause nothing grants.
+    if "strategic" in parts:
+        mods.append(_part_row(CONFIDENT_LABEL, parts["strategic"]))
 
-    # --- Personality attack modifier (stateless function) ---
-    strength_ratio = attacker.strength / defender.strength if defender.strength > 0 else float("inf")
-    has_drill = shock > 0
-    personality = getattr(attacker, "personality", "unknown")
-    pers_mod = get_attack_modifier_for_personality(
-        personality, stance.value, has_drill, strength_ratio
-    )
-    if pers_mod > 1.001:
-        pct = int(round((pers_mod - 1.0) * 100))
-        mods.append({"label": f"{_nature(personality)} nature", "value": pct, "type": "bonus"})
-    elif pers_mod < 0.999:
-        pct = int(round((1.0 - pers_mod) * 100))
-        mods.append({"label": f"{_nature(personality)} nature", "value": pct, "type": "penalty"})
+    # --- Nature (personality) attack modifier ---
+    nature = parts.get("personality", 1.0)
+    if nature > 1.001 or nature < 0.999:
+        mods.append(_part_row(f"{_nature(getattr(attacker, 'personality', 'unknown'))} nature",
+                              nature))
 
-    # --- Recklessness attack bonus ---
-    if getattr(attacker, "is_reckless_cavalry", False):
-        reck_bonus = attacker._get_recklessness_attack_bonus()
-        if reck_bonus > 0:
-            mods.append({"label": "Recklessness", "value": int(round(reck_bonus * 100)), "type": "bonus"})
+    # --- Recklessness attack bonus (the dash itself) ---
+    dash = float(attacker._get_recklessness_attack_bonus()) if "recklessness" in parts else 0.0
+    if dash > 0:
+        mods.append(_part_row("Recklessness", 1.0 + dash))
 
-    # --- Exhaustion penalty (artillery exempt) ---
-    if not getattr(attacker, "artillery", False):
-        exhaustion = getattr(attacker, "_get_exhaustion_penalty", lambda: 0.0)()
-        if exhaustion > 0:
-            mods.append({"label": "Exhaustion", "value": int(round(exhaustion * 100)), "type": "penalty"})
+    # --- Exhaustion penalty (artillery exempt) / cavalry momentum ---
+    if "exhaustion" in parts:
+        mods.append(_part_row("Exhaustion", parts["exhaustion"]))
+    if "momentum" in parts:
+        mods.append(_part_row(MOMENTUM_LABEL, parts["momentum"]))
 
-    # --- Cavalry terrain effectiveness ---
-    if getattr(attacker, "cavalry", False) and getattr(attacker, "is_reckless_cavalry", False):
-        reck_bonus_raw = attacker._get_recklessness_attack_bonus()
-        if reck_bonus_raw > 0:
-            terrain_cav_mult = attacker.recklessness_terrain_scale(terrain)   # GRD-34: the one read
-            if terrain_cav_mult != 1.0:
-                eff_pct = int(terrain_cav_mult * 100)
-                if terrain_cav_mult > 1.0:
-                    mods.append({"label": f"Cavalry terrain ({terrain})", "value": eff_pct - 100, "type": "bonus"})
-                else:
-                    mods.append({"label": f"Cavalry terrain ({terrain})", "value": 100 - eff_pct, "type": "penalty"})
+    # --- Cavalry terrain: the ground's share of the dash --- WS-R3: the
+    # marshal applies (1 + dash × the ground's scale) as ONE factor; this row
+    # is what the ground made of the dash, so the two rows multiply to it.
+    if dash > 0 and getattr(attacker, "cavalry", False):
+        ground = parts["recklessness"] / (1.0 + dash)
+        if _combat.factor_pct(ground) > 0:
+            mods.append(_part_row(f"Cavalry terrain ({terrain})", ground))
 
-    # --- Cavalry counter vs artillery ---
+    # --- Cavalry counter vs artillery (the resolver's own factor) ---
     if getattr(attacker, "cavalry", False) and getattr(defender, "artillery", False):
-        mods.append({"label": "Cavalry counter (vs artillery)", "value": 30, "type": "bonus"})
+        mods.append(_part_row("Cavalry counter (vs artillery)", _combat.CAVALRY_COUNTER_FACTOR))
 
-    # --- Square formation interactions (Session 67) ---
+    # --- Square formation interactions (Session 67; the resolver's factors) ---
     if getattr(defender, "square_formation", False):
         if getattr(attacker, "cavalry", False):
-            mods.append({"label": "Square formation (vs cavalry)", "value": 40, "type": "penalty"})
+            mods.append(_part_row("Square formation (vs cavalry)",
+                                  _combat.SQUARE_VS_CAVALRY_FACTOR))
         elif getattr(attacker, "artillery", False):
-            mods.append({"label": "Square formation (vs artillery)", "value": 50, "type": "bonus"})
+            mods.append(_part_row("Square formation (vs artillery)",
+                                  _combat.SQUARE_VS_ARTILLERY_FACTOR))
 
     # --- Flanking bonus ---
     if flanking_bonus > 0:
@@ -176,56 +213,44 @@ def snapshot_attacker_modifiers(
             mods.append({"label": "Ranged bombardment (−50% return fire)", "value": 50, "type": "bonus"})
 
     # --- Counter-Punch Mastery (Davout's Iron Marshal ability) ---
-    if getattr(attacker, "counter_punch_ready", False):
-        if hasattr(attacker, 'ability') and attacker.ability.get("name") == "Counter-Punch Mastery":
-            mods.append({"label": "Counter-Punch Mastery", "value": 20, "type": "bonus"})
+    if "counter_punch" in parts:
+        mods.append(_part_row("Counter-Punch Mastery", parts["counter_punch"]))
 
     # --- Iron Resolve (MC-1c: Davout's coiled-spring assault) ---
-    # Snapshots run BEFORE get_attack_modifier() consumes the stacks
-    # (memo-verified safe) — the report names what the assault carried.
-    _iron_stacks = getattr(attacker, "iron_resolve_stacks", 0)
-    if (_iron_stacks > 0 and hasattr(attacker, 'ability')
-            and attacker.ability.get("name") == "Iron Resolve"):
-        from backend.models.marshal import Marshal as _Marshal
-        _iron_pct = int(round(_iron_stacks * _Marshal.IRON_RESOLVE_BONUS_PER_STACK * 100))
+    # Snapshots run BEFORE get_attack_modifier() consumes the stacks — the
+    # report names what the assault carried.
+    if "iron_resolve" in parts:
+        _iron_stacks = int(getattr(attacker, "iron_resolve_stacks", 0) or 0)
         _plural = "s" if _iron_stacks != 1 else ""
-        mods.append({"label": f"Iron Resolve ({_iron_stacks} stack{_plural})",
-                     "value": _iron_pct, "type": "bonus"})
+        mods.append(_part_row(f"Iron Resolve ({_iron_stacks} stack{_plural})",
+                              parts["iron_resolve"]))
+
+    # --- Jealousy (v3.2) --- WS-R3: the two parts that had no row.
+    if "jealous_alone" in parts:
+        mods.append(_part_row(JEALOUS_ALONE_LABEL, parts["jealous_alone"]))
+    if "jealousy_surge" in parts:
+        mods.append(_part_row(GRIEVANCE_SETTLED_LABEL, parts["jealousy_surge"]))
 
     # --- The Presence (NP-2: the Emperor commands in person) ---
     # Deliberately SHOWN unlike coordination — the aura is its own factor
-    # outside the coordination caps, and the report names it (shown =
-    # applied, percentage derived from the consumed constant).
-    # NP-V: derived from the SAME product the modifier applies, so a
-    # cracked aura reads "+7%", not "+10%" — the player watches the star
-    # dim in the battle report itself.
-    _pres_a = float(getattr(attacker, "sovereign_presence", 0.0) or 0.0)
-    if _pres_a:
-        from backend.models.marshal import Marshal as _M
-        # NP promise audit (Aug 15, 2026): gate on the PERCENTAGE, not the
-        # float. Grip is an int over a span of 55, so the smallest non-zero
-        # aura is 1/55 — and grip 31-32 rendered a bonus row reading
-        # "+0%". §15.4 promises "+10%" becomes "+9%" becomes NOTHING, and
-        # the sibling producer already carries this exact guard
-        # (combat_executor.py's `if _pct > 0`).
-        _pct_a = int(round(_M.SOVEREIGN_PRESENCE_ATTACK * _pres_a * 100))
-        if _pct_a > 0:
-            mods.append({"label": ("The Emperor commands in person"
-                                   if _pres_a >= 0.999 else
-                                   "The Emperor commands in person "
-                                   "(his star dims)"),
-                         "value": _pct_a,
-                         "type": "bonus"})
+    # outside the coordination caps. NP-V: a cracked aura reads "+7%", not
+    # "+10%" — the player watches the star dim in the battle report itself.
+    # NP promise audit (Aug 15, 2026): gated on the PERCENTAGE, so a grip of
+    # 31-32 never renders a "+0%" bonus row.
+    if "presence" in parts:
+        _pres_a = float(getattr(attacker, "sovereign_presence", 0.0) or 0.0)
+        row = _part_row("The Emperor commands in person" if _pres_a >= 0.999 else
+                        "The Emperor commands in person (his star dims)", parts["presence"])
+        if row["value"] > 0:
+            mods.append(row)
 
-    # --- Glorious Charge ---
+    # --- Glorious Charge (the resolver doubles the blood both ways) ---
     if glorious_charge:
-        mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})
+        mods.append(_part_row("Glorious Charge", _combat.GLORIOUS_CHARGE_FACTOR))
 
     # --- Overwatch penalty (Session 68) ---
-    overwatch_penalty = getattr(attacker, "overwatch_penalty", 0.0)
-    if overwatch_penalty > 0:
-        pct = int(round(overwatch_penalty * 100))
-        mods.append({"label": "Artillery overwatch", "value": pct, "type": "penalty"})
+    if parts.get("overwatch", 1.0) < 1.0:
+        mods.append(_part_row("Artillery overwatch", parts["overwatch"]))
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Combined arms, per-ally coordination, dedicated coordination, adjacent
@@ -237,11 +262,9 @@ def snapshot_attacker_modifiers(
     # fields — they are just not shown as raw stats here.
 
     # --- SR-7d DC-3b (DOCTRINES_SPEC RV-7): the court's attack clause ---
-    _dterm = float(getattr(attacker, "_doctrine_term", lambda k: 1.0)("attack") or 1.0)
-    if _dterm > 1.0001:
-        mods.append({"label": str(attacker._doctrine_term("attack_name") or "Doctrine"),
-                     "value": int(round((_dterm - 1.0) * 100)), "type": "bonus",
-                     "doctrine": True})
+    if parts.get("doctrine", 1.0) > 1.0001:
+        mods.append(_part_row(str(attacker._doctrine_term("attack_name") or "Doctrine"),
+                              parts["doctrine"], doctrine=True))
 
     return mods
 
@@ -256,40 +279,36 @@ def snapshot_defender_modifiers(
     Read-only snapshot of all defense modifiers BEFORE they are consumed.
 
     Returns list of {label: str, value: int (%), type: "bonus"|"penalty"}.
-    Only includes modifiers that are actually active (non-zero).
+    Only includes modifiers that are actually active (non-zero). WS-R3: each
+    marshal row is a part the modifier applied (`defence_parts`).
     """
     from backend.models.marshal import Stance
+    from backend.game_logic.combat import factor_pct
 
+    parts = defence_parts(defender, attacker)
     mods: List[Dict] = []
 
     # --- Stance ---
     stance = getattr(defender, "stance", Stance.NEUTRAL)
-    if stance == Stance.DEFENSIVE:
-        mods.append({"label": "Defensive stance", "value": 15, "type": "bonus"})
-    elif stance == Stance.AGGRESSIVE:
-        mods.append({"label": "Aggressive stance", "value": 10, "type": "penalty"})
+    if "stance" in parts:
+        mods.append(_part_row("Defensive stance" if stance == Stance.DEFENSIVE
+                              else "Aggressive stance", parts["stance"]))
 
     # --- Fortify bonus (defense_bonus field) ---
-    fort_bonus = getattr(defender, "defense_bonus", 0.0)
-    if fort_bonus > 0:
-        mods.append({"label": "Fortified position", "value": int(round(fort_bonus * 100)), "type": "bonus"})
+    if "fortify" in parts:
+        mods.append(_part_row("Fortified position", parts["fortify"]))
 
-    # --- Strategic defense bonus (peek only, do NOT zero) ---
-    # W6-1 (BUG-CA-5): named for the player action that earned it (see
-    # the attacker-side label note). Label only, GR1 math untouched.
-    strat_def = getattr(defender, "strategic_defense_bonus", 0)
-    if strat_def > 0:
-        mods.append({"label": "Forced march momentum (order completed)",
-                     "value": int(strat_def), "type": "bonus"})
+    # --- Strategic defense bonus --- (WS-R3: see the attacker half)
+    if "strategic" in parts:
+        mods.append(_part_row(CONFIDENT_LABEL, parts["strategic"]))
 
     # --- Drilling penalty ---
-    is_drilling = getattr(defender, "drilling", False) or getattr(defender, "drilling_locked", False)
-    if is_drilling:
-        mods.append({"label": "Caught drilling", "value": 25, "type": "penalty"})
+    if "drilling" in parts:
+        mods.append(_part_row("Caught drilling", parts["drilling"]))
 
     # --- Artillery moved this turn (guns not set up) ---
-    if getattr(defender, "artillery", False) and getattr(defender, "moved_this_turn", False):
-        mods.append({"label": "Artillery in transit", "value": 25, "type": "penalty"})
+    if "artillery_moved" in parts:
+        mods.append(_part_row("Artillery in transit", parts["artillery_moved"]))
 
     # --- Personality defense modifier (stateless function) ---
     is_outnumbered = defender.strength < attacker.strength
@@ -307,10 +326,8 @@ def snapshot_defender_modifiers(
         mods.append({"label": label, "value": value, "type": kind})
 
     # --- Recklessness defense penalty ---
-    if getattr(defender, "is_reckless_cavalry", False):
-        reck_penalty = defender._get_recklessness_defense_penalty()
-        if reck_penalty > 0:
-            mods.append({"label": "Recklessness", "value": int(round(reck_penalty * 100)), "type": "penalty"})
+    if "recklessness" in parts:
+        mods.append(_part_row("Recklessness", parts["recklessness"]))
 
     # --- Terrain defense bonus ---
     terrain_def = TERRAIN_DEFENSE_BONUS.get(terrain, 0.0)
@@ -323,41 +340,36 @@ def snapshot_defender_modifiers(
         mods.append({"label": "Fortification building", "value": int(round(fortification_bonus * 100)), "type": "bonus"})
 
     # --- Square formation defense bonus (Session 67) ---
-    if getattr(defender, "square_formation", False):
-        mods.append({"label": "Square formation", "value": 5, "type": "bonus"})
+    if "square" in parts:
+        mods.append(_part_row("Square formation", parts["square"]))
 
     # --- Signature abilities (defense) ---
-    ability = getattr(defender, "ability", None)
-    if ability:
-        ability_name = ability.get("name", "") if isinstance(ability, dict) else ""
-        if ability_name == "Reverse Slope Defense":
-            mods.append({"label": "Reverse Slope Defense", "value": 5, "type": "bonus"})
-        elif ability_name == "Habsburg Resolve":
-            mods.append({"label": "Habsburg Resolve", "value": 3, "type": "bonus"})
-        elif ability_name == "Child of Victory" and is_outnumbered:
-            # MC-1: Massena — the report names why the outnumbered wall held.
-            # Mirrors marshal.get_defense_modifier's is_outnumbered gate.
-            mods.append({"label": "Child of Victory (outnumbered)", "value": 10, "type": "bonus"})
+    if "reverse_slope" in parts:
+        mods.append(_part_row("Reverse Slope Defense", parts["reverse_slope"]))
+    if "habsburg_resolve" in parts:
+        mods.append(_part_row("Habsburg Resolve", parts["habsburg_resolve"]))
+    if "child_of_victory" in parts:
+        # MC-1: Massena — the report names why the outnumbered wall held.
+        mods.append(_part_row("Child of Victory (outnumbered)", parts["child_of_victory"]))
+
+    # --- Jealousy surge (v3.2: a cautious man's vindication) --- WS-R3
+    if "jealousy_surge" in parts:
+        mods.append(_part_row(GRIEVANCE_SETTLED_LABEL, parts["jealousy_surge"]))
 
     # --- The Presence (NP-2: the Emperor stands with the defence) ---
-    _pres_d = float(getattr(defender, "sovereign_presence", 0.0) or 0.0)
-    if _pres_d:
-        from backend.models.marshal import Marshal as _M
-        # NP promise audit: see the attacker half — gate on the percentage.
-        _pct_d = int(round(_M.SOVEREIGN_PRESENCE_DEFENSE * _pres_d * 100))
-        if _pct_d > 0:
-            mods.append({"label": ("The Emperor commands in person"
-                                   if _pres_d >= 0.999 else
-                                   "The Emperor commands in person "
-                                   "(his star dims)"),
-                         "value": _pct_d,
-                         "type": "bonus"})
+    if "presence" in parts:
+        _pres_d = float(getattr(defender, "sovereign_presence", 0.0) or 0.0)
+        row = _part_row("The Emperor commands in person" if _pres_d >= 0.999 else
+                        "The Emperor commands in person (his star dims)", parts["presence"])
+        if row["value"] > 0:
+            mods.append(row)
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().
 
     # --- SR-7d DC-3b (DOCTRINES_SPEC RV-7): the court's defence clause, the
     # share that APPLIED after the 1.75 cap ---
+    _share = 1.0
     if hasattr(defender, "doctrine_defense_share"):
         # the resolver's own rule (`resolve_battle`): outnumbered = fewer men
         _outnumbered = int(getattr(defender, 'strength', 0)) < int(getattr(attacker, 'strength', 0))
@@ -366,6 +378,25 @@ def snapshot_defender_modifiers(
             mods.append({"label": str(defender._doctrine_term("defense_name") or "Doctrine"),
                          "value": int(round((_share - 1.0) * 100)), "type": "bonus",
                          "doctrine": True})
+
+    # --- The +75% cap --- WS-R3: what the cap took that the doctrine's share
+    # (which already reads the cap) did not — so the rows multiply to the
+    # defence the battle used.
+    if "cap" in parts:
+        _taken = parts["cap"] * parts.get("doctrine", 1.0) / (_share if _share > 1.0001 else 1.0)
+        if factor_pct(_taken) > 0:
+            # The blind reading (round 1): players ADD the rows' percentages, the
+            # game multiplies them — so the row says what the bonuses made
+            # together and where the limit cut them, both read off the parts.
+            _whole = 1.0
+            for _key, _factor in parts.items():
+                if _key != "cap":
+                    _whole *= _factor
+            _coord = (DEFENCE_CAP_COORDINATION
+                      if abs(parts.get("coordination", 1.0) - 1.0) > 1e-9 else "")
+            mods.append(_part_row(DEFENCE_CAP_LABEL.format(
+                whole=factor_pct(_whole), coord=_coord,
+                cap=factor_pct(_whole * parts["cap"])), _taken))
 
     return mods
 

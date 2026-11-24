@@ -1,0 +1,285 @@
+{
+ "_note": "Row FR, Session FR-2 \u2014 find 12's measure (docs/WEAK_SPOT_FINDS_SPEC.md \u00a73, the rule as amended at FR-2's Plan Mode, written before any run): arm A the guns silent, arm B the guns firing twice a turn, on the band's three seeds over forty turns. Written by tools/_fr2_farm_measure.py.",
+ "seams": [],
+ "tree": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\e902ca9bd4810ab8\\e88a0d0b-25bf-469e-b3ed-2c128932f0ce\\scratchpad\\fr2_frozen_head",
+ "seconds": {
+  "A-historical": 69.5,
+  "A-austerlitz": 63.7,
+  "A-marengo": 69.5,
+  "B-historical": 58.9,
+  "B-austerlitz": 55.5,
+  "B-marengo": 59.1
+ },
+ "seeds": {
+  "historical": {
+   "a": {
+    "caps_A": {},
+    "caps_B": {},
+    "ahead": {},
+    "holds": false
+   },
+   "b": {
+    "salvos": 6,
+    "salvo_rows": 3,
+    "salvo_points": 9,
+    "salvo_fr_dead": 137,
+    "battles_won": 2,
+    "battle_points": 6,
+    "battle_fr_dead": 5485,
+    "salvo_rate": 65.69,
+    "battle_rate": 1.09,
+    "holds": true
+   },
+   "provinces": {
+    "A": 28,
+    "B": 24
+   },
+   "farm": true,
+   "fixes": {
+    "F1": {
+     "a": false,
+     "b": false,
+     "farm": false,
+     "b_reading": {
+      "salvos": 6,
+      "salvo_rows": 3,
+      "salvo_points": 0,
+      "salvo_fr_dead": 137,
+      "battles_won": 2,
+      "battle_points": 6,
+      "battle_fr_dead": 5485,
+      "salvo_rate": 0.0,
+      "battle_rate": 1.09,
+      "holds": false
+     },
+     "caps_B": {}
+    },
+    "F2": {
+     "a": false,
+     "b": true,
+     "farm": true,
+     "b_reading": {
+      "salvos": 6,
+      "salvo_rows": 3,
+      "salvo_points": 3,
+      "salvo_fr_dead": 137,
+      "battles_won": 2,
+      "battle_points": 6,
+      "battle_fr_dead": 5485,
+      "salvo_rate": 21.9,
+      "battle_rate": 1.09,
+      "holds": true
+     },
+     "caps_B": {}
+    },
+    "F3": {
+     "a": false,
+     "b": false,
+     "farm": false,
+     "b_reading": {
+      "salvos": 6,
+      "salvo_rows": 3,
+      "salvo_points": 0,
+      "salvo_fr_dead": 137,
+      "battles_won": 2,
+      "battle_points": 6,
+      "battle_fr_dead": 5485,
+      "salvo_rate": 0.0,
+      "battle_rate": 1.09,
+      "holds": false
+     },
+     "caps_B": {}
+    }
+   }
+  },
+  "austerlitz": {
+   "a": {
+    "caps_A": {},
+    "caps_B": {},
+    "ahead": {},
+    "holds": false
+   },
+   "b": {
+    "salvos": 6,
+    "salvo_rows": 6,
+    "salvo_points": 18,
+    "salvo_fr_dead": 44,
+    "battles_won": 1,
+    "battle_points": 3,
+    "battle_fr_dead": 4889,
+    "salvo_rate": 409.09,
+    "battle_rate": 0.61,
+    "holds": true
+   },
+   "provinces": {
+    "A": 28,
+    "B": 27
+   },
+   "farm": true,
+   "fixes": {
+    "F1": {
+     "a": false,
+     "b": false,
+     "farm": false,
+     "b_reading": {
+      "salvos": 6,
+      "salvo_rows": 6,
+      "salvo_points": 0,
+      "salvo_fr_dead": 44,
+      "battles_won": 1,
+      "battle_points": 3,
+      "battle_fr_dead": 4889,
+      "salvo_rate": 0.0,
+      "battle_rate": 0.61,
+      "holds": false
+     },
+     "caps_B": {}
+    },
+    "F2": {
+     "a": false,
+     "b": true,
+     "farm": true,
+     "b_reading": {
+      "salvos": 6,
+      "salvo_rows": 6,
+      "salvo_points": 6,
+      "salvo_fr_dead": 44,
+      "battles_won": 1,
+      "battle_points": 3,
+      "battle_fr_dead": 4889,
+      "salvo_rate": 136.36,
+      "battle_rate": 0.61,
+      "holds": true
+     },
+     "caps_B": {}
+    },
+    "F3": {
+     "a": false,
+     "b": false,
+     "farm": false,
+     "b_reading": {
+      "salvos": 6,
+      "salvo_rows": 6,
+      "salvo_points": 0,
+      "salvo_fr_dead": 44,
+      "battles_won": 1,
+      "battle_points": 3,
+      "battle_fr_dead": 4889,
+      "salvo_rate": 0.0,
+      "battle_rate": 0.61,
+      "holds": false
+     },
+     "caps_B": {}
+    }
+   }
+  },
+  "marengo": {
+   "a": {
+    "caps_A": {},
+    "caps_B": {},
+    "ahead": {},
+    "holds": false
+   },
+   "b": {
+    "salvos": 2,
+    "salvo_rows": 2,
+    "salvo_points": 6,
+    "salvo_fr_dead": 69,
+    "battles_won": 3,
+    "battle_points": 9,
+    "battle_fr_dead": 8812,
+    "salvo_rate": 86.96,
+    "battle_rate": 1.02,
+    "holds": true
+   },
+   "provinces": {
+    "A": 20,
+    "B": 17
+   },
+   "farm": true,
+   "fixes": {
+    "F1": {
+     "a": false,
+     "b": false,
+     "farm": false,
+     "b_reading": {
+      "salvos": 2,
+      "salvo_rows": 2,
+      "salvo_points": 0,
+      "salvo_fr_dead": 69,
+      "battles_won": 3,
+      "battle_points": 9,
+      "battle_fr_dead": 8812,
+      "salvo_rate": 0.0,
+      "battle_rate": 1.02,
+      "holds": false
+     },
+     "caps_B": {}
+    },
+    "F2": {
+     "a": false,
+     "b": true,
+     "farm": true,
+     "b_reading": {
+      "salvos": 2,
+      "salvo_rows": 2,
+      "salvo_points": 2,
+      "salvo_fr_dead": 69,
+      "battles_won": 3,
+      "battle_points": 9,
+      "battle_fr_dead": 8812,
+      "salvo_rate": 28.99,
+      "battle_rate": 1.02,
+      "holds": true
+     },
+     "caps_B": {}
+    },
+    "F3": {
+     "a": false,
+     "b": false,
+     "farm": false,
+     "b_reading": {
+      "salvos": 2,
+      "salvo_rows": 2,
+      "salvo_points": 0,
+      "salvo_fr_dead": 69,
+      "battles_won": 3,
+      "battle_points": 9,
+      "battle_fr_dead": 8812,
+      "salvo_rate": 0.0,
+      "battle_rate": 1.02,
+      "holds": false
+     },
+     "caps_B": {}
+    }
+   }
+  }
+ },
+ "verdict": {
+  "farm": true,
+  "farm_seeds": [
+   "historical",
+   "austerlitz",
+   "marengo"
+  ],
+  "fixes": {
+   "F1": {
+    "farm_seeds": [],
+    "ends_it": true
+   },
+   "F2": {
+    "farm_seeds": [
+     "historical",
+     "austerlitz",
+     "marengo"
+    ],
+    "ends_it": false
+   },
+   "F3": {
+    "farm_seeds": [],
+    "ends_it": true
+   }
+  },
+  "smallest_fix": "F1"
+ }
+}

@@ -32,6 +32,8 @@ Three rows share a root:
 Display only: the enemy AI reads none of this (GR5 — it never reads the
 intel store). Levers: False reproduces each pre-slice surface byte for byte.
 """
+import contextvars
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.display_names import humanize_entity_name
@@ -227,6 +229,21 @@ def last_seen(world, viewer: str, name: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def last_seen_phrase(world, viewer: str, name: str) -> str:
+    """WS-R10 (row FR, Session FR-2): a man OUT of sight, placed by his newest
+    sighting in the pursuit ask's own words (RR6-X5) — "was last seen at
+    Silesia 2 turns ago" — or "" when the player holds no sighting of him (or
+    sees him now: then he is not out of sight)."""
+    if not hasattr(world, "intel") or not hasattr(world, "marshals"):
+        return ""          # a board with no intelligence store places nobody
+    row = last_seen(world, viewer, name) or {}
+    if not row or row.get("source") == "live" or not row.get("location"):
+        return ""
+    ago = int(getattr(world, "current_turn", 0) or 0) - int(row.get("intel_turn") or 0)
+    when = "this turn" if ago <= 0 else f"{ago} turn{'s' if ago != 1 else ''} ago"
+    return f"was last seen at {row['location']} {when}"
+
+
 def _shown_place(world, action: Dict[str, Any], actor: str) -> Optional[str]:
     """Where the enemy-phase dialog places `actor` for one shown action — only
     what its lines print (`enemy_phase_dialog.gd` `_format_action`): the
@@ -295,7 +312,48 @@ def record_shown_sightings(world, shown_phase: Optional[Dict[str, Any]]) -> int:
     return written
 
 
+# WS-R11 (row FR, Session FR-2 — the weak-spot readers' find 11): the read-back
+# reads a line naming an out-of-sight foe on every keystroke, and each read
+# scanned every province's intel again (golden rule 8). Inside the read-back
+# (`parse_preview.read_one`, under its lock) the scan is kept for the read-back's
+# OWN state key — `_state_key`: the world, the epoch `main` bumps after every
+# order and on every world swap, the turn, the actions, every marshal's place
+# and strength — so it is never stale, and it is shared by the reads of one
+# board. Everywhere else the scan runs as before. `SIGHTINGS_SCANS` counts the
+# scans (a test's counter seam).
+_SIGHTINGS_KEY: "contextvars.ContextVar" = contextvars.ContextVar(
+    "ink_iron_sightings_key", default=None)
+_SIGHTINGS_CACHE: Dict[str, Any] = {"key": None, "rows": {}}
+SIGHTINGS_SCANS = [0]
+
+
+@contextmanager
+def sightings_cached(key):
+    """Keep `enemy_sightings` for `key` while inside (the read-back's lock)."""
+    token = _SIGHTINGS_KEY.set(key)
+    try:
+        yield
+    finally:
+        _SIGHTINGS_KEY.reset(token)
+
+
 def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
+    """The sighting rows (`_scan_enemy_sightings`) — kept for the read-back's
+    state key inside `sightings_cached` (WS-R11), scanned afresh elsewhere."""
+    key = _SIGHTINGS_KEY.get()
+    if key is None:
+        return _scan_enemy_sightings(world, viewer)
+    if _SIGHTINGS_CACHE["key"] != key:
+        _SIGHTINGS_CACHE["key"] = key
+        _SIGHTINGS_CACHE["rows"] = {}
+    rows = _SIGHTINGS_CACHE["rows"].get(viewer)
+    if rows is None:
+        rows = _scan_enemy_sightings(world, viewer)
+        _SIGHTINGS_CACHE["rows"][viewer] = rows
+    return [dict(r) for r in rows]
+
+
+def _scan_enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
     """AAR-5: the dispatch's / Ledger's rows — one per enemy marshal, the
     live sighting first, then the frozen snapshots where the fog is real
     (PARTIAL / STALE / LAST_KNOWN, and a label in sight whose live read lacks
@@ -306,6 +364,7 @@ def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
     every corps IN SIGHT (a PARTIAL label too, the map's rule), and each
     snapshot entry carries its own turn (`entry_seen_turn`)."""
     from backend.models.intel import entry_seen_turn, snapshot_entry
+    SIGHTINGS_SCANS[0] += 1
     rank = VISIBILITY_PRIORITY
     sightings: Dict[str, Dict[str, Any]] = {}
     if THE_SIGHTING_IS_LIVE:

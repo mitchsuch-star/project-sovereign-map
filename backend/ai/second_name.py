@@ -30,6 +30,7 @@ throughout (Golden Rule 6); flip lever ``THE_SUPPORT_ROLE_IS_HEARD``.
 
 from __future__ import annotations
 
+import functools
 import re
 from typing import Iterable, Optional, Tuple
 
@@ -60,6 +61,7 @@ def _friend_alternation(friendly_names: Iterable[str]) -> str:
     return "|".join(re.escape(n) for n in names)
 
 
+@functools.lru_cache(maxsize=32)   # WS-R11: built once per roster, not per keystroke
 def _patterns(friends: str):
     head = (r"^(?P<head>\s*(?:(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*"
             r"(?:\s+[A-Za-z][\w'’-]*)?\s*[,:]\s*)?)"
@@ -96,6 +98,7 @@ def _patterns(friends: str):
     )
 
 
+@functools.lru_cache(maxsize=32)   # WS-R11: built once per roster
 def _follow_patterns(friends: str):
     """AO (October 17, 2026): the phrasings that order a corps to MARCH WITH
     a friend — a SUPPORT that stands (`StrategicOrder.standing_follow`),

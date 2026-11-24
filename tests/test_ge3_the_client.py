@@ -151,3 +151,38 @@ class TestTheCongressDriven:
 
     def test_le_moniteur_prints_the_column(self, driven):
         assert "Congress of Paris" in driven["gazette_text"]
+
+
+class TestWSR9APageThatMeasuresNothingIsNotRedrawnOnResize:
+    """WS-R9 (row FR, Session FR-2 — the weak-spot readers' find 9): the
+    Diplomatic Ledger redrew a whole page on every resize step once a page that
+    measures its width (Balance; Nations with Explanations folded) had been
+    shown, and a page that measures nothing (Treaties, Talleyrand, …) was then
+    open — its remembered width was never forgotten. The war page had the same
+    pattern for a truce's or a coalition's page. Now the width is forgotten
+    whenever a page draws."""
+
+    def test_the_balance_page_still_reflows_on_resize(self, driven):
+        w = driven["wsr9"]
+        assert w["balance_width_used"] > 0
+        assert w["balance_redraws"] is True
+        assert w["balance_again_redraws"] is True
+
+    def test_the_nations_page_on_the_page_still_reflows(self, driven):
+        """FR2-2 (the session's review): the Nations table with Explanations on
+        the page is laid out wide from 820 px — a page that measures, so it
+        records its width and a resize past the line redraws it (WS-R9's
+        forgetting had left it never redrawn)."""
+        w = driven["wsr9"]
+        assert w["nations_page_width_used"] > 0, w
+        assert w["nations_page_redraws"] is True, w
+
+    def test_the_treaties_page_after_balance_is_not_redrawn(self, driven):
+        w = driven["wsr9"]
+        assert w["treaties_width_used"] == -1, w
+        assert w["treaties_redraws"] is False, w
+
+    def test_the_war_pages_truce_and_coalition_forget_the_width(self, driven):
+        w = driven["wsr9"]
+        assert w["armistice_px_used"] == -1.0 and w["coalition_px_used"] == -1.0, w
+

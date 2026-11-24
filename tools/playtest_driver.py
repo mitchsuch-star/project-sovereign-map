@@ -1829,6 +1829,165 @@ def _own_policy_lines(wanted: int, at_start: int = 0) -> list:
         return []
 
 
+# Row FR, Session FR-2 — find 12's measure (`docs/WEAK_SPOT_FINDS_SPEC.md` §3, the
+# rule as amended at FR-2's Plan Mode): the battery arm (`--battery silent|fire`)
+# and the war-score trace (`--trace-war-score`). Both read the world the
+# TestClient serves, so both are in-process only; off, both are inert.
+BATTERY_COMMANDER = "Marmont"
+
+
+def _fr2_world():
+    import backend.main as _bm
+    return _bm.world
+
+
+def _fr2_wars(world) -> list:
+    me = world.player_nation
+    return sorted(n for n in world.get_active_nations()
+                  if n != me and world.is_at_war(me, n))
+
+
+def _fr2_batteries(world) -> list:
+    me = world.player_nation
+    return sorted((m for m in world.marshals.values()
+                   if m.nation == me and getattr(m, "artillery", False)
+                   and int(m.strength or 0) > 0 and not getattr(m, "captured_by", "")),
+                  key=lambda m: m.name)
+
+
+def _fr2_seen_foes(world) -> list:
+    me = world.player_nation
+    return [e for e in world.get_visible_enemies(me)
+            if int(getattr(e, "strength", 0) or 0) > 0 and not getattr(e, "captured_by", "")
+            and world.is_at_war(me, e.nation)]
+
+
+def _fr2_grant(sign: int = 1) -> int:
+    """The commission's price, granted to (sign 1) or taken back from (sign −1)
+    France's treasury, so the battery stands from turn 1 in BOTH arms as the
+    rule says while the script's own economy is left as shipped (the
+    treasury holds 800 on turn 1; Marmont costs 4,500). Returns the amount."""
+    from backend.game_logic import recruitment as _rec
+    world = _fr2_world()
+    me = world.player_nation
+    cand = _rec.find_candidate(world, me, BATTERY_COMMANDER)
+    cost = int((cand or {}).get("cost", 0) or 0)
+    world.nation_gold[me] = int(world.nation_gold.get(me, 0) or 0) + sign * cost
+    return cost
+
+
+def _battery_next(mode: str, sent: list) -> str:
+    """The battery's next typed line this turn, or "" (find 12's measure).
+
+    With no French gun commander in the field, commission Marmont (once a
+    turn). Each gun commander marches one province toward the nearest enemy
+    corps France can see; with `mode == "fire"` he bombards the largest seen
+    enemy corps in an adjacent province instead — at most twice a turn, the
+    game's own limit. `silent` never fires. A line already sent this turn is
+    never sent again (a refused salvo or march is not retried)."""
+    try:
+        world = _fr2_world()
+        batteries = _fr2_batteries(world)
+        if not batteries:
+            line = f"commission {BATTERY_COMMANDER}"
+            if line in sent:
+                return ""
+            sent.append(line)
+            return line
+        foes = _fr2_seen_foes(world)
+        for gun in batteries:
+            if f"moved:{gun.name}" in sent:
+                continue                        # one march a turn; guns that marched set up
+            here = world.regions.get(gun.location)
+            near = set(getattr(here, "adjacent_regions", []) or []) if here else set()
+            in_range = [e for e in foes if e.location in near]
+            if (mode == "fire" and in_range
+                    and int(getattr(gun, "bombardments_this_turn", 0) or 0) < 2):
+                for target in sorted(in_range, key=lambda e: (-int(e.strength), e.name)):
+                    line = f"{gun.name}, bombard {target.name}"
+                    tag = f"{line} #{int(getattr(gun, 'bombardments_this_turn', 0) or 0)}"
+                    if tag not in sent:
+                        sent.append(tag)
+                        return line
+                continue
+            if in_range:
+                continue                        # silent: holds beside the enemy
+            best = None
+            for e in foes:
+                path = world.find_path(gun.location, e.location)
+                if path and len(path) > 2 and (best is None or len(path) < len(best)):
+                    best = path
+            if best:
+                sent.append(f"moved:{gun.name}")
+                return f"{gun.name}, move to {best[1]}"
+        return ""
+    except Exception as exc:
+        print(f"[driver] --battery: {exc}")
+        return ""
+
+
+class _WarScoreTrace:
+    """Find 12's record: each turn France's battle points and total war score
+    per war, the war's dead on each side, and every battle row as it appears
+    — a salvo's rows marked by the battery arm as it fires them."""
+
+    def __init__(self):
+        self.seen = set()
+        self.salvo_rows = set()
+
+    @staticmethod
+    def _key(world, nation):
+        return world._make_diplo_key(world.player_nation, nation)
+
+    def _dead(self, world, nation):
+        ledger = (getattr(world, "campaign_ledgers", {}) or {}).get(self._key(world, nation), {}) or {}
+        dead = ledger.get("casualties") or {}
+        return int(dead.get(world.player_nation, 0) or 0), int(dead.get(nation, 0) or 0)
+
+    def _rows(self, world, nation):
+        return list((getattr(world, "battle_records", {}) or {}).get(self._key(world, nation), []) or [])
+
+    def before_salvo(self, nation):
+        world = _fr2_world()
+        return self._dead(world, nation), {id(r) for r in self._rows(world, nation)}
+
+    def after_salvo(self, digest, line, nation, before, fired=True):
+        world = _fr2_world()
+        (fr0, en0), ids0 = before
+        fr1, en1 = self._dead(world, nation)
+        fresh = [r for r in self._rows(world, nation) if id(r) not in ids0]
+        for r in fresh:
+            self.salvo_rows.add(id(r))
+        digest.record("fr2_salvo", turn=int(world.current_turn), line=line, nation=nation,
+                      fired=bool(fired), fr_dead=fr1 - fr0, en_dead=en1 - en0,
+                      row_written=bool(fresh))
+
+    def turn(self, digest, final=False):
+        from backend.game_logic import diplomacy as _dip
+        world = _fr2_world()
+        me = world.player_nation
+        wars, rows = {}, []
+        for nation in _fr2_wars(world):
+            parts = _dip.calculate_war_score(me, nation, world, return_components=True)
+            fr, en = self._dead(world, nation)
+            wars[nation] = {"battles": int(parts.get("battles", 0)),
+                            "total": int(parts.get("total", 0)),
+                            "fr_dead": fr, "en_dead": en}
+            for r in self._rows(world, nation):
+                if id(r) in self.seen:
+                    continue
+                self.seen.add(id(r))
+                fr_side = r.get("attacker") == me
+                rows.append({"nation": nation, "turn": int(r.get("turn", 0)),
+                             "winner": r.get("winner"), "salvo": id(r) in self.salvo_rows,
+                             "fr_dead": int(r.get("attacker_casualties" if fr_side
+                                                  else "defender_casualties", 0)),
+                             "en_dead": int(r.get("defender_casualties" if fr_side
+                                                  else "attacker_casualties", 0))})
+        digest.record("fr2_war", turn=int(world.current_turn), final=bool(final),
+                      wars=wars, new_rows=rows)
+
+
 ARMY_TASK_NAME = "Army of the Rhine"
 ARMY_TASK_MEN = ("Ney", "Davout", "Soult")
 
@@ -5058,6 +5217,9 @@ def run(args):
         _endings_seen = len((transport.get("/campaign_end") or {}).get("endings") or [])
     except Exception:
         _endings_seen = 0
+    # Row FR, Session FR-2: find 12's war-score trace (in-process only).
+    _fr2_trace = (_WarScoreTrace() if getattr(args, "trace_war_score", False)
+                  and not getattr(args, "http", None) else None)
     for turn_index in range(1, args.turns + 1):
         # NB: `status` is the run's finish state — this one is the payload.
         status_payload = transport.get("/status")
@@ -5072,6 +5234,8 @@ def run(args):
         label = dig(_start_ledger, "calendar_label", "date_label",
                     default="")
         digest.turn_header(current_turn, label)
+        if _fr2_trace is not None:
+            _fr2_trace.turn(digest)
         # SF-NAV-1-D1's research (Step 7, October 4, 2026): `policy_at` — the
         # script's own dials change from a given LOOP on, e.g. a road that
         # refuses Austria's peace until Vienna falls and signs it after. The
@@ -5132,6 +5296,34 @@ def run(args):
                 response = transport.post("/command", {"command": line})
                 digest.command(line, response)
                 drain(transport, digest, answerer, response, args.strict)
+
+        # Row FR, Session FR-2 (`--battery`, find 12's measure; off = inert):
+        # the battery's lines before the script's — commission Marmont, march
+        # him on the nearest seen enemy corps, and (fire) bombard the largest
+        # in range twice; each salvo's dead and its battle row recorded.
+        if getattr(args, "battery", "") and not getattr(args, "http", None):
+            _battery_sent: list = []
+            for _try in range(6):
+                line = _battery_next(args.battery, _battery_sent)
+                if not line:
+                    break
+                _salvo_nation = None
+                if ", bombard " in line and _fr2_trace is not None:
+                    _target = _fr2_world().get_marshal(line.split(", bombard ", 1)[1])
+                    _salvo_nation = getattr(_target, "nation", None)
+                _before = (_fr2_trace.before_salvo(_salvo_nation)
+                           if _salvo_nation else None)
+                _granted = _fr2_grant(1) if line.startswith("commission ") else 0
+                response = transport.post("/command", {"command": line})
+                if _granted and not response.get("success"):
+                    _fr2_grant(-1)
+                elif _granted:
+                    digest.note(f"battery: the commission's {_granted:,}g granted (both arms)")
+                digest.command(line, response)
+                drain(transport, digest, answerer, response, args.strict)
+                if _before is not None:
+                    _fr2_trace.after_salvo(digest, line, _salvo_nation, _before,
+                                           fired=bool(response.get("success")))
 
         # SF-AGD-1: the turn's lines without the implicit end turn, read
         # ahead so the dialogue a line opens is HELD while the next line is
@@ -5437,6 +5629,8 @@ def run(args):
             fault_rows.append(_fault)
             digest.note(_save_faults.digest_line(_fault))
 
+    if _fr2_trace is not None:
+        _fr2_trace.turn(digest, final=True)
     if save_faults_on:
         from tools import save_faults as _save_faults
         (out_dir / "save_faults.json").write_text(json.dumps(
@@ -6361,6 +6555,14 @@ def main():
                     help="row IC, Session 3b: the measure's arm — form the Army of the Rhine (Ney, "
                          "Davout, Soult) and keep it on its ready task (its commander on his own, "
                          "the rest following him); off = inert")
+    ap.add_argument("--battery", default="", choices=["", "silent", "fire"],
+                    help="row FR, Session FR-2 (find 12's measure): commission Marmont and march "
+                         "him each turn toward the nearest enemy corps France can see; 'fire' "
+                         "bombards the largest seen corps in range twice instead of marching, "
+                         "'silent' never fires; off = inert")
+    ap.add_argument("--trace-war-score", dest="trace_war_score", action="store_true",
+                    help="row FR, Session FR-2: each turn's war score per war (battle points, "
+                         "total, the war's dead) and every battle row as it appears, salvos marked")
     ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate", "buy"],
                     help="rotate cycles the enabled arms per petition kind (opt-in); AU-3a: buy "
                          "takes the arm priced in authority where it is open")

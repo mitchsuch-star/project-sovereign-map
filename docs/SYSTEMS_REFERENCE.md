@@ -18727,3 +18727,241 @@ in status and have design doc".
    is first used.
 4. A row added to a full column moves its head. Take the room from the flexible part's floor, not from the top.
 5. Write a closing status only after its proof. A blind reading's pass is claimed after it is run, never before.
+
+## §238 Row FR, Session FR-2 — THE WEAK-SPOT READERS' TWELVE FINDS (WS-R): each read in the code and proved by a test — ten confirmed and fixed, one refuted, one settled by a measure (November 23, 2026)
+
+By the user's word of November 23, 2026 ("…ficx Five defect rows remain open can eb mul;tiple sessions"). The
+design is `docs/WEAK_SPOT_FINDS_SPEC.md` (written at FR-1's head; §7 is this session's landing record). The plan was
+approved in Plan Mode with find 12's rule amended before any run. All twelve fitted in one session, so §5's split
+was not taken. The rows: `BUG_FIXES.md` WS-R1 … WS-R12, WS-R itself ✅ CLOSED. The census lists no open defect row.
+
+### 238.1 The method
+
+- Three read-only helpers read every find at the lines the design named; every verdict was re-read by hand.
+- A find closes only with a behaviour test (`tests/test_fr2_the_twelve_finds.py`, one class per find; WS-R9's in
+  `tests/test_ge3_the_client.py`, the headless engine). A partly real find is closed for the part that is real, and
+  the rest is refuted in its row.
+- **The fixes that move the world** sit behind named seams (`tests/_fr2_seams.py`, folded into
+  `tests/_oct27_seams.py`): BANK (WS-R4), SHELL (WS-R5), FLOOR (WS-R7), SALVO (WS-R12). The display-only and
+  refusal-only fixes carry none; their proof is arm 0.
+
+### 238.2 The combat finds
+
+- **WS-R3 — the battle report reads what was applied (golden rule 1).** `Marshal.get_attack_modifier` /
+  `get_defense_modifier` take `parts=`: each factor they multiply by is noted as they apply it (`marshal._note`), in
+  the same order, the arithmetic untouched. `battle_report.attack_parts` / `defence_parts` read them with
+  `consume=False`, and `snapshot_*_modifiers` build every row from them. Every existing label is kept, because the
+  battle script and the telling read labels by prefix.
+  - **Rows that disagreed:**
+    - Iron Resolve's release from the defensive stance showed the −10 % it undoes; it now shows no stance row.
+    - The ground's share of a cavalryman's dash ("Cavalry terrain") now multiplies with "Recklessness" to the one
+      factor applied.
+  - **Rows that were missing**, in words a blind reading passed (238.6):
+    - "Jealous lone attack" (+15 %);
+    - "Pride after proving himself" (+10 %, both sides);
+    - "Cavalry momentum (charged again today)" (+5 / +10 %);
+    - "Defence limit (the bonuses multiply to +81%; the limit is +75%)" — what the bonuses made together and where
+      the limit cut them, read off the parts, never typed.
+  - **Words:** the strategic bonus reads "Confidence in his orders", true of both roads that grant it (a literal
+    marshal's clear order, a court's well-judged attack). "Forced march momentum" named a cause nothing grants.
+    The labels are nouns, because the verdict says "your <row>".
+  - **The resolver's own factors**, named once: `combat.CAVALRY_COUNTER_FACTOR`, `SQUARE_VS_CAVALRY_FACTOR`,
+    `SQUARE_VS_ARTILLERY_FACTOR`, `GLORIOUS_CHARGE_FACTOR`; the report reads them.
+  - **The class swept:** the battle's own message lines quote the parts (`combat.factor_pct`):
+    - Bold +15 %, +5 %, +5 % reads +27 % (×1.268), not "+25% total";
+    - Careful in the defensive stance reads +21 %, not +20 %;
+    - Bold in the defensive stance reads +9 %, not +10 %;
+    - a careful man at bad odds in the aggressive stance reads −14 %, not −10 %;
+    - a defensive stance Iron Resolve undid is not said to hamper the attack.
+  - **Found pressing the real client:** the verdict read "your the Emperor commands in person +10%". A row that is a
+    sentence of its own now takes no "your".
+- **WS-R4 — a court's bonus rides the attack it judged.** The player's half was closed by GRD-33. The courts' half:
+  `EnemyAI` scored an attack AFTER it ran, so its +5 / +10 % waited for that marshal's next attack, however late.
+  - Now `EnemyAI._judge_the_attack_first` scores the attack before it runs (`feedback.set_combat_bonus`); morale
+    and trust follow the act from the same judgement.
+  - The turn-end expiry covers every holder.
+  - Seam `feedback.a_courts_bonus_rides_its_own_act`.
+- **WS-R5 — a corps shelled to nothing is destroyed at the field.** `_execute_bombardment`, for the target and the
+  stray shells' victim, calls `destroy_marshal(cause="bombardment", victor=<the battery's court>,
+  location=<the field>)` and reads `_fall_clause`. Before, `_check_marshal_fate` returned None at strength 0 and the
+  corps routed with 0 men until the night's supply sweep took it as "attrition".
+  - The auto-kill road no longer writes his grave at the rout's province.
+  - (c) is ruled and refuted: when the guns kill the defender, no battle is fought, so nobody failed to march to
+    the guns. `MULTI_MARSHAL_SPEC.md` is silent on it.
+  - Seam `combat_executor.the_guns_kill_outright`.
+- **WS-R7 — a remnant is not a corps.** `battle_scale.COUNTED_CORPS_MIN_STRENGTH = 1000`, the house's number for a
+  corps that counts, is read by `counts_as_a_corps` at:
+  - combined arms (`_count_unit_types`);
+  - the ally next door (`_count_adjacent_allies`);
+  - an ally's coordination (`allies_for_m`);
+  - the march to the guns (reinforcement rule 3);
+  - overwatch;
+  - a flank's origin (`world.record_attack`).
+
+  A remnant still receives what the corps around him give, and the Emperor's presence stays a man's, not a
+  strength. Seam `battle_scale.a_remnant_is_not_a_corps`.
+- **WS-R12 — a salvo is a battle only at a battle's scale.** See 238.4. `diplomacy.record_battle(...,
+  cannonade=True)` from the pipeline's step 8; `battle_scale.CANNONADE_MIN_CASUALTIES = 5000`; seam
+  `battle_scale.a_salvo_is_a_battle_only_at_scale`.
+- **WS-R1 — a barred crossing names no unseen man's place.** On the charge (`_charge_crossing_barred`, lifted to keep
+  the 500-line ratchet) and on the attack road's stage 6, the player's own ordered attack on a man out of sight gets
+  the unseen answer — a man he NAMED; one found in a typed province gets the province's answer (FR2-1, 238.7). A
+  refused fallback attack names no ground.
+
+### 238.3 The roads, the server, the read-back and the client
+
+- **WS-R2:** `_resolve_generic_target` returns `cut_off` (the foes in sight that no road reaches); the bare march or
+  pursuit answers "No road reaches Mack from Rhineland, Sire — name a destination Ney can march to." It is reachable
+  only on a map that does not connect.
+- **WS-R6 — refuted:**
+  - the reachable answers are priced first (ACH-X10, ACH-F3);
+  - the disobey branch cannot run;
+  - the strategic branch receives no strategic order;
+  - every defiant action costs one action.
+- **WS-R8 — one quiet switch.** `backend/utils/quiet.py` wraps the process's stdout ONCE in a pass-through that drops
+  a write only inside `quiet()` on the current context. Nothing is swapped back, so nothing can be swapped back out
+  of order. The counsel's `_quiet` and the read-back's four parses use it.
+- **WS-R9:** the Diplomatic Ledger and the war page forget the measured width whenever a page draws.
+  `_on_content_resized` returns whether it scheduled a redraw.
+- **WS-R10 — one sighting rule at both.** A typed attack on a man out of sight whose true ground is a third court's
+  peace soil, with a sighting on the record, gets RR6-X3's answer: the chase, asked first (`pursuit_ask`;
+  `CombatExecutor._chase_a_man_last_seen`). That is what the read-back always read.
+  - No unseen answer says "No intelligence" over a sighting: `unseen_target_refusal` names it
+    (`intel_surfaces.last_seen_phrase`, the pursuit ask's words), and the read-back's charge refusal says he is out
+    of sight, never where.
+  - Kept by UI6-X16's rule: a man out of sight within reach on open ground is met in battle by Enter, while the
+    read-back reads the chase (it never says whether he is within reach).
+- **WS-R11:** `intel_surfaces.sightings_cached(parse_preview._state_key(...))` inside `read_one`. The reads of one
+  board share one scan, and an order between them scans again (`SIGHTINGS_SCANS` counts). The second-name patterns
+  are built once per roster (`lru_cache`). The routed order words were already compiled once at import.
+
+### 238.4 Find 12's rule and its measure
+
+- **The rule, amended at Plan Mode before any run:**
+  - both arms commission Marmont on turn 1, the commission's 4,500 gold granted in both (the treasury holds 800;
+    found by a harness smoke run, set before the measure);
+  - arm A's guns are silent, arm B's fire twice a turn at the largest seen corps in range;
+  - clause (b) is read inside arm B (salvos against won battles).
+- **The measure** (`tools/_fr2_farm_measure.py`; driver arms `--battery silent|fire --trace-war-score`; a frozen copy
+  of 8dd99217; `tools/_fr2_farm_2026_11_23.json`):
+
+  | Seed | Salvos (battles written) | Salvo points per 1,000 French dead | Won-battle points per 1,000 French dead |
+  |---|---|---|---|
+  | historical | 6 (3) | 65.7 | 1.09 |
+  | austerlitz | 6 (6) | 409.1 | 0.61 |
+  | marengo | 2 (2) | 87.0 | 1.02 |
+
+- **Verdict:** a farm on all three by (b); (a) held on none (no war's battle points reached the cap in either arm — the rule's limits are stated in 238.7).
+  F2 (a salvo scores 1) left the salvo rate at 21.9 / 136.4 / 29.0, still a farm. F1, the smallest of the three, ends
+  it.
+- **Re-run on the final tree** (`tools/_fr2_farm_fixed_2026_11_23.json`): not a farm on any seed. No salvo wrote a
+  battle (all under 5,000 dead), and won battles read 1.09 / 0.91 / 1.02.
+
+### 238.5 The world measured
+
+- **The standing forty-turn series** (`tools/_fr2_series_arms.py` → `tools/_fr2_series_arms_final.json`; a frozen
+  copy of the final tree): arms 0, ALL, +BANK, +SHELL, +FLOOR and +SALVO are all byte-identical to HEAD's
+  `BASELINE_SERIES`.
+  - BANK's seam was read 936 times and FLOOR's about 60,350, and they move nothing.
+  - SHELL's and SALVO's were never reached: no court's battery fires in the idle forty turns.
+  - `BASELINE_SERIES` is not re-pinned.
+- **The France band** (`tools/_fr2_band_measure.py` → `tools/_fr2_band_2026_11_23.json`):
+  - arm 0 reads 28 / 25 / 26, the standing reading to the province;
+  - arm ALL reads 28 / 28 / 26, inside 23–28.
+  - Austerlitz's move, by one-switch arms (`tools/_fr2_band_rows_2026_11_23.json`): +BANK 28, +FLOOR 24, +SHELL 25,
+    +SALVO 25. A court's judged attack now carries its own bonus, and the war turns on it.
+- **The full suite**, run as the hook runs it on the tree with the review's fixes: 43,788 passed, 10 failed — each
+  a pin of the old rules, each re-seated by measuring it one FR-2 seam at a time:
+  - the butcher's-bill family's stub boards (seven pins; a 500-man corps): FLOOR alone moves them. They keep the
+    board they were recorded on (FLOOR held down beside the doctrine lever), and a new pin reads the stub's
+    report with the floor up;
+  - the volte-face arm (RS-27): BANK alone. Held down beside its seams the beat returns on turn 26; shipped,
+    none in forty turns;
+  - Bug 5's bombardment row (`test_r1_characterization`): SALVO, by design. It runs with SALVO down, and a new
+    pin holds the shipped half (no battle row; the dead on the pair's ledger);
+  - the Nations page's source pin: moved to FR2-2's helper.
+  The re-seated files then ran green.
+- **The battle walk of record** (`docs/audits/ba1_client/`) was re-staged and re-shot, because this session changed
+  `battle_script.py` and `battle_telling.py`. Two staged days moved (Archduke Charles's judged attack carries its
+  +5 %; "goes in confident in his orders").
+
+### 238.6 Pressed and read
+
+- **Pressed in the real client** at the first player's setup (1.8 on 5120 × 1377) and the small window (2.0 on
+  1600 × 900): Soult's attack on Mack on turn 1 — the verdict "Why: you had more men — 130,000 against 52,000; your
+  confidence in his orders +15%; the Emperor commands in person +10%." and the row "Attack: Soult (Confidence in his
+  orders +15%, The Emperor commands in person +10%)"; at the small window the same lines in the folded log. The
+  frame: `docs/audits/fr2_client/FR2_01_soults_verdict_at_1.8.jpg`.
+- **The blind reading** (`docs/audits/fr2_client/BLIND_READING_KEY.md`, the key written first; fresh readers each
+  round): round 1 missed — "Cavalry momentum" was read as any charge's bonus by all three, "Defence limit (+75% at
+  most)" confused two (they add the rows, the game multiplies them), "Settled grievance" was right but guessed.
+  The three labels rewritten; round 2 read 15 of 15 right in meaning, all three still guessing why a cut from +81 %
+  to +75 % reads −3 %. Row 3 then says the bonuses multiply; round 3 read 15 of 15 right in meaning again, with two
+  answers still guessed on a detail (one on the −3 % arithmetic, one on the lone attack's exact trigger). The bar's
+  "none guessing" was missed narrowly on those details; Help & Keys saying that a battle's bonuses multiply and that a
+  defence is limited to +75 % is row TU's (`docs/TUTORIAL_UPDATE_SPEC.md` §3, its strict pin in
+  `tests/test_tu_the_tutorial_brought_up_to_date.py`).
+
+### 238.7 The review
+
+Three Sonnet lanes read a frozen copy of the finished tree: the combat fixes; the roads, the read-back and the
+server; the client, the tools and the tests. Lane A ran a 20,000-case fuzz of the noted parts: they multiply to the
+modifier applied within 1e-9, and `consume=False` spends nothing. Four rows were found and fixed (`BUG_FIXES.md`
+§"Row FR, Session FR-2"):
+
+- **FR2-1 (P2), lane B, measured both ways before the fix.** WS-R1's guard on the attack road's crossing gate read
+  a man the lookup had found by a typed PROVINCE. "Attack London" with Moore there out of sight answered "No
+  intelligence on Moore's position", while an empty London got the crossing refusal: typing provinces found which
+  held a man, and who. The peace-soil refusal had the same probe, older (WS-2's answer; WS-R10 had added his
+  sighting).
+  - Now a man found by province is answered as the empty province (`CombatExecutor._found_by_province`, UI6-X28's
+    rule on the attack road): the crossing keeps its words, and on a third court's peace soil the province asks
+    for the declaration on that court (`_peace_soil_as_an_empty_province`).
+  - Swept: every other caller of the unseen answer looks the man up by name. The strait refusal for a battery
+    (NV-9) names only the typed province; an empty province there is taken by the order, so it is no free probe.
+- **FR2-2 (P3), lane C.** The Nations table with Explanations on the page measures the window (wide from 820 px)
+  but never recorded the width, so WS-R9's forgetting left it never redrawn on a resize. It records the width now
+  (`_nations_table_is_wide`).
+- **FR2-3 (P3), lane A.** The battery's own corps, emptied by its stray shells, was destroyed with the battery's
+  court as the victor, and a sovereign met the battlefield death roll from his own guns. Now the cause is
+  `friendly_fire` (not a battlefield cause), it is credited to nobody, and the log says "caught in its own side's
+  stray shells".
+- **FR2-4 (P3), lane A.** The cap row's total multiplies coordination, which has no row (Phase 7's design), so it
+  now says ", coordination included" when coordination fed it.
+
+**Read and kept, with the reason:**
+- "Cavalry terrain" now prints the ground's share of the dash (plains with a 0.20 dash: +3 %, where the old row
+  printed +20 %). That is the true factor; the old figure was not applied anywhere.
+- A court's judgement now draws its dice before the act. That is by design, behind BANK, and the idle series is
+  byte-identical with it up.
+- A remnant that leads an attack adds no arm to his own combined-arms count either — the same floor: a corps that
+  counts.
+- **Find 12's rule has limits, stated here.**
+  - Clause (a) never came into play: no war's battle points reached the cap in either arm. The verdict rests on (b).
+  - (b) holds almost whenever a salvo writes a battle, because a salvo costs France only tens of men. So F2 (a salvo
+    scores 1) could not end it by the rule's own arithmetic.
+  - F1 and F3 re-score alike on these seeds: no salvo reached 5,000 dead. F1 was taken as the smaller change,
+    because it keeps a salvo of a battle's scale a battle.
+  - The finding stands in plain terms: a +3 "won battle" for tens of men is a farm.
+- The series rig cannot attribute SHELL or SALVO: neither is read on the idle series. Its docstring now says so,
+  and the band and the farm arms carry those two rows.
+- `backend/utils/quiet.py`'s two edges are stated in its docstring; neither is on a call site today:
+  - a stream that replaces `sys.stdout` inside a `quiet()` block is not muted until the next block;
+  - a bare thread started inside the block does not inherit the mute.
+- The fixed tree's farm record is now pinned (`TestWSR12…::test_the_fixed_trees_record_is_no_farm`). The band
+  measure's `_holds` reads None when no band arm was measured.
+
+**Traps of the session.**
+1. A seam that never reads cannot pass for one that moves nothing: report the reach. Here SHELL and SALVO were unread
+   on the idle series; the band and the farm arms exercise them.
+2. A harness rule ("both arms commission Marmont on turn 1") can be impossible as written: the treasury held 800 of
+   the 4,500. Smoke-run the harness before the measure, and fix it to the rule's intent before any data.
+3. A row label is read in two grammars, the row and the verdict's "your <label>". Make labels nouns.
+4. Players add a report's percentages; the game multiplies them. A row that only makes sense multiplied (a cap) must
+   say so, and say the total it cut.
+5. A test world built from `SimpleNamespace` has no intelligence store; a helper the refusal now calls must place
+   nobody there rather than raise.
+6. The read-back never says whether an unseen man is within reach (UI6-X16). A fix to Enter must not make it leak
+   that, and must not claim the read-back can match Enter where it deliberately does not.
+7. Re-shoot a recorded walk only after its sources are final: a label changed after the shot breaks its pin again.
+8. A guard that reads a lookup filled two ways — by a typed name AND by a typed province — speaks for both. Gate a refusal about a man on how he was found: a man found in a typed province is the province's answer, never his own.

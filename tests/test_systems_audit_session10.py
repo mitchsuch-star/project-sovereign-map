@@ -9,7 +9,7 @@ Covers:
 - P1-20: Cavalry overrun attacker observation
 """
 
-from unittest.mock import MagicMock
+
 
 from backend.game_logic.battle_report import (
     snapshot_defender_modifiers,
@@ -26,27 +26,13 @@ class TestDefenderAbilitySnapshots:
     """P1-7: Signature abilities should appear in defender modifier snapshots."""
 
     def _make_marshal(self, ability_name=None, strength=5000):
-        m = MagicMock()
-        m.stance = MagicMock()
-        m.stance.__eq__ = lambda s, o: False  # Not aggressive or defensive
-        m.shock_bonus = 0
-        m.drill_defense_bonus = 0
-        m.fortified = False
-        m.defense_bonus = 0.0
-        m.strategic_combat_bonus = 0
-        m.strategic_defense_bonus = 0
-        m.is_reckless_cavalry = False
-        m.square_formation = False
-        m.drilling = False
-        m.drilling_locked = False
-        m.artillery = False
-        m.moved_this_turn = False
-        m.strength = strength
-        m.holding_position = False
-        if ability_name:
-            m.ability = {"name": ability_name}
-        else:
-            m.ability = None
+        """A REAL marshal (WS-R3, row FR Session FR-2: the snapshot reads the
+        parts `get_defense_modifier` applies, so a mock with no modifier of
+        its own shows nothing) — neutral stance, no nature term."""
+        from tests.conftest import MarshalFactory
+        m = MarshalFactory.infantry(name="Defender", strength=strength, nation="Britain")
+        m.personality = "literal"
+        m.ability = {"name": ability_name} if ability_name else {}
         return m
 
     def test_reverse_slope_defense_in_snapshot(self):

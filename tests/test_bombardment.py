@@ -202,7 +202,10 @@ class TestCoreBombardment:
         assert world.marshals["Wellington"].battles_lost == 0
 
     def test_defender_reduced_to_zero_destroyed_region_not_captured(self):
-        """Defender reduced to 0 → broken via existing break system, region NOT captured."""
+        """Defender reduced to 0 → DESTROYED at once at the field (WS-R5, row FR
+        Session FR-2: the one removal seam, cause "bombardment"), region NOT
+        captured. Before WS-R5 the forced-retreat road broke him with 0 men —
+        the seam-down arm below keeps that pinned."""
         world, art, executor, gs = _setup_bombardment(art_str=50000, def_str=30)
         # 30 troops will be destroyed by any bombardment
         well = world.marshals["Wellington"]
@@ -223,16 +226,30 @@ class TestCoreBombardment:
             result = executor._execute_bombardment(art, well, world, gs)
 
         assert result["success"]
-        # Defender should be broken (existing break system gives min 1000 survivors)
-        assert well.broken
-        assert well.broken_recovery == 0  # Start of 4-turn recovery
-        # Break system moves to spawn with survivors
-        spawn = getattr(well, 'spawn_location', well.location)
-        assert well.location == spawn
+        # WS-R5: destroyed at the field, with a grave there
+        assert "Wellington" not in world.marshals
+        assert world.fallen_marshals["Wellington"]["cause"] == "bombardment"
+        assert world.fallen_marshals["Wellington"]["location"] == "Waterloo"
         # Artillery stays at its position
         assert art.location == "Belgium"
         # Region NOT captured — artillery is not physically present
         assert target_region.controller == "Britain"
+
+    def test_with_wsr5_down_the_break_system_routs_him_with_nothing(self, monkeypatch):
+        """WS-R5's seam down: the forced-retreat road, as before (broken at spawn)."""
+        from backend.commands import combat_executor as CE
+        monkeypatch.setattr(CE, "the_guns_kill_outright", lambda: False)
+        world, art, executor, gs = _setup_bombardment(art_str=50000, def_str=30)
+        well = world.marshals["Wellington"]
+        well.strength = 30
+        world.marshals["Blocker1"] = _make_infantry(name="Blocker1", location="Hanover",
+                                                    strength=10000, nation="France")
+        world.marshals["Blocker2"] = _make_infantry(name="Blocker2", location="Netherlands",
+                                                    strength=10000, nation="France")
+        with patch("random.uniform", return_value=1.0):
+            result = executor._execute_bombardment(art, well, world, gs)
+        assert result["success"]
+        assert "Wellington" in world.marshals and well.broken and well.strength == 0
 
     def test_same_region_attack_still_uses_resolve_battle(self):
         """Same-region attack still uses full resolve_battle()."""
@@ -509,13 +526,14 @@ class TestBombardmentEdgeCases:
         world.marshals["Blocker1"] = blocker1
         world.marshals["Blocker2"] = blocker2
 
-        # 1 strength — will be reduced to 0 by bombardment, triggering break
+        # 1 strength — will be reduced to 0 by bombardment
         with patch("random.uniform", return_value=1.0):
             result = executor._execute_bombardment(art, world.marshals["Wellington"], world, gs)
         # Should succeed without crashing
         assert result["success"]
-        # Defender is broken, not removed
-        assert world.marshals["Wellington"].broken
+        # WS-R5 (row FR, Session FR-2): destroyed at once, never a 0-man rout
+        assert "Wellington" not in world.marshals
+        assert world.fallen_marshals["Wellington"]["cause"] == "bombardment"
 
     def test_bombardment_preserves_artillery_location(self):
         """Artillery never moves during bombardment."""
@@ -953,11 +971,12 @@ class TestCollateralTargetDestruction:
                 art, world.marshals["Wellington"], world, gs)
 
         assert result["success"]
-        # WeakForce should be broken (strength 50 < collateral damage)
-        assert world.marshals["WeakForce"].broken
-        # WeakForce moved to safe spawn (V2-93: excludes battle location, falls to capital)
-        # With battle at Waterloo, spawn_location=Waterloo is excluded, so falls to capital (Netherlands)
-        assert weak.location != "Waterloo", "Broken marshal should not spawn at battle location (V2-93)"
+        # WS-R5 (row FR, Session FR-2): a corps the stray shells empty is
+        # destroyed at the field (strength 50 < collateral damage), never
+        # routed with nothing — its grave names Waterloo.
+        assert "WeakForce" not in world.marshals
+        assert world.fallen_marshals["WeakForce"]["cause"] == "bombardment"
+        assert world.fallen_marshals["WeakForce"]["location"] == "Waterloo"
         # Collateral entry should exist
         collateral_names = [c["name"] for c in result["bombardment_result"]["collateral"]]
         assert "WeakForce" in collateral_names

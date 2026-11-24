@@ -169,8 +169,17 @@ _ATTACK_ROWS = (
      "{a} attacks in an aggressive posture ({f})."),
     ("Defensive stance", "stance", "detail",
      "{a} attacks out of a defensive posture ({f})."),
-    ("Forced march momentum", "momentum", "detail",
-     "{a} comes off a completed march with momentum ({f})."),
+    # WS-R3 (row FR, Session FR-2): the strategic bonus in plain words (a
+    # literal man's clear order, a court's well-judged attack — never a march),
+    # and the three parts the report gained a row for.
+    ("Confidence in his orders", "momentum", "detail",
+     "{a} goes in confident in his orders ({f})."),
+    ("Cavalry momentum", "momentum", "detail",
+     "{a}'s horse gathers pace with each charge today ({f})."),
+    ("Jealous lone attack", "momentum", "detail",
+     "{a} fights alone, jealous of the glory ({f})."),
+    ("Pride after proving himself", "momentum", "detail",
+     "{a} fights on the pride of having proved himself ({f})."),
 )
 
 _DEFENCE_ROWS = (
@@ -194,8 +203,12 @@ _DEFENCE_ROWS = (
      "{a} is caught in an attacking posture ({f})."),
     ("Recklessness", "reckless", "detail",
      "{a}'s horse is overextended ({f})."),
-    ("Forced march momentum", "momentum", "detail",
-     "{a} stands with a completed march behind him ({f})."),
+    ("Confidence in his orders", "momentum", "detail",
+     "{a} stands confident in his orders ({f})."),
+    ("Pride after proving himself", "momentum", "detail",
+     "{a} holds on the pride of having proved himself ({f})."),
+    ("Defence limit", "caught", "detail",
+     "{a}'s defence can rise no higher ({f})."),
 )
 
 # The defender's ground, in the table's words (the label's own terrain name).

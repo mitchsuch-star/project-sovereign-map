@@ -135,6 +135,7 @@ names the one thing to do next, and a second list beside it would talk over the 
 | "Set him on his own" and "This turn: …" on his card | card XIX; Help | none ("on his own" survives only inside An army's task) |
 | The voice and the portraits | card XX; Help | none |
 | Battles in acts; a key battle's points (50,000 men and more); Berthier's reading | card VIII | the day's points (~40), Berthier's reading (~33) |
+| A battle's bonuses multiply, and a defence is limited to +75 % (the report's "Defence limit" row) — FR-2's blind reading (`docs/audits/fr2_client/BLIND_READING_KEY.md`): every reader right in meaning, two answers still guessing at the arithmetic | card VIII; Help | none |
 | THE ENEMY'S MOVES played on the map | card III | the enemy's moves (~48) |
 | Authority (the chip, what spends it); the letters of state (the Correspondence) | card IX; Help | authority (~31); the Correspondence none |
 | The war's page and what France learned of the enemy's plans (ON since November 23) | card XXI; Help | none |
@@ -180,7 +181,8 @@ TU refines this. Every card passes by doing what it teaches.
   - The war's page;
   - What we learned (of the enemy's plans);
   - Settings;
-  - Saves.
+  - Saves;
+  - Battle bonuses: they multiply, and a defence is limited to +75 % (row FR, Session FR-2's blind reading).
 - **Amended:**
   - the "action points" question becomes "how many actions do I have";
   - the typed-only lines (~94, ~163).
@@ -304,7 +306,7 @@ user's word.
     XVII says "45 provinces by title").
 - **After FR-2:**
   - any refusal a card quotes (finds 1, 2, 10);
-  - the battle report's rows (find 3 — card VIII shows the report);
+  - the battle report's rows (find 3 — card VIII shows the report). New since FR-2: "Confidence in his orders", "Jealous lone attack", "Pride after proving himself", "Cavalry momentum (charged again today)" and "Defence limit (the bonuses multiply to +N%; the limit is +75%)";
   - what a bombardment scores (find 12 — card VI).
 
 ## §13 Landing record

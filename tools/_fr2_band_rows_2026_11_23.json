@@ -1,0 +1,50 @@
+{
+ "_note": "Row FR, Session FR-2 \u2014 the France band on the commanded arms (the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M per arm, France's provinces on the last ledger row. Arm 0 holds every FR-2 seam down and must read 28 / 25 / 26 (row IC 4b's standing reading); arm ALL is the shipped tree. Written by tools/_fr2_band_measure.py from a frozen copy.",
+ "band": [
+  23,
+  28
+ ],
+ "standing": {
+  "CMD-H": 28,
+  "CMD-A": 25,
+  "CMD-M": 26
+ },
+ "arms": {
+  "+BANK": {
+   "seams": [
+    "backend.commands.combat_executor:the_guns_kill_outright=False",
+    "backend.game_logic.battle_scale:a_remnant_is_not_a_corps=False",
+    "backend.game_logic.battle_scale:a_salvo_is_a_battle_only_at_scale=False"
+   ],
+   "CMD-A": 28,
+   "_holds": true
+  },
+  "+SHELL": {
+   "seams": [
+    "backend.ai.feedback:a_courts_bonus_rides_its_own_act=False",
+    "backend.game_logic.battle_scale:a_remnant_is_not_a_corps=False",
+    "backend.game_logic.battle_scale:a_salvo_is_a_battle_only_at_scale=False"
+   ],
+   "CMD-A": 25,
+   "_holds": true
+  },
+  "+FLOOR": {
+   "seams": [
+    "backend.ai.feedback:a_courts_bonus_rides_its_own_act=False",
+    "backend.commands.combat_executor:the_guns_kill_outright=False",
+    "backend.game_logic.battle_scale:a_salvo_is_a_battle_only_at_scale=False"
+   ],
+   "CMD-A": 24,
+   "_holds": true
+  },
+  "+SALVO": {
+   "seams": [
+    "backend.ai.feedback:a_courts_bonus_rides_its_own_act=False",
+    "backend.commands.combat_executor:the_guns_kill_outright=False",
+    "backend.game_logic.battle_scale:a_remnant_is_not_a_corps=False"
+   ],
+   "CMD-A": 25,
+   "_holds": true
+  }
+ }
+}

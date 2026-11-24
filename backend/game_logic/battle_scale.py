@@ -85,6 +85,59 @@ def is_a_battle(total_casualties) -> bool:
         return True  # unreadable input is never silently downgraded
 
 
+# WS-R7 (row FR, Session FR-2 — the weak-spot readers' find 7): how small a
+# corps is too small to COUNT as one. A beaten corps routinely survives with
+# 50 to 999 men (`take_casualties` keeps anything of 50 or more), and every
+# count of "a corps present" read only `strength > 0`: a 300-man remnant added
+# its arm to combined arms, gave the "ally next door" bonus, took a place in
+# coordination, marched to the guns as a reinforcement, counted as overwatch
+# guns and as a flank. The floor is the house's existing number for "a corps
+# that counts" — `world_state.DISRUPTION_MIN_STRENGTH`, the AI's
+# `STUB_STRENGTH_FLOOR` and the spent Guard's `GUARD_SPENT_FLOOR` are all
+# 1,000. A remnant still fights where it stands and takes its own losses; it
+# only stops being counted as a corps for the bonuses OTHERS draw from it.
+COUNTED_CORPS_MIN_STRENGTH = 1000
+
+
+def a_remnant_is_not_a_corps() -> bool:
+    """WS-R7's seam: one line to reverse — return False (every count reads
+    `strength > 0` again, as before)."""
+    return True
+
+
+def counts_as_a_corps(marshal) -> bool:
+    """True when `marshal` counts as a corps for the bonuses others draw from
+    it (WS-R7): `strength >= COUNTED_CORPS_MIN_STRENGTH`, or `> 0` with the
+    seam down."""
+    try:
+        strength = int(getattr(marshal, "strength", 0) or 0)
+    except (TypeError, ValueError):
+        return False
+    if not a_remnant_is_not_a_corps():
+        return strength > 0
+    return strength >= COUNTED_CORPS_MIN_STRENGTH
+
+
+# WS-R12 (row FR, Session FR-2 — the weak-spot readers' find 12, settled by the
+# rule written before the data: `docs/WEAK_SPOT_FINDS_SPEC.md` §3 as amended at
+# FR-2's Plan Mode, the record `tools/_fr2_farm_2026_11_23.json`): a salvo that
+# killed 1,000 men wrote a won battle (+3 to the war score, capped at 15) at
+# about 1.5 % of the battery's men. Measured with a battery in both arms on the
+# band's three seeds over forty turns, salvos earned France 65 to 409 points of
+# war score per 1,000 of its own dead, against about 1 for its won battles — a
+# farm on all three. The smallest of the rule's three fixes that ends it: a
+# salvo writes a battle only past five times a battle's floor. Its dead still
+# count for the war (the campaign ledger, the blood score, the settlement's
+# contribution); the courts' guns stand under the same rule.
+CANNONADE_MIN_CASUALTIES = 5000
+
+
+def a_salvo_is_a_battle_only_at_scale() -> bool:
+    """WS-R12's seam: one line to reverse — return False (a salvo past
+    `MIN_BATTLE_CASUALTIES` writes a won battle again, as before)."""
+    return True
+
+
 # The war score's own DECISIVE test (diplomacy.record_battle, unchanged since
 # Phase 8): a blood exchange above DECISIVE_MIN_CASUALTIES in which one side
 # bled more than DECISIVE_RATIO times the other. F4 "The fuse is longer"

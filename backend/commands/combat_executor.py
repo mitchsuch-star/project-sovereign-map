@@ -20,6 +20,7 @@ from backend.models import world_state as _ws_mod
 from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
+from backend.game_logic.battle_scale import counts_as_a_corps  # WS-R7: a remnant is not a corps
 from backend.game_logic.formations import formed_display_name
 from backend.display_names import humanize_entity_name, plural  # LV-2 (row EP F2); S14E-5's sweep: the plural
 from backend.display_names import marshal_honorific  # NPC-17 (SR-6 reserve)
@@ -1212,16 +1213,44 @@ def unseen_target_refusal(world, enemy, actor: str,
     if (enemy is None or getattr(enemy, "nation", None) == player
             or getattr(enemy, "captured_by", "")):
         return None
-    from backend.game_logic.intel_surfaces import in_sight
+    from backend.game_logic.intel_surfaces import in_sight, last_seen_phrase
     if in_sight(world, player, enemy):
         return None
+    # WS-R10 (row FR, Session FR-2 — the weak-spot readers' find 10): the one
+    # sighting rule (RR6-X3) places an unseen man where he was last seen, and
+    # the pursuit road accepts his chase from there ("pursues Kutuzov (at
+    # Silesia)"). "No intelligence on his position" was false for a player
+    # who holds a sighting — so it is said only when there is none; with one,
+    # the answer names the sighting the player already holds, and nothing
+    # more of where he stands now.
+    _seen = last_seen_phrase(world, player, enemy.name)
+    if _seen:
+        message = (f"{humanize_entity_name(enemy.name)} is out of sight, Sire — he "
+                   f"{_seen}. Scout for him before {actor} can {verb}, or pursue him "
+                   f"from there.")
+    else:
+        message = (f"No intelligence on {humanize_entity_name(enemy.name)}'s "
+                   f"position, Sire. Scout for him before {actor} can {verb}.")
     return {
         "success": False,
-        "message": (f"No intelligence on {humanize_entity_name(enemy.name)}'s "
-                    f"position, Sire. Scout for him before {actor} can {verb}."),
+        "message": message,
         "variable_action_cost": 0,
         "fogged": True,
     }
+
+
+def the_guns_kill_outright() -> bool:
+    """WS-R5 (row FR, Session FR-2 — the weak-spot readers' find 5): a corps
+    a bombardment shells to nothing — the target, or a corps its stray shells
+    catch — is destroyed at once, at the field, by the ONE removal seam
+    (`destroy_marshal(cause="bombardment")`, the cause the auto-kill road
+    already used): the tombstone and the fall event name the field, the kill
+    is counted for the battery's court, and a sovereign meets the
+    battlefield's fate (the death roll or capture). Before, it went down the
+    forced-retreat road — `_check_marshal_fate` returns None at strength 0 —
+    and routed with 0 men, standing on the map until the next night's
+    supply sweep removed it as "attrition". One line to reverse: return False."""
+    return True
 
 
 def shelled_morale(before, after):
@@ -2015,7 +2044,7 @@ class CombatExecutor:
             if extra.nation == nation and all(extra.name != c.name for c in candidates):
                 candidates.append(extra)
         for m in candidates:
-            if m.strength <= 0:
+            if not counts_as_a_corps(m):          # WS-R7: a remnant adds no arm
                 continue
             if getattr(m, 'broken', False):
                 continue
@@ -2541,7 +2570,7 @@ class CombatExecutor:
                     and m.name not in exclude_names
                     and m.location in region.adjacent_regions
                     and m.location != region_name
-                    and m.strength > 0
+                    and counts_as_a_corps(m)      # WS-R7: no next-door bonus from a remnant
                     and not getattr(m, 'broken', False)
                     and not getattr(m, 'retreated_this_turn', False)
                     and getattr(m, 'retreat_recovery', 0) == 0):
@@ -2667,7 +2696,10 @@ class CombatExecutor:
         # Each marshal gets their OWN coordination based on their relationships
         for m in eligible:
             m.sovereign_presence = _aura_strength
-            allies_for_m = [a for a in eligible if a.name != m.name]
+            # WS-R7: a remnant still RECEIVES what the corps around him give,
+            # and the Emperor's presence is a man's, not a strength — but a
+            # remnant gives no ally's coordination to anyone (`counts_as_a_corps`).
+            allies_for_m = [a for a in eligible if a.name != m.name and counts_as_a_corps(a)]
             coord_atk, coord_def = self._calculate_per_ally_coordination(m, allies_for_m)
 
             # Dedicated coordination bonus (S59): +5%/+5% flat if qualified
@@ -2808,8 +2840,9 @@ class CombatExecutor:
             if not crossing_allowed(world, marshal.nation,
                                     marshal.location, region.name):
                 return False
-        # Rule 3: strength > 0
-        if marshal.strength <= 0:
+        # Rule 3: strength > 0 — WS-R7: a corps that counts (a remnant of a
+        # few hundred men does not march to the guns, nor answers for failing to)
+        if not counts_as_a_corps(marshal):
             return False
         # Rule 4: NOT broken
         if getattr(marshal, 'broken', False):
@@ -5592,7 +5625,7 @@ class CombatExecutor:
                     and m.nation != attacker.nation
                     and world.is_at_war(attacker.nation, m.nation)
                     and getattr(m, 'artillery', False)
-                    and m.strength > 0
+                    and counts_as_a_corps(m)      # WS-R7: no overwatch from a remnant's guns
                     and not getattr(m, 'broken', False)
                     and not getattr(m, 'retreated_this_turn', False)
                     and getattr(m, 'retreat_recovery', 0) == 0
@@ -6397,6 +6430,7 @@ class CombatExecutor:
                     attacker_participants=(theater or {}).get("attacker_participants"),
                     defender_participants=(theater or {}).get("defender_participants"),
                     nation_theater_strength=(theater or {}).get("nation_theater_strength"),
+                    cannonade=bool(ctx.get('is_bombardment')),   # WS-R12
                 )
                 # S14E-D14 / S14E-X98 / S14E-X101 (S14f p3): the pair's STORED
                 # score follows its battle - the dead (a sub-floor skirmish
@@ -8707,9 +8741,21 @@ class CombatExecutor:
 
                     # Collateral target destroyed
                     if force.strength <= 0 and force.name in world.marshals:
-                        self._apply_forced_retreat_or_break(
-                            force, marshal, world,
-                            **({"rng": rng} if rng is not None else {}))  # WS-11
+                        if the_guns_kill_outright():
+                            # WS-R5: shelled to nothing is destroyed at the field.
+                            # FR2-3 (the session's review): a corps of the battery's
+                            # OWN court is credited to nobody, and its own guns are
+                            # no battlefield fate — no death roll for a sovereign.
+                            _fall = self._fall_clause(world, force, world.destroy_marshal(
+                                force, cause="friendly_fire" if is_friendly else "bombardment",
+                                victor="" if is_friendly else marshal.nation,
+                                location=target_location)).strip()
+                            if _fall:
+                                collateral_messages.append("  " + _fall)
+                        else:
+                            self._apply_forced_retreat_or_break(
+                                force, marshal, world,
+                                **({"rng": rng} if rng is not None else {}))  # WS-11
                         _baggage = self._tell_orders_taken(world)
                         if _baggage:
                             collateral_messages.append("  " + _baggage)
@@ -8762,11 +8808,20 @@ class CombatExecutor:
         enemy_destroyed = defender.strength <= 0
         destroyed_msg = ""
         if enemy_destroyed and defender.name in world.marshals:
-            # Use the existing break system for proper state clearing
-            break_msg = self._apply_forced_retreat_or_break(
-                defender, marshal, world,
-                **({"rng": rng} if rng is not None else {}))  # WS-11
-            destroyed_msg = f"\n{break_msg}"
+            if the_guns_kill_outright():
+                # WS-R5: shelled to nothing is destroyed at once, at the field
+                # (the tombstone, the fall event, the kill counted, a
+                # sovereign's battlefield fate) — never routed with 0 men.
+                _fall = self._fall_clause(world, defender, world.destroy_marshal(
+                    defender, cause="bombardment", victor=marshal.nation,
+                    location=target_location)).strip()
+                destroyed_msg = f"\n{_fall}" if _fall else ""
+            else:
+                # Use the existing break system for proper state clearing
+                break_msg = self._apply_forced_retreat_or_break(
+                    defender, marshal, world,
+                    **({"rng": rng} if rng is not None else {}))  # WS-11
+                destroyed_msg = f"\n{break_msg}"
             _baggage = self._tell_orders_taken(world)
             if _baggage:
                 destroyed_msg += f"\n{_baggage}"
@@ -9909,6 +9964,69 @@ class CombatExecutor:
                 }
         return _NEXT_STAGE
 
+    def _chase_a_man_last_seen(self, ctx: AttackContext):
+        """WS-R10 (row FR, Session FR-2 — the weak-spot readers' find 10): the
+        player's typed attack on a man OUT of sight whose true ground is a
+        third court's peace soil. WS-2 answered "No intelligence on his
+        position" — false for a player who holds a sighting, which the one
+        sighting rule (RR6-X3) treats as where he is, while "pursue" accepted
+        his chase from there; and the answer was decided on his true ground.
+        With a sighting on the record it is now RR6-X3's own answer to an
+        attack on a man out of sight: the chase, asked first at its price
+        (`pursuit_ask`, the yes is the pursuit "pursue" gives) — what the
+        read-back always read. With no sighting (or a pursuit that cannot be
+        asked) None: WS-2's words stand."""
+        enemy = ctx.enemy_marshal
+        if (enemy is None or ctx.enemy_by_name is None
+                or ctx.marshal.nation != getattr(ctx.world, "player_nation", None)):
+            return None
+        from backend.game_logic.intel_surfaces import in_sight, last_seen_phrase
+        if in_sight(ctx.world, ctx.marshal.nation, enemy):
+            return None
+        if not last_seen_phrase(ctx.world, ctx.marshal.nation, enemy.name):
+            return None
+        cost = ctx.marshal.strategic_order_ap(auto_upgrade=False, order_type="PURSUE")
+        if ctx.world.actions_remaining < cost:
+            return None
+        return pursuit_ask(ctx, cost)
+
+    @staticmethod
+    def _found_by_province(ctx: AttackContext) -> bool:
+        """UI6-X28's rule on the attack road (row FR, Session FR-2's review):
+        the player typed a PROVINCE and the lookup found the man standing in it
+        (`get_enemy_at_location_for_nation`), not a man he named. A province
+        answers alike whether or not a commander out of sight stands in it, so
+        no free refusal may turn on such a man or name him — else typing
+        provinces finds which hold a man unseen, and who."""
+        enemy = ctx.enemy_marshal
+        if enemy is None or ctx.enemy_by_name is not None:
+            return False
+        if enemy.name.lower() == str(ctx.target or "").lower():
+            return False
+        return ctx.world.get_region(ctx.resolved_target) is not None
+
+    def _peace_soil_as_an_empty_province(self, ctx: AttackContext):
+        """The peace-soil half of `_found_by_province` (FR-2's review; the
+        sibling of WS-R1's crossing gate): a province typed on a third court's
+        soil, at peace with us, where a man OUT of sight stands. The empty
+        province asks the declaration on that court (the War Purpose card) or
+        refuses a friend; the held one now answers the same, never "<he> is
+        out of sight". None when the man is in sight, named, or not ours to
+        answer for."""
+        if (not self._found_by_province(ctx)
+                or ctx.marshal.nation != getattr(ctx.world, "player_nation", None)
+                or _whither(ctx.world, ctx.enemy_marshal, "x")):
+            return None
+        region = ctx.world.get_region(ctx.resolved_target)
+        owner = getattr(region, "controller", None)
+        if (not owner or owner == ctx.marshal.nation
+                or ctx.world.is_at_war(ctx.marshal.nation, owner)):
+            return None
+        refusal = friendly_fire_refusal(ctx.world, ctx.marshal, owner)
+        if refusal is not None:
+            return refusal
+        return ctx._stage_war_purpose_for_attack(owner)
+
     def _attack_engagement_and_crossing(self, ctx: AttackContext):
         """Stage 6 of `_execute_attack`: Engagement lock, the DEF-5 crossing gate (attack arm), NV-9 guns over a strait."""
         # ============================================================
@@ -9998,6 +10116,23 @@ class CombatExecutor:
                                               _battle_region_name,
                                               int(ctx.marshal.strength))
                 if not ctx._cross["allowed"]:
+                    # WS-R1 (row FR, Session FR-2): the refusal names the province
+                    # of the man it bars the road to — the player's own ordered
+                    # attack on a man OUT of sight is answered as every other
+                    # verdict about his place (`unseen_target_refusal`); a man
+                    # in sight, an unordered attack and the AI keep the words;
+                    # a man found by a typed PROVINCE keeps them too (the
+                    # province answers alike, held or empty — FR-2's review).
+                    if (ctx.enemy_marshal is not None
+                            and not self._found_by_province(ctx)
+                            and ctx.marshal.nation == getattr(ctx.world, "player_nation", None)
+                            and not _attack_is_unordered(ctx.command)
+                            and not (ctx.command or {}).get("_strategic_execution")
+                            and not (ctx.command or {}).get("_autonomous_execution")):
+                        _unseen = unseen_target_refusal(ctx.world, ctx.enemy_marshal,
+                                                        ctx.marshal.name, "attack")
+                        if _unseen is not None:
+                            return _unseen
                     return {
                         "success": False,
                         "message": ctx._cross["message"],
@@ -10078,6 +10213,12 @@ class CombatExecutor:
                 self, ctx.marshal, ctx.enemy_marshal.location, ctx.world,
                 enemy_nation=ctx.enemy_marshal.nation)
             if _peace_soil is not None:
+                _ask = self._chase_a_man_last_seen(ctx)
+                if _ask is not None:
+                    return _ask
+                _as_empty = self._peace_soil_as_an_empty_province(ctx)
+                if _as_empty is not None:
+                    return _as_empty
                 return peace_soil_refusal(ctx.marshal, ctx.enemy_marshal, _peace_soil, ctx.world)
 
         # ════════════════════════════════════════════════════════════
@@ -11062,8 +11203,16 @@ class CombatExecutor:
             # ⚠ NP promise audit (Aug 15, 2026): keep the return — a
             # SOVEREIGN is CAPTURED here, not removed, and the message
             # below said "the preparatory bombardment destroyed him".
-            auto_kill_removed = ctx.world.destroy_marshal(
-                ctx.enemy_marshal, cause="bombardment", victor=ctx.marshal.nation)
+            if (the_guns_kill_outright()
+                    and ctx.enemy_marshal.name not in ctx.world.marshals
+                    and not getattr(ctx.enemy_marshal, "captured_by", "")):
+                # WS-R5: the guns' own salvo destroyed him already, at the
+                # field (his grave there, not where a rout would have sent him).
+                auto_kill_removed = True
+            else:
+                auto_kill_removed = ctx.world.destroy_marshal(
+                    ctx.enemy_marshal, cause="bombardment", victor=ctx.marshal.nation,
+                    **({"location": ctx.battle_region_name} if the_guns_kill_outright() else {}))
 
             # PT-F1: same guard as the main battle-advance — the soil of a
             # court we are not at war with never transfers by pursuit.
@@ -13820,6 +13969,23 @@ class CombatExecutor:
         return None
 
     @staticmethod
+    def _charge_crossing_barred(marshal, target_marshal, world) -> Optional[Dict]:
+        """NV-9's crossing gate on the charge's INITIATION (the reach form, the
+        range-2 middle leg too): the refusal when a hostile fleet covers the
+        crossing, else None. WS-R1 (row FR, Session FR-2): the caller answers a
+        man out of sight with the unseen answer instead — this refusal names
+        his province or the road toward him."""
+        if not getattr(world, "fleets", None):
+            return None
+        from backend.game_logic.naval import crossing_check_reach
+        cross = crossing_check_reach(world, marshal.nation, marshal.location,
+                                     target_marshal.location, int(marshal.strength))
+        if cross["allowed"]:
+            return None
+        return {"success": False, "message": cross["message"],
+                "blocked_naval": cross["coverer"], "naval_ratio": cross["ratio"]}
+
+    @staticmethod
     def _unseen_charge_quarry(marshal, target_marshal, world, command) -> Optional[Dict]:
         """UI6-X16 (Session UI-6, November 13, 2026): the player's own ORDERED
         charge at a man OUT of sight never answers with where he stands —
@@ -13973,8 +14139,9 @@ class CombatExecutor:
             terrain_name = charge_region.terrain.replace("_", " ").title()
             print(f"  [CHARGE BLOCKED] {terrain_name} terrain blocks charge -- falling through to normal attack")
             result = self._execute_attack(marshal, target, world, game_state, skip_reckless_popup=True)
-            result["charge_blocked_by_terrain"] = True
-            result["terrain"] = charge_region.terrain
+            if result.get("success") or not _unseen:   # WS-R1: an unseen man's ground once fought
+                result["charge_blocked_by_terrain"] = True
+                result["terrain"] = charge_region.terrain
             if result.get("success"):
                 result["message"] = (
                     f"[Cavalry][Blocked] {marshal.name}'s cavalry cannot charge in {terrain_name} terrain! "
@@ -14000,18 +14167,9 @@ class CombatExecutor:
         # up ("a blockade that stops MOVE but not ATTACK is not a
         # blockade"). The reach form covers the range-2 middle leg.
         # ════════════════════════════════════════════════════════════
-        if getattr(world, "fleets", None):
-            from backend.game_logic.naval import crossing_check_reach
-            _charge_cross = crossing_check_reach(
-                world, marshal.nation, marshal.location,
-                target_marshal.location, int(marshal.strength))
-            if not _charge_cross["allowed"]:
-                return {
-                    "success": False,
-                    "message": _charge_cross["message"],
-                    "blocked_naval": _charge_cross["coverer"],
-                    "naval_ratio": _charge_cross["ratio"],
-                }
+        _barred = self._charge_crossing_barred(marshal, target_marshal, world)
+        if _barred is not None:
+            return _unseen or _barred   # WS-R1: never a crossing naming an unseen man's place
 
         # Check for leapfrog (same as normal attack)
         if distance == 2:

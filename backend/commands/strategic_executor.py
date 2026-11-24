@@ -990,7 +990,8 @@ class StrategicExecutor:
             nearest, alternatives = self._find_nearest_enemy(marshal, enemies, world)
 
             if not nearest:
-                return {"resolved": False}
+                # WS-R2: a foe in sight that no road reaches is not "no foe in sight".
+                return {"resolved": False, "cut_off": sorted(e.name for e in enemies)}
 
             if is_literal:
                 return self._build_clarification(
@@ -1041,7 +1042,8 @@ class StrategicExecutor:
             nearest, _ = self._find_nearest_enemy(marshal, enemies, world)
 
             if not nearest:
-                return {"resolved": False}
+                # WS-R2: a foe in sight that no road reaches is not "no foe in sight".
+                return {"resolved": False, "cut_off": sorted(e.name for e in enemies)}
 
             target_region = nearest.location
             alt_regions = list(set(
@@ -1407,7 +1409,18 @@ class StrategicExecutor:
                 # "Ney, march" spent 2 AP on "Ney begins march to None". Ask, free,
                 # naming no man (the fog: nothing of anyone out of sight).
                 where = humanize_entity_name(ctx.marshal.location)
-                if ctx.strategic_type == "MOVE_TO":
+                # WS-R2 (row FR, Session FR-2 — the weak-spot readers' find 2):
+                # the finder answered none for "no foe in sight" and for "no road
+                # reaches the foes in sight" alike. The second — a map whose
+                # provinces do not all connect (a mod's island; the shipped map
+                # connects every province) — now says so, naming the foes the
+                # player sees (fog-true: they are in sight).
+                cut_off = [humanize_entity_name(n) for n in (resolution.get("cut_off") or [])]
+                if cut_off:
+                    foes = " or ".join(cut_off[:2])
+                    text = (f"No road reaches {foes} from {where}, Sire — name a destination "
+                            f"{ctx.marshal.name} can march to.")
+                elif ctx.strategic_type == "MOVE_TO":
                     text = (f"Where shall {ctx.marshal.name} march, Sire? No foe is in sight to "
                             f"march on - name a destination. He stands at {where}.")
                 else:
