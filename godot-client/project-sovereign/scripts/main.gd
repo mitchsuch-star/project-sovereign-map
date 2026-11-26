@@ -660,6 +660,8 @@ func _ready():
 		order_card.directive_offer_requested.connect(_on_directive_offer)   # Session 3b: the list's one offer
 		order_card.bring_requested.connect(_on_order_card_bring)   # row BA, BA-2
 		order_card.take_requested.connect(_on_order_card_take)     # row PW
+		if order_card.has_signal("diplomacy_requested"):
+			order_card.diplomacy_requested.connect(_on_order_card_diplomacy)   # row FUN, FUN-1
 	dialog_manager.modal_shown.connect(_on_modal_shown)
 
 	_configure_response_routes()
@@ -950,6 +952,8 @@ func _ready():
 	# a dragged piece say while a corps is selected.
 	if map_area and "drag_allowed_check" in map_area:
 		map_area.drag_allowed_check = _piece_may_drag
+		if "own_piece_check" in map_area:
+			map_area.own_piece_check = _own_field_marshal   # row FUN, FUN-1: ours, nothing else asked
 		map_area.order_hover.connect(_on_map_order_hover)
 		map_area.piece_drag_started.connect(_on_piece_drag_started)
 		map_area.piece_dropped.connect(_on_piece_dropped)
@@ -11828,6 +11832,18 @@ func _on_stack_clicked(region: String, names: Array, at: Vector2) -> void:
 	_stack_picker.open_list(region, rows, at)
 
 
+func _on_order_card_diplomacy(nation: String) -> void:
+	"""Row FUN, FUN-1 (November 25, 2026): a march refused at a court's closed
+	border — the card's "Ask <court> for open borders" opens the Diplomacy
+	window on that court (diplomacy is never typed); the selection is let go,
+	as any screen lets it go."""
+	if nation == "" or diplomacy_wizard == null or not diplomacy_wizard.has_method("open_for_nation"):
+		return
+	_clear_order_selection()
+	_update_war_panel_visibility()
+	diplomacy_wizard.open_for_nation(nation)
+
+
 func _on_order_card_take(province: String) -> void:
 	"""The card's "Storm it instead" (or a "Take <province>" chip): the order
 	that TAKES the province, on its own card — the storm's reckoning, its Send."""
@@ -11946,8 +11962,8 @@ func _order_card_avoid() -> Array:
 func _fetch_order_quote(key: String) -> void:
 	"""ONE GET per target for the selection's life (the cache is dropped when
 	the selection — or the board under it — changes)."""
-	if key == "" or key == "self" or _order_marshal == "":
-		return
+	if not _quote_key(key) or _order_marshal == "":
+		return   # row FUN, FUN-1: a selection ("pick:") is no order to quote
 	if _order_quotes.has(key) or _order_quote_pending.has(key):
 		return
 	if api_client == null or not api_client.has_method("get_order_quote"):
@@ -12091,36 +12107,91 @@ func _on_map_order_hover(region: String, marshal_key: String) -> void:
 	for a province), and after a short rest fetch its exact quote."""
 	if _order_marshal == "" or _order_card_open():
 		return
-	_order_hover_key = _order_target_key(region, marshal_key)
+	# Row FUN, FUN-1 (November 25, 2026): the tag shows what THIS gesture will
+	# do — a plain hover the LEFT click's meaning (another of ours is "pick:",
+	# he becomes the selection), a dragged piece the DROP's (support). The
+	# hover used to wear the right click's meaning, so its tag could promise a
+	# support the left click never gave (Session UI-6's N3 — its hover arm).
+	var dragging: bool = map_area != null and map_area.has_method("is_dragging_piece") \
+		and bool(map_area.is_dragging_piece())
+	_order_hover_key = _order_target_key(region, marshal_key, dragging)
 	_show_ghost_for(_order_hover_key)
-	if _order_dwell != null:
+	if _order_dwell != null and _quote_key(_order_hover_key):
 		_order_dwell.start(ORDER_DWELL_SEC)
 
 
+func _quote_key(key: String) -> bool:
+	"""Row FUN, FUN-1: a target the backend quotes (a march, an attack, a
+	support) — never "", "self" or "pick:" (a selection is no order)."""
+	return key != "" and key != "self" and not key.begins_with("pick:")
+
+
 func _on_order_dwell_timeout() -> void:
-	if _order_hover_key != "" and _order_hover_key != "self" and _order_input_ready():
+	if _quote_key(_order_hover_key) and _order_input_ready():
 		_fetch_order_quote(_order_hover_key)
 
 
 func _show_ghost_for(key: String) -> void:
 	"""The ghost road for `key`: the exact quote's road once it is in; before
 	that (and for an order already standing) a province's road from the reach
-	— the same road law, pinned equal; nothing where neither has a road (the
-	tint already says so)."""
+	— the same road law, pinned equal.
+
+	Row FUN, FUN-1 (November 25, 2026 — the second play: "the line goes crazy"):
+	the line never blanks between two targets that both have roads, and every
+	target says what the click will do. One of ours: "Select <name>" at his
+	feet. Himself: "Let <name> go" (no tag mid-drag — a drop on himself orders
+	nothing). An enemy: his attack road at once, from the reach row of the
+	province he stands in. A target whose road is still being read: the last
+	road kept, faded, and the target named by the cursor. A refusal: no road,
+	its short reason as the tag. Open water: nothing."""
 	if map_area == null or not map_area.has_method("show_order_ghost"):
+		return
+	var tags: bool = map_area.has_method("show_order_tag")
+	if tags:
+		map_area.clear_order_tag()
+	if key == "":
+		map_area.clear_order_ghost()
+		return
+	if key == "self" or key.begins_with("pick:"):
+		map_area.clear_order_ghost()
+		var dragging: bool = map_area.has_method("is_dragging_piece") and bool(map_area.is_dragging_piece())
+		if tags and key.begins_with("pick:"):
+			var who := key.substr(5)
+			map_area.show_order_tag("Select " + Utils.humanize_entity_name(who), who)
+		elif tags and not dragging:
+			map_area.show_order_tag("Let " + Utils.humanize_entity_name(_order_marshal) + " go", _order_marshal)
 		return
 	var steps := maxi(1, int(_order_reach.get("range", 1)))
 	var quote = _order_quotes.get(key, null)
-	if quote is Dictionary and not bool(quote.get("already", false)):
+	if quote is Dictionary and bool(quote.get("already", false)):
+		# (the review, lane A: an order already standing — its road if it has
+		# one, else the word; never the "…" of a road still being read)
+		var standing = quote.get("road", [])
+		if standing is Array and not (standing as Array).is_empty():
+			map_area.show_order_ghost(standing, str(quote.get("kind", "march")), "Already ordered", steps)
+		else:
+			map_area.clear_order_ghost()
+			if tags:
+				map_area.show_order_tag("Already ordered")
+		return
+	if quote is Dictionary:
 		var road = quote.get("road", [])
 		if bool(quote.get("ok", false)) and road is Array and not road.is_empty():
 			map_area.show_order_ghost(road, str(quote.get("kind", "march")),
 				_order_ghost_label(quote, key), steps)
+		elif bool(quote.get("ok", false)):
+			# (the review, lane A: an order the click will take with no road —
+			# a support of a friend beside him — wears its own tag, not a refusal)
+			map_area.clear_order_ghost()
+			if tags:
+				map_area.show_order_tag(_order_ghost_label(quote, key), _order_marshal)
 		else:
 			map_area.clear_order_ghost()
+			if tags:
+				map_area.show_order_tag(_refusal_tag(quote, key))
 		return
+	var reach = _order_reach.get("reach", {})
 	if key.begins_with("dest:"):
-		var reach = _order_reach.get("reach", {})
 		var row = reach.get(key.substr(5), null) if reach is Dictionary else null
 		if row is Dictionary:
 			# Row PW: a province within the plain move's reach carries its own
@@ -12132,7 +12203,59 @@ func _show_ghost_for(key: String) -> void:
 				"tag": row.get("tag", []),
 				"already": row.get("already", false)}, key), steps)
 			return
-	map_area.clear_order_ghost()
+	elif key.begins_with("enemy:"):
+		# Row FUN, FUN-1: his attack road at once — the march road to the
+		# province he stands in (the renderer knows a fog chip's province too).
+		var foe := key.substr(6)
+		var where := ""
+		if map_area.has_method("region_of_piece"):
+			where = str(map_area.region_of_piece(foe))
+		var row2 = reach.get(where, null) if reach is Dictionary and where != "" else null
+		if row2 is Dictionary and row2.get("road", []) is Array and not (row2.get("road", []) as Array).is_empty():
+			map_area.show_order_ghost(row2.get("road", []), "attack",
+				"Attack " + Utils.humanize_entity_name(foe) + " …", steps)
+			return
+	# A road is coming (the dwell asks for its quote): keep the last one, faded,
+	# and name the new target by the cursor — never at the old road's head.
+	if map_area.has_method("fade_order_ghost"):
+		map_area.fade_order_ghost(true)
+	if tags:
+		map_area.show_order_tag(_reading_tag(key))
+
+
+func _reading_tag(key: String) -> String:
+	"""Row FUN, FUN-1: the tag by the cursor while a target's road is read."""
+	var shown := _order_target_shown(key)
+	if key.begins_with("enemy:"):
+		return "Attack " + shown + " …"
+	if key.begins_with("ally:"):
+		return "Support " + shown + " …"
+	return shown + " …"
+
+
+func _refusal_tag(quote: Dictionary, key: String) -> String:
+	"""Row FUN, FUN-1: a refused target's tag — its place and the refusal's
+	first clause ("Cannot enter Nassau"), short enough to read at a glance;
+	the card says the rest. A road refused at the sea says so in its own
+	words: the landing is the way across, and where."""
+	var shown := _order_target_shown(key)
+	var crossing = quote.get("crossing", null)
+	if crossing is Dictionary and str(crossing.get("to", "")) != "":
+		var shore := str(crossing.get("to", ""))
+		return (shown + " — by sea only: a landing") if shore == shown \
+			else (shown + " — the road needs a landing at " + shore)
+	var why := str(quote.get("refusal", "")).strip_edges()
+	var first := why.length()
+	for cut in [" — ", ". ", ": ", ", "]:
+		var at := why.find(cut)
+		if at > 0 and at < first:
+			first = at
+	why = why.substr(0, first)
+	if why.length() > 70:
+		why = why.substr(0, 67).strip_edges() + "…"
+	if why == "":
+		return shown + " — not open to him"
+	return why if why.contains(shown) else (shown + " — " + why)
 
 
 func _order_ghost_label(q: Dictionary, key := "") -> String:
@@ -15956,11 +16079,11 @@ func _ui6_press_slot(n: int) -> void:
 
 func _on_order_context_requested(region: String, marshal_key: String) -> void:
 	"""The map's RIGHT click on a province or a piece (`marshal_key` is the
-	piece in sight, "" for a province or a fog chip — a fog chip never names
-	its man). With a corps selected it is his ORDER on the left click's card
-	road (`_order_click`): a province — the march card; an enemy in sight at
-	war — the attack card; another of ours — the support card; a fog chip —
-	a march to its province; himself — let go. A Ctrl-click group marches
+	piece the box names — row FUN, FUN-1 (FUN1-9): a fog chip names its man,
+	as the left click's CC-X11 does; "" for a province). With a corps selected
+	it is his ORDER on the left click's card road (`_order_click`): a province —
+	the march card; an enemy at war — the attack card; another of ours — the
+	support card; himself — let go. A Ctrl-click group marches
 	together. With nothing selected, a piece of ours on an EMPTY line is
 	selected (the left click's rules, `_click_selects_a_marshal`); anything
 	else dismisses, as the right click always did."""

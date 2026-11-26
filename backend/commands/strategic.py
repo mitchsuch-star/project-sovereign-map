@@ -890,28 +890,15 @@ def issuance_road_refusal(world, marshal, destination: str, strategic_type: str,
         state = world.get_diplomatic_state(marshal.nation, controller)
         return {
             "success": False,
-            "message": (
-                f"Cannot enter {destination}, Sire — it is controlled by "
-                f"{controller} (diplomatic state: {state}). Secure open "
-                f"borders or declare war to pass."
-            ),
+            "message": closed_border_sentence(destination, controller, state),
             "blocked_diplomatic": controller,
             "blocked_state": state,
             "variable_action_cost": 0,
         }
     if not verdict.get("legal", True):
-        blocker = verdict.get("blocker_region")
-        blk_ctrl = verdict.get("blocker_controller") or "neutral"
-        return {
-            "success": False,
-            "message": (
-                f"There is no open road to {destination}, Sire — every "
-                f"route crosses {blk_ctrl}'s closed frontier at "
-                f"{blocker}. Secure passage (open borders, or "
-                f"war) or name a province we can reach."
-            ),
-            "variable_action_cost": 0,
-        }
+        return no_open_road_refusal(world, marshal.nation, destination,
+                                    verdict.get("blocker_region"),
+                                    verdict.get("blocker_controller") or "neutral")
     check = verdict.get("naval_check")
     if check is not None:
         leg = verdict.get("naval_leg") or ("", "")
@@ -923,9 +910,67 @@ def issuance_road_refusal(world, marshal, destination: str, strategic_type: str,
                 f"we do not command."),
             "blocked_naval": check.get("coverer"),
             "naval_ratio": check.get("ratio"),
+            # Row FUN, FUN-1: the leg and its verdict, so the order card can
+            # offer the landing that crosses it as a button.
+            "naval_leg": [str(leg[0] or ""), str(leg[1] or "")],
+            "naval_verdict": str(check.get("verdict") or ""),
             "variable_action_cost": 0,
         }
     return None
+
+
+def closed_border_sentence(destination: str, controller: str, state: str) -> str:
+    """Row FUN, FUN-1 (November 25, 2026): the ONE plain sentence for a march
+    into a court's closed soil — the typed move and the march order read it.
+    It used to read "(diplomatic state: PEACE). Open borders or higher
+    required" — the engine's own key and no word of where to get them."""
+    shown = _court_in_sentence(controller)
+    if str(state or "").upper() == "ARMISTICE":
+        # The review (FUN-1, lane B): open borders is proposed only from PEACE;
+        # under an armistice the way through is the peace itself, or war.
+        return (f"Cannot enter {destination} — it belongs to {shown}, and the "
+                f"armistice keeps our armies out of their land until it becomes "
+                f"a peace, or until we declare war again.")
+    return (f"Cannot enter {destination} — it belongs to {shown}, whose border "
+            f"is closed to our armies while we are at peace. Ask {shown} for "
+            f"open borders in Diplomacy, or declare war to pass.")
+
+
+def _court_in_sentence(controller: str) -> str:
+    from backend.display_names import display_nation_in_sentence
+    return (display_nation_in_sentence(controller)
+            if controller and controller != "neutral" else "a neutral court")
+
+
+def border_can_be_opened(state: str) -> bool:
+    """Row FUN, FUN-1: open borders is proposed from PEACE only
+    (`diplomacy.validate_transition`) — the card offers it only then."""
+    return str(state or "PEACE").upper() == "PEACE"
+
+
+def no_open_road_refusal(world, nation: str, destination: str, blocker,
+                         blk_ctrl: str) -> Dict:
+    """Row FUN, FUN-1 (November 25, 2026): the ONE refusal for a road that
+    crosses a court's closed border — the march order's issuance, the road law
+    (`_march_road_from_path`) and the strategic executor read it (it was three
+    copies of "…'s closed frontier at … Secure passage", the court's raw key
+    and the old "Sire"). It names the court so the card can offer its
+    open-borders proposal (`blocked_diplomatic`, with `blocked_state`)."""
+    state = (world.get_diplomatic_state(nation, blk_ctrl)
+             if blk_ctrl and blk_ctrl != "neutral" else "PEACE")
+    shown = _court_in_sentence(blk_ctrl)
+    way = (f"Ask {shown} for open borders in Diplomacy, declare war, or name a "
+           f"province we can reach." if border_can_be_opened(state) else
+           f"The armistice keeps us out until it becomes a peace; declare war, "
+           f"or name a province we can reach.")
+    return {
+        "success": False,
+        "message": (f"There is no open road to {destination} — every route "
+                    f"crosses the closed border of {shown} at {blocker}. {way}"),
+        "blocked_diplomatic": blk_ctrl if blk_ctrl and blk_ctrl != "neutral" else None,
+        "blocked_state": state,
+        "variable_action_cost": 0,
+    }
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -1057,16 +1102,9 @@ def _march_road_from_path(world, marshal, dest: str, strategic_type: str,
                     r, marshal.nation, mover_location=marshal.location))
             blk = world.regions.get(blocker)
             blk_ctrl = blk.controller if blk else "neutral"
-            return None, {
-                "success": False,
-                "message": (
-                    f"There is no open road to {dest}, Sire — every "
-                    f"route crosses {blk_ctrl}'s closed frontier at "
-                    f"{blocker}. Secure passage (open borders, or "
-                    f"war) or name a province we can reach."
-                ),
-                "variable_action_cost": 0,
-            }, "closed_frontier"
+            # Row FUN, FUN-1 (the review's sibling sweep): the one refusal
+            return None, no_open_road_refusal(world, marshal.nation, dest, blocker,
+                                              blk_ctrl or "neutral"), "closed_frontier"
     return road, None, None
 
 

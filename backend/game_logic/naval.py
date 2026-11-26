@@ -1960,15 +1960,21 @@ def crossing_check(world, mover_nation: str,
         result["allowed"] = False
         result["verdict"] = "landing"
         holder = _controller(world, to_region)
-        from backend.display_names import display_nation
+        from backend.display_names import display_nation_in_sentence
+        # Row FUN, FUN-1 (November 25, 2026): plain words, and the two ways
+        # that really cross. "Break the fleet that covers the passage" named
+        # an order no player has — a sea battle comes only of a landing caught
+        # at sea or a diversion that fails — while a diversion's window opens
+        # this very crossing (the `window_open` arm above skips the host rule).
         result["message"] = (
-            f"{to_region} is enemy country, Sire, and "
+            f"{to_region} is enemy coast and "
             f"{_fleet_label(coverer, get_fleet(world, coverer) or {})} still "
-            f"watches that water. An army does not march ashore onto a "
-            f"defended coast — that is a landing, not a march. Put a corps "
-            f"of {EXPEDITION_MAX_TROOPS:,} men or fewer into the transports, "
-            f"or break the fleet that covers the passage."
-            + (f" {display_nation(holder)} holds the shore."
+            f"watches that water, so an army cannot march ashore there: it "
+            f"must land. Put a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer "
+            f"into the transports (a landing) — or, if our fleet still has a "
+            f"diversion to try, draw theirs off this crossing for a few turns."
+            + (f" {display_nation_in_sentence(holder)[:1].upper()}"
+               f"{display_nation_in_sentence(holder)[1:]} holds the shore."
                if holder else ""))
     elif allowed:
         result["verdict"] = "window" if window_open else "open_ratio"
@@ -2000,7 +2006,12 @@ def _shut_remedy(mover_strength: Optional[int]) -> str:
     are untouched, so this is message-only at every one of the ~25 seams
     that inherit the predicate.
     """
-    base = "Build or pool a fleet to contest the passage"
+    # Row FUN, FUN-1 (November 25, 2026): plain words — "pool" was the
+    # Admiralty's word for allies' squadrons counted with ours, and every
+    # dockyard builds into the ONE fleet (`fleets` is a store per nation, not a
+    # squadron per sea), so a yard far from this water still helps here.
+    base = ("Build more warships (any of our dockyards adds to the one fleet) "
+            "or win allies with fleets until we outnumber them")
     if mover_strength is not None and mover_strength > EXPEDITION_MAX_TROOPS:
         return (f"{base} — this corps is {mover_strength:,} strong and the "
                 f"transports lift {EXPEDITION_MAX_TROOPS:,}, so no "
@@ -5584,6 +5595,81 @@ def landing_prize_clause(world, nation: str, target: str, marshal=None,
         return ""
     floor = "" if defended else landing_floor_clause(world, marshal, target)
     return f"{region_part}; {floor}" if floor else region_part
+
+
+def landing_corps_for(world, nation: str, dest: str, prefer: str = "") -> List[str]:
+    """Row FUN, FUN-1 (November 25, 2026): the corps that could sail for ONE
+    shore — `expedition_landing_options`' own eligibility, asked of `dest`
+    alone (GR8: a refused march's card never sweeps the map) — with `prefer`
+    first when he is among them, then the larger corps. A march refused at a
+    sea crossing offers the first as its landing button. The review (FUN-1,
+    lane B): a corps that may sail but cannot act this turn (out of actions,
+    broken, engaged — `order_state_refusal(…, "land")`) goes behind those
+    that can, as the region panel's own rows rank them."""
+    if not landing_shore_ok(world, nation, dest):
+        return []
+    yards = set(controlled_dockyards(world, nation))
+    fits = []
+    for marshal in world.get_marshals_by_nation(nation):
+        if not (0 < int(marshal.strength) <= EXPEDITION_MAX_TROOPS) or sovereign_stays(marshal):
+            continue
+        if dest == marshal.location or not embark_position_ok(world, marshal, yards):
+            continue
+        origin = world.regions.get(marshal.location)
+        if origin is not None and dest in (getattr(origin, "adjacent_regions", []) or []) \
+                and not is_sea_link(world, marshal.location, dest):
+            continue   # march there; the fleet is for what feet cannot
+        fits.append(marshal)
+    from backend.commands.state_probe import order_state_refusal
+    ready = {m.name: not order_state_refusal(world, m, "land") for m in fits}
+    fits.sort(key=lambda m: (not ready[m.name], m.name != prefer, -int(m.strength), m.name))
+    return [m.name for m in fits]
+
+
+def landing_shore_ok(world, nation: str, dest: str) -> bool:
+    """Row FUN, FUN-1: whether `dest` takes a landing by `nation` at all — a
+    fleet to carry it, a coast, and a shore the executor's consent gate lets
+    us land on (our own, an enemy's, or a host's). The landing button and its
+    dimmed reason are asked only of a shore that passes (the review, lane B: a
+    corps's own reason must never stand for a shore that takes no landing)."""
+    if not has_naval_layer(world) or not get_fleet(world, nation):
+        return False
+    region = world.regions.get(dest)
+    if region is None or not getattr(region, "is_coastal", False):
+        return False
+    holder = _controller(world, dest)
+    return not (holder and holder != nation
+                and not world.is_at_war(nation, holder)
+                and not is_expedition_host(world, nation, holder))
+
+
+def landing_blocker_line(world, marshal) -> str:
+    """Row FUN, FUN-1 (November 25, 2026): why `marshal` himself cannot sail,
+    in plain words ("" when he can) — the dimmed landing button's reason on a
+    refused crossing's card. The rules are the embark rule's own (`_embark_at`,
+    `nearest_embark_shore`): from our own soil joined to France by land a
+    landing sails only from a dockyard; from anywhere else, any coast. A corps
+    that has just taken Rumelia stands on our own soil — he marches to the
+    nearest shore he can sail from."""
+    if sovereign_stays(marshal):
+        return "the Emperor does not sail"
+    strength = int(getattr(marshal, "strength", 0) or 0)
+    if strength > EXPEDITION_MAX_TROOPS:
+        return (f"his {strength:,} men are more than the transports' "
+                f"{EXPEDITION_MAX_TROOPS:,}")
+    yards = set(controlled_dockyards(world, marshal.nation))
+    if embark_position_ok(world, marshal, yards):
+        return ""
+    region = world.regions.get(getattr(marshal, "location", None))
+    coastal = bool(region is not None and getattr(region, "is_coastal", False))
+    head = ("our own soil sails only from a dockyard" if coastal
+            else "he stands inland")
+    near = nearest_embark_shore(world, marshal.nation, marshal.location, yards)
+    if near is None:
+        return f"{head}, and no shore he can sail from is within reach"
+    steps, shore = near
+    return (f"{head} — the nearest shore he can sail from is {shore}, "
+            f"{_plural(int(steps), 'march')} away")
 
 
 def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:

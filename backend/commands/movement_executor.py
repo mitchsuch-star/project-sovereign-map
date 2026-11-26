@@ -986,10 +986,11 @@ class MovementExecutor:
                         "blocked_diplomatic": dest_controller,
                         "blocked_state": state,
                     }
+                from backend.commands.strategic import closed_border_sentence
                 return {
                     "success": False,
-                    "message": f"Cannot enter {target_name} — it is controlled by {dest_controller} "
-                               f"(diplomatic state: {state}). Open borders or higher required.",
+                    # Row FUN, FUN-1: the one plain sentence (the march order's too)
+                    "message": closed_border_sentence(target_name, dest_controller, state),
                     # PF-8: structured flags so a strategic-march stall detects
                     # the diplomatic block robustly (no string-matching).
                     "blocked_diplomatic": dest_controller,

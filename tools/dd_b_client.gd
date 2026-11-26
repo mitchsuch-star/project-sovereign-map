@@ -285,6 +285,27 @@ func _do(action: String) -> void:
 			_motion(Vector2(float(hp[0]), float(hp[1])))
 			await _frames(30)   # past the order's dwell (0.15 s) and its one GET
 			rec["note"] = "the cursor rests at (%d, %d)" % [int(float(hp[0])), int(float(hp[1]))]
+	elif verb in ["whover", "wclick", "wrclick"]:
+		# Row FUN, FUN-1 (November 25, 2026): the same gestures by a REAL mouse's
+		# road — window pixels through `Input.parse_input_event`, which the
+		# window's stretch divides back by the Interface Scale. Every other verb
+		# hands the viewport logical points (`push_input(ev, true)`) and skips
+		# that step, so no driven test had clicked as the player's mouse does.
+		var wp := rest.split(" ", false)
+		if wp.size() != 2 or not wp[0].is_valid_float() or not wp[1].is_valid_float():
+			_err(rec, "%s wants two numbers: %s <x> <y> (logical px)" % [verb, verb])
+		else:
+			var wat := Vector2(float(wp[0]), float(wp[1]))
+			if verb == "whover":
+				_win_motion(wat)
+				await _frames(30)   # past the order's dwell (0.15 s) and its one GET
+				rec["note"] = "the cursor rests at (%d, %d), by the window's road" % [int(wat.x), int(wat.y)]
+			else:
+				var wunder := _cover_at(wat, null)
+				await _win_click(wat, verb == "wrclick")
+				rec["note"] = "%sclicked at (%d, %d) by the window's road%s" % [
+					"right-" if verb == "wrclick" else "", int(wat.x), int(wat.y),
+					(" on " + wunder) if wunder != "" else ""]
 	elif verb == "endturn_skip":
 		# Row PW part 2: End Turn, then a key while the map is telling the turn
 		# (`main.gd::_pw_play_then_report`) — a player's skip. The record's
@@ -794,6 +815,37 @@ func _real_click(at: Vector2, ctrl: bool = false, right: bool = false) -> void:
 		await _frames(2)
 
 
+func _win_point(at: Vector2) -> Vector2:
+	"""Row FUN, FUN-1: a logical point as the WINDOW's pixel — where the OS
+	reports a real mouse (the root's content scale divides it back)."""
+	return at * maxf(root.content_scale_factor, 0.01)
+
+
+func _win_motion(at: Vector2) -> void:
+	"""Row FUN, FUN-1: the cursor moved by the road a real mouse takes."""
+	var ev := InputEventMouseMotion.new()
+	var p := _win_point(at)
+	ev.position = p
+	ev.global_position = p
+	Input.parse_input_event(ev)
+
+
+func _win_click(at: Vector2, right: bool = false) -> void:
+	"""Row FUN, FUN-1: a press and release by a real mouse's road."""
+	_win_motion(at)
+	await _frames(3)
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_RIGHT if right else MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		ev.button_mask = (MOUSE_BUTTON_MASK_RIGHT if right else MOUSE_BUTTON_MASK_LEFT) if pressed else 0
+		var p := _win_point(at)
+		ev.position = p
+		ev.global_position = p
+		Input.parse_input_event(ev)
+		await _frames(2)
+
+
 func _push_key(code: int, alt: bool, ctrl: bool, shift: bool, uni: int) -> void:
 	for pressed in [true, false]:
 		var ev := InputEventKey.new()
@@ -1111,6 +1163,11 @@ func _state() -> Dictionary:
 	out["buttons"] = buttons
 	out["modal_floor"] = floor_layer
 	out["map"] = _map_rows()
+	# Row FUN, FUN-1: the drawn pieces, fog chips and name plates with their
+	# SCREEN rects, what the box under the cursor names, what the last click did.
+	out["pieces"] = _map_pieces()
+	out["hover"] = _hover_now()
+	out["click"] = _click_outcome()
 	# Row IC: the provinces that wear the map's standing danger mark.
 	out["map_dangers"] = _map_dangers()
 	out["map_danger_names"] = _map_danger_names()
@@ -1220,6 +1277,118 @@ func _map_rows() -> Array:
 			out.append({"text": str((n as Label).text).strip_edges(),
 					"kind": str(n.get_meta("furniture_kind", "piece")), "rect": _r(g2)})
 	return out
+
+
+func _map_area():
+	var main := _main()
+	return main.get("map_area") if main != null else null
+
+
+func _screen_rect_of_world(ma, r: Rect2) -> Rect2:
+	var a: Vector2 = ma.screen_point_of_world(r.position)
+	var b: Vector2 = ma.screen_point_of_world(r.end)
+	return Rect2(a, b - a).abs()
+
+
+func _map_pieces() -> Array:
+	"""Row FUN, FUN-1: every piece the map draws — a corps' figure ("piece"), a
+	fog chip ("fog") and a name plate ("plate") — with its SCREEN rect and
+	centre in logical px, so a probe aims where the eye sees him."""
+	var ma = _map_area()
+	if ma == null or not ma.has_method("screen_point_of_world"):
+		return []
+	var out: Array = []
+	var view := root.get_visible_rect()
+	var sources := [["piece", "marshal_hitboxes", "marshal"], ["fog", "fogged_force_hitboxes", "force"],
+			["plate", "label_hitboxes", "marshal"], ["plate", "label_hitboxes", "force"]]
+	for src in sources:
+		var boxes = ma.get(src[1])
+		for hb in (boxes if boxes is Array else []):
+			if not (hb is Dictionary) or not hb.has(src[2]):
+				continue
+			var who = hb[src[2]]
+			var r: Rect2 = hb.get("rect", Rect2())
+			if not (who is Dictionary) or r.size == Vector2.ZERO:
+				continue
+			var g := _screen_rect_of_world(ma, r)
+			if not view.intersects(g):
+				continue
+			var c := g.get_center()
+			var nm := str(who.get("name", ""))
+			out.append({"kind": src[0], "name": nm,
+					"nation": str(who.get("nation", "")), "rect": _r(g),
+					"center": [roundf(c.x), roundf(c.y)],
+					"region": _piece_region(ma, nm, src[2] == "force")})
+	return out
+
+
+func _piece_region(ma, name: String, fogged: bool) -> String:
+	"""The province a piece (or a fog chip's force) stands in, read from the
+	map's own boards."""
+	if not fogged and ma.has_method("_region_of_marshal"):
+		return str(ma._region_of_marshal(name))
+	var boards = ma.get("region_fogged_forces")
+	if boards is Dictionary:
+		for region_name in boards:
+			for f in boards[region_name]:
+				if f is Dictionary and str(f.get("name", "")) == name:
+					return str(region_name)
+	return ""
+
+
+func _hover_now() -> Dictionary:
+	"""Row FUN, FUN-1: what the box under the cursor names right now — the
+	piece, the fog chip or the province — and the order layer's tag and road
+	(what a player reads before he clicks)."""
+	var ma = _map_area()
+	if ma == null:
+		return {}
+	var hm = ma.get("hovered_marshal")
+	var hf = ma.get("hovered_fogged_force")
+	var stack = ma.get("_hovered_stack")
+	var out := {
+		"marshal": str(hm.get("name", "")) if hm is Dictionary else "",
+		"fogged": str(hf.get("name", "")) if hf is Dictionary else "",
+		"region": str(ma.get("hovered_region")),
+		# a stack's plate stands for all of them: its click asks "which of them"
+		"stack": (stack as Array).duplicate() if stack is Array else [],
+	}
+	var layer = ma.get("order_layer")
+	if layer != null and layer.has_method("report"):
+		var rep: Dictionary = layer.report()
+		out["road_points"] = int(rep.get("ghost_points", 0))
+		out["road_kind"] = str(rep.get("ghost_kind", ""))
+		out["tag"] = str(rep.get("ghost_label", ""))
+		out["road_faded"] = bool(rep.get("ghost_faded", false))
+		out["lone_tag"] = str(rep.get("tag", ""))
+		out["badge_west"] = bool(rep.get("badge_west", false))
+	return out
+
+
+func _click_outcome() -> Dictionary:
+	"""Row FUN, FUN-1: what the last click did — the selected corps, the
+	province whose window stands open, the order card's target."""
+	var main := _main()
+	if main == null:
+		return {}
+	var rp = main.get("region_panel")
+	var card = main.get("order_card")
+	var panel := ""
+	if rp != null and is_instance_valid(rp) and bool(rp.get("visible")) and rp.has_method("current_region"):
+		panel = str(rp.current_region())
+	var card_key := ""
+	if card != null and is_instance_valid(card) and bool(card.get("visible")):
+		card_key = str(main.get("_order_card_key"))
+	# ...and whose pieces a click may select (the player's own corps on the board)
+	var own: Array = []
+	var board = main.get("_last_game_state")
+	if board is Dictionary and board.get("marshals") is Dictionary:
+		own = (board["marshals"] as Dictionary).keys()
+	# a stack's pick-list ("which of them?") standing under the cursor
+	var picker = main.get("_stack_picker")
+	var picking: bool = picker != null and is_instance_valid(picker) and bool(picker.get("visible"))
+	return {"selected": str(main.get("_order_marshal")), "panel": panel, "card": card_key, "own": own,
+			"picker": picking}
 
 
 func _map_dangers() -> Array:

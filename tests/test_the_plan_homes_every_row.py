@@ -41,7 +41,9 @@ from tools import defect_census as census  # noqa: E402
 # Row FR (the five open rows, Sessions FR-1 and FR-2, before row TU and S15 by the
 # user's word of November 23, 2026) joined that day: the five moved there from Session H.
 SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-i]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b|\bAU-[1-4][abc]?\b"
-                     r"|\bBA-[1-4]\b|\bIC-(?:[7-9]|1[0-5])\b|\bFR-[12]\b")
+                     r"|\bBA-[1-4]\b|\bIC-(?:[7-9]|1[0-5])\b|\bFR-[12]\b"
+                     # row FUN (November 25, 2026 — the user's "Yes, start FUN-1"): its five sessions
+                     r"|\bFUN-[1-5]b?\b")
 
 
 def _open_rows():

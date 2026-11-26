@@ -130,6 +130,7 @@ ENGINE_LANES = {
         "test_uxr2_grips_driven",
         "test_uxr2b_hud_band",
         "test_uxr_d4_the_side_desk",           # + a sandboxed backend from 8006
+        "test_fun1_the_hands",                 # row FUN, FUN-1: + a sandboxed backend from 8006, twice
         # a fixed loopback port of its own
         "test_release_build_2026_09_25",       # the smoke on 8099
         # source pins that launch nothing (they rode the one lane; they stay

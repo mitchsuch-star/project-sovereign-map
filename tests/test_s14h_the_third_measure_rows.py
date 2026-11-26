@@ -12089,12 +12089,15 @@ class TestS14G19:
 
     def test_the_hover_reads_labels_after_the_pieces_and_before_the_colour_map(self):
         body = _r19_func(_r19_src(BASE_GD), "_refresh_hover_state")
-        front = body.index("rect.end.y >= front_bottom")
+        # Row FUN, FUN-1 (November 25, 2026), re-seated: the front piece is read by
+        # `_piece_at` (ours first where boxes overlap), and a fog chip's NAME by
+        # its box (`_label_hit_box`), for the province the force stands in.
+        front = body.index("var front := _piece_at(map_mouse, false)")
         # (row PW: the marshal's label is read as its BOX — `_label_hit_box`,
         # `_label_hit`'s own search — for the group a stack's label carries)
         marshal = body.index('_label_hit_box("marshal", map_mouse, label_hitboxes)')
         chips = body.index("for hitbox in fogged_force_hitboxes:")
-        force = body.index('_label_hit("force", map_mouse, label_hitboxes)')
+        force = body.index('_label_hit_box("force", map_mouse, label_hitboxes)')
         fleets = body.index("for hitbox in ([] if ordering else fleet_hitboxes):")
         sail = body.index('_label_hit("fleet", map_mouse, sail_hitboxes)')
         garrison = body.index('_label_hit("region", map_mouse, label_hitboxes)')

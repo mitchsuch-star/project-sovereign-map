@@ -216,10 +216,17 @@ class TestTheClicks:
         click = _func(MAIN, "_order_click")
         assert "func _order_click(region: String, marshal_key: String, via_right := false) -> void:" in click
         assert 'if key.begins_with("pick:"):\n\t\t_select_marshal(key.substr(5))\n\t\treturn' in click
-        # the left path takes the default (a pick); the drop and the hover keep support
+        # the left path takes the default (a pick); the drop keeps support
         assert "_order_click(region_name, _last_click_target_key())" in _func(MAIN, "_on_map_region_clicked")
         assert "_order_target_key(region, _last_click_target_key())" in _func(MAIN, "_on_piece_dropped")
-        assert "_order_hover_key = _order_target_key(region, marshal_key)" in _func(MAIN, "_on_map_order_hover")
+        # Row FUN, FUN-1 (November 25, 2026), re-seated: the hover wears the
+        # meaning of the gesture it previews — a plain hover the LEFT click's
+        # (a pick: "Select <name>"), a dragged piece the drop's (support); it wore
+        # the right click's, so its tag could promise a support the left click
+        # never gave (driven: tests/test_fun1_the_hands.py).
+        hover = _func(MAIN, "_on_map_order_hover")
+        assert "_order_hover_key = _order_target_key(region, marshal_key, dragging)" in hover
+        assert 'map_area.has_method("is_dragging_piece")' in hover
 
 
 # ═══ the next marshal after an order (N4) ═══════════════════════════════════

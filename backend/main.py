@@ -8471,6 +8471,14 @@ def get_march_quotes_endpoint(region: str = "", marshal: str = "", dest: str = "
                     from backend.commands.order_quotes import march_thens
                     _dest_quote["thens"] = _quote_alternatives(
                         lambda read: march_thens(world, subject, dest, read))
+                # Row FUN, FUN-1 (November 25, 2026): a march refused at a sea
+                # crossing offers the landing that crosses it, as a button on
+                # the card (the refused card already draws `alts`).
+                _crossing = _dest_quote.get("crossing") if not _dest_quote.get("ok") else None
+                if isinstance(_crossing, dict) and _crossing.get("to"):
+                    from backend.commands.order_quotes import landing_alts
+                    _dest_quote["alts"] = _quote_alternatives(
+                        lambda read: landing_alts(world, subject, str(_crossing["to"]), read))
                 return {"success": True, "quote": _dest_quote}
             if enemy:
                 foe = world.get_marshal(enemy)

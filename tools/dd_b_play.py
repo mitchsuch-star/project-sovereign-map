@@ -22,7 +22,11 @@ can: one action at a time on the REAL client (`tools/dd_b_client.gd`) at
         ctrlclick <words> | click_at <x> <y> | ctrlclick_at <x> <y> | key <K> | scroll <x> <y> up|down <n> | look |
         click_mark <Marshal> (his standing order's mark on the map: opens the order's card) |
         rightclick_at <x> <y> (the right button: with a corps selected, a province's march card) |
-        clickshots <x> <y> [n] [gap_ms] (a click, then frames while the board moves)
+        clickshots <x> <y> [n] [gap_ms] (a click, then frames while the board moves) |
+        hover <x> <y> (the cursor at rest, nothing pressed) |
+        whover <x> <y> | wclick <x> <y> | wrclick <x> <y> (row FUN, FUN-1: the same gestures by a
+        REAL mouse's road — window pixels through `Input.parse_input_event`, divided back by the
+        Interface Scale; every other verb hands the viewport logical points)
     .venv/Scripts/python.exe tools/dd_b_play.py crop --out <run> --n N --rect X Y W H
         A JPEG crop of frame N's full PNG (logical px), for reading small text.
     .venv/Scripts/python.exe tools/dd_b_play.py row --out <run> --n N --severity P1|P2|P3 \

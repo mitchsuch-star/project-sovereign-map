@@ -371,6 +371,19 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
         road, refusal, _kind = _road(world, marshal, dest, order_type, memo)
     if refusal is not None:
         q["refusal"] = str(refusal.get("message") or "the order is refused.")
+        # Row FUN, FUN-1 (November 25, 2026): what the card can offer as the
+        # way through — the court whose closed border stops the road (its
+        # open-borders proposal), the sea leg a landing would cross.
+        if refusal.get("blocked_diplomatic") and road_law.border_can_be_opened(refusal.get("blocked_state")):
+            # (the review, lane B: open borders is proposed from PEACE only —
+            # an armistice's closed border offers no such button)
+            from backend.display_names import display_nation_in_sentence
+            q["closed_to"] = str(refusal["blocked_diplomatic"])
+            q["closed_to_shown"] = display_nation_in_sentence(q["closed_to"])
+        leg = refusal.get("naval_leg")
+        if leg and len(leg) == 2 and leg[1]:
+            q["crossing"] = {"from": str(leg[0]), "to": str(leg[1]),
+                             "verdict": str(refusal.get("naval_verdict") or "")}
         return q
     road = list(road or [])
     q.update(
@@ -1771,6 +1784,35 @@ def enemy_alts(world, marshal, enemy, read) -> List[Dict[str, Any]]:
             continue
         rows.append(_alt_row(key, label, f"{who}, {verb} {foe}", read))
     return rows
+
+
+def landing_alts(world, marshal, shore: str, read) -> List[Dict[str, Any]]:
+    """Row FUN, FUN-1 (November 25, 2026): a march refused at a sea crossing
+    offers the order that crosses it — a landing on the far `shore` by a corps
+    the transports can lift (`naval.landing_corps_for`: the selected corps when
+    he fits, else the largest that may sail), read by the typed-order reader so
+    its price and any refusal are the order's own. The landing's own card then
+    quotes the odds before anything sails. When no corps can go, his own
+    landing stands DIMMED with why (`naval.landing_blocker_line`: the Emperor
+    stays, too many men, or the nearest shore he can sail from) — a greyed
+    button that says why, never a silent absence. [] when the shore takes no
+    landing at all."""
+    from backend.game_logic.naval import landing_blocker_line, landing_corps_for, landing_shore_ok
+    if not landing_shore_ok(world, marshal.nation, shore):
+        return []   # (the review, lane B: no fleet, no coast, or no consent — no landing to offer)
+    names = landing_corps_for(world, marshal.nation, shore, prefer=marshal.name)
+    place = humanize_entity_name(shore)
+    if names:
+        who = humanize_entity_name(names[0])
+        # (the review, lane B: another corps than the one ordered says so)
+        lead = "Land" if names[0] == marshal.name else "Instead, land"
+        return [_alt_row("land", f"{lead} {who} in {place} by sea", f"land {who} in {place}", read)]
+    why = landing_blocker_line(world, marshal)
+    if not why:
+        return []
+    who = humanize_entity_name(marshal.name)
+    return [{"id": "land", "label": f"Land {who} in {place} by sea", "command": f"land {who} in {place}",
+             "ok": False, "ap": 0, "turns": 0, "refusal": why, "note": ""}]
 
 
 def march_thens(world, marshal, dest: str, read) -> List[Dict[str, Any]]:

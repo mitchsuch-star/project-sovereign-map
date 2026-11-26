@@ -18965,3 +18965,116 @@ modifier applied within 1e-9, and `consume=False` spends nothing. Four rows were
    that, and must not claim the read-back can match Enter where it deliberately does not.
 7. Re-shoot a recorded walk only after its sources are final: a label changed after the shot breaks its pin again.
 8. A guard that reads a lookup filled two ways — by a typed name AND by a typed province — speaks for both. Gate a refusal about a man on how he was found: a man found in a typed province is the province's answer, never his own.
+
+## §239 Row FUN, Session FUN-1 — THE HANDS: what the box under the cursor names is what the click does; the selected general's line steady; a refused crossing names the way through (November 25, 2026)
+
+> The user's second play (November 25, 2026): "when I click on generals the line goes crazy if I move the mouse
+> around", "clicks aren't accurate on ultrawide", "how do I cross into Turkey from the Balkans? naval stuff is
+> confusing". The review `docs/GAMEPLAY_REVIEW_2026_11_25.md` §1; the plan approved in Plan Mode the same day;
+> the ledger `BUG_FIXES.md` §"Row FUN, Session FUN-1" (FUN1-1 … FUN1-10).
+
+### 239.1 One rule for the cursor (`scenes/map_renderer_base.gd`)
+- **A named piece's province is the click's province.** Every box built for a province — a corps' figure
+  (`marshal_hitboxes`), a fog chip (`fogged_force_hitboxes`), a name plate (`label_hitboxes`) — carries the
+  province it stands in (`_tag_stands_in`, key `stands_in`; "region" stays a garrison chip's binding). The hover
+  copies it to `_label_region_hit`, which the LEFT click, the RIGHT click and the DROP read before the colour map
+  under the cursor (a plate floats 25–35 px off its figure, often over a neighbour).
+- **The press re-reads the hover** (`mouse_position = event.position; _refresh_hover_state()`), so a camera that
+  moved without the mouse never leaves a stale target.
+- **The hover's order** (`_refresh_hover_state`): exact piece boxes (`_piece_at(map_mouse, false)` — a piece of
+  OURS wins where boxes overlap, read through the owner's pure `own_piece_check` = `main._own_field_marshal`; the
+  lower box, drawn in front, among the rest — CC-1), name plates, fog chips and their names, fleets, sail counts,
+  garrison chips; then every piece box read at least `MIN_PIECE_TARGET_PX` (32 logical px) square
+  (`_piece_at(map_mouse, true)`; `grown_rect` reads it, `marshal_hitboxes` keeps the real box for feet and
+  rings); then the near-grab — any piece within `PIECE_GRAB_PX` (30) while nothing is selected, only OUR pieces
+  within `ORDER_GRAB_PX` (18) while an order is engaged (a mis-grab re-selects for free; a mis-click marches);
+  then the colour map.
+- **A fog chip names its man to the right click too** (`last_click_marshal` else `last_click_fogged`).
+
+### 239.2 The line and its tag (`main.gd` `_show_ghost_for`, `scenes/map_order_layer.gd`)
+- `_order_hover_tick` emits the hovered province, else the named piece's (`_label_region_hit`); a piece in an
+  unwired province offers no order and no tag.
+- `_on_map_order_hover` keys the target with the meaning of the gesture it previews: a plain hover the LEFT
+  click's (another of ours → "pick:<key>", he becomes the selection), a dragged piece the DROP's (support). This
+  reverses only the hover arm of Session UI-6's N3; the right click and the drop keep support. `_quote_key`: a
+  "pick:", "self" or "" target is never quoted.
+- The tag says what the click will do: "Select <name>" at his feet; "Let <name> go" (no tag mid-drag — a drop on
+  himself orders nothing); an enemy's attack road at once, from the reach row of the province he stands in
+  (`map_area.region_of_piece` — a fog chip's too), tagged "Attack <name> …" until its quote; a refused target its
+  refusal's first clause (`_refusal_tag`); a target whose road is still being read keeps the last road FADED
+  (`fade_order_ghost`, `GHOST_FADE` 0.35, no badge on it) with the target named by the cursor (`_reading_tag`);
+  open water nothing. `show_order_tag` / `clear_order_tag` draw the road-less tag (`map_order_layer.set_tag`: a
+  WORLD point re-projected on every draw, or the cursor's LOCAL point); a selection let go takes its tag
+  (`clear_order_selection`, `set_order_selection`).
+- **One side** (`map_order_layer._ghost_west`): the tag stands right of the road's head, left only where a
+  right-hand badge, kept on the layer, would be pushed back over the head; `_draw` and `ghost_badge_rect` read it.
+- **One word at a time** (`map_renderer_base._draw`): with one corps selected and no Ctrl-click group, no province
+  box and no marshal box — the tag carries the name. A group keeps its boxes (no tag speaks for a group).
+
+### 239.3 A refused crossing names the way through (backend, the card)
+- **The landing refusal** (`naval.crossing_check`, verdict "landing"): "<shore> is enemy coast and <fleet> still
+  watches that water, so an army cannot march ashore there: it must land. Put a corps of 15,000 men or fewer into
+  the transports (a landing), or send our fleet on a diversion to draw theirs off this crossing for a few turns."
+  ("Break the fleet that covers the passage" named an order no player has.) **The shut remedy**
+  (`_shut_remedy`): "Build more warships (any of our dockyards adds to the one fleet) or win allies with fleets
+  until we outnumber them" — fleets are ONE store per nation, so a yard anywhere helps at any crossing.
+- **The landing button.** `strategic.issuance_road_refusal` carries a refused sea leg (`naval_leg`,
+  `naval_verdict`) and the court of a closed border (`blocked_diplomatic`, now on the "no open road" refusal
+  too); `order_quotes._standing_quote` puts them on the quote (`crossing`, `closed_to`). `/march_quotes`' `dest`
+  branch gives a crossing refusal an `alts` row (`order_quotes.landing_alts`, through `_quote_alternatives` —
+  priced by the typed-order reader): "Land <corps> in <shore> by sea" for the selected corps when he can sail,
+  else the largest that can (`naval.landing_corps_for` — `expedition_landing_options`' eligibility asked of ONE
+  shore, GR8); when nobody can, his own landing DIMMED with why (`naval.landing_blocker_line`: the Emperor does
+  not sail; more men than the transports' 15,000; from our own soil joined to France by land a landing sails only
+  from a dockyard — the nearest shore he can sail from, N marches away). The refused card already draws `alts`.
+- **The closed border.** One sentence (`strategic.closed_border_sentence`, read by the typed move and the march
+  order): "Cannot enter X — it belongs to <court>, whose border is closed to our armies while we are at peace.
+  Ask <court> for open borders in Diplomacy, or declare war to pass." The refused card offers "Ask <court> for
+  open borders" (meta `diplo:<court>` → `order_confirm_card.diplomacy_requested` → `main._on_order_card_diplomacy`
+  → `diplomacy_wizard.open_for_nation`).
+- **The Codex** (`codex_terms.gd`, Expedition): from one of our dockyards, or from any coast abroad where the
+  corps stands; an enemy coast is always landed on, never marched onto.
+
+### 239.4 The instrument and the fast lane
+- `tools/dd_b_client.gd`: `whover` / `wclick` / `wrclick` — window pixels (`logical × content_scale_factor`)
+  through `Input.parse_input_event`, the road a real mouse takes; every other verb hands the viewport logical
+  points (`push_input(ev, true)`). The state record gains `pieces` (figures, fog chips, plates: screen rect,
+  centre, the province each stands in), `hover` (what the box names, the stack a plate stands for, the road, its
+  tag, the road-less tag, the fade) and `click` (the selection, the panel's province, the card's key, the
+  pick-list).
+- `tests/test_fun1_the_hands.py` (engine lane): at 5120×1377 / 1.8 and 1920×1080 / 1.0 — what the box names is
+  what the click does; a court's figure beside ours opens HIS province; the line never blanks and its tag names
+  the click; letting go takes the tag. Red on the shipped client, green on FUN-1.
+- `tools/fast_lane.py`: the tests that name what changed (a backend module by its dotted name, path or import; a
+  `.gd`, a doc or a tool by its file name; a changed test itself), engine-lane modules only with `--with-engine`;
+  `tests/test_fun1_fast_lane.py`. The full gate still runs at the commit. A change to `backend/main.py` selects
+  about half the suite (most tests import it).
+
+**Traps of the session.**
+1. A probe whose clicks are computed from the client's own hitboxes cannot see a mismatch between what is drawn
+   and what is hit; aim at what is DRAWN (the record's screen rects) and click by the window's road.
+2. "Click Begin" pressed a different Begin button at the small window (the tutorial's): name the whole button.
+3. A stack's plate stands for the stack — its click opens "which of them", which a probe must read as agreement
+   and then close (Esc), or every later probe is blocked by the open list.
+4. Plates lie over fog chips and figures; aim at a point of the target that no box asked first covers.
+5. "Home soil" is our own province joined to France by land: a corps that has just taken Rumelia cannot sail from
+   it. Read the embark rule (`naval._embark_at`) before telling a player where a landing sails from.
+6. The Bash tool's heredoc chokes on long prose: write documents with the Write tool and append them by a script.
+
+### 239.5 Its review (three lanes on a frozen copy)
+- **Open borders only from PEACE** (`strategic.border_can_be_opened`): an armistice's closed border says the armistice
+  keeps our armies out until it becomes a peace (or war); no open-borders button. **One "no open road" refusal**
+  (`strategic.no_open_road_refusal`) for the issuance, the road law and the strategic executor — the court with its
+  article (`display_names.display_nation_in_sentence`: "the Ottoman Empire", "Austria") and its state.
+- **The landing button asks the shore first** (`naval.landing_shore_ok`); the corps that can act this turn first; a
+  button naming another corps than the one ordered says "Instead, land …"; the landing refusal names the diversion
+  conditionally ("if our fleet still has a diversion to try").
+- **The tag:** an order already standing shows "Already ordered" (its road if it has one); an accepted road-less order
+  its own tag; a drag's start and end and the press re-ask it; a cursor tag follows the cursor; a faded road keeps no
+  badge box; with an order engaged only OUR pieces' boxes grow (an enemy's margin never makes a province click an
+  attack — PW-R19).
+- **Ruled, unchanged:** the marshal box stays off while one corps is selected (the tag names the target and, once
+  quoted, the odds); the tag names the left click's meaning.
+- **Open:** FUN1-11, a blockade over a strait in another sea — FUN-5's (`tests/test_fun5_the_sea_made_plain.py`,
+  strict). The probe gains a right click on an enemy (his attack card), ground beside an enemy (the province's), the
+  tag's side on a road heading west, and refuses an empty hover as agreement.

@@ -391,6 +391,19 @@ var last_click_fogged: String = ""
 # or Ctrl never drags (CC-1 writes, CC-5 groups).
 var order_selected: String = ""
 var drag_allowed_check: Callable = Callable()
+# Row FUN, FUN-1 (November 25, 2026): the owner's PURE word that a piece is ours
+# (`main._own_field_marshal`, called with his roster key) — `drag_allowed_check`
+# also asks for an empty line and nothing on the wire, so the hover would flip
+# as the player typed. Where boxes overlap a piece of ours wins the hover, and
+# order mode's near-grab takes only ours.
+var own_piece_check: Callable = Callable()
+# Row FUN, FUN-1: order mode's near-grab (logical px) — our own pieces only, and
+# closer than the selection's PIECE_GRAB_PX: a mis-grab re-selects (free), a
+# mis-click marches (it costs actions).
+const ORDER_GRAB_PX := 18.0
+# Row FUN, FUN-1: no piece's click box reads smaller than this square (logical
+# px), asked after every exact box of every kind has had its chance.
+const MIN_PIECE_TARGET_PX := 32.0
 # Row PW: the stack whose label is under the cursor (roster keys; [] for none)
 # and the owner's word that a click on it may open the pick-list (some of them
 # are ours, the line is empty, nothing is on the wire).
@@ -2233,10 +2246,18 @@ func _rebuild_dynamic_nodes():
 		if region_marshals.has(region_name):
 			var marshals = region_marshals[region_name]
 			regular_count = marshals.size()
+			var mark_pieces := marshal_hitboxes.size()
+			var mark_names := label_hitboxes.size()
 			_create_marshal_nodes(region_pos, marshals)
+			_tag_stands_in(marshal_hitboxes, mark_pieces, region_name)   # row FUN, FUN-1
+			_tag_stands_in(label_hitboxes, mark_names, region_name)
 
 		if region_fogged_forces.has(region_name):
+			var mark_chips := fogged_force_hitboxes.size()
+			var mark_fog_names := label_hitboxes.size()
 			_create_fogged_force_nodes(region_pos, region_fogged_forces[region_name], regular_count)
+			_tag_stands_in(fogged_force_hitboxes, mark_chips, region_name)
+			_tag_stands_in(label_hitboxes, mark_fog_names, region_name)
 
 		if region_garrisons.has(region_name):
 			var controller = region_controllers.get(region_name, "Neutral")
@@ -2392,19 +2413,100 @@ func _piece_grab_world() -> float:
 	return PIECE_GRAB_PX * _viewport_pixel_scale() / maxf(_zoom_level, 0.001)
 
 
-static func pick_piece_near(hitboxes: Array, point: Vector2, reach: float) -> Dictionary:
+static func pick_piece_near(hitboxes: Array, point: Vector2, reach: float,
+		keep: Callable = Callable(), whole: bool = false) -> Dictionary:
 	"""PURE: the piece whose body centre is nearest `point`, when that is
 	within `reach` (WORLD units) — {} when none is. The body centre is the
-	middle of the piece's own box (its feet are the box's bottom edge)."""
+	middle of the piece's own box (its feet are the box's bottom edge). Row
+	FUN, FUN-1: `keep` (given a piece's dictionary) narrows the candidates —
+	order mode grabs only pieces of ours; `whole` returns the hitbox itself
+	(its `stands_in` with it) rather than the piece's dictionary."""
 	var best := {}
 	var best_d := INF
 	for hitbox in hitboxes:
+		if keep.is_valid() and not bool(keep.call(hitbox["marshal"])):
+			continue
 		var rect: Rect2 = hitbox["rect"]
 		var d: float = rect.get_center().distance_to(point)
 		if d <= reach and d < best_d:
 			best_d = d
-			best = hitbox["marshal"]
+			best = hitbox if whole else hitbox["marshal"]
 	return best
+
+
+func _order_grab_world() -> float:
+	"""Row FUN, FUN-1: ORDER_GRAB_PX in WORLD units at the current zoom."""
+	return ORDER_GRAB_PX * _viewport_pixel_scale() / maxf(_zoom_level, 0.001)
+
+
+func _tag_stands_in(boxes: Array, from_index: int, region_name: String) -> void:
+	"""Row FUN, FUN-1: every box built from `from_index` on stands in
+	`region_name` — a click on a piece, his name plate or a fog chip is a click
+	on the province HE stands in, never on the colour under the cursor (a
+	plate floats 25–35 px off its figure, often over a neighbour). The key is
+	"stands_in": "region" is a garrison chip's own binding (`_label_hit`)."""
+	for i in range(from_index, boxes.size()):
+		boxes[i]["stands_in"] = region_name
+
+
+func _is_own_piece(piece) -> bool:
+	"""Row FUN, FUN-1: the owner's pure word that `piece` (a hitbox's
+	dictionary) is a corps of ours — false where no owner set one."""
+	if not (piece is Dictionary) or not own_piece_check.is_valid():
+		return false
+	return bool(own_piece_check.call(str(piece.get("name", ""))))
+
+
+static func grown_rect(rect: Rect2, floor_side: float) -> Rect2:
+	"""PURE (row FUN, FUN-1): `rect` read at least `floor_side` square,
+	centred on its own centre — the feet and the ring keep the real box."""
+	var side := Vector2(maxf(rect.size.x, floor_side), maxf(rect.size.y, floor_side))
+	return Rect2(rect.get_center() - side * 0.5, side)
+
+
+func _piece_at(map_mouse: Vector2, grown: bool, own_only: bool = false) -> Dictionary:
+	"""Row FUN, FUN-1: the piece box under `map_mouse` — {} for none. Where
+	boxes overlap a piece of OURS wins; among the rest the lower box, drawn
+	in front (CC-1: the piece the eye sees). `grown` reads every box at least
+	MIN_PIECE_TARGET_PX square — asked only after every exact box of every
+	kind (plates, fog chips, fleets, garrison chips) has had its chance;
+	`own_only` (an order engaged — the review, lane A) grows only OUR pieces,
+	so the margin round an enemy's never turns a province click into an
+	attack (PW-R19's rule)."""
+	var best := {}
+	var best_own := false
+	var front_bottom := -INF
+	var floor_side := MIN_PIECE_TARGET_PX * _viewport_pixel_scale() / maxf(_zoom_level, 0.001)
+	for hitbox in marshal_hitboxes:
+		var rect: Rect2 = hitbox["rect"]
+		var test := grown_rect(rect, floor_side) if grown else rect
+		if not test.has_point(map_mouse):
+			continue
+		var mine := _is_own_piece(hitbox["marshal"])
+		if own_only and not mine:
+			continue
+		if mine and not best_own:
+			best = hitbox
+			best_own = true
+			front_bottom = rect.end.y
+		elif mine == best_own and rect.end.y >= front_bottom:
+			best = hitbox
+			front_bottom = rect.end.y
+	return best
+
+
+func region_of_piece(name: String) -> String:
+	"""Row FUN, FUN-1: the province a piece of the board stands in — a corps
+	(`region_marshals`) or a fog chip's force (`region_fogged_forces`) — ""
+	when the board has no such piece."""
+	var home := _region_of_marshal(name)
+	if home != "":
+		return home
+	for region_name in region_fogged_forces:
+		for f in region_fogged_forces[region_name]:
+			if f is Dictionary and str(f.get("name", "")) == name:
+				return str(region_name)
+	return ""
 
 
 func _push_furniture() -> void:
@@ -3409,6 +3511,7 @@ func _input(event):
 			if not _drag_pending.is_empty() and not _dragging \
 					and event.position.distance_to(_drag_pending["at"]) >= PIECE_DRAG_THRESHOLD_PX:
 				_dragging = true
+				_order_hover_last = ""   # (the review, lane A: a drag previews the drop's meaning — re-ask)
 				AudioManager.play("select")
 				piece_drag_started.emit(str(_drag_pending["marshal"]))
 			_refresh_hover_state()
@@ -3426,6 +3529,14 @@ func _input(event):
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]:
 			get_viewport().gui_release_focus()
+		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT] and not is_panning:
+			# Row FUN, FUN-1 (November 25, 2026): the press reads what stands
+			# under it NOW — a camera that moved without the mouse (the keys,
+			# the screen's edge, a zoom's ease, Home) left the hover naming
+			# what used to be there, and the click acted on that.
+			mouse_position = event.position
+			_refresh_hover_state()
+			_order_hover_tick()   # (the review, lane A: the owner's tag follows the press's own reading)
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			AudioManager.play("paper_slide")   # the cue throttles itself
 			_zoom_at_point(event.position, 1.0 + ZOOM_SPEED)
@@ -3491,7 +3602,9 @@ func _input(event):
 				return
 			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
 			if _label_region_hit != "":
-				clicked_region = _label_region_hit   # S14G-19: a garrison chip is its province's
+				# S14G-19: a garrison chip is its province's. Row FUN, FUN-1: and a
+				# piece, a name plate or a fog chip is the province HE stands in.
+				clicked_region = _label_region_hit
 			if clicked_region == "":
 				clicked_region = hovered_region
 			if clicked_region != "":
@@ -3526,8 +3639,12 @@ func _input(event):
 				ctx_region = hovered_region
 			if ctx_region != "" and not _is_region_wired(ctx_region):
 				return
-			if ctx_region != "" or last_click_marshal != "":
-				order_context_requested.emit(str(ctx_region), last_click_marshal)
+			# Row FUN, FUN-1: a fog chip names its man to the right button too, as
+			# it does to the hover and the left click (it used to name nobody, so
+			# the order became a march to his province where they were an attack).
+			var ctx_piece := last_click_marshal if last_click_marshal != "" else last_click_fogged
+			if ctx_region != "" or ctx_piece != "":
+				order_context_requested.emit(str(ctx_region), ctx_piece)
 			else:
 				map_dismiss_requested.emit()
 			return
@@ -3644,6 +3761,7 @@ func _release_piece_drag(event: InputEventMouseButton) -> void:
 	var was_dragging := _dragging
 	_drag_pending = {}
 	_dragging = false
+	_order_hover_last = ""   # (the review, lane A: the plain hover's meaning again, re-asked)
 	if not was_dragging:
 		# Released where it was pressed: the press's own click, emitted now —
 		# on the province the piece stands in.
@@ -3664,6 +3782,8 @@ func _release_piece_drag(event: InputEventMouseButton) -> void:
 	last_click_shift = false
 	last_click_ctrl = false
 	var region := _lookup_region_from_color_map(_screen_to_map_position(event.position))
+	if _label_region_hit != "":
+		region = _label_region_hit   # row FUN, FUN-1: a drop on a piece is a drop on HIS province
 	if region == "":
 		region = hovered_region
 	if region != "" and not _is_region_wired(region):
@@ -3689,6 +3809,7 @@ func _cancel_piece_drag() -> void:
 	var piece := str(_drag_pending.get("marshal", ""))
 	_drag_pending = {}
 	_dragging = false
+	_order_hover_last = ""
 	if piece != "":
 		piece_drag_cancelled.emit(piece)
 
@@ -3703,10 +3824,23 @@ func _order_hover_tick() -> void:
 	var marshal_name := str(hovered_marshal.get("name", "")) if hovered_marshal.size() > 0 else ""
 	if marshal_name == "" and hovered_fogged_force.size() > 0:
 		marshal_name = str(hovered_fogged_force.get("name", ""))   # CC-X11: a chip names him
-	var key := hovered_region + "|" + marshal_name
+	# Row FUN, FUN-1: over a piece the province is HIS (`_label_region_hit`) —
+	# `hovered_region` is "" there, and a court's corps we are not at war with
+	# read as no target at all: the line blanked and a click let the selection
+	# go. A piece standing in an unwired province offers no order (its click
+	# is a no-op), so its tag is not drawn either.
+	var region := hovered_region if hovered_region != "" else _label_region_hit
+	if region != "" and not _is_region_wired(region):
+		region = ""
+		marshal_name = ""
+	var key := region + "|" + marshal_name
 	if key != _order_hover_last:
 		_order_hover_last = key
-		order_hover.emit(hovered_region, marshal_name)
+		order_hover.emit(region, marshal_name)
+	# (the review, lane A) a tag standing by the cursor — a road being read —
+	# follows the cursor across a large province instead of staying behind
+	if order_layer != null and order_layer.has_method("follow_cursor"):
+		order_layer.follow_cursor(mouse_position - global_position)
 	if _dragging and not _order_ghost_set and order_layer != null:
 		var feet = _order_piece_feet(order_selected)
 		if not feet.is_empty():
@@ -3959,6 +4093,7 @@ func set_order_selection(marshal_name: String) -> void:
 	_order_reach_ok = false
 	_order_hover_last = ""
 	clear_order_ghost()
+	clear_order_tag()   # row FUN, FUN-1: a selection let go takes its tag with it
 	_refresh_order_ring()
 	_refresh_reach_fill()
 	# Hover what is under the cursor now, without waiting for a motion.
@@ -3988,8 +4123,13 @@ func clear_order_selection() -> void:
 	_drag_pending = {}
 	_dragging = false
 	clear_order_ghost()
+	# Row FUN, FUN-1: the tag goes with the selection ("Let Soult go" stood on
+	# the map after Esc had let him go — found by the real-window probe).
+	clear_order_tag()
 	_refresh_order_ring()
 	_refresh_reach_fill()
+	# ...and the province or piece under the cursor speaks again at once.
+	queue_redraw()
 
 
 func show_order_ghost(road: Array, kind: String, label: String, steps_per_turn: int = 1) -> void:
@@ -4018,6 +4158,36 @@ func clear_order_ghost() -> void:
 	_order_ghost_set = false
 	if order_layer != null:
 		order_layer.clear_ghost()
+
+
+func show_order_tag(text: String, at_piece: String = "") -> void:
+	"""Row FUN, FUN-1 (November 25, 2026): a tag with no road — "Select
+	Davout" at his feet, "Let Soult go", a refusal's reason, a road being
+	read — at the feet of the piece named, else by the cursor (never at the
+	head of a road it does not belong to). "" clears it."""
+	if order_layer == null or not order_layer.has_method("set_tag"):
+		return
+	if text == "":
+		order_layer.clear_tag()
+		return
+	if at_piece != "":
+		var feet := _order_piece_feet(at_piece)
+		if not feet.is_empty():
+			order_layer.set_tag(text, feet["feet"], true)
+			return
+	order_layer.set_tag(text, mouse_position - global_position, false)
+
+
+func clear_order_tag() -> void:
+	if order_layer != null and order_layer.has_method("clear_tag"):
+		order_layer.clear_tag()
+
+
+func fade_order_ghost(on: bool) -> void:
+	"""Row FUN, FUN-1: the last road stays drawn, faded, while the next one is
+	read — the line never blanks between two targets that both have roads."""
+	if order_layer != null and order_layer.has_method("set_ghost_faded"):
+		order_layer.set_ghost_faded(on)
 
 
 func flash_regions(names: Array) -> void:
@@ -4387,6 +4557,16 @@ func _draw():
 		if tooltip_layer != null:
 			tooltip_layer.clear_tooltip()
 		return
+	if order_selected != "" and order_group.size() < 2:
+		# Row FUN, FUN-1 (November 25, 2026): one corps selected — the order's
+		# tag is the word (`show_order_ghost`, `show_order_tag`): no province
+		# box and no marshal box over the ground the next click is meant for.
+		# They used to take turns with the line as it came and went (the
+		# second play: "the line goes crazy"). A Ctrl-click group keeps its
+		# boxes — no tag speaks for a group.
+		if tooltip_layer != null:
+			tooltip_layer.clear_tooltip()
+		return
 	if hovered_marshal.size() > 0:
 		# Row PW: the selected corps' card already stands on the screen — a
 		# second box over him covers the ground the next click is meant for.
@@ -4403,13 +4583,6 @@ func _draw():
 		_draw_sea_link_tooltip()
 	elif order_layer != null and order_layer.arrow_hovered() != "" and tooltip_layer != null:
 		# CC-5: the hovered arrow's badge is the word — no province card over it.
-		tooltip_layer.clear_tooltip()
-	elif order_selected != "" and _order_ghost_set and hovered_region != "" and tooltip_layer != null:
-		# Row PW: a corps is selected and the order's tag stands at the head of
-		# its road — the province's name, the price, the clock and what the
-		# order does there. The province's own box stood ON it (the playtest:
-		# the tag read as a sliver under "Carniola — Hills — No intelligence").
-		# One word at a time: the tag's, while a click here is an order.
 		tooltip_layer.clear_tooltip()
 	elif hovered_region != "" and not _is_region_wired(hovered_region):
 		# §4.4: unwired provinces never populate region_full_data, so the
@@ -4484,17 +4657,14 @@ func _refresh_hover_state():
 	# CC-1: the piece the eye sees wins. Pieces are y-sorted (the lower one is
 	# drawn in front) and the boxes of two ranks overlap, so the FIRST box
 	# hit used to name the man standing behind the one under the cursor —
-	# the tooltip, and now the click, named the wrong marshal.
+	# the tooltip, and now the click, named the wrong marshal. Row FUN, FUN-1:
+	# where boxes overlap a piece of OURS wins (`_piece_at`), and the province
+	# he stands in rides `_label_region_hit` — what the box names, the click does.
 	_hovered_stack = []
-	var front := {}
-	var front_bottom := -INF
-	for hitbox in marshal_hitboxes:
-		var rect: Rect2 = hitbox["rect"]
-		if rect.has_point(map_mouse) and rect.end.y >= front_bottom:
-			front = hitbox["marshal"]
-			front_bottom = rect.end.y
+	var front := _piece_at(map_mouse, false)
 	if front.size() > 0:
-		hovered_marshal = front
+		hovered_marshal = front["marshal"]
+		_label_region_hit = str(front.get("stands_in", ""))
 		_set_hovered_region("")
 		_sync_hover_ring()
 		return
@@ -4514,6 +4684,7 @@ func _refresh_hover_state():
 		if plate != null and is_instance_valid(plate) and (plate as Node).has_meta("gathered_keys"):
 			stack = (plate as Node).get_meta("gathered_keys")
 		_hovered_stack = stack if stack is Array else []
+		_label_region_hit = str(named_box.get("stands_in", ""))   # row FUN, FUN-1: his province, not the plate's
 		_set_hovered_region("")
 		_sync_hover_ring()
 		return
@@ -4529,17 +4700,23 @@ func _refresh_hover_state():
 	# it a re-selection, or an attack card on the enemy standing near. It also
 	# ran ahead of the exact hits below (a fog chip, a fleet, a garrison chip
 	# within its radius lost their own click). So: exact hits first, the grab
-	# last, and only while no order is engaged.
+	# last. Row FUN, FUN-1: before the grab, every piece's box read at least
+	# MIN_PIECE_TARGET_PX square; and with an order engaged the grab takes only
+	# OUR pieces, at ORDER_GRAB_PX — a mis-grab re-selects for free, where a
+	# mis-click sends a march that costs actions (PW-R19's province beside an
+	# ENEMY or a court's piece stays the order's target).
 	_sync_hover_ring()
 
 	for hitbox in fogged_force_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
 			hovered_fogged_force = hitbox["force"]
+			_label_region_hit = str(hitbox.get("stands_in", ""))   # row FUN, FUN-1
 			_set_hovered_region("")
 			return
-	var named_force = _label_hit("force", map_mouse, label_hitboxes)   # S14G-19: a fogged force's name
-	if named_force != null:
-		hovered_fogged_force = named_force
+	var named_force_box = _label_hit_box("force", map_mouse, label_hitboxes)   # S14G-19: a fogged force's name
+	if named_force_box != null:
+		hovered_fogged_force = named_force_box["force"]
+		_label_region_hit = str(named_force_box.get("stands_in", ""))   # row FUN, FUN-1
 		_set_hovered_region("")
 		return
 
@@ -4568,13 +4745,24 @@ func _refresh_hover_state():
 		_set_hovered_region(_label_region_hit)
 		return
 
-	if not ordering:
-		var grabbed := pick_piece_near(marshal_hitboxes, map_mouse, _piece_grab_world())
-		if grabbed.size() > 0:
-			hovered_marshal = grabbed
-			_set_hovered_region("")
-			_sync_hover_ring()
-			return
+	# Row FUN, FUN-1: every piece's box at least MIN_PIECE_TARGET_PX square
+	# (only ours while an order is engaged).
+	var near := _piece_at(map_mouse, true, ordering)
+	if near.size() > 0:
+		hovered_marshal = near["marshal"]
+		_label_region_hit = str(near.get("stands_in", ""))
+		_set_hovered_region("")
+		_sync_hover_ring()
+		return
+	var grabbed := pick_piece_near(marshal_hitboxes, map_mouse,
+		_order_grab_world() if ordering else _piece_grab_world(),
+		_is_own_piece if ordering else Callable(), true)
+	if grabbed.size() > 0:
+		hovered_marshal = grabbed["marshal"]
+		_label_region_hit = str(grabbed.get("stands_in", ""))   # row FUN, FUN-1
+		_set_hovered_region("")
+		_sync_hover_ring()
+		return
 
 	var color_map_region = _lookup_region_from_color_map(map_mouse)
 	if color_map_region != "":

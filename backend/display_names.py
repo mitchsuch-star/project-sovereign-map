@@ -103,6 +103,23 @@ def display_nation(nation: str) -> str:
     return NATION_DISPLAY.get(nation, nation)
 
 
+# Row FUN, FUN-1 (November 25, 2026): a court whose name is a title reads with
+# its article inside a sentence ("it belongs to the Ottoman Empire", "ask the
+# Papal States") — a plain name never does ("Austria", "Bavaria").
+_TITLED_NAME_WORDS = ("Empire", "States", "Kingdom", "Duchy", "Republic", "Confederation",
+                      "Electorate", "Netherlands", "Provinces", "Porte")
+
+
+def display_nation_in_sentence(nation: str) -> str:
+    """The player-facing name as it stands inside a sentence: "the Ottoman
+    Empire", "the Kingdom of Naples", but "Austria"."""
+    shown = display_nation(nation)
+    if shown and not shown.lower().startswith("the ") \
+            and any(word in shown.split() for word in _TITLED_NAME_WORDS):
+        return "the " + shown
+    return shown
+
+
 # PR-2: the nation adjective refuses to coin — the pre-fix derivation coined
 # a word from any tag at all.
 

@@ -76,6 +76,15 @@ var _ghost_pips: Array = []
 # cursor stands where no road is quoted.
 var _ghost_cursor_local := Vector2.ZERO
 var _ghost_to_cursor := false
+# Row FUN, FUN-1 (November 25, 2026): the road kept, dimmed, while the next one
+# is read (never a blank between two targets that both have roads); and a tag
+# with no road — "Select Davout", "Let Soult go", a refusal's reason — at a
+# WORLD point (a piece's feet) or a LOCAL one (the cursor).
+const GHOST_FADE := 0.35
+var _ghost_faded := false
+var _tag_text := ""
+var _tag_point := Vector2.ZERO
+var _tag_world := false
 var _drawn_xform := Transform2D()
 # CC-5: [{"marshal", "kind", "points" (WORLD, his feet first), "anchor",
 # "label", "halted"}] — every standing order of ours.
@@ -130,6 +139,7 @@ func set_ghost(points_world: Array, kind: String, label: String, pips: Array = [
 	_ghost_label = label
 	_ghost_pips = pips.duplicate()
 	_ghost_to_cursor = false
+	_ghost_faded = false   # row FUN, FUN-1: a road set is the live one
 	queue_redraw()
 
 
@@ -141,6 +151,7 @@ func set_ghost_to_cursor(from_world: Vector2, cursor_local: Vector2) -> void:
 	_ghost_pips = []
 	_ghost_cursor_local = cursor_local
 	_ghost_to_cursor = true
+	_ghost_faded = false
 	queue_redraw()
 
 
@@ -149,8 +160,8 @@ func ghost_badge_rect() -> Rect2:
 	(empty with no tag) — the hover box stands clear of it, so the order's
 	price and consequence are never covered by a second box."""
 	if _renderer == null or _renderer.map_viewport == null \
-			or _ghost_label == "" or _ghost_world.is_empty():
-		return Rect2()
+			or _ghost_label == "" or _ghost_world.is_empty() or _ghost_faded:
+		return Rect2()   # (the review, lane A: a faded road wears no badge — no box to keep clear)
 	var xform := _projection()
 	var pts := PackedVector2Array()
 	for p in _ghost_world:
@@ -159,8 +170,9 @@ func ghost_badge_rect() -> Rect2:
 		pts.append(_ghost_cursor_local)
 	if pts.size() < 2:
 		return Rect2()
-	var westward: bool = pts[pts.size() - 1].x < pts[pts.size() - 2].x
-	return _badge_rect(pts[pts.size() - 1], _ghost_label, westward, BADGE_FONT_PX)
+	# Row FUN, FUN-1: the tag's ONE side (`_ghost_west`), as `_draw` reads it.
+	return _badge_rect(pts[pts.size() - 1], _ghost_label, _ghost_west(pts[pts.size() - 1], _ghost_label),
+		BADGE_FONT_PX)
 
 
 func clear_ghost() -> void:
@@ -169,6 +181,7 @@ func clear_ghost() -> void:
 	_ghost_label = ""
 	_ghost_pips = []
 	_ghost_to_cursor = false
+	_ghost_faded = false
 	queue_redraw()
 
 
@@ -265,6 +278,9 @@ func report() -> Dictionary:
 		"ghost_points": _ghost_world.size() + (1 if _ghost_to_cursor else 0),
 		"ghost_kind": _ghost_kind,
 		"ghost_label": _ghost_label,
+		"ghost_faded": _ghost_faded,   # row FUN, FUN-1
+		"tag": _tag_text,              # row FUN, FUN-1: the tag with no road
+		"badge_west": _report_badge_west(),   # row FUN, FUN-1: the tag's one side
 		"pips": _ghost_pips.size(),
 		"arrows": arrows_report(),
 		"arrow_hover": _arrow_hover,
@@ -272,6 +288,16 @@ func report() -> Dictionary:
 		"goals": _goals.size(),          # row IC, directives: the war goals' gold rings
 		"dangers": _dangers.size(),      # row IC: the provinces marked as in danger
 	}
+
+
+func _report_badge_west() -> bool:
+	"""Row FUN, FUN-1: whether the ghost's tag stands west of its head now
+	(read by the probe — it should only where the east would leave the layer)."""
+	if _renderer == null or _renderer.map_viewport == null or _ghost_label == "" \
+			or _ghost_world.size() < 1:
+		return false
+	var head: Vector2 = _projection() * (_ghost_world[_ghost_world.size() - 1] as Vector2)
+	return _ghost_west(head, _ghost_label)
 
 
 func arrows_report() -> Array:
@@ -582,7 +608,8 @@ func _process(_delta: float) -> void:
 		_trails = kept
 		queue_redraw()
 	if _rings.is_empty() and _ghost_world.is_empty() and _arrows.is_empty() \
-			and _hover_ring.is_empty() and _dangers.is_empty() and _goals.is_empty():
+			and _hover_ring.is_empty() and _dangers.is_empty() and _goals.is_empty() \
+			and _tag_text == "":
 		return
 	if _projection() != _drawn_xform:
 		queue_redraw()
@@ -610,6 +637,7 @@ func _draw() -> void:
 		var r: float = maxf(float(ring["r"]) * zoom, 9.0)
 		_draw_ellipse(c, r, r * 0.42, RING_SHADOW, 5.0)
 		_draw_ellipse(c, r, r * 0.42, RING_COLOR, 2.5)
+	_draw_lone_tag(xform)   # row FUN, FUN-1: a tag with no road (drawn whether or not a road stands)
 	if _ghost_world.is_empty():
 		return
 	var pts := PackedVector2Array()
@@ -620,7 +648,12 @@ func _draw() -> void:
 	if pts.size() < 2:
 		return
 	var color: Color = Utils.cv(GHOST_COLORS.get(_ghost_kind, GHOST_COLORS["march"]))
-	draw_polyline(pts, GHOST_SHADOW, GHOST_WIDTH + 3.0, true)
+	var shadow := GHOST_SHADOW
+	if _ghost_faded:
+		# Row FUN, FUN-1: the last road, kept while the next is read — dimmed.
+		color = Color(color, color.a * GHOST_FADE)
+		shadow = Color(shadow, shadow.a * GHOST_FADE)
+	draw_polyline(pts, shadow, GHOST_WIDTH + 3.0, true)
 	for i in range(pts.size() - 1):
 		draw_dashed_line(pts[i], pts[i + 1], color, GHOST_WIDTH, GHOST_DASH, true, true)
 	for idx in _ghost_pips:
@@ -629,11 +662,13 @@ func _draw() -> void:
 			draw_circle(pts[k], 5.0, GHOST_SHADOW)
 			draw_circle(pts[k], 3.5, color)
 	_draw_arrow_head(pts[pts.size() - 2], pts[pts.size() - 1], color)
-	if _ghost_label != "":
-		# On the side the road travels, so it never stands on the man who
-		# marches (a road heading west carries its badge to the west).
-		var westward: bool = pts[pts.size() - 1].x < pts[pts.size() - 2].x
-		_draw_badge(pts[pts.size() - 1], _ghost_label, color, westward)
+	if _ghost_label != "" and not _ghost_faded:
+		# Row FUN, FUN-1 (November 25, 2026): ONE side — right of the road's
+		# head, the left only where the right would leave the screen. It used
+		# to follow the last leg's direction and jumped from side to side as
+		# the cursor crossed provinces. A faded road (the next one is being
+		# read) wears no badge: the tag by the cursor names the new target.
+		_draw_badge(pts[pts.size() - 1], _ghost_label, color, _ghost_west(pts[pts.size() - 1], _ghost_label))
 
 
 # ── CC-5: the order arrows ─────────────────────────────────────────────────
@@ -772,6 +807,65 @@ func _draw_arrow_head(from: Vector2, to: Vector2, color: Color) -> void:
 	var head := PackedVector2Array([tip, base + side * head_len * 0.55, base - side * head_len * 0.55])
 	draw_colored_polygon(PackedVector2Array([tip + dir * 1.5, base + side * head_len * 0.75 - dir, base - side * head_len * 0.75 - dir]), Color(GHOST_SHADOW, GHOST_SHADOW.a * color.a))
 	draw_colored_polygon(head, color)
+
+
+func _ghost_west(head: Vector2, label: String) -> bool:
+	"""Row FUN, FUN-1: the ONE side of the ghost's tag — right of the road's
+	head, the left only where the right would cross the layer's right edge
+	(read where a right-hand badge, kept on the layer, would be pushed back
+	over the head). `_draw` and `ghost_badge_rect` both read this."""
+	var east := _badge_rect(head, label, false, BADGE_FONT_PX)
+	return east.size != Vector2.ZERO and east.position.x < head.x + 11.0
+
+
+func set_ghost_faded(on: bool) -> void:
+	"""Row FUN, FUN-1: keep the drawn road, dimmed, while the next is read."""
+	if _ghost_faded == on:
+		return
+	_ghost_faded = on
+	queue_redraw()
+
+
+func set_tag(text: String, point: Vector2, world: bool) -> void:
+	"""Row FUN, FUN-1: a tag with no road — at a WORLD point (a piece's feet,
+	re-projected on every draw) or at a LOCAL one (the cursor)."""
+	if _tag_text == text and _tag_point == point and _tag_world == world:
+		return
+	_tag_text = text
+	_tag_point = point
+	_tag_world = world
+	queue_redraw()
+
+
+func clear_tag() -> void:
+	if _tag_text == "":
+		return
+	_tag_text = ""
+	queue_redraw()
+
+
+func follow_cursor(cursor_local: Vector2) -> void:
+	"""The review (FUN-1, lane A): a tag standing by the cursor (LOCAL) moves
+	with it; a tag at a piece's feet (WORLD) stays where it belongs."""
+	if _tag_text == "" or _tag_world or _tag_point == cursor_local:
+		return
+	_tag_point = cursor_local
+	queue_redraw()
+
+
+func tag_rect(xform: Transform2D) -> Rect2:
+	"""Where the lone tag stands, in LOCAL space (empty with none)."""
+	if _tag_text == "":
+		return Rect2()
+	var at: Vector2 = (xform * _tag_point) if _tag_world else _tag_point
+	return _badge_rect(at, _tag_text, _ghost_west(at, _tag_text), BADGE_FONT_PX)
+
+
+func _draw_lone_tag(xform: Transform2D) -> void:
+	var box := tag_rect(xform)
+	if box.size == Vector2.ZERO:
+		return
+	_draw_badge_in(box, _tag_text, Utils.cv(GHOST_COLORS["move"]), BADGE_FONT_PX, BADGE_BG, false)
 
 
 func _badge_rect(anchor: Vector2, text: String, westward: bool, font_px: int) -> Rect2:

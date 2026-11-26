@@ -50,6 +50,10 @@ signal bring_requested(command: String)
 # Row PW: "Storm <province> instead" — the order that TAKES the province the
 # quoted march would only enter; the host opens that order's own card.
 signal take_requested(province: String)
+# Row FUN, FUN-1 (November 25, 2026): a march refused at a court's closed border
+# offers that court's open-borders proposal — the Diplomacy window opened on the
+# court (diplomacy is never typed).
+signal diplomacy_requested(nation: String)
 
 @onready var title_label: Label = $PanelContainer/VBox/TitleLabel
 @onready var command_label: Label = $PanelContainer/VBox/CommandLabel
@@ -1420,6 +1424,19 @@ func _alt_lines(q: Dictionary) -> PackedStringArray:
 			continue
 		lines.append(info + (ALT_LEAD if key == "alts" else THEN_LEAD) + "[/color]")
 		lines.append("  " + "  ".join(chips))
+	# Row FUN, FUN-1: a closed border names the court that keeps it — its
+	# open-borders proposal is one press away (the Diplomacy window, never a
+	# typed line).
+	var closed := str(q.get("closed_to", ""))
+	if closed != "" and not bool(q.get("ok", false)):
+		# the backend's own name for the court inside a sentence ("the Ottoman Empire")
+		var court := str(q.get("closed_to_shown", ""))
+		if court == "":
+			court = Utils.display_nation_name(closed)
+		lines.append(info + "The way through —[/color]")
+		lines.append("  " + Utils.bb_button_chip("diplo:" + closed, "Ask " + court + " for open borders",
+			Utils.COLOR_GOLD, BRING_CHIP_BG, "",
+			"Opens Diplomacy on " + court + ": propose open borders, and our armies may cross their land."))
 	return lines
 
 
@@ -1519,6 +1536,13 @@ func _on_terms_meta(meta) -> void:
 		if province != "":
 			_close_quietly()
 			take_requested.emit(province)
+		return
+	# Row FUN, FUN-1: "Ask <court> for open borders" — the Diplomacy window.
+	if _mode == "order" and visible and meta_str.begins_with("diplo:"):
+		var court := meta_str.substr("diplo:".length())
+		if court != "":
+			_close_quietly()
+			diplomacy_requested.emit(court)
 		return
 	if _mode != "order" or not visible or not meta_str.begins_with("do:"):
 		return

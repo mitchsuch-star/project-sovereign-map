@@ -1,4 +1,63 @@
-# NEXT SESSION PROMPT — Row TU, the tutorial brought up to date, then Session H, the deploy (read the first block)
+# NEXT SESSION PROMPT — Row FUN, Session FUN-2: conquest with a cost (read the first block); then FUN-3 … FUN-5, S16, row TU, Session H
+
+> **▶ NEXT: row FUN, Session FUN-2 — conquest with a cost.** Its owning doc is `docs/GAMEPLAY_REVIEW_2026_11_25.md`
+> (§1.3 the diagnosis with file:line, §3 the research, §5 the row). Open in Plan Mode (the user's standing
+> preference); the forks below are pre-decided — say in the plan which you keep, each one line to reverse.
+>
+> **Why (the user's second play, November 25, 2026):** "I beat Austria in the first war by eliminating them and got
+> to keep all the land, then a coalition of every country formed later." The code: erasing a court is the cheapest
+> conquest (the hand-back rule skips the player — `settlement_third_party.py:1159-1187`); a conquered province pays
+> nothing at first and full in ~10 turns, with no revolt and no upkeep (`region.py:394-403`); the push-back is ONE
+> France-wide number (+2 a province, +15 a capital, +3/+5 a battle; brewing at 60, instant at 80 —
+> `coalition.py:40-46`); any court below −10 relations joins, with no check of distance or stake
+> (`coalition.py:1887-1928`); every war France declares costs −15 with EVERY court (`diplomacy.py`,
+> `declaration_relation_penalties`); a forecast exists but not at the moment of the capture that erases a court.
+>
+> **The pre-decided design (EU4's aggressive expansion, measured in our numbers):**
+> 1. **A grudge per court** (`world.court_grudges`, serialized, `SAVE_FORMAT_REFERENCE.md`): each capture by the
+>    player's house adds to every court's grudge — the province's weight × the court's nearness (bordering 1.0, one
+>    court between 0.5, farther 0.25) × its stake (a court that wanted or lost that province ×2; a capital ×3);
+>    grudges fade 2 a turn; shown in each court's row (the Balance of Europe) and as a map mode, "Who fears you".
+>    The France-wide threat meter stays as the clock that brews a league.
+> 2. **Who joins a league:** a court whose grudge is past 50 AND that borders France (or a vassal of France) or holds
+>    a stake, never an ally, a vassal or a court under truce; a league needs at least three members. A member drops
+>    out when its grudge falls under 25 or France gives it land back.
+> 3. **A declaration angers the target and its friends** (allies, the target's own vassals, courts bordering the
+>    target) — not every court in Europe.
+> 4. **"Erase this country?"** — an order whose capture would take a court's LAST province (or carry a court's
+>    grudge past the line) says so on its card in plain words: who would join a league and in about how many turns,
+>    with the alternative as a button (offer peace now: the peace table).
+> 5. **Land settles slowly** — a province taken by arms gives no recruits until it is Settling; at Hostile with no
+>    garrison for 4 turns it rises (back to its old court while that court lives, else as a rebel province) — the
+>    Tyrol, 1809. Deterministic, never a hidden roll; shown on the province window with its count.
+> 6. **Peace terms priced** — taking a province at the table costs war score (the settlement's own scorer); a total
+>    conquest by treaty takes more than one war. If FUN-2 cannot hold 6 at the standard, it is **FUN-2b**, the next
+>    session, with its own STATUS line and test (`tests/test_fun2b_peace_terms_priced.py`) — never "later".
+>
+> **The measure, the rule written before the data:** on the ten ambient seeds and the commanded arms
+> (`tools/playtest_driver.py`, the AI-France harness): (a) a France that erases Austria by turn 20 meets a league
+> on every seed, and no member lacks a border or a stake; (b) a France that takes only its war aim meets no league
+> by turn 30 on at least 7 of 10 seeds; (c) the France band (`PRE_DEPLOY_PLAN.md` §2, row OC's record) reported,
+> never gated; (d) the standing forty-turn series re-pinned with its history kept by name. Play every new rule
+> out on crafted boards before the long measure (the user's rule).
+>
+> **Done when:** the review's §5 done-when for FUN-2 holds; `tests/test_fun2_conquest_with_a_cost.py` passes;
+> every new word plain (golden rule 11); a build the user plays for 20–30 minutes with one question — "did you
+> see the league coming, and could you do something about it?". Then FUN-3 (goals), FUN-4 (the turn diet), FUN-5
+> (the sea made plain), S16 (the `main.gd` split), row TU, Session H.
+>
+> **Row FUN, Session FUN-1 ✅ BUILT November 25, 2026** (`SYSTEMS_REFERENCE.md` §239; `BUG_FIXES.md` §"Row FUN,
+> Session FUN-1", FUN1-1 … FUN1-10): what the box under the cursor names is what the click does (left, right,
+> drop); your own piece wins where boxes overlap, targets at least 32 px, the near-grab in order mode takes only
+> your own pieces; the line never blanks — "Select Davout", "Let Soult go", an enemy's attack road at once, the
+> last road faded while the next is read, a refusal's reason; the tag on one side; no box over the line; a refused
+> crossing offers the landing as a button (dimmed with why when nobody can sail) and a closed border "Ask <court>
+> for open borders"; the Codex's landing line corrected; the real-window probe `tests/test_fun1_the_hands.py` and
+> the fast lane `tools/fast_lane.py`. Committed at the user's word (“Commit the working tree changes with a sensible message”, November 26); not pushed — if a push follows, put this line right in FUN-2's commit.
+
+---
+
+## (kept) NEXT SESSION PROMPT — Row TU, the tutorial brought up to date, then Session H, the deploy (read the first block)
 
 > **▶ NEXT: row TU** — its section below, and first its design doc `docs/TUTORIAL_UPDATE_SPEC.md` (read its §12
 > "What TU must re-read after FR-1 and FR-2" before the plan).

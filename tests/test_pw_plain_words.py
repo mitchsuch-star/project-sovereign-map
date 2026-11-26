@@ -821,7 +821,11 @@ class TestTheClientsHands:
         pick = _func(self.MAP, "pick_piece_near")
         assert "reach" in pick and "distance" in pick.lower()
         hover = _func(self.MAP, "_refresh_hover_state")
-        assert "pick_piece_near(marshal_hitboxes, map_mouse, _piece_grab_world())" in hover
+        # Row FUN, FUN-1 (November 25, 2026): the grab reads the selection's
+        # reach, and — with an order engaged — our own pieces at ORDER_GRAB_PX
+        # (re-seated; the behaviour is driven in tests/test_fun1_the_hands.py).
+        assert "_order_grab_world() if ordering else _piece_grab_world()" in hover
+        assert "_is_own_piece if ordering else Callable()" in hover
 
     def test_a_stacks_label_asks_which_corps(self):
         assert "signal stack_clicked(region_name: String, marshal_names: Array, at: Vector2)" in self.MAP
@@ -849,7 +853,9 @@ class TestTheClientsHands:
         assert '"Move" if kind == "move"' in label and '"arrives now"' in label
         assert " AP" not in label
         draw = _func(self.MAP, "_draw")
-        assert "order_selected != \"\" and _order_ghost_set and hovered_region != \"\"" in draw
+        # Row FUN, FUN-1: one corps selected, the tag is the word whether or not
+        # a road stands — no box takes turns with the line (re-seated).
+        assert 'if order_selected != "" and order_group.size() < 2:' in draw
 
     def test_the_hover_box_stays_whole_and_clear_of_the_tag(self):
         layer = _src(SCENES / "map_tooltip_layer.gd")
@@ -1323,12 +1329,18 @@ class TestTheReviewTheClientLane:
 
     def test_pw_r19_the_near_grab_selects_and_never_redirects_an_order(self):
         hover = _func(_src(SCENES / "map_renderer_base.gd"), "_refresh_hover_state")
-        grab = hover.index("pick_piece_near(marshal_hitboxes, map_mouse, _piece_grab_world())")
-        assert hover.rfind("if not ordering:", 0, grab) > 0
-        # after every exact hit: the fog chips, the fleets, the garrison chips
+        grab = hover.index("pick_piece_near(marshal_hitboxes, map_mouse,")
+        # Row FUN, FUN-1 (November 25, 2026), re-seated: with an order engaged the
+        # grab takes only OUR pieces, at ORDER_GRAB_PX — a mis-grab re-selects
+        # (free), a mis-click marches; PW-R19's province beside an enemy or a
+        # court's piece stays the order's target (driven: test_fun1_the_hands).
+        assert "_is_own_piece if ordering else Callable()" in hover[grab:grab + 200]
+        grown = hover.index("_piece_at(map_mouse, true, ordering)")
+        # after every exact hit: the fog chips, the fleets, the garrison chips —
+        # then the grown boxes, then the grab
         for exact in ("for hitbox in fogged_force_hitboxes:", "for hitbox in ([] if ordering else fleet_hitboxes):",
                       '_label_hit("region", map_mouse, label_hitboxes)'):
-            assert hover.index(exact) < grab, exact
+            assert hover.index(exact) < grown < grab, exact
         assert grab < hover.index("var color_map_region = _lookup_region_from_color_map(map_mouse)")
 
     def test_pw_r20_the_client_raises_no_report_window_of_its_own(self):

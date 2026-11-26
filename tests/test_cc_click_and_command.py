@@ -120,8 +120,14 @@ class TestTheMapRecordsWhatTheClickCarried:
         assert "last_click_shift = event.shift_pressed" in left
 
     def test_the_front_piece_wins_the_hover(self):
+        # Row FUN, FUN-1 (November 25, 2026), re-seated: the reading moved into
+        # `_piece_at` — a piece of OURS wins where boxes overlap, the front one
+        # (the lower box, drawn in front) among the rest; the hover asks it first.
         body = _func(_src(MAP_GD), "_refresh_hover_state")
-        assert "rect.end.y >= front_bottom" in body
+        assert "var front := _piece_at(map_mouse, false)" in body
+        piece_at = _func(_src(MAP_GD), "_piece_at")
+        assert "rect.end.y >= front_bottom" in piece_at
+        assert "if mine and not best_own:" in piece_at
 
 
 class TestTheHarness:

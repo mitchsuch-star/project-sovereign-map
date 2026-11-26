@@ -1318,6 +1318,12 @@ REVIEWED = {
     # reckoning) — nothing is sent by the press.
     ("order_confirm_card.gd", "chip_meta"):
         "the quote's own remedy command on the card (\"Storm it instead\"): handed to main.gd's send road, or — a garrison, works — opens the take order's own card and sends nothing (row PW)",
+    # Row FUN, FUN-1 (November 25, 2026): a march refused at a court's closed
+    # border (at PEACE — `strategic.border_can_be_opened`) offers that court's
+    # open-borders proposal: the press opens the Diplomacy window on the court
+    # (`diplomacy_requested` → `main._on_order_card_diplomacy`), sends nothing.
+    ("order_confirm_card.gd", '"diplo:" + closed'):
+        "the refused march's \"Ask <court> for open borders\": opens the Diplomacy window on that court and sends nothing — diplomacy is never typed (row FUN, FUN-1)",
     # THIS DEAL's "Take <province>" beside a province an ally only occupies:
     # the guided table's own demand row for it (`plain_deal.allies_hand_back[]
     # .claims[]`, built from the court's `demand_suggestions`), sent as any

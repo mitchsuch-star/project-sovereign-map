@@ -1929,16 +1929,10 @@ class StrategicExecutor:
                                 mover_location=ctx.marshal.location))
                         blk = ctx.world.regions.get(blocker)
                         blk_ctrl = blk.controller if blk else "neutral"
-                        return {
-                            "success": False,
-                            "message": (
-                                f"There is no open road to {dest}, Sire — every "
-                                f"route crosses {blk_ctrl}'s closed frontier at "
-                                f"{blocker}. Secure passage (open borders, or "
-                                f"war) or name a province we can reach."
-                            ),
-                            "variable_action_cost": 0,
-                        }
+                        # Row FUN, FUN-1 (the review's sibling sweep): the one refusal
+                        from backend.commands.strategic import no_open_road_refusal
+                        return no_open_road_refusal(ctx.world, ctx.marshal.nation, dest,
+                                                    blocker, blk_ctrl or "neutral")
                 # S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): the
                 # road the player's order walks may cross ground an ACTIVE
                 # guard_neutrality design guards (the Ansbach trap: -25 with

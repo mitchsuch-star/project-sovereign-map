@@ -47,13 +47,21 @@ class TestRightClickOrders:
         b = _right_branch()
         assert b.index("if is_panning:") < b.index("order_context_requested.emit(")
         assert "not _is_region_wired(ctx_region)" in b
-        assert "order_context_requested.emit(str(ctx_region), last_click_marshal)" in b
+        # Row FUN, FUN-1 (November 25, 2026), re-seated: the signal carries the
+        # piece the box names — a fog chip's man too (FUN1-9)
+        assert "order_context_requested.emit(str(ctx_region), ctx_piece)" in b
         # right-click on nothing still dismisses
         assert b.index("order_context_requested.emit(") < b.index("map_dismiss_requested.emit()")
 
-    def test_a_fog_chip_never_names_its_man(self):
-        # the signal's marshal is the VISIBLE piece's key only
-        assert "last_click_fogged" not in _right_branch().split("order_context_requested.emit(", 1)[1].split("\n", 1)[0]
+    def test_a_fog_chip_names_its_man_as_the_left_click_does(self):
+        """Row FUN, FUN-1 (FUN1-9), re-seated from "a fog chip never names its
+        man": the LEFT click already names him (CC-X11 — partial sight knows
+        him, and the province window's ATTACK row offers him), so a right click
+        on the same chip was a march where the left was an attack. The right
+        button now names him too — what the box names is what the click does
+        (driven: tests/test_fun1_the_hands.py)."""
+        b = _right_branch()
+        assert "var ctx_piece := last_click_marshal if last_click_marshal != \"\" else last_click_fogged" in b
 
 
 class TestTheLeftInset:
