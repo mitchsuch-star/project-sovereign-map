@@ -539,21 +539,42 @@ def article_clause(world: Any, article: Mapping[str, Any], *, to: str) -> Option
 
 
 def declared_draft(world: Any, *, war_instance: Mapping[str, Any], proposer_side: str,
-                   proposer_leader: str, covered: Iterable[str]) -> List[Dict[str, Any]]:
+                   proposer_leader: str, covered: Iterable[str],
+                   war_id: str = "") -> List[Dict[str, Any]]:
     """The table's opening draft on the declared articles: one peace plus
     each covered court's declared articles that the validator signs, in
-    court order. Empty when no covered court carries an article."""
+    court order. Empty when no covered court carries an article.
+
+    FUN-2b (row FUN, "peace terms priced" — OFFER, WHOLE): a land article
+    (a province, a client carved from the court) opens on the table only
+    while its court would still sign with it, re-scored on the draft so far
+    (`land_price.table_for`), and never one that takes the court's last
+    province; the rest stay as the court's priced "Declared at the war" rows."""
     side = [str(n) for n in (war_instance.get(proposer_side) or []) if n]
     covered = sorted({str(n) for n in covered or [] if n})
+    from backend.game_logic import land_price as _land_price
+    table = (_land_price.table_for(world, war_id=str(war_id), war_instance=war_instance,
+                                   proposer_side=proposer_side,
+                                   proposer_side_leader=proposer_leader, covered=covered)
+             if war_id and _land_price.offers_bind(world) else None)
     body: List[Dict[str, Any]] = []
     for court in covered:
         for a in articles_for_side(world, side, court):
             clause = article_clause(world, a, to=proposer_leader or str(a.get("declarer")))
             if clause is None or any(term_matches_article(t, a) for t in body):
                 continue
-            if _valid_alone(world, clause, war_instance=war_instance,
-                            proposer_side=proposer_side, covered=covered):
-                body.append(clause)
+            if not _valid_alone(world, clause, war_instance=war_instance,
+                                proposer_side=proposer_side, covered=covered):
+                continue
+            if _land_price.land_from(court, [clause]):
+                if _land_price.whole_country_clause(
+                        world, [{"type": "peace"}] + body + [clause],
+                        war_instance=war_instance) is not None:
+                    continue
+                if table is not None and not table.offer(
+                        [{"type": "peace"}] + body, court, clause)["signs"]:
+                    continue
+            body.append(clause)
     return ([{"type": "peace"}] + body) if body else []
 
 

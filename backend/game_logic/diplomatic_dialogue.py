@@ -11,7 +11,7 @@ Entry points:
 """
 
 import re
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from backend.display_names import (
     format_terms_for_display as _shared_format_terms_for_display,
@@ -1670,6 +1670,14 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
             demand_lines.append(f"  - {int(value)} infantry")
     dialogue["demands_display"] = demand_lines
 
+    # FUN-2b (row FUN, "peace terms priced" — the sibling sweep): a province
+    # yielded to an ultimatum passes by treaty (`_apply_ultimatum_demands`),
+    # so it frightens Europe as a capture does; said before the delivery, as
+    # the peace table says it.
+    _fear_line = _bilateral_fear_line(world, terms, proposer, target_nation)
+    if _fear_line:
+        dialogue["fear_line"] = _fear_line
+
     # PL-19 §D: Diplomatic cost preview
     # PL-20 §E: Talleyrand territory warnings
     import math
@@ -2088,6 +2096,34 @@ def fold_hegemony_warning_into_bloc_row(dialogue: Dict, warnings: list) -> list:
     return [w for w in warnings if not any(w is h for h in heg)]
 
 
+def _bilateral_fear_line(world, terms: Optional[Dict], player: str, target: str) -> str:
+    """FUN-2b: the two-court dialect (demands the target pays, sweeteners the
+    player pays, no `from`) read as table clauses for `fear.table_line`."""
+    if not isinstance(terms, dict) or not player or not target:
+        return ""
+    clauses: List[Dict[str, Any]] = []
+    for key, giver, receiver in (("demands", target, player), ("sweeteners", player, target)):
+        for row in terms.get(key) or []:
+            if not isinstance(row, dict):
+                continue
+            if str(row.get("type") or "") not in ("territory_cede", "territory"):
+                continue
+            frm = str(row.get("from") or row.get("from_nation") or giver)
+            to = str(row.get("to") or row.get("to_nation") or receiver)
+            for region in row.get("regions") or ([row.get("region")] if row.get("region") else []):
+                if region:
+                    clauses.append({"type": "territory_cede", "from": frm, "to": to,
+                                    "region": str(region)})
+    if not clauses:
+        return ""
+    from backend.game_logic import fear as _fear
+    try:
+        return _fear.table_line(world, clauses)
+    except Exception as exc:
+        report(exc, "diplomatic_dialogue._bilateral_fear_line: fear.table_line")
+        return ""
+
+
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world,
                              *, terms: Optional[Dict] = None) -> Dict:
     """Add proposal terms summary, acceptance estimate, harshness, and DP cost to dialogue.
@@ -2191,6 +2227,13 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # BPH-A: Attach annotated terms with ownership fields for Godot rendering
     from backend.game_logic.diplomatic_templates import annotate_peace_terms
     dialogue["annotated_terms"] = annotate_peace_terms(terms, player_nation, target_nation)
+
+    # FUN-2b (row FUN, "peace terms priced"): the peace's fear of France, read
+    # before the click as the order card reads a capture's — land demanded of
+    # the court frightens Europe, land France gives back calms the court.
+    _fear_line = _bilateral_fear_line(world, terms, player_nation, target_nation)
+    if _fear_line:
+        dialogue["fear_line"] = _fear_line
 
     # ES-7 second pass (§0.6.8 item 3): a bilateral sweetener ceding a
     # province that sustains a PLAYER marshal's estate warns on BOTH display

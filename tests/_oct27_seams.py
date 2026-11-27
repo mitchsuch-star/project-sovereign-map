@@ -238,6 +238,15 @@ from tests._fun2_seams import FUN2_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in FUN2_SEAMS_BY_ROW for spec in FUN2_SEAMS_BY_ROW[row]]
 
+# Row FUN, Session FUN-2b "peace terms priced" (November 27, 2026): the table's
+# land price that never stops, no whole country at one peace France's house
+# signs, the guided table's land within what the war buys, land at the table
+# frightening and land handed back calming. A board recorded before the session
+# is replayed with them down. The seams' own rows: `tests/_fun2b_seams.py`.
+from tests._fun2b_seams import FUN2B_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in FUN2B_SEAMS_BY_ROW for spec in FUN2B_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

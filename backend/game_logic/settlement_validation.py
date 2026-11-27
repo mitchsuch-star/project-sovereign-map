@@ -951,6 +951,12 @@ def evaluate_create_client_eligibility(
     # dropping the clause at ratification.
     remaining = set(world.get_nation_regions(from_court)) - set(provinces)
     if not remaining:
+        # FUN-2b (row FUN, "peace terms priced"): an authored carve ALONE keeps
+        # this decisive-victory line for every court, France's included — the
+        # Papal States and Naples are one province each, and the Roman Republic
+        # and Murat's crown are the scenario's own clients (NA-6c, DY-6). A
+        # package whose CESSIONS (with or without a carve) take every province
+        # is refused at the validator (`land_price.takes_every_province`).
         ws_key = world._make_diplo_key(from_court, carver)
         war_score = abs(int(
             (getattr(world, "war_scores", {}) or {}).get(ws_key, 0) or 0))
@@ -1497,6 +1503,23 @@ def validate_settlement_terms(
                 "region": region_name,
                 "holder": holder,
                 "disabled_reason_display": _error_display("ceder_does_not_hold"),
+            }
+
+    # FUN-2b (row FUN, "peace terms priced", November 27, 2026): no court
+    # signs away every province it holds at a peace France's house signs —
+    # a total conquest by treaty takes more than one war, whatever the score
+    # (`land_price.whole_country_clause`; the seam WHOLE). A peace between two
+    # computer courts keeps the ratifier's 90 line (AI_INTENT_SPEC D2).
+    if world is not None and getattr(world, "regions", None):
+        from backend.game_logic import land_price as _land_price
+        _whole = _land_price.whole_country_clause(world, terms, war_instance=war_instance)
+        if _whole is not None:
+            return {
+                "valid": False,
+                "error": "takes_every_province",
+                "error_index": int(_whole[0]),
+                "court": str(_whole[1]),
+                "disabled_reason_display": _error_display("takes_every_province"),
             }
 
     # SC-33 / G2-Slice-9: per-clause amount + duration bounds for

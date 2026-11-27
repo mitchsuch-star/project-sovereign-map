@@ -707,6 +707,33 @@ def _dial_face(world: Any, before: Iterable[Mapping[str, Any]], after: Iterable[
     return " · ".join(phrases)
 
 
+def _land_the_war_buys(world: Any, candidates: Dict[str, Dict[str, Any]], *,
+                       terms: List[Mapping[str, Any]], war_id: str,
+                       war_instance: Mapping[str, Any], proposer_side: str,
+                       proposer_leader: str, covered: List[str]) -> Dict[str, Dict[str, Any]]:
+    """FUN-2b (OFFER): the Harsher button asks a court for land only when she
+    would still sign with it — Talleyrand's suggestions never offer a package
+    beyond what the war buys (`land_price.price_rows`, the table's own
+    re-score). A candidate she would refuse is dropped; the dial's gold steps
+    stand. The rule down: every candidate kept."""
+    from backend.game_logic import land_price as _lp
+    if not candidates or not _lp.offers_bind(world) or not war_id or not war_instance:
+        return candidates
+    accepting_side = "defenders" if proposer_side == "attackers" else "attackers"
+    pools = {court: [str(c.get("region") or "")] for court, c in candidates.items()
+             if str(c.get("region") or "")}
+    reading = _lp.price_rows(
+        world, war_id=war_id, war_instance=war_instance, proposer_side=proposer_side,
+        accepting_side=accepting_side, proposer_side_leader=proposer_leader,
+        covered=covered, terms=list(terms), pools=pools, receiver=proposer_leader)
+    kept: Dict[str, Dict[str, Any]] = {}
+    for court, clause in candidates.items():
+        offer = ((reading.get(court) or {}).get("offers") or {}).get(str(clause.get("region") or ""))
+        if offer and offer.get("signs"):
+            kept[court] = clause
+    return kept
+
+
 def _dial_dry_run(world: Any, dialogue: Mapping[str, Any], *, scope_courts: List[str],
                   direction: str) -> Dict[str, Any]:
     """The dial's own computation (`_handle_settlement_tier2_action`'s, step
@@ -725,6 +752,11 @@ def _dial_dry_run(world: Any, dialogue: Mapping[str, Any], *, scope_courts: List
         world, terms=terms, scope_courts=list(scope_courts), direction=direction,
         proposer_side_participants=[str(n) for n in (war_instance.get(proposer_side) or []) if n],
         proposer_leader=str(proposer_leader or ""))
+    if direction == "harsher":
+        escalations = _land_the_war_buys(
+            world, escalations, terms=terms, war_id=war_id, war_instance=war_instance,
+            proposer_side=proposer_side, proposer_leader=str(proposer_leader or ""),
+            covered=[str(c) for c in (dialogue.get("covered_enemy_participants") or []) if c])
     would_cede: List[Dict[str, str]] = []
     if direction == "generous" and the_dial_never_gives_land_unasked():
         _redial_settlement_terms(
@@ -1016,6 +1048,12 @@ def _handle_settlement_tier2_action(
             ],
             proposer_leader=str(proposer_leader or ""),
         )
+        if direction == "harsher":
+            # FUN-2b (OFFER): land only within what the war buys.
+            territory_escalations = _land_the_war_buys(
+                world, territory_escalations, terms=terms, war_id=war_id,
+                war_instance=war_instance, proposer_side=proposer_side,
+                proposer_leader=str(proposer_leader or ""), covered=list(covered))
         # Row PW "Plain Words" (November 18, 2026 — the first playtest): the
         # player's LAND IS NEVER OFFERED UNASKED. Pressing "More generous" at
         # the gold ceiling used to author a cession of his own province
@@ -1911,6 +1949,18 @@ def _handle_settlement_demand_action(
             "type": "territory_cede", "from": payer, "to": payee,
             "region": region,
         }
+        # FUN-2b (WHOLE): never the court's last province — the hand-pick's
+        # one bound (the price is the court's own to refuse; the whole court
+        # is the table's to refuse). Pre-checked, as V1 is above.
+        from backend.game_logic import land_price as _land_price
+        if (group == "demand"
+                and _land_price.whole_rule_binds(world, payer, payee, war_instance=war_instance)
+                and _land_price.takes_every_province(world, payer, list(terms) + [clause])):
+            return _fail(
+                "takes_every_province",
+                f"{region} is the last land {court} would keep, Sire — no country "
+                "gives up all its land at one peace.",
+            )
     elif clause_type == "gold_indemnity":
         raw_amount = action_params.get("amount")
         if raw_amount is None:

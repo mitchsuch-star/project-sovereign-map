@@ -10390,6 +10390,19 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         anti_renewal_block = -100
         score = min(score, 0)
 
+    # FUN-2b (row FUN, "peace terms priced", November 27, 2026 — the seam
+    # WHOLE): a peace France's house signs never takes the target's every
+    # province, whatever the war score — a total conquest by treaty takes more
+    # than one war (the escalating cost and the -60 annexation term above
+    # price it; this refuses it). A two-court peace between computer courts
+    # keeps the old reading (D2).
+    takes_every_province = False
+    if territory_analysis.get("is_annex"):
+        from backend.game_logic import land_price as _land_price
+        if _land_price.whole_rule_binds(world, proposer, target):
+            takes_every_province = True
+            score = min(score, 0)
+
     if score >= 50:
         outcome = "ACCEPT"
     elif score >= 30:
@@ -10457,12 +10470,18 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # (a shut-out is not an abandoned alliance); the kind rides the result.
     grievance_kind_value = grievance_kind(world, proposer, target)
     feedback = _generate_feedback(outcome, components, grievance_kind_value)
+    if takes_every_province:
+        feedback = ("No country gives up all its land at one peace — taking a whole "
+                    "country takes more than one war. " + str(feedback or "")).strip()
 
     return {
         "score": int(score),
         "outcome": outcome,
         "components": components,
         "feedback": feedback,
+        # FUN-2b: the refusal named apart from the components (their readers
+        # sum and rank them as figures)
+        **({"takes_every_province": True} if takes_every_province else {}),
         "grievance_kind": grievance_kind_value,
         # IQ-4 review: the formula's own sum with the relation term taken out,
         # before the rounding (and before the clamping postures; the additive

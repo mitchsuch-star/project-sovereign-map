@@ -1376,6 +1376,12 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
         "This would take their last province and erase them from the map. "
         "Only a decisive victory can do that."
     ),
+    # FUN-2b (row FUN, "peace terms priced", November 27, 2026): a peace
+    # France's house signs never takes a court's every province.
+    "takes_every_province": (
+        "That would take every province they hold. No country gives up all its "
+        "land at one peace - taking a whole country takes more than one war."
+    ),
     # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6): who
     # may be asked to keep the Continental System, each refusal naming
     # what stands in the way (honest availability).

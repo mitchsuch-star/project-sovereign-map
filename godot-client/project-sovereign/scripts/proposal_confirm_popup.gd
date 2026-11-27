@@ -899,6 +899,12 @@ func _build_content(data: Dictionary) -> String:
 	var gate_warning = str(data.get("ratification_gate_warning", ""))
 	if gate_warning != "":
 		bbcode += "[color=#e0a040]%s[/color]\n" % gate_warning
+	# FUN-2b (row FUN, "peace terms priced"): the peace's fear of France —
+	# land demanded frightens Europe, land given back calms its court — said
+	# before the send, as the settlement table says it.
+	var proposal_fear = _safe_str(data.get("fear_line"))
+	if proposal_fear != "" and proposal_fear != "null":
+		bbcode += "[color=#e0a040]%s[/color]\n" % proposal_fear.replace("[", "[lb]")
 
 	# DP cost
 	var dp_cost = data.get("dp_cost", -1)
@@ -2677,6 +2683,18 @@ func _build_settlement_per_court_block(data: Dictionary, part: int = PART_ALL) -
 		bbcode += Utils.CARD_CLOSE + "\n"
 	if part >= 0:
 		return bbcode
+	# FUN-2b (row FUN, "peace terms priced"): under the courts, in every view —
+	# the rule of the prices once, then what this peace would do to Europe's
+	# fear of France (the price before the click, as the order card says a
+	# capture's; it stays on the Review and its Ratify).
+	# (the review's lane 2: the legend speaks of "the figure shown", and the
+	# figures are drawn only where the terms are written — PROPOSE)
+	var land_legend = _safe_str(data.get("land_legend"))
+	if land_legend != "" and land_legend != "null" and authoring_surface:
+		bbcode += "[color=%s]%s[/color]\n" % [COLOR_DIMMED, land_legend.replace("[", "[lb]")]
+	var fear_line = _safe_str(data.get("fear_line"))
+	if fear_line != "" and fear_line != "null":
+		bbcode += "[color=#e0a040]%s[/color]\n" % fear_line.replace("[", "[lb]")
 	# Session UI-6 (F16): Folded, the court count and the how-to-carry line are
 	# the verdict tile's hover and stand in the counsel note (`_verdict_words`).
 	if _figures_first(data):
@@ -2746,8 +2764,14 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 			var authored_suffix = ""
 			if str(line.get("authored_by", "")) == "player":
 				authored_suffix = " [color=#" + Utils.COLOR_INFO + "](yours)[/color]"
-			bbcode += "      [color=%s]%s[/color] · %s%s" % [
-				tag_color, tag, _safe_str(line.get("line_display")), authored_suffix,
+			# FUN-2b (row FUN, "peace terms priced"): a province says what it
+			# costs this court ("costs her 14"), beside its line.
+			var price_suffix = ""
+			var line_price = _safe_str(line.get("price_display"))
+			if line_price != "" and line_price != "null":
+				price_suffix = " [color=#" + Utils.COLOR_INFO + "](%s)[/color]" % line_price
+			bbcode += "      [color=%s]%s[/color] · %s%s%s" % [
+				tag_color, tag, _safe_str(line.get("line_display")), price_suffix, authored_suffix,
 			]
 			var magnitude = line.get("magnitude", null)
 			if magnitude is Dictionary:
@@ -2771,6 +2795,11 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 					court_index, line_index,
 				]
 			bbcode += "\n"
+	# FUN-2b: how many more provinces this court would give now — the price
+	# of the next one said once, under the land already asked.
+	var land_line = _safe_str(row.get("land_line"))
+	if land_line != "" and land_line != "null":
+		bbcode += "      [i][color=#" + Utils.COLOR_INFO + "]%s[/color][/i]\n" % land_line
 	# The `Add demand` affordance (§3.1): disabled with the humanized reason
 	# (clause cap / hard stop / frozen) when the row cannot author.
 	if not bool(row.get("can_author", false)):
@@ -2831,11 +2860,17 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	# un-clickable: the unavailable arm emits PLAIN TEXT, never a [url], so
 	# it cannot become a dead button. Options without the key keep the old
 	# always-live behaviour, so every pre-NA-6c suggestion is unchanged.
+	# FUN-2b (row FUN, "peace terms priced"): a land row's price, said on the
+	# row itself — offered or greyed ("costs her 24").
+	var price_display = _safe_str(sugg.get("price_display"))
+	var price_text = ""
+	if price_display != "" and price_display != "null":
+		price_text = " (%s)" % price_display
 	if sugg.has("available") and not bool(sugg.get("available", true)):
 		var gate = _safe_str(sugg.get("gate_terms"))
 		var why = _safe_str(sugg.get("disabled_reason_display"))
-		var line = "          [color=#%s]%s — unavailable" % [
-			Utils.COLOR_INFO, _safe_str(sugg.get("label")),
+		var line = "          [color=#%s]%s%s — unavailable" % [
+			Utils.COLOR_INFO, _safe_str(sugg.get("label")), price_text,
 		]
 		if gate != "" and gate != "null":
 			line += " (%s)" % gate
@@ -2855,6 +2890,8 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 		bbcode = "          [url=suggopts:%d:%d][color=#80b0e0]%s[/color][/url]" % [
 			court_index, sugg_index, _safe_str(sugg.get("label")),
 		]
+	if price_text != "":
+		bbcode += " [color=#%s]%s[/color]" % [Utils.COLOR_INFO, price_text.strip_edges()]
 	# The Tilsit clause (Score Finish Step 7 slice 4): a row that states its
 	# price where it can be clicked ("closes 10 → 11 of 26 ports · +10 alarm").
 	var terms_display = _safe_str(sugg.get("terms_display"))
@@ -2864,6 +2901,10 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	var option_labels: Array = []
 	if sugg.get("region_options") is Array:
 		options = sugg.get("region_options")
+		# FUN-2b (the review's lane 2): each province in the ▾ says its own
+		# price — the row's price is its first province's.
+		if sugg.get("region_labels") is Array:
+			option_labels = sugg.get("region_labels")
 	elif sugg.get("vassal_options") is Array:
 		options = sugg.get("vassal_options")
 	elif sugg.get("king_options") is Array:
@@ -3307,6 +3348,12 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			bbcode += "[color=#80c080]Key advantage: %s[/color]\n" % lp
 		if ln:
 			bbcode += "[color=#e66262]Key obstacle: %s[/color]\n" % ln
+	# FUN-2b (row FUN, "peace terms priced" — the review's lane 2): a two-court
+	# PEACE card is this preview, not `_build_content`; land demanded frightens
+	# Europe and land given back calms its court — said before the send.
+	var peace_fear = _safe_str(data.get("fear_line"))
+	if peace_fear != "" and peace_fear != "null":
+		bbcode += "[color=#e0a040]%s[/color]\n" % peace_fear.replace("[", "[lb]")
 
 	bbcode += "\n[b]War Summary[/b]\n"
 	# PC-X27 (S13e part 4): the war is named by its stake.
@@ -3504,6 +3551,11 @@ func _build_ultimatum_content(data: Dictionary) -> String:
 	var threat = data.get("threat_increase_preview", "")
 	if threat:
 		bbcode += "\n[color=#e09040]Threat: %s[/color]\n" % threat
+	# FUN-2b (row FUN, "peace terms priced" — the sibling sweep): a province
+	# yielded to the ultimatum frightens Europe as a capture does.
+	var ultimatum_fear = _safe_str(data.get("fear_line"))
+	if ultimatum_fear != "" and ultimatum_fear != "null":
+		bbcode += "[color=#e0a040]%s[/color]\n" % ultimatum_fear.replace("[", "[lb]")
 
 	return bbcode
 

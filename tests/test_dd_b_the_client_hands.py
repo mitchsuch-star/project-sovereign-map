@@ -129,6 +129,37 @@ class TestTheRails:
         assert set(P.GENERIC_FAMILIES) <= P._families()
 
 
+class TestTheAnswerChain:
+    """FUN-2b (the commit hook's engine lane): a walk is not one road, and on
+    one of them a cornered general's choice stands — the chain answers it,
+    and never passes over a plain answer for it."""
+
+    @staticmethod
+    def _state(*faces: str, floor: int = 100) -> dict:
+        return {"modal_floor": floor,
+                "buttons": [{"text": f, "layer": 110, "rect": [0, 0, 10, 10]} for f in faces]}
+
+    def test_a_cornered_generals_choice_is_answered_with_the_first(self):
+        pick, _ = _pick_answer(self._state("Fight to the Last", "Attempt a Breakout"))
+        assert pick is not None and pick["text"] == "Fight to the Last"
+
+    def test_a_plain_answer_still_comes_first(self):
+        pick, _ = _pick_answer(self._state("Fight to the Last", "Continue"))
+        assert pick["text"] == "Continue"
+
+    def test_a_name_heading_a_stack_is_found_on_the_map(self):
+        state = {"map": [{"text": "Napoleon · 2 more"}, {"text": "Mack · 1 more", "rect": [1, 2, 3, 4]},
+                         {"text": "Mackenzie"}]}
+        assert _map_label(state, "Mack")["text"] == "Mack · 1 more"
+        assert _map_label({"map": [{"text": "Mack"}]}, "Mack")["text"] == "Mack"
+        assert _map_label({"map": [{"text": "Mackenzie"}]}, "Mack") is None
+
+    def test_no_answer_below_the_floor(self):
+        pick, live = _pick_answer({"modal_floor": 120, "buttons": [
+            {"text": "Continue", "layer": 110, "rect": [0, 0, 10, 10]}]})
+        assert pick is None and live == []
+
+
 class TestTheJudge:
     """Every typed line is classified by the ONE judge; a misread is P1."""
 
@@ -253,7 +284,29 @@ def _modal(state: dict) -> list:
     return [p for p in state.get("open", {}).get("popups", []) if "(not modal)" not in p]
 
 
-_ANSWERS = ("continue", "close", "dismiss", "acknowledge", "ok", "later", "proceed", "insist")
+# (FUN-2b, the commit hook's engine lane, November 27, 2026: a walk on the
+# historical seed is not one road — the same code took Archduke Charles to
+# Milan on turn 2 in one run and to Franconia in the next — and on the Milan
+# road the Italian contingent's Teulie is cornered: "Fight to the Last /
+# Attempt a Breakout". The chain answers it as the playtest driver's default
+# policy does (`last_stand: first`), the first choice; a choice is the LAST
+# word tried, so no plain answer is ever passed over for it.)
+_ANSWERS = ("continue", "close", "dismiss", "acknowledge", "ok", "later", "proceed", "insist",
+            "fight to the last")
+
+
+def _pick_answer(state: dict) -> tuple:
+    """(the button, the live buttons): the first answering button above the
+    modal floor, by the words of `_ANSWERS` in their order — the one pick of
+    `_answer_chain` and `_answer_chain_step`."""
+    floor = int(state.get("modal_floor", -10**6))
+    live = [b for b in state.get("buttons", [])
+            if int(b["layer"]) >= floor and not b.get("disabled") and b.get("kind") != "slider"]
+    for word in _ANSWERS:
+        pick = next((b for b in live if b["text"].strip().lower().startswith(word)), None)
+        if pick:
+            return pick, live
+    return None, live
 
 
 def _answer_chain(run: pathlib.Path, state: dict, answered: list, limit: int = 14) -> dict:
@@ -263,14 +316,7 @@ def _answer_chain(run: pathlib.Path, state: dict, answered: list, limit: int = 1
         modal = _modal(state)
         if not modal and state.get("scene") == "main":
             return state
-        floor = int(state.get("modal_floor", -10**6))
-        live = [b for b in state.get("buttons", [])
-                if int(b["layer"]) >= floor and not b.get("disabled") and b.get("kind") != "slider"]
-        pick = None
-        for word in _ANSWERS:
-            pick = next((b for b in live if b["text"].strip().lower().startswith(word)), None)
-            if pick:
-                break
+        pick, live = _pick_answer(state)
         if pick is None and "battle_diorama" in " ".join(modal):
             w, h = state["factor"]["logical_size"]
             state = _act(run, f"click_at {int(w / 2)} {int(h / 2)}")
@@ -2822,14 +2868,7 @@ def _ic4b_steps(run: pathlib.Path, by_button: bool) -> dict:
 def _answer_chain_step(run: pathlib.Path, state: dict, answered: list) -> dict:
     """One answer of `_answer_chain` (the same pick), returning the next state."""
     modal = _modal(state)
-    floor = int(state.get("modal_floor", -10**6))
-    live = [b for b in state.get("buttons", [])
-            if int(b["layer"]) >= floor and not b.get("disabled") and b.get("kind") != "slider"]
-    pick = None
-    for word in _ANSWERS:
-        pick = next((b for b in live if b["text"].strip().lower().startswith(word)), None)
-        if pick:
-            break
+    pick, live = _pick_answer(state)
     if pick is None and "battle_diorama" in " ".join(modal):
         w, h = state["factor"]["logical_size"]
         answered.append("battle_diorama: skip")
@@ -2959,6 +2998,19 @@ class TestRowIC4bHisOwnJudgementAtTheCompactView:
 # A new campaign draws its own seed, so the plan Austria draws varies; the pins read the words
 # every plan shares.
 
+def _map_label(state: dict, name: str):
+    """A name on the map as the map draws it: alone ("Mack"), or heading the
+    corps that share his province ("Mack · 1 more"). FUN2B-24 (the hook's
+    second run): on the Milan road a second Austrian corps joined Mack in
+    Swabia by turn 4, his label read "Mack · 1 more", and the walk, which
+    looked for "Mack" alone, found no one."""
+    for lab in state.get("map") or []:
+        text = str(lab.get("text") or "")
+        if text == name or text.startswith(name + " · "):
+            return lab
+    return None
+
+
 def _ic4b_plans_steps(run: pathlib.Path) -> dict:
     states: dict = {}
     log: list = []
@@ -2993,7 +3045,7 @@ def _ic4b_plans_steps(run: pathlib.Path) -> dict:
     assert war is not None, [b.get("text") for b in _ic_on(state, "WarStatusPanel")]
     states["war_page"] = _ic_press(run, war)
     state = _act(run, "key Escape")
-    mack = next((lab for lab in state.get("map") or [] if lab.get("text") == "Mack"), None)
+    mack = _map_label(state, "Mack")
     assert mack is not None, [lab.get("text") for lab in state.get("map") or []]
     r = mack["rect"]
     states["province"] = _act(run, f"click_at {int(r[0] + r[2] / 2)} {int(r[1] + r[3] / 2 + 5)}")

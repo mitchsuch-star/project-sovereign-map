@@ -10408,7 +10408,7 @@ A shot may carry **`settle_ms`**: the capture waits that much REAL time after it
       - a self-scrolling label takes the pad as its own bottom margin (it draws no line that starts there);
       - a ScrollContainer gets a `WholeLinePad` spacer beside it in its box, because a container's panel margin does not clip its child. When the box has other expanding children, they give up part of the spacer's height too, so the spacer is the pad over the share the scroll was measured to give up (its height before and after the first pad; the wizard's counsel and list share one box);
       - a scroll held at its height floor (the settlement table's) gives the pad up from that floor;
-      - the pad is measured against the scroll's unpadded window, so scrolling never stacks it. An outside change (the content, the width, the box's height) takes the pad away and measures again.
+      - the pad is measured against the scroll's unpadded window, so scrolling never stacks it. An outside change (the width, the box's height, or the unpadded window itself) takes the pad away and measures again; a change of the content alone keeps the pad and measures the lines again (`Utils._same_window` — FUN2B-22, November 27, 2026: taking the pad away first showed the window a line taller for two frames and put it back, the settlement table's 11-px swing under its first "Offer them more").
 
     The capture harness records every line cut at a scroll's edge (`frame["cut_lines"]`): a RichTextLabel inside a ScrollContainer (the window is the container's whole rect) or one that scrolls itself. `tools/uxr3_frame_census.py` reads it with the grips' and the centre ticks' rects (F4, F1). On F3's thirteen surfaces at five resolutions, 57 cut lines became 0. The closing re-read's whole shoot found the class on the surfaces F3 had not named (69 cuts, and the one R3 reading under its floor: a log fold half under the edge); part 5c's re-shoot of those eleven families at five resolutions (250 frames) read 0.
   - *F5:* the campaign log and the wizard close with the drawn cross; the pause menu leads with Resume; the proposal popup has a cross that takes its own safe exit (shown only where it has one); the tutor card's "–" and "Skip" are chips; the Orders tab's Cancel is a chip.
@@ -19254,5 +19254,179 @@ modifier applied within 1e-9, and `consume=False` spends nothing. Four rows were
   GET and its peace chip), the rising (four turns, troops, a capture, the court risen again and erased again), the
   charge's mirror, the recruits, the surfaces (the ledger rows, the footer's "unless … or …", the map, the Codex, the
   hover), the shipped app's endpoints on the armed board, the seams.
-- `tests/test_fun2b_peace_terms_priced.py`: FUN-2b's three strict pins and the plain test (a total cession of Austria
-  at the bilateral table is refused at any war score).
+- `tests/test_fun2b_peace_terms_priced.py`: FUN-2b's test (§241.9) — its three strict pins, opened here, are plain
+  tests since FUN-2b (November 27, 2026).
+
+## §241 Row FUN, Session FUN-2b — PEACE TERMS PRICED: the table's land price that never stops, no whole country at one peace, the guided table within what the war buys, the price said on every province, land at the table frightening and land handed back calming (November 27, 2026)
+
+> FUN-2 made land taken BY ARMS cost something; land taken AT THE TABLE was still cheap past a point — the land
+> price stopped rising at five provinces, a whole court could be bought in one peace at a war score of 90, a cession
+> at the table frightened nobody, and the table named no price at all. The brief: `docs/NEXT_SESSION_PROMPT.md`'s
+> FUN-2b block (the review `docs/GAMEPLAY_REVIEW_2026_11_25.md` §1.3, §5 — FUN-2's sixth point, moved here by its
+> approved plan); the plan approved in Plan Mode (its "Decisions kept", each one line to reverse); the rules
+> `backend/game_logic/land_price.py` and `fear.py`'s FUN-2b half; the test `tests/test_fun2b_peace_terms_priced.py`;
+> the seams `tests/_fun2b_seams.py`; the ledger `BUG_FIXES.md` §"Row FUN, Session FUN-2b".
+
+### 241.1 The price keeps rising (PRICE — `land_price.the_tables_price_keeps_rising`)
+- `settlement_scoring.calculate_term_harshness_penalty` keeps the RATE (45 a 1.5 of harshness — a province's 0.3 is
+  9) and loses the −45 floor; `calculate_leader_own_losses` loses the −25 floor (the +5 kept-all ceiling stands). So
+  every province a package takes from a court costs it 9 (the land) + 5 (its own loss) on its bar of 50, its home
+  capital (`get_settlement_home_capital`) 15 more — the sixth as much as the first. Measured on the 1805 board at war
+  score 100 (Austria, a bare peace 77): 53, 39, 25, 1, −13, −27, −56 for one to seven provinces (Vienna last); before
+  FUN-2b the sixth and seventh were free (−13, −13, −13). The first province also forfeits the kept-all bonus and may
+  cross a balance-of-power band (24 rather than 14); a package past this war's tier ceiling pays the tier's −10 once.
+- A pure rule of the scorer (the pin calls the penalty with no world), so it binds every world, the AI's letters
+  scored by the same table included. Any very heavy non-land package (past the old 1.5) is priced past −45 too —
+  every burden keeps costing. The final clamp [−100, 100] stands.
+
+### 241.2 No whole country at one peace (WHOLE — `land_price.no_court_signs_away_every_province`)
+- `land_price.takes_every_province(world, court, terms)`: the court holds at least one province, every one it holds
+  is in the package's land from it (`land_from`: cessions, a paid compensation, a carve's provinces) AND at least
+  one goes by cession or compensation. `whole_rule_binds(world, *parties, war_instance=, players_table=)`: the seam
+  up, the world armed (`fear.armed`), and France's house signs — a party of the house (the ceder or the receiver), a
+  war a court of the house fights (`house_in_war` — the third-party road never treats such a war), or the player's
+  own table. `whole_country_clause(world, terms, war_instance=)` names the clause and the court.
+- Read at: `settlement_validation.validate_settlement_terms` (refusal `takes_every_province`, its words in
+  `display_names.SETTLEMENT_DISABLED_REASON_DISPLAY`: "That would take every province they hold. No country gives up
+  all its land at one peace - taking a whole country takes more than one war."); `settlement_ratify.
+  _apply_settlement_terms` (a cession that would take all a court still holds is dropped, named — defence in depth);
+  the hand-pick (`settlement_actions._handle_settlement_demand_action`, "Vienna is the last land Austria would keep,
+  Sire — no country gives up all its land at one peace."); the guided pool (`settlement_baseline.
+  _demand_baseline_region_candidates` offers nothing when one province remains); the two-court peace
+  (`diplomacy.calculate_acceptance`: a whole-country demand → REJECT, the result's top-level `takes_every_province`
+  and the feedback's first sentence); the AI's aim (`war_council.aim_cessions` never strips a court of the house);
+  the AI's letters (`ai_diplomacy.dictated_demands` → `land_price.trim_whole_demands`,
+  `_settlement_offer_build_terms` → `trim_whole_terms`).
+- **Kept as they were:** a peace between two computer courts keeps the 90 line (AI_INTENT_SPEC D2: an AI war may
+  erase a minor); an authored carve ALONE (`create_client`) keeps NA-6c's decisive-victory line — the Papal States
+  and Naples are one province each, and the Roman Republic and Murat's crown (DY-6) stay reachable at 90
+  (FUN2B-2). Cessions plus a carve never swallow a court (the validator).
+
+### 241.3 The guided table offers only what the war buys (OFFER — `land_price.the_table_offers_only_what_the_war_buys`)
+- The opening draft (`settlement_baseline._demand_terms_for_court`: a land clause kept only while the court still
+  SIGNS, 50; gold keeps the near floor, 35), its relax pass (`_relax_baseline_demands_for_package_harshness`: a court
+  the package takes land from must still sign — land stripped first), the declared articles' opening
+  (`declared_goals.declared_draft(..., war_id=)`: a land article opens only while its court still signs, never one
+  that takes the last province), the Harsher button (`settlement_actions._land_the_war_buys`, both the press and its
+  dry run), and the "Take X" / "Declared at the war" / carve rows (`settlement_staging._stamp_land_prices`): a row
+  she would not sign with is greyed with its price and why; a province row's dropdown keeps only what she would
+  still give, each with its own price (`region_labels`, FUN2B-16). Your own hand-picks are not greyed by price — only
+  the last province is refused (with the seam down, not even that — FUN2B-12).
+- Exact, not estimated: `land_price.price_rows` / `table_for` (`_Table`) re-score each variant with the table's own
+  aggregator (`settlement_baseline.compute_per_court_acceptance` — the number beside the court's name; about a
+  millisecond a call, memoized per package).
+
+### 241.4 The table says the price (no seam — it moves no corps and no die)
+- Each land line a court gives now: `price`, `price_display` "costs her 24 — without it she would be at 77"; each
+  land row offered: "would cost her 24 more — she would fall to 53" (greyed: "She would refuse: taking Carniola
+  would bring her down to 41, under the 50 she needs to sign." / "…with these terms she is at 46, under the 50 she
+  needs to sign, and taking Carniola would bring her down to 32."); the last province: "She keeps at least one
+  province: no country gives up all its land at one peace — taking a whole country takes more than one war."
+- The court's `land_line`: "She would give 2 more provinces now." / "She would give no more land now: win more of
+  the war, ask less of her, or give her something for it." / "She will not sign even this yet: …" / "She holds one
+  province: …" — the cheapest province she would still sign with, then the next (FUN2B-19).
+- Under the courts (`proposal_confirm_popup.gd` PART_TAIL; the legend on the authoring surface, where the figures are
+  — FUN2B-18): `land_legend` "The number beside a
+  country's name is how willing she is to sign; she signs at 50. Each province you ask lowers it by the figure shown
+  (her capital by more), and dropping one gives that back. No country gives up every province it holds at one
+  peace." and `fear_line` (241.5). An unarmed world stamps nothing (the old table, byte for byte).
+- The blind reading (FUN2B-1): three rounds, the key written first — the bare "costs her 24" (one reader added the
+  cost: missed), "already counted in her 46" (all three subtracted on dropping it: missed), then the words above:
+  three fresh readers 6 of 6.
+
+### 241.5 Land at the table frightens; land handed back calms (FRIGHT, CALM — `fear.py`)
+- ONE writer, `fear.treaty_moves_land(world, region, giver, receiver, prior, house="")`, called from
+  `game_end.record_province_title` for kind `TITLE_TREATY` BEFORE its homeland pop (a hand-back IS a homeland return)
+  with the title as it stood, from `game_end.record_carve_titles` (signed to the carver — the client may not be of
+  the house yet) and from `world_state._return_surety_regions` (an indemnity's surety going home). Every treaty road
+  (the table's cessions, the two-court ratifier, compensation, a signed cession of held ground, the status quo's
+  retentions and returns, an ultimatum yielded to, a hand-back) goes through one of the three.
+- Into France's house from outside: `capture_deltas` with the giver as the loser — exactly a capture's fear — never
+  for a province whose fear was paid (`_paid_before(prior)`: France's house held it — an occupation the peace
+  confirms, a status-quo retention, a signed cession of held ground — or it was taken FROM the house and comes back,
+  the capture road's own "recovered" rule, FUN2B-7). The courts beside the province count as the loser's
+  neighbours though the treaty moved it first (FUN2B-10); the call has its own guard (FUN2B-11). Out of France's house to an outside court: `fear.calm` — THAT court's
+  fear falls by what taking that province added to it (floored at 0); other courts keep theirs.
+- The ledger `fear_book["taken"]` `{region: {court: amount}}` — written by `apply_deltas` (a capture or a cession at
+  the table; a re-taking replaces it), read and dropped by the calm, pruned at `fear.fade` of provinces the house no
+  longer holds, kept by `clean_book` only when it holds something (`SAVE_FORMAT_REFERENCE.md`). A rising is not a
+  hand-back (no calm). What each taking added fades with the fear (the fade takes its step off every entry —
+  FUN2B-9), so an old conquest handed back never wipes fresher fear; the calm needs the house to have HELD the
+  province right before (a retention of enemy-held ground calms nobody — FUN2B-8).
+- Before the click: `fear.table_forecast(world, terms)` / `table_line` — on the settlement table (`fear_line`), the
+  two-court card (`diplomatic_dialogue._enrich_proposal_summary` → `_bilateral_fear_line`) and the ultimatum card
+  (`_enrich_ultimatum_dialogue`, FUN2B-5), drawn on the peace preview a two-court PEACE card is (FUN2B-17), and the
+  calm on the province-return letter and its Return button (FUN2B-15): "This peace would add to Europe's fear of France: Saxony +8, Austria +16,
+  Bavaria +16 and 13 more countries. Saxony's fear of France would reach 54, past 50, but she would stay out: she
+  neither borders us nor lost or wants land we hold." — the countries the peace carries past the line named first
+  (FUN2B-3); "Handing back Tyrol would calm Austria: her fear of France falls 16."
+- The texts that told the old rule now tell this one: `fear.league_footer` ("by force or at the peace table … A
+  province we hand back calms the country it goes to"), the Codex's "Fear", "Peace terms (the settlement table)" and
+  "War score".
+
+### 241.6 Both sides (golden rule 5)
+- Read as the dictated letters' own idiom — "priced by the same scorer when the letter is read": the price is one
+  direction-blind function and the whole-country rule binds the AI's letters; their size stays ruled (at most two
+  provinces, never a capital, force-sent — ruling I item 1). One line to reverse: also trim their land to what
+  France's own row would give.
+
+### 241.7 The measure (the rule written before the data — `tools/_fun2b_measure.py`, record `tools/_fun2b_measure_2026_11_27.json`)
+- **(a)** the three strict pins: plain tests, green.
+- **(b)** ten ambient seeds — France beats Austria's armies on turn 3 and takes four provinces on turns 4–7; on turn
+  10 the table twice (AS PLAYED and DECISIVE, the war score set to 100): the guided draft and every land row still
+  offered (from the bare peace), the hand-picks on a copy, a buy-all with 5,000 gold, the signature. **10 of 10 pass**
+  (every offer within the war, the last province refused, the buy-all refused, Austria standing, the fear as
+  forecast). Reported plainly: on no seed was a province affordable at that point — at 100 Austria stood at 35–52
+  with a bare peace and the first province cost her 23–34 — so the peaces signed (7 decisive readings) carried no
+  land; the cession's fear is proven by the tests and the crafted plays. Two smoke runs reshaped the script before the
+  measured run (the record's notes).
+- **(c)** the France band (`tools/_fun2b_band_measure.py`, records `tools/_fun2b_band_2026_11_27.json` and, on the
+  final tree, `tools/_fun2b_band_final.json`), reported:
+  arm 0 (every FUN-2b seam down) **28 / 28 / 25** (FUN-2's reading reproduced); arm ALL **28 / 28 / 25** — unchanged
+  (re-read on the final tree after the review's fixes: the same).
+- **(d)** the forty-turn series (`tools/_fun2b_series_arms.py`, records `tools/_fun2b_series_arms_seven.json` — the
+  seven arms — and `tools/_fun2b_series_arms_final.json`, arms 0 and ALL on the final tree):
+  unchanged on all seven arms (0, ALL, each seam alone) — `BASELINE_SERIES` not re-pinned; only PRICE (26 reads) and
+  WHOLE (3) are read on the idle-France board, the other three never reached.
+
+### 241.8 Pressed in the real client, read blind, reviewed
+- **The press** (`tools/dd_b_play.py` on 8006): at 5120 × 1377 scale 1.8 (a crafted save — Austria's armies beaten,
+  three provinces taken, war score 21) the greyed rows with their prices and reasons, the court's line, the legend;
+  at 1600 × 900 scale 2.0 (war score 100) the court's line answering a dropped gold demand ("She would give 1 more
+  province now"), the offered row ("would cost her 24 more — she would fall to 53"), the priced line after taking
+  it, and the fear line. Found and fixed: FUN2B-6 (a carve row greyed for its price printed its template's met
+  "(requires …)" as if it were the reason). No script errors.
+- **The review** (three lanes on a frozen copy — the backend rules, the client and its words, the sibling sweep):
+  FUN2B-7 … FUN2B-21 fixed with tests — the ones that mattered: the two-court PEACE card (the peace preview) never
+  drew the fear line; land taken from France and ceded back frightened again; the ledger never faded (an old
+  conquest handed back could wipe fresher fear); the fear was read after the treaty moved the province; the hook sat
+  in the title writer's catch-all. The rest are recorded with their reasons (`BUG_FIXES.md`).
+- **The commit hook's first run** (the whole suite, 43,963 passed) found what the touched families had not:
+  FUN2B-22 — the settlement table's body swung 11 px for two frames under its first "Offer them more": the new
+  legend put a line of text at the body's foot, where a whole-line pad now stood, and any change of the body's
+  height took that pad away for two frames (a defect every padded scroll had carried; fixed once, in
+  `Utils._scroll_window_settled`); FUN2B-23 — three new broad handlers in `land_price.py` reported nothing (the
+  code-health ratchet; one lookup, `_held`, now reports); FUN2B-24 — a client walk on the historical seed is not
+  one road (Archduke Charles went to Milan on turn 2 in one run and to Franconia in the next, same code), and on
+  the Milan road the walk had no answer for Teulie's "Fight to the Last / Attempt a Breakout". The second run found
+  the walk's next road assumption (Mack's label alone, where a second corps shared his province: "Mack · 1 more")
+  and the battle walk of record's fingerprint of `utils.gd` (`tools/ba1_acts_walk.py`, re-shot whole, as every
+  session that changes `utils.gd` re-shoots it).
+
+### 241.9 Tests
+- `tests/test_fun2b_peace_terms_priced.py` (66): the three pins as plain tests; the price (nine a province,
+  the own-loss floor, the list price, the board's falling numbers, the seam down); the whole country (the validator,
+  the ninety line between computer courts, the ratifier, the hand-pick, the pool, the carve's decisive line, cessions
+  plus a carve, the two-court peace, the house predicate, the AI letters' trims, the formables row, the seam down);
+  the offers (the opening draft, a greyed row and its words, an offered row and its dropdown, the court's line, a
+  priced line, the legend and the fear line, Harsher's land, the declared draft, the seam down, an unarmed world,
+  whole numbers); fear at the table (a cession = a capture, the forecast = the signature, held land, a retention, a
+  carve, computer courts, the seam down, the crossing line); the calm (exactly what taking added, a cession from
+  France, the status quo's return, a surety, the ledger's save and prune, a rising, the seam down); the surfaces (the
+  two-court card, the footer, the Codex, the client's keys); the seams; the review's rows (recovered land, a
+  retention's calm, the fading ledger, the read order, the guarded hook, the seam-gated last province, the "ready to
+  join" and "stay at" words, the province letter, the dropdown's prices, the client's peace card and legend); the
+  hook's rows (a padded scroll keeps its pad when only its content changes, a failed province lookup reported).
+- `tests/test_dd_b_the_client_hands.py`: `TestTheAnswerChain` (FUN2B-24 — the walks' one pick, `_pick_answer`,
+  answers a cornered general's choice with the first, after every plain answer).
+- Re-pinned with its history kept by name: `tests/test_common_peace_acceptance.py` (raw 3.0: −45 → −90).

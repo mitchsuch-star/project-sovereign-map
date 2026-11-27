@@ -1,4 +1,51 @@
-# NEXT SESSION PROMPT — Row FUN, Session FUN-2b: peace terms priced (read the first block); then FUN-3 … FUN-5, S16, row TU, Session H
+# NEXT SESSION PROMPT — Row FUN, Session FUN-3: goals (read the first block); then FUN-4, FUN-5, S16, row TU, Session H
+
+> **▶ NEXT: row FUN, Session FUN-3 — goals.** Its owning doc is `docs/GAMEPLAY_REVIEW_2026_11_25.md` (§2 the loop's
+> problems — "one far goal"; §3 item 1, the goal ladder; §5 the FUN-3 row). Open in Plan Mode (the user's standing
+> preference); the forks below are pre-decided — say in the plan which you keep, each one line to reverse. Before it:
+> the user's play of FUN-2b, one question — "did the peace table tell you what each province costs?".
+>
+> **Why:** the review measured one far goal (THE PEACE: 45 titled provinces, then the Congress) and nothing in
+> between — the player cannot say what to aim for this turn or in five. EU4's mission trees and Civ's eras give a
+> ladder: something that finishes soon, something in five to ten turns, something for the campaign.
+>
+> **The pre-decided design:**
+> 1. **France's goal ladder** — about 12–15 authored goals in the 1805 campaign file (a `goals` block, armed like
+>    `fear`: the bare test world, the tutorials and the legacy map keep the old desk byte for byte), Ulm to Tilsit:
+>    each a plain condition read off the board through the systems that exist (a capture, a peace signed and what it
+>    gave, a crown erected, a coalition broken, the Continental System's ports, the 45 titled provinces), a reward said
+>    on the goal (gold, authority, a law's cost, a marshal's laurels), and the goals it opens (branches: peace with
+>    Britain, partition Austria, the Rhine, Prussia, Poland).
+> 2. **The desk shows the next goals** — THE PEACE row gains the ladder's current rung and the one after, with its
+>    progress in plain words; a goal met is told once (the dispatch), its reward paid at once.
+> 3. **The turn-44 scoreboard on the desk** — what the campaign's verdict at turn 44 reads from (`game_end`), counted
+>    as it stands now, so "how am I doing" has an answer every turn.
+> 4. **No new mechanics** — every condition and reward reads or pays through an existing system (golden rule 5 for the
+>    AI: the courts' own agendas stay theirs).
+>
+> **The measure, the rule written before the data:** fresh readers name the next goal on each of the first ten turns
+> of the historical seed from the desk's own text (blind, the key written first; bar 9 of 10 per reader and no answer
+> naming a goal the game does not have); the France band reported, never gated; the forty-turn series re-pinned with
+> its history kept by name if it moves.
+>
+> **Done when:** the review's §5 done-when for FUN-3 holds; `tests/test_fun3_goals.py` (opened by this session)
+> passes; every new word plain (golden rule 11); a build the user plays with one question — "do you know what you're
+> aiming for?". Then FUN-4 (the turn diet — FUN-3 and FUN-4 may merge), FUN-5 (the sea made plain), S16 (the `main.gd`
+> split), row TU, Session H.
+>
+> **Row FUN, Session FUN-2b ✅ BUILT November 27, 2026** (`SYSTEMS_REFERENCE.md` §241; `BUG_FIXES.md` §"Row FUN,
+> Session FUN-2b", FUN2B-1 … FUN2B-24): every province priced at the table (9 + 5 on the court's bar of 50, its
+> capital 15 more, no floor — "costs her 24 — without it she would be at 77"; "would cost her 14 more — she would fall
+> to 56"; "She would give 1 more province now"), the guided table within what the war buys (greyed rows say why), no
+> whole country at one peace France's house signs (an authored carve alone keeps the 90 line; two computer courts keep
+> it), land at the table frightening as a capture and land handed back calming the court that gets it (the ledger
+> fades with the fear), said on the peace table, the two-court peace card, the ultimatum card and the province-return
+> letter. The measure: 10 of 10 seeds, the band 28 / 28 / 25, the series unchanged. Committed and pushed at the user's
+> word ("code commit push", November 27).
+
+---
+
+## (kept) NEXT SESSION PROMPT — Row FUN, Session FUN-2b: peace terms priced — ✅ BUILT November 27, 2026 (the brief as it was decided, kept)
 
 > **▶ NEXT: row FUN, Session FUN-2b — peace terms priced.** Its owning doc is `docs/GAMEPLAY_REVIEW_2026_11_25.md`
 > (§1.3, §5 — the FUN-2 row's sixth point, which FUN-2's approved plan moved here). Open in Plan Mode (the user's

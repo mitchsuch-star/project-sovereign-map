@@ -1,0 +1,2324 @@
+{
+ "rule": "(the brief's own words, kept here verbatim\nbefore any run):\n    on the ten ambient seeds, no peace France signs takes a court's every\n    province.\nRead here as (the plan approved in Plan Mode, item (b) of its measure):\n    on each of the ten ambient seeds, France beats Austria's field armies on\n    turn 3 and takes four of its provinces through the capture chokepoint on\n    turns 4-7 (Tyrol, Carniola, Croatia, Moravia \u2014 a garrison left in each;\n    Vienna left to Austria), the rest of Europe played by the computer; on\n    turn 10 France\n    opens the peace table for its war with Austria, covering Austria alone,\n    TWICE on copies of that board: AS PLAYED (the war score it has then) and\n    DECISIVE (its war score with Austria set to 100 \u2014 the strongest France the\n    table can face). Each time it takes the guided opening draft and every\n    land row the table still offers, one at a time; it then tries to add each\n    province Austria still holds by hand (on a copy), and to buy all of Austria\n    with 5,000 gold. It signs the guided package (Submit, then Ratify).\n    PASS on a seed when ALL hold in BOTH readings:\n      (1) every land row offered (not greyed) re-scores Austria at 50 or more\n          the moment it is offered;\n      (2) the hand-pick of the province that would leave Austria nothing is\n          refused, and no hand-picked package takes every province;\n      (3) the buy-all package is refused (`takes_every_province`);\n      (4) after the signature Austria still holds a province and stands;\n      (5) the fear the signature wrote is exactly the table's forecast, and the\n          provinces France already held wrote none.\n    Bar: 10 of 10. A missed bar is reported as missed, never moved.",
+ "notes": [
+  "Smoke run 1 of the first script (three provinces, the table on turn 8; historical) read France's war score with Austria at 9: no land was offered and even the bare peace was refused, so nothing was measured. The script was strengthened (five provinces, Vienna among them, the table on turn 10) and a DECISIVE reading (the war score set to 100) added beside the played one.",
+  "Smoke run 2 read Austria refusing every peace in both readings \u2014 France holding Vienna counts as her capital lost (RS-D1) \u2014 and the table's opening draft (its gold at the near floor, 35) refused even at 100, so nothing was signed and checks 4-5 held only vacuously. The measured script leaves Vienna to Austria (four provinces taken) and its player, after reading the opening draft (check 1 reads its land too), strips it to the bare peace before taking every land row still offered \u2014 the best case for land at the table."
+ ],
+ "runs": {
+  "historical": {
+   "seed": "historical",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Bohemia",
+    "Hungary",
+    "Moravia",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 1,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -27,
+     "bare_total": -27,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -60."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and taking Hungary would bring her down to -61."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 908
+      }
+     ],
+     "opening_total": 35,
+     "bare_total": 35,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 32,
+       "why": "She would refuse: with these terms she is at 35, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to 3."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at 35, under the 50 she needs to sign, and taking Hungary would bring her down to 1."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 908
+      }
+     ],
+     "land_line": "She will not sign even this yet: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out (close); review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "ulm": {
+   "seed": "ulm",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Moravia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Hungary",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 6,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -16,
+     "bare_total": -16,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -16, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -49."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -16, under the 50 she needs to sign, and taking Hungary would bring her down to -50."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 521
+      }
+     ],
+     "opening_total": 52,
+     "bare_total": 52,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 32,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 20, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 28, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 521
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Bohemia \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia, Moravia and Tyrol stay ours by the treaty \u2014 titled. Bohemia goes back to Austria: Bavaria only occupied it, and this treaty does not award it."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "austerlitz": {
+   "seed": "austerlitz",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Moravia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Hungary",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 6,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -16,
+     "bare_total": -16,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -16, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -49."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -16, under the 50 she needs to sign, and taking Hungary would bring her down to -50."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 639
+      }
+     ],
+     "opening_total": 50,
+     "bare_total": 50,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 17, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 26, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 639
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Bohemia \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia, Moravia and Tyrol stay ours by the treaty \u2014 titled. Bohemia goes back to Austria: Bavaria only occupied it, and this treaty does not award it."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "jena": {
+   "seed": "jena",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Bohemia",
+    "Hungary",
+    "Moravia",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 1,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -27,
+     "bare_total": -27,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -60."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and taking Hungary would bring her down to -61."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 300
+      }
+     ],
+     "opening_total": 50,
+     "bare_total": 50,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 23,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 27, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 26, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 300
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Carniola \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia and Tyrol stay ours by the treaty \u2014 titled."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "marengo": {
+   "seed": "marengo",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Moravia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Hungary",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 6,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -16,
+     "bare_total": -16,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -16, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -49."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -16, under the 50 she needs to sign, and taking Hungary would bring her down to -50."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 636
+      }
+     ],
+     "opening_total": 50,
+     "bare_total": 50,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 17, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 26, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 636
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Bohemia \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia, Moravia and Tyrol stay ours by the treaty \u2014 titled. Bohemia goes back to Austria: Bavaria only occupied it, and this treaty does not award it."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "eylau": {
+   "seed": "eylau",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Bohemia",
+    "Hungary",
+    "Moravia",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 4,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -25,
+     "bare_total": -25,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -25, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -58."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -25, under the 50 she needs to sign, and taking Hungary would bring her down to -59."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 300
+      }
+     ],
+     "opening_total": 50,
+     "bare_total": 50,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 23,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 27, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 26, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 300
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Carniola \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia and Tyrol stay ours by the treaty \u2014 titled."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "friedland": {
+   "seed": "friedland",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Bohemia",
+    "Hungary",
+    "Moravia",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 4,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -25,
+     "bare_total": -25,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -25, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -58."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -25, under the 50 she needs to sign, and taking Hungary would bring her down to -59."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 300
+      }
+     ],
+     "opening_total": 50,
+     "bare_total": 50,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 23,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 27, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 26, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 300
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Carniola \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia and Tyrol stay ours by the treaty \u2014 titled."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "wagram": {
+   "seed": "wagram",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Bohemia",
+    "Hungary",
+    "Moravia",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 1,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -27,
+     "bare_total": -27,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -60."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and taking Hungary would bring her down to -61."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 880
+      }
+     ],
+     "opening_total": 36,
+     "bare_total": 36,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at 36, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to 3."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at 36, under the 50 she needs to sign, and taking Hungary would bring her down to 2."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 880
+      }
+     ],
+     "land_line": "She will not sign even this yet: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out (close); review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "lodi": {
+   "seed": "lodi",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Moravia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Hungary",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 7,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -15,
+     "bare_total": -15,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -15, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -48."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -15, under the 50 she needs to sign, and taking Hungary would bring her down to -49."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Hungary",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 574
+      }
+     ],
+     "opening_total": 51,
+     "bare_total": 51,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 32,
+       "why": "She would refuse: carving the Illyrian Provinces out of her lands would bring her down to 19, under the 50 she needs to sign."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 24,
+       "why": "She would refuse: taking Hungary would bring her down to 27, under the 50 she needs to sign."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 574
+      }
+     ],
+     "land_line": "She would give no land now: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": true,
+      "error": null,
+      "message": "Settlement Ratified: the War for Bohemia \u2014 the table with Austria (3 pairs resolved). Status quo: Carniola, Croatia, Moravia and Tyrol stay ours by the treaty \u2014 titled. Bohemia goes back to Austria: Bavaria only occupied it, and this treaty does not award it."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  },
+  "rivoli": {
+   "seed": "rivoli",
+   "turn": 10,
+   "taken": [
+    "Tyrol",
+    "Carniola",
+    "Croatia",
+    "Moravia"
+   ],
+   "france_holds_of_austria": [
+    "Carniola",
+    "Croatia",
+    "Tyrol"
+   ],
+   "austria_holds": [
+    "Bohemia",
+    "Hungary",
+    "Moravia",
+    "Vienna"
+   ],
+   "readings": {
+    "as_played": {
+     "war_score": 1,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "opening_total": -27,
+     "bare_total": -27,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to -60."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at -27, under the 50 she needs to sign, and taking Hungary would bring her down to -61."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      }
+     ],
+     "land_line": null,
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out; review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    },
+    "decisive": {
+     "war_score": 100,
+     "austria_holds": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "opening_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 894
+      }
+     ],
+     "opening_total": 36,
+     "bare_total": 36,
+     "offered": [],
+     "greyed_at_open": [
+      {
+       "label": "Erect Illyrian Provinces from Austria's lands",
+       "price": 33,
+       "why": "She would refuse: with these terms she is at 36, under the 50 she needs to sign, and carving the Illyrian Provinces out of her lands would bring her down to 3."
+      },
+      {
+       "label": "Take Hungary from Austria",
+       "price": 34,
+       "why": "She would refuse: with these terms she is at 36, under the 50 she needs to sign, and taking Hungary would bring her down to 2."
+      },
+      {
+       "label": "Erect Kingdom of Hungary from Austria's lands",
+       "price": null,
+       "why": "Your armies do not hold every province the new state would be made of."
+      }
+     ],
+     "guided_terms": [
+      {
+       "type": "peace"
+      },
+      {
+       "type": "gold_indemnity",
+       "from": "Austria",
+       "to": "France",
+       "amount": 894
+      }
+     ],
+     "land_line": "She will not sign even this yet: win more of the war, ask less of her, or give her something for it.",
+     "fear_line": "",
+     "hand_picks": [
+      {
+       "region": "Bohemia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Hungary",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Moravia",
+       "success": true,
+       "error": null
+      },
+      {
+       "region": "Vienna",
+       "success": false,
+       "error": "takes_every_province"
+      }
+     ],
+     "buy_all": {
+      "valid": false,
+      "error": "takes_every_province"
+     },
+     "signed": {
+      "success": false,
+      "error": "acceptance_rejected",
+      "message": "Sire, the situation has shifted since this settlement was staged. Acceptance now reads Holding out (close); review the terms again before ratifying."
+     },
+     "austria_after": [
+      "Bohemia",
+      "Hungary",
+      "Moravia",
+      "Vienna"
+     ],
+     "austria_stands": true,
+     "fear_forecast": {},
+     "fear_written": {},
+     "held_land_ceded": [],
+     "checks": {
+      "1_offers_within_the_war": true,
+      "2_last_province_refused": true,
+      "3_buy_all_refused": true,
+      "4_austria_stands": true,
+      "5_fear_as_forecast": true
+     }
+    }
+   },
+   "war_id": "war_1",
+   "checks": {
+    "as_played:1_offers_within_the_war": true,
+    "as_played:2_last_province_refused": true,
+    "as_played:3_buy_all_refused": true,
+    "as_played:4_austria_stands": true,
+    "as_played:5_fear_as_forecast": true,
+    "decisive:1_offers_within_the_war": true,
+    "decisive:2_last_province_refused": true,
+    "decisive:3_buy_all_refused": true,
+    "decisive:4_austria_stands": true,
+    "decisive:5_fear_as_forecast": true
+   }
+  }
+ },
+ "verdicts": {
+  "historical": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 1,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": false
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "ulm": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 6,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "austerlitz": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 6,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "jena": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 1,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "marengo": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 6,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "eylau": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 4,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "friedland": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 4,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "wagram": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 1,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": false
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "lodi": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 7,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": true
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  },
+  "rivoli": {
+   "pass": true,
+   "failed": [],
+   "war_score": {
+    "as_played": 1,
+    "decisive": 100
+   },
+   "signed": {
+    "as_played": false,
+    "decisive": false
+   },
+   "land_signed": {
+    "as_played": [],
+    "decisive": []
+   }
+  }
+ },
+ "summary": {
+  "passed": 10,
+  "of": 10,
+  "bar": 10
+ }
+}

@@ -16038,6 +16038,16 @@ class WorldState:
             region.controller = ceder
             region.stability = 50
             titles = getattr(self, "province_title", None)
+            # FUN-2b (row FUN, "peace terms priced"): a surety going home from
+            # France's house calms its court as any hand-back does (the one
+            # writer; it reads the title before it is popped).
+            try:
+                from backend.game_logic import fear as _fear
+                _fear.treaty_moves_land(
+                    self, region_name, holder, ceder,
+                    dict((titles or {}).get(region_name) or {}) if isinstance(titles, dict) else {})
+            except Exception as exc:
+                report(exc, "world_state._return_surety_regions: fear.treaty_moves_land")
             if isinstance(titles, dict):
                 titles.pop(region_name, None)
             self.invalidate_active_nations_cache()

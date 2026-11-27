@@ -1,0 +1,21 @@
+{
+ "_note": "Row FUN, Session FUN-2b \u2014 the France band on the commanded arms (the deploy gate's difficulty guard, 23\u201328; FUN-2b reports it, never gates): score_run's CMD-H / CMD-A / CMD-M per arm, France's provinces on the last ledger row. Arm 0 holds every FUN-2b seam down and must read 28 / 28 / 25 (row FUN-2's reading); arm ALL is the shipped tree. Written by tools/_fun2b_band_measure.py.",
+ "band": [
+  23,
+  28
+ ],
+ "standing": {
+  "CMD-H": 28,
+  "CMD-A": 28,
+  "CMD-M": 25
+ },
+ "arms": {
+  "ALL": {
+   "seams": [],
+   "CMD-H": 28,
+   "CMD-A": 28,
+   "CMD-M": 25,
+   "_holds": true
+  }
+ }
+}

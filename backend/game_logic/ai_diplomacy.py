@@ -1474,7 +1474,10 @@ def dictated_demands(world, nation: str, recipient: str, tier: int, war_score: i
                         "from_nation": recipient, "to_nation": nation})
         if continental_system_lord(world) == nation:
             demands.append({"type": "continental_system_join", "value": 1})
-    return demands
+    # FUN-2b (WHOLE, "both sides"): never a letter that takes every province
+    # a court of France's house holds — the rule would refuse it.
+    from backend.game_logic.land_price import trim_whole_demands
+    return trim_whole_demands(world, recipient, demands, nation)
 
 
 def dictated_settlement_clauses(world, nation: str, recipient: str, tier: int,
@@ -5385,9 +5388,20 @@ def _build_province_return_dialogue(proposal: Dict, world) -> Dict:
     refusal = abs(int(PROVINCE_RETURN_REFUSAL_RELATION))
     keep_line = (f"{region} stays with us; {court} takes it hard — relations fall "
                  f"{refusal}, and it will not ask again for {PROVINCE_RETURN_ASK_COOLDOWN} turns.")
+    # FUN-2b (row FUN, "peace terms priced" — the review's sibling sweep): what
+    # handing it back does to the court's fear of France, said before the click
+    # as every road that moves land says it ('' when taking it frightened her
+    # not at all).
+    from backend.game_logic import fear as _fear
+    player = str(getattr(world, "player_nation", "France") or "France")
+    return_line = _fear.table_line(world, [{"type": "territory_cede", "from": player,
+                                            "to": nation, "region": region}]) if region else ""
     # The popup's own register: Return / Keep, the refusal's price on Keep.
     popup_payload["is_province_letter"] = True
     popup_payload["keep_line"] = keep_line
+    if return_line:
+        popup_payload["return_line"] = return_line
+        popup_payload["clauses"] = list(popup_payload.get("clauses") or []) + [return_line]
     return {
         "type": "incoming_proposal",
         "target_nation": nation,
@@ -6484,7 +6498,10 @@ def _settlement_offer_build_terms(
                 world, player=accepter, proposer_nation=proposer_nation)
             if carve is not None:
                 terms.append(carve)
-        return terms
+        # FUN-2b (WHOLE, "both sides"): never a letter that takes every
+        # province France holds — the rule would refuse it at the table.
+        from backend.game_logic.land_price import trim_whole_terms
+        return trim_whole_terms(world, accepter, terms)
     # The indemnity is the war's price whatever the payer's chest (PC-R3; the
     # EC-W4 rule that dropped it for an empty chest is retired — T0-D GR-40
     # corrected this comment, and the letter now names a short chest). The

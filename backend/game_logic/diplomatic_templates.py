@@ -5189,6 +5189,10 @@ def calculate_raw_treaty_harshness(treaty: Dict) -> float:
     The 1.5 ceiling is applied at the acceptance helper, NOT here, so
     callers can audit the raw weight (settlement reviews show this in
     debug output) and detect packages that exceed the spec's
+    (FUN-2b, November 27, 2026: the helper keeps 1.5 as the RATE and lifts the
+    -45 floor — `land_price.the_tables_price_keeps_rising` — so the formula
+    above holds only with that seam down; the tier ceilings below are
+    untouched.)
     settlement-tier harshness ceilings (white_peace 0.10 / favorable_terms
     0.25 / dictated_terms 0.45 / harsh_peace 0.70 / total_victory 1.00 —
     spec §6.acceptance line 1188-1196).

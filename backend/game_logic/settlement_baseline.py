@@ -1179,6 +1179,12 @@ def _demand_baseline_region_candidates(
         court_regions = []
     if not court_regions:
         return []
+    # FUN-2b (WHOLE): the table never offers a court's last province — with
+    # one province left (the others promised already), nothing is offered.
+    from backend.game_logic import land_price as _land_price
+    if (_land_price.whole_rule_binds(world, court, players_table=True)
+            and len([r for r in court_regions if str(r) not in excluded]) <= 1):
+        return []
     proposer_holdings: set[str] = set()
     for participant in proposer_side_participants:
         if not participant:
@@ -1322,6 +1328,18 @@ def _relax_baseline_demands_for_package_harshness(
     terms = [dict(t) for t in combined_terms]
     # [P2-2] bare-peace scores are term-independent — cache per call.
     _bare_peace_scores: Dict[str, Any] = {}
+    # FUN-2b (OFFER): a court the package takes LAND from must still sign
+    # (the accept line) — the opening draft never offers land beyond what the
+    # war buys; territory is stripped first, as before. Gold keeps the floor.
+    from backend.game_logic import land_price as _land_price
+    _land_bar = (int(ACCEPTANCE_THRESHOLD) if _land_price.offers_bind(world)
+                 else int(near_acceptance_floor))
+
+    def _bar_for(court: str) -> int:
+        gives_land = any(
+            isinstance(c, Mapping) and c.get("type") == "territory_cede"
+            and str(c.get("from") or "") == court for c in terms)
+        return _land_bar if gives_land else int(near_acceptance_floor)
     # Bounded: at most one demand clause is removed per pass.
     for _ in range(len(terms) + 1):
         # PT-J2 widening (gate record PLAYTEST_FIXES_SPEC.md §4): package
@@ -1352,7 +1370,7 @@ def _relax_baseline_demands_for_package_harshness(
                 covered=sorted_covered, settlement_terms=terms,
                 side_pressure_result=side_pressure_result, direct_scores=direct_scores,
             )
-            if score is not None and int(score) < int(near_acceptance_floor):
+            if score is not None and int(score) < _bar_for(court):
                 # Review-round futility guard [P2-2] (August 14, 2026):
                 # stripping only ever REMOVES harshness, so a court whose
                 # score at the BARE shared peace is already below the
@@ -1823,7 +1841,7 @@ def _demand_terms_for_court(
         return []
     kept: List[Dict[str, Any]] = []
 
-    def _stays_acceptable(candidate: List[Dict[str, Any]]) -> bool:
+    def _stays_acceptable(candidate: List[Dict[str, Any]], floor: Optional[int] = None) -> bool:
         score = _score_court_for_baseline(
             world, war_id=war_id, war_instance=war_instance,
             proposer_side=proposer_side, accepting_side=accepting_side,
@@ -1831,7 +1849,14 @@ def _demand_terms_for_court(
             covered=covered, settlement_terms=[{"type": "peace"}] + candidate,
             side_pressure_result=side_pressure_result, direct_scores=direct_scores,
         )
-        return score is not None and int(score) >= int(near_acceptance_floor)
+        bar = int(near_acceptance_floor) if floor is None else int(floor)
+        return score is not None and int(score) >= bar
+
+    # FUN-2b (OFFER): the opening draft offers land only within what the war
+    # buys — the court still SIGNS with it (the accept line, not the near
+    # floor); the gold below keeps the near floor (the player tunes it).
+    from backend.game_logic import land_price as _land_price
+    land_floor = (ACCEPTANCE_THRESHOLD if _land_price.offers_bind(world) else None)
 
     # Border-region cession — strong lead only, mirroring the bilateral demand
     # stage (`war_score > 30`). Kept only if the court stays acceptable.
@@ -1848,7 +1873,7 @@ def _demand_terms_for_court(
                 "to": proposer_side_leader,
                 "region": region,
             }]
-            if _stays_acceptable(candidate):
+            if _stays_acceptable(candidate, land_floor):
                 kept = candidate
     # Affordable indemnity from the court, priced to its purse (EC-W4 —
     # was a flat CONCESSION_BASELINE_GOLD_FLOOR cap regardless of wealth).

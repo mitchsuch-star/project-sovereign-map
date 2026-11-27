@@ -898,12 +898,21 @@ def calculate_term_harshness_penalty(raw_total_harshness: float) -> Dict[str, An
     Half-away-from-zero rounding at the component boundary, then negate,
     then floor at `-45`. Returns a debug dict including the
     1.5-normalized intermediate so settlement reviews can show it.
+
+    FUN-2b (row FUN, "peace terms priced", November 27, 2026 —
+    `land_price.the_tables_price_keeps_rising`): the price never stops. The
+    1.5 stays the RATE (45 a 1.5 of harshness: a province's 0.3 is 9) and the
+    floor is gone — the sixth province costs as much as the first (the brief:
+    "the table's land price stops rising at five provinces"). Down: the
+    spec's line 1115 as written (the floor at -45).
     """
+    from backend.game_logic.land_price import the_tables_price_keeps_rising
+    rising = bool(the_tables_price_keeps_rising())
     raw = max(0.0, float(raw_total_harshness or 0.0))
-    capped = min(HARSHNESS_NORMALIZATION_CEILING, raw)
+    capped = raw if rising else min(HARSHNESS_NORMALIZATION_CEILING, raw)
     normalized = capped / HARSHNESS_NORMALIZATION_CEILING
     magnitude = _round_half_away_from_zero(normalized * HARSHNESS_PENALTY_MAX)
-    penalty = -min(HARSHNESS_PENALTY_MAX, magnitude)
+    penalty = -magnitude if rising else -min(HARSHNESS_PENALTY_MAX, magnitude)
     return {
         "score": int(penalty),
         "raw_total_harshness": raw,
@@ -911,6 +920,7 @@ def calculate_term_harshness_penalty(raw_total_harshness: float) -> Dict[str, An
         "normalized": normalized,
         "magnitude": int(magnitude),
         "ceiling": HARSHNESS_NORMALIZATION_CEILING,
+        "price_keeps_rising": rising,
     }
 
 
@@ -1162,10 +1172,20 @@ def calculate_leader_own_losses(
         "lost_mapped_holdings": lost_mapped_holdings_subtotal,
     }
     raw_score = sum(components.values())
-    score = _clamp(raw_score, LEADER_OWN_LOSSES_CLAMP)
+    # FUN-2b (`land_price.the_tables_price_keeps_rising`): a court's own
+    # losses keep counting past -25 — every province 5, its capital 15 more,
+    # whatever else the package takes (the brief: "a province, a capital
+    # more"). The +5 ceiling (the kept-all bonus) stands. Down: the clamp.
+    from backend.game_logic.land_price import the_tables_price_keeps_rising
+    floor_lifted = bool(the_tables_price_keeps_rising())
+    if floor_lifted:
+        score = min(int(raw_score), int(LEADER_OWN_LOSSES_CLAMP[1]))
+    else:
+        score = _clamp(raw_score, LEADER_OWN_LOSSES_CLAMP)
     return {
         "score": int(score),
         "raw_score": int(raw_score),
+        "floor_lifted": floor_lifted,
         "regions_ceded_count": len(ceded_regions),
         "ceded_regions": list(ceded_regions),
         "capital_lost": capital_lost,

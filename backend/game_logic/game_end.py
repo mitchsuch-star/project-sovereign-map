@@ -853,6 +853,21 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
         return
     try:
         store = _title_store(world)
+        if str(kind) == TITLE_TREATY:
+            # FUN-2b (row FUN, "peace terms priced"): land moved by treaty
+            # frightens like a capture on its way into France's house and
+            # calms the court it goes to on its way out — read BEFORE the
+            # homeland pop (a hand-back IS a homeland return) and with the
+            # title as it stood (land the house already held paid its fear).
+            # (its own guard — the review, lane 1: a fault in the fear must
+            # never cost the province its title)
+            try:
+                from backend.game_logic import fear as _fear
+                _fear.treaty_moves_land(world, str(region), str(from_nation or ""),
+                                        str(receiver), dict(store.get(region) or {}),
+                                        house=str(house or ""))
+            except Exception as exc:
+                report(exc, "game_end.record_province_title: fear.treaty_moves_land")
         if _is_homeland(world, region, receiver):
             store.pop(region, None)
             # T4-2b: the court's own ground comes home — its authored
@@ -1793,6 +1808,15 @@ def record_carve_titles(world, provinces: Iterable[str], ceder: str,
         for name in provinces or []:
             if not name:
                 continue
+            # FUN-2b: the carve is a cession — the one writer reads it too,
+            # signed to the carver (its client may not be of the house yet).
+            try:
+                from backend.game_logic import fear as _fear
+                _fear.treaty_moves_land(world, str(name), str(ceder), str(client),
+                                        dict(store.get(str(name)) or {}),
+                                        house=str(carver or ""))
+            except Exception as exc:
+                report(exc, "game_end.record_carve_titles: fear.treaty_moves_land")
             store[str(name)] = {
                 "kind": TITLE_TREATY,
                 "since": turn,

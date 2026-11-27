@@ -685,7 +685,8 @@ def bid_opening_terms(world: Any, *, war_id: str, payer: str, court: str, amount
         try:
             from backend.game_logic.declared_goals import declared_draft
             terms = [dict(t) for t in declared_draft(world, war_instance=instance, proposer_side=side,
-                                                      proposer_leader=payer, covered=list(covered))]
+                                                      proposer_leader=payer, covered=list(covered),
+                                                      war_id=str(war_id))]
         except Exception as exc:
             report(exc, "bond.bid_opening_terms: declared_draft")
             terms = []

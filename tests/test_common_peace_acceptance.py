@@ -38,10 +38,8 @@ from backend.game_logic.settlement_scoring import (
     BASE_SIDE_PRESSURE_CLAMP,
     BURDEN_PENALTY_AGGREGATE_FLOOR,
     HARSHNESS_NORMALIZATION_CEILING,
-    HARSHNESS_PENALTY_MAX,
     HEGEMONY_MOD_CLAMP,
     LEADER_LOST_MAPPED_HOLDING_CAP,
-    LEADER_OWN_LOSSES_CLAMP,
     NEAR_ACCEPTANCE_FLOOR,
     TIER_HARSHNESS_CEILING,
     TIER_LEGITIMACY_BASE,
@@ -160,14 +158,19 @@ def test_base_side_pressure_clamp_and_rounding(input_score, expected):
     (0.0, 0),
     (0.36, -11),    # spec line 1155 Pressburg
     (0.75, -23),    # round((0.75/1.5)*45) = round(22.5) = 23 → -23
-    (1.5, -45),     # at ceiling → max penalty
-    (3.0, -45),     # above ceiling → still max penalty (clamped)
+    (1.5, -45),     # the old ceiling: 45 a 1.5 of harshness is still the RATE
+    # Row FUN, Session FUN-2b "peace terms priced" (November 27, 2026 —
+    # `land_price.the_tables_price_keeps_rising`): the price never stops. This
+    # case read -45 (the spec's line-1115 floor: "above ceiling → still max
+    # penalty (clamped)") — the sixth province was free; it reads -90 now.
+    (3.0, -90),
 ])
 def test_term_harshness_penalty_normalized_over_1_5(raw, expected):
-    """Spec §6.acceptance line 1115. Raw 1.5 ceiling, 45 magnitude max."""
+    """Spec §6.acceptance line 1115 — 45 a 1.5 of harshness, the floor lifted
+    by FUN-2b (the seam down restores it: `test_fun2b_peace_terms_priced`)."""
     result = calculate_term_harshness_penalty(raw)
     assert result["score"] == expected
-    assert -HARSHNESS_PENALTY_MAX <= result["score"] <= 0
+    assert result["score"] <= 0
     assert result["ceiling"] == HARSHNESS_NORMALIZATION_CEILING
 
 
@@ -242,7 +245,10 @@ def test_leader_own_losses_capital_ceded_triggers_penalty():
     # raw = -5 * 2 (regions) + -15 (capital) = -25
     assert result["raw_score"] == -25
     assert result["capital_lost"] is True
-    assert result["score"] == LEADER_OWN_LOSSES_CLAMP[0]  # clamped at -25
+    # Row FUN, Session FUN-2b (November 27, 2026): no floor binds any more (the
+    # score IS the raw sum; it read the -25 clamp, which this sum happens to
+    # equal — the sweep's catch); the seam down restores the clamp.
+    assert result["floor_lifted"] is True and result["score"] == result["raw_score"] == -25
 
 
 def test_leader_own_losses_keeps_all_bonus_with_holdings():
@@ -289,8 +295,9 @@ def test_leader_own_losses_lost_mapped_holdings_capped_at_minus_10():
     )
     assert result["lost_mapped_holdings_count"] == 3
     assert result["lost_mapped_holdings_subtotal"] == LEADER_LOST_MAPPED_HOLDING_CAP
-    # final = -5 * 3 (regions) + -10 (holdings cap) = -25 → clamp -25
-    assert result["score"] == -25
+    # final = -5 * 3 (regions) + -10 (holdings cap) = -25 — FUN-2b: the raw sum
+    # itself (no floor binds; it equalled the old -25 clamp by coincidence)
+    assert result["score"] == result["raw_score"] == -25 and result["floor_lifted"] is True
 
 
 def test_burdened_participant_penalty_low_direct_score_minor():

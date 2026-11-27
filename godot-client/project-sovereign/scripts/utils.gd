@@ -2284,7 +2284,18 @@ static func _scroll_window_settled(sc: ScrollContainer, rec: Dictionary, spacer:
 	var box_h: float = (sc.get_parent() as Control).size.y if sc.get_parent() is Control else 0.0
 	var key := Vector3(content_h, sc.size.x, box_h)
 	if not key.is_equal_approx(rec["key"]):
+		var was: Vector3 = rec["key"]
 		rec["key"] = key
+		# FUN-2b (row FUN, November 27, 2026 — the commit hook's engine lane): a
+		# change of the CONTENT alone leaves the window as it was measured — a
+		# ScrollContainer's height never follows its content — so the pad stays
+		# and the lines are measured again. Taking the pad away first showed the
+		# window a line taller for two frames and put it back: the settlement
+		# table's body swung 11 px under its first "Offer them more" (its
+		# footer went and its peace card grew). Any other change (the width,
+		# the box's height, or the window the pad leaves) measures afresh.
+		if _same_window(sc, rec, spacer, was, key):
+			return true
 		rec["h0"] = -1.0
 		rec["share"] = 1.0
 		rec["share_read"] = false
@@ -2303,6 +2314,24 @@ static func _scroll_window_settled(sc: ScrollContainer, rec: Dictionary, spacer:
 		rec["share"] = clampf((float(rec["h0"]) - sc.size.y) / spacer.custom_minimum_size.y, 0.2, 1.0)
 		rec["share_read"] = true
 	return true
+
+
+static func _same_window(sc: ScrollContainer, rec: Dictionary, spacer: Control, was: Vector3,
+		key: Vector3) -> bool:
+	"""A change of the content alone (FUN-2b): the width and the box's height
+	as they were, and the window with the pad in force taken off — a floored
+	scroll's floor given back, a spacer's share given back — still the window
+	measured with no pad (h0)."""
+	if float(rec["h0"]) < 0.0 or was.x < 0.0:
+		return false
+	if not is_equal_approx(was.y, key.y) or not is_equal_approx(was.z, key.z):
+		return false
+	var unpadded: float = sc.size.y
+	if float(rec["floor_set"]) >= 0.0 and is_equal_approx(sc.custom_minimum_size.y, float(rec["floor_set"])):
+		unpadded += float(rec["floor0"]) - float(rec["floor_set"])
+	elif spacer.custom_minimum_size.y > 0.0:
+		unpadded += spacer.custom_minimum_size.y * float(rec["share"])
+	return absf(unpadded - float(rec["h0"])) <= 0.5
 
 
 static func clamp_centered_panel(panel: Control) -> void:

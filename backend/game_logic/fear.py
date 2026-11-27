@@ -51,7 +51,7 @@ before FUN-2. Every seam reads `armed(world)` too.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # ═══════════════════════════════════════════════════════════════════════
 # The numbers
@@ -133,6 +133,22 @@ def the_charge_takes_as_the_chokepoint_does() -> bool:
     return True
 
 
+def land_at_the_table_frightens() -> bool:
+    """FUN2B-FRIGHT (row FUN, Session FUN-2b, "peace terms priced"): land
+    passing BY TREATY into France's house from outside adds to every court's
+    fear as a capture does (`treaty_moves_land`, at the title chokepoint) —
+    never for a province France's house already held. Down: a cession at the
+    table frightens nobody."""
+    return True
+
+
+def land_handed_back_calms() -> bool:
+    """FUN2B-CALM: a province France's house gives a court by treaty lowers
+    THAT court's fear by what taking it added to it (the `taken` ledger every
+    fear write keeps). Down: nothing calms, and no ledger is kept."""
+    return True
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Arming — the scenario's block, the save's store
 # ═══════════════════════════════════════════════════════════════════════
@@ -192,6 +208,18 @@ def clean_book(raw: Any) -> Dict[str, Any]:
             book["causes"][str(court)] = kept[-CAUSES_KEPT:]
     for court, turn in (raw.get("faded") or {}).items():
         book["faded"][str(court)] = _int_or(turn, 0)
+    # FUN-2b: `taken` — {region: {court: amount}}, what each taking of a
+    # province held by France's house added to each court's fear (the calm's
+    # measure). Kept only when it holds something (an older save carries none).
+    taken: Dict[str, Dict[str, int]] = {}
+    for region, row in (raw.get("taken") or {}).items():
+        if not region or not isinstance(row, dict):
+            continue
+        amounts = {str(c): _int_or(v, 0) for c, v in row.items() if c and _int_or(v, 0) > 0}
+        if amounts:
+            taken[str(region)] = amounts
+    if taken:
+        book["taken"] = taken
     return book
 
 
@@ -424,6 +452,13 @@ def capture_deltas(world, region_name: str, loser: str, capturer: str) -> Dict[s
     capital = bool(getattr(region, "is_capital", False))
     if loser:
         near = loser_neighbours(world, loser)
+        if _holder(world, region_name) != loser:
+            # FUN-2b (the review, lane 1): a treaty road calls this AFTER the
+            # province changed hands — the courts beside it bordered the loser
+            # THROUGH it, as a capture (read before the move) counts them. A
+            # no-op on the capture road, where the loser still holds it.
+            extra = {_holder(world, a) for a in (getattr(region, "adjacent_regions", None) or [])}
+            near = sorted(set(near) | {c for c in extra if c and c != loser})
     else:
         # land held by nobody: the courts next to the province itself are near
         near = sorted({_holder(world, a) for a in (getattr(region, "adjacent_regions", None) or [])
@@ -460,6 +495,11 @@ def apply_deltas(world, deltas: Dict[str, int], region_name: str) -> None:
     turn = int(getattr(world, "current_turn", 0) or 0)
     causes = book.setdefault("causes", {})
     book.setdefault("faded", {})
+    if land_handed_back_calms():
+        # FUN-2b: what this taking added, court by court — the calm's measure
+        # when France's house gives the province back (a re-taking replaces it).
+        book.setdefault("taken", {})[str(region_name)] = {
+            str(c): int(a) for c, a in deltas.items() if int(a) > 0}
     for court, amount in deltas.items():
         store[court] = int(min(FEAR_CAP, int(store.get(court, 0) or 0) + int(amount)))
         if int(amount) < FEAR_PROVINCE:
@@ -500,6 +540,269 @@ def mirror_capture(world, region_name: str, charge_from: str, capturer: str,
         apply_deltas(world, deltas, region_name)
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# FUN-2b — land at the table frightens; land handed back calms
+# ═══════════════════════════════════════════════════════════════════════
+
+def _held_by_house(world, prior: Optional[Dict[str, Any]]) -> bool:
+    """The province's title BEFORE this treaty says France's house held it —
+    an occupation the peace confirms, a status-quo retention, a signed
+    cession of held ground: its fear was paid when it was taken."""
+    if not isinstance(prior, dict) or not prior:
+        return False
+    return (in_player_house(world, str(prior.get("holder") or ""))
+            or in_player_house(world, str(prior.get("house") or "")))
+
+
+def _paid_before(world, prior: Optional[Dict[str, Any]]) -> bool:
+    """Its fear was paid already: France's house held it (`_held_by_house`), or
+    it was taken FROM France's house and now comes back — the capture road's
+    own "recovered" rule (`world_state.capture_recovers_title`, DDB-42), which
+    frightens nobody by arms either (the review, lane 1)."""
+    if _held_by_house(world, prior):
+        return True
+    return (isinstance(prior, dict) and str(prior.get("kind") or "") == "conquest"
+            and in_player_house(world, str(prior.get("from") or "")))
+
+
+def calm(world, region_name: str, court: str) -> int:
+    """`court` receives `region_name` from France's house: its fear falls by
+    what taking that province added to it (the ledger), floored at 0. The
+    province's ledger row goes either way (it has left the house). Returns
+    the calm."""
+    book = getattr(world, "fear_book", None)
+    taken = (book or {}).get("taken") if isinstance(book, dict) else None
+    if not isinstance(taken, dict):
+        return 0
+    row = taken.pop(str(region_name), None)
+    if not taken:
+        book.pop("taken", None)
+    amount = int((row or {}).get(str(court), 0) or 0)
+    if amount <= 0:
+        return 0
+    store = getattr(world, "court_grudges", None)
+    if not isinstance(store, dict):
+        return 0
+    before = int(store.get(str(court), 0) or 0)
+    left = before - amount
+    if left > 0:
+        store[str(court)] = left
+    else:
+        store.pop(str(court), None)
+    return min(before, amount)
+
+
+def treaty_moves_land(world, region_name: str, giver: str, receiver: str,
+                      prior: Optional[Dict[str, Any]] = None, house: str = "") -> int:
+    """FUN-2b's ONE writer at the treaty roads — `game_end.record_province_title`
+    (kind treaty: every cession, return, retention, hand-back and ultimatum
+    goes through it), the carve's own title writer and the sureties' return.
+    `prior` is the province's title before this treaty; `house` the court the
+    land is signed to when the receiver is not yet of it (a carve's client).
+
+    Into France's house from outside: the courts' fear as a capture (the
+    giver is the loser) — never for a province France's house already held.
+    Out of France's house to an outside court: that court calms. Returns the
+    amount written (+) or calmed (-); 0 outside an armed world."""
+    if not chooses(world) or not region_name:
+        return 0
+    giver = str(giver or "")
+    receiver = str(receiver or "")
+    signed_to = receiver if in_player_house(world, receiver) else str(house or "")
+    into = bool(signed_to) and in_player_house(world, signed_to)
+    out_of = bool(giver) and in_player_house(world, giver)
+    if into and not out_of:
+        if not land_at_the_table_frightens() or _paid_before(world, prior):
+            return 0
+        deltas = capture_deltas(world, region_name, giver, signed_to)
+        apply_deltas(world, deltas, region_name)
+        return int(sum(deltas.values()))
+    if out_of and not into and receiver:
+        # only land France's house HELD is handed back — a peace that leaves an
+        # enemy the ground it occupies (a retention) calms nobody (the review)
+        if not land_handed_back_calms() or not _held_by_house(world, prior):
+            return 0
+        return -calm(world, region_name, receiver)
+    return 0
+
+
+_LAND_INTO = ("territory_cede", "territory", "territory_compensate")
+
+
+def table_moves(world, terms: List[Dict[str, Any]]) -> Dict[str, List[Tuple[str, str, str]]]:
+    """The land a package moves across France's house's border, as
+    (region, giver, receiver) — `into` (frightens), `out` (calms). Land
+    France's house already holds is not `into` (never twice)."""
+    into: List[Tuple[str, str, str]] = []
+    out: List[Tuple[str, str, str]] = []
+    regions = getattr(world, "regions", {}) or {}
+    for term in terms or []:
+        if not isinstance(term, dict):
+            continue
+        ttype = str(term.get("type") or "")
+        giver = str(term.get("from") or term.get("from_nation") or "")
+        receiver = str(term.get("to") or term.get("to_nation") or "")
+        if ttype in _LAND_INTO:
+            names = [str(r) for r in (term.get("regions") or []) if r] + (
+                [str(term.get("region"))] if term.get("region") else [])
+        elif ttype == "create_client":
+            names = [str(p) for p in (term.get("provinces") or []) if p]
+        else:
+            continue
+        titles = getattr(world, "province_title", None) or {}
+        for name in dict.fromkeys(names):
+            region = regions.get(name)
+            if region is None:
+                continue
+            holder = str(getattr(region, "controller", "") or "")
+            if in_player_house(world, receiver) and not in_player_house(world, giver):
+                # never twice: land the house holds, or land taken FROM the
+                # house coming back (the writer's own `_paid_before`)
+                if not in_player_house(world, holder) and not _paid_before(
+                        world, dict(titles.get(name) or {})):
+                    into.append((name, giver, receiver))
+            elif (in_player_house(world, giver) and not in_player_house(world, receiver)
+                  and in_player_house(world, holder)):
+                # only land the house HOLDS is handed back (the writer's rule)
+                out.append((name, giver, receiver))
+    return {"into": into, "out": out}
+
+
+def table_forecast(world, terms: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """What signing `terms` would do to Europe's fear of France, read before
+    the click: {adds: {court: n}, calms: {court: n}, crossing, joiners, when,
+    regions_into, regions_out}. Pure."""
+    empty = {"adds": {}, "calms": {}, "crossing": [], "joiners": [], "when": "",
+             "regions_into": [], "regions_out": []}
+    if not chooses(world):
+        return empty
+    moves = table_moves(world, terms)
+    adds: Dict[str, int] = {}
+    if land_at_the_table_frightens():
+        for name, giver, receiver in moves["into"]:
+            for court, amount in capture_deltas(world, name, giver, receiver).items():
+                adds[court] = adds.get(court, 0) + int(amount)
+    calms: Dict[str, int] = {}
+    calmed_by: Dict[str, List[str]] = {}
+    if land_handed_back_calms():
+        taken = ((getattr(world, "fear_book", None) or {}).get("taken") or {})
+        for name, _giver, receiver in moves["out"]:
+            amount = int((taken.get(name) or {}).get(receiver, 0) or 0)
+            if amount > 0:
+                calms[receiver] = calms.get(receiver, 0) + amount
+                calmed_by.setdefault(receiver, []).append(name)
+    line = rule(world, "join")
+    crossing: List[str] = []
+    joiners: List[str] = []
+    from backend.game_logic.coalition import qualifies_for_coalition
+    coalition = _france_league(world)
+    members = set((coalition or {}).get("members") or [])
+    for court in sorted(adds):
+        before = fear_of(world, court)
+        after = max(0, min(FEAR_CAP, before + adds[court] - calms.get(court, 0)))
+        if before <= line < after:
+            crossing.append(court)
+        if court in members or qualifies_for_coalition(court, world):
+            continue
+        if any(_would_join(world, court, after, name) for name, _g, _r in moves["into"]):
+            joiners.append(court)
+    when = ""
+    if joiners:
+        from backend.game_logic.coalition import (
+            THREAT_INSTANT_MIN, TREATY_ANNEX_ALARM_PER_PROVINCE, brewing_gate,
+            get_nations_at_war_with_target)
+        player = _player(world)
+        at_war = [c for c in get_nations_at_war_with_target(world, player)
+                  if border_or_stake(world, c)]
+        size = len(set(joiners) | set(at_war))
+        threat_after = (int(getattr(world, "threat_level", 0) or 0)
+                        + int(TREATY_ANNEX_ALARM_PER_PROVINCE) * len(moves["into"]))
+        if coalition is not None:
+            when = "at the end of this turn"
+        elif size < league_min(world):
+            when = (f"but a coalition needs {league_min(world)} countries and only {size} "
+                    f"would stand against us, so not yet")
+        elif threat_after >= THREAT_INSTANT_MIN:
+            when = "at the end of this turn"
+        elif threat_after >= int(brewing_gate(world, player)):
+            when = "in about 3 turns"
+        else:
+            when = (f"once France's alarm reaches {int(brewing_gate(world, player))} "
+                    f"(it would be {min(100, threat_after)})")
+    return {"adds": adds, "calms": calms, "calmed_by": calmed_by,
+            "crossing": crossing, "joiners": joiners,
+            "when": when, "regions_into": [m[0] for m in moves["into"]],
+            "regions_out": [m[0] for m in moves["out"]]}
+
+
+TABLE_NAMES_SHOWN = 3
+
+
+def table_line(world, terms: List[Dict[str, Any]]) -> str:
+    """The peace's fear in plain words, one paragraph, '' when it moves no
+    fear: "This peace would add to Europe's fear of France: Bavaria +16,
+    Saxony +8 and Russia +8. Bavaria would then fear France past 50 — enough
+    to join a coalition against us in about 3 turns." / "Handing back Tyrol
+    would calm Austria (-16)." """
+    forecast = table_forecast(world, terms)
+    adds = {c: a for c, a in forecast["adds"].items() if a > 0}
+    parts: List[str] = []
+    if adds:
+        # the countries this peace carries past the line are always named,
+        # first; then the most frightened, to three names in all
+        crossing = set(forecast["crossing"]) | set(forecast["joiners"])
+        ranked = sorted(adds.items(), key=lambda kv: (kv[0] not in crossing, -kv[1],
+                                                      court_name(world, kv[0])))
+        count = max(TABLE_NAMES_SHOWN, len([c for c, _a in ranked if c in crossing]))
+        shown = [f"{court_name(world, c, start=True)} +{a}" for c, a in ranked[:count]]
+        more = len(ranked) - count
+        if more > 0:
+            shown.append(f"{more} more {'country' if more == 1 else 'countries'}")
+        parts.append(f"This peace would add to Europe's fear of France: {_join_names(shown)}.")
+        line = rule(world, "join")
+        joiners = forecast["joiners"]
+        coalition = _france_league(world)
+        # the blind readings (November 27): a bare "past 50" beside the table's
+        # signing line of 50 read as the same scale — the fear says its own
+        # figure and names its own line
+        def _after(court: str) -> int:
+            return max(0, min(FEAR_CAP, fear_of(world, court) + int(adds.get(court, 0))
+                              - int(forecast["calms"].get(court, 0))))
+        if joiners:
+            target = (f"{league_name(coalition)} against us" if coalition is not None
+                      else "a coalition against us")
+            # the review (lane 2): "she would join … but a coalition needs 3 … so
+            # not yet" said she would join and then that nothing forms — the
+            # too-few case says she would be READY to join
+            when = str(forecast["when"] or "")
+            not_yet = when.startswith("but ")
+            if len(joiners) == 1:
+                court = joiners[0]
+                act = (f"she would be ready to join {target} — {when}" if not_yet
+                       else f"she would join {target} {when}")
+                parts.append(f"With it {_possessive(court_name(world, court))} fear of France "
+                             f"would reach {_after(court)} — past the {line} at which a country "
+                             f"joins a coalition: {act}.")
+            else:
+                names = _join_names([court_name(world, c) for c in joiners])
+                act = (f"they would be ready to join {target} — {when}" if not_yet
+                       else f"they would join {target} {when}")
+                parts.append(f"With it {names} would each fear France past {line}, the line at "
+                             f"which a country joins a coalition: {act}.")
+        quiet = [c for c in forecast["crossing"] if c not in joiners
+                 and not world.is_at_war(_player(world), c)]
+        for court in quiet:
+            why = why_out(world, court) or "she is already at war with us"
+            parts.append(f"{_cap(_possessive(court_name(world, court)))} fear of France would "
+                         f"reach {_after(court)}, past {line}, but she would stay out: {why}.")
+    calms = forecast["calms"]
+    for court, amount in sorted(calms.items()):
+        given = forecast["calmed_by"].get(court) or []
+        parts.append(f"Handing back {_join_names(given)} would calm "
+                     f"{court_name(world, court)}: her fear of France falls {int(amount)}.")
+    return " ".join(parts)
+
+
 def fade(world) -> None:
     """2 a turn, every court; a court at 0 leaves the store."""
     if not chooses(world):
@@ -513,6 +816,32 @@ def fade(world) -> None:
         else:
             store.pop(court, None)
     world.court_grudges = store
+    # FUN-2b: the calm's ledger keeps only provinces France's house still
+    # holds, and what each taking added fades as the fear does (the review,
+    # lane 1: an old conquest handed back must not wipe fear a NEWER taking
+    # added). One pass over the ledger itself — at most France's conquests,
+    # never a scan of the map.
+    book = getattr(world, "fear_book", None)
+    taken = (book or {}).get("taken") if isinstance(book, dict) else None
+    if isinstance(taken, dict) and taken:
+        regions = getattr(world, "regions", {}) or {}
+        for name in list(taken):
+            region = regions.get(name)
+            holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+            if not in_player_house(world, holder):
+                taken.pop(name, None)
+                continue
+            row = taken[name]
+            for court in list(row):
+                left = int(row.get(court, 0) or 0) - step
+                if left > 0:
+                    row[court] = left
+                else:
+                    row.pop(court, None)
+            if not row:
+                taken.pop(name, None)
+        if not taken:
+            book.pop("taken", None)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -784,6 +1113,12 @@ def _cap(text: str) -> str:
     return text[:1].upper() + text[1:] if text else text
 
 
+def _possessive(name: str) -> str:
+    """"Saxony's", "the Papal States'" (`display_names.possessive`)."""
+    from backend.display_names import possessive
+    return possessive(name)
+
+
 def league_when(world, region_name: str, joiners: List[str]) -> str:
     """When the league the warning names would gather, in plain words."""
     from backend.game_logic.coalition import (
@@ -974,9 +1309,11 @@ def fear_rows(world) -> List[Dict[str, Any]]:
 
 def league_footer(world) -> str:
     """The rule in one paragraph, plain — the Balance tab under its rows."""
-    return (f"Each province we take by force frightens the countries: the loser and its "
-            f"neighbours most, a capital three times as much, a country that lost or "
-            f"wants that land twice as much. Fear falls {rule(world, 'fade')} a turn. "
+    return (f"Each province we take — by force or at the peace table — frightens the "
+            f"countries: the loser and its neighbours most, a capital three times as much, a "
+            f"country that lost or wants that land twice as much. A province we hand back "
+            f"calms the country it goes to by as much as taking it frightened her. Fear "
+            f"falls {rule(world, 'fade')} a turn. "
             f"A country whose fear passes {rule(world, 'join')} joins a coalition against "
             f"us — unless it is our ally, our vassal or under truce with us, or it neither "
             f"borders us (or one of our vassals) nor lost or wants land we hold. A "

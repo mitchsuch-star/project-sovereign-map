@@ -33,12 +33,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14k (§152–§160); RE ✅ Nov 2; AU ✅ Nov 3–6;
-> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–4b Nov 19–23 (§229–§236); row IC ✅; FR-1, FR-2 ✅ Nov 23 (§237–§238); FUN-1–2 ✅ Nov 25–26 (§239–§240); then FUN-2b…5, S16, TU, H**.
+> **S15's head ✅ Nov 6 (§177); S15-R tiers 0–6, 8 ✅ Nov 10 (§201–§206); G–G5, UI–UI-6, BA-1–6, MC, OC, PW ✅ Nov 11–19 (§207–§228); IC desk, directives, v6, Sessions 2–4b Nov 19–23 (§229–§236); row IC ✅; FR-1, FR-2 ✅ Nov 23 (§237–§238); FUN-1–2b ✅ Nov 25–27 (§239–§241); then FUN-3…5, S16, TU, H**.
 
-**▶ LIVE STATE (Nov 26, 2026).** Last three rows:
+**▶ LIVE STATE (Nov 27, 2026).** Last three rows:
+- **Row FUN FUN-2b (Nov 27) — every province priced; no whole country (§241)**.
 - **Row FUN FUN-2 (Nov 26) — fear per court, unheld land rises (§240)**.
 - **Row FUN FUN-1 (Nov 25) — the hands: box = click, steady line, crossings name the way (§239)**.
-- **Row FR Session FR-2 (Nov 23) — WS-R's 12 finds: 11 fixed, 1 refuted; 0 open rows (§238)**.
 
 **Open with the user:** the certificate (a purchase).
 

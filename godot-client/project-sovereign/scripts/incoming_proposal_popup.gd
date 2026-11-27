@@ -595,6 +595,9 @@ func show_proposal(data: Dictionary):
 		accept_btn.text = "Return"
 		reject_btn.text = "Keep"
 		reject_btn.tooltip_text = str(data.get("keep_line", ""))
+		# FUN-2b: handing it back calms the court — said on the letter (its
+		# clauses) and on the button, as the refusal's price is on Keep
+		accept_btn.tooltip_text = str(data.get("return_line", ""))
 	else:
 		accept_btn.text = "Accept Terms" if is_counter else "Accept"
 		reject_btn.text = "Reject Terms" if is_counter else "Reject"

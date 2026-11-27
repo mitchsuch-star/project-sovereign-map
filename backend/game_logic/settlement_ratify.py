@@ -429,6 +429,22 @@ def _apply_settlement_terms(
             if from_nation:
                 cede_from_regions = set(getattr(world, "get_nation_regions")(from_nation))
             if from_nation and regions and cede_from_regions:
+                # FUN-2b (WHOLE): a peace France's house signs never takes a
+                # court's every province, whatever the score — this clause
+                # would take all it still holds (the clauses before it have
+                # moved their land already). The validator refuses it first;
+                # this is the defence in depth, named, never silent.
+                from backend.game_logic import land_price as _land_price
+                if (not (cede_from_regions - set(regions))
+                        and _land_price.whole_rule_binds(world, from_nation, to_nation,
+                                                         war_instance=_instance)):
+                    _dropped.append({"type": "territory_cede", "regions": list(regions),
+                                     "from": from_nation, "to": to_nation,
+                                     "reason": "takes_every_province",
+                                     "display": (f"{', '.join(regions)} not carried — no country "
+                                                 f"gives up all its land at one peace, and "
+                                                 f"{from_nation} would keep no province")})
+                    continue
                 if len(cede_from_regions - set(regions)) == 0:
                     ws_key = world._make_diplo_key(from_nation, to_nation)
                     ws = abs(int(getattr(world, "war_scores", {}).get(ws_key, 0) or 0))

@@ -961,6 +961,179 @@ def _crowns_first(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [next(ordered) if r.get("group") == "demand" else r for r in rows]
 
 
+def _clause_index(entry: Mapping[str, Any]) -> int:
+    """A demand line's clause index, -1 when absent or unreadable (the review:
+    a present-but-null key must not break the whole table's build)."""
+    try:
+        value = entry.get("clause_index")
+        return int(value) if value is not None else -1
+    except (TypeError, ValueError):
+        return -1
+
+
+def _stamp_land_prices(
+    world: Any,
+    per_court_acceptance: List[Dict[str, Any]],
+    *,
+    war_id: str,
+    war_instance: Mapping[str, Any],
+    proposer_side: str,
+    accepting_side: str,
+    proposer_leader: str,
+    proposer_participants: List[str],
+    covered: Iterable[str],
+    terms: List[Mapping[str, Any]],
+    promised: Set[str],
+) -> bool:
+    """FUN-2b (row FUN, "peace terms priced"): every province on the table
+    says what it costs its court, read by re-scoring the package
+    (`land_price.price_rows` — the same aggregator the court's number comes
+    from). Stamps, in place:
+
+    * each land line a court gives now — `price`, `price_display`;
+    * each land row offered (a province, a client state carved from her) —
+      `price`, `price_display`; greyed (`available` False,
+      `disabled_reason_display`) when she would not sign with it or it takes
+      the last province she holds; a province row's dropdown keeps only the
+      provinces she would still give;
+    * the court's `land_line` — how many more provinces she would give now.
+
+    Returns whether anything was stamped (the legend rides only then). An
+    unarmed world stamps nothing (the old table, byte for byte)."""
+    from backend.game_logic import land_price as _lp
+    if not _lp.armed(world) or not war_id or not war_instance:
+        return False
+    offers_bind = _lp.offers_bind(world)
+    pools: Dict[str, List[str]] = {}
+    courts: List[str] = []
+    for row in per_court_acceptance:
+        court = str(row.get("nation") or "")
+        if not court:
+            continue
+        land_lines = [d for d in (row.get("current_demands") or [])
+                      if d.get("clause_type") == "territory_cede"
+                      and 0 <= _clause_index(d) < len(terms)
+                      and str(terms[int(d["clause_index"])].get("from") or "") == court]
+        land_rows = [s for s in (row.get("demand_suggestions") or [])
+                     if s.get("clause_type") == "territory_cede" and s.get("group") == "demand"]
+        if not land_lines and not land_rows and str(row.get("direction") or "") != "demand":
+            continue
+        pool = list(_demand_baseline_region_candidates(
+            world, court=court, proposer_side_participants=proposer_participants,
+            excluded_regions=promised))
+        for sugg in land_rows:
+            extra = [str((sugg.get("action_params") or {}).get("region") or "")]
+            extra += [str(r) for r in (sugg.get("region_options") or [])]
+            for region in extra:
+                if region and region not in pool:
+                    pool.append(region)
+        pools[court] = pool
+        courts.append(court)
+    if not courts:
+        return False
+    prices = _lp.price_rows(
+        world, war_id=war_id, war_instance=war_instance, proposer_side=proposer_side,
+        accepting_side=accepting_side, proposer_side_leader=proposer_leader,
+        covered=covered, terms=list(terms), pools=pools, receiver=proposer_leader)
+    stamped = False
+    for row in per_court_acceptance:
+        court = str(row.get("nation") or "")
+        if court not in pools:
+            continue
+        reading = prices.get(court) or {}
+        total = reading.get("total")
+        has_land = False
+        for line in row.get("current_demands") or []:
+            idx = _clause_index(line)
+            if idx not in (reading.get("lines") or {}):
+                continue
+            region = str(terms[idx].get("region") or "")
+            price = int(reading["lines"][idx])
+            line["price"] = price
+            line["price_display"] = _lp.price_words(
+                price, _lp.is_home_capital(world, court, region), counted_in=total)
+            has_land = True
+            stamped = True
+        for sugg in row.get("demand_suggestions") or []:
+            if sugg.get("group") != "demand":
+                continue
+            if (sugg.get("clause_type") == "create_client"
+                    and sugg.get("available", True) is not False):
+                # a client state carved from her: priced and gated as land
+                carve = {"type": "create_client", "from": court, "to": proposer_leader,
+                         "tag": str((sugg.get("action_params") or {}).get("tag") or ""),
+                         "provinces": [str(p) for p in (sugg.get("provinces") or []) if p]}
+                if not carve["provinces"]:
+                    continue
+                table = _lp.table_for(world, war_id=war_id, war_instance=war_instance,
+                                      proposer_side=proposer_side, accepting_side=accepting_side,
+                                      proposer_side_leader=proposer_leader, covered=covered)
+                got = table.offer(list(terms), court, carve)
+                if got["price"] is not None:
+                    sugg["price"] = int(got["price"])
+                    sugg["price_display"] = _lp.price_words(int(got["price"]), after=got["after"])
+                    stamped = True
+                # (the real-client press, November 27: a row greyed for its PRICE
+                # printed its template's "(requires Carniola, Croatia)" — met,
+                # France holds both — as if it were the reason; it goes)
+                if not got["keeps_one"]:
+                    sugg["available"] = False
+                    sugg["gate_terms"] = ""
+                    sugg["disabled_reason_display"] = _lp.LAST_PROVINCE_WORDS
+                elif offers_bind and not got["signs"] and got["price"] is not None:
+                    sugg["gate_terms"] = ""
+                    from backend.display_names import with_definite_article
+                    client = with_definite_article(
+                        str(sugg.get("client_display_name") or "this state"))
+                    sugg["available"] = False
+                    sugg["disabled_reason_display"] = _lp.refusal_words(
+                        f"carving {client} out of her lands", int(got["price"]), total,
+                        after=got["after"])
+                continue
+            if sugg.get("clause_type") != "territory_cede":
+                continue
+            region = str((sugg.get("action_params") or {}).get("region") or "")
+            offer = (reading.get("offers") or {}).get(region)
+            if not offer:
+                continue
+            stamped = True
+            sugg["price"] = int(offer["price"])
+            sugg["price_display"] = _lp.price_words(
+                int(offer["price"]), _lp.is_home_capital(world, court, region),
+                after=offer["after"])
+            if not offer["keeps_one"]:
+                sugg["available"] = False
+                sugg["disabled_reason_display"] = _lp.LAST_PROVINCE_WORDS
+                continue
+            if offers_bind and not offer["signs"]:
+                sugg["available"] = False
+                sugg["disabled_reason_display"] = _lp.refusal_words(
+                    f"taking {region}", int(offer["price"]), total, after=offer["after"])
+                continue
+            if offers_bind and sugg.get("region_options"):
+                sugg["region_options"] = [
+                    r for r in sugg["region_options"]
+                    if ((reading.get("offers") or {}).get(str(r)) or {}).get("signs")]
+            # (the review, lane 2: the row's price is its first province's —
+            # each province in the dropdown says its own)
+            if sugg.get("region_options"):
+                labels = []
+                for r in sugg["region_options"]:
+                    got = (reading.get("offers") or {}).get(str(r)) or {}
+                    words = (_lp.price_words(int(got["price"]),
+                                             _lp.is_home_capital(world, court, str(r)),
+                                             after=got.get("after"))
+                             if got.get("price") is not None else "")
+                    labels.append(f"{r} ({words})" if words else str(r))
+                sugg["region_labels"] = labels
+        if str(row.get("direction") or "") == "demand" or has_land:
+            row["land_line"] = _lp.gives_words(
+                int(reading.get("gives") or 0), int(reading.get("holds") or 0),
+                total, has_land=has_land)
+            stamped = True
+    return stamped
+
+
 def _court_demand_suggestions(
     world: Any,
     *,
@@ -1318,6 +1491,7 @@ def _court_demand_suggestions(
                 ),
                 gate_terms=gate_terms,
                 provinces=list(provinces),
+                client_display_name=client,
                 **_crown_row_extras(world, template, proposer_leader, available),
             ))
 
@@ -2571,7 +2745,8 @@ def build_settlement_preview(
     if (generate_baseline_when_empty or declared_when_empty) and not terms:
         from backend.game_logic.declared_goals import declared_draft as _declared_draft
         terms = _declared_draft(world, war_instance=instance, proposer_side=side,
-                                proposer_leader=proposer_leader, covered=covered)
+                                proposer_leader=proposer_leader, covered=covered,
+                                war_id=str(war_id))
         declared_generated = bool(terms)
     if generate_baseline_when_empty and not terms:
         baseline_payload = compute_settlement_baseline(
@@ -4456,6 +4631,23 @@ def build_settlement_confirm_dialogue(
                     income_cache=guided_income_cache,
                     covered_courts=covered,
                 ))
+    # FUN-2b (row FUN, "peace terms priced"): each province on the table says
+    # what it costs its court; each court France takes land from says how many
+    # more it would give; one line says the peace's fear of France (read
+    # before the click, as the order card says a capture's). Both modes — the
+    # REVIEW surface shows the price it will sign.
+    land_priced = _stamp_land_prices(
+        world, per_court_acceptance, war_id=str(war_id), war_instance=war_instance,
+        proposer_side=proposer_side, accepting_side=accepting_side,
+        proposer_leader=guided_proposer_leader,
+        proposer_participants=[str(n) for n in (war_instance.get(proposer_side) or []) if n],
+        covered=covered, terms=list(staged_terms_for_gate or []),
+        promised=_promised_regions_in_terms(staged_terms_for_gate or []))
+    from backend.game_logic import fear as _fear
+    from backend.game_logic import land_price as _land_price
+    land_legend = _land_price.legend_words() if land_priced else ""
+    fear_line = _fear.table_line(world, [dict(t) for t in (staged_terms_for_gate or [])
+                                          if isinstance(t, Mapping)])
     if dialogue_mode == "PROPOSE" and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND:
         # PROPOSE is the conversational front: an authoring rail, not a
         # staged-decision rail. Submit for Review (-> REVIEW), Back Out. No
@@ -4665,6 +4857,10 @@ def build_settlement_confirm_dialogue(
         # REFRONT-V: each per-court row carries `voice_line` + `speaker_display`
         # (named diplomat / chancery fallback); Talleyrand narrates the table.
         "per_court_acceptance": per_court_acceptance,
+        # FUN-2b: the table's price rule in one line (only when a province on
+        # it is priced) and the peace's fear of France ('' when it moves none).
+        "land_legend": land_legend,
+        "fear_line": fear_line,
         "overall_acceptance": _verdict_beside_the_button(
             overall_acceptance, white_peace=bool(white_peace),
             can_ratify=bool(can_ratify)),

@@ -912,7 +912,11 @@ def aim_cessions(world, nation: str, enemy: str, *,
     from backend.game_logic.diplomacy import get_war_score_for
     from backend.game_logic.settlement_scoring import TOTAL_ANNEXATION_WAR_SCORE
     if not world.get_nation_regions(enemy):
+        # FUN-2b (WHOLE): a court of France's house is never signed away
+        # whole, whatever the score (the brief's "both sides").
+        from backend.game_logic import land_price as _land_price
         if (enemy in _CANONICAL_MAJORS
+                or _land_price.whole_rule_binds(world, nation, enemy)
                 or int(get_war_score_for(world, nation, enemy))
                 < int(TOTAL_ANNEXATION_WAR_SCORE)):
             return []

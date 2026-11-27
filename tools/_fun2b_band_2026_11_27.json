@@ -1,0 +1,34 @@
+{
+ "_note": "Row FUN, Session FUN-2b \u2014 the France band on the commanded arms (the deploy gate's difficulty guard, 23\u201328; FUN-2b reports it, never gates): score_run's CMD-H / CMD-A / CMD-M per arm, France's provinces on the last ledger row. Arm 0 holds every FUN-2b seam down and must read 28 / 28 / 25 (row FUN-2's reading); arm ALL is the shipped tree. Written by tools/_fun2b_band_measure.py.",
+ "band": [
+  23,
+  28
+ ],
+ "standing": {
+  "CMD-H": 28,
+  "CMD-A": 28,
+  "CMD-M": 25
+ },
+ "arms": {
+  "0": {
+   "seams": [
+    "backend.game_logic.land_price:the_tables_price_keeps_rising=False",
+    "backend.game_logic.land_price:no_court_signs_away_every_province=False",
+    "backend.game_logic.land_price:the_table_offers_only_what_the_war_buys=False",
+    "backend.game_logic.fear:land_at_the_table_frightens=False",
+    "backend.game_logic.fear:land_handed_back_calms=False"
+   ],
+   "CMD-H": 28,
+   "CMD-A": 28,
+   "CMD-M": 25,
+   "_holds": true
+  },
+  "ALL": {
+   "seams": [],
+   "CMD-H": 28,
+   "CMD-A": 28,
+   "CMD-M": 25,
+   "_holds": true
+  }
+ }
+}
